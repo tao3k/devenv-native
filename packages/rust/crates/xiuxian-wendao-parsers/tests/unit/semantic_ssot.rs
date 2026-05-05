@@ -508,6 +508,232 @@ fn semantic_repository_reports_candidate_with_authoritative_confidence() {
 }
 
 #[test]
+fn semantic_repository_accepts_status_transition_intent() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/task/accepted.md"),
+        semantic_object_fixture(
+            "task.accepted",
+            "task",
+            "Accepted Task",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["task.accepted", "invariant.test"], "outdated", "stale"),
+    );
+    refresh_projection_as_fresh(temp.path(), &["task.accepted", "invariant.test"]);
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_status_transitions(
+            "task.accepted",
+            "invariant.test",
+            "task.accepted",
+            "invariant.test",
+            "llm_compression",
+            &[],
+            &[("task.accepted", "candidate", "active")],
+        ),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+
+    assert!(
+        repository.report.is_success(),
+        "status transition intent should validate: {:?}",
+        repository.report.issues
+    );
+}
+
+#[test]
+fn semantic_repository_reports_status_transition_target_mismatch() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/task/accepted.md"),
+        semantic_object_fixture(
+            "task.accepted",
+            "task",
+            "Accepted Task",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["task.accepted", "invariant.test"], "outdated", "stale"),
+    );
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_status_transitions(
+            "task.accepted",
+            "invariant.test",
+            "task.accepted",
+            "invariant.test",
+            "llm_compression",
+            &[],
+            &[("task.accepted", "candidate", "retired")],
+        ),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+    let messages = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| issue.message.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("current status must match transition target")),
+        "target mismatch should be reported: {messages:?}"
+    );
+}
+
+#[test]
+fn semantic_repository_reports_status_transition_missing_touched_object() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/component/test.md"),
+        semantic_object_fixture(
+            "component.test",
+            "component",
+            "Component Test",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/task/accepted.md"),
+        semantic_object_fixture("task.accepted", "task", "Accepted Task", "active", ""),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(
+            &["component.test", "invariant.test", "task.accepted"],
+            "outdated",
+            "stale",
+        ),
+    );
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_status_transitions(
+            "component.test",
+            "invariant.test",
+            "component.test",
+            "invariant.test",
+            "llm_compression",
+            &[],
+            &[("task.accepted", "candidate", "active")],
+        ),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+    let messages = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| issue.message.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("must also be listed in touched_objects")),
+        "missing touched object should be reported: {messages:?}"
+    );
+}
+
+#[test]
+fn semantic_repository_reports_disallowed_status_transition() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/task/accepted.md"),
+        semantic_object_fixture(
+            "task.accepted",
+            "task",
+            "Accepted Task",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["task.accepted", "invariant.test"], "outdated", "stale"),
+    );
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_status_transitions(
+            "task.accepted",
+            "invariant.test",
+            "task.accepted",
+            "invariant.test",
+            "llm_compression",
+            &[],
+            &[("task.accepted", "retired", "active")],
+        ),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+    let messages = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| issue.message.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("is not allowed")),
+        "disallowed transition should be reported: {messages:?}"
+    );
+}
+
+#[test]
 fn semantic_repository_reports_invalid_change_intent_references() {
     let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
     write_file(
@@ -699,6 +925,26 @@ fn semantic_change_intent_fixture_with_candidates(
     projection: &str,
     candidate_suggestions: &[&str],
 ) -> String {
+    semantic_change_intent_fixture_with_status_transitions(
+        touched_object,
+        affected_invariant,
+        relation_source,
+        relation_target,
+        projection,
+        candidate_suggestions,
+        &[],
+    )
+}
+
+fn semantic_change_intent_fixture_with_status_transitions(
+    touched_object: &str,
+    affected_invariant: &str,
+    relation_source: &str,
+    relation_target: &str,
+    projection: &str,
+    candidate_suggestions: &[&str],
+    status_transitions: &[(&str, &str, &str)],
+) -> String {
     let mut rendered_candidate_suggestions = String::new();
     if candidate_suggestions.is_empty() {
         rendered_candidate_suggestions.push_str("[]\n");
@@ -707,6 +953,19 @@ fn semantic_change_intent_fixture_with_candidates(
         for object_id in candidate_suggestions {
             writeln!(&mut rendered_candidate_suggestions, "  - {object_id}")
                 .unwrap_or_else(|error| panic!("render candidate suggestion: {error}"));
+        }
+    }
+    let mut rendered_status_transitions = String::new();
+    if status_transitions.is_empty() {
+        rendered_status_transitions.push_str("[]\n");
+    } else {
+        rendered_status_transitions.push('\n');
+        for (object_id, from, to) in status_transitions {
+            writeln!(
+                &mut rendered_status_transitions,
+                "  - object_id: {object_id}\n    from: {from}\n    to: {to}"
+            )
+            .unwrap_or_else(|error| panic!("render status transition: {error}"));
         }
     }
     format!(
@@ -723,6 +982,7 @@ fn semantic_change_intent_fixture_with_candidates(
             "    kind: validates\n",
             "    target: {relation_target}\n",
             "    action: add\n",
+            "status_transitions: {rendered_status_transitions}",
             "affected_invariants:\n",
             "  - {affected_invariant}\n",
             "required_validations:\n",
@@ -739,5 +999,6 @@ fn semantic_change_intent_fixture_with_candidates(
         relation_target = relation_target,
         projection = projection,
         rendered_candidate_suggestions = rendered_candidate_suggestions,
+        rendered_status_transitions = rendered_status_transitions,
     )
 }

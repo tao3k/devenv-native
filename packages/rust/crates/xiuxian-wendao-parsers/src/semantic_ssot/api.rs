@@ -342,6 +342,10 @@ fn change_intent_intersects_scope(
                 || selected_ids.contains(relation.target.as_str())
         })
         || intent
+            .status_transitions
+            .iter()
+            .any(|transition| selected_ids.contains(transition.object_id.as_str()))
+        || intent
             .candidate_suggestions
             .iter()
             .any(|object_id| selected_ids.contains(object_id.as_str()))
@@ -740,6 +744,7 @@ fn validate_change_intent(
     validate_change_intent_metadata(intent, seen_ids, path.as_ref(), report);
     validate_change_touched_objects(intent, object_ids, path.as_ref(), report);
     validate_changed_relations(intent, object_ids, path.as_ref(), report);
+    validate_status_transitions(intent, object_ids, object_by_id, path.as_ref(), report);
     validate_affected_invariants(intent, object_ids, object_by_id, path.as_ref(), report);
     validate_change_required_validations(intent, path.as_ref(), report);
     validate_projection_refresh_targets(intent, projection_names, path.as_ref(), report);
@@ -831,6 +836,102 @@ fn validate_changed_relations(
             clone_path(path),
             report,
         );
+    }
+}
+
+fn validate_status_transitions(
+    intent: &SemanticChangeIntent,
+    object_ids: &BTreeSet<String>,
+    object_by_id: &BTreeMap<&str, &SemanticObject>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
+    let touched_objects = intent
+        .touched_objects
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    for transition in &intent.status_transitions {
+        validate_object_reference(
+            &transition.object_id,
+            object_ids,
+            "semantic status transition object",
+            clone_path(path),
+            report,
+        );
+        if transition.from == transition.to {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic status transition `{}` must change status",
+                    transition.object_id
+                ),
+            );
+        }
+        if !semantic_status_transition_allowed(&transition.from, &transition.to) {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic status transition `{}` from `{}` to `{}` is not allowed",
+                    transition.object_id,
+                    semantic_status_label(&transition.from),
+                    semantic_status_label(&transition.to)
+                ),
+            );
+        }
+        if !touched_objects.contains(transition.object_id.as_str()) {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic status transition `{}` must also be listed in touched_objects",
+                    transition.object_id
+                ),
+            );
+        }
+        if let Some(object) = object_by_id.get(transition.object_id.as_str())
+            && object.status != transition.to
+        {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic status transition `{}` current status must match transition target",
+                    transition.object_id
+                ),
+            );
+        }
+    }
+}
+
+fn semantic_status_transition_allowed(from: &SemanticStatus, to: &SemanticStatus) -> bool {
+    matches!(
+        (from, to),
+        (
+            SemanticStatus::Draft,
+            SemanticStatus::Candidate | SemanticStatus::Active
+        ) | (
+            SemanticStatus::Candidate | SemanticStatus::Deprecated,
+            SemanticStatus::Active
+        ) | (
+            SemanticStatus::Candidate
+                | SemanticStatus::Active
+                | SemanticStatus::Deprecated
+                | SemanticStatus::Superseded,
+            SemanticStatus::Retired,
+        ) | (
+            SemanticStatus::Active,
+            SemanticStatus::Deprecated | SemanticStatus::Superseded
+        )
+    )
+}
+
+fn semantic_status_label(status: &SemanticStatus) -> &'static str {
+    match status {
+        SemanticStatus::Draft => "draft",
+        SemanticStatus::Candidate => "candidate",
+        SemanticStatus::Active => "active",
+        SemanticStatus::Superseded => "superseded",
+        SemanticStatus::Deprecated => "deprecated",
+        SemanticStatus::Retired => "retired",
     }
 }
 

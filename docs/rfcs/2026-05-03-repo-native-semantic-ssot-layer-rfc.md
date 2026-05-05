@@ -61,10 +61,12 @@ As of 2026-05-05, the first physical slice is implemented:
    `wendao-client lint semantic --refresh-projections`
 8. candidate semantic objects must remain `llm_suggested` and be governed by
    active change-intent `candidate_suggestions` entries
+9. semantic change intents can declare landed `status_transitions` that the
+   parser validates against current repo facts and allowed lifecycle edges
 
 The full RFC is not complete. Remaining work includes background or
-policy-driven projection refresh, candidate promotion and retirement workflow,
-broader workflow-level Qianji consumption, and any future Julia or
+policy-driven projection refresh, automated candidate promotion and retirement
+workflow, broader workflow-level Qianji consumption, and any future Julia or
 DuckDB-backed compute/read-model expansion. Those remain advisory or derived
 lanes; they do not change repo-native authority.
 
@@ -234,7 +236,10 @@ The initial status vocabulary should be small:
 Current parser governance requires each `candidate` object to use
 `confidence.source: llm_suggested` and to be named by an active semantic
 change intent `candidate_suggestions` entry. Promotion from `candidate` to
-`active` remains a separate repository-governed workflow.
+`active` remains a repository-governed workflow. Change intents may declare
+landed `status_transitions`; the checked-out object status must match the
+transition target status, and the parser validates the lifecycle edge without
+mutating any object.
 
 ### 6.4 Example Shape
 
@@ -418,7 +423,8 @@ Every nontrivial change should be able to declare semantic intent:
 3. affected invariants
 4. required validations
 5. intended projections to refresh
-6. candidate LLM-generated suggestions, if any
+6. landed status transitions, if any
+7. candidate LLM-generated suggestions, if any
 
 Validators should reject changes when:
 

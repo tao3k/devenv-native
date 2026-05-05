@@ -78,8 +78,8 @@ Behavior:
     sources; fresh projection artifacts must also declare the current source
     revision, while stale projections must be explicitly marked stale; optional
     `semantic/change-intents/` artifacts must resolve touched objects,
-    relation endpoints, affected invariants, projection refresh targets, and
-    candidate suggestion IDs
+    relation endpoints, landed status transitions, affected invariants,
+    projection refresh targets, and candidate suggestion IDs
 24. refreshes semantic projection `source_revision` and `staleness` metadata
     only when `lint semantic --refresh-projections` is passed; this is an
     explicit derived-metadata writeback and does not regenerate projection

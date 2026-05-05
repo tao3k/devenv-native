@@ -159,6 +159,17 @@ pub struct SemanticRelationChange {
     pub action: SemanticRelationChangeAction,
 }
 
+/// Status transition declared by a semantic change intent.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticStatusTransition {
+    /// Semantic object whose lifecycle status changed.
+    pub object_id: String,
+    /// Previous lifecycle status.
+    pub from: SemanticStatus,
+    /// Current lifecycle status after the change.
+    pub to: SemanticStatus,
+}
+
 /// Freshness state declared by a semantic projection artifact.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -241,6 +252,9 @@ pub struct SemanticChangeIntent {
     /// Intended relation deltas.
     #[serde(default)]
     pub changed_relations: Vec<SemanticRelationChange>,
+    /// Landed object lifecycle status transitions.
+    #[serde(default)]
+    pub status_transitions: Vec<SemanticStatusTransition>,
     /// Existing invariant objects affected by the change.
     pub affected_invariants: Vec<String>,
     /// Required validation commands for closing the change.

@@ -27,6 +27,7 @@ changed_relations:
     kind: validates
     target: invariant.valkey-is-not-semantic-authority
     action: add
+status_transitions: []
 affected_invariants:
   - invariant.llm-output-is-not-authority
   - invariant.execution-graph-is-not-semantic-graph
