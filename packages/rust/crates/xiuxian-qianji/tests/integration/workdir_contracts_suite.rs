@@ -242,6 +242,31 @@ fn semantic_scope_metadata_with_sql_guard_json(
     value.to_string()
 }
 
+fn semantic_scope_metadata_with_projection_policy_json(
+    status: &str,
+    failing_projection_count: usize,
+    message: &str,
+) -> String {
+    let mut value =
+        serde_json::from_str::<serde_json::Value>(&semantic_scope_metadata_json("fresh", &[]))
+            .unwrap_or_else(|error| {
+                panic!("semantic-scope metadata fixture should decode: {error}")
+            });
+    value
+        .as_object_mut()
+        .unwrap_or_else(|| panic!("semantic-scope metadata fixture should be an object"))
+        .insert(
+            "semanticProjectionPolicyEvidence".to_string(),
+            serde_json::json!({
+                "policyId": "semantic_projection.required_refresh_targets",
+                "status": status,
+                "failingProjectionCount": failing_projection_count,
+                "message": message
+            }),
+        );
+    value.to_string()
+}
+
 fn step_aware_workdir_manifest() -> &'static str {
     r#"
 version = 1
@@ -803,6 +828,57 @@ fn workdir_semantic_scope_guard_trace_keeps_passed_sql_guard_ready() {
 
     assert_eq!(trace.status, WorkdirSemanticScopeGuardStatus::Ready);
     assert_eq!(trace.sql_guard_evidence.len(), 1);
+    assert!(trace.issues.is_empty());
+}
+
+#[test]
+fn workdir_semantic_scope_guard_trace_consumes_projection_policy_review_evidence() {
+    let trace = trace_workdir_semantic_scope_json(
+        &semantic_scope_metadata_with_projection_policy_json(
+            "review_required",
+            1,
+            "active change-intent projection refresh target(s) are stale",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("semantic projection policy evidence should decode: {error}"));
+
+    assert_eq!(
+        trace.status,
+        WorkdirSemanticScopeGuardStatus::ReviewRequired
+    );
+    assert_eq!(trace.projection_policy_evidence.len(), 1);
+    assert_eq!(
+        trace.projection_policy_evidence[0].policy_id,
+        "semantic_projection.required_refresh_targets"
+    );
+    assert_eq!(
+        trace.projection_policy_evidence[0].failing_projection_count,
+        1
+    );
+    assert!(
+        trace
+            .issues
+            .iter()
+            .any(|issue| issue.contains("semantic_projection.required_refresh_targets"))
+    );
+
+    let rendered = render_workdir_semantic_scope_guard_trace(&trace);
+    assert!(rendered.contains("## Projection Policy Evidence"));
+    assert!(rendered.contains("semantic_projection.required_refresh_targets"));
+}
+
+#[test]
+fn workdir_semantic_scope_guard_trace_keeps_passed_projection_policy_ready() {
+    let trace =
+        trace_workdir_semantic_scope_json(&semantic_scope_metadata_with_projection_policy_json(
+            "passed",
+            0,
+            "all active change-intent projection refresh targets are fresh",
+        ))
+        .unwrap_or_else(|error| panic!("passed projection policy evidence should decode: {error}"));
+
+    assert_eq!(trace.status, WorkdirSemanticScopeGuardStatus::Ready);
+    assert_eq!(trace.projection_policy_evidence.len(), 1);
     assert!(trace.issues.is_empty());
 }
 

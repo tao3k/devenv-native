@@ -53,6 +53,19 @@ pub struct WorkdirSemanticSqlGuardSummary {
     pub message: String,
 }
 
+/// Compact projection freshness policy evidence consumed by Qianji as advisory context.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkdirSemanticProjectionPolicySummary {
+    /// Stable policy identifier.
+    pub policy_id: String,
+    /// Advisory policy status token.
+    pub status: String,
+    /// Count of projections that caused the policy to request review.
+    pub failing_projection_count: usize,
+    /// Human-readable policy message.
+    pub message: String,
+}
+
 /// Qianji-owned advisory trace produced from a Wendao semantic-scope bundle.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkdirSemanticScopeGuardTrace {
@@ -82,6 +95,8 @@ pub struct WorkdirSemanticScopeGuardTrace {
     pub unresolved_ids: Vec<String>,
     /// Semantic SQL guard evidence supplied by Wendao or Studio metadata.
     pub sql_guard_evidence: Vec<WorkdirSemanticSqlGuardSummary>,
+    /// Semantic projection freshness policy evidence supplied by Wendao or Studio metadata.
+    pub projection_policy_evidence: Vec<WorkdirSemanticProjectionPolicySummary>,
     /// Advisory guard issues Qianji should surface before execution.
     pub issues: Vec<String>,
 }
@@ -99,6 +114,16 @@ pub fn trace_workdir_semantic_scope_bundle(
 pub fn trace_workdir_semantic_scope_bundle_with_sql_guard_evidence(
     bundle: &SemanticScopeBundle,
     sql_guard_evidence: Vec<WorkdirSemanticSqlGuardSummary>,
+) -> WorkdirSemanticScopeGuardTrace {
+    trace_workdir_semantic_scope_bundle_with_evidence(bundle, sql_guard_evidence, Vec::new())
+}
+
+/// Build a Qianji advisory guard trace from a bundle and external semantic evidence.
+#[must_use]
+pub fn trace_workdir_semantic_scope_bundle_with_evidence(
+    bundle: &SemanticScopeBundle,
+    sql_guard_evidence: Vec<WorkdirSemanticSqlGuardSummary>,
+    projection_policy_evidence: Vec<WorkdirSemanticProjectionPolicySummary>,
 ) -> WorkdirSemanticScopeGuardTrace {
     let mut issues = Vec::new();
     if bundle.objects.is_empty() {
@@ -124,6 +149,14 @@ pub fn trace_workdir_semantic_scope_bundle_with_sql_guard_evidence(
             ));
         }
     }
+    for policy in &projection_policy_evidence {
+        if policy.status != "passed" {
+            issues.push(format!(
+                "semantic projection policy `{}` reported `{}`: {}",
+                policy.policy_id, policy.status, policy.message
+            ));
+        }
+    }
 
     let status = if bundle.objects.is_empty() || !bundle.unresolved_ids.is_empty() {
         WorkdirSemanticScopeGuardStatus::Blocked
@@ -131,6 +164,9 @@ pub fn trace_workdir_semantic_scope_bundle_with_sql_guard_evidence(
         || sql_guard_evidence
             .iter()
             .any(|guard| guard.status != "passed")
+        || projection_policy_evidence
+            .iter()
+            .any(|policy| policy.status != "passed")
     {
         WorkdirSemanticScopeGuardStatus::ReviewRequired
     } else {
@@ -168,6 +204,7 @@ pub fn trace_workdir_semantic_scope_bundle_with_sql_guard_evidence(
             .map(str::to_string),
         unresolved_ids: bundle.unresolved_ids.clone(),
         sql_guard_evidence,
+        projection_policy_evidence,
         issues,
     }
 }
@@ -190,13 +227,15 @@ pub fn trace_workdir_semantic_scope_json(
         ))
     })?;
     let sql_guard_evidence = semantic_sql_guard_summaries_from_metadata(&value)?;
+    let projection_policy_evidence = semantic_projection_policy_summaries_from_metadata(&value)?;
     let bundle_value = value.get("semanticScopeBundle").cloned().unwrap_or(value);
     let bundle = serde_json::from_value::<SemanticScopeBundle>(bundle_value).map_err(|error| {
         QianjiError::Topology(format!("failed to decode semantic-scope bundle: {error}"))
     })?;
-    Ok(trace_workdir_semantic_scope_bundle_with_sql_guard_evidence(
+    Ok(trace_workdir_semantic_scope_bundle_with_evidence(
         &bundle,
         sql_guard_evidence,
+        projection_policy_evidence,
     ))
 }
 
@@ -249,6 +288,21 @@ pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGua
             );
             if !guard.message.is_empty() {
                 let _ = write!(rendered, " - {}", guard.message);
+            }
+            rendered.push('\n');
+        }
+    }
+
+    if !trace.projection_policy_evidence.is_empty() {
+        rendered.push_str("\n## Projection Policy Evidence\n\n");
+        for policy in &trace.projection_policy_evidence {
+            let _ = write!(
+                rendered,
+                "- {}: {} ({} failing projection(s))",
+                policy.policy_id, policy.status, policy.failing_projection_count
+            );
+            if !policy.message.is_empty() {
+                let _ = write!(rendered, " - {}", policy.message);
             }
             rendered.push('\n');
         }
@@ -330,6 +384,80 @@ fn semantic_sql_guard_usize(
         .ok_or_else(|| {
             QianjiError::Topology(format!(
                 "semantic SQL guard evidence is missing integer field `{camel_key}`"
+            ))
+        })
+}
+
+fn semantic_projection_policy_summaries_from_metadata(
+    value: &serde_json::Value,
+) -> Result<Vec<WorkdirSemanticProjectionPolicySummary>, QianjiError> {
+    let Some(evidence_value) = value
+        .get("semanticProjectionPolicyEvidence")
+        .or_else(|| value.get("semantic_projection_policy_evidence"))
+    else {
+        return Ok(Vec::new());
+    };
+
+    match evidence_value {
+        serde_json::Value::Null => Ok(Vec::new()),
+        serde_json::Value::Array(values) => values
+            .iter()
+            .map(semantic_projection_policy_summary_from_value)
+            .collect(),
+        serde_json::Value::Object(_) => Ok(vec![semantic_projection_policy_summary_from_value(
+            evidence_value,
+        )?]),
+        _ => Err(QianjiError::Topology(
+            "`semanticProjectionPolicyEvidence` must be an object or array".to_string(),
+        )),
+    }
+}
+
+fn semantic_projection_policy_summary_from_value(
+    value: &serde_json::Value,
+) -> Result<WorkdirSemanticProjectionPolicySummary, QianjiError> {
+    Ok(WorkdirSemanticProjectionPolicySummary {
+        policy_id: semantic_projection_policy_string(value, "policyId", "policy_id")?,
+        status: semantic_projection_policy_string(value, "status", "status")?,
+        failing_projection_count: semantic_projection_policy_usize(
+            value,
+            "failingProjectionCount",
+            "failing_projection_count",
+        )?,
+        message: semantic_projection_policy_string(value, "message", "message")?,
+    })
+}
+
+fn semantic_projection_policy_string(
+    value: &serde_json::Value,
+    camel_key: &str,
+    snake_key: &str,
+) -> Result<String, QianjiError> {
+    value
+        .get(camel_key)
+        .or_else(|| value.get(snake_key))
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| {
+            QianjiError::Topology(format!(
+                "semantic projection policy evidence is missing string field `{camel_key}`"
+            ))
+        })
+}
+
+fn semantic_projection_policy_usize(
+    value: &serde_json::Value,
+    camel_key: &str,
+    snake_key: &str,
+) -> Result<usize, QianjiError> {
+    value
+        .get(camel_key)
+        .or_else(|| value.get(snake_key))
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|raw| usize::try_from(raw).ok())
+        .ok_or_else(|| {
+            QianjiError::Topology(format!(
+                "semantic projection policy evidence is missing integer field `{camel_key}`"
             ))
         })
 }
