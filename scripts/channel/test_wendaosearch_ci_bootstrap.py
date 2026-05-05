@@ -43,10 +43,12 @@ def test_ci_bootstraps_parser_summary_with_wendaocodeparser() -> None:
 def test_ci_bootstraps_wendaosearch_solver_demo_with_julia_pkg() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
-    assert (
-        "git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git"
-        in workflow
-    )
+    assert "WENDAOSEARCH_REPO_TOKEN: ${{ secrets.WENDAOSEARCH_REPO_TOKEN }}" in workflow
+    assert "missing WENDAOSEARCH_REPO_TOKEN secret" in workflow
+    assert "printf 'x-access-token:%s' \"${WENDAOSEARCH_REPO_TOKEN}\"" in workflow
+    assert "http.https://github.com/.extraheader=AUTHORIZATION: basic" in workflow
+    assert "clone --depth 1 --branch main" in workflow
+    assert "https://github.com/tao3k/WendaoSearch.jl.git" in workflow
     assert 'git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD' in workflow
     assert "WendaoSearch main Project.toml must declare HiGHS" not in workflow
     assert "ensure_registry" not in workflow

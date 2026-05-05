@@ -440,11 +440,18 @@ jobs:
           managed_listener_matches_pidfile "${WENDAO_CODE_PARSER_PIDFILE}" "${WENDAO_CODE_PARSER_PORT}"
 
       - name: Bootstrap WendaoSearch solver-demo runtime dependencies
+        env:
+          WENDAOSEARCH_REPO_TOKEN: ${{ secrets.WENDAOSEARCH_REPO_TOKEN }}
         run: |
           set -euo pipefail
           export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
           export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
-          git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
+          : "${WENDAOSEARCH_REPO_TOKEN:?missing WENDAOSEARCH_REPO_TOKEN secret with read access to tao3k/WendaoSearch.jl}"
+          auth_header="$(printf 'x-access-token:%s' "${WENDAOSEARCH_REPO_TOKEN}" | base64 | tr -d '\n')"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" \
+            clone --depth 1 --branch main \
+            https://github.com/tao3k/WendaoSearch.jl.git \
+            "${WENDAOSEARCH_PACKAGE_DIR}"
           git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg
