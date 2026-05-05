@@ -23,10 +23,10 @@ pub(crate) struct LocalCorpusBootstrapStatus {
 }
 
 impl StudioState {
-    fn local_corpus_bundle_active_or_inflight(&self, corpora: &[SearchCorpusKind]) -> bool {
-        corpora.iter().copied().all(|corpus| {
+    fn local_corpus_bundle_indexing(&self, corpora: &[SearchCorpusKind]) -> bool {
+        corpora.iter().copied().any(|corpus| {
             let status = self.search_plane.coordinator().status_for(corpus);
-            status.active_epoch.is_some() || matches!(status.phase, SearchPlanePhase::Indexing)
+            matches!(status.phase, SearchPlanePhase::Indexing)
         })
     }
 
@@ -35,7 +35,7 @@ impl StudioState {
         configured_projects: &[crate::studio::types::UiProjectConfig],
         source: &'static str,
     ) {
-        if self.local_corpus_bundle_active_or_inflight(&[
+        if self.local_corpus_bundle_indexing(&[
             SearchCorpusKind::KnowledgeSection,
             SearchCorpusKind::Attachment,
         ]) {
@@ -80,11 +80,11 @@ impl StudioState {
         configured_projects: &[crate::studio::types::UiProjectConfig],
         source: &'static str,
     ) {
-        let bundle_active_or_inflight = self.local_corpus_bundle_active_or_inflight(&[
+        let bundle_indexing = self.local_corpus_bundle_indexing(&[
             SearchCorpusKind::LocalSymbol,
             SearchCorpusKind::ReferenceOccurrence,
         ]);
-        if !bundle_active_or_inflight {
+        if !bundle_indexing {
             let scan_inventory = self
                 .search_plane
                 .scan_supported_projects_with_repeat_work_details(

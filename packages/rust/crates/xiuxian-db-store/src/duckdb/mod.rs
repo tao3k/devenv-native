@@ -17,7 +17,7 @@ pub use ducklake::{
     build_ducklake_extension_bootstrap_sql, build_ducklake_use_sql,
 };
 #[cfg(feature = "duckdb")]
-pub use ducklake::{append_ducklake_record_batches, attach_ducklake};
+pub use ducklake::{DuckLakeRecordBatchAppender, append_ducklake_record_batches, attach_ducklake};
 pub use runtime::{DuckDbDatabasePath, DuckDbExecutionConfig, DuckDbRuntimeConfig};
 pub use sql::{
     build_drop_duckdb_registered_relation_sql, build_duckdb_parquet_view_sql,

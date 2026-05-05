@@ -16,10 +16,8 @@ fn lint_with_required_frontmatter(body: &str) -> xiuxian_wendao_parsers::Markdow
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "{}"
         ),

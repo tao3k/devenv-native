@@ -44,6 +44,26 @@ pub fn load_ui_config_from_wendao_toml_path(config_path: &Path) -> Option<UiConf
     Some(ui_config_from_wendao_toml(parsed))
 }
 
+#[must_use]
+pub(crate) fn load_document_extract_endpoint_from_wendao_toml(
+    config_root: &Path,
+) -> Option<String> {
+    let config_path = studio_effective_wendao_toml_path(config_root);
+    load_document_extract_endpoint_from_wendao_toml_path(config_path.as_path())
+}
+
+#[must_use]
+pub(crate) fn load_document_extract_endpoint_from_wendao_toml_path(
+    config_path: &Path,
+) -> Option<String> {
+    if !config_path.is_file() {
+        return None;
+    }
+
+    let parsed = load_wendao_toml_config(config_path).ok()?;
+    normalize_endpoint(parsed.document_extract.endpoint.as_deref())
+}
+
 fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
     let mut projects = Vec::new();
     let mut repo_projects = Vec::new();
@@ -110,4 +130,9 @@ fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
         projects: sanitize_projects(projects),
         repo_projects: sanitize_repo_projects(repo_projects),
     }
+}
+
+fn normalize_endpoint(raw: Option<&str>) -> Option<String> {
+    let endpoint = raw?.trim().trim_end_matches('/');
+    (!endpoint.is_empty()).then(|| endpoint.to_string())
 }

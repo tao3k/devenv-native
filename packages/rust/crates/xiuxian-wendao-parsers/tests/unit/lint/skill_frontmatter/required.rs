@@ -15,10 +15,9 @@ fn lint_reports_missing_skill_frontmatter_name() {
         "date: 2026-04-26T09:30-07:00\n",
         "type: skill\n",
         "description: Demo skill\n",
+        "saliency_base: 5.5\n",
+        "decay_rate: 0.05\n",
         "metadata:\n",
-        "  retrieval:\n",
-        "    saliency_base: 5.5\n",
-        "    decay_rate: 0.05\n",
         "  author: xiuxian-artisan-workshop\n",
         "  version: \"1.0.0\"\n",
         "  source: \"https://example.test/skills/demo\"\n",
@@ -84,10 +83,9 @@ fn lint_reports_skill_frontmatter_missing_metadata_version() {
         "type: skill\n",
         "name: demo-skill\n",
         "description: Demo skill\n",
+        "saliency_base: 5.5\n",
+        "decay_rate: 0.05\n",
         "metadata:\n",
-        "  retrieval:\n",
-        "    saliency_base: 5.5\n",
-        "    decay_rate: 0.05\n",
         "  author: xiuxian-artisan-workshop\n",
         "  source: \"https://example.test/skills/demo\"\n",
         "  routing_keywords:\n",
@@ -104,7 +102,7 @@ fn lint_reports_skill_frontmatter_missing_metadata_version() {
         report.issues[0].message,
         "skill frontmatter `metadata.version` must be a non-empty string"
     );
-    assert_eq!((report.issues[0].line, report.issues[0].column), (12, 1));
+    assert_eq!((report.issues[0].line, report.issues[0].column), (14, 1));
 }
 
 #[test]
@@ -120,10 +118,9 @@ fn lint_reports_skill_frontmatter_missing_required_schema_fields() {
         "date: 2026-04-26T09:30-07:00\n",
         "description: Demo skill\n",
         "name: demo-skill\n",
+        "saliency_base: 5.5\n",
+        "decay_rate: 0.05\n",
         "metadata:\n",
-        "  retrieval:\n",
-        "    saliency_base: 5.5\n",
-        "    decay_rate: 0.05\n",
         "  version: \"1.0.0\"\n",
         "---\n",
         "# Skill\n",

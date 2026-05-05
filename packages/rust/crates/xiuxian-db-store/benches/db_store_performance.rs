@@ -1,6 +1,19 @@
 //! Criterion benchmarks for DB store persistence boundaries.
 
-use criterion::{BatchSize, Criterion, Throughput, black_box};
+#[cfg(any(feature = "duckdb", feature = "qianji-bpmn-workflow-state"))]
+use criterion::{BatchSize, Throughput};
+use criterion::{Criterion, black_box};
+
+#[cfg(feature = "duckdb")]
+use std::sync::Arc;
+
+#[cfg(feature = "duckdb")]
+use xiuxian_db_store::duckdb::{DuckLakeRecordBatchAppender, DuckLakeTableRef};
+
+#[cfg(feature = "duckdb")]
+const DB_STORE_DUCKLAKE_BENCH_BATCHES: usize = 8;
+#[cfg(feature = "duckdb")]
+const DB_STORE_DUCKLAKE_BENCH_ROWS_PER_BATCH: usize = 128;
 
 #[cfg(feature = "qianji-bpmn-workflow-state")]
 use serde_json::json;
@@ -39,6 +52,121 @@ fn bench_qianji_bpmn_duckdb_store(c: &mut Criterion) {
             },
             BatchSize::LargeInput,
         );
+    });
+    group.finish();
+}
+
+#[cfg(feature = "duckdb")]
+fn bench_ducklake_arrow_appender(c: &mut Criterion) {
+    let mut group = c.benchmark_group("db_store_ducklake_arrow_appender");
+    group.throughput(Throughput::Elements(
+        (DB_STORE_DUCKLAKE_BENCH_BATCHES * DB_STORE_DUCKLAKE_BENCH_ROWS_PER_BATCH) as u64,
+    ));
+    group.bench_function("reuse_open_appender_for_batches", |bench| {
+        bench.iter_batched(
+            build_ducklake_appender_fixture,
+            |fixture| {
+                let mut appender =
+                    DuckLakeRecordBatchAppender::open(&fixture.connection, &fixture.table)
+                        .unwrap_or_else(|error| panic!("open benchmark appender: {error}"));
+                let row_total = appender
+                    .append_batches(fixture.batches)
+                    .unwrap_or_else(|error| panic!("append benchmark batches: {error}"));
+                appender
+                    .flush()
+                    .unwrap_or_else(|error| panic!("flush benchmark appender: {error}"));
+                black_box(row_total);
+            },
+            BatchSize::LargeInput,
+        );
+    });
+    group.finish();
+}
+
+#[cfg(feature = "duckdb")]
+struct DuckLakeAppenderFixture {
+    connection: ::duckdb::Connection,
+    table: DuckLakeTableRef,
+    batches: Vec<::duckdb::arrow::record_batch::RecordBatch>,
+}
+
+#[cfg(feature = "duckdb")]
+fn build_ducklake_appender_fixture() -> DuckLakeAppenderFixture {
+    let connection = ::duckdb::Connection::open_in_memory()
+        .unwrap_or_else(|error| panic!("open DuckDB: {error}"));
+    connection
+        .execute_batch(
+            "CREATE TABLE events (tenant_id VARCHAR, case_id VARCHAR, event_type VARCHAR);",
+        )
+        .unwrap_or_else(|error| panic!("create benchmark table: {error}"));
+    let table = DuckLakeTableRef::main_schema("memory", "events");
+    let batches = (0..DB_STORE_DUCKLAKE_BENCH_BATCHES)
+        .map(ducklake_appender_record_batch)
+        .collect();
+    DuckLakeAppenderFixture {
+        connection,
+        table,
+        batches,
+    }
+}
+
+#[cfg(feature = "duckdb")]
+fn ducklake_appender_record_batch(index: usize) -> ::duckdb::arrow::record_batch::RecordBatch {
+    let schema = Arc::new(::duckdb::arrow::datatypes::Schema::new(vec![
+        ::duckdb::arrow::datatypes::Field::new(
+            "tenant_id",
+            ::duckdb::arrow::datatypes::DataType::Utf8,
+            false,
+        ),
+        ::duckdb::arrow::datatypes::Field::new(
+            "case_id",
+            ::duckdb::arrow::datatypes::DataType::Utf8,
+            false,
+        ),
+        ::duckdb::arrow::datatypes::Field::new(
+            "event_type",
+            ::duckdb::arrow::datatypes::DataType::Utf8,
+            false,
+        ),
+    ]));
+    let tenant_ids = vec!["tenant-a"; DB_STORE_DUCKLAKE_BENCH_ROWS_PER_BATCH];
+    let case_ids = (0..DB_STORE_DUCKLAKE_BENCH_ROWS_PER_BATCH)
+        .map(|row| {
+            format!(
+                "case-{}",
+                (index * DB_STORE_DUCKLAKE_BENCH_ROWS_PER_BATCH + row) % 64
+            )
+        })
+        .collect::<Vec<_>>();
+    let event_types = (0..DB_STORE_DUCKLAKE_BENCH_ROWS_PER_BATCH)
+        .map(|row| {
+            if row % 3 == 0 {
+                "tool.call"
+            } else if row % 3 == 1 {
+                "llm.call"
+            } else {
+                "bpmn.step"
+            }
+        })
+        .collect::<Vec<_>>();
+
+    ::duckdb::arrow::record_batch::RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(::duckdb::arrow::array::StringArray::from(tenant_ids))
+                as ::duckdb::arrow::array::ArrayRef,
+            Arc::new(::duckdb::arrow::array::StringArray::from(case_ids)),
+            Arc::new(::duckdb::arrow::array::StringArray::from(event_types)),
+        ],
+    )
+    .unwrap_or_else(|error| panic!("build benchmark Arrow batch: {error}"))
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn bench_ducklake_arrow_appender(c: &mut Criterion) {
+    let mut group = c.benchmark_group("db_store_ducklake_arrow_appender");
+    group.bench_function("feature_disabled", |bench| {
+        bench.iter(|| black_box("enable duckdb for DuckLake appender benchmarks"));
     });
     group.finish();
 }
@@ -90,5 +218,6 @@ fn bench_qianji_bpmn_duckdb_store(c: &mut Criterion) {
 fn main() {
     let mut criterion = Criterion::default().configure_from_args();
     bench_qianji_bpmn_duckdb_store(&mut criterion);
+    bench_ducklake_arrow_appender(&mut criterion);
     criterion.final_summary();
 }

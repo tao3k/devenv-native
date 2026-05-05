@@ -95,15 +95,15 @@ expected = "Use `YYYY-MM-DDTHH:MM±HH:MM` or `YYYY-MM-DDTHH:MMZ`; omit seconds."
 
 [[rules]]
 code = "missing_frontmatter_retrieval_saliency_base"
-problem = "Common frontmatter must include numeric `metadata.retrieval.saliency_base`."
+problem = "Common frontmatter must include numeric top-level `saliency_base`."
 detail_strategy = "parser_message"
-expected = "Set `metadata.retrieval.saliency_base` to a number."
+expected = "Set top-level `saliency_base` to a number."
 
 [[rules]]
 code = "missing_frontmatter_retrieval_decay_rate"
-problem = "Common frontmatter must include numeric `metadata.retrieval.decay_rate`."
+problem = "Common frontmatter must include numeric top-level `decay_rate`."
 detail_strategy = "parser_message"
-expected = "Set `metadata.retrieval.decay_rate` to a number."
+expected = "Set top-level `decay_rate` to a number."
 
 [[rules]]
 code = "missing_skill_frontmatter_name"

@@ -11,6 +11,9 @@ webhook_url = "http://127.0.0.1:9999"
 [gateway.runtime]
 studio_request_timeout_secs = 30
 
+[document_extract]
+endpoint = "http://127.0.0.1:50051"
+
 [link_graph.projects."ADTypes.jl"]
 dirs = []
 url = "https://github.com/SciML/ADTypes.jl.git"

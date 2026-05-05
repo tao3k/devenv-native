@@ -10,8 +10,11 @@ use super::{fences, frontmatter, wikilinks};
 /// The current lint surface is intentionally narrow and stable:
 ///
 /// 1. required YAML frontmatter presence
-/// 2. required primary frontmatter identity field
-///    - ordinary Markdown documents require a non-empty `title`
+/// 2. required primary frontmatter fields
+///    - ordinary Markdown documents require top-level identity, provenance,
+///      tags, and retrieval-hint fields
+///    - ordinary Markdown `metadata` is extension space and is not required to
+///      mirror top-level frontmatter fields
 ///    - `SKILL.md` or `kind: SKILL.md` documents must satisfy the
 ///      parser-owned SKILL.md frontmatter contract
 /// 3. unclosed YAML frontmatter

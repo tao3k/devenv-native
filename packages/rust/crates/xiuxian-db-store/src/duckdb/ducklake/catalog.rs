@@ -4,23 +4,24 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-/// Metadata catalog backing for one DuckLake attachment.
+/// Metadata catalog backing for one `DuckLake` attachment.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DuckLakeCatalog {
-    /// DuckLake metadata stored in a local DuckDB catalog file.
+    /// `DuckLake` metadata stored in a local `DuckDB` catalog file.
     LocalMetadataFile(PathBuf),
-    /// DuckLake metadata stored in PostgreSQL through DuckDB's postgres extension.
+    /// `DuckLake` metadata stored in `PostgreSQL` through `DuckDB`'s
+    /// `postgres` extension.
     PostgresConnectionString(String),
 }
 
 impl DuckLakeCatalog {
-    /// Build a local DuckDB-backed DuckLake catalog reference.
+    /// Build a local `DuckDB`-backed `DuckLake` catalog reference.
     #[must_use]
     pub fn local_metadata_file(path: impl Into<PathBuf>) -> Self {
         Self::LocalMetadataFile(path.into())
     }
 
-    /// Build a PostgreSQL-backed DuckLake catalog reference.
+    /// Build a `PostgreSQL`-backed `DuckLake` catalog reference.
     #[must_use]
     pub fn postgres_connection_string(connection_string: impl Into<String>) -> Self {
         Self::PostgresConnectionString(connection_string.into())
@@ -48,30 +49,30 @@ impl DuckLakeCatalog {
     }
 }
 
-/// Location where DuckLake stores data files.
+/// Location where `DuckLake` stores data files.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DuckLakeDataPath {
     /// Local filesystem path prepared by the embedded runtime before attach.
     LocalPath(PathBuf),
     /// Remote object-store or HTTP-style URI rendered directly into
-    /// DuckLake's `DATA_PATH`.
+    /// `DuckLake`'s `DATA_PATH`.
     RemoteUri(String),
 }
 
 impl DuckLakeDataPath {
-    /// Build a local DuckLake data path.
+    /// Build a local `DuckLake` data path.
     #[must_use]
     pub fn local(path: impl Into<PathBuf>) -> Self {
         Self::LocalPath(path.into())
     }
 
-    /// Build a remote DuckLake data path URI such as `s3://bucket/prefix/`.
+    /// Build a remote `DuckLake` data path URI such as `s3://bucket/prefix/`.
     #[must_use]
     pub fn remote_uri(uri: impl Into<String>) -> Self {
         Self::RemoteUri(uri.into())
     }
 
-    /// Build an S3-compatible DuckLake data path URI.
+    /// Build an `S3`-compatible `DuckLake` data path URI.
     #[must_use]
     pub fn s3(uri: impl Into<String>) -> Self {
         Self::RemoteUri(uri.into())
@@ -100,21 +101,21 @@ impl DuckLakeDataPath {
     }
 }
 
-/// Generic DuckLake attachment configuration.
+/// Generic `DuckLake` attachment configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DuckLakeAttachConfig {
-    /// Catalog alias used inside the embedded DuckDB connection.
+    /// Catalog alias used inside the embedded `DuckDB` connection.
     pub alias: String,
     /// Metadata catalog backing.
     pub catalog: DuckLakeCatalog,
-    /// Location where DuckLake stores data files.
+    /// Location where `DuckLake` stores data files.
     pub data_path: DuckLakeDataPath,
     /// Whether attach SQL should install and load required extensions first.
     pub bootstrap_extensions: bool,
 }
 
 impl DuckLakeAttachConfig {
-    /// Build a local DuckDB-backed DuckLake attachment.
+    /// Build a local `DuckDB`-backed `DuckLake` attachment.
     #[must_use]
     pub fn local(
         alias: impl Into<String>,
@@ -129,7 +130,7 @@ impl DuckLakeAttachConfig {
         }
     }
 
-    /// Build a PostgreSQL-backed DuckLake attachment.
+    /// Build a `PostgreSQL`-backed `DuckLake` attachment.
     #[must_use]
     pub fn postgres(
         alias: impl Into<String>,
@@ -144,7 +145,7 @@ impl DuckLakeAttachConfig {
         }
     }
 
-    /// Build a PostgreSQL-backed DuckLake attachment with a remote data path.
+    /// Build a `PostgreSQL`-backed `DuckLake` attachment with a remote data path.
     #[must_use]
     pub fn postgres_remote_data_path(
         alias: impl Into<String>,

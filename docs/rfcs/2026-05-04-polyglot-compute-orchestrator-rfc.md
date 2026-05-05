@@ -142,6 +142,11 @@ introducing a parallel Docling wrapper.
   and collect status/latency/error evidence. Process kill/respawn policy should
   be introduced only after a provider-owned worker supervisor contract is
   defined and validated.
+- **Endpoint configuration**: The Python analyzer endpoint is declared in the
+  root `wendao.toml` under `[document_extract].endpoint`. Runtime process
+  composition should call a small entrypoint script that starts the analyzer
+  after `wendao gateway start` is healthy; the Nix process definition must not
+  hardcode the worker bind address, job database, artifact root, or log paths.
 
 ## 5. The Julia Lane (Compute Integration)
 

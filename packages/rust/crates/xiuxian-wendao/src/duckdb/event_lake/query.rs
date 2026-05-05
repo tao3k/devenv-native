@@ -1,8 +1,8 @@
 //! Filtered row queries for Wendao event-lake records.
 
 use chrono::{TimeZone, Utc};
-use duckdb::params_from_iter;
 use duckdb::types::Type;
+use duckdb::{Row, params_from_iter};
 use xiuxian_db_store::duckdb::{ensure_duckdb_identifier, quoted_duckdb_identifier};
 
 use super::record::WendaoEventRecord;
@@ -98,9 +98,9 @@ impl WendaoEventQuery {
                 self.limit, WENDAO_EVENT_QUERY_MAX_LIMIT
             ));
         }
-        validate_optional_filter(&self.tenant_id, "tenant_id")?;
-        validate_optional_filter(&self.case_id, "case_id")?;
-        validate_optional_filter(&self.event_type, "event_type")?;
+        validate_optional_filter(self.tenant_id.as_deref(), "tenant_id")?;
+        validate_optional_filter(self.case_id.as_deref(), "case_id")?;
+        validate_optional_filter(self.event_type.as_deref(), "event_type")?;
         Ok(())
     }
 }
@@ -109,9 +109,9 @@ impl WendaoEventQuery {
 ///
 /// # Errors
 ///
-/// Returns an error when the catalog alias or query is invalid, when DuckDB
-/// rejects the SQL, or when persisted payload/timestamp values cannot be
-/// converted back into Wendao event records.
+/// Returns an error when the catalog alias or query is invalid, when `DuckDB`
+/// rejects the SQL, or when persisted timestamp values cannot be converted
+/// back into Wendao event records.
 pub fn query_wendao_events(
     connection: &duckdb::Connection,
     catalog_alias: &str,
@@ -121,37 +121,20 @@ pub fn query_wendao_events(
     let mut statement = connection
         .prepare(sql.as_str())
         .map_err(|error| format!("failed to prepare Wendao event-lake row query: {error}"))?;
-    let rows = statement
-        .query_map(params_from_iter(params.iter()), |row| {
-            let payload_text: String = row.get(3)?;
-            let payload = serde_json::from_str(&payload_text).map_err(|error| {
-                duckdb::Error::FromSqlConversionFailure(3, Type::Text, Box::new(error))
-            })?;
-            let created_at_ms: i64 = row.get(4)?;
-            let created_at = Utc
-                .timestamp_millis_opt(created_at_ms)
-                .single()
-                .ok_or_else(|| {
-                    duckdb::Error::FromSqlConversionFailure(
-                        4,
-                        Type::BigInt,
-                        Box::new(std::io::Error::other(format!(
-                            "invalid UTC millisecond timestamp `{created_at_ms}`"
-                        ))),
-                    )
-                })?;
-
-            Ok(WendaoEventRecord {
-                tenant_id: row.get(0)?,
-                case_id: row.get(1)?,
-                event_type: row.get(2)?,
-                payload,
-                created_at,
-            })
-        })
+    let mut rows = statement
+        .query(params_from_iter(params.iter()))
         .map_err(|error| format!("failed to execute Wendao event-lake row query: {error}"))?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("failed to read Wendao event-lake row: {error}"))
+    let mut events = Vec::with_capacity(query_result_capacity(query.limit));
+    while let Some(row) = rows
+        .next()
+        .map_err(|error| format!("failed to read Wendao event-lake row: {error}"))?
+    {
+        events.push(
+            read_wendao_event_row(row)
+                .map_err(|error| format!("failed to read Wendao event-lake row: {error}"))?,
+        );
+    }
+    Ok(events)
 }
 
 fn build_wendao_event_query_sql(
@@ -175,14 +158,19 @@ fn build_wendao_event_query_sql(
         &mut conditions,
         &mut params,
         TENANT_ID_COLUMN,
-        &query.tenant_id,
+        query.tenant_id.as_deref(),
     );
-    push_optional_filter(&mut conditions, &mut params, CASE_ID_COLUMN, &query.case_id);
+    push_optional_filter(
+        &mut conditions,
+        &mut params,
+        CASE_ID_COLUMN,
+        query.case_id.as_deref(),
+    );
     push_optional_filter(
         &mut conditions,
         &mut params,
         EVENT_TYPE_COLUMN,
-        &query.event_type,
+        query.event_type.as_deref(),
     );
 
     let where_sql = if conditions.is_empty() {
@@ -202,19 +190,48 @@ fn build_wendao_event_query_sql(
     ))
 }
 
+fn query_result_capacity(limit: u32) -> usize {
+    usize::try_from(limit).unwrap_or(WENDAO_EVENT_QUERY_MAX_LIMIT as usize)
+}
+
+fn read_wendao_event_row(row: &Row<'_>) -> duckdb::Result<WendaoEventRecord> {
+    let payload_text: String = row.get(3)?;
+    let created_at_ms: i64 = row.get(4)?;
+    let created_at = Utc
+        .timestamp_millis_opt(created_at_ms)
+        .single()
+        .ok_or_else(|| {
+            duckdb::Error::FromSqlConversionFailure(
+                4,
+                Type::BigInt,
+                Box::new(std::io::Error::other(format!(
+                    "invalid UTC millisecond timestamp `{created_at_ms}`"
+                ))),
+            )
+        })?;
+
+    Ok(WendaoEventRecord::from_trusted_payload_json(
+        row.get::<_, String>(0)?,
+        row.get::<_, String>(1)?,
+        row.get::<_, String>(2)?,
+        payload_text,
+        created_at,
+    ))
+}
+
 fn push_optional_filter(
     conditions: &mut Vec<String>,
     params: &mut Vec<String>,
     column_name: &str,
-    value: &Option<String>,
+    value: Option<&str>,
 ) {
-    if let Some(value) = value.as_ref() {
+    if let Some(value) = value {
         conditions.push(format!("{} = ?", quoted_duckdb_identifier(column_name)));
         params.push(value.trim().to_string());
     }
 }
 
-fn validate_optional_filter(value: &Option<String>, label: &str) -> Result<(), String> {
+fn validate_optional_filter(value: Option<&str>, label: &str) -> Result<(), String> {
     if matches!(value, Some(value) if value.trim().is_empty()) {
         return Err(format!("Wendao event query {label} filter cannot be blank"));
     }

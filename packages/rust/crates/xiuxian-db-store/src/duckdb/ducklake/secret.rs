@@ -1,10 +1,10 @@
-//! DuckDB `httpfs` secret SQL helpers for DuckLake remote data paths.
+//! `DuckDB` `httpfs` secret SQL helpers for `DuckLake` remote data paths.
 
 use serde::{Deserialize, Serialize};
 
 use crate::duckdb::ensure_duckdb_identifier;
 
-/// Credential provider for one DuckDB S3-compatible secret.
+/// Credential provider for one `DuckDB` `S3`-compatible secret.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DuckDbS3SecretProvider {
     /// Use explicit static credentials from the caller.
@@ -16,29 +16,29 @@ pub enum DuckDbS3SecretProvider {
         /// Optional session token for temporary credentials.
         session_token: Option<String>,
     },
-    /// Use DuckDB's credential-chain provider.
+    /// Use `DuckDB`'s credential-chain provider.
     CredentialChain {
         /// Optional chain name such as `config`.
         chain: Option<String>,
     },
 }
 
-/// SQL-renderable DuckDB S3-compatible secret configuration.
+/// SQL-renderable `DuckDB` `S3`-compatible secret configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DuckDbS3SecretConfig {
-    /// Secret name referenced by DuckDB.
+    /// Secret name referenced by `DuckDB`.
     pub name: String,
     /// Credential provider.
     pub provider: DuckDbS3SecretProvider,
     /// Optional region.
     pub region: Option<String>,
-    /// Optional custom endpoint for S3-compatible stores.
+    /// Optional custom endpoint for `S3`-compatible stores.
     pub endpoint: Option<String>,
     /// Optional URL style such as `path` or `vhost`.
     pub url_style: Option<String>,
     /// Optional scope such as `s3://bucket/prefix`.
     pub scope: Option<String>,
-    /// Optional SSL toggle for local S3-compatible endpoints.
+    /// Optional `SSL` toggle for local `S3`-compatible endpoints.
     pub use_ssl: Option<bool>,
     /// Whether rendered SQL should install/load the `httpfs` extension first.
     pub bootstrap_httpfs: bool,
@@ -68,7 +68,7 @@ impl DuckDbS3SecretConfig {
         }
     }
 
-    /// Build a secret backed by DuckDB's credential chain.
+    /// Build a secret backed by `DuckDB`'s credential chain.
     #[must_use]
     pub fn credential_chain(name: impl Into<String>) -> Self {
         Self {
@@ -119,7 +119,7 @@ impl DuckDbS3SecretConfig {
     }
 }
 
-/// Build SQL that installs/loads `httpfs` and creates one S3-compatible secret.
+/// Build SQL that installs/loads `httpfs` and creates one `S3`-compatible secret.
 ///
 /// # Errors
 ///

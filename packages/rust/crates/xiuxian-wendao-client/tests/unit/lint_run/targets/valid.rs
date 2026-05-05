@@ -9,7 +9,7 @@ fn lint_accepts_root_anchored_in_repo_target() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Index\n---\n# Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Index\n---\n# Index\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
@@ -23,10 +23,8 @@ fn lint_accepts_root_anchored_in_repo_target() -> Result<()> {
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [Index](/docs/index.md).\n",
@@ -50,7 +48,7 @@ fn lint_accepts_existing_local_targets_and_external_urls() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("assets"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Index\n---\n# Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Index\n---\n# Index\n",
     )?;
     std::fs::write(temp.path().join("assets/diagram.png"), b"png")?;
     std::fs::write(
@@ -65,10 +63,8 @@ fn lint_accepts_existing_local_targets_and_external_urls() -> Result<()> {
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [Index](docs/index).\n",
@@ -93,7 +89,7 @@ fn lint_accepts_existing_wikilink_targets_with_johnny_decimal_dotted_names() -> 
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/10.01_kernel.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Kernel\n---\n# Kernel\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Kernel\n---\n# Kernel\n",
     )?;
     std::fs::write(
         temp.path().join("docs/10.00_moc.md"),
@@ -107,10 +103,8 @@ fn lint_accepts_existing_wikilink_targets_with_johnny_decimal_dotted_names() -> 
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Map of Content\n",
             "- [[10.01_kernel|Kernel]]\n",

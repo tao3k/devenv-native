@@ -3,23 +3,19 @@
 use super::catalog::{DuckLakeAttachConfig, DuckLakeCatalog};
 use crate::duckdb::{ensure_duckdb_identifier, quoted_duckdb_identifier};
 
-/// Build SQL that installs and loads the extensions required by one DuckLake
+/// Build SQL that installs and loads the extensions required by one `DuckLake`
 /// catalog.
-///
-/// # Errors
-///
-/// Returns an error when the catalog-specific extension set cannot be
-/// determined.
-pub fn build_ducklake_extension_bootstrap_sql(catalog: &DuckLakeCatalog) -> Result<String, String> {
+#[must_use]
+pub fn build_ducklake_extension_bootstrap_sql(catalog: &DuckLakeCatalog) -> String {
     let mut statements = vec!["INSTALL ducklake", "LOAD ducklake"];
     if catalog.needs_postgres_extension() {
         statements.push("INSTALL postgres");
         statements.push("LOAD postgres");
     }
-    Ok(format!("{};", statements.join(";\n")))
+    format!("{};", statements.join(";\n"))
 }
 
-/// Build SQL that attaches one DuckLake catalog to the current DuckDB
+/// Build SQL that attaches one `DuckLake` catalog to the current `DuckDB`
 /// connection.
 ///
 /// # Errors
@@ -30,7 +26,7 @@ pub fn build_ducklake_attach_sql(config: &DuckLakeAttachConfig) -> Result<String
     ensure_duckdb_identifier(&config.alias, "DuckLake catalog")?;
     let mut statements = Vec::new();
     if config.bootstrap_extensions {
-        statements.push(build_ducklake_extension_bootstrap_sql(&config.catalog)?);
+        statements.push(build_ducklake_extension_bootstrap_sql(&config.catalog));
     }
 
     let attach_uri = escape_duckdb_string_literal(config.catalog.attach_uri()?.as_str());
@@ -42,7 +38,7 @@ pub fn build_ducklake_attach_sql(config: &DuckLakeAttachConfig) -> Result<String
     Ok(statements.join("\n"))
 }
 
-/// Build SQL that selects one attached DuckLake catalog as the active database.
+/// Build SQL that selects one attached `DuckLake` catalog as the active database.
 ///
 /// # Errors
 ///

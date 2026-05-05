@@ -174,18 +174,16 @@ fn validate_strict_skill_frontmatter(mapping: &Mapping) -> Result<(), SkillFront
         &mut issues,
     );
 
-    let metadata = mapping_mapping(mapping, "metadata");
-    let retrieval = metadata.and_then(|metadata| mapping_mapping(metadata, "retrieval"));
     require_number(
-        retrieval,
+        mapping,
         "saliency_base",
-        "frontmatter must include numeric `metadata.retrieval.saliency_base`",
+        "frontmatter must include numeric top-level `saliency_base`",
         &mut issues,
     );
     require_number(
-        retrieval,
+        mapping,
         "decay_rate",
-        "frontmatter must include numeric `metadata.retrieval.decay_rate`",
+        "frontmatter must include numeric top-level `decay_rate`",
         &mut issues,
     );
 
@@ -198,6 +196,7 @@ fn validate_strict_skill_frontmatter(mapping: &Mapping) -> Result<(), SkillFront
         "skill frontmatter must include a non-empty top-level `name` field",
         &mut issues,
     );
+    let metadata = mapping_mapping(mapping, "metadata");
     let Some(metadata) = metadata else {
         issues.push("skill frontmatter must contain a top-level `metadata` mapping".to_string());
         return schema_result(issues);
@@ -272,12 +271,13 @@ fn require_string_sequence(mapping: &Mapping, key: &str, message: &str, issues: 
     }
 }
 
-fn require_number(mapping: Option<&Mapping>, key: &str, message: &str, issues: &mut Vec<String>) {
-    if mapping
-        .and_then(|mapping| mapping_value(mapping, key))
-        .and_then(Value::as_f64)
-        .is_none()
-    {
+fn require_number(mapping: &Mapping, key: &str, message: &str, issues: &mut Vec<String>) {
+    let top_level = mapping_value(mapping, key).and_then(Value::as_f64);
+    let legacy_skill_retrieval = mapping_mapping(mapping, "metadata")
+        .and_then(|metadata| mapping_mapping(metadata, "retrieval"))
+        .and_then(|retrieval| mapping_value(retrieval, key))
+        .and_then(Value::as_f64);
+    if top_level.or(legacy_skill_retrieval).is_none() {
         issues.push(message.to_string());
     }
 }

@@ -1,1 +1,86 @@
-{"project_root":"$CRATE_ROOT","records":[{"fingerprint":"rustv:a7dc870fbce5dc96","state":"pending","phase":"after_unit_tests_pass","package_root":"$CRATE_ROOT","owner_path":"$CRATE_ROOT/src/query_core/service.rs","owner_namespace":["src","query_core","service"],"skill":"rust-verification-performance@criterion","contract_ref":"rust-verification-performance@criterion","required_evidence_keys":["benchmark_command","baseline","regression_threshold","latency_or_throughput","profile_artifact"],"task_evidence":[{"label":"profile","value":"external_dependency,latency_sensitive"},{"label":"rationale","value":"query service is the high-frequency retrieval execution path"},{"label":"skill","value":"rust-verification-performance@criterion"}]},{"fingerprint":"rustv:299b1bb1fe3b82ee","state":"pending","phase":"after_unit_tests_pass","package_root":"$CRATE_ROOT","owner_path":"$CRATE_ROOT/src/search/perf_support.rs","owner_namespace":["src","search","perf_support"],"skill":"rust-verification-performance@criterion","contract_ref":"rust-verification-performance@criterion","required_evidence_keys":["benchmark_command","baseline","regression_threshold","latency_or_throughput","profile_artifact"],"task_evidence":[{"label":"profile","value":"latency_sensitive"},{"label":"rationale","value":"search perf support defines latency-sensitive benchmark ownership"},{"label":"skill","value":"rust-verification-performance@criterion"}]}]}
+{
+  "project_root": "$CRATE_ROOT",
+  "records": [
+    {
+      "fingerprint": "rustv:81baa0b70926aa40",
+      "state": "pending",
+      "phase": "after_unit_tests_pass",
+      "package_root": "$CRATE_ROOT",
+      "owner_path": "$CRATE_ROOT/src/duckdb/event_lake/store.rs",
+      "owner_namespace": ["src", "duckdb", "event_lake", "store"],
+      "skill": "rust-verification-performance@criterion",
+      "contract_ref": "rust-verification-performance@criterion",
+      "required_evidence_keys": [
+        "benchmark_command",
+        "baseline",
+        "regression_threshold",
+        "latency_or_throughput",
+        "profile_artifact"
+      ],
+      "task_evidence": [
+        {
+          "label": "profile",
+          "value": "external_dependency,latency_sensitive"
+        },
+        {
+          "label": "rationale",
+          "value": "Wendao event-lake store owns record-to-Arrow, payload-text append-chain, and bounded-query throughput"
+        },
+        { "label": "skill", "value": "rust-verification-performance@criterion" }
+      ]
+    },
+    {
+      "fingerprint": "rustv:a7dc870fbce5dc96",
+      "state": "pending",
+      "phase": "after_unit_tests_pass",
+      "package_root": "$CRATE_ROOT",
+      "owner_path": "$CRATE_ROOT/src/query_core/service.rs",
+      "owner_namespace": ["src", "query_core", "service"],
+      "skill": "rust-verification-performance@criterion",
+      "contract_ref": "rust-verification-performance@criterion",
+      "required_evidence_keys": [
+        "benchmark_command",
+        "baseline",
+        "regression_threshold",
+        "latency_or_throughput",
+        "profile_artifact"
+      ],
+      "task_evidence": [
+        {
+          "label": "profile",
+          "value": "external_dependency,latency_sensitive"
+        },
+        {
+          "label": "rationale",
+          "value": "query service is the high-frequency retrieval execution path"
+        },
+        { "label": "skill", "value": "rust-verification-performance@criterion" }
+      ]
+    },
+    {
+      "fingerprint": "rustv:299b1bb1fe3b82ee",
+      "state": "pending",
+      "phase": "after_unit_tests_pass",
+      "package_root": "$CRATE_ROOT",
+      "owner_path": "$CRATE_ROOT/src/search/perf_support.rs",
+      "owner_namespace": ["src", "search", "perf_support"],
+      "skill": "rust-verification-performance@criterion",
+      "contract_ref": "rust-verification-performance@criterion",
+      "required_evidence_keys": [
+        "benchmark_command",
+        "baseline",
+        "regression_threshold",
+        "latency_or_throughput",
+        "profile_artifact"
+      ],
+      "task_evidence": [
+        { "label": "profile", "value": "latency_sensitive" },
+        {
+          "label": "rationale",
+          "value": "search perf support defines latency-sensitive benchmark ownership"
+        },
+        { "label": "skill", "value": "rust-verification-performance@criterion" }
+      ]
+    }
+  ]
+}

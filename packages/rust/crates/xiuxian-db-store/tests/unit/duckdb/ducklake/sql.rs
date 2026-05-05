@@ -32,10 +32,7 @@ fn ducklake_postgres_attach_sql_loads_postgres_extension() {
         "data_files",
     );
 
-    let bootstrap_sql = must_ok(
-        build_ducklake_extension_bootstrap_sql(&config.catalog),
-        "valid DuckLake Postgres bootstrap SQL",
-    );
+    let bootstrap_sql = build_ducklake_extension_bootstrap_sql(&config.catalog);
     assert!(bootstrap_sql.contains("INSTALL ducklake;"));
     assert!(bootstrap_sql.contains("LOAD ducklake;"));
     assert!(bootstrap_sql.contains("INSTALL postgres;"));

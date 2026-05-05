@@ -115,8 +115,10 @@ impl StudioDocumentExtractFlightRouteProvider {
     }
 
     fn document_extract_endpoint_url(&self) -> Result<String, String> {
-        let default_endpoint = std::env::var(DOCUMENT_EXTRACT_ENDPOINT_ENV)
-            .unwrap_or_else(|_| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string());
+        let default_endpoint = document_extract_default_endpoint_with_lookup(
+            self.configured_default_endpoint.as_deref(),
+            &|key| std::env::var(key).ok(),
+        );
         let endpoint_urls = document_extract_endpoint_urls(default_endpoint.as_str());
         let request_index = self
             .runtime
@@ -125,6 +127,18 @@ impl StudioDocumentExtractFlightRouteProvider {
         let endpoint_index = endpoint_index_for_request(request_index, endpoint_urls.len())?;
         Ok(endpoint_urls[endpoint_index].clone())
     }
+}
+
+pub(super) fn document_extract_default_endpoint_with_lookup(
+    configured_default_endpoint: Option<&str>,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> String {
+    configured_default_endpoint
+        .and_then(normalize_endpoint)
+        .or_else(|| {
+            lookup(DOCUMENT_EXTRACT_ENDPOINT_ENV).and_then(|value| normalize_endpoint(&value))
+        })
+        .unwrap_or_else(|| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string())
 }
 
 pub(super) fn document_extract_endpoint_urls(default_endpoint: &str) -> Vec<String> {

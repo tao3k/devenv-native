@@ -239,39 +239,27 @@ fn lint_common_frontmatter_retrieval(
     mapping: Option<&serde_yaml::Mapping>,
     issues: &mut Vec<MarkdownSyntaxLintIssue>,
 ) {
-    let retrieval = mapping
-        .and_then(|mapping| mapping.get(Value::String("metadata".to_string())))
-        .and_then(Value::as_mapping)
-        .and_then(|metadata| metadata.get(Value::String("retrieval".to_string())))
-        .and_then(Value::as_mapping);
-    if retrieval
-        .and_then(|retrieval| retrieval.get(Value::String("saliency_base".to_string())))
+    if mapping
+        .and_then(|mapping| mapping.get(Value::String("saliency_base".to_string())))
         .and_then(Value::as_f64)
         .is_none()
     {
         issues.push(MarkdownSyntaxLintIssue {
             code: MarkdownSyntaxLintCode::MissingFrontmatterRetrievalSaliencyBase,
-            message: "frontmatter must include numeric `metadata.retrieval.saliency_base`"
-                .to_string(),
-            line: frontmatter_key_line(yaml, yaml_line_offset, "saliency_base")
-                .or_else(|| frontmatter_key_line(yaml, yaml_line_offset, "retrieval"))
-                .or_else(|| frontmatter_key_line(yaml, yaml_line_offset, "metadata"))
-                .unwrap_or(1),
+            message: "frontmatter must include numeric top-level `saliency_base`".to_string(),
+            line: frontmatter_key_line(yaml, yaml_line_offset, "saliency_base").unwrap_or(1),
             column: 1,
         });
     }
-    if retrieval
-        .and_then(|retrieval| retrieval.get(Value::String("decay_rate".to_string())))
+    if mapping
+        .and_then(|mapping| mapping.get(Value::String("decay_rate".to_string())))
         .and_then(Value::as_f64)
         .is_none()
     {
         issues.push(MarkdownSyntaxLintIssue {
             code: MarkdownSyntaxLintCode::MissingFrontmatterRetrievalDecayRate,
-            message: "frontmatter must include numeric `metadata.retrieval.decay_rate`".to_string(),
-            line: frontmatter_key_line(yaml, yaml_line_offset, "decay_rate")
-                .or_else(|| frontmatter_key_line(yaml, yaml_line_offset, "retrieval"))
-                .or_else(|| frontmatter_key_line(yaml, yaml_line_offset, "metadata"))
-                .unwrap_or(1),
+            message: "frontmatter must include numeric top-level `decay_rate`".to_string(),
+            line: frontmatter_key_line(yaml, yaml_line_offset, "decay_rate").unwrap_or(1),
             column: 1,
         });
     }

@@ -14,7 +14,7 @@ const WENDAO_EVENT_LAKE_METADATA_DIR: &str = "metadata";
 const WENDAO_EVENT_LAKE_DATA_DIR: &str = "data";
 const WENDAO_EVENT_LAKE_METADATA_FILE: &str = "wendao.ducklake";
 
-/// Wendao-owned local DuckLake path contract for the event lake.
+/// Wendao-owned local `DuckLake` path contract for the event lake.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WendaoEventLakeLocalConfig {
     catalog_alias: String,
@@ -46,7 +46,7 @@ impl WendaoEventLakeLocalConfig {
     ///
     /// # Errors
     ///
-    /// Returns an error when the alias is not a valid DuckDB identifier.
+    /// Returns an error when the alias is not a valid `DuckDB` identifier.
     pub fn from_data_home_with_alias(
         catalog_alias: impl Into<String>,
         data_home: impl AsRef<Path>,
@@ -62,7 +62,7 @@ impl WendaoEventLakeLocalConfig {
     ///
     /// # Errors
     ///
-    /// Returns an error when the alias is not a valid DuckDB identifier.
+    /// Returns an error when the alias is not a valid `DuckDB` identifier.
     pub fn from_event_lake_root(
         catalog_alias: impl Into<String>,
         event_lake_root: impl Into<PathBuf>,
@@ -82,7 +82,7 @@ impl WendaoEventLakeLocalConfig {
         })
     }
 
-    /// Access the attached DuckLake catalog alias.
+    /// Access the attached `DuckLake` catalog alias.
     #[must_use]
     pub fn catalog_alias(&self) -> &str {
         self.catalog_alias.as_str()
@@ -94,13 +94,13 @@ impl WendaoEventLakeLocalConfig {
         self.event_lake_root.as_path()
     }
 
-    /// Access the local DuckLake metadata catalog path.
+    /// Access the local `DuckLake` metadata catalog path.
     #[must_use]
     pub fn metadata_path(&self) -> &Path {
         self.metadata_path.as_path()
     }
 
-    /// Access the local DuckLake data directory path.
+    /// Access the local `DuckLake` data directory path.
     #[must_use]
     pub fn data_path(&self) -> &Path {
         self.data_path.as_path()
@@ -120,7 +120,7 @@ impl WendaoEventLakeLocalConfig {
     ///
     /// # Errors
     ///
-    /// Returns an error when DuckLake attach or event table setup fails.
+    /// Returns an error when `DuckLake` attach or event table setup fails.
     pub fn attach(&self, connection: &duckdb::Connection) -> Result<WendaoEventLake, String> {
         WendaoEventLake::attach(connection, &self.ducklake_attach_config())
     }

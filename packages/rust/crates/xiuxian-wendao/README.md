@@ -130,8 +130,12 @@ Use `xiuxian-wendao` for:
 - Valkey/Lance-backed storage behavior and DuckDB-backed local cache behavior
 - Wendao event-lake schema and query semantics over the generic DuckLake
   substrate exposed by `xiuxian-db-store`; `WendaoEventLake` is the
-  connection-light handle for attach, table setup, append, grouped count
-  queries, and bounded filtered event-row reads; `WendaoEventLakeLocalConfig`
+  connection-light handle for attach, table setup, reusable appenders,
+  chunked event-record ingestion, grouped count queries, and bounded filtered
+  event-row reads with benchmark coverage for append and query throughput;
+  event payloads are serialized once into compact JSON text at record
+  construction so append and query hot paths avoid repeated JSON conversion;
+  `WendaoEventLakeLocalConfig`
   resolves the local embedded path convention under
   `$PRJ_DATA_HOME/wendao/event_lake/`
 - analyzers, enhancers, and other Wendao domain services

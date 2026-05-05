@@ -1,4 +1,4 @@
-//! Generic DuckLake primitives over embedded `DuckDB`.
+//! Generic `DuckLake` primitives over embedded `DuckDB`.
 
 #[cfg(feature = "duckdb")]
 mod append;
@@ -10,7 +10,7 @@ mod sql;
 mod table;
 
 #[cfg(feature = "duckdb")]
-pub use append::append_ducklake_record_batches;
+pub use append::{DuckLakeRecordBatchAppender, append_ducklake_record_batches};
 #[cfg(feature = "duckdb")]
 pub use attach::attach_ducklake;
 pub use catalog::{DuckLakeAttachConfig, DuckLakeCatalog, DuckLakeDataPath};

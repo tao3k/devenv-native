@@ -45,6 +45,12 @@ fn wendao_verification_profile_hints_bind_active_skill_tasks() {
         RustVerificationTaskKind::Performance,
         "rust-verification-performance@criterion",
     );
+    assert_bound_task(
+        &plan,
+        "src/duckdb/event_lake/store.rs",
+        RustVerificationTaskKind::Performance,
+        "rust-verification-performance@criterion",
+    );
     assert!(
         plan.tasks
             .iter()
@@ -75,6 +81,7 @@ pub(super) fn wendao_rust_harness_config() -> RustHarnessConfig {
         .with_verification_profile_hint(zhenfa_rpc_boundary_hint())
         .with_verification_profile_hint(query_service_performance_hint())
         .with_verification_profile_hint(search_perf_support_hint())
+        .with_verification_profile_hint(event_lake_performance_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -222,6 +229,46 @@ fn search_perf_support_hint() -> RustVerificationProfileHint {
         ),
     )
     .with_rationale("search perf support defines latency-sensitive benchmark ownership")
+}
+
+fn event_lake_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/duckdb/event_lake/store.rs",
+        [
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::LatencySensitive,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Performance])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "Criterion benchmark must report Wendao event-lake record-to-Arrow, payload-text append-chain, and bounded-query throughput from cargo bench -p xiuxian-wendao --features performance,duckdb --bench wendao_performance wendao_event_lake_append_chain",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo bench -p xiuxian-wendao --features performance,duckdb --bench wendao_performance wendao_event_lake_append_chain",
+                ),
+                RustVerificationRequirement::new("baseline", "Criterion baseline name or commit"),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted event-lake payload-text append-chain or bounded-query throughput regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "Criterion event-lake record-to-Arrow, payload-text append-chain, or bounded-query throughput result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "target/criterion artifact path for the event-lake benchmark group",
+                ),
+            ],
+        ),
+    )
+    .with_rationale(
+        "Wendao event-lake store owns record-to-Arrow, payload-text append-chain, and bounded-query throughput",
+    )
 }
 
 fn security_skill_descriptor() -> RustVerificationSkillDescriptor {

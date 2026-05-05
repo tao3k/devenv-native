@@ -9,8 +9,6 @@ tags:
   - templates
 saliency_base: 7.2
 decay_rate: 0.03
-metadata:
-  title: "Wendao Note Authoring Standard"
 ---
 
 # Wendao Note Authoring Standard
@@ -47,9 +45,13 @@ tags:
 saliency_base: 5.0
 decay_rate: 0.05
 metadata:
-  title: "Redundant Title Validation"
+  <extension_key>: "<extension value>"
 ---
 ```
+
+The `metadata` mapping is optional extension space. Do not duplicate top-level
+frontmatter fields such as `title`, `category`, `tags`, `saliency_base`, or
+`decay_rate` under `metadata`.
 
 ## 4. Atomic Note Structure (Zettelkasten)
 

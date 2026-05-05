@@ -1,3 +1,11 @@
+use std::path::Path;
+use std::sync::Arc;
+
+use ::duckdb::arrow::{
+    array::{ArrayRef, StringArray},
+    datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
+};
 use tempfile::tempdir;
 
 use super::{
@@ -10,20 +18,7 @@ use super::{
 #[ignore = "requires downloading/loading DuckDB's ducklake extension"]
 fn ducklake_live_attach_smoke() {
     let root = must_ok(tempdir(), "create DuckLake live root");
-    let runtime = DuckDbRuntimeConfig {
-        enabled: true,
-        database_path: DuckDbDatabasePath::InMemory,
-        temp_directory: root.path().join("duckdb-tmp"),
-        threads: 1,
-        execution: DuckDbExecutionConfig {
-            preserve_insertion_order: true,
-            parquet_metadata_cache: false,
-            prefer_virtual_arrow: true,
-        },
-        memory_limit: None,
-        max_temp_directory_size: None,
-        materialize_threshold_rows: 10,
-    };
+    let runtime = live_duckdb_runtime(root.path());
     let connection = must_ok(
         open_duckdb_connection(&runtime),
         "open DuckDB for live DuckLake smoke",
@@ -40,7 +35,7 @@ fn ducklake_live_attach_smoke() {
     );
     must_ok(
         connection.execute_batch(
-            r#"
+            r"
             CREATE TABLE wendao_lake.events (
               tenant_id VARCHAR,
               case_id VARCHAR,
@@ -48,55 +43,11 @@ fn ducklake_live_attach_smoke() {
               payload VARCHAR,
               created_at VARCHAR
             );
-            "#,
+            ",
         ),
         "create DuckLake event table",
     );
-    let schema = std::sync::Arc::new(::duckdb::arrow::datatypes::Schema::new(vec![
-        ::duckdb::arrow::datatypes::Field::new(
-            "tenant_id",
-            ::duckdb::arrow::datatypes::DataType::Utf8,
-            false,
-        ),
-        ::duckdb::arrow::datatypes::Field::new(
-            "case_id",
-            ::duckdb::arrow::datatypes::DataType::Utf8,
-            false,
-        ),
-        ::duckdb::arrow::datatypes::Field::new(
-            "event_type",
-            ::duckdb::arrow::datatypes::DataType::Utf8,
-            false,
-        ),
-        ::duckdb::arrow::datatypes::Field::new(
-            "payload",
-            ::duckdb::arrow::datatypes::DataType::Utf8,
-            false,
-        ),
-        ::duckdb::arrow::datatypes::Field::new(
-            "created_at",
-            ::duckdb::arrow::datatypes::DataType::Utf8,
-            false,
-        ),
-    ]));
-    let batch = must_ok(
-        ::duckdb::arrow::record_batch::RecordBatch::try_new(
-            schema,
-            vec![
-                std::sync::Arc::new(::duckdb::arrow::array::StringArray::from(vec!["tenant-a"]))
-                    as ::duckdb::arrow::array::ArrayRef,
-                std::sync::Arc::new(::duckdb::arrow::array::StringArray::from(vec!["case-1"])),
-                std::sync::Arc::new(::duckdb::arrow::array::StringArray::from(vec!["tool.call"])),
-                std::sync::Arc::new(::duckdb::arrow::array::StringArray::from(vec![
-                    r#"{"tool":"probe"}"#,
-                ])),
-                std::sync::Arc::new(::duckdb::arrow::array::StringArray::from(vec![
-                    "2026-05-04T00:00:00Z",
-                ])),
-            ],
-        ),
-        "build Arrow event batch",
-    );
+    let batch = ducklake_event_batch();
     let appended_rows = must_ok(
         append_ducklake_record_batches(
             &connection,
@@ -117,4 +68,44 @@ fn ducklake_live_attach_smoke() {
     );
 
     assert_eq!(event_count, 1);
+}
+
+fn live_duckdb_runtime(root: &Path) -> DuckDbRuntimeConfig {
+    DuckDbRuntimeConfig {
+        enabled: true,
+        database_path: DuckDbDatabasePath::InMemory,
+        temp_directory: root.join("duckdb-tmp"),
+        threads: 1,
+        execution: DuckDbExecutionConfig {
+            preserve_insertion_order: true,
+            parquet_metadata_cache: false,
+            prefer_virtual_arrow: true,
+        },
+        memory_limit: None,
+        max_temp_directory_size: None,
+        materialize_threshold_rows: 10,
+    }
+}
+
+fn ducklake_event_batch() -> RecordBatch {
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("tenant_id", DataType::Utf8, false),
+        Field::new("case_id", DataType::Utf8, false),
+        Field::new("event_type", DataType::Utf8, false),
+        Field::new("payload", DataType::Utf8, false),
+        Field::new("created_at", DataType::Utf8, false),
+    ]));
+    must_ok(
+        RecordBatch::try_new(
+            schema,
+            vec![
+                Arc::new(StringArray::from(vec!["tenant-a"])) as ArrayRef,
+                Arc::new(StringArray::from(vec!["case-1"])),
+                Arc::new(StringArray::from(vec!["tool.call"])),
+                Arc::new(StringArray::from(vec![r#"{"tool":"probe"}"#])),
+                Arc::new(StringArray::from(vec!["2026-05-04T00:00:00Z"])),
+            ],
+        ),
+        "build Arrow event batch",
+    )
 }

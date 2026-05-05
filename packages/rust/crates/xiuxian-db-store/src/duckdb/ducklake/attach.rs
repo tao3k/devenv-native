@@ -4,12 +4,12 @@ use std::fs;
 
 use super::{DuckLakeAttachConfig, DuckLakeCatalog, build_ducklake_attach_sql};
 
-/// Attach one DuckLake catalog to an existing embedded DuckDB connection.
+/// Attach one `DuckLake` catalog to an existing embedded `DuckDB` connection.
 ///
 /// # Errors
 ///
 /// Returns an error when required local directories cannot be created, when
-/// DuckLake SQL cannot be rendered, or when DuckDB rejects extension
+/// `DuckLake` SQL cannot be rendered, or when `DuckDB` rejects extension
 /// installation, loading, or attachment.
 pub fn attach_ducklake(
     connection: &::duckdb::Connection,
@@ -35,15 +35,15 @@ fn prepare_ducklake_paths(config: &DuckLakeAttachConfig) -> Result<(), String> {
         })?;
     }
 
-    if let DuckLakeCatalog::LocalMetadataFile(metadata_path) = &config.catalog {
-        if let Some(parent) = metadata_path.parent() {
-            fs::create_dir_all(parent).map_err(|error| {
-                format!(
-                    "failed to create DuckLake metadata directory `{}`: {error}",
-                    parent.display()
-                )
-            })?;
-        }
+    if let DuckLakeCatalog::LocalMetadataFile(metadata_path) = &config.catalog
+        && let Some(parent) = metadata_path.parent()
+    {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "failed to create DuckLake metadata directory `{}`: {error}",
+                parent.display()
+            )
+        })?;
     }
     Ok(())
 }

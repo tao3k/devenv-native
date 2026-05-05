@@ -11,10 +11,9 @@ name: researcher
 description: Use when analyzing repositories, conducting deep research on codebases, performing architecture reviews, or exploring large projects from a git URL.
 author: xiuxian-artisan-workshop
 date: 2026-04-26T09:30-07:00
+saliency_base: 5.5
+decay_rate: 0.05
 metadata:
-  retrieval:
-    saliency_base: 5.5
-    decay_rate: 0.05
   version: "2.1.0"
   source: "https://github.com/tao3k/xiuxian-artisan-workshop/tree/main/assets/skills/researcher"
   routing_keywords:

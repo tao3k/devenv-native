@@ -31,10 +31,10 @@ DuckLake support is intentionally embedded-first. This crate owns local
 metadata-file and PostgreSQL-catalog attach configuration, extension bootstrap
 SQL, local data-path preparation, typed remote data-path rendering, fully
 qualified DuckLake table references, Arrow `RecordBatch` appends into existing
-attached tables, and DuckDB `httpfs` S3 secret SQL helpers. It does not own
-Wendao event names, BPMN payload schemas, SwanLake session orchestration,
-credential discovery, S3 bucket provisioning, or live PostgreSQL service
-management.
+attached tables, reusable Arrow appender handles for high-throughput ingestion,
+and DuckDB `httpfs` S3 secret SQL helpers. It does not own Wendao event names,
+BPMN payload schemas, SwanLake session orchestration, credential discovery, S3
+bucket provisioning, or live PostgreSQL service management.
 
 DuckLake `DATA_PATH` values are typed as local paths or remote URIs. Runtime
 attach prepares local directories only for local paths; remote values such as
@@ -77,6 +77,22 @@ Optional environment variables:
 When the required variables are missing, the ignored probe skips itself
 cleanly. It does not provision PostgreSQL, create buckets, discover
 credentials, or start SwanLake.
+
+### DuckLake Harness Profile
+
+The db-store Rust harness profile binds `src/duckdb/ducklake/mod.rs` to the
+regression verification skill. That profile covers the embedded DuckLake chain:
+attach SQL and extension bootstrap, catalog and data-path typing, S3 secret SQL
+helpers, Arrow appender behavior, the local live smoke, and the env-gated
+external probe.
+
+The primary profile checks are:
+
+```bash
+direnv exec . cargo test -p xiuxian-db-store --features duckdb db_store_verification_profile_hints_bind_active_skill_tasks -- --nocapture
+direnv exec . cargo test -p xiuxian-db-store --features duckdb -- --nocapture
+direnv exec . cargo bench -p xiuxian-db-store --features duckdb --bench db_store_performance db_store_ducklake_arrow_appender
+```
 
 Arrow and DataFusion query surfaces also belong here through the lightweight
 `engine` feature. Wendao default builds should use that surface for SQL,

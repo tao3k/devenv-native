@@ -16,10 +16,9 @@ fn lint_reports_skill_frontmatter_metadata_sequence_schema() {
         "type: skill\n",
         "name: demo-skill\n",
         "description: Demo skill\n",
+        "saliency_base: 5.5\n",
+        "decay_rate: 0.05\n",
         "metadata:\n",
-        "  retrieval:\n",
-        "    saliency_base: 5.5\n",
-        "    decay_rate: 0.05\n",
         "  author: xiuxian-artisan-workshop\n",
         "  version: \"1.0.0\"\n",
         "  source: \"https://example.test/skills/demo\"\n",
@@ -38,7 +37,7 @@ fn lint_reports_skill_frontmatter_metadata_sequence_schema() {
         report.issues[0].message,
         "skill frontmatter `metadata.routing_keywords` must be a non-empty string array"
     );
-    assert_eq!((report.issues[0].line, report.issues[0].column), (19, 3));
+    assert_eq!((report.issues[0].line, report.issues[0].column), (18, 3));
 }
 
 #[test]
@@ -55,10 +54,9 @@ fn lint_reports_skill_frontmatter_optional_intents_schema() {
         "type: skill\n",
         "name: demo-skill\n",
         "description: Demo skill\n",
+        "saliency_base: 5.5\n",
+        "decay_rate: 0.05\n",
         "metadata:\n",
-        "  retrieval:\n",
-        "    saliency_base: 5.5\n",
-        "    decay_rate: 0.05\n",
         "  author: xiuxian-artisan-workshop\n",
         "  version: \"1.0.0\"\n",
         "  source: \"https://example.test/skills/demo\"\n",
@@ -77,7 +75,7 @@ fn lint_reports_skill_frontmatter_optional_intents_schema() {
         report.issues[0].message,
         "skill frontmatter `metadata.intents` must be a non-empty string array"
     );
-    assert_eq!((report.issues[0].line, report.issues[0].column), (21, 3));
+    assert_eq!((report.issues[0].line, report.issues[0].column), (20, 3));
 }
 
 #[test]
@@ -96,10 +94,9 @@ fn lint_reports_skill_frontmatter_legacy_keywords() {
         "description: Demo skill\n",
         "keywords:\n",
         "  - demo\n",
+        "saliency_base: 5.5\n",
+        "decay_rate: 0.05\n",
         "metadata:\n",
-        "  retrieval:\n",
-        "    saliency_base: 5.5\n",
-        "    decay_rate: 0.05\n",
         "  author: xiuxian-artisan-workshop\n",
         "  version: \"1.0.0\"\n",
         "  source: \"https://example.test/skills/demo\"\n",

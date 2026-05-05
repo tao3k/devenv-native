@@ -1,4 +1,4 @@
-//! Wendao-owned event lake consumer helpers over `xiuxian-db-store` DuckLake.
+//! Wendao-owned event lake consumer helpers over `xiuxian-db-store` `DuckLake`.
 
 mod config;
 mod handle;
@@ -19,6 +19,7 @@ pub use schema::{
     wendao_event_record_batch, wendao_event_schema,
 };
 pub use store::{
-    WENDAO_EVENT_LAKE_DEFAULT_ALIAS, append_wendao_event_batches, append_wendao_events,
+    WENDAO_EVENT_APPEND_DEFAULT_BATCH_ROWS, WENDAO_EVENT_LAKE_DEFAULT_ALIAS,
+    WendaoEventLakeAppender, append_wendao_event_batches, append_wendao_events,
     ensure_wendao_event_lake_table, query_wendao_event_type_counts,
 };

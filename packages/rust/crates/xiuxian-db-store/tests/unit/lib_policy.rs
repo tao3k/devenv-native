@@ -47,6 +47,18 @@ fn db_store_verification_profile_hints_bind_active_skill_tasks() {
     );
     assert_bound_task(
         &plan,
+        "src/duckdb/ducklake/mod.rs",
+        RustVerificationTaskKind::Regression,
+        "rust-verification-regression@insta",
+    );
+    assert_bound_task(
+        &plan,
+        "src/duckdb/ducklake/mod.rs",
+        RustVerificationTaskKind::Performance,
+        "rust-verification-performance@criterion",
+    );
+    assert_bound_task(
+        &plan,
         "src/qianji_bpmn/store.rs",
         RustVerificationTaskKind::Performance,
         "rust-verification-performance@criterion",
@@ -75,6 +87,20 @@ fn db_store_verification_profile_hints_bind_active_skill_tasks() {
         contracts.contains("[skill-contract] rust-verification-regression@insta"),
         "{contracts}"
     );
+    assert_task_requirement(
+        &plan,
+        "src/duckdb/ducklake/mod.rs",
+        RustVerificationTaskKind::Regression,
+        "local_live_smoke_command",
+        "ducklake_live_attach_smoke",
+    );
+    assert_task_requirement(
+        &plan,
+        "src/duckdb/ducklake/mod.rs",
+        RustVerificationTaskKind::Performance,
+        "benchmark_command",
+        "db_store_ducklake_arrow_appender",
+    );
     write_verification_reports_when_requested(&manifest_dir, &plan);
 }
 
@@ -85,6 +111,7 @@ fn db_store_manifest_dir() -> PathBuf {
 pub(super) fn db_store_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
         .with_verification_profile_hint(duckdb_sql_security_hint())
+        .with_verification_profile_hint(ducklake_chain_regression_hint())
         .with_verification_profile_hint(bpmn_store_performance_hint())
         .with_verification_profile_hint(state_log_regression_hint())
         .with_verification_responsibility_task_kinds(
@@ -147,6 +174,82 @@ fn duckdb_sql_security_hint() -> RustVerificationProfileHint {
         ),
     )
     .with_rationale("DuckDB SQL helpers guard the local storage SQL boundary")
+}
+
+fn ducklake_chain_regression_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/duckdb/ducklake/mod.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskKind::Performance,
+    ])
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "regression skill must report the DuckLake attach, catalog, secret, appender, local-live, and external-probe chain",
+            [
+                RustVerificationRequirement::new(
+                    "default_test_command",
+                    "cargo test -p xiuxian-db-store --features duckdb -- --nocapture",
+                ),
+                RustVerificationRequirement::new(
+                    "local_live_smoke_command",
+                    "cargo test -p xiuxian-db-store --features duckdb ducklake_live_attach_smoke -- --ignored --nocapture",
+                ),
+                RustVerificationRequirement::new(
+                    "external_probe_command",
+                    "cargo test -p xiuxian-db-store --features duckdb ducklake_external -- --ignored --nocapture",
+                ),
+                RustVerificationRequirement::new(
+                    "chain_contract",
+                    "local metadata, typed local or remote data path, S3 secret SQL, Arrow appender, and skip/live probe semantics",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "test output or verification report path",
+                ),
+            ],
+        ),
+    )
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report the reusable DuckLake Arrow appender benchmark",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo bench -p xiuxian-db-store --features duckdb --bench db_store_performance db_store_ducklake_arrow_appender",
+                ),
+                RustVerificationRequirement::new(
+                    "baseline",
+                    "DuckLake Arrow appender baseline name or commit",
+                ),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted reusable appender throughput regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "rows-per-second or batch append latency from Criterion output",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "Criterion output or verification report path",
+                ),
+            ],
+        ),
+    )
+    .with_rationale(
+        "DuckLake substrate owns the embedded attach/appender/external-probe chain and reusable appender throughput used by downstream event lakes",
+    )
 }
 
 fn bpmn_store_performance_hint() -> RustVerificationProfileHint {
@@ -240,13 +343,11 @@ fn regression_skill_descriptor() -> RustVerificationSkillDescriptor {
     RustVerificationSkillDescriptor::new("rust-verification-regression")
         .with_adapter("insta")
         .with_tool("cargo")
-        .with_command(
-            "cargo test -p xiuxian-db-store --features qianji-bpmn-workflow-state qianji_bpmn",
-        )
-        .with_standard("workflow-state replay and latest-state contracts stay intentional")
+        .with_command("cargo test -p xiuxian-db-store <profile-specific regression filter>")
+        .with_standard("db-store regression contracts stay intentional")
         .with_required_inputs(["snapshot_command", "contract_surface"])
-        .with_pass_criteria(["tests=pass", "contract_parity=pass"])
-        .with_receipt_fields(["snapshot_command", "contract_parity", "artifact"])
+        .with_pass_criteria(["tests=pass", "regression_evidence=present"])
+        .with_receipt_fields(["snapshot_command", "regression_evidence", "artifact"])
 }
 
 fn assert_bound_task(
@@ -255,11 +356,7 @@ fn assert_bound_task(
     kind: RustVerificationTaskKind,
     expected_binding: &str,
 ) {
-    let task = plan
-        .active_tasks()
-        .into_iter()
-        .find(|task| task.kind == kind && task.owner_path.ends_with(Path::new(owner_path)))
-        .unwrap_or_else(|| panic!("missing {kind:?} task for {owner_path}: {plan:#?}"));
+    let task = find_active_task(plan, owner_path, kind);
     let binding = task
         .skill_binding
         .as_ref()
@@ -271,6 +368,61 @@ fn assert_bound_task(
 
     assert_eq!(binding_label, expected_binding);
     assert_eq!(task.skill_contract_ref.as_deref(), Some(expected_binding));
+}
+
+fn assert_task_requirement(
+    plan: &rust_lang_project_harness::RustVerificationPlan,
+    owner_path: &str,
+    kind: RustVerificationTaskKind,
+    expected_key: &str,
+    expected_description_fragment: &str,
+) {
+    let (task, requirement) = find_active_task_requirement(plan, owner_path, kind, expected_key);
+
+    assert!(
+        requirement
+            .description
+            .contains(expected_description_fragment),
+        "requirement `{expected_key}` should include `{expected_description_fragment}`: {requirement:#?}"
+    );
+    assert!(
+        task.owner_path.ends_with(Path::new(owner_path)),
+        "matched task should belong to {owner_path}: {task:#?}"
+    );
+}
+
+fn find_active_task_requirement<'a>(
+    plan: &'a rust_lang_project_harness::RustVerificationPlan,
+    owner_path: &str,
+    kind: RustVerificationTaskKind,
+    expected_key: &str,
+) -> (
+    &'a rust_lang_project_harness::RustVerificationTask,
+    &'a rust_lang_project_harness::RustVerificationRequirement,
+) {
+    plan.active_tasks()
+        .into_iter()
+        .filter(|task| task.kind == kind && task.owner_path.ends_with(Path::new(owner_path)))
+        .find_map(|task| {
+            task.required_evidence
+                .iter()
+                .find(|requirement| requirement.key == expected_key)
+                .map(|requirement| (task, requirement))
+        })
+        .unwrap_or_else(|| {
+            panic!("missing requirement {expected_key} for {kind:?} task at {owner_path}")
+        })
+}
+
+fn find_active_task<'a>(
+    plan: &'a rust_lang_project_harness::RustVerificationPlan,
+    owner_path: &str,
+    kind: RustVerificationTaskKind,
+) -> &'a rust_lang_project_harness::RustVerificationTask {
+    plan.active_tasks()
+        .into_iter()
+        .find(|task| task.kind == kind && task.owner_path.ends_with(Path::new(owner_path)))
+        .unwrap_or_else(|| panic!("missing {kind:?} task for {owner_path}: {plan:#?}"))
 }
 
 fn write_verification_reports_when_requested(

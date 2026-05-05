@@ -1218,9 +1218,16 @@ module.
 The first Wendao event-lake consumer slice lives under `xiuxian-wendao`'s
 DuckDB bridge. It defines the Wendao event table, converts Wendao events into
 Arrow record batches, appends them through db-store DuckLake appender
-primitives, and queries counts by `event_type`. The MVP stores `payload` as
-JSON text in a `VARCHAR` column so Arrow appends stay direct; DuckDB queries
-can validate or cast the payload as JSON when needed.
+primitives, and queries counts by `event_type`. The performance path keeps one
+DuckLake Arrow appender open across multiple batches, converts event records
+into bounded Arrow chunks instead of one unbounded batch, and flushes once
+before querying. One-shot helpers remain thin wrappers around the same reusable
+appender path. Bounded event queries preallocate result storage from the
+validated limit contract before reading DuckDB rows. The MVP stores `payload`
+as JSON text in a `VARCHAR` column so Arrow appends stay direct; DuckDB queries
+can validate or cast the payload as JSON when needed. `WendaoEventRecord`
+serializes producer payloads once into compact JSON text, and callers parse the
+payload on demand when they need structured JSON values.
 
 The external-catalog contract is represented in `xiuxian-db-store` rather than
 Wendao. DuckLake data paths are typed as local filesystem paths or remote URIs,

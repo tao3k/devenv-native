@@ -7,8 +7,6 @@ tags:
   - "<concept>"
 saliency_base: 5.0
 decay_rate: 0.05
-metadata:
-  title: "<Concept Title>"
 ---
 
 # <Concept Title>

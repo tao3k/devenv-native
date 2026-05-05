@@ -5,7 +5,11 @@ use arrow::array::{Float64Array, StringArray};
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_julia::validate_wendao_graph_evidence_request_schema;
 
-use super::*;
+use super::{
+    LinkGraphWendaoGraphEvidenceError, WendaoGraphEvidenceRequestOptions,
+    build_wendao_graph_evidence_request_bundle,
+    build_wendao_graph_evidence_request_bundle_with_options,
+};
 use crate::link_graph::LinkGraphIndex;
 
 fn write_note(root: &Path, relative: &str, content: &str) {

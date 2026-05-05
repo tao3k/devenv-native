@@ -10,6 +10,8 @@ pub(crate) struct WendaoTomlConfig {
     #[serde(default)]
     pub(crate) gateway: WendaoTomlGatewayConfig,
     #[serde(default)]
+    pub(crate) document_extract: WendaoTomlDocumentExtractConfig,
+    #[serde(default)]
     pub(crate) link_graph: WendaoTomlLinkGraphConfig,
     #[serde(default, flatten)]
     pub(crate) extra: BTreeMap<String, toml::Value>,
@@ -20,6 +22,15 @@ pub(crate) struct WendaoTomlConfig {
 pub(crate) struct WendaoTomlGatewayConfig {
     #[serde(default)]
     pub(crate) bind: Option<String>,
+    #[serde(default, flatten)]
+    pub(crate) extra: BTreeMap<String, toml::Value>,
+}
+
+/// Document extraction worker configuration.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub(crate) struct WendaoTomlDocumentExtractConfig {
+    #[serde(default)]
+    pub(crate) endpoint: Option<String>,
     #[serde(default, flatten)]
     pub(crate) extra: BTreeMap<String, toml::Value>,
 }

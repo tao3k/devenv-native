@@ -12,8 +12,8 @@ pub struct WendaoEventRecord {
     pub case_id: String,
     /// Stable event kind such as `bpmn.step`, `llm.call`, or `tool.call`.
     pub event_type: String,
-    /// JSON payload owned by the event producer.
-    pub payload: Value,
+    /// Compact JSON payload text owned by the event producer.
+    pub payload_json: String,
     /// Event creation timestamp in UTC.
     pub created_at: DateTime<Utc>,
 }
@@ -25,16 +25,72 @@ impl WendaoEventRecord {
         tenant_id: impl Into<String>,
         case_id: impl Into<String>,
         event_type: impl Into<String>,
-        payload: Value,
+        payload: &Value,
         created_at: DateTime<Utc>,
     ) -> Self {
         Self {
             tenant_id: tenant_id.into(),
             case_id: case_id.into(),
             event_type: event_type.into(),
-            payload,
+            payload_json: payload.to_string(),
             created_at,
         }
+    }
+
+    /// Build a Wendao event record from already serialized JSON payload text.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `payload_json` is not valid JSON.
+    pub fn from_payload_json(
+        tenant_id: impl Into<String>,
+        case_id: impl Into<String>,
+        event_type: impl Into<String>,
+        payload_json: impl Into<String>,
+        created_at: DateTime<Utc>,
+    ) -> Result<Self, String> {
+        let payload_json = payload_json.into();
+        serde_json::from_str::<Value>(payload_json.as_str())
+            .map_err(|error| format!("invalid Wendao event payload JSON: {error}"))?;
+        Ok(Self::from_trusted_payload_json(
+            tenant_id,
+            case_id,
+            event_type,
+            payload_json,
+            created_at,
+        ))
+    }
+
+    pub(crate) fn from_trusted_payload_json(
+        tenant_id: impl Into<String>,
+        case_id: impl Into<String>,
+        event_type: impl Into<String>,
+        payload_json: impl Into<String>,
+        created_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            tenant_id: tenant_id.into(),
+            case_id: case_id.into(),
+            event_type: event_type.into(),
+            payload_json: payload_json.into(),
+            created_at,
+        }
+    }
+
+    /// Access the compact JSON payload text.
+    #[must_use]
+    pub fn payload_json(&self) -> &str {
+        self.payload_json.as_str()
+    }
+
+    /// Parse the payload text into a JSON value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the stored payload text is not valid JSON.
+    pub fn payload_value(&self) -> Result<Value, String> {
+        serde_json::from_str(self.payload_json.as_str())
+            .map_err(|error| format!("invalid Wendao event payload JSON: {error}"))
     }
 }
 

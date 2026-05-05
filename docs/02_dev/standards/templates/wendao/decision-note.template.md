@@ -7,8 +7,6 @@ tags:
   - "<domain>"
 saliency_base: 6.0
 decay_rate: 0.04
-metadata:
-  title: "<Decision Title>"
 ---
 
 # <Decision Title>

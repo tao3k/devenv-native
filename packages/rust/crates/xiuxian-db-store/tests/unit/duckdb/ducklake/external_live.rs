@@ -1,3 +1,11 @@
+use std::path::Path;
+use std::sync::Arc;
+
+use ::duckdb::arrow::{
+    array::{ArrayRef, StringArray},
+    datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
+};
 use tempfile::tempdir;
 
 use super::{
@@ -24,20 +32,7 @@ fn ducklake_external_postgres_catalog_live_probe() {
     };
 
     let root = must_ok(tempdir(), "create DuckLake external probe root");
-    let runtime = DuckDbRuntimeConfig {
-        enabled: true,
-        database_path: DuckDbDatabasePath::InMemory,
-        temp_directory: root.path().join("duckdb-tmp"),
-        threads: 1,
-        execution: DuckDbExecutionConfig {
-            preserve_insertion_order: true,
-            parquet_metadata_cache: false,
-            prefer_virtual_arrow: true,
-        },
-        memory_limit: None,
-        max_temp_directory_size: None,
-        materialize_threshold_rows: 10,
-    };
+    let runtime = external_probe_runtime(root.path());
     let connection = must_ok(
         open_duckdb_connection(&runtime),
         "open DuckDB for external DuckLake probe",
@@ -74,32 +69,7 @@ fn ducklake_external_postgres_catalog_live_probe() {
         ),
         "create external DuckLake probe table",
     );
-    let schema = std::sync::Arc::new(::duckdb::arrow::datatypes::Schema::new(vec![
-        ::duckdb::arrow::datatypes::Field::new(
-            "probe_id",
-            ::duckdb::arrow::datatypes::DataType::Utf8,
-            false,
-        ),
-        ::duckdb::arrow::datatypes::Field::new(
-            "event_type",
-            ::duckdb::arrow::datatypes::DataType::Utf8,
-            false,
-        ),
-    ]));
-    let batch = must_ok(
-        ::duckdb::arrow::record_batch::RecordBatch::try_new(
-            schema,
-            vec![
-                std::sync::Arc::new(::duckdb::arrow::array::StringArray::from(vec![
-                    table_name.as_str(),
-                ])) as ::duckdb::arrow::array::ArrayRef,
-                std::sync::Arc::new(::duckdb::arrow::array::StringArray::from(vec![
-                    "external.probe",
-                ])),
-            ],
-        ),
-        "build external DuckLake probe Arrow batch",
-    );
+    let batch = external_probe_batch(table_name.as_str());
     let appended_rows = must_ok(
         append_ducklake_record_batches(
             &connection,
@@ -127,6 +97,40 @@ fn ducklake_external_postgres_catalog_live_probe() {
         connection.execute_batch(format!("DROP TABLE {alias}.{table_name};").as_str()),
         "drop external DuckLake probe table",
     );
+}
+
+fn external_probe_runtime(root: &Path) -> DuckDbRuntimeConfig {
+    DuckDbRuntimeConfig {
+        enabled: true,
+        database_path: DuckDbDatabasePath::InMemory,
+        temp_directory: root.join("duckdb-tmp"),
+        threads: 1,
+        execution: DuckDbExecutionConfig {
+            preserve_insertion_order: true,
+            parquet_metadata_cache: false,
+            prefer_virtual_arrow: true,
+        },
+        memory_limit: None,
+        max_temp_directory_size: None,
+        materialize_threshold_rows: 10,
+    }
+}
+
+fn external_probe_batch(table_name: &str) -> RecordBatch {
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("probe_id", DataType::Utf8, false),
+        Field::new("event_type", DataType::Utf8, false),
+    ]));
+    must_ok(
+        RecordBatch::try_new(
+            schema,
+            vec![
+                Arc::new(StringArray::from(vec![table_name])) as ArrayRef,
+                Arc::new(StringArray::from(vec!["external.probe"])),
+            ],
+        ),
+        "build external DuckLake probe Arrow batch",
+    )
 }
 
 fn optional_env(name: &str) -> Option<String> {
