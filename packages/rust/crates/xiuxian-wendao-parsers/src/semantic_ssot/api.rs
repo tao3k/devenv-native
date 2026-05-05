@@ -3,7 +3,8 @@
 use super::types::{
     SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidenceSource, SemanticObject,
     SemanticObjectKind, SemanticProjection, SemanticProjectionFreshnessPolicyEntry,
-    SemanticProjectionFreshnessPolicyReport, SemanticProjectionStaleness, SemanticRelationEdge,
+    SemanticProjectionFreshnessPolicyReport, SemanticProjectionRefreshPlanEntry,
+    SemanticProjectionRefreshPlanReport, SemanticProjectionStaleness, SemanticRelationEdge,
     SemanticRelationKind, SemanticRepository, SemanticScopeBundle, SemanticScopeMetadataEnvelope,
     SemanticScopeRequest, SemanticStatus, SemanticStatusTransition, SemanticValidationReport,
 };
@@ -203,6 +204,51 @@ pub fn semantic_projection_freshness_policy_report(
         policy_id: SEMANTIC_PROJECTION_FRESHNESS_POLICY_ID.to_string(),
         status: status.to_string(),
         failing_projection_count,
+        message: message.to_string(),
+        projections,
+    }
+}
+
+/// Build a read-only projection metadata refresh plan for one semantic repository.
+#[must_use]
+pub fn semantic_projection_refresh_plan_report(
+    repository: &SemanticRepository,
+) -> SemanticProjectionRefreshPlanReport {
+    let mut projections = repository
+        .projections
+        .iter()
+        .filter_map(|projection| {
+            let current_source_revision =
+                semantic_projection_source_revision(repository, projection)?;
+            let reason = semantic_projection_policy_failure_reason(
+                projection.source_revision.as_str(),
+                &projection.staleness,
+                Some(current_source_revision.as_str()),
+            )?;
+            Some(SemanticProjectionRefreshPlanEntry {
+                projection: projection.projection.clone(),
+                source_revision: projection.source_revision.clone(),
+                current_source_revision,
+                staleness: semantic_projection_staleness_token(&projection.staleness).to_string(),
+                action: "refresh_source_revision".to_string(),
+                reason: reason.to_string(),
+                source_path: semantic_projection_policy_source_path(projection),
+            })
+        })
+        .collect::<Vec<_>>();
+    projections.sort_by(|left, right| left.projection.cmp(&right.projection));
+    let refreshable_projection_count = projections.len();
+    let (status, message) = if refreshable_projection_count == 0 {
+        ("up_to_date", "all semantic projections are fresh")
+    } else {
+        (
+            "refresh_required",
+            "semantic projection metadata refresh is required; run `wendao-client lint semantic --refresh-projections`",
+        )
+    };
+    SemanticProjectionRefreshPlanReport {
+        status: status.to_string(),
+        refreshable_projection_count,
         message: message.to_string(),
         projections,
     }

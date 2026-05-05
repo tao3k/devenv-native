@@ -25,7 +25,7 @@ fn write_file(path: &Path, body: &str) -> std::io::Result<()> {
 fn write_semantic_read_model_fixture(root: &Path) -> std::io::Result<()> {
     write_file(
         &root.join("objects/component/demo.md"),
-        r#"---
+        r"---
 id: component.demo
 kind: component
 title: Demo Component
@@ -49,11 +49,11 @@ relations:
 ---
 
 # Demo Component
-"#,
+",
     )?;
     write_file(
         &root.join("objects/task/demo.md"),
-        r#"---
+        r"---
 id: task.demo
 kind: task
 title: Demo Task
@@ -75,11 +75,11 @@ relations: []
 ---
 
 # Demo Task
-"#,
+",
     )?;
     write_file(
         &root.join("projections/llm-compression.md"),
-        r#"---
+        r"---
 type: semantic_projection
 projection: llm_compression
 source_objects:
@@ -92,14 +92,14 @@ status: active
 ---
 
 # LLM Compression
-"#,
+",
     )
 }
 
 fn write_invalid_semantic_fixture(root: &Path) -> std::io::Result<()> {
     write_file(
         &root.join("objects/component/broken.md"),
-        r#"---
+        r"---
 id: component.broken
 kind: component
 title: Broken Component
@@ -123,14 +123,14 @@ relations:
 ---
 
 # Broken Component
-"#,
+",
     )
 }
 
 fn write_semantic_no_projection_fixture(root: &Path) -> std::io::Result<()> {
     write_file(
         &root.join("objects/task/no-stale.md"),
-        r#"---
+        r"---
 id: task.no-stale
 kind: task
 title: No Stale Projection Task
@@ -152,7 +152,7 @@ relations: []
 ---
 
 # No Stale Projection Task
-"#,
+",
     )
 }
 
@@ -296,8 +296,9 @@ fn semantic_read_model_rejects_invalid_repository() -> TestResult {
     let repository = load_semantic_repository(root);
     assert!(!repository.report.is_success());
 
-    let error = build_semantic_read_model_rows(&repository)
-        .expect_err("invalid semantic repository should not project");
+    let Err(error) = build_semantic_read_model_rows(&repository) else {
+        panic!("invalid semantic repository should not project");
+    };
     assert!(error.contains("semantic repository validation failed"));
     Ok(())
 }

@@ -64,10 +64,15 @@ injecting a read-only `semanticScopeGuardTrace` into node context.
 Workflow authors can also opt into explicit scheduler preflight blocking with
 `semanticScopeGuardPolicy` values for blocked or review-required semantic
 scope; the default remains advisory.
+`wendao-client lint semantic --projection-refresh-plan` now renders the
+read-only projection metadata refresh queue contract for future background
+refresh workers, while artifact mutation remains explicit through
+`--refresh-projections`.
 
-The RFC is still not fully complete. Background projection refresh, deeper
-workflow policy routing beyond scheduler preflight blocking, and future Julia
-or DuckDB-backed derived lanes remain outside the completed slice.
+The RFC is still not fully complete. An actual background projection refresh
+worker, deeper workflow policy routing beyond scheduler preflight blocking,
+and future Julia or DuckDB-backed derived lanes remain outside the completed
+slice.
 
 ## 2. Evidence Map
 
@@ -257,6 +262,9 @@ pending lifecycle transitions before re-validating the repository semantic
 surface. `wendao-client lint semantic --require-fresh-projections` now lets
 callers enforce that active change-intent projection refresh targets are fresh
 before closing a semantic change.
+`wendao-client lint semantic --projection-refresh-plan` now exposes the
+read-only refresh plan that a future background refresh worker can consume
+without silently mutating repo-native projection artifacts.
 
 ## 6. Formal Research References
 

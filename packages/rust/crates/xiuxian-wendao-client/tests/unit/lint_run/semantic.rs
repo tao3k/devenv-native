@@ -179,6 +179,76 @@ fn semantic_lint_requires_fresh_projection_refresh_targets() -> Result<()> {
 }
 
 #[test]
+fn semantic_lint_renders_projection_refresh_plan() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) =
+        run_semantic_lint_with_args(&temp, None, &["--projection-refresh-plan"])?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Projection refresh plan refresh_required"),
+        "projection refresh plan should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("llm_compression -> refresh_source_revision (stale, stale)"),
+        "projection refresh entry should be rendered: {stdout}"
+    );
+
+    let (status, stdout) = run_semantic_lint_with_args(
+        &temp,
+        None,
+        &["--refresh-projections", "--projection-refresh-plan"],
+    )?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Projection refresh plan up_to_date (0 refreshable projection(s))"),
+        "refreshed projection should make plan empty: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_lint_renders_projection_refresh_plan_for_fresh_revision_mismatch() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+    let projection_path = temp.path().join("semantic/projections/llm-compression.md");
+    let projection = std::fs::read_to_string(&projection_path)?;
+    std::fs::write(
+        &projection_path,
+        projection.replace("staleness: stale", "staleness: fresh"),
+    )?;
+
+    let (status, stdout) =
+        run_semantic_lint_with_args(&temp, None, &["--projection-refresh-plan"])?;
+
+    assert_eq!(status, Some(1), "{stdout}");
+    assert!(
+        stdout.contains("Projection refresh plan refresh_required"),
+        "projection refresh plan should render even for refreshable validation issues: {stdout}"
+    );
+    assert!(
+        stdout.contains("llm_compression -> refresh_source_revision"),
+        "projection refresh entry should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
 fn semantic_lint_applies_pending_lifecycle_plan() -> Result<()> {
     let temp = TempDir::new()?;
     write_pending_semantic_lifecycle_fixture(&temp)?;

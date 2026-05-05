@@ -18,8 +18,10 @@ use anyhow::{Context, Result, bail};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use xiuxian_wendao_parsers::{
-    SemanticProjectionStaleness, SemanticValidationIssue, lint_markdown_syntax_with_path,
-    load_semantic_repository, semantic_projection_source_revision, split_frontmatter_raw,
+    SemanticProjectionRefreshPlanReport, SemanticProjectionStaleness, SemanticValidationIssue,
+    lint_markdown_syntax_with_path, load_semantic_repository,
+    semantic_projection_refresh_plan_report, semantic_projection_source_revision,
+    split_frontmatter_raw,
 };
 use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
 use xiuxian_wendao_sql::semantic_read_model::{
@@ -36,6 +38,7 @@ struct SemanticLintRootReport {
     applied_lifecycle_count: usize,
     issues: Vec<SemanticValidationIssue>,
     lifecycle_plan: Option<SemanticLifecyclePlanReport>,
+    projection_refresh_plan: Option<SemanticProjectionRefreshPlanReport>,
     projection_policy: Option<SemanticProjectionFreshnessPolicyReport>,
     sql_guard: Option<SemanticLintSqlGuardReport>,
 }
@@ -48,6 +51,7 @@ struct SemanticLintReport {
     change_intent_count: usize,
     refreshed_projection_count: usize,
     applied_lifecycle_count: usize,
+    projection_refresh_plan_count: usize,
     issue_count: usize,
     projection_policy_issue_count: usize,
     sql_guard_issue_count: usize,
@@ -146,51 +150,7 @@ pub(crate) fn run_semantic_lint(
     let roots = semantic_lint_roots(args, context.root());
     let root_reports = roots
         .iter()
-        .map(|root| {
-            let applied_lifecycle_count = if args.writeback.apply_lifecycle_plan {
-                apply_semantic_lifecycle_plan(root)?
-            } else {
-                0
-            };
-            let refreshed_projection_count = if args.writeback.refresh_projections {
-                refresh_semantic_projection_sources(root)?
-            } else {
-                0
-            };
-            let repository = load_semantic_repository(root);
-            let semantic_issue_count = repository.report.issues.len();
-            let lifecycle_plan = if (args.validation.lifecycle_plan
-                || args.writeback.apply_lifecycle_plan)
-                && semantic_issue_count == 0
-            {
-                Some(semantic_lifecycle_plan_report(&repository))
-            } else {
-                None
-            };
-            let projection_policy =
-                if args.validation.require_fresh_projections && semantic_issue_count == 0 {
-                    Some(semantic_projection_freshness_policy_report(&repository))
-                } else {
-                    None
-                };
-            let sql_guard = if args.validation.semantic_sql_guard && semantic_issue_count == 0 {
-                Some(semantic_sql_guard_report(&repository)?)
-            } else {
-                None
-            };
-            Ok(SemanticLintRootReport {
-                root: display_semantic_root(root, context.root()),
-                object_count: repository.objects.len(),
-                projection_count: repository.projections.len(),
-                change_intent_count: repository.change_intents.len(),
-                refreshed_projection_count,
-                applied_lifecycle_count,
-                issues: repository.report.issues,
-                lifecycle_plan,
-                projection_policy,
-                sql_guard,
-            })
-        })
+        .map(|root| semantic_lint_root_report(root, args, context.root()))
         .collect::<Result<Vec<_>>>()?;
     let report = SemanticLintReport {
         checked_roots: root_reports.len(),
@@ -207,6 +167,11 @@ pub(crate) fn run_semantic_lint(
         applied_lifecycle_count: root_reports
             .iter()
             .map(|root| root.applied_lifecycle_count)
+            .sum(),
+        projection_refresh_plan_count: root_reports
+            .iter()
+            .filter_map(|root| root.projection_refresh_plan.as_ref())
+            .map(|plan| plan.refreshable_projection_count)
             .sum(),
         issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
         projection_policy_issue_count: root_reports
@@ -233,6 +198,82 @@ pub(crate) fn run_semantic_lint(
             CommandOutcome::failure(1)
         },
     )
+}
+
+fn semantic_lint_root_report(
+    root: &Path,
+    args: &SemanticLintArgs,
+    context_root: &Path,
+) -> Result<SemanticLintRootReport> {
+    let applied_lifecycle_count = if args.writeback.apply_lifecycle_plan {
+        apply_semantic_lifecycle_plan(root)?
+    } else {
+        0
+    };
+    let refreshed_projection_count = if args.writeback.refresh_projections {
+        refresh_semantic_projection_sources(root)?
+    } else {
+        0
+    };
+    let repository = load_semantic_repository(root);
+    let semantic_issue_count = repository.report.issues.len();
+    let lifecycle_plan = semantic_lifecycle_plan_for_lint(args, &repository, semantic_issue_count);
+    let projection_refresh_plan = semantic_projection_refresh_plan_for_lint(args, &repository);
+    let projection_policy =
+        semantic_projection_policy_for_lint(args, &repository, semantic_issue_count);
+    let sql_guard = semantic_sql_guard_for_lint(args, &repository, semantic_issue_count)?;
+    Ok(SemanticLintRootReport {
+        root: display_semantic_root(root, context_root),
+        object_count: repository.objects.len(),
+        projection_count: repository.projections.len(),
+        change_intent_count: repository.change_intents.len(),
+        refreshed_projection_count,
+        applied_lifecycle_count,
+        issues: repository.report.issues,
+        lifecycle_plan,
+        projection_refresh_plan,
+        projection_policy,
+        sql_guard,
+    })
+}
+
+fn semantic_lifecycle_plan_for_lint(
+    args: &SemanticLintArgs,
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+    semantic_issue_count: usize,
+) -> Option<SemanticLifecyclePlanReport> {
+    ((args.validation.lifecycle_plan || args.writeback.apply_lifecycle_plan)
+        && semantic_issue_count == 0)
+        .then(|| semantic_lifecycle_plan_report(repository))
+}
+
+fn semantic_projection_refresh_plan_for_lint(
+    args: &SemanticLintArgs,
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+) -> Option<SemanticProjectionRefreshPlanReport> {
+    (args.validation.projection.projection_refresh_plan
+        && projection_refresh_plan_renderable(&repository.report.issues))
+    .then(|| semantic_projection_refresh_plan_report(repository))
+}
+
+fn semantic_projection_policy_for_lint(
+    args: &SemanticLintArgs,
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+    semantic_issue_count: usize,
+) -> Option<SemanticProjectionFreshnessPolicyReport> {
+    (args.validation.projection.require_fresh_projections && semantic_issue_count == 0)
+        .then(|| semantic_projection_freshness_policy_report(repository))
+}
+
+fn semantic_sql_guard_for_lint(
+    args: &SemanticLintArgs,
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+    semantic_issue_count: usize,
+) -> Result<Option<SemanticLintSqlGuardReport>> {
+    if args.validation.semantic_sql_guard && semantic_issue_count == 0 {
+        return semantic_sql_guard_report(repository).map(Some);
+    }
+    Ok(None)
 }
 
 fn refresh_semantic_projection_sources(root: &Path) -> Result<usize> {
@@ -284,6 +325,14 @@ fn ensure_projection_refreshable(issues: &[SemanticValidationIssue]) -> Result<(
         .collect::<Vec<_>>()
         .join("; ");
     bail!("semantic repository has non-refreshable issue(s): {rendered}")
+}
+
+fn projection_refresh_plan_renderable(issues: &[SemanticValidationIssue]) -> bool {
+    issues.iter().all(|issue| {
+        issue
+            .message
+            .starts_with("semantic projection source revision is stale:")
+    })
 }
 
 fn refresh_projection_file(path: &Path, current_revision: &str) -> Result<()> {
@@ -477,6 +526,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
         render_semantic_lifecycle_apply_text(report, &mut rendered);
         render_semantic_refresh_text(report, &mut rendered);
         render_semantic_lifecycle_plan_text(report, &mut rendered);
+        render_semantic_projection_refresh_plan_text(report, &mut rendered);
         render_semantic_projection_policy_text(report, &mut rendered);
         render_semantic_sql_guard_text(report, &mut rendered);
         return rendered;
@@ -495,6 +545,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
     render_semantic_lifecycle_apply_text(report, &mut rendered);
     render_semantic_refresh_text(report, &mut rendered);
     render_semantic_lifecycle_plan_text(report, &mut rendered);
+    render_semantic_projection_refresh_plan_text(report, &mut rendered);
     render_semantic_projection_policy_text(report, &mut rendered);
     for root in &report.roots {
         for issue in &root.issues {
@@ -567,6 +618,40 @@ fn render_semantic_refresh_text(report: &SemanticLintReport, rendered: &mut Stri
     rendered.push_str("- Refreshed ");
     rendered.push_str(report.refreshed_projection_count.to_string().as_str());
     rendered.push_str(" semantic projection source revision(s).\n");
+}
+
+fn render_semantic_projection_refresh_plan_text(
+    report: &SemanticLintReport,
+    rendered: &mut String,
+) {
+    for root in &report.roots {
+        let Some(plan) = &root.projection_refresh_plan else {
+            continue;
+        };
+        rendered.push_str("- ");
+        rendered.push_str(root.root.display().to_string().as_str());
+        rendered.push_str(": Projection refresh plan ");
+        rendered.push_str(plan.status.as_str());
+        rendered.push_str(" (");
+        rendered.push_str(plan.refreshable_projection_count.to_string().as_str());
+        rendered.push_str(" refreshable projection(s))");
+        if !plan.message.is_empty() {
+            rendered.push_str(": ");
+            rendered.push_str(plan.message.as_str());
+        }
+        rendered.push('\n');
+        for projection in &plan.projections {
+            rendered.push_str("  - ");
+            rendered.push_str(projection.projection.as_str());
+            rendered.push_str(" -> ");
+            rendered.push_str(projection.action.as_str());
+            rendered.push_str(" (");
+            rendered.push_str(projection.reason.as_str());
+            rendered.push_str(", ");
+            rendered.push_str(projection.staleness.as_str());
+            rendered.push_str(")\n");
+        }
+    }
 }
 
 fn render_semantic_projection_policy_text(report: &SemanticLintReport, rendered: &mut String) {

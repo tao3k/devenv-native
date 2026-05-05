@@ -1,6 +1,5 @@
+#![doc = "Studio Flight semantic-scope provider integration smoke tests."]
 #![cfg(feature = "zhenfa-router")]
-
-//! Studio Flight semantic-scope provider integration smoke tests.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

@@ -46,4 +46,6 @@ relations:
 
 This task lands the first parser-validated semantic object schema, seed object
 set, Wendao semantic-scope route, Qianji semantic-surface consumer, and
-workflow preflight semantic-scope trace with optional policy enforcement.
+workflow preflight semantic-scope trace with optional policy enforcement. It
+also exposes a read-only semantic projection refresh plan for future
+background refresh workers.

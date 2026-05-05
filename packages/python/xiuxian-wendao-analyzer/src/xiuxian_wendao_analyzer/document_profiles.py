@@ -41,7 +41,7 @@ def normalize_document_extract_profile(value: str | None) -> str:
 
 def new_docling_converter_for_profile(
     profile: str | None = None,
-) -> "DocumentConverterProtocol":
+) -> DocumentConverterProtocol:
     """Build a Docling converter for a Wendao extraction profile.
 
     # Errors
@@ -65,7 +65,7 @@ def new_docling_converter_for_profile(
             return DocumentConverter()
 
 
-def _new_fast_text_docling_converter() -> "DocumentConverterProtocol":
+def _new_fast_text_docling_converter() -> DocumentConverterProtocol:
     from docling.datamodel.accelerator_options import (
         AcceleratorDevice,
         AcceleratorOptions,

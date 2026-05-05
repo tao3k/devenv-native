@@ -91,11 +91,16 @@ As of 2026-05-05, the first physical slice is implemented:
     `block_on_review_required`. The default remains advisory, while
     workflow authors can opt into preflight blocking for unresolved or
     review-required semantic scope.
+18. `wendao-client lint semantic --projection-refresh-plan` renders a
+    read-only, parser-owned projection metadata refresh plan. This gives a
+    future background refresh worker an explicit queue contract while keeping
+    actual projection artifact mutation behind `--refresh-projections`.
 
-The full RFC is not complete. Remaining work includes background projection
-refresh, richer workflow policy routing beyond scheduler preflight blocking,
-and any future Julia or DuckDB-backed compute/read-model expansion. Those
-remain advisory or derived lanes; they do not change repo-native authority.
+The full RFC is not complete. Remaining work includes wiring an actual
+background projection refresh worker behind the read-only refresh plan,
+richer workflow policy routing beyond scheduler preflight blocking, and any
+future Julia or DuckDB-backed compute/read-model expansion. Those remain
+advisory or derived lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 

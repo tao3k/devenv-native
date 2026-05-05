@@ -150,6 +150,15 @@ For production-like risk checks, compare total Arrow IPC bytes and cache-hit
 p95 before and after changes; first-time PDF/OCR/audio conversion should be
 planned as Rust-owned asynchronous worker capacity rather than Python-side
 request-thread registry work.
+Full-profile Docling conversions are subprocess-isolated by default. This keeps
+native crashes in heavyweight Docling, Torch, or model-runtime paths scoped to a
+single extraction instead of killing the Arrow Flight worker. Keep
+`WENDAO_DOCUMENT_EXTRACT_FULL_ISOLATION` enabled for service runs; use
+`WENDAO_DOCUMENT_EXTRACT_FULL_ISOLATION=false` only for local inline debugging.
+Use `WENDAO_DOCUMENT_EXTRACT_FULL_TIMEOUT_SECONDS` to lower or raise the
+default 900 second child-process timeout. Attachment-oriented `fast-text`
+requests are not subprocess-isolated because they avoid the heavyweight
+OCR/table-structure profile and should stay on the low-latency path.
 Use `WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS` to cap simultaneous
 Rust-dispatched cold conversions. The default follows host parallelism and is
 bounded to four conversions, while queued jobs stay visible through the

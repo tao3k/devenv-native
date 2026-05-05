@@ -270,6 +270,41 @@ pub struct SemanticProjectionFreshnessPolicyEntry {
     pub source_path: Option<String>,
 }
 
+/// Read-only projection metadata refresh plan for background refresh workers.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticProjectionRefreshPlanReport {
+    /// Plan status token.
+    pub status: String,
+    /// Count of projections that can be refreshed from current repo facts.
+    pub refreshable_projection_count: usize,
+    /// Human-readable plan message.
+    pub message: String,
+    /// Per-projection refresh entries.
+    pub projections: Vec<SemanticProjectionRefreshPlanEntry>,
+}
+
+/// One projection refresh plan entry.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticProjectionRefreshPlanEntry {
+    /// Projection name.
+    pub projection: String,
+    /// Source revision declared by the projection artifact.
+    pub source_revision: String,
+    /// Source revision computed from current source objects.
+    pub current_source_revision: String,
+    /// Projection staleness token.
+    pub staleness: String,
+    /// Planned action token.
+    pub action: String,
+    /// Refresh reason token.
+    pub reason: String,
+    /// Projection source path relative to the semantic root, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
+}
+
 /// Semantic-scope Flight app metadata envelope shared by producers and consumers.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SemanticScopeMetadataEnvelope {

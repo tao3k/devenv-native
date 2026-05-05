@@ -14,8 +14,8 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
-wendao-client lint semantic [--semantic-sql-guard] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
-wendao-client lint semantic [--semantic-sql-guard] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
+wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
+wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -98,6 +98,11 @@ Behavior:
     `lint semantic --require-fresh-projections` is passed. This is a
     closure-level policy gate; ordinary semantic lint still accepts explicitly
     stale advisory projections
+28. renders a read-only projection metadata refresh plan when
+    `lint semantic --projection-refresh-plan` is passed. This is the
+    parser-owned queue contract for future background refresh workers; the
+    command does not mutate projection artifacts unless `--refresh-projections`
+    is also passed explicitly
 
 Diagnostic rendering is split deliberately:
 

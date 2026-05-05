@@ -54,6 +54,18 @@ pub struct SemanticLintValidationArgs {
     #[arg(long = "lifecycle-plan")]
     pub lifecycle_plan: bool,
 
+    /// Semantic projection validation and planning options.
+    #[command(flatten)]
+    pub projection: SemanticLintProjectionValidationArgs,
+}
+
+/// Validation-only semantic projection options.
+#[derive(Args, Debug)]
+pub struct SemanticLintProjectionValidationArgs {
+    /// Render a read-only projection metadata refresh plan.
+    #[arg(long = "projection-refresh-plan")]
+    pub projection_refresh_plan: bool,
+
     /// Require active change-intent projection refresh targets to be fresh.
     #[arg(long = "require-fresh-projections")]
     pub require_fresh_projections: bool,
