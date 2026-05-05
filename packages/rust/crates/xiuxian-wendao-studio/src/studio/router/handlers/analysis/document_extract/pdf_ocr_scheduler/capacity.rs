@@ -148,7 +148,7 @@ impl OcrCapacityController {
 }
 
 pub(super) fn classify_ocr_lane(inputs: &[PdfOcrShardInput]) -> OcrSchedulerLane {
-    if is_contiguous_source_pdf_page_range(inputs) {
+    if is_source_pdf_page_range_batch(inputs) {
         return OcrSchedulerLane::SourcePdfPageRange;
     }
     if inputs.iter().any(|input| input.shard_type == "region") {
@@ -168,14 +168,30 @@ pub(super) fn is_contiguous_source_pdf_page_range(inputs: &[PdfOcrShardInput]) -
     let Some(first) = inputs.first() else {
         return false;
     };
-    if !first.source_path.to_ascii_lowercase().ends_with(".pdf") {
+    if !is_source_pdf_page_range_batch(inputs) {
         return false;
     }
     inputs.iter().enumerate().all(|(offset, input)| {
-        input.source_path == first.source_path
-            && input.shard_type == "page"
-            && input.page_index == first.page_index + u32::try_from(offset).unwrap_or(u32::MAX)
+        input.page_index == first.page_index + u32::try_from(offset).unwrap_or(u32::MAX)
     })
+}
+
+pub(super) fn is_source_pdf_page_range_batch(inputs: &[PdfOcrShardInput]) -> bool {
+    let Some(first) = inputs.first() else {
+        return false;
+    };
+    if !is_source_pdf_page_input(first, first.source_path.as_str()) {
+        return false;
+    }
+    inputs
+        .iter()
+        .all(|input| is_source_pdf_page_input(input, first.source_path.as_str()))
+}
+
+fn is_source_pdf_page_input(input: &PdfOcrShardInput, source_path: &str) -> bool {
+    input.source_path == source_path
+        && input.shard_type == "page"
+        && input.source_path.to_ascii_lowercase().ends_with(".pdf")
 }
 
 fn scheduled_source_range_worker_budget(

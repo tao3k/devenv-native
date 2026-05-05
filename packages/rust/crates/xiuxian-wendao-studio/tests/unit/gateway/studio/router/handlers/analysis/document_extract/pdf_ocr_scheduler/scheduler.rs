@@ -135,6 +135,44 @@ fn source_pdf_page_range_chunks_keep_single_range_for_one_permit() {
 }
 
 #[test]
+fn source_pdf_page_range_chunks_do_not_cross_cache_miss_gaps() {
+    let inputs = [0, 1, 4, 5, 8]
+        .into_iter()
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+
+    let chunks = source_pdf_page_range_chunks(inputs.as_slice(), 2);
+    let page_runs = chunks
+        .iter()
+        .map(|chunk| {
+            chunk
+                .iter()
+                .map(|input| input.page_index)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(page_runs, vec![vec![0, 1], vec![4, 5], vec![8]]);
+}
+
+#[test]
+fn source_pdf_page_range_chunks_split_long_runs_without_crossing_gaps() {
+    let inputs = (0..9)
+        .chain(20..29)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+
+    let chunks = source_pdf_page_range_chunks(inputs.as_slice(), 4);
+
+    assert_eq!(chunks.len(), 4);
+    for chunk in chunks {
+        for window in chunk.windows(2) {
+            assert_eq!(window[1].page_index, window[0].page_index + 1);
+        }
+    }
+}
+
+#[test]
 fn endpoint_index_for_request_round_robins_endpoint_pool() -> Result<(), String> {
     assert_eq!(endpoint_index_for_request(0, 3)?, 0);
     assert_eq!(endpoint_index_for_request(1, 3)?, 1);

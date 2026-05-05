@@ -220,34 +220,43 @@ impl PdfOcrWorkerScheduler {
         );
         let (permits, queue_wait) = self.acquire_worker_permits(target).await?;
         self.metrics.record_queue_wait(queue_wait);
-        let chunk_count = permits.len().clamp(1, inputs.len());
-        let chunks = source_pdf_page_range_chunks(inputs, chunk_count);
+        let max_parallel_chunks = permits.len().clamp(1, inputs.len());
+        let chunks = source_pdf_page_range_chunks(inputs, max_parallel_chunks);
         self.metrics.record_live_request(lane, inputs.len());
         let latency_start = Instant::now();
-        let chunk_results = try_join_all(chunks.iter().enumerate().map(|(index, chunk)| {
-            let client = endpoint_client_for_index(clients, index).cloned();
-            async move {
-                let client = client?;
-                let response = client.request_with_worker_budget(chunk, Some(1)).await?;
-                order_ocr_results_by_inputs(chunk, response.results)
+        let mut chunk_results = Vec::with_capacity(chunks.len());
+        let mut chunk_error = None;
+        let mut request_index = 0usize;
+        for wave in chunks.chunks(max_parallel_chunks) {
+            let mut wave_requests = Vec::with_capacity(wave.len());
+            for chunk in wave {
+                let chunk = *chunk;
+                let client = endpoint_client_for_index(clients, request_index).cloned();
+                request_index = request_index.saturating_add(1);
+                wave_requests.push(async move {
+                    let client = client?;
+                    let response = client.request_with_worker_budget(chunk, Some(1)).await?;
+                    order_ocr_results_by_inputs(chunk, response.results)
+                });
             }
-        }))
-        .await;
+            match try_join_all(wave_requests).await {
+                Ok(wave_results) => chunk_results.extend(wave_results),
+                Err(error) => {
+                    chunk_error = Some(error);
+                    break;
+                }
+            }
+        }
         let latency = latency_start.elapsed();
         self.metrics.record_ocr_latency(latency);
         drop(permits);
 
-        let chunk_results = match chunk_results {
-            Ok(chunk_results) => {
-                self.capacity
-                    .record_success(duration_to_ms(queue_wait), duration_to_ms(latency));
-                chunk_results
-            }
-            Err(error) => {
-                self.capacity.record_failure();
-                return Err(error);
-            }
-        };
+        if let Some(error) = chunk_error {
+            self.capacity.record_failure();
+            return Err(error);
+        }
+        self.capacity
+            .record_success(duration_to_ms(queue_wait), duration_to_ms(latency));
 
         let mut results = Vec::with_capacity(inputs.len());
         for chunk in chunk_results {

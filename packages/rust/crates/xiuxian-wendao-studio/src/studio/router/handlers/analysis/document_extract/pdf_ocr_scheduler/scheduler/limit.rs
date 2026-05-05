@@ -39,7 +39,41 @@ pub(crate) fn source_pdf_page_range_chunks(
     if inputs.is_empty() {
         return Vec::new();
     }
-    let chunk_count = chunk_count.clamp(1, inputs.len());
+
+    let runs = source_pdf_page_range_runs(inputs);
+    if runs.len() <= 1 {
+        return balanced_chunks(inputs, chunk_count);
+    }
+
+    let requested_chunks = chunk_count.max(1).max(runs.len()).min(inputs.len());
+    let mut remaining_chunks = requested_chunks;
+    let mut chunks = Vec::with_capacity(requested_chunks);
+    for (run_index, run) in runs.iter().enumerate() {
+        let runs_remaining = runs.len() - run_index;
+        let reserved_for_later_runs = runs_remaining.saturating_sub(1);
+        let available_for_run = remaining_chunks
+            .saturating_sub(reserved_for_later_runs)
+            .max(1);
+        let proportional_for_run = run
+            .len()
+            .saturating_mul(requested_chunks)
+            .div_ceil(inputs.len())
+            .max(1);
+        let run_chunk_count = proportional_for_run
+            .min(available_for_run)
+            .min(run.len())
+            .max(1);
+        chunks.extend(balanced_chunks(run, run_chunk_count));
+        remaining_chunks = remaining_chunks.saturating_sub(run_chunk_count);
+    }
+    chunks
+}
+
+fn balanced_chunks(inputs: &[PdfOcrShardInput], chunk_count: usize) -> Vec<&[PdfOcrShardInput]> {
+    if inputs.is_empty() {
+        return Vec::new();
+    }
+    let chunk_count = chunk_count.max(1).min(inputs.len());
     let base = inputs.len() / chunk_count;
     let extra = inputs.len() % chunk_count;
     let mut start = 0;
@@ -51,4 +85,31 @@ pub(crate) fn source_pdf_page_range_chunks(
         start = end;
     }
     chunks
+}
+
+fn source_pdf_page_range_runs(inputs: &[PdfOcrShardInput]) -> Vec<&[PdfOcrShardInput]> {
+    if inputs.is_empty() {
+        return Vec::new();
+    }
+
+    let mut runs = Vec::new();
+    let mut run_start = 0usize;
+    for index in 1..inputs.len() {
+        if !extends_source_pdf_page_range_run(&inputs[index - 1], &inputs[index]) {
+            runs.push(&inputs[run_start..index]);
+            run_start = index;
+        }
+    }
+    runs.push(&inputs[run_start..]);
+    runs
+}
+
+fn extends_source_pdf_page_range_run(
+    previous: &PdfOcrShardInput,
+    current: &PdfOcrShardInput,
+) -> bool {
+    current.source_path == previous.source_path
+        && current.shard_type == "page"
+        && previous.shard_type == "page"
+        && current.page_index == previous.page_index.saturating_add(1)
 }

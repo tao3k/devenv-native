@@ -1,6 +1,7 @@
 use super::{
-    OcrCapacityController, OcrSchedulerLane, PRESSURE_LATENCY_MS,
-    is_contiguous_source_pdf_page_range, scheduled_ocr_worker_budget,
+    OcrCapacityController, OcrSchedulerLane, PRESSURE_LATENCY_MS, classify_ocr_lane,
+    is_contiguous_source_pdf_page_range, is_source_pdf_page_range_batch,
+    scheduled_ocr_worker_budget,
 };
 use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
 
@@ -115,6 +116,36 @@ fn contiguous_source_pdf_page_range_rejects_regions_and_gaps() {
         region_inputs.as_slice()
     ));
     assert!(!is_contiguous_source_pdf_page_range(gap_inputs.as_slice()));
+}
+
+#[test]
+fn source_pdf_page_range_batch_accepts_gapped_page_misses() {
+    let inputs = vec![
+        sample_ocr_input("/tmp/source.pdf", 0, "page"),
+        sample_ocr_input("/tmp/source.pdf", 2, "page"),
+        sample_ocr_input("/tmp/source.pdf", 3, "page"),
+    ];
+
+    assert!(is_source_pdf_page_range_batch(inputs.as_slice()));
+    assert!(!is_contiguous_source_pdf_page_range(inputs.as_slice()));
+    assert_eq!(
+        classify_ocr_lane(inputs.as_slice()),
+        OcrSchedulerLane::SourcePdfPageRange
+    );
+}
+
+#[test]
+fn source_pdf_page_range_batch_rejects_mixed_sources() {
+    let inputs = vec![
+        sample_ocr_input("/tmp/source-a.pdf", 0, "page"),
+        sample_ocr_input("/tmp/source-b.pdf", 1, "page"),
+    ];
+
+    assert!(!is_source_pdf_page_range_batch(inputs.as_slice()));
+    assert_eq!(
+        classify_ocr_lane(inputs.as_slice()),
+        OcrSchedulerLane::RenderedPage
+    );
 }
 
 fn sample_ocr_input(source_path: &str, page_index: u32, shard_type: &str) -> PdfOcrShardInput {
