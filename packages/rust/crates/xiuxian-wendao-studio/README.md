@@ -53,3 +53,34 @@ Runtime concerns are layered behind explicit features:
 The HTTP gateway/client features remain opt-in through `zhenfa-router` or
 `cli-bin-support`, so Studio's local runtime does not inherit Zhenfa HTTP
 composition by accident.
+
+## Polyglot Docling Scheduling
+
+The Polyglot Compute Orchestrator boundary is tracked in
+[RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md).
+
+For the `document-extract-pdf-source-range` lane, Studio owns the live OCR
+worker-wave calculation, semaphore permits, endpoint selection, cache hits,
+in-flight shard coalescing, and the `x-wendao-pdf-ocr-workers` Flight metadata
+header. The shared `xiuxian-polyglot-orchestrator` contract owns only the pure
+Docling scheduling plan. Studio consumes that plan through the attachment
+polyglot bridge for the final worker/shard clamp, while keeping source-range
+machine ceilings, adaptive pressure reduction, queue wait observation, and live
+dispatch local to this crate.
+
+The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
+capacity-control file as the polyglot Docling scheduler adoption point. That
+profile keeps Studio accountable for live permits and dispatch while verifying
+the orchestrator plan consumption boundary.
+
+For full-document Docling extraction, Studio also consumes the runtime-owned
+inert schedule plan before selecting from the existing
+`WENDAO_DOCUMENT_EXTRACT_ENDPOINTS` pool. The existing conversion semaphore is
+the owner budget: when capacity is available the request dispatches through the
+current endpoint round-robin path, and when capacity is exhausted the request
+waits on the existing permit instead of creating a second queue. This does not
+change Python Flight routes, schemas, endpoint environment variables, cache/job
+registry behavior, or Python worker lifecycle.
+
+The active Studio harness profile also marks the full-document provider
+transport as the runtime-adoption point for this boundary.

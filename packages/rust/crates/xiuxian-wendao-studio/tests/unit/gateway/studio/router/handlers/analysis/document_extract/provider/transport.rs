@@ -1,4 +1,7 @@
-use super::{DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV};
+use super::{
+    Arc, DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV,
+    DocumentExtractJobRegistry, StudioDocumentExtractFlightRouteProvider,
+};
 use crate::studio::router::handlers::analysis::document_extract::provider::transport::{
     document_extract_default_endpoint_with_lookup, document_extract_endpoint_urls_with_lookup,
     endpoint_index_for_request,
@@ -47,5 +50,37 @@ fn document_extract_endpoint_index_round_robins_endpoint_pool() -> Result<(), St
     assert_eq!(endpoint_index_for_request(2, 3)?, 2);
     assert_eq!(endpoint_index_for_request(3, 3)?, 0);
     assert!(endpoint_index_for_request(0, 0).is_err());
+    Ok(())
+}
+
+#[test]
+fn document_extract_schedule_plan_dispatches_when_conversion_permit_is_available()
+-> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let registry = DocumentExtractJobRegistry::new(
+        temp.path().join("jobs.duckdb"),
+        temp.path().join("artifacts"),
+    )?;
+    let provider = StudioDocumentExtractFlightRouteProvider::from_registry(Ok(registry), 2);
+
+    assert_eq!(provider.document_extract_recommended_workers(), 1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn document_extract_schedule_plan_queues_when_conversion_permits_are_exhausted()
+-> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let registry = DocumentExtractJobRegistry::new(
+        temp.path().join("jobs.duckdb"),
+        temp.path().join("artifacts"),
+    )?;
+    let provider = StudioDocumentExtractFlightRouteProvider::from_registry(Ok(registry), 1);
+    let _held_permit = Arc::clone(&provider.runtime.conversion_permits)
+        .acquire_owned()
+        .await
+        .map_err(|error| error.to_string())?;
+
+    assert_eq!(provider.document_extract_recommended_workers(), 0);
     Ok(())
 }

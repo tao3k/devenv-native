@@ -1,34 +1,36 @@
 //! PDFium-backed document rendering and source-range manifest generation.
 
-use std::fs;
-use std::path::Path;
-
 #[cfg(feature = "pdf-render")]
 use image::DynamicImage;
 #[cfg(feature = "pdf-render")]
 use pdfium_render::prelude::{
     PdfBitmapFormat, PdfDocument, PdfPage, PdfRenderConfig, Pdfium, PdfiumError,
 };
+#[cfg(feature = "pdf-render")]
+use std::{fs, path::Path};
 
 use crate::pdf::source_range::{
     source_page_range_all_page_indices, source_page_range_validate_page_index,
 };
 
-use super::identity::{
-    checked_len_u32, checked_pixels_i32, rotation_to_degrees, sha256_hex, shard_element_id,
-};
-use super::manifest::{
-    build_region_shard_manifest, build_shard_manifest, region_pixel_box_for_crop,
-    render_dimensions_for_box,
-};
+use super::identity::{checked_len_u32, sha256_hex};
+#[cfg(feature = "pdf-render")]
+use super::identity::{checked_pixels_i32, rotation_to_degrees, shard_element_id};
+#[cfg(feature = "pdf-render")]
+use super::manifest::{build_region_shard_manifest, region_pixel_box_for_crop};
+use super::manifest::{build_shard_manifest, render_dimensions_for_box};
 use super::report::{RenderShardContext, ReportParts};
 use super::types::{
-    PdfPageBox, PdfPagePixelBox, PdfPageRegion, PdfPageRegionRenderRequest,
-    PdfPageRegionShardManifestInput, PdfPageRenderProfile, PdfPageShardManifest,
-    PdfPageShardManifestInput, RenderedRasterIdentity,
+    PdfPageBox, PdfPageShardManifest, PdfPageShardManifestInput, RenderedRasterIdentity,
+};
+#[cfg(feature = "pdf-render")]
+use super::types::{
+    PdfPagePixelBox, PdfPageRegion, PdfPageRegionRenderRequest, PdfPageRegionShardManifestInput,
+    PdfPageRenderProfile,
 };
 
 /// Environment variable that points to a dynamically loaded `PDFium` library.
+#[cfg(feature = "pdf-render")]
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
 
 #[cfg(feature = "pdf-render")]

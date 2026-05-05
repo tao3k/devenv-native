@@ -6,19 +6,17 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 use super::batches::{build_shard_manifest_batch, write_shard_artifact_batches};
-use super::document::{
-    bind_pdfium, render_document_manifests, render_document_region_manifests,
-    source_page_range_document_manifests,
-};
+use super::document::source_page_range_document_manifests;
+#[cfg(feature = "pdf-render")]
+use super::document::{bind_pdfium, render_document_manifests, render_document_region_manifests};
 use super::identity::{checked_len_u32, is_pdf_path, sha256_hex, source_page_range_profile};
 use super::report::{RenderShardContext, ReportParts};
-use super::selection::{
-    RenderPageSelection, resolve_page_selection, resolve_source_page_range_selection,
-};
-use super::types::{
-    PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfPageRenderSelection,
-    PdfPageRenderShardReport, PdfRenderRoutingDecision,
-};
+#[cfg(feature = "pdf-render")]
+use super::selection::resolve_page_selection;
+use super::selection::{RenderPageSelection, resolve_source_page_range_selection};
+#[cfg(feature = "pdf-render")]
+use super::types::{PdfPageRegionRenderRequest, PdfRenderRoutingDecision};
+use super::types::{PdfPageRenderProfile, PdfPageRenderSelection, PdfPageRenderShardReport};
 
 /// # Errors
 ///

@@ -341,7 +341,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--real-docling", action="store_true")
     parser.add_argument(
         "--fixture-suite",
-        choices=("fake", "docling-real"),
+        choices=("fake", "docling-real", "explicit"),
         default="fake",
     )
     parser.add_argument(
@@ -413,6 +413,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Fail when force, shard-cache rebuild, and cache-hit runs produce "
             "different structure order signatures."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-pdf-milestone-regression",
+        action="store_true",
+        help=(
+            "Fail when an OCR-positive PDF milestone run is missing or regresses "
+            "below the stored 2604.17337 precision/speed envelope."
         ),
     )
     return parser.parse_args()

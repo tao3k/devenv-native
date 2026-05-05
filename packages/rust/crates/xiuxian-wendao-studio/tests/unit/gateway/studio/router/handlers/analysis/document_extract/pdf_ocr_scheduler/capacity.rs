@@ -1,6 +1,6 @@
 use super::{
     OcrCapacityController, OcrSchedulerLane, PRESSURE_LATENCY_MS,
-    is_contiguous_source_pdf_page_range,
+    is_contiguous_source_pdf_page_range, scheduled_ocr_worker_budget,
 };
 use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
 
@@ -80,6 +80,13 @@ fn rendered_region_uses_current_budget() {
     let budget = controller.budget_for_lane(21, OcrSchedulerLane::RenderedRegion, None);
 
     assert_eq!(budget, 5);
+}
+
+#[test]
+fn rendered_budget_uses_orchestrator_worker_and_shard_clamp() {
+    let budget = scheduled_ocr_worker_budget(3, 7, 5);
+
+    assert_eq!(budget, 3);
 }
 
 #[test]

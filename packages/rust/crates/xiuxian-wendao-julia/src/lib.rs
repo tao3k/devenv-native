@@ -9,6 +9,8 @@ pub mod integration_support;
 pub mod memory;
 mod modelica_plugin;
 mod plugin;
+/// Read-only projections from Julia-owned contracts into polyglot contracts.
+pub mod polyglot;
 
 pub(crate) use modelica_plugin::fetch_modelica_parser_file_summary_blocking_for_repository;
 #[cfg(test)]
@@ -165,6 +167,37 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                 [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
             )
             .with_rationale("crate root owns the public package API for cargo-test verification"),
+        )
+        .with_verification_profile_hint(
+            rust_lang_project_harness::RustVerificationProfileHint::new(
+                "src/polyglot.rs",
+                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+            )
+            .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
+            .with_task_contract(
+                rust_lang_project_harness::RustVerificationTaskKind::Regression,
+                rust_lang_project_harness::RustVerificationTaskContract::new(
+                    rust_lang_project_harness::RustVerificationPhase::AfterUnitTestsPass,
+                    "Regression check must exercise the Julia polyglot readiness bridge",
+                    [
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "command",
+                            "cargo test -p xiuxian-wendao-julia --lib polyglot",
+                        ),
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "target",
+                            "lib unit tests mounted from tests/unit/polyglot.rs",
+                        ),
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "coverage",
+                            "profile refs, manifest refs, readiness evidence, admission, and snapshots",
+                        ),
+                    ],
+                ),
+            )
+            .with_rationale(
+                "Julia polyglot bridge owns readiness evidence projections for the orchestrator chain",
+            ),
         )
     }
 );

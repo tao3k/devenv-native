@@ -49,15 +49,17 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     )
 
     command, kwargs = calls[0]
-    assert command[:7] == [
+    assert command[:6] == [
         "cargo",
         "run",
         "-p",
         "xiuxian-wendao-studio",
         "--no-default-features",
         "--features",
-        "performance,cli-bin-support,zhenfa-router,duckdb,document-extract-pdf-render",
     ]
+    assert command[6] == (
+        "performance,cli-bin-support,zhenfa-router,duckdb,document-extract-pdf-render"
+    )
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"

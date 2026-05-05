@@ -25,7 +25,9 @@ def resolve_fixtures(
         if args.real_docling:
             raise SystemExit(
                 "--real-docling requires --fixture-suite docling-real and "
-                "--docling-source-root so benchmark inputs are valid documents"
+                "--docling-source-root so benchmark inputs are valid documents, "
+                "or --fixture-suite explicit with --extra-fixture for an "
+                "explicit real input"
             )
         return (
             merge_extra_fixtures(
@@ -34,6 +36,11 @@ def resolve_fixtures(
             ),
             None,
         )
+    if args.fixture_suite == "explicit":
+        fixtures = parse_extra_fixtures(getattr(args, "extra_fixture", []))
+        if not fixtures:
+            raise SystemExit("--fixture-suite explicit requires --extra-fixture")
+        return fixtures, None
 
     if not args.real_docling:
         raise SystemExit("--fixture-suite docling-real requires --real-docling")

@@ -81,6 +81,39 @@ This surface is intentionally runtime-owned and compute-only:
 - recommendation-only memory profiles stay outside host authority until Rust
   commits them
 
+## Polyglot Compute Boundary
+
+The Polyglot Compute Orchestrator boundary is tracked in
+[RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+and its
+[audit](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md).
+
+For that lane, `xiuxian-wendao-runtime` owns the Rust control-plane substrate:
+runtime config resolution, reusable Arrow Flight client configuration,
+route-level request gates, timeout policy, schema-version metadata, and
+transport validation. This crate does not own Python Docling execution, Julia
+compute schemas, or document/OCR cache policy. The approved
+`xiuxian-polyglot-orchestrator` crate owns shared lane, admission, evidence,
+reference, and pure Docling scheduling-plan contracts; it must reuse this
+runtime-owned substrate instead of duplicating deployment config or Flight
+transport authority.
+
+For document extraction, runtime supplies pressure facts and caller-local worker
+or shard bounds to the orchestrator scheduler through
+`document_extract_schedule_plan`. The returned plan is inert. Runtime still owns
+route admission, timeout behavior, request-header translation, and any live
+Flight dispatch decisions.
+
+Studio now consumes that runtime-owned plan for full-document Docling dispatch
+before selecting from the existing endpoint pool. The owner budget is still
+Studio's existing conversion semaphore; runtime does not create a queue, launch
+workers, or mutate Python routes.
+
+The active `rust-lang-project-harness` profile also marks `src/polyglot.rs` as
+the runtime polyglot bridge. That profile records runtime's route/admission
+projection ownership without moving transport authority into the orchestrator
+crate.
+
 ## Selection Rule
 
 If the code reads environment state, touches config files, negotiates
@@ -142,12 +175,14 @@ agent-policy output. Current owner-boundary fixes include:
   module names
 - runtime source modules carry concise intent docs for agent traversal
 - tests use explicit owner paths instead of deep `super::super` imports
+- the polyglot bridge is profiled as runtime-owned route and admission
+  projection, not as a live scheduler
 
 ## Verification
 
 Current runtime verification for this lane:
 
-- `cargo test -p xiuxian-wendao-runtime enforce_rust_project_harness_gate -- --nocapture`
+- `cargo test -p xiuxian-wendao-runtime --lib enforce_rust_project_harness_gate`
 - `cargo test -p xiuxian-wendao-runtime --lib --test unit_test`
 - `cargo test -p xiuxian-wendao-runtime --all-features`
 - `cargo fmt --package xiuxian-wendao-runtime --check`

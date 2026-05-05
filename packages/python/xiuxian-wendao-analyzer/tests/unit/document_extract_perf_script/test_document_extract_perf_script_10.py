@@ -220,6 +220,104 @@ def test_run_fixture_probe_can_fail_on_structure_order_mismatch(
         )
 
 
+def test_pdf_ocr_milestone_guard_passes_stored_precision_speed_shape() -> None:
+    benchmark = _load_benchmark_module()
+
+    summary = benchmark.summarize_results([_pdf_ocr_milestone_result()])
+
+    guard = summary["precisionSpeedSummary"]["pdfOcrMilestoneGuard"]
+    assert guard["checked"] is True
+    assert guard["passed"] is True
+    assert guard["regressions"] == []
+    assert guard["observations"][0]["metricsResultChars"] == 103_984
+
+
+def test_pdf_ocr_milestone_guard_flags_latency_regression() -> None:
+    benchmark = _load_benchmark_module()
+    result = _pdf_ocr_milestone_result(force_ms=46_000.0)
+
+    guard = benchmark.summarize_results([result])["precisionSpeedSummary"][
+        "pdfOcrMilestoneGuard"
+    ]
+
+    assert guard["checked"] is True
+    assert guard["passed"] is False
+    assert (
+        "forceRefreshMs 46000.000 exceeded baseline 45941.076" in guard["regressions"]
+    )
+
+
+def test_pdf_ocr_milestone_guard_ignores_non_milestone_fixture() -> None:
+    benchmark = _load_benchmark_module()
+    result = _pdf_ocr_milestone_result(
+        fixture="small-md",
+        attachment_class="structured_text",
+        resources_rows=1,
+        structure_rows=1,
+        ocr_page_blocks=0,
+        bbox_blocks=0,
+        metrics_rows=0,
+        metrics_result_chars=0,
+    )
+
+    guard = benchmark.summarize_results([result])["precisionSpeedSummary"][
+        "pdfOcrMilestoneGuard"
+    ]
+
+    assert guard["checked"] is False
+    assert guard["passed"] is False
+    assert guard["reason"] == "no OCR-positive 21-page PDF milestone fixture observed"
+
+
+def _pdf_ocr_milestone_result(
+    *,
+    fixture: str = "ocr-positive-pdf",
+    attachment_class: str = "pdf",
+    force_ms: float = 43_917.25,
+    resources_rows: int = 21,
+    structure_rows: int = 21,
+    ocr_page_blocks: int = 21,
+    bbox_blocks: int = 21,
+    metrics_rows: int = 21,
+    metrics_result_chars: int = 103_984,
+) -> dict[str, object]:
+    return {
+        "fixture": fixture,
+        "source": "/fixtures/2604.17337.pdf",
+        "attachmentClass": attachment_class,
+        "forceRefreshMs": force_ms,
+        "forceErrorRows": 0,
+        "shardCacheReuseForceMs": 144.232,
+        "shardCacheReuseErrorRows": 0,
+        "artifactRegistryReuseErrorRows": 0,
+        "cacheHitP95Ms": 11.921,
+        "cacheErrorRows": 0,
+        "cacheSpeedup": 10.0,
+        "requestCount": 1,
+        "arrowIpcBytes": 117_128,
+        "totalRows": resources_rows,
+        "duplicateMissConverterCalls": 0,
+        "resourcesRows": resources_rows,
+        "structureRows": structure_rows,
+        "structureOcrPageBlocks": ocr_page_blocks,
+        "structureOcrRegionBlocks": 0,
+        "structureBboxBlocks": bbox_blocks,
+        "structureReadingOrderSorted": True,
+        "structureOrderStable": True,
+        "structureOrderMismatchCount": 0,
+        "structureParityErrorCount": 0,
+        "metricsRows": metrics_rows,
+        "metricsResultChars": metrics_result_chars,
+        "metricsBboxCount": bbox_blocks,
+        "metricsRustSchedulerElapsedMs": 144.232,
+        "documentTimingTotalElapsedMs": force_ms,
+        "documentTimingOverheadMs": 0.0,
+        "documentTimingPhaseElapsedMs": {"doclingConvert": force_ms - 100.0},
+        "artifactErrorCount": 0,
+        "rustJobsStatusSummary": {},
+    }
+
+
 def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     benchmark = _load_benchmark_module()
     result = {

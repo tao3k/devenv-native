@@ -49,7 +49,9 @@ def main() -> int:
             "--local-python-ocr-endpoint-count cannot start workers in --external-endpoint mode"
         )
     if args.shard_cache_reuse_probe and args.flight_mode != "hybrid-page-ocr":
-        raise SystemExit("--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr")
+        raise SystemExit(
+            "--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr"
+        )
     if args.prepare_only:
         real_fixture_root = resolve_docling_source_root(args.docling_source_root)
         prepare_docling_fixtures(
@@ -73,9 +75,13 @@ def main() -> int:
     args.structure_baseline_root = resolve_structure_baseline_root(args, report_dir)
 
     if args.pdf_render_shard_audit:
-        return run_pdf_render_shard_audit(args, report_dir / "pdf-render-shard-manifest")
+        return run_pdf_render_shard_audit(
+            args, report_dir / "pdf-render-shard-manifest"
+        )
 
-    with tempfile.TemporaryDirectory(prefix="wendao-doc-extract-perf-") as temp_root_text:
+    with tempfile.TemporaryDirectory(
+        prefix="wendao-doc-extract-perf-"
+    ) as temp_root_text:
         temp_root = Path(temp_root_text)
         fixture_dir = temp_root / "fixtures"
         output_dir = temp_root / "outputs"
@@ -103,7 +109,10 @@ def main() -> int:
         args.rust_pdf_ocr_endpoint = list(args.rust_pdf_ocr_endpoint)
         if not args.external_endpoint:
             converter_count_path = None
-            if args.duplicate_miss_concurrency > 0 or args.distinct_miss_concurrency > 0:
+            if (
+                args.duplicate_miss_concurrency > 0
+                or args.distinct_miss_concurrency > 0
+            ):
                 converter_count_path = (
                     temp_root / "converter-counts"
                     if args.local_python_ocr_endpoint_count > 1
@@ -130,7 +139,9 @@ def main() -> int:
                 args.rust_document_extract_endpoint.extend(
                     worker.endpoint_url for worker in python_workers
                 )
-                args.rust_pdf_ocr_endpoint.extend(worker.endpoint_url for worker in python_workers)
+                args.rust_pdf_ocr_endpoint.extend(
+                    worker.endpoint_url for worker in python_workers
+                )
         try:
             for worker in python_workers:
                 wait_for_port(
@@ -212,7 +223,9 @@ def main() -> int:
                 )
                 for fixture_name, fixture_path in fixtures.items()
             ]
-            ocr_shard_cache_summary = summarize_ocr_shard_cache(args.ocr_shard_cache_root)
+            ocr_shard_cache_summary = summarize_ocr_shard_cache(
+                args.ocr_shard_cache_root
+            )
         finally:
             terminate_server(rust_server)
             terminate_server(valkey_server)
@@ -235,7 +248,14 @@ def main() -> int:
         render_markdown(payload),
         encoding="utf-8",
     )
-    sys.stdout.write(f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n")
+    sys.stdout.write(
+        f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n"
+    )
+    if args.fail_on_pdf_milestone_regression:
+        guard = payload["summary"]["precisionSpeedSummary"]["pdfOcrMilestoneGuard"]
+        if not guard["passed"]:
+            reason = guard["reason"] or "; ".join(guard["regressions"])
+            raise SystemExit(f"PDF OCR milestone regression guard failed: {reason}")
     return 0
 
 

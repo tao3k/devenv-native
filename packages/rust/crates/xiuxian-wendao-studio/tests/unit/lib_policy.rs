@@ -16,6 +16,8 @@ pub(super) fn wendao_studio_harness_config() -> RustHarnessConfig {
         .with_verification_profile_hint(studio_contracts_hint())
         .with_verification_profile_hint(studio_gateway_hint())
         .with_verification_profile_hint(studio_router_hint())
+        .with_verification_profile_hint(studio_polyglot_document_extract_provider_hint())
+        .with_verification_profile_hint(studio_polyglot_docling_scheduler_hint())
         .with_verification_profile_hint(studio_perf_support_hint())
         .with_verification_profile_hint(studio_openapi_hint())
         .with_verification_responsibility_task_kinds(
@@ -125,6 +127,40 @@ fn studio_router_hint() -> RustVerificationProfileHint {
         ),
     )
     .with_rationale("router composition is a public hot path for Studio API startup")
+}
+
+fn studio_polyglot_docling_scheduler_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/studio/router/handlers/analysis/document_extract/pdf_ocr_scheduler/capacity.rs",
+        [
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::AvailabilityCritical,
+        ],
+    )
+    .with_task_kinds([
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskKind::Chaos,
+    ])
+    .with_rationale(
+        "Studio OCR capacity control adopts the orchestrator Docling schedule plan while retaining live permit authority",
+    )
+}
+
+fn studio_polyglot_document_extract_provider_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/studio/router/handlers/analysis/document_extract/provider/transport.rs",
+        [
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::AvailabilityCritical,
+        ],
+    )
+    .with_task_kinds([
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskKind::Chaos,
+    ])
+    .with_rationale(
+        "Studio full-document Docling dispatch adopts the runtime polyglot schedule plan while retaining endpoint-pool and Flight authority",
+    )
 }
 
 fn studio_perf_support_hint() -> RustVerificationProfileHint {

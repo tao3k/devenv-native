@@ -1,7 +1,22 @@
 ---
 type: knowledge
+kind: package-readme
+title: "xiuxian-wendao-analyzer"
+category: "package"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Python analyzer and Docling Flight worker boundary for Wendao document extraction and table analysis."
+tags:
+  - python
+  - analyzer
+  - docling
+  - arrow-flight
 metadata:
   title: "xiuxian-wendao-analyzer"
+  retrieval:
+    saliency_base: 6.4
+    decay_rate: 0.04
 ---
 
 # xiuxian-wendao-analyzer
@@ -337,12 +352,21 @@ split one contiguous source-PDF OCR range into several contiguous subranges and
 send those subranges concurrently to Python/Docling. The default source-range
 target uses the current adaptive Rust OCR budget, capped by a machine-derived
 source-range ceiling and page count because real Docling conversion can regress
-when too many page-range conversions run at once. Use
-`--rust-pdf-ocr-workers` for the global Rust OCR budget ceiling and
-`--rust-pdf-ocr-source-range-workers` when a benchmark needs to profile a
-source-range-specific override. Production deployments can set
-`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when evidence
-shows a fixed override is appropriate for that machine profile.
+when too many page-range conversions run at once. Milestone and regression
+gates should leave `--rust-pdf-ocr-source-range-workers` unset so the Rust
+scheduler's system-aware auto policy is exercised. Use `--rust-pdf-ocr-workers`
+only for the global Rust OCR budget ceiling and
+`--rust-pdf-ocr-source-range-workers` only for diagnostic profile sweeps.
+Production deployments can set
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
+evidence shows a fixed override is appropriate for that machine profile, but
+that override is not the default correctness or performance gate.
+Pass `--fixture-suite explicit` with `--extra-fixture NAME=PATH` when a real
+milestone document should be benchmarked without preparing the full Docling
+fixture checkout. Add `--fail-on-pdf-milestone-regression` to fail an
+OCR-positive 21-page PDF run when it drops below the stored arXiv `2604.17337`
+precision/speed envelope. The guard is evaluated after the JSON and Markdown
+reports are written so a failing run still leaves evidence for diagnosis.
 Use `--local-python-ocr-endpoint-count N` when a local benchmark should start
 `N` Python Flight executors, including the primary document worker, and expose
 that pool to the Rust scheduler for both full-document conversion and PDF OCR
@@ -443,6 +467,20 @@ Rust round-robins full-document cache misses across that pool while keeping
 content-hash deduplication, queue state, and artifact mirroring in the Rust
 control plane. `WENDAO_DOCUMENT_EXTRACT_ENDPOINT` remains the single-endpoint
 fallback and the default endpoint used when the pool is not configured.
+
+For
+[RFC: Polyglot Compute Orchestrator](../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+Phase 1.1, this package owns only the Python Docling Flight worker surface:
+document conversion, OCR shard execution, Arrow resource rows, and the existing
+`/analysis/document-extract` and `/analysis/pdf-ocr-shards` service routes.
+Rust continues to own queueing, worker-budget selection, status metadata,
+cache policy, and fallback coordination. The approved
+`xiuxian-polyglot-orchestrator` crate may model Python-lane admission and
+pressure evidence, but it does not add a second Docling wrapper service or
+change the analyzer public route/schema contract.
+The Rust-side harness profile verifies the owner bridges and Studio adoption
+point; this Python package remains covered by its package-local Python project
+harness and pytest suites.
 
 ## Beta Readiness
 

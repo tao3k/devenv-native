@@ -75,10 +75,8 @@ needs a feature-gated second plugin bundle for these languages.
   `process.nix` owns
 - Julia test support now lives under `tests/unit/plugin/` plus
   `tests/unit/memory/mod.rs` instead of production `src/` files, while
-  `src/lib.rs` mounts `tests/unit/lib_policy.rs` and `tests/unit_test.rs`
-  owns the root harness target so both `cargo test --lib` and
-  `cargo test --test unit_test` execute the shared
-  `rust-lang-project-harness` policy gate
+  `src/lib.rs` owns the root harness target so `cargo test --lib` executes the
+  shared `rust-lang-project-harness` policy gate
 - the process-managed `WendaoSearch.jl` background service now also has one
   opt-in Rust live proof under
   `RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1 cargo test -p xiuxian-wendao-julia plugin::graph_structural_exchange::tests::fetch_graph_structural_solver_demo_rows_for_repository_against_process_managed_wendaosearch_service -- --exact --nocapture`,
@@ -189,6 +187,19 @@ needs a feature-gated second plugin bundle for these languages.
   client construction, request or response validation dispatch, the bounded
   `max_in_flight_requests` admission-control bridge, roundtrip execution, and
   typed fetch helpers for the four staged memory profiles.
+- for
+  [RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+  Phase 3 readiness evidence, `xiuxian-wendao-julia` owns the Julia-side
+  profile, schema, manifest, route-validation, warmup, benchmark, and
+  readiness-evidence boundary. Rust may gate requests by profile, route,
+  timeout, and in-flight budget, but this crate does not transfer Julia thread
+  scheduling to Rust. The approved `xiuxian-polyglot-orchestrator` crate may
+  define shared lane, admission, readiness, and snapshot contracts, but it must
+  reference Julia profile and readiness facts through this package boundary.
+- the active `rust-lang-project-harness` profile marks `src/polyglot.rs` as the
+  Julia polyglot bridge for readiness evidence projection. That profile records
+  Julia profile/schema/manifest/readiness ownership without moving live Julia
+  scheduling into Rust.
 - `xiuxian-wendao-julia` also owns the plugin-side memory-family composition
   seam under `src/memory/downcall/`, which combines `src/memory/host/` input
   staging with `src/memory/transport/` Flight execution so host consumers can
@@ -694,8 +705,7 @@ They now also keep the exchange implementation file lean by externalizing the
 remaining unit and live proof modules behind `#[cfg(test)] #[path = "..."]`
 without changing the green live baseline.
 The crate now also follows the canonical shared gate shape:
-`src/lib.rs -> tests/unit/lib_policy.rs` covers `cargo test --lib`, and
-`tests/unit_test.rs` covers the explicit Cargo test target. The former inline
-test debt in `src/integration_support/`, `src/memory/`, and `src/plugin/` is
-now fully externalized into canonical `tests/unit/...` mounts, so the shared
-crate test-policy harness passes without crate-local allowlists.
+`src/lib.rs` covers `cargo test --lib`. The former inline test debt in
+`src/integration_support/`, `src/memory/`, and `src/plugin/` is now fully
+externalized into canonical `tests/unit/...` mounts, so the shared crate
+test-policy harness passes without crate-local allowlists.

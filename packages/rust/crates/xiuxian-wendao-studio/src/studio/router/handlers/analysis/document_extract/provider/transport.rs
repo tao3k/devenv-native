@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
@@ -6,6 +7,7 @@ use arrow_flight::FlightDescriptor;
 use arrow_flight::client::FlightClient;
 use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServiceClient;
 use futures::TryStreamExt;
+use tokio::sync::{OwnedSemaphorePermit, TryAcquireError};
 use tonic::transport::{Channel, Endpoint};
 use xiuxian_wendao_server::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
@@ -21,6 +23,50 @@ use super::{
 };
 
 impl StudioDocumentExtractFlightRouteProvider {
+    pub(super) async fn acquire_document_extract_dispatch_permit(
+        &self,
+    ) -> Result<OwnedSemaphorePermit, String> {
+        let recommended_workers = self.document_extract_recommended_workers();
+        let permits = Arc::clone(&self.runtime.conversion_permits);
+        if recommended_workers > 0 {
+            match permits.try_acquire_owned() {
+                Ok(permit) => return Ok(permit),
+                Err(TryAcquireError::NoPermits) => {}
+                Err(TryAcquireError::Closed) => {
+                    return Err("document extract conversion semaphore closed".to_string());
+                }
+            }
+        }
+
+        Arc::clone(&self.runtime.conversion_permits)
+            .acquire_owned()
+            .await
+            .map_err(|error| format!("acquire document extract conversion permit: {error}"))
+    }
+
+    pub(super) fn document_extract_recommended_workers(&self) -> u32 {
+        let available_permits = self.runtime.conversion_permits.available_permits();
+        let active_in_flight = self
+            .runtime
+            .conversion_limit
+            .saturating_sub(available_permits);
+        let pressure = xiuxian_wendao_runtime::polyglot::document_extract_pressure_evidence(
+            Some(saturating_u32(self.runtime.conversion_limit)),
+            saturating_u32(active_in_flight),
+            0,
+            0,
+            0,
+            false,
+        );
+        xiuxian_wendao_runtime::polyglot::document_extract_schedule_plan(
+            pressure,
+            Some(1),
+            Some(1),
+            1,
+        )
+        .recommended_workers
+    }
+
     pub(super) async fn channel_for_endpoint(&self, endpoint_url: &str) -> Result<Channel, String> {
         {
             let channels = self.runtime.channels.lock().await;
@@ -184,4 +230,8 @@ pub(super) fn endpoint_index_for_request(
 fn normalize_endpoint(endpoint: &str) -> Option<String> {
     let endpoint = endpoint.trim().trim_end_matches('/');
     (!endpoint.is_empty()).then(|| endpoint.to_string())
+}
+
+fn saturating_u32(value: usize) -> u32 {
+    u32::try_from(value).unwrap_or(u32::MAX)
 }

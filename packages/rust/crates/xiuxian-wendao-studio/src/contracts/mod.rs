@@ -58,7 +58,7 @@ pub use markdown_analysis::{
 
 pub use navigation::StudioNavigationTarget;
 pub use retrieval::{RetrievalChunk, RetrievalChunkSurface};
-#[cfg(all(test, feature = "local-runtime"))]
+#[cfg(all(test, feature = "zhenfa-router"))]
 pub(crate) use search_responses::domain_ast_hits_for_search_plane;
 pub use search_responses::{
     AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,

@@ -65,7 +65,7 @@ impl From<AstSearchHit> for domain::AstSearchHit {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "zhenfa-router"))]
 pub(crate) fn domain_ast_hits_for_search_plane(
     hits: Vec<AstSearchHit>,
 ) -> Vec<domain::AstSearchHit> {

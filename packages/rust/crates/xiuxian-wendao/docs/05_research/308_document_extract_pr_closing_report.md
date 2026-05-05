@@ -1,3 +1,25 @@
+---
+type: knowledge
+kind: research-report
+title: "Document Extraction PR Closing Report"
+category: "research"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Closing evidence for Wendao document extraction performance, precision, cache reuse, and Docling fallback boundaries."
+tags:
+  - wendao
+  - document-extraction
+  - docling
+  - performance
+  - ocr
+metadata:
+  title: "Document Extraction PR Closing Report"
+  retrieval:
+    saliency_base: 6.8
+    decay_rate: 0.03
+---
+
 # Document Extraction PR Closing Report
 
 :PROPERTIES:
@@ -104,6 +126,19 @@ precision shape: 21 resource rows, 21 structure rows, 21 OCR page blocks, 21
 bbox-bearing blocks, the same order signature, stable reading order, and zero
 error rows.
 
+The benchmark harness now turns this OCR-positive PDF envelope into an
+executable guard. `precisionSpeedSummary.pdfOcrMilestoneGuard` checks the
+stored row, bbox, character-count, order-stability, cache, shard-cache, and
+force-latency limits, and `--fail-on-pdf-milestone-regression` fails after
+writing JSON and Markdown evidence when the run regresses. The guard is meant
+to run with the Rust scheduler's automatic source-range worker policy; fixed
+`--rust-pdf-ocr-source-range-workers` runs are diagnostic profile sweeps, not
+the default gate. A current auto-scheduler probe on the same `2604.17337`
+fixture measured 26155.338 ms force latency, 102.611 ms shard-cache rebuild
+latency, 2.229 ms cache latency, 21 resource rows, 21 structure rows, 21 OCR
+page blocks, 21 bbox-bearing blocks, 103984 OCR result characters, stable
+structure order, and zero error rows.
+
 A direct Docling probe on the same PDF showed the source of the slowdown:
 
 | Probe                         |        Value |
@@ -185,8 +220,8 @@ For 10000 users, the production risk is therefore split:
 The next optimization should not replace Docling OCR or layout authority. The
 most defensible slices are:
 
-1. add a Docling-version performance guard so `precisionSpeedSummary` can flag
-   current-run regressions against the stored PDF milestone envelope;
+1. keep the PDF milestone guard in the benchmark harness as the regression gate
+   for future Docling, scheduler, and profile changes;
 2. add member-level artifact keys for archive attachments, starting with METS
    GBS manifest/image members;
 3. add precision-safe region/page selection only where coverage and order gates

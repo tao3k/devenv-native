@@ -1,0 +1,18 @@
+[package]
+name = "xiuxian-polyglot-orchestrator"
+version.workspace = true
+edition.workspace = true
+description = "Thin polyglot control-plane contracts for Wendao compute lanes"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

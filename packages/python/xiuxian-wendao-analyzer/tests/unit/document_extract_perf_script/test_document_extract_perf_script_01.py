@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+
 from .support import (
     Path,
     _load_benchmark_module,
@@ -122,3 +124,32 @@ def test_parse_extra_fixtures_resolves_existing_files(tmp_path: Path) -> None:
     fixtures = benchmark.parse_extra_fixtures([f"arxiv-2604-17337={pdf_fixture}"])
 
     assert fixtures == {"arxiv-2604-17337": pdf_fixture.resolve()}
+
+
+def test_explicit_fixture_suite_uses_only_extra_real_inputs(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    pdf_fixture = tmp_path / "2604.17337.pdf"
+    pdf_fixture.write_bytes(b"%PDF")
+    args = argparse.Namespace(
+        fixture_suite="explicit",
+        extra_fixture=[f"arxiv-2604-17337={pdf_fixture}"],
+    )
+
+    fixtures, real_fixture_root = benchmark.resolve_fixtures(
+        args, tmp_path / "fixtures"
+    )
+
+    assert fixtures == {"arxiv-2604-17337": pdf_fixture.resolve()}
+    assert real_fixture_root is None
+
+
+def test_explicit_fixture_suite_requires_extra_fixture(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    args = argparse.Namespace(fixture_suite="explicit", extra_fixture=[])
+
+    try:
+        benchmark.resolve_fixtures(args, tmp_path / "fixtures")
+    except SystemExit as error:
+        assert "--fixture-suite explicit requires --extra-fixture" in str(error)
+    else:
+        raise AssertionError("explicit suite without fixtures should fail")

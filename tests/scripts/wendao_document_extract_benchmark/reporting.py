@@ -240,6 +240,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     ocr_shard_cache = payload.get("ocrShardCache", {})
     structure_baseline = payload.get("structureBaseline") or {}
     precision_speed = payload["summary"].get("precisionSpeedSummary", {})
+    pdf_milestone = precision_speed.get("pdfOcrMilestoneGuard", {})
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -363,6 +364,11 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "maxBoundaryOverheadShare="
         f"{_format_optional_percent(precision_speed.get('maxDocumentTimingOverheadShare'))}, "
         f"maxCacheP95Ms={_format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
+        "- PDF OCR milestone guard: "
+        f"`checked={pdf_milestone.get('checked')}, "
+        f"passed={pdf_milestone.get('passed')}, "
+        f"reason={pdf_milestone.get('reason')}, "
+        f"regressions={len(pdf_milestone.get('regressions', []))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
         "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",

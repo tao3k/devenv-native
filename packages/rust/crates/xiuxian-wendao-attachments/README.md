@@ -150,6 +150,29 @@ fixed worker truth. Rust adjusts the active budget from queue wait, OCR latency,
 errors, and timeout pressure, sends only the selected worker count to Python for
 each exchange, and Python keeps output rows ordered by the input Arrow batch so
 worker completion order cannot become document order.
+The final worker/shard clamp for that scheduler is now routed through the
+`xiuxian-polyglot-orchestrator` Docling schedule plan via the attachment
+polyglot bridge. Studio still owns live permits, queue wait observation,
+source-range machine ceilings, endpoint dispatch, and the Flight metadata
+header.
+
+This is also the attachment-side ownership boundary for
+[RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+Phase 1.1. `xiuxian-wendao-attachments` owns OCR shard scheduling evidence,
+cache reuse, ordering validation, Docling fallback policy, and the stable OCR
+shard input/result contracts. It does not own Python worker lifecycle,
+runtime-level Flight admission, Julia profile readiness, or a standalone
+polyglot scheduler. The approved `xiuxian-polyglot-orchestrator` crate owns the
+pure Docling scheduling-plan contract. Attachments may call it through
+`pdf_ocr_shard_schedule_plan` with attachment-owned pressure facts, then
+translate the inert plan into attachment-local batch sizing, cache reuse,
+ordering validation, and fallback behavior. The orchestrator must not duplicate
+cache ownership, shard ordering authority, or Docling fallback policy.
+
+The active `rust-lang-project-harness` profile marks `src/polyglot.rs` as the
+attachment-side polyglot bridge. That profile records OCR shard evidence and
+schedule-plan projection ownership without transferring cache, ordering, or
+fallback authority to the orchestrator crate.
 
 The Studio provider does not rely on Python response order for correctness.
 Before projecting OCR rows into `_resources.arrow`, Rust validates every
@@ -226,4 +249,7 @@ document extraction mode. Region raster shards additionally require
 This crate uses `rust-lang-project-harness` for the shared crate test-policy
 gate from `src/lib.rs`. Unit tests live under `tests/unit/` and are mounted back
 into the source modules with `#[path]` so focused `cargo test --lib` commands
-still run the relevant tests.
+still run the relevant tests. The current profile includes the polyglot bridge
+surface used by the Studio OCR scheduler adoption path and records the
+feature-gated regression command
+`cargo test -p xiuxian-wendao-attachments --features pdf-source-range --lib polyglot`.

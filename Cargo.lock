@@ -11481,6 +11481,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "xiuxian-polyglot-orchestrator"
+version = "0.1.1"
+dependencies = [
+ "rust-lang-project-harness",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "xiuxian-qianhuan"
 version = "0.1.1"
 dependencies = [
@@ -11732,6 +11741,7 @@ dependencies = [
  "sha2",
  "tar",
  "tempfile",
+ "xiuxian-polyglot-orchestrator",
 ]
 
 [[package]]
@@ -11812,6 +11822,7 @@ dependencies = [
  "tonic",
  "walkdir",
  "xiuxian-memory-engine",
+ "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-core",
  "xiuxian-wendao-runtime",
 ]
@@ -11858,6 +11869,7 @@ dependencies = [
  "tonic",
  "xiuxian-config-core",
  "xiuxian-db-store",
+ "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
 ]
