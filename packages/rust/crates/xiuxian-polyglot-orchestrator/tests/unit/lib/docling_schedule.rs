@@ -89,7 +89,7 @@ fn serialization_uses_snake_case_action_and_reason() {
 }
 
 #[test]
-fn source_pdf_page_range_policy_recommends_milestone_worker_budget() {
+fn source_pdf_page_range_policy_recommends_baseline_worker_budget() {
     let pressure = WorkerPressureEvidence::ocr_shard_extraction()
         .with_worker_budget(Some(12), 0)
         .with_queue_depth(0);
@@ -102,8 +102,8 @@ fn source_pdf_page_range_policy_recommends_milestone_worker_budget() {
         .plan();
 
     assert_eq!(plan.action, DoclingScheduleAction::Dispatch);
-    assert_eq!(plan.recommended_workers, 4);
-    assert_eq!(plan.shard_wave_size, 4);
+    assert_eq!(plan.recommended_workers, 3);
+    assert_eq!(plan.shard_wave_size, 3);
 }
 
 #[test]

@@ -88,6 +88,9 @@ adaptive pressure observations, queue wait observation, and the
 including source-range auto worker sizing from owner-supplied system facts.
 Studio consumes that plan through the attachment polyglot bridge while keeping
 live dispatch local to this crate.
+The current source-range auto policy targets seven source PDF pages per worker
+before clamping to the adaptive budget, machine cap, remaining permits, and
+shard count; diagnostic worker overrides remain benchmark-only.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

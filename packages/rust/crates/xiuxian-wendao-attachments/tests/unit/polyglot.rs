@@ -112,8 +112,8 @@ fn source_range_schedule_plan_uses_orchestrator_auto_policy() {
 
     assert_eq!(plan.action, DoclingScheduleAction::Dispatch);
     assert_eq!(plan.reason, DoclingScheduleReason::CapacityAvailable);
-    assert_eq!(plan.recommended_workers, 4);
-    assert_eq!(plan.shard_wave_size, 4);
+    assert_eq!(plan.recommended_workers, 3);
+    assert_eq!(plan.shard_wave_size, 3);
 }
 
 #[test]

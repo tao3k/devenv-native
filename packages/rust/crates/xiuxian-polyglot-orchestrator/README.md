@@ -53,6 +53,10 @@ facts, then consumes these plans for source-range auto worker sizing and the
 common worker/shard clamp. The Studio full-document provider also consumes the
 runtime-owned plan before existing Docling endpoint selection while retaining
 endpoint-pool, cache/job registry, and Python worker lifecycle authority.
+The source-range auto policy sizes PDF page-range OCR waves from the supplied
+adaptive budget, machine-derived cap, remaining permits, shard count, and a
+conservative target of seven source pages per worker; fixed source-range worker
+values remain diagnostic overrides, not production defaults.
 
 ## Existing Owners
 

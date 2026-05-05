@@ -231,7 +231,8 @@ Rust may split one contiguous source-PDF page range into multiple contiguous
 subranges when OCR worker permits are available. The source-range lane uses a
 current adaptive OCR budget, machine-derived worker bound, and page count to let
 the orchestrator select a conservative worker recommendation for Docling PDF
-conversion, and
+conversion. The current auto policy targets seven source pages per worker before
+clamping that recommendation to live owner facts, and
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` remains an explicit
 benchmark override for source-range chunk count experiments.
 

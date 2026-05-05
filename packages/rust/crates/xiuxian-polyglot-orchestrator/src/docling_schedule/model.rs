@@ -10,6 +10,8 @@ use crate::{
     WorkerPressureEvidence,
 };
 
+const SOURCE_PDF_PAGE_RANGE_TARGET_PAGES_PER_WORKER: u32 = 7;
+
 /// Scheduling action recommended for Docling work.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -272,7 +274,10 @@ impl DoclingSchedulingInput {
                     .unwrap_or(1)
                     .max(1);
                 let machine_budget = ceil_sqrt_u32(max_worker_bound);
-                let page_budget = self.normalized_shard_count().div_ceil(6).max(1);
+                let page_budget = self
+                    .normalized_shard_count()
+                    .div_ceil(SOURCE_PDF_PAGE_RANGE_TARGET_PAGES_PER_WORKER)
+                    .max(1);
                 adaptive_budget.min(machine_budget).min(page_budget).max(1)
             }
         }

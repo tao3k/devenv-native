@@ -44,16 +44,16 @@ fn source_range_budget_is_capped_by_machine_and_page_count() {
 
     let budget = controller.budget_for_lane(21, OcrSchedulerLane::SourcePdfPageRange, None);
 
-    assert_eq!(budget, 4);
+    assert_eq!(budget, 3);
 }
 
 #[test]
-fn source_range_budget_uses_initial_adaptive_budget_without_second_sqrt() {
+fn source_range_budget_uses_orchestrator_baseline_page_target() {
     let controller = OcrCapacityController::new_with_current_budget(12, 4);
 
     let budget = controller.budget_for_lane(21, OcrSchedulerLane::SourcePdfPageRange, None);
 
-    assert_eq!(budget, 4);
+    assert_eq!(budget, 3);
 }
 
 #[test]

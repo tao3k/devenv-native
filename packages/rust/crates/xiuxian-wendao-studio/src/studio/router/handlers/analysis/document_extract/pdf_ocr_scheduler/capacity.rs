@@ -164,6 +164,7 @@ pub(super) fn source_range_override_from_environment() -> Option<usize> {
         .filter(|value| *value > 0)
 }
 
+#[cfg(test)]
 pub(super) fn is_contiguous_source_pdf_page_range(inputs: &[PdfOcrShardInput]) -> bool {
     let Some(first) = inputs.first() else {
         return false;

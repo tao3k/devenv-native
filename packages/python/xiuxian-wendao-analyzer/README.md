@@ -357,6 +357,9 @@ gates should leave `--rust-pdf-ocr-source-range-workers` unset so the Rust
 scheduler's system-aware auto policy is exercised. Use `--rust-pdf-ocr-workers`
 only for the global Rust OCR budget ceiling and
 `--rust-pdf-ocr-source-range-workers` only for diagnostic profile sweeps.
+The current auto policy targets seven source PDF pages per worker before
+clamping to the adaptive Rust budget, machine cap, remaining permits, and shard
+count.
 Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
 evidence shows a fixed override is appropriate for that machine profile, but
