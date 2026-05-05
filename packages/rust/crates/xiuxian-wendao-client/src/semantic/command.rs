@@ -7,8 +7,24 @@ use std::path::PathBuf;
 /// Semantic-oriented client subcommands.
 #[derive(Subcommand, Debug)]
 pub enum SemanticCommand {
+    /// Execute a read-only SQL query over advisory semantic read-model tables.
+    QueryReadModel(SemanticReadModelQueryArgs),
     /// Run the semantic projection metadata refresh worker.
     RefreshProjections(SemanticRefreshProjectionsArgs),
+}
+
+/// CLI arguments for advisory semantic read-model SQL queries.
+#[derive(Args, Debug)]
+pub struct SemanticReadModelQueryArgs {
+    /// SQL statement to execute against `semantic_objects`,
+    /// `semantic_relations`, and `semantic_projection_state`.
+    #[arg(long = "query", short = 'q', value_name = "SQL")]
+    pub query_text: String,
+
+    /// Semantic artifact root to query. When omitted, checks
+    /// `$PRJ_ROOT/semantic` through the active client root.
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
 }
 
 /// CLI arguments for the semantic projection refresh worker.

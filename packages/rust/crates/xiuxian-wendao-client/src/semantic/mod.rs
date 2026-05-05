@@ -3,5 +3,5 @@
 mod command;
 mod run;
 
-pub use command::{SemanticCommand, SemanticRefreshProjectionsArgs};
+pub use command::{SemanticCommand, SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs};
 pub(crate) use run::run_command;

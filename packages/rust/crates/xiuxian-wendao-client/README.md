@@ -16,6 +16,7 @@ The currently landed commands are:
 wendao-client lint markdown [PATH]...
 wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
 wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
+wendao-client semantic query-read-model --query SQL [PATH]
 wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
@@ -122,6 +123,12 @@ Behavior:
     `semantic_objects`, `semantic_relations`, and
     `semantic_projection_state` while leaving repo-native semantic artifacts
     authoritative
+31. executes read-only SQL over advisory semantic read-model tables with
+    `semantic query-read-model --query SQL`, defaulting to the active
+    `semantic/` root and rendering text, JSON, or pretty JSON through the
+    global output option. The registered tables are `semantic_objects`,
+    `semantic_relations`, and `semantic_projection_state`; query results are
+    evidence only and do not mutate semantic artifacts
 
 Diagnostic rendering is split deliberately:
 
