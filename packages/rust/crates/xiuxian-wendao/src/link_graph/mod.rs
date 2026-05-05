@@ -29,7 +29,7 @@ pub mod saliency;
 #[path = "stats_cache/mod.rs"]
 mod stats_cache;
 #[cfg(feature = "julia")]
-#[path = "link_graph/wendao_graph_evidence/mod.rs"]
+#[path = "wendao_graph_evidence/mod.rs"]
 pub mod wendao_graph_evidence;
 
 pub use addressing::{
