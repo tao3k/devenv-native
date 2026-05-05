@@ -8,6 +8,9 @@ use super::policy::{
     collect_file_link_style_facts, lint_directory_link_style_policy, lint_local_target_existence,
     lint_local_target_fragments,
 };
+use super::projection_policy::{
+    SemanticProjectionFreshnessPolicyReport, semantic_projection_freshness_policy_report,
+};
 use super::text_output::render_markdown_lint_text_report;
 use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport, SemanticLintArgs};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
@@ -33,6 +36,7 @@ struct SemanticLintRootReport {
     applied_lifecycle_count: usize,
     issues: Vec<SemanticValidationIssue>,
     lifecycle_plan: Option<SemanticLifecyclePlanReport>,
+    projection_policy: Option<SemanticProjectionFreshnessPolicyReport>,
     sql_guard: Option<SemanticLintSqlGuardReport>,
 }
 
@@ -45,6 +49,7 @@ struct SemanticLintReport {
     refreshed_projection_count: usize,
     applied_lifecycle_count: usize,
     issue_count: usize,
+    projection_policy_issue_count: usize,
     sql_guard_issue_count: usize,
     roots: Vec<SemanticLintRootReport>,
 }
@@ -162,6 +167,12 @@ pub(crate) fn run_semantic_lint(
             } else {
                 None
             };
+            let projection_policy =
+                if args.validation.require_fresh_projections && semantic_issue_count == 0 {
+                    Some(semantic_projection_freshness_policy_report(&repository))
+                } else {
+                    None
+                };
             let sql_guard = if args.validation.semantic_sql_guard && semantic_issue_count == 0 {
                 Some(semantic_sql_guard_report(&repository)?)
             } else {
@@ -176,6 +187,7 @@ pub(crate) fn run_semantic_lint(
                 applied_lifecycle_count,
                 issues: repository.report.issues,
                 lifecycle_plan,
+                projection_policy,
                 sql_guard,
             })
         })
@@ -197,6 +209,11 @@ pub(crate) fn run_semantic_lint(
             .map(|root| root.applied_lifecycle_count)
             .sum(),
         issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
+        projection_policy_issue_count: root_reports
+            .iter()
+            .filter_map(|root| root.projection_policy.as_ref())
+            .map(|policy| policy.failing_projection_count)
+            .sum(),
         sql_guard_issue_count: root_reports
             .iter()
             .filter_map(|root| root.sql_guard.as_ref())
@@ -207,7 +224,10 @@ pub(crate) fn run_semantic_lint(
 
     emit_semantic_report(&report, context.output())?;
     Ok(
-        if report.issue_count == 0 && report.sql_guard_issue_count == 0 {
+        if report.issue_count == 0
+            && report.projection_policy_issue_count == 0
+            && report.sql_guard_issue_count == 0
+        {
             CommandOutcome::success()
         } else {
             CommandOutcome::failure(1)
@@ -443,7 +463,10 @@ fn emit_semantic_report(report: &SemanticLintReport, output: OutputFormat) -> Re
 }
 
 fn render_semantic_text_report(report: &SemanticLintReport) -> String {
-    if report.issue_count == 0 && report.sql_guard_issue_count == 0 {
+    if report.issue_count == 0
+        && report.projection_policy_issue_count == 0
+        && report.sql_guard_issue_count == 0
+    {
         let mut rendered = format!(
             "Semantic lint passed: checked {} root(s), {} object(s), {} projection(s), {} change intent(s), 0 issue(s).\n",
             report.checked_roots,
@@ -454,13 +477,15 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
         render_semantic_lifecycle_apply_text(report, &mut rendered);
         render_semantic_refresh_text(report, &mut rendered);
         render_semantic_lifecycle_plan_text(report, &mut rendered);
+        render_semantic_projection_policy_text(report, &mut rendered);
         render_semantic_sql_guard_text(report, &mut rendered);
         return rendered;
     }
 
     let mut rendered = format!(
-        "Semantic lint found {} issue(s) and {} SQL guard issue(s) across {} root(s), {} object(s), {} projection(s), and {} change intent(s).\n",
+        "Semantic lint found {} issue(s), {} projection policy issue(s), and {} SQL guard issue(s) across {} root(s), {} object(s), {} projection(s), and {} change intent(s).\n",
         report.issue_count,
+        report.projection_policy_issue_count,
         report.sql_guard_issue_count,
         report.checked_roots,
         report.object_count,
@@ -470,6 +495,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
     render_semantic_lifecycle_apply_text(report, &mut rendered);
     render_semantic_refresh_text(report, &mut rendered);
     render_semantic_lifecycle_plan_text(report, &mut rendered);
+    render_semantic_projection_policy_text(report, &mut rendered);
     for root in &report.roots {
         for issue in &root.issues {
             let path = issue.path.as_ref().map_or_else(
@@ -541,6 +567,37 @@ fn render_semantic_refresh_text(report: &SemanticLintReport, rendered: &mut Stri
     rendered.push_str("- Refreshed ");
     rendered.push_str(report.refreshed_projection_count.to_string().as_str());
     rendered.push_str(" semantic projection source revision(s).\n");
+}
+
+fn render_semantic_projection_policy_text(report: &SemanticLintReport, rendered: &mut String) {
+    for root in &report.roots {
+        let Some(policy) = &root.projection_policy else {
+            continue;
+        };
+        rendered.push_str("- ");
+        rendered.push_str(root.root.display().to_string().as_str());
+        rendered.push_str(": Projection freshness policy ");
+        rendered.push_str(policy.policy_id.as_str());
+        rendered.push(' ');
+        rendered.push_str(policy.status.as_str());
+        rendered.push_str(" (");
+        rendered.push_str(policy.failing_projection_count.to_string().as_str());
+        rendered.push_str(" failing projection(s))");
+        if !policy.message.is_empty() {
+            rendered.push_str(": ");
+            rendered.push_str(policy.message.as_str());
+        }
+        rendered.push('\n');
+        for projection in &policy.projections {
+            rendered.push_str("  - ");
+            rendered.push_str(projection.projection.as_str());
+            rendered.push_str(" (");
+            rendered.push_str(projection.reason.as_str());
+            rendered.push_str(", ");
+            rendered.push_str(projection.staleness.as_str());
+            rendered.push_str(")\n");
+        }
+    }
 }
 
 fn render_semantic_sql_guard_text(report: &SemanticLintReport, rendered: &mut String) {

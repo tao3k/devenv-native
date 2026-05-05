@@ -48,11 +48,13 @@ runtime serving, Qianji advisory consumption, explicit projection metadata
 refresh through `wendao-client lint semantic --refresh-projections`, and
 read-only lifecycle writeback preview through
 `wendao-client lint semantic --lifecycle-plan`, plus explicit lifecycle apply
-tooling through `wendao-client lint semantic --apply-lifecycle-plan`.
+tooling through `wendao-client lint semantic --apply-lifecycle-plan`, and
+closure-level projection freshness policy through
+`wendao-client lint semantic --require-fresh-projections`.
 
-The RFC is still not fully complete. Background projection refresh policy,
-broader Qianji workflow consumption, and future Julia or DuckDB-backed derived
-lanes remain outside the completed slice.
+The RFC is still not fully complete. Background projection refresh, broader
+Qianji workflow consumption, and future Julia or DuckDB-backed derived lanes
+remain outside the completed slice.
 
 ## 2. Evidence Map
 
@@ -238,7 +240,9 @@ explicit `promotion_targets` / `demotion_targets` for lifecycle outcomes.
 writeback preview for those lifecycle outcomes, and
 `wendao-client lint semantic --apply-lifecycle-plan` can explicitly apply
 pending lifecycle transitions before re-validating the repository semantic
-surface.
+surface. `wendao-client lint semantic --require-fresh-projections` now lets
+callers enforce that active change-intent projection refresh targets are fresh
+before closing a semantic change.
 
 ## 6. Formal Research References
 

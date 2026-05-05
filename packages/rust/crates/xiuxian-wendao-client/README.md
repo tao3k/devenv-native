@@ -14,8 +14,8 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
-wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
-wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
+wendao-client lint semantic [--semantic-sql-guard] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
+wendao-client lint semantic [--semantic-sql-guard] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -94,6 +94,10 @@ Behavior:
     status must match the declared transition `from` status; promotion also
     rewrites `confidence.source` to `human_signed` and removes the promoted
     object from change-intent `candidate_suggestions`
+27. requires projections named by active change intents to be fresh when
+    `lint semantic --require-fresh-projections` is passed. This is a
+    closure-level policy gate; ordinary semantic lint still accepts explicitly
+    stale advisory projections
 
 Diagnostic rendering is split deliberately:
 

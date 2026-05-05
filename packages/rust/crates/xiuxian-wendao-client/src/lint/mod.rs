@@ -6,6 +6,7 @@ mod diagnostic;
 mod discovery;
 mod lifecycle;
 mod policy;
+mod projection_policy;
 mod report;
 mod run;
 mod text_output;

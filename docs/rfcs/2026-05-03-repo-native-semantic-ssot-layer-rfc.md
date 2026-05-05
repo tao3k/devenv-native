@@ -72,11 +72,14 @@ As of 2026-05-05, the first physical slice is implemented:
 12. `wendao-client lint semantic --apply-lifecycle-plan` applies pending
     lifecycle transitions explicitly, including candidate promotion metadata
     writeback, before re-validating the repo-native semantic surface
+13. `wendao-client lint semantic --require-fresh-projections` enforces a
+    closure-level policy that active change-intent projection refresh targets
+    are fresh
 
-The full RFC is not complete. Remaining work includes background or
-policy-driven projection refresh, broader workflow-level Qianji consumption,
-and any future Julia or DuckDB-backed compute/read-model expansion. Those
-remain advisory or derived lanes; they do not change repo-native authority.
+The full RFC is not complete. Remaining work includes background projection
+refresh, broader workflow-level Qianji consumption, and any future Julia or
+DuckDB-backed compute/read-model expansion. Those remain advisory or derived
+lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 

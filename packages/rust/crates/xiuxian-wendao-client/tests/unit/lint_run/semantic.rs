@@ -135,6 +135,50 @@ fn semantic_lint_reports_lifecycle_plan() -> Result<()> {
 }
 
 #[test]
+fn semantic_lint_requires_fresh_projection_refresh_targets() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_lifecycle_fixture(&temp)?;
+
+    let (status, stdout) =
+        run_semantic_lint_with_args(&temp, None, &["--require-fresh-projections"])?;
+
+    assert_eq!(status, Some(1));
+    assert!(
+        stdout.contains("1 projection policy issue(s)"),
+        "projection policy issue count should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "Projection freshness policy semantic_projection.required_refresh_targets review_required"
+        ),
+        "projection policy failure should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("llm_compression (stale, stale)"),
+        "stale projection entry should be rendered: {stdout}"
+    );
+
+    let (status, stdout) = run_semantic_lint_with_args(
+        &temp,
+        None,
+        &["--refresh-projections", "--require-fresh-projections"],
+    )?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
+        "refresh count should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "Projection freshness policy semantic_projection.required_refresh_targets passed (0 failing projection(s))"
+        ),
+        "projection policy pass should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
 fn semantic_lint_applies_pending_lifecycle_plan() -> Result<()> {
     let temp = TempDir::new()?;
     write_pending_semantic_lifecycle_fixture(&temp)?;

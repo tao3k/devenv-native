@@ -53,6 +53,10 @@ pub struct SemanticLintValidationArgs {
     /// Render a read-only lifecycle writeback preview for status transitions.
     #[arg(long = "lifecycle-plan")]
     pub lifecycle_plan: bool,
+
+    /// Require active change-intent projection refresh targets to be fresh.
+    #[arg(long = "require-fresh-projections")]
+    pub require_fresh_projections: bool,
 }
 
 /// Explicit semantic metadata or lifecycle writeback options.
