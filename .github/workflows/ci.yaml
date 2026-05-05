@@ -400,7 +400,7 @@ jobs:
           fetch-depth: 1
           path: .cache/ci/WendaoSearch.jl
           persist-credentials: false
-          token: ${{ secrets.WENDAOSEARCH_REPO_TOKEN }}
+          ssh-key: ${{ secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - name: Start WendaoCodeParser parser-summary service for Rust tests
         run: |

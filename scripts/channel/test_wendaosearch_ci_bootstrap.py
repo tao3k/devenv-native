@@ -49,7 +49,8 @@ def test_ci_bootstraps_wendaosearch_solver_demo_with_julia_pkg() -> None:
     assert "fetch-depth: 1" in workflow
     assert "path: .cache/ci/WendaoSearch.jl" in workflow
     assert "persist-credentials: false" in workflow
-    assert "token: ${{ secrets.WENDAOSEARCH_REPO_TOKEN }}" in workflow
+    assert "ssh-key: ${{ secrets.WENDAOSEARCH_DEPLOY_KEY }}" in workflow
+    assert "WENDAOSEARCH_REPO_TOKEN" not in workflow
     assert "auth_header" not in workflow
     assert "x-access-token" not in workflow
     assert "http.https://github.com/.extraheader" not in workflow
