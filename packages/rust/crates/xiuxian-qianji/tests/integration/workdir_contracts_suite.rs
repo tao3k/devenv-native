@@ -374,7 +374,7 @@ fn check_workdir_reports_missing_glob_matches_and_backbone_conflicts() {
     assert!(rendered.contains("## Follow-up Query"));
     assert!(rendered.contains("Surfaces: blueprint, plan"));
     assert!(rendered.contains(
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface in ('blueprint', 'plan') \
 order by surface, path, heading_path"
@@ -397,7 +397,7 @@ fn check_workdir_render_includes_follow_up_query_on_failure() {
     assert!(rendered.contains("## Follow-up Query"));
     assert!(rendered.contains("Surfaces: plan"));
     assert!(rendered.contains(
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface = 'plan' \
 order by surface, path, heading_path"
@@ -422,7 +422,7 @@ fn workdir_check_follow_up_query_stays_surface_bounded() {
     assert_eq!(follow_up.surfaces, vec![WorkdirMarkdownSurface::Plan]);
     assert_eq!(
         follow_up.query_text,
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface = 'plan' \
 order by surface, path, heading_path"
@@ -503,7 +503,7 @@ fn workdir_semantic_follow_up_query_targets_semantic_surface() {
     assert_eq!(follow_up.surfaces, vec![WorkdirMarkdownSurface::Semantic]);
     assert_eq!(
         follow_up.query_text,
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface = 'semantic' \
 order by surface, path, heading_path"
@@ -527,7 +527,7 @@ fn workdir_semantic_change_intent_follow_up_query_targets_semantic_surface() {
     assert_eq!(follow_up.surfaces, vec![WorkdirMarkdownSurface::Semantic]);
     assert_eq!(
         follow_up.query_text,
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface = 'semantic' \
 order by surface, path, heading_path"
