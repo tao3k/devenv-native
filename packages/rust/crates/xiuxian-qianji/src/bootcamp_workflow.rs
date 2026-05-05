@@ -9,7 +9,7 @@ use crate::QianjiApp;
 use crate::error::QianjiError;
 #[cfg(feature = "llm")]
 use crate::runtime_config::resolve_qianji_runtime_llm_config;
-use crate::scheduler_preflight::{RuntimeWendaoMount, install_runtime_wendao_mounts};
+use crate::scheduler_preflight::{RuntimeWendaoMount, with_runtime_wendao_mounts};
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Instant;
@@ -171,13 +171,13 @@ async fn run_workflow_from_manifest_payload(
         .copied()
         .map(RuntimeWendaoMount::from)
         .collect::<Vec<_>>();
-    let _mount_guard = install_runtime_wendao_mounts(runtime_mounts);
-
     let started_at_unix_ms = unix_timestamp_millis()?;
     let started_at = Instant::now();
-    let final_context = scheduler
-        .run_with_checkpoint(initial_context, session_id, redis_url)
-        .await?;
+    let final_context = with_runtime_wendao_mounts(
+        runtime_mounts,
+        scheduler.run_with_checkpoint(initial_context, session_id, redis_url),
+    )
+    .await?;
     let finished_at_unix_ms = unix_timestamp_millis()?;
     let duration_ms = started_at.elapsed().as_millis();
 

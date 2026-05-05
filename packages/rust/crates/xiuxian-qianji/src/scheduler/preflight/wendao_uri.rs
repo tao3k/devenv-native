@@ -1,4 +1,4 @@
-use super::mounts::runtime_wendao_mounts;
+use super::mounts::runtime_wendao_mounts_snapshot;
 use crate::runtime_config::{resolve_process_env_path, resolve_process_project_root};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -27,8 +27,7 @@ fn resolve_wendao_uri_from_runtime_mounts(uri: &str) -> Option<String> {
     let semantic_name = parsed.semantic_name();
     let entity_relative_path =
         normalize_relative_path(parsed.entity_relative_path().to_string_lossy().as_ref());
-    let mounts = runtime_wendao_mounts().read().ok()?;
-    for mount in mounts.iter() {
+    for mount in runtime_wendao_mounts_snapshot() {
         if !semantic_name.eq_ignore_ascii_case(mount.semantic_name) {
             continue;
         }

@@ -16,7 +16,7 @@ mod semantic;
 #[path = "scheduler/preflight/wendao_uri.rs"]
 mod wendao_uri;
 
-pub(crate) use mounts::{RuntimeWendaoMount, install_runtime_wendao_mounts};
+pub(crate) use mounts::{RuntimeWendaoMount, with_runtime_wendao_mounts};
 
 #[must_use]
 pub(crate) fn context_value_to_text(value: &Value) -> Option<String> {
