@@ -3,6 +3,7 @@ use std::sync::Arc;
 use super::{
     DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, PdfOcrWorkerScheduler, endpoint_index_for_request,
     pdf_ocr_worker_limit_with_lookup, source_pdf_page_range_chunks,
+    source_pdf_page_range_chunks_with_weights,
 };
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_cache::PdfOcrShardCache;
 use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
@@ -170,6 +171,49 @@ fn source_pdf_page_range_chunks_split_long_runs_without_crossing_gaps() {
             assert_eq!(window[1].page_index, window[0].page_index + 1);
         }
     }
+}
+
+#[test]
+fn source_pdf_page_range_chunks_with_weights_preserve_order_and_isolate_heavy_pages() {
+    let inputs = (0..9)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    let weights = [1, 1, 1, 1, 20, 1, 1, 1, 1];
+
+    let chunks = source_pdf_page_range_chunks_with_weights(inputs.as_slice(), 3, &weights);
+    let page_runs = chunks
+        .iter()
+        .map(|chunk| {
+            chunk
+                .iter()
+                .map(|input| input.page_index)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(page_runs, vec![vec![0, 1, 2, 3], vec![4], vec![5, 6, 7, 8]]);
+}
+
+#[test]
+fn source_pdf_page_range_chunks_with_weights_do_not_cross_cache_miss_gaps() {
+    let inputs = [0, 1, 4, 5, 8]
+        .into_iter()
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    let weights = [1, 30, 1, 1, 1];
+
+    let chunks = source_pdf_page_range_chunks_with_weights(inputs.as_slice(), 2, &weights);
+    let page_runs = chunks
+        .iter()
+        .map(|chunk| {
+            chunk
+                .iter()
+                .map(|input| input.page_index)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(page_runs, vec![vec![0, 1], vec![4, 5], vec![8]]);
 }
 
 #[test]

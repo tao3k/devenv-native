@@ -13,7 +13,7 @@ pub(super) use dispatch::endpoint_index_for_request;
 #[cfg(test)]
 pub(super) use limit::{
     DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, pdf_ocr_worker_limit_with_lookup,
-    source_pdf_page_range_chunks,
+    source_pdf_page_range_chunks, source_pdf_page_range_chunks_with_weights,
 };
 
 #[cfg(test)]

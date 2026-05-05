@@ -232,9 +232,13 @@ subranges when OCR worker permits are available. The source-range lane uses a
 current adaptive OCR budget, machine-derived worker bound, and page count to let
 the orchestrator select a conservative worker recommendation for Docling PDF
 conversion. The current auto policy targets seven source pages per worker before
-clamping that recommendation to live owner facts, and
+clamping that recommendation to live owner facts. Within that requested chunk
+budget, Rust can profile the source PDF's decoded page content streams and
+balance contiguous subranges by lightweight page complexity while preserving
+reading order and cache-miss gaps.
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` remains an explicit
-benchmark override for source-range chunk count experiments.
+benchmark override for source-range chunk count experiments, not a production
+default.
 
 The region crop proof accepts explicit PDF-point region requests and emits real
 region shard PNGs plus the same `_ocr_shards.arrow`, `_ocr_input.arrow`, and

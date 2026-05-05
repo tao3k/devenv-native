@@ -13,6 +13,10 @@ pub mod ocr;
 pub mod metrics;
 
 #[cfg(feature = "pdf-source-range")]
+#[doc(hidden)]
+pub mod profile;
+
+#[cfg(feature = "pdf-source-range")]
 mod source_range;
 
 #[cfg(feature = "pdf-source-range")]

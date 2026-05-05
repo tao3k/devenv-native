@@ -115,16 +115,19 @@ OCR-positive pages.
 
 | Profile                          |  Force ms | Cache p95 ms | Shard-cache rebuild ms | Resource rows | Structure rows | OCR page blocks | BBox blocks | Result chars | Order stable | Error rows |
 | -------------------------------- | --------: | -----------: | ---------------------: | ------------: | -------------: | --------------: | ----------: | -----------: | ------------ | ---------: |
+| Structure-order weighted planner | 16364.335 |        2.261 |                 92.843 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
 | Current default adaptive profile | 45941.076 |       11.921 |                144.232 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
 | Source-range override 4          | 43917.250 |       23.209 |                213.161 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
 | Source-range override 1          | 53258.791 |        5.954 |                171.860 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
 | Four local OCR endpoints         | 47726.578 |        5.021 |                168.824 |            21 |             21 |              21 |          21 |       103984 | true         |          0 |
 
-The current local closing run is slower than the earlier 19-21 second
-source-range evidence recorded during the PDF milestone, but it keeps the same
-precision shape: 21 resource rows, 21 structure rows, 21 OCR page blocks, 21
-bbox-bearing blocks, the same order signature, stable reading order, and zero
-error rows.
+The structure-order weighted planner keeps the default Rust source-range
+worker policy unset and uses the default local endpoint auto fanout. It improves
+the accepted default fanout baseline while keeping the same precision shape: 21
+resource rows, 21 structure rows, 21 OCR page blocks, 21 bbox-bearing blocks,
+103984 OCR result characters, stable reading order, and zero error rows. The
+planner forms contiguous source-PDF subranges from lightweight page complexity
+facts and must not cross cache-miss gaps.
 
 The benchmark harness now turns this OCR-positive PDF envelope into an
 executable guard. `precisionSpeedSummary.pdfOcrMilestoneGuard` checks the
@@ -133,11 +136,11 @@ force-latency limits, and `--fail-on-pdf-milestone-regression` fails after
 writing JSON and Markdown evidence when the run regresses. The guard is meant
 to run with the Rust scheduler's automatic source-range worker policy; fixed
 `--rust-pdf-ocr-source-range-workers` runs are diagnostic profile sweeps, not
-the default gate. A current auto-scheduler probe on the same `2604.17337`
-fixture measured 26155.338 ms force latency, 102.611 ms shard-cache rebuild
-latency, 2.229 ms cache latency, 21 resource rows, 21 structure rows, 21 OCR
-page blocks, 21 bbox-bearing blocks, 103984 OCR result characters, stable
-structure order, and zero error rows.
+the default gate. The current structure-order weighted probe on the same
+`2604.17337` fixture measured 16364.335 ms force latency, 92.843 ms shard-cache
+rebuild latency, 2.261 ms cache latency, 21 resource rows, 21 structure rows,
+21 OCR page blocks, 21 bbox-bearing blocks, 103984 OCR result characters,
+stable structure order, and zero error rows.
 
 A direct Docling probe on the same PDF showed the source of the slowdown:
 

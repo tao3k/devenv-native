@@ -359,7 +359,12 @@ only for the global Rust OCR budget ceiling and
 `--rust-pdf-ocr-source-range-workers` only for diagnostic profile sweeps.
 The current auto policy targets seven source PDF pages per worker before
 clamping to the adaptive Rust budget, machine cap, remaining permits, and shard
-count.
+count. Within that bounded chunk budget, Rust reads a lightweight source-PDF
+page complexity profile and forms contiguous, reading-order-preserving
+subranges. The planner must not cross cache-miss gaps, and it keeps every
+selected page on the source-PDF OCR lane so the Python worker continues to use
+Docling over original PDF page ranges rather than lower-precision raster or
+table-fast shortcuts.
 Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
 evidence shows a fixed override is appropriate for that machine profile, but
@@ -376,7 +381,13 @@ and observed a 21-page force latency of 18,969.021 ms with zero error rows,
 21 OCR page blocks, 21 bbox blocks, and 103,984 OCR result characters. A
 same-machine diagnostic four-endpoint run observed 15,811.373 ms, so endpoint
 pool fanout is the current larger optimization lever; fixed source-range worker
-counts remain diagnostic only.
+counts remain diagnostic only. A later May 5, 2026 structure-order weighted
+multi-shard run kept the same defaults and observed 16,364.335 ms force
+latency, 92.843 ms shard-cache rebuild latency, 2.261 ms cache p95 latency,
+zero error rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,984
+OCR result characters, and stable structure order. That run is still above the
+sub-15 target, but it preserves the precision envelope while improving the
+accepted default fanout baseline.
 Use `--local-python-ocr-endpoint-count N` when a local benchmark should start
 `N` Python Flight executors, including the primary document worker, and expose
 that pool to the Rust scheduler for both full-document conversion and PDF OCR

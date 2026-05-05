@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
+use xiuxian_wendao_attachments::pdf::profile::source_pdf_page_profiles;
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
@@ -39,7 +40,66 @@ pub(crate) fn source_pdf_page_range_chunks(
     if inputs.is_empty() {
         return Vec::new();
     }
+    if let Some(weights) = source_pdf_page_range_weights(inputs) {
+        return source_pdf_page_range_chunks_with_weights(inputs, chunk_count, weights.as_slice());
+    }
+    source_pdf_page_range_chunks_without_weights(inputs, chunk_count)
+}
 
+pub(crate) fn source_pdf_page_range_chunks_with_weights<'a>(
+    inputs: &'a [PdfOcrShardInput],
+    chunk_count: usize,
+    weights: &[u32],
+) -> Vec<&'a [PdfOcrShardInput]> {
+    if inputs.is_empty() {
+        return Vec::new();
+    }
+    if weights.len() != inputs.len() {
+        return source_pdf_page_range_chunks_without_weights(inputs, chunk_count);
+    }
+
+    let runs = source_pdf_page_range_runs(inputs);
+    if runs.len() <= 1 {
+        return weighted_chunks(inputs, weights, chunk_count);
+    }
+
+    let requested_chunks = chunk_count.max(1).max(runs.len()).min(inputs.len());
+    let mut remaining_chunks = requested_chunks;
+    let mut run_start = 0usize;
+    let mut chunks = Vec::with_capacity(requested_chunks);
+    for (run_index, run) in runs.iter().enumerate() {
+        let runs_remaining = runs.len() - run_index;
+        let reserved_for_later_runs = runs_remaining.saturating_sub(1);
+        let available_for_run = remaining_chunks
+            .saturating_sub(reserved_for_later_runs)
+            .max(1);
+        let run_end = run_start + run.len();
+        let run_weight = total_weight(&weights[run_start..run_end]);
+        let all_weight = total_weight(weights);
+        let proportional_for_run = usize::try_from(run_weight)
+            .unwrap_or(usize::MAX)
+            .saturating_mul(requested_chunks)
+            .div_ceil(usize::try_from(all_weight).unwrap_or(usize::MAX).max(1))
+            .max(1);
+        let run_chunk_count = proportional_for_run
+            .min(available_for_run)
+            .min(run.len())
+            .max(1);
+        chunks.extend(weighted_chunks(
+            run,
+            &weights[run_start..run_end],
+            run_chunk_count,
+        ));
+        remaining_chunks = remaining_chunks.saturating_sub(run_chunk_count);
+        run_start = run_end;
+    }
+    chunks
+}
+
+fn source_pdf_page_range_chunks_without_weights(
+    inputs: &[PdfOcrShardInput],
+    chunk_count: usize,
+) -> Vec<&[PdfOcrShardInput]> {
     let runs = source_pdf_page_range_runs(inputs);
     if runs.len() <= 1 {
         return balanced_chunks(inputs, chunk_count);
@@ -85,6 +145,97 @@ fn balanced_chunks(inputs: &[PdfOcrShardInput], chunk_count: usize) -> Vec<&[Pdf
         start = end;
     }
     chunks
+}
+
+fn weighted_chunks<'a>(
+    inputs: &'a [PdfOcrShardInput],
+    weights: &[u32],
+    chunk_count: usize,
+) -> Vec<&'a [PdfOcrShardInput]> {
+    if inputs.is_empty() {
+        return Vec::new();
+    }
+    if weights.len() != inputs.len() {
+        return balanced_chunks(inputs, chunk_count);
+    }
+    let chunk_count = chunk_count.max(1).min(inputs.len());
+    let total = total_weight(weights);
+    if total == 0 {
+        return balanced_chunks(inputs, chunk_count);
+    }
+    let target = total.div_ceil(u32::try_from(chunk_count).unwrap_or(u32::MAX).max(1));
+    let mut chunks = Vec::with_capacity(chunk_count);
+    let mut start = 0usize;
+    let mut accumulated = 0u32;
+    for (index, weight) in weights.iter().copied().enumerate() {
+        let weight = weight.max(1);
+        let remaining_items = inputs.len().saturating_sub(index + 1);
+        if weight >= target
+            && accumulated > 0
+            && start < index
+            && chunks.len() + 2 <= chunk_count
+            && remaining_items >= chunk_count.saturating_sub(chunks.len() + 2)
+        {
+            chunks.push(&inputs[start..index]);
+            start = index;
+            accumulated = 0;
+        }
+        accumulated = accumulated.saturating_add(weight);
+        let remaining_items = inputs.len().saturating_sub(index + 1);
+        let remaining_chunks = chunk_count.saturating_sub(chunks.len() + 1);
+        if (accumulated >= target || remaining_items == remaining_chunks)
+            && remaining_items >= remaining_chunks
+        {
+            chunks.push(&inputs[start..=index]);
+            start = index + 1;
+            accumulated = 0;
+            if chunks.len() + 1 == chunk_count {
+                break;
+            }
+        }
+    }
+    if start < inputs.len() {
+        chunks.push(&inputs[start..]);
+    }
+    chunks
+}
+
+fn total_weight(weights: &[u32]) -> u32 {
+    weights
+        .iter()
+        .copied()
+        .map(|weight| weight.max(1))
+        .fold(0_u32, u32::saturating_add)
+}
+
+fn source_pdf_page_range_weights(inputs: &[PdfOcrShardInput]) -> Option<Vec<u32>> {
+    let first = inputs.first()?;
+    if inputs
+        .iter()
+        .any(|input| input.source_path != first.source_path)
+    {
+        return None;
+    }
+    let profiles = source_pdf_page_profiles(std::path::Path::new(first.source_path.as_str()))
+        .map_err(|error| {
+            log::debug!("source PDF page profile unavailable for OCR scheduler: {error}");
+            error
+        })
+        .ok()?;
+    Some(
+        inputs
+            .iter()
+            .map(|input| {
+                let Some(profile_index) = usize::try_from(input.page_index).ok() else {
+                    return 1;
+                };
+                profiles
+                    .get(profile_index)
+                    .filter(|profile| profile.page_index == input.page_index)
+                    .map_or(1, |profile| profile.estimated_weight)
+            })
+            .collect(),
+    )
 }
 
 fn source_pdf_page_range_runs(inputs: &[PdfOcrShardInput]) -> Vec<&[PdfOcrShardInput]> {
