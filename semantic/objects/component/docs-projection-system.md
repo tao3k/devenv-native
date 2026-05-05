@@ -30,5 +30,6 @@ relations:
 Documentation remains a stable human-facing projection. It must point back to
 semantic object IDs when it represents semantic authority. The semantic
 projection refresh plan is a read-only queue contract; projection artifact
-mutation remains an explicit writeback. The one-shot projection refresh
-worker consumes that plan and reuses the explicit writeback path.
+mutation remains an explicit writeback. The projection refresh worker consumes
+that plan, reuses the explicit writeback path, and can run as a bounded or
+recurring local runner.

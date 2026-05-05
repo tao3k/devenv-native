@@ -1,7 +1,10 @@
 use anyhow::Result;
 use tempfile::TempDir;
 
-use super::{run_semantic_lint, run_semantic_lint_with_args, run_semantic_refresh_projections};
+use super::{
+    run_semantic_lint, run_semantic_lint_with_args, run_semantic_refresh_projections,
+    run_semantic_refresh_projections_with_args,
+};
 
 #[test]
 fn semantic_lint_accepts_valid_semantic_root() -> Result<()> {
@@ -258,6 +261,45 @@ fn semantic_refresh_projections_command_runs_one_worker_pass() -> Result<()> {
     assert!(
         projection.contains("staleness: fresh"),
         "worker should mark projection metadata fresh: {projection}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_refresh_projections_command_runs_bounded_repeated_worker_passes() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) = run_semantic_refresh_projections_with_args(
+        &temp,
+        None,
+        &["--interval-secs", "0", "--max-runs", "2"],
+    )?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
+        "first worker pass should refresh stale projection metadata: {stdout}"
+    );
+    assert_eq!(
+        stdout.matches("Projection refresh plan up_to_date").count(),
+        2,
+        "bounded runner should render a post-refresh plan for each pass: {stdout}"
+    );
+    assert_eq!(
+        stdout
+            .matches(
+                "Projection freshness policy semantic_projection.required_refresh_targets passed"
+            )
+            .count(),
+        2,
+        "bounded runner should enforce freshness for each pass: {stdout}"
     );
     Ok(())
 }

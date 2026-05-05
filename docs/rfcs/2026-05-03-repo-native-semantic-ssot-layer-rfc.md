@@ -95,17 +95,19 @@ As of 2026-05-05, the first physical slice is implemented:
     read-only, parser-owned projection metadata refresh plan. This gives a
     future background refresh worker an explicit queue contract while keeping
     actual projection artifact mutation behind `--refresh-projections`.
-19. `wendao-client semantic refresh-projections` runs a one-shot projection
-    metadata refresh worker pass over repo-native semantic artifacts. It uses
-    the parser-owned refresh plan, applies the existing explicit projection
-    writeback path, renders the post-refresh plan, and enforces projection
-    freshness before returning success.
+19. `wendao-client semantic refresh-projections` runs an explicit projection
+    metadata refresh worker over repo-native semantic artifacts. Its default
+    mode remains a single pass, while `--interval-secs` and `--max-runs` let a
+    supervised process run the same worker as a bounded or long-running
+    recurring runner. Each pass uses the parser-owned refresh plan, applies the
+    existing explicit projection writeback path, renders the post-refresh plan,
+    and enforces projection freshness before returning success.
 
-The full RFC is not complete. Remaining work includes scheduling that
-one-shot refresh worker from a real background runner, richer workflow policy
-routing beyond scheduler preflight blocking, and any future Julia or
-DuckDB-backed compute/read-model expansion. Those remain advisory or derived
-lanes; they do not change repo-native authority.
+The full RFC is not complete. Remaining work includes richer workflow policy
+routing beyond scheduler preflight blocking, operational supervision policies
+for recurring refresh jobs, and any future Julia or DuckDB-backed
+compute/read-model expansion. Those remain advisory or derived lanes; they do
+not change repo-native authority.
 
 ## 2. Alignment
 
