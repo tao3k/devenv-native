@@ -29,6 +29,6 @@ where
 
 pub(super) fn runtime_wendao_mounts_snapshot() -> Vec<RuntimeWendaoMount> {
     RUNTIME_WENDAO_MOUNTS
-        .try_with(|mounts| mounts.clone())
+        .try_with(std::clone::Clone::clone)
         .unwrap_or_default()
 }
