@@ -109,10 +109,6 @@ in
 
     cd "''${PRJ_ROOT:-$DEVENV_ROOT}"
 
-    if [[ -x target/debug/wendao-client ]]; then
-      exec target/debug/wendao-client "$@"
-    fi
-
     exec cargo run -q -p xiuxian-wendao-client --bin wendao-client -- "$@"
   '';
 

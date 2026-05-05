@@ -44,13 +44,15 @@ The strongest refinements are:
 This audit began as advisory review. The implementation approval was later
 used to land the first physical slice: repo-native `semantic/` artifacts,
 parser validation, CLI linting, the Wendao semantic-scope route, Studio
-runtime serving, Qianji advisory consumption, and explicit projection metadata
-refresh through `wendao-client lint semantic --refresh-projections`.
+runtime serving, Qianji advisory consumption, explicit projection metadata
+refresh through `wendao-client lint semantic --refresh-projections`, and
+read-only lifecycle writeback preview through
+`wendao-client lint semantic --lifecycle-plan`.
 
 The RFC is still not fully complete. Background projection refresh policy,
-optional guided status-transition writeback tooling, broader Qianji workflow
-consumption, and future Julia or DuckDB-backed derived lanes remain outside
-the completed slice.
+optional status-transition apply tooling, broader Qianji workflow consumption,
+and future Julia or DuckDB-backed derived lanes remain outside the completed
+slice.
 
 ## 2. Evidence Map
 
@@ -224,14 +226,16 @@ semantic objects are now the authority surface; Wendao validates and serves a
 scoped bundle; Qianji consumes the semantic surface as advisory context.
 
 This does not close the full RFC. DuckDB and Julia remain derived or advisory
-lanes, SQL guard evidence is not authority, and guided candidate promotion or
-retirement writeback tooling still needs a separate pass before the semantic
+lanes, SQL guard evidence is not authority, and candidate promotion or
+retirement apply tooling still needs a separate pass before the semantic
 layer can be considered fully landed. Minimal parser governance now
 prevents free-floating candidate objects by requiring `llm_suggested`
 confidence and an active change-intent `candidate_suggestions` reference.
 Change intents can now declare landed `status_transitions`, with parser
 validation for the current target status and allowed lifecycle edge, and
 explicit `promotion_targets` / `demotion_targets` for lifecycle outcomes.
+`wendao-client lint semantic --lifecycle-plan` now renders a read-only
+writeback preview for those lifecycle outcomes.
 
 ## 6. Formal Research References
 

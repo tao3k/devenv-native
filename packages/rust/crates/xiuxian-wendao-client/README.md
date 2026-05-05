@@ -14,8 +14,8 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
-wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections]
-wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [PATH]...
+wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan]
+wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -85,6 +85,10 @@ Behavior:
     only when `lint semantic --refresh-projections` is passed; this is an
     explicit derived-metadata writeback and does not regenerate projection
     bodies or make projections authoritative
+25. renders a read-only lifecycle writeback preview when
+    `lint semantic --lifecycle-plan` is passed, listing validated promotion,
+    demotion, and other status-transition outcomes without mutating semantic
+    object files
 
 Diagnostic rendering is split deliberately:
 

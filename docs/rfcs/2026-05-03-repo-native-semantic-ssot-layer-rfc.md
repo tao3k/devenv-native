@@ -66,12 +66,15 @@ As of 2026-05-05, the first physical slice is implemented:
 10. candidate promotion and object demotion outcomes are explicit
     `promotion_targets` and `demotion_targets` entries, cross-checked against
     landed status transitions
+11. `wendao-client lint semantic --lifecycle-plan` renders a read-only
+    lifecycle writeback preview for validated promotion, demotion, and other
+    status-transition outcomes
 
 The full RFC is not complete. Remaining work includes background or
-policy-driven projection refresh, optional guided status-transition writeback
-tooling, broader workflow-level Qianji consumption, and any future Julia or
-DuckDB-backed compute/read-model expansion. Those remain advisory or derived
-lanes; they do not change repo-native authority.
+policy-driven projection refresh, optional status-transition apply tooling,
+broader workflow-level Qianji consumption, and any future Julia or DuckDB-backed
+compute/read-model expansion. Those remain advisory or derived lanes; they do
+not change repo-native authority.
 
 ## 2. Alignment
 

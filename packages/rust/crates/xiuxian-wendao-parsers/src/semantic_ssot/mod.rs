@@ -12,6 +12,6 @@ pub use self::types::{
     SemanticObject, SemanticObjectKind, SemanticOwner, SemanticProjection,
     SemanticProjectionStaleness, SemanticProvenance, SemanticRelation, SemanticRelationChange,
     SemanticRelationChangeAction, SemanticRelationEdge, SemanticRelationKind, SemanticRepository,
-    SemanticScopeBundle, SemanticScopeRequest, SemanticStatus, SemanticValidationIssue,
-    SemanticValidationReport, SemanticVerification,
+    SemanticScopeBundle, SemanticScopeRequest, SemanticStatus, SemanticStatusTransition,
+    SemanticValidationIssue, SemanticValidationReport, SemanticVerification,
 };

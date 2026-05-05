@@ -71,6 +71,21 @@ fn parses_semantic_lint_refresh_projections_flag() {
 }
 
 #[test]
+fn parses_semantic_lint_lifecycle_plan_flag() {
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "--lifecycle-plan"]);
+    let ClientCommand::Lint { command } = cli.command else {
+        panic!("expected lint command");
+    };
+    match command {
+        LintCommand::Semantic(args) => {
+            assert!(args.lifecycle_plan);
+            assert!(args.paths.is_empty());
+        }
+        LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
 fn parses_get_toc_command() {
     let cli = ClientCli::parse_from(["wendao", "get", "toc", "docs/guides"]);
     let ClientCommand::Get { command } = cli.command else {

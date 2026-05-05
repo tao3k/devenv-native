@@ -37,6 +37,10 @@ pub struct SemanticLintArgs {
     #[arg(long = "refresh-projections")]
     pub refresh_projections: bool,
 
+    /// Render a read-only lifecycle writeback preview for status transitions.
+    #[arg(long = "lifecycle-plan")]
+    pub lifecycle_plan: bool,
+
     /// Semantic artifact roots to inspect. When omitted, lint checks
     /// `$PRJ_ROOT/semantic` through the active client root.
     #[arg(value_name = "PATH")]

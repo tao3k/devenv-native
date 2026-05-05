@@ -111,6 +111,29 @@ fn semantic_lint_refreshes_projection_source_revision() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn semantic_lint_reports_lifecycle_plan() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_lifecycle_fixture(&temp)?;
+
+    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--lifecycle-plan"])?;
+
+    assert_eq!(status, Some(0));
+    assert!(
+        stdout.contains(
+            "Lifecycle plan 1 promotion(s), 0 demotion(s), 0 other transition(s), 1 already-applied writeback target(s)."
+        ),
+        "lifecycle plan summary should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "change.fixture.lifecycle: task.accepted candidate -> active (promotion, already_applied)"
+        ),
+        "lifecycle plan entry should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
 fn write_semantic_fixture(
     temp: &TempDir,
     id: &str,
@@ -186,4 +209,114 @@ fn write_semantic_fixture_with_relation(
         ),
     )?;
     Ok(())
+}
+
+fn write_semantic_lifecycle_fixture(temp: &TempDir) -> Result<()> {
+    let task_dir = temp.path().join("semantic/objects/task");
+    let invariant_dir = temp.path().join("semantic/objects/invariant");
+    std::fs::create_dir_all(&task_dir)?;
+    std::fs::create_dir_all(&invariant_dir)?;
+    std::fs::create_dir_all(temp.path().join("semantic/projections"))?;
+    std::fs::create_dir_all(temp.path().join("semantic/change-intents"))?;
+    std::fs::write(
+        task_dir.join("accepted.md"),
+        semantic_object_fixture("task.accepted", "task", "Accepted Task", "active", "  []\n"),
+    )?;
+    std::fs::write(
+        invariant_dir.join("fixture.md"),
+        semantic_object_fixture(
+            "invariant.fixture",
+            "invariant",
+            "Invariant Fixture",
+            "active",
+            "  []\n",
+        ),
+    )?;
+    std::fs::write(
+        temp.path().join("semantic/projections/llm-compression.md"),
+        concat!(
+            "---\n",
+            "type: semantic_projection\n",
+            "projection: llm_compression\n",
+            "source_objects:\n",
+            "  - task.accepted\n",
+            "  - invariant.fixture\n",
+            "source_revision: stale-fixture\n",
+            "projection_revision: test.v1\n",
+            "staleness: stale\n",
+            "status: active\n",
+            "---\n",
+            "# Projection\n",
+        ),
+    )?;
+    std::fs::write(
+        temp.path().join("semantic/change-intents/lifecycle.md"),
+        concat!(
+            "---\n",
+            "type: semantic_change_intent\n",
+            "id: change.fixture.lifecycle\n",
+            "title: Lifecycle Fixture\n",
+            "status: active\n",
+            "touched_objects:\n",
+            "  - task.accepted\n",
+            "changed_relations: []\n",
+            "status_transitions:\n",
+            "  - object_id: task.accepted\n",
+            "    from: candidate\n",
+            "    to: active\n",
+            "promotion_targets:\n",
+            "  - task.accepted\n",
+            "demotion_targets: []\n",
+            "affected_invariants:\n",
+            "  - invariant.fixture\n",
+            "required_validations:\n",
+            "  - direnv exec . wendao-client lint semantic\n",
+            "projections_to_refresh:\n",
+            "  - llm_compression\n",
+            "candidate_suggestions: []\n",
+            "---\n",
+            "# Lifecycle Fixture\n",
+        ),
+    )?;
+    Ok(())
+}
+
+fn semantic_object_fixture(
+    id: &str,
+    kind: &str,
+    title: &str,
+    status: &str,
+    relations: &str,
+) -> String {
+    format!(
+        concat!(
+            "---\n",
+            "id: {id}\n",
+            "kind: {kind}\n",
+            "title: {title}\n",
+            "status: {status}\n",
+            "confidence:\n",
+            "  score: 1.0\n",
+            "  source: human_signed\n",
+            "owners:\n",
+            "  - scope: tests\n",
+            "    role: fixture\n",
+            "provenance:\n",
+            "  source: docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md\n",
+            "  recorded_by: codex\n",
+            "  recorded_at: \"2026-05-05\"\n",
+            "verification:\n",
+            "  required:\n",
+            "    - direnv exec . wendao-client lint semantic\n",
+            "relations:\n",
+            "{relations}",
+            "---\n",
+            "# {title}\n",
+        ),
+        id = id,
+        kind = kind,
+        title = title,
+        status = status,
+        relations = relations,
+    )
 }
