@@ -169,12 +169,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--rust-provider-features",
-        default="studio,zhenfa-router,duckdb,builtin-plugins",
+        default="cli-bin-support,zhenfa-router,duckdb",
         help="Cargo feature set used to start the local Rust provider.",
     )
     parser.add_argument(
         "--gateway-features",
-        default="studio,zhenfa-router,duckdb,builtin-plugins",
+        default="cli-bin-support,zhenfa-router,duckdb",
         help="Cargo feature set used to start the local Wendao gateway.",
     )
     parser.add_argument(
@@ -206,7 +206,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cargo-features",
-        default=("performance,studio,zhenfa-router,duckdb,document-extract-attachment-audit"),
+        default=(
+            "performance,studio,zhenfa-router,duckdb,document-extract-attachment-audit"
+        ),
         help="Cargo feature set used by the Rust benchmark probe.",
     )
     parser.add_argument(
@@ -235,7 +237,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--converter-count-path",
         type=Path,
-        help=("Optional converter count file to read in external-endpoint benchmark mode."),
+        help=(
+            "Optional converter count file to read in external-endpoint benchmark mode."
+        ),
     )
     parser.add_argument(
         "--fail-on-duplicate-conversions",

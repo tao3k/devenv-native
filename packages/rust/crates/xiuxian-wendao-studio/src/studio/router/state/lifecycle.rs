@@ -137,6 +137,7 @@ impl StudioState {
             graph_index: Arc::new(std::sync::RwLock::new(None)),
             symbol_index: Arc::new(std::sync::RwLock::new(None)),
             symbol_index_coordinator,
+            local_corpus_scan_coalescing: Arc::new(std::sync::RwLock::new(Default::default())),
             search_plane,
             vfs_scan: Arc::new(std::sync::RwLock::new(None)),
             repo_index,

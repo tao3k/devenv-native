@@ -50,6 +50,7 @@ pub(crate) fn gateway_state_for_project(project_root: &Path) -> Result<Arc<Gatew
                 config_root.clone(),
                 search_plane.clone(),
             )),
+            local_corpus_scan_coalescing: Arc::new(RwLock::new(Default::default())),
             search_plane,
             vfs_scan: Arc::new(RwLock::new(None)),
             repo_index,

@@ -12,8 +12,15 @@ use xiuxian_wendao::search::{SearchCorpusKind, SearchPlanePhase};
 const LOCAL_CORPUS_READY_WAIT_ENV: &str = "XIUXIAN_WENDAO_LOCAL_CORPUS_READY_WAIT_MS";
 const DEFAULT_LOCAL_CORPUS_READY_WAIT_MS: u64 = 15_000;
 const LOCAL_CORPUS_READY_POLL_INTERVAL: Duration = Duration::from_millis(25);
+const LOCAL_CORPUS_SCAN_COALESCE_WINDOW: Duration = Duration::from_millis(100);
 const NOTE_SEARCH_BUNDLE_SOURCE: &str = "note_search_bundle";
 const CODE_SEARCH_BUNDLE_SOURCE: &str = "code_search_bundle";
+
+#[derive(Clone, Copy)]
+enum LocalCorpusScanBundle {
+    Note,
+    Code,
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct LocalCorpusBootstrapStatus {
@@ -23,6 +30,16 @@ pub(crate) struct LocalCorpusBootstrapStatus {
 }
 
 impl StudioState {
+    fn local_corpus_bundle_ready(&self, corpora: &[SearchCorpusKind]) -> bool {
+        corpora.iter().copied().all(|corpus| {
+            self.search_plane
+                .coordinator()
+                .status_for(corpus)
+                .active_epoch
+                .is_some()
+        })
+    }
+
     fn local_corpus_bundle_indexing(&self, corpora: &[SearchCorpusKind]) -> bool {
         corpora.iter().copied().any(|corpus| {
             let status = self.search_plane.coordinator().status_for(corpus);
@@ -30,15 +47,54 @@ impl StudioState {
         })
     }
 
+    fn local_corpus_scan_recent(&self, bundle: LocalCorpusScanBundle) -> bool {
+        let state = self
+            .local_corpus_scan_coalescing
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let last_scanned_at = match bundle {
+            LocalCorpusScanBundle::Note => state.note_bundle_last_scanned_at,
+            LocalCorpusScanBundle::Code => state.code_bundle_last_scanned_at,
+        };
+        last_scanned_at
+            .is_some_and(|instant| instant.elapsed() <= LOCAL_CORPUS_SCAN_COALESCE_WINDOW)
+    }
+
+    fn should_coalesce_local_corpus_scan(
+        &self,
+        bundle: LocalCorpusScanBundle,
+        corpora: &[SearchCorpusKind],
+    ) -> bool {
+        self.local_corpus_bundle_ready(corpora) && self.local_corpus_scan_recent(bundle)
+    }
+
+    fn record_local_corpus_scan(&self, bundle: LocalCorpusScanBundle) {
+        let mut state = self
+            .local_corpus_scan_coalescing
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        match bundle {
+            LocalCorpusScanBundle::Note => {
+                state.note_bundle_last_scanned_at = Some(std::time::Instant::now());
+            }
+            LocalCorpusScanBundle::Code => {
+                state.code_bundle_last_scanned_at = Some(std::time::Instant::now());
+            }
+        }
+    }
+
     fn ensure_note_search_indexes_started(
         &self,
         configured_projects: &[crate::studio::types::UiProjectConfig],
         source: &'static str,
     ) {
-        if self.local_corpus_bundle_indexing(&[
+        let corpora = [
             SearchCorpusKind::KnowledgeSection,
             SearchCorpusKind::Attachment,
-        ]) {
+        ];
+        if self.local_corpus_bundle_indexing(&corpora)
+            || self.should_coalesce_local_corpus_scan(LocalCorpusScanBundle::Note, &corpora)
+        {
             return;
         }
 
@@ -73,6 +129,7 @@ impl StudioState {
         {
             self.record_local_corpus_index_started(SearchCorpusKind::Attachment, source);
         }
+        self.record_local_corpus_scan(LocalCorpusScanBundle::Note);
     }
 
     fn ensure_code_search_indexes_started(
@@ -80,44 +137,48 @@ impl StudioState {
         configured_projects: &[crate::studio::types::UiProjectConfig],
         source: &'static str,
     ) {
-        let bundle_indexing = self.local_corpus_bundle_indexing(&[
+        let corpora = [
             SearchCorpusKind::LocalSymbol,
             SearchCorpusKind::ReferenceOccurrence,
-        ]);
+        ];
+        let bundle_indexing = self.local_corpus_bundle_indexing(&corpora);
         if !bundle_indexing {
-            let scan_inventory = self
-                .search_plane
-                .scan_supported_projects_with_repeat_work_details(
-                    CODE_SEARCH_BUNDLE_SOURCE,
-                    self.project_root.as_path(),
-                    self.config_root.as_path(),
-                    configured_projects,
-                );
-            let source_files = scan_inventory.source_files();
-            if self
-                .search_plane
-                .ensure_local_symbol_index_started_with_scanned_files(
-                    self.project_root.as_path(),
-                    self.config_root.as_path(),
-                    configured_projects,
-                    scan_inventory.symbol_files(),
-                )
-            {
-                self.record_local_corpus_index_started(SearchCorpusKind::LocalSymbol, source);
-            }
-            if self
-                .search_plane
-                .ensure_reference_occurrence_index_started_with_scanned_files(
-                    self.project_root.as_path(),
-                    self.config_root.as_path(),
-                    configured_projects,
-                    source_files.as_slice(),
-                )
-            {
-                self.record_local_corpus_index_started(
-                    SearchCorpusKind::ReferenceOccurrence,
-                    source,
-                );
+            if !self.should_coalesce_local_corpus_scan(LocalCorpusScanBundle::Code, &corpora) {
+                let scan_inventory = self
+                    .search_plane
+                    .scan_supported_projects_with_repeat_work_details(
+                        CODE_SEARCH_BUNDLE_SOURCE,
+                        self.project_root.as_path(),
+                        self.config_root.as_path(),
+                        configured_projects,
+                    );
+                let source_files = scan_inventory.source_files();
+                if self
+                    .search_plane
+                    .ensure_local_symbol_index_started_with_scanned_files(
+                        self.project_root.as_path(),
+                        self.config_root.as_path(),
+                        configured_projects,
+                        scan_inventory.symbol_files(),
+                    )
+                {
+                    self.record_local_corpus_index_started(SearchCorpusKind::LocalSymbol, source);
+                }
+                if self
+                    .search_plane
+                    .ensure_reference_occurrence_index_started_with_scanned_files(
+                        self.project_root.as_path(),
+                        self.config_root.as_path(),
+                        configured_projects,
+                        source_files.as_slice(),
+                    )
+                {
+                    self.record_local_corpus_index_started(
+                        SearchCorpusKind::ReferenceOccurrence,
+                        source,
+                    );
+                }
+                self.record_local_corpus_scan(LocalCorpusScanBundle::Code);
             }
         }
         self.symbol_index_coordinator
