@@ -40,6 +40,8 @@ def _can_extend_source_page_group(
         return False
     if str(previous_row["sourcePath"]) != str(input_row["sourcePath"]):
         return False
+    if str(previous_row.get("ocrProfile", "")) != str(input_row.get("ocrProfile", "")):
+        return False
     return int(input_row["pageIndex"]) == int(previous_row["pageIndex"]) + 1
 
 

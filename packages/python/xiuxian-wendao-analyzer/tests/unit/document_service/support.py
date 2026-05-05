@@ -114,6 +114,7 @@ def _sample_pdf_ocr_input_table(
     region_index: int = 0,
     parent_shard_element_id: str = "",
     reading_order_key: str = "000000.000000",
+    ocr_profile: str = "docling-compatible-page-ocr-v1",
 ):
     return pa.Table.from_pylist(
         [
@@ -126,7 +127,7 @@ def _sample_pdf_ocr_input_table(
                 "imageMimeType": "image/png",
                 "rasterSha256": "rasterhash",
                 "renderProfile": "pdfium-render-page-shards-v1",
-                "ocrProfile": "docling-compatible-page-ocr-v1",
+                "ocrProfile": ocr_profile,
                 "ocrEngine": "docling-compatible-ocr",
                 "preferredLanguages": "auto",
                 "minConfidence": 0.0,

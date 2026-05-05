@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from xiuxian_wendao_analyzer.pdf_ocr import (
+    PDF_OCR_DEFAULT_PROFILE,
+    PDF_OCR_FAST_TEXT_PROFILE,
+)
+
 from .support import (
     DoclingPdfOcrShardWorker,
     FailingDoclingConverter,
@@ -67,6 +72,66 @@ def test_docling_pdf_ocr_worker_uses_single_page_break_export_for_ranges(
         "OCR page 2",
         "OCR page 3",
     ]
+
+
+def test_docling_pdf_ocr_worker_keeps_profile_ranges_separate(tmp_path: Path) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+
+    converter = FakeDoclingConverter("OCR\n")
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(
+            [
+                _sample_pdf_ocr_input_table(
+                    source_path=str(source),
+                    page_index=0,
+                    ocr_profile=PDF_OCR_DEFAULT_PROFILE,
+                ),
+                _sample_pdf_ocr_input_table(
+                    source_path=str(source),
+                    page_index=1,
+                    shard_element_id="shard-1",
+                    ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+                ),
+            ]
+        ),
+        worker=DoclingPdfOcrShardWorker(converter, max_workers=4),
+    )
+
+    assert converter.kwargs_calls == [{"page_range": (1, 1)}, {"page_range": (2, 2)}]
+    assert [row["ocrProfile"] for row in table.to_pylist()] == [
+        PDF_OCR_DEFAULT_PROFILE,
+        PDF_OCR_FAST_TEXT_PROFILE,
+    ]
+
+
+def test_docling_pdf_ocr_worker_uses_fast_converter_for_fast_profile(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        requested_profiles.append(profile)
+        return FakeDoclingConverter(f"OCR {profile}\n")
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers._new_docling_converter",
+        fake_converter_factory,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert requested_profiles == [PDF_OCR_FAST_TEXT_PROFILE]
+    assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
 
 
 def test_docling_pdf_ocr_worker_preserves_order_with_concurrent_shards(

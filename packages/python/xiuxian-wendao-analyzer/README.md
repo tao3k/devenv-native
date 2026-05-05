@@ -365,6 +365,13 @@ subranges. The planner must not cross cache-miss gaps, and it keeps every
 selected page on the source-PDF OCR lane so the Python worker continues to use
 Docling over original PDF page ranges rather than lower-precision raster or
 table-fast shortcuts.
+Python also recognizes the existing `docling-fast-text-ocr` OCR profile as a
+separate Docling converter profile. Rows with different `ocrProfile` values are
+not merged into one source-PDF page range, so a future Rust risk-window planner
+can mix fast and accurate Docling ranges without changing the Arrow schema.
+That fast profile is not selected by default because table-fast extraction may
+lose text unless an accurate recovery window proves the accepted character and
+order envelope.
 Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
 evidence shows a fixed override is appropriate for that machine profile, but

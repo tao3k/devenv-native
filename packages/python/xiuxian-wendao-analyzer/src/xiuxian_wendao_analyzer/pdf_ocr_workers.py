@@ -7,7 +7,11 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .pdf_ocr_contracts import PDF_OCR_PAGE_BREAK_SENTINEL
+from .pdf_ocr_contracts import (
+    PDF_OCR_DEFAULT_PROFILE,
+    PDF_OCR_FAST_TEXT_PROFILE,
+    PDF_OCR_PAGE_BREAK_SENTINEL,
+)
 from .pdf_ocr_grouping import (
     _flatten_group_results,
     _group_pdf_ocr_inputs,
@@ -100,7 +104,7 @@ class DoclingPdfOcrShardWorker:
         input_rows: Sequence[Mapping[str, Any]],
     ) -> list[tuple[int, Mapping[str, Any]]]:
         try:
-            converter = self._converter_for_thread()
+            converter = self._converter_for_thread(_ocr_profile(input_rows[0]))
         except Exception as exc:
             return [
                 (
@@ -234,14 +238,20 @@ class DoclingPdfOcrShardWorker:
             return None
         return rows
 
-    def _converter_for_thread(self) -> DocumentConverterProtocol:
+    def _converter_for_thread(self, ocr_profile: str) -> DocumentConverterProtocol:
         if self._converter is not None:
             return self._converter
-        converter = getattr(self._thread_local, "converter", None)
+        converters = getattr(self._thread_local, "converters", None)
+        if converters is None:
+            converters = {}
+            self._thread_local.converters = converters
+        converter = converters.get(ocr_profile)
         if converter is None:
-            factory = self._converter_factory or _new_docling_converter
-            converter = factory()
-            self._thread_local.converter = converter
+            if self._converter_factory is not None:
+                converter = self._converter_factory()
+            else:
+                converter = _new_docling_converter(ocr_profile)
+            converters[ocr_profile] = converter
         return converter
 
 
@@ -265,12 +275,32 @@ def _try_export_source_page_batch_markdown(
     return parts
 
 
-def _new_docling_converter() -> DocumentConverterProtocol:
+def _ocr_profile(input_row: Mapping[str, Any]) -> str:
+    profile = str(input_row.get("ocrProfile", "")).strip()
+    return profile or PDF_OCR_DEFAULT_PROFILE
+
+
+def _new_docling_converter(
+    ocr_profile: str = PDF_OCR_DEFAULT_PROFILE,
+) -> DocumentConverterProtocol:
     try:
-        from docling.document_converter import DocumentConverter
+        from docling.datamodel.base_models import InputFormat
+        from docling.datamodel.pipeline_options import (
+            PdfPipelineOptions,
+            TableFormerMode,
+        )
+        from docling.document_converter import DocumentConverter, PdfFormatOption
     except ModuleNotFoundError as exc:
         raise RuntimeError(
             "docling is not installed; install xiuxian-wendao-analyzer[documents] "
             "to enable Docling-backed PDF OCR shards"
         ) from exc
+    if ocr_profile == PDF_OCR_FAST_TEXT_PROFILE:
+        options = PdfPipelineOptions()
+        options.table_structure_options.mode = TableFormerMode.FAST
+        return DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=options),
+            }
+        )
     return DocumentConverter()
