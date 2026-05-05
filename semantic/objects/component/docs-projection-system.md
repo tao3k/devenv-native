@@ -33,4 +33,6 @@ projection refresh plan is a read-only queue contract; projection artifact
 mutation remains an explicit writeback. The projection refresh worker consumes
 that plan, reuses the explicit writeback path, and can run as a bounded or
 recurring local runner. Supervised starts may require a clean git worktree
-before any projection writeback.
+before any projection writeback. `process-compose` packages the guarded
+runner as `wendao-semantic-refresh`, but it still delegates to the same
+explicit client command and remains a projection maintenance surface.

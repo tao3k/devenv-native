@@ -99,6 +99,19 @@ in
       };
     };
 
+    wendao-semantic-refresh = {
+      exec = processEntrypoint "wendao-semantic-refresh";
+      process-compose = {
+        readiness_probe = {
+          exec.command = processHealthcheck "wendao-semantic-refresh";
+          initial_delay_seconds = 5;
+          period_seconds = 10;
+          timeout_seconds = 3;
+          failure_threshold = 6;
+        };
+      };
+    };
+
     wendaosearch-solver-demo = {
       exec = processEntrypoint "wendaosearch-solver-demo";
       process-compose = {

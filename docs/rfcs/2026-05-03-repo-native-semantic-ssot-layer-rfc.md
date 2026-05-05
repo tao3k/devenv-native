@@ -107,12 +107,19 @@ As of 2026-05-05, the first physical slice is implemented:
     pending changes. Each pass uses the parser-owned refresh plan, applies the
     existing explicit projection writeback path, renders the post-refresh plan,
     and enforces projection freshness before returning success.
+20. `process-compose` now packages that runner as `wendao-semantic-refresh`.
+    The process delegates to managed scripts under
+    `scripts/channel/processes/wendao-semantic-refresh/`, writes pid/log state
+    under the project runtime root, builds the existing `wendao-client` binary
+    by default, and runs `semantic refresh-projections --require-clean-worktree`
+    with `WENDAO_SEMANTIC_REFRESH_INTERVAL_SECS` and
+    `WENDAO_SEMANTIC_REFRESH_MAX_RUNS` operator controls. It has no downstream
+    service dependency and does not make projections authoritative.
 
-The full RFC is not complete. Remaining work includes external supervisor
-packaging for recurring refresh jobs, broader workflow-level consumption of
-semantic guard routes, and any future Julia or DuckDB-backed compute/read-model
-expansion. Those remain advisory or derived lanes; they do not change
-repo-native authority.
+The full RFC is not complete. Remaining work includes broader workflow-level
+consumption of semantic guard routes and any future Julia or DuckDB-backed
+compute/read-model expansion. Those remain advisory or derived lanes; they do
+not change repo-native authority.
 
 ## 2. Alignment
 

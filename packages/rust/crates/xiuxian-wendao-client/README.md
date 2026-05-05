@@ -113,7 +113,10 @@ Behavior:
     changes. Each pass uses the same semantic lint engine, applies projection
     metadata refresh through the existing writeback path, renders the
     post-refresh plan, and requires projection freshness before returning
-    success
+    success. The project `process-compose` surface packages this runner as
+    `wendao-semantic-refresh`, with managed pid/log state and
+    `WENDAO_SEMANTIC_REFRESH_INTERVAL_SECS` /
+    `WENDAO_SEMANTIC_REFRESH_MAX_RUNS` operator controls
 
 Diagnostic rendering is split deliberately:
 

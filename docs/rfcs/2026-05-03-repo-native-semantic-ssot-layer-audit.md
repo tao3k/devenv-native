@@ -78,11 +78,14 @@ pass, while `--interval-secs` and `--max-runs` expose a bounded or
 long-running recurring runner for supervised background use. Supervised starts
 can also pass `--require-clean-worktree` to refuse projection writeback when
 the root git worktree already has pending changes.
+`process-compose` now packages that same guarded runner as
+`wendao-semantic-refresh`, using managed entrypoint and healthcheck scripts
+under `scripts/channel/processes/wendao-semantic-refresh/` while keeping
+projection writes routed through the explicit client command.
 
-The RFC is still not fully complete. External supervisor packaging for
-recurring refresh jobs, broader workflow-level consumption of semantic guard
-routes, and future Julia or DuckDB-backed derived lanes remain outside the
-completed slice.
+The RFC is still not fully complete. Broader workflow-level consumption of
+semantic guard routes and future Julia or DuckDB-backed derived lanes remain
+outside the completed slice.
 
 ## 2. Evidence Map
 
@@ -257,10 +260,10 @@ semantic objects are now the authority surface; Wendao validates and serves a
 scoped bundle; Qianji consumes the semantic surface as advisory context.
 
 This does not close the full RFC. DuckDB and Julia remain derived or advisory
-lanes, SQL guard evidence is not authority, and candidate promotion or
-retirement apply tooling still needs a separate pass before the semantic
-layer can be considered fully landed. Minimal parser governance now
-prevents free-floating candidate objects by requiring `llm_suggested`
+lanes, SQL guard evidence is not authority, and broader workflow-level guard
+route consumption still needs separate adoption before the semantic layer can
+be considered fully landed. Minimal parser governance now prevents
+free-floating candidate objects by requiring `llm_suggested`
 confidence and an active change-intent `candidate_suggestions` reference.
 Change intents can now declare landed `status_transitions`, with parser
 validation for the current target status and allowed lifecycle edge, and
@@ -280,6 +283,8 @@ entrypoint for that contract while still routing writes through the explicit
 projection metadata refresh implementation. The command can also run repeated
 passes with `--interval-secs`, can be bounded with `--max-runs`, and can
 require a clean startup worktree with `--require-clean-worktree`.
+`process-compose` now exposes the guarded recurring runner as
+`wendao-semantic-refresh` without adding another projection mutation path.
 
 ## 6. Formal Research References
 
