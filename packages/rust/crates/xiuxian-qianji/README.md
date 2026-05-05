@@ -143,6 +143,10 @@ the configured `semanticScopeGuardPolicy`, the current guard status, whether
 execution is continuing, and the recommended semantic action. The default
 policy remains advisory, and Qianji still consumes semantic truth without
 owning it.
+Router nodes may opt into that route with `semantic_guard_route = true`, or
+with `semantic_guard_route_key` for a custom context key. When enabled,
+`semanticScopeGuardRoute.recommendedAction` selects a matching branch such as
+`continue`, `review_required`, or `blocked` before probabilistic fallback.
 That RFC now also treats scenarios as guard graphs over the bounded work
 surface, with explicit done-gate semantics and blocked-vs-failed diagnostics
 for `qianji check`.

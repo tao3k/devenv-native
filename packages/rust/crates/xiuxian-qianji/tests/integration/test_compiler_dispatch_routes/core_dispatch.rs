@@ -1,8 +1,8 @@
 use super::build_compiler;
 use super::manifests::{
     CALIBRATION_MANIFEST, COMMAND_MANIFEST, KNOWLEDGE_MANIFEST, MOCK_MANIFEST,
-    ROUTER_INVALID_WEIGHT_MANIFEST, ROUTER_MANIFEST, SECURITY_SCAN_MANIFEST, SUSPEND_MANIFEST,
-    UNKNOWN_TASK_MANIFEST, WRITE_FILE_MANIFEST,
+    ROUTER_INVALID_WEIGHT_MANIFEST, ROUTER_MANIFEST, ROUTER_SEMANTIC_GUARD_MANIFEST,
+    SECURITY_SCAN_MANIFEST, SUSPEND_MANIFEST, UNKNOWN_TASK_MANIFEST, WRITE_FILE_MANIFEST,
 };
 
 #[test]
@@ -47,6 +47,16 @@ fn compiler_dispatches_router_task_via_leaf_lane() -> Result<(), Box<dyn std::er
     let temp = tempfile::tempdir()?;
     let compiler = build_compiler(temp.path())?;
     let engine = compiler.compile(ROUTER_MANIFEST)?;
+    assert_eq!(engine.graph.node_count(), 1);
+    Ok(())
+}
+
+#[test]
+fn compiler_dispatches_semantic_guard_router_task_via_leaf_lane()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    let compiler = build_compiler(temp.path())?;
+    let engine = compiler.compile(ROUTER_SEMANTIC_GUARD_MANIFEST)?;
     assert_eq!(engine.graph.node_count(), 1);
     Ok(())
 }

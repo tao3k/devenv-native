@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use serde_json::{Value, json};
 use std::sync::Arc;
-use xiuxian_qianji::executors::ShellMechanism;
+use xiuxian_qianji::executors::{ProbabilisticRouter, ShellMechanism};
 use xiuxian_qianji::{
     FlowInstruction, QianjiEngine, QianjiMechanism, QianjiOutput, QianjiScheduler,
 };
@@ -224,7 +224,8 @@ async fn scheduler_preflight_routes_review_required_semantic_scope_without_block
     let output = scheduler
         .run(json!({
             "semanticScopeGuardPolicy": "block_on_blocked",
-            "semanticScopeMetadata": semantic_scope_metadata_value("stale", &[])
+            "semanticScopeMetadata": semantic_scope_metadata_value("stale", &[]),
+            "omega_confidence": -1.0
         }))
         .await
         .unwrap_or_else(|error| {
@@ -240,6 +241,33 @@ async fn scheduler_preflight_routes_review_required_semantic_scope_without_block
         output["semanticScopeGuardTrace"]["status"],
         "review_required"
     );
+}
+
+#[tokio::test]
+async fn scheduler_preflight_routes_semantic_guard_action_through_router() {
+    let mut engine = QianjiEngine::new();
+    let _ = engine.add_mechanism(
+        "semantic-router",
+        Arc::new(ProbabilisticRouter {
+            branches: vec![
+                ("continue".to_string(), 1.0),
+                ("review_required".to_string(), 1.0),
+                ("blocked".to_string(), 1.0),
+            ],
+            semantic_guard_route_key: Some("semanticScopeGuardRoute".to_string()),
+        }),
+    );
+    let scheduler = QianjiScheduler::new(engine);
+
+    let output = scheduler
+        .run(json!({
+            "semanticScopeGuardPolicy": "block_on_blocked",
+            "semanticScopeMetadata": semantic_scope_metadata_value("stale", &[])
+        }))
+        .await
+        .unwrap_or_else(|error| panic!("review route should reach router: {error}"));
+
+    assert_eq!(output["selected_route"], "review_required");
 }
 
 #[tokio::test]

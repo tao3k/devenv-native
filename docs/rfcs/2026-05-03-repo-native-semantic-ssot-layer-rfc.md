@@ -115,11 +115,17 @@ As of 2026-05-05, the first physical slice is implemented:
     with `WENDAO_SEMANTIC_REFRESH_INTERVAL_SECS` and
     `WENDAO_SEMANTIC_REFRESH_MAX_RUNS` operator controls. It has no downstream
     service dependency and does not make projections authoritative.
+21. Qianji router nodes can now opt into workflow-level semantic guard route
+    consumption with `semantic_guard_route = true` or an explicit
+    `semantic_guard_route_key`. When enabled, a
+    `semanticScopeGuardRoute.recommendedAction` value matching a configured
+    branch selects that branch before probabilistic fallback. The default
+    router path remains unchanged and semantic truth remains read-only context.
 
-The full RFC is not complete. Remaining work includes broader workflow-level
-consumption of semantic guard routes and any future Julia or DuckDB-backed
-compute/read-model expansion. Those remain advisory or derived lanes; they do
-not change repo-native authority.
+The full RFC is not complete. Remaining work includes wider rollout of
+semantic guard route-aware workflow templates and any future Julia or
+DuckDB-backed compute/read-model expansion. Those remain advisory or derived
+lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 

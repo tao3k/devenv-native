@@ -82,9 +82,13 @@ the root git worktree already has pending changes.
 `wendao-semantic-refresh`, using managed entrypoint and healthcheck scripts
 under `scripts/channel/processes/wendao-semantic-refresh/` while keeping
 projection writes routed through the explicit client command.
+Qianji router nodes can now opt into workflow-level consumption of
+`semanticScopeGuardRoute.recommendedAction`, selecting a matching
+`continue`, `review_required`, or `blocked` branch before probabilistic
+fallback while preserving default router behavior.
 
-The RFC is still not fully complete. Broader workflow-level consumption of
-semantic guard routes and future Julia or DuckDB-backed derived lanes remain
+The RFC is still not fully complete. Wider rollout of guard route-aware
+workflow templates and future Julia or DuckDB-backed derived lanes remain
 outside the completed slice.
 
 ## 2. Evidence Map
@@ -232,9 +236,8 @@ The RFC is recommended for approval review if these conditions hold:
 5. **Julia compute pilot**: export one bounded semantic subgraph or
    derived-confidence input batch to a staged Julia compute profile and import
    advisory evidence rows through versioned Arrow contracts.
-6. **Qianji integration**: extend the current guard from semantic-scope and
-   policy-evidence consumption toward workflow-level planning decisions after
-   validator and read-model contracts are stable.
+6. **Qianji integration**: extend guard route-aware workflow templates after
+   the router-level opt-in path has enough local scenario evidence.
 7. **Hot-path clone audit**: consider replacing repeated Q-table episode-id
    clones with shared identifiers such as `Arc<str>` only after profiling
    confirms the clone pressure is material.
@@ -260,10 +263,10 @@ semantic objects are now the authority surface; Wendao validates and serves a
 scoped bundle; Qianji consumes the semantic surface as advisory context.
 
 This does not close the full RFC. DuckDB and Julia remain derived or advisory
-lanes, SQL guard evidence is not authority, and broader workflow-level guard
-route consumption still needs separate adoption before the semantic layer can
-be considered fully landed. Minimal parser governance now prevents
-free-floating candidate objects by requiring `llm_suggested`
+lanes, SQL guard evidence is not authority, and guard route-aware workflow
+templates still need broader rollout before the semantic layer can be
+considered fully landed. Minimal parser governance now prevents free-floating
+candidate objects by requiring `llm_suggested`
 confidence and an active change-intent `candidate_suggestions` reference.
 Change intents can now declare landed `status_transitions`, with parser
 validation for the current target status and allowed lifecycle edge, and

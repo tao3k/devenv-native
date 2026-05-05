@@ -17,6 +17,7 @@ verification:
   required:
     - direnv exec . cargo test -p xiuxian-qianji workdir_semantic -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
+    - direnv exec . cargo test -p xiuxian-qianji router -- --nocapture
   evidence:
     - docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-audit.md
 relations:
@@ -33,4 +34,6 @@ Scheduler preflight may inject a read-only semantic-scope guard trace into
 workflow context plus a compact semantic-scope guard route for downstream
 mechanisms. Workflow contexts may opt into `semanticScopeGuardPolicy` blocking
 for blocked or review-required semantic scope, but Qianji does not own
-canonical semantic ontology truth.
+canonical semantic ontology truth. Router nodes may also opt into
+`semanticScopeGuardRoute.recommendedAction` branch selection so workflow
+templates can handle continue, review-required, or blocked paths explicitly.

@@ -24,6 +24,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-wendao-sql bounded_work_markdown -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji workdir_semantic -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
+    - direnv exec . cargo test -p xiuxian-qianji router -- --nocapture
     - direnv exec . uv run pytest tests/test_wendao_semantic_refresh_process_nix.py -q
     - direnv exec . wendao-client lint semantic
   evidence:
@@ -53,4 +54,6 @@ plan and an explicit refresh worker entrypoint that can run one pass or
 supervised recurring passes while keeping mutation explicit, including an
 optional clean-worktree startup guard for supervised projection writeback.
 The runtime packaging slice also exposes the same guarded runner as the
-`wendao-semantic-refresh` process-compose entry.
+`wendao-semantic-refresh` process-compose entry. Qianji router nodes can now
+opt into semantic guard route branch selection, making the advisory route
+usable by ordinary workflow templates.
