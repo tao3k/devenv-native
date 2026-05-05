@@ -16,7 +16,7 @@ pub(super) struct BoundedWorkMarkdownRegistration {
     pub(super) input_bytes: u64,
 }
 
-/// Build bounded-work markdown rows from the `blueprint/` and `plan/` surfaces.
+/// Build bounded-work markdown rows from bounded advisory markdown surfaces.
 ///
 /// # Errors
 ///

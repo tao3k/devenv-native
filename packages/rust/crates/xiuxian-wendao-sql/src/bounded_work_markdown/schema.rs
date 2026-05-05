@@ -10,6 +10,7 @@ pub(crate) fn bounded_work_markdown_schema() -> Arc<Schema> {
     Arc::new(Schema::new(vec![
         Field::new("path", DataType::Utf8, false),
         Field::new("surface", DataType::Utf8, false),
+        Field::new("surface_kind", DataType::Utf8, false),
         Field::new("heading_path", DataType::Utf8, false),
         Field::new("title", DataType::Utf8, false),
         Field::new("level", DataType::Int64, false),
@@ -33,6 +34,11 @@ pub(crate) fn build_markdown_record_batch(
             Arc::new(StringArray::from(
                 rows.iter()
                     .map(|row| Some(row.surface.as_str()))
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(
+                rows.iter()
+                    .map(|row| Some(row.surface_kind.as_str()))
                     .collect::<Vec<_>>(),
             )),
             Arc::new(StringArray::from(

@@ -14,6 +14,8 @@ pub struct BoundedWorkMarkdownRow {
     pub path: String,
     /// The top-level bounded-work surface that owns this row.
     pub surface: String,
+    /// The first-order kind derived from the bounded surface and relative path.
+    pub surface_kind: String,
     /// The normalized heading path using `/` as the segment separator.
     pub heading_path: String,
     /// The current row title or effective section title.
@@ -44,11 +46,13 @@ pub(crate) fn build_rows_for_file(
         .unwrap_or("page");
     let (document, sections) =
         parse_bounded_work_document(&file.absolute_path, &body, fallback_title);
+    let surface_kind = classify_surface_kind(file);
 
     let mut rows = Vec::with_capacity(sections.len() + 1);
     rows.push(BoundedWorkMarkdownRow {
         path: file.relative_path.clone(),
         surface: file.surface.clone(),
+        surface_kind: surface_kind.clone(),
         heading_path: String::new(),
         title: document.title.clone(),
         level: 0,
@@ -62,6 +66,7 @@ pub(crate) fn build_rows_for_file(
         BoundedWorkMarkdownRow {
             path: file.relative_path.clone(),
             surface: file.surface.clone(),
+            surface_kind: surface_kind.clone(),
             heading_path,
             title: title.clone(),
             level: i64::try_from(section.scope.heading_level).unwrap_or(i64::MAX),
@@ -96,6 +101,28 @@ fn parse_bounded_work_document(
     }
     let parsed = parse_markdown_toc(body, fallback_title);
     (parsed.document.core, parsed.sections)
+}
+
+fn classify_surface_kind(file: &DiscoveredMarkdownFile) -> String {
+    match file.surface.as_str() {
+        "blueprint" => "blueprint_note".to_string(),
+        "plan" => "plan_note".to_string(),
+        "semantic" => classify_semantic_path(file.relative_path.as_str()).to_string(),
+        surface => format!("{surface}_note"),
+    }
+}
+
+fn classify_semantic_path(relative_path: &str) -> &'static str {
+    if relative_path.starts_with("semantic/objects/") {
+        return "semantic_object";
+    }
+    if relative_path.starts_with("semantic/projections/") {
+        return "semantic_projection";
+    }
+    if relative_path.starts_with("semantic/change-intents/") {
+        return "semantic_change_intent";
+    }
+    "semantic_note"
 }
 
 fn normalize_heading_path(raw: &str) -> String {
