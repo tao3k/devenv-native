@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
@@ -136,10 +137,9 @@ fn semantic_scope_bundle_includes_active_relation_neighborhood() {
     assert_eq!(bundle.affected_invariants, vec!["invariant.runtime"]);
     assert_eq!(bundle.projection_revision, "test.v1");
     assert!(bundle.projection_source_revision.is_some());
-    assert_eq!(
-        serde_json::to_value(&bundle.projection_staleness).expect("serialize staleness"),
-        serde_json::json!("fresh")
-    );
+    let projection_staleness = serde_json::to_value(&bundle.projection_staleness)
+        .unwrap_or_else(|error| panic!("serialize staleness: {error}"));
+    assert_eq!(projection_staleness, serde_json::json!("fresh"));
 }
 
 #[test]
@@ -380,12 +380,12 @@ fn semantic_repository_reports_invalid_change_intent_references() {
     );
 }
 
-fn semantic_object_fixture<'a>(
+fn semantic_object_fixture(
     id: &str,
     kind: &str,
     title: &str,
     status: &str,
-    relations: &'a str,
+    relations: &str,
 ) -> String {
     format!(
         concat!(
@@ -441,17 +441,18 @@ fn semantic_projection_fixture(
     source_revision: &str,
     staleness: &str,
 ) -> String {
-    let source_objects = source_objects
-        .iter()
-        .map(|object_id| format!("  - {object_id}\n"))
-        .collect::<String>();
+    let mut rendered_source_objects = String::new();
+    for object_id in source_objects {
+        writeln!(&mut rendered_source_objects, "  - {object_id}")
+            .unwrap_or_else(|error| panic!("render projection source object: {error}"));
+    }
     format!(
         concat!(
             "---\n",
             "type: semantic_projection\n",
             "projection: llm_compression\n",
             "source_objects:\n",
-            "{source_objects}",
+            "{rendered_source_objects}",
             "source_revision: {source_revision}\n",
             "projection_revision: test.v1\n",
             "staleness: {staleness}\n",
@@ -459,7 +460,7 @@ fn semantic_projection_fixture(
             "---\n",
             "# Projection\n",
         ),
-        source_objects = source_objects,
+        rendered_source_objects = rendered_source_objects,
         source_revision = source_revision,
         staleness = staleness,
     )
@@ -467,12 +468,11 @@ fn semantic_projection_fixture(
 
 fn refresh_projection_as_fresh(root: &Path, source_objects: &[&str]) {
     let stale_repository = load_semantic_repository(root);
-    let projection = stale_repository
-        .projections
-        .first()
-        .expect("projection fixture should load");
+    let Some(projection) = stale_repository.projections.first() else {
+        panic!("projection fixture should load");
+    };
     let source_revision = semantic_projection_source_revision(&stale_repository, projection)
-        .expect("projection source revision should compute");
+        .unwrap_or_else(|| panic!("projection source revision should compute"));
     write_file(
         root.join("projections/llm-compression.md"),
         semantic_projection_fixture(source_objects, &source_revision, "fresh"),

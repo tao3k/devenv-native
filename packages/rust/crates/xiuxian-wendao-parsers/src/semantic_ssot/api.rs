@@ -134,11 +134,7 @@ pub fn semantic_projection_source_revision(
     repository: &SemanticRepository,
     projection: &SemanticProjection,
 ) -> Option<String> {
-    let object_by_id = repository
-        .objects
-        .iter()
-        .map(|object| (object.id.as_str(), object))
-        .collect::<BTreeMap<_, _>>();
+    let object_by_id = semantic_object_by_id(repository);
     semantic_projection_source_revision_from_map(projection, &object_by_id)
 }
 
@@ -148,11 +144,49 @@ pub fn semantic_scope_bundle(
     repository: &SemanticRepository,
     request: &SemanticScopeRequest,
 ) -> SemanticScopeBundle {
-    let object_by_id = repository
+    let object_by_id = semantic_object_by_id(repository);
+    let (requested, selected, unresolved) = selected_scope_ids(repository, request, &object_by_id);
+    let objects = selected_scope_objects(&selected, &object_by_id);
+    let selected_ids = selected_object_ids(&objects);
+    let relations = selected_scope_relations(&objects, &selected_ids);
+    let change_intents = selected_change_intents(repository, &selected_ids);
+    let active_projection = active_projection(repository);
+
+    SemanticScopeBundle {
+        task_id: request.task_id.clone(),
+        requested_object_ids: requested,
+        affected_invariants: selected_scope_invariants(&objects),
+        required_validations: selected_required_validations(&objects, &change_intents),
+        provenance: selected_scope_provenance(&objects),
+        objects,
+        relations,
+        change_intents,
+        projection_revision: active_projection.map_or_else(
+            || "semantic-ssot-unprojected".to_string(),
+            |projection| projection.projection_revision.clone(),
+        ),
+        projection_source_revision: active_projection.map(|projection| {
+            semantic_projection_source_revision(repository, projection)
+                .unwrap_or_else(|| projection.source_revision.clone())
+        }),
+        projection_staleness: active_projection.map(|projection| projection.staleness.clone()),
+        unresolved_ids: unresolved.into_iter().collect(),
+    }
+}
+
+fn semantic_object_by_id(repository: &SemanticRepository) -> BTreeMap<&str, &SemanticObject> {
+    repository
         .objects
         .iter()
         .map(|object| (object.id.as_str(), object))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<BTreeMap<_, _>>()
+}
+
+fn selected_scope_ids(
+    repository: &SemanticRepository,
+    request: &SemanticScopeRequest,
+    object_by_id: &BTreeMap<&str, &SemanticObject>,
+) -> (Vec<String>, BTreeSet<String>, BTreeSet<String>) {
     let mut selected = BTreeSet::new();
     let mut unresolved = BTreeSet::new();
     let mut requested = Vec::new();
@@ -169,12 +203,12 @@ pub fn semantic_scope_bundle(
 
     if let Some(task_id) = request.task_id.as_deref() {
         requested.push(task_id.to_string());
-        select_requested_id(task_id, &object_by_id, &mut selected, &mut unresolved);
+        select_requested_id(task_id, object_by_id, &mut selected, &mut unresolved);
     }
 
     for object_id in &request.object_ids {
         requested.push(object_id.clone());
-        select_requested_id(object_id, &object_by_id, &mut selected, &mut unresolved);
+        select_requested_id(object_id, object_by_id, &mut selected, &mut unresolved);
     }
 
     let anchors = selected.clone();
@@ -183,37 +217,53 @@ pub fn semantic_scope_bundle(
             continue;
         };
         for relation in &object.relations {
-            if let Some(target) = object_by_id.get(relation.target.as_str()) {
-                if target.status == SemanticStatus::Active {
-                    selected.insert(target.id.clone());
-                }
+            if let Some(target) = object_by_id.get(relation.target.as_str())
+                && target.status == SemanticStatus::Active
+            {
+                selected.insert(target.id.clone());
             }
         }
     }
 
+    (requested, selected, unresolved)
+}
+
+fn selected_scope_objects(
+    selected: &BTreeSet<String>,
+    object_by_id: &BTreeMap<&str, &SemanticObject>,
+) -> Vec<SemanticObject> {
     let mut objects = selected
         .iter()
         .filter_map(|object_id| object_by_id.get(object_id.as_str()).copied())
         .cloned()
         .collect::<Vec<_>>();
     objects.sort_by(|left, right| left.id.cmp(&right.id));
+    objects
+}
 
-    let selected_ids = objects
+fn selected_object_ids(objects: &[SemanticObject]) -> BTreeSet<&str> {
+    objects
         .iter()
         .map(|object| object.id.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<BTreeSet<_>>()
+}
+
+fn selected_scope_relations(
+    objects: &[SemanticObject],
+    selected_ids: &BTreeSet<&str>,
+) -> Vec<SemanticRelationEdge> {
     let mut relations = objects
         .iter()
         .flat_map(|object| {
-            object.relations.iter().filter_map(|relation| {
-                selected_ids
-                    .contains(relation.target.as_str())
-                    .then(|| SemanticRelationEdge {
-                        source: object.id.clone(),
-                        kind: relation.kind.clone(),
-                        target: relation.target.clone(),
-                    })
-            })
+            object
+                .relations
+                .iter()
+                .filter(|relation| selected_ids.contains(relation.target.as_str()))
+                .map(|relation| SemanticRelationEdge {
+                    source: object.id.clone(),
+                    kind: relation.kind.clone(),
+                    target: relation.target.clone(),
+                })
         })
         .collect::<Vec<_>>();
     relations.sort_by(|left, right| {
@@ -221,23 +271,37 @@ pub fn semantic_scope_bundle(
             .cmp(&right.source)
             .then_with(|| left.target.cmp(&right.target))
     });
+    relations
+}
 
-    let affected_invariants = objects
+fn selected_scope_invariants(objects: &[SemanticObject]) -> Vec<String> {
+    objects
         .iter()
         .filter(|object| object.kind == SemanticObjectKind::Invariant)
         .map(|object| object.id.clone())
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
 
+fn selected_change_intents(
+    repository: &SemanticRepository,
+    selected_ids: &BTreeSet<&str>,
+) -> Vec<SemanticChangeIntent> {
     let mut change_intents = repository
         .change_intents
         .iter()
         .filter(|intent| intent.status == SemanticStatus::Active)
-        .filter(|intent| change_intent_intersects_scope(intent, &selected_ids))
+        .filter(|intent| change_intent_intersects_scope(intent, selected_ids))
         .cloned()
         .collect::<Vec<_>>();
     change_intents.sort_by(|left, right| left.id.cmp(&right.id));
+    change_intents
+}
 
-    let required_validations = objects
+fn selected_required_validations(
+    objects: &[SemanticObject],
+    change_intents: &[SemanticChangeIntent],
+) -> Vec<String> {
+    objects
         .iter()
         .flat_map(|object| object.verification.required.iter().cloned())
         .chain(
@@ -247,38 +311,18 @@ pub fn semantic_scope_bundle(
         )
         .collect::<BTreeSet<_>>()
         .into_iter()
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
 
-    let provenance = objects
+fn selected_scope_provenance(objects: &[SemanticObject]) -> Vec<SemanticBundleProvenance> {
+    objects
         .iter()
         .map(|object| SemanticBundleProvenance {
             object_id: object.id.clone(),
             source_path: object.source_path.clone(),
             source: object.provenance.source.clone(),
         })
-        .collect::<Vec<_>>();
-
-    let active_projection = active_projection(repository);
-
-    SemanticScopeBundle {
-        task_id: request.task_id.clone(),
-        requested_object_ids: requested,
-        objects,
-        relations,
-        change_intents,
-        affected_invariants,
-        required_validations,
-        projection_revision: active_projection
-            .map(|projection| projection.projection_revision.clone())
-            .unwrap_or_else(|| "semantic-ssot-unprojected".to_string()),
-        projection_source_revision: active_projection.map(|projection| {
-            semantic_projection_source_revision(repository, projection)
-                .unwrap_or_else(|| projection.source_revision.clone())
-        }),
-        projection_staleness: active_projection.map(|projection| projection.staleness.clone()),
-        provenance,
-        unresolved_ids: unresolved.into_iter().collect(),
-    }
+        .collect::<Vec<_>>()
 }
 
 fn change_intent_intersects_scope(
@@ -480,11 +524,11 @@ fn validate_object(
         report,
     );
     if !object.id.starts_with(object.kind.id_prefix())
-        || !object
+        || object
             .id
             .as_bytes()
             .get(object.kind.id_prefix().len())
-            .is_some_and(|value| *value == b'.')
+            .is_none_or(|value| *value != b'.')
     {
         report.push(
             path.clone(),
@@ -518,9 +562,9 @@ fn validate_object(
             "active semantic objects cannot use `llm_suggested` confidence source",
         );
     }
-    validate_owners(object, path.clone(), report);
-    validate_provenance(object, path.clone(), report);
-    validate_verification(object, path.clone(), report);
+    validate_owners(object, path.as_ref(), report);
+    validate_provenance(object, path.as_ref(), report);
+    validate_verification(object, path.as_ref(), report);
     for relation in &object.relations {
         if relation.target.trim().is_empty() {
             report.push(path.clone(), "semantic relation target must be non-empty");
@@ -536,25 +580,32 @@ fn validate_object(
     }
 }
 
+fn clone_path(path: Option<&PathBuf>) -> Option<PathBuf> {
+    path.cloned()
+}
+
 fn validate_owners(
     object: &SemanticObject,
-    path: Option<PathBuf>,
+    path: Option<&PathBuf>,
     report: &mut SemanticValidationReport,
 ) {
     if object.owners.is_empty() {
-        report.push(path.clone(), "semantic object `owners` must be non-empty");
+        report.push(
+            clone_path(path),
+            "semantic object `owners` must be non-empty",
+        );
     }
     for owner in &object.owners {
         validate_non_empty(
             &owner.scope,
             "semantic owner `scope` must be non-empty",
-            path.clone(),
+            clone_path(path),
             report,
         );
         validate_non_empty(
             &owner.role,
             "semantic owner `role` must be non-empty",
-            path.clone(),
+            clone_path(path),
             report,
         );
     }
@@ -562,37 +613,37 @@ fn validate_owners(
 
 fn validate_provenance(
     object: &SemanticObject,
-    path: Option<PathBuf>,
+    path: Option<&PathBuf>,
     report: &mut SemanticValidationReport,
 ) {
     validate_non_empty(
         &object.provenance.source,
         "semantic provenance `source` must be non-empty",
-        path.clone(),
+        clone_path(path),
         report,
     );
     validate_non_empty(
         &object.provenance.recorded_by,
         "semantic provenance `recorded_by` must be non-empty",
-        path.clone(),
+        clone_path(path),
         report,
     );
     validate_non_empty(
         &object.provenance.recorded_at,
         "semantic provenance `recorded_at` must be non-empty",
-        path,
+        clone_path(path),
         report,
     );
 }
 
 fn validate_verification(
     object: &SemanticObject,
-    path: Option<PathBuf>,
+    path: Option<&PathBuf>,
     report: &mut SemanticValidationReport,
 ) {
     if object.verification.required.is_empty() {
         report.push(
-            path.clone(),
+            clone_path(path),
             "semantic verification `required` must be non-empty",
         );
     }
@@ -600,7 +651,7 @@ fn validate_verification(
         validate_non_empty(
             command,
             "semantic verification command must be non-empty",
-            path.clone(),
+            clone_path(path),
             report,
         );
     }
@@ -677,21 +728,36 @@ fn validate_change_intent(
     report: &mut SemanticValidationReport,
 ) {
     let path = Some(intent.source_path.clone());
+    validate_change_intent_metadata(intent, seen_ids, path.as_ref(), report);
+    validate_change_touched_objects(intent, object_ids, path.as_ref(), report);
+    validate_changed_relations(intent, object_ids, path.as_ref(), report);
+    validate_affected_invariants(intent, object_ids, object_by_id, path.as_ref(), report);
+    validate_change_required_validations(intent, path.as_ref(), report);
+    validate_projection_refresh_targets(intent, projection_names, path.as_ref(), report);
+    validate_candidate_suggestions(intent, object_ids, object_by_id, path.as_ref(), report);
+}
+
+fn validate_change_intent_metadata(
+    intent: &SemanticChangeIntent,
+    seen_ids: &mut BTreeSet<String>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
     if intent.intent_type != "semantic_change_intent" {
         report.push(
-            path.clone(),
+            clone_path(path),
             "semantic change intent `type` must be `semantic_change_intent`",
         );
     }
     validate_non_empty(
         &intent.id,
         "semantic change intent `id` must be non-empty",
-        path.clone(),
+        clone_path(path),
         report,
     );
     if !intent.id.starts_with("change.") {
         report.push(
-            path.clone(),
+            clone_path(path),
             format!(
                 "semantic change intent id `{}` must start with `change.`",
                 intent.id
@@ -700,19 +766,27 @@ fn validate_change_intent(
     }
     if !seen_ids.insert(intent.id.clone()) {
         report.push(
-            path.clone(),
+            clone_path(path),
             format!("duplicate semantic change intent id `{}`", intent.id),
         );
     }
     validate_non_empty(
         &intent.title,
         "semantic change intent `title` must be non-empty",
-        path.clone(),
+        clone_path(path),
         report,
     );
+}
+
+fn validate_change_touched_objects(
+    intent: &SemanticChangeIntent,
+    object_ids: &BTreeSet<String>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
     if intent.touched_objects.is_empty() {
         report.push(
-            path.clone(),
+            clone_path(path),
             "semantic change intent `touched_objects` must be non-empty",
         );
     }
@@ -721,29 +795,46 @@ fn validate_change_intent(
             object_id,
             object_ids,
             "semantic change intent touched object",
-            path.clone(),
+            clone_path(path),
             report,
         );
     }
+}
+
+fn validate_changed_relations(
+    intent: &SemanticChangeIntent,
+    object_ids: &BTreeSet<String>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
     for relation in &intent.changed_relations {
         validate_object_reference(
             &relation.source,
             object_ids,
             "semantic change relation source",
-            path.clone(),
+            clone_path(path),
             report,
         );
         validate_object_reference(
             &relation.target,
             object_ids,
             "semantic change relation target",
-            path.clone(),
+            clone_path(path),
             report,
         );
     }
+}
+
+fn validate_affected_invariants(
+    intent: &SemanticChangeIntent,
+    object_ids: &BTreeSet<String>,
+    object_by_id: &BTreeMap<&str, &SemanticObject>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
     if intent.affected_invariants.is_empty() {
         report.push(
-            path.clone(),
+            clone_path(path),
             "semantic change intent `affected_invariants` must be non-empty",
         );
     }
@@ -752,23 +843,30 @@ fn validate_change_intent(
             object_id,
             object_ids,
             "semantic change affected invariant",
-            path.clone(),
+            clone_path(path),
             report,
         );
-        if let Some(object) = object_by_id.get(object_id.as_str()) {
-            if object.kind != SemanticObjectKind::Invariant {
-                report.push(
-                    path.clone(),
-                    format!(
-                        "semantic change affected invariant `{object_id}` must reference an invariant object"
-                    ),
-                );
-            }
+        if let Some(object) = object_by_id.get(object_id.as_str())
+            && object.kind != SemanticObjectKind::Invariant
+        {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic change affected invariant `{object_id}` must reference an invariant object"
+                ),
+            );
         }
     }
+}
+
+fn validate_change_required_validations(
+    intent: &SemanticChangeIntent,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
     if intent.required_validations.is_empty() {
         report.push(
-            path.clone(),
+            clone_path(path),
             "semantic change intent `required_validations` must be non-empty",
         );
     }
@@ -776,41 +874,58 @@ fn validate_change_intent(
         validate_non_empty(
             command,
             "semantic change required validation must be non-empty",
-            path.clone(),
+            clone_path(path),
             report,
         );
     }
+}
+
+fn validate_projection_refresh_targets(
+    intent: &SemanticChangeIntent,
+    projection_names: &BTreeSet<&str>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
     if intent.projections_to_refresh.is_empty() {
         report.push(
-            path.clone(),
+            clone_path(path),
             "semantic change intent `projections_to_refresh` must be non-empty",
         );
     }
     for projection in &intent.projections_to_refresh {
         if !projection_names.contains(projection.as_str()) {
             report.push(
-                path.clone(),
+                clone_path(path),
                 format!("semantic change projection `{projection}` does not resolve"),
             );
         }
     }
+}
+
+fn validate_candidate_suggestions(
+    intent: &SemanticChangeIntent,
+    object_ids: &BTreeSet<String>,
+    object_by_id: &BTreeMap<&str, &SemanticObject>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
     for object_id in &intent.candidate_suggestions {
         validate_object_reference(
             object_id,
             object_ids,
             "semantic change candidate suggestion",
-            path.clone(),
+            clone_path(path),
             report,
         );
-        if let Some(object) = object_by_id.get(object_id.as_str()) {
-            if object.status != SemanticStatus::Candidate {
-                report.push(
-                    path.clone(),
-                    format!(
-                        "semantic change candidate suggestion `{object_id}` must reference a candidate object"
-                    ),
-                );
-            }
+        if let Some(object) = object_by_id.get(object_id.as_str())
+            && object.status != SemanticStatus::Candidate
+        {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic change candidate suggestion `{object_id}` must reference a candidate object"
+                ),
+            );
         }
     }
 }
@@ -854,8 +969,7 @@ fn active_projection(repository: &SemanticRepository) -> Option<&SemanticProject
     repository
         .projections
         .iter()
-        .filter(|projection| projection.status == SemanticStatus::Active)
-        .next()
+        .find(|projection| projection.status == SemanticStatus::Active)
 }
 
 fn semantic_projection_source_revision_from_map(
