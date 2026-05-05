@@ -253,6 +253,78 @@ fn semantic_repository_accepts_valid_change_intent() {
 }
 
 #[test]
+fn semantic_scope_bundle_includes_related_change_intents() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/component/test.md"),
+        semantic_object_fixture(
+            "component.test",
+            "component",
+            "Component Test",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["component.test", "invariant.test"], "outdated", "stale"),
+    );
+    refresh_projection_as_fresh(temp.path(), &["component.test", "invariant.test"]);
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture(
+            "component.test",
+            "invariant.test",
+            "component.test",
+            "invariant.test",
+            "llm_compression",
+        ),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+    assert!(
+        repository.report.is_success(),
+        "repository should validate: {:?}",
+        repository.report.issues
+    );
+
+    let bundle = semantic_scope_bundle(
+        &repository,
+        &SemanticScopeRequest {
+            task_id: None,
+            object_ids: vec!["component.test".to_string()],
+        },
+    );
+
+    assert_eq!(
+        bundle
+            .change_intents
+            .iter()
+            .map(|intent| intent.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["change.semantic-ssot.test"]
+    );
+    assert!(
+        bundle
+            .required_validations
+            .iter()
+            .any(|validation| validation.contains("cargo test -p xiuxian-wendao-parsers semantic")),
+        "change intent validations should be included: {:?}",
+        bundle.required_validations
+    );
+}
+
+#[test]
 fn semantic_repository_reports_invalid_change_intent_references() {
     let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
     write_file(

@@ -346,6 +346,8 @@ pub struct SemanticScopeBundle {
     pub objects: Vec<SemanticObject>,
     /// Included relation edges.
     pub relations: Vec<SemanticRelationEdge>,
+    /// Included semantic change intents related to this scope.
+    pub change_intents: Vec<SemanticChangeIntent>,
     /// Included invariant object IDs.
     pub affected_invariants: Vec<String>,
     /// Deduplicated validation requirements from included objects.

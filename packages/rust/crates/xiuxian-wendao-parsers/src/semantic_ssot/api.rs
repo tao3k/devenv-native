@@ -228,9 +228,23 @@ pub fn semantic_scope_bundle(
         .map(|object| object.id.clone())
         .collect::<Vec<_>>();
 
+    let mut change_intents = repository
+        .change_intents
+        .iter()
+        .filter(|intent| intent.status == SemanticStatus::Active)
+        .filter(|intent| change_intent_intersects_scope(intent, &selected_ids))
+        .cloned()
+        .collect::<Vec<_>>();
+    change_intents.sort_by(|left, right| left.id.cmp(&right.id));
+
     let required_validations = objects
         .iter()
         .flat_map(|object| object.verification.required.iter().cloned())
+        .chain(
+            change_intents
+                .iter()
+                .flat_map(|intent| intent.required_validations.iter().cloned()),
+        )
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
@@ -251,6 +265,7 @@ pub fn semantic_scope_bundle(
         requested_object_ids: requested,
         objects,
         relations,
+        change_intents,
         affected_invariants,
         required_validations,
         projection_revision: active_projection
@@ -264,6 +279,24 @@ pub fn semantic_scope_bundle(
         provenance,
         unresolved_ids: unresolved.into_iter().collect(),
     }
+}
+
+fn change_intent_intersects_scope(
+    intent: &SemanticChangeIntent,
+    selected_ids: &BTreeSet<&str>,
+) -> bool {
+    intent
+        .touched_objects
+        .iter()
+        .any(|object_id| selected_ids.contains(object_id.as_str()))
+        || intent
+            .affected_invariants
+            .iter()
+            .any(|object_id| selected_ids.contains(object_id.as_str()))
+        || intent.changed_relations.iter().any(|relation| {
+            selected_ids.contains(relation.source.as_str())
+                || selected_ids.contains(relation.target.as_str())
+        })
 }
 
 fn load_objects(root: &Path, repository: &mut SemanticRepository) {

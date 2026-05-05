@@ -2,9 +2,9 @@ use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use xiuxian_wendao_parsers::{
-    SemanticConfidenceSource, SemanticObjectKind, SemanticProjectionStaleness, SemanticScopeBundle,
-    SemanticScopeRequest, SemanticStatus, SemanticValidationReport, load_semantic_repository,
-    semantic_scope_bundle,
+    SemanticChangeIntent, SemanticConfidenceSource, SemanticObjectKind,
+    SemanticProjectionStaleness, SemanticScopeBundle, SemanticScopeRequest, SemanticStatus,
+    SemanticValidationReport, load_semantic_repository, semantic_scope_bundle,
 };
 use xiuxian_wendao_server::transport::{
     AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
@@ -228,6 +228,17 @@ fn semantic_scope_bundle_batch(bundle: &SemanticScopeBundle) -> Result<LanceReco
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("failed to encode semantic relation target list: {error}"))?;
+    let change_intent_ids_json = bundle
+        .objects
+        .iter()
+        .map(|object| {
+            serde_json::to_string(&change_intent_ids_for_object(
+                object.id.as_str(),
+                bundle.change_intents.as_slice(),
+            ))
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("failed to encode semantic change intent id list: {error}"))?;
     let projection_revisions = bundle
         .objects
         .iter()
@@ -265,6 +276,7 @@ fn semantic_scope_bundle_batch(bundle: &SemanticScopeBundle) -> Result<LanceReco
             LanceField::new("sourcePath", LanceDataType::Utf8, false),
             LanceField::new("requiredValidationsJson", LanceDataType::Utf8, false),
             LanceField::new("relationTargetsJson", LanceDataType::Utf8, false),
+            LanceField::new("changeIntentIdsJson", LanceDataType::Utf8, false),
             LanceField::new("projectionRevision", LanceDataType::Utf8, false),
             LanceField::new("projectionSourceRevision", LanceDataType::Utf8, false),
             LanceField::new("projectionStaleness", LanceDataType::Utf8, false),
@@ -279,6 +291,7 @@ fn semantic_scope_bundle_batch(bundle: &SemanticScopeBundle) -> Result<LanceReco
             Arc::new(LanceStringArray::from(source_paths)),
             Arc::new(LanceStringArray::from(required_validations_json)),
             Arc::new(LanceStringArray::from(relation_targets_json)),
+            Arc::new(LanceStringArray::from(change_intent_ids_json)),
             Arc::new(LanceStringArray::from(projection_revisions)),
             Arc::new(LanceStringArray::from(projection_source_revisions)),
             Arc::new(LanceStringArray::from(projection_staleness)),
@@ -292,6 +305,30 @@ fn semantic_scope_bundle_metadata(bundle: &SemanticScopeBundle) -> Result<Vec<u8
         "semanticScopeBundle": bundle,
     }))
     .map_err(|error| format!("failed to encode semantic-scope metadata: {error}"))
+}
+
+fn change_intent_ids_for_object<'a>(
+    object_id: &str,
+    change_intents: &'a [SemanticChangeIntent],
+) -> Vec<&'a str> {
+    change_intents
+        .iter()
+        .filter(|intent| {
+            intent
+                .touched_objects
+                .iter()
+                .any(|touched| touched == object_id)
+                || intent
+                    .affected_invariants
+                    .iter()
+                    .any(|invariant| invariant == object_id)
+                || intent
+                    .changed_relations
+                    .iter()
+                    .any(|relation| relation.source == object_id || relation.target == object_id)
+        })
+        .map(|intent| intent.id.as_str())
+        .collect()
 }
 
 fn semantic_report_summary(report: &SemanticValidationReport) -> String {
@@ -361,7 +398,11 @@ mod tests {
         let semantic_root = tempdir.path().join("semantic");
         fs::create_dir_all(semantic_root.join("objects/component"))
             .expect("create component object directory");
+        fs::create_dir_all(semantic_root.join("objects/invariant"))
+            .expect("create invariant object directory");
         fs::create_dir_all(semantic_root.join("objects/task")).expect("create task directory");
+        fs::create_dir_all(semantic_root.join("change-intents"))
+            .expect("create change intent directory");
         fs::create_dir_all(semantic_root.join("projections")).expect("create projections");
         fs::write(
             semantic_root.join("objects/component/demo.md"),
@@ -390,6 +431,33 @@ relations: []
 "#,
         )
         .expect("write component object");
+        fs::write(
+            semantic_root.join("objects/invariant/authority.md"),
+            r#"---
+id: invariant.demo-authority
+kind: invariant
+title: Demo Authority Invariant
+status: active
+confidence:
+  score: 0.95
+  source: verified
+owners:
+  - scope: packages/rust/crates/xiuxian-wendao-studio
+    role: runtime-provider
+provenance:
+  source: docs/rfcs/demo.md
+  recorded_by: test
+  recorded_at: 2026-05-05
+verification:
+  required:
+    - cargo test -p xiuxian-wendao-studio semantic_scope
+relations: []
+---
+
+# Demo Authority Invariant
+"#,
+        )
+        .expect("write invariant object");
         fs::write(
             semantic_root.join("objects/task/pilot.md"),
             r#"---
@@ -437,6 +505,33 @@ status: active
 "#,
         )
         .expect("write projection");
+        fs::write(
+            semantic_root.join("change-intents/semantic-scope-pilot.md"),
+            r#"---
+type: semantic_change_intent
+id: change.semantic-scope-pilot
+title: Semantic Scope Pilot
+status: active
+touched_objects:
+  - task.semantic-scope-pilot
+changed_relations:
+  - source: task.semantic-scope-pilot
+    kind: implements
+    target: component.demo
+    action: add
+affected_invariants:
+  - invariant.demo-authority
+required_validations:
+  - cargo test -p xiuxian-wendao-studio semantic_scope
+projections_to_refresh:
+  - llm_compression
+candidate_suggestions: []
+---
+
+# Semantic Scope Pilot Change
+"#,
+        )
+        .expect("write change intent");
 
         let provider = StudioSemanticScopeFlightRouteProvider::from_semantic_root(semantic_root);
         let response = provider
@@ -457,6 +552,21 @@ status: active
             .expect("objectId string column");
         assert_eq!(object_ids.value(0), "component.demo");
         assert_eq!(object_ids.value(1), "task.semantic-scope-pilot");
+        let change_intents = response
+            .batch
+            .column_by_name("changeIntentIdsJson")
+            .expect("changeIntentIdsJson column")
+            .as_any()
+            .downcast_ref::<LanceStringArray>()
+            .expect("changeIntentIdsJson string column");
+        assert_eq!(
+            change_intents.value(0),
+            r#"["change.semantic-scope-pilot"]"#
+        );
+        assert_eq!(
+            change_intents.value(1),
+            r#"["change.semantic-scope-pilot"]"#
+        );
 
         let metadata: serde_json::Value =
             serde_json::from_slice(&response.app_metadata).expect("semantic metadata json");
@@ -474,6 +584,13 @@ status: active
                 .expect("objects metadata")
                 .len(),
             2
+        );
+        assert_eq!(
+            metadata["semanticScopeBundle"]["change_intents"]
+                .as_array()
+                .expect("change intent metadata")
+                .len(),
+            1
         );
     }
 }
