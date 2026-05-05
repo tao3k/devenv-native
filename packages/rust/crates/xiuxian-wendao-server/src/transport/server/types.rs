@@ -677,6 +677,7 @@ pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
         output_dir: &str,
         force: bool,
         error_row: bool,
+        profile: &str,
     ) -> Result<DocumentExtractFlightRouteResponse, String>;
 
     /// Resolve a document extraction request with the latest metadata shape.
@@ -694,6 +695,7 @@ pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
             request.output_dir.as_str(),
             request.force,
             request.error_row,
+            request.profile.as_str(),
         )
         .await
     }

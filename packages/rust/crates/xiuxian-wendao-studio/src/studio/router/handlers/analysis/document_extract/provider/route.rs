@@ -142,8 +142,9 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
         output_dir: &str,
         force: bool,
         error_row: bool,
+        profile: &str,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
-        self.sync_document_extract_batch(source_path, output_dir, force, error_row)
+        self.sync_document_extract_batch(source_path, output_dir, force, error_row, profile)
             .await
     }
 
@@ -158,6 +159,7 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
                     request.output_dir.as_str(),
                     request.force,
                     request.error_row,
+                    request.profile.as_str(),
                 )
                 .await
             }

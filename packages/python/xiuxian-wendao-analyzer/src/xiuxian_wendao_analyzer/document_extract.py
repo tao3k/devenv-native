@@ -35,6 +35,7 @@ def extract_document_table(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> pa.Table:
@@ -63,6 +64,7 @@ def extract_document_table(
             source,
             output_dir,
             converter=converter,
+            profile=profile,
             force=force,
             error_row=error_row,
         )
@@ -74,6 +76,7 @@ def extract_document_resources(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> list[DocumentResourceRow]:
@@ -122,7 +125,7 @@ def extract_document_resources(
             resolved_converter = converter
         else:
             with timing.phase("doclingConverterInit"):
-                resolved_converter = _new_docling_converter()
+                resolved_converter = _new_docling_converter(profile)
         with timing.phase("doclingConvert"):
             document = resolved_converter.convert(source).document
         with timing.phase("doclingMarkdownExport"):
@@ -190,6 +193,7 @@ def extract_pdf_resources(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> list[DocumentResourceRow]:
@@ -204,6 +208,7 @@ def extract_pdf_resources(
         source_path,
         output_dir,
         converter=converter,
+        profile=profile,
         force=force,
         error_row=error_row,
     )
@@ -214,6 +219,7 @@ def extract_pdf_table(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> pa.Table:
@@ -228,6 +234,7 @@ def extract_pdf_table(
         source_path,
         output_dir,
         converter=converter,
+        profile=profile,
         force=force,
         error_row=error_row,
     )

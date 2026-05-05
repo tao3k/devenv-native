@@ -16,6 +16,8 @@ pub const WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER: &str = "x-wendao-document-e
 pub const WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER: &str = "x-wendao-document-extract-force";
 /// Canonical document error-row metadata header for Wendao Flight requests.
 pub const WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER: &str = "x-wendao-document-extract-error-row";
+/// Canonical document extraction profile header for Python analyzer workers.
+pub const WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: &str = "x-wendao-document-extract-profile";
 /// Canonical document extraction mode header for Rust-owned queueing.
 pub const WENDAO_DOCUMENT_EXTRACT_MODE_HEADER: &str = "x-wendao-document-extract-mode";
 /// Canonical async wait budget header in milliseconds.
@@ -24,6 +26,11 @@ pub const WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER: &str = "x-wendao-document-extr
 pub const WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER: &str = "x-wendao-document-extract-job-id";
 /// Internal PDF OCR worker budget header for Python shard OCR requests.
 pub const WENDAO_PDF_OCR_WORKERS_HEADER: &str = "x-wendao-pdf-ocr-workers";
+
+/// Full Docling document extraction profile.
+pub const DOCUMENT_EXTRACT_FULL_PROFILE: &str = "full";
+/// Lightweight text-first document extraction profile for chat attachments.
+pub const DOCUMENT_EXTRACT_FAST_TEXT_PROFILE: &str = "fast-text";
 
 /// Document extraction execution mode decoded from Flight metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,6 +71,8 @@ pub struct DocumentExtractFlightRequest {
     pub force: bool,
     /// Return table-shaped error rows when the worker fails.
     pub error_row: bool,
+    /// Python analyzer extraction profile.
+    pub profile: String,
     /// Execution mode for the Rust provider.
     pub mode: DocumentExtractMode,
     /// Async wait budget in milliseconds.
@@ -80,4 +89,19 @@ pub fn validate_document_extract_request(source_path: &str) -> Result<(), String
         return Err("document extract source path must not be blank".to_string());
     }
     Ok(())
+}
+
+/// Normalize a document extraction profile for transport metadata.
+///
+/// # Errors
+///
+/// Returns an error when the profile is not recognized.
+pub fn normalize_document_extract_profile(profile: &str) -> Result<&'static str, String> {
+    match profile.trim().to_ascii_lowercase().as_str() {
+        "" | "default" | "docling" | "full" | "full-docling" => Ok(DOCUMENT_EXTRACT_FULL_PROFILE),
+        "attachment" | "attachment-fast-text" | "fast" | "fast_text" | "fast-text" | "text" => {
+            Ok(DOCUMENT_EXTRACT_FAST_TEXT_PROFILE)
+        }
+        other => Err(format!("unsupported document extract profile `{other}`")),
+    }
 }

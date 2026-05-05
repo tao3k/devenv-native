@@ -13,6 +13,7 @@ from .document_metrics import (
     DocumentTimingRecorder,
     write_document_timing_cache,
 )
+from .document_profiles import new_docling_converter_for_profile
 from .document_types import (
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME,
     DOCUMENT_RESOURCE_SCHEMA,
@@ -117,15 +118,8 @@ def _timing_warmup_row() -> dict[str, object]:
     }
 
 
-def _new_docling_converter() -> DocumentConverterProtocol:
-    try:
-        from docling.document_converter import DocumentConverter
-    except ModuleNotFoundError as exc:
-        raise RuntimeError(
-            "docling is not installed; install xiuxian-wendao-analyzer[documents] "
-            "to enable document extraction"
-        ) from exc
-    return DocumentConverter()
+def _new_docling_converter(profile: str | None = None) -> DocumentConverterProtocol:
+    return new_docling_converter_for_profile(profile)
 
 
 def _read_cached_resources(

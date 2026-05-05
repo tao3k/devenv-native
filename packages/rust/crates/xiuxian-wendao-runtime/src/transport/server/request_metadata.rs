@@ -16,10 +16,10 @@ use crate::transport::query_contract::{
     WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, WENDAO_GRAPH_DIRECTION_HEADER,
-    WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER, WENDAO_GRAPH_NODE_ID_HEADER,
-    WENDAO_REFINE_DOC_ENTITY_ID_HEADER, WENDAO_REFINE_DOC_REPO_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+    WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER,
+    WENDAO_GRAPH_NODE_ID_HEADER, WENDAO_REFINE_DOC_ENTITY_ID_HEADER, WENDAO_REFINE_DOC_REPO_HEADER,
     WENDAO_REFINE_DOC_USER_HINTS_HEADER, WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER,
     WENDAO_REPO_DOC_COVERAGE_REPO_HEADER, WENDAO_REPO_INDEX_STATUS_REPO_HEADER,
     WENDAO_REPO_OVERVIEW_REPO_HEADER, WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER,
@@ -32,8 +32,8 @@ use crate::transport::query_contract::{
     WENDAO_RERANK_MIN_FINAL_SCORE_HEADER, WENDAO_RERANK_TOP_K_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
     WENDAO_SEARCH_INTENT_HEADER, WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER,
     WENDAO_SEARCH_REPO_HEADER, WENDAO_SQL_QUERY_HEADER, WENDAO_VFS_PATH_HEADER,
-    normalize_flight_route, validate_attachment_search_request, validate_autocomplete_request,
-    validate_code_ast_analysis_request, validate_definition_request,
+    normalize_document_extract_profile, normalize_flight_route, validate_attachment_search_request,
+    validate_autocomplete_request, validate_code_ast_analysis_request, validate_definition_request,
     validate_document_extract_request, validate_graph_neighbors_request,
     validate_markdown_analysis_request, validate_refine_doc_request,
     validate_repo_doc_coverage_request, validate_repo_index_request,
@@ -457,6 +457,12 @@ pub(crate) fn validate_document_extract_request_metadata(
         "error_row",
         true,
     )?;
+    let profile = metadata
+        .get(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .map_or(Ok("full"), normalize_document_extract_profile)
+        .map_err(Status::invalid_argument)?
+        .to_string();
     let mode = metadata
         .get(WENDAO_DOCUMENT_EXTRACT_MODE_HEADER)
         .and_then(|value| value.to_str().ok())
@@ -473,6 +479,7 @@ pub(crate) fn validate_document_extract_request_metadata(
         output_dir,
         force,
         error_row,
+        profile,
         mode,
         wait_ms,
     })

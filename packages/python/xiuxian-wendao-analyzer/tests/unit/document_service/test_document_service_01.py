@@ -13,6 +13,7 @@ from .support import (
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
     DocumentExtractFlightServer,
@@ -47,6 +48,37 @@ def test_document_extract_table_uses_document_headers(tmp_path: Path) -> None:
     assert row["sourcePath"] == str(source)
     assert row["resourcePath"] == str(output_dir / "manual.md")
     assert row["content"] == "# Manual\n"
+
+
+def test_document_extract_table_uses_fast_text_profile_header(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "manual.pdf"
+    source.write_bytes(b"pdf fixture")
+    output_dir = tmp_path / "out"
+    profiles: list[str | None] = []
+
+    def fake_converter_factory(profile: str | None = None) -> FakeDoclingConverter:
+        profiles.append(profile)
+        return FakeDoclingConverter("# Fast\n")
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.document_extract._new_docling_converter",
+        fake_converter_factory,
+    )
+
+    table = build_document_extract_table(
+        {
+            WENDAO_SCHEMA_VERSION_HEADER: EXPECTED_SCHEMA_VERSION,
+            WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER: str(source),
+            WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER: str(output_dir),
+            WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "attachment",
+        },
+    )
+
+    assert profiles == ["fast-text"]
+    assert table.to_pylist()[0]["content"] == "# Fast\n"
 
 
 def test_document_flight_server_warms_arrow_runtime(
@@ -102,6 +134,16 @@ def test_document_extract_table_validates_required_headers(tmp_path: Path) -> No
     with pytest.raises(ValueError, match="Missing document source path header"):
         build_document_extract_table(
             {WENDAO_SCHEMA_VERSION_HEADER: EXPECTED_SCHEMA_VERSION},
+            converter=FakeDoclingConverter(),
+        )
+
+    with pytest.raises(ValueError, match="unsupported document extract profile"):
+        build_document_extract_table(
+            {
+                WENDAO_SCHEMA_VERSION_HEADER: EXPECTED_SCHEMA_VERSION,
+                WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER: str(source),
+                WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "expensive-magic",
+            },
             converter=FakeDoclingConverter(),
         )
 
