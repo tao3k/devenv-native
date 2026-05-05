@@ -146,6 +146,7 @@ fn parses_semantic_refresh_projections_command() {
             assert_eq!(args.paths, vec![PathBuf::from("semantic/custom")]);
             assert_eq!(args.interval_secs, 0);
             assert!(args.max_runs.is_none());
+            assert!(!args.require_clean_worktree);
         }
     }
 }
@@ -160,6 +161,7 @@ fn parses_semantic_refresh_projections_runner_options() {
         "300",
         "--max-runs",
         "3",
+        "--require-clean-worktree",
         "semantic/custom",
     ]);
     let ClientCommand::Semantic { command } = cli.command else {
@@ -170,6 +172,7 @@ fn parses_semantic_refresh_projections_runner_options() {
             assert_eq!(args.paths, vec![PathBuf::from("semantic/custom")]);
             assert_eq!(args.interval_secs, 300);
             assert_eq!(args.max_runs.map(std::num::NonZeroUsize::get), Some(3));
+            assert!(args.require_clean_worktree);
         }
     }
 }

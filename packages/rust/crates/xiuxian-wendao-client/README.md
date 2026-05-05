@@ -16,7 +16,7 @@ The currently landed commands are:
 wendao-client lint markdown [PATH]...
 wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
 wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
-wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [PATH]...
+wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -108,9 +108,12 @@ Behavior:
     `semantic refresh-projections`. The default remains one pass. Passing
     `--interval-secs` makes the same worker run as a recurring local runner;
     `--max-runs` bounds repeated runs for verification or supervised jobs.
-    Each pass uses the same semantic lint engine, applies projection metadata
-    refresh through the existing writeback path, renders the post-refresh plan,
-    and requires projection freshness before returning success
+    `--require-clean-worktree` makes supervised starts fail before any
+    projection writeback when the root git worktree already has pending
+    changes. Each pass uses the same semantic lint engine, applies projection
+    metadata refresh through the existing writeback path, renders the
+    post-refresh plan, and requires projection freshness before returning
+    success
 
 Diagnostic rendering is split deliberately:
 

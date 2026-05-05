@@ -32,4 +32,5 @@ semantic object IDs when it represents semantic authority. The semantic
 projection refresh plan is a read-only queue contract; projection artifact
 mutation remains an explicit writeback. The projection refresh worker consumes
 that plan, reuses the explicit writeback path, and can run as a bounded or
-recurring local runner.
+recurring local runner. Supervised starts may require a clean git worktree
+before any projection writeback.

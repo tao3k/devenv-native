@@ -75,9 +75,11 @@ refresh workers, while artifact mutation remains explicit through
 worker that consumes that plan, applies the existing projection metadata
 writeback path, and enforces post-refresh freshness. Its default remains one
 pass, while `--interval-secs` and `--max-runs` expose a bounded or
-long-running recurring runner for supervised background use.
+long-running recurring runner for supervised background use. Supervised starts
+can also pass `--require-clean-worktree` to refuse projection writeback when
+the root git worktree already has pending changes.
 
-The RFC is still not fully complete. Operational supervision policies for
+The RFC is still not fully complete. External supervisor packaging for
 recurring refresh jobs, broader workflow-level consumption of semantic guard
 routes, and future Julia or DuckDB-backed derived lanes remain outside the
 completed slice.
@@ -276,7 +278,8 @@ without silently mutating repo-native projection artifacts.
 `wendao-client semantic refresh-projections` now provides the explicit worker
 entrypoint for that contract while still routing writes through the explicit
 projection metadata refresh implementation. The command can also run repeated
-passes with `--interval-secs` and can be bounded with `--max-runs`.
+passes with `--interval-secs`, can be bounded with `--max-runs`, and can
+require a clean startup worktree with `--require-clean-worktree`.
 
 ## 6. Formal Research References
 

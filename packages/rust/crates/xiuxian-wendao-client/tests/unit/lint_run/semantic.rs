@@ -1,9 +1,11 @@
 use anyhow::Result;
+use std::process::Command;
 use tempfile::TempDir;
 
 use super::{
     run_semantic_lint, run_semantic_lint_with_args, run_semantic_refresh_projections,
     run_semantic_refresh_projections_with_args,
+    run_semantic_refresh_projections_with_args_and_stderr,
 };
 
 #[test]
@@ -305,6 +307,63 @@ fn semantic_refresh_projections_command_runs_bounded_repeated_worker_passes() ->
 }
 
 #[test]
+fn semantic_refresh_projections_clean_worktree_guard_accepts_clean_git_root() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+    initialize_git_fixture(&temp)?;
+
+    let (status, stdout, stderr) = run_semantic_refresh_projections_with_args_and_stderr(
+        &temp,
+        None,
+        &["--require-clean-worktree"],
+    )?;
+
+    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
+        "clean root should allow supervised refresh: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_refresh_projections_clean_worktree_guard_rejects_dirty_git_root() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+    initialize_git_fixture(&temp)?;
+    std::fs::write(temp.path().join("dirty.md"), "# Dirty\n")?;
+
+    let (status, stdout, stderr) = run_semantic_refresh_projections_with_args_and_stderr(
+        &temp,
+        None,
+        &["--require-clean-worktree"],
+    )?;
+
+    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stderr.contains("requires a clean git worktree"),
+        "dirty root should be rejected before refresh: {stderr}"
+    );
+    assert!(
+        stderr.contains("dirty.md"),
+        "dirty path should be rendered for supervisor triage: {stderr}"
+    );
+    Ok(())
+}
+
+#[test]
 fn semantic_lint_renders_projection_refresh_plan_for_fresh_revision_mismatch() -> Result<()> {
     let temp = TempDir::new()?;
     write_semantic_fixture(
@@ -332,6 +391,33 @@ fn semantic_lint_renders_projection_refresh_plan_for_fresh_revision_mismatch() -
     assert!(
         stdout.contains("llm_compression -> refresh_source_revision"),
         "projection refresh entry should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+fn initialize_git_fixture(temp: &TempDir) -> Result<()> {
+    run_git(temp, &["init"])?;
+    run_git(
+        temp,
+        &["config", "user.email", "semantic-test@example.invalid"],
+    )?;
+    run_git(temp, &["config", "user.name", "Semantic Test"])?;
+    run_git(temp, &["add", "."])?;
+    run_git(temp, &["commit", "-m", "fixture"])?;
+    Ok(())
+}
+
+fn run_git(temp: &TempDir, args: &[&str]) -> Result<()> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(temp.path())
+        .args(args)
+        .output()?;
+    assert!(
+        output.status.success(),
+        "git {args:?} failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
     );
     Ok(())
 }

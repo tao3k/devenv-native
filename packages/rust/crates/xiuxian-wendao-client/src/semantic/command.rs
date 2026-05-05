@@ -7,7 +7,7 @@ use std::path::PathBuf;
 /// Semantic-oriented client subcommands.
 #[derive(Subcommand, Debug)]
 pub enum SemanticCommand {
-    /// Run one explicit semantic projection metadata refresh worker pass.
+    /// Run the semantic projection metadata refresh worker.
     RefreshProjections(SemanticRefreshProjectionsArgs),
 }
 
@@ -22,6 +22,11 @@ pub struct SemanticRefreshProjectionsArgs {
     /// until interrupted.
     #[arg(long = "max-runs")]
     pub max_runs: Option<NonZeroUsize>,
+
+    /// Refuse to start the refresh worker unless the root git worktree is
+    /// clean.
+    #[arg(long = "require-clean-worktree")]
+    pub require_clean_worktree: bool,
 
     /// Semantic artifact roots to refresh. When omitted, checks
     /// `$PRJ_ROOT/semantic` through the active client root.

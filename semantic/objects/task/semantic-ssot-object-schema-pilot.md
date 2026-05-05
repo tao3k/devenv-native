@@ -49,4 +49,5 @@ set, Wendao semantic-scope route, Qianji semantic-surface consumer, and
 workflow preflight semantic-scope trace plus downstream route with optional
 policy enforcement. It also exposes a read-only semantic projection refresh
 plan and an explicit refresh worker entrypoint that can run one pass or
-supervised recurring passes while keeping mutation explicit.
+supervised recurring passes while keeping mutation explicit, including an
+optional clean-worktree startup guard for supervised projection writeback.

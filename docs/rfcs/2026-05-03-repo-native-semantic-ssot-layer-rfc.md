@@ -102,12 +102,14 @@ As of 2026-05-05, the first physical slice is implemented:
     metadata refresh worker over repo-native semantic artifacts. Its default
     mode remains a single pass, while `--interval-secs` and `--max-runs` let a
     supervised process run the same worker as a bounded or long-running
-    recurring runner. Each pass uses the parser-owned refresh plan, applies the
+    recurring runner. `--require-clean-worktree` lets supervised starts refuse
+    to write projection metadata when the root git worktree already has
+    pending changes. Each pass uses the parser-owned refresh plan, applies the
     existing explicit projection writeback path, renders the post-refresh plan,
     and enforces projection freshness before returning success.
 
-The full RFC is not complete. Remaining work includes operational supervision
-policies for recurring refresh jobs, broader workflow-level consumption of
+The full RFC is not complete. Remaining work includes external supervisor
+packaging for recurring refresh jobs, broader workflow-level consumption of
 semantic guard routes, and any future Julia or DuckDB-backed compute/read-model
 expansion. Those remain advisory or derived lanes; they do not change
 repo-native authority.
