@@ -18,6 +18,8 @@ PDF_OCR_MILESTONE_BASELINE = {
     "referenceForceRefreshMs": 45941.076,
     "referenceSourceRangeOverride4Ms": 43917.250,
     "bestHistoricalSourceRangeOverride4Ms": 19442.132,
+    "referenceAutoEndpointFanoutMs": 18969.021,
+    "bestObservedAutoEndpointFanoutMs": 15811.373,
     "maxCacheHitP95Ms": 23.209,
     "maxShardCacheReuseForceMs": 213.161,
     "resourcesRows": 21,

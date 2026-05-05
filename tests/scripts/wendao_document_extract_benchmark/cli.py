@@ -37,13 +37,12 @@ from .providers import (
 )
 from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
 from .runtime import wait_for_port
-from .workers import start_server_pool
+from .workers import resolve_local_python_ocr_endpoint_count, start_server_pool
 
 
 def main() -> int:
     args = parse_args()
-    if args.local_python_ocr_endpoint_count < 1:
-        raise SystemExit("--local-python-ocr-endpoint-count must be at least 1")
+    args.local_python_ocr_endpoint_count = resolve_local_python_ocr_endpoint_count(args)
     if args.external_endpoint and args.local_python_ocr_endpoint_count != 1:
         raise SystemExit(
             "--local-python-ocr-endpoint-count cannot start workers in --external-endpoint mode"

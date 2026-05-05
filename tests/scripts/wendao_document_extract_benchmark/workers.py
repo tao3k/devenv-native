@@ -22,6 +22,50 @@ class PythonWorkerServer:
     endpoint_url: str
 
 
+def resolve_local_python_ocr_endpoint_count(args: object) -> int:
+    raw_count = getattr(args, "local_python_ocr_endpoint_count", "auto")
+    if isinstance(raw_count, int):
+        return validate_endpoint_count(raw_count)
+
+    raw_text = str(raw_count).strip().lower()
+    if raw_text != "auto":
+        try:
+            return validate_endpoint_count(int(raw_text))
+        except ValueError as exc:
+            raise SystemExit(
+                "--local-python-ocr-endpoint-count must be a positive integer or `auto`"
+            ) from exc
+
+    if getattr(args, "external_endpoint", False):
+        return 1
+    if not should_auto_fanout_local_ocr_endpoints(args):
+        return 1
+    return ceil_sqrt(max(os.cpu_count() or 1, 1))
+
+
+def validate_endpoint_count(endpoint_count: int) -> int:
+    if endpoint_count < 1:
+        raise SystemExit("--local-python-ocr-endpoint-count must be at least 1")
+    return endpoint_count
+
+
+def should_auto_fanout_local_ocr_endpoints(args: object) -> bool:
+    return (
+        bool(getattr(args, "real_docling", False))
+        and getattr(args, "flight_mode", "") == "hybrid-page-ocr"
+        and getattr(args, "pdf_ocr_worker", "") == "docling"
+    )
+
+
+def ceil_sqrt(value: int) -> int:
+    if value <= 1:
+        return value
+    root = 1
+    while root * root < value:
+        root += 1
+    return root
+
+
 def start_server_pool(
     host: str,
     port: int,
@@ -37,8 +81,7 @@ def start_server_pool(
     python_uv_extras: list[str] | None = None,
     log_dir: Path | None = None,
 ) -> list[PythonWorkerServer]:
-    if endpoint_count < 1:
-        raise SystemExit("--local-python-ocr-endpoint-count must be at least 1")
+    endpoint_count = validate_endpoint_count(endpoint_count)
     ports = [port]
     while len(ports) < endpoint_count:
         candidate = pick_free_port(host)

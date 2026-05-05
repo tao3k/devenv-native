@@ -51,6 +51,55 @@ def test_normalize_render_selection_accepts_cli_spelling() -> None:
     assert benchmark.normalize_render_selection("region-shards") == "region_shards"
 
 
+def test_auto_local_ocr_endpoint_count_uses_machine_profile(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark.os, "cpu_count", lambda: 12)
+    args = benchmark.argparse.Namespace(
+        local_python_ocr_endpoint_count="auto",
+        external_endpoint=False,
+        real_docling=True,
+        flight_mode="hybrid-page-ocr",
+        pdf_ocr_worker="docling",
+    )
+
+    assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 4
+
+
+def test_auto_local_ocr_endpoint_count_keeps_non_hybrid_modes_single_endpoint(
+    monkeypatch,
+) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark.os, "cpu_count", lambda: 12)
+    args = benchmark.argparse.Namespace(
+        local_python_ocr_endpoint_count="auto",
+        external_endpoint=False,
+        real_docling=True,
+        flight_mode="sync",
+        pdf_ocr_worker="docling",
+    )
+
+    assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 1
+
+
+def test_explicit_local_ocr_endpoint_count_overrides_auto() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(local_python_ocr_endpoint_count="3")
+
+    assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 3
+
+
+def test_invalid_local_ocr_endpoint_count_is_rejected() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(local_python_ocr_endpoint_count="0")
+
+    try:
+        benchmark.resolve_local_python_ocr_endpoint_count(args)
+    except SystemExit as exc:
+        assert "--local-python-ocr-endpoint-count" in str(exc)
+    else:
+        raise AssertionError("expected invalid endpoint count to exit")
+
+
 def test_cargo_perf_probe_can_send_distinct_input_manifest(
     monkeypatch,
     tmp_path: Path,

@@ -54,11 +54,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--local-python-ocr-endpoint-count",
-        type=int,
-        default=1,
+        default="auto",
         help=(
             "Number of local Python OCR Flight endpoints to start for Rust "
-            "endpoint-pool benchmarks, including the primary document worker."
+            "endpoint-pool benchmarks, including the primary document worker. "
+            "Use `auto` to fan out real hybrid Docling OCR by machine profile."
         ),
     )
     parser.add_argument(

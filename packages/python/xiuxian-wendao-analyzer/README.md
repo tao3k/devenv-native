@@ -367,11 +367,21 @@ fixture checkout. Add `--fail-on-pdf-milestone-regression` to fail an
 OCR-positive 21-page PDF run when it drops below the stored arXiv `2604.17337`
 precision/speed envelope. The guard is evaluated after the JSON and Markdown
 reports are written so a failing run still leaves evidence for diagnosis.
+The May 5, 2026 source-range endpoint-fanout profile kept the default Rust
+source-range worker policy unset, used the default local endpoint auto fanout,
+and observed a 21-page force latency of 18,969.021 ms with zero error rows,
+21 OCR page blocks, 21 bbox blocks, and 103,984 OCR result characters. A
+same-machine diagnostic four-endpoint run observed 15,811.373 ms, so endpoint
+pool fanout is the current larger optimization lever; fixed source-range worker
+counts remain diagnostic only.
 Use `--local-python-ocr-endpoint-count N` when a local benchmark should start
 `N` Python Flight executors, including the primary document worker, and expose
 that pool to the Rust scheduler for both full-document conversion and PDF OCR
-shards. Use `--rust-document-extract-endpoint` or `--rust-pdf-ocr-endpoint`
-more than once when a benchmark should target already-running Python Flight
+shards. The default `auto` value keeps ordinary modes at one local endpoint and
+fans out real `hybrid-page-ocr` Docling OCR by the machine profile so the Rust
+source-range endpoint-pool scheduler is exercised without pinning a fixed worker
+count. Use `--rust-document-extract-endpoint` or `--rust-pdf-ocr-endpoint` more
+than once when a benchmark should target already-running Python Flight
 executors. The script forwards those endpoints through
 `WENDAO_DOCUMENT_EXTRACT_ENDPOINTS` and
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS`; when these flags are omitted,
