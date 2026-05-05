@@ -59,6 +59,10 @@ impl QianjiMechanism for EchoSemanticScopeTraceMechanism {
                 "semanticScopeGuardTrace": context
                     .get("semanticScopeGuardTrace")
                     .cloned()
+                    .unwrap_or(Value::Null),
+                "semanticScopeGuardRoute": context
+                    .get("semanticScopeGuardRoute")
+                    .cloned()
                     .unwrap_or(Value::Null)
             }),
             instruction: FlowInstruction::Continue,
@@ -208,6 +212,33 @@ async fn scheduler_preflight_injects_semantic_scope_guard_trace_into_context() {
                 .as_str()
                 .is_some_and(|issue| issue.contains("semantic projection is stale"))),
         "stale semantic scope should be surfaced as advisory issue: {trace}"
+    );
+}
+
+#[tokio::test]
+async fn scheduler_preflight_routes_review_required_semantic_scope_without_blocking() {
+    let mut engine = QianjiEngine::new();
+    let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
+    let scheduler = QianjiScheduler::new(engine);
+
+    let output = scheduler
+        .run(json!({
+            "semanticScopeGuardPolicy": "block_on_blocked",
+            "semanticScopeMetadata": semantic_scope_metadata_value("stale", &[])
+        }))
+        .await
+        .unwrap_or_else(|error| {
+            panic!("review-required scope should route without blocking: {error}")
+        });
+
+    let route = &output["semanticScopeGuardRoute"];
+    assert_eq!(route["policy"], "block_on_blocked");
+    assert_eq!(route["status"], "review_required");
+    assert_eq!(route["execution"], "continue");
+    assert_eq!(route["recommendedAction"], "review_required");
+    assert_eq!(
+        output["semanticScopeGuardTrace"]["status"],
+        "review_required"
     );
 }
 

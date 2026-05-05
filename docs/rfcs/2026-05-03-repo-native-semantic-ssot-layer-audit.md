@@ -61,6 +61,9 @@ by Studio producers and Qianji consumers, while SQL guard evidence remains
 advisory JSON outside parser authority.
 Qianji scheduler preflight now consumes that metadata at workflow runtime by
 injecting a read-only `semanticScopeGuardTrace` into node context.
+It also injects `semanticScopeGuardRoute`, a compact downstream routing record
+that carries the configured policy, semantic status, execution outcome, and
+recommended semantic action when preflight execution proceeds.
 Workflow authors can also opt into explicit scheduler preflight blocking with
 `semanticScopeGuardPolicy` values for blocked or review-required semantic
 scope; the default remains advisory.
@@ -74,10 +77,10 @@ writeback path, and enforces post-refresh freshness. Its default remains one
 pass, while `--interval-secs` and `--max-runs` expose a bounded or
 long-running recurring runner for supervised background use.
 
-The RFC is still not fully complete. Deeper workflow policy routing beyond
-scheduler preflight blocking, operational supervision policies for recurring
-refresh jobs, and future Julia or DuckDB-backed derived lanes remain outside
-the completed slice.
+The RFC is still not fully complete. Operational supervision policies for
+recurring refresh jobs, broader workflow-level consumption of semantic guard
+routes, and future Julia or DuckDB-backed derived lanes remain outside the
+completed slice.
 
 ## 2. Evidence Map
 

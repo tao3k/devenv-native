@@ -9,6 +9,7 @@ use serde_json::{Map, Value};
 
 const SEMANTIC_SCOPE_METADATA_KEYS: &[&str] = &["semanticScopeMetadata", "semantic_scope_metadata"];
 const SEMANTIC_SCOPE_GUARD_TRACE_KEY: &str = "semanticScopeGuardTrace";
+const SEMANTIC_SCOPE_GUARD_ROUTE_KEY: &str = "semanticScopeGuardRoute";
 const SEMANTIC_SCOPE_GUARD_POLICY_KEYS: &[&str] =
     &["semanticScopeGuardPolicy", "semantic_scope_guard_policy"];
 
@@ -36,12 +37,29 @@ enum SemanticScopeGuardPolicy {
     BlockOnReviewRequired,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SemanticScopeGuardRecommendedAction {
+    Continue,
+    ReviewRequired,
+    Blocked,
+}
+
 impl SemanticScopeGuardPolicy {
     fn as_str(self) -> &'static str {
         match self {
             Self::Advisory => "advisory",
             Self::BlockOnBlocked => "block_on_blocked",
             Self::BlockOnReviewRequired => "block_on_review_required",
+        }
+    }
+}
+
+impl SemanticScopeGuardRecommendedAction {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Continue => "continue",
+            Self::ReviewRequired => "review_required",
+            Self::Blocked => "blocked",
         }
     }
 }
@@ -159,7 +177,39 @@ fn inject_semantic_scope_guard_trace(value: Value) -> Result<Value, String> {
         SEMANTIC_SCOPE_GUARD_TRACE_KEY.to_string(),
         workdir_semantic_scope_guard_trace_json(&trace),
     );
+    object.insert(
+        SEMANTIC_SCOPE_GUARD_ROUTE_KEY.to_string(),
+        semantic_scope_guard_route_json(policy, &trace),
+    );
     Ok(Value::Object(object))
+}
+
+fn semantic_scope_guard_route_json(
+    policy: SemanticScopeGuardPolicy,
+    trace: &WorkdirSemanticScopeGuardTrace,
+) -> Value {
+    let mut route = Map::with_capacity(4);
+    route.insert(
+        "policy".to_string(),
+        Value::String(policy.as_str().to_string()),
+    );
+    route.insert(
+        "status".to_string(),
+        Value::String(semantic_scope_guard_status_token(trace.status).to_string()),
+    );
+    route.insert(
+        "execution".to_string(),
+        Value::String("continue".to_string()),
+    );
+    route.insert(
+        "recommendedAction".to_string(),
+        Value::String(
+            semantic_scope_guard_recommended_action(trace.status)
+                .as_str()
+                .to_string(),
+        ),
+    );
+    Value::Object(route)
 }
 
 fn semantic_scope_metadata_json(object: &Map<String, Value>) -> Result<Option<String>, String> {
@@ -254,5 +304,17 @@ fn semantic_scope_guard_status_token(status: WorkdirSemanticScopeGuardStatus) ->
         WorkdirSemanticScopeGuardStatus::Ready => "ready",
         WorkdirSemanticScopeGuardStatus::ReviewRequired => "review_required",
         WorkdirSemanticScopeGuardStatus::Blocked => "blocked",
+    }
+}
+
+fn semantic_scope_guard_recommended_action(
+    status: WorkdirSemanticScopeGuardStatus,
+) -> SemanticScopeGuardRecommendedAction {
+    match status {
+        WorkdirSemanticScopeGuardStatus::Ready => SemanticScopeGuardRecommendedAction::Continue,
+        WorkdirSemanticScopeGuardStatus::ReviewRequired => {
+            SemanticScopeGuardRecommendedAction::ReviewRequired
+        }
+        WorkdirSemanticScopeGuardStatus::Blocked => SemanticScopeGuardRecommendedAction::Blocked,
     }
 }

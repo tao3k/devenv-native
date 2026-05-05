@@ -135,6 +135,14 @@ The Flowhub graph-contract direction for reusable Flowhub flows, materialized pl
 work surfaces, Codex operational workdirs, and validation-first
 materialization is tracked in
 [RFC: Qianji Flowhub Graph Contract Model](docs/rfcs/2026-04-07-qianji-flowhub-graph-contract-model-rfc.md).
+Scheduler preflight also consumes Wendao semantic-scope metadata from run
+context. When `semanticScopeMetadata` is present, Qianji injects
+`semanticScopeGuardTrace` and `semanticScopeGuardRoute` before mechanism
+execution. The trace exposes semantic status and evidence; the route exposes
+the configured `semanticScopeGuardPolicy`, the current guard status, whether
+execution is continuing, and the recommended semantic action. The default
+policy remains advisory, and Qianji still consumes semantic truth without
+owning it.
 That RFC now also treats scenarios as guard graphs over the bounded work
 surface, with explicit done-gate semantics and blocked-vs-failed diagnostics
 for `qianji check`.

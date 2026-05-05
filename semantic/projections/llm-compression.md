@@ -12,7 +12,7 @@ source_objects:
   - invariant.execution-graph-is-not-semantic-graph
   - invariant.valkey-is-not-semantic-authority
   - task.semantic-ssot.object-schema-pilot
-source_revision: "blake3:51bdbdcbb775f90a679b945f56c1f5dbd944601331975f26434ab9b0d9f5d3f9"
+source_revision: "blake3:55a5471a2f4fb78c509fcfc84e59fb555d70f78fd85d68a7d4b03b1135f1cd52"
 projection_revision: "2026-05-05.semantic-ssot-runtime-pilot.v2"
 staleness: fresh
 status: active
