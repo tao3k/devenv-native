@@ -13,6 +13,8 @@ from .http_status import pick_free_port
 from .processes import start_logged_process
 from .server_code import fixture_server_code, real_docling_server_code
 
+OPENROUTER_OCR_SMOKE_MODEL = "baidu/qianfan-ocr-fast:free"
+
 
 @dataclass(frozen=True)
 class PythonWorkerServer:
@@ -79,6 +81,7 @@ def start_server_pool(
     pdf_ocr_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
+    deepseek_ocr2_env: dict[str, str] | None = None,
     log_dir: Path | None = None,
 ) -> list[PythonWorkerServer]:
     endpoint_count = validate_endpoint_count(endpoint_count)
@@ -110,6 +113,7 @@ def start_server_pool(
             pdf_ocr_workers=pdf_ocr_workers,
             python_uv_package=python_uv_package,
             python_uv_extras=python_uv_extras,
+            deepseek_ocr2_env=deepseek_ocr2_env,
             log_dir=log_dir,
             process_name=name,
         )
@@ -136,6 +140,7 @@ def start_server(
     pdf_ocr_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
+    deepseek_ocr2_env: dict[str, str] | None = None,
     log_dir: Path | None = None,
     process_name: str = "python-worker",
 ) -> subprocess.Popen[str]:
@@ -171,7 +176,42 @@ def start_server(
         Path(os.environ.get("PRJ_RUNTIME_DIR", ".run"))
         / "document-extract-perf-process-logs"
     )
-    return start_logged_process(command, log_dir=effective_log_dir, name=process_name)
+    process_env = None
+    if deepseek_ocr2_env:
+        process_env = os.environ.copy()
+        process_env.update(deepseek_ocr2_env)
+    return start_logged_process(
+        command,
+        log_dir=effective_log_dir,
+        name=process_name,
+        env=process_env,
+    )
+
+
+def deepseek_ocr2_process_env(args: object) -> dict[str, str]:
+    env = {}
+    mappings = {
+        "deepseek_ocr2_provider": "WENDAO_DEEPSEEK_OCR2_PROVIDER",
+        "deepseek_ocr2_base_url": "WENDAO_DEEPSEEK_OCR2_BASE_URL",
+        "deepseek_ocr2_model": "WENDAO_DEEPSEEK_OCR2_MODEL",
+        "deepseek_ocr2_prompt": "WENDAO_DEEPSEEK_OCR2_PROMPT",
+        "deepseek_ocr2_max_tokens": "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS",
+        "deepseek_ocr2_timeout_seconds": "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS",
+        "openrouter_model": "WENDAO_OPENROUTER_MODEL",
+        "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
+        "openrouter_title": "WENDAO_OPENROUTER_TITLE",
+    }
+    for attr, key in mappings.items():
+        value = getattr(args, attr, None)
+        if value is not None:
+            env[key] = str(value)
+    if (
+        env.get("WENDAO_DEEPSEEK_OCR2_PROVIDER") == "openrouter"
+        and "WENDAO_DEEPSEEK_OCR2_MODEL" not in env
+        and "WENDAO_OPENROUTER_MODEL" not in env
+    ):
+        env["WENDAO_OPENROUTER_MODEL"] = OPENROUTER_OCR_SMOKE_MODEL
+    return env
 
 
 def python_worker_command(

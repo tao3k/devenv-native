@@ -9,6 +9,12 @@ pub const PDF_OCR_SHARD_INPUT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_sha
 pub const PDF_OCR_SHARD_RESULT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_result.v1";
 /// Default OCR worker profile identifier for Docling-compatible OCR.
 pub const PDF_OCR_DEFAULT_PROFILE: &str = "docling-compatible-page-ocr-v1";
+/// Fast Docling OCR worker profile identifier for low-risk source-range OCR.
+pub const PDF_OCR_FAST_TEXT_PROFILE: &str = "docling-fast-text-ocr";
+/// Direct DeepSeek-OCR-2 VLM worker profile identifier.
+pub const PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE: &str = "deepseek-ocr2-direct-vlm";
+/// Docling VLM adapter profile identifier for DeepSeek OCR comparator runs.
+pub const PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE: &str = "docling-vlm-deepseek-ocr";
 
 /// OCR worker profile used to derive shard input rows.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]

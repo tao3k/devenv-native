@@ -58,6 +58,25 @@ fetch-vision-models:
 # Backward-compatible alias
 fetch-vision: fetch-vision-models
 
+# Fetch prebuilt DeepSeek-OCR-2 artifacts from Hugging Face.
+# Defaults by platform: MLX artifact on Apple Silicon, community vLLM artifact elsewhere.
+
+# Pass repo_id=... for AWQ/GPTQ/GGUF/MLX community artifacts when validating them.
+fetch-models repo_id="" model_dir="":
+    uv run --package xiuxian-wendao-analyzer wendao-document-extract --ocr2-fetch-models --ocr2-repo-id "{{ repo_id }}" --ocr2-model-dir "{{ model_dir }}"
+
+# Start the platform-selected OpenAI-compatible DeepSeek-OCR-2 backend.
+start-ocr-backend model_path="" quantization="auto":
+    uv run --package xiuxian-wendao-analyzer wendao-document-extract --ocr2-start-backend --ocr2-model-path "{{ model_path }}" --ocr2-quantization "{{ quantization }}"
+
+# Install vLLM Metal for local Apple Silicon backend probes.
+install-vllm-metal:
+    uv run --package xiuxian-wendao-analyzer wendao-document-extract --ocr2-install-vllm-metal
+
+# Probe local vLLM Metal readiness without loading OCR2 weights.
+probe-vllm-metal:
+    uv run --package xiuxian-wendao-analyzer wendao-document-extract --ocr2-probe-vllm-metal
+
 # Run OCR timeout/busy recovery simulation without starting channel runtimes.
 test-ocr-recovery:
     bash scripts/channel/simulate_ocr_timeout_recovery.sh

@@ -28,11 +28,18 @@ def real_docling_server_code(
 
         from docling.datamodel.backend_options import XBRLBackendOptions
         from docling.datamodel.base_models import InputFormat
-        from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode
+        from docling.datamodel.pipeline_options import (
+            PdfPipelineOptions,
+            TableFormerMode,
+            VlmConvertOptions,
+            VlmPipelineOptions,
+        )
         from docling.document_converter import DocumentConverter, PdfFormatOption, XBRLFormatOption
+        from docling.pipeline.vlm_pipeline import VlmPipeline
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
         from xiuxian_wendao_analyzer.pdf_ocr import (
             DoclingPdfOcrShardWorker,
+            PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
             PDF_OCR_FAST_TEXT_PROFILE,
         )
 
@@ -109,6 +116,15 @@ def real_docling_server_code(
                 pdf_options.table_structure_options.mode = TableFormerMode.FAST
                 effective_format_options[InputFormat.PDF] = PdfFormatOption(
                     pipeline_options=pdf_options
+                )
+            elif ocr_profile == PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE:
+                vlm_options = VlmPipelineOptions(
+                    enable_remote_services=True,
+                    vlm_options=VlmConvertOptions.from_preset("deepseek_ocr"),
+                )
+                effective_format_options[InputFormat.PDF] = PdfFormatOption(
+                    pipeline_cls=VlmPipeline,
+                    pipeline_options=vlm_options,
                 )
             converter = DocumentConverter(format_options=effective_format_options)
             if CONVERTER_COUNT_PATH is not None:

@@ -6,7 +6,8 @@ use super::{
     DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridPdfOcrProfilePlanner, PdfPageRenderSelection,
     PdfRenderRoutingDecision, PdfRenderStatus, apply_hybrid_page_ocr_profile_plan_for_profiles,
-    hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_profile_planner_with_lookup,
+    apply_hybrid_page_ocr2_profile_plan_for_profiles, hybrid_page_ocr_input_arrow_path,
+    hybrid_page_ocr_profile_planner_with_lookup,
     hybrid_page_ocr_region_requests_for_source_with_lookup,
     hybrid_page_ocr_render_selection_with_lookup, sample_hybrid_page_ocr_report, sample_ocr_input,
     sample_ocr_result, validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
@@ -102,6 +103,19 @@ fn hybrid_page_ocr_profile_planner_accepts_fast_risk_window_override() {
         HybridPdfOcrProfilePlanner::FastAll
     );
     assert_eq!(
+        hybrid_page_ocr_profile_planner_with_lookup(&|key| {
+            (key == DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV).then(|| "ocr2-all".to_string())
+        }),
+        HybridPdfOcrProfilePlanner::Ocr2All
+    );
+    assert_eq!(
+        hybrid_page_ocr_profile_planner_with_lookup(&|key| {
+            (key == DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV)
+                .then(|| "ocr2_risk_window".to_string())
+        }),
+        HybridPdfOcrProfilePlanner::Ocr2RiskWindow
+    );
+    assert_eq!(
         hybrid_page_ocr_profile_planner_with_lookup(&|_| None),
         HybridPdfOcrProfilePlanner::Disabled
     );
@@ -132,6 +146,35 @@ fn hybrid_page_ocr_profile_plan_keeps_risk_window_accurate() {
             "docling-compatible-page-ocr-v1",
             "docling-fast-text-ocr",
             "docling-fast-text-ocr",
+        ]
+    );
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn hybrid_page_ocr2_profile_plan_keeps_risk_window_accurate() {
+    let inputs = (0..6)
+        .map(|page_index| sample_ocr_input(page_index, "page"))
+        .collect::<Vec<_>>();
+    let profiles = (0..6)
+        .map(|page_index| sample_source_page_profile(page_index, page_index == 2))
+        .collect::<Vec<_>>();
+
+    let planned = apply_hybrid_page_ocr2_profile_plan_for_profiles(inputs, profiles.as_slice());
+    let ocr_profiles = planned
+        .iter()
+        .map(|input| input.ocr_profile.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        ocr_profiles,
+        vec![
+            "deepseek-ocr2-direct-vlm",
+            "docling-compatible-page-ocr-v1",
+            "docling-compatible-page-ocr-v1",
+            "docling-compatible-page-ocr-v1",
+            "deepseek-ocr2-direct-vlm",
+            "deepseek-ocr2-direct-vlm",
         ]
     );
 }

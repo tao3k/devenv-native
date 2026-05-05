@@ -8,6 +8,7 @@ from .common import (
     Any,
     Path,
     json,
+    os,
     sys,
     tempfile,
 )
@@ -37,7 +38,11 @@ from .providers import (
 )
 from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
 from .runtime import wait_for_port
-from .workers import resolve_local_python_ocr_endpoint_count, start_server_pool
+from .workers import (
+    deepseek_ocr2_process_env,
+    resolve_local_python_ocr_endpoint_count,
+    start_server_pool,
+)
 
 
 def main() -> int:
@@ -132,6 +137,7 @@ def main() -> int:
                 pdf_ocr_workers=args.pdf_ocr_workers,
                 python_uv_package=args.python_uv_package,
                 python_uv_extras=args.python_uv_extra,
+                deepseek_ocr2_env=deepseek_ocr2_process_env(args),
                 log_dir=process_log_dir,
             )
             if args.local_python_ocr_endpoint_count > 1:
@@ -289,6 +295,19 @@ def build_report_payload(
             str(args.structure_baseline_root) if args.structure_baseline_root else None
         ),
         "pdfOcrProfile": pdf_ocr_profile_label(args),
+        "deepseekOcr2": {
+            "backend": "vllm-openai-compatible",
+            "provider": getattr(args, "deepseek_ocr2_provider", None),
+            "baseUrl": getattr(args, "deepseek_ocr2_base_url", None),
+            "model": getattr(args, "deepseek_ocr2_model", None),
+            "openRouterModel": getattr(args, "openrouter_model", None),
+            "openRouterHttpReferer": getattr(args, "openrouter_http_referer", None),
+            "openRouterTitle": getattr(args, "openrouter_title", None),
+            "openRouterApiKeyConfigured": _openrouter_key_configured(),
+            "prompt": getattr(args, "deepseek_ocr2_prompt", None),
+            "maxTokens": getattr(args, "deepseek_ocr2_max_tokens", None),
+            "timeoutSeconds": getattr(args, "deepseek_ocr2_timeout_seconds", None),
+        },
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
         "artifactRegistryReuseProbe": args.artifact_registry_reuse_probe,
         "ocrShardCache": ocr_shard_cache_summary
@@ -305,4 +324,16 @@ def build_report_payload(
 def should_start_local_rust_provider(args) -> bool:
     return args.flight_mode in {"async", "hybrid-page-ocr"} or bool(
         args.artifact_registry_reuse_probe
+    )
+
+
+def _openrouter_key_configured() -> bool:
+    return any(
+        bool(os.environ.get(key))
+        for key in (
+            "WENDAO_OPENROUTER_API_KEY",
+            "OPENROUTER_API_KEY",
+            "OPENROUTE_API_KEY",
+            "WENDAO_DEEPSEEK_OCR2_API_KEY",
+        )
     )

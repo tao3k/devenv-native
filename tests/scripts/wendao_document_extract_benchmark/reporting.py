@@ -241,6 +241,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     structure_baseline = payload.get("structureBaseline") or {}
     precision_speed = payload["summary"].get("precisionSpeedSummary", {})
     pdf_milestone = precision_speed.get("pdfOcrMilestoneGuard", {})
+    deepseek_ocr2 = payload.get("deepseekOcr2") or {}
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -258,6 +259,14 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
         f"- Rust PDF OCR profile planner: `{payload.get('rustPdfOcrProfilePlanner')}`",
+        f"- DeepSeek-OCR-2 backend: `{deepseek_ocr2.get('backend')}`",
+        f"- DeepSeek-OCR-2 provider: `{deepseek_ocr2.get('provider')}`",
+        f"- DeepSeek-OCR-2 base URL: `{deepseek_ocr2.get('baseUrl')}`",
+        f"- DeepSeek-OCR-2 model: `{deepseek_ocr2.get('model')}`",
+        f"- OpenRouter model: `{deepseek_ocr2.get('openRouterModel')}`",
+        f"- OpenRouter key configured: `{deepseek_ocr2.get('openRouterApiKeyConfigured')}`",
+        f"- DeepSeek-OCR-2 max tokens: `{deepseek_ocr2.get('maxTokens')}`",
+        f"- DeepSeek-OCR-2 timeout seconds: `{deepseek_ocr2.get('timeoutSeconds')}`",
         f"- Rust document extract endpoints: `{payload.get('rustDocumentExtractEndpoints', [])}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
         f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",

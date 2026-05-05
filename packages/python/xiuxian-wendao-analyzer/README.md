@@ -380,6 +380,99 @@ risk-window profile on the current machine: 12,856.546 ms force-refresh
 latency, 92.084 ms shard-cache reuse latency, 2.309 ms cache p95, zero error
 rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,985 OCR result
 characters, and stable structure order.
+Python also recognizes `deepseek-ocr2-direct-vlm` as a direct VLM OCR profile
+over the same shard rows. That path calls an externally managed
+OpenAI-compatible backend, with vLLM as the preferred runtime, using
+`WENDAO_DEEPSEEK_OCR2_BASE_URL`, `WENDAO_DEEPSEEK_OCR2_MODEL`,
+`WENDAO_DEEPSEEK_OCR2_API_KEY`, `WENDAO_DEEPSEEK_OCR2_PROMPT`,
+`WENDAO_DEEPSEEK_OCR2_MAX_TOKENS`, and
+`WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS`. Set
+`WENDAO_DEEPSEEK_OCR2_PROVIDER=openrouter` to use OpenRouter's
+OpenAI-compatible `/chat/completions` API instead of a local model server. The
+OpenRouter preset defaults the base URL to `https://openrouter.ai/api/v1`,
+reads `WENDAO_OPENROUTER_API_KEY` or `OPENROUTER_API_KEY`, tolerates the
+legacy local alias `OPENROUTE_API_KEY`, accepts `WENDAO_OPENROUTER_MODEL` when
+`WENDAO_DEEPSEEK_OCR2_MODEL` is not set, and forwards optional
+`WENDAO_OPENROUTER_HTTP_REFERER` and
+`WENDAO_OPENROUTER_TITLE` attribution headers. The selected OpenRouter model
+must support image URL chat content. When no OpenRouter model is configured,
+the hosted smoke default is `baidu/qianfan-ocr-fast:free`, which is used only
+to validate the cloud OCR path. Use the
+[OpenRouter quickstart](https://openrouter.ai/docs/quickstart) when configuring
+the hosted provider:
+
+```bash
+export WENDAO_DEEPSEEK_OCR2_PROVIDER=openrouter
+export WENDAO_OPENROUTER_API_KEY=...
+export WENDAO_OPENROUTER_MODEL=baidu/qianfan-ocr-fast:free
+```
+
+The analyzer does not load or quantize OCR2 weights in process. Use the
+repository `fetch-models` and `start-ocr-backend` Justfile recipes only when a
+local backend is desired; they fetch prebuilt community or official artifacts
+and expose them through a vLLM OpenAI-compatible service:
+
+```bash
+just fetch-models
+just start-ocr-backend
+```
+
+`fetch-models` also auto-selects the local artifact flavor. On macOS Apple
+Silicon it defaults to the MLX-converted
+`mlx-community/DeepSeek-OCR-2-bf16` artifact and links it to
+`deepseek-ocr2-current`; on non-Mac hosts it defaults to the community FP8
+vLLM artifact. Set `WENDAO_DEEPSEEK_OCR2_MODEL_FLAVOR=generic-vllm` or
+`metal-mlx`, set `WENDAO_DEEPSEEK_OCR2_HF_REPO`, or pass `repo_id=...` when
+validating a newer AWQ, GPTQ, GGUF, or MLX artifact. The Justfile recipes are
+thin entrypoints over the analyzer CLI (`wendao-document-extract --ocr2-*`),
+so backend automation stays package-owned and directly testable.
+`start-ocr-backend` auto-selects the local platform runner. On macOS Apple
+Silicon it selects `mlx-vlm`, which wraps the MLX-converted OCR2 model in a
+repository OpenAI-compatible adapter. Install the shared local Metal/MLX
+runtime and probe it with:
+
+```bash
+just install-vllm-metal
+just probe-vllm-metal
+```
+
+The Metal runner exports the MLX/Metal defaults (`VLLM_METAL_USE_MLX=1`,
+`VLLM_MLX_DEVICE=gpu`, and
+`VLLM_METAL_MULTIMODAL_MODE=multimodal-native`) before invoking the vLLM CLI.
+The `mlx-vlm` runner is the default on macOS because a direct local probe with
+`mlx-community/DeepSeek-OCR-2-bf16` successfully returns OCR text through the
+OpenAI-compatible `/v1/chat/completions` shape expected by the analyzer. The
+lower-level `metal-vllm` runner remains available for explicit vLLM Metal
+experiments, but it still gates DeepSeek-OCR-2 by default because current vLLM
+Metal documentation lists multimodal vision/audio models as unsupported and
+focuses the plugin on text-only language models. Set
+`WENDAO_DEEPSEEK_OCR2_VLLM_METAL_ALLOW_UNSUPPORTED_VLM=1` only for explicit
+frontier probes after validating the local vLLM Metal build. The current local
+frontier probe reaches Metal engine initialization and resolves
+`DeepseekOCR2ForCausalLM`, but the vLLM Metal path loads VLMs in text-only mode
+and fails inside the `mlx-vlm` DeepSeek vision tower before serving an
+endpoint. The immediate compatibility mismatch is that the OCR2 artifact uses a
+DeepEncoderV2-style nested `vision_config.width`, while the current
+`mlx-vlm` DeepSeek-VL2 loader expects a scalar vision width.
+`vllm-omni` is not selected as the default OCR2 backend in this slice: its
+current supported-models surface does not list DeepSeek-OCR-2, and it does not
+address the macOS Metal `mlx-vlm` vision-loader mismatch above.
+On non-Mac deployment hosts, `start-ocr-backend` selects `generic-vllm` and
+starts the current vLLM OpenAI-compatible server shape for OCR2. It adds the
+OCR2 n-gram logits processor and disables prefix caching by default, matching
+the current vLLM OCR2 serving guidance. `WENDAO_DEEPSEEK_OCR2_VLLM_PACKAGE`
+defaults to `vllm>=0.20.1`, so repository automation requires a vLLM line with
+first-class OCR2 serving support instead of silently resolving to older
+packages. Deployment hosts that need a known CUDA wheel or exact compatibility
+set can still pin `WENDAO_DEEPSEEK_OCR2_VLLM_PACKAGE`, add helper packages
+through `WENDAO_DEEPSEEK_OCR2_VLLM_WITH`, or override all server flags with
+`WENDAO_DEEPSEEK_OCR2_VLLM_EXTRA_ARGS`.
+`WENDAO_DEEPSEEK_OCR2_BACKEND_RUNNER=official-vllm` remains available as a
+diagnostic compatibility runner for the official repository adapter, but it is
+not the default because that adapter follows older vLLM internal APIs.
+Default analyzer installs stay free of vLLM and model-runtime dependencies. The
+`docling-vlm-deepseek-ocr` profile remains a Docling VLM comparator path, not
+the default direct OCR2 implementation.
 Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
 evidence shows a fixed override is appropriate for that machine profile, but

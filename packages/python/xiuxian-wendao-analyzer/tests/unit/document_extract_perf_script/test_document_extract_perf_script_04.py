@@ -41,6 +41,8 @@ def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> 
     assert "def make_converter(ocr_profile=None)" in code
     assert "PDF_OCR_FAST_TEXT_PROFILE" in code
     assert "TableFormerMode.FAST" in code
+    assert "PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE" in code
+    assert 'VlmConvertOptions.from_preset("deepseek_ocr")' in code
     assert "DoclingPdfOcrShardWorker(" in code
     assert "converter_factory=make_converter" in code
     assert "max_workers='auto'" in code
@@ -105,6 +107,7 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         pdf_ocr_workers="auto",
         python_uv_package="xiuxian-wendao-analyzer",
         python_uv_extras=[],
+        deepseek_ocr2_env={"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
         log_dir=tmp_path / "logs",
     )
 
@@ -124,6 +127,75 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "python-worker-1.txt",
         "python-worker-2.txt",
     ]
+    assert [call[2]["deepseek_ocr2_env"] for call in calls] == [
+        {"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
+        {"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
+        {"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
+    ]
+
+
+def test_deepseek_ocr2_process_env_maps_cli_args() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        deepseek_ocr2_provider="openrouter",
+        deepseek_ocr2_base_url="http://127.0.0.1:8000/v1",
+        deepseek_ocr2_model="community/deepseek-ocr2-awq",
+        deepseek_ocr2_prompt="<image>\nmarkdown",
+        deepseek_ocr2_max_tokens=4096,
+        deepseek_ocr2_timeout_seconds=120.0,
+        openrouter_model="openrouter/vision-ocr",
+        openrouter_http_referer="https://wendao.local",
+        openrouter_title="Wendao OCR Benchmark",
+    )
+
+    assert benchmark.deepseek_ocr2_process_env(args) == {
+        "WENDAO_DEEPSEEK_OCR2_PROVIDER": "openrouter",
+        "WENDAO_DEEPSEEK_OCR2_BASE_URL": "http://127.0.0.1:8000/v1",
+        "WENDAO_DEEPSEEK_OCR2_MODEL": "community/deepseek-ocr2-awq",
+        "WENDAO_DEEPSEEK_OCR2_PROMPT": "<image>\nmarkdown",
+        "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS": "4096",
+        "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS": "120.0",
+        "WENDAO_OPENROUTER_MODEL": "openrouter/vision-ocr",
+        "WENDAO_OPENROUTER_HTTP_REFERER": "https://wendao.local",
+        "WENDAO_OPENROUTER_TITLE": "Wendao OCR Benchmark",
+    }
+
+
+def test_deepseek_ocr2_process_env_defaults_openrouter_smoke_model() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        deepseek_ocr2_provider="openrouter",
+        deepseek_ocr2_base_url=None,
+        deepseek_ocr2_model=None,
+        deepseek_ocr2_prompt=None,
+        deepseek_ocr2_max_tokens=None,
+        deepseek_ocr2_timeout_seconds=None,
+        openrouter_model=None,
+        openrouter_http_referer=None,
+        openrouter_title=None,
+    )
+
+    assert benchmark.deepseek_ocr2_process_env(args) == {
+        "WENDAO_DEEPSEEK_OCR2_PROVIDER": "openrouter",
+        "WENDAO_OPENROUTER_MODEL": "baidu/qianfan-ocr-fast:free",
+    }
+
+
+def test_openrouter_key_configured_reads_environment(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    for key in (
+        "WENDAO_OPENROUTER_API_KEY",
+        "OPENROUTER_API_KEY",
+        "OPENROUTE_API_KEY",
+        "WENDAO_DEEPSEEK_OCR2_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    assert benchmark._openrouter_key_configured() is False
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+
+    assert benchmark._openrouter_key_configured() is True
 
 
 def test_converter_count_path_reads_external_fake_counter(tmp_path: Path) -> None:

@@ -97,13 +97,72 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--rust-pdf-ocr-profile-planner",
-        choices=("disabled", "fast-all", "fast-risk-window"),
+        choices=(
+            "disabled",
+            "fast-all",
+            "fast-risk-window",
+            "ocr2-all",
+            "ocr2-risk-window",
+        ),
         help=(
             "Optional Rust provider override for "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER. Use "
-            "`fast-all` or `fast-risk-window` only when profiling "
-            "mixed fast/accurate Docling source-range OCR."
+            "`fast-*` or `ocr2-*` modes only when profiling mixed "
+            "candidate/accurate source-range OCR."
         ),
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-base-url",
+        help=(
+            "OpenAI-compatible DeepSeek-OCR-2 base URL forwarded to "
+            "WENDAO_DEEPSEEK_OCR2_BASE_URL for local Python OCR workers."
+        ),
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-provider",
+        choices=("openai-compatible", "openrouter"),
+        help=(
+            "Direct OCR2 provider preset forwarded to "
+            "WENDAO_DEEPSEEK_OCR2_PROVIDER. Use `openrouter` to call a "
+            "hosted OpenRouter chat/completions endpoint instead of a local "
+            "model server."
+        ),
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-model",
+        help=(
+            "DeepSeek-OCR-2 model id forwarded to WENDAO_DEEPSEEK_OCR2_MODEL. "
+            "Use the served vLLM model id or community AWQ/GPTQ artifact id."
+        ),
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-prompt",
+        help="Prompt forwarded to WENDAO_DEEPSEEK_OCR2_PROMPT.",
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-max-tokens",
+        type=int,
+        help="Max tokens forwarded to WENDAO_DEEPSEEK_OCR2_MAX_TOKENS.",
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-timeout-seconds",
+        type=float,
+        help="Request timeout forwarded to WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS.",
+    )
+    parser.add_argument(
+        "--openrouter-model",
+        help=(
+            "OpenRouter model id forwarded to WENDAO_OPENROUTER_MODEL when "
+            "WENDAO_DEEPSEEK_OCR2_MODEL is not set."
+        ),
+    )
+    parser.add_argument(
+        "--openrouter-http-referer",
+        help="Optional OpenRouter HTTP-Referer attribution header.",
+    )
+    parser.add_argument(
+        "--openrouter-title",
+        help="Optional OpenRouter X-OpenRouter-Title attribution header.",
     )
     parser.add_argument(
         "--rust-pdf-ocr-endpoint",

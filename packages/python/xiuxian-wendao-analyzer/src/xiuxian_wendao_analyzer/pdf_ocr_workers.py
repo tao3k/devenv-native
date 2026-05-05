@@ -2,14 +2,44 @@
 
 from __future__ import annotations
 
+import base64
+import json
+import os
 import threading
+import urllib.error
+import urllib.request
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from inspect import signature
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .pdf_ocr_contracts import (
+    DEEPSEEK_OCR2_API_KEY_ENV,
+    DEEPSEEK_OCR2_BASE_URL_ENV,
+    DEEPSEEK_OCR2_DEFAULT_API_KEY,
+    DEEPSEEK_OCR2_DEFAULT_BASE_URL,
+    DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
+    DEEPSEEK_OCR2_DEFAULT_MODEL,
+    DEEPSEEK_OCR2_DEFAULT_PROMPT,
+    DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
+    DEEPSEEK_OCR2_MAX_TOKENS_ENV,
+    DEEPSEEK_OCR2_MODEL_ENV,
+    DEEPSEEK_OCR2_OPENROUTE_COMPAT_API_KEY_ENV,
+    DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV,
+    DEEPSEEK_OCR2_OPENROUTER_BASE_URL,
+    DEEPSEEK_OCR2_OPENROUTER_HTTP_REFERER_ENV,
+    DEEPSEEK_OCR2_OPENROUTER_MODEL_ENV,
+    DEEPSEEK_OCR2_OPENROUTER_PROVIDER,
+    DEEPSEEK_OCR2_OPENROUTER_PUBLIC_API_KEY_ENV,
+    DEEPSEEK_OCR2_OPENROUTER_TEST_MODEL,
+    DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV,
+    DEEPSEEK_OCR2_PROMPT_ENV,
+    DEEPSEEK_OCR2_PROVIDER_ENV,
+    DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
+    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
+    PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
     PDF_OCR_PAGE_BREAK_SENTINEL,
 )
@@ -23,8 +53,6 @@ from .pdf_ocr_results import failed_pdf_ocr_shard_result, skipped_pdf_ocr_shard_
 from .pdf_ocr_tables import resolve_pdf_ocr_worker_count
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
-
     from .documents import DocumentConverterProtocol
 
 
@@ -111,8 +139,18 @@ class DoclingPdfOcrShardWorker:
         indexes: Sequence[int],
         input_rows: Sequence[Mapping[str, Any]],
     ) -> list[tuple[int, Mapping[str, Any]]]:
+        ocr_profile = _ocr_profile(input_rows[0])
+        if ocr_profile == PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE:
+            return [
+                (index, result)
+                for index, result in zip(
+                    indexes,
+                    _recognize_deepseek_ocr2_many(input_rows),
+                    strict=True,
+                )
+            ]
         try:
-            converter = self._converter_for_thread(_ocr_profile(input_rows[0]))
+            converter = self._converter_for_thread(ocr_profile)
         except Exception as exc:
             return [
                 (
@@ -324,4 +362,289 @@ def _new_docling_converter(
                 InputFormat.PDF: PdfFormatOption(pipeline_options=options),
             }
         )
+    if ocr_profile == PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE:
+        try:
+            from docling.datamodel.base_models import InputFormat
+            from docling.datamodel.pipeline_options import (
+                VlmConvertOptions,
+                VlmPipelineOptions,
+            )
+            from docling.document_converter import DocumentConverter, PdfFormatOption
+            from docling.pipeline.vlm_pipeline import VlmPipeline
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "Docling VLM dependencies are not installed; install "
+                "xiuxian-wendao-analyzer[documents] to enable Docling VLM OCR"
+            ) from exc
+        vlm_options = VlmConvertOptions.from_preset("deepseek_ocr")
+        pipeline_options = VlmPipelineOptions(
+            enable_remote_services=True,
+            vlm_options=vlm_options,
+        )
+        return DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(
+                    pipeline_cls=VlmPipeline,
+                    pipeline_options=pipeline_options,
+                ),
+            }
+        )
     return DocumentConverter()
+
+
+def _recognize_deepseek_ocr2_many(
+    input_rows: Sequence[Mapping[str, Any]],
+) -> list[Mapping[str, Any]]:
+    try:
+        client = _DeepSeekOcr2OpenAiClient.from_env()
+    except ValueError as exc:
+        return [
+            failed_pdf_ocr_shard_result(input_row, f"DeepSeek-OCR-2 OCR failed: {exc}")
+            for input_row in input_rows
+        ]
+    return [client.recognize(input_row) for input_row in input_rows]
+
+
+class _DeepSeekOcr2OpenAiClient:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model: str,
+        api_key: str,
+        prompt: str,
+        max_tokens: int,
+        timeout_seconds: float,
+        extra_headers: Mapping[str, str] | None = None,
+    ) -> None:
+        self._completion_url = _chat_completion_url(base_url)
+        self._model = model
+        self._api_key = api_key
+        self._prompt = prompt
+        self._max_tokens = max_tokens
+        self._timeout_seconds = timeout_seconds
+        self._extra_headers = dict(extra_headers or {})
+
+    @classmethod
+    def from_env(cls) -> _DeepSeekOcr2OpenAiClient:
+        provider = _env_value(DEEPSEEK_OCR2_PROVIDER_ENV, "")
+        if provider == DEEPSEEK_OCR2_OPENROUTER_PROVIDER:
+            return cls(
+                base_url=_env_value(
+                    DEEPSEEK_OCR2_BASE_URL_ENV,
+                    DEEPSEEK_OCR2_OPENROUTER_BASE_URL,
+                ),
+                model=_env_value(
+                    DEEPSEEK_OCR2_MODEL_ENV,
+                    _env_value(
+                        DEEPSEEK_OCR2_OPENROUTER_MODEL_ENV,
+                        DEEPSEEK_OCR2_OPENROUTER_TEST_MODEL,
+                    ),
+                ),
+                api_key=_resolve_openrouter_api_key(),
+                prompt=_env_value(
+                    DEEPSEEK_OCR2_PROMPT_ENV, DEEPSEEK_OCR2_DEFAULT_PROMPT
+                ),
+                max_tokens=_positive_int_env(
+                    DEEPSEEK_OCR2_MAX_TOKENS_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
+                ),
+                timeout_seconds=_positive_float_env(
+                    DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
+                ),
+                extra_headers=_openrouter_headers(),
+            )
+        if provider and provider != "openai-compatible":
+            raise ValueError(
+                f"unsupported {DEEPSEEK_OCR2_PROVIDER_ENV}={provider}; "
+                "supported values: openai-compatible, openrouter"
+            )
+        return cls(
+            base_url=_env_value(
+                DEEPSEEK_OCR2_BASE_URL_ENV,
+                DEEPSEEK_OCR2_DEFAULT_BASE_URL,
+            ),
+            model=_env_value(
+                DEEPSEEK_OCR2_MODEL_ENV,
+                DEEPSEEK_OCR2_DEFAULT_MODEL,
+            ),
+            api_key=_env_value(
+                DEEPSEEK_OCR2_API_KEY_ENV,
+                DEEPSEEK_OCR2_DEFAULT_API_KEY,
+            ),
+            prompt=_env_value(
+                DEEPSEEK_OCR2_PROMPT_ENV,
+                DEEPSEEK_OCR2_DEFAULT_PROMPT,
+            ),
+            max_tokens=_positive_int_env(
+                DEEPSEEK_OCR2_MAX_TOKENS_ENV,
+                DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
+            ),
+            timeout_seconds=_positive_float_env(
+                DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
+                DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
+            ),
+        )
+
+    def recognize(self, input_row: Mapping[str, Any]) -> Mapping[str, Any]:
+        image_path = Path(str(input_row["imagePath"]))
+        if not image_path.is_file():
+            return failed_pdf_ocr_shard_result(
+                input_row,
+                f"DeepSeek-OCR-2 shard image does not exist: {image_path}",
+            )
+        try:
+            payload = self._request_payload(input_row, image_path)
+            request = urllib.request.Request(
+                self._completion_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=self._headers(),
+                method="POST",
+            )
+            with urllib.request.urlopen(
+                request,
+                timeout=self._timeout_seconds,
+            ) as response:
+                response_payload = json.loads(response.read().decode("utf-8"))
+            markdown = _extract_openai_message_content(response_payload)
+        except (
+            OSError,
+            ValueError,
+            urllib.error.URLError,
+            urllib.error.HTTPError,
+        ) as exc:
+            return failed_pdf_ocr_shard_result(
+                input_row, f"DeepSeek-OCR-2 OCR failed: {exc}"
+            )
+        if not markdown.strip():
+            return failed_pdf_ocr_shard_result(
+                input_row,
+                "DeepSeek-OCR-2 OCR returned empty text",
+            )
+        return {
+            "status": "succeeded",
+            "text": markdown,
+            "textMimeType": "text/markdown",
+            "confidence": None,
+            "errorMessage": None,
+        }
+
+    def _request_payload(
+        self,
+        input_row: Mapping[str, Any],
+        image_path: Path,
+    ) -> dict[str, Any]:
+        image_bytes = image_path.read_bytes()
+        image_mime_type = str(input_row.get("imageMimeType") or "image/png")
+        image_data_url = (
+            f"data:{image_mime_type};base64,"
+            f"{base64.b64encode(image_bytes).decode('ascii')}"
+        )
+        return {
+            "model": self._model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": self._prompt},
+                        {"type": "image_url", "image_url": {"url": image_data_url}},
+                    ],
+                }
+            ],
+            "max_tokens": self._max_tokens,
+            "temperature": 0,
+        }
+
+    def _headers(self) -> dict[str, str]:
+        headers = {"Content-Type": "application/json", **self._extra_headers}
+        if self._api_key and self._api_key != DEEPSEEK_OCR2_DEFAULT_API_KEY:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+        return headers
+
+
+def _resolve_openrouter_api_key() -> str:
+    api_key = _env_value(
+        DEEPSEEK_OCR2_API_KEY_ENV,
+        _env_value(
+            DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV,
+            _env_value(
+                DEEPSEEK_OCR2_OPENROUTER_PUBLIC_API_KEY_ENV,
+                _env_value(
+                    DEEPSEEK_OCR2_OPENROUTE_COMPAT_API_KEY_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_API_KEY,
+                ),
+            ),
+        ),
+    )
+    if not api_key or api_key == DEEPSEEK_OCR2_DEFAULT_API_KEY:
+        raise ValueError(
+            "OpenRouter OCR provider requires WENDAO_OPENROUTER_API_KEY, "
+            "OPENROUTER_API_KEY, OPENROUTE_API_KEY, or "
+            "WENDAO_DEEPSEEK_OCR2_API_KEY"
+        )
+    return api_key
+
+
+def _openrouter_headers() -> dict[str, str]:
+    headers = {}
+    referer = _env_value(DEEPSEEK_OCR2_OPENROUTER_HTTP_REFERER_ENV, "")
+    title = _env_value(DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV, "")
+    if referer:
+        headers["HTTP-Referer"] = referer
+    if title:
+        headers["X-OpenRouter-Title"] = title
+    return headers
+
+
+def _chat_completion_url(base_url: str) -> str:
+    normalized = base_url.rstrip("/")
+    if normalized.endswith("/chat/completions"):
+        return normalized
+    return f"{normalized}/chat/completions"
+
+
+def _extract_openai_message_content(payload: Mapping[str, Any]) -> str:
+    choices = payload.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError("OpenAI-compatible response does not contain choices")
+    first_choice = choices[0]
+    if not isinstance(first_choice, Mapping):
+        raise ValueError("OpenAI-compatible response choice is not an object")
+    message = first_choice.get("message")
+    if not isinstance(message, Mapping):
+        raise ValueError("OpenAI-compatible response choice does not contain message")
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for part in content:
+            if isinstance(part, Mapping) and isinstance(part.get("text"), str):
+                parts.append(part["text"])
+        if parts:
+            return "".join(parts)
+    raise ValueError("OpenAI-compatible response message content is not text")
+
+
+def _positive_int_env(key: str, default: int) -> int:
+    try:
+        value = int(os.environ.get(key, ""))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _positive_float_env(key: str, default: float) -> float:
+    try:
+        value = float(os.environ.get(key, ""))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _env_value(key: str, default: str) -> str:
+    value = os.environ.get(key)
+    if value is None or not value.strip():
+        return default
+    return value

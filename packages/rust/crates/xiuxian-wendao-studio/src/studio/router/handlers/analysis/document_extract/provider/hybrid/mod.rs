@@ -22,7 +22,8 @@ pub(super) use precision_gate::{
 #[cfg(test)]
 pub(super) use profile::{
     DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, HybridPdfOcrProfilePlanner,
-    apply_hybrid_page_ocr_profile_plan_for_profiles, hybrid_page_ocr_profile_planner_with_lookup,
+    apply_hybrid_page_ocr_profile_plan_for_profiles,
+    apply_hybrid_page_ocr2_profile_plan_for_profiles, hybrid_page_ocr_profile_planner_with_lookup,
 };
 #[cfg(test)]
 pub(super) use render::{

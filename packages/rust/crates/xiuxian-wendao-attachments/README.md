@@ -88,6 +88,11 @@ Studio's source-range scheduler and profile planner. The cached profile helper
 keys entries by canonical path, file length, and modification timestamp so one
 provider process can reuse page facts across force-refresh, shard-cache reuse,
 and cache-hit probes without persisting transient profile state in Python.
+The stable OCR shard schema carries `ocrProfile` as the profile-selection
+surface. Current profile identifiers include `docling-compatible-page-ocr-v1`,
+`docling-fast-text-ocr`, `deepseek-ocr2-direct-vlm`, and
+`docling-vlm-deepseek-ocr`; adding those profile IDs does not change the Arrow
+input or result column set.
 
 `PdfPageRenderSelection::ShardFallbackPages` is intentionally high-recall in
 the current source-range path. When no narrower safe region signal exists, it
