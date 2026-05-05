@@ -98,6 +98,8 @@ semantic read-model row and table counts for operator review while keeping the
 projection advisory and read-only.
 `wendao-client semantic query-read-model --query SQL` now exposes the same
 provisional tables as a bounded read-only SQL evidence surface.
+`xiuxian-wendao-sql` now rejects blank, multi-statement, and mutation SQL for
+that surface before table registration.
 
 The RFC is still not fully complete. Wider rollout of guard route-aware
 real workflows, DuckDB-backed materialized read-model expansion, and future
@@ -311,7 +313,8 @@ read-model table counts so operators can inspect the projected
 surface without making SQL the authority path.
 `wendao-client semantic query-read-model --query SQL` now lets operators run
 bounded read-only SQL against that surface while keeping query output as
-evidence only.
+evidence only. The query path now admits exactly one read-only SQL statement,
+so mutation or multi-statement input cannot reach table registration.
 The template CLI now also renders that manifest shape through
 `qianji template --semantic-guard-route`.
 

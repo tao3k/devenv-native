@@ -11,6 +11,7 @@ use crate::semantic_read_model::{
     SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
     SEMANTIC_RELATIONS_TABLE_NAME, SemanticSqlGuardStatus, build_semantic_read_model_rows,
     query_semantic_read_model_payload, run_semantic_sql_projection_freshness_guard,
+    validate_semantic_read_model_query_text,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -301,6 +302,30 @@ fn semantic_read_model_rejects_invalid_repository() -> TestResult {
     };
     assert!(error.contains("semantic repository validation failed"));
     Ok(())
+}
+
+#[test]
+fn semantic_read_model_query_validation_accepts_only_single_read_only_query() {
+    assert!(
+        validate_semantic_read_model_query_text("select id from semantic_objects").is_ok(),
+        "plain select should be accepted"
+    );
+    assert!(
+        validate_semantic_read_model_query_text("").is_err(),
+        "blank query should be rejected"
+    );
+    assert!(
+        validate_semantic_read_model_query_text("select id from semantic_objects; select 1")
+            .is_err(),
+        "multi-statement query should be rejected"
+    );
+    assert!(
+        validate_semantic_read_model_query_text(
+            "insert into semantic_objects (id) values ('component.bad')"
+        )
+        .is_err(),
+        "mutation statement should be rejected"
+    );
 }
 
 #[tokio::test]

@@ -22,6 +22,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-wendao-server semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-sql semantic_read_model -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-sql semantic_read_model_query_validation -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client read_model_summary -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client query_read_model -- --nocapture
   evidence:
@@ -37,4 +38,5 @@ relations:
 
 Wendao exposes parser-backed semantic object scopes through query contracts
 and advisory read-model summaries and queries while leaving canonical truth in
-repository artifacts.
+repository artifacts. The read-model query surface admits only one read-only
+SQL statement per request.

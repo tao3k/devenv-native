@@ -109,6 +109,16 @@ pub(super) fn run_semantic_query_read_model_with_args(
     scope: Option<&str>,
     args: &[&str],
 ) -> Result<(Option<i32>, String)> {
+    let (status, stdout, _) =
+        run_semantic_query_read_model_with_args_and_stderr(temp, scope, args)?;
+    Ok((status, stdout))
+}
+
+pub(super) fn run_semantic_query_read_model_with_args_and_stderr(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String, String)> {
     let mut command = Command::new(env!("CARGO_BIN_EXE_wendao-client"));
     command.arg("--root").arg(temp.path());
     command.arg("semantic").arg("query-read-model");
@@ -121,7 +131,8 @@ pub(super) fn run_semantic_query_read_model_with_args(
 
     let output = command.output()?;
     let stdout = String::from_utf8(output.stdout)?;
-    Ok((output.status.code(), stdout))
+    let stderr = String::from_utf8(output.stderr)?;
+    Ok((output.status.code(), stdout, stderr))
 }
 
 pub(super) fn assert_lint_text_snapshot(name: &str, output: &str) {

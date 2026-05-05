@@ -4,7 +4,8 @@ use tempfile::TempDir;
 
 use super::{
     run_semantic_lint, run_semantic_lint_with_args, run_semantic_query_read_model_with_args,
-    run_semantic_refresh_projections, run_semantic_refresh_projections_with_args,
+    run_semantic_query_read_model_with_args_and_stderr, run_semantic_refresh_projections,
+    run_semantic_refresh_projections_with_args,
     run_semantic_refresh_projections_with_args_and_stderr,
 };
 
@@ -145,6 +146,34 @@ fn semantic_query_read_model_runs_sql() -> Result<()> {
     assert!(
         stdout.contains("id=decision.fixture, kind=decision"),
         "query rows should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_query_read_model_rejects_mutation_sql() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout, stderr) = run_semantic_query_read_model_with_args_and_stderr(
+        &temp,
+        None,
+        &[
+            "--query",
+            "insert into semantic_objects (id) values ('decision.bad')",
+        ],
+    )?;
+
+    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stderr.contains("read-only query statement"),
+        "mutation rejection should explain the read-only contract: {stderr}"
     );
     Ok(())
 }

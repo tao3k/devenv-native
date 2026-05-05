@@ -2,6 +2,8 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use arrow::record_batch::RecordBatch;
+use datafusion::sql::parser::{DFParser, Statement as DataFusionStatement};
+use datafusion::sql::sqlparser::ast::Statement as SqlStatement;
 use xiuxian_wendao_parsers::semantic_ssot::{SemanticRepository, load_semantic_repository};
 
 use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};
@@ -26,6 +28,7 @@ pub async fn query_semantic_read_model_payload_with_engine(
     query_text: &str,
     query_engine: &impl LocalRelationEngine,
 ) -> Result<SqlQueryPayload, String> {
+    validate_semantic_read_model_query_text(query_text)?;
     let registration_started_at = Instant::now();
     let registration = register_semantic_read_model_tables_with_stats(query_engine, repository)?;
     let registration_time_ms = duration_millis_u64(registration_started_at.elapsed());
@@ -51,6 +54,42 @@ pub async fn query_semantic_read_model_payload(
     let repository = load_semantic_repository(semantic_root);
     let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
     query_semantic_read_model_payload_with_engine(&repository, query_text, &query_engine).await
+}
+
+/// Validate one semantic read-model SQL query as a read-only single statement.
+///
+/// # Errors
+///
+/// Returns an error when the query text is blank, parses as multiple
+/// statements, or resolves to anything other than one read-only query
+/// statement.
+pub fn validate_semantic_read_model_query_text(query_text: &str) -> Result<(), String> {
+    let normalized_query = query_text.trim();
+    if normalized_query.is_empty() {
+        return Err("semantic read-model SQL query text must not be blank".to_string());
+    }
+
+    let mut statements = DFParser::parse_sql(normalized_query)
+        .map_err(|error| format!("failed to parse semantic read-model SQL query text: {error}"))?;
+    if statements.len() != 1 {
+        return Err(
+            "semantic read-model SQL query text must contain exactly one statement".to_string(),
+        );
+    }
+
+    let statement = statements.pop_front().ok_or_else(|| {
+        "semantic read-model SQL query text must contain exactly one statement".to_string()
+    })?;
+    match statement {
+        DataFusionStatement::Statement(statement)
+            if matches!(statement.as_ref(), SqlStatement::Query(_)) =>
+        {
+            Ok(())
+        }
+        _ => Err(
+            "semantic read-model SQL query text must be a read-only query statement".to_string(),
+        ),
+    }
 }
 
 async fn payload_from_query_engine_batches(

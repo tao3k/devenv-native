@@ -12,6 +12,7 @@ Current ownership in this crate:
 4. advisory repo-native semantic read-model rows and query payloads for
    `semantic_objects`, `semantic_relations`, and
    `semantic_projection_state`
+5. single-statement read-only SQL admission for semantic read-model queries
 
 This crate does not own the full shared-query architecture. Broader shared
 query semantics, gateway adapters, and DuckDB-backed business behavior remain

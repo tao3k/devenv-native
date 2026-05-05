@@ -25,6 +25,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-sql bounded_work_markdown -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-sql semantic_read_model -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-sql semantic_read_model_query_validation -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji workdir_semantic -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji router -- --nocapture
@@ -70,4 +71,6 @@ CLI now renders the same workflow shape with
 `wendao-client lint semantic --read-model-summary` so operators can inspect
 the advisory semantic read-model row counts without changing repo-native
 semantic authority. Operators can now run bounded read-only SQL against those
-same advisory tables with `wendao-client semantic query-read-model --query`.
+same advisory tables with `wendao-client semantic query-read-model --query`;
+the SQL crate rejects blank, multi-statement, and mutation SQL before table
+registration.

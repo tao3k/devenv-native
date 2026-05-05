@@ -128,7 +128,9 @@ Behavior:
     `semantic/` root and rendering text, JSON, or pretty JSON through the
     global output option. The registered tables are `semantic_objects`,
     `semantic_relations`, and `semantic_projection_state`; query results are
-    evidence only and do not mutate semantic artifacts
+    evidence only and do not mutate semantic artifacts. The SQL crate admits
+    exactly one read-only query statement and rejects blank, multi-statement,
+    or mutation SQL before table registration
 
 Diagnostic rendering is split deliberately:
 

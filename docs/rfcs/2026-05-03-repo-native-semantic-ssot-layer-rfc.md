@@ -139,6 +139,9 @@ As of 2026-05-05, the first physical slice is implemented:
     read-only SQL against the same provisional semantic read-model tables and
     returns text, JSON, or pretty JSON query payloads. This gives operators a
     direct evidence query surface without changing semantic authority.
+26. Semantic read-model query admission now lives in `xiuxian-wendao-sql`.
+    Blank SQL, multi-statement SQL, and mutation SQL are rejected before table
+    registration; accepted queries must parse as one read-only query statement.
 
 The full RFC is not complete. Remaining work includes wider rollout of
 semantic guard route-aware real workflows, DuckDB-backed materialized read
@@ -437,8 +440,9 @@ validated semantic repositories into `semantic_objects`, `semantic_relations`,
 and `semantic_projection_state`, and `wendao-client lint semantic
 --read-model-summary` exposes those row counts as advisory operator context.
 `wendao-client semantic query-read-model --query SQL` also exposes bounded
-read-only SQL queries over those tables. This is not yet a DuckDB
-materialization or Julia compute slice.
+read-only SQL queries over those tables, with SQL admission requiring exactly
+one read-only query statement. This is not yet a DuckDB materialization or
+Julia compute slice.
 
 ## 8. Proposed Relation Model
 

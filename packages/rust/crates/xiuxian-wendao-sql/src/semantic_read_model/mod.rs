@@ -12,7 +12,10 @@ pub use guard::{
     SemanticSqlGuardEvidence, SemanticSqlGuardStatus, run_semantic_sql_projection_freshness_guard,
     run_semantic_sql_projection_freshness_guard_with_engine,
 };
-pub use query::{query_semantic_read_model_payload, query_semantic_read_model_payload_with_engine};
+pub use query::{
+    query_semantic_read_model_payload, query_semantic_read_model_payload_with_engine,
+    validate_semantic_read_model_query_text,
+};
 pub use register::{
     SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
     SEMANTIC_RELATIONS_TABLE_NAME, build_semantic_read_model_rows,
