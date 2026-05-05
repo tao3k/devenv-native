@@ -1,3 +1,24 @@
+---
+type: knowledge
+kind: readme
+title: "xiuxian-wendao-attachments"
+category: "package-docs"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Package README for Wendao attachment parsing, OCR shard contracts, and polyglot bridge ownership."
+tags:
+  - attachments
+  - wendao
+  - ocr
+  - polyglot
+metadata:
+  title: "xiuxian-wendao-attachments"
+  retrieval:
+    saliency_base: 7.0
+    decay_rate: 0.03
+---
+
 # xiuxian-wendao-attachments
 
 `xiuxian-wendao-attachments` owns reusable attachment parsing, audit, and
@@ -153,18 +174,19 @@ worker completion order cannot become document order.
 The final worker/shard clamp for that scheduler is now routed through the
 `xiuxian-polyglot-orchestrator` Docling schedule plan via the attachment
 polyglot bridge. Studio still owns live permits, queue wait observation,
-source-range machine ceilings, endpoint dispatch, and the Flight metadata
-header.
+endpoint dispatch, and the Flight metadata header, while the orchestrator owns
+the source-range auto worker sizing policy from attachment and Studio facts.
 
 This is also the attachment-side ownership boundary for
-[RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+[RFC: Polyglot Compute Orchestrator](../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
 Phase 1.1. `xiuxian-wendao-attachments` owns OCR shard scheduling evidence,
 cache reuse, ordering validation, Docling fallback policy, and the stable OCR
 shard input/result contracts. It does not own Python worker lifecycle,
 runtime-level Flight admission, Julia profile readiness, or a standalone
 polyglot scheduler. The approved `xiuxian-polyglot-orchestrator` crate owns the
-pure Docling scheduling-plan contract. Attachments may call it through
-`pdf_ocr_shard_schedule_plan` with attachment-owned pressure facts, then
+pure Docling scheduling-plan contract, including the source-range worker sizing
+policy. Attachments may call it through `pdf_ocr_shard_schedule_plan` or
+`pdf_ocr_source_range_shard_schedule_plan` with attachment-owned pressure facts, then
 translate the inert plan into attachment-local batch sizing, cache reuse,
 ordering validation, and fallback behavior. The orchestrator must not duplicate
 cache ownership, shard ordering authority, or Docling fallback policy.
@@ -207,8 +229,9 @@ range. PDFium-backed rendering remains available for region/raster proofs, but
 it is not required for the full-page source-range hot path.
 Rust may split one contiguous source-PDF page range into multiple contiguous
 subranges when OCR worker permits are available. The source-range lane uses a
-the current adaptive OCR budget capped by a machine-derived source-range ceiling
-and page count to avoid over-parallelizing Docling PDF conversion, and
+current adaptive OCR budget, machine-derived worker bound, and page count to let
+the orchestrator select a conservative worker recommendation for Docling PDF
+conversion, and
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` remains an explicit
 benchmark override for source-range chunk count experiments.
 

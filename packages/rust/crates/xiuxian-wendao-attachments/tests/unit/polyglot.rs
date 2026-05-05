@@ -1,6 +1,7 @@
 use super::{
     pdf_ocr_shard_contract_snapshot, pdf_ocr_shard_input_ref, pdf_ocr_shard_pressure_evidence,
     pdf_ocr_shard_pressure_snapshot, pdf_ocr_shard_result_ref, pdf_ocr_shard_schedule_plan,
+    pdf_ocr_source_range_shard_schedule_plan,
 };
 use crate::pdf::ocr::{
     PDF_OCR_DEFAULT_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
@@ -101,4 +102,36 @@ fn ocr_schedule_plan_uses_orchestrator_policy() {
     assert_eq!(plan.reason, DoclingScheduleReason::CapacityAvailable);
     assert_eq!(plan.recommended_workers, 4);
     assert_eq!(plan.shard_wave_size, 4);
+}
+
+#[test]
+fn source_range_schedule_plan_uses_orchestrator_auto_policy() {
+    let pressure = pdf_ocr_shard_pressure_evidence(Some(12), 0, 0, 0, 0, 0, false);
+
+    let plan = pdf_ocr_source_range_shard_schedule_plan(pressure, Some(12), None, Some(12), 21);
+
+    assert_eq!(plan.action, DoclingScheduleAction::Dispatch);
+    assert_eq!(plan.reason, DoclingScheduleReason::CapacityAvailable);
+    assert_eq!(plan.recommended_workers, 4);
+    assert_eq!(plan.shard_wave_size, 4);
+}
+
+#[test]
+fn source_range_schedule_plan_keeps_override_diagnostic() {
+    let pressure = pdf_ocr_shard_pressure_evidence(Some(12), 0, 0, 0, 0, 0, false);
+
+    let plan = pdf_ocr_source_range_shard_schedule_plan(pressure, Some(12), Some(99), Some(12), 3);
+
+    assert_eq!(plan.recommended_workers, 3);
+    assert_eq!(plan.shard_wave_size, 3);
+}
+
+#[test]
+fn source_range_schedule_plan_caps_override_by_adaptive_budget() {
+    let pressure = pdf_ocr_shard_pressure_evidence(Some(12), 0, 0, 0, 0, 0, false);
+
+    let plan = pdf_ocr_source_range_shard_schedule_plan(pressure, Some(2), Some(99), Some(12), 21);
+
+    assert_eq!(plan.recommended_workers, 2);
+    assert_eq!(plan.shard_wave_size, 2);
 }

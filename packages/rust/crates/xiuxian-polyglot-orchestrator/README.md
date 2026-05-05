@@ -1,11 +1,32 @@
+---
+type: knowledge
+kind: readme
+title: "xiuxian-polyglot-orchestrator"
+category: "package-docs"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Package README for the bounded Wendao polyglot compute orchestrator control-plane contracts."
+tags:
+  - orchestrator
+  - wendao
+  - polyglot
+  - docling
+metadata:
+  title: "xiuxian-polyglot-orchestrator"
+  retrieval:
+    saliency_base: 7.0
+    decay_rate: 0.03
+---
+
 # xiuxian-polyglot-orchestrator
 
 Thin Rust control-plane contracts for the Wendao polyglot compute lane.
 
 This crate is governed by
-[RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+[RFC: Polyglot Compute Orchestrator](../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
 and its
-[audit](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md).
+[audit](../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md).
 
 ## Ownership Boundary
 
@@ -27,9 +48,9 @@ policy, Julia profile schemas, Julia thread scheduling, Arrow Flight transport
 construction, schema default selection, shared-memory transport, or semantic
 routing. Scheduling plans are advisory contracts; owner packages still execute
 or decline work through their existing routes, headers, queues, caches, and
-fallback policy. The Studio OCR scheduler consumes these plans for the common
-worker/shard clamp after it has computed local adaptive pressure and
-source-range ceilings. The Studio full-document provider also consumes the
+fallback policy. The Studio OCR scheduler supplies live pressure and system
+facts, then consumes these plans for source-range auto worker sizing and the
+common worker/shard clamp. The Studio full-document provider also consumes the
 runtime-owned plan before existing Docling endpoint selection while retaining
 endpoint-pool, cache/job registry, and Python worker lifecycle authority.
 

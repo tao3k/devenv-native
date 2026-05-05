@@ -56,6 +56,7 @@ pub mod snapshot;
 pub use admission::{AdmissionBudget, AdmissionDecision, QueueReason, RejectionReason};
 pub use docling_schedule::{
     DoclingScheduleAction, DoclingSchedulePlan, DoclingScheduleReason, DoclingSchedulingInput,
+    DoclingWorkerPolicy,
 };
 pub use evidence::{FallbackEvidence, HealthState, LaneEvidence, PressureLevel, ReadinessState};
 pub use lanes::{LaneCapability, PolyglotLane};

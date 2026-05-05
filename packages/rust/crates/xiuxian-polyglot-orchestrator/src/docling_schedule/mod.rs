@@ -4,4 +4,5 @@ mod model;
 
 pub use model::{
     DoclingScheduleAction, DoclingSchedulePlan, DoclingScheduleReason, DoclingSchedulingInput,
+    DoclingWorkerPolicy,
 };

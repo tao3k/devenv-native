@@ -5,8 +5,6 @@ title: "Audit: Polyglot Compute Orchestrator"
 category: "audit"
 status: "live-backend-probe-profile-complete"
 author: Xiuxian Artisan Workshop
-authors:
-  - codex
 created: 2026-05-04
 date: 2026-05-05T00:00-07:00
 description: "Audit of the bounded polyglot compute orchestrator crate and its preserved execution-owner boundaries."

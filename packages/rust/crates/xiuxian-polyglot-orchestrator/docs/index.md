@@ -1,3 +1,24 @@
+---
+type: knowledge
+kind: index
+title: "xiuxian-polyglot-orchestrator Map of Content"
+category: "package-docs"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Map of content for the xiuxian-polyglot-orchestrator package documentation."
+tags:
+  - orchestrator
+  - wendao
+  - polyglot
+  - documentation
+metadata:
+  title: "xiuxian-polyglot-orchestrator Map of Content"
+  retrieval:
+    saliency_base: 7.0
+    decay_rate: 0.03
+---
+
 # xiuxian-polyglot-orchestrator: Map of Content
 
 :PROPERTIES:
@@ -15,8 +36,8 @@ ownership, and transport construction remain in the existing Wendao owner
 packages. The crate may compute inert Docling scheduling plans from supplied
 facts, but owner packages still translate those plans into existing route,
 header, batch, cache, ordering, and fallback behavior. Studio now consumes the
-plan for the common OCR worker/shard clamp while retaining live dispatch and
-pressure observation authority.
+plan for source-range auto worker sizing and the common OCR worker/shard clamp
+while retaining live dispatch and pressure observation authority.
 
 Module surfaces:
 

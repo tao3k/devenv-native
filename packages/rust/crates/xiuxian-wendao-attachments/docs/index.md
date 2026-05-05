@@ -1,3 +1,24 @@
+---
+type: knowledge
+kind: index
+title: "xiuxian-wendao-attachments Map of Content"
+category: "package-docs"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Map of content for the xiuxian-wendao-attachments package documentation."
+tags:
+  - attachments
+  - wendao
+  - documentation
+  - polyglot
+metadata:
+  title: "xiuxian-wendao-attachments Map of Content"
+  retrieval:
+    saliency_base: 7.0
+    decay_rate: 0.03
+---
+
 # xiuxian-wendao-attachments: Map of Content
 
 :PROPERTIES:
@@ -18,7 +39,7 @@ Polyglot boundary:
 
 1. `src/polyglot.rs` translates attachment-owned OCR shard route, schema,
    pressure, and scheduling facts into `xiuxian-polyglot-orchestrator`
-   contracts.
+   contracts, including the source-range auto worker sizing helper.
 2. The bridge is feature-gated by `pdf-source-range` because it depends on the
    attachment OCR shard schema surface.
 3. Studio may consume the resulting inert schedule plan, but attachments still

@@ -5,8 +5,6 @@ title: "RFC: Polyglot Compute Orchestrator (Rust/Python/Julia)"
 category: "rfc"
 status: "live-backend-probe-profile-complete"
 author: Xiuxian Artisan Workshop
-authors:
-  - codex
 created: 2026-05-04
 date: 2026-05-05T00:00-07:00
 description: "Bounded RFC for the Rust control-plane crate that coordinates existing Python Docling and Julia compute boundaries."

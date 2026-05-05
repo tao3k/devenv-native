@@ -2,8 +2,8 @@
 
 #[cfg(feature = "pdf-source-range")]
 use xiuxian_polyglot_orchestrator::{
-    DoclingSchedulePlan, DoclingSchedulingInput, PolyglotControlSnapshot, RouteProfileRef,
-    SnapshotInvariantError, WorkerPressureEvidence,
+    DoclingSchedulePlan, DoclingSchedulingInput, DoclingWorkerPolicy, PolyglotControlSnapshot,
+    RouteProfileRef, SnapshotInvariantError, WorkerPressureEvidence,
 };
 
 #[cfg(feature = "pdf-source-range")]
@@ -111,6 +111,28 @@ pub fn pdf_ocr_shard_schedule_plan(
 ) -> DoclingSchedulePlan {
     DoclingSchedulingInput::ocr_shards(pressure)
         .with_worker_request(requested_workers, max_worker_cap)
+        .with_shard_count(shard_count)
+        .plan()
+}
+
+/// Returns an inert source-PDF page-range OCR scheduling plan.
+///
+/// The optional `diagnostic_worker_override` is for benchmark sweeps only.
+/// When it is `None`, the orchestrator crate computes the worker request from
+/// the owner-supplied adaptive budget, maximum worker cap, and shard count.
+#[cfg(feature = "pdf-source-range")]
+#[must_use]
+pub fn pdf_ocr_source_range_shard_schedule_plan(
+    pressure: WorkerPressureEvidence,
+    adaptive_worker_budget: Option<u32>,
+    diagnostic_worker_override: Option<u32>,
+    max_worker_cap: Option<u32>,
+    shard_count: u32,
+) -> DoclingSchedulePlan {
+    DoclingSchedulingInput::ocr_shards(pressure)
+        .with_worker_policy(DoclingWorkerPolicy::SourcePdfPageRange)
+        .with_adaptive_worker_budget(adaptive_worker_budget)
+        .with_worker_request(diagnostic_worker_override, max_worker_cap)
         .with_shard_count(shard_count)
         .plan()
 }

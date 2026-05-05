@@ -1,3 +1,24 @@
+---
+type: knowledge
+kind: readme
+title: "xiuxian-wendao-studio"
+category: "package-docs"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Package README for the Wendao Studio gateway adapter and Docling scheduling adoption boundary."
+tags:
+  - studio
+  - wendao
+  - docling
+  - polyglot
+metadata:
+  title: "xiuxian-wendao-studio"
+  retrieval:
+    saliency_base: 7.0
+    decay_rate: 0.03
+---
+
 # xiuxian-wendao-studio
 
 `xiuxian-wendao-studio` owns the Studio-facing HTTP gateway adapter for Wendao.
@@ -57,16 +78,16 @@ composition by accident.
 ## Polyglot Docling Scheduling
 
 The Polyglot Compute Orchestrator boundary is tracked in
-[RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md).
+[RFC: Polyglot Compute Orchestrator](../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md).
 
 For the `document-extract-pdf-source-range` lane, Studio owns the live OCR
-worker-wave calculation, semaphore permits, endpoint selection, cache hits,
-in-flight shard coalescing, and the `x-wendao-pdf-ocr-workers` Flight metadata
-header. The shared `xiuxian-polyglot-orchestrator` contract owns only the pure
-Docling scheduling plan. Studio consumes that plan through the attachment
-polyglot bridge for the final worker/shard clamp, while keeping source-range
-machine ceilings, adaptive pressure reduction, queue wait observation, and live
-dispatch local to this crate.
+semaphore permits, endpoint selection, cache hits, in-flight shard coalescing,
+adaptive pressure observations, queue wait observation, and the
+`x-wendao-pdf-ocr-workers` Flight metadata header. The shared
+`xiuxian-polyglot-orchestrator` contract owns the pure Docling scheduling plan,
+including source-range auto worker sizing from owner-supplied system facts.
+Studio consumes that plan through the attachment polyglot bridge while keeping
+live dispatch local to this crate.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

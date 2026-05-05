@@ -1,6 +1,7 @@
 use crate::{
     AdmissionDecision, DoclingScheduleAction, DoclingScheduleReason, DoclingSchedulingInput,
-    LaneCapability, PolyglotLane, PressureLevel, QueueReason, WorkerPressureEvidence,
+    DoclingWorkerPolicy, LaneCapability, PolyglotLane, PressureLevel, QueueReason,
+    WorkerPressureEvidence,
 };
 
 #[test]
@@ -85,4 +86,73 @@ fn serialization_uses_snake_case_action_and_reason() {
 
     assert!(serialized.contains("\"action\":\"dispatch\""));
     assert!(serialized.contains("\"reason\":\"capacity_available\""));
+}
+
+#[test]
+fn source_pdf_page_range_policy_recommends_milestone_worker_budget() {
+    let pressure = WorkerPressureEvidence::ocr_shard_extraction()
+        .with_worker_budget(Some(12), 0)
+        .with_queue_depth(0);
+
+    let plan = DoclingSchedulingInput::ocr_shards(pressure)
+        .with_worker_policy(DoclingWorkerPolicy::SourcePdfPageRange)
+        .with_adaptive_worker_budget(Some(12))
+        .with_worker_request(None, Some(12))
+        .with_shard_count(21)
+        .plan();
+
+    assert_eq!(plan.action, DoclingScheduleAction::Dispatch);
+    assert_eq!(plan.recommended_workers, 4);
+    assert_eq!(plan.shard_wave_size, 4);
+}
+
+#[test]
+fn source_pdf_page_range_policy_respects_pressure_reduced_budget() {
+    let pressure = WorkerPressureEvidence::ocr_shard_extraction()
+        .with_worker_budget(Some(12), 0)
+        .with_queue_depth(0);
+
+    let plan = DoclingSchedulingInput::ocr_shards(pressure)
+        .with_worker_policy(DoclingWorkerPolicy::SourcePdfPageRange)
+        .with_adaptive_worker_budget(Some(2))
+        .with_worker_request(None, Some(12))
+        .with_shard_count(21)
+        .plan();
+
+    assert_eq!(plan.recommended_workers, 2);
+    assert_eq!(plan.shard_wave_size, 2);
+}
+
+#[test]
+fn source_pdf_page_range_policy_keeps_fixed_worker_override_diagnostic() {
+    let pressure = WorkerPressureEvidence::ocr_shard_extraction()
+        .with_worker_budget(Some(12), 0)
+        .with_queue_depth(0);
+
+    let plan = DoclingSchedulingInput::ocr_shards(pressure)
+        .with_worker_policy(DoclingWorkerPolicy::SourcePdfPageRange)
+        .with_adaptive_worker_budget(Some(12))
+        .with_worker_request(Some(99), Some(12))
+        .with_shard_count(3)
+        .plan();
+
+    assert_eq!(plan.recommended_workers, 3);
+    assert_eq!(plan.shard_wave_size, 3);
+}
+
+#[test]
+fn source_pdf_page_range_override_respects_adaptive_budget() {
+    let pressure = WorkerPressureEvidence::ocr_shard_extraction()
+        .with_worker_budget(Some(12), 0)
+        .with_queue_depth(0);
+
+    let plan = DoclingSchedulingInput::ocr_shards(pressure)
+        .with_worker_policy(DoclingWorkerPolicy::SourcePdfPageRange)
+        .with_adaptive_worker_budget(Some(2))
+        .with_worker_request(Some(99), Some(12))
+        .with_shard_count(21)
+        .plan();
+
+    assert_eq!(plan.recommended_workers, 2);
+    assert_eq!(plan.shard_wave_size, 2);
 }
