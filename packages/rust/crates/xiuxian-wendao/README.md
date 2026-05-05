@@ -128,6 +128,12 @@ Use `xiuxian-wendao` for:
 - knowledge graph and link-graph behavior
 - search, retrieval, and search-plane business semantics
 - Valkey/Lance-backed storage behavior and DuckDB-backed local cache behavior
+- Wendao event-lake schema and query semantics over the generic DuckLake
+  substrate exposed by `xiuxian-db-store`; `WendaoEventLake` is the
+  connection-light handle for attach, table setup, append, grouped count
+  queries, and bounded filtered event-row reads; `WendaoEventLakeLocalConfig`
+  resolves the local embedded path convention under
+  `$PRJ_DATA_HOME/wendao/event_lake/`
 - analyzers, enhancers, and other Wendao domain services
 - business handlers that materialize Wendao-specific responses
 - temporary compatibility seams that have not been extracted yet
