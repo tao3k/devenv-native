@@ -16,6 +16,7 @@ The currently landed commands are:
 wendao-client lint markdown [PATH]...
 wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
 wendao-client lint semantic [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
+wendao-client semantic refresh-projections [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -103,6 +104,11 @@ Behavior:
     parser-owned queue contract for future background refresh workers; the
     command does not mutate projection artifacts unless `--refresh-projections`
     is also passed explicitly
+29. runs one explicit semantic projection metadata refresh worker pass with
+    `semantic refresh-projections`. The worker uses the same semantic lint
+    engine, applies projection metadata refresh through the existing writeback
+    path, renders the post-refresh plan, and requires projection freshness
+    before returning success
 
 Diagnostic rendering is split deliberately:
 

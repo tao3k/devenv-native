@@ -12,8 +12,8 @@ mod run;
 mod text_output;
 
 pub use command::{
-    LintCommand, MarkdownLintArgs, SemanticLintArgs, SemanticLintValidationArgs,
-    SemanticLintWritebackArgs,
+    LintCommand, MarkdownLintArgs, SemanticLintArgs, SemanticLintProjectionValidationArgs,
+    SemanticLintValidationArgs, SemanticLintWritebackArgs,
 };
 pub use contract::{
     MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS, MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,

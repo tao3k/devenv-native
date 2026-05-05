@@ -68,11 +68,14 @@ scope; the default remains advisory.
 read-only projection metadata refresh queue contract for future background
 refresh workers, while artifact mutation remains explicit through
 `--refresh-projections`.
+`wendao-client semantic refresh-projections` now runs one explicit worker pass
+that consumes that plan, applies the existing projection metadata writeback
+path, and enforces post-refresh freshness.
 
-The RFC is still not fully complete. An actual background projection refresh
-worker, deeper workflow policy routing beyond scheduler preflight blocking,
-and future Julia or DuckDB-backed derived lanes remain outside the completed
-slice.
+The RFC is still not fully complete. Scheduling the one-shot refresh worker
+from a real background runner, deeper workflow policy routing beyond scheduler
+preflight blocking, and future Julia or DuckDB-backed derived lanes remain
+outside the completed slice.
 
 ## 2. Evidence Map
 
@@ -265,6 +268,9 @@ before closing a semantic change.
 `wendao-client lint semantic --projection-refresh-plan` now exposes the
 read-only refresh plan that a future background refresh worker can consume
 without silently mutating repo-native projection artifacts.
+`wendao-client semantic refresh-projections` now provides the one-shot worker
+entrypoint for that contract while still routing writes through the explicit
+projection metadata refresh implementation.
 
 ## 6. Formal Research References
 

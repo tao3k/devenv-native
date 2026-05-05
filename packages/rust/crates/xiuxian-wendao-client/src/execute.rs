@@ -1,6 +1,6 @@
 //! Command dispatch for Wendao client subcommands.
 
-use crate::{ClientCommand, ClientContext, LintCommand, get, lint};
+use crate::{ClientCommand, ClientContext, LintCommand, get, lint, semantic};
 use anyhow::Result;
 
 /// Stable process outcome for standalone and embedded command entrypoints.
@@ -38,6 +38,7 @@ pub fn run_command(command: &ClientCommand, context: &ClientContext) -> Result<C
     match command {
         ClientCommand::Get { command } => get::run_command(command, context),
         ClientCommand::Lint { command } => run_lint_command(command, context),
+        ClientCommand::Semantic { command } => semantic::run_command(command, context),
     }
 }
 

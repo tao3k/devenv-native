@@ -1,6 +1,6 @@
 //! Top-level command-line argument model for the Wendao client binary.
 
-use crate::{GetCommand, LintCommand, OutputFormat};
+use crate::{GetCommand, LintCommand, OutputFormat, SemanticCommand};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use xiuxian_logging::LogCliArgs;
@@ -54,5 +54,11 @@ pub enum ClientCommand {
         /// Lint-oriented subcommand selection.
         #[command(subcommand)]
         command: LintCommand,
+    },
+    /// Work with repo-native semantic SSOT artifacts.
+    Semantic {
+        /// Semantic-oriented subcommand selection.
+        #[command(subcommand)]
+        command: SemanticCommand,
     },
 }

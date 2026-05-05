@@ -344,40 +344,28 @@ fn refresh_projection_file(path: &Path, current_revision: &str) -> Result<()> {
             path.display()
         )
     })?;
-    let mut frontmatter =
-        serde_yaml::from_str::<serde_yaml::Value>(parts.yaml).with_context(|| {
-            format!(
-                "failed to parse semantic projection frontmatter `{}`",
-                path.display()
-            )
-        })?;
-    update_projection_frontmatter(
-        &mut frontmatter,
+    let frontmatter = serde_yaml::from_str::<serde_yaml::Value>(parts.yaml).with_context(|| {
+        format!(
+            "failed to parse semantic projection frontmatter `{}`",
+            path.display()
+        )
+    })?;
+    ensure_projection_frontmatter_mapping(&frontmatter)?;
+    let rendered = render_projection_document_with_updated_frontmatter(
+        parts.yaml,
+        parts.body,
         current_revision,
-        &SemanticProjectionStaleness::Fresh,
-    )?;
-    let rendered = render_semantic_document(&frontmatter, parts.body)?;
+        semantic_projection_staleness_token(&SemanticProjectionStaleness::Fresh),
+    );
     std::fs::write(path, rendered)
         .with_context(|| format!("failed to write semantic projection `{}`", path.display()))?;
     Ok(())
 }
 
-fn update_projection_frontmatter(
-    frontmatter: &mut serde_yaml::Value,
-    current_revision: &str,
-    staleness: &SemanticProjectionStaleness,
-) -> Result<()> {
-    let Some(mapping) = frontmatter.as_mapping_mut() else {
+fn ensure_projection_frontmatter_mapping(frontmatter: &serde_yaml::Value) -> Result<()> {
+    if !frontmatter.is_mapping() {
         bail!("semantic projection frontmatter must be a YAML mapping");
-    };
-    mapping.insert(
-        serde_yaml::Value::String("source_revision".to_string()),
-        serde_yaml::Value::String(current_revision.to_string()),
-    );
-    mapping.insert(
-        serde_yaml::Value::String("staleness".to_string()),
-        serde_yaml::Value::String(semantic_projection_staleness_token(staleness).to_string()),
-    );
+    }
     Ok(())
 }
 
@@ -388,10 +376,39 @@ fn semantic_projection_staleness_token(staleness: &SemanticProjectionStaleness) 
     }
 }
 
-fn render_semantic_document(frontmatter: &serde_yaml::Value, body: &str) -> Result<String> {
-    let yaml = serde_yaml::to_string(frontmatter)
-        .context("failed to render semantic projection frontmatter")?;
-    Ok(format!("---\n{}---\n\n{}", yaml.trim_start(), body.trim()))
+fn render_projection_document_with_updated_frontmatter(
+    frontmatter: &str,
+    body: &str,
+    current_revision: &str,
+    staleness: &str,
+) -> String {
+    let mut saw_source_revision = false;
+    let mut saw_staleness = false;
+    let mut rendered_frontmatter = frontmatter
+        .lines()
+        .map(|line| {
+            if line.starts_with("source_revision:") {
+                saw_source_revision = true;
+                format!("source_revision: \"{current_revision}\"")
+            } else if line.starts_with("staleness:") {
+                saw_staleness = true;
+                format!("staleness: {staleness}")
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>();
+    if !saw_source_revision {
+        rendered_frontmatter.push(format!("source_revision: \"{current_revision}\""));
+    }
+    if !saw_staleness {
+        rendered_frontmatter.push(format!("staleness: {staleness}"));
+    }
+    format!(
+        "---\n{}\n---\n\n{}\n",
+        rendered_frontmatter.join("\n"),
+        body.trim()
+    )
 }
 
 fn semantic_sql_guard_report(

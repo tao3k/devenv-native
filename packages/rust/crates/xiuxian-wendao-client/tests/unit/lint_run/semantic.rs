@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tempfile::TempDir;
 
-use super::{run_semantic_lint, run_semantic_lint_with_args};
+use super::{run_semantic_lint, run_semantic_lint_with_args, run_semantic_refresh_projections};
 
 #[test]
 fn semantic_lint_accepts_valid_semantic_root() -> Result<()> {
@@ -100,6 +100,14 @@ fn semantic_lint_refreshes_projection_source_revision() -> Result<()> {
     assert!(
         projection.contains("staleness: fresh"),
         "staleness should be marked fresh: {projection}"
+    );
+    assert!(
+        projection.contains("source_objects:\n  - decision.fixture"),
+        "projection refresh should preserve block sequence indentation: {projection}"
+    );
+    assert!(
+        projection.contains("source_revision: \"blake3:"),
+        "projection refresh should keep source revision quoted: {projection}"
     );
     assert!(
         projection.contains("projection_revision: test.v1"),
@@ -212,6 +220,44 @@ fn semantic_lint_renders_projection_refresh_plan() -> Result<()> {
     assert!(
         stdout.contains("Projection refresh plan up_to_date (0 refreshable projection(s))"),
         "refreshed projection should make plan empty: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_refresh_projections_command_runs_one_worker_pass() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) = run_semantic_refresh_projections(&temp, None)?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
+        "worker should refresh stale projection metadata: {stdout}"
+    );
+    assert!(
+        stdout.contains("Projection refresh plan up_to_date"),
+        "worker should report an empty post-refresh plan: {stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "Projection freshness policy semantic_projection.required_refresh_targets passed"
+        ),
+        "worker should enforce post-refresh projection freshness: {stdout}"
+    );
+
+    let projection =
+        std::fs::read_to_string(temp.path().join("semantic/projections/llm-compression.md"))?;
+    assert!(
+        projection.contains("staleness: fresh"),
+        "worker should mark projection metadata fresh: {projection}"
     );
     Ok(())
 }

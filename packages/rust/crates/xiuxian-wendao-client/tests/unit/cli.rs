@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::path::PathBuf;
-use xiuxian_wendao_client::{ClientCli, ClientCommand, GetCommand, LintCommand};
+use xiuxian_wendao_client::{ClientCli, ClientCommand, GetCommand, LintCommand, SemanticCommand};
 
 #[test]
 fn parses_markdown_lint_command() {
@@ -127,6 +127,24 @@ fn parses_semantic_lint_apply_lifecycle_plan_flag() {
             assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
+fn parses_semantic_refresh_projections_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "semantic",
+        "refresh-projections",
+        "semantic/custom",
+    ]);
+    let ClientCommand::Semantic { command } = cli.command else {
+        panic!("expected semantic command");
+    };
+    match command {
+        SemanticCommand::RefreshProjections(args) => {
+            assert_eq!(args.paths, vec![PathBuf::from("semantic/custom")]);
+        }
     }
 }
 

@@ -15,6 +15,7 @@ mod execute;
 mod get;
 mod lint;
 mod output;
+mod semantic;
 
 pub use cli::{ClientCli, ClientCommand};
 pub use context::ClientContext;
@@ -35,3 +36,4 @@ pub use lint::{
     markdown_lint_diagnostic_schema_snapshot,
 };
 pub use output::OutputFormat;
+pub use semantic::{SemanticCommand, SemanticRefreshProjectionsArgs};
