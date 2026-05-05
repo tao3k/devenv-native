@@ -47,12 +47,12 @@ parser validation, CLI linting, the Wendao semantic-scope route, Studio
 runtime serving, Qianji advisory consumption, explicit projection metadata
 refresh through `wendao-client lint semantic --refresh-projections`, and
 read-only lifecycle writeback preview through
-`wendao-client lint semantic --lifecycle-plan`.
+`wendao-client lint semantic --lifecycle-plan`, plus explicit lifecycle apply
+tooling through `wendao-client lint semantic --apply-lifecycle-plan`.
 
 The RFC is still not fully complete. Background projection refresh policy,
-optional status-transition apply tooling, broader Qianji workflow consumption,
-and future Julia or DuckDB-backed derived lanes remain outside the completed
-slice.
+broader Qianji workflow consumption, and future Julia or DuckDB-backed derived
+lanes remain outside the completed slice.
 
 ## 2. Evidence Map
 
@@ -235,7 +235,10 @@ Change intents can now declare landed `status_transitions`, with parser
 validation for the current target status and allowed lifecycle edge, and
 explicit `promotion_targets` / `demotion_targets` for lifecycle outcomes.
 `wendao-client lint semantic --lifecycle-plan` now renders a read-only
-writeback preview for those lifecycle outcomes.
+writeback preview for those lifecycle outcomes, and
+`wendao-client lint semantic --apply-lifecycle-plan` can explicitly apply
+pending lifecycle transitions before re-validating the repository semantic
+surface.
 
 ## 6. Formal Research References
 

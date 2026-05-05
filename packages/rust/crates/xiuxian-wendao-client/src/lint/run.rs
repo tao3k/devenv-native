@@ -1,6 +1,9 @@
 use super::contract::diagnostic_contract;
 use super::diagnostic::DiagnosticContext;
 use super::discovery::{collect_markdown_files, display_path};
+use super::lifecycle::{
+    SemanticLifecyclePlanReport, apply_semantic_lifecycle_plan, semantic_lifecycle_plan_report,
+};
 use super::policy::{
     collect_file_link_style_facts, lint_directory_link_style_policy, lint_local_target_existence,
     lint_local_target_fragments,
@@ -9,13 +12,11 @@ use super::text_output::render_markdown_lint_text_report;
 use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport, SemanticLintArgs};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
 use anyhow::{Context, Result, bail};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use xiuxian_wendao_parsers::semantic_ssot::{SemanticChangeIntent, SemanticStatusTransition};
 use xiuxian_wendao_parsers::{
-    SemanticProjectionStaleness, SemanticStatus, SemanticValidationIssue,
-    lint_markdown_syntax_with_path, load_semantic_repository, semantic_projection_source_revision,
-    split_frontmatter_raw,
+    SemanticProjectionStaleness, SemanticValidationIssue, lint_markdown_syntax_with_path,
+    load_semantic_repository, semantic_projection_source_revision, split_frontmatter_raw,
 };
 use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
 use xiuxian_wendao_sql::semantic_read_model::{
@@ -29,6 +30,7 @@ struct SemanticLintRootReport {
     projection_count: usize,
     change_intent_count: usize,
     refreshed_projection_count: usize,
+    applied_lifecycle_count: usize,
     issues: Vec<SemanticValidationIssue>,
     lifecycle_plan: Option<SemanticLifecyclePlanReport>,
     sql_guard: Option<SemanticLintSqlGuardReport>,
@@ -41,31 +43,10 @@ struct SemanticLintReport {
     projection_count: usize,
     change_intent_count: usize,
     refreshed_projection_count: usize,
+    applied_lifecycle_count: usize,
     issue_count: usize,
     sql_guard_issue_count: usize,
     roots: Vec<SemanticLintRootReport>,
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct SemanticLifecyclePlanReport {
-    entry_count: usize,
-    promotion_count: usize,
-    demotion_count: usize,
-    other_transition_count: usize,
-    already_applied_count: usize,
-    entries: Vec<SemanticLifecyclePlanEntry>,
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct SemanticLifecyclePlanEntry {
-    change_intent_id: String,
-    object_id: String,
-    from: String,
-    to: String,
-    outcome: String,
-    writeback_action: String,
 }
 
 #[derive(serde::Serialize)]
@@ -161,21 +142,27 @@ pub(crate) fn run_semantic_lint(
     let root_reports = roots
         .iter()
         .map(|root| {
-            let refreshed_projection_count = if args.refresh_projections {
+            let applied_lifecycle_count = if args.writeback.apply_lifecycle_plan {
+                apply_semantic_lifecycle_plan(root)?
+            } else {
+                0
+            };
+            let refreshed_projection_count = if args.writeback.refresh_projections {
                 refresh_semantic_projection_sources(root)?
             } else {
                 0
             };
             let repository = load_semantic_repository(root);
             let semantic_issue_count = repository.report.issues.len();
-            let lifecycle_plan = if args.lifecycle_plan && semantic_issue_count == 0 {
-                Some(semantic_lifecycle_plan_report(
-                    repository.change_intents.as_slice(),
-                ))
+            let lifecycle_plan = if (args.validation.lifecycle_plan
+                || args.writeback.apply_lifecycle_plan)
+                && semantic_issue_count == 0
+            {
+                Some(semantic_lifecycle_plan_report(&repository))
             } else {
                 None
             };
-            let sql_guard = if args.semantic_sql_guard && semantic_issue_count == 0 {
+            let sql_guard = if args.validation.semantic_sql_guard && semantic_issue_count == 0 {
                 Some(semantic_sql_guard_report(&repository)?)
             } else {
                 None
@@ -186,6 +173,7 @@ pub(crate) fn run_semantic_lint(
                 projection_count: repository.projections.len(),
                 change_intent_count: repository.change_intents.len(),
                 refreshed_projection_count,
+                applied_lifecycle_count,
                 issues: repository.report.issues,
                 lifecycle_plan,
                 sql_guard,
@@ -203,6 +191,10 @@ pub(crate) fn run_semantic_lint(
         refreshed_projection_count: root_reports
             .iter()
             .map(|root| root.refreshed_projection_count)
+            .sum(),
+        applied_lifecycle_count: root_reports
+            .iter()
+            .map(|root| root.applied_lifecycle_count)
             .sum(),
         issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
         sql_guard_issue_count: root_reports
@@ -295,7 +287,7 @@ fn refresh_projection_file(path: &Path, current_revision: &str) -> Result<()> {
         current_revision,
         &SemanticProjectionStaleness::Fresh,
     )?;
-    let rendered = render_projection_document(&frontmatter, parts.body)?;
+    let rendered = render_semantic_document(&frontmatter, parts.body)?;
     std::fs::write(path, rendered)
         .with_context(|| format!("failed to write semantic projection `{}`", path.display()))?;
     Ok(())
@@ -327,97 +319,7 @@ fn semantic_projection_staleness_token(staleness: &SemanticProjectionStaleness) 
     }
 }
 
-fn semantic_lifecycle_plan_report(
-    change_intents: &[SemanticChangeIntent],
-) -> SemanticLifecyclePlanReport {
-    let entries = change_intents
-        .iter()
-        .filter(|intent| intent.status == SemanticStatus::Active)
-        .flat_map(semantic_lifecycle_plan_entries)
-        .collect::<Vec<_>>();
-    let promotion_count = entries
-        .iter()
-        .filter(|entry| entry.outcome == "promotion")
-        .count();
-    let demotion_count = entries
-        .iter()
-        .filter(|entry| entry.outcome == "demotion")
-        .count();
-    let already_applied_count = entries
-        .iter()
-        .filter(|entry| entry.writeback_action == "already_applied")
-        .count();
-    SemanticLifecyclePlanReport {
-        entry_count: entries.len(),
-        promotion_count,
-        demotion_count,
-        other_transition_count: entries
-            .len()
-            .saturating_sub(promotion_count)
-            .saturating_sub(demotion_count),
-        already_applied_count,
-        entries,
-    }
-}
-
-fn semantic_lifecycle_plan_entries(
-    intent: &SemanticChangeIntent,
-) -> Vec<SemanticLifecyclePlanEntry> {
-    let promotion_targets = intent
-        .promotion_targets
-        .iter()
-        .map(String::as_str)
-        .collect::<BTreeSet<_>>();
-    let demotion_targets = intent
-        .demotion_targets
-        .iter()
-        .map(String::as_str)
-        .collect::<BTreeSet<_>>();
-    intent
-        .status_transitions
-        .iter()
-        .map(|transition| {
-            semantic_lifecycle_plan_entry(intent, transition, &promotion_targets, &demotion_targets)
-        })
-        .collect()
-}
-
-fn semantic_lifecycle_plan_entry(
-    intent: &SemanticChangeIntent,
-    transition: &SemanticStatusTransition,
-    promotion_targets: &BTreeSet<&str>,
-    demotion_targets: &BTreeSet<&str>,
-) -> SemanticLifecyclePlanEntry {
-    let object_id = transition.object_id.as_str();
-    let outcome = if promotion_targets.contains(object_id) {
-        "promotion"
-    } else if demotion_targets.contains(object_id) {
-        "demotion"
-    } else {
-        "status_transition"
-    };
-    SemanticLifecyclePlanEntry {
-        change_intent_id: intent.id.clone(),
-        object_id: transition.object_id.clone(),
-        from: semantic_status_token(&transition.from).to_string(),
-        to: semantic_status_token(&transition.to).to_string(),
-        outcome: outcome.to_string(),
-        writeback_action: "already_applied".to_string(),
-    }
-}
-
-fn semantic_status_token(status: &SemanticStatus) -> &'static str {
-    match status {
-        SemanticStatus::Draft => "draft",
-        SemanticStatus::Candidate => "candidate",
-        SemanticStatus::Active => "active",
-        SemanticStatus::Superseded => "superseded",
-        SemanticStatus::Deprecated => "deprecated",
-        SemanticStatus::Retired => "retired",
-    }
-}
-
-fn render_projection_document(frontmatter: &serde_yaml::Value, body: &str) -> Result<String> {
+fn render_semantic_document(frontmatter: &serde_yaml::Value, body: &str) -> Result<String> {
     let yaml = serde_yaml::to_string(frontmatter)
         .context("failed to render semantic projection frontmatter")?;
     Ok(format!("---\n{}---\n\n{}", yaml.trim_start(), body.trim()))
@@ -549,6 +451,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
             report.projection_count,
             report.change_intent_count
         );
+        render_semantic_lifecycle_apply_text(report, &mut rendered);
         render_semantic_refresh_text(report, &mut rendered);
         render_semantic_lifecycle_plan_text(report, &mut rendered);
         render_semantic_sql_guard_text(report, &mut rendered);
@@ -564,6 +467,7 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
         report.projection_count,
         report.change_intent_count
     );
+    render_semantic_lifecycle_apply_text(report, &mut rendered);
     render_semantic_refresh_text(report, &mut rendered);
     render_semantic_lifecycle_plan_text(report, &mut rendered);
     for root in &report.roots {
@@ -583,6 +487,15 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
     rendered
 }
 
+fn render_semantic_lifecycle_apply_text(report: &SemanticLintReport, rendered: &mut String) {
+    if report.applied_lifecycle_count == 0 {
+        return;
+    }
+    rendered.push_str("- Applied ");
+    rendered.push_str(report.applied_lifecycle_count.to_string().as_str());
+    rendered.push_str(" semantic lifecycle writeback(s).\n");
+}
+
 fn render_semantic_lifecycle_plan_text(report: &SemanticLintReport, rendered: &mut String) {
     for root in &report.roots {
         let Some(plan) = &root.lifecycle_plan else {
@@ -597,8 +510,12 @@ fn render_semantic_lifecycle_plan_text(report: &SemanticLintReport, rendered: &m
         rendered.push_str(" demotion(s), ");
         rendered.push_str(plan.other_transition_count.to_string().as_str());
         rendered.push_str(" other transition(s), ");
+        rendered.push_str(plan.pending_apply_count.to_string().as_str());
+        rendered.push_str(" pending apply target(s), ");
         rendered.push_str(plan.already_applied_count.to_string().as_str());
-        rendered.push_str(" already-applied writeback target(s).\n");
+        rendered.push_str(" already-applied writeback target(s), ");
+        rendered.push_str(plan.blocked_count.to_string().as_str());
+        rendered.push_str(" blocked target(s).\n");
         for entry in &plan.entries {
             rendered.push_str("  - ");
             rendered.push_str(entry.change_intent_id.as_str());

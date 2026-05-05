@@ -121,7 +121,7 @@ fn semantic_lint_reports_lifecycle_plan() -> Result<()> {
     assert_eq!(status, Some(0));
     assert!(
         stdout.contains(
-            "Lifecycle plan 1 promotion(s), 0 demotion(s), 0 other transition(s), 1 already-applied writeback target(s)."
+            "Lifecycle plan 1 promotion(s), 0 demotion(s), 0 other transition(s), 0 pending apply target(s), 1 already-applied writeback target(s), 0 blocked target(s)."
         ),
         "lifecycle plan summary should be rendered: {stdout}"
     );
@@ -131,6 +131,49 @@ fn semantic_lint_reports_lifecycle_plan() -> Result<()> {
         ),
         "lifecycle plan entry should be rendered: {stdout}"
     );
+    Ok(())
+}
+
+#[test]
+fn semantic_lint_applies_pending_lifecycle_plan() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_pending_semantic_lifecycle_fixture(&temp)?;
+
+    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--apply-lifecycle-plan"])?;
+
+    assert_eq!(status, Some(0), "{stdout}");
+    assert!(
+        stdout.contains("Applied 1 semantic lifecycle writeback(s)."),
+        "apply count should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "Lifecycle plan 1 promotion(s), 0 demotion(s), 0 other transition(s), 0 pending apply target(s), 1 already-applied writeback target(s), 0 blocked target(s)."
+        ),
+        "post-apply lifecycle plan should be rendered: {stdout}"
+    );
+
+    let object = std::fs::read_to_string(temp.path().join("semantic/objects/task/accepted.md"))?;
+    assert!(
+        object.contains("status: active"),
+        "object status should be promoted: {object}"
+    );
+    assert!(
+        object.contains("source: human_signed"),
+        "promotion should update confidence source: {object}"
+    );
+    assert!(
+        !object.contains("source: llm_suggested"),
+        "promoted object must not keep llm_suggested confidence: {object}"
+    );
+    let intent = std::fs::read_to_string(temp.path().join("semantic/change-intents/lifecycle.md"))?;
+    assert!(
+        intent.contains("candidate_suggestions: []"),
+        "promoted object should be removed from candidate suggestions: {intent}"
+    );
+
+    let (status, stdout) = run_semantic_lint(&temp, None)?;
+    assert_eq!(status, Some(0), "{stdout}");
     Ok(())
 }
 
@@ -281,11 +324,100 @@ fn write_semantic_lifecycle_fixture(temp: &TempDir) -> Result<()> {
     Ok(())
 }
 
+fn write_pending_semantic_lifecycle_fixture(temp: &TempDir) -> Result<()> {
+    let task_dir = temp.path().join("semantic/objects/task");
+    let invariant_dir = temp.path().join("semantic/objects/invariant");
+    std::fs::create_dir_all(&task_dir)?;
+    std::fs::create_dir_all(&invariant_dir)?;
+    std::fs::create_dir_all(temp.path().join("semantic/projections"))?;
+    std::fs::create_dir_all(temp.path().join("semantic/change-intents"))?;
+    std::fs::write(
+        task_dir.join("accepted.md"),
+        semantic_object_fixture_with_confidence(
+            "task.accepted",
+            "task",
+            "Accepted Task",
+            "candidate",
+            "llm_suggested",
+            "  []\n",
+        ),
+    )?;
+    std::fs::write(
+        invariant_dir.join("fixture.md"),
+        semantic_object_fixture(
+            "invariant.fixture",
+            "invariant",
+            "Invariant Fixture",
+            "active",
+            "  []\n",
+        ),
+    )?;
+    std::fs::write(
+        temp.path().join("semantic/projections/llm-compression.md"),
+        concat!(
+            "---\n",
+            "type: semantic_projection\n",
+            "projection: llm_compression\n",
+            "source_objects:\n",
+            "  - task.accepted\n",
+            "  - invariant.fixture\n",
+            "source_revision: stale-fixture\n",
+            "projection_revision: test.v1\n",
+            "staleness: stale\n",
+            "status: active\n",
+            "---\n",
+            "# Projection\n",
+        ),
+    )?;
+    std::fs::write(
+        temp.path().join("semantic/change-intents/lifecycle.md"),
+        concat!(
+            "---\n",
+            "type: semantic_change_intent\n",
+            "id: change.fixture.lifecycle\n",
+            "title: Lifecycle Fixture\n",
+            "status: active\n",
+            "touched_objects:\n",
+            "  - task.accepted\n",
+            "changed_relations: []\n",
+            "status_transitions:\n",
+            "  - object_id: task.accepted\n",
+            "    from: candidate\n",
+            "    to: active\n",
+            "promotion_targets:\n",
+            "  - task.accepted\n",
+            "demotion_targets: []\n",
+            "affected_invariants:\n",
+            "  - invariant.fixture\n",
+            "required_validations:\n",
+            "  - direnv exec . wendao-client lint semantic\n",
+            "projections_to_refresh:\n",
+            "  - llm_compression\n",
+            "candidate_suggestions:\n",
+            "  - task.accepted\n",
+            "---\n",
+            "# Lifecycle Fixture\n",
+        ),
+    )?;
+    Ok(())
+}
+
 fn semantic_object_fixture(
     id: &str,
     kind: &str,
     title: &str,
     status: &str,
+    relations: &str,
+) -> String {
+    semantic_object_fixture_with_confidence(id, kind, title, status, "human_signed", relations)
+}
+
+fn semantic_object_fixture_with_confidence(
+    id: &str,
+    kind: &str,
+    title: &str,
+    status: &str,
+    confidence_source: &str,
     relations: &str,
 ) -> String {
     format!(
@@ -297,7 +429,7 @@ fn semantic_object_fixture(
             "status: {status}\n",
             "confidence:\n",
             "  score: 1.0\n",
-            "  source: human_signed\n",
+            "  source: {confidence_source}\n",
             "owners:\n",
             "  - scope: tests\n",
             "    role: fixture\n",
@@ -317,6 +449,7 @@ fn semantic_object_fixture(
         kind = kind,
         title = title,
         status = status,
+        confidence_source = confidence_source,
         relations = relations,
     )
 }

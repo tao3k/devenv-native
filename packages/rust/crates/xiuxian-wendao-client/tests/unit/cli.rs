@@ -19,7 +19,7 @@ fn parses_semantic_lint_command() {
     };
     match command {
         LintCommand::Semantic(args) => {
-            assert!(!args.semantic_sql_guard);
+            assert!(!args.validation.semantic_sql_guard);
             assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
@@ -48,7 +48,7 @@ fn parses_semantic_lint_sql_guard_flag() {
     };
     match command {
         LintCommand::Semantic(args) => {
-            assert!(args.semantic_sql_guard);
+            assert!(args.validation.semantic_sql_guard);
             assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
@@ -63,7 +63,7 @@ fn parses_semantic_lint_refresh_projections_flag() {
     };
     match command {
         LintCommand::Semantic(args) => {
-            assert!(args.refresh_projections);
+            assert!(args.writeback.refresh_projections);
             assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
@@ -78,7 +78,22 @@ fn parses_semantic_lint_lifecycle_plan_flag() {
     };
     match command {
         LintCommand::Semantic(args) => {
-            assert!(args.lifecycle_plan);
+            assert!(args.validation.lifecycle_plan);
+            assert!(args.paths.is_empty());
+        }
+        LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
+fn parses_semantic_lint_apply_lifecycle_plan_flag() {
+    let cli = ClientCli::parse_from(["wendao", "lint", "semantic", "--apply-lifecycle-plan"]);
+    let ClientCommand::Lint { command } = cli.command else {
+        panic!("expected lint command");
+    };
+    match command {
+        LintCommand::Semantic(args) => {
+            assert!(args.writeback.apply_lifecycle_plan);
             assert!(args.paths.is_empty());
         }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),

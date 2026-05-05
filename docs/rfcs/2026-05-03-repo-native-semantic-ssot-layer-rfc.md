@@ -69,12 +69,14 @@ As of 2026-05-05, the first physical slice is implemented:
 11. `wendao-client lint semantic --lifecycle-plan` renders a read-only
     lifecycle writeback preview for validated promotion, demotion, and other
     status-transition outcomes
+12. `wendao-client lint semantic --apply-lifecycle-plan` applies pending
+    lifecycle transitions explicitly, including candidate promotion metadata
+    writeback, before re-validating the repo-native semantic surface
 
 The full RFC is not complete. Remaining work includes background or
-policy-driven projection refresh, optional status-transition apply tooling,
-broader workflow-level Qianji consumption, and any future Julia or DuckDB-backed
-compute/read-model expansion. Those remain advisory or derived lanes; they do
-not change repo-native authority.
+policy-driven projection refresh, broader workflow-level Qianji consumption,
+and any future Julia or DuckDB-backed compute/read-model expansion. Those
+remain advisory or derived lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 

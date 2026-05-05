@@ -30,6 +30,7 @@ pub use lint::{
     LintCommand, MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS, MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,
     MarkdownLintArgs, MarkdownLintDiagnosticContractAssets, MarkdownLintDiagnosticContractId,
     MarkdownLintFileReport, MarkdownLintIssue, MarkdownLintReport, SemanticLintArgs,
+    SemanticLintValidationArgs, SemanticLintWritebackArgs,
     markdown_lint_diagnostic_contract_assets, markdown_lint_diagnostic_contract_snapshot,
     markdown_lint_diagnostic_schema_snapshot,
 };

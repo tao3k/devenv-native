@@ -14,8 +14,8 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
-wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan]
-wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan] [PATH]...
+wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
+wendao-client lint semantic [--semantic-sql-guard] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -89,6 +89,11 @@ Behavior:
     `lint semantic --lifecycle-plan` is passed, listing validated promotion,
     demotion, and other status-transition outcomes without mutating semantic
     object files
+26. applies pending lifecycle status transitions only when
+    `lint semantic --apply-lifecycle-plan` is passed. The object current
+    status must match the declared transition `from` status; promotion also
+    rewrites `confidence.source` to `human_signed` and removes the promoted
+    object from change-intent `candidate_suggestions`
 
 Diagnostic rendering is split deliberately:
 

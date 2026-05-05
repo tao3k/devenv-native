@@ -4,12 +4,16 @@ mod command;
 mod contract;
 mod diagnostic;
 mod discovery;
+mod lifecycle;
 mod policy;
 mod report;
 mod run;
 mod text_output;
 
-pub use command::{LintCommand, MarkdownLintArgs, SemanticLintArgs};
+pub use command::{
+    LintCommand, MarkdownLintArgs, SemanticLintArgs, SemanticLintValidationArgs,
+    SemanticLintWritebackArgs,
+};
 pub use contract::{
     MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS, MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,
     MarkdownLintDiagnosticContractAssets, MarkdownLintDiagnosticContractId,

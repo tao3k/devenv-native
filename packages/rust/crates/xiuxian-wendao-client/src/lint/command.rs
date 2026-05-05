@@ -29,20 +29,40 @@ pub struct MarkdownLintArgs {
 /// CLI arguments for repo-native semantic SSOT linting.
 #[derive(Args, Debug)]
 pub struct SemanticLintArgs {
-    /// Also run advisory semantic SQL guard evidence after schema validation succeeds.
-    #[arg(long = "semantic-sql-guard")]
-    pub semantic_sql_guard: bool,
+    /// Validation-only semantic lint options.
+    #[command(flatten)]
+    pub validation: SemanticLintValidationArgs,
 
-    /// Refresh semantic projection source revisions before reporting lint results.
-    #[arg(long = "refresh-projections")]
-    pub refresh_projections: bool,
-
-    /// Render a read-only lifecycle writeback preview for status transitions.
-    #[arg(long = "lifecycle-plan")]
-    pub lifecycle_plan: bool,
+    /// Explicit semantic metadata or lifecycle writeback options.
+    #[command(flatten)]
+    pub writeback: SemanticLintWritebackArgs,
 
     /// Semantic artifact roots to inspect. When omitted, lint checks
     /// `$PRJ_ROOT/semantic` through the active client root.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
+}
+
+/// Validation-only semantic lint options.
+#[derive(Args, Debug)]
+pub struct SemanticLintValidationArgs {
+    /// Also run advisory semantic SQL guard evidence after schema validation succeeds.
+    #[arg(long = "semantic-sql-guard")]
+    pub semantic_sql_guard: bool,
+
+    /// Render a read-only lifecycle writeback preview for status transitions.
+    #[arg(long = "lifecycle-plan")]
+    pub lifecycle_plan: bool,
+}
+
+/// Explicit semantic metadata or lifecycle writeback options.
+#[derive(Args, Debug)]
+pub struct SemanticLintWritebackArgs {
+    /// Refresh semantic projection source revisions before reporting lint results.
+    #[arg(long = "refresh-projections")]
+    pub refresh_projections: bool,
+
+    /// Apply pending lifecycle status transitions before reporting lint results.
+    #[arg(long = "apply-lifecycle-plan")]
+    pub apply_lifecycle_plan: bool,
 }
