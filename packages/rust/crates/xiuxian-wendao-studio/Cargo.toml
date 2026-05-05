@@ -142,7 +142,7 @@ required-features = ["cli-bin-support", "zhenfa-router"]
 [[bin]]
 name = "export_types"
 path = "src/bin/export_types.rs"
-required-features = ["local-runtime"]
+required-features = ["contracts"]
 
 [[bin]]
 name = "wendao_search_flight_server"

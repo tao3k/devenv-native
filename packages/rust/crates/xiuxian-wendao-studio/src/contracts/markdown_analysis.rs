@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use xiuxian_wendao::search::contracts::{AnalysisNode, RetrievalChunk};
+use super::{AnalysisNode, RetrievalChunk};
 
 /// Kind of an analysis edge.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]

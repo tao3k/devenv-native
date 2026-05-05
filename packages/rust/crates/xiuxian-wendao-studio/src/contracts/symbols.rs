@@ -3,7 +3,17 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use xiuxian_wendao::search::contracts::{AutocompleteSuggestion, StudioNavigationTarget};
+use super::StudioNavigationTarget;
+
+/// A single autocomplete suggestion.
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AutocompleteSuggestion {
+    /// Suggestion text emitted to the caller.
+    pub text: String,
+    /// Logical suggestion classification.
+    pub suggestion_type: String,
+}
 
 /// A hit in a project-wide symbol index.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -80,4 +90,14 @@ pub struct AutocompleteResponse {
     pub prefix: String,
     /// Ranked autocomplete suggestions.
     pub suggestions: Vec<AutocompleteSuggestion>,
+}
+
+#[cfg(feature = "local-runtime")]
+impl From<xiuxian_wendao::search::contracts::AutocompleteSuggestion> for AutocompleteSuggestion {
+    fn from(value: xiuxian_wendao::search::contracts::AutocompleteSuggestion) -> Self {
+        Self {
+            text: value.text,
+            suggestion_type: value.suggestion_type,
+        }
+    }
 }

@@ -108,9 +108,10 @@ pub(crate) async fn publish_local_symbol_index(studio: &crate::studio::StudioSta
         )
         .to_hex()
     );
+    let hits = crate::contracts::domain_ast_hits_for_search_plane(hits);
     studio
         .search_plane
-        .publish_local_symbol_hits(fingerprint.as_str(), &hits)
+        .publish_local_symbol_hits(fingerprint.as_str(), hits.as_slice())
         .await
         .unwrap_or_else(|error| panic!("publish local symbol epoch: {error}"));
 }

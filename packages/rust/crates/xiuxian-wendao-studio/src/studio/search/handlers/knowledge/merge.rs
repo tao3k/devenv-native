@@ -63,7 +63,7 @@ pub(super) async fn build_repo_intent_merge(
             #[cfg(test)]
             repo_content_transport: outcome.repo_content_available.then_some("flight_contract"),
         },
-        hits: outcome.hits,
+        hits: outcome.hits.into_iter().map(Into::into).collect(),
         pending_repos: outcome.pending_repos,
         skipped_repos: outcome.skipped_repos,
     })

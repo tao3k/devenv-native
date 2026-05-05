@@ -410,11 +410,12 @@ async fn publish_local_symbol_index(state: &Arc<GatewayState>) {
         )
         .to_hex()
     );
+    let hits = crate::contracts::domain_ast_hits_for_search_plane(hits);
     ok_or_panic(
         state
             .studio
             .search_plane
-            .publish_local_symbol_hits(fingerprint.as_str(), &hits)
+            .publish_local_symbol_hits(fingerprint.as_str(), hits.as_slice())
             .await,
         "publish local symbol epoch",
     );

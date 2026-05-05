@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use xiuxian_wendao::search::contracts::StudioNavigationTarget;
+use super::StudioNavigationTarget;
 
 /// A single node in the link-graph visualization.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

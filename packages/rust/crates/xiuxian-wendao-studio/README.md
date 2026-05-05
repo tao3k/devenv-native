@@ -27,8 +27,14 @@ inventory. It must remain free of runtime gateway dependencies such as Axum,
 Tonic, Arrow Flight, DuckDB, DataFusion, notify, `xiuxian-db-store`, and
 `xiuxian-wendao-core`. Studio owns the frontend Specta type collection,
 capability/search-manifest DTOs, Studio UI project configuration DTOs, and
-plugin artifact inspection DTOs. Plugin artifact DTO conversion is compiled
-only with `local-runtime` because it depends on runtime plugin payload records.
+plugin artifact inspection DTOs. It also owns the Studio-facing graph, code
+AST, Markdown analysis, symbol/autocomplete, retrieval atom, navigation, and
+search response DTOs. Runtime conversion from Wendao domain search records is
+compiled only with `local-runtime`; the lightweight schema surface does not
+re-export those domain records.
+
+Plugin artifact DTO conversion is compiled only with `local-runtime` because
+it depends on runtime plugin payload records.
 Wendao domain search accepts project configuration through its own
 `SearchProjectConfig`/`ProjectConfigView` boundary, so the Studio UI schema does
 not have to live in the domain crate.

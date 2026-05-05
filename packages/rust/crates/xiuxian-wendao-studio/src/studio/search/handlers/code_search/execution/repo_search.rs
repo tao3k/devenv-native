@@ -24,6 +24,7 @@ pub(crate) async fn search_repo_entity_hits(
 ) -> Result<Vec<SearchHit>, StudioApiError> {
     shared_search_repo_entity_hits_for_query(search_plane, repo_id, raw_query, limit)
         .await
+        .map(|hits| hits.into_iter().map(Into::into).collect())
         .map_err(|error| {
             StudioApiError::internal(
                 "REPO_ENTITY_SEARCH_FAILED",
@@ -47,6 +48,7 @@ pub(crate) async fn search_repo_content_hits(
 ) -> Result<Vec<SearchHit>, StudioApiError> {
     shared_search_repo_content_hits_for_query(search_plane, repo_id, raw_query, limit)
         .await
+        .map(|hits| hits.into_iter().map(Into::into).collect())
         .map_err(|error| {
             StudioApiError::internal(
                 "REPO_CONTENT_SEARCH_FAILED",

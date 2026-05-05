@@ -214,7 +214,7 @@ impl StudioState {
             .search_knowledge_sections(query, limit)
             .await
         {
-            Ok(hits) => Ok(hits),
+            Ok(hits) => Ok(hits.into_iter().map(Into::into).collect()),
             Err(xiuxian_wendao::search::KnowledgeSectionSearchError::NotReady) => {
                 Err(StudioApiError::index_not_ready("knowledge_section"))
             }
@@ -232,7 +232,7 @@ impl StudioState {
         limit: usize,
     ) -> Result<Vec<AstSearchHit>, StudioApiError> {
         match self.search_plane.search_local_symbols(query, limit).await {
-            Ok(hits) => Ok(hits),
+            Ok(hits) => Ok(hits.into_iter().map(Into::into).collect()),
             Err(xiuxian_wendao::search::LocalSymbolSearchError::NotReady) => {
                 Err(StudioApiError::index_not_ready("local_symbol"))
             }
@@ -254,7 +254,7 @@ impl StudioState {
             .autocomplete_local_symbols(prefix, limit)
             .await
         {
-            Ok(suggestions) => Ok(suggestions),
+            Ok(suggestions) => Ok(suggestions.into_iter().map(Into::into).collect()),
             Err(xiuxian_wendao::search::LocalSymbolSearchError::NotReady) => {
                 Err(StudioApiError::index_not_ready("local_symbol"))
             }
@@ -294,7 +294,7 @@ impl StudioState {
             .search_attachment_hits(query, limit, extensions, kinds, case_sensitive)
             .await
         {
-            Ok(hits) => Ok(hits),
+            Ok(hits) => Ok(hits.into_iter().map(Into::into).collect()),
             Err(xiuxian_wendao::search::AttachmentSearchError::NotReady) => {
                 Err(StudioApiError::index_not_ready("attachment"))
             }
@@ -328,7 +328,7 @@ impl StudioState {
             .search_reference_occurrences(query, limit)
             .await
         {
-            Ok(hits) => Ok(hits),
+            Ok(hits) => Ok(hits.into_iter().map(Into::into).collect()),
             Err(xiuxian_wendao::search::ReferenceOccurrenceSearchError::NotReady) => {
                 Err(StudioApiError::index_not_ready("reference_occurrence"))
             }

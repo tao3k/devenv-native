@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use xiuxian_wendao::search::contracts::{RetrievalChunk, RetrievalChunkSurface};
+use super::{RetrievalChunk, RetrievalChunkSurface};
 
 /// Kind of a code-AST node.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]

@@ -9,11 +9,12 @@ const DOMAIN_CONTRACT_IMPORT_TAIL: &str = "::contracts";
 fn studio_code_uses_studio_contract_import_path() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let allowed_reexports = [
+        manifest_dir.join("src/contracts/analysis_nodes.rs"),
         manifest_dir.join("src/contracts/types.rs"),
-        manifest_dir.join("src/contracts/code_ast.rs"),
-        manifest_dir.join("src/contracts/graph.rs"),
-        manifest_dir.join("src/contracts/markdown_analysis.rs"),
-        manifest_dir.join("src/contracts/search_responses.rs"),
+        manifest_dir.join("src/contracts/navigation.rs"),
+        manifest_dir.join("src/contracts/retrieval.rs"),
+        manifest_dir.join("src/contracts/search_responses/conversions.rs"),
+        manifest_dir.join("src/contracts/search_responses/mod.rs"),
         manifest_dir.join("src/contracts/symbols.rs"),
     ];
     let needle = format!("{DOMAIN_CONTRACT_IMPORT_HEAD}{DOMAIN_CONTRACT_IMPORT_TAIL}");

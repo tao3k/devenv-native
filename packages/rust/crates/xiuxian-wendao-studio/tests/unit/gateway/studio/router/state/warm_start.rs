@@ -160,33 +160,31 @@ async fn seed_eager_configured_owners_for_tests_warms_symbol_index_from_local_sy
         SearchManifestKeyspace::new("xiuxian:test:studio-state:symbol-warm-writer"),
         SearchMaintenancePolicy::default(),
     );
+    let hits = crate::contracts::domain_ast_hits_for_search_plane(vec![AstSearchHit {
+        name: "ArtifactWarmSymbol".to_string(),
+        signature: "fn ArtifactWarmSymbol()".to_string(),
+        path: "src/lib.rs".to_string(),
+        language: "rust".to_string(),
+        crate_name: "kernel".to_string(),
+        project_name: None,
+        root_label: None,
+        node_kind: Some("function".to_string()),
+        owner_title: None,
+        navigation_target: StudioNavigationTarget {
+            path: "src/lib.rs".to_string(),
+            category: "symbol".to_string(),
+            project_name: None,
+            root_label: None,
+            line: Some(11),
+            line_end: Some(11),
+            column: Some(1),
+        },
+        line_start: 11,
+        line_end: 11,
+        score: 0.0,
+    }]);
     writer
-        .publish_local_symbol_hits(
-            "fp-studio-symbol-warm",
-            &[AstSearchHit {
-                name: "ArtifactWarmSymbol".to_string(),
-                signature: "fn ArtifactWarmSymbol()".to_string(),
-                path: "src/lib.rs".to_string(),
-                language: "rust".to_string(),
-                crate_name: "kernel".to_string(),
-                project_name: None,
-                root_label: None,
-                node_kind: Some("function".to_string()),
-                owner_title: None,
-                navigation_target: StudioNavigationTarget {
-                    path: "src/lib.rs".to_string(),
-                    category: "symbol".to_string(),
-                    project_name: None,
-                    root_label: None,
-                    line: Some(11),
-                    line_end: Some(11),
-                    column: Some(1),
-                },
-                line_start: 11,
-                line_end: 11,
-                score: 0.0,
-            }],
-        )
+        .publish_local_symbol_hits("fp-studio-symbol-warm", hits.as_slice())
         .await
         .unwrap_or_else(|error| panic!("publish local symbol hits: {error}"));
 

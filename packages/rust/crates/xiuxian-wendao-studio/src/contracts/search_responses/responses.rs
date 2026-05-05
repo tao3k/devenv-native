@@ -3,10 +3,10 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use xiuxian_wendao::search::contracts::{
+use super::{
     AstSearchHit, AttachmentSearchHit, DefinitionSearchHit, ReferenceSearchHit, SearchHit,
-    StudioNavigationTarget,
 };
+use crate::contracts::StudioNavigationTarget;
 
 /// Response for Studio attachment search queries.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

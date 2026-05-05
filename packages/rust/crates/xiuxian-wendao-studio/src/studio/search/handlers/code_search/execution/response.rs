@@ -98,7 +98,11 @@ pub(crate) async fn build_code_search_response_with_budget(
             Some(message),
         ),
     })?;
-    let mut hits = outcome.hits;
+    let mut hits = outcome
+        .hits
+        .into_iter()
+        .map(crate::studio::types::SearchHit::from)
+        .collect::<Vec<_>>();
     let partial_timeout = outcome.partial_timeout;
     let pending_repos = outcome.pending_repos;
     let skipped_repos = outcome.skipped_repos;
