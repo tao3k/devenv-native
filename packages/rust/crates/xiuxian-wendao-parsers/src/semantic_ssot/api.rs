@@ -4,7 +4,7 @@ use super::types::{
     SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidenceSource, SemanticObject,
     SemanticObjectKind, SemanticProjection, SemanticProjectionStaleness, SemanticRelationEdge,
     SemanticRelationKind, SemanticRepository, SemanticScopeBundle, SemanticScopeRequest,
-    SemanticStatus, SemanticValidationReport,
+    SemanticStatus, SemanticStatusTransition, SemanticValidationReport,
 };
 use crate::frontmatter::split_frontmatter_raw;
 use std::collections::{BTreeMap, BTreeSet};
@@ -345,6 +345,14 @@ fn change_intent_intersects_scope(
             .status_transitions
             .iter()
             .any(|transition| selected_ids.contains(transition.object_id.as_str()))
+        || intent
+            .promotion_targets
+            .iter()
+            .any(|object_id| selected_ids.contains(object_id.as_str()))
+        || intent
+            .demotion_targets
+            .iter()
+            .any(|object_id| selected_ids.contains(object_id.as_str()))
         || intent
             .candidate_suggestions
             .iter()
@@ -745,6 +753,7 @@ fn validate_change_intent(
     validate_change_touched_objects(intent, object_ids, path.as_ref(), report);
     validate_changed_relations(intent, object_ids, path.as_ref(), report);
     validate_status_transitions(intent, object_ids, object_by_id, path.as_ref(), report);
+    validate_lifecycle_outcome_targets(intent, object_ids, path.as_ref(), report);
     validate_affected_invariants(intent, object_ids, object_by_id, path.as_ref(), report);
     validate_change_required_validations(intent, path.as_ref(), report);
     validate_projection_refresh_targets(intent, projection_names, path.as_ref(), report);
@@ -933,6 +942,168 @@ fn semantic_status_label(status: &SemanticStatus) -> &'static str {
         SemanticStatus::Deprecated => "deprecated",
         SemanticStatus::Retired => "retired",
     }
+}
+
+fn validate_lifecycle_outcome_targets(
+    intent: &SemanticChangeIntent,
+    object_ids: &BTreeSet<String>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
+    let touched_objects = intent
+        .touched_objects
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let promotion_transitions = intent
+        .status_transitions
+        .iter()
+        .filter(|transition| semantic_status_transition_is_promotion(transition))
+        .map(|transition| transition.object_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let demotion_transitions = intent
+        .status_transitions
+        .iter()
+        .filter(|transition| semantic_status_transition_is_demotion(transition))
+        .map(|transition| transition.object_id.as_str())
+        .collect::<BTreeSet<_>>();
+
+    validate_lifecycle_target_set(
+        &intent.promotion_targets,
+        &promotion_transitions,
+        object_ids,
+        &touched_objects,
+        LifecycleTargetRule {
+            outcome: "promotion",
+            target_field: "promotion_targets",
+            required_transition: "candidate to active status transition",
+        },
+        path,
+        report,
+    );
+    validate_lifecycle_target_set(
+        &intent.demotion_targets,
+        &demotion_transitions,
+        object_ids,
+        &touched_objects,
+        LifecycleTargetRule {
+            outcome: "demotion",
+            target_field: "demotion_targets",
+            required_transition: "status transition to deprecated, superseded, or retired",
+        },
+        path,
+        report,
+    );
+
+    require_transition_targets(
+        &promotion_transitions,
+        &intent.promotion_targets,
+        LifecycleTargetRule {
+            outcome: "promotion",
+            target_field: "promotion_targets",
+            required_transition: "candidate to active status transition",
+        },
+        path,
+        report,
+    );
+    require_transition_targets(
+        &demotion_transitions,
+        &intent.demotion_targets,
+        LifecycleTargetRule {
+            outcome: "demotion",
+            target_field: "demotion_targets",
+            required_transition: "status transition to deprecated, superseded, or retired",
+        },
+        path,
+        report,
+    );
+}
+
+#[derive(Clone, Copy)]
+struct LifecycleTargetRule<'a> {
+    outcome: &'a str,
+    target_field: &'a str,
+    required_transition: &'a str,
+}
+
+fn validate_lifecycle_target_set(
+    targets: &[String],
+    matching_transitions: &BTreeSet<&str>,
+    object_ids: &BTreeSet<String>,
+    touched_objects: &BTreeSet<&str>,
+    rule: LifecycleTargetRule<'_>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
+    let mut seen_targets = BTreeSet::new();
+    for object_id in targets {
+        validate_object_reference(
+            object_id,
+            object_ids,
+            &format!("semantic change {} target", rule.outcome),
+            clone_path(path),
+            report,
+        );
+        if !seen_targets.insert(object_id.as_str()) {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic {} target `{object_id}` is duplicated in {}",
+                    rule.outcome, rule.target_field
+                ),
+            );
+        }
+        if !touched_objects.contains(object_id.as_str()) {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic {} target `{object_id}` must also be listed in touched_objects",
+                    rule.outcome
+                ),
+            );
+        }
+        if !matching_transitions.contains(object_id.as_str()) {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic {} target `{object_id}` must match a {}",
+                    rule.outcome, rule.required_transition
+                ),
+            );
+        }
+    }
+}
+
+fn require_transition_targets(
+    transitions: &BTreeSet<&str>,
+    targets: &[String],
+    rule: LifecycleTargetRule<'_>,
+    path: Option<&PathBuf>,
+    report: &mut SemanticValidationReport,
+) {
+    let target_set = targets.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    for object_id in transitions {
+        if !target_set.contains(object_id) {
+            report.push(
+                clone_path(path),
+                format!(
+                    "semantic {} status transition `{object_id}` must be listed in {}",
+                    rule.outcome, rule.target_field
+                ),
+            );
+        }
+    }
+}
+
+fn semantic_status_transition_is_promotion(transition: &SemanticStatusTransition) -> bool {
+    transition.from == SemanticStatus::Candidate && transition.to == SemanticStatus::Active
+}
+
+fn semantic_status_transition_is_demotion(transition: &SemanticStatusTransition) -> bool {
+    matches!(
+        transition.to,
+        SemanticStatus::Deprecated | SemanticStatus::Superseded | SemanticStatus::Retired
+    )
 }
 
 fn validate_affected_invariants(

@@ -537,6 +537,109 @@ fn semantic_repository_accepts_status_transition_intent() {
     refresh_projection_as_fresh(temp.path(), &["task.accepted", "invariant.test"]);
     write_file(
         temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_lifecycle_targets(SemanticChangeIntentFixture {
+            touched_object: "task.accepted",
+            affected_invariant: "invariant.test",
+            relation_source: "task.accepted",
+            relation_target: "invariant.test",
+            projection: "llm_compression",
+            candidate_suggestions: &[],
+            status_transitions: &[("task.accepted", "candidate", "active")],
+            promotion_targets: &["task.accepted"],
+            demotion_targets: &[],
+        }),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+
+    assert!(
+        repository.report.is_success(),
+        "status transition intent should validate: {:?}",
+        repository.report.issues
+    );
+}
+
+#[test]
+fn semantic_repository_accepts_demotion_outcome_target() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/task/retired.md"),
+        semantic_object_fixture(
+            "task.retired",
+            "task",
+            "Retired Task",
+            "retired",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["task.retired", "invariant.test"], "outdated", "stale"),
+    );
+    refresh_projection_as_fresh(temp.path(), &["task.retired", "invariant.test"]);
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_lifecycle_targets(SemanticChangeIntentFixture {
+            touched_object: "task.retired",
+            affected_invariant: "invariant.test",
+            relation_source: "task.retired",
+            relation_target: "invariant.test",
+            projection: "llm_compression",
+            candidate_suggestions: &[],
+            status_transitions: &[("task.retired", "active", "retired")],
+            promotion_targets: &[],
+            demotion_targets: &["task.retired"],
+        }),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+
+    assert!(
+        repository.report.is_success(),
+        "demotion outcome target should validate: {:?}",
+        repository.report.issues
+    );
+}
+
+#[test]
+fn semantic_repository_reports_promotion_transition_missing_target() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/task/accepted.md"),
+        semantic_object_fixture(
+            "task.accepted",
+            "task",
+            "Accepted Task",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["task.accepted", "invariant.test"], "outdated", "stale"),
+    );
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
         semantic_change_intent_fixture_with_status_transitions(
             "task.accepted",
             "invariant.test",
@@ -549,11 +652,133 @@ fn semantic_repository_accepts_status_transition_intent() {
     );
 
     let repository = load_semantic_repository(temp.path());
+    let messages = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| issue.message.as_str())
+        .collect::<Vec<_>>();
 
     assert!(
-        repository.report.is_success(),
-        "status transition intent should validate: {:?}",
-        repository.report.issues
+        messages
+            .iter()
+            .any(|message| message.contains("must be listed in promotion_targets")),
+        "missing promotion target should be reported: {messages:?}"
+    );
+}
+
+#[test]
+fn semantic_repository_reports_promotion_target_without_transition() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/task/accepted.md"),
+        semantic_object_fixture(
+            "task.accepted",
+            "task",
+            "Accepted Task",
+            "active",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["task.accepted", "invariant.test"], "outdated", "stale"),
+    );
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_lifecycle_targets(SemanticChangeIntentFixture {
+            touched_object: "task.accepted",
+            affected_invariant: "invariant.test",
+            relation_source: "task.accepted",
+            relation_target: "invariant.test",
+            projection: "llm_compression",
+            candidate_suggestions: &[],
+            status_transitions: &[],
+            promotion_targets: &["task.accepted"],
+            demotion_targets: &[],
+        }),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+    let messages = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| issue.message.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("must match a candidate to active status transition")),
+        "promotion target without transition should be reported: {messages:?}"
+    );
+}
+
+#[test]
+fn semantic_repository_reports_demotion_target_without_transition() {
+    let temp = tempdir().unwrap_or_else(|error| panic!("tempdir should exist: {error}"));
+    write_file(
+        temp.path().join("objects/task/retired.md"),
+        semantic_object_fixture(
+            "task.retired",
+            "task",
+            "Retired Task",
+            "retired",
+            "  - kind: validates\n    target: invariant.test\n",
+        ),
+    );
+    write_file(
+        temp.path().join("objects/invariant/test.md"),
+        semantic_object_fixture(
+            "invariant.test",
+            "invariant",
+            "Invariant Test",
+            "active",
+            "",
+        ),
+    );
+    write_file(
+        temp.path().join("projections/llm-compression.md"),
+        semantic_projection_fixture(&["task.retired", "invariant.test"], "outdated", "stale"),
+    );
+    write_file(
+        temp.path().join("change-intents/semantic-pilot.md"),
+        semantic_change_intent_fixture_with_lifecycle_targets(SemanticChangeIntentFixture {
+            touched_object: "task.retired",
+            affected_invariant: "invariant.test",
+            relation_source: "task.retired",
+            relation_target: "invariant.test",
+            projection: "llm_compression",
+            candidate_suggestions: &[],
+            status_transitions: &[],
+            promotion_targets: &[],
+            demotion_targets: &["task.retired"],
+        }),
+    );
+
+    let repository = load_semantic_repository(temp.path());
+    let messages = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| issue.message.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        messages.iter().any(|message| message
+            .contains("must match a status transition to deprecated, superseded, or retired")),
+        "demotion target without transition should be reported: {messages:?}"
     );
 }
 
@@ -945,27 +1170,76 @@ fn semantic_change_intent_fixture_with_status_transitions(
     candidate_suggestions: &[&str],
     status_transitions: &[(&str, &str, &str)],
 ) -> String {
+    semantic_change_intent_fixture_with_lifecycle_targets(SemanticChangeIntentFixture {
+        touched_object,
+        affected_invariant,
+        relation_source,
+        relation_target,
+        projection,
+        candidate_suggestions,
+        status_transitions,
+        promotion_targets: &[],
+        demotion_targets: &[],
+    })
+}
+
+#[derive(Clone, Copy)]
+struct SemanticChangeIntentFixture<'a> {
+    touched_object: &'a str,
+    affected_invariant: &'a str,
+    relation_source: &'a str,
+    relation_target: &'a str,
+    projection: &'a str,
+    candidate_suggestions: &'a [&'a str],
+    status_transitions: &'a [(&'a str, &'a str, &'a str)],
+    promotion_targets: &'a [&'a str],
+    demotion_targets: &'a [&'a str],
+}
+
+fn semantic_change_intent_fixture_with_lifecycle_targets(
+    fixture: SemanticChangeIntentFixture<'_>,
+) -> String {
     let mut rendered_candidate_suggestions = String::new();
-    if candidate_suggestions.is_empty() {
+    if fixture.candidate_suggestions.is_empty() {
         rendered_candidate_suggestions.push_str("[]\n");
     } else {
         rendered_candidate_suggestions.push('\n');
-        for object_id in candidate_suggestions {
+        for object_id in fixture.candidate_suggestions {
             writeln!(&mut rendered_candidate_suggestions, "  - {object_id}")
                 .unwrap_or_else(|error| panic!("render candidate suggestion: {error}"));
         }
     }
     let mut rendered_status_transitions = String::new();
-    if status_transitions.is_empty() {
+    if fixture.status_transitions.is_empty() {
         rendered_status_transitions.push_str("[]\n");
     } else {
         rendered_status_transitions.push('\n');
-        for (object_id, from, to) in status_transitions {
+        for (object_id, from, to) in fixture.status_transitions {
             writeln!(
                 &mut rendered_status_transitions,
                 "  - object_id: {object_id}\n    from: {from}\n    to: {to}"
             )
             .unwrap_or_else(|error| panic!("render status transition: {error}"));
+        }
+    }
+    let mut rendered_promotion_targets = String::new();
+    if fixture.promotion_targets.is_empty() {
+        rendered_promotion_targets.push_str("[]\n");
+    } else {
+        rendered_promotion_targets.push('\n');
+        for object_id in fixture.promotion_targets {
+            writeln!(&mut rendered_promotion_targets, "  - {object_id}")
+                .unwrap_or_else(|error| panic!("render promotion target: {error}"));
+        }
+    }
+    let mut rendered_demotion_targets = String::new();
+    if fixture.demotion_targets.is_empty() {
+        rendered_demotion_targets.push_str("[]\n");
+    } else {
+        rendered_demotion_targets.push('\n');
+        for object_id in fixture.demotion_targets {
+            writeln!(&mut rendered_demotion_targets, "  - {object_id}")
+                .unwrap_or_else(|error| panic!("render demotion target: {error}"));
         }
     }
     format!(
@@ -983,6 +1257,8 @@ fn semantic_change_intent_fixture_with_status_transitions(
             "    target: {relation_target}\n",
             "    action: add\n",
             "status_transitions: {rendered_status_transitions}",
+            "promotion_targets: {rendered_promotion_targets}",
+            "demotion_targets: {rendered_demotion_targets}",
             "affected_invariants:\n",
             "  - {affected_invariant}\n",
             "required_validations:\n",
@@ -993,12 +1269,14 @@ fn semantic_change_intent_fixture_with_status_transitions(
             "---\n",
             "# Semantic SSOT Test Change\n",
         ),
-        touched_object = touched_object,
-        affected_invariant = affected_invariant,
-        relation_source = relation_source,
-        relation_target = relation_target,
-        projection = projection,
+        touched_object = fixture.touched_object,
+        affected_invariant = fixture.affected_invariant,
+        relation_source = fixture.relation_source,
+        relation_target = fixture.relation_target,
+        projection = fixture.projection,
         rendered_candidate_suggestions = rendered_candidate_suggestions,
         rendered_status_transitions = rendered_status_transitions,
+        rendered_promotion_targets = rendered_promotion_targets,
+        rendered_demotion_targets = rendered_demotion_targets,
     )
 }

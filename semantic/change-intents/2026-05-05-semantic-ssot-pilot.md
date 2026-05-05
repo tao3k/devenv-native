@@ -28,6 +28,8 @@ changed_relations:
     target: invariant.valkey-is-not-semantic-authority
     action: add
 status_transitions: []
+promotion_targets: []
+demotion_targets: []
 affected_invariants:
   - invariant.llm-output-is-not-authority
   - invariant.execution-graph-is-not-semantic-graph

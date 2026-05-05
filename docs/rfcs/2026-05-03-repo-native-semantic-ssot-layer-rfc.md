@@ -63,10 +63,13 @@ As of 2026-05-05, the first physical slice is implemented:
    active change-intent `candidate_suggestions` entries
 9. semantic change intents can declare landed `status_transitions` that the
    parser validates against current repo facts and allowed lifecycle edges
+10. candidate promotion and object demotion outcomes are explicit
+    `promotion_targets` and `demotion_targets` entries, cross-checked against
+    landed status transitions
 
 The full RFC is not complete. Remaining work includes background or
-policy-driven projection refresh, automated candidate promotion and retirement
-workflow, broader workflow-level Qianji consumption, and any future Julia or
+policy-driven projection refresh, optional guided status-transition writeback
+tooling, broader workflow-level Qianji consumption, and any future Julia or
 DuckDB-backed compute/read-model expansion. Those remain advisory or derived
 lanes; they do not change repo-native authority.
 
@@ -239,7 +242,9 @@ change intent `candidate_suggestions` entry. Promotion from `candidate` to
 `active` remains a repository-governed workflow. Change intents may declare
 landed `status_transitions`; the checked-out object status must match the
 transition target status, and the parser validates the lifecycle edge without
-mutating any object.
+mutating any object. Promotion and demotion outcomes must also be named
+explicitly in `promotion_targets` and `demotion_targets` so lifecycle closure
+is reviewable without inferring intent from status alone.
 
 ### 6.4 Example Shape
 
@@ -424,7 +429,8 @@ Every nontrivial change should be able to declare semantic intent:
 4. required validations
 5. intended projections to refresh
 6. landed status transitions, if any
-7. candidate LLM-generated suggestions, if any
+7. promotion and demotion targets, if any
+8. candidate LLM-generated suggestions, if any
 
 Validators should reject changes when:
 
@@ -432,10 +438,11 @@ Validators should reject changes when:
 2. relation endpoints cannot be resolved
 3. relation kinds are unknown
 4. status transitions violate lifecycle rules
-5. affected invariants have no required validation evidence
-6. generated projections are stale and not explicitly marked stale
-7. LLM-generated suggestions are treated as canonical without acceptance
-8. candidate objects are not governed by active change-intent suggestions
+5. promotion or demotion targets do not match the relevant status transition
+6. affected invariants have no required validation evidence
+7. generated projections are stale and not explicitly marked stale
+8. LLM-generated suggestions are treated as canonical without acceptance
+9. candidate objects are not governed by active change-intent suggestions
 
 ## 12. Minimal First Slice
 

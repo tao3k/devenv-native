@@ -255,6 +255,12 @@ pub struct SemanticChangeIntent {
     /// Landed object lifecycle status transitions.
     #[serde(default)]
     pub status_transitions: Vec<SemanticStatusTransition>,
+    /// Objects promoted from candidate status to active authority.
+    #[serde(default)]
+    pub promotion_targets: Vec<String>,
+    /// Objects demoted to deprecated, superseded, or retired status.
+    #[serde(default)]
+    pub demotion_targets: Vec<String>,
     /// Existing invariant objects affected by the change.
     pub affected_invariants: Vec<String>,
     /// Required validation commands for closing the change.
