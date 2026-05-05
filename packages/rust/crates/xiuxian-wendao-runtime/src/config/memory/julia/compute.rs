@@ -1,3 +1,5 @@
+//! Julia memory compute configuration records for runtime config parsing.
+
 use crate::settings::{first_non_empty, get_setting_bool, get_setting_string, parse_positive_u64};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;

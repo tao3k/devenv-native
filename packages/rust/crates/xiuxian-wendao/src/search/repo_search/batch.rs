@@ -14,7 +14,7 @@ use xiuxian_wendao_runtime::transport::{
     REPO_SEARCH_TITLE_COLUMN,
 };
 
-use crate::gateway::studio::types::SearchHit;
+use crate::search::contracts::SearchHit;
 
 struct RepoSearchBatchColumns<'a> {
     doc_ids: Vec<String>,

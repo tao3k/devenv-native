@@ -1,4 +1,4 @@
-use super::*;
+use super::{NodeStatus, generate_suggested_id, issue_type_to_code, xml_escape};
 
 #[test]
 fn test_xml_escape() {

@@ -1,6 +1,6 @@
-use super::super::super::LinkGraphIndex;
 use super::types::PlannedPayloadSearchRequest;
 use crate::link_graph::LinkGraphPlannedSearchPayload;
+use crate::link_graph::index::LinkGraphIndex;
 
 impl LinkGraphIndex {
     pub(super) fn search_planned_payload_with_agentic_runtime_bridge_with_query_vector(

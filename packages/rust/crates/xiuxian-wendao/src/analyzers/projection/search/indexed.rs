@@ -89,7 +89,7 @@ pub(crate) fn search_projected_pages_with_index(
     Vec::new()
 }
 
-pub(crate) fn build_projected_page_search_index(
+pub fn build_projected_page_search_index(
     pages: &[ProjectedPageRecord],
 ) -> Result<(SearchDocumentIndex, HashMap<String, ProjectedPageRecord>), String> {
     let search_index = SearchDocumentIndex::new();

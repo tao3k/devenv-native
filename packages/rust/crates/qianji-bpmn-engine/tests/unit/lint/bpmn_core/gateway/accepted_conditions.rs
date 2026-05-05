@@ -1,4 +1,4 @@
-use super::super::super::{
+use crate::lint::{
     BpmnSourceFile, LintDomain, lint_bpmn_source, native_service_task, native_user_task,
 };
 

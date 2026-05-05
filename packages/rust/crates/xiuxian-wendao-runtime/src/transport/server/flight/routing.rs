@@ -1,3 +1,5 @@
+//! Route dispatch and cache-key derivation for the Wendao Flight service.
+
 use std::sync::Arc;
 
 use tonic::Status;
@@ -12,7 +14,7 @@ use crate::transport::query_contract::{
     TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
 };
 
-use super::super::request_metadata::{
+use crate::transport::server::{
     is_search_family_route, join_sorted_set, validate_attachment_search_request_metadata,
     validate_autocomplete_request_metadata, validate_code_ast_analysis_request_metadata,
     validate_definition_request_metadata, validate_document_extract_request_metadata,
@@ -25,7 +27,8 @@ use super::super::request_metadata::{
     validate_search_request_metadata, validate_sql_request_metadata,
     validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
 };
-use super::core::WendaoFlightService;
+
+use super::ServiceCore as WendaoFlightService;
 use super::payload::FlightRoutePayload;
 
 fn document_extract_cache_key(

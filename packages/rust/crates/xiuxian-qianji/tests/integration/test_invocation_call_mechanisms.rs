@@ -14,8 +14,6 @@ use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::Persona
 use xiuxian_qianji::{QianjiCompiler, QianjiScheduler};
 use xiuxian_wendao::LinkGraphIndex;
 
-xiuxian_testing::crate_test_policy_harness!();
-
 fn build_compiler(index_root: &Path) -> Result<QianjiCompiler, Box<dyn std::error::Error>> {
     let index = Arc::new(LinkGraphIndex::build(index_root)?);
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));

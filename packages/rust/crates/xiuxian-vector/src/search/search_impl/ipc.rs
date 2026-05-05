@@ -167,7 +167,7 @@ fn record_batch_to_ipc_bytes(batch: &arrow::record_batch::RecordBatch) -> Result
 /// If `projection` is Some and non-empty, only those columns are included (smaller payload).
 /// Schema (full): id, content, `tool_name`, `file_path`, `routing_keywords` (List<Utf8>),
 /// intents (List<Utf8>), _distance, metadata (Utf8).
-pub(super) fn search_results_to_ipc(
+pub(crate) fn search_results_to_ipc(
     results: &[VectorSearchResult],
     projection: Option<&[String]>,
 ) -> Result<Vec<u8>, String> {

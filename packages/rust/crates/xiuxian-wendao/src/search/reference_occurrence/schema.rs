@@ -5,7 +5,7 @@ use xiuxian_db_store::{
     VectorStoreError,
 };
 
-use crate::gateway::studio::types::ReferenceSearchHit;
+use crate::search::contracts::ReferenceSearchHit;
 
 const CHUNK_SIZE: usize = 1_000;
 

@@ -5,7 +5,7 @@ use crate::link_graph::index::build::assemble::types::NoteTables;
 use crate::link_graph::index::{IndexedSection, doc_sort_key};
 use crate::link_graph::models::LinkGraphAttachment;
 use crate::parsers::markdown::{ParsedNote, normalize_alias, parse_note};
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 pub(crate) fn parse_notes(root: &Path, candidate_paths: Vec<PathBuf>) -> Vec<ParsedNote> {
     let mut parsed_notes: Vec<ParsedNote> = candidate_paths

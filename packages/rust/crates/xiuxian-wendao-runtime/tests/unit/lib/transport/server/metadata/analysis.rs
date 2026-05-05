@@ -8,8 +8,8 @@ use crate::transport::{
     validate_repo_overview_request_metadata, validate_repo_sync_request_metadata,
 };
 
-use super::super::assertions::{must_err, must_ok};
-use super::super::request_headers::{
+use crate::tests::transport::server::assertions::{must_err, must_ok};
+use crate::tests::transport::server::request_headers::{
     build_document_extract_metadata, build_markdown_analysis_metadata,
     build_repo_doc_coverage_metadata, build_repo_index_status_metadata,
     build_repo_overview_metadata, build_repo_sync_metadata,

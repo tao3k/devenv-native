@@ -1,0 +1,441 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 17
+expression: value
+---
+{
+  "hits": [
+    {
+      "kind": "page",
+      "node": null,
+      "page": {
+        "doc_id": "repo:gateway-sync:doc:docs/solve.md",
+        "doc_ids": [
+          "repo:gateway-sync:doc:docs/solve.md"
+        ],
+        "example_ids": [
+          "repo:gateway-sync:example:examples/solve_demo.jl"
+        ],
+        "format_hints": [
+          "md"
+        ],
+        "keywords": [
+          "docs/solve.md",
+          "md",
+          "repo:gateway-sync:doc:docs/solve.md",
+          "solve"
+        ],
+        "kind": "reference",
+        "module_ids": [],
+        "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+        "path": "docs/solve.md",
+        "paths": [
+          "docs/solve.md",
+          "examples/solve_demo.jl"
+        ],
+        "repo_id": "gateway-sync",
+        "sections": [
+          {
+            "body": "Projected reference page for `solve`.\nFormat hints:\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`",
+            "level": 1,
+            "paths": [
+              "docs/solve.md",
+              "examples/solve_demo.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#overview",
+            "title": "Overview"
+          },
+          {
+            "body": "Symbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)",
+            "level": 2,
+            "paths": [
+              "src/GatewaySyncPkg.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#anchors",
+            "title": "Anchors"
+          },
+          {
+            "body": "Documentation:\n- `solve` (docs/solve.md)",
+            "level": 2,
+            "paths": [
+              "docs/solve.md"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#sources",
+            "title": "Documentation"
+          },
+          {
+            "body": "Examples:\n- `solve_demo` (examples/solve_demo.jl)",
+            "level": 2,
+            "paths": [
+              "examples/solve_demo.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#examples",
+            "title": "Examples"
+          }
+        ],
+        "symbol_ids": [
+          "repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "title": "solve"
+      }
+    },
+    {
+      "kind": "page",
+      "node": null,
+      "page": {
+        "doc_id": "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "doc_ids": [
+          "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "example_ids": [
+          "repo:gateway-sync:example:examples/solve_demo.jl"
+        ],
+        "format_hints": [
+          "julia_docstring"
+        ],
+        "keywords": [
+          "examples/solve_demo.jl",
+          "julia_docstring",
+          "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+          "solve"
+        ],
+        "kind": "reference",
+        "module_ids": [],
+        "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "path": "examples/solve_demo.jl",
+        "paths": [
+          "examples/solve_demo.jl",
+          "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "repo_id": "gateway-sync",
+        "sections": [
+          {
+            "body": "Projected reference page for `solve`.\nFormat hints:\n- `julia_docstring`\nSource paths:\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
+            "level": 1,
+            "paths": [
+              "examples/solve_demo.jl",
+              "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#overview",
+            "title": "Overview"
+          },
+          {
+            "body": "Symbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)",
+            "level": 2,
+            "paths": [
+              "src/GatewaySyncPkg.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#anchors",
+            "title": "Anchors"
+          },
+          {
+            "body": "Documentation:\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
+            "level": 2,
+            "paths": [
+              "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#sources",
+            "title": "Documentation"
+          },
+          {
+            "body": "Examples:\n- `solve_demo` (examples/solve_demo.jl)",
+            "level": 2,
+            "paths": [
+              "examples/solve_demo.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#examples",
+            "title": "Examples"
+          }
+        ],
+        "symbol_ids": [
+          "repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "title": "solve"
+      }
+    },
+    {
+      "kind": "page_index_node",
+      "node": {
+        "doc_id": "reference/solve-69592caeddee",
+        "line_range": [
+          1,
+          7
+        ],
+        "node_id": "reference/solve-69592caeddee#solve",
+        "node_title": "solve",
+        "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+        "page_kind": "reference",
+        "page_title": "solve",
+        "path": "reference/solve-69592caeddee.md",
+        "repo_id": "gateway-sync",
+        "structural_path": [
+          "solve"
+        ],
+        "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: md\n:END:"
+      },
+      "page": {
+        "doc_id": "repo:gateway-sync:doc:docs/solve.md",
+        "doc_ids": [
+          "repo:gateway-sync:doc:docs/solve.md"
+        ],
+        "example_ids": [
+          "repo:gateway-sync:example:examples/solve_demo.jl"
+        ],
+        "format_hints": [
+          "md"
+        ],
+        "keywords": [
+          "docs/solve.md",
+          "md",
+          "repo:gateway-sync:doc:docs/solve.md",
+          "solve"
+        ],
+        "kind": "reference",
+        "module_ids": [],
+        "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+        "path": "docs/solve.md",
+        "paths": [
+          "docs/solve.md",
+          "examples/solve_demo.jl"
+        ],
+        "repo_id": "gateway-sync",
+        "sections": [
+          {
+            "body": "Projected reference page for `solve`.\nFormat hints:\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`",
+            "level": 1,
+            "paths": [
+              "docs/solve.md",
+              "examples/solve_demo.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#overview",
+            "title": "Overview"
+          },
+          {
+            "body": "Symbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)",
+            "level": 2,
+            "paths": [
+              "src/GatewaySyncPkg.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#anchors",
+            "title": "Anchors"
+          },
+          {
+            "body": "Documentation:\n- `solve` (docs/solve.md)",
+            "level": 2,
+            "paths": [
+              "docs/solve.md"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#sources",
+            "title": "Documentation"
+          },
+          {
+            "body": "Examples:\n- `solve_demo` (examples/solve_demo.jl)",
+            "level": 2,
+            "paths": [
+              "examples/solve_demo.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#examples",
+            "title": "Examples"
+          }
+        ],
+        "symbol_ids": [
+          "repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "title": "solve"
+      }
+    },
+    {
+      "kind": "page_index_node",
+      "node": {
+        "doc_id": "reference/solve-ff3f3e8134a2",
+        "line_range": [
+          1,
+          7
+        ],
+        "node_id": "reference/solve-ff3f3e8134a2#solve",
+        "node_title": "solve",
+        "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "page_kind": "reference",
+        "page_title": "solve",
+        "path": "reference/solve-ff3f3e8134a2.md",
+        "repo_id": "gateway-sync",
+        "structural_path": [
+          "solve"
+        ],
+        "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: julia_docstring\n:END:"
+      },
+      "page": {
+        "doc_id": "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "doc_ids": [
+          "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "example_ids": [
+          "repo:gateway-sync:example:examples/solve_demo.jl"
+        ],
+        "format_hints": [
+          "julia_docstring"
+        ],
+        "keywords": [
+          "examples/solve_demo.jl",
+          "julia_docstring",
+          "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+          "solve"
+        ],
+        "kind": "reference",
+        "module_ids": [],
+        "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "path": "examples/solve_demo.jl",
+        "paths": [
+          "examples/solve_demo.jl",
+          "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "repo_id": "gateway-sync",
+        "sections": [
+          {
+            "body": "Projected reference page for `solve`.\nFormat hints:\n- `julia_docstring`\nSource paths:\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
+            "level": 1,
+            "paths": [
+              "examples/solve_demo.jl",
+              "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#overview",
+            "title": "Overview"
+          },
+          {
+            "body": "Symbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)",
+            "level": 2,
+            "paths": [
+              "src/GatewaySyncPkg.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#anchors",
+            "title": "Anchors"
+          },
+          {
+            "body": "Documentation:\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
+            "level": 2,
+            "paths": [
+              "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#sources",
+            "title": "Documentation"
+          },
+          {
+            "body": "Examples:\n- `solve_demo` (examples/solve_demo.jl)",
+            "level": 2,
+            "paths": [
+              "examples/solve_demo.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve#examples",
+            "title": "Examples"
+          }
+        ],
+        "symbol_ids": [
+          "repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "title": "solve"
+      }
+    },
+    {
+      "kind": "page_index_node",
+      "node": {
+        "doc_id": "reference/gatewaysyncpkg-solve-426791875262",
+        "line_range": [
+          1,
+          7
+        ],
+        "node_id": "reference/gatewaysyncpkg-solve-426791875262#gatewaysyncpkg-solve",
+        "node_title": "GatewaySyncPkg.solve",
+        "page_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "page_kind": "reference",
+        "page_title": "GatewaySyncPkg.solve",
+        "path": "reference/gatewaysyncpkg-solve-426791875262.md",
+        "repo_id": "gateway-sync",
+        "structural_path": [
+          "GatewaySyncPkg.solve"
+        ],
+        "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: julia_docstring, md\n:END:"
+      },
+      "page": {
+        "doc_id": "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "doc_ids": [
+          "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+          "repo:gateway-sync:doc:docs/solve.md"
+        ],
+        "example_ids": [
+          "repo:gateway-sync:example:examples/solve_demo.jl"
+        ],
+        "format_hints": [
+          "julia_docstring",
+          "md"
+        ],
+        "keywords": [
+          "GatewaySyncPkg.solve",
+          "docs/solve.md",
+          "julia_docstring",
+          "md",
+          "repo:gateway-sync:doc:src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "kind": "reference",
+        "module_ids": [
+          "repo:gateway-sync:module:GatewaySyncPkg"
+        ],
+        "page_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+        "path": "docs/solve.md",
+        "paths": [
+          "docs/solve.md",
+          "examples/solve_demo.jl",
+          "src/GatewaySyncPkg.jl",
+          "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "repo_id": "gateway-sync",
+        "sections": [
+          {
+            "body": "Projected reference page for `GatewaySyncPkg.solve`.\nFormat hints:\n- `julia_docstring`\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`\n- `src/GatewaySyncPkg.jl`\n- `src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve`",
+            "level": 1,
+            "paths": [
+              "docs/solve.md",
+              "examples/solve_demo.jl",
+              "src/GatewaySyncPkg.jl",
+              "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve#overview",
+            "title": "Overview"
+          },
+          {
+            "body": "Modules:\n- `GatewaySyncPkg` (src/GatewaySyncPkg.jl)\n\nSymbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)",
+            "level": 2,
+            "paths": [
+              "src/GatewaySyncPkg.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve#anchors",
+            "title": "Anchors"
+          },
+          {
+            "body": "Documentation:\n- `solve` (docs/solve.md)\n- `solve` (src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve)",
+            "level": 2,
+            "paths": [
+              "docs/solve.md",
+              "src/GatewaySyncPkg.jl#symbol-id:repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve#sources",
+            "title": "Documentation"
+          },
+          {
+            "body": "Examples:\n- `solve_demo` (examples/solve_demo.jl)",
+            "level": 2,
+            "paths": [
+              "examples/solve_demo.jl"
+            ],
+            "section_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve#examples",
+            "title": "Examples"
+          }
+        ],
+        "symbol_ids": [
+          "repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+        ],
+        "title": "GatewaySyncPkg.solve"
+      }
+    }
+  ],
+  "repo_id": "gateway-sync"
+}

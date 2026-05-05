@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::observability::SessionEvent;
 
-use super::super::message::{ChatMessage, FunctionCall, ToolCallOut};
 use super::RedisSessionBackend;
+use crate::session::{ChatMessage, FunctionCall, ToolCallOut};
 
 const SESSION_CONTEXT_BACKUP_META_PREFIX: &str = "__session_context_backup_meta__:";
 const COMPACT_CHAT_MESSAGE_VERSION: u8 = 1;

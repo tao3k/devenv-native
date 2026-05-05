@@ -1,4 +1,7 @@
-use crate::search::service::tests::support::*;
+use crate::repo_index::{RepoIndexPhase, RepoIndexStatusResponse};
+use crate::search::SearchCorpusKind;
+use crate::search::service::helpers::{repo_corpus_active_epoch, repo_corpus_staging_epoch};
+use crate::search::service::tests::support::repo_status_entry;
 
 #[test]
 fn repo_corpus_active_epoch_is_stable_across_publication_order() {

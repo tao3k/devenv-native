@@ -4,8 +4,8 @@ use crate::agent::{
     DownstreamAdmissionRuntimeSnapshot, MemoryRecallMetricsSnapshot, MemoryRuntimeStatusSnapshot,
 };
 
-use super::super::metrics::format_memory_recall_metrics_json;
-use super::super::runtime_status::{
+use crate::channels::discord::runtime::managed::replies::memory::metrics::format_memory_recall_metrics_json;
+use crate::channels::discord::runtime::managed::replies::memory::runtime_status::{
     format_downstream_admission_status_json, format_downstream_admission_status_lines,
     format_memory_runtime_status_json, format_memory_runtime_status_lines,
 };

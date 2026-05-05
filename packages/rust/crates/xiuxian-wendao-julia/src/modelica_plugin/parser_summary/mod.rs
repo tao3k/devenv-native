@@ -1,6 +1,9 @@
+//! Modelica parser-summary contracts, transport, and incremental helpers.
+
 mod contract;
 mod fetch;
 mod incremental;
+mod route;
 mod transport;
 mod types;
 
@@ -9,15 +12,16 @@ pub(crate) use fetch::{
     validate_modelica_parser_summary_preflight_for_repository,
 };
 pub use incremental::modelica_parser_summary_file_semantic_fingerprint_for_repository;
+pub(crate) use route::ParserSummaryRouteKind;
 #[cfg(test)]
-pub(crate) use transport::{
-    MODELICA_AST_QUERY_ROUTE, MODELICA_FILE_SUMMARY_ROUTE, MODELICA_PARSER_SUMMARY_SCHEMA_VERSION,
-};
-pub(crate) use transport::{
-    ParserSummaryRouteKind, modelica_parser_summary_timeout_secs_for_repository,
-    process_modelica_parser_summary_flight_batches_for_repository,
-};
+pub(crate) use route::{MODELICA_AST_QUERY_ROUTE, MODELICA_FILE_SUMMARY_ROUTE};
+#[cfg(test)]
+pub(crate) use transport::MODELICA_PARSER_SUMMARY_SCHEMA_VERSION;
 pub use transport::{
     clear_modelica_parser_summary_transport_cache_for_tests,
     set_linked_modelica_parser_summary_base_url_for_tests,
+};
+pub(crate) use transport::{
+    modelica_parser_summary_timeout_secs_for_repository,
+    process_modelica_parser_summary_flight_batches_for_repository,
 };

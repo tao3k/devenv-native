@@ -1,0 +1,31 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "active": 0,
+  "checking": 0,
+  "failed": 0,
+  "indexing": 0,
+  "maxConcurrency": 1,
+  "queued": 1,
+  "ready": 0,
+  "repos": [
+    {
+      "attemptCount": 0,
+      "phase": "queued",
+      "repoId": "modelica-gateway-index-status",
+      "updatedAt": "[updated-at]"
+    }
+  ],
+  "studioBootstrapBackgroundIndexingDeferredActivationAt": null,
+  "studioBootstrapBackgroundIndexingDeferredActivationObserved": false,
+  "studioBootstrapBackgroundIndexingDeferredActivationSource": null,
+  "studioBootstrapBackgroundIndexingEnabled": false,
+  "studioBootstrapBackgroundIndexingMode": "deferred",
+  "syncConcurrencyLimit": 1,
+  "syncing": 0,
+  "targetConcurrency": 1,
+  "total": 1,
+  "unsupported": 0
+}

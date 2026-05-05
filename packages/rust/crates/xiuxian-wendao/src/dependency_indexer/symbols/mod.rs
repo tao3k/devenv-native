@@ -1,6 +1,7 @@
 //! Extract symbols from Rust/Python source files using omni-tags.
 
 mod extract;
+#[path = "index/mod.rs"]
 mod index;
 mod model;
 

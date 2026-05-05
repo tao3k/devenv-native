@@ -1,4 +1,8 @@
-use super::support::*;
+use super::support::{
+    Duration, PathBuf, RepoIndexEntryStatus, RepoIndexPhase, RepoIndexTaskPriority,
+    RepoIntelligenceError, RepositoryAnalysisOutput, SearchPlaneService, await_analysis_completion,
+    fingerprint, new_coordinator, repo, timestamp_now,
+};
 
 #[test]
 fn record_repo_status_advances_attempt_count_without_lock_reentrancy() {

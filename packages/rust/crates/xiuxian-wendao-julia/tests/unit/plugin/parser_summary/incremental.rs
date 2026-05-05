@@ -29,7 +29,7 @@ async fn safe_incremental_live_service_distinguishes_leaf_and_root_files()
     let leaf_is_safe = tokio::task::spawn_blocking(move || {
         julia_parser_summary_allows_safe_incremental_file_for_repository(
             &leaf_repository,
-            "src/leaf.jl",
+            "src/leaf.jl".into(),
             "alpha() = 2\nbeta() = 3\n",
         )
     })
@@ -39,7 +39,7 @@ async fn safe_incremental_live_service_distinguishes_leaf_and_root_files()
     let root_is_safe = tokio::task::spawn_blocking(move || {
         julia_parser_summary_allows_safe_incremental_file_for_repository(
             &repository,
-            "src/FixturePkg.jl",
+            "src/FixturePkg.jl".into(),
             "module FixturePkg\ninclude(\"leaf.jl\")\nend\n",
         )
     })

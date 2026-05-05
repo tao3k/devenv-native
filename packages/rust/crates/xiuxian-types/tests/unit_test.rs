@@ -1,7 +1,7 @@
 //! Cargo entry point for xiuxian-types unit tests.
 
-xiuxian_testing::crate_test_policy_harness!();
-
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/scenarios.rs"]
 mod scenarios;
 #[path = "unit/skill_definition.rs"]

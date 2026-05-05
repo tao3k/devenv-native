@@ -1,6 +1,6 @@
 //! Strategic routing and quality-gating engine.
 
-use super::super::reflection::PolicyHintDirective;
+use crate::agent::reflection::PolicyHintDirective;
 use crate::contracts::{
     OmegaDecision, OmegaFallbackPolicy, OmegaRiskLevel, OmegaRoute, OmegaToolTrustClass,
 };

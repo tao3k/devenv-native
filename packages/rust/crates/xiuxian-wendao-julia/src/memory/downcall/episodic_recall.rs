@@ -1,3 +1,5 @@
+//! Downcall helpers for Julia episodic-recall requests.
+
 use xiuxian_memory_engine::MemoryProjectionRow;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 use xiuxian_wendao_runtime::config::MemoryJuliaComputeRuntimeConfig;

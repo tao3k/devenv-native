@@ -1,4 +1,4 @@
-use super::super::support::{
+use super::support::{
     must_ok, must_some, open_file_store, sample_checkpoint, sample_checkpoint_with_package,
     sample_package,
 };

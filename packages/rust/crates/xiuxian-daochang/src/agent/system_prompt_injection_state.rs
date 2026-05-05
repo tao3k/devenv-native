@@ -1,3 +1,5 @@
+//! System-prompt injection state and cache invalidation helpers.
+
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -5,7 +7,7 @@ use xiuxian_qianhuan::{InjectionWindowConfig, SystemPromptInjectionWindow};
 
 use crate::session::ChatMessage;
 
-use super::super::Agent;
+use crate::Agent;
 
 const SYSTEM_PROMPT_INJECTION_SNAPSHOT_SESSION_PREFIX: &str =
     "__session_system_prompt_injection__:";

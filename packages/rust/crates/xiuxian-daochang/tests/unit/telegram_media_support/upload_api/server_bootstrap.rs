@@ -32,7 +32,7 @@
 use anyhow::Result;
 use axum::{Router, routing::post};
 
-use super::super::bootstrap::spawn_test_server;
+use super::bootstrap::spawn_test_server;
 use super::{
     MockTelegramUploadState, media_group::handle_upload_media_group, photo::handle_upload_photo,
 };

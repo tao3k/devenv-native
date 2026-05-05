@@ -1,9 +1,9 @@
-use super::super::{
+use super::support::{err_or_panic, tempdir_or_panic};
+use crate::transport::plugin_arrow_exchange::{
     PluginArrowRequestRow, PluginArrowVectorStoreRequestBuildError,
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,
     prepare_plugin_arrow_request_rows_from_vector_store,
 };
-use super::support::{err_or_panic, tempdir_or_panic};
 
 #[tokio::test]
 async fn prepare_plugin_arrow_request_rows_from_vector_store_collects_embeddings() {

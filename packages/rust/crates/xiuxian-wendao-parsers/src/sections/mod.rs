@@ -1,3 +1,5 @@
+//! Markdown section extraction, properties, and logbook parsing.
+
 mod extract;
 mod logbook;
 mod properties;

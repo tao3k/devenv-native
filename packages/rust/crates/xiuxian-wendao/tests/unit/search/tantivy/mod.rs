@@ -4,7 +4,7 @@ use super::compare::{best_match_candidate, collect_lowercase_chars};
 use super::fragments::for_each_candidate_fragment;
 use super::identifier::populate_identifier_boundaries;
 use super::tokenizer::{CodeTokenizer, collect_search_tokens};
-use super::*;
+use super::{SearchDocument, SearchDocumentIndex, SearchDocumentMatchField};
 use tantivy::tokenizer::{TokenStream, Tokenizer};
 
 fn adjacent_identifier_fragments(value: &str) -> Vec<&str> {

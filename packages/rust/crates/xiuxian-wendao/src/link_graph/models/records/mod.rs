@@ -2,6 +2,7 @@ mod diagnostics;
 mod document;
 mod graph_rows;
 mod hits;
+#[path = "markdown_block/mod.rs"]
 mod markdown_block;
 mod page_index;
 mod passage;

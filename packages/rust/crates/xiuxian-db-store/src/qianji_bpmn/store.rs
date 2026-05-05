@@ -1,3 +1,5 @@
+//! DuckDB-backed Qianji BPMN workflow data-store implementation.
+
 use crate::duckdb::DuckDbConnection;
 use crate::duckdb_crate::OptionalExt;
 

@@ -9,9 +9,11 @@
 //! graph, and querying. This module enriches results with deeper
 //! structural analysis at Rust-native speed.
 
+#[path = "markdown_config/mod.rs"]
 mod markdown_config;
 mod pipeline;
 mod relations;
+#[path = "resource_registry/mod.rs"]
 mod resource_registry;
 mod resource_semantics;
 mod types;

@@ -1,3 +1,5 @@
+//! Negotiated Plugin Arrow exchange roundtrip execution.
+
 use std::collections::BTreeMap;
 
 use arrow_array::RecordBatch;

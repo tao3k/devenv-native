@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 027_graph_nav_related_from_seeds_with_diagnostics [graph_navigation]: Graph Navigation: related from seeds with diagnostics"
 expression: result
 info:

@@ -1,3 +1,5 @@
+//! Zhixing runtime artifact ownership for mounted package outputs.
+
 mod mounts;
 mod paths;
 mod text;

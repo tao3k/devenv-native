@@ -1,3 +1,5 @@
+//! JSON-RPC helpers for Qianhuan Zhenfa render and reload actions.
+
 use std::sync::Arc;
 
 use anyhow::Context;
@@ -36,7 +38,7 @@ pub fn reload_for_rpc(manager: &Arc<ManifestationManager>) -> Result<String, Jso
 ///
 /// # Errors
 /// Returns an error when manifestation rendering fails.
-pub fn render(
+pub(crate) fn render(
     manager: &Arc<ManifestationManager>,
     request: &ManifestationRenderRequest,
 ) -> anyhow::Result<String> {

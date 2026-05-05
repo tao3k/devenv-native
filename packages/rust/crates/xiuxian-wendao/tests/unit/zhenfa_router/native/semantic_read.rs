@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::link_graph::{MarkdownBlock, PageIndexMeta, PageIndexNode};
 
-use super::*;
+use super::{MatchType, find_node_by_id, match_type_to_string};
 
 fn make_node(node_id: &str, title: &str, children: Vec<PageIndexNode>) -> PageIndexNode {
     PageIndexNode {

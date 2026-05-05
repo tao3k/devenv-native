@@ -132,7 +132,7 @@ fn build_memory_gate_score_evidence_row_from_store_roundtrips_real_episode()
 
     let evidence = build_memory_gate_score_evidence_row_from_store(
         &store,
-        "memory-alpha",
+        "memory-alpha".into(),
         Some("searchinfra".to_string()),
         0.91,
         0.88,

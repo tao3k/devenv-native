@@ -1,3 +1,5 @@
+//! Extraction logic for Markdown `:OBSERVE:` property entries.
+
 use super::CodeObservation;
 use std::collections::HashMap;
 use std::hash::BuildHasher;

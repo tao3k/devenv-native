@@ -1,8 +1,8 @@
-use super::super::fingerprint::LinkGraphFingerprint;
 use super::CacheLookupOutcome;
 use super::schema::{LINK_GRAPH_CACHE_SCHEMA_VERSION, cache_schema_fingerprint};
 use super::snapshot::LinkGraphIndexSnapshot;
 use crate::link_graph::index::LinkGraphIndex;
+use crate::link_graph::index::build::fingerprint::LinkGraphFingerprint;
 use crate::link_graph::runtime_config::LinkGraphCacheRuntimeConfig;
 use crate::valkey_common::open_client;
 use std::path::Path;

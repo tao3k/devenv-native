@@ -1,3 +1,5 @@
+//! Agentic configuration resolver boundary for Wendao runtime settings.
+
 mod api;
 mod apply;
 mod finalize;

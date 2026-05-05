@@ -1,5 +1,5 @@
 use super::{fingerprint_note_projects, fingerprint_source_projects};
-use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
 
 #[test]
 fn fingerprint_source_projects_ignores_skipped_directories() {
@@ -16,7 +16,7 @@ fn fingerprint_source_projects_ignores_skipped_directories() {
         "ignored();\n",
     )
     .unwrap_or_else(|error| panic!("write skipped source file: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -40,7 +40,7 @@ fn fingerprint_note_projects_changes_when_note_metadata_changes() {
         .unwrap_or_else(|error| panic!("create notes dir: {error}"));
     std::fs::write(project_root.join("notes/test.md"), "# title\n")
         .unwrap_or_else(|error| panic!("write note file: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "demo".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],

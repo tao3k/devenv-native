@@ -1,5 +1,5 @@
-use super::super::*;
 use super::support::chunk_or_panic;
+use xiuxian_ast::Lang;
 
 #[test]
 fn test_chunk_rust_functions() {

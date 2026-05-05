@@ -9,7 +9,7 @@ mod ranking;
 mod scope;
 mod uri;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "search-runtime"))]
 #[path = "../../../../tests/unit/analyzers/service/helpers/mod.rs"]
 mod tests;
 
@@ -27,6 +27,6 @@ pub(crate) use ranking::{
 pub(crate) use scope::{
     docs_in_scope, documented_symbol_ids, resolve_module_scope, symbols_in_scope,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "search-runtime"))]
 pub(crate) use uri::relation_kind_label;
 pub(crate) use uri::{record_hierarchical_uri, repo_hierarchical_uri};

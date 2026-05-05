@@ -41,6 +41,7 @@ impl CommandSelector {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Authorization rule built from command selectors and allowed identities.
 pub struct CommandSelectorAuthRule {
     selectors: Vec<CommandSelector>,
     allowed_identities: Vec<String>,

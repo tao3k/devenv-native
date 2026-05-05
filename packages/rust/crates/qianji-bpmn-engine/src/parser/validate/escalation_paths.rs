@@ -41,7 +41,7 @@ impl SupportedEscalationOwner {
     }
 }
 
-pub(super) fn validate_supported_escalation_throw_paths(
+pub(in crate::parser) fn validate_supported_escalation_throw_paths(
     process: &RawProcess,
     process_by_id: &HashMap<&str, &RawProcess>,
     call_activity_owners: &HashMap<&str, Vec<CallActivityOwner<'_>>>,

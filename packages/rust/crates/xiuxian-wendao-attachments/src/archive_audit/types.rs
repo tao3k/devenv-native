@@ -1,3 +1,5 @@
+//! Public archive audit summary and member row contracts.
+
 use std::collections::BTreeMap;
 
 /// Non-extracting audit summary for archive-backed document attachments.

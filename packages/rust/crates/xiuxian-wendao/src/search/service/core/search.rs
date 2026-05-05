@@ -1,5 +1,7 @@
+//! Coordinates search-plane query methods across repository, symbol, attachment, and vector owners.
+
 use super::types::SearchPlaneService;
-use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::contracts::{ProjectConfigView, materialize_project_configs};
 use crate::search::{
     AttachmentSearchError, KnowledgeSectionSearchError, LocalSymbolSearchError, ProjectScannedFile,
     ReferenceOccurrenceSearchError,
@@ -34,124 +36,159 @@ impl SearchPlaneService {
         engine
     }
 
-    #[cfg(test)]
-    pub(crate) fn ensure_local_symbol_index_started(
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    #[must_use]
+    pub fn ensure_local_symbol_index_started(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::local_symbol::ensure_local_symbol_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
-    pub(crate) fn ensure_local_symbol_index_started_with_scanned_files(
+    /// Start or reuse the local-symbol index using a precomputed file scan.
+    #[must_use]
+    pub fn ensure_local_symbol_index_started_with_scanned_files(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::local_symbol::ensure_local_symbol_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }
 
-    pub(crate) async fn search_local_symbols(
+    /// Search local symbol hits in the active symbol index.
+    ///
+    /// # Errors
+    ///
+    /// Returns a local-symbol search error when the active publication cannot
+    /// be queried or decoded.
+    pub async fn search_local_symbols(
         &self,
         query: &str,
         limit: usize,
-    ) -> Result<Vec<crate::gateway::studio::types::AstSearchHit>, LocalSymbolSearchError> {
+    ) -> Result<Vec<crate::search::contracts::AstSearchHit>, LocalSymbolSearchError> {
         crate::search::local_symbol::search_local_symbols(self, query, limit).await
     }
 
-    #[cfg(test)]
-    pub(crate) fn ensure_knowledge_section_index_started(
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    #[must_use]
+    pub fn ensure_knowledge_section_index_started(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::knowledge_section::ensure_knowledge_section_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
-    pub(crate) fn ensure_knowledge_section_index_started_with_scanned_files(
+    /// Start or reuse the knowledge-section index using a precomputed file scan.
+    #[must_use]
+    pub fn ensure_knowledge_section_index_started_with_scanned_files(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::knowledge_section::ensure_knowledge_section_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }
 
-    pub(crate) async fn search_knowledge_sections(
+    /// Search knowledge-section hits in the active note index.
+    ///
+    /// # Errors
+    ///
+    /// Returns a knowledge-section search error when the active publication
+    /// cannot be queried or decoded.
+    pub async fn search_knowledge_sections(
         &self,
         query: &str,
         limit: usize,
-    ) -> Result<Vec<crate::gateway::studio::types::SearchHit>, KnowledgeSectionSearchError> {
+    ) -> Result<Vec<crate::search::contracts::SearchHit>, KnowledgeSectionSearchError> {
         crate::search::knowledge_section::search_knowledge_sections(self, query, limit).await
     }
 
-    #[cfg(test)]
-    pub(crate) fn ensure_attachment_index_started(
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    #[must_use]
+    pub fn ensure_attachment_index_started(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::attachment::ensure_attachment_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
-    pub(crate) fn ensure_attachment_index_started_with_scanned_files(
+    /// Start or reuse the attachment index using a precomputed file scan.
+    #[must_use]
+    pub fn ensure_attachment_index_started_with_scanned_files(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::attachment::ensure_attachment_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }
 
-    pub(crate) async fn search_attachment_hits(
+    /// Search attachment hits in the active attachment index.
+    ///
+    /// # Errors
+    ///
+    /// Returns an attachment search error when the active publication cannot
+    /// be queried or decoded.
+    pub async fn search_attachment_hits(
         &self,
         query: &str,
         limit: usize,
         extensions: &[String],
         kinds: &[crate::link_graph::LinkGraphAttachmentKind],
         case_sensitive: bool,
-    ) -> Result<Vec<crate::gateway::studio::types::AttachmentSearchHit>, AttachmentSearchError>
-    {
+    ) -> Result<Vec<crate::search::contracts::AttachmentSearchHit>, AttachmentSearchError> {
         crate::search::attachment::search_attachment_hits(
             self,
             query,
@@ -163,54 +200,69 @@ impl SearchPlaneService {
         .await
     }
 
-    pub(crate) async fn autocomplete_local_symbols(
+    /// Autocomplete local symbols from the active symbol index.
+    ///
+    /// # Errors
+    ///
+    /// Returns a local-symbol search error when the active publication cannot
+    /// be queried or decoded.
+    pub async fn autocomplete_local_symbols(
         &self,
         prefix: &str,
         limit: usize,
-    ) -> Result<Vec<crate::gateway::studio::types::AutocompleteSuggestion>, LocalSymbolSearchError>
-    {
+    ) -> Result<Vec<crate::search::contracts::AutocompleteSuggestion>, LocalSymbolSearchError> {
         crate::search::local_symbol::autocomplete_local_symbols(self, prefix, limit).await
     }
 
-    #[cfg(test)]
-    pub(crate) fn ensure_reference_occurrence_index_started(
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    #[must_use]
+    pub fn ensure_reference_occurrence_index_started(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::reference_occurrence::ensure_reference_occurrence_index_started(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
         )
     }
 
-    pub(crate) fn ensure_reference_occurrence_index_started_with_scanned_files(
+    /// Start or reuse the reference-occurrence index using a precomputed file scan.
+    #[must_use]
+    pub fn ensure_reference_occurrence_index_started_with_scanned_files(
         &self,
         project_root: &std::path::Path,
         config_root: &std::path::Path,
-        projects: &[UiProjectConfig],
+        projects: &[impl ProjectConfigView],
         scanned_files: &[ProjectScannedFile],
     ) -> bool {
+        let projects = materialize_project_configs(projects);
         crate::search::reference_occurrence::ensure_reference_occurrence_index_started_with_scanned_files(
             self,
             project_root,
             config_root,
-            projects,
+            projects.as_slice(),
             scanned_files,
         )
     }
 
-    pub(crate) async fn search_reference_occurrences(
+    /// Search reference occurrences in the active reference index.
+    ///
+    /// # Errors
+    ///
+    /// Returns a reference-occurrence search error when the active publication
+    /// cannot be queried or decoded.
+    pub async fn search_reference_occurrences(
         &self,
         query: &str,
         limit: usize,
-    ) -> Result<
-        Vec<crate::gateway::studio::types::ReferenceSearchHit>,
-        ReferenceOccurrenceSearchError,
-    > {
+    ) -> Result<Vec<crate::search::contracts::ReferenceSearchHit>, ReferenceOccurrenceSearchError>
+    {
         crate::search::reference_occurrence::search_reference_occurrences(self, query, limit).await
     }
 }

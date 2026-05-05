@@ -7,13 +7,15 @@ use super::metadata::StudioSqlFlightMetadata;
 use crate::search::queries::sql::execute_sql_query;
 
 #[derive(Clone)]
-pub(crate) struct StudioSqlFlightRouteProvider {
+/// SQL Flight route provider backed by the Wendao search query service.
+pub struct StudioSqlFlightRouteProvider {
     service: SearchQueryService,
 }
 
 impl StudioSqlFlightRouteProvider {
+    /// Create a SQL Flight route provider from a search query service.
     #[must_use]
-    pub(crate) fn new(service: impl Into<SearchQueryService>) -> Self {
+    pub fn new(service: impl Into<SearchQueryService>) -> Self {
         Self {
             service: service.into(),
         }

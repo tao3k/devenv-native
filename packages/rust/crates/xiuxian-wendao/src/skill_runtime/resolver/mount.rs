@@ -3,10 +3,10 @@ use std::path::PathBuf;
 
 use include_dir::Dir;
 
-use super::super::zhixing::{
+use super::core::{EmbeddedSemanticMount, SkillRuntimeResolver};
+use crate::skill_runtime::zhixing::{
     ZHIXING_EMBEDDED_CRATE_ID, embedded_resource_dir, embedded_semantic_reference_mounts,
 };
-use super::core::{EmbeddedSemanticMount, SkillRuntimeResolver};
 
 impl SkillRuntimeResolver {
     /// Mount one embedded resource image and semantic reference map.

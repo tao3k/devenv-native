@@ -11,6 +11,7 @@ publish = false
 default = ["duckdb", "llm", "qianji-full"]
 duckdb = ["dep:xiuxian-db-store", "xiuxian-db-store/qianji-bpmn-workflow-state"]
 llm = ["dep:xiuxian-llm"]
+performance = []
 qianji-full = [
   "dep:globset",
   "dep:include_dir",
@@ -78,12 +79,13 @@ xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-llm = { path = "../xiuxian-llm", optional = true }
 xiuxian-window = { path = "../xiuxian-window", optional = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 [dev-dependencies]
+criterion = { workspace = true }
 insta = { workspace = true }
 reqwest = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 tower = { workspace = true }
 
 [lints]
@@ -101,6 +103,11 @@ required-features = ["llm", "qianji-full"]
 [[bin]]
 name = "qianji-server"
 path = "src/bin/qianji_server.rs"
+
+[[bench]]
+name = "qianji_bpmn_runtime"
+harness = false
+required-features = ["performance"]
 
 # Integration tests requiring llm feature
 [[test]]

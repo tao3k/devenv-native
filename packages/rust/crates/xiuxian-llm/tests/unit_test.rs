@@ -1,13 +1,13 @@
 //! Canonical unit test harness for `xiuxian-llm`.
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[path = "unit/embedding_backend.rs"]
 mod embedding_backend;
 #[path = "unit/embedding_openai_compat.rs"]
 mod embedding_openai_compat;
 #[path = "unit/feature_default_litellm_only.rs"]
 mod feature_default_litellm_only;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/llm_acceleration_unit.rs"]
 mod llm_acceleration_unit;
 #[path = "unit/llm_anthropic_roles.rs"]

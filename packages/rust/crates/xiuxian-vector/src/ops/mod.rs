@@ -1,6 +1,7 @@
 //! Administrative and maintenance operations for `VectorStore`.
 
 mod cache;
+/// UTF-8 and list-column accessors for Lance record batches.
 pub mod column_read;
 mod columnar;
 mod maintenance;

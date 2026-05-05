@@ -1,3 +1,5 @@
+//! `DataFusion` session context helpers for local search-plane query execution.
+
 use std::path::Path;
 use std::sync::Arc;
 

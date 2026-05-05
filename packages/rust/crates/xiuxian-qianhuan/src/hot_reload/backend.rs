@@ -1,3 +1,5 @@
+//! Hot-reload version backend abstractions and in-memory implementations.
+
 use anyhow::Result;
 use std::collections::BTreeMap;
 use std::sync::Mutex;

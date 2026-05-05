@@ -1,8 +1,8 @@
 use std::time::Instant;
 
+use crate::warmup_options::{WarmupEnvOverrides, resolve_warmup_options};
+use crate::{EmbeddingClient, RuntimeSettings};
 use anyhow::{Result, anyhow};
-use xiuxian_daochang::warmup_options::{WarmupEnvOverrides, resolve_warmup_options};
-use xiuxian_daochang::{EmbeddingClient, RuntimeSettings};
 
 use crate::resolve::{parse_positive_u64_from_env, parse_positive_usize_from_env};
 

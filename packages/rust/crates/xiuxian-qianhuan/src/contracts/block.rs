@@ -1,3 +1,5 @@
+//! Context-block records for prompt-injection snapshots.
+
 use serde::{Deserialize, Serialize};
 
 /// Source domain that produced a context block.

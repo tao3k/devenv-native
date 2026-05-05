@@ -1,4 +1,4 @@
-use super::*;
+pub(super) use super::{wendao_cmd, write_file};
 
 mod search_path_fuzzy_emits_section_context;
 mod search_returns_matches;

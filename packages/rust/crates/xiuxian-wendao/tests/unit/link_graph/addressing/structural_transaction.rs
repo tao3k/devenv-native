@@ -1,6 +1,6 @@
 //! Unit tests for `structural_transaction` module.
 
-use super::*;
+use super::{StructuralTransaction, StructuralTransactionCoordinator};
 
 fn make_test_transaction(
     doc_id: &str,

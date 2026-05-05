@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use xiuxian_wendao_core::WendaoResourceUri;
 
-use super::super::SkillRuntimeError;
 use super::core::SkillRuntimeResolver;
+use crate::skill_runtime::SkillRuntimeError;
 
 impl SkillRuntimeResolver {
     /// Resolve one semantic URI to concrete file path.

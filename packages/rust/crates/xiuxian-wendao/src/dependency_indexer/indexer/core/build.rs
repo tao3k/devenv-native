@@ -3,7 +3,7 @@ use crate::dependency_indexer::indexer::files::find_files;
 use crate::dependency_indexer::indexer::{
     DependencyBuildConfig, DependencyIndexResult, ExternalSymbol,
 };
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::PathBuf;
 
 impl DependencyIndexer {

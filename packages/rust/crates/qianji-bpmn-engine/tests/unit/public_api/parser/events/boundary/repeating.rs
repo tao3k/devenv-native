@@ -1,4 +1,4 @@
-use super::super::parse_fixture_package;
+use crate::public_api::parser::events::parse_fixture_package;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{BpmnEventKind, BpmnNodeKind, BpmnRepeatSpec, BpmnTimerKind};
 

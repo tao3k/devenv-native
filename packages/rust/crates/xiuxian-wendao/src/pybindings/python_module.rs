@@ -1,6 +1,7 @@
 //! Python module registration helpers for `_xiuxian_wendao`.
 
-use pyo3::prelude::*;
+use pyo3::types::{PyModule, PyModuleMethods};
+use pyo3::{Bound, PyResult, Python, pymodule, wrap_pyfunction};
 
 pub(crate) fn register(py: Python<'_>, m: &Bound<PyModule>) -> PyResult<()> {
     // Knowledge types

@@ -1,3 +1,5 @@
+//! Cache runtime configuration records for Wendao host state.
+
 use crate::config::constants::DEFAULT_LINK_GRAPH_VALKEY_KEY_PREFIX;
 
 /// Resolved cache runtime settings for link-graph state backed by Valkey.

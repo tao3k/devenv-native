@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    DocsNavigationOptions, DocsPageIndexTreeResult, DocsPageIndexTreesResult,
+    DocsRetrievalContextOptions, DocsToolService, Path, PathBuf, ProjectedPageIndexNode,
+    text_free_tree_result, text_free_trees_result,
+};
 use crate::analyzers::projection::{ProjectedPageIndexTree, ProjectionPageKind};
 
 #[test]

@@ -32,7 +32,7 @@ use std::{
 use tempfile::TempDir;
 use tower::util::ServiceExt;
 
-use super::valkey_support::TestValkey;
+use super::{unique_instance_id, valkey_support::TestValkey};
 
 #[test]
 fn bpmn_workflow_http_requests_default_to_runtime_valkey_backend() {
@@ -226,16 +226,16 @@ async fn bpmn_workflow_http_preserves_claim_identity_across_checkpoint_roundtrip
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let bpmn_path = write_http_user_task_bundle(&temp_dir);
     let router = workflow_http_router(valkey.url());
-    let instance = "wf_http_claim_identity_roundtrip";
+    let instance = unique_instance_id("wf_http_claim_identity_roundtrip");
 
-    seed_http_runtime_valkey_user_task(valkey.url(), bpmn_path.as_path(), instance).await;
+    seed_http_runtime_valkey_user_task(valkey.url(), bpmn_path.as_path(), instance.as_str()).await;
 
     let initial_status = get_json::<QianjiBpmnWorkflowStatusHttpResponse>(
         router.clone(),
-        format!("/workflows/{instance}").as_str(),
+        format!("/workflows/{}", instance.as_str()).as_str(),
     )
     .await;
-    let identity = HttpHumanTaskIdentity::from_status(instance, &initial_status);
+    let identity = HttpHumanTaskIdentity::from_status(instance.as_str(), &initial_status);
     assert_human_task_event_kinds(
         &initial_status.workflow.human_task_events,
         &[BpmnHumanTaskLifecycleEventKind::Created],

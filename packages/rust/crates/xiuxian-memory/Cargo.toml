@@ -9,7 +9,9 @@ publish = false
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
-xiuxian-testing = { path = "../xiuxian-testing" }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [lints]
 workspace = true

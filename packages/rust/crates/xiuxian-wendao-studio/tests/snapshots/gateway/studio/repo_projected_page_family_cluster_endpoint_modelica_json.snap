@@ -1,0 +1,262 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "center_page": {
+    "doc_id": "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+    "doc_ids": [
+      "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+      "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo",
+      "repo:modelica-gateway-projected-family-cluster:doc:Controllers/PI.mo#annotation.documentation"
+    ],
+    "example_ids": [
+      "repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo"
+    ],
+    "format_hints": [
+      "modelica_annotation",
+      "modelica_users_guide_page",
+      "modelica_users_guide_tutorial",
+      "modelica_users_guide_tutorial_annotation"
+    ],
+    "keywords": [
+      "Controllers/Examples/Step.mo",
+      "Projectionica.Controllers",
+      "modelica_annotation",
+      "modelica_users_guide_page",
+      "modelica_users_guide_tutorial",
+      "modelica_users_guide_tutorial_annotation",
+      "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+    ],
+    "kind": "reference",
+    "module_ids": [
+      "repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers"
+    ],
+    "page_id": "repo:modelica-gateway-projected-family-cluster:projection:reference:module:repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers",
+    "path": "Controllers/Examples/Step.mo",
+    "paths": [
+      "Controllers/Examples/Step.mo",
+      "Controllers/PI.mo#annotation.documentation",
+      "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+      "Controllers/UsersGuide/package.mo",
+      "Controllers/package.mo"
+    ],
+    "repo_id": "modelica-gateway-projected-family-cluster",
+    "sections": [
+      {
+        "body": "Projected reference page for `Projectionica.Controllers`.\nFormat hints:\n- `modelica_annotation`\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/PI.mo#annotation.documentation`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`\n- `Controllers/package.mo`",
+        "level": 1,
+        "paths": [
+          "Controllers/Examples/Step.mo",
+          "Controllers/PI.mo#annotation.documentation",
+          "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+          "Controllers/UsersGuide/package.mo",
+          "Controllers/package.mo"
+        ],
+        "section_id": "repo:modelica-gateway-projected-family-cluster:projection:reference:module:repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers#overview",
+        "title": "Overview"
+      },
+      {
+        "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+        "level": 2,
+        "paths": [
+          "Controllers/package.mo"
+        ],
+        "section_id": "repo:modelica-gateway-projected-family-cluster:projection:reference:module:repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers#anchors",
+        "title": "Anchors"
+      },
+      {
+        "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+        "level": 2,
+        "paths": [
+          "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+          "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+          "Controllers/PI.mo#annotation.documentation",
+          "Controllers/UsersGuide/package.mo"
+        ],
+        "section_id": "repo:modelica-gateway-projected-family-cluster:projection:reference:module:repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers#sources",
+        "title": "Documentation"
+      },
+      {
+        "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+        "level": 2,
+        "paths": [
+          "Controllers/Examples/Step.mo"
+        ],
+        "section_id": "repo:modelica-gateway-projected-family-cluster:projection:reference:module:repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers#examples",
+        "title": "Examples"
+      }
+    ],
+    "symbol_ids": [],
+    "title": "Projectionica.Controllers"
+  },
+  "family": {
+    "kind": "how_to",
+    "pages": [
+      {
+        "page": {
+          "doc_id": "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+          "doc_ids": [
+            "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+            "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+            "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo"
+          ],
+          "example_ids": [
+            "repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo"
+          ],
+          "format_hints": [
+            "modelica_users_guide_page",
+            "modelica_users_guide_tutorial",
+            "modelica_users_guide_tutorial_annotation"
+          ],
+          "keywords": [
+            "Controllers/Examples/Step.mo",
+            "Step",
+            "modelica_users_guide_page",
+            "modelica_users_guide_tutorial",
+            "modelica_users_guide_tutorial_annotation",
+            "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+          ],
+          "kind": "how_to",
+          "module_ids": [
+            "repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers"
+          ],
+          "page_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:example:repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo",
+          "path": "Controllers/Examples/Step.mo",
+          "paths": [
+            "Controllers/Examples/Step.mo",
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+            "Controllers/UsersGuide/package.mo"
+          ],
+          "repo_id": "modelica-gateway-projected-family-cluster",
+          "sections": [
+            {
+              "body": "Projected how-to page for `Step`.\nFormat hints:\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`",
+              "level": 1,
+              "paths": [
+                "Controllers/Examples/Step.mo",
+                "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                "Controllers/UsersGuide/package.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:example:repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo#overview",
+              "title": "Overview"
+            },
+            {
+              "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+              "level": 2,
+              "paths": [
+                "Controllers/package.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:example:repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo#anchors",
+              "title": "Anchors"
+            },
+            {
+              "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "level": 2,
+              "paths": [
+                "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+                "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+                "Controllers/UsersGuide/package.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:example:repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo#sources",
+              "title": "Supporting Docs"
+            },
+            {
+              "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+              "level": 2,
+              "paths": [
+                "Controllers/Examples/Step.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:example:repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo#examples",
+              "title": "Examples"
+            }
+          ],
+          "symbol_ids": [],
+          "title": "Step"
+        },
+        "shared_anchor_score": 5
+      },
+      {
+        "page": {
+          "doc_id": "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo",
+          "doc_ids": [
+            "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo"
+          ],
+          "example_ids": [
+            "repo:modelica-gateway-projected-family-cluster:example:Controllers/Examples/Step.mo"
+          ],
+          "format_hints": [
+            "modelica_users_guide_page"
+          ],
+          "keywords": [
+            "Controllers/Examples/Step.mo",
+            "UsersGuide",
+            "modelica_users_guide_page",
+            "repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo"
+          ],
+          "kind": "how_to",
+          "module_ids": [
+            "repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers",
+            "repo:modelica-gateway-projected-family-cluster:module:Projectionica.Controllers.UsersGuide"
+          ],
+          "page_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:doc:repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo",
+          "path": "Controllers/Examples/Step.mo",
+          "paths": [
+            "Controllers/Examples/Step.mo",
+            "Controllers/UsersGuide/package.mo"
+          ],
+          "repo_id": "modelica-gateway-projected-family-cluster",
+          "sections": [
+            {
+              "body": "Projected how-to page for `UsersGuide`.\nFormat hints:\n- `modelica_users_guide_page`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/package.mo`",
+              "level": 1,
+              "paths": [
+                "Controllers/Examples/Step.mo",
+                "Controllers/UsersGuide/package.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:doc:repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo#overview",
+              "title": "Overview"
+            },
+            {
+              "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "level": 2,
+              "paths": [
+                "Controllers/UsersGuide/package.mo",
+                "Controllers/package.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:doc:repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo#anchors",
+              "title": "Anchors"
+            },
+            {
+              "body": "Documentation:\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+              "level": 2,
+              "paths": [
+                "Controllers/UsersGuide/package.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:doc:repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo#sources",
+              "title": "Supporting Docs"
+            },
+            {
+              "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+              "level": 2,
+              "paths": [
+                "Controllers/Examples/Step.mo"
+              ],
+              "section_id": "repo:modelica-gateway-projected-family-cluster:projection:howto:doc:repo:modelica-gateway-projected-family-cluster:doc:Controllers/UsersGuide/package.mo#examples",
+              "title": "Examples"
+            }
+          ],
+          "symbol_ids": [],
+          "title": "UsersGuide"
+        },
+        "shared_anchor_score": 3
+      }
+    ]
+  },
+  "repo_id": "modelica-gateway-projected-family-cluster"
+}

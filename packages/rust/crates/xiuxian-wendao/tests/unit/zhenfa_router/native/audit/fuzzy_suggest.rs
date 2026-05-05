@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    CONFIDENCE_THRESHOLD, FuzzySuggestion, PatternSkeleton, SourceFile, cache_stats,
+    clear_candidate_cache, extract_capture_name, format_suggestion, jaccard_similarity,
+    levenshtein_distance, string_similarity, suggest_pattern_fix, tokenize_pattern,
+};
 
 #[test]
 fn test_tokenize_pattern_simple() {

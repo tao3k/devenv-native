@@ -13,8 +13,6 @@ use xiuxian_qianji::executors::{
 };
 use xiuxian_qianji::{FlowInstruction, QianjiMechanism};
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[derive(Clone, Default)]
 struct MockGatewayState {
     observed_queries: Arc<tokio::sync::Mutex<Vec<String>>>,

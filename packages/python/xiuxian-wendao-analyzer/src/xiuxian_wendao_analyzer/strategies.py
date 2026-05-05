@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 class AnalyzerStrategyProtocol(Protocol):
     """Protocol for one analyzer strategy implementation."""
 
-    def analyze_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]: ...
+    def analyze_rows(
+        self, rows: list[dict[str, object]]
+    ) -> list[dict[str, object]]: ...
 
 
 def _coerce_float(value: object, field_name: str) -> float:
@@ -38,7 +40,10 @@ class ScoreRankAnalyzer:
             ranked_rows.append({**row, "score": score})
 
         ranked_rows.sort(
-            key=lambda row: (-float(row["score"]), str(row.get("doc_id") or row.get("path") or "")),
+            key=lambda row: (
+                -float(row["score"]),
+                str(row.get("doc_id") or row.get("path") or ""),
+            ),
         )
         for index, row in enumerate(ranked_rows, start=1):
             row["rank"] = index

@@ -1,10 +1,16 @@
-use crate::gateway::studio::types::AstSearchHit;
 use crate::search::SearchPlaneService;
+use crate::search::contracts::AstSearchHit;
 use crate::search::local_symbol::query::shared::{
     LocalSymbolSearchError, PreparedLocalSymbolRead, prepare_local_symbol_read_tables,
 };
 
-pub(crate) async fn restore_local_symbol_hits(
+/// Restore all published local-symbol hits from the active search-plane tables.
+///
+/// # Errors
+///
+/// Returns a local-symbol search error when published tables cannot be opened
+/// or decoded.
+pub async fn restore_local_symbol_hits(
     service: &SearchPlaneService,
 ) -> Result<Vec<AstSearchHit>, LocalSymbolSearchError> {
     let prepared = prepare_local_symbol_read_tables(service).await?;

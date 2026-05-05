@@ -1,0 +1,103 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "groups": [
+    {
+      "count": 2,
+      "gaps": [
+        {
+          "doc_ids": [],
+          "entity_id": "repo:gateway-sync:symbol:GatewaySyncPkg.explain",
+          "example_ids": [],
+          "format_hints": [],
+          "gap_id": "repo:gateway-sync:projection-gap:symbol_reference_without_documentation:repo:gateway-sync:symbol:GatewaySyncPkg.explain",
+          "kind": "symbol_reference_without_documentation",
+          "module_ids": [
+            "repo:gateway-sync:module:GatewaySyncPkg"
+          ],
+          "page_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.explain",
+          "page_kind": "reference",
+          "path": "src/GatewaySyncPkg.jl",
+          "repo_id": "gateway-sync",
+          "symbol_ids": [
+            "repo:gateway-sync:symbol:GatewaySyncPkg.explain"
+          ],
+          "title": "GatewaySyncPkg.explain"
+        },
+        {
+          "doc_ids": [],
+          "entity_id": "repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+          "example_ids": [],
+          "format_hints": [],
+          "gap_id": "repo:gateway-sync:projection-gap:symbol_reference_without_documentation:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+          "kind": "symbol_reference_without_documentation",
+          "module_ids": [
+            "repo:gateway-sync:module:GatewaySyncPkg"
+          ],
+          "page_id": "repo:gateway-sync:projection:reference:symbol:repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+          "page_kind": "reference",
+          "path": "src/GatewaySyncPkg.jl",
+          "repo_id": "gateway-sync",
+          "symbol_ids": [
+            "repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+          ],
+          "title": "GatewaySyncPkg.solve"
+        }
+      ],
+      "kind": "symbol_reference_without_documentation"
+    },
+    {
+      "count": 1,
+      "gaps": [
+        {
+          "doc_ids": [],
+          "entity_id": "repo:gateway-sync:example:examples/orphan_demo.jl",
+          "example_ids": [
+            "repo:gateway-sync:example:examples/orphan_demo.jl"
+          ],
+          "format_hints": [],
+          "gap_id": "repo:gateway-sync:projection-gap:example_howto_without_anchor:repo:gateway-sync:example:examples/orphan_demo.jl",
+          "kind": "example_how_to_without_anchor",
+          "module_ids": [],
+          "page_id": "repo:gateway-sync:projection:howto:example:repo:gateway-sync:example:examples/orphan_demo.jl",
+          "page_kind": "how_to",
+          "path": "examples/orphan_demo.jl",
+          "repo_id": "gateway-sync",
+          "symbol_ids": [],
+          "title": "orphan_demo"
+        }
+      ],
+      "kind": "example_how_to_without_anchor"
+    },
+    {
+      "count": 1,
+      "gaps": [
+        {
+          "doc_ids": [
+            "repo:gateway-sync:doc:docs/orphan.md"
+          ],
+          "entity_id": "repo:gateway-sync:doc:docs/orphan.md",
+          "example_ids": [],
+          "format_hints": [
+            "md"
+          ],
+          "gap_id": "repo:gateway-sync:projection-gap:documentation_page_without_anchor:repo:gateway-sync:doc:docs/orphan.md",
+          "kind": "documentation_page_without_anchor",
+          "module_ids": [],
+          "page_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md",
+          "page_kind": "explanation",
+          "path": "docs/orphan.md",
+          "repo_id": "gateway-sync",
+          "symbol_ids": [],
+          "title": "orphan"
+        }
+      ],
+      "kind": "documentation_page_without_anchor"
+    }
+  ],
+  "page_count": 6,
+  "repo_id": "gateway-sync",
+  "total_gap_count": 4
+}

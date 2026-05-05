@@ -1,7 +1,7 @@
 //! `PyO3` bindings for fusion recall boost.
 
-use pyo3::prelude::*;
-use pyo3::types::PyAny;
+use pyo3::types::{PyAny, PyAnyMethods, PyDictMethods, PyListMethods};
+use pyo3::{Bound, IntoPyObject, Py, PyResult, Python, pyfunction};
 use std::collections::{HashMap, HashSet};
 
 use crate::fusion::{RecallResult, apply_link_graph_proximity_boost};

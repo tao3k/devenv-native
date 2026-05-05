@@ -10,7 +10,8 @@ use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 use crate::repo_index::state::coordinator::handle::RepoIndexRuntimeHandle;
 
 impl RepoIndexCoordinator {
-    pub(crate) fn start(self: &Arc<Self>) {
+    #[doc(hidden)]
+    pub fn start(self: &Arc<Self>) {
         let Ok(handle) = Handle::try_current() else {
             return;
         };
@@ -24,7 +25,8 @@ impl RepoIndexCoordinator {
             Some(RepoIndexRuntimeHandle::spawn(&handle, Arc::clone(self)));
     }
 
-    pub(crate) fn stop(&self) {
+    /// Stop the background coordinator runtime task if it is active.
+    pub fn stop(&self) {
         if let Some(runtime_handle) = self
             .runtime_handle
             .lock()
@@ -35,7 +37,12 @@ impl RepoIndexCoordinator {
         }
     }
 
-    pub(crate) async fn acquire_sync_permit(
+    /// Acquire one remote-sync concurrency permit for a repository task.
+    ///
+    /// # Errors
+    ///
+    /// Returns an analysis error when the semaphore has been closed.
+    pub async fn acquire_sync_permit(
         &self,
         repo_id: &str,
     ) -> Result<OwnedSemaphorePermit, RepoIntelligenceError> {

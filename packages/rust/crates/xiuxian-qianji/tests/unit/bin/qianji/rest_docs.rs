@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    REST_DOCS_PACK_ID, TempDir, build_contract_feedback_config, build_rest_docs_collection_context,
+    must_ok, rest_docs_command, run_deterministic_rest_docs_contract_feedback,
+    run_scaffold_rest_docs_contract_feedback, write_openapi_fixture,
+};
 
 #[tokio::test]
 async fn deterministic_rest_docs_contract_feedback_outputs_expected_summary() {
@@ -27,10 +31,13 @@ async fn deterministic_rest_docs_contract_feedback_outputs_expected_summary() {
         "deterministic rest-docs contract feedback should succeed",
     );
 
-    assert_eq!(output.report.suite_id, "qianji-rest-docs-contract-feedback");
-    assert_eq!(output.report.stats.total, 2);
-    assert_eq!(output.report.stats.deterministic, 2);
-    assert_eq!(output.report.stats.advisory, 0);
+    assert_eq!(
+        output.report["suite_id"],
+        "qianji-rest-docs-contract-feedback"
+    );
+    assert_eq!(output.report["stats"]["total"], 2);
+    assert_eq!(output.report["stats"]["deterministic"], 2);
+    assert_eq!(output.report["stats"]["advisory"], 0);
     assert_eq!(output.knowledge_entry_ids.len(), 2);
     assert!(output.persisted_entry_ids.is_empty());
     assert!(output.storage.is_none());
@@ -71,9 +78,9 @@ async fn scaffold_rest_docs_contract_feedback_emits_role_advisory_findings() {
         output.advisory_roles,
         vec!["strict_teacher".to_string(), "artisan-engineer".to_string()]
     );
-    assert_eq!(output.report.stats.deterministic, 2);
-    assert_eq!(output.report.stats.advisory, 2);
-    assert_eq!(output.report.stats.total, 4);
+    assert_eq!(output.report["stats"]["deterministic"], 2);
+    assert_eq!(output.report["stats"]["advisory"], 2);
+    assert_eq!(output.report["stats"]["total"], 4);
     assert_eq!(output.knowledge_entry_ids.len(), 4);
     assert!(output.persisted_entry_ids.is_empty());
     assert!(output.storage.is_none());

@@ -17,12 +17,20 @@ services:
       - "41080:41080"
   wendaosearch-parser:
     image: ghcr.io/tao3k/wendaosearch.jl:main
-    command: ["--parser-summary-service", "--config", "config/live/parser_summary.toml", "--host", "0.0.0.0"]
+    command:
+      [
+        "--parser-summary-service",
+        "--config",
+        "config/live/parser_summary.toml",
+        "--host",
+        "0.0.0.0",
+      ]
     ports:
       - "41081:41081"
   wendao-gateway:
     image: ghcr.io/tao3k/xiuxian-wendao:main
-    command: ["--conf", "/data/wendao.toml", "--root", "/data", "gateway", "start"]
+    command:
+      ["--conf", "/data/wendao.toml", "--root", "/data", "gateway", "start"]
     ports:
       - "9517:9517"
     depends_on:

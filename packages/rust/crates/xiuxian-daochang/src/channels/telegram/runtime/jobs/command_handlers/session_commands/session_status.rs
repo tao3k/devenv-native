@@ -5,15 +5,15 @@ use crate::channels::managed_commands::SLASH_SCOPE_SESSION_STATUS as TELEGRAM_SL
 use crate::channels::telegram::commands::parse_session_context_status_command;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::observability::send_with_observability;
-use super::super::super::replies::{
-    format_command_error_json, format_session_context_snapshot,
-    format_session_context_snapshot_json,
-};
-use super::super::slash_acl::ensure_slash_command_authorized;
 use super::{
     EVENT_TELEGRAM_COMMAND_SESSION_STATUS_JSON_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_STATUS_REPLIED,
+};
+use crate::channels::telegram::runtime::jobs::command_handlers::slash_acl::ensure_slash_command_authorized;
+use crate::channels::telegram::runtime::jobs::observability::send_with_observability;
+use crate::channels::telegram::runtime::jobs::replies::{
+    format_command_error_json, format_session_context_snapshot,
+    format_session_context_snapshot_json,
 };
 
 pub(in crate::channels::telegram::runtime::jobs) async fn try_handle_session_status_command(

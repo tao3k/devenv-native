@@ -1,3 +1,7 @@
+//! Repository doc-coverage route contract and metadata validation.
+
+use crate::transport::query_contract::{ModuleIdRef, RepoIdRef};
+
 /// Canonical repo-doc-coverage repository metadata header for Wendao Flight requests.
 pub const WENDAO_REPO_DOC_COVERAGE_REPO_HEADER: &str = "x-wendao-repo-doc-coverage-repo";
 /// Canonical repo-doc-coverage module metadata header for Wendao Flight requests.
@@ -11,8 +15,8 @@ pub const ANALYSIS_REPO_DOC_COVERAGE_ROUTE: &str = "/analysis/repo-doc-coverage"
 ///
 /// Returns an error when the repository identifier is blank.
 pub fn validate_repo_doc_coverage_request(
-    repo_id: &str,
-    module_id: Option<&str>,
+    repo_id: RepoIdRef<'_>,
+    module_id: Option<ModuleIdRef<'_>>,
 ) -> Result<(String, Option<String>), String> {
     let normalized_repo_id = repo_id.trim();
     if normalized_repo_id.is_empty() {

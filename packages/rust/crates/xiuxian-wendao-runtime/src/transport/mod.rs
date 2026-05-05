@@ -1,3 +1,5 @@
+//! Transport negotiation, query contracts, and server wiring for Wendao runtime.
+
 #[cfg(feature = "transport")]
 mod client;
 #[cfg(feature = "transport")]
@@ -131,7 +133,7 @@ pub use server::{
     SqlFlightRouteResponse, Topology3dFlightRouteProvider, Topology3dFlightRouteResponse,
     VfsContentFlightRouteProvider, VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider,
     VfsResolveFlightRouteResponse, VfsScanFlightRouteProvider, VfsScanFlightRouteResponse,
-    WendaoFlightRouteProviders, WendaoFlightService,
+    WendaoFlightRouteProviders, WendaoFlightService, run_wendao_flight_server_from_args,
 };
 
 #[cfg(all(feature = "transport", test))]

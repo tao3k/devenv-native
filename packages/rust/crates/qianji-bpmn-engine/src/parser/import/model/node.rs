@@ -3,7 +3,6 @@ use super::human_task::{
     RawHumanTaskAssignmentSpec, RawHumanTaskFormSpec, RawHumanTaskNativeIoSpec,
 };
 use super::lane::RawLaneMembershipSpec;
-use super::process::RawSubProcessKind;
 use super::repeat::RawRepeatSpec;
 use super::script::RawScriptTaskSpec;
 use super::task_io::RawTaskIoSpec;
@@ -31,4 +30,12 @@ pub(crate) struct RawNode {
     pub(crate) cancel_activity: bool,
     pub(crate) is_for_compensation: bool,
     pub(crate) event: Option<RawEventSpec>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RawSubProcessKind {
+    CallActivity,
+    EmbeddedSubProcess,
+    Transaction,
+    EventSubProcess,
 }

@@ -1,3 +1,5 @@
+//! HTTP LLM proxy request handling.
+
 // LLM Gateway Proxy Handler
 //
 // Provides a reverse proxy for OpenAI-compatible `/v1/chat/completions` requests.

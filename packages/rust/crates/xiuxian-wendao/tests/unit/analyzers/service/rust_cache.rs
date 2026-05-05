@@ -6,7 +6,7 @@ use crate::analyzers::PluginRegistry;
 use crate::analyzers::RepositoryPluginConfig;
 use crate::analyzers::service::analysis::analyze_registered_repository_bundle_with_registry;
 use crate::analyzers::{RegisteredRepository, RepositoryRefreshPolicy};
-use crate::gateway::studio::test_support::{commit_all, init_git_repository};
+use crate::test_support::{commit_all, init_git_repository};
 
 use super::support::CountingRustPlugin;
 

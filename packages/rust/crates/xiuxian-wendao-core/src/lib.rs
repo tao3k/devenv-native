@@ -8,8 +8,6 @@
 //! `xiuxian-wendao-core` is intended to be consumable by runtime helpers and
 //! plugin crates without pulling in deployment-dependent behavior.
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
-
 /// Stable artifact payload and launch-spec records.
 pub mod artifacts;
 /// Stable capability-binding and contract-version records.
@@ -39,7 +37,10 @@ pub mod transport;
 
 pub use artifacts::{PluginArtifactPayload, PluginArtifactSelector, PluginLaunchSpec};
 pub use capabilities::{ContractVersion, PluginCapabilityBinding, PluginProviderSelector};
-pub use contract_feedback::WendaoContractFeedbackAdapter;
+pub use contract_feedback::{
+    ContractFindingConfidence, ContractFindingSeverity, ContractKnowledgeBatch,
+    ContractKnowledgeDecision, ContractKnowledgeEnvelope, WendaoContractFeedbackAdapter,
+};
 pub use entity::{
     Entity, EntityType, GraphEntity, GraphRelation, GraphStats, Relation, RelationType,
 };
@@ -59,3 +60,12 @@ pub use semantic_document::{
 pub use sql_query::{SqlBatchPayload, SqlColumnPayload, SqlQueryMetadata, SqlQueryPayload};
 pub use transport::{PluginTransportEndpoint, PluginTransportKind};
 pub use xiuxian_types::KnowledgeCategory;
+
+#[cfg(test)]
+#[path = "../tests/unit/lib_policy.rs"]
+mod rust_project_harness_gate;
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = rust_project_harness_gate::wendao_core_rust_harness_config()
+);

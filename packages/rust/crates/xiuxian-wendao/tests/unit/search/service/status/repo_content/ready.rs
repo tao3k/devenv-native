@@ -1,5 +1,12 @@
+use crate::repo_index::{RepoIndexPhase, RepoIndexStatusResponse};
 use crate::search::service::tests::status::repo_content::helpers::{repo_document, test_service};
-use crate::search::service::tests::support::*;
+use crate::search::service::tests::support::{
+    assert_status_reason, corpus_status, publish_repo_bundle, repo_status_entry,
+};
+use crate::search::{
+    SearchCorpusKind, SearchCorpusStatusAction, SearchCorpusStatusReasonCode,
+    SearchCorpusStatusSeverity, SearchPlanePhase,
+};
 
 #[tokio::test]
 async fn status_with_repo_content_surfaces_ready_repo_tables() {

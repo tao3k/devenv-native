@@ -35,7 +35,7 @@ pub fn load_cached_repository_analysis(
 /// # Errors
 ///
 /// Returns an error when the in-memory cache lock is poisoned.
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub fn load_cached_repository_analysis_for_revision(
     repo_id: &str,
     checkout_root: &str,

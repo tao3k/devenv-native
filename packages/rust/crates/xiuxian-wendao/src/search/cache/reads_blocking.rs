@@ -30,7 +30,7 @@ impl SearchPlaneCache {
         &self,
         keys: &[(SearchCorpusKind, String)],
     ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         {
             let shadow = self
                 .shadow
@@ -78,7 +78,7 @@ impl SearchPlaneCache {
         &self,
         corpus: SearchCorpusKind,
     ) -> Option<SearchManifestRecord> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         if let Some(record) = self
             .shadow
             .read()

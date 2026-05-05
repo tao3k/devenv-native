@@ -4,7 +4,7 @@ use crate::lint::diagnostic::{code_string, markdown_lint_issue_codes, markdown_l
 use anyhow::{Result, bail};
 
 pub(super) fn validate_snapshot(snapshot: &MarkdownLintDiagnosticContractSnapshot) -> Result<()> {
-    if snapshot.id != MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID {
+    if snapshot.id != MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID.as_str() {
         bail!(
             "markdown lint diagnostic snapshot id drifted: expected `{}`, got `{}`",
             MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,

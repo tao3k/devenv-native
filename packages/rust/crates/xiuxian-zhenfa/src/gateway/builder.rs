@@ -1,3 +1,5 @@
+//! Gateway builder for composing routes, methods, and notification workers.
+
 use std::collections::HashSet;
 use std::future::Future;
 use std::sync::Arc;

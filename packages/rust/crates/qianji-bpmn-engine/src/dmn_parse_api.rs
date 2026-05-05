@@ -1,8 +1,10 @@
-#[path = "dmn/parse.rs"]
+//! Public dmn parse api contracts for BPMN/DMN engine integration.
+
+#[path = "dmn/parse/mod.rs"]
 mod parser;
 
-use crate::dmn_model_api::{DmnDecisionDefinition, DmnSourceFile};
-use crate::error::Result;
+use crate::{BpmnEngineError, DmnDecisionDefinition, DmnSourceFile};
+type Result<T> = std::result::Result<T, BpmnEngineError>;
 
 pub(crate) use parser::parse_literal;
 

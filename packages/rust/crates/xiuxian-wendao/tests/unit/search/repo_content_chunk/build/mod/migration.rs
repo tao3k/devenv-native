@@ -1,4 +1,22 @@
-use super::*;
+use std::collections::HashSet;
+
+use crate::search::cache::SearchPlaneFileFingerprintScope;
+use crate::search::repo_content_chunk::build::orchestration::{
+    publish_repo_content_chunks, publish_repo_content_chunks_incremental,
+};
+use crate::search::repo_content_chunk::build::plan::repo_content_chunk_file_fingerprints;
+use crate::search::repo_content_chunk::schema::{
+    path_column, repo_content_chunk_batches, repo_content_chunk_schema, rows_from_documents,
+};
+use crate::search::repo_publication_parquet::{
+    RepoPublicationRewriteRequest, rewrite_repo_publication_parquet,
+};
+use crate::search::{SearchCorpusKind, SearchPublicationStorageFormat, SearchRepoPublicationInput};
+
+use super::{
+    assert_repo_content_hit_paths, repo_content_publication_or_panic, repo_content_record_or_panic,
+    repo_content_service, repo_document, temp_dir_or_panic,
+};
 
 #[tokio::test]
 async fn repo_content_chunk_incremental_publish_migrates_legacy_single_parquet_to_partitioned_root()

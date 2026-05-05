@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::observability::send_with_observability;
-use super::super::replies::format_slash_command_permission_required;
+use crate::channels::telegram::runtime::jobs::observability::send_with_observability;
+use crate::channels::telegram::runtime::jobs::replies::format_slash_command_permission_required;
 
 const EVENT_TELEGRAM_COMMAND_SLASH_PERMISSION_REQUIRED_REPLIED: &str =
     "telegram.command.slash_permission_required.replied";

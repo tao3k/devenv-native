@@ -1,3 +1,5 @@
+//! Transport configuration contract for Wendao Flight clients and servers.
+
 use std::time::Duration;
 
 /// Default base URL for a local Flight-backed Julia analyzer.

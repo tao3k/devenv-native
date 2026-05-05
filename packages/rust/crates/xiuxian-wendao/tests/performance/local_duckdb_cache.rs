@@ -1,8 +1,8 @@
 use std::path::Path;
 
+use super::support::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use serial_test::file_serial;
 use tempfile::tempdir;
-use xiuxian_testing::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use xiuxian_wendao::LinkGraphIndex;
 use xiuxian_wendao::link_graph::perf_support::{
     decode_link_graph_arrow_core_stream_stats, encode_link_graph_arrow_core_streams,

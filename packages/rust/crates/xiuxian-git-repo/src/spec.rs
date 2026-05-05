@@ -1,3 +1,5 @@
+//! Repository source specification and revision selection contracts.
+
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};

@@ -9,7 +9,5 @@
       "type": "string"
     }
   },
-  "required": [
-    "page_id"
-  ]
+  "required": ["page_id"]
 }

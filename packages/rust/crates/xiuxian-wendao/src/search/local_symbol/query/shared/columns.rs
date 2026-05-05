@@ -7,7 +7,7 @@ use super::ranking::{
     compare_suggestions,
 };
 use super::types::{LocalSymbolCandidate, LocalSymbolSearchError};
-use crate::gateway::studio::types::AutocompleteSuggestion;
+use crate::search::contracts::AutocompleteSuggestion;
 use arrow::array::{Array, StringArray, StringViewArray, UInt64Array};
 
 pub(crate) fn collect_candidates(

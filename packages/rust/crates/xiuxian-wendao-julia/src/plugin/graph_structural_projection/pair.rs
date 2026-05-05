@@ -1,3 +1,5 @@
+//! Pair-shaped DTOs for graph-structural projection.
+
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::support::{normalize_non_negative_score, normalize_pair_endpoint_ids};

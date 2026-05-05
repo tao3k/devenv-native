@@ -4,10 +4,10 @@ use axum::{
     http::{HeaderMap, StatusCode},
 };
 
-use super::super::auth::validate_secret_token;
-use super::super::dedup::is_duplicate_update;
-use super::super::state::TelegramWebhookState;
 use super::ingest;
+use crate::channels::telegram::runtime::webhook::auth::validate_secret_token;
+use crate::channels::telegram::runtime::webhook::dedup::is_duplicate_update;
+use crate::channels::telegram::runtime::webhook::state::TelegramWebhookState;
 
 pub(in crate::channels::telegram::runtime::webhook) async fn telegram_webhook_handler(
     State(state): State<TelegramWebhookState>,

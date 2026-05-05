@@ -35,9 +35,9 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 tar = { workspace = true, optional = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

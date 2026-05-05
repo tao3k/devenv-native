@@ -13,7 +13,8 @@ use crate::repo_index::state::task::{
     AdaptiveConcurrencyController, RepoIndexTask, repo_index_sync_concurrency_limit,
 };
 
-pub(crate) struct RepoIndexCoordinator {
+/// Background coordinator that keeps configured repositories indexed for search.
+pub struct RepoIndexCoordinator {
     pub(crate) project_root: PathBuf,
     pub(crate) plugin_registry: Arc<PluginRegistry>,
     pub(crate) search_plane: SearchPlaneService,
@@ -33,7 +34,8 @@ pub(crate) struct RepoIndexCoordinator {
 
 impl RepoIndexCoordinator {
     #[must_use]
-    pub(crate) fn new(
+    #[doc(hidden)]
+    pub fn new(
         project_root: PathBuf,
         plugin_registry: Arc<PluginRegistry>,
         search_plane: SearchPlaneService,

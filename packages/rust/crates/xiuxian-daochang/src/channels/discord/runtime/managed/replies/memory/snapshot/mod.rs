@@ -1,3 +1,5 @@
+//! Discord memory snapshot reply branch for availability and formatting.
+
 mod available;
 mod not_found;
 

@@ -1,0 +1,337 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "center": {
+    "kind": "page",
+    "node": null,
+    "page": {
+      "doc_id": "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation",
+      "doc_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "example_ids": [],
+      "format_hints": [
+        "modelica_annotation"
+      ],
+      "keywords": [
+        "Controllers/PI.mo",
+        "Projectionica.Controllers.PI",
+        "modelica_annotation",
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "kind": "reference",
+      "module_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers"
+      ],
+      "page_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI",
+      "path": "Controllers/PI.mo",
+      "paths": [
+        "Controllers/PI.mo",
+        "Controllers/PI.mo#annotation.documentation"
+      ],
+      "repo_id": "modelica-gateway-projected-retrieval-context",
+      "sections": [
+        {
+          "body": "Projected reference page for `Projectionica.Controllers.PI`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `Controllers/PI.mo`\n- `Controllers/PI.mo#annotation.documentation`",
+          "level": 1,
+          "paths": [
+            "Controllers/PI.mo",
+            "Controllers/PI.mo#annotation.documentation"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI#overview",
+          "title": "Overview"
+        },
+        {
+          "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/PI.mo",
+            "Controllers/package.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI#anchors",
+          "title": "Anchors"
+        },
+        {
+          "body": "Documentation:\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)",
+          "level": 2,
+          "paths": [
+            "Controllers/PI.mo#annotation.documentation"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI#sources",
+          "title": "Documentation"
+        }
+      ],
+      "symbol_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI"
+      ],
+      "title": "Projectionica.Controllers.PI"
+    }
+  },
+  "node_context": {
+    "ancestors": [
+      {
+        "doc_id": "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation",
+        "line_range": [
+          8,
+          18
+        ],
+        "node_id": "reference/projectionica-controllers-pi-c6a9ac502c29#overview",
+        "node_title": "Overview",
+        "page_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI",
+        "page_kind": "reference",
+        "page_title": "Projectionica.Controllers.PI",
+        "path": "Controllers/PI.mo",
+        "repo_id": "modelica-gateway-projected-retrieval-context",
+        "structural_path": [
+          "Overview"
+        ],
+        "text": ":ID: overview\n:PATHS: Controllers/PI.mo, Controllers/PI.mo#annotation.documentation\n\nProjected reference page for `Projectionica.Controllers.PI`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `Controllers/PI.mo`\n- `Controllers/PI.mo#annotation.documentation`"
+      }
+    ],
+    "children": [],
+    "next_sibling": {
+      "doc_id": "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation",
+      "line_range": [
+        29,
+        34
+      ],
+      "node_id": "reference/projectionica-controllers-pi-c6a9ac502c29#sources",
+      "node_title": "Documentation",
+      "page_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:symbol:repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI",
+      "page_kind": "reference",
+      "page_title": "Projectionica.Controllers.PI",
+      "path": "Controllers/PI.mo",
+      "repo_id": "modelica-gateway-projected-retrieval-context",
+      "structural_path": [
+        "Overview",
+        "Documentation"
+      ],
+      "text": ":ID: sources\n:PATHS: Controllers/PI.mo#annotation.documentation\n\nDocumentation:\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)"
+    },
+    "previous_sibling": null
+  },
+  "related_pages": [
+    {
+      "doc_id": "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation",
+      "doc_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "example_ids": [],
+      "format_hints": [
+        "modelica_annotation"
+      ],
+      "keywords": [
+        "Controllers/PI.mo#annotation.documentation",
+        "PI documentation",
+        "modelica_annotation",
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "kind": "reference",
+      "module_ids": [],
+      "page_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation",
+      "path": "Controllers/PI.mo#annotation.documentation",
+      "paths": [
+        "Controllers/PI.mo#annotation.documentation"
+      ],
+      "repo_id": "modelica-gateway-projected-retrieval-context",
+      "sections": [
+        {
+          "body": "Projected reference page for `PI documentation`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `Controllers/PI.mo#annotation.documentation`",
+          "level": 1,
+          "paths": [
+            "Controllers/PI.mo#annotation.documentation"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation#overview",
+          "title": "Overview"
+        },
+        {
+          "body": "Symbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/PI.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation#anchors",
+          "title": "Anchors"
+        },
+        {
+          "body": "Documentation:\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)",
+          "level": 2,
+          "paths": [
+            "Controllers/PI.mo#annotation.documentation"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation#sources",
+          "title": "Documentation"
+        }
+      ],
+      "symbol_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:symbol:Projectionica.Controllers.PI"
+      ],
+      "title": "PI documentation"
+    },
+    {
+      "doc_id": "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "doc_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/package.mo",
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "example_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:example:Controllers/Examples/Step.mo"
+      ],
+      "format_hints": [
+        "modelica_annotation",
+        "modelica_users_guide_page",
+        "modelica_users_guide_tutorial",
+        "modelica_users_guide_tutorial_annotation"
+      ],
+      "keywords": [
+        "Controllers/Examples/Step.mo",
+        "Projectionica.Controllers",
+        "modelica_annotation",
+        "modelica_users_guide_page",
+        "modelica_users_guide_tutorial",
+        "modelica_users_guide_tutorial_annotation",
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+      ],
+      "kind": "reference",
+      "module_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers"
+      ],
+      "page_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:module:repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers",
+      "path": "Controllers/Examples/Step.mo",
+      "paths": [
+        "Controllers/Examples/Step.mo",
+        "Controllers/PI.mo#annotation.documentation",
+        "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+        "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+        "Controllers/UsersGuide/package.mo",
+        "Controllers/package.mo"
+      ],
+      "repo_id": "modelica-gateway-projected-retrieval-context",
+      "sections": [
+        {
+          "body": "Projected reference page for `Projectionica.Controllers`.\nFormat hints:\n- `modelica_annotation`\n- `modelica_users_guide_page`\n- `modelica_users_guide_tutorial`\n- `modelica_users_guide_tutorial_annotation`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/PI.mo#annotation.documentation`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation`\n- `Controllers/UsersGuide/package.mo`\n- `Controllers/package.mo`",
+          "level": 1,
+          "paths": [
+            "Controllers/Examples/Step.mo",
+            "Controllers/PI.mo#annotation.documentation",
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+            "Controllers/UsersGuide/package.mo",
+            "Controllers/package.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:module:repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers#overview",
+          "title": "Overview"
+        },
+        {
+          "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/package.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:module:repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers#anchors",
+          "title": "Anchors"
+        },
+        {
+          "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)\n- `FirstSteps documentation` (Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation)\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)\n- `UsersGuide` (Controllers/UsersGuide/package.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation",
+            "Controllers/PI.mo#annotation.documentation",
+            "Controllers/UsersGuide/package.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:module:repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers#sources",
+          "title": "Documentation"
+        },
+        {
+          "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/Examples/Step.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:reference:module:repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers#examples",
+          "title": "Examples"
+        }
+      ],
+      "symbol_ids": [],
+      "title": "Projectionica.Controllers"
+    },
+    {
+      "doc_id": "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "doc_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+      ],
+      "example_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:example:Controllers/Examples/Step.mo"
+      ],
+      "format_hints": [
+        "modelica_users_guide_tutorial"
+      ],
+      "keywords": [
+        "Controllers/Examples/Step.mo",
+        "FirstSteps",
+        "modelica_users_guide_tutorial",
+        "repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+      ],
+      "kind": "tutorial",
+      "module_ids": [
+        "repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers",
+        "repo:modelica-gateway-projected-retrieval-context:module:Projectionica.Controllers.UsersGuide"
+      ],
+      "page_id": "repo:modelica-gateway-projected-retrieval-context:projection:tutorial:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+      "path": "Controllers/Examples/Step.mo",
+      "paths": [
+        "Controllers/Examples/Step.mo",
+        "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+      ],
+      "repo_id": "modelica-gateway-projected-retrieval-context",
+      "sections": [
+        {
+          "body": "Projected tutorial page for `FirstSteps`.\nFormat hints:\n- `modelica_users_guide_tutorial`\nSource paths:\n- `Controllers/Examples/Step.mo`\n- `Controllers/UsersGuide/Tutorial/FirstSteps.mo`",
+          "level": 1,
+          "paths": [
+            "Controllers/Examples/Step.mo",
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:tutorial:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#overview",
+          "title": "Overview"
+        },
+        {
+          "body": "Modules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n- `Projectionica.Controllers.UsersGuide` (Controllers/UsersGuide/package.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/UsersGuide/package.mo",
+            "Controllers/package.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:tutorial:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#anchors",
+          "title": "Anchors"
+        },
+        {
+          "body": "Documentation:\n- `FirstSteps` (Controllers/UsersGuide/Tutorial/FirstSteps.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/UsersGuide/Tutorial/FirstSteps.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:tutorial:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#sources",
+          "title": "Sources"
+        },
+        {
+          "body": "Examples:\n- `Step` (Controllers/Examples/Step.mo)",
+          "level": 2,
+          "paths": [
+            "Controllers/Examples/Step.mo"
+          ],
+          "section_id": "repo:modelica-gateway-projected-retrieval-context:projection:tutorial:doc:repo:modelica-gateway-projected-retrieval-context:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#examples",
+          "title": "Examples"
+        }
+      ],
+      "symbol_ids": [],
+      "title": "FirstSteps"
+    }
+  ],
+  "repo_id": "modelica-gateway-projected-retrieval-context"
+}

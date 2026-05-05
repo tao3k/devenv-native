@@ -1,7 +1,6 @@
-use super::super::context::SearchExecutionContext;
-use super::super::{
+use crate::link_graph::index::search::{
     LinkGraphHit, LinkGraphIndex, LinkGraphSearchOptions, ScoredSearchRow,
-    deterministic_random_key, sort_hits,
+    context::SearchExecutionContext, deterministic_random_key, sort_hits,
 };
 use std::collections::{HashMap, HashSet};
 

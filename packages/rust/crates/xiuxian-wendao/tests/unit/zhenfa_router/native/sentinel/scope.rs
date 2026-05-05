@@ -1,4 +1,4 @@
-use super::*;
+use super::matches_scope_filter;
 
 #[test]
 fn test_matches_scope_filter_no_scope() {

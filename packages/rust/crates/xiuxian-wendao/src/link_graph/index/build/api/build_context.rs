@@ -1,7 +1,7 @@
-use super::super::cache::cache_slot_key;
-use super::super::constants::DEFAULT_EXCLUDED_DIR_NAMES;
-use super::super::filters::{merge_excluded_dirs, normalize_include_dir};
-use super::super::fingerprint::{LinkGraphFingerprint, scan_note_fingerprint};
+use crate::link_graph::index::build::cache::cache_slot_key;
+use crate::link_graph::index::build::constants::DEFAULT_EXCLUDED_DIR_NAMES;
+use crate::link_graph::index::build::filters::{merge_excluded_dirs, normalize_include_dir};
+use crate::link_graph::index::build::fingerprint::{LinkGraphFingerprint, scan_note_fingerprint};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 

@@ -5,7 +5,7 @@ use std::sync::{Arc, RwLock};
 use include_dir::Dir;
 use xiuxian_wendao_core::WendaoResourceUri;
 
-use super::super::{SkillInventory, SkillManifest, SkillManifestScan, SkillRuntimeError};
+use crate::skill_runtime::{SkillInventory, SkillManifest, SkillManifestScan, SkillRuntimeError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::skill_runtime::resolver) struct EmbeddedSemanticMount {

@@ -41,8 +41,6 @@ impl LlmClient for MockLlmClient {
     }
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[cfg(feature = "llm")]
 const MASTER_RESEARCH_TOML: &str = include_str!("../../resources/tests/master_research.toml");
 

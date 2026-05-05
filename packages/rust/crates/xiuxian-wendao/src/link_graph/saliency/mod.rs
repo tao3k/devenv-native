@@ -1,6 +1,7 @@
 mod calc;
 mod keys;
 mod signal;
+#[path = "store/mod.rs"]
 mod store;
 mod touch;
 mod types;

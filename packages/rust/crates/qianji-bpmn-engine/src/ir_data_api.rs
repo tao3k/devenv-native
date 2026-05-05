@@ -1,3 +1,5 @@
+//! Public ir data api contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Bounded executable BPMN data-object binding owned by one process.

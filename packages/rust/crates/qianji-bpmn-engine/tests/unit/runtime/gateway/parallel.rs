@@ -1,4 +1,4 @@
-use super::super::{
+use crate::runtime::{
     StubHost, parallel_dual_host_block_process, parallel_host_block_process, parallel_join_process,
     parallel_join_same_edge_duplicate_process,
 };

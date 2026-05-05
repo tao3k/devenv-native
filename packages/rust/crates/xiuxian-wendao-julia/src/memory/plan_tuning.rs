@@ -1,3 +1,5 @@
+//! Julia recall-plan tuning transport contract and row processing.
+
 use std::sync::Arc;
 
 use arrow::array::{Array, Float32Array, StringArray, UInt32Array, UInt64Array};

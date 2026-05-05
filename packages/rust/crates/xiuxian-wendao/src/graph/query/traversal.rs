@@ -1,6 +1,5 @@
-use super::super::KnowledgeGraph;
-use super::super::core::read_lock;
 use crate::entity::{Entity, Relation};
+use crate::graph::{KnowledgeGraph, read_lock};
 use std::collections::{HashMap, HashSet};
 
 impl KnowledgeGraph {

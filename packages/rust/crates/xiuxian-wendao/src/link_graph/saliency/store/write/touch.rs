@@ -1,7 +1,7 @@
-use super::super::read::load_current_state;
 use super::edge_updates::update_inbound_edge_scores;
 use super::time::unix_seconds_to_f64;
 use super::types::TouchUpdateSpec;
+use crate::link_graph::saliency::store::read::load_current_state;
 use crate::link_graph::saliency::{
     DEFAULT_DECAY_RATE, DEFAULT_SALIENCY_BASE, LINK_GRAPH_SALIENCY_SCHEMA_VERSION,
     LinkGraphSaliencyState, compute_link_graph_saliency, saliency_key,

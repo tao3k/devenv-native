@@ -1,3 +1,5 @@
+//! Coordinates repository search across source discovery, AST extraction, and batch rendering.
+
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -10,13 +12,17 @@ use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 use super::ast::repository_supports_generic_ast_analysis;
 use super::batch::repo_search_batch_from_hits;
 use crate::analyzers::{RegisteredRepository, resolve_registered_repository_source};
-use crate::gateway::studio::types::SearchHit;
-use crate::gateway::studio::{StudioState, configured_repository};
 use crate::parsers::search::repo_code_query::parse_repo_code_search_query;
+use crate::search::contracts::SearchHit;
 use crate::search::repo_content_chunk::RepoContentChunkCandidate;
 use crate::search::{RepoContentChunkSearchFilters, SearchPlaneService};
 
-pub(crate) async fn search_repo_content_hits_for_query(
+/// Search repository content rows using a raw code-search query.
+///
+/// # Errors
+///
+/// Returns a string error when the repository content query fails.
+pub async fn search_repo_content_hits_for_query(
     search_plane: &SearchPlaneService,
     repo_id: &str,
     raw_query: &str,
@@ -72,9 +78,9 @@ pub(crate) async fn search_repo_content_hits(
         .map_err(|error| format!("repo-search content query failed for repo `{repo_id}`: {error}"))
 }
 
-pub(crate) async fn search_repo_content_hits_with_studio(
+pub(crate) async fn search_repo_content_hits_with_repository(
     search_plane: &SearchPlaneService,
-    studio: &StudioState,
+    repository: Option<&RegisteredRepository>,
     request: &RepoSearchFlightRequest,
 ) -> Result<Vec<SearchHit>, String> {
     let published_hits = search_repo_content_hits(search_plane, request).await?;
@@ -86,20 +92,22 @@ pub(crate) async fn search_repo_content_hits_with_studio(
         return Ok(published_hits);
     }
 
-    let repository = configured_repository(studio, request.repo_id.trim()).map_err(|error| {
-        format!(
-            "failed to resolve repo-search repository `{}`: {error}",
-            request.repo_id.trim()
-        )
-    })?;
-    if !repository_supports_generic_ast_analysis(&repository) {
+    let Some(repository) = repository else {
+        return Ok(published_hits);
+    };
+    if !repository_supports_generic_ast_analysis(repository) {
         return Ok(published_hits);
     }
 
-    search_repo_checkout_content_hits(search_plane, &repository, request).await
+    search_repo_checkout_content_hits(search_plane, repository, request).await
 }
 
-pub(crate) async fn search_repo_content_batch(
+/// Execute repository content search and render the result as a Flight record batch.
+///
+/// # Errors
+///
+/// Returns a string error when repository search or batch rendering fails.
+pub async fn search_repo_content_batch(
     search_plane: &SearchPlaneService,
     request: &RepoSearchFlightRequest,
 ) -> Result<LanceRecordBatch, String> {
@@ -107,12 +115,18 @@ pub(crate) async fn search_repo_content_batch(
     repo_search_batch_from_hits(&hits)
 }
 
-pub(crate) async fn search_repo_content_batch_with_studio(
+/// Execute repository content search with an optional checkout fallback repository.
+///
+/// # Errors
+///
+/// Returns a string error when repository search, checkout fallback, or batch
+/// rendering fails.
+pub async fn search_repo_content_batch_with_repository(
     search_plane: &SearchPlaneService,
-    studio: &StudioState,
+    repository: Option<&RegisteredRepository>,
     request: &RepoSearchFlightRequest,
 ) -> Result<LanceRecordBatch, String> {
-    let hits = search_repo_content_hits_with_studio(search_plane, studio, request).await?;
+    let hits = search_repo_content_hits_with_repository(search_plane, repository, request).await?;
     repo_search_batch_from_hits(&hits)
 }
 

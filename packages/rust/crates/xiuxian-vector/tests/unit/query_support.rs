@@ -1,4 +1,9 @@
-use super::*;
+use std::collections::BTreeSet;
+
+use crate::{
+    RETRIEVAL_ID_COLUMN, RETRIEVAL_PATH_COLUMN, RetrievalRow, payload_fetch_record_batch,
+    retrieval_rows_from_record_batch, retrieval_rows_to_record_batch,
+};
 use anyhow::Result;
 
 fn sample_rows() -> Vec<RetrievalRow> {

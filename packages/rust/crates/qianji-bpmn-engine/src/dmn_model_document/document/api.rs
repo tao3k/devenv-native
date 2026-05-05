@@ -1,3 +1,5 @@
+//! Public dmn model document document contracts for BPMN/DMN engine integration.
+
 use super::{DmnDecisionSnapshot, DmnRootSnapshot};
 
 /// Snapshot of one DMN document discovered before executable contract checks.

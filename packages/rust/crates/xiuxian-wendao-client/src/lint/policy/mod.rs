@@ -1,3 +1,5 @@
+//! Markdown lint policy checks for paths, directory style, and targets.
+
 mod directory_style;
 mod target_exists;
 mod target_fragment;

@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::bpmn_parse_api::BpmnSourceFile;
-use crate::lint::bpmn::document_surface::shared::SNAPSHOT_EVIDENCE_LIMIT;
+use crate::lint::bpmn::document_surface::SNAPSHOT_EVIDENCE_LIMIT;
 use crate::lint_api::LintIssue;
 
 use super::model::DiBooleanViolation;

@@ -1,13 +1,17 @@
+//! Artifact path resolution helpers for runtime package outputs.
+
 use xiuxian_wendao_core::{
     artifacts::{PluginArtifactPayload, PluginArtifactSelector},
     ids::{ArtifactId, PluginId},
 };
 
+use super::{RuntimeArtifactIdRef, RuntimePluginIdRef};
+
 /// Resolve one plugin artifact through a runtime-owned typed-selector callback.
 #[must_use]
 pub fn resolve_plugin_artifact_with<F>(
-    plugin_id: &str,
-    artifact_id: &str,
+    plugin_id: RuntimePluginIdRef<'_>,
+    artifact_id: RuntimeArtifactIdRef<'_>,
     resolve: F,
 ) -> Option<PluginArtifactPayload>
 where

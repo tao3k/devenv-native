@@ -1,4 +1,4 @@
-use super::support::*;
+use super::support::{ZhenfaRegistry, register_wendao_docs_native_tools};
 
 #[test]
 fn docs_native_tools_register_all_capabilities() {

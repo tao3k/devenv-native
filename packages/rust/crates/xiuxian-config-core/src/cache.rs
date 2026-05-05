@@ -13,6 +13,7 @@ pub(crate) struct ResolveCacheKey {
     orphan_file: String,
     array_merge_strategy: ArrayMergeStrategy,
     embedded_toml_hash: u64,
+    project_root: Option<PathBuf>,
     config_home: Option<PathBuf>,
 }
 
@@ -36,6 +37,7 @@ static RESOLVE_CACHE: OnceLock<RwLock<ResolveCacheMap>> = OnceLock::new();
 
 pub(crate) fn cache_key(
     spec: ConfigCascadeSpec<'_>,
+    project_root: Option<&Path>,
     config_home: Option<&Path>,
 ) -> ResolveCacheKey {
     ResolveCacheKey {
@@ -43,6 +45,7 @@ pub(crate) fn cache_key(
         orphan_file: spec.orphan_file.to_string(),
         array_merge_strategy: spec.array_merge_strategy,
         embedded_toml_hash: hash_text(spec.embedded_toml),
+        project_root: project_root.map(Path::to_path_buf),
         config_home: config_home.map(Path::to_path_buf),
     }
 }

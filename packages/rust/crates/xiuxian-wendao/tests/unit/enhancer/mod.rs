@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 
 use crate::link_graph_refs::LinkGraphEntityRef;
 
-use super::*;
+use crate::enhancer::{NoteInput, enhance_note, enhance_notes_batch, infer_relations};
 
 fn read_json_snapshot(relative: &str) -> Value {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))

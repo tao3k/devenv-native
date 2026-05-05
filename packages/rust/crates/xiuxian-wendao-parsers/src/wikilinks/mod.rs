@@ -1,3 +1,5 @@
+//! Markdown wikilink extraction and literal parsing.
+
 mod api;
 mod types;
 

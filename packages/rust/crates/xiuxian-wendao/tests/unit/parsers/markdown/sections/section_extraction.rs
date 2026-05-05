@@ -1,5 +1,5 @@
-use super::super::*;
 use super::support::extract_sections_from;
+use crate::parsers::markdown::sections::extract_sections;
 use std::path::Path;
 
 #[test]

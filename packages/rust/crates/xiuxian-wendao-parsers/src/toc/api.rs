@@ -1,3 +1,5 @@
+//! Public Markdown table-of-contents parsing API.
+
 use super::types::{
     MarkdownOutlineDocument, MarkdownOutlineHeading, MarkdownTocDocument, TocDocument,
 };

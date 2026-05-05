@@ -5,7 +5,7 @@ use quick_xml::escape::{resolve_predefined_entity, unescape};
 use quick_xml::events::{BytesRef, BytesStart};
 use std::borrow::Cow;
 
-pub(super) fn required_attribute(
+pub(in crate::dmn::snapshot) fn required_attribute(
     source: &DmnSourceFile,
     reader: &Reader<&[u8]>,
     event: &BytesStart<'_>,
@@ -21,7 +21,7 @@ pub(super) fn required_attribute(
     })
 }
 
-pub(super) fn attribute_value(
+pub(in crate::dmn::snapshot) fn attribute_value(
     source: &DmnSourceFile,
     reader: &Reader<&[u8]>,
     event: &BytesStart<'_>,

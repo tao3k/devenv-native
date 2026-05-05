@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::super::parsing::CommandOutputFormat;
-use super::super::super::super::replies::{format_slash_help, format_slash_help_json};
-use super::super::super::events::{
+use crate::channels::discord::runtime::managed::handlers::events::{
     EVENT_DISCORD_COMMAND_SLASH_HELP_JSON_REPLIED, EVENT_DISCORD_COMMAND_SLASH_HELP_REPLIED,
 };
-use super::super::super::send::send_response;
+use crate::channels::discord::runtime::managed::handlers::send::send_response;
+use crate::channels::discord::runtime::managed::parsing::CommandOutputFormat;
+use crate::channels::discord::runtime::managed::replies::{
+    format_slash_help, format_slash_help_json,
+};
 
 pub(in super::super) async fn handle_help(
     channel: &Arc<dyn Channel>,

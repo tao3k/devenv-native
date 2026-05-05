@@ -1,6 +1,6 @@
-use super::super::super::{SectionCandidate, SectionMatch};
+use crate::link_graph::index::{LinkGraphIndex, SectionCandidate, SectionMatch};
 
-impl super::super::super::LinkGraphIndex {
+impl LinkGraphIndex {
     pub(in crate::link_graph::index::search) fn best_section_match(
         candidates: &[SectionCandidate],
     ) -> Option<SectionMatch> {

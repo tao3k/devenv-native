@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use xiuxian_db_store::VectorStoreError;
 
 use crate::analyzers::ImportRecord;
-use crate::gateway::studio::types::SearchHit;
+use crate::search::contracts::SearchHit;
 use crate::search::repo_entity::schema::definitions::{ENTITY_KIND_IMPORT, RepoEntityRow};
 use crate::search::repo_entity::schema::helpers::{
     import_kind_tag, infer_code_language, repo_entity_tags, repo_navigation_target,

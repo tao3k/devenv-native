@@ -5,8 +5,8 @@ use crate::transport::{
     VFS_RESOLVE_ROUTE, is_search_family_route, validate_graph_neighbors_request_metadata,
 };
 
-use super::super::assertions::{must_err, must_ok};
-use super::super::request_headers::build_graph_neighbors_metadata;
+use crate::tests::transport::server::assertions::{must_err, must_ok};
+use crate::tests::transport::server::request_headers::build_graph_neighbors_metadata;
 
 #[test]
 fn validate_graph_neighbors_request_metadata_accepts_stable_request() {

@@ -1,3 +1,5 @@
+//! Public dmn model document function contracts for BPMN/DMN engine integration.
+
 /// Snapshot of one direct function-definition parameter placeholder.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnFunctionDefinitionParameterSnapshot {

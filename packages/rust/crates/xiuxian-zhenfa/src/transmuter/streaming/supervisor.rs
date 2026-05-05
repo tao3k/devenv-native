@@ -16,7 +16,7 @@ use super::ZhenfaStreamingEvent;
 use std::collections::VecDeque;
 
 /// Maximum history size for cognitive tracking.
-const MAX_HISTORY_SIZE: usize = 100;
+pub(crate) const MAX_HISTORY_SIZE: usize = 100;
 
 /// Cognitive dimension classification for agent thoughts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

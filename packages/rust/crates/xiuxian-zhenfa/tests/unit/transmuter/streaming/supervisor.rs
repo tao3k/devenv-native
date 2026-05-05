@@ -1,5 +1,9 @@
-use super::*;
 use std::sync::Arc;
+
+use crate::transmuter::streaming::ZhenfaStreamingEvent;
+use crate::transmuter::streaming::supervisor::{
+    CognitiveDimension, CognitiveSupervisor, MAX_HISTORY_SIZE, ThoughtSubcategory,
+};
 
 #[test]
 fn supervisor_classifies_planning_as_meta() {
@@ -148,7 +152,7 @@ fn supervisor_history_respects_max_size() {
         ))));
     }
 
-    assert!(supervisor.history_len() <= super::MAX_HISTORY_SIZE);
+    assert!(supervisor.history_len() <= MAX_HISTORY_SIZE);
 }
 
 #[test]

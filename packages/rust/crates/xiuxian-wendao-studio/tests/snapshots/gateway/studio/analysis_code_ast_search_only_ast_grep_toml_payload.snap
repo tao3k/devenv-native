@@ -1,0 +1,191 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 17
+expression: value
+---
+{
+  "focus_node_id": "repo:lance:generic_ast:Cargo.toml:2:2:name",
+  "language": "toml",
+  "nodes": [
+    {
+      "id": "repo:lance:generic_ast:Cargo.toml:2:2:name",
+      "kind": "constant",
+      "label": "name",
+      "line_end": 2,
+      "line_start": 2,
+      "path": "Cargo.toml"
+    },
+    {
+      "id": "repo:lance:generic_ast:Cargo.toml:3:3:version",
+      "kind": "constant",
+      "label": "version",
+      "line_end": 3,
+      "line_start": 3,
+      "path": "Cargo.toml"
+    },
+    {
+      "id": "repo:lance:generic_ast:Cargo.toml:4:4:edition",
+      "kind": "constant",
+      "label": "edition",
+      "line_end": 4,
+      "line_start": 4,
+      "path": "Cargo.toml"
+    },
+    {
+      "id": "repo:lance:generic_ast:Cargo.toml:1:1:package",
+      "kind": "module",
+      "label": "package",
+      "line_end": 1,
+      "line_start": 1,
+      "path": "Cargo.toml"
+    }
+  ],
+  "path": "lance/Cargo.toml",
+  "repo_id": "lance",
+  "retrieval_atoms": [
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Declaration Rail · name",
+      "excerpt": "name = \"searchrust\"",
+      "line_end": 2,
+      "line_start": 2,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:2:2:name",
+      "semantic_type": "constant"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Symbol Rail · name",
+      "excerpt": "name",
+      "line_end": 2,
+      "line_start": 2,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:2:2:name",
+      "semantic_type": "constant"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Declaration Rail · version",
+      "excerpt": "version = \"0.1.0\"",
+      "line_end": 3,
+      "line_start": 3,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:3:3:version",
+      "semantic_type": "constant"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Symbol Rail · version",
+      "excerpt": "version",
+      "line_end": 3,
+      "line_start": 3,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:3:3:version",
+      "semantic_type": "constant"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Declaration Rail · edition",
+      "excerpt": "edition = \"2021\"",
+      "line_end": 4,
+      "line_start": 4,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:4:4:edition",
+      "semantic_type": "constant"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Symbol Rail · edition",
+      "excerpt": "edition",
+      "line_end": 4,
+      "line_start": 4,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:4:4:edition",
+      "semantic_type": "constant"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Declaration Rail · package",
+      "excerpt": "[package]",
+      "line_end": 1,
+      "line_start": 1,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:1:1:package",
+      "semantic_type": "module"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "toml"
+        ]
+      ],
+      "display_label": "Symbol Rail · package",
+      "excerpt": "package",
+      "line_end": 1,
+      "line_start": 1,
+      "owner_id": "repo:lance:generic_ast:Cargo.toml:1:1:package",
+      "semantic_type": "module"
+    }
+  ]
+}

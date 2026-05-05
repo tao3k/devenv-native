@@ -18,11 +18,11 @@ use super::{
     run_lint_command, run_scaffold_rest_docs_contract_feedback, run_template_command,
     sanitize_prj_cache_home,
 };
+use crate::runtime_config::QianjiRuntimeEnv;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use xiuxian_config_core::resolve_cache_home_from_value;
-use xiuxian_qianji::runtime_config::QianjiRuntimeEnv;
 
 mod bpmn;
 mod cache_paths;

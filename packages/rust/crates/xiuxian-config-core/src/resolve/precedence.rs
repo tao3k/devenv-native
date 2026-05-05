@@ -1,3 +1,5 @@
+//! Scalar precedence helpers for TOML-first and environment-backed settings.
+
 use std::str::FromStr;
 
 /// Return a trimmed non-empty string candidate.

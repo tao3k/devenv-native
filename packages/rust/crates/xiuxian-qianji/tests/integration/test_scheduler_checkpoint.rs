@@ -11,8 +11,6 @@ fn test_qianji_checkpoint_redis_key() {
     assert_eq!(key, "xq:qianji:checkpoint:session_123");
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[test]
 fn test_qianji_checkpoint_serialization() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut active_branches = HashSet::new();

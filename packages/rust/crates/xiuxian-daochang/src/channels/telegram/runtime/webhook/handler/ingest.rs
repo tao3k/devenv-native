@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 
-use super::super::state::TelegramWebhookState;
+use crate::channels::telegram::runtime::webhook::state::TelegramWebhookState;
 
 pub(super) async fn forward_update_to_agent(
     state: &TelegramWebhookState,

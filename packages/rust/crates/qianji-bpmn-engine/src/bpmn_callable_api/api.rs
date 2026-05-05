@@ -1,3 +1,5 @@
+//! Public bpmn callable api contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Package-owned registry of BPMN callable definitions and bindings.

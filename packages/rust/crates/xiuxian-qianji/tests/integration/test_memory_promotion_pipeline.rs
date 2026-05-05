@@ -48,8 +48,6 @@ fn memory_promotion_manifest_contains_required_nodes_and_binding() {
     );
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn memory_promotion_pipeline_executes_and_returns_branch_decision() {
     let temp_dir = tempfile::tempdir()

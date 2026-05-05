@@ -1,4 +1,4 @@
-use super::super::super::{LinkGraphDirection, LinkGraphIndex};
+use crate::link_graph::index::{LinkGraphDirection, LinkGraphIndex};
 use std::collections::{HashSet, VecDeque};
 
 impl LinkGraphIndex {

@@ -1,4 +1,4 @@
-use super::*;
+use crate::{json_to_xml, markdown_to_xml};
 
 #[test]
 fn json_to_xml_basic() {

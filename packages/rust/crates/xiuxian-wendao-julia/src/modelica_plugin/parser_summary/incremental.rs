@@ -1,7 +1,10 @@
+//! Incremental parser-summary helpers for Modelica sources.
+
 use serde::Serialize;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
 
 use crate::modelica_plugin::discovery::modelica_doc_surface_semantic_markers;
+use crate::modelica_plugin::types::ModelicaSourceId;
 
 use super::fetch::fetch_modelica_parser_file_summary_blocking_for_repository;
 use super::types::ModelicaParserFileSummary;
@@ -16,9 +19,10 @@ use super::types::ModelicaParserFileSummary;
 /// fails.
 pub fn modelica_parser_summary_file_semantic_fingerprint_for_repository(
     repository: &RegisteredRepository,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<String, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     let summary = fetch_modelica_parser_file_summary_blocking_for_repository(
         repository,
         source_id,

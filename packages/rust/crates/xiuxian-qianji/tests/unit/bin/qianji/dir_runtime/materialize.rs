@@ -1,4 +1,7 @@
-use super::super::*;
+use super::{
+    DirCliCommand, MaterializeCliTarget, TempDir, anchored_workdir_fixture_anchor,
+    anchored_workdir_fixture_scenario, fs, must_ok, run_dir_command, write_file,
+};
 
 #[test]
 fn run_materialize_anchor_command_generates_checkable_run_root() {
@@ -35,7 +38,7 @@ fn run_materialize_anchor_command_generates_checkable_run_root() {
     assert!(run_dir.join("state/current_node.toml").is_file());
     assert!(run_dir.join("state/allowed_next.json").is_file());
 
-    let report = xiuxian_qianji::check_workdir(&run_dir)
+    let report = crate::check_workdir(&run_dir)
         .unwrap_or_else(|error| panic!("materialized run root should check: {error}"));
     assert!(report.is_valid());
 }
@@ -104,7 +107,7 @@ fn run_materialize_anchor_command_scaffolds_selected_current_node() {
     );
     assert!(!run_dir.join("checkpoints/evidence_ground.json").exists());
 
-    let report = xiuxian_qianji::check_workdir(&run_dir)
+    let report = crate::check_workdir(&run_dir)
         .unwrap_or_else(|error| panic!("current-node scaffolded run root should check: {error}"));
     assert!(report.is_valid());
 }

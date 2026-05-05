@@ -1,5 +1,6 @@
-use super::support::*;
 use std::collections::HashSet;
+
+use super::support::{TestResult, build_index_fixture, expansion_config};
 
 #[test]
 fn test_agentic_expansion_plan_respects_worker_and_pair_budgets() -> TestResult {

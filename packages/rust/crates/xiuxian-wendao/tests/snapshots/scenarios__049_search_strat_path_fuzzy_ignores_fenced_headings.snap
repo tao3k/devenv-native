@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 049_search_strat_path_fuzzy_ignores_fenced_headings [search_match_strategies]: path fuzzy ignores fenced headings"
 expression: result
 info:

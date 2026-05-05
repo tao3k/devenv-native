@@ -1,3 +1,5 @@
+//! Candidate discovery for global and orphan config files.
+
 use std::path::{Path, PathBuf};
 
 pub(super) fn global_candidates(config_home: Option<&Path>) -> Vec<PathBuf> {

@@ -51,7 +51,7 @@ type RepoDocCoverageMetadata = (String, Option<String>);
 type RepoProjectedPageIndexTreeMetadata = (String, String);
 type RefineDocMetadata = (String, String, Option<String>);
 
-pub(super) fn validate_schema_version(
+pub(crate) fn validate_schema_version(
     metadata: &MetadataMap,
     expected_schema_version: &str,
 ) -> Result<(), Status> {
@@ -67,7 +67,7 @@ pub(super) fn validate_schema_version(
     Ok(())
 }
 
-pub(super) fn validate_rerank_dimension_header(metadata: &MetadataMap) -> Result<usize, Status> {
+pub(crate) fn validate_rerank_dimension_header(metadata: &MetadataMap) -> Result<usize, Status> {
     let dimension = metadata
         .get(WENDAO_RERANK_DIMENSION_HEADER)
         .and_then(|value| value.to_str().ok())
@@ -105,7 +105,7 @@ pub(crate) fn validate_rerank_top_k_header(
     Ok(Some(parsed_top_k))
 }
 
-pub(super) fn validate_rerank_min_final_score_header(
+pub(crate) fn validate_rerank_min_final_score_header(
     metadata: &MetadataMap,
 ) -> Result<Option<f64>, Status> {
     let Some(raw_value) = metadata.get(WENDAO_RERANK_MIN_FINAL_SCORE_HEADER) else {
@@ -697,7 +697,7 @@ pub(crate) fn validate_attachment_search_request_metadata(
     ))
 }
 
-pub(super) fn descriptor_route(descriptor: &FlightDescriptor) -> Result<String, Status> {
+pub(crate) fn descriptor_route(descriptor: &FlightDescriptor) -> Result<String, Status> {
     let actual_path = descriptor
         .path
         .iter()
@@ -706,13 +706,13 @@ pub(super) fn descriptor_route(descriptor: &FlightDescriptor) -> Result<String, 
     normalize_flight_route(format!("/{}", actual_path.join("/"))).map_err(Status::invalid_argument)
 }
 
-pub(super) fn ticket_route(ticket: &Ticket) -> Result<String, Status> {
+pub(crate) fn ticket_route(ticket: &Ticket) -> Result<String, Status> {
     let route = String::from_utf8(ticket.ticket.to_vec())
         .map_err(|error| Status::invalid_argument(format!("invalid ticket bytes: {error}")))?;
     normalize_flight_route(route).map_err(Status::invalid_argument)
 }
 
-pub(super) fn join_sorted_set(values: &std::collections::HashSet<String>) -> String {
+pub(crate) fn join_sorted_set(values: &std::collections::HashSet<String>) -> String {
     let mut sorted = values.iter().cloned().collect::<Vec<_>>();
     sorted.sort();
     sorted.join(",")

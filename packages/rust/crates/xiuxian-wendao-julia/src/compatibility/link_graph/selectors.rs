@@ -1,3 +1,5 @@
+//! Transport selector helpers for Julia link-graph compatibility.
+
 use xiuxian_wendao_core::{
     artifacts::PluginArtifactSelector,
     capabilities::PluginProviderSelector,

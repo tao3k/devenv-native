@@ -1,7 +1,9 @@
 //! Shared models for markdown link-graph indexing and retrieval.
 
 mod attachments;
+#[path = "query/mod.rs"]
 mod query;
+#[path = "records/mod.rs"]
 mod records;
 mod semantic_policy;
 

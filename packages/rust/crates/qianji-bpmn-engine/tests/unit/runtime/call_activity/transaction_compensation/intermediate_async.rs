@@ -1,9 +1,9 @@
-use super::super::{TRANSACTION_PROCESS_ID, node_index};
 use super::helpers::{
     advance_and_expect_blocked, assert_main_success_completion, assert_pending_handler_node,
     complete_default_compensation_pair, complete_user_task_expect_advanced,
     create_transaction_test_instance,
 };
+use crate::runtime::call_activity::{TRANSACTION_PROCESS_ID, node_index};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, PendingHostWorkResult, UserTaskOutcome, advance_instance,

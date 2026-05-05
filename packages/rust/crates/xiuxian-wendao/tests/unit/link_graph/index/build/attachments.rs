@@ -3,8 +3,16 @@ use std::sync::Arc;
 use arrow::array::{ArrayRef, Int32Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::ipc::writer::FileWriter;
+use arrow::record_batch::RecordBatch;
+use std::fs::File;
+use std::path::Path;
 
-use super::*;
+use super::{
+    DOCUMENT_RESOURCE_ARROW_CACHE_NAME, DocumentResourceCacheRow, attachment_name,
+    expand_document_attachments,
+};
+use crate::link_graph::LinkGraphAttachmentKind;
+use crate::link_graph::models::LinkGraphAttachment;
 
 #[test]
 fn expand_document_attachments_uses_docling_supported_source_suffixes() {

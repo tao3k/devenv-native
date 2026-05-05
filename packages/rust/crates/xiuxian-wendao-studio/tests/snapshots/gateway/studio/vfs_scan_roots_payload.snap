@@ -1,0 +1,70 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "dirCount": 3,
+  "entries": [
+    {
+      "category": "folder",
+      "contentType": null,
+      "hasFrontmatter": false,
+      "isDir": true,
+      "name": "docs",
+      "path": "docs",
+      "projectName": "kernel",
+      "rootLabel": "docs",
+      "size": 0,
+      "wendaoId": null
+    },
+    {
+      "category": "doc",
+      "contentType": "text/markdown",
+      "hasFrontmatter": false,
+      "isDir": false,
+      "name": "guide.md",
+      "path": "docs/guide.md",
+      "projectName": "kernel",
+      "rootLabel": "docs",
+      "size": 16,
+      "wendaoId": null
+    },
+    {
+      "category": "folder",
+      "contentType": null,
+      "hasFrontmatter": false,
+      "isDir": true,
+      "name": "skills",
+      "path": "skills",
+      "projectName": "kernel",
+      "rootLabel": "skills",
+      "size": 0,
+      "wendaoId": null
+    },
+    {
+      "category": "folder",
+      "contentType": null,
+      "hasFrontmatter": false,
+      "isDir": true,
+      "name": "writer",
+      "path": "skills/writer",
+      "projectName": "kernel",
+      "rootLabel": "skills",
+      "size": 0,
+      "wendaoId": null
+    },
+    {
+      "category": "skill",
+      "contentType": "text/markdown",
+      "hasFrontmatter": true,
+      "isDir": false,
+      "name": "SKILL.md",
+      "path": "skills/writer/SKILL.md",
+      "projectName": "kernel",
+      "rootLabel": "skills",
+      "size": 21,
+      "wendaoId": null
+    }
+  ],
+  "fileCount": 2
+}

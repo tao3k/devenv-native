@@ -1,3 +1,5 @@
+//! Public checkpoint api contracts for BPMN/DMN engine integration.
+
 use crate::error::Result;
 use crate::runtime::BpmnInstanceState;
 
@@ -23,6 +25,36 @@ pub struct BpmnCheckpointEnvelope {
     pub sequence: u64,
     /// Durable instance state payload.
     pub state: BpmnInstanceState,
+}
+
+/// Public workflow-instance identifier for checkpoint storage APIs.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BpmnCheckpointInstanceId(String);
+
+impl BpmnCheckpointInstanceId {
+    /// Borrows the serialized workflow-instance identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for BpmnCheckpointInstanceId {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl From<&String> for BpmnCheckpointInstanceId {
+    fn from(value: &String) -> Self {
+        Self(value.clone())
+    }
+}
+
+impl From<String> for BpmnCheckpointInstanceId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
 }
 
 impl BpmnCheckpointEnvelope {
@@ -56,18 +88,35 @@ pub fn decode_checkpoint_json(json: &str) -> Result<BpmnCheckpointEnvelope> {
 }
 
 /// Returns the durable state-key name for one workflow instance.
+///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because Valkey key
+/// callers already own serialized runtime identifiers.
 #[must_use]
-pub fn state_key(instance_id: &str) -> String {
-    state_key_impl(instance_id)
+pub fn state_key(instance_id: impl Into<BpmnCheckpointInstanceId>) -> String {
+    let instance_id = instance_id.into();
+    state_key_impl(instance_id.as_str())
 }
 
 /// Returns the optional lease-key name for one workflow instance.
+///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because Valkey key
+/// callers already own serialized runtime identifiers.
 #[must_use]
-pub fn lease_key(instance_id: &str) -> String {
-    lease_key_impl(instance_id)
+pub fn lease_key(instance_id: impl Into<BpmnCheckpointInstanceId>) -> String {
+    let instance_id = instance_id.into();
+    lease_key_impl(instance_id.as_str())
 }
 
 /// Loads a checkpoint envelope from Valkey.
+///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because Valkey
+/// checkpoint storage is keyed by the serialized runtime instance id.
 ///
 /// # Errors
 ///
@@ -75,10 +124,11 @@ pub fn lease_key(instance_id: &str) -> String {
 /// cannot be reached or the stored payload cannot be decoded.
 #[cfg(feature = "valkey")]
 pub async fn load_checkpoint(
-    instance_id: &str,
+    instance_id: impl Into<BpmnCheckpointInstanceId>,
     valkey_url: &str,
 ) -> Result<Option<BpmnCheckpointEnvelope>> {
-    load_checkpoint_impl(instance_id, valkey_url).await
+    let instance_id = instance_id.into();
+    load_checkpoint_impl(instance_id.as_str(), valkey_url).await
 }
 
 /// Saves a checkpoint envelope to Valkey.
@@ -94,16 +144,30 @@ pub async fn save_checkpoint(checkpoint: &BpmnCheckpointEnvelope, valkey_url: &s
 
 /// Deletes a checkpoint envelope from Valkey.
 ///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because Valkey
+/// checkpoint storage is keyed by the serialized runtime instance id.
+///
 /// # Errors
 ///
 /// Returns a typed checkpoint storage error when Valkey cannot delete the
 /// checkpoint payload.
 #[cfg(feature = "valkey")]
-pub async fn delete_checkpoint(instance_id: &str, valkey_url: &str) -> Result<()> {
-    delete_checkpoint_impl(instance_id, valkey_url).await
+pub async fn delete_checkpoint(
+    instance_id: impl Into<BpmnCheckpointInstanceId>,
+    valkey_url: &str,
+) -> Result<()> {
+    let instance_id = instance_id.into();
+    delete_checkpoint_impl(instance_id.as_str(), valkey_url).await
 }
 
 /// Deletes a checkpoint envelope from Valkey when the caller owns the lease.
+///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because Valkey
+/// checkpoint storage is keyed by the serialized runtime instance id.
 ///
 /// # Errors
 ///
@@ -111,11 +175,12 @@ pub async fn delete_checkpoint(instance_id: &str, valkey_url: &str) -> Result<()
 /// caller does not own the lease or Valkey cannot complete the delete.
 #[cfg(feature = "valkey")]
 pub async fn delete_checkpoint_as_owner(
-    instance_id: &str,
+    instance_id: impl Into<BpmnCheckpointInstanceId>,
     owner_token: &str,
     valkey_url: &str,
 ) -> Result<()> {
-    delete_checkpoint_as_owner_impl(instance_id, owner_token, valkey_url).await
+    let instance_id = instance_id.into();
+    delete_checkpoint_as_owner_impl(instance_id.as_str(), owner_token, valkey_url).await
 }
 
 /// Saves a checkpoint envelope to Valkey when the caller owns the lease.
@@ -135,21 +200,33 @@ pub async fn save_checkpoint_as_owner(
 
 /// Tries to acquire the BPMN checkpoint lease for one workflow instance.
 ///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because lease keys use
+/// the serialized runtime instance id.
+///
 /// # Errors
 ///
 /// Returns a typed invalid-TTL or checkpoint storage error when the lease
 /// request cannot be validated or persisted in Valkey.
 #[cfg(feature = "valkey")]
 pub async fn try_acquire_checkpoint_lease(
-    instance_id: &str,
+    instance_id: impl Into<BpmnCheckpointInstanceId>,
     owner_token: &str,
     lease_ttl_ms: u64,
     valkey_url: &str,
 ) -> Result<bool> {
-    try_acquire_checkpoint_lease_impl(instance_id, owner_token, lease_ttl_ms, valkey_url).await
+    let instance_id = instance_id.into();
+    try_acquire_checkpoint_lease_impl(instance_id.as_str(), owner_token, lease_ttl_ms, valkey_url)
+        .await
 }
 
 /// Renews the BPMN checkpoint lease when the caller still owns it.
+///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because lease keys use
+/// the serialized runtime instance id.
 ///
 /// # Errors
 ///
@@ -157,15 +234,21 @@ pub async fn try_acquire_checkpoint_lease(
 /// renewal cannot be validated or persisted in Valkey.
 #[cfg(feature = "valkey")]
 pub async fn renew_checkpoint_lease(
-    instance_id: &str,
+    instance_id: impl Into<BpmnCheckpointInstanceId>,
     owner_token: &str,
     lease_ttl_ms: u64,
     valkey_url: &str,
 ) -> Result<bool> {
-    renew_checkpoint_lease_impl(instance_id, owner_token, lease_ttl_ms, valkey_url).await
+    let instance_id = instance_id.into();
+    renew_checkpoint_lease_impl(instance_id.as_str(), owner_token, lease_ttl_ms, valkey_url).await
 }
 
 /// Releases the BPMN checkpoint lease when the caller still owns it.
+///
+/// # Identifier Boundary
+///
+/// The `instance_id` primitive is kept at this boundary because lease keys use
+/// the serialized runtime instance id.
 ///
 /// # Errors
 ///
@@ -173,9 +256,10 @@ pub async fn renew_checkpoint_lease(
 /// lease release.
 #[cfg(feature = "valkey")]
 pub async fn release_checkpoint_lease(
-    instance_id: &str,
+    instance_id: impl Into<BpmnCheckpointInstanceId>,
     owner_token: &str,
     valkey_url: &str,
 ) -> Result<bool> {
-    release_checkpoint_lease_impl(instance_id, owner_token, valkey_url).await
+    let instance_id = instance_id.into();
+    release_checkpoint_lease_impl(instance_id.as_str(), owner_token, valkey_url).await
 }

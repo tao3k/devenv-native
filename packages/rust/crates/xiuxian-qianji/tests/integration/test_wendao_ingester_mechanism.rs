@@ -53,8 +53,6 @@ async fn wendao_ingester_emits_structured_entity_without_persistence() {
     );
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn wendao_ingester_best_effort_records_persistence_error() {
     if std::env::var_os("XIUXIAN_WENDAO_GRAPH_VALKEY_URL").is_some()

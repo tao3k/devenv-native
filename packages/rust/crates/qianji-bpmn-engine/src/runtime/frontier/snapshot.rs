@@ -1,7 +1,7 @@
 use super::{BpmnFrontierEntry, BpmnFrontierEntryStatus, BpmnFrontierExecutionProposal};
 use crate::runtime::{BpmnInstanceState, NodeRuntimeStatus, TokenRecord};
 use crate::runtime_instance_api::NodeRuntimeState;
-use rayon::prelude::*;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::collections::{HashMap, HashSet};
 
 const PARALLEL_FRONTIER_SCAN_THRESHOLD: usize = 32;

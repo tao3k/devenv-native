@@ -1,5 +1,10 @@
+use super::{
+    Arc, Result, VectorStore, VectorStoreError, build_vector_list_array,
+    parse_document_metadata_columns, validate_document_batch_inputs,
+};
+
 impl VectorStore {
-    fn build_document_batch(
+    pub(crate) fn build_document_batch(
         &self,
         ids: Vec<String>,
         vectors: Vec<Vec<f32>>,

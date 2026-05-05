@@ -1,3 +1,5 @@
+//! Graph-structural request and response row exchange helpers.
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -787,9 +789,9 @@ fn graph_structural_decode_error(
 }
 
 #[cfg(test)]
-#[path = "graph_structural_exchange_tests.rs"]
+#[path = "../../tests/unit/plugin/graph_structural_exchange.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "graph_structural_exchange_generic_topology_tests.rs"]
+#[path = "../../tests/unit/plugin/graph_structural_exchange_generic_topology.rs"]
 mod generic_topology_tests;

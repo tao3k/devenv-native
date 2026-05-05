@@ -1,3 +1,5 @@
+//! Agentic runtime configuration records for Wendao graph expansion behavior.
+
 use crate::config::constants::{
     DEFAULT_LINK_GRAPH_AGENTIC_EXECUTION_AGENT_ID,
     DEFAULT_LINK_GRAPH_AGENTIC_EXECUTION_EVIDENCE_PREFIX,

@@ -1,4 +1,4 @@
-use super::super::{LintDomain, dmn_fixture_source, lint_dmn_source};
+use crate::lint::{LintDomain, dmn_fixture_source, lint_dmn_source};
 use serde_json::json;
 
 #[test]

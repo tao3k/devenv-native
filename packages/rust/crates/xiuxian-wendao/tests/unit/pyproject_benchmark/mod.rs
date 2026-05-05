@@ -4,9 +4,6 @@
 //! for Python dependency extraction.
 
 use std::fmt::Write as FmtWrite;
-use std::io::Write as StdWrite;
-use tempfile::NamedTempFile;
-use xiuxian_wendao::parsers::languages::python::pyproject::dependencies::parse_pyproject_dependencies;
 
 const BENCH_SLACK_ENV: &str = "OMNI_WENDAO_BENCH_SLACK_FACTOR";
 const DEFAULT_BENCH_SLACK_FACTOR: f64 = 2.0;

@@ -1,5 +1,7 @@
-use super::super::super::LinkGraphCacheBuildMeta;
-use super::super::cache::{LINK_GRAPH_CACHE_SCHEMA_VERSION, cache_schema_fingerprint};
+use crate::link_graph::index::LinkGraphCacheBuildMeta;
+use crate::link_graph::index::build::cache::{
+    LINK_GRAPH_CACHE_SCHEMA_VERSION, cache_schema_fingerprint,
+};
 
 pub(super) fn build_cache_meta(
     backend: &str,

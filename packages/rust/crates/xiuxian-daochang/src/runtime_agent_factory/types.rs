@@ -1,5 +1,5 @@
 use crate::{ContextBudgetStrategy, MemoryConfig};
-use xiuxian_llm::embedding::backend::EmbeddingBackendKind;
+use xiuxian_llm::embedding::EmbeddingBackendKind;
 
 pub(crate) type RuntimeEmbeddingBackendMode = EmbeddingBackendKind;
 

@@ -1,3 +1,5 @@
+//! Agent reflection branch for lifecycle, policy hints, and turn snapshots.
+
 mod lifecycle;
 mod policy_hint;
 mod turn;

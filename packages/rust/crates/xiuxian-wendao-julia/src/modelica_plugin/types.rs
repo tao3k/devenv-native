@@ -5,6 +5,24 @@ use std::collections::BTreeMap;
 use serde::Serialize;
 use xiuxian_wendao_core::repo_intelligence::{DocRecord, ImportKind, RepoSymbolKind};
 
+/// Borrowed Modelica repository source identifier accepted by public helpers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ModelicaSourceId<'a>(&'a str);
+
+impl<'a> ModelicaSourceId<'a> {
+    /// Return the raw repository source identifier.
+    #[must_use]
+    pub fn as_str(self) -> &'a str {
+        self.0
+    }
+}
+
+impl<'a> From<&'a str> for ModelicaSourceId<'a> {
+    fn from(value: &'a str) -> Self {
+        Self(value)
+    }
+}
+
 /// Collected documentation record with target IDs.
 #[derive(Debug, Clone)]
 pub(crate) struct CollectedDoc {

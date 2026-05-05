@@ -5,5 +5,5 @@ use xiuxian_daochang::test_support::{
     filter_recalled_episodes_at, plan_memory_recall,
 };
 
-#[path = "agent/memory_recall/tests.rs"]
+#[path = "agent/memory_recall/ranking.rs"]
 mod tests;

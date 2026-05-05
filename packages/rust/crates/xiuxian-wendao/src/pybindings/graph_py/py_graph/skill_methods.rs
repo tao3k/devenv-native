@@ -1,10 +1,10 @@
-use pyo3::prelude::*;
+use pyo3::PyResult;
 use serde_json::{Value, json};
 
 use crate::graph::SkillDoc;
 
-use super::super::PySkillDoc;
 use super::PyKnowledgeGraph;
+use crate::pybindings::graph_py::PySkillDoc;
 
 fn register_skill_docs(graph: &PyKnowledgeGraph, skill_docs: &[SkillDoc]) -> PyResult<String> {
     let result = graph

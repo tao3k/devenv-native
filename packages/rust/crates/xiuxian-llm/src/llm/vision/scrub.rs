@@ -1,3 +1,5 @@
+//! Vision OCR sensitive-text scrubbing.
+
 use super::anchor::TextAnchor;
 
 /// Visibility scrubbing policy for OCR/text anchors.

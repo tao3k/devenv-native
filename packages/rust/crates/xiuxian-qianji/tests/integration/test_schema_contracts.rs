@@ -53,5 +53,3 @@ fn test_qianji_manifest_schema_contract() -> Result<(), Box<dyn std::error::Erro
     assert_eq!(edges[0]["weight"], 1.0);
     Ok(())
 }
-
-xiuxian_testing::crate_test_policy_harness!();

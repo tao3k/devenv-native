@@ -1,6 +1,7 @@
 mod helpers;
 mod local;
 mod queue;
+#[path = "repo/mod.rs"]
 mod repo;
 mod worker;
 

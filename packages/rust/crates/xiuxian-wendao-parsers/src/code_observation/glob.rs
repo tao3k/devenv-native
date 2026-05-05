@@ -1,3 +1,5 @@
+//! Minimal glob-like matching for code observation path scopes.
+
 /// Find the closing quote in a string, handling escaped quotes.
 pub(super) fn find_closing_quote(s: &str) -> Option<usize> {
     let mut chars = s.char_indices().peekable();

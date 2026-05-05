@@ -1,3 +1,5 @@
+//! Manifestation manager implementation for template rendering.
+
 use crate::hot_reload::HotReloadTarget;
 use crate::interface::ManifestationInterface;
 use crate::manifestation::request::{ManifestationRenderRequest, ManifestationTemplateTarget};

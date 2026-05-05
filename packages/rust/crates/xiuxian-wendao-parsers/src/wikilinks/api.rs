@@ -1,3 +1,5 @@
+//! Public Markdown wikilink extraction API.
+
 use crate::references::{MarkdownReferenceKind, extract_references, parse_reference_literal};
 
 use super::types::MarkdownWikiLink;

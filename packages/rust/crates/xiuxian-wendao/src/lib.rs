@@ -57,8 +57,6 @@
 //!
 //! graph.add_entity(entity).unwrap();
 //! ```
-extern crate self as xiuxian_wendao;
-
 // ---------------------------------------------------------------------------
 // Core domain modules
 // ---------------------------------------------------------------------------
@@ -76,10 +74,10 @@ pub mod parsers;
 #[cfg(feature = "pybindings")]
 pub mod pybindings;
 /// Internal query-core skeleton for RFC-driven Wendao execution adapters.
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 pub mod query_core;
 /// Repo-intelligence ingestion runtime and status coordination.
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub mod repo_index;
 pub mod schemas;
 /// Wendao search infrastructure, corpora, query adapters, and shared primitives.
@@ -87,8 +85,21 @@ pub mod search;
 pub(crate) mod settings;
 pub mod storage;
 pub mod sync;
+#[cfg(all(
+    test,
+    any(
+        feature = "julia",
+        feature = "repo-lexical-index",
+        feature = "search-runtime",
+        feature = "test-support",
+        feature = "zhenfa-router"
+    )
+))]
+#[path = "../tests/unit/support/mod.rs"]
+pub(crate) mod test_support;
 pub mod types;
-mod valkey_common;
+/// Shared Valkey client helpers for Wendao runtime integrations.
+pub mod valkey_common;
 
 // ---------------------------------------------------------------------------
 // Fusion recall boost (Rust computation, Python thin wrapper)
@@ -115,8 +126,6 @@ pub mod unified_symbol;
 /// High-level search router for integrating multiple backends.
 #[cfg(feature = "zhenfa-router")]
 pub mod zhenfa_router;
-
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
 
 // ---------------------------------------------------------------------------
 // Public re-exports (crate API)
@@ -252,3 +261,12 @@ pub use zhenfa_router::execute_search;
 /// Execute a search via the router using raw RPC parameters.
 #[cfg(feature = "zhenfa-router")]
 pub use zhenfa_router::search_from_rpc_params;
+
+#[cfg(test)]
+#[path = "../tests/unit/lib_policy.rs"]
+mod rust_project_harness_gate;
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = rust_project_harness_gate::wendao_rust_harness_config()
+);

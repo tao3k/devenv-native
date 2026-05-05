@@ -1,5 +1,7 @@
-use super::*;
+use super::{FileWendaoSink, InMemoryWendaoSink, WendaoIndexAdapter, WendaoIndexAdapterBuilder};
+use crate::sovereign::artifact_observer::WendaoIngestionSink;
 use tempfile::TempDir;
+use xiuxian_wendao_core::CognitiveTraceRecord;
 
 #[test]
 fn wendao_index_adapter_new_creates_adapter() {

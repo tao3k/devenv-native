@@ -9,15 +9,15 @@ mod write;
 mod tests;
 
 pub(crate) use extract::attachment_kind_label;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) use orchestration::ensure_attachment_index_started;
 pub(crate) use orchestration::ensure_attachment_index_started_with_scanned_files;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) use orchestration::publish_attachments_from_projects;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) use plan::plan_attachment_build;
 pub(crate) use plan::plan_attachment_build_with_scanned_files;
-#[cfg(test)]
-pub(crate) use types::AttachmentBuildError;
+#[cfg(any(test, feature = "test-support"))]
+pub use types::AttachmentBuildError;
 pub(crate) use types::{AttachmentBuildPlan, AttachmentWriteResult};
 pub(crate) use write::write_attachment_epoch;

@@ -5,8 +5,10 @@ use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{RepoOverviewQuery, RepoOverviewResult};
 
-use super::super::helpers::repo_hierarchical_uri;
-use super::super::{analyze_repository_from_config_with_registry, bootstrap_builtin_registry};
+use crate::analyzers::service::repo_hierarchical_uri;
+use crate::analyzers::service::{
+    analyze_repository_from_config_with_registry, bootstrap_builtin_registry,
+};
 
 /// Build a repository overview result from normalized analysis records.
 #[must_use]

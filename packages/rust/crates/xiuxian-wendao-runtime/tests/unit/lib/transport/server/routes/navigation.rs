@@ -5,12 +5,14 @@ use tonic::Request;
 
 use crate::transport::{GRAPH_NEIGHBORS_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE};
 
-use super::super::assertions::{must_ok, parse_json, route_descriptor, ticket_string};
-use super::super::fixtures::build_service_with_route_providers;
-use super::super::providers::{
+use crate::tests::transport::server::assertions::{
+    must_ok, parse_json, route_descriptor, ticket_string,
+};
+use crate::tests::transport::server::fixtures::build_service_with_route_providers;
+use crate::tests::transport::server::providers::{
     RecordingGraphNeighborsProvider, RecordingVfsContentProvider, RecordingVfsResolveProvider,
 };
-use super::super::request_headers::{
+use crate::tests::transport::server::request_headers::{
     populate_schema_and_graph_neighbors_headers, populate_schema_and_vfs_content_headers,
     populate_schema_and_vfs_resolve_headers,
 };

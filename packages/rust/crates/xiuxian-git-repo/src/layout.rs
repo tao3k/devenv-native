@@ -1,3 +1,5 @@
+//! Managed repository cache path derivation.
+
 use std::path::PathBuf;
 
 use url::Url;

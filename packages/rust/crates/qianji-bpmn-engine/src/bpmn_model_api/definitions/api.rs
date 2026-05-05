@@ -1,3 +1,5 @@
+//! Public bpmn model api definitions contracts for BPMN/DMN engine integration.
+
 use super::data::{BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot};
 
 /// Snapshot of one BPMN `import`.

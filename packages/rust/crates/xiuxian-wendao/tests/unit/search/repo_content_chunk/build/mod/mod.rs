@@ -1,34 +1,15 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
-#[cfg(unix)]
-use std::{fs, os::unix::fs::MetadataExt};
 
 use crate::repo_index::RepoCodeDocument;
-use crate::search::cache::SearchPlaneFileFingerprintScope;
-use crate::search::repo_content_chunk::build::orchestration::{
-    publish_repo_content_chunks, publish_repo_content_chunks_incremental,
-};
 use crate::search::repo_content_chunk::build::partitions::{
     repo_content_chunk_partition_count_for_document_count,
     repo_content_chunk_partition_id_for_count,
 };
-use crate::search::repo_content_chunk::build::plan::{
-    merge_repo_content_chunk_file_fingerprints, plan_repo_content_chunk_build,
-    plan_repo_content_chunk_incremental_build, repo_content_chunk_file_fingerprints,
-    versioned_repo_content_table_name,
-};
-use crate::search::repo_content_chunk::build::types::RepoContentChunkBuildAction;
-use crate::search::repo_content_chunk::schema::{
-    path_column, repo_content_chunk_batches, repo_content_chunk_schema, rows_from_documents,
-};
-use crate::search::repo_publication_parquet::{
-    RepoPublicationRewriteRequest, rewrite_repo_publication_parquet,
-};
 use crate::search::{
     SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService,
-    SearchPublicationStorageFormat, SearchRepoCorpusRecord, SearchRepoPublicationInput,
-    SearchRepoPublicationRecord,
+    SearchRepoCorpusRecord, SearchRepoPublicationRecord,
 };
 
 mod incremental;

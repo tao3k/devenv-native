@@ -1,4 +1,4 @@
-use super::super::fixture_source;
+use crate::dmn::fixture_source;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, DmnDecisionRef, DmnEvaluationRequest, evaluate_dmn_decision,

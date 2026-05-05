@@ -1,3 +1,5 @@
+//! Org section extraction from native Org syntax.
+
 use std::collections::HashMap;
 
 use orgize::rowan::ast::AstNode;

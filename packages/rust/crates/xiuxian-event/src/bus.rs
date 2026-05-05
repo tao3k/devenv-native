@@ -1,3 +1,5 @@
+//! Broadcast-channel event bus implementation.
+
 use serde_json::Value;
 use tokio::sync::broadcast;
 

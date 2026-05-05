@@ -10,7 +10,7 @@ workspace = true
 tiktoken-rs = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
 rand = { workspace = true }
+rust-lang-project-harness = { workspace = true }

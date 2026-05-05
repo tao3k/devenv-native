@@ -8,10 +8,10 @@ pub(crate) use super::human_task::{
     RawHumanTaskResourceRoleKind, RawHumanTaskResourceRoleSpec,
 };
 pub(crate) use super::lane::RawLaneMembershipSpec;
-pub(crate) use super::node::RawNode;
+pub(crate) use super::node::{RawNode, RawSubProcessKind};
 pub(crate) use super::process::{
     NestedShellKind, RawAssociation, RawPackageDocument, RawProcess, RawProcessScope,
-    RawSequenceFlow, RawSubProcessKind,
+    RawSequenceFlow,
 };
 pub(crate) use super::repeat::{
     RawParallelMultiInstanceSpec, RawRepeatSpec, RawSequentialMultiInstanceSpec,

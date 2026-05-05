@@ -1,3 +1,5 @@
+//! Org document metadata extraction.
+
 use std::collections::BTreeMap;
 
 use orgize::rowan::ast::AstNode;

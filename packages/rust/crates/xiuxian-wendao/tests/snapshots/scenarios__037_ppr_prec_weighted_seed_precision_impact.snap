@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 037_ppr_prec_weighted_seed_precision_impact [ppr_precision]: weighted seed precision impact"
 expression: result
 info:

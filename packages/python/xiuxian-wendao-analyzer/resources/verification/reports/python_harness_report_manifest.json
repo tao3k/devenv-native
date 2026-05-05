@@ -1,0 +1,12 @@
+{
+  "artifacts": [
+    {
+      "artifact_name": "python_harness_summary.json",
+      "key": "python_harness_summary_json",
+      "persistence": "source_baseline",
+      "reason": "persist compact Python harness policy state so parser, modularity, project, test-layout, and agent-policy drift stay reviewable",
+      "renderer": "xiuxian-wendao-analyzer test_project_harness.py"
+    }
+  ],
+  "schema_version": 1
+}

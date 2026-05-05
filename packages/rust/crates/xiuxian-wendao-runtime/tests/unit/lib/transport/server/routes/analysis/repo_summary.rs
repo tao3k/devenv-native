@@ -5,14 +5,14 @@ use tonic::Request;
 
 use crate::transport::{ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_OVERVIEW_ROUTE};
 
-use super::super::super::assertions::{
+use crate::tests::transport::server::assertions::{
     must_err, must_ok, parse_json, route_descriptor, ticket_string,
 };
-use super::super::super::fixtures::build_service_with_route_providers;
-use super::super::super::providers::{
+use crate::tests::transport::server::fixtures::build_service_with_route_providers;
+use crate::tests::transport::server::providers::{
     RecordingRepoDocCoverageProvider, RecordingRepoOverviewProvider, RecordingSearchProvider,
 };
-use super::super::super::request_headers::{
+use crate::tests::transport::server::request_headers::{
     populate_schema_and_repo_doc_coverage_headers, populate_schema_and_repo_overview_headers,
 };
 

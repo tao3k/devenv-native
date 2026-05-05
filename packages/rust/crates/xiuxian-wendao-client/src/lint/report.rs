@@ -1,3 +1,5 @@
+//! Serializable report model for markdown lint diagnostics.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

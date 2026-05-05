@@ -1,3 +1,5 @@
+//! Discord managed control-command branch for help and reset handling.
+
 mod help;
 mod reset;
 mod resume;

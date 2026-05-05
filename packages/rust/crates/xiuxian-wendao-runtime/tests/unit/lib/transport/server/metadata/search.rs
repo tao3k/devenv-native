@@ -1,7 +1,7 @@
 use crate::transport::{validate_repo_search_request_metadata, validate_search_request_metadata};
 
-use super::super::assertions::{must_err, must_ok};
-use super::super::request_headers::{
+use crate::tests::transport::server::assertions::{must_err, must_ok};
+use crate::tests::transport::server::request_headers::{
     build_repo_search_metadata, build_search_metadata,
     populate_schema_and_search_headers_with_hints,
 };

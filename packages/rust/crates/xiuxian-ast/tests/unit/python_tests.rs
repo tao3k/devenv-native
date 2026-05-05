@@ -1,4 +1,7 @@
-use super::*;
+use xiuxian_ast::{
+    extract_docstring_from_match, extract_python_docstring, find_python_async_functions,
+    find_python_classes, find_python_functions,
+};
 
 #[test]
 fn test_find_python_functions() {

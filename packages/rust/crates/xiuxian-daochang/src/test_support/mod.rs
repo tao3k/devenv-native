@@ -18,6 +18,7 @@ mod memory_recall_metrics;
 mod memory_recall_state;
 mod memory_stream_consumer;
 mod reflection;
+mod result;
 mod runtime_agent_factory;
 mod session_context;
 mod session_redis;
@@ -104,9 +105,11 @@ pub use memory_stream_consumer::{
     stream_consumer_response_timeout, summarize_redis_error,
 };
 pub use reflection::{
-    PolicyHintDirective, ReflectiveRuntime, ReflectiveRuntimeError, ReflectiveRuntimeStage,
-    TurnReflection, build_turn_reflection, derive_policy_hint,
+    TestPolicyHintDirective, TestReflectiveRuntime, TestReflectiveRuntimeError,
+    TestReflectiveRuntimeStage, TestTurnReflection, test_build_turn_reflection,
+    test_derive_policy_hint,
 };
+pub use result::TestSupportResult;
 pub use runtime_agent_factory::{
     RuntimeMemoryResolution, parse_embedding_backend_mode, resolve_inference_url,
     resolve_runtime_embedding_backend_mode, resolve_runtime_embedding_base_url,
@@ -122,13 +125,13 @@ pub use session_redis::{
     EncodedChatMessagePayload, decode_chat_message_payload, encode_chat_message_payload,
 };
 pub use telegram_parser::{
-    is_agenda_command, is_reset_context_command, is_stop_command, parse_background_prompt,
-    parse_help_command, parse_job_status_command, parse_jobs_summary_command,
-    parse_resume_context_command, parse_session_admin_command,
-    parse_session_context_budget_command, parse_session_context_memory_command,
-    parse_session_context_status_command, parse_session_feedback_command,
-    parse_session_injection_command, parse_session_mention_command,
-    parse_session_partition_command,
+    test_is_agenda_command, test_is_reset_context_command, test_is_stop_command,
+    test_parse_background_prompt, test_parse_help_command, test_parse_job_status_command,
+    test_parse_jobs_summary_command, test_parse_resume_context_command,
+    test_parse_session_admin_command, test_parse_session_context_budget_command,
+    test_parse_session_context_memory_command, test_parse_session_context_status_command,
+    test_parse_session_feedback_command, test_parse_session_injection_command,
+    test_parse_session_mention_command, test_parse_session_partition_command,
 };
 pub use telegram_runtime::{
     TelegramForegroundInterruptController, handle_telegram_inbound_message_with_interrupt,

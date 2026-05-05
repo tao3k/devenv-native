@@ -1,3 +1,5 @@
+//! Public dmn model decision rule contracts for BPMN/DMN engine integration.
+
 use super::{Arc, DmnInputEntry, DmnOutputEntry};
 
 /// One bounded DMN rule.

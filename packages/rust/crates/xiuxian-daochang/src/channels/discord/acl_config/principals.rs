@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use super::{
-    DiscordAclAllowSettings, DiscordAclPrincipalSettings, role_aliases::resolve_principal_entry,
-    role_aliases::resolve_role_principal,
-};
+use crate::config::{DiscordAclAllowSettings, DiscordAclPrincipalSettings};
+
+use super::role_aliases::{resolve_principal_entry, resolve_role_principal};
 
 pub(super) fn collect_principals(
     principal: &DiscordAclPrincipalSettings,

@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{pyclass, pymethods};
 use std::path::PathBuf;
 
 use crate::dependency_indexer::{ExternalSymbol, SymbolIndex};

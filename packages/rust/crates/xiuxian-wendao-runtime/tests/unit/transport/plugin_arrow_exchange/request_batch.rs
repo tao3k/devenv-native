@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::super::{
+use crate::transport::plugin_arrow_exchange::{
     PluginArrowRequestBatchBuildError, PluginArrowRequestRow, PluginArrowScoredCandidate,
     build_plugin_arrow_request_batch, build_plugin_arrow_request_batch_from_embeddings,
     build_plugin_arrow_request_batch_from_embeddings_with_metadata,

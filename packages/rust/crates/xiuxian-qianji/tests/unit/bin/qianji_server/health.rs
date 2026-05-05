@@ -1,6 +1,6 @@
 use super::support::{must_err, spawn_qianji_server_router};
-use crate::cli::QianjiServerServeCommand;
-use crate::run::enforce_qianji_server_startup_readiness;
+use crate::qianji_server_cli::cli::QianjiServerServeCommand;
+use crate::qianji_server_cli::run::enforce_qianji_server_startup_readiness;
 use serde_json::Value;
 
 #[tokio::test(flavor = "current_thread")]

@@ -115,6 +115,25 @@ println!("{normalized}");
 - This crate focuses on context injection assembly only.
 - External clients can use memory/knowledge tool facades, while runtime policy stays in Rust core packages.
 
+## Project Policy Gate
+
+`xiuxian-qianhuan` uses `rust-lang-project-harness` as its active
+project-policy gate with no disabled-rule baseline. The gate is mounted from
+the library, root unit-test target, and shared lib-policy target.
+
+The strict gate requires all diagnostics to be closed, including informational
+agent-policy output. Current owner-boundary fixes keep `interface/mod.rs` as
+an interface-only re-export module, move the public manifestation trait to
+`interface/api.rs`, and add concise intent docs to public and branch modules.
+
+Current verification:
+
+- `cargo test -p xiuxian-qianhuan enforce_rust_project_harness_gate -- --nocapture`
+- `cargo test -p xiuxian-qianhuan --lib --test unit_test`
+- `cargo test -p xiuxian-qianhuan --all-features`
+- `cargo fmt --package xiuxian-qianhuan --check`
+- `cargo clippy -p xiuxian-qianhuan --all-targets --all-features -- -D warnings`
+
 ## Related Docs
 
 - `docs/plans/omega-graph-react-rust-unification.md`

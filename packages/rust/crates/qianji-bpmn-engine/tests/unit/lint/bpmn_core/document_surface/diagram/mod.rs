@@ -1,5 +1,3 @@
-use super::*;
-
 mod anchor_kinds;
 mod anchors;
 mod booleans;

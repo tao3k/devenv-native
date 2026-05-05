@@ -1,3 +1,5 @@
+//! Modelica repository intelligence plugin owner tree.
+
 mod analysis;
 mod ast_query;
 mod discovery;
@@ -5,6 +7,7 @@ mod entry;
 mod incremental;
 mod parser_summary;
 mod parsing;
+mod pathing;
 mod relations;
 mod types;
 
@@ -28,3 +31,4 @@ pub use parser_summary::{
     modelica_parser_summary_file_semantic_fingerprint_for_repository,
     set_linked_modelica_parser_summary_base_url_for_tests,
 };
+pub use types::ModelicaSourceId;

@@ -1,7 +1,7 @@
-use super::RelatedPprKernelTelemetry;
+use super::types::RelatedPprKernelTelemetry;
 use crate::link_graph::index::ppr::types::RelatedPprKernelResult;
 use crate::link_graph::index::{LinkGraphIndex, LinkGraphPprSubgraphMode};
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 

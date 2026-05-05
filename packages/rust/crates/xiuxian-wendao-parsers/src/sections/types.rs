@@ -1,3 +1,5 @@
+//! Markdown section DTOs and normalized section core.
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

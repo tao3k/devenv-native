@@ -1,3 +1,5 @@
+//! TOML file read and parse helpers for config resolution.
+
 use crate::ConfigCoreError;
 use std::path::Path;
 

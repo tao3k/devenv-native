@@ -1,0 +1,53 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "hits": [
+    {
+      "gap": {
+        "doc_ids": [],
+        "entity_id": "repo:modelica-gateway-rank:symbol:Projectionica.Controllers.NoDocs",
+        "example_ids": [],
+        "format_hints": [],
+        "gap_id": "repo:modelica-gateway-rank:projection-gap:symbol_reference_without_documentation:repo:modelica-gateway-rank:symbol:Projectionica.Controllers.NoDocs",
+        "kind": "symbol_reference_without_documentation",
+        "module_ids": [
+          "repo:modelica-gateway-rank:module:Projectionica.Controllers"
+        ],
+        "page_id": "repo:modelica-gateway-rank:projection:reference:symbol:repo:modelica-gateway-rank:symbol:Projectionica.Controllers.NoDocs",
+        "page_kind": "reference",
+        "path": "Controllers/NoDocs.mo",
+        "repo_id": "modelica-gateway-rank",
+        "symbol_ids": [
+          "repo:modelica-gateway-rank:symbol:Projectionica.Controllers.NoDocs"
+        ],
+        "title": "Projectionica.Controllers.NoDocs"
+      },
+      "priority_score": 96,
+      "reasons": [
+        {
+          "code": "gap_kind_base",
+          "detail": "base priority from projected gap kind `symbol_reference_without_documentation`",
+          "points": 92
+        },
+        {
+          "code": "reference_page_bonus",
+          "detail": "reference page bonus",
+          "points": 2
+        },
+        {
+          "code": "module_anchor_bonus",
+          "detail": "1 attached module anchor(s)",
+          "points": 1
+        },
+        {
+          "code": "symbol_anchor_bonus",
+          "detail": "1 attached symbol anchor(s)",
+          "points": 1
+        }
+      ]
+    }
+  ],
+  "repo_id": "modelica-gateway-rank"
+}

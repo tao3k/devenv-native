@@ -1,7 +1,5 @@
 //! Tests for xiuxian-wendao crate.
 
-use xiuxian_wendao::{KnowledgeCategory, KnowledgeEntry, KnowledgeSearchQuery, KnowledgeStats};
-
 mod knowledge_category_equality;
 /// Test `KnowledgeCategory` enum variants.
 mod knowledge_category_variants;

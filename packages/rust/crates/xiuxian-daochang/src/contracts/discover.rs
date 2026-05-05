@@ -1,3 +1,5 @@
+//! Discover-phase contract payloads for agent planning.
+
 use serde::{Deserialize, Serialize};
 
 /// Confidence class attached to discover ranking output.

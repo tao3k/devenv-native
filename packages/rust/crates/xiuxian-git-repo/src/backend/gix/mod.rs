@@ -1,3 +1,5 @@
+//! Gix-backed repository operations for clone, fetch, checkout, and probing.
+
 mod checkout;
 mod clone;
 mod constants;

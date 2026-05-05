@@ -11,7 +11,7 @@ use crate::analyzers::{RegisteredRepository, RepositoryRef, RepositoryRefreshPol
 ///
 /// Returns [`RepoIntelligenceError`] when the registered repository cannot be
 /// mapped to a valid repo source or the substrate fails to prepare it.
-pub(crate) fn resolve_registered_repository_source(
+pub fn resolve_registered_repository_source(
     repository: &RegisteredRepository,
     cwd: &Path,
     mode: xiuxian_git_repo::SyncMode,

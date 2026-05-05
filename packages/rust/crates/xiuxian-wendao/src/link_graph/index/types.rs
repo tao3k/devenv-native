@@ -1,7 +1,7 @@
-use super::super::models::{
+use super::build;
+use crate::link_graph::models::{
     LinkGraphAttachment, LinkGraphDocument, LinkGraphPassage, PageIndexNode,
 };
-use super::build;
 use crate::parsers::markdown::{CodeObservation, LogbookEntry, ParsedSection};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

@@ -1,10 +1,10 @@
-use super::super::{
-    StubHost, non_interrupting_boundary_conditional_process,
-    non_interrupting_boundary_external_process, non_interrupting_boundary_timer_process,
-};
 use super::helpers::{
     assert_non_interrupting_boundary_branch_drained, assert_non_interrupting_boundary_branch_open,
     assert_non_interrupting_boundary_external_wait, assert_non_interrupting_primary_path_resumed,
+};
+use crate::runtime::{
+    StubHost, non_interrupting_boundary_conditional_process,
+    non_interrupting_boundary_external_process, non_interrupting_boundary_timer_process,
 };
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{

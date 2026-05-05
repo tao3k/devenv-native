@@ -38,12 +38,16 @@ pub mod flowhub;
 /// Graphical layout and aesthetic engine (QGS).
 #[cfg(feature = "qianji-full")]
 pub mod layout;
+mod llm_client;
 /// Manifest inspection helpers.
 #[cfg(feature = "qianji-full")]
 pub mod manifest;
 /// Shared markdown renderers for `qianji` show/check surfaces.
 #[cfg(feature = "qianji-full")]
 pub(crate) mod markdown;
+#[cfg(feature = "qianji-full")]
+mod qianji_cli;
+mod qianji_server_cli;
 /// Runtime configuration resolver (`resources/config/qianji.toml` + user overrides).
 pub mod runtime_config;
 /// Formal logic and safety auditing.
@@ -173,8 +177,12 @@ pub use flowhub::{
     resolve_flowhub_module_children, resolve_flowhub_scenario_modules, show_flowhub,
     show_flowhub_anchored_scenario, show_flowhub_graph, show_flowhub_scenario,
 };
+pub use llm_client::QianjiLlmClient;
 #[cfg(feature = "qianji-full")]
 pub use manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
+#[cfg(feature = "qianji-full")]
+pub use qianji_cli::run_qianji_cli;
+pub use qianji_server_cli::run_qianji_server_cli;
 #[cfg(feature = "qianji-full")]
 pub use safety::QianjiSafetyGuard;
 #[cfg(feature = "qianji-full")]
@@ -202,12 +210,15 @@ pub use workdir::{
     render_workdir_check_markdown, render_workdir_show, show_workdir,
 };
 
-#[cfg(feature = "llm")]
-/// Shared LLM client trait object type when `llm` feature is enabled.
-pub type QianjiLlmClient = dyn xiuxian_llm::llm::LlmClient;
+#[cfg(test)]
+#[path = "../tests/unit/lib_policy.rs"]
+mod rust_project_harness_gate;
 
-#[cfg(not(feature = "llm"))]
-/// Placeholder trait object type when `llm` feature is disabled.
-pub type QianjiLlmClient = dyn std::any::Any + Send + Sync;
+#[cfg(test)]
+#[path = "../tests/unit/support/valkey.rs"]
+pub(crate) mod qianji_test_valkey_support;
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = rust_project_harness_gate::qianji_rust_harness_config()
+);

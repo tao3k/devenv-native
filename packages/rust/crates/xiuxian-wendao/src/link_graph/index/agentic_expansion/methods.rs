@@ -1,8 +1,8 @@
-use super::super::LinkGraphIndex;
 use crate::link_graph::agentic::{
     LinkGraphAgenticExecutionConfig, LinkGraphAgenticExecutionResult,
     LinkGraphAgenticExpansionConfig, LinkGraphAgenticExpansionPlan,
 };
+use crate::link_graph::index::LinkGraphIndex;
 use crate::link_graph::runtime_config::resolve_link_graph_agentic_runtime;
 
 impl LinkGraphIndex {

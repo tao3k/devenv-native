@@ -1,4 +1,4 @@
-use super::*;
+use super::{SemanticIssue, build_file_reports};
 
 #[test]
 fn test_build_file_reports() {

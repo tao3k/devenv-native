@@ -1,4 +1,4 @@
-use super::super::LinkGraphIndex;
+use crate::link_graph::index::LinkGraphIndex;
 use crate::link_graph::models::{
     LinkGraphDirection, LinkGraphNeighbor, LinkGraphRelatedPprDiagnostics,
     LinkGraphRelatedPprOptions,

@@ -4,14 +4,14 @@ use crate::agent::{Agent, SessionRecallFeedbackDirection};
 use crate::channels::managed_commands::SLASH_SCOPE_SESSION_FEEDBACK as TELEGRAM_SLASH_SCOPE_SESSION_FEEDBACK;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::observability::send_with_observability;
-use super::super::super::replies::{
-    format_session_feedback, format_session_feedback_json, format_session_feedback_unavailable_json,
-};
-use super::super::slash_acl::ensure_slash_command_authorized;
 use super::{
     EVENT_TELEGRAM_COMMAND_SESSION_FEEDBACK_JSON_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_FEEDBACK_REPLIED,
+};
+use crate::channels::telegram::runtime::jobs::command_handlers::slash_acl::ensure_slash_command_authorized;
+use crate::channels::telegram::runtime::jobs::observability::send_with_observability;
+use crate::channels::telegram::runtime::jobs::replies::{
+    format_session_feedback, format_session_feedback_json, format_session_feedback_unavailable_json,
 };
 
 use crate::channels::telegram::commands::{

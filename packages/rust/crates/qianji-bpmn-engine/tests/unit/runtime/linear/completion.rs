@@ -1,4 +1,4 @@
-use super::super::{StubHost, start_end_process};
+use crate::runtime::{StubHost, start_end_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnExecutionTraceEventKind, BpmnInstanceInit, BpmnPackage,

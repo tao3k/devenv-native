@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-qianji/tests/support/scenario.rs
 description: "Scenario adversarial_red_team [audit_flow]: GLM-5 vs Claude 3.5 Red-Team Drill"
 expression: result
 info:

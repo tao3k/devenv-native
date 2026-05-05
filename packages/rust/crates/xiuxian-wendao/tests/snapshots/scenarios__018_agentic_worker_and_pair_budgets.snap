@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 018_agentic_worker_and_pair_budgets [agentic_expansion]: Agentic Expansion "
 expression: result
 info:

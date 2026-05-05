@@ -1,6 +1,6 @@
 //! Embedding backend parsing tests.
 
-use xiuxian_llm::embedding::backend::{EmbeddingBackendKind, parse_embedding_backend_kind};
+use xiuxian_llm::embedding::{EmbeddingBackendKind, parse_embedding_backend_kind};
 
 #[test]
 fn parse_backend_kind_supports_legacy_http_aliases() {

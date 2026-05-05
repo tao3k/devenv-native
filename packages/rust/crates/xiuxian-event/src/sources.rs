@@ -1,3 +1,5 @@
+//! Event source constants shared by publishers.
+
 /// File watcher source.
 pub const WATCHER: &str = "watcher";
 /// Kernel source.

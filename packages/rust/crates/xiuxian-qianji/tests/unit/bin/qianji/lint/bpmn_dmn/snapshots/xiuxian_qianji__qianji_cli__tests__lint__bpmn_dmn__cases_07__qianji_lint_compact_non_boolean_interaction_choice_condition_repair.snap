@@ -1,0 +1,43 @@
+---
+source: packages/rust/crates/xiuxian-qianji/src/../tests/unit/bin/qianji/lint/bpmn_dmn/cases_07.rs
+expression: "stable_temp_output(&output.rendered, &temp_dir)"
+---
+[lint:error] $TEMP/non_boolean_interaction_choice_condition.bpmn bpmn
+Source: $TEMP/non_boolean_interaction_choice_condition.bpmn
+Issues: 1
+
+[bpmn.non_boolean_interaction_choice_condition] Error: Gateway boolean condition consumes non-boolean interaction choices
+    ,-[ $TEMP/non_boolean_interaction_choice_condition.bpmn:42:33 ]
+ 42 |      <bpmn:conditionExpression>moreQuestionsNeeded</bpmn:conditionExpression>
+    |                                `------------------- this bare gateway condition needs a JSON boolean
+    |Help: The condition consumes userTask 'ask_question' choices [need_more_clarification, ready_to_proceed] through 'moreQuestionsNeeded'. Convert the interaction result to a boolean output, or derive a separate boolean before this gateway.
+
+Action:
+- Repair process 'interaction_gateway_flow' by aligning userTask 'ask_question' choice output 'moreQuestionsNeeded' with gateway 'has_more': either use boolean/approval choice values for the gateway variable, or add a serviceTask that converts semantic choice strings into a JSON boolean before routing.
+
+Fix:
+- For a boolean branch, make userTask 'ask_question' return boolean/approval values such as `true`/`false`, `yes`/`no`, or `approved`/`rejected` into 'moreQuestionsNeeded'.
+- Prefer a boolean-shaped output name such as `needsMoreQuestions` or `hasMoreQuestions`, then route with `<conditionExpression>moreQuestionsNeeded</conditionExpression>` only when the host output is a JSON boolean.
+- If the choices are semantic strings, keep that result as a text answer and add a serviceTask that emits a separate JSON boolean consumed by the gateway.
+
+Patch focus:
+- choose_one
+- use_boolean_choice_values
+- requires: the host maps the interaction result to a JSON boolean before completing the userTask
+- derive_boolean_with_service_task
+- when: choice values must remain semantic strings
+- requires: serviceTask outputs a separate JSON boolean such as needsMoreQuestions, and the gateway routes on that boolean
+
+Examples:
+- choices dataInput assignment with boolean-compatible values
+- dataOutput name="answer" associated to needsMoreQuestions
+- <conditionExpression xsi:type="tFormalExpression">needsMoreQuestions</conditionExpression>
+
+Forbidden forms:
+- semantic choice strings such as need_more_clarification routed directly by a bare boolean condition
+- bare gateway condition over a userTask text answer
+- string values pretending to be booleans without a host/runtime mapping
+
+Structured repair:
+- strategy: align_interaction_choice_output_with_boolean_gateway
+- contract: bpmn.native.gateway.condition.v1

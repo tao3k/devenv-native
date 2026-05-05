@@ -55,5 +55,3 @@ async fn test_qianji_high_precision_research_loop()
     assert_eq!(result["calibration_status"], "passed");
     Ok(())
 }
-
-xiuxian_testing::crate_test_policy_harness!();

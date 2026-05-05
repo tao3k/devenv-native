@@ -10,7 +10,9 @@ publish = false
 [dependencies]
 serde = { workspace = true }
 pyo3 = { workspace = true, optional = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [features]
 default = []

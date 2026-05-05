@@ -4,16 +4,16 @@ use crate::agent::Agent;
 use crate::channels::managed_commands::SLASH_SCOPE_SESSION_STATUS;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::super::parsing::CommandOutputFormat;
-use super::super::super::super::replies::{
+use crate::channels::discord::runtime::managed::handlers::auth::ensure_slash_command_authorized;
+use crate::channels::discord::runtime::managed::handlers::events::{
+    EVENT_DISCORD_COMMAND_SESSION_STATUS_JSON_REPLIED, EVENT_DISCORD_COMMAND_SESSION_STATUS_REPLIED,
+};
+use crate::channels::discord::runtime::managed::handlers::send::send_response;
+use crate::channels::discord::runtime::managed::parsing::CommandOutputFormat;
+use crate::channels::discord::runtime::managed::replies::{
     format_command_error_json, format_session_context_snapshot,
     format_session_context_snapshot_json,
 };
-use super::super::super::auth::ensure_slash_command_authorized;
-use super::super::super::events::{
-    EVENT_DISCORD_COMMAND_SESSION_STATUS_JSON_REPLIED, EVENT_DISCORD_COMMAND_SESSION_STATUS_REPLIED,
-};
-use super::super::super::send::send_response;
 
 pub(in super::super) async fn handle_session_status(
     agent: &Arc<Agent>,

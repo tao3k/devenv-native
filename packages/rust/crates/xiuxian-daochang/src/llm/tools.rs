@@ -6,7 +6,7 @@ use litellm_rs::core::types::tools::{
 use super::types::{FunctionDef, ToolDef};
 
 #[derive(Debug, Clone)]
-pub(super) struct PreparedTool {
+pub(crate) struct PreparedTool {
     pub name: String,
     pub description: Option<String>,
     pub parameters: Option<serde_json::Value>,

@@ -1,4 +1,4 @@
-use super::super::{StubHost, parallel_join_process, parallel_join_same_edge_duplicate_process};
+use crate::runtime::{StubHost, parallel_join_process, parallel_join_same_edge_duplicate_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnFrontierExecutionBatch, BpmnFrontierExecutionProposal,

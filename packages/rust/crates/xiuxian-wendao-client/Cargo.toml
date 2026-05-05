@@ -8,6 +8,9 @@ license.workspace = true
 publish = false
 default-run = "wendao-client"
 
+[features]
+performance = []
+
 [[bin]]
 name = "wendao-client"
 path = "src/bin/wendao.rs"
@@ -24,12 +27,18 @@ walkdir = { workspace = true }
 rayon = { workspace = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-logging = { path = "../xiuxian-logging" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 
 [dev-dependencies]
+criterion = { workspace = true }
 insta = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
+
+[[bench]]
+name = "wendao_client_get"
+harness = false
+required-features = ["performance"]
 
 [lints]
 workspace = true

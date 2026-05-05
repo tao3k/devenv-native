@@ -5,11 +5,11 @@ use std::time::Duration;
 use tokio::task::JoinSet;
 use tokio::time::{Instant, timeout_at};
 
-use crate::gateway::studio::types::SearchHit;
 use crate::parsers::search::repo_code_query::parse_repo_code_search_query;
 use crate::query_core::{
     InMemoryWendaoExplainSink, RepoCodeQueryRequest, RetrievalCorpus, query_repo_code_relation,
 };
+use crate::search::contracts::SearchHit;
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 
 use super::dispatch::{RepoSearchTarget, repo_search_parallelism};
@@ -18,9 +18,12 @@ use super::entity::{record_query_core_telemetry, relation_to_search_hits};
 use super::search::search_repo_content_hits_for_query;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct RepoSearchResultLimits {
-    pub(crate) entity_limit: usize,
-    pub(crate) content_limit: usize,
+/// Per-repository result limits for buffered repository code search.
+pub struct RepoSearchResultLimits {
+    /// Maximum entity hits to return for each repository.
+    pub entity_limit: usize,
+    /// Maximum content hits to return for each repository.
+    pub content_limit: usize,
 }
 
 #[derive(Debug, Default)]

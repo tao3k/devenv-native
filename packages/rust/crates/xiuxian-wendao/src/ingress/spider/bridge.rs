@@ -95,7 +95,7 @@ impl SpiderWendaoBridge {
             return Ok(None);
         }
 
-        let washed_markdown = super::super::transmuter::resolve_and_wash(
+        let washed_markdown = crate::ingress::transmuter::resolve_and_wash(
             canonical_uri.as_str(),
             payload.markdown_content.as_ref(),
         )

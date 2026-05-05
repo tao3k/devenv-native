@@ -1,4 +1,4 @@
-use super::super::{
+use crate::link_graph::index::{
     LinkGraphDocument, LinkGraphIndex, LinkGraphMatchStrategy, LinkGraphScope,
     LinkGraphSearchOptions, SECTION_AGGREGATION_BETA, SectionCandidate, SectionMatch,
     WEIGHT_FTS_LEXICAL, WEIGHT_FTS_PATH, WEIGHT_FTS_SECTION, WEIGHT_PATH_FUZZY_PATH,

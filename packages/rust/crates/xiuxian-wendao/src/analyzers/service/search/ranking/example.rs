@@ -52,8 +52,8 @@ pub(crate) fn ranked_example_matches(
     }
 }
 
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) fn ranked_example_matches_with_artifacts(
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub fn ranked_example_matches_with_artifacts(
     query: &str,
     examples: &[ExampleRecord],
     metadata_lookup: &BTreeMap<String, ExampleSearchMetadata>,

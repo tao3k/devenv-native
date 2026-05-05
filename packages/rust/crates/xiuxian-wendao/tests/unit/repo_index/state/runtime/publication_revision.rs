@@ -1,4 +1,8 @@
-use super::support::*;
+use super::support::{
+    Arc, PathBuf, RepoSourceKind, RepoSyncResult, RepositoryAnalysisOutput, SearchCorpusKind,
+    SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService,
+    SearchPublicationStorageFormat, SearchRepoPublicationInput, Utc, new_coordinator,
+};
 
 #[tokio::test]
 async fn managed_remote_reuses_revision_scoped_publications_after_latest_record_advances() {

@@ -10,10 +10,10 @@ use crate::channels::telegram::{TelegramChannel, TelegramControlCommandPolicy};
 use crate::channels::traits::ChannelMessage;
 use crate::gateway::{embedding_routes, new_embedding_runtime};
 
-use super::super::app::TelegramWebhookApp;
-use super::super::handler::telegram_webhook_handler;
-use super::super::path::normalize_webhook_path;
-use super::super::state::TelegramWebhookState;
+use crate::channels::telegram::runtime::webhook::app::TelegramWebhookApp;
+use crate::channels::telegram::runtime::webhook::handler::telegram_webhook_handler;
+use crate::channels::telegram::runtime::webhook::path::normalize_webhook_path;
+use crate::channels::telegram::runtime::webhook::state::TelegramWebhookState;
 
 pub(super) struct TelegramWebhookCoreBuildRequest {
     pub(super) bot_token: String,

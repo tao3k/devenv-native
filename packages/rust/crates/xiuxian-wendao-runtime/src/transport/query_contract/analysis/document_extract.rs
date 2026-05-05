@@ -1,3 +1,5 @@
+//! Document-extraction route contract and metadata validation.
+
 /// Stable route for the document extraction analysis contract.
 pub const ANALYSIS_DOCUMENT_EXTRACT_ROUTE: &str = "/analysis/document-extract";
 /// Stable route for the Rust-owned document extraction job status contract.

@@ -1,3 +1,5 @@
+//! Telegram administrator rule parsing from channel configuration.
+
 use crate::channels::control_command_rule_specs::{
     CommandSelectorAuthRule, parse_control_command_rule,
 };

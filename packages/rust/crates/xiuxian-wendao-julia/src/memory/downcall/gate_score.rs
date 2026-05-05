@@ -1,3 +1,5 @@
+//! Downcall helpers for Julia memory-gate scoring requests.
+
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 use xiuxian_wendao_runtime::config::MemoryJuliaComputeRuntimeConfig;
 

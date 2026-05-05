@@ -1,12 +1,12 @@
 use crate::channels::control_command_authorization::ControlCommandPolicy;
 use crate::env_parse::read_non_empty_env;
 
-use super::super::TELEGRAM_API_BASE_ENV;
-use super::super::TelegramSessionPartition;
-use super::super::acl::build_slash_command_policy;
-use super::super::constants::TELEGRAM_DEFAULT_API_BASE;
-use super::super::state::TelegramChannel;
-use super::super::{
+use crate::channels::telegram::TelegramSessionPartition;
+use crate::channels::telegram::channel::TELEGRAM_API_BASE_ENV;
+use crate::channels::telegram::channel::acl::build_slash_command_policy;
+use crate::channels::telegram::channel::constants::TELEGRAM_DEFAULT_API_BASE;
+use crate::channels::telegram::channel::state::TelegramChannel;
+use crate::channels::telegram::channel::{
     TelegramCommandAdminRule, TelegramControlCommandPolicy, TelegramSlashCommandPolicy,
 };
 

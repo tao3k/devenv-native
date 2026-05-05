@@ -1,3 +1,5 @@
+//! Read-only projection rows for host compute and memory inspection lanes.
+
 use crate::episode::Episode;
 use serde::{Deserialize, Serialize};
 

@@ -1,3 +1,5 @@
+//! Recurring scheduler configuration and outcome types.
+
 /// Config for recurring scheduler runs.
 #[derive(Debug, Clone)]
 pub struct RecurringScheduleConfig {

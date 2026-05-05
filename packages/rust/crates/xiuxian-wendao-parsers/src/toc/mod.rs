@@ -1,3 +1,5 @@
+//! Markdown table-of-contents and outline parsing.
+
 mod api;
 mod types;
 

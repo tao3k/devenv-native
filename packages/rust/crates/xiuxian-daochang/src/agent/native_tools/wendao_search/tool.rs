@@ -1,3 +1,5 @@
+//! LLM-facing Wendao search native tool definition.
+
 use std::path::PathBuf;
 
 use anyhow::{Result, anyhow};

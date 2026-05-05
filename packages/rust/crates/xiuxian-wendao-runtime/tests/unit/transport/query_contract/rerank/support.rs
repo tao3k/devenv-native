@@ -6,11 +6,12 @@ use arrow_array::{
 };
 use arrow_schema::{DataType, Field, Schema};
 
-use super::super::{
+use crate::transport::query_contract::tests::must_ok;
+use crate::transport::query_contract::{
     RERANK_REQUEST_DOC_ID_COLUMN, RERANK_REQUEST_EMBEDDING_COLUMN,
     RERANK_REQUEST_QUERY_EMBEDDING_COLUMN, RERANK_REQUEST_VECTOR_SCORE_COLUMN,
     RERANK_RESPONSE_DOC_ID_COLUMN, RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
-    RERANK_RESPONSE_SEMANTIC_SCORE_COLUMN, RERANK_RESPONSE_VECTOR_SCORE_COLUMN, must_ok,
+    RERANK_RESPONSE_SEMANTIC_SCORE_COLUMN, RERANK_RESPONSE_VECTOR_SCORE_COLUMN,
 };
 
 pub(super) fn build_rerank_request_batch(

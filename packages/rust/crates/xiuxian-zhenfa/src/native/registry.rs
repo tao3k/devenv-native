@@ -1,3 +1,5 @@
+//! Method-to-tool registry for native Zhenfa dispatch.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

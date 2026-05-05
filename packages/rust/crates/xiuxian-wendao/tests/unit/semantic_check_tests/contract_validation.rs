@@ -1,4 +1,4 @@
-use super::*;
+use super::{extract_function_args, validate_contract};
 
 #[test]
 fn test_validate_contract_must_contain() {

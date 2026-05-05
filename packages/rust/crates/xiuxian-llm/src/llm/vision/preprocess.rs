@@ -1,3 +1,5 @@
+//! Image preprocessing and resize policy for vision requests.
+
 use std::io::Cursor;
 use std::sync::Arc;
 

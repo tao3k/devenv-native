@@ -10,10 +10,11 @@ use xiuxian_wendao_core::repo_intelligence::{
 
 use super::discovery::{
     RepositorySnapshot, collect_doc_records, collect_example_records, collect_import_records,
-    collect_module_records, collect_symbol_records, modules_by_qualified_name,
+    collect_module_records, collect_symbol_records,
 };
 use super::parser_summary::validate_modelica_parser_summary_preflight_for_repository;
 use super::parsing::{parse_package_name_for_repository, parse_package_name_lexical};
+use super::pathing::modules_by_qualified_name;
 use super::relations::collect_relation_records;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

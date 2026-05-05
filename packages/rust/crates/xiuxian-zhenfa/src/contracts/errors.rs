@@ -1,3 +1,5 @@
+//! JSON-RPC protocol constants and error objects.
+
 /// JSON-RPC protocol version enforced by Zhenfa.
 pub const JSONRPC_VERSION: &str = "2.0";
 

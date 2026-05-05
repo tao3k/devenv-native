@@ -1,7 +1,7 @@
-use super::super::{TRANSACTION_PROCESS_ID, parsed_fixture_package};
 use super::helpers::{
     advance_and_expect_blocked, assert_pending_handler_node, complete_user_task_expect_advanced,
 };
+use crate::runtime::call_activity::{TRANSACTION_PROCESS_ID, parsed_fixture_package};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, InstanceLifecycle, PendingHostWorkResult,
@@ -21,7 +21,7 @@ async fn runtime_transaction_cancel_runs_compensation_before_boundary_path() {
         BpmnInstanceInit::new("wf_transaction_compensation", json!({ "amount": 7 }), 10),
     )
     .must("instance should be created");
-    let host = super::super::StubHost::new(55);
+    let host = crate::runtime::call_activity::StubHost::new(55);
 
     let blocked = advance_instance(package.as_ref(), &mut instance, &host)
         .await
@@ -81,20 +81,29 @@ async fn runtime_transaction_cancel_runs_compensation_before_boundary_path() {
     assert!(instance.active_tokens.is_empty());
     assert_eq!(instance.variables, json!({ "amount": 7 }));
     assert_eq!(
-        instance.node_states
-            [super::super::node_index(&package, "main_process", "payment_tx") as usize]
+        instance.node_states[crate::runtime::call_activity::node_index(
+            &package,
+            "main_process",
+            "payment_tx"
+        ) as usize]
             .status,
         qianji_bpmn_engine::NodeRuntimeStatus::Cancelled
     );
     assert_eq!(
-        instance.node_states
-            [super::super::node_index(&package, "main_process", "tx_cancel_boundary") as usize]
+        instance.node_states[crate::runtime::call_activity::node_index(
+            &package,
+            "main_process",
+            "tx_cancel_boundary"
+        ) as usize]
             .status,
         qianji_bpmn_engine::NodeRuntimeStatus::Completed
     );
     assert_eq!(
-        instance.node_states
-            [super::super::node_index(&package, "main_process", "cancelled_end") as usize]
+        instance.node_states[crate::runtime::call_activity::node_index(
+            &package,
+            "main_process",
+            "cancelled_end"
+        ) as usize]
             .status,
         qianji_bpmn_engine::NodeRuntimeStatus::Completed
     );

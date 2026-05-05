@@ -1,5 +1,5 @@
-use super::super::fingerprint::LinkGraphFingerprint;
 use super::schema::{LINK_GRAPH_CACHE_SCHEMA_VERSION, cache_schema_fingerprint};
+use crate::link_graph::index::build::fingerprint::LinkGraphFingerprint;
 use crate::link_graph::index::{IndexedSection, LinkGraphIndex};
 use crate::link_graph::models::{LinkGraphAttachment, LinkGraphDocument, LinkGraphPassage};
 use crate::link_graph::saliency::{DEFAULT_DECAY_RATE, DEFAULT_SALIENCY_BASE};

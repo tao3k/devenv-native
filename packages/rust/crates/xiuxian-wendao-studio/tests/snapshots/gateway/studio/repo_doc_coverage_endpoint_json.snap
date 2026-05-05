@@ -1,0 +1,32 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "covered_symbols": 1,
+  "docs": [
+    {
+      "doc_id": "repo:gateway-sync:doc:README.md",
+      "format": "md",
+      "path": "README.md",
+      "repo_id": "gateway-sync",
+      "title": "README.md"
+    },
+    {
+      "doc_id": "repo:gateway-sync:doc:docs/solve.md",
+      "format": "md",
+      "path": "docs/solve.md",
+      "repo_id": "gateway-sync",
+      "title": "solve"
+    }
+  ],
+  "hierarchical_uri": "repo://gateway-sync",
+  "hierarchy": [
+    "repo",
+    "gateway-sync"
+  ],
+  "module_id": "repo:gateway-sync:module:GatewaySyncPkg",
+  "repo_id": "gateway-sync",
+  "uncovered_symbols": 0
+}

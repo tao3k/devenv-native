@@ -1,3 +1,5 @@
+//! Type-indexed execution context for native tool dispatch.
+
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;

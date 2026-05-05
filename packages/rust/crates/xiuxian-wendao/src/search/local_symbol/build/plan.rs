@@ -1,22 +1,24 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::gateway::studio::search::is_markdown_path;
-use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
+use crate::search::contracts::is_markdown_path;
+#[cfg(test)]
+use crate::search::fingerprint_symbol_projects;
 use crate::search::local_symbol::build::LocalSymbolBuildPlan;
 use crate::search::local_symbol::build::partitions::{
     build_hits_for_file, build_partition_plans_from_file_hits,
 };
+#[cfg(test)]
+use crate::search::project_fingerprint::scan_symbol_project_files;
 use crate::search::{
     MarkdownProjectSnapshot, ProjectScannedFile, SearchCorpusKind, SearchFileFingerprint,
     SearchPlaneService, ast_hits_fingerprint,
 };
-#[cfg(test)]
-use crate::search::{fingerprint_symbol_projects, scan_symbol_project_files};
 
 const LOCAL_SYMBOL_EXTRACTOR_VERSION: u32 = 2;
 
-type LocalSymbolFileHits = Vec<crate::gateway::studio::types::AstSearchHit>;
+type LocalSymbolFileHits = Vec<crate::search::contracts::AstSearchHit>;
 
 struct LocalSymbolFileEvaluation {
     fingerprint: SearchFileFingerprint,
@@ -29,7 +31,7 @@ pub(crate) fn plan_local_symbol_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> LocalSymbolBuildPlan {
@@ -54,7 +56,7 @@ pub(crate) fn plan_local_symbol_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     _config_root: &Path,
-    _projects: &[UiProjectConfig],
+    _projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
@@ -318,7 +320,7 @@ fn mark_deleted_or_repartitioned_local_symbol_paths(
 pub(crate) fn fingerprint_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_symbol_projects(project_root, config_root, projects)
 }

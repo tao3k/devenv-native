@@ -1,4 +1,4 @@
-use super::*;
+use super::{source_page_range_all_page_indices, source_page_range_validate_page_index};
 
 #[test]
 fn source_range_all_indices_cover_every_page() {

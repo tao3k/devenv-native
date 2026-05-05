@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 025_cache_seeds_saliency [cache_build]: Cache Build: seeds saliency"
 expression: result
 info:

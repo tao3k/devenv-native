@@ -1,3 +1,5 @@
+//! Public ir node api node contracts for BPMN/DMN engine integration.
+
 use super::human_task::{BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec};
 use super::kind::{BpmnGatewayKind, BpmnNodeKind, BpmnSubProcessKind};
 use super::lane::BpmnLaneMembershipSpec;

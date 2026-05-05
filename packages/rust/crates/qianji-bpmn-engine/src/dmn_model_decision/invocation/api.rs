@@ -1,3 +1,5 @@
+//! Public dmn model decision invocation contracts for BPMN/DMN engine integration.
+
 use super::{Arc, DmnLiteralExpression};
 
 /// One bounded executable DMN invocation parameter.

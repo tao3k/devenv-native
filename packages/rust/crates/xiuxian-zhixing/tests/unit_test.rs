@@ -1,7 +1,7 @@
 //! Canonical unit test harness for `xiuxian-zhixing`.
 
-xiuxian_testing::crate_test_policy_harness!();
-
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/test_agenda_entry.rs"]
 mod test_agenda_entry;
 #[path = "unit/test_forge_skill_resources.rs"]

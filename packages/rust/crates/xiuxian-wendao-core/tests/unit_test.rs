@@ -1,13 +1,13 @@
 //! Cargo entry point for `xiuxian-wendao-core` unit tests.
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[path = "unit/contract_feedback.rs"]
 mod contract_feedback;
 #[path = "unit/entity.rs"]
 mod entity;
 #[path = "unit/knowledge.rs"]
 mod knowledge;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/link_graph_query.rs"]
 mod link_graph_query;
 #[path = "unit/link_graph_refresh.rs"]

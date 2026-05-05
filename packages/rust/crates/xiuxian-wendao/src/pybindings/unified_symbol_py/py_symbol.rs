@@ -1,5 +1,5 @@
 use crate::unified_symbol::{SymbolSource, UnifiedSymbol};
-use pyo3::prelude::*;
+use pyo3::{pyclass, pymethods};
 
 /// Python wrapper for `UnifiedSymbol`.
 #[pyclass]

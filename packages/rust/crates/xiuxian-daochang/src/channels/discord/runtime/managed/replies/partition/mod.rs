@@ -1,3 +1,5 @@
+//! Discord partition reply branch for text and JSON rendering.
+
 mod json;
 mod text;
 

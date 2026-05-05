@@ -1,3 +1,5 @@
+//! Related-node runtime configuration records for Wendao expansion behavior.
+
 use crate::config::constants::{
     DEFAULT_LINK_GRAPH_RELATED_MAX_CANDIDATES, DEFAULT_LINK_GRAPH_RELATED_MAX_PARTITIONS,
     DEFAULT_LINK_GRAPH_RELATED_TIME_BUDGET_MS,

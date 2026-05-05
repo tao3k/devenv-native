@@ -1,10 +1,12 @@
+//! Discord managed reply branch for command-specific response rendering.
+
 mod budget;
 mod jobs;
 mod memory;
 mod mention;
 mod partition;
 mod session_context;
-mod shared;
+mod session_reply_format;
 
 pub(super) use budget::{
     format_context_budget_not_found_json, format_context_budget_snapshot,
@@ -32,7 +34,7 @@ pub(super) use partition::{
 pub(super) use session_context::{
     format_session_context_snapshot, format_session_context_snapshot_json,
 };
-pub(super) use shared::{
+pub(super) use session_reply_format::{
     format_command_error_json, format_control_command_admin_required, format_session_feedback,
     format_session_feedback_json, format_session_feedback_unavailable_json,
     format_slash_command_permission_required, format_slash_help, format_slash_help_json,

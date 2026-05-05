@@ -55,8 +55,6 @@ output_key = "agenda_draft_xml"
     assert_eq!(binding.output_key.as_deref(), Some("agenda_draft_xml"));
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn annotation_node_uses_qianhuan_binding_fields() {
     let manifest_toml = r#"

@@ -1,4 +1,3 @@
-use super::types::MemoryConfig;
 use xiuxian_config_core::{resolve_data_home, resolve_project_root_or_cwd};
 
 pub(super) fn default_memory_path() -> String {
@@ -115,47 +114,4 @@ pub(super) fn default_stream_consumer_batch_size() -> usize {
 
 pub(super) fn default_stream_consumer_block_ms() -> u64 {
     1000
-}
-
-impl Default for MemoryConfig {
-    fn default() -> Self {
-        Self {
-            path: default_memory_path(),
-            embedding_backend: None,
-            embedding_base_url: None,
-            embedding_model: None,
-            embedding_batch_max_size: None,
-            embedding_batch_max_concurrency: None,
-            embedding_timeout_ms: None,
-            embedding_timeout_cooldown_ms: None,
-            embedding_dim: default_embedding_dim(),
-            table_name: default_memory_table(),
-            recall_k1: default_recall_k1(),
-            recall_k2: default_recall_k2(),
-            recall_lambda: default_recall_lambda(),
-            persistence_backend: default_memory_persistence_backend(),
-            persistence_valkey_url: None,
-            persistence_key_prefix: default_memory_persistence_key_prefix(),
-            persistence_strict_startup: None,
-            recall_credit_enabled: default_recall_credit_enabled(),
-            recall_credit_max_candidates: default_recall_credit_max_candidates(),
-            decay_enabled: default_decay_enabled(),
-            decay_every_turns: default_decay_every_turns(),
-            decay_factor: default_decay_factor(),
-            gate_promote_threshold: default_gate_promote_threshold(),
-            gate_obsolete_threshold: default_gate_obsolete_threshold(),
-            gate_promote_min_usage: default_gate_promote_min_usage(),
-            gate_obsolete_min_usage: default_gate_obsolete_min_usage(),
-            gate_promote_failure_rate_ceiling: default_gate_promote_failure_rate_ceiling(),
-            gate_obsolete_failure_rate_floor: default_gate_obsolete_failure_rate_floor(),
-            gate_promote_min_ttl_score: default_gate_promote_min_ttl_score(),
-            gate_obsolete_max_ttl_score: default_gate_obsolete_max_ttl_score(),
-            stream_consumer_enabled: default_stream_consumer_enabled(),
-            stream_name: default_stream_name(),
-            stream_consumer_group: default_stream_consumer_group(),
-            stream_consumer_name_prefix: default_stream_consumer_name_prefix(),
-            stream_consumer_batch_size: default_stream_consumer_batch_size(),
-            stream_consumer_block_ms: default_stream_consumer_block_ms(),
-        }
-    }
 }

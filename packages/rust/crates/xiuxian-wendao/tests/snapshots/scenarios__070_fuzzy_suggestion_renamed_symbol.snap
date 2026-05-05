@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 070_fuzzy_suggestion_renamed_symbol [semantic_check]: Fuzzy Suggestion Renamed Symbol"
 expression: result
 info:

@@ -1,3 +1,5 @@
+//! Source-position conversion helpers for `comrak` ranges.
+
 use comrak::nodes::Sourcepos;
 
 /// Convert one comrak source-position range into a byte range for the original

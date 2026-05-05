@@ -16,8 +16,6 @@ struct StaticOutputMechanism {
     value: String,
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[async_trait]
 impl QianjiMechanism for StaticOutputMechanism {
     async fn execute(&self, _context: &serde_json::Value) -> Result<QianjiOutput, String> {

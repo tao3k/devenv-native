@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{pyclass, pymethods};
 use serde_json::{json, to_string};
 
 use crate::types::KnowledgeEntry;

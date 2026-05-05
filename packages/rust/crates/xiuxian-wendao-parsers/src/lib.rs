@@ -1,8 +1,6 @@
 //! Independent parser surfaces and parser-owned contracts for Wendao-adjacent
 //! consumers.
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
-
 mod markdown_structure;
 
 /// Parser-owned reusable target plus scoped-address contract.
@@ -43,7 +41,7 @@ pub mod wikilinks;
 pub use addressed_target::AddressedTarget;
 pub use blocks::{
     BlockCore, BlockKindIdentity, MarkdownBlock, MarkdownBlockKind, compute_block_hash,
-    extract_blocks, line_col_to_byte_range,
+    extract_blocks,
 };
 pub use code_observation::{CodeObservation, extract_observations, path_matches_scope};
 pub use document::{
@@ -80,6 +78,7 @@ pub use section_create::{
 pub use sections::{
     LogbookEntry, MarkdownSection, SectionCore, SectionMetadata, SectionScope, extract_sections,
 };
+pub use sourcepos::line_col_to_byte_range;
 pub use targets::{
     MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind, TargetOccurrenceCore, extract_targets,
 };
@@ -88,3 +87,16 @@ pub use toc::{
     parse_markdown_outline, parse_markdown_toc,
 };
 pub use wikilinks::{MarkdownWikiLink, extract_wikilinks, parse_wikilink_literal};
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = {
+        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
+            rust_lang_project_harness::RustVerificationProfileHint::new(
+                "src/lib.rs",
+                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+            )
+            .with_rationale("crate root owns the public package API for cargo-test verification"),
+        )
+    }
+);

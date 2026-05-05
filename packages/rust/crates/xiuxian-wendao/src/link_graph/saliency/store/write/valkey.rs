@@ -1,8 +1,10 @@
-use super::super::common::{normalize_policy, now_unix_i64, redis_connection, resolve_runtime};
 use super::coactivation::propagate_coactivation;
 use super::touch::apply_touch_with_connection;
 use super::types::TouchUpdateSpec;
 use crate::link_graph::runtime_config::DEFAULT_LINK_GRAPH_VALKEY_KEY_PREFIX;
+use crate::link_graph::saliency::store::common::{
+    normalize_policy, now_unix_i64, redis_connection, resolve_runtime,
+};
 use crate::link_graph::saliency::{
     LinkGraphSaliencyState, LinkGraphSaliencyTouchRequest, saliency_key,
 };

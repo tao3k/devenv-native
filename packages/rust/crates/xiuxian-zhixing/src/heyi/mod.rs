@@ -1,3 +1,5 @@
+//! Knowledge-action orchestration boundary for agenda and journal sync.
+
 mod agenda_render;
 mod blockers;
 mod constants;

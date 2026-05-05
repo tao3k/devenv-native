@@ -1,11 +1,18 @@
-use super::support::*;
+use super::support::{
+    Arc, PathBuf, PreparedIncrementalAnalysis, RegisteredRepository, RepoSourceKind,
+    RepoSyncResult, RepositoryRefreshPolicy, SearchPlaneService,
+    analyze_registered_repository_with_registry, bootstrap_builtin_registry, commit_all, fs,
+    init_git_repository, mixed_julia_modelica_plugin_configs, new_coordinator_with_registry,
+    spawn_wendaosearch_julia_parser_summary_service,
+    spawn_wendaosearch_modelica_parser_summary_service,
+};
 
 #[tokio::test]
 async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_mixed_julia_modelica_julia_source_churn()
  {
-    let (julia_base_url, mut julia_guard) = spawn_wendaosearch_julia_parser_summary_service().await;
+    let (julia_base_url, mut julia_guard) = spawn_wendaosearch_julia_parser_summary_service();
     let (modelica_base_url, mut modelica_guard) =
-        spawn_wendaosearch_modelica_parser_summary_service().await;
+        spawn_wendaosearch_modelica_parser_summary_service();
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     init_git_repository(tempdir.path());
     fs::create_dir_all(tempdir.path().join("src"))
@@ -93,9 +100,9 @@ async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_
 #[tokio::test]
 async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_mixed_julia_modelica_modelica_source_churn()
  {
-    let (julia_base_url, mut julia_guard) = spawn_wendaosearch_julia_parser_summary_service().await;
+    let (julia_base_url, mut julia_guard) = spawn_wendaosearch_julia_parser_summary_service();
     let (modelica_base_url, mut modelica_guard) =
-        spawn_wendaosearch_modelica_parser_summary_service().await;
+        spawn_wendaosearch_modelica_parser_summary_service();
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     init_git_repository(tempdir.path());
     fs::create_dir_all(tempdir.path().join("src"))

@@ -14,7 +14,11 @@ use xiuxian_wendao_builtin::{
 };
 
 #[cfg(feature = "julia")]
-use super::super::expansion_plan_batch_support::{
+use super::support::linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service;
+#[cfg(feature = "julia")]
+use super::support::{TestResult, build_index_fixture, expansion_config};
+#[cfg(feature = "julia")]
+use crate::link_graph_agentic::expansion_plan_batch_support::{
     build_plan_aware_generic_topology_filter_request_batch,
     build_plan_aware_generic_topology_rerank_request_batch,
     build_worker_partition_plan_aware_generic_topology_batch_fixture,
@@ -22,16 +26,12 @@ use super::super::expansion_plan_batch_support::{
     fetch_plan_aware_generic_topology_rows_via_manifest_discovery,
 };
 #[cfg(feature = "julia")]
-use super::super::expansion_support::{
+use crate::link_graph_agentic::expansion_support::{
     assert_solver_demo_generic_topology_row_basics,
     assert_solver_demo_generic_topology_row_infeasible,
     assert_solver_demo_generic_topology_row_shape, default_agentic_execution_relation_edge_kind,
     required_column, required_utf8_list_row_values,
 };
-#[cfg(feature = "julia")]
-use super::support::linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service;
-#[cfg(feature = "julia")]
-use super::{TestResult, build_index_fixture, expansion_config};
 
 #[cfg(feature = "julia")]
 #[tokio::test]

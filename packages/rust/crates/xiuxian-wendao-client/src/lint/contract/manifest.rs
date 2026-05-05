@@ -2,7 +2,10 @@
 
 use std::collections::BTreeMap;
 
-use super::assets::{MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID, markdown_lint_diagnostic_manifest};
+use super::assets::{
+    MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID, MarkdownLintDiagnosticContractId,
+    markdown_lint_diagnostic_manifest,
+};
 use super::snapshot::{
     MarkdownLintCliContractSnapshot, MarkdownLintContractDefaultValue,
     MarkdownLintContractParamSnapshot, MarkdownLintDiagnosticContractSnapshot,
@@ -73,7 +76,9 @@ pub(super) struct MarkdownLintRuleContractManifest {
     pub(super) tip_strategy: Option<String>,
 }
 
-pub(super) fn parse_manifest(contract_id: &str) -> anyhow::Result<MarkdownLintDiagnosticManifest> {
+pub(super) fn parse_manifest(
+    contract_id: MarkdownLintDiagnosticContractId,
+) -> anyhow::Result<MarkdownLintDiagnosticManifest> {
     let raw = markdown_lint_diagnostic_manifest(contract_id).ok_or_else(|| {
         anyhow::anyhow!("missing markdown lint contract manifest for `{contract_id}`")
     })?;
@@ -82,7 +87,9 @@ pub(super) fn parse_manifest(contract_id: &str) -> anyhow::Result<MarkdownLintDi
     })
 }
 
-pub(super) fn generate_snapshot_contract_toml(contract_id: &str) -> anyhow::Result<String> {
+pub(super) fn generate_snapshot_contract_toml(
+    contract_id: MarkdownLintDiagnosticContractId,
+) -> anyhow::Result<String> {
     let manifest = parse_manifest(contract_id)?;
     validate_manifest(&manifest)?;
     let mut rendered = toml::to_string_pretty(&build_snapshot(&manifest)).map_err(|error| {
@@ -96,11 +103,11 @@ pub(super) fn generate_snapshot_contract_toml(contract_id: &str) -> anyhow::Resu
     Ok(rendered)
 }
 
-pub(super) fn contract_snapshot_path(contract_id: &str) -> String {
+pub(super) fn contract_snapshot_path(contract_id: MarkdownLintDiagnosticContractId) -> String {
     format!("{CONTRACTS_ROOT}/snapshots/{contract_id}/contract.toml")
 }
 
-pub(super) fn schema_snapshot_path(contract_id: &str) -> String {
+pub(super) fn schema_snapshot_path(contract_id: MarkdownLintDiagnosticContractId) -> String {
     format!("{CONTRACTS_ROOT}/snapshots/{contract_id}/schema.json")
 }
 
@@ -190,7 +197,9 @@ fn validate_manifest(manifest: &MarkdownLintDiagnosticManifest) -> anyhow::Resul
 
 fn expected_contract_shape(contract_id: &str) -> Option<MarkdownLintDiagnosticManifest> {
     match contract_id {
-        MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID => Some(markdown_lint_diagnostics_contract_shape()),
+        value if value == MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID.as_str() => {
+            Some(markdown_lint_diagnostics_contract_shape())
+        }
         _ => None,
     }
 }

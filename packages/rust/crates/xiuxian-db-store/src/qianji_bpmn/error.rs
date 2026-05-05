@@ -1,3 +1,5 @@
+//! Error model for Qianji BPMN workflow-state storage operations.
+
 /// Error returned by the BPMN `DuckDB` workflow data store.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum QianjiBpmnDataStoreError {

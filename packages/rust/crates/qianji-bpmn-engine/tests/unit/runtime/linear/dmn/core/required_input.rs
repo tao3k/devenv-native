@@ -1,4 +1,4 @@
-use super::super::{assert_local_business_rule_task, run_local_business_rule_task};
+use crate::runtime::linear::dmn::{assert_local_business_rule_task, run_local_business_rule_task};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::BpmnEngineError;
 use serde_json::json;

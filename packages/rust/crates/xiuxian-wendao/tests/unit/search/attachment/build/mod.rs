@@ -2,11 +2,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::time::Duration;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::link_graph::LinkGraphAttachmentKind;
 use crate::search::attachment::build::plan_attachment_build;
 use crate::search::attachment::search_attachment_hits;
 use crate::search::cache::SearchPlaneCache;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::{
     SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlanePhase,
     SearchPlaneService,
@@ -37,7 +37,7 @@ fn plan_attachment_build_only_reparses_changed_notes() {
         "# Beta\n\n![Avatar](images/avatar.jpg)\n",
     )
     .unwrap_or_else(|error| panic!("write beta note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "kernel".to_string(),
         root: ".".to_string(),
         dirs: vec!["docs".to_string()],
@@ -118,7 +118,7 @@ fn plan_attachment_build_ignores_metadata_only_edits_when_hits_are_unchanged() {
         "# Alpha\n\n![Topology](assets/topology.png)\n",
     )
     .unwrap_or_else(|error| panic!("write alpha note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "kernel".to_string(),
         root: ".".to_string(),
         dirs: vec!["docs".to_string()],
@@ -182,7 +182,7 @@ async fn attachment_incremental_refresh_reuses_unchanged_rows() {
         "# Beta\n\n![Avatar](images/avatar.jpg)\n",
     )
     .unwrap_or_else(|error| panic!("write beta note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "kernel".to_string(),
         root: ".".to_string(),
         dirs: vec!["docs".to_string()],

@@ -1,4 +1,4 @@
-use super::*;
+use super::{audit_image_attachment, is_supported_image_path};
 
 fn png_bytes(width: u32, height: u32) -> Vec<u8> {
     let mut bytes = Vec::from(&b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR"[..]);

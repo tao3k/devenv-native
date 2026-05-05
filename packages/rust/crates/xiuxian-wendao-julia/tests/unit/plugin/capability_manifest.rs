@@ -32,6 +32,7 @@ use crate::plugin::entry::JuliaRepoIntelligencePlugin;
 use crate::plugin::graph_structural::GraphStructuralRouteKind;
 use crate::plugin::graph_structural_transport::build_graph_structural_flight_transport_client;
 use crate::plugin::test_support::official_examples::{
+    LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS, await_live_step,
     reserve_real_service_port, spawn_real_wendaosearch_demo_capability_manifest_service,
     wait_for_service_ready_with_attempts,
 };
@@ -115,7 +116,8 @@ fn live_capability_manifest_repository(base_url: &str) -> RegisteredRepository {
                 "capability_manifest_transport": {
                     "base_url": base_url,
                     "route": "/plugin/capabilities",
-                    "schema_version": "v0-draft"
+                    "schema_version": "v0-draft",
+                    "timeout_secs": LIVE_REQUEST_TIMEOUT_SECS
                 }
             }),
         }],

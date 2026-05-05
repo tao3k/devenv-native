@@ -21,7 +21,7 @@ mod flowhub_validation;
 mod manifest;
 #[path = "../contracts_mechanism.rs"]
 mod mechanism;
-#[path = "../contracts_wendao_docs.rs"]
+#[path = "../contracts_wendao_docs/mod.rs"]
 mod wendao_docs;
 #[path = "../contracts_workdir_manifest.rs"]
 mod workdir_manifest;

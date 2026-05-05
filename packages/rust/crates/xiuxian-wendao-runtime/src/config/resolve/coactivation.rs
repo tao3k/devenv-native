@@ -1,3 +1,5 @@
+//! Coactivation configuration resolver for runtime host behavior.
+
 use crate::config::LinkGraphCoactivationRuntimeConfig;
 use crate::config::constants::{
     LINK_GRAPH_COACTIVATION_ALPHA_SCALE_ENV, LINK_GRAPH_COACTIVATION_ENABLED_ENV,

@@ -1,3 +1,5 @@
+//! Public Markdown reference extraction API.
+
 use super::types::MarkdownReference;
 
 /// Extract ordinary Markdown references in document order.

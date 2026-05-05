@@ -33,7 +33,7 @@ fn resolve_relative_target(
     source_path: &std::path::Path,
     root: &std::path::Path,
 ) -> Option<String> {
-    let normalized_target = super::super::paths::normalize_slashes(target.trim());
+    let normalized_target = crate::parsers::markdown::paths::normalize_slashes(target.trim());
     if normalized_target.is_empty() {
         return None;
     }
@@ -50,7 +50,8 @@ fn resolve_relative_target(
     let relative_path = resolved_path
         .strip_prefix(root)
         .unwrap_or(resolved_path.as_path());
-    let relative = super::super::paths::normalize_slashes(&relative_path.to_string_lossy());
+    let relative =
+        crate::parsers::markdown::paths::normalize_slashes(&relative_path.to_string_lossy());
     (!relative.is_empty()).then_some(relative)
 }
 
@@ -63,7 +64,7 @@ pub(super) fn normalize_markdown_note_target(
     let stem = resolved
         .split_once('.')
         .map_or(resolved.as_str(), |(s, _)| s);
-    (!stem.is_empty()).then(|| super::super::normalize_alias(stem))
+    (!stem.is_empty()).then(|| crate::parsers::markdown::normalize_alias(stem))
 }
 
 pub(super) fn normalize_attachment_target(
@@ -77,7 +78,7 @@ pub(super) fn normalize_attachment_target(
 pub(super) fn normalize_wikilink_note_target(raw: &str) -> Option<String> {
     let stem = raw.split_once('|').map_or(raw, |(s, _)| s);
     let stem = stem.split_once('#').map_or(stem, |(s, _)| s);
-    (!stem.is_empty()).then(|| super::super::normalize_alias(stem))
+    (!stem.is_empty()).then(|| crate::parsers::markdown::normalize_alias(stem))
 }
 
 #[cfg(test)]

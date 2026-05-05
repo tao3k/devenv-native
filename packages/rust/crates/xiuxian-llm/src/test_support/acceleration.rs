@@ -1,3 +1,5 @@
+//! Test-only acceleration config parsing helpers.
+
 use crate::llm::acceleration::AccelerationDevice;
 use std::path::Path;
 

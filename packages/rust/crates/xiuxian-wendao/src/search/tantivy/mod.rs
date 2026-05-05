@@ -5,6 +5,7 @@ mod document;
 mod fields;
 mod fragments;
 mod identifier;
+#[path = "index/mod.rs"]
 mod index;
 mod matcher;
 mod tokenizer;

@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 013_search_core_payload_empty_graph [search_core]: Search Core Empty Graph"
 expression: result
 info:

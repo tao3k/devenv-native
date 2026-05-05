@@ -1,3 +1,5 @@
+//! Public ir process key contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Stable process identity metadata.

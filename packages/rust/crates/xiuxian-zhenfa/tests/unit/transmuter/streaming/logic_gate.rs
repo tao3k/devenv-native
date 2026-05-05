@@ -1,4 +1,4 @@
-use super::*;
+use crate::transmuter::streaming::logic_gate::{LogicGate, LogicGateError, XsdConstraintMap};
 
 #[test]
 fn logic_gate_accepts_valid_qianji_plan() {

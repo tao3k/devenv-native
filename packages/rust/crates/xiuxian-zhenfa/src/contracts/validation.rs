@@ -1,3 +1,5 @@
+//! Contract reference resolution and schema validation.
+
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, Write};

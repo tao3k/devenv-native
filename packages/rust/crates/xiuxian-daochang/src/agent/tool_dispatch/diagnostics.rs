@@ -1,4 +1,4 @@
-use super::helpers::timeout_tool_error_payload;
+use super::execution::timeout_tool_error_payload;
 use super::tool_types::ToolCallOutput;
 
 pub(super) fn log_tool_dispatch_success(source: &str, name: &str, session_id: Option<&str>) {

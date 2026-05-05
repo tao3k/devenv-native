@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::time::Duration;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneCache;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::knowledge_section::search_knowledge_sections;
 use crate::search::{
     SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlanePhase,
@@ -38,7 +38,7 @@ fn plan_knowledge_section_build_only_reparses_changed_notes() {
         "# Gamma\n\nGamma body.\n\n## Overview\n\nGamma section.\n",
     )
     .unwrap_or_else(|error| panic!("write gamma note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "notes".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -119,7 +119,7 @@ fn plan_knowledge_section_build_ignores_metadata_only_edits_when_rows_are_unchan
         "# Alpha\n\nAlpha body.\n\n## Overview\n\nAlpha section.\n",
     )
     .unwrap_or_else(|error| panic!("write alpha note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "notes".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -177,7 +177,7 @@ fn note_corpora_and_local_symbol_share_markdown_snapshot_entries() {
         "# Design\n\n:owner: kernel\n\n## Evidence\n\n:OBSERVE: lang:rust \"fn $NAME()\"\n",
     )
     .unwrap_or_else(|error| panic!("write design note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "kernel".to_string(),
         root: ".".to_string(),
         dirs: vec!["docs".to_string()],
@@ -275,7 +275,7 @@ async fn knowledge_section_runtime_build_reuses_fingerprint_scan_inventory() {
         "# Alpha\n\nAlpha body.\n\n## Overview\n\nAlpha section.\n",
     )
     .unwrap_or_else(|error| panic!("write alpha note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "notes".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -329,7 +329,7 @@ async fn knowledge_section_incremental_refresh_reuses_unchanged_rows() {
         "# Gamma\n\nGamma body.\n\n## Overview\n\nGamma section.\n",
     )
     .unwrap_or_else(|error| panic!("write gamma note: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "notes".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -408,7 +408,7 @@ async fn knowledge_section_build_with_no_supported_notes_publishes_empty_epoch()
     let storage_root = temp_dir.path().join("search_plane");
     std::fs::create_dir_all(&project_root)
         .unwrap_or_else(|error| panic!("create workspace root: {error}"));
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "notes".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],
@@ -504,7 +504,7 @@ fn fingerprint_projects_changes_when_scanned_note_metadata_changes() {
     )
     .unwrap_or_else(|error| panic!("write skipped file: {error}"));
 
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "notes".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],

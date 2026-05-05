@@ -8,8 +8,11 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
+arrow = { workspace = true }
 lance = { workspace = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [lints]
 workspace = true

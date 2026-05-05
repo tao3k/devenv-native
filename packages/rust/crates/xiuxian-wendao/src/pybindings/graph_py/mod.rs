@@ -3,6 +3,7 @@
 
 mod parsers;
 mod py_entity;
+#[path = "py_graph/mod.rs"]
 mod py_graph;
 mod py_query_intent;
 mod py_relation;

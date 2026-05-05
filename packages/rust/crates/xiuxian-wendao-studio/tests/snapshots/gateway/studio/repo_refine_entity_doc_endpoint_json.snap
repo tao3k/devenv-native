@@ -1,0 +1,11 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "entity_id": "repo:gateway-sync:symbol:GatewaySyncPkg.solve",
+  "refined_content": "## Refined Explanation for solve\n\nThis Function is part of the `repo:gateway-sync:module:GatewaySyncPkg` module. It has been automatically refined using user hints: \"Explain how callers should use this entrypoint.\".\n\n**Signature**: `solve() = nothing`",
+  "repo_id": "gateway-sync",
+  "verification_state": "verified"
+}

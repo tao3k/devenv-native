@@ -16,13 +16,9 @@ pub enum VectorStoreError {
     #[error("Tokio task join error: {0}")]
     JoinError(#[from] JoinError),
 
-    /// Arrow engine error.
-    #[error("Arrow engine error: {0}")]
-    ArrowEngine(#[from] arrow::error::ArrowError),
-
-    /// Arrow compatibility error.
+    /// Arrow error.
     #[error("Arrow error: {0}")]
-    Arrow(arrow::error::ArrowError),
+    Arrow(#[from] arrow::error::ArrowError),
 
     /// `DataFusion` error.
     #[error("DataFusion error: {0}")]

@@ -1,6 +1,18 @@
 use std::fs;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
-use crate::search::service::tests::support::*;
+use crate::repo_index::{RepoCodeDocument, RepoIndexPhase, RepoIndexStatusResponse};
+use crate::search::cache::SearchPlaneCache;
+use crate::search::service::tests::support::{
+    corpus_status, ok_or_panic, publish_repo_bundle, repo_phase, repo_status_entry,
+    service_test_manifest_keyspace, some_or_panic, temp_dir, unique_test_manifest_keyspace,
+};
+use crate::search::{
+    SearchCorpusKind, SearchMaintenancePolicy, SearchPlanePhase, SearchPlaneService,
+    SearchRepoRuntimeRecord,
+};
 
 fn ready_repo_status_rows(repo_ids: &[&str]) -> RepoIndexStatusResponse {
     RepoIndexStatusResponse {
@@ -273,7 +285,7 @@ async fn local_corpus_ready_status_bootstraps_from_persisted_manifest_after_rest
         "# Warm Start\n\nRestart should reuse the local publication.\n",
     )
     .unwrap_or_else(|error| panic!("write note: {error}"));
-    let projects = vec![crate::gateway::studio::types::UiProjectConfig {
+    let projects = vec![crate::search::contracts::SearchProjectConfig {
         name: "docs".to_string(),
         root: ".".to_string(),
         dirs: vec!["docs".to_string()],

@@ -11,7 +11,8 @@ const MAX_REPO_SEARCH_READ_CONCURRENCY: usize = 4;
 const REPO_SEARCH_READ_CONCURRENCY_ENV: &str = "XIUXIAN_WENDAO_REPO_SEARCH_READ_CONCURRENCY";
 
 impl SearchPlaneService {
-    pub(crate) async fn acquire_repo_search_read_permit(
+    #[doc(hidden)]
+    pub async fn acquire_repo_search_read_permit(
         &self,
     ) -> Result<OwnedSemaphorePermit, VectorStoreError> {
         std::sync::Arc::clone(&self.repo_search_read_permits)
@@ -23,7 +24,8 @@ impl SearchPlaneService {
     }
 
     #[must_use]
-    pub(crate) fn repo_search_parallelism(&self, repo_count: usize) -> usize {
+    #[doc(hidden)]
+    pub fn repo_search_parallelism(&self, repo_count: usize) -> usize {
         if repo_count == 0 {
             return 1;
         }
@@ -31,6 +33,12 @@ impl SearchPlaneService {
         self.repo_search_read_concurrency_limit
             .max(1)
             .min(repo_count)
+    }
+
+    /// Return the currently available repo-search read permits.
+    #[must_use]
+    pub fn available_repo_search_read_permits(&self) -> usize {
+        self.repo_search_read_permits.available_permits()
     }
 
     pub(crate) fn record_repo_search_dispatch(

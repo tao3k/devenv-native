@@ -1,6 +1,6 @@
 use crate::agent::{DownstreamAdmissionRuntimeSnapshot, MemoryRuntimeStatusSnapshot};
 
-use super::helpers::{
+use super::readiness::{
     format_optional_bool, format_optional_str, format_optional_string, is_backend_ready,
 };
 

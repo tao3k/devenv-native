@@ -1,3 +1,5 @@
+//! Host-side staging for Julia episodic-recall request rows.
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_memory_engine::MemoryProjectionRow;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
@@ -6,7 +8,7 @@ use crate::memory::{
     MemoryJuliaEpisodicRecallRequestRow, build_memory_julia_episodic_recall_request_batch,
 };
 
-use super::common::{
+use super::staging::{
     optional_text, required_text, validate_embedding, validate_finite, validate_non_negative_finite,
 };
 
@@ -149,7 +151,7 @@ fn validate_projection_row(row: &MemoryProjectionRow) -> Result<(), RepoIntellig
 }
 
 fn staging_error(message: impl Into<String>) -> RepoIntelligenceError {
-    super::common::staging_error(SURFACE, message)
+    super::staging::staging_error(SURFACE, message)
 }
 
 #[cfg(test)]

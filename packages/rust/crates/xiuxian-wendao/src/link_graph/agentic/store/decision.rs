@@ -1,11 +1,13 @@
-use super::super::keys::{suggested_link_decision_stream_key, suggested_link_stream_key};
-use super::super::types::{
+use super::common::{push_stream_entry, redis_client, state_label};
+use super::normalize::{normalize_decision_request, normalize_record_for_read};
+use crate::link_graph::agentic::keys::{
+    suggested_link_decision_stream_key, suggested_link_stream_key,
+};
+use crate::link_graph::agentic::types::{
     LINK_GRAPH_SUGGESTED_LINK_DECISION_SCHEMA_VERSION, LINK_GRAPH_SUGGESTED_LINK_SCHEMA_VERSION,
     LinkGraphSuggestedLink, LinkGraphSuggestedLinkDecision, LinkGraphSuggestedLinkDecisionRequest,
     LinkGraphSuggestedLinkDecisionResult, LinkGraphSuggestedLinkState,
 };
-use super::common::{push_stream_entry, redis_client, state_label};
-use super::normalize::{normalize_decision_request, normalize_record_for_read};
 use crate::link_graph::runtime_config::{
     DEFAULT_LINK_GRAPH_VALKEY_KEY_PREFIX, resolve_link_graph_agentic_runtime,
     resolve_link_graph_cache_runtime,

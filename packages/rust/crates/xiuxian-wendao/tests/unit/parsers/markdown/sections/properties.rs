@@ -1,4 +1,4 @@
-use super::super::*;
+use crate::parsers::markdown::sections::{extract_property_drawers, parse_property_drawer};
 
 #[test]
 fn test_parse_property_drawer_valid() {

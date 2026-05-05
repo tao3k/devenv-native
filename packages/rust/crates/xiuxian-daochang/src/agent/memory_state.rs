@@ -1,3 +1,5 @@
+//! Memory persistence backend selection and runtime status snapshots.
+
 use anyhow::{Result, bail};
 use xiuxian_macros::env_non_empty;
 use xiuxian_memory_engine::{
@@ -39,23 +41,41 @@ impl MemoryStateLoadStatus {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Snapshot of memory runtime persistence and gate configuration.
 pub struct MemoryRuntimeStatusSnapshot {
+    /// Whether memory support is enabled.
     pub enabled: bool,
+    /// Configured persistence backend name.
     pub configured_backend: Option<String>,
+    /// Active persistence backend selected at runtime.
     pub active_backend: Option<&'static str>,
+    /// Strict startup setting used by the backend.
     pub strict_startup: Option<bool>,
+    /// Result of startup state loading.
     pub startup_load_status: &'static str,
+    /// Configured memory store path.
     pub store_path: Option<String>,
+    /// Configured memory table name.
     pub table_name: Option<String>,
+    /// Promotion threshold for memory gate decisions.
     pub gate_promote_threshold: Option<f32>,
+    /// Obsolescence threshold for memory gate decisions.
     pub gate_obsolete_threshold: Option<f32>,
+    /// Minimum usage count for promotion.
     pub gate_promote_min_usage: Option<u32>,
+    /// Minimum usage count for obsolescence.
     pub gate_obsolete_min_usage: Option<u32>,
+    /// Maximum failure-rate ceiling for promotion.
     pub gate_promote_failure_rate_ceiling: Option<f32>,
+    /// Minimum failure-rate floor for obsolescence.
     pub gate_obsolete_failure_rate_floor: Option<f32>,
+    /// Minimum TTL score required for promotion.
     pub gate_promote_min_ttl_score: Option<f32>,
+    /// Maximum TTL score allowed for obsolescence.
     pub gate_obsolete_max_ttl_score: Option<f32>,
+    /// Total episode count currently available.
     pub episodes_total: Option<usize>,
+    /// Total Q-value count currently available.
     pub q_values_total: Option<usize>,
 }
 

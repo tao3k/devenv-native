@@ -1,3 +1,5 @@
+//! Public dmn model decision service contracts for BPMN/DMN engine integration.
+
 use crate::dmn_model_document::{DmnDecisionServiceReferenceSnapshot, DmnDecisionServiceSnapshot};
 use crate::dmn_model_reference::DmnDecisionRef;
 use std::sync::Arc;

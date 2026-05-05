@@ -1,7 +1,7 @@
 use std::sync::PoisonError;
 
-use super::super::TelegramSessionPartition;
-use super::super::state::TelegramChannel;
+use crate::channels::telegram::TelegramSessionPartition;
+use crate::channels::telegram::channel::state::TelegramChannel;
 
 impl TelegramChannel {
     /// Current session partition mode used by this channel.

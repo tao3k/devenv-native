@@ -1,4 +1,4 @@
-use super::*;
+use super::{ProjectedMarkdownDocument, ProjectionPageKind, build_document_segment};
 
 fn sample_document() -> ProjectedMarkdownDocument {
     ProjectedMarkdownDocument {

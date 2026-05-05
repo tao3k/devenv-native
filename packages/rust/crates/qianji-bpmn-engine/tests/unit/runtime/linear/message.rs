@@ -1,4 +1,4 @@
-use super::super::{StubHost, receive_task_wait_process};
+use crate::runtime::{StubHost, receive_task_wait_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceInit, BpmnPackage, InstanceLifecycle, WaitKind,

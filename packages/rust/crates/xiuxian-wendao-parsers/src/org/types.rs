@@ -1,3 +1,5 @@
+//! Org document, note, and section DTOs.
+
 use crate::document::OrgDocument;
 use crate::note::{NoteAggregate, NoteCore};
 use crate::references::MarkdownReference;

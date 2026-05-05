@@ -1,3 +1,5 @@
+//! Julia memory-gate scoring transport contract and row processing.
+
 use std::sync::Arc;
 
 use arrow::array::{Array, Float32Array, StringArray, UInt32Array};

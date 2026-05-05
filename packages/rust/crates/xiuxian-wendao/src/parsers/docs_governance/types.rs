@@ -2,7 +2,7 @@
 
 /// A slice of a line in a document.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct LineSlice<'a> {
+pub struct LineSlice<'a> {
     /// 1-based source line number.
     pub line_number: usize,
     /// Byte offset where this line starts.
@@ -19,7 +19,7 @@ pub(crate) struct LineSlice<'a> {
 
 /// Parsed top properties drawer.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct TopPropertiesDrawer<'a> {
+pub struct TopPropertiesDrawer<'a> {
     /// 1-based line number where the drawer starts.
     pub properties_line: usize,
     /// Byte offset where a missing `:ID:` line should be inserted.
@@ -32,7 +32,7 @@ pub(crate) struct TopPropertiesDrawer<'a> {
 
 /// Parsed `:ID:` line in a properties drawer.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct IdLine<'a> {
+pub struct IdLine<'a> {
     /// 1-based source line number.
     pub line: usize,
     /// Parsed `:ID:` value.
@@ -45,7 +45,7 @@ pub(crate) struct IdLine<'a> {
 
 /// Parsed `:LINKS:` line in a relations block.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct LinksLine<'a> {
+pub struct LinksLine<'a> {
     /// 1-based source line number.
     pub line: usize,
     /// Raw `:LINKS:` payload.
@@ -58,7 +58,7 @@ pub(crate) struct LinksLine<'a> {
 
 /// Parsed `:FOOTER:` block.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct FooterBlock<'a> {
+pub struct FooterBlock<'a> {
     /// 1-based source line number where the footer starts.
     pub line: usize,
     /// Byte offset where the footer block starts.
@@ -73,7 +73,7 @@ pub(crate) struct FooterBlock<'a> {
 
 /// Hidden workspace-path link occurrence extracted from a canonical document.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct HiddenPathLink {
+pub struct HiddenPathLink {
     /// 1-based source line number.
     pub line: usize,
     /// Byte offset where the link starts.

@@ -1,3 +1,5 @@
+//! HTTP request and response models for Qianhuan Zhenfa endpoints.
+
 use serde::{Deserialize, Serialize};
 
 use crate::manifestation::ManifestationRenderRequest;

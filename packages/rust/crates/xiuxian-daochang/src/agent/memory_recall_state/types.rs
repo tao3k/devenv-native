@@ -1,13 +1,15 @@
+//! Memory recall snapshot types and retention window helpers.
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use xiuxian_llm::embedding::runtime::{
+use xiuxian_llm::embedding::{
     EMBEDDING_SOURCE_EMBEDDING as LLM_EMBEDDING_SOURCE_EMBEDDING,
     EMBEDDING_SOURCE_EMBEDDING_REPAIRED as LLM_EMBEDDING_SOURCE_EMBEDDING_REPAIRED,
     EMBEDDING_SOURCE_UNAVAILABLE as LLM_EMBEDDING_SOURCE_UNAVAILABLE,
 };
 
-use super::super::memory_recall::MemoryRecallPlan;
+use crate::agent::memory_recall::MemoryRecallPlan;
 
 pub(crate) const EMBEDDING_SOURCE_EMBEDDING: &str = LLM_EMBEDDING_SOURCE_EMBEDDING;
 pub(crate) const EMBEDDING_SOURCE_EMBEDDING_REPAIRED: &str =

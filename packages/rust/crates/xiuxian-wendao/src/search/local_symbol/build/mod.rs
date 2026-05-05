@@ -8,16 +8,16 @@ mod write;
 #[path = "../../../../tests/unit/search/local_symbol/build/mod.rs"]
 mod tests;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) use orchestration::ensure_local_symbol_index_started;
 pub(crate) use orchestration::ensure_local_symbol_index_started_with_scanned_files;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) use orchestration::publish_local_symbol_hits;
 pub(crate) use plan::plan_local_symbol_build_with_scanned_files;
 #[cfg(test)]
 pub(crate) use plan::{fingerprint_projects, plan_local_symbol_build};
-#[cfg(test)]
-pub(crate) use types::LocalSymbolBuildError;
+#[cfg(any(test, feature = "test-support"))]
+pub use types::LocalSymbolBuildError;
 pub(crate) use types::{
     LocalSymbolBuildPlan, LocalSymbolPartitionBuildPlan, LocalSymbolWriteResult,
 };

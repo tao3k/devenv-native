@@ -1,3 +1,5 @@
+//! Zhenfa native-tool branch for bridge setup, hooks, and signal sinks.
+
 mod bridge;
 pub(crate) mod valkey_hooks;
 

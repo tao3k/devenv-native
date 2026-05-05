@@ -1,4 +1,14 @@
-use crate::search::service::tests::support::*;
+use std::path::PathBuf;
+
+use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase, RepoIndexStatusResponse};
+use crate::search::cache::SearchPlaneCache;
+use crate::search::service::tests::support::{
+    repo_status_entry, service_test_manifest_keyspace, some_or_panic, temp_dir,
+};
+use crate::search::{
+    RepoSearchQueryCacheKeyInput, SearchCorpusKind, SearchMaintenancePolicy, SearchPlaneService,
+    SearchPublicationStorageFormat, SearchRepoPublicationInput,
+};
 
 #[tokio::test]
 async fn repo_search_query_cache_key_uses_synchronized_runtime_state() {

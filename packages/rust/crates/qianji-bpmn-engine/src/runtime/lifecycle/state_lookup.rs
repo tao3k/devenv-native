@@ -88,7 +88,7 @@ impl FrontierTokenLookup {
 }
 
 #[cfg(test)]
-#[path = "state_lookup_tests.rs"]
+#[path = "../../../tests/unit/runtime/lifecycle/state_lookup.rs"]
 mod tests;
 
 fn proposal_matches_token_at_index(

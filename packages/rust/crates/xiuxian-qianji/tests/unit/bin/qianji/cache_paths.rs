@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    default_contract_feedback_storage_path_with, must_ok, resolve_prj_cache_home_with,
+    resolve_workspace_root,
+};
+use std::path::{Path, PathBuf};
 
 #[test]
 fn default_contract_feedback_storage_path_uses_workspace_cache_root() {

@@ -1,6 +1,6 @@
 //! Unit tests for `markdown_block` module.
 
-use super::*;
+use super::{BlockAddress, BlockKindSpecifier, MarkdownBlock, MarkdownBlockKind};
 use xiuxian_wendao_parsers::blocks::compute_block_hash;
 
 #[test]

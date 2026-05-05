@@ -1,3 +1,5 @@
+//! Discord channel authorization policy implementation.
+
 use crate::channels::control_command_authorization::ControlCommandAuthRule;
 use crate::channels::control_command_rule_specs::CommandSelectorAuthRule;
 

@@ -3,19 +3,23 @@ use std::collections::BTreeMap;
 use crate::search::{RepoSearchAvailability, RepoSearchPublicationState, SearchPlaneService};
 
 #[derive(Debug, Clone)]
-pub(crate) struct RepoSearchTarget {
-    pub(crate) repo_id: String,
-    pub(crate) publication_state: RepoSearchPublicationState,
+#[doc(hidden)]
+pub struct RepoSearchTarget {
+    pub repo_id: String,
+    pub publication_state: RepoSearchPublicationState,
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct RepoSearchDispatch {
-    pub(crate) searchable: Vec<RepoSearchTarget>,
-    pub(crate) pending: Vec<String>,
-    pub(crate) skipped: Vec<String>,
+#[doc(hidden)]
+pub struct RepoSearchDispatch {
+    pub searchable: Vec<RepoSearchTarget>,
+    pub pending: Vec<String>,
+    pub skipped: Vec<String>,
 }
 
-pub(crate) fn collect_repo_search_targets(
+#[doc(hidden)]
+#[must_use]
+pub fn collect_repo_search_targets(
     repo_ids: Vec<String>,
     publication_states: &BTreeMap<String, RepoSearchPublicationState>,
 ) -> RepoSearchDispatch {
@@ -44,9 +48,8 @@ pub(crate) fn collect_repo_search_targets(
     dispatch
 }
 
-pub(crate) fn repo_search_parallelism(
-    search_plane: &SearchPlaneService,
-    repo_count: usize,
-) -> usize {
+#[doc(hidden)]
+#[must_use]
+pub fn repo_search_parallelism(search_plane: &SearchPlaneService, repo_count: usize) -> usize {
     search_plane.repo_search_parallelism(repo_count)
 }

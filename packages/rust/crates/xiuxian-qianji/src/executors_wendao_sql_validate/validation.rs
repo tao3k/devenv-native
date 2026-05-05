@@ -84,7 +84,7 @@ pub(super) fn validate_and_render_sql(
 
 fn validate_filter(
     filter: &SqlFilter,
-    object: &super::super::contract::SurfaceObject,
+    object: &crate::executors::wendao_sql::contract::SurfaceObject,
     bundle: &SurfaceBundle,
 ) -> Result<String, String> {
     let column = object.find_column(filter.column.as_str()).ok_or_else(|| {
@@ -122,7 +122,7 @@ fn validate_filter(
 
 fn validate_order_term(
     term: &SqlOrderTerm,
-    object: &super::super::contract::SurfaceObject,
+    object: &crate::executors::wendao_sql::contract::SurfaceObject,
 ) -> Result<String, String> {
     let column = object.find_column(term.column.as_str()).ok_or_else(|| {
         format!(

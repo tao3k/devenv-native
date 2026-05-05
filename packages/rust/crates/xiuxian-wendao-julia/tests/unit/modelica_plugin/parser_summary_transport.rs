@@ -223,6 +223,7 @@ fn build_modelica_parser_summary_client_separates_cached_clients_by_in_flight_bu
 }
 
 #[test]
+#[serial_test::serial(modelica_parser_summary_transport)]
 fn parser_summary_transport_refresh_detects_stale_service_channel_errors() {
     let stale_transport_error = RepoIntelligenceError::AnalysisFailed {
         message: "Modelica parser-summary Flight request for route `/wendao/code-parser/modelica/ast-query` failed: Arrow Flight request failed: Tonic error: code: 'Unknown error', message: \"Service was not ready: transport error\"".to_string(),

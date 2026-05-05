@@ -1,3 +1,5 @@
+//! Manifestation render request and runtime context models.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

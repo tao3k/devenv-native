@@ -1,4 +1,4 @@
-use super::super::parallel_dual_host_block_process;
+use crate::runtime::parallel_dual_host_block_process;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnFrontierExecutionBatch, BpmnFrontierExecutionProposal, BpmnFrontierExecutionStep,

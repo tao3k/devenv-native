@@ -1,3 +1,5 @@
+//! Public frontmatter parsing API and SKILL.md validation helpers.
+
 use super::raw::{split_frontmatter, split_frontmatter_raw};
 use super::types::NoteFrontmatter;
 use chrono::{DateTime, NaiveDateTime};

@@ -27,13 +27,13 @@ include_dir = { workspace = true }
 # Local crates
 xiuxian-wendao = { path = "../xiuxian-wendao" }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 # xiuxian-llm = { path = "../xiuxian-llm" } # Assuming it's available
 
 # Logging
 log = { workspace = true }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 xiuxian-qianji = { path = "../xiuxian-qianji", features = ["llm"] }
 

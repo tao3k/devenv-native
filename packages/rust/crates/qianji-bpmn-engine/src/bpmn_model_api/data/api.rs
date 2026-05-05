@@ -1,3 +1,5 @@
+//! Public bpmn model api data contracts for BPMN/DMN engine integration.
+
 /// Snapshot of one BPMN `dataObject`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDataObjectSnapshot {

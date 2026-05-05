@@ -1,3 +1,5 @@
+//! Declarative cascade specification types for layered TOML config loading.
+
 /// Array merge behavior when resolving layered TOML values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum ArrayMergeStrategy {

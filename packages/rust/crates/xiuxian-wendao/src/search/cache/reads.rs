@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use redis::AsyncCommands;
 use serde::de::DeserializeOwned;
 
+#[cfg(any(test, feature = "test-support"))]
 #[cfg(test)]
 use crate::search::SearchManifestRecord;
 use crate::search::cache::SearchPlaneCache;
@@ -13,7 +14,7 @@ impl SearchPlaneCache {
     where
         T: DeserializeOwned,
     {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         if let Some(payload) = self
             .shadow
             .read()
@@ -38,7 +39,7 @@ impl SearchPlaneCache {
         corpus: SearchCorpusKind,
         repo_id: &str,
     ) -> Option<SearchRepoCorpusRecord> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         if let Some(record) = self
             .shadow
             .read()
@@ -57,7 +58,7 @@ impl SearchPlaneCache {
         &self,
         keys: &[(SearchCorpusKind, String)],
     ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         {
             let shadow = self
                 .shadow
@@ -120,7 +121,7 @@ impl SearchPlaneCache {
         if normalized_revision.is_empty() {
             return None;
         }
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         if let Some(record) = self
             .shadow
             .read()
@@ -144,7 +145,7 @@ impl SearchPlaneCache {
         corpus: SearchCorpusKind,
         repo_id: &str,
     ) -> Vec<String> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         if let Some(revisions) = self
             .shadow
             .read()
@@ -175,7 +176,7 @@ impl SearchPlaneCache {
         &self,
         corpus: SearchCorpusKind,
     ) -> Option<SearchManifestRecord> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         if let Some(record) = self
             .shadow
             .read()

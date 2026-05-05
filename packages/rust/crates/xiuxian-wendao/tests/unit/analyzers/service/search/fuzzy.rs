@@ -1,5 +1,7 @@
-use super::super::{build_example_search, build_module_search, build_symbol_search};
 use super::support::sample_search_analysis;
+use crate::analyzers::service::search::{
+    build_example_search, build_module_search, build_symbol_search,
+};
 use crate::analyzers::{ExampleSearchQuery, ModuleSearchQuery, SymbolSearchQuery};
 
 #[test]

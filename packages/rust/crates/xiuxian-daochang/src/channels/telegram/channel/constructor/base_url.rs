@@ -1,10 +1,12 @@
 use crate::channels::control_command_authorization::ControlCommandPolicy;
 
-use super::super::TelegramSessionPartition;
-use super::super::acl::build_slash_command_policy;
-use super::super::state::TelegramChannel;
-use super::super::{TelegramSlashCommandPolicy, policy::TelegramSlashCommandRule};
 use super::core::TelegramChannelCoreInit;
+use crate::channels::telegram::TelegramSessionPartition;
+use crate::channels::telegram::channel::acl::build_slash_command_policy;
+use crate::channels::telegram::channel::state::TelegramChannel;
+use crate::channels::telegram::channel::{
+    TelegramSlashCommandPolicy, policy::TelegramSlashCommandRule,
+};
 
 impl TelegramChannel {
     /// Create a Telegram channel with a custom API base URL (useful for tests/proxies).
@@ -81,7 +83,7 @@ impl TelegramChannel {
         allowed_groups: Vec<String>,
         api_base_url: String,
         control_command_policy: ControlCommandPolicy<
-            super::super::admin_rules::TelegramCommandAdminRule,
+            crate::channels::telegram::channel::admin_rules::TelegramCommandAdminRule,
         >,
         slash_command_policy: ControlCommandPolicy<TelegramSlashCommandRule>,
         session_partition: TelegramSessionPartition,
@@ -94,7 +96,7 @@ impl TelegramChannel {
             control_command_policy,
             slash_command_policy,
             session_partition,
-            client: super::super::client::build_telegram_http_client(),
+            client: crate::channels::telegram::channel::client::build_telegram_http_client(),
         })
     }
 }

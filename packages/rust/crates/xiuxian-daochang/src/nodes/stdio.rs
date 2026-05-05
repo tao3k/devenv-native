@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use xiuxian_daochang::{RuntimeSettings, run_stdio};
+use crate::{RuntimeSettings, run_stdio};
 
-use xiuxian_daochang::build_agent;
+use crate::build_agent;
 
 pub(crate) async fn run_stdio_mode(
     session_id: String,

@@ -1,3 +1,5 @@
+//! Telegram session gate state and lease types.
+
 use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -26,6 +28,7 @@ pub(super) struct SessionGateEntry {
     pub(super) permits: AtomicUsize,
 }
 
+/// Active session-gate guard that releases local or valkey-backed leases on drop.
 pub struct SessionGuard {
     pub(super) _distributed_lease: Option<DistributedLeaseGuard>,
     pub(super) _lock_guard: OwnedMutexGuard<()>,

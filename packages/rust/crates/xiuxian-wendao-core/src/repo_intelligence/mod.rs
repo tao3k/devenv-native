@@ -1,3 +1,4 @@
+#[cfg(feature = "arrow-transport")]
 mod arrow_transport;
 mod builtin;
 mod config;
@@ -7,6 +8,7 @@ mod projection;
 mod records;
 mod registry;
 
+#[cfg(feature = "arrow-transport")]
 pub use arrow_transport::{
     JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
     JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,

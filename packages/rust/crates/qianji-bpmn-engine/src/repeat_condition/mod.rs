@@ -1,9 +1,9 @@
 //! Shared bounded repeat-condition parsing and evaluation helpers.
 
 mod api;
-mod common;
 mod gateway;
 mod multi_instance;
+mod operand;
 
 pub(crate) use api::{
     GatewayConditionError, GatewayConditionSummary, MultiInstanceCompletionConditionError,

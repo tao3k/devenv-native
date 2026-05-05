@@ -1,6 +1,6 @@
 mod request_batch;
 mod response;
+mod roundtrip_transport;
 mod support;
-mod transport;
 #[cfg(feature = "vector-store")]
 mod vector_store;

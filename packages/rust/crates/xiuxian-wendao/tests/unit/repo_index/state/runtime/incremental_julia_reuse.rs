@@ -1,8 +1,14 @@
-use super::support::*;
+use super::support::{
+    Arc, PathBuf, PreparedIncrementalAnalysis, RegisteredRepository, RepoSourceKind,
+    RepoSyncResult, RepositoryRefreshPolicy, SearchPlaneService,
+    analyze_registered_repository_with_registry, bootstrap_builtin_registry, commit_all, fs,
+    init_git_repository, julia_parser_summary_plugin_config, new_coordinator_with_registry,
+    spawn_wendaosearch_julia_parser_summary_service,
+};
 
 #[tokio::test]
 async fn prepare_incremental_analysis_reuses_cached_analysis_for_example_churn() {
-    let (base_url, mut guard) = spawn_wendaosearch_julia_parser_summary_service().await;
+    let (base_url, mut guard) = spawn_wendaosearch_julia_parser_summary_service();
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     init_git_repository(tempdir.path());
     fs::create_dir_all(tempdir.path().join("src"))
@@ -84,7 +90,7 @@ async fn prepare_incremental_analysis_reuses_cached_analysis_for_example_churn()
 #[tokio::test]
 async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_julia_source_churn()
 {
-    let (base_url, mut guard) = spawn_wendaosearch_julia_parser_summary_service().await;
+    let (base_url, mut guard) = spawn_wendaosearch_julia_parser_summary_service();
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     init_git_repository(tempdir.path());
     fs::create_dir_all(tempdir.path().join("src"))

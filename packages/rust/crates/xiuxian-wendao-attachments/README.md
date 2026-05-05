@@ -223,7 +223,7 @@ document extraction mode. Region raster shards additionally require
 
 ## Test Policy
 
-This crate depends on `xiuxian-testing` and mounts the shared crate test-policy
-harness from `src/lib.rs`. Unit tests live under `tests/unit/` and are mounted
-back into the source modules with `#[path]` so focused `cargo test --lib`
-commands still run the relevant tests.
+This crate uses `rust-lang-project-harness` for the shared crate test-policy
+gate from `src/lib.rs`. Unit tests live under `tests/unit/` and are mounted back
+into the source modules with `#[path]` so focused `cargo test --lib` commands
+still run the relevant tests.

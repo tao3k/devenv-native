@@ -1,6 +1,8 @@
+//! Telegram job reply branch for session and memory command responses.
+
 mod session_admin;
 mod session_partition;
-mod shared;
+mod session_reply_format;
 
 pub(in crate::channels::telegram::runtime::jobs) use session_admin::{
     format_session_admin_status, format_session_admin_status_json, format_session_admin_updated,
@@ -12,7 +14,7 @@ pub(in crate::channels::telegram::runtime::jobs) use session_partition::{
     format_session_partition_status_json, format_session_partition_updated,
     format_session_partition_updated_json,
 };
-pub(in crate::channels::telegram::runtime::jobs) use shared::{
+pub(in crate::channels::telegram::runtime::jobs) use session_reply_format::{
     format_command_error_json, format_context_budget_not_found_json,
     format_context_budget_snapshot, format_context_budget_snapshot_json,
     format_control_command_admin_required, format_job_metrics, format_job_metrics_json,

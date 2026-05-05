@@ -14,7 +14,10 @@
     clippy::unnecessary_to_owned,
     clippy::too_many_lines
 )]
-use super::*;
+use serde_json::Value;
+use tempfile::TempDir;
+
+use super::{wendao_cmd, write_file};
 
 #[test]
 fn test_wendao_search_verbose_includes_monitor_summary() -> Result<(), Box<dyn std::error::Error>> {

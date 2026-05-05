@@ -1,4 +1,4 @@
-use super::*;
+use super::{Arc, CodeObservation, PageIndexMeta, PageIndexNode};
 
 pub(super) fn create_node_with_observations(
     node_id: &str,

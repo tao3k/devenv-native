@@ -1,4 +1,6 @@
-use super::*;
+use std::fs;
+
+use super::{EpistemeLoadError, load_episteme_manifest, write_file, write_minimal_episteme};
 
 #[test]
 fn load_episteme_manifest_rejects_forbidden_sql_operations() {

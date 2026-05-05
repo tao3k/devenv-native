@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::runtime::{
+use crate::model_runtime::{
     ExecutorId, ModelExecutor, ModelMetadata, ModelSlot, ModelSlotId, NoopExecutor, SlotState,
 };
 

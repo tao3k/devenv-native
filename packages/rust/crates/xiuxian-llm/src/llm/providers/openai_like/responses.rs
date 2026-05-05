@@ -1,3 +1,5 @@
+//! `OpenAI` Responses API payload building and stream parsing.
+
 use crate::llm::error::{LlmError, LlmResult};
 use litellm_rs::core::types::chat::{
     ChatMessage as LiteChatMessage, ChatRequest as LiteChatRequest,

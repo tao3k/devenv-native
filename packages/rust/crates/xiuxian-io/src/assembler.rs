@@ -7,7 +7,7 @@
 use std::borrow::Borrow;
 use std::path::{Path, PathBuf};
 
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::Value;
 use tera::{Context, Tera};
 

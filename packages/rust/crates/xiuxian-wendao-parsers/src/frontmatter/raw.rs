@@ -1,3 +1,5 @@
+//! Raw YAML frontmatter boundary detection.
+
 use serde_yaml::Value;
 
 /// Borrowed raw frontmatter slice plus the remaining Markdown body.

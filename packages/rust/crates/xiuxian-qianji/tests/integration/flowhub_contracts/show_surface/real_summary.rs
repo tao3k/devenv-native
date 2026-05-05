@@ -1,4 +1,9 @@
-use super::*;
+use super::{
+    FlowhubModuleKind, FlowhubScenarioCaseSummary, FlowhubShow, assert_common_show_shape,
+    classify_flowhub_dir, flowhub_root, real_flowhub_fixture_available, render_flowhub_show,
+    show_flowhub,
+};
+use xiuxian_qianji::FlowhubDirKind;
 
 #[test]
 fn classify_flowhub_dir_detects_real_root_and_module() {
@@ -8,12 +13,12 @@ fn classify_flowhub_dir_detects_real_root_and_module() {
     assert_eq!(
         classify_flowhub_dir(flowhub_root())
             .unwrap_or_else(|error| panic!("root should classify: {error}")),
-        Some(xiuxian_qianji::FlowhubDirKind::Root)
+        Some(FlowhubDirKind::Root)
     );
     assert_eq!(
         classify_flowhub_dir(flowhub_root().join("rust"))
             .unwrap_or_else(|error| panic!("module should classify: {error}")),
-        Some(xiuxian_qianji::FlowhubDirKind::Module)
+        Some(FlowhubDirKind::Module)
     );
 }
 

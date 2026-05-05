@@ -1,4 +1,4 @@
-use super::super::LinkGraphDocument;
+use crate::link_graph::index::LinkGraphDocument;
 
 pub(in crate::link_graph::index) fn score_document_exact(
     doc: &LinkGraphDocument,

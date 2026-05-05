@@ -1,3 +1,5 @@
+//! Role-mix profile records for persona-weighted prompt composition.
+
 use serde::{Deserialize, Serialize};
 
 /// Weighted role item in a role-mix profile.

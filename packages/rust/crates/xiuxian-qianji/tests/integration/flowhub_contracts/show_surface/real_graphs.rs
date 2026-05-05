@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    FlowhubGraphTopology, flowhub_root, real_flowhub_fixture_available, render_flowhub_graph_show,
+    show_flowhub_graph,
+};
 
 #[test]
 fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
@@ -45,11 +48,22 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
         show.declared_check_surface
             .note
             .as_deref()
-            .is_some_and(|note| note.contains("[graph.workdir]"))
+            .is_some_and(|note| note.contains("localized plan work surface"))
     );
-    assert_eq!(show.declared_check_surface.root, None);
-    assert!(show.declared_check_surface.required_paths.is_empty());
-    assert!(show.declared_check_surface.flowchart_surfaces.is_empty());
+    assert_eq!(
+        show.declared_check_surface.root.as_deref(),
+        Some("<plan-workdir>")
+    );
+    assert!(
+        show.declared_check_surface
+            .required_paths
+            .contains(&"blueprint/**/*.md".to_string())
+    );
+    assert!(
+        show.declared_check_surface
+            .flowchart_surfaces
+            .contains(&"blueprint".to_string())
+    );
     assert!(show.owning_module_manifest_toml.contains("[module]"));
     assert!(show.owning_module_manifest_toml.contains("name = \"plan\""));
     assert!(show.missing_registered_modules.is_empty());
@@ -65,17 +79,16 @@ fn show_flowhub_graph_extracts_live_mermaid_nodes_edges_and_exports() {
     assert!(rendered.contains("## Execution"));
     assert!(rendered.contains("- Start at `coding`."));
     assert!(rendered.contains("- Complete at `done gate`."));
-    assert!(rendered.contains("does not yet declare `[graph.workdir]`"));
+    assert!(rendered.contains("localized plan work surface"));
     assert!(rendered.contains("## Nodes"));
     assert!(rendered.contains("`coding` [`context`]"));
     assert!(rendered.contains("`boundary and drift check` [`guard`]"));
     assert!(rendered.contains("Entry: `task.coding-start`"));
     assert!(rendered.contains("Ready: `task.plan-ready`"));
     assert!(rendered.contains("## Check Surface"));
-    assert!(rendered.contains("No declared bounded check surface."));
-    assert!(!rendered.contains("Run root: `<plan-workdir>`."));
-    assert!(!rendered.contains("blueprint/**/*.md"));
-    assert!(!rendered.contains("plan/**/*.md"));
+    assert!(rendered.contains("Run root: `<plan-workdir>`."));
+    assert!(rendered.contains("blueprint/**/*.md"));
+    assert!(rendered.contains("plan/**/*.md"));
     assert!(!rendered.contains("## Expected Work Surface"));
     assert!(!rendered.contains("## Persistent Target Surface"));
     assert!(!rendered.contains("## Done Gate"));
@@ -170,28 +183,43 @@ fn show_flowhub_graph_describes_live_research_canonicalize_case() {
         show.declared_check_surface
             .note
             .as_deref()
-            .is_some_and(|note| note.contains("[graph.workdir]"))
+            .is_some_and(|note| note.contains("canonical paper objects"))
     );
-    assert_eq!(show.declared_check_surface.root, None);
-    assert!(show.declared_check_surface.required_paths.is_empty());
-    assert!(show.declared_check_surface.flowchart_surfaces.is_empty());
+    assert_eq!(
+        show.declared_check_surface.root.as_deref(),
+        Some("runs/<run_id>")
+    );
+    assert!(
+        show.declared_check_surface
+            .required_paths
+            .contains(&"refs/paper.json".to_string())
+    );
+    assert!(
+        show.declared_check_surface
+            .required_paths
+            .contains(&"staging/structure/citation_graph.patch.json".to_string())
+    );
+    assert!(
+        show.declared_check_surface
+            .flowchart_surfaces
+            .contains(&"staging".to_string())
+    );
 
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.contains("Name: PAPER_CANONICALIZE"));
     assert!(rendered.contains("Path: ./qianji-flowhub/research/paper/paper-canonicalize.mmd"));
     assert!(rendered.contains("Owning module: research/paper"));
     assert!(rendered.contains("## Execution"));
-    assert!(rendered.contains("does not yet declare `[graph.workdir]`"));
+    assert!(rendered.contains("canonical paper objects"));
     assert!(rendered.contains("## Nodes"));
     assert!(rendered.contains("`pdf_intake` [`process`]"));
     assert!(rendered.contains("`canonicalize_done` [`artifact`]"));
     assert!(rendered.contains("## Check Surface"));
-    assert!(rendered.contains("No declared bounded check surface."));
-    assert!(!rendered.contains("Run root: `runs/<run_id>`."));
-    assert!(!rendered.contains("refs/paper.json"));
-    assert!(!rendered.contains("staging/structure/citation_graph.patch.json"));
-    assert!(!rendered.contains("## Persistent Target Surface"));
-    assert!(!rendered.contains("## Done Gate"));
+    assert!(rendered.contains("Run root: `runs/<run_id>`."));
+    assert!(rendered.contains("refs/paper.json"));
+    assert!(rendered.contains("staging/structure/citation_graph.patch.json"));
+    assert!(rendered.contains("## Persistent Target Surface"));
+    assert!(rendered.contains("## Done Gate"));
     assert!(!rendered.contains("## Local Contract Template"));
 }
 
@@ -214,28 +242,43 @@ fn show_flowhub_graph_describes_live_research_deep_read_case() {
         show.declared_check_surface
             .note
             .as_deref()
-            .is_some_and(|note| note.contains("[graph.workdir]"))
+            .is_some_and(|note| note.contains("bounded run-local surface"))
     );
-    assert_eq!(show.declared_check_surface.root, None);
-    assert!(show.declared_check_surface.required_paths.is_empty());
+    assert_eq!(
+        show.declared_check_surface.root.as_deref(),
+        Some("runs/<run_id>")
+    );
+    assert!(
+        show.declared_check_surface
+            .required_paths
+            .contains(&"refs/topic.json".to_string())
+    );
+    assert!(
+        show.declared_check_surface
+            .required_paths
+            .contains(&"staging/semantics/claim_ledger.patch.jsonl".to_string())
+    );
     assert!(
         show.declared_check_surface
             .persistent_target_surface_tree
-            .is_empty()
+            .contains(&"  semantics/".to_string())
     );
-    assert!(show.declared_check_surface.done_gate_require.is_empty());
+    assert!(
+        show.declared_check_surface
+            .done_gate_require
+            .contains(&"semantics/claim_ledger.jsonl".to_string())
+    );
 
     let rendered = render_flowhub_graph_show(&show);
     assert!(rendered.contains("Name: PAPER_DEEP_READ"));
     assert!(rendered.contains("## Check Surface"));
-    assert!(rendered.contains("No declared bounded check surface."));
-    assert!(!rendered.contains("Run root: `runs/<run_id>`."));
-    assert!(!rendered.contains("refs/paper.json"));
-    assert!(!rendered.contains("staging/semantics/claim_ledger.patch.jsonl"));
-    assert!(!rendered.contains("staging/syntheses/critique_memo.patch.md"));
-    assert!(!rendered.contains("## Persistent Target Surface"));
-    assert!(!rendered.contains("## Done Gate"));
-    assert!(!rendered.contains("refs/topic.json"));
-    assert!(!rendered.contains("state/current_node.toml"));
+    assert!(rendered.contains("Run root: `runs/<run_id>`."));
+    assert!(rendered.contains("refs/paper.json"));
+    assert!(rendered.contains("staging/semantics/claim_ledger.patch.jsonl"));
+    assert!(rendered.contains("staging/syntheses/critique_memo.patch.md"));
+    assert!(rendered.contains("## Persistent Target Surface"));
+    assert!(rendered.contains("## Done Gate"));
+    assert!(rendered.contains("refs/topic.json"));
+    assert!(rendered.contains("state/current_node.toml"));
     assert!(!rendered.contains("## Local Contract Template"));
 }

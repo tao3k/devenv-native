@@ -2,8 +2,8 @@ use async_trait::async_trait;
 
 use crate::channels::traits::{Channel, ChannelMessage, RecipientCommandAdminUsersMutation};
 
-use super::super::session_partition::TelegramSessionPartition;
 use super::TelegramChannel;
+use crate::channels::telegram::session_partition::TelegramSessionPartition;
 
 #[async_trait]
 impl Channel for TelegramChannel {

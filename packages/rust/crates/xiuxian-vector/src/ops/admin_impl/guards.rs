@@ -1,10 +1,15 @@
+use super::{Dataset, Result, VectorStore, VectorStoreError};
+
 impl VectorStore {
-    async fn invalidate_cached_table(&self, table_name: &str) {
+    pub(crate) async fn invalidate_cached_table(&self, table_name: &str) {
         let mut cache = self.datasets.write().await;
         let _ = cache.remove(table_name);
     }
 
-    async fn open_table_or_err(&self, table_name: &str) -> Result<Dataset, VectorStoreError> {
+    pub(crate) async fn open_table_or_err(
+        &self,
+        table_name: &str,
+    ) -> Result<Dataset, VectorStoreError> {
         let table_path = self.table_path(table_name);
         if !table_path.exists() {
             return Err(VectorStoreError::TableNotFound(table_name.to_string()));
@@ -27,7 +32,7 @@ impl VectorStore {
         Ok(dataset)
     }
 
-    fn ensure_non_reserved_column(column: &str) -> Result<(), VectorStoreError> {
+    pub(crate) fn ensure_non_reserved_column(column: &str) -> Result<(), VectorStoreError> {
         if Self::is_reserved_column(column) {
             return Err(VectorStoreError::General(format!(
                 "Column '{column}' is reserved and cannot be altered or dropped"
@@ -39,13 +44,13 @@ impl VectorStore {
     fn is_reserved_column(column: &str) -> bool {
         matches!(
             column,
-            ID_COLUMN
-                | VECTOR_COLUMN
-                | CONTENT_COLUMN
-                | METADATA_COLUMN
-                | THREAD_ID_COLUMN
-                | SKILL_NAME_COLUMN
-                | CATEGORY_COLUMN
+            crate::ID_COLUMN
+                | crate::VECTOR_COLUMN
+                | crate::CONTENT_COLUMN
+                | crate::METADATA_COLUMN
+                | crate::THREAD_ID_COLUMN
+                | crate::SKILL_NAME_COLUMN
+                | crate::CATEGORY_COLUMN
                 | crate::TOOL_NAME_COLUMN
                 | crate::FILE_PATH_COLUMN
                 | crate::ROUTING_KEYWORDS_COLUMN

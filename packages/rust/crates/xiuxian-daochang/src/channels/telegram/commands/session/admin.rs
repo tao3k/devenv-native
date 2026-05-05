@@ -1,3 +1,5 @@
+//! Telegram session-admin command parser.
+
 use super::{SessionAdminAction, SessionAdminCommand, SessionOutputFormat};
 use crate::channels::managed_runtime::parsing::normalize_command_input;
 

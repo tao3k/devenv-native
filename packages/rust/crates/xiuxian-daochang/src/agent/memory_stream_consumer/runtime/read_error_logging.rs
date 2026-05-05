@@ -1,7 +1,7 @@
 use crate::agent::logging::should_surface_repeated_failure;
 use crate::observability::SessionEvent;
 
-use super::super::types::MemoryStreamConsumerRuntimeConfig;
+use crate::agent::memory_stream_consumer::types::MemoryStreamConsumerRuntimeConfig;
 
 pub(super) fn log_missing_consumer_group_recovery_attempt(
     config: &MemoryStreamConsumerRuntimeConfig,

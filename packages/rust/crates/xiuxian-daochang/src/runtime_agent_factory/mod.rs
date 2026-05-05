@@ -1,19 +1,15 @@
-use std::path::Path;
+//! Runtime agent factory wiring for daochang channel entrypoints.
 
-use crate::{Agent, AgentConfig, RuntimeSettings};
-use anyhow::Result;
-
+mod builder;
+mod env_lookup;
 mod inference;
 mod logging;
 mod memory;
 mod session;
-mod shared;
 mod tools;
 mod types;
 
-use logging::log_runtime_agent_options;
-use session::resolve_runtime_session_options;
-
+pub use builder::build_agent;
 pub(crate) use inference::{
     parse_embedding_backend_mode, resolve_inference_url, resolve_runtime_embedding_backend_mode,
     resolve_runtime_embedding_base_url, resolve_runtime_inference_url, resolve_runtime_model,
@@ -21,49 +17,4 @@ pub(crate) use inference::{
 };
 pub(crate) use memory::resolve_runtime_memory_options;
 pub(crate) use tools::{resolve_runtime_tool_options, resolve_runtime_tool_servers};
-
-/// Build an agent instance from runtime settings and the external tool config file.
-///
-/// # Errors
-///
-/// Returns an error when tool config loading, runtime option resolution, or
-/// agent initialization fails.
-pub async fn build_agent(
-    tool_config_path: &Path,
-    runtime_settings: &RuntimeSettings,
-) -> Result<Agent> {
-    let tool_servers = resolve_runtime_tool_servers(tool_config_path)?;
-    let inference_url = resolve_runtime_inference_url(runtime_settings, &tool_servers)?;
-    let model = resolve_runtime_model(runtime_settings);
-    let tool_runtime = resolve_runtime_tool_options(runtime_settings);
-    let session = resolve_runtime_session_options(runtime_settings)?;
-    let memory = resolve_runtime_memory_options(runtime_settings);
-
-    log_runtime_agent_options(&tool_runtime, &session, &memory);
-
-    let config = AgentConfig {
-        inference_url,
-        model,
-        api_key: None,
-        tool_servers,
-        tool_pool_size: tool_runtime.pool_size,
-        tool_handshake_timeout_secs: tool_runtime.handshake_timeout_secs,
-        tool_connect_retries: tool_runtime.connect_retries,
-        tool_strict_startup: tool_runtime.strict_startup,
-        tool_connect_retry_backoff_ms: tool_runtime.connect_retry_backoff_ms,
-        tool_timeout_secs: tool_runtime.tool_timeout_secs,
-        tool_list_cache_ttl_ms: tool_runtime.list_tools_cache_ttl_ms,
-        max_tool_rounds: session.max_tool_rounds,
-        memory: Some(memory.config),
-        window_max_turns: session.window_max_turns,
-        consolidation_threshold_turns: session.consolidation_threshold_turns,
-        consolidation_take_turns: session.consolidation_take_turns,
-        consolidation_async: session.consolidation_async,
-        context_budget_tokens: session.context_budget_tokens,
-        context_budget_reserve_tokens: session.context_budget_reserve_tokens,
-        context_budget_strategy: session.context_budget_strategy,
-        summary_max_segments: session.summary_max_segments,
-        summary_max_chars: session.summary_max_chars,
-    };
-    Agent::from_config(config).await
-}
+pub(crate) use types::MemoryRuntimeOptions;

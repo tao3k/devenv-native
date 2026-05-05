@@ -1,15 +1,23 @@
 //! Builtin plugin bundle and registry bootstrap for Wendao hosts.
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = {
+        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
+            rust_lang_project_harness::RustVerificationProfileHint::new(
+                "src/lib.rs",
+                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+            )
+            .with_rationale("crate root owns the public package API for cargo-test verification"),
+        )
+    }
+);
 
 mod artifacts;
+mod bootstrap;
 mod link;
 mod retrieval_policy;
 mod test_support;
-
-use xiuxian_wendao_core::repo_intelligence::{
-    PluginRegistry, RepoIntelligenceError, builtin_plugin_registrars,
-};
 
 pub use artifacts::{
     linked_builtin_julia_deployment_artifact_openapi_json_example,
@@ -31,6 +39,7 @@ pub use artifacts::{
     resolve_builtin_plugin_artifact_for_selector,
     resolve_builtin_plugin_artifact_for_selector_with_settings,
 };
+pub use bootstrap::bootstrap_builtin_registry;
 pub use retrieval_policy::{
     BuiltinRerankRuntimeProjection, resolve_builtin_rerank_runtime_projection_with_settings,
 };
@@ -80,24 +89,6 @@ pub use test_support::{
     linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service,
     linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service,
 };
-
-/// Register built-in repo-intelligence plugins into a fresh registry.
-///
-/// # Errors
-///
-/// Returns [`RepoIntelligenceError`] if a linked builtin plugin registrar
-/// fails while registering into the fresh registry.
-pub fn bootstrap_builtin_registry() -> Result<PluginRegistry, RepoIntelligenceError> {
-    link::ensure_builtin_plugins_linked();
-    let mut registry = PluginRegistry::new();
-    let mut registrars = builtin_plugin_registrars();
-    registrars.sort_by(|left, right| left.plugin_id().cmp(right.plugin_id()));
-    for registrar in registrars {
-        registrar.register(&mut registry)?;
-    }
-
-    Ok(registry)
-}
 
 #[cfg(test)]
 #[path = "../tests/unit/lib.rs"]

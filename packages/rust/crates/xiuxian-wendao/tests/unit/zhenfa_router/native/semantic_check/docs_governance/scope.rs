@@ -1,4 +1,13 @@
-use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::*;
+use std::fs;
+use std::path::Path;
+
+use tempfile::TempDir;
+
+use crate::parsers::docs_governance::derive_opaque_doc_id;
+use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::PanicExt;
+use crate::zhenfa_router::native::semantic_check::docs_governance::{
+    DOC_IDENTITY_PROTOCOL_ISSUE_TYPE, collect_workspace_doc_governance_issues,
+};
 
 #[test]
 fn workspace_doc_identity_scan_respects_explicit_doc_scope() {

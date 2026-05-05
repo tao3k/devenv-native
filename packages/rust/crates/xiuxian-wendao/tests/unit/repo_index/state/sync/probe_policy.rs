@@ -1,4 +1,10 @@
-use super::support::*;
+use super::support::{
+    Duration, PathBuf, RepoIndexPhase, SearchMaintenancePolicy, SearchManifestKeyspace,
+    SearchPlaneService, SyncMode, Uuid, discover_checkout_metadata, fs, init_test_repository,
+    new_coordinator, record_managed_remote_probe_failure, record_managed_remote_probe_state,
+    remote_repo, repo_analysis_output, repo_documents, resolve_registered_repository_source,
+    set_managed_remote_probe_state_age, set_mirror_fetch_age,
+};
 
 #[tokio::test]
 async fn sync_repositories_warm_starts_stale_fetch_policy_remote_when_recent_probe_matches() {

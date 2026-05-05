@@ -1,3 +1,5 @@
+//! Markdown section insertion-point analysis.
+
 use super::types::{InsertionInfo, SiblingInfo};
 
 type HeadingPosition = (usize, usize, String);

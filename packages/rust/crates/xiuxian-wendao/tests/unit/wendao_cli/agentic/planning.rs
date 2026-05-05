@@ -14,7 +14,12 @@
     clippy::unnecessary_to_owned,
     clippy::too_many_lines
 )]
-use super::*;
+use std::fs;
+
+use serde_json::Value;
+use tempfile::TempDir;
+
+use super::{wendao_cmd, write_file};
 
 #[test]
 fn test_wendao_agentic_plan_uses_config_runtime_budgets() -> Result<(), Box<dyn std::error::Error>>

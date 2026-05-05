@@ -18,7 +18,7 @@ impl SearchPlaneCache {
         let Ok(payload) = serde_json::to_string(value) else {
             return;
         };
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         self.shadow
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -37,7 +37,7 @@ impl SearchPlaneCache {
     }
 
     pub(crate) async fn set_repo_corpus_record(&self, record: &SearchRepoCorpusRecord) {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         self.shadow
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -74,7 +74,7 @@ impl SearchPlaneCache {
         if normalized_revision.is_empty() {
             return;
         }
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         self.shadow
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -115,7 +115,7 @@ impl SearchPlaneCache {
             self.delete_repo_publication_for_revision(corpus, repo_id, revision.as_str())
                 .await;
         }
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         self.shadow
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -137,7 +137,7 @@ impl SearchPlaneCache {
     }
 
     pub(crate) async fn set_corpus_manifest(&self, record: &SearchManifestRecord) {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         {
             self.shadow
                 .write()
@@ -161,7 +161,7 @@ impl SearchPlaneCache {
         let _: redis::RedisResult<()> = connection.set(key, payload).await;
     }
     pub(crate) async fn delete_repo_corpus_record(&self, corpus: SearchCorpusKind, repo_id: &str) {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         self.shadow
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -190,7 +190,7 @@ impl SearchPlaneCache {
         if normalized_revision.is_empty() {
             return;
         }
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         self.shadow
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -213,7 +213,7 @@ impl SearchPlaneCache {
         let _: redis::RedisResult<()> = connection.del(key).await;
     }
     pub(crate) async fn delete_repo_corpus_snapshot(&self) {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         {
             self.shadow
                 .write()
@@ -242,7 +242,7 @@ impl SearchPlaneCache {
         let retention = self.config.repo_revision_retention.max(1);
         let current = self.get_repo_publication_revisions(corpus, repo_id).await;
         let (retained, evicted) = updated_repo_publication_revisions(current, revision, retention);
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         {
             let mut shadow = self
                 .shadow

@@ -1,3 +1,5 @@
+//! Public block extraction API built on `comrak` events.
+
 use comrak::{Arena, Options, nodes::AstNode, nodes::NodeValue, parse_document};
 
 use super::counter::BlockIndexCounter;

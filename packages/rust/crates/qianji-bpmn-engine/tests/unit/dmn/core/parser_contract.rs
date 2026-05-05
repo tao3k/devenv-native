@@ -1,4 +1,4 @@
-use super::super::{assert_dmn_json_snapshot, fixture_source};
+use crate::dmn::{assert_dmn_json_snapshot, fixture_source};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     DmnHitPolicy, DmnInformationRequirementReference, DmnKnowledgeRequirementReference,

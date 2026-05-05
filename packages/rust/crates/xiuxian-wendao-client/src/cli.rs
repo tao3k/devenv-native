@@ -1,3 +1,5 @@
+//! Top-level command-line argument model for the Wendao client binary.
+
 use crate::{GetCommand, LintCommand, OutputFormat};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;

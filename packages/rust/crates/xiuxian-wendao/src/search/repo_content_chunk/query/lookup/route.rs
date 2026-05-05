@@ -1,4 +1,4 @@
-use crate::gateway::studio::types::SearchHit;
+use crate::search::contracts::SearchHit;
 use crate::search::ranking::sort_by_rank;
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 
@@ -8,7 +8,7 @@ use super::filters::RepoContentChunkSearchFilters;
 use super::helpers::compare_candidates;
 use super::scan::retained_window;
 
-pub(crate) async fn search_repo_content_chunks_with_filters(
+pub async fn search_repo_content_chunks_with_filters(
     service: &SearchPlaneService,
     repo_id: &str,
     search_term: &str,

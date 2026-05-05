@@ -23,7 +23,7 @@ documents-audio = [
 [dependency-groups]
 test = [
     "pytest>=8.0",
-    "xiuxian-harness-python-lang-project",
+    "python-lang-project-harness",
 ]
 
 [build-system]
@@ -31,8 +31,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-xiuxian-wendao-document-extract = "xiuxian_wendao_analyzer.document_service:main"
-wendao-document-extract = "xiuxian_wendao_analyzer.document_service:main"
+xiuxian-wendao-document-extract = "xiuxian_wendao_analyzer.document_service_cli:document_extract_service_main"
+wendao-document-extract = "xiuxian_wendao_analyzer.document_service_cli:document_extract_service_main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xiuxian_wendao_analyzer"]
@@ -43,4 +43,4 @@ package = true
 [tool.uv.sources]
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
-xiuxian-harness-python-lang-project = { workspace = true }
+python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "5c4b0769524dfc694719ec1901b135f975c2470f" }

@@ -3,10 +3,10 @@
 
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 use crate::support::linked_parser_summary::linked_modelica_parser_summary_base_url;
 use crate::support::repo_intelligence::create_sample_modelica_repo;
+use crate::support::wendao_command;
 use xiuxian_wendao::analyzers::{
     DocsNavigationOptions, DocsPageIndexTreeResult, DocsToolService, ProjectedPageIndexNode,
     ProjectedPageIndexTree, ProjectionPageKind,
@@ -165,7 +165,7 @@ fn cli_docs_page_index_outline_returns_text_free_tree_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .current_dir(temp.path())
         .arg("--conf")
         .arg(&config_path)
@@ -201,7 +201,7 @@ fn cli_docs_page_index_returns_text_free_trees_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .current_dir(temp.path())
         .arg("--conf")
         .arg(&config_path)
@@ -251,7 +251,7 @@ fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
         .map(|hit| hit.line_range)
         .ok_or("expected node hit for segment reopen")?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .current_dir(temp.path())
         .arg("--conf")
         .arg(&config_path)
@@ -307,7 +307,7 @@ fn cli_docs_search_page_index_returns_serialized_hits_payload() -> TestResult {
         .first()
         .ok_or("expected at least one page-index search hit")?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .current_dir(temp.path())
         .arg("--conf")
         .arg(&config_path)
@@ -353,7 +353,7 @@ fn cli_docs_node_returns_serialized_node_payload() -> TestResult {
     let structure = service.get_page_index_tree(MODELICA_DOCS_CLI_PAGE_ID)?;
     let node_id = anchors_node_id(&structure)?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .current_dir(temp.path())
         .arg("--conf")
         .arg(&config_path)
@@ -392,7 +392,7 @@ fn cli_docs_page_returns_serialized_page_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .current_dir(temp.path())
         .arg("--conf")
         .arg(&config_path)
@@ -426,7 +426,7 @@ fn cli_docs_toc_returns_serialized_toc_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .current_dir(temp.path())
         .arg("--conf")
         .arg(&config_path)

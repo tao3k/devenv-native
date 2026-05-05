@@ -1,8 +1,8 @@
-use super::super::{
-    StubHost, boundary_conditional_process, boundary_external_process, boundary_timer_process,
-};
 use super::helpers::{
     assert_interrupting_boundary_external_wait, assert_interrupting_boundary_path_routed,
+};
+use crate::runtime::{
+    StubHost, boundary_conditional_process, boundary_external_process, boundary_timer_process,
 };
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{

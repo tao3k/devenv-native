@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 002_quantum_fusion_contexts [quantum_fusion]: Quantum Fusion Contexts"
 expression: result
 info:

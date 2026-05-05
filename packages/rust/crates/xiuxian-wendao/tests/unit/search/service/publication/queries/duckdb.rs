@@ -1,8 +1,12 @@
+use std::collections::HashSet;
 use std::iter::FromIterator;
 
 use serial_test::serial;
 
-use super::support::{publish_repo_content_chunks, publish_repo_entities, repo_search_service, *};
+use crate::search::RepoContentChunkSearchFilters;
+use crate::search::service::tests::support::ok_or_panic;
+
+use super::support::{publish_repo_content_chunks, publish_repo_entities, repo_search_service};
 
 #[tokio::test]
 #[serial]

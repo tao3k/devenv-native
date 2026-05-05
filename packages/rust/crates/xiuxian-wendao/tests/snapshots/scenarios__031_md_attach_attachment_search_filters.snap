@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 031_md_attach_attachment_search_filters [markdown_attachments]: attachment search filters"
 expression: result
 info:

@@ -1,4 +1,4 @@
-use super::super::super::{
+use crate::runtime::{
     StubHost, dmn_fixture_definition, sequential_multi_instance_data_binding_business_rule_process,
     sequential_multi_instance_data_binding_process,
 };

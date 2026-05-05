@@ -88,9 +88,10 @@ impl SearchPlaneService {
         service
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     #[must_use]
-    pub(crate) fn with_test_cache(
+    /// Create a search plane with an in-memory test cache.
+    pub fn with_test_cache(
         project_root: PathBuf,
         storage_root: PathBuf,
         manifest_keyspace: SearchManifestKeyspace,
@@ -106,9 +107,10 @@ impl SearchPlaneService {
         )
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     #[must_use]
-    pub(crate) fn with_test_cache_and_revision_retention(
+    /// Create a search plane with an in-memory test cache and revision retention.
+    pub fn with_test_cache_and_revision_retention(
         project_root: PathBuf,
         storage_root: PathBuf,
         manifest_keyspace: SearchManifestKeyspace,

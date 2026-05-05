@@ -1,3 +1,5 @@
+//! Managed runtime reply branch for shared response rendering.
+
 mod help;
 mod jobs;
 mod permissions;

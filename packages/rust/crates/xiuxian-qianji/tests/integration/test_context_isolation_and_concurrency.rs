@@ -24,8 +24,6 @@ struct ProbedAnnotator {
     delay: Duration,
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 impl ProbedAnnotator {
     fn enter(&self) {
         let inflight = self.probe_inflight.fetch_add(1, Ordering::SeqCst) + 1;

@@ -1,4 +1,13 @@
-use super::*;
+use super::{RequestCaptureLlmClient, SequencedMockLlmClient, make_registry};
+use serde_json::json;
+use std::sync::{Arc, Mutex};
+use xiuxian_llm::llm::MessageContent;
+use xiuxian_llm::llm::client::MessageRole;
+use xiuxian_qianhuan::orchestrator::ThousandFacesOrchestrator;
+use xiuxian_qianji::contracts::{FlowInstruction, QianjiMechanism};
+use xiuxian_qianji::executors::{ContextAnnotator, LlmAugmentedAuditMechanism};
+use xiuxian_qianji::{NodeQianhuanExecutionMode, QianjiCompiler, QianjiLlmClient, QianjiScheduler};
+use xiuxian_wendao::LinkGraphIndex;
 
 #[tokio::test]
 async fn llm_augmented_audit_retries_when_score_is_below_threshold() {
@@ -17,7 +26,7 @@ async fn llm_augmented_audit_retries_when_score_is_below_threshold() {
             registry,
             persona_id: "strict_teacher".to_string(),
             template_target: Some("critique_agenda.j2".to_string()),
-            execution_mode: xiuxian_qianji::NodeQianhuanExecutionMode::Isolated,
+            execution_mode: NodeQianhuanExecutionMode::Isolated,
             input_keys: vec!["raw_facts".to_string()],
             history_key: "audit_history".to_string(),
             output_key: "annotated_prompt".to_string(),
@@ -152,7 +161,7 @@ async fn llm_augmented_audit_records_parse_error_when_score_tag_missing() {
             registry,
             persona_id: "strict_teacher".to_string(),
             template_target: Some("critique_agenda.j2".to_string()),
-            execution_mode: xiuxian_qianji::NodeQianhuanExecutionMode::Isolated,
+            execution_mode: NodeQianhuanExecutionMode::Isolated,
             input_keys: vec!["raw_facts".to_string()],
             history_key: "audit_history".to_string(),
             output_key: "annotated_prompt".to_string(),
@@ -217,7 +226,7 @@ async fn llm_augmented_audit_aborts_when_retry_budget_is_exhausted() {
             registry,
             persona_id: "strict_teacher".to_string(),
             template_target: Some("critique_agenda.j2".to_string()),
-            execution_mode: xiuxian_qianji::NodeQianhuanExecutionMode::Isolated,
+            execution_mode: NodeQianhuanExecutionMode::Isolated,
             input_keys: vec!["raw_facts".to_string()],
             history_key: "audit_history".to_string(),
             output_key: "annotated_prompt".to_string(),
@@ -303,7 +312,7 @@ weight = 1.0
         "<score>0.95</score><reason>acceptable</reason>".to_string(),
     ]));
     let models_probe = Arc::clone(&llm.seen_models);
-    let llm_client: Arc<xiuxian_qianji::QianjiLlmClient> = llm;
+    let llm_client: Arc<QianjiLlmClient> = llm;
     let compiler = QianjiCompiler::new(index, orchestrator, make_registry(), Some(llm_client));
     let engine = compiler
         .compile(manifest)

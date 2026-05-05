@@ -1,3 +1,5 @@
+//! Telegram background-job command handler branch.
+
 mod background_submit;
 mod events;
 mod job_status;

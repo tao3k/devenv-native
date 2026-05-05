@@ -1,3 +1,7 @@
+//! Projected page-index tree route contract and metadata validation.
+
+use crate::transport::query_contract::{PageIdRef, RepoIdRef};
+
 /// Canonical projected page-index tree repository metadata header for Wendao
 /// Flight requests.
 pub const WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER: &str =
@@ -17,8 +21,8 @@ pub const ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE: &str =
 /// Returns an error when the repository identifier or page identifier is
 /// blank.
 pub fn validate_repo_projected_page_index_tree_request(
-    repo_id: &str,
-    page_id: &str,
+    repo_id: RepoIdRef<'_>,
+    page_id: PageIdRef<'_>,
 ) -> Result<(String, String), String> {
     let normalized_repo_id = repo_id.trim();
     if normalized_repo_id.is_empty() {

@@ -5,7 +5,9 @@ import json
 import tempfile
 from pathlib import Path
 
-_MODULE_PATH = Path(__file__).resolve().with_name("render_wendao_gateway_perf_summary.py")
+_MODULE_PATH = (
+    Path(__file__).resolve().with_name("render_wendao_gateway_perf_summary.py")
+)
 _MODULE_SPEC = importlib.util.spec_from_file_location(
     "render_wendao_gateway_perf_summary", _MODULE_PATH
 )
@@ -24,7 +26,9 @@ write_summary_outputs = _MODULE._write_summary_outputs
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, ensure_ascii=True, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def _report_payload(
@@ -47,7 +51,7 @@ def _report_payload(
     for key, value in (extra or {}).items():
         metadata[f"gateway_{key}"] = value
     return {
-        "schema_version": "xiuxian-testing.perf-report.v1",
+        "schema_version": "wendao.perf-report.v1",
         "suite": "xiuxian-wendao/perf-gateway",
         "case": case,
         "mode": "async",
@@ -77,7 +81,9 @@ def _report_payload(
         },
         "sample_latency_ms": [p95_ms],
         "metadata": metadata,
-        "report_path": str(Path(tempfile.gettempdir()) / f"{case}-{captured_at_unix_ms}.json"),
+        "report_path": str(
+            Path(tempfile.gettempdir()) / f"{case}-{captured_at_unix_ms}.json"
+        ),
     }
 
 
@@ -117,7 +123,9 @@ def test_render_gateway_perf_summary_selects_latest_per_case_and_extracts_diagno
             p99_ms=0.24,
             throughput_qps=2100.0,
             uri="/api/search/index/status",
-            extra={"statusGatePressure": "maintenance=none; scopes=[gateway-sync(...)]"},
+            extra={
+                "statusGatePressure": "maintenance=none; scopes=[gateway-sync(...)]"
+            },
         ),
     )
     _write_json(
@@ -159,7 +167,9 @@ def test_render_gateway_perf_summary_selects_latest_per_case_and_extracts_diagno
     assert payload["overall"]["real_workspace_available"] is True
     assert payload["overall"]["real_workspace_case_count"] == 1
     assert payload["formal"]["overall"]["auxiliary_case_count"] == 1
-    assert payload["formal"]["overall"]["expected_case_count"] == len(FORMAL_GATEWAY_CASES)
+    assert payload["formal"]["overall"]["expected_case_count"] == len(
+        FORMAL_GATEWAY_CASES
+    )
     assert "repo_symbol_search_formal" in payload["formal"]["missing_cases"]
     assert payload["formal"]["auxiliary_cases"][0]["case"] == "metadata_attach"
     cases = {entry["case"]: entry for entry in payload["formal"]["cases"]}
@@ -179,7 +189,10 @@ def test_render_gateway_perf_summary_selects_latest_per_case_and_extracts_diagno
         in cases["studio_search_index_status_formal"]["diagnostics"]
     )
     real_cases = {entry["case"]: entry for entry in payload["real_workspace"]["cases"]}
-    assert real_cases["repo_index_status_real_workspace_sample"]["extra"]["minRepos"] == "150"
+    assert (
+        real_cases["repo_index_status_real_workspace_sample"]["extra"]["minRepos"]
+        == "150"
+    )
     assert (
         real_cases["repo_index_status_real_workspace_sample"]["repo_read_pressure"]
         == "budget=4, inFlight=2, requested=177, searchable=64, parallelism=4, fanoutCapped=true"
@@ -255,5 +268,8 @@ def test_write_summary_outputs_mirrors_unified_summary_into_secondary_directory(
 
     assert json.loads(output_json.read_text(encoding="utf-8")) == payload
     assert output_markdown.read_text(encoding="utf-8") == markdown
-    assert json.loads((mirror_dir / SUMMARY_JSON_NAME).read_text(encoding="utf-8")) == payload
+    assert (
+        json.loads((mirror_dir / SUMMARY_JSON_NAME).read_text(encoding="utf-8"))
+        == payload
+    )
     assert (mirror_dir / SUMMARY_MARKDOWN_NAME).read_text(encoding="utf-8") == markdown

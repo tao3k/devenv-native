@@ -3,11 +3,11 @@ use std::collections::BTreeMap;
 use crate::analyzers::{ExampleRecord, ModuleRecord, SymbolRecord};
 use crate::search::SearchDocumentIndex;
 
-use super::super::helpers::{module_match_score, normalized_rank_score, symbol_match_score};
 use super::documents::{ExampleSearchMetadata, raw_example_match_score};
 use super::ranking::{
     EXAMPLE_SEARCH_BUCKETS, MODULE_SEARCH_BUCKETS, RankedSearchRecord, SYMBOL_SEARCH_BUCKETS,
 };
+use crate::analyzers::service::{module_match_score, normalized_rank_score, symbol_match_score};
 
 pub(super) fn indexed_module_exact_matches(
     index: &SearchDocumentIndex,

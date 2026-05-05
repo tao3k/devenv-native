@@ -1,13 +1,16 @@
+"""Run a PDF attachment-search analyzer over scripted or endpoint-backed Arrow rows."""
+
 from __future__ import annotations
 
 import argparse
+import sys
 
 from wendao_arrow_interface import WendaoArrowScriptedClient, WendaoArrowSession
 from wendao_core_lib import attachment_search_request
 from xiuxian_wendao_analyzer import run_table_analysis, summarize_table_analysis
 
 
-class PdfAttachmentAnalyzer:
+class _PdfAttachmentAnalyzer:
     def analyze_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]:
         ranked = sorted(
             (
@@ -18,7 +21,9 @@ class PdfAttachmentAnalyzer:
                     "attachment_name": str(row["attachmentName"]),
                     "source_title": str(row["sourceTitle"]),
                     "vision_snippet": (
-                        str(row["visionSnippet"]) if row.get("visionSnippet") is not None else None
+                        str(row["visionSnippet"])
+                        if row.get("visionSnippet") is not None
+                        else None
                     ),
                 }
                 for row in rows
@@ -29,7 +34,7 @@ class PdfAttachmentAnalyzer:
         return [{**row, "rank": index} for index, row in enumerate(ranked, start=1)]
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_attachment_pdf_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run a PDF attachment analyzer workflow over Rust-returned attachment-search rows.",
     )
@@ -45,7 +50,11 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_scripted_session() -> WendaoArrowSession:
+def _emit(label: str, value: object) -> None:
+    sys.stdout.write(f"{label}= {value}\n")
+
+
+def _build_scripted_session() -> WendaoArrowSession:
     return WendaoArrowSession.for_attachment_search_testing(
         [
             {
@@ -84,7 +93,7 @@ def build_scripted_session() -> WendaoArrowSession:
     )
 
 
-def build_endpoint_session(args: argparse.Namespace) -> WendaoArrowSession:
+def _build_endpoint_session(args: argparse.Namespace) -> WendaoArrowSession:
     if args.port is None:
         raise ValueError("--port is required when --mode endpoint")
     return WendaoArrowSession.from_endpoint(
@@ -95,9 +104,13 @@ def build_endpoint_session(args: argparse.Namespace) -> WendaoArrowSession:
     )
 
 
-def main() -> None:
-    args = parse_args()
-    session = build_scripted_session() if args.mode == "scripted" else build_endpoint_session(args)
+def _run_attachment_pdf_workflow() -> None:
+    args = _parse_attachment_pdf_args()
+    session = (
+        _build_scripted_session()
+        if args.mode == "scripted"
+        else _build_endpoint_session(args)
+    )
     request = attachment_search_request(
         args.query_text,
         limit=args.limit,
@@ -108,21 +121,21 @@ def main() -> None:
 
     result = session.attachment_search(request)
     typed_rows = result.parse_attachment_search_rows()
-    run = run_table_analysis(result.table, analyzer=PdfAttachmentAnalyzer())
+    run = run_table_analysis(result.table, analyzer=_PdfAttachmentAnalyzer())
     summary = summarize_table_analysis(run)
 
-    print("mode=", args.mode)
-    print("query_text=", request.query_text)
-    print("rows=", len(typed_rows))
-    print("top_path=", summary.top_path)
-    print("top_rank=", summary.top_rank)
+    _emit("mode", args.mode)
+    _emit("query_text", request.query_text)
+    _emit("rows", len(typed_rows))
+    _emit("top_path", summary.top_path)
+    _emit("top_rank", summary.top_rank)
     if run.rows_out:
-        print("top_attachment_name=", run.rows_out[0].payload["attachment_name"])
-        print("top_source_title=", run.rows_out[0].payload["source_title"])
+        _emit("top_attachment_name", run.rows_out[0].payload["attachment_name"])
+        _emit("top_source_title", run.rows_out[0].payload["source_title"])
     if isinstance(session.client, WendaoArrowScriptedClient):
-        print("recorded_calls=", len(session.client.calls))
-        print("recorded_route=", session.client.calls[0].route)
+        _emit("recorded_calls", len(session.client.calls))
+        _emit("recorded_route", session.client.calls[0].route)
 
 
 if __name__ == "__main__":
-    main()
+    _run_attachment_pdf_workflow()

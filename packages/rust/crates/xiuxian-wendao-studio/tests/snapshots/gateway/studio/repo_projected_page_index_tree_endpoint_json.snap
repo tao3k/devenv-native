@@ -1,0 +1,108 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "repo_id": "gateway-sync",
+  "tree": {
+    "doc_id": "reference/solve-69592caeddee",
+    "kind": "reference",
+    "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+    "path": "reference/solve-69592caeddee.md",
+    "repo_id": "gateway-sync",
+    "root_count": 2,
+    "roots": [
+      {
+        "children": [],
+        "is_thinned": false,
+        "level": 1,
+        "line_range": [
+          1,
+          7
+        ],
+        "node_id": "reference/solve-69592caeddee#solve",
+        "structural_path": [
+          "solve"
+        ],
+        "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: md\n:END:",
+        "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: md\n:END:",
+        "title": "solve",
+        "token_count": 8
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "is_thinned": false,
+            "level": 2,
+            "line_range": [
+              19,
+              25
+            ],
+            "node_id": "reference/solve-69592caeddee#anchors",
+            "structural_path": [
+              "Overview",
+              "Anchors"
+            ],
+            "summary": ":ID: anchors\n:PATHS: src/GatewaySyncPkg",
+            "text": ":ID: anchors\n:PATHS: src/GatewaySyncPkg.jl\n\nSymbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)",
+            "title": "Anchors",
+            "token_count": 8
+          },
+          {
+            "children": [],
+            "is_thinned": false,
+            "level": 2,
+            "line_range": [
+              26,
+              32
+            ],
+            "node_id": "reference/solve-69592caeddee#sources",
+            "structural_path": [
+              "Overview",
+              "Documentation"
+            ],
+            "summary": ":ID: sources\n:PATHS: docs/solve",
+            "text": ":ID: sources\n:PATHS: docs/solve.md\n\nDocumentation:\n- `solve` (docs/solve.md)",
+            "title": "Documentation",
+            "token_count": 8
+          },
+          {
+            "children": [],
+            "is_thinned": false,
+            "level": 2,
+            "line_range": [
+              33,
+              38
+            ],
+            "node_id": "reference/solve-69592caeddee#examples",
+            "structural_path": [
+              "Overview",
+              "Examples"
+            ],
+            "summary": ":ID: examples\n:PATHS: examples/solve_demo",
+            "text": ":ID: examples\n:PATHS: examples/solve_demo.jl\n\nExamples:\n- `solve_demo` (examples/solve_demo.jl)",
+            "title": "Examples",
+            "token_count": 8
+          }
+        ],
+        "is_thinned": false,
+        "level": 1,
+        "line_range": [
+          8,
+          18
+        ],
+        "node_id": "reference/solve-69592caeddee#overview",
+        "structural_path": [
+          "Overview"
+        ],
+        "summary": ":ID: overview\n:PATHS: docs/solve",
+        "text": ":ID: overview\n:PATHS: docs/solve.md, examples/solve_demo.jl\n\nProjected reference page for `solve`.\nFormat hints:\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`",
+        "title": "Overview",
+        "token_count": 20
+      }
+    ],
+    "title": "solve"
+  }
+}

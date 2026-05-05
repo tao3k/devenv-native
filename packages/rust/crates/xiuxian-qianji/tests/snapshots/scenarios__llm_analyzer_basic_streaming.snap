@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-qianji/tests/support/scenario.rs
 description: "Scenario llm_analyzer_basic_streaming [llm_analyzer]: LLM Analyzer Basic Streaming"
 expression: result
 info:

@@ -1,3 +1,5 @@
+//! Source-preserved addressed-target contract shared across parser formats.
+
 use crate::AddressedTarget;
 use serde::{Deserialize, Serialize};
 

@@ -1,4 +1,4 @@
-use xiuxian_testing::AdvisoryAuditRequest;
+use crate::contract_feedback::AdvisoryAuditRequest;
 use xiuxian_zhenfa::{CognitiveDistribution, StreamProvider};
 
 use super::DEFAULT_MODEL;

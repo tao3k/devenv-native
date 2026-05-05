@@ -38,9 +38,17 @@ def summarize_results(
 ) -> dict[str, Any]:
     rust_jobs_status = combine_rust_jobs_status_summaries(
         [result.get("rustJobsStatusSummary", {}) for result in results]
-        + [(distinct_miss_report.get("rustJobsStatusSummary", {}) if distinct_miss_report else {})]
+        + [
+            (
+                distinct_miss_report.get("rustJobsStatusSummary", {})
+                if distinct_miss_report
+                else {}
+            )
+        ]
     )
-    distinct_error_rows = distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
+    distinct_error_rows = (
+        distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
+    )
     total_error_rows = (
         sum(
             result["forceErrorRows"]
@@ -51,7 +59,9 @@ def summarize_results(
         )
         + distinct_error_rows
     )
-    artifact_error_count = sum(result.get("artifactErrorCount", 0) for result in results)
+    artifact_error_count = sum(
+        result.get("artifactErrorCount", 0) for result in results
+    )
     structure_parity_error_count = sum(
         result.get("structureParityErrorCount", 0) for result in results
     )
@@ -73,7 +83,9 @@ def summarize_results(
         "totalStructureOcrRegionBlocks": sum(
             result.get("structureOcrRegionBlocks", 0) for result in results
         ),
-        "totalStructureBboxBlocks": sum(result.get("structureBboxBlocks", 0) for result in results),
+        "totalStructureBboxBlocks": sum(
+            result.get("structureBboxBlocks", 0) for result in results
+        ),
         "allStructureReadingOrderSorted": structure_reading_order_sorted,
         "allStructureOrderStable": structure_order_stable,
         "totalStructureOrderMismatches": structure_order_mismatches,
@@ -83,19 +95,25 @@ def summarize_results(
         "allStructureParityPassed": structure_parity_passed,
         "totalStructureParityErrors": structure_parity_error_count,
         "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
-        "totalMetricsResultChars": sum(result.get("metricsResultChars", 0) for result in results),
-        "totalMetricsBboxCount": sum(result.get("metricsBboxCount", 0) for result in results),
+        "totalMetricsResultChars": sum(
+            result.get("metricsResultChars", 0) for result in results
+        ),
+        "totalMetricsBboxCount": sum(
+            result.get("metricsBboxCount", 0) for result in results
+        ),
         "totalMetricsRustSchedulerElapsedMs": sum(
             result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
         ),
-        "totalDocumentTimingRows": sum(result.get("documentTimingRows", 0) for result in results),
+        "totalDocumentTimingRows": sum(
+            result.get("documentTimingRows", 0) for result in results
+        ),
         "totalDocumentTimingElapsedMs": sum(
             result.get("documentTimingTotalElapsedMs", 0.0) for result in results
         ),
         "totalDocumentTimingOverheadMs": sum(
             result.get("documentTimingOverheadMs", 0.0) or 0.0 for result in results
         ),
-        "documentTimingPhaseElapsedMs": combine_float_counts(
+        "documentTimingPhaseElapsedMs": _combine_float_counts(
             result.get("documentTimingPhaseElapsedMs", {}) for result in results
         ),
         "imageAttachmentAuditCount": image_attachment_audit_count(results),
@@ -120,14 +138,18 @@ def summarize_results(
             results,
             "totalMemberSizeBytes",
         ),
-        "archiveFormatCounts": aggregate_archive_audit_strings(results, "archiveFormat"),
+        "archiveFormatCounts": aggregate_archive_audit_strings(
+            results, "archiveFormat"
+        ),
         "archiveAccelerationCandidates": aggregate_archive_acceleration_candidates(
             results,
         ),
         "archiveExtensionCounts": aggregate_archive_extension_counts(results),
         "maxArchiveLargestMemberSizeBytes": max_archive_largest_member_size(results),
         "artifactErrorCount": artifact_error_count,
-        "minCacheSpeedup": min((result["cacheSpeedup"] for result in results), default=0.0),
+        "minCacheSpeedup": min(
+            (result["cacheSpeedup"] for result in results), default=0.0
+        ),
         "totalDuplicateMissConverterCalls": sum(
             result["duplicateMissConverterCalls"] or 0 for result in results
         ),
@@ -171,19 +193,19 @@ def pdf_ocr_profile_label(args: argparse.Namespace) -> str:
     return "source-page-range-or-parallel-image"
 
 
-def format_optional_float(value: Any) -> str:
+def _format_optional_float(value: Any) -> str:
     if isinstance(value, (int, float)):
         return f"{float(value):.3f}"
     return ""
 
 
-def format_optional_percent(value: Any) -> str:
+def _format_optional_percent(value: Any) -> str:
     if isinstance(value, (int, float)):
         return f"{float(value) * 100.0:.1f}%"
     return ""
 
 
-def format_counts(value: Any) -> str:
+def _format_counts(value: Any) -> str:
     if not isinstance(value, dict) or not value:
         return ""
     return ", ".join(
@@ -193,7 +215,7 @@ def format_counts(value: Any) -> str:
     )
 
 
-def format_float_counts(value: Any) -> str:
+def _format_float_counts(value: Any) -> str:
     if not isinstance(value, dict) or not value:
         return ""
     return ", ".join(
@@ -203,7 +225,7 @@ def format_float_counts(value: Any) -> str:
     )
 
 
-def format_fixture_latency(value: Any) -> str:
+def _format_fixture_latency(value: Any) -> str:
     if not isinstance(value, dict):
         return ""
     fixture = value.get("fixture")
@@ -296,22 +318,22 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"chars={payload['summary'].get('totalMetricsResultChars')}, "
         f"bbox={payload['summary'].get('totalMetricsBboxCount')}, "
         "rustSchedulerElapsedMs="
-        f"{format_optional_float(payload['summary'].get('totalMetricsRustSchedulerElapsedMs'))}`",
+        f"{_format_optional_float(payload['summary'].get('totalMetricsRustSchedulerElapsedMs'))}`",
         "- Document timing sidecar: "
         f"`rows={payload['summary'].get('totalDocumentTimingRows')}, "
         "totalElapsedMs="
-        f"{format_optional_float(payload['summary'].get('totalDocumentTimingElapsedMs'))}, "
+        f"{_format_optional_float(payload['summary'].get('totalDocumentTimingElapsedMs'))}, "
         "overheadMs="
-        f"{format_optional_float(payload['summary'].get('totalDocumentTimingOverheadMs'))}, "
+        f"{_format_optional_float(payload['summary'].get('totalDocumentTimingOverheadMs'))}, "
         "phases="
-        f"{format_float_counts(payload['summary'].get('documentTimingPhaseElapsedMs'))}`",
+        f"{_format_float_counts(payload['summary'].get('documentTimingPhaseElapsedMs'))}`",
         "- Image audit summary: "
         f"`audits={payload['summary'].get('imageAttachmentAuditCount')}, "
         f"knownDims={payload['summary'].get('imageKnownDimensionCount')}, "
-        f"formats={format_counts(payload['summary'].get('imageFormatCounts'))}, "
+        f"formats={_format_counts(payload['summary'].get('imageFormatCounts'))}, "
         "dimensionSources="
-        f"{format_counts(payload['summary'].get('imageDimensionSourceCounts'))}, "
-        f"candidates={format_counts(payload['summary'].get('imageAccelerationCandidates'))}, "
+        f"{_format_counts(payload['summary'].get('imageDimensionSourceCounts'))}, "
+        f"candidates={_format_counts(payload['summary'].get('imageAccelerationCandidates'))}, "
         f"maxWidthPx={payload['summary'].get('maxImageWidthPx')}, "
         f"maxHeightPx={payload['summary'].get('maxImageHeightPx')}, "
         f"maxPixels={payload['summary'].get('maxImagePixelCount')}`",
@@ -320,9 +342,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"members={payload['summary'].get('archiveMemberCount')}, "
         f"xml={payload['summary'].get('archiveXmlMemberCount')}, "
         f"images={payload['summary'].get('archiveImageMemberCount')}, "
-        f"formats={format_counts(payload['summary'].get('archiveFormatCounts'))}, "
-        f"suffixes={format_counts(payload['summary'].get('archiveExtensionCounts'))}, "
-        f"candidates={format_counts(payload['summary'].get('archiveAccelerationCandidates'))}, "
+        f"formats={_format_counts(payload['summary'].get('archiveFormatCounts'))}, "
+        f"suffixes={_format_counts(payload['summary'].get('archiveExtensionCounts'))}, "
+        f"candidates={_format_counts(payload['summary'].get('archiveAccelerationCandidates'))}, "
         "largestMemberBytes="
         f"{payload['summary'].get('maxArchiveLargestMemberSizeBytes')}`",
         "- Precision-speed summary: "
@@ -331,16 +353,16 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"orderSorted={precision_speed.get('structureReadingOrderSorted')}, "
         f"orderStable={precision_speed.get('structureOrderStable')}, "
         f"parityPassed={precision_speed.get('structureParityPassed')}, "
-        f"maxForceMs={format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
+        f"maxForceMs={_format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
         "maxDoclingConvertMs="
-        f"{format_optional_float(precision_speed.get('maxDoclingConvertMs'))}, "
+        f"{_format_optional_float(precision_speed.get('maxDoclingConvertMs'))}, "
         "maxDoclingShare="
-        f"{format_optional_percent(precision_speed.get('maxDoclingConvertShare'))}, "
+        f"{_format_optional_percent(precision_speed.get('maxDoclingConvertShare'))}, "
         "maxTimingOverheadMs="
-        f"{format_optional_float(precision_speed.get('maxDocumentTimingOverheadMs'))}, "
+        f"{_format_optional_float(precision_speed.get('maxDocumentTimingOverheadMs'))}, "
         "maxBoundaryOverheadShare="
-        f"{format_optional_percent(precision_speed.get('maxDocumentTimingOverheadShare'))}, "
-        f"maxCacheP95Ms={format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
+        f"{_format_optional_percent(precision_speed.get('maxDocumentTimingOverheadShare'))}, "
+        f"maxCacheP95Ms={_format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
         "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
@@ -363,8 +385,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "structureRows": result.get("structureRows", 0),
             "ocrBlocks": ocr_blocks,
             "orderSorted": result.get("structureReadingOrderSorted"),
-            "shardCacheReuseForceMs": format_optional_float(result.get("shardCacheReuseForceMs")),
-            "artifactRegistryReuseForceMs": format_optional_float(
+            "shardCacheReuseForceMs": _format_optional_float(
+                result.get("shardCacheReuseForceMs")
+            ),
+            "artifactRegistryReuseForceMs": _format_optional_float(
                 result.get("artifactRegistryReuseForceMs")
             ),
         }
@@ -402,36 +426,48 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "{maxBoundaryOverheadShare} | {slowestCacheP95} | "
                 "{minCacheSpeedup} |".format(
                     **class_summary,
-                    resourceTypes=format_counts(class_summary.get("resourceTypeCounts")),
-                    blockTypes=format_counts(class_summary.get("structureBlockTypeCounts")),
+                    resourceTypes=_format_counts(
+                        class_summary.get("resourceTypeCounts")
+                    ),
+                    blockTypes=_format_counts(
+                        class_summary.get("structureBlockTypeCounts")
+                    ),
                     bboxBlocks=class_summary.get("structureBboxBlocks", 0),
-                    imageFormats=format_counts(class_summary.get("imageFormatCounts")),
-                    imageDimensionSources=format_counts(
+                    imageFormats=_format_counts(class_summary.get("imageFormatCounts")),
+                    imageDimensionSources=_format_counts(
                         class_summary.get("imageDimensionSourceCounts")
                     ),
                     imageDimensions=class_summary.get("imageKnownDimensionCount", 0),
-                    imageCandidates=format_counts(class_summary.get("imageAccelerationCandidates")),
-                    archiveFormats=format_counts(class_summary.get("archiveFormatCounts")),
+                    imageCandidates=_format_counts(
+                        class_summary.get("imageAccelerationCandidates")
+                    ),
+                    archiveFormats=_format_counts(
+                        class_summary.get("archiveFormatCounts")
+                    ),
                     archiveMembers=class_summary.get("archiveMemberCount", 0),
-                    archiveCandidates=format_counts(
+                    archiveCandidates=_format_counts(
                         class_summary.get("archiveAccelerationCandidates")
                     ),
                     orderSorted=precision_speed.get("structureReadingOrderSorted"),
                     orderStable=precision_speed.get("structureOrderStable"),
-                    slowestForce=format_fixture_latency(class_summary.get("slowestForceFixture")),
-                    maxDoclingConvert=format_optional_float(
+                    slowestForce=_format_fixture_latency(
+                        class_summary.get("slowestForceFixture")
+                    ),
+                    maxDoclingConvert=_format_optional_float(
                         precision_speed.get("maxDoclingConvertMs")
                     ),
-                    maxDoclingShare=format_optional_percent(
+                    maxDoclingShare=_format_optional_percent(
                         precision_speed.get("maxDoclingConvertShare")
                     ),
-                    maxBoundaryOverheadShare=format_optional_percent(
+                    maxBoundaryOverheadShare=_format_optional_percent(
                         precision_speed.get("maxDocumentTimingOverheadShare")
                     ),
-                    slowestCacheP95=format_fixture_latency(
+                    slowestCacheP95=_format_fixture_latency(
                         class_summary.get("slowestCacheP95Fixture")
                     ),
-                    minCacheSpeedup=format_optional_float(precision_speed.get("minCacheSpeedup")),
+                    minCacheSpeedup=_format_optional_float(
+                        precision_speed.get("minCacheSpeedup")
+                    ),
                 )
             )
     distinct_miss = payload.get("distinctMiss")
@@ -455,19 +491,22 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     maxInProcessRunningConversions=distinct_status[
                         "maxInProcessRunningConversions"
                     ],
-                    minAvailablePermits=distinct_status["minAvailableConversionPermits"],
+                    minAvailablePermits=distinct_status[
+                        "minAvailableConversionPermits"
+                    ],
                     maxRunningConversions=distinct_status["maxRunningConversions"],
                     maxConversionDurationMs=distinct_status["maxConversionDurationMs"],
                 ),
                 "",
-                "Fixtures: " + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
+                "Fixtures: "
+                + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
             ]
         )
     lines.append("")
     return "\n".join(lines)
 
 
-def combine_float_counts(values: Any) -> dict[str, float]:
+def _combine_float_counts(values: Any) -> dict[str, float]:
     totals: dict[str, float] = {}
     for value in values:
         if not isinstance(value, dict):

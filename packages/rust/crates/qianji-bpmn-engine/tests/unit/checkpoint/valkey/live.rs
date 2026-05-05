@@ -1,5 +1,6 @@
-use super::super::*;
 use super::support::TestValkey;
+use crate::checkpoint::sample_checkpoint_for_instance_with_sequence;
+use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BPMN_CHECKPOINT_FORMAT_VERSION, BpmnEngineError, delete_checkpoint, delete_checkpoint_as_owner,
     load_checkpoint, release_checkpoint_lease, renew_checkpoint_lease, save_checkpoint,

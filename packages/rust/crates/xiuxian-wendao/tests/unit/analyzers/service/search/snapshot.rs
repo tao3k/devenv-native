@@ -1,7 +1,7 @@
-use super::super::build_import_search;
 use super::support::sample_search_analysis;
 use crate::analyzers::ImportSearchQuery;
-use crate::gateway::studio::test_support::assert_wendao_json_snapshot;
+use crate::analyzers::service::search::build_import_search;
+use crate::test_support::assert_wendao_json_snapshot;
 
 #[test]
 fn import_search_snapshot_matches_package_and_module_filters() {

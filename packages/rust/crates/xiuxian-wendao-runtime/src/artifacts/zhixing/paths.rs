@@ -1,3 +1,5 @@
+//! Zhixing artifact path builders for runtime package wiring.
+
 use include_dir::Dir;
 
 /// Embedded skill document path relative to the `resources/` root.

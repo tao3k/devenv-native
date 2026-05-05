@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::gateway::studio::types::{SearchHit, StudioNavigationTarget};
+use crate::search::contracts::{SearchHit, StudioNavigationTarget};
 
 use super::helpers::{infer_code_language, truncate_content_search_snippet};
 

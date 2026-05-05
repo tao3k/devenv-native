@@ -1,3 +1,5 @@
+//! Markdown reference DTOs.
+
 use crate::reference_core::ReferenceCore;
 use serde::{Deserialize, Serialize};
 

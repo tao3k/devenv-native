@@ -1,3 +1,5 @@
+//! Planned-search Julia runtime configuration fixtures for builtin tests.
+
 use xiuxian_wendao_julia::integration_support::{
     julia_planned_search_openai_runtime_config_toml,
     julia_planned_search_vector_store_runtime_config_toml,

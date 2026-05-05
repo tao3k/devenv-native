@@ -1,8 +1,11 @@
+//! Service-core state for the runtime-owned Wendao Flight server.
+
 use std::sync::Arc;
 
 use crate::transport::RerankScoreWeights;
 
-use super::super::types::{
+use super::cache::FlightRoutePayloadCache;
+use crate::transport::server::{
     AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, CodeAstAnalysisFlightRouteProvider,
     DefinitionFlightRouteProvider, DocumentExtractFlightRouteProvider,
@@ -14,7 +17,6 @@ use super::super::types::{
     SqlFlightRouteProvider, Topology3dFlightRouteProvider, VfsContentFlightRouteProvider,
     VfsResolveFlightRouteProvider, VfsScanFlightRouteProvider, WendaoFlightRouteProviders,
 };
-use super::cache::FlightRoutePayloadCache;
 
 /// Runtime-owned minimal Wendao Flight service surface for the stable query and
 /// rerank routes.

@@ -1,3 +1,5 @@
+//! Markdown syntax lint DTOs for parser consumers.
+
 use serde::Serialize;
 
 /// Parser-owned Markdown syntax lint code for lightweight client consumers.

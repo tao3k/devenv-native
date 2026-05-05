@@ -18,8 +18,19 @@ pub mod settings;
 /// Transport negotiation and client-construction helpers.
 pub mod transport;
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
-
 #[cfg(test)]
 #[path = "../tests/unit/lib/mod.rs"]
 mod tests;
+
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = {
+        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
+            rust_lang_project_harness::RustVerificationProfileHint::new(
+                "src/lib.rs",
+                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+            )
+            .with_rationale("crate root owns the public package API for cargo-test verification"),
+        )
+    }
+);

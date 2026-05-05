@@ -5,8 +5,8 @@ use crate::channels::managed_runtime::turn::build_session_id;
 use crate::channels::traits::{Channel, ChannelMessage};
 use crate::jobs::JobManager;
 
-use super::super::super::parsing::{ManagedCommand, parse_managed_command};
 use super::{control, jobs, session};
+use crate::channels::discord::runtime::managed::parsing::{ManagedCommand, parse_managed_command};
 
 pub(crate) async fn handle_inbound_managed_command(
     agent: &Arc<Agent>,

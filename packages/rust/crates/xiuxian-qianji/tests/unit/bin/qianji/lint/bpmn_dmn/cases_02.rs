@@ -1,4 +1,4 @@
-use super::*;
+use super::{LintCliCommand, TempDir, must_ok, run_lint_command, stable_temp_output, write_file};
 
 #[test]
 fn run_lint_command_guides_single_outgoing_default_repair_in_one_patch() {

@@ -3,46 +3,50 @@
 mod analysis;
 mod bootstrap;
 mod cached;
+#[path = "helpers/mod.rs"]
 mod helpers;
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]
+#[path = "incremental/mod.rs"]
 mod incremental;
+#[cfg(feature = "runtime-transport")]
+#[path = "julia_transport/mod.rs"]
 mod julia_transport;
 mod merge;
+#[path = "projection/mod.rs"]
 mod projection;
 mod registry;
 mod relation_dedupe;
+#[path = "search/mod.rs"]
 mod search;
 mod sync;
 
-#[cfg(feature = "studio")]
-pub(crate) use analysis::analyze_registered_repository_target_file_with_registry;
+#[cfg(feature = "search-runtime")]
+pub use analysis::analyze_registered_repository_target_file_with_registry;
 pub use analysis::{
     analyze_registered_repository, analyze_registered_repository_with_registry,
     analyze_repository_from_config, analyze_repository_from_config_with_registry,
 };
 pub use bootstrap::bootstrap_builtin_registry;
 pub use cached::analyze_registered_repository_cached_with_registry;
-#[cfg(feature = "studio")]
-pub(crate) use cached::{
+#[cfg(feature = "search-runtime")]
+pub use cached::{
     CachedRepositoryAnalysis, analyze_registered_repository_cached_bundle_with_registry,
 };
-#[cfg(any(feature = "search-runtime", feature = "studio"))]
+#[cfg(all(test, feature = "search-runtime"))]
+pub(crate) use helpers::relation_kind_label;
 pub(crate) use helpers::{
-    backlinks_for, documents_backlink_lookup, example_match_score, example_relation_lookup,
-    hierarchy_segments_from_path, infer_ecosystem, module_match_score, projection_page_lookup,
-    projection_pages_for, record_hierarchical_uri, related_modules_for_example,
-    related_symbols_for_example, symbol_match_score,
-};
-#[cfg(test)]
-pub(crate) use helpers::{
-    docs_in_scope, documented_symbol_ids, relation_kind_label, repo_hierarchical_uri,
-    resolve_module_scope, symbols_in_scope,
+    backlinks_for, docs_in_scope, documented_symbol_ids, documents_backlink_lookup,
+    example_match_score, example_relation_lookup, hierarchy_segments_from_path, infer_ecosystem,
+    module_match_score, projection_page_lookup, projection_pages_for, record_hierarchical_uri,
+    related_modules_for_example, related_symbols_for_example, repo_hierarchical_uri,
+    resolve_module_scope, symbol_match_score, symbols_in_scope,
 };
 pub(crate) use helpers::{import_match_score, normalized_rank_score};
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 pub(crate) use incremental::{
     IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
 };
+#[cfg(feature = "runtime-transport")]
 pub use julia_transport::{
     JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
     JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,
@@ -52,8 +56,8 @@ pub use julia_transport::{
 
 #[cfg(all(feature = "zhenfa-router", test))]
 pub use projection::DocsDocumentSegmentResult;
-#[cfg(feature = "studio")]
-pub(crate) use projection::build_repo_projected_page_search_with_artifacts;
+#[cfg(feature = "search-runtime")]
+pub use projection::build_repo_projected_page_search_with_artifacts;
 pub use projection::{
     DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_NAVIGATION_CONTRACT_ID,
     DOCS_PAGE_INDEX_TREE_CONTRACT_ID, DOCS_RETRIEVAL_CONTEXT_CONTRACT_ID, DOCS_SEARCH_CONTRACT_ID,
@@ -131,12 +135,12 @@ pub use projection::{
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use projection::{DocsToolRuntime, DocsToolRuntimeHandle};
 pub use registry::load_registered_repository;
-#[cfg(feature = "studio")]
-pub(crate) use search::ExampleSearchMetadata;
 #[cfg(feature = "search-runtime")]
-pub(crate) use search::canonical_import_query_text;
-#[cfg(feature = "studio")]
-pub(crate) use search::{
+pub use search::ExampleSearchMetadata;
+#[cfg(feature = "search-runtime")]
+pub use search::canonical_import_query_text;
+#[cfg(feature = "search-runtime")]
+pub use search::{
     RepoAnalysisFallbackContract, example_fallback_contract, import_fallback_contract,
     module_fallback_contract, repository_search_artifacts, symbol_fallback_contract,
 };
@@ -151,6 +155,13 @@ pub use search::{
     symbol_search_from_config_with_registry,
 };
 pub use sync::{repo_sync_for_registered_repository, repo_sync_from_config};
-#[cfg(test)]
+#[cfg(all(
+    test,
+    feature = "julia",
+    feature = "repo-lexical-index",
+    feature = "runtime-transport",
+    feature = "search-runtime",
+    feature = "zhenfa-router"
+))]
 #[path = "../../../tests/unit/analyzers/service/mod.rs"]
 mod tests;

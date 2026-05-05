@@ -1,4 +1,7 @@
-use super::support::*;
+use super::support::{
+    PathBuf, RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy,
+    SearchPlaneService, new_coordinator, repo,
+};
 
 #[test]
 fn sync_repositories_only_enqueues_new_or_changed_repositories() {

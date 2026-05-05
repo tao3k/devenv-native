@@ -5,14 +5,14 @@ use serde_json::json;
 use crate::agent::Agent;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::observability::send_with_observability;
-use super::super::super::replies::{
-    format_command_error_json, format_control_command_admin_required,
-};
 use super::{
     EVENT_TELEGRAM_COMMAND_CONTROL_ADMIN_REQUIRED_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_INJECTION_JSON_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_INJECTION_REPLIED, truncate_preview,
+};
+use crate::channels::telegram::runtime::jobs::observability::send_with_observability;
+use crate::channels::telegram::runtime::jobs::replies::{
+    format_command_error_json, format_control_command_admin_required,
 };
 
 use crate::channels::telegram::commands::{

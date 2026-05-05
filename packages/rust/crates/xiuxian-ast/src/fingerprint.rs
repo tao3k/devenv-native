@@ -1,3 +1,5 @@
+//! Stable structural fingerprints for supported source languages.
+
 use crate::{Lang, extract_skeleton};
 
 /// Returns whether the language has a stable generic structural fingerprint

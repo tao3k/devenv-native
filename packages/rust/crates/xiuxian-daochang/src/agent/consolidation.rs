@@ -1,3 +1,5 @@
+//! Conversation consolidation helpers for memory episode creation.
+
 /// Build intent (first user message), experience (assistant responses joined), outcome (completed/error).
 #[doc(hidden)]
 #[must_use]

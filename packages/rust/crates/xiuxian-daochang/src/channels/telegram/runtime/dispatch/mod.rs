@@ -1,3 +1,5 @@
+//! Telegram dispatch branch for foreground, background, and interrupts.
+
 mod interrupt;
 mod preview;
 mod startup;

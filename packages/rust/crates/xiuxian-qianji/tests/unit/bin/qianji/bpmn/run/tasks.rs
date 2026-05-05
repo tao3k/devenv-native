@@ -1,4 +1,13 @@
-use super::*;
+use super::{
+    BpmnCliCheckpointBackend, BpmnRunCliCommand, BpmnStatusCliCommand, BpmnTaskClaimCliCommand,
+    BpmnTaskCompleteCliCommand, BpmnTaskCompleteCliKind, BpmnTaskReleaseCliCommand,
+    BpmnTaskWorklistCliCommand, QianjiRuntimeEnv, TempDir, must_ok, must_some,
+    run_bpmn_run_command_with_runtime_env, run_bpmn_status_command_with_runtime_env,
+    run_bpmn_task_claim_command_with_runtime_env, run_bpmn_task_complete_command_with_runtime_env,
+    run_bpmn_task_release_command_with_runtime_env,
+    run_bpmn_task_worklist_command_with_runtime_env, write_interactive_user_task_bundle,
+    write_user_task_bundle,
+};
 
 #[cfg(feature = "duckdb")]
 #[tokio::test(flavor = "current_thread")]
@@ -440,7 +449,7 @@ async fn seed_checkpointed_cli_pending_task(
 
     let checkpoint = must_some(
         must_ok(
-            xiuxian_qianji::QianjiBpmnCheckpointStore::duckdb(duckdb_path.to_path_buf())
+            crate::QianjiBpmnCheckpointStore::duckdb(duckdb_path.to_path_buf())
                 .load(instance_id)
                 .await,
             "checkpoint should load after external-host user task boundary",

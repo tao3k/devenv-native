@@ -5,7 +5,6 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use async_trait::async_trait;
 
-use crate::gateway::studio::types::SearchHit;
 use crate::link_graph::{LinkGraphDirection, LinkGraphIndex};
 use crate::query_core::context::{GraphBackend, RetrievalBackend};
 use crate::query_core::operators::{
@@ -13,6 +12,7 @@ use crate::query_core::operators::{
 };
 use crate::query_core::types::{WendaoQueryCoreError, WendaoRelation};
 use crate::search::SearchPlaneService;
+use crate::search::contracts::SearchHit;
 
 /// Retrieval backend that delegates to the existing Wendao search plane.
 pub struct SearchPlaneRetrievalBackend {

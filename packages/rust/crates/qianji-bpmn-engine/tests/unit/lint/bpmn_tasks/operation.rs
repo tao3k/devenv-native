@@ -1,4 +1,4 @@
-use super::super::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
+use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
 use qianji_bpmn_engine::{LintIssue, LintReport};
 
 #[test]

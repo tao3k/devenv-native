@@ -1,3 +1,5 @@
+//! Coactivation runtime configuration records for related-node behavior.
+
 use crate::config::constants::{
     DEFAULT_LINK_GRAPH_COACTIVATION_ALPHA_SCALE, DEFAULT_LINK_GRAPH_COACTIVATION_ENABLED,
     DEFAULT_LINK_GRAPH_COACTIVATION_HOP_DECAY_SCALE, DEFAULT_LINK_GRAPH_COACTIVATION_MAX_HOPS,

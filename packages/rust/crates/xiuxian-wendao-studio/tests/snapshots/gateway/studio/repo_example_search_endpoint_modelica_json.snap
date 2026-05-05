@@ -1,0 +1,43 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "example_hits": [
+    {
+      "example": {
+        "example_id": "repo:modelica-gateway-example-search:example:Controllers/Examples/Step.mo",
+        "path": "Controllers/Examples/Step.mo",
+        "repo_id": "modelica-gateway-example-search",
+        "summary": null,
+        "title": "Step"
+      },
+      "hierarchical_uri": "wendao://repo/msl/modelica-gateway-example-search/examples/Controllers:Examples:Step.mo/repo:modelica-gateway-example-search:example:Controllers/Examples/Step.mo",
+      "hierarchy": [
+        "Controllers",
+        "Examples",
+        "Step.mo"
+      ],
+      "projection_page_ids": [
+        "repo:modelica-gateway-example-search:projection:howto:doc:repo:modelica-gateway-example-search:doc:Controllers/UsersGuide/package.mo",
+        "repo:modelica-gateway-example-search:projection:howto:example:repo:modelica-gateway-example-search:example:Controllers/Examples/Step.mo",
+        "repo:modelica-gateway-example-search:projection:reference:module:repo:modelica-gateway-example-search:module:Projectionica.Controllers",
+        "repo:modelica-gateway-example-search:projection:tutorial:doc:repo:modelica-gateway-example-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+        "repo:modelica-gateway-example-search:projection:tutorial:doc:repo:modelica-gateway-example-search:doc:Controllers/UsersGuide/Tutorial/FirstSteps.mo#annotation.documentation"
+      ],
+      "rank": 1,
+      "saliency_score": 0.1,
+      "score": 1.0
+    }
+  ],
+  "examples": [
+    {
+      "example_id": "repo:modelica-gateway-example-search:example:Controllers/Examples/Step.mo",
+      "path": "Controllers/Examples/Step.mo",
+      "repo_id": "modelica-gateway-example-search",
+      "summary": null,
+      "title": "Step"
+    }
+  ],
+  "repo_id": "modelica-gateway-example-search"
+}

@@ -1,6 +1,6 @@
-use xiuxian_llm::llm::backend::{LlmBackendKind, parse_llm_backend_kind};
+use xiuxian_llm::llm::{LlmBackendKind, parse_llm_backend_kind};
 
-pub(super) type LlmBackendMode = LlmBackendKind;
+pub(crate) type LlmBackendMode = LlmBackendKind;
 
 pub(super) fn parse_backend_mode(raw: Option<&str>) -> LlmBackendMode {
     let trimmed = raw.map(str::trim).filter(|value| !value.is_empty());

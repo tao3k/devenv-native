@@ -1,5 +1,6 @@
 mod basics;
 mod exact;
+#[path = "lexical/mod.rs"]
 mod lexical;
 mod regex_score;
 

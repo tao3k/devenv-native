@@ -1,3 +1,5 @@
+//! Public dmn snapshot api contracts for BPMN/DMN engine integration.
+
 use crate::dmn::snapshot_dmn_source_sync;
 use crate::dmn_model_api::{DmnDocumentSnapshot, DmnSourceFile};
 use crate::error::Result;

@@ -3,6 +3,7 @@
 use crate::agent::admission as internal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Test-facing reason why downstream admission rejected a turn.
 pub enum DownstreamAdmissionRejectReason {
     LlmSaturated,
     EmbeddingSaturated,
@@ -10,6 +11,7 @@ pub enum DownstreamAdmissionRejectReason {
 
 impl DownstreamAdmissionRejectReason {
     #[must_use]
+    /// Returns the stable reason token.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::LlmSaturated => "llm_saturated",
@@ -18,6 +20,7 @@ impl DownstreamAdmissionRejectReason {
     }
 
     #[must_use]
+    /// Returns the user-visible rejection message.
     pub const fn user_message(self) -> &'static str {
         match self {
             Self::LlmSaturated => {
@@ -31,6 +34,7 @@ impl DownstreamAdmissionRejectReason {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Test-facing downstream in-flight concurrency snapshot.
 pub struct DownstreamInFlightSnapshot {
     pub max_in_flight: usize,
     pub available_permits: usize,
@@ -39,12 +43,14 @@ pub struct DownstreamInFlightSnapshot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Test-facing runtime snapshot for all downstream resources.
 pub struct DownstreamRuntimeSnapshot {
     pub llm: Option<DownstreamInFlightSnapshot>,
     pub embedding: Option<DownstreamInFlightSnapshot>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Test-facing downstream admission metrics snapshot.
 pub struct DownstreamAdmissionMetricsSnapshot {
     pub total: u64,
     pub admitted: u64,
@@ -55,6 +61,7 @@ pub struct DownstreamAdmissionMetricsSnapshot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Test-facing downstream admission runtime snapshot.
 pub struct DownstreamAdmissionRuntimeSnapshot {
     pub enabled: bool,
     pub llm_reject_threshold_pct: u8,
@@ -63,6 +70,7 @@ pub struct DownstreamAdmissionRuntimeSnapshot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Test-facing downstream admission decision.
 pub struct DownstreamAdmissionDecision {
     pub admitted: bool,
     pub reason: Option<DownstreamAdmissionRejectReason>,
@@ -72,6 +80,7 @@ pub struct DownstreamAdmissionDecision {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Test-facing downstream admission policy.
 pub struct DownstreamAdmissionPolicy {
     pub enabled: bool,
     pub llm_reject_threshold_pct: u8,
@@ -79,16 +88,19 @@ pub struct DownstreamAdmissionPolicy {
 }
 
 #[derive(Default)]
+/// Test-facing downstream admission metrics accumulator.
 pub struct DownstreamAdmissionMetrics {
     inner: internal::DownstreamAdmissionMetrics,
 }
 
 impl DownstreamAdmissionMetrics {
+    /// Records one admission decision.
     pub fn observe(&self, decision: DownstreamAdmissionDecision) {
         self.inner.observe(to_internal_decision(decision));
     }
 
     #[must_use]
+    /// Returns the current metrics snapshot.
     pub fn snapshot(&self) -> DownstreamAdmissionMetricsSnapshot {
         from_internal_metrics_snapshot(self.inner.snapshot())
     }
@@ -96,6 +108,7 @@ impl DownstreamAdmissionMetrics {
 
 impl DownstreamAdmissionPolicy {
     #[must_use]
+    /// Builds policy from an injected environment lookup.
     pub fn from_lookup<F>(lookup: F) -> Self
     where
         F: Fn(&str) -> Option<String>,
@@ -104,6 +117,7 @@ impl DownstreamAdmissionPolicy {
     }
 
     #[must_use]
+    /// Evaluates one runtime snapshot against this policy.
     pub fn evaluate(self, snapshot: DownstreamRuntimeSnapshot) -> DownstreamAdmissionDecision {
         from_internal_decision(
             to_internal_policy(self).evaluate(to_internal_runtime_snapshot(snapshot)),
@@ -111,6 +125,7 @@ impl DownstreamAdmissionPolicy {
     }
 
     #[must_use]
+    /// Builds a runtime snapshot by combining policy and metrics.
     pub fn runtime_snapshot(
         self,
         metrics: DownstreamAdmissionMetricsSnapshot,

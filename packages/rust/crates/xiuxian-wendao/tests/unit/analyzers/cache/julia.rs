@@ -6,7 +6,7 @@ use xiuxian_git_repo::{
 
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
 
-use super::super::build_repository_analysis_cache_key;
+use crate::analyzers::cache::build_repository_analysis_cache_key;
 
 #[test]
 fn build_repository_analysis_cache_key_reuses_julia_identity_for_non_affecting_churn() {

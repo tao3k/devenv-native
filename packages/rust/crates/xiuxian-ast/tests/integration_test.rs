@@ -1,7 +1,5 @@
 //! Cargo entry point for `xiuxian-ast` integration tests.
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[path = "integration/extract.rs"]
 mod extract;
 #[path = "integration/item.rs"]

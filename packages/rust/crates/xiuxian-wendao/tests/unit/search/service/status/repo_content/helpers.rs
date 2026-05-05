@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::search::service::tests::support::*;
+use crate::repo_index::RepoCodeDocument;
+use crate::search::service::tests::support::{service_test_manifest_keyspace, temp_dir};
+use crate::search::{SearchMaintenancePolicy, SearchPlaneService};
 
 pub(super) fn test_service() -> SearchPlaneService {
     let temp_dir = temp_dir();

@@ -185,5 +185,3 @@ async fn context_annotator_deduplicates_normalized_blocks_across_input_keys() {
         "duplicate normalized working history blocks should collapse into one entry: {prompt}"
     );
 }
-
-xiuxian_testing::crate_test_policy_harness!();

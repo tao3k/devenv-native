@@ -1,4 +1,7 @@
+//! Runtime configuration model and resolver boundary for Wendao host behavior.
+
 mod constants;
+#[cfg(feature = "duckdb-config")]
 mod duckdb;
 mod memory;
 mod models;
@@ -21,6 +24,7 @@ pub use constants::{
     LINK_GRAPH_HYBRID_MIN_HITS_ENV, LINK_GRAPH_HYBRID_MIN_TOP_SCORE_ENV,
     LINK_GRAPH_MAX_SOURCES_ENV, LINK_GRAPH_ROWS_PER_SOURCE_ENV,
 };
+#[cfg(feature = "duckdb-config")]
 pub use duckdb::{
     DEFAULT_SEARCH_DUCKDB_DATABASE_PATH, DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS,
     DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,

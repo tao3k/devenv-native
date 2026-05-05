@@ -31,7 +31,7 @@
 //! # Usage
 //!
 //! ```rust,ignore
-//! use xiuxian_llm::runtime::{model_bus, ModelSlotId, ModelInput};
+//! use xiuxian_llm::model_runtime::{model_bus, ModelSlotId, ModelInput};
 //!
 //! // Register a slot
 //! let slot = model_bus().get(&ModelSlotId::new("generic-model"));

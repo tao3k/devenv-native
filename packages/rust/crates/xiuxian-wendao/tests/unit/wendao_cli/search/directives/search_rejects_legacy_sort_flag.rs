@@ -1,4 +1,6 @@
-use super::*;
+use tempfile::TempDir;
+
+use super::{wendao_cmd, write_file};
 
 #[test]
 fn test_wendao_search_rejects_legacy_sort_flag() -> Result<(), Box<dyn std::error::Error>> {

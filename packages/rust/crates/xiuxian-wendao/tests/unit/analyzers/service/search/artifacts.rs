@@ -1,9 +1,9 @@
-use super::super::{
+use super::support::{ok_or_panic, sample_cache_key, sample_search_analysis};
+use crate::analyzers::service::search::{
     build_example_search, build_example_search_with_artifacts, build_import_search,
     build_import_search_with_artifacts, build_module_search, build_module_search_with_artifacts,
     build_symbol_search, build_symbol_search_with_artifacts, repository_search_artifacts,
 };
-use super::support::{ok_or_panic, sample_cache_key, sample_search_analysis};
 use crate::analyzers::{
     ExampleSearchQuery, ImportSearchQuery, ModuleSearchQuery, SymbolSearchQuery,
 };

@@ -1,3 +1,5 @@
+//! Reminder polling and metadata update behavior for Zhixing-Heyi.
+
 use super::ZhixingHeyi;
 use super::constants::{ATTR_TIMER_RECIPIENT, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED};
 use super::schedule_time::render_scheduled_time_local;

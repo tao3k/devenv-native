@@ -1,6 +1,7 @@
 //! Unit tests for registry module.
 
-use super::*;
+use super::RegistryIndex;
+use crate::link_graph::PageIndexNode;
 use std::collections::HashMap;
 use std::sync::Arc;
 

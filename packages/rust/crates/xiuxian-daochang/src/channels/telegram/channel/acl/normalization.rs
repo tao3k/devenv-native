@@ -9,9 +9,6 @@ use crate::channels::managed_commands::{
     SLASH_SCOPE_SESSION_STATUS as TELEGRAM_SLASH_SCOPE_SESSION_STATUS,
 };
 
-use super::super::TelegramSlashCommandRule;
-use super::super::admin_rules::TelegramCommandAdminRule;
-use super::super::identity::{normalize_group_identity, normalize_user_identity};
 use super::types::{
     TELEGRAM_ACL_FIELD_ADMIN_USERS, TELEGRAM_ACL_FIELD_CONTROL_COMMAND_ALLOW_FROM,
     TELEGRAM_ACL_FIELD_GROUP_ALLOW_FROM, TELEGRAM_ACL_FIELD_SLASH_BG_ALLOW_FROM,
@@ -20,6 +17,11 @@ use super::types::{
     TELEGRAM_ACL_FIELD_SLASH_SESSION_FEEDBACK_ALLOW_FROM,
     TELEGRAM_ACL_FIELD_SLASH_SESSION_MEMORY_ALLOW_FROM,
     TELEGRAM_ACL_FIELD_SLASH_SESSION_STATUS_ALLOW_FROM,
+};
+use crate::channels::telegram::channel::TelegramSlashCommandRule;
+use crate::channels::telegram::channel::admin_rules::TelegramCommandAdminRule;
+use crate::channels::telegram::channel::identity::{
+    normalize_group_identity, normalize_user_identity,
 };
 
 pub(in crate::channels::telegram::channel) fn normalize_allowed_user_entries_with_context(

@@ -1,4 +1,4 @@
-use super::super::super::{
+use crate::link_graph::index::{
     LinkGraphDirection, LinkGraphIndex, LinkGraphLinkFilter, LinkGraphRelatedFilter,
 };
 use std::collections::HashSet;

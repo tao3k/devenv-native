@@ -1,4 +1,6 @@
-use super::*;
+use super::VectorStoreSemanticIgnition;
+use crate::link_graph::models::{QuantumAnchorHit, QuantumSemanticSearchRequest};
+use xiuxian_db_store::VectorStore;
 
 fn tempdir_or_panic() -> tempfile::TempDir {
     tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"))

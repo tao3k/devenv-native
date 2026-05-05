@@ -1,4 +1,4 @@
-use super::*;
+use super::{RemediationAction, RemediationConfig, RemediationResult};
 
 #[test]
 fn remediation_config_default() {

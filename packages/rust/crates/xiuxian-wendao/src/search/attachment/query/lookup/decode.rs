@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::AttachmentSearchHit;
 use crate::search::attachment::schema::{hit_json_column, id_column};
+use crate::search::contracts::AttachmentSearchHit;
 
 use super::helpers::{sql_identifier, sql_string_literal, string_column};
 use super::types::{AttachmentCandidate, AttachmentSearchError};

@@ -10,7 +10,11 @@
 //! - Legacy syntax detection
 //! - Health score calculation
 
-use xiuxian_wendao::zhenfa_router::native::semantic_check::test_api::*;
+use xiuxian_wendao::zhenfa_router::native::semantic_check::test_api::{
+    NodeStatus, SemanticIssue, build_file_reports, extract_function_args, extract_hash_references,
+    extract_id_references, generate_suggested_id, issue_type_to_code, validate_contract,
+    xml_escape,
+};
 
 // =============================================================================
 // ID Reference Extraction Tests

@@ -1,3 +1,5 @@
+//! Gateway artifact fixtures for linked builtin Julia services.
+
 use serde_json::Value;
 use xiuxian_wendao_core::artifacts::PluginArtifactPayload;
 use xiuxian_wendao_julia::compatibility::link_graph::{

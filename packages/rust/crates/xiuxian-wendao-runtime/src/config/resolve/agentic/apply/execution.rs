@@ -1,4 +1,4 @@
-use super::helpers::{resolve_bool, resolve_f64, resolve_non_empty_string, resolve_usize};
+use super::scalar::{resolve_bool, resolve_f64, resolve_non_empty_string, resolve_usize};
 use crate::config::LinkGraphAgenticRuntimeConfig;
 use crate::config::constants::{
     LINK_GRAPH_AGENTIC_EXECUTION_AGENT_ID_ENV, LINK_GRAPH_AGENTIC_EXECUTION_EVIDENCE_PREFIX_ENV,

@@ -1,7 +1,7 @@
 use tokio::sync::mpsc;
 
-use super::super::foreground::DiscordForegroundRuntime;
-use super::super::telemetry::emit_runtime_snapshot;
+use crate::channels::discord::runtime::foreground::DiscordForegroundRuntime;
+use crate::channels::discord::runtime::telemetry::emit_runtime_snapshot;
 use crate::channels::traits::ChannelMessage;
 use crate::jobs::JobCompletion;
 

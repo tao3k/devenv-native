@@ -1,4 +1,4 @@
-use super::*;
+use crate::{NotificationPayload, NotificationService, WebhookConfig, ZhenfaSignal};
 
 #[test]
 fn notification_service_new() {

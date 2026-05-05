@@ -1,3 +1,5 @@
+//! HTTP gateway request handlers.
+
 use axum::Extension;
 use axum::Json;
 use axum::extract::State;

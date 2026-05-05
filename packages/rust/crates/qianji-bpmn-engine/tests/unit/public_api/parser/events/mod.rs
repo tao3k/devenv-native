@@ -1,4 +1,4 @@
-use super::super::fixture_source;
+use crate::public_api::fixture_source;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{BpmnEngineError, BpmnPackage, BpmnParseOptions, parse_bpmn_package};
 

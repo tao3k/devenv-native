@@ -1,3 +1,5 @@
+//! Public document parsing API for Markdown metadata envelopes.
+
 use super::types::{DocumentCore, DocumentFormat, MarkdownDocument};
 use crate::frontmatter::split_frontmatter;
 use crate::markdown_structure::parse_markdown_document_metadata;

@@ -1,3 +1,5 @@
+//! Public dmn model document dmndi contracts for BPMN/DMN engine integration.
+
 /// Snapshot of one top-level DMN `dmndi:DMNDI` block.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnDmndiSnapshot {

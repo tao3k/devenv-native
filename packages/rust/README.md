@@ -24,6 +24,15 @@ cargo test -p xiuxian-wendao --lib
 uv sync --reinstall-package xiuxian-core-rs
 ```
 
+## Project Harness Boundary
+
+Rust project-policy gates should use `rust-lang-project-harness` through
+dev-dependencies and test-only mounts. The retired repo-local testing crate has
+been removed; scenario, contract, and performance helpers now belong to explicit
+package-owned or external harness surfaces.
+Project-policy gates should not add new dependencies on retired repo-local
+testing crates.
+
 ## Crates
 
 | Crate                    | Purpose                                                                  | Type    |

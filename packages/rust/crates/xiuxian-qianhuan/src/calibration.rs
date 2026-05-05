@@ -1,3 +1,5 @@
+//! Calibration primitives for adversarial prompt-alignment checks.
+
 use crate::persona::PersonaProfile;
 use serde::{Deserialize, Serialize};
 

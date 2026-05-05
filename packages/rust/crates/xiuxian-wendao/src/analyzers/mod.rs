@@ -9,19 +9,24 @@
 //! - plugin registration and dispatch boundaries
 
 /// Analysis cache layer for repository intelligence results.
+#[path = "cache/mod.rs"]
 mod cache;
 /// Configuration types for repository registration.
+#[path = "config/mod.rs"]
 mod config;
 /// Error types for repository intelligence operations.
 mod errors;
 /// Language-specific plugin guidance; plugin-specific public APIs live in the
 /// plugin crates.
+#[path = "languages/mod.rs"]
 mod languages;
 /// Plugin trait definitions and analysis context types.
 mod plugin;
 /// Projection layer for transforming analysis records into consumable outputs.
+#[path = "projection/mod.rs"]
 mod projection;
 /// Query request and response contracts.
+#[path = "query/mod.rs"]
 mod query;
 /// Normalized record types for repository understanding.
 mod records;
@@ -31,15 +36,16 @@ mod repo_source;
 /// Saliency scoring for symbol and module importance.
 mod saliency;
 /// Analysis orchestration and repository processing services.
+#[path = "service/mod.rs"]
 mod service;
 /// Verification auditing (skeptic) for documentation coverage.
 mod skeptic;
 
-#[cfg(feature = "zhenfa-router")]
-pub(crate) use cache::build_repository_analysis_cache_key;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
+pub use cache::build_repository_analysis_cache_key;
+#[cfg(feature = "search-runtime")]
 pub use cache::load_cached_repository_analysis_for_revision;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "search-runtime")]
 pub(crate) use cache::{
     FingerprintMode, RepositoryAnalysisValkeyScope, ValkeyAnalysisCache, analysis_fingerprint_mode,
     change_affects_analysis_identity, plugin_ids_support_semantic_owner_reuse,
@@ -50,7 +56,7 @@ pub use cache::{
     load_cached_repository_search_result, store_cached_repository_analysis,
     store_cached_repository_search_result,
 };
-#[cfg(feature = "studio")]
+#[cfg(feature = "search-runtime")]
 pub use cache::{
     RepositorySearchArtifacts, load_cached_repository_search_artifacts,
     store_cached_repository_search_artifacts,
@@ -127,14 +133,14 @@ pub use records::{
     ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind, RepositoryRecord, SymbolRecord,
 };
 pub use registry::PluginRegistry;
-pub(crate) use repo_source::resolve_registered_repository_source;
+pub use repo_source::resolve_registered_repository_source;
 pub use saliency::compute_repository_saliency;
 #[cfg(all(feature = "zhenfa-router", test))]
 pub(crate) use service::DocsDocumentSegmentResult;
 #[cfg(feature = "search-runtime")]
-pub(crate) use service::canonical_import_query_text;
-#[cfg(feature = "studio")]
-pub(crate) use service::{
+pub use service::canonical_import_query_text;
+#[cfg(feature = "search-runtime")]
+pub use service::{
     CachedRepositoryAnalysis, RepoAnalysisFallbackContract,
     analyze_registered_repository_cached_bundle_with_registry,
     analyze_registered_repository_target_file_with_registry,
@@ -149,18 +155,21 @@ pub use service::{
     DocsContractDefaultValue, DocsContractParamSnapshot, DocsDocumentToolArgs,
     DocsHttpContractSnapshot, DocsNavigationOptions, DocsNavigationToolArgs,
     DocsPageIndexTreeToolArgs, DocsRetrievalContextOptions, DocsRetrievalContextToolArgs,
-    DocsSearchToolArgs, DocsToolContractSnapshot, DocsToolService,
-    JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
-    JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,
-    JULIA_ARROW_TRACE_ID_COLUMN, JULIA_ARROW_VECTOR_SCORE_COLUMN, docs_capability_contract_assets,
-    docs_capability_contract_snapshot, docs_capability_schema_snapshot, julia_arrow_request_schema,
-    julia_arrow_response_schema,
+    DocsSearchToolArgs, DocsToolContractSnapshot, DocsToolService, docs_capability_contract_assets,
+    docs_capability_contract_snapshot, docs_capability_schema_snapshot,
 };
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use service::{DocsToolRuntime, DocsToolRuntimeHandle};
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 pub(crate) use service::{
     IncrementalApplyContext, analyze_changed_files, apply_incremental_plugin_outputs,
+};
+#[cfg(feature = "runtime-transport")]
+pub use service::{
+    JULIA_ARROW_ANALYZER_SCORE_COLUMN, JULIA_ARROW_DOC_ID_COLUMN, JULIA_ARROW_EMBEDDING_COLUMN,
+    JULIA_ARROW_FINAL_SCORE_COLUMN, JULIA_ARROW_QUERY_EMBEDDING_COLUMN,
+    JULIA_ARROW_TRACE_ID_COLUMN, JULIA_ARROW_VECTOR_SCORE_COLUMN, julia_arrow_request_schema,
+    julia_arrow_response_schema,
 };
 pub use service::{
     analyze_registered_repository, analyze_registered_repository_cached_with_registry,

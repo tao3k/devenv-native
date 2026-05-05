@@ -1,3 +1,5 @@
+//! Rerank score types shared by Wendao Flight clients and servers.
+
 /// One scored rerank candidate produced by the shared Rust-owned scorer.
 #[cfg(feature = "transport")]
 #[derive(Debug, Clone, PartialEq)]

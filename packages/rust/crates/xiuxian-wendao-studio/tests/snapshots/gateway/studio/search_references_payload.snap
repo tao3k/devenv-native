@@ -1,0 +1,33 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/src/studio/../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
+expression: value
+---
+{
+  "hitCount": 1,
+  "hits": [
+    {
+      "column": 20,
+      "crateName": "demo",
+      "language": "rust",
+      "line": 6,
+      "lineText": "let _service = AlphaService { ready: true };",
+      "name": "AlphaService",
+      "navigationTarget": {
+        "category": "doc",
+        "column": 20,
+        "line": 6,
+        "lineEnd": 6,
+        "path": "packages/rust/crates/demo/src/lib.rs",
+        "projectName": "kernel",
+        "rootLabel": "packages"
+      },
+      "path": "packages/rust/crates/demo/src/lib.rs",
+      "projectName": "kernel",
+      "rootLabel": "packages",
+      "score": 0.85
+    }
+  ],
+  "query": "AlphaService",
+  "selectedScope": "references"
+}

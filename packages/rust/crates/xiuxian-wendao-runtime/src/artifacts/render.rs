@@ -1,4 +1,8 @@
+//! Artifact rendering helpers for runtime package outputs.
+
 use xiuxian_wendao_core::artifacts::{PluginArtifactPayload, PluginArtifactSelector};
+
+use super::{RuntimeArtifactIdRef, RuntimePluginIdRef};
 
 /// Render a resolved plugin artifact as pretty TOML via a runtime-owned resolver.
 ///
@@ -6,8 +10,8 @@ use xiuxian_wendao_core::artifacts::{PluginArtifactPayload, PluginArtifactSelect
 ///
 /// Returns an error when the resolved artifact cannot be serialized into TOML.
 pub fn render_plugin_artifact_toml_with<F>(
-    plugin_id: &str,
-    artifact_id: &str,
+    plugin_id: RuntimePluginIdRef<'_>,
+    artifact_id: RuntimeArtifactIdRef<'_>,
     resolve: F,
 ) -> Result<Option<String>, toml::ser::Error>
 where

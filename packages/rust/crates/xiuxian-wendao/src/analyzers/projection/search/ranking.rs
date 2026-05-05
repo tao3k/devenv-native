@@ -1,5 +1,5 @@
 use crate::analyzers::RepositoryAnalysisOutput;
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 use crate::analyzers::cache::RepositorySearchArtifacts;
 use crate::analyzers::{
     ProjectedPageRecord, ProjectionPageKind, RepoProjectedPageSearchQuery,
@@ -9,7 +9,7 @@ use crate::analyzers::{
 use super::heuristic::heuristic_projected_page_matches;
 #[cfg(feature = "repo-lexical-index")]
 use super::indexed::search_indexed_projected_pages;
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 use super::indexed::search_projected_pages_with_index;
 use super::lexical::lexical_projected_page_matches;
 use super::options::projected_page_document_search_options;
@@ -50,8 +50,8 @@ pub fn build_repo_projected_page_search_with_options(
 }
 
 #[must_use]
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) fn build_repo_projected_page_search_with_artifacts(
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub fn build_repo_projected_page_search_with_artifacts(
     query: &RepoProjectedPageSearchQuery,
     analysis: &RepositoryAnalysisOutput,
     artifacts: &RepositorySearchArtifacts,
@@ -123,8 +123,8 @@ pub(super) fn ranked_projected_page_matches(
     lexical_projected_page_matches(query, kind_filter, pages.as_slice(), limit, options)
 }
 
-#[cfg(all(feature = "studio", feature = "repo-lexical-index"))]
-pub(crate) fn ranked_projected_page_matches_with_artifacts(
+#[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+pub fn ranked_projected_page_matches_with_artifacts(
     query: &str,
     kind_filter: Option<ProjectionPageKind>,
     artifacts: &RepositorySearchArtifacts,

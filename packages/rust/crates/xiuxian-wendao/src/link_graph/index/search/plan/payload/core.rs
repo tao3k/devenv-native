@@ -1,7 +1,7 @@
-use super::super::super::super::LinkGraphIndex;
 use super::policy::{LinkGraphPolicyDecision, evaluate_link_graph_policy};
 use super::types::{PlannedPayloadBuildContext, PlannedPayloadSearchRequest};
 use crate::link_graph::agentic::{LinkGraphSuggestedLink, LinkGraphSuggestedLinkState};
+use crate::link_graph::index::LinkGraphIndex;
 use crate::link_graph::runtime_config::resolve_link_graph_agentic_runtime;
 use crate::link_graph::valkey_suggested_link_recent_latest;
 use crate::link_graph::{

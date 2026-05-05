@@ -1,3 +1,5 @@
+//! Transport client cache and route decoding for Julia parser summaries.
+
 use std::collections::HashMap;
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -20,16 +22,18 @@ use xiuxian_wendao_runtime::transport::{
 use super::contract::{
     validate_julia_parser_summary_request_batches, validate_julia_parser_summary_response_batches,
 };
+#[cfg(test)]
+pub(crate) use super::route::JULIA_FILE_SUMMARY_ROUTE;
+pub(crate) use super::route::ParserSummaryRouteKind;
 use crate::arrow_metadata::attach_record_batch_metadata;
 use crate::compatibility::link_graph::julia_parser_summary_provider_selector;
 
 const JULIA_PLUGIN_ID: &str = "julia";
 const PARSER_SUMMARY_TRANSPORT_KEY: &str = "parser_summary_transport";
-const FILE_SUMMARY_TRANSPORT_KEY: &str = "file_summary";
-const ROOT_SUMMARY_TRANSPORT_KEY: &str = "root_summary";
 const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
 const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK: &str = "http://127.0.0.1:41081";
 const PARSER_SUMMARY_BASE_URL_ENV: &str = "WENDAO_PARSER_SUMMARY_BASE_URL";
+const DEFAULT_JULIA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS: u64 = 1;
 
 fn resolve_parser_summary_base_url() -> String {
     std::env::var(PARSER_SUMMARY_BASE_URL_ENV)
@@ -40,8 +44,6 @@ fn resolve_parser_summary_base_url() -> String {
 const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 120;
 
 pub(crate) const JULIA_PARSER_SUMMARY_SCHEMA_VERSION: &str = "v3";
-pub(crate) const JULIA_FILE_SUMMARY_ROUTE: &str = "/wendao/code-parser/julia/file-summary";
-pub(crate) const JULIA_ROOT_SUMMARY_ROUTE: &str = "/wendao/code-parser/julia/root-summary";
 
 static LINKED_JULIA_PARSER_SUMMARY_BASE_URL: OnceLock<String> = OnceLock::new();
 static JULIA_PARSER_SUMMARY_CLIENT_CACHE: OnceLock<
@@ -49,12 +51,6 @@ static JULIA_PARSER_SUMMARY_CLIENT_CACHE: OnceLock<
 > = OnceLock::new();
 #[cfg(test)]
 static NEXT_JULIA_PARSER_SUMMARY_CLIENT_SLOT: AtomicUsize = AtomicUsize::new(1);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ParserSummaryRouteKind {
-    FileSummary,
-    RootSummary,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct ParserSummaryTransportCacheKey {
@@ -70,29 +66,6 @@ struct CachedParserSummaryFlightClient {
     #[cfg(test)]
     slot_id: usize,
     client: NegotiatedFlightTransportClient,
-}
-
-impl ParserSummaryRouteKind {
-    pub(crate) fn option_key(self) -> &'static str {
-        match self {
-            Self::FileSummary => FILE_SUMMARY_TRANSPORT_KEY,
-            Self::RootSummary => ROOT_SUMMARY_TRANSPORT_KEY,
-        }
-    }
-
-    pub(crate) fn route(self) -> &'static str {
-        match self {
-            Self::FileSummary => JULIA_FILE_SUMMARY_ROUTE,
-            Self::RootSummary => JULIA_ROOT_SUMMARY_ROUTE,
-        }
-    }
-
-    pub(crate) fn summary_kind(self) -> &'static str {
-        match self {
-            Self::FileSummary => "julia_file_summary",
-            Self::RootSummary => "julia_root_summary",
-        }
-    }
 }
 
 /// Register a process-local Julia parser-summary base URL for linked test
@@ -125,6 +98,7 @@ pub fn set_linked_julia_parser_summary_base_url_for_tests(
 }
 
 #[cfg(test)]
+/// Clears the parser-summary transport cache between tests.
 pub fn clear_julia_parser_summary_transport_cache_for_tests() {
     julia_parser_summary_client_cache()
         .lock()
@@ -269,6 +243,9 @@ fn parser_summary_transport_error_requires_client_refresh(error: &RepoIntelligen
         error,
         RepoIntelligenceError::AnalysisFailed { message }
             if message.contains("Service was not ready: transport error")
+                || message.contains("runtime dropped the dispatch task")
+                || message.contains("DispatchGone")
+                || message.contains("Transport, Closed")
     )
 }
 
@@ -550,7 +527,7 @@ fn resolve_parser_summary_transport_options(
             health_route: None,
             schema_version: Some(JULIA_PARSER_SUMMARY_SCHEMA_VERSION.to_string()),
             timeout_secs: None,
-            max_in_flight_requests: None,
+            max_in_flight_requests: Some(DEFAULT_JULIA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS),
         }));
     }
 
@@ -562,7 +539,7 @@ fn resolve_parser_summary_transport_options(
             health_route: None,
             schema_version: Some(JULIA_PARSER_SUMMARY_SCHEMA_VERSION.to_string()),
             timeout_secs: None,
-            max_in_flight_requests: None,
+            max_in_flight_requests: Some(DEFAULT_JULIA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS),
         }));
     }
 

@@ -1,4 +1,4 @@
-use super::*;
+use super::ArtifactObserverBuilder;
 
 #[test]
 fn builder_creates_default_observer() {

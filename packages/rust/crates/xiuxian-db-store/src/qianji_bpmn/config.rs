@@ -1,3 +1,5 @@
+//! Runtime configuration for Qianji BPMN `DuckDB` workflow-state storage.
+
 use std::path::{Path, PathBuf};
 
 use crate::duckdb::{DuckDbDatabasePath, DuckDbExecutionConfig, DuckDbRuntimeConfig};

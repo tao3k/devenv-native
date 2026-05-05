@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use crate::analyzers::PluginRegistry;
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
-use crate::gateway::studio::test_support::{commit_all, init_git_repository};
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
+use crate::test_support::{commit_all, init_git_repository};
 
 pub(crate) fn repo(id: &str, path: &str) -> RegisteredRepository {
     RegisteredRepository {

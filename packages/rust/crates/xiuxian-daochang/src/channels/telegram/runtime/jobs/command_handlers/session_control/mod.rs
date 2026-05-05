@@ -1,3 +1,5 @@
+//! Telegram session-control command handler branch.
+
 mod agenda;
 mod events;
 mod help;

@@ -1,3 +1,5 @@
+//! Public dmn model decision requirement contracts for BPMN/DMN engine integration.
+
 use super::Arc;
 
 /// One bounded executable DMN information-requirement reference.

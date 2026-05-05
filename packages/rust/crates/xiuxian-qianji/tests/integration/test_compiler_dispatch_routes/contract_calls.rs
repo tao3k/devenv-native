@@ -1,4 +1,8 @@
-use super::{build_compiler, manifests::*};
+use super::build_compiler;
+use super::manifests::{
+    CLI_CALL_MANIFEST, CLI_CALL_UNKNOWN_FLAG_MANIFEST, HTTP_CALL_INVALID_PATH_MANIFEST,
+    HTTP_CALL_MANIFEST,
+};
 
 #[test]
 fn compiler_dispatches_http_call_task_via_leaf_lane() -> Result<(), Box<dyn std::error::Error>> {

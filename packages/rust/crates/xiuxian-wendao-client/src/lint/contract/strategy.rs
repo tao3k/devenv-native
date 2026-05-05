@@ -1,5 +1,3 @@
-use super::rule::RuleContract;
-use super::validation::{validate_optional_field, validate_required_field};
 use crate::lint::diagnostic::DiagnosticFacts;
 use anyhow::{Context, Result};
 use serde::Deserialize;
@@ -84,38 +82,4 @@ where
             .with_context(|| format!("unknown markdown lint {field} `{value}`"))
     })
     .transpose()
-}
-
-pub(super) fn validate_rule_contract(key: &str, contract: &RuleContract) -> Result<()> {
-    validate_required_field(
-        key,
-        "problem",
-        contract.problem.is_some(),
-        contract.problem_strategy.is_some(),
-    )?;
-    validate_required_field(
-        key,
-        "detail",
-        contract.detail.is_some(),
-        contract.detail_strategy.is_some(),
-    )?;
-    validate_optional_field(
-        key,
-        "found",
-        contract.found.is_some(),
-        contract.found_strategy.is_some(),
-    )?;
-    validate_optional_field(
-        key,
-        "expected",
-        contract.expected.is_some(),
-        contract.expected_strategy.is_some(),
-    )?;
-    validate_optional_field(
-        key,
-        "tip",
-        contract.tip.is_some(),
-        contract.tip_strategy.is_some(),
-    )?;
-    Ok(())
 }

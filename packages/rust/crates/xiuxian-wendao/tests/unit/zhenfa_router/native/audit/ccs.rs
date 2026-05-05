@@ -1,6 +1,6 @@
 //! Unit tests for ccs module.
 
-use super::*;
+use super::{CCS_THRESHOLD, audit_search_payload, evaluate_alignment};
 
 #[test]
 fn test_ccs_perfect_alignment() {

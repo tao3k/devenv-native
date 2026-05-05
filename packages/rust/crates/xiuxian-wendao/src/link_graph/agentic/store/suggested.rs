@@ -5,13 +5,13 @@ use crate::link_graph::runtime_config::{
     resolve_link_graph_cache_runtime,
 };
 
-use super::super::keys::suggested_link_stream_key;
-use super::super::types::{
+use super::common::{push_stream_entry, redis_client};
+use super::normalize::{normalize_record_for_read, normalize_request};
+use crate::link_graph::agentic::keys::suggested_link_stream_key;
+use crate::link_graph::agentic::types::{
     LINK_GRAPH_SUGGESTED_LINK_SCHEMA_VERSION, LinkGraphSuggestedLink,
     LinkGraphSuggestedLinkRequest, LinkGraphSuggestedLinkState,
 };
-use super::common::{push_stream_entry, redis_client};
-use super::normalize::{normalize_record_for_read, normalize_request};
 
 /// Append one suggested-link proposal to Valkey passive stream.
 ///

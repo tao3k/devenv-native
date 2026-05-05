@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 060_tree_scope_structural_edges_restrict_graph_filters [tree_scope_filters]: structural edges restrict graph filters"
 expression: result
 info:

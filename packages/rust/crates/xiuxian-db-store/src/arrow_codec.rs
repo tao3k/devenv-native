@@ -1,3 +1,5 @@
+//! Arrow IPC encoding helpers for record-batch payload transport.
+
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::Arc;

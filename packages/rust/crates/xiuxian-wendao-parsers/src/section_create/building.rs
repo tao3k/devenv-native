@@ -1,3 +1,5 @@
+//! Markdown section creation rendering.
+
 use std::fmt::Write;
 
 use super::types::BuildSectionOptions;

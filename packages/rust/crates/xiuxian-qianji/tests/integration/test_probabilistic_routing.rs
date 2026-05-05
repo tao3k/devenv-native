@@ -23,5 +23,3 @@ async fn test_probabilistic_routing_from_resource() -> Result<(), Box<dyn std::e
     assert_eq!(result["BranchA"], "done");
     Ok(())
 }
-
-xiuxian_testing::crate_test_policy_harness!();

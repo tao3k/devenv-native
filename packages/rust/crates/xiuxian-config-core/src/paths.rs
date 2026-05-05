@@ -1,3 +1,5 @@
+//! Project-local config, cache, data, and root path resolution helpers.
+
 use std::path::{Path, PathBuf};
 
 /// Resolve one optional env-style path-like value against `project_root`.

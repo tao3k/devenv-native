@@ -1,9 +1,10 @@
-use super::*;
+use std::fs;
+
+use tempfile::TempDir;
+use xiuxian_wendao::{SyncEngine, SyncManifest};
 
 #[test]
 fn test_compute_diff() -> Result<(), Box<dyn std::error::Error>> {
-    use xiuxian_wendao::{SyncEngine, SyncManifest};
-
     let temp_dir = TempDir::new()?;
 
     // Create test files

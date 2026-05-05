@@ -1,0 +1,46 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "checked_at": "[checked-at]",
+  "checkout_path": "[checkout-path]",
+  "checkout_state": "validated",
+  "drift_state": "not_applicable",
+  "health_state": "healthy",
+  "last_fetched_at": null,
+  "mirror_path": "[mirror-path]",
+  "mirror_revision": null,
+  "mirror_state": "not_applicable",
+  "mode": "status",
+  "refresh": "fetch",
+  "repo_id": "gateway-sync",
+  "revision": "[revision]",
+  "source_kind": "local_checkout",
+  "staleness_state": "not_applicable",
+  "status_summary": {
+    "attention_required": false,
+    "drift_state": "not_applicable",
+    "freshness": {
+      "checked_at": "[checked-at]",
+      "last_fetched_at": null,
+      "staleness_state": "not_applicable"
+    },
+    "health_state": "healthy",
+    "lifecycle": {
+      "checkout_ready": true,
+      "checkout_state": "validated",
+      "mirror_ready": false,
+      "mirror_state": "not_applicable",
+      "source_kind": "local_checkout"
+    },
+    "revisions": {
+      "aligned_with_mirror": false,
+      "checkout_revision": "[revision]",
+      "mirror_revision": null,
+      "tracking_revision": null
+    }
+  },
+  "tracking_revision": null,
+  "upstream_url": "[upstream-url]"
+}

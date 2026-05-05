@@ -1,7 +1,10 @@
-use super::*;
-
 #[cfg(feature = "duckdb")]
-use crate::test_exports::BpmnStatusCliCommand;
+use super::{
+    BpmnCliCheckpointBackend, BpmnCliCommand, BpmnStatusCliCommand, must_ok, must_some,
+    parse_bpmn_command, to_args,
+};
+#[cfg(not(feature = "duckdb"))]
+use super::{parse_bpmn_command, to_args};
 
 #[cfg(not(feature = "duckdb"))]
 #[test]

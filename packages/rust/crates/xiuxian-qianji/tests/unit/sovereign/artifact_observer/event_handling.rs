@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    ArtifactObserver, ArtifactObserverConfig, NodeTransitionPhase, NoopWendaoIngestionSink,
+    SwarmEvent,
+};
 
 #[test]
 fn observer_default_creation() {

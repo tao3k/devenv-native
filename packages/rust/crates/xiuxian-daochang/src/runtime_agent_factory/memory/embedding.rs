@@ -1,5 +1,5 @@
 use crate::env_parse::{parse_positive_u64_from_env, parse_positive_usize_from_env};
-use crate::runtime_agent_factory::shared::non_empty_env;
+use crate::runtime_agent_factory::env_lookup::non_empty_env;
 use crate::{MemoryConfig, RuntimeSettings};
 
 pub(super) fn apply_memory_runtime_embedding_settings(

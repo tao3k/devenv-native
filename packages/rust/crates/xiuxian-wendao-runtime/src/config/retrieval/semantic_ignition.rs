@@ -1,3 +1,5 @@
+//! Semantic ignition retrieval configuration records for Wendao search behavior.
+
 use crate::config::constants::{
     DEFAULT_LINK_GRAPH_SEMANTIC_IGNITION_BACKEND, LINK_GRAPH_SEMANTIC_IGNITION_BACKEND_ENV,
     LINK_GRAPH_SEMANTIC_IGNITION_EMBEDDING_BASE_URL_ENV,

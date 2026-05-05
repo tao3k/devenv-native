@@ -1,0 +1,32 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "candidateCount": 2,
+  "definition": {
+    "crateName": "demo",
+    "language": "python",
+    "lineEnd": 2,
+    "lineStart": 1,
+    "name": "AlphaService",
+    "path": "packages/python/demo/service.py",
+    "projectName": "kernel",
+    "rootLabel": "packages",
+    "score": 1.0,
+    "signature": "class AlphaService:"
+  },
+  "navigationTarget": {
+    "category": "doc",
+    "column": null,
+    "line": 1,
+    "lineEnd": 2,
+    "path": "packages/python/demo/service.py",
+    "projectName": "kernel",
+    "rootLabel": "packages"
+  },
+  "query": "AlphaService",
+  "selectedScope": "definition",
+  "sourceLine": 4,
+  "sourcePath": "packages/notes/index.md"
+}

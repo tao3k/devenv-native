@@ -1,3 +1,5 @@
+//! Explicit-topology DTOs for graph-structural projection.
+
 use std::collections::HashSet;
 
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;

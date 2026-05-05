@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::gateway::studio::types::AstSearchHit;
 use crate::search::SearchFileFingerprint;
+use crate::search::contracts::AstSearchHit;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct LocalSymbolPartitionBuildPlan {
@@ -22,9 +22,9 @@ pub(crate) struct LocalSymbolWriteResult {
     pub(crate) fragment_count: u64,
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum LocalSymbolBuildError {
+pub enum LocalSymbolBuildError {
     #[error("local symbol build was not started for fingerprint `{0}`")]
     BuildRejected(String),
     #[error(transparent)]

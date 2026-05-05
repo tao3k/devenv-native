@@ -11,9 +11,9 @@ mod tests;
 mod types;
 mod writes;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) use config::SearchPlaneCacheConfig;
-pub(crate) use config::SearchPlaneCacheTtl;
+pub use config::SearchPlaneCacheTtl;
 pub(crate) use fingerprints::SearchPlaneFileFingerprintScope;
-pub(crate) use runtime::resolve_search_plane_cache_connection_target;
+pub use runtime::resolve_search_plane_cache_connection_target;
 pub(crate) use types::SearchPlaneCache;

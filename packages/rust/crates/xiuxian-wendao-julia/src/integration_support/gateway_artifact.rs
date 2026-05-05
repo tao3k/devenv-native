@@ -1,3 +1,5 @@
+//! Fixture payloads for Julia gateway artifact integration checks.
+
 use crate::compatibility::link_graph::{
     DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
     JULIA_DEPLOYMENT_ARTIFACT_ID, JULIA_PLUGIN_ID,

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use xiuxian_daochang::{RuntimeSettings, build_agent, run_http};
+use crate::{RuntimeSettings, build_agent, run_http};
 
 pub(crate) async fn run_gateway_mode(
     bind_addr: String,

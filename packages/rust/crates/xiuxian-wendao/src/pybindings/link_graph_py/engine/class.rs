@@ -1,5 +1,5 @@
 use crate::link_graph::{LinkGraphDirection, LinkGraphIndex};
-use pyo3::prelude::*;
+use pyo3::{PyResult, pyclass, pymethods};
 use std::path::PathBuf;
 
 /// Python wrapper around Rust markdown link-graph index.

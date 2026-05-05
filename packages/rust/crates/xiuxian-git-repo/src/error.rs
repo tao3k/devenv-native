@@ -1,3 +1,5 @@
+//! Error taxonomy for repository substrate operations.
+
 use thiserror::Error;
 
 /// Stable error classification for repository substrate operations.

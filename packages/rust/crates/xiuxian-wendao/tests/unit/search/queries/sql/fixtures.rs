@@ -16,8 +16,8 @@ use crate::analyzers::{
     ExampleRecord, ImportKind, ImportRecord, ModuleRecord, RepoSymbolKind,
     RepositoryAnalysisOutput, SymbolRecord,
 };
-use crate::gateway::studio::types::{AstSearchHit, ReferenceSearchHit, StudioNavigationTarget};
 use crate::repo_index::RepoCodeDocument;
+use crate::search::contracts::{AstSearchHit, ReferenceSearchHit, StudioNavigationTarget};
 use crate::search::queries::sql::provider::metadata::StudioSqlFlightMetadata;
 use crate::search::{
     BeginBuildDecision, SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace,

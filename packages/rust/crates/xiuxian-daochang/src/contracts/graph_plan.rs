@@ -1,3 +1,5 @@
+//! Graph-planning contract payloads for execution routing.
+
 use serde::{Deserialize, Serialize};
 
 use super::{OmegaFallbackPolicy, OmegaRoute};

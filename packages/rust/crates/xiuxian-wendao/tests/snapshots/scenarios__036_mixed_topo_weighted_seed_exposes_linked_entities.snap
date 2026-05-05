@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 036_mixed_topo_weighted_seed_exposes_linked_entities [mixed_topology]: weighted seed exposes linked entities"
 expression: result
 info:

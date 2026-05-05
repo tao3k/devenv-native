@@ -1,3 +1,5 @@
+//! Transport negotiation policy for Wendao client bindings.
+
 use xiuxian_db_store::EngineRecordBatch;
 use xiuxian_wendao_core::{capabilities::PluginCapabilityBinding, transport::PluginTransportKind};
 

@@ -1,6 +1,7 @@
 mod common;
 mod decay;
 mod read;
+#[path = "write/mod.rs"]
 mod write;
 
 pub use decay::{valkey_saliency_decay_all, valkey_saliency_decay_all_with_valkey};

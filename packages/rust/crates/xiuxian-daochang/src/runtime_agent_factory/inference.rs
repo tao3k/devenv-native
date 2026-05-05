@@ -1,8 +1,8 @@
 use anyhow::{Result, anyhow};
-use xiuxian_llm::embedding::backend::parse_embedding_backend_kind;
+use xiuxian_llm::embedding::parse_embedding_backend_kind;
 
 use crate::env_parse::parse_bool_from_env;
-use crate::runtime_agent_factory::shared::non_empty_env;
+use crate::runtime_agent_factory::env_lookup::non_empty_env;
 use crate::runtime_agent_factory::types::RuntimeEmbeddingBackendMode;
 use crate::{LITELLM_DEFAULT_URL, RuntimeSettings, ToolServerEntry};
 

@@ -4,7 +4,7 @@
 //! runtime-agent implementation details internal to the crate.
 
 use anyhow::Result;
-use xiuxian_llm::embedding::backend::EmbeddingBackendKind;
+use xiuxian_llm::embedding::EmbeddingBackendKind;
 
 use crate::runtime_agent_factory;
 use crate::{MemoryConfig, RuntimeSettings, ToolServerEntry};

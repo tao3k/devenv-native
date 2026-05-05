@@ -1,4 +1,6 @@
-use super::*;
+use super::{
+    EpistemeLoadReport, EpistemePolicyQueryReport, SemanticCheckResult, format_result_as_xml,
+};
 
 #[test]
 fn format_result_as_xml_includes_loaded_episteme_summary() {

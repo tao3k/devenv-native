@@ -1,3 +1,5 @@
+//! Server-side route provider traits and stream aliases for Wendao Flight.
+
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -18,14 +20,14 @@ use crate::transport::query_contract::{
     score_rerank_request_batch_with_weights,
 };
 
-pub(super) type FlightDataStream = Pin<Box<dyn Stream<Item = Result<FlightData, Status>> + Send>>;
-pub(super) type HandshakeStream =
+pub(crate) type FlightDataStream = Pin<Box<dyn Stream<Item = Result<FlightData, Status>> + Send>>;
+pub(crate) type HandshakeStream =
     Pin<Box<dyn Stream<Item = Result<HandshakeResponse, Status>> + Send>>;
-pub(super) type PutResultStream = Pin<Box<dyn Stream<Item = Result<PutResult, Status>> + Send>>;
-pub(super) type ActionResultStream =
+pub(crate) type PutResultStream = Pin<Box<dyn Stream<Item = Result<PutResult, Status>> + Send>>;
+pub(crate) type ActionResultStream =
     Pin<Box<dyn Stream<Item = Result<arrow_flight::Result, Status>> + Send>>;
-pub(super) type FlightInfoStream = Pin<Box<dyn Stream<Item = Result<FlightInfo, Status>> + Send>>;
-pub(super) type ActionTypeStream = Pin<Box<dyn Stream<Item = Result<ActionType, Status>> + Send>>;
+pub(crate) type FlightInfoStream = Pin<Box<dyn Stream<Item = Result<FlightInfo, Status>> + Send>>;
+pub(crate) type ActionTypeStream = Pin<Box<dyn Stream<Item = Result<ActionType, Status>> + Send>>;
 
 /// Runtime-owned repo-search request decoded from Arrow Flight metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -821,7 +823,7 @@ pub trait RefineDocFlightRouteProvider: std::fmt::Debug + Send + Sync {
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct StaticRepoSearchFlightRouteProvider {
+pub(crate) struct StaticRepoSearchFlightRouteProvider {
     pub(super) batch: LanceRecordBatch,
 }
 

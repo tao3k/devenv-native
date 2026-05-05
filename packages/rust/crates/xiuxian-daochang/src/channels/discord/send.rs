@@ -1,3 +1,5 @@
+//! Discord outbound message and file sending helpers.
+
 use anyhow::{Context, Result};
 use serde_json::json;
 

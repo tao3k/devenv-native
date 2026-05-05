@@ -1,6 +1,8 @@
-use super::super::types::StreamReadErrorKind;
+use crate::agent::memory_stream_consumer::types::StreamReadErrorKind;
 
-pub(in super::super) fn classify_stream_read_error(error: &anyhow::Error) -> StreamReadErrorKind {
+pub(in crate::agent::memory_stream_consumer) fn classify_stream_read_error(
+    error: &anyhow::Error,
+) -> StreamReadErrorKind {
     let message = error_chain_message(error).to_ascii_uppercase();
     if message.contains("NOGROUP") {
         return StreamReadErrorKind::MissingConsumerGroup;

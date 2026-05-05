@@ -1,7 +1,9 @@
 use include_dir::Dir;
-use std::sync::{OnceLock, RwLock};
+use std::future::Future;
 
-static RUNTIME_WENDAO_MOUNTS: OnceLock<RwLock<Vec<RuntimeWendaoMount>>> = OnceLock::new();
+tokio::task_local! {
+    static RUNTIME_WENDAO_MOUNTS: Vec<RuntimeWendaoMount>;
+}
 
 /// Runtime mount descriptor used by semantic URI resolution hooks.
 #[derive(Debug, Clone, Copy)]
@@ -14,32 +16,19 @@ pub(crate) struct RuntimeWendaoMount {
     pub(crate) dir: &'static Dir<'static>,
 }
 
-/// RAII guard that restores previous runtime mount registry on drop.
-pub(crate) struct RuntimeWendaoMountGuard {
-    previous: Vec<RuntimeWendaoMount>,
-}
-
-impl Drop for RuntimeWendaoMountGuard {
-    fn drop(&mut self) {
-        if let Ok(mut slot) = runtime_wendao_mounts().write() {
-            *slot = std::mem::take(&mut self.previous);
-        }
-    }
-}
-
-/// Installs runtime mounts for this execution scope.
-pub(crate) fn install_runtime_wendao_mounts(
+/// Runs one future with task-local Wendao runtime mounts.
+pub(crate) async fn with_runtime_wendao_mounts<F>(
     mounts: Vec<RuntimeWendaoMount>,
-) -> RuntimeWendaoMountGuard {
-    if let Ok(mut slot) = runtime_wendao_mounts().write() {
-        let previous = std::mem::replace(&mut *slot, mounts);
-        return RuntimeWendaoMountGuard { previous };
-    }
-    RuntimeWendaoMountGuard {
-        previous: Vec::new(),
-    }
+    future: F,
+) -> F::Output
+where
+    F: Future,
+{
+    RUNTIME_WENDAO_MOUNTS.scope(mounts, future).await
 }
 
-pub(super) fn runtime_wendao_mounts() -> &'static RwLock<Vec<RuntimeWendaoMount>> {
-    RUNTIME_WENDAO_MOUNTS.get_or_init(|| RwLock::new(Vec::new()))
+pub(super) fn runtime_wendao_mounts_snapshot() -> Vec<RuntimeWendaoMount> {
+    RUNTIME_WENDAO_MOUNTS
+        .try_with(std::clone::Clone::clone)
+        .unwrap_or_default()
 }

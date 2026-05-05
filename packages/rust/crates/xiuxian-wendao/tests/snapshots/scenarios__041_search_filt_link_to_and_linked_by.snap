@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 041_search_filt_link_to_and_linked_by [search_filters]: link to and linked by"
 expression: result
 info:

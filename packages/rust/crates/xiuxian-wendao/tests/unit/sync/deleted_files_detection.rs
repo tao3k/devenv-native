@@ -1,9 +1,10 @@
-use super::*;
+use std::fs;
+
+use tempfile::TempDir;
+use xiuxian_wendao::{SyncEngine, SyncManifest};
 
 #[test]
 fn test_deleted_files_detection() -> Result<(), Box<dyn std::error::Error>> {
-    use xiuxian_wendao::{SyncEngine, SyncManifest};
-
     let temp_dir = TempDir::new()?;
     let manifest_path = temp_dir.path().join("manifest.json");
     let engine = SyncEngine::new(temp_dir.path().to_path_buf(), manifest_path.clone());

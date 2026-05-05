@@ -1,0 +1,196 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "gap": {
+    "doc_ids": [
+      "repo:gateway-sync:doc:docs/orphan.md"
+    ],
+    "entity_id": "repo:gateway-sync:doc:docs/orphan.md",
+    "example_ids": [],
+    "format_hints": [
+      "md"
+    ],
+    "gap_id": "repo:gateway-sync:projection-gap:documentation_page_without_anchor:repo:gateway-sync:doc:docs/orphan.md",
+    "kind": "documentation_page_without_anchor",
+    "module_ids": [],
+    "page_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md",
+    "page_kind": "explanation",
+    "path": "docs/orphan.md",
+    "repo_id": "gateway-sync",
+    "symbol_ids": [],
+    "title": "orphan"
+  },
+  "hit": {
+    "kind": "page",
+    "node": null,
+    "page": {
+      "doc_id": "repo:gateway-sync:doc:docs/orphan.md",
+      "doc_ids": [
+        "repo:gateway-sync:doc:docs/orphan.md"
+      ],
+      "example_ids": [],
+      "format_hints": [
+        "md"
+      ],
+      "keywords": [
+        "docs/orphan.md",
+        "md",
+        "orphan",
+        "repo:gateway-sync:doc:docs/orphan.md"
+      ],
+      "kind": "explanation",
+      "module_ids": [],
+      "page_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md",
+      "path": "docs/orphan.md",
+      "paths": [
+        "docs/orphan.md"
+      ],
+      "repo_id": "gateway-sync",
+      "sections": [
+        {
+          "body": "Projected explanation page for `orphan`.\nFormat hints:\n- `md`\nSource paths:\n- `docs/orphan.md`",
+          "level": 1,
+          "paths": [
+            "docs/orphan.md"
+          ],
+          "section_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md#overview",
+          "title": "Overview"
+        },
+        {
+          "body": "Documentation:\n- `orphan` (docs/orphan.md)",
+          "level": 2,
+          "paths": [
+            "docs/orphan.md"
+          ],
+          "section_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md#sources",
+          "title": "Sources"
+        }
+      ],
+      "symbol_ids": [],
+      "title": "orphan"
+    }
+  },
+  "navigation": {
+    "center": {
+      "kind": "page",
+      "node": null,
+      "page": {
+        "doc_id": "repo:gateway-sync:doc:docs/orphan.md",
+        "doc_ids": [
+          "repo:gateway-sync:doc:docs/orphan.md"
+        ],
+        "example_ids": [],
+        "format_hints": [
+          "md"
+        ],
+        "keywords": [
+          "docs/orphan.md",
+          "md",
+          "orphan",
+          "repo:gateway-sync:doc:docs/orphan.md"
+        ],
+        "kind": "explanation",
+        "module_ids": [],
+        "page_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md",
+        "path": "docs/orphan.md",
+        "paths": [
+          "docs/orphan.md"
+        ],
+        "repo_id": "gateway-sync",
+        "sections": [
+          {
+            "body": "Projected explanation page for `orphan`.\nFormat hints:\n- `md`\nSource paths:\n- `docs/orphan.md`",
+            "level": 1,
+            "paths": [
+              "docs/orphan.md"
+            ],
+            "section_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md#overview",
+            "title": "Overview"
+          },
+          {
+            "body": "Documentation:\n- `orphan` (docs/orphan.md)",
+            "level": 2,
+            "paths": [
+              "docs/orphan.md"
+            ],
+            "section_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md#sources",
+            "title": "Sources"
+          }
+        ],
+        "symbol_ids": [],
+        "title": "orphan"
+      }
+    },
+    "family_cluster": null,
+    "node_context": null,
+    "related_pages": [],
+    "repo_id": "gateway-sync",
+    "tree": {
+      "doc_id": "explanation/orphan-92390a87e766",
+      "kind": "explanation",
+      "page_id": "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:docs/orphan.md",
+      "path": "explanation/orphan-92390a87e766.md",
+      "repo_id": "gateway-sync",
+      "root_count": 2,
+      "roots": [
+        {
+          "children": [],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            1,
+            7
+          ],
+          "node_id": "explanation/orphan-92390a87e766#orphan",
+          "structural_path": [
+            "orphan"
+          ],
+          "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: explanation\n:FORMATS: md\n:END:",
+          "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: explanation\n:FORMATS: md\n:END:",
+          "title": "orphan",
+          "token_count": 8
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "is_thinned": false,
+              "level": 2,
+              "line_range": [
+                18,
+                23
+              ],
+              "node_id": "explanation/orphan-92390a87e766#sources",
+              "structural_path": [
+                "Overview",
+                "Sources"
+              ],
+              "summary": ":ID: sources\n:PATHS: docs/orphan",
+              "text": ":ID: sources\n:PATHS: docs/orphan.md\n\nDocumentation:\n- `orphan` (docs/orphan.md)",
+              "title": "Sources",
+              "token_count": 8
+            }
+          ],
+          "is_thinned": false,
+          "level": 1,
+          "line_range": [
+            8,
+            17
+          ],
+          "node_id": "explanation/orphan-92390a87e766#overview",
+          "structural_path": [
+            "Overview"
+          ],
+          "summary": ":ID: overview\n:PATHS: docs/orphan",
+          "text": ":ID: overview\n:PATHS: docs/orphan.md\n\nProjected explanation page for `orphan`.\nFormat hints:\n- `md`\nSource paths:\n- `docs/orphan.md`",
+          "title": "Overview",
+          "token_count": 17
+        }
+      ],
+      "title": "orphan"
+    }
+  },
+  "repo_id": "gateway-sync"
+}

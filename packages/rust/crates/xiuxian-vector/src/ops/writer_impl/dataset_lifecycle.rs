@@ -1,3 +1,8 @@
+use super::{
+    Arc, Dataset, MergeInsertStats, Result, VectorStore, VectorStoreError, default_write_params,
+    has_lance_data,
+};
+
 impl VectorStore {
     /// Replace all documents in a table with the provided batch atomically
     /// from the caller perspective (drop then write fresh snapshot).

@@ -6,7 +6,6 @@ description = "High-performance knowledge and link-graph runtime with local Duck
 authors = ["CyberXiuXian Artisan workshop"]
 license = "Apache-2.0"
 publish = false
-default-run = "wendao"
 
 [features]
 default = [
@@ -14,8 +13,8 @@ default = [
   "duckdb",
   "zhenfa-router",
   "julia",
+  "repo-lexical-index",
   "search-runtime",
-  "studio",
 ]
 pybindings = ["dep:pyo3", "repo-lexical-index"]
 repo-lexical-index = ["dep:tantivy"]
@@ -27,13 +26,17 @@ zhenfa-router = [
   "dep:tower",
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
+  "xiuxian-zhenfa/gateway",
   "search-runtime",
 ]
 julia = [
   "dep:xiuxian-wendao-julia",
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
-runtime-transport = ["xiuxian-wendao-runtime/transport"]
+runtime-transport = [
+  "xiuxian-wendao-core/arrow-transport",
+  "xiuxian-wendao-runtime/transport",
+]
 vector-store = [
   "dep:reqwest",
   "dep:xiuxian-db-store",
@@ -41,11 +44,14 @@ vector-store = [
   "xiuxian-wendao-runtime/vector-store",
 ]
 search-runtime = [
+  "repo-lexical-index",
   "dep:graphql-parser",
   "dep:xiuxian-ast",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/engine",
   "runtime-transport",
+  "xiuxian-wendao-core/arrow-transport",
+  "xiuxian-wendao-runtime/duckdb-config",
   "dep:arrow-flight",
   "dep:datafusion",
   "dep:parquet",
@@ -57,9 +63,18 @@ studio = [
   "repo-lexical-index",
   "dep:xiuxian-ast",
   "dep:xiuxian-zhenfa",
+  "xiuxian-zhenfa/native",
 ]
-performance = ["xiuxian-testing/performance"]
+performance = []
 performance-stress = ["performance"]
+test-support = [
+  "builtin-plugins",
+  "duckdb",
+  "repo-lexical-index",
+  "search-runtime",
+  "studio",
+  "zhenfa-router",
+]
 document-extract-attachment-audit = [
   "dep:xiuxian-wendao-attachments",
   "xiuxian-wendao-attachments/archive-audit",
@@ -77,31 +92,6 @@ duckdb = [
   "dep:xiuxian-db-store",
   "xiuxian-db-store/duckdb",
 ]
-
-[[bin]]
-name = "wendao"
-path = "src/bin/wendao.rs"
-required-features = ["studio", "zhenfa-router"]
-
-[[bin]]
-name = "export_types"
-path = "src/bin/export_types.rs"
-required-features = ["studio"]
-
-[[bin]]
-name = "wendao_search_flight_server"
-path = "src/bin/wendao_search_flight_server.rs"
-required-features = ["studio", "zhenfa-router"]
-
-[[bin]]
-name = "wendao_search_flightsql_server"
-path = "src/bin/wendao_search_flightsql_server.rs"
-required-features = ["studio", "julia"]
-
-[[bin]]
-name = "wendao_search_seed_sample"
-path = "src/bin/wendao_search_seed_sample.rs"
-required-features = ["studio", "julia"]
 
 [[bench]]
 name = "wendao_performance"
@@ -125,7 +115,6 @@ toml = { workspace = true }
 chrono = { workspace = true, features = ["clock", "serde"] }
 uuid = { workspace = true }
 specta = { workspace = true }
-specta-typescript = { workspace = true }
 prost = { workspace = true }
 
 walkdir = { workspace = true }
@@ -149,7 +138,6 @@ xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features 
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 # Macro utilities
 xiuxian-macros = { path = "../xiuxian-macros" }
@@ -196,7 +184,7 @@ clap = { workspace = true }
 redis = { workspace = true, features = ["tokio-comp"] }
 axum = { workspace = true, optional = true }
 tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
-xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
+xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 url = { workspace = true }
 
 # Real-time observation (Project Sentinel Phase 2)
@@ -213,6 +201,7 @@ duckdb = { workspace = true, optional = true }
 tempfile = { workspace = true }
 reqwest = { workspace = true }
 insta = { workspace = true }
+rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
 criterion = { workspace = true }
 

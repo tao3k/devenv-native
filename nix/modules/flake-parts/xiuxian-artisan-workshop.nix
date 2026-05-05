@@ -28,6 +28,24 @@
         SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
         NIX_SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       };
+      cargoLockText = builtins.readFile (workspaceRoot + "/Cargo.lock");
+      cargoLockLines = lib.splitString "\n" cargoLockText;
+      cargoLockGitRev =
+        repoUrl:
+        let
+          prefix = "source = \"git+${repoUrl}?rev=";
+          matches = lib.filter (line: lib.hasPrefix prefix line) cargoLockLines;
+        in
+        if matches == [ ] then
+          throw "failed to resolve git rev for ${repoUrl} from Cargo.lock"
+        else
+          builtins.elemAt (lib.splitString "#" (lib.removePrefix prefix (builtins.head matches))) 0;
+      lanceRev = cargoLockGitRev "https://github.com/lancedb/lance.git";
+      lanceSrc = pkgs.fetchzip {
+        url = "https://github.com/lancedb/lance/archive/${lanceRev}.tar.gz";
+        hash = "sha256-Cp93QTsTrTkXizWYoZtFz88R3lX7+MmYN4E9JYBsyps=";
+      };
+      lanceVendorFixup = import ../../lib/lance-vendor-fixup.nix { inherit lanceSrc; };
       commonProjectDrvConfig = {
         mkDerivation = {
           nativeBuildInputs = [
@@ -41,6 +59,20 @@
         };
         env = commonProjectEnv;
       };
+      commonProjectDepsDrvConfig = lib.recursiveUpdate commonProjectDrvConfig {
+        mkDerivation =
+          let
+            runLanceVendorFixup = ''
+              ${lanceVendorFixup}
+              echo "patching Lance cargo vendor manifests"
+              fix_lance_vendor_dir "''${cargoVendorDir:-$TMPDIR/nix-vendor}"
+            '';
+          in
+          {
+            postConfigure = runLanceVendorFixup;
+            preBuild = runLanceVendorFixup;
+          };
+      };
     in
     {
       _module.args.apple-metal-toolchain = apple-metal-toolchain;
@@ -49,7 +81,7 @@
         path = workspaceRoot;
         export = true;
         drvConfig = commonProjectDrvConfig;
-        depsDrvConfig = commonProjectDrvConfig;
+        depsDrvConfig = commonProjectDepsDrvConfig;
       };
       # configure crates
       nci.crates = {
@@ -128,8 +160,9 @@
         "xiuxian-lance" = {
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
           drvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
-          depsDrvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
-          depsDrvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
+          depsDrvConfig = lib.recursiveUpdate commonProjectDepsDrvConfig {
+            env.PROTOC = "${pkgs.protobuf}/bin/protoc";
+          };
         };
         "xiuxian-io" = {
           profiles.release.runTests = false;
@@ -140,8 +173,7 @@
         "xiuxian-vector" = {
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
           drvConfig.env.PROTOC = "${pkgs.protobuf}/bin/protoc";
-          depsDrvConfig = {
-            mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
+          depsDrvConfig = lib.recursiveUpdate commonProjectDepsDrvConfig {
             env.PROTOC = "${pkgs.protobuf}/bin/protoc";
           };
         };

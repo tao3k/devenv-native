@@ -1,22 +1,24 @@
 use tokio::time::sleep;
 
-use super::super::processing::process_stream_events;
-use super::super::stream::{
-    connect_stream_consumer, ensure_consumer_group, ensure_consumer_group_before_read,
-    open_stream_consumer_client, read_stream_events, stream_consumer_connection_config,
-    stream_consumer_response_timeout_ms,
-};
-use super::super::types::{
-    MemoryStreamConsumerRuntimeConfig, MemoryStreamEvent, StreamReadErrorKind,
-    bump_failure_streak_and_backoff, reconnect_backoff_ms,
-};
 use super::read_error::classify_stream_read_error;
 use super::read_error_logging::{
     log_missing_consumer_group_recovery_attempt, log_missing_consumer_group_recovery_failure,
     log_stream_read_reconnect,
 };
+use crate::agent::memory_stream_consumer::processing::process_stream_events;
+use crate::agent::memory_stream_consumer::stream::{
+    connect_stream_consumer, ensure_consumer_group, ensure_consumer_group_before_read,
+    open_stream_consumer_client, read_stream_events, stream_consumer_connection_config,
+    stream_consumer_response_timeout_ms,
+};
+use crate::agent::memory_stream_consumer::types::{
+    MemoryStreamConsumerRuntimeConfig, MemoryStreamEvent, StreamReadErrorKind,
+    bump_failure_streak_and_backoff, reconnect_backoff_ms,
+};
 
-pub(in super::super) async fn run_consumer_loop(config: MemoryStreamConsumerRuntimeConfig) {
+pub(in crate::agent::memory_stream_consumer) async fn run_consumer_loop(
+    config: MemoryStreamConsumerRuntimeConfig,
+) {
     let Some(client) = open_stream_consumer_client(&config) else {
         return;
     };

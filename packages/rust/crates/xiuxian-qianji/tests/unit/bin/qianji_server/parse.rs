@@ -1,5 +1,5 @@
 use super::support::{must_err, must_ok, must_parse_addr};
-use crate::cli::{
+use crate::qianji_server_cli::cli::{
     QianjiServerCommand, QianjiServerServeCommand, parse_qianji_server_args, qianji_server_usage,
 };
 

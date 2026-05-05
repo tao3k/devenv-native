@@ -12,7 +12,7 @@ use super::types::{
 
 /// Derives an opaque document ID from a doc path.
 #[must_use]
-pub(crate) fn derive_opaque_doc_id(doc_path: &str) -> String {
+pub fn derive_opaque_doc_id(doc_path: &str) -> String {
     let digest = Sha256::digest(normalize_doc_path(doc_path).as_bytes());
     let mut opaque_id = String::with_capacity(40);
     for byte in digest.iter().take(20) {
@@ -25,7 +25,7 @@ pub(crate) fn derive_opaque_doc_id(doc_path: &str) -> String {
 
 /// Checks if a value is a valid opaque document ID.
 #[must_use]
-pub(crate) fn is_opaque_doc_id(value: &str) -> bool {
+pub fn is_opaque_doc_id(value: &str) -> bool {
     value.len() == 40
         && value
             .chars()
@@ -41,7 +41,7 @@ fn normalize_doc_path(doc_path: &str) -> String {
 
 /// Checks if a doc path is a package-local crate doc.
 #[must_use]
-pub(crate) fn is_package_local_crate_doc(doc_path: &str) -> bool {
+pub fn is_package_local_crate_doc(doc_path: &str) -> bool {
     let path = Path::new(doc_path);
     if path.extension().and_then(|ext| ext.to_str()) != Some("md") {
         return false;
@@ -62,7 +62,7 @@ pub(crate) fn is_package_local_crate_doc(doc_path: &str) -> bool {
 
 /// Checks if a doc path belongs to the canonical documentation surface.
 #[must_use]
-pub(crate) fn is_canonical_repo_doc(doc_path: &str) -> bool {
+pub fn is_canonical_repo_doc(doc_path: &str) -> bool {
     let path = Path::new(doc_path);
     if path.extension().and_then(|ext| ext.to_str()) != Some("md") {
         return false;
@@ -97,7 +97,7 @@ pub(crate) fn is_canonical_repo_doc(doc_path: &str) -> bool {
 
 /// Collects line slices from content.
 #[must_use]
-pub(crate) fn collect_lines(content: &str) -> Vec<LineSlice<'_>> {
+pub fn collect_lines(content: &str) -> Vec<LineSlice<'_>> {
     let mut lines = Vec::new();
     let mut offset = 0usize;
 
@@ -139,7 +139,7 @@ pub(crate) fn collect_lines(content: &str) -> Vec<LineSlice<'_>> {
 
 /// Parses the top properties drawer from content.
 #[must_use]
-pub(crate) fn parse_top_properties_drawer(content: &str) -> Option<TopPropertiesDrawer<'_>> {
+pub fn parse_top_properties_drawer(content: &str) -> Option<TopPropertiesDrawer<'_>> {
     let lines = collect_lines(content);
 
     let title_index = lines.iter().position(|line| !line.trimmed.is_empty())?;
@@ -191,7 +191,7 @@ pub(crate) fn parse_top_properties_drawer(content: &str) -> Option<TopProperties
 
 /// Parses the :LINKS: line from a relations block.
 #[must_use]
-pub(crate) fn parse_relations_links_line<'a>(lines: &'a [LineSlice<'a>]) -> Option<LinksLine<'a>> {
+pub fn parse_relations_links_line<'a>(lines: &'a [LineSlice<'a>]) -> Option<LinksLine<'a>> {
     let relations_idx = lines
         .iter()
         .position(|line| line.trimmed == ":RELATIONS:")?;
@@ -218,7 +218,7 @@ pub(crate) fn parse_relations_links_line<'a>(lines: &'a [LineSlice<'a>]) -> Opti
 
 /// Parses the :FOOTER: block from lines.
 #[must_use]
-pub(crate) fn parse_footer_block<'a>(lines: &'a [LineSlice<'a>]) -> Option<FooterBlock<'a>> {
+pub fn parse_footer_block<'a>(lines: &'a [LineSlice<'a>]) -> Option<FooterBlock<'a>> {
     let footer_idx = lines.iter().position(|line| line.trimmed == ":FOOTER:")?;
     let footer_line = &lines[footer_idx];
     let mut standards_value = None;
@@ -250,7 +250,7 @@ pub(crate) fn parse_footer_block<'a>(lines: &'a [LineSlice<'a>]) -> Option<Foote
 
 /// Extracts wikilinks from content.
 #[must_use]
-pub(crate) fn extract_wikilinks(content: &str) -> Vec<String> {
+pub fn extract_wikilinks(content: &str) -> Vec<String> {
     extract_markdown_wikilinks(content)
         .into_iter()
         .filter_map(|link| wikilink_inner(link.original.as_str()))
@@ -259,7 +259,7 @@ pub(crate) fn extract_wikilinks(content: &str) -> Vec<String> {
 
 /// Collects body links from an index document.
 #[must_use]
-pub(crate) fn collect_index_body_links(lines: &[LineSlice<'_>]) -> Vec<String> {
+pub fn collect_index_body_links(lines: &[LineSlice<'_>]) -> Vec<String> {
     let relations_start = lines
         .iter()
         .position(|line| line.trimmed == ":RELATIONS:")
@@ -281,7 +281,7 @@ pub(crate) fn collect_index_body_links(lines: &[LineSlice<'_>]) -> Vec<String> {
 
 /// Extract hidden workspace-path links from content.
 #[must_use]
-pub(crate) fn extract_hidden_path_links(content: &str) -> Vec<HiddenPathLink> {
+pub fn extract_hidden_path_links(content: &str) -> Vec<HiddenPathLink> {
     let lines = collect_lines(content);
     let mut hidden_links = Vec::new();
 

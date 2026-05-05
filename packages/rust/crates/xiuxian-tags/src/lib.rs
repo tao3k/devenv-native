@@ -16,7 +16,7 @@
 //! ├── lib.rs      # Re-exports (this file)
 //! ├── error.rs    # TagError, SearchError
 //! ├── types.rs    # SymbolKind, Symbol, SearchMatch, SearchConfig
-//! ├── patterns.rs # ast-grep pattern constants
+//! ├── patterns/   # ast-grep pattern constants
 //! └── extractor.rs # TagExtractor with all methods
 //! ```
 //!
@@ -29,7 +29,18 @@
 //! println!("{}", outline);
 //! ```
 
-xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs");
+#[cfg(test)]
+rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    config = {
+        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
+            rust_lang_project_harness::RustVerificationProfileHint::new(
+                "src/lib.rs",
+                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+            )
+            .with_rationale("crate root owns the public package API for cargo-test verification"),
+        )
+    }
+);
 
 // ============================================================================
 // Module Declarations (ODF-REP: Atomic Structure)
@@ -37,6 +48,7 @@ xiuxian_testing::crate_test_policy_source_harness!("../tests/unit/lib_policy.rs"
 
 mod error;
 mod extractor;
+/// Language-specific ast-grep pattern constants and grouped pattern tables.
 pub mod patterns;
 mod types;
 

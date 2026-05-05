@@ -3,13 +3,13 @@ use std::sync::Arc;
 use arrow_array::{RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 
-use super::super::{
-    PluginArrowScoreRow, attach_plugin_arrow_request_metadata, decode_plugin_arrow_score_rows,
-    plugin_arrow_request_trace_id, validate_plugin_arrow_response_batches,
-};
 use super::support::{
     err_or_panic, invalid_response_missing_analyzer_score_batch, response_batch_with_duplicates,
     response_batch_without_trace_id,
+};
+use crate::transport::plugin_arrow_exchange::{
+    PluginArrowScoreRow, attach_plugin_arrow_request_metadata, decode_plugin_arrow_score_rows,
+    plugin_arrow_request_trace_id, validate_plugin_arrow_response_batches,
 };
 
 #[test]

@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    Path, compute_file_hash, extract_pattern_symbols, is_high_noise_file, is_ignorable_path,
+    is_source_code, to_pascal_case, verify_file_stable,
+};
 
 #[test]
 fn test_is_source_code() {

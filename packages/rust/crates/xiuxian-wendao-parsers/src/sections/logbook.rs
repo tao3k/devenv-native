@@ -1,3 +1,5 @@
+//! Markdown logbook drawer parsing.
+
 use super::types::LogbookEntry;
 
 /// Parse one `:LOGBOOK:` entry line.

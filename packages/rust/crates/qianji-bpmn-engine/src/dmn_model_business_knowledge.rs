@@ -1,3 +1,5 @@
+//! Public dmn model business knowledge contracts for BPMN/DMN engine integration.
+
 use crate::dmn_model_document::{
     DmnBusinessKnowledgeModelLiteralSnapshot, DmnBusinessKnowledgeModelSnapshot,
     DmnFunctionDefinitionSnapshot,

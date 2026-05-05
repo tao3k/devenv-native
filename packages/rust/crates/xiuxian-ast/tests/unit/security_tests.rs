@@ -1,4 +1,4 @@
-use super::*;
+use xiuxian_ast::SecurityScanner;
 
 #[test]
 fn test_scanner_allows_safe_code() {

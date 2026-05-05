@@ -4,8 +4,8 @@ use std::path::Path;
 use anyhow::{Result, anyhow};
 use xiuxian_wendao_core::WendaoResourceUri;
 
-use super::super::SkillRuntimeResolver;
 use crate::link_graph::LinkGraphIndex;
+use crate::skill_runtime::SkillRuntimeResolver;
 
 const SKILL_DOC_NAME: &str = "SKILL.md";
 const QIANJI_TOML_FILE: &str = "qianji.toml";

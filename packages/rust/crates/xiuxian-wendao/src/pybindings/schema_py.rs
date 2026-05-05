@@ -1,5 +1,6 @@
 use crate::schemas;
-use pyo3::prelude::*;
+use pyo3::types::{PyModule, PyModuleMethods};
+use pyo3::{Bound, PyErr, PyResult, pyfunction, wrap_pyfunction};
 
 #[pyfunction]
 fn get_schema(name: &str) -> PyResult<String> {

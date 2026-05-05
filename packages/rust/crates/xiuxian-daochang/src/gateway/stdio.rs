@@ -8,6 +8,9 @@ use crate::agent::Agent;
 /// Default session ID when not overridden by flag.
 pub const DEFAULT_STDIO_SESSION_ID: &str = "default";
 
+/// Session identifier surface for the stdio gateway.
+pub type StdioSessionId = String;
+
 /// Run stdio loop: read lines, run turn, print output. Exits on EOF or Ctrl+C.
 ///
 /// * `agent` — the agent instance
@@ -15,7 +18,7 @@ pub const DEFAULT_STDIO_SESSION_ID: &str = "default";
 ///
 /// # Errors
 /// Returns an error when stdin reads fail or agent turn execution fails.
-pub async fn run_stdio(agent: Agent, session_id: String) -> Result<()> {
+pub async fn run_stdio(agent: Agent, session_id: StdioSessionId) -> Result<()> {
     let mut reader = BufReader::new(tokio::io::stdin()).lines();
     while let Some(line) = reader.next_line().await? {
         let line = line.trim();

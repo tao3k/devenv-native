@@ -1,3 +1,5 @@
+//! Public bpmn model api artifact contracts for BPMN/DMN engine integration.
+
 /// Snapshot of one BPMN artifact `association`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnAssociationSnapshot {

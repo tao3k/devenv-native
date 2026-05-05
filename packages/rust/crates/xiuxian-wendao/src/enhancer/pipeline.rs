@@ -40,6 +40,6 @@ pub fn enhance_note(input: &NoteInput) -> EnhancedNote {
 
 /// Batch enhance multiple notes (parallelized with Rayon).
 pub fn enhance_notes_batch(inputs: &[NoteInput]) -> Vec<EnhancedNote> {
-    use rayon::prelude::*;
+    use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
     inputs.par_iter().map(enhance_note).collect()
 }

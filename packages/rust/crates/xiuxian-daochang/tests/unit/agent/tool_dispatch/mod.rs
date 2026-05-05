@@ -4,10 +4,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::json;
 
-use super::super::Agent;
 use super::diagnostics::tool_timeout_error_output;
 use crate::agent::native_tools::registry::{NativeTool, NativeToolCallContext};
-use crate::{AgentConfig, NativeToolRegistry};
+use crate::{Agent, AgentConfig, NativeToolRegistry};
 
 struct RecordingTool {
     seen_context: Arc<Mutex<Option<NativeToolCallContext>>>,

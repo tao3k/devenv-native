@@ -9,8 +9,8 @@ use serde_json::json;
 use std::fs;
 use std::path::Path;
 
-use super::super::file_discovery::collect_markdown_files;
-use super::super::{ZhixingIndexSummary, ZhixingWendaoIndexer};
+use crate::skill_runtime::zhixing::indexer::file_discovery::collect_markdown_files;
+use crate::skill_runtime::zhixing::indexer::{ZhixingIndexSummary, ZhixingWendaoIndexer};
 
 impl ZhixingWendaoIndexer {
     pub(in crate::skill_runtime::zhixing) fn index_agenda_tasks(

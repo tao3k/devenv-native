@@ -1,8 +1,7 @@
+//! Builder helpers for pair-shaped graph-structural candidates.
+
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
-use super::super::graph_structural_exchange::{
-    GraphStructuralFilterRequestRow, GraphStructuralRerankRequestRow,
-};
 use super::core::{
     GraphStructuralCandidateSubgraph, GraphStructuralQueryContext, GraphStructuralRerankSignals,
 };
@@ -15,6 +14,7 @@ use super::rows::{
     build_graph_structural_filter_request_row, build_graph_structural_rerank_request_row,
 };
 use super::support::{normalize_pair_endpoint_ids, stable_pair_candidate_id};
+use crate::{GraphStructuralFilterRequestRow, GraphStructuralRerankRequestRow};
 
 /// Build the stable candidate id used for one two-node graph-structural pair.
 ///

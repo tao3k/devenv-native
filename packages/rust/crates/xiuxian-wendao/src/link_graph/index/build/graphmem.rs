@@ -1,4 +1,4 @@
-use super::super::LinkGraphIndex;
+use crate::link_graph::index::LinkGraphIndex;
 use crate::link_graph::runtime_config::{
     LinkGraphCacheRuntimeConfig, resolve_link_graph_cache_runtime,
 };

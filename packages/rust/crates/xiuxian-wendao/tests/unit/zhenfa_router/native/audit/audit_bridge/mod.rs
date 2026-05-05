@@ -4,7 +4,10 @@ mod edges;
 mod generation;
 mod package_docs;
 
-pub(super) use super::*;
+pub(super) use crate::zhenfa_router::native::audit::audit_bridge::{
+    AuditBridge, BatchFix, BatchFixMode, ByteRange, DefaultAuditBridge, FixResult, compute_hash,
+    generate_batch_fixes, generate_surgical_fixes,
+};
 pub(super) use crate::zhenfa_router::native::semantic_check::docs_governance::{
     INCOMPLETE_PACKAGE_DOCS_INDEX_FOOTER_BLOCK_ISSUE_TYPE,
     MISSING_PACKAGE_DOCS_INDEX_FOOTER_BLOCK_ISSUE_TYPE, MISSING_PACKAGE_DOCS_INDEX_ISSUE_TYPE,

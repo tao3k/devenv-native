@@ -1,3 +1,5 @@
+//! Runtime configuration assembly for Julia link-graph compatibility.
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use xiuxian_wendao_core::{
@@ -6,7 +8,7 @@ use xiuxian_wendao_core::{
     transport::{PluginTransportEndpoint, PluginTransportKind},
 };
 
-use super::artifact::{
+use super::deployment::{
     DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION, LinkGraphJuliaDeploymentArtifact,
 };
 use super::launch::{LinkGraphJuliaSearchLaunchManifest, LinkGraphJuliaSearchServiceDescriptor};

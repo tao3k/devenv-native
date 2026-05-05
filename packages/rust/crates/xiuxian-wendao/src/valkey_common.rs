@@ -1,4 +1,4 @@
-#[cfg(feature = "studio")]
+#[cfg(any(feature = "studio", feature = "zhenfa-router"))]
 use std::time::Duration;
 
 #[cfg(test)]
@@ -26,12 +26,17 @@ fn open_optional_client(valkey_url: Option<String>) -> Option<redis::Client> {
 ///
 /// Returns the underlying `redis` client construction error when the URL is
 /// invalid.
-pub(crate) fn open_client(valkey_url: &str) -> Result<redis::Client, redis::RedisError> {
+pub fn open_client(valkey_url: &str) -> Result<redis::Client, redis::RedisError> {
     redis::Client::open(valkey_url.trim())
 }
 
-#[cfg(feature = "studio")]
-pub(crate) fn ping_client(
+#[cfg(any(feature = "studio", feature = "zhenfa-router"))]
+/// Ping an already-open Valkey client with connection and IO timeouts.
+///
+/// # Errors
+///
+/// Returns a string error when the connection attempt or PING command fails.
+pub fn ping_client(
     client: &redis::Client,
     connection_timeout: Duration,
     io_timeout: Duration,
@@ -47,8 +52,14 @@ pub(crate) fn ping_client(
         .map_err(|error| format!("ping failed: {error}"))
 }
 
-#[cfg(feature = "studio")]
-pub(crate) fn ping_valkey_url(
+#[cfg(any(feature = "studio", feature = "zhenfa-router"))]
+/// Open and ping one Valkey URL with connection and IO timeouts.
+///
+/// # Errors
+///
+/// Returns a string error when the URL is invalid, the connection fails, or
+/// the PING command fails.
+pub fn ping_valkey_url(
     valkey_url: &str,
     connection_timeout: Duration,
     io_timeout: Duration,

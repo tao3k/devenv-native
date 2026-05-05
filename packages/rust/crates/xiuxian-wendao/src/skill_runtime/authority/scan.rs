@@ -4,7 +4,8 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use xiuxian_wendao_core::WendaoResourceUri;
 
-use super::super::manifest::{
+use crate::skill_runtime::SkillRuntimeResolver;
+use crate::skill_runtime::manifest::{
     SkillManifest, SkillManifestScan, SkillNativeAliasMountReport, SkillNativeAliasSpec,
     SkillWorkflowType, compile_skill_manifest_aliases,
 };
@@ -19,7 +20,6 @@ impl From<AuthorizedSkillManifestScan> for SkillManifestScan {
     }
 }
 
-use super::super::SkillRuntimeResolver;
 use super::catalog::SkillIntentCatalog;
 use super::report::{SkillAuthorityReport, build_authority_report};
 

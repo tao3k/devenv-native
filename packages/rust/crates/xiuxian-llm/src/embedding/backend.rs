@@ -1,3 +1,5 @@
+//! Embedding backend mode parsing and normalized backend kinds.
+
 /// Normalized embedding backend kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmbeddingBackendKind {

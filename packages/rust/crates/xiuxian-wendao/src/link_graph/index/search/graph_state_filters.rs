@@ -1,4 +1,4 @@
-use super::super::{
+use crate::link_graph::index::{
     LinkGraphDocument, LinkGraphIndex, LinkGraphSearchOptions, doc_contains_phrase,
 };
 use std::collections::HashSet;

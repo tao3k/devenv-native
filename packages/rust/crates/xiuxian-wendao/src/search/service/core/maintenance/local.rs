@@ -5,7 +5,8 @@ use crate::search::SearchCorpusKind;
 use crate::search::service::core::types::SearchPlaneService;
 
 impl SearchPlaneService {
-    pub(crate) fn stop_background_maintenance(&self) {
+    /// Request shutdown for all background search-plane maintenance workers.
+    pub fn stop_background_maintenance(&self) {
         self.stop_local_maintenance();
         self.stop_repo_maintenance();
     }

@@ -1,12 +1,32 @@
+//! Host-side staging for Julia memory-gate scoring request rows.
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_memory_engine::{Episode, EpisodeStore, MemoryLifecycleState, MemoryUtilityLedger};
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use crate::memory::{MemoryJuliaGateScoreRequestRow, build_memory_julia_gate_score_request_batch};
 
-use super::common::{optional_text, required_text, validate_probability};
+use super::staging::{optional_text, required_text, validate_probability};
 
 const SURFACE: &str = "memory Julia memory_gate_score host staging";
+
+/// Borrowed host memory identifier used to look up a scored episode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MemoryGateScoreMemoryId<'a>(&'a str);
+
+impl<'a> MemoryGateScoreMemoryId<'a> {
+    /// Return the raw host memory identifier for store lookup.
+    #[must_use]
+    pub fn as_str(self) -> &'a str {
+        self.0
+    }
+}
+
+impl<'a> From<&'a str> for MemoryGateScoreMemoryId<'a> {
+    fn from(value: &'a str) -> Self {
+        Self(value)
+    }
+}
 
 /// Host-owned evidence row for one Julia `memory_gate_score` downcall.
 #[derive(Debug, Clone, PartialEq)]
@@ -85,13 +105,14 @@ pub fn build_memory_gate_score_evidence_row_from_episode(
 /// exist in the store.
 pub fn build_memory_gate_score_evidence_row_from_store(
     store: &EpisodeStore,
-    memory_id: &str,
+    memory_id: MemoryGateScoreMemoryId<'_>,
     scenario_pack: Option<String>,
     react_revalidation_score: f32,
     graph_consistency_score: f32,
     omega_alignment_score: f32,
     current_state: MemoryLifecycleState,
 ) -> Result<MemoryGateScoreEvidenceRow, RepoIntelligenceError> {
+    let memory_id = memory_id.as_str();
     let Some(episode) = store.get(memory_id) else {
         return Err(staging_error(format!(
             "memory Julia memory_gate_score host staging could not find episode `{}`",
@@ -148,7 +169,7 @@ fn build_request_row(
 }
 
 fn staging_error(message: impl Into<String>) -> RepoIntelligenceError {
-    super::common::staging_error(SURFACE, message)
+    super::staging::staging_error(SURFACE, message)
 }
 
 #[cfg(test)]

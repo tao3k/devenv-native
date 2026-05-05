@@ -1383,7 +1383,7 @@ canonical_web_uri}`
     the workspace `packages/**` Rust source and test scope
 13. bounded verification is clean on the consumer seam:
     - `xiuxian-zhixing --lib` passes
-    - `xiuxian-wendao --test xiuxian-testing-gate --no-run` passes
+    - `xiuxian-wendao --test wendao-validation-gate --no-run` passes
     - `xiuxian-daochang --lib` and
       `xiuxian-zhixing --test test_wendao_indexer --no-run` remain blocked
       only by deeper pre-existing compile or test drift outside this family
@@ -1400,7 +1400,7 @@ ZhixingWendaoIndexer}`
 18. bounded verification is clean on that seam:
     - `xiuxian-zhixing --lib` passes
     - `xiuxian-zhixing --test test_wendao_indexer --no-run` passes
-    - `xiuxian-wendao --test xiuxian-testing-gate --no-run` passes
+    - `xiuxian-wendao --test wendao-validation-gate --no-run` passes
     - `xiuxian-zhixing --tests --no-run` remains blocked by a deeper
       pre-existing `test_heyi` drift outside this family
     - `xiuxian-daochang --lib` remains blocked by deeper pre-existing compile
@@ -1420,7 +1420,7 @@ ZhixingWendaoIndexer}`
 23. bounded verification is clean on that seam:
     - `xiuxian-qianji --lib` passes
     - `xiuxian-qianji --tests --no-run` passes
-    - `xiuxian-wendao --test xiuxian-testing-gate --no-run` passes
+    - `xiuxian-wendao --test wendao-validation-gate --no-run` passes
 24. the next bounded graph-primitive slice is now also landed across the
     touched `xiuxian-qianji` and `xiuxian-zhixing` source/test consumers
 25. those touched consumers now use the owner seams:
@@ -1461,7 +1461,7 @@ extract_markdown_config_blocks}`
     `extract_markdown_config_blocks` are now cleared across the workspace
     `packages/**` Rust source and test scope
 36. bounded verification is clean on the Wendao-owned seam:
-    - `xiuxian-wendao --test xiuxian-testing-gate --no-run` passes
+    - `xiuxian-wendao --test wendao-validation-gate --no-run` passes
     - workspace grep for root-qualified `MarkdownConfigBlock` /
       `extract_markdown_config_blocks` imports is clean
 37. the affected-package `xiuxian-daochang --test agent_suite --no-run`
@@ -1483,7 +1483,7 @@ extract_markdown_config_blocks}`
     - `xiuxian-daochang/tests/agent/native_tools_web.rs`
 42. bounded verification for this residual tail is clean on the owner-path
     seam:
-    - `xiuxian-wendao --test xiuxian-testing-gate --no-run` passes
+    - `xiuxian-wendao --test wendao-validation-gate --no-run` passes
     - grep for crate-root `Entity` / `EntityType` / `KnowledgeGraph`
       imports in the touched files is clean
 43. the affected-package `xiuxian-daochang --test agent_suite --no-run`

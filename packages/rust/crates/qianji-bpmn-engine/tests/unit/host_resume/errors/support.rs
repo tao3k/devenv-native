@@ -1,4 +1,4 @@
-use super::super::support::StubHost;
+use crate::host_resume::support::StubHost;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec,

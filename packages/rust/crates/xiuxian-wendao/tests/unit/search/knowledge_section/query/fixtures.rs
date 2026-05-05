@@ -3,8 +3,8 @@ use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
 use std::fs;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneCache;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::knowledge_section::build::publish_knowledge_sections_from_projects;
 use crate::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
 #[cfg(feature = "duckdb")]
@@ -60,7 +60,7 @@ pub(super) async fn publish_knowledge_notes(
         std::fs::write(&note_path, body).unwrap_or_else(|error| panic!("write note: {error}"));
     }
 
-    let projects = vec![UiProjectConfig {
+    let projects = vec![SearchProjectConfig {
         name: "notes".to_string(),
         root: ".".to_string(),
         dirs: vec![".".to_string()],

@@ -1,0 +1,89 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "repo_id": "modelica-gateway-projected-index-tree",
+  "tree": {
+    "doc_id": "reference/projectionica-controllers-pi-dc7b88c2f014",
+    "kind": "reference",
+    "page_id": "repo:modelica-gateway-projected-index-tree:projection:reference:symbol:repo:modelica-gateway-projected-index-tree:symbol:Projectionica.Controllers.PI",
+    "path": "reference/projectionica-controllers-pi-dc7b88c2f014.md",
+    "repo_id": "modelica-gateway-projected-index-tree",
+    "root_count": 2,
+    "roots": [
+      {
+        "children": [],
+        "is_thinned": false,
+        "level": 1,
+        "line_range": [
+          1,
+          7
+        ],
+        "node_id": "reference/projectionica-controllers-pi-dc7b88c2f014#projectionica-controllers-pi",
+        "structural_path": [
+          "Projectionica.Controllers.PI"
+        ],
+        "summary": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation\n:END:",
+        "text": ":PROPERTIES:\n:TYPE: PROJECTED_PAGE\n:KIND: reference\n:FORMATS: modelica_annotation\n:END:",
+        "title": "Projectionica.Controllers.PI",
+        "token_count": 8
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "is_thinned": false,
+            "level": 2,
+            "line_range": [
+              19,
+              28
+            ],
+            "node_id": "reference/projectionica-controllers-pi-dc7b88c2f014#anchors",
+            "structural_path": [
+              "Overview",
+              "Anchors"
+            ],
+            "summary": ":ID: anchors\n:PATHS: Controllers/PI",
+            "text": ":ID: anchors\n:PATHS: Controllers/PI.mo, Controllers/package.mo\n\nModules:\n- `Projectionica.Controllers` (Controllers/package.mo)\n\nSymbols:\n- `Projectionica.Controllers.PI` (Controllers/PI.mo)",
+            "title": "Anchors",
+            "token_count": 13
+          },
+          {
+            "children": [],
+            "is_thinned": false,
+            "level": 2,
+            "line_range": [
+              29,
+              34
+            ],
+            "node_id": "reference/projectionica-controllers-pi-dc7b88c2f014#sources",
+            "structural_path": [
+              "Overview",
+              "Documentation"
+            ],
+            "summary": ":ID: sources\n:PATHS: Controllers/PI",
+            "text": ":ID: sources\n:PATHS: Controllers/PI.mo#annotation.documentation\n\nDocumentation:\n- `PI documentation` (Controllers/PI.mo#annotation.documentation)",
+            "title": "Documentation",
+            "token_count": 9
+          }
+        ],
+        "is_thinned": false,
+        "level": 1,
+        "line_range": [
+          8,
+          18
+        ],
+        "node_id": "reference/projectionica-controllers-pi-dc7b88c2f014#overview",
+        "structural_path": [
+          "Overview"
+        ],
+        "summary": ":ID: overview\n:PATHS: Controllers/PI",
+        "text": ":ID: overview\n:PATHS: Controllers/PI.mo, Controllers/PI.mo#annotation.documentation\n\nProjected reference page for `Projectionica.Controllers.PI`.\nFormat hints:\n- `modelica_annotation`\nSource paths:\n- `Controllers/PI.mo`\n- `Controllers/PI.mo#annotation.documentation`",
+        "title": "Overview",
+        "token_count": 20
+      }
+    ],
+    "title": "Projectionica.Controllers.PI"
+  }
+}

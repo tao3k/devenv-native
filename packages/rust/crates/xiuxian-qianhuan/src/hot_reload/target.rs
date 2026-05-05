@@ -1,3 +1,5 @@
+//! Hot-reload target registration records and path matching.
+
 use anyhow::{Result, anyhow};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use std::path::{Path, PathBuf};

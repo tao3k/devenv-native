@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 026_graph_nav_neighbors_related_metadata_and_toc [graph_navigation]: Graph Navigation: neighbors related metadata and toc"
 expression: result
 info:

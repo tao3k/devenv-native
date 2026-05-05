@@ -1,4 +1,6 @@
-use super::support::*;
+use super::support::{
+    DocsToolService, TEST_REPO_ID, WendaoContextExt, ZhenfaContext, resolve_docs_tool_runtime,
+};
 
 #[test]
 fn docs_tool_service_context_extension_requires_presence() {

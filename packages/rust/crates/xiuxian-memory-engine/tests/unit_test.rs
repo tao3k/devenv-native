@@ -1,7 +1,5 @@
 //! Cargo entry point for `xiuxian-memory-engine` unit tests.
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[path = "unit/common/mod.rs"]
 mod common;
 #[path = "unit/complex_scenarios/mod.rs"]
@@ -14,6 +12,8 @@ mod episode;
 mod feedback_tracking;
 #[path = "unit/gate.rs"]
 mod gate;
+#[path = "unit/lib_policy.rs"]
+mod lib_policy;
 #[path = "unit/memory_engine/mod.rs"]
 mod memory_engine;
 #[path = "unit/projection.rs"]

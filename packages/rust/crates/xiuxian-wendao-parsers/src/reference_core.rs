@@ -1,3 +1,5 @@
+//! Shared normalized reference core used by Markdown reference variants.
+
 use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};

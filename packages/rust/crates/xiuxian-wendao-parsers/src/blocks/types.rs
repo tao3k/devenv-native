@@ -1,3 +1,5 @@
+//! Block DTOs and block-kind identity helpers.
+
 use std::fmt;
 use std::sync::Arc;
 

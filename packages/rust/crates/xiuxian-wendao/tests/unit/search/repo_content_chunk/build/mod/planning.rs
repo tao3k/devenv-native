@@ -1,4 +1,14 @@
-use super::*;
+use std::collections::BTreeMap;
+
+use crate::search::repo_content_chunk::build::partitions::repo_content_chunk_partition_count_for_document_count;
+use crate::search::repo_content_chunk::build::plan::{
+    plan_repo_content_chunk_build, repo_content_chunk_file_fingerprints,
+    versioned_repo_content_table_name,
+};
+use crate::search::repo_content_chunk::build::types::RepoContentChunkBuildAction;
+use crate::search::{SearchCorpusKind, SearchRepoPublicationInput, SearchRepoPublicationRecord};
+
+use super::repo_document;
 
 #[test]
 fn repo_content_chunk_partition_policy_is_repo_size_aware() {

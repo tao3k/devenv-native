@@ -1,0 +1,163 @@
+---
+source: packages/rust/crates/xiuxian-wendao/src/../tests/unit/support/mod.rs
+assertion_line: 26
+expression: value
+---
+{
+  "example_result": {
+    "example_hits": [
+      {
+        "example": {
+          "example_id": "example:solve",
+          "path": "examples/solve.jl",
+          "repo_id": "alpha/repo",
+          "summary": "Shows solve",
+          "title": "Solve example"
+        },
+        "hierarchical_uri": "wendao://repo/unknown/alpha/repo/examples/examples:solve.jl/example:solve",
+        "hierarchy": [
+          "examples",
+          "solve.jl"
+        ],
+        "projection_page_ids": [
+          "repo:alpha/repo:projection:howto:example:example:solve"
+        ],
+        "rank": 1,
+        "saliency_score": 0.0,
+        "score": 0.9090909090909091
+      }
+    ],
+    "examples": [
+      {
+        "example_id": "example:solve",
+        "path": "examples/solve.jl",
+        "repo_id": "alpha/repo",
+        "summary": "Shows solve",
+        "title": "Solve example"
+      }
+    ],
+    "repo_id": "alpha/repo"
+  },
+  "import_result": {
+    "import_hits": [
+      {
+        "import": {
+          "import_name": "solve",
+          "kind": "reexport",
+          "line_start": 1,
+          "module_id": "module:BaseModelica",
+          "path": "src/BaseModelica.jl",
+          "repo_id": "alpha/repo",
+          "resolved_id": "symbol:solve",
+          "source_module": "BaseModelica",
+          "target_package": "SciMLBase"
+        },
+        "rank": 1,
+        "score": 1.0
+      }
+    ],
+    "imports": [
+      {
+        "import_name": "solve",
+        "kind": "reexport",
+        "line_start": 1,
+        "module_id": "module:BaseModelica",
+        "path": "src/BaseModelica.jl",
+        "repo_id": "alpha/repo",
+        "resolved_id": "symbol:solve",
+        "source_module": "BaseModelica",
+        "target_package": "SciMLBase"
+      }
+    ],
+    "repo_id": "alpha/repo"
+  },
+  "module_result": {
+    "module_hits": [
+      {
+        "hierarchical_uri": "wendao://repo/unknown/alpha/repo/api/src:BaseModelica.jl/module:BaseModelica",
+        "hierarchy": [
+          "src",
+          "BaseModelica.jl"
+        ],
+        "module": {
+          "module_id": "module:BaseModelica",
+          "path": "src/BaseModelica.jl",
+          "qualified_name": "BaseModelica",
+          "repo_id": "alpha/repo"
+        },
+        "projection_page_ids": [
+          "repo:alpha/repo:projection:reference:module:module:BaseModelica",
+          "repo:alpha/repo:projection:reference:symbol:symbol:solve"
+        ],
+        "rank": 1,
+        "saliency_score": 0.0,
+        "score": 1.0
+      }
+    ],
+    "modules": [
+      {
+        "module_id": "module:BaseModelica",
+        "path": "src/BaseModelica.jl",
+        "qualified_name": "BaseModelica",
+        "repo_id": "alpha/repo"
+      }
+    ],
+    "repo_id": "alpha/repo"
+  },
+  "symbol_result": {
+    "repo_id": "alpha/repo",
+    "symbol_hits": [
+      {
+        "audit_status": "verified",
+        "hierarchical_uri": "wendao://repo/unknown/alpha/repo/api/src:BaseModelica.jl/symbol:solve",
+        "hierarchy": [
+          "src",
+          "BaseModelica.jl"
+        ],
+        "projection_page_ids": [
+          "repo:alpha/repo:projection:reference:symbol:symbol:solve"
+        ],
+        "rank": 1,
+        "saliency_score": 0.0,
+        "score": 1.0,
+        "symbol": {
+          "attributes": {
+            "arity": "0"
+          },
+          "audit_status": "verified",
+          "kind": "function",
+          "line_end": 9,
+          "line_start": 7,
+          "module_id": "module:BaseModelica",
+          "name": "solve",
+          "path": "src/BaseModelica.jl",
+          "qualified_name": "BaseModelica.solve",
+          "repo_id": "alpha/repo",
+          "signature": "solve()",
+          "symbol_id": "symbol:solve",
+          "verification_state": "verified"
+        },
+        "verification_state": "verified"
+      }
+    ],
+    "symbols": [
+      {
+        "attributes": {
+          "arity": "0"
+        },
+        "audit_status": "verified",
+        "kind": "function",
+        "line_end": 9,
+        "line_start": 7,
+        "module_id": "module:BaseModelica",
+        "name": "solve",
+        "path": "src/BaseModelica.jl",
+        "qualified_name": "BaseModelica.solve",
+        "repo_id": "alpha/repo",
+        "signature": "solve()",
+        "symbol_id": "symbol:solve",
+        "verification_state": "verified"
+      }
+    ]
+  }
+}

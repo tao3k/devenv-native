@@ -1,4 +1,7 @@
-use super::*;
+use crate::search::fuzzy::{
+    FuzzyMatcher, FuzzySearchOptions, LexicalMatcher, edit_distance, levenshtein_distance,
+    shared_prefix_len,
+};
 
 #[test]
 fn levenshtein_distance_keeps_transposition_as_two_without_flag() {

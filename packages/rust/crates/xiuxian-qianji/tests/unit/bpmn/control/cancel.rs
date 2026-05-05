@@ -1,4 +1,10 @@
-use super::support::*;
+use super::support::{
+    BpmnAdvanceOutcome, QianjiBpmnHostBridge, QianjiBpmnWorkflowCancelRequest,
+    QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
+    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowStartRequest, QianjiRuntimeEnv,
+    SchedulerAgentIdentity, TempDir, TestValkey, json, ok_of, unique_instance_id,
+    write_wait_bundle,
+};
 
 #[cfg(feature = "duckdb")]
 #[tokio::test(flavor = "current_thread")]
@@ -79,6 +85,7 @@ async fn workflow_control_service_runtime_valkey_cancel_requires_stable_agent_id
         qianji_checkpoint_valkey_url: Some(valkey.url().to_string()),
         ..QianjiRuntimeEnv::default()
     };
+    let instance_id = unique_instance_id("wf_cancel_runtime_missing_agent");
 
     let seeded_report = ok_of(
         QianjiBpmnWorkflowControlService::new()
@@ -88,7 +95,7 @@ async fn workflow_control_service_runtime_valkey_cancel_requires_stable_agent_id
                     bpmn_path,
                     dmn_paths: Vec::new(),
                     process_id: "wait_flow".to_string(),
-                    instance_id: "wf_cancel_runtime_missing_agent".to_string(),
+                    instance_id: instance_id.clone(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
@@ -111,7 +118,7 @@ async fn workflow_control_service_runtime_valkey_cancel_requires_stable_agent_id
             Some("manager".to_string()),
         ))
         .cancel_workflow(&QianjiBpmnWorkflowCancelRequest {
-            instance_id: "wf_cancel_runtime_missing_agent".to_string(),
+            instance_id,
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
         })
         .await
@@ -144,6 +151,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
         qianji_checkpoint_valkey_url: Some(valkey.url().to_string()),
         ..QianjiRuntimeEnv::default()
     };
+    let instance_id = unique_instance_id("wf_cancel_runtime");
 
     let seeded_report = ok_of(
         QianjiBpmnWorkflowControlService::new()
@@ -153,7 +161,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
                     bpmn_path,
                     dmn_paths: Vec::new(),
                     process_id: "wait_flow".to_string(),
-                    instance_id: "wf_cancel_runtime".to_string(),
+                    instance_id: instance_id.clone(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
@@ -179,7 +187,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
     let cancel_report = ok_of(
         service
             .cancel_workflow(&QianjiBpmnWorkflowCancelRequest {
-                instance_id: "wf_cancel_runtime".to_string(),
+                instance_id: instance_id.clone(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
             })
             .await,
@@ -187,10 +195,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
     );
 
     assert_eq!(cancel_report.checkpoint_store.backend_name(), "valkey");
-    assert_eq!(
-        cancel_report.instance.instance_id.as_ref(),
-        "wf_cancel_runtime"
-    );
+    assert_eq!(cancel_report.instance.instance_id.as_ref(), instance_id);
     assert!(matches!(
         cancel_report.instance.lifecycle,
         qianji_bpmn_engine::InstanceLifecycle::Waiting
@@ -199,7 +204,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
     let checkpoint = ok_of(
         cancel_report
             .checkpoint_store
-            .load("wf_cancel_runtime")
+            .load(instance_id.as_str())
             .await,
         "cancelled runtime checkpoint should be deleted",
     );
@@ -208,7 +213,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
     let reacquired = ok_of(
         cancel_report
             .checkpoint_store
-            .try_acquire_lease("wf_cancel_runtime", "bpmn-scheduler:worker-b", 30_000)
+            .try_acquire_lease(instance_id.as_str(), "bpmn-scheduler:worker-b", 30_000)
             .await,
         "cancelled runtime checkpoint should release the lease for reuse",
     );

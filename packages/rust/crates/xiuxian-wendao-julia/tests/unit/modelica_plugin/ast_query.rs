@@ -68,7 +68,7 @@ end Blocks;
 
     let analysis = fetch_modelica_ast_query_analysis_blocking_for_repository(
         &ast_query_repository(),
-        "Demo/Blocks/package.mo",
+        "Demo/Blocks/package.mo".into(),
         source,
     )?;
 
@@ -138,7 +138,7 @@ fn blocking_ast_query_analysis_supports_real_modelica_standard_library_package_w
     let started_at = Instant::now();
     let analysis = fetch_modelica_ast_query_analysis_blocking_for_repository(
         &ast_query_repository(),
-        "Modelica/Mechanics/Rotational/package.mo",
+        "Modelica/Mechanics/Rotational/package.mo".into(),
         &source_text,
     )?;
     let elapsed = started_at.elapsed();

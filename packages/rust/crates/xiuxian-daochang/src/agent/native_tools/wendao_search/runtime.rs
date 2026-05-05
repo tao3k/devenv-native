@@ -1,3 +1,5 @@
+//! Wendao search runtime loading and request execution.
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 

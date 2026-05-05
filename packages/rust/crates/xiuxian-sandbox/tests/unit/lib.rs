@@ -1,4 +1,4 @@
-use super::command_in_path;
+use super::platform::command_in_path;
 use std::fs;
 
 #[cfg(unix)]

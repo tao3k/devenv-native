@@ -1,3 +1,5 @@
+//! Project settings parsing and access helpers for runtime configuration.
+
 mod access;
 mod dirs;
 mod parse;

@@ -1,3 +1,5 @@
+//! DTOs for Markdown section creation planning.
+
 /// Narrative context about one sibling heading near the insertion point.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SiblingInfo {

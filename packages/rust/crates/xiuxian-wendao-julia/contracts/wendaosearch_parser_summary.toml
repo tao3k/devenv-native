@@ -1,8 +1,8 @@
 contract_version = 1
 
 [service]
-script = ".data/WendaoSearch.jl/scripts/run_parser_summary_service.jl"
-config = ".data/WendaoSearch.jl/config/live/parser_summary.toml"
+script = ".data/WendaoCodeParser.jl/scripts/run_service.jl"
+config = ".data/WendaoCodeParser.jl/config/live/parser_summary.toml"
 host = "127.0.0.1"
 port = 41081
 default_code_parser_route_names = [

@@ -7,12 +7,14 @@ use tonic::Request;
 
 use crate::transport::QUERY_SQL_ROUTE;
 
-use super::super::assertions::{
+use crate::tests::transport::server::assertions::{
     batch_column, must_ok, parse_json, route_descriptor, ticket_string,
 };
-use super::super::fixtures::{build_service_with_route_providers, decode_flight_batches};
-use super::super::providers::RecordingSqlProvider;
-use super::super::request_headers::populate_schema_and_sql_headers;
+use crate::tests::transport::server::fixtures::{
+    build_service_with_route_providers, decode_flight_batches,
+};
+use crate::tests::transport::server::providers::RecordingSqlProvider;
+use crate::tests::transport::server::request_headers::populate_schema_and_sql_headers;
 
 #[tokio::test]
 async fn wendao_flight_service_get_flight_info_uses_sql_provider() {

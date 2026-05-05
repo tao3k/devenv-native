@@ -1,3 +1,5 @@
+//! Discord channel policy builders from ACL config.
+
 use crate::channels::control_command_authorization::ControlCommandPolicy;
 use crate::channels::control_command_rule_specs::parse_control_command_rule;
 use crate::channels::managed_commands::{
@@ -9,6 +11,9 @@ use crate::channels::managed_commands::{
 use super::auth::normalize_discord_identity;
 use super::policy::{DiscordCommandAdminRule, DiscordSlashCommandPolicy, DiscordSlashCommandRule};
 
+/// Result surface for Discord command policy construction.
+pub type DiscordCommandPolicyBuildResult<T> = anyhow::Result<T>;
+
 /// Build one Discord command-admin rule from selectors and allowlist identities.
 ///
 /// # Errors
@@ -16,7 +21,7 @@ use super::policy::{DiscordCommandAdminRule, DiscordSlashCommandPolicy, DiscordS
 pub fn build_discord_command_admin_rule(
     selectors: Vec<String>,
     allowed_identities: Vec<String>,
-) -> anyhow::Result<DiscordCommandAdminRule> {
+) -> DiscordCommandPolicyBuildResult<DiscordCommandAdminRule> {
     parse_control_command_rule(
         selectors,
         allowed_identities,

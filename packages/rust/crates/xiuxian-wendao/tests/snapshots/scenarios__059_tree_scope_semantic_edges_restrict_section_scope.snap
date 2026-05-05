@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 059_tree_scope_semantic_edges_restrict_section_scope [tree_scope_filters]: semantic edges restrict section scope"
 expression: result
 info:

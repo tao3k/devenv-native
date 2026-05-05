@@ -49,8 +49,6 @@ async fn write_file_creates_parent_dirs_and_persists_content() {
     );
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn write_file_supports_nested_context_placeholders() {
     let workspace = tempdir().unwrap_or_else(|error| panic!("tempdir should work: {error}"));

@@ -1,7 +1,10 @@
 use arrow::array::{Array, Float64Array, Int32Array, StringArray};
 use arrow::record_batch::RecordBatch;
 
-use super::*;
+use crate::pdf::metrics::{
+    DOCUMENT_METRICS_SCHEMA_VERSION, PdfOcrShardMetric, build_pdf_ocr_metrics_batch,
+    document_metrics_schema,
+};
 use crate::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult};
 
 fn string_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a StringArray, String> {

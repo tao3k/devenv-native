@@ -1,16 +1,16 @@
 use std::path::Path;
 
-use crate::gateway::studio::search::SearchProjectMetadata;
-use crate::gateway::studio::types::{SearchHit, StudioNavigationTarget, UiProjectConfig};
 use crate::parsers::markdown::{ParsedNote, ParsedSection};
 use crate::search::MarkdownSnapshotEntry;
+use crate::search::contracts::SearchProjectMetadata;
+use crate::search::contracts::{SearchHit, SearchProjectConfig, StudioNavigationTarget};
 use crate::search::knowledge_section::build::paths::studio_display_path;
 use crate::search::knowledge_section::schema::KnowledgeSectionRow;
 
 pub(super) fn build_knowledge_section_rows_for_entry(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     entry: &MarkdownSnapshotEntry,
 ) -> Vec<KnowledgeSectionRow> {
     let Some(parsed) = entry.parsed_note.as_ref() else {
@@ -26,7 +26,7 @@ pub(super) fn build_knowledge_section_rows_for_entry(
 fn knowledge_rows_for_note(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     parsed: &ParsedNote,
     metadata: &SearchProjectMetadata,
 ) -> Vec<KnowledgeSectionRow> {

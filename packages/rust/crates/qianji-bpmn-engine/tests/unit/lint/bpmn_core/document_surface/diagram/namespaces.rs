@@ -1,4 +1,4 @@
-use super::*;
+use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
 fn bpmn_linter_reports_invalid_bpmndi_namespace_before_di_metadata_guidance() {

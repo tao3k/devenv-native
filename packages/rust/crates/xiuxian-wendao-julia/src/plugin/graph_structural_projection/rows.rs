@@ -1,10 +1,10 @@
-use super::super::graph_structural_exchange::{
-    GraphStructuralFilterRequestRow, GraphStructuralRerankRequestRow,
-};
+//! Row projection helpers for staged graph-structural request DTOs.
+
 use super::core::{
     GraphStructuralCandidateSubgraph, GraphStructuralQueryContext, GraphStructuralRerankSignals,
 };
 use super::overlap::GraphStructuralFilterConstraint;
+use crate::{GraphStructuralFilterRequestRow, GraphStructuralRerankRequestRow};
 
 /// Build one staged structural-rerank request row from normalized semantic DTOs.
 #[must_use]

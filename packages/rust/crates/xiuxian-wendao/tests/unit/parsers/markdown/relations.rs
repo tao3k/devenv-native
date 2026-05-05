@@ -3,7 +3,7 @@
 use crate::entity::RelationType;
 use crate::link_graph::addressing::Address;
 
-use super::*;
+use super::{parse_property_relations, parse_relation_targets};
 
 #[test]
 fn test_parse_relation_targets_support_scoped_wiki_links() {

@@ -1,3 +1,5 @@
+//! Rerank scoring implementation for Wendao Flight batches.
+
 #[cfg(feature = "transport")]
 use arrow_array::{FixedSizeListArray, Float32Array, RecordBatch, StringArray};
 

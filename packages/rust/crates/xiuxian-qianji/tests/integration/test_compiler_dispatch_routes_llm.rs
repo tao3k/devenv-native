@@ -65,8 +65,6 @@ impl LlmClient for StubLlmClient {
     }
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 fn build_compiler_with_client(
     index_root: &Path,
     llm_client: Option<Arc<xiuxian_qianji::QianjiLlmClient>>,

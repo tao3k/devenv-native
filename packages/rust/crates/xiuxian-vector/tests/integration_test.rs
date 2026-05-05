@@ -1,8 +1,6 @@
 //! Cargo entry point for xiuxian-vector integration tests.
 #![cfg(feature = "vector-store")]
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[path = "integration/columnar_tables.rs"]
 mod columnar_tables;
 #[path = "integration/data_layer_snapshots.rs"]

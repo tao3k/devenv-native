@@ -1,3 +1,5 @@
+//! Core Zhixing-Heyi service type and constructor.
+
 use super::reminder_queue::ReminderQueueStore;
 use crate::Result;
 use crate::storage::MarkdownStorage;

@@ -29,7 +29,6 @@ mod session_admin_persistence;
 mod state;
 mod trait_impl;
 
-pub(in crate::channels::telegram::channel) use super::session_partition::TelegramSessionPartition;
 pub use acl_overrides::{
     TelegramAclOverrides, build_telegram_acl_overrides, build_telegram_acl_overrides_from_settings,
 };
@@ -39,11 +38,13 @@ pub use chunking::{
     chunk_marker_reserve_chars, decorate_chunk_for_telegram, split_message_for_telegram,
 };
 pub use constants::TELEGRAM_MAX_MESSAGE_LENGTH;
-pub(in crate::channels::telegram::channel) use group_policy::TelegramGroupPolicyMode;
+pub(in crate::channels::telegram::channel) use identity::parse_recipient_target;
 #[doc(hidden)]
 pub use markdown::{markdown_to_telegram_html, markdown_to_telegram_markdown_v2};
+pub(in crate::channels::telegram::channel) use outbound_text::normalize_telegram_outbound_text;
 pub(in crate::channels::telegram::channel) use policy::TelegramSlashCommandRule;
 pub use policy::{TelegramControlCommandPolicy, TelegramSlashCommandPolicy};
+pub(in crate::channels::telegram::channel) use send_types::PreparedCaption;
 pub use state::TelegramChannel;
 pub(in crate::channels::telegram::channel) use state::{
     TELEGRAM_ACL_RELOAD_CHECK_INTERVAL, TELEGRAM_API_BASE_ENV,

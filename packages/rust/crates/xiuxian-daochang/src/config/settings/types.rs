@@ -1,3 +1,5 @@
+//! Top-level settings file data model.
+
 use std::collections::HashMap;
 
 use serde::Deserialize;

@@ -5,9 +5,9 @@
 
 use std::time::Instant;
 
+use lance::index::DatasetIndexExt;
 use lance::index::vector::VectorIndexParams;
 use lance_index::IndexType;
-use lance_index::traits::DatasetIndexExt;
 use lance_index::vector::hnsw::builder::HnswBuildParams;
 use lance_index::vector::ivf::IvfBuildParams;
 use lance_linalg::distance::DistanceType;

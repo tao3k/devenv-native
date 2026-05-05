@@ -1,4 +1,10 @@
-use super::support::*;
+use super::support::{
+    Arc, Duration, HashSet, PathBuf, RegisteredRepository, RepoIndexEntryStatus,
+    RepoSearchAvailability, RepositoryAnalysisOutput, RepositoryPluginConfig,
+    RepositoryRefreshPolicy, SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace,
+    SearchPlanePhase, SearchPlaneService, commit_all, discover_checkout_metadata, fs,
+    init_git_repository, new_coordinator, timestamp_now,
+};
 
 #[tokio::test]
 async fn run_repository_analysis_returns_empty_analysis_for_search_only_repositories() {

@@ -1,0 +1,62 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/src/studio/search/handlers/flight.rs
+expression: value
+---
+[
+  {
+    "descriptorPath": [
+      "vfs",
+      "resolve"
+    ],
+    "endpointCount": 1,
+    "path": "kernel/docs/alpha.md",
+    "route": "/vfs/resolve",
+    "schemaLength": 448,
+    "ticket": "/vfs/resolve"
+  },
+  {
+    "descriptorPath": [
+      "vfs",
+      "content"
+    ],
+    "endpointCount": 1,
+    "path": "kernel/docs/alpha.md",
+    "route": "/vfs/content",
+    "schemaLength": 320,
+    "ticket": "/vfs/content"
+  },
+  {
+    "descriptorPath": [
+      "vfs",
+      "scan"
+    ],
+    "endpointCount": 1,
+    "route": "/vfs/scan",
+    "schemaLength": 768,
+    "ticket": "/vfs/scan"
+  },
+  {
+    "descriptorPath": [
+      "graph",
+      "neighbors"
+    ],
+    "direction": "both",
+    "endpointCount": 1,
+    "hops": 1,
+    "limit": 20,
+    "nodeId": "kernel/docs/alpha.md",
+    "route": "/graph/neighbors",
+    "schemaLength": 1088,
+    "ticket": "/graph/neighbors"
+  },
+  {
+    "descriptorPath": [
+      "topology",
+      "3d"
+    ],
+    "endpointCount": 1,
+    "route": "/topology/3d",
+    "schemaLength": 1088,
+    "ticket": "/topology/3d"
+  }
+]

@@ -36,8 +36,6 @@ async fn test_qianji_safety_static_cycle_detection() {
     );
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn test_qianji_runtime_loop_guard() {
     let mut engine = QianjiEngine::new();

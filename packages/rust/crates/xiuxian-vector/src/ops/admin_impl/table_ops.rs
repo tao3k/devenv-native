@@ -1,3 +1,9 @@
+use super::{
+    Arc, Dataset, FragmentInfo, ID_COLUMN, METADATA_COLUMN, Result, TableColumnAlteration,
+    TableColumnType, TableInfo, TableNewColumn, TableVersionInfo, TryStreamExt, VectorStore,
+    VectorStoreError, is_dataset_not_found_or_invalid,
+};
+
 impl VectorStore {
     /// Get the number of rows in a table.
     /// Returns 0 if the table path does not exist or the dataset was dropped (e.g. after

@@ -1,4 +1,4 @@
-use super::*;
+use super::{ConstructCliCommand, must_ok, run_construct_command};
 
 #[test]
 fn run_construct_index_renders_toc() {

@@ -1,5 +1,7 @@
+use crate::contract_feedback::{
+    AdvisoryAuditRequest, FindingConfidence, FindingSeverity, RoleAuditFinding,
+};
 use serde::Deserialize;
-use xiuxian_testing::{AdvisoryAuditRequest, FindingConfidence, FindingSeverity, RoleAuditFinding};
 
 use super::QianjiAdvisoryRolePlan;
 use super::runtime::LiveCognitiveMetrics;

@@ -1,4 +1,4 @@
-use super::support::*;
+use super::support::xml_escape;
 
 #[test]
 fn test_xml_escape() {

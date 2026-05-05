@@ -1,3 +1,5 @@
+//! Prompt-injection contract records shared by Qianhuan rendering layers.
+
 mod block;
 mod policy;
 mod role_mix;

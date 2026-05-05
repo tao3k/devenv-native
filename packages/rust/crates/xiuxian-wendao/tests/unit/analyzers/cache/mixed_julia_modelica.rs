@@ -7,10 +7,10 @@ use xiuxian_git_repo::{
 
 use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy};
 
-use super::super::build_repository_analysis_cache_key;
 use super::support::{
     ensure_linked_modelica_parser_summary_service, ensure_linked_parser_summary_service,
 };
+use crate::analyzers::cache::build_repository_analysis_cache_key;
 
 #[test]
 #[serial(mixed_julia_modelica_live)]

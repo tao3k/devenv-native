@@ -274,8 +274,9 @@ The currently landed Wendao slices are:
 37. a bounded performance-gate slice now compares the same deterministic
     synthetic Parquet fixture through the DataFusion and DuckDB
     `ParquetQueryEngine` lanes, emits durable perf reports through
-    `xiuxian-testing`, and enforces a configurable DuckDB/DataFusion p95
-    ratio budget without widening storage or protocol ownership
+    Wendao-owned performance support, and enforces a configurable
+    DuckDB/DataFusion p95 ratio budget without widening storage or protocol
+    ownership
 38. a bounded GraphQL execution cutover now keeps document parsing and
     GraphQL argument decoding adapter-local, but translates the resulting
     table query into SQL text and executes it through the shared SQL seam
@@ -589,15 +590,15 @@ Example configuration shape:
 [search.duckdb]
 enabled = true
 database_path = ":memory:"
-temp_directory = "$PRJ_CACHE_HOME/duckdb/tmp"
+temp_directory_policy = "project_temp"
 threads = 4
 materialize_threshold_rows = 200000
 prefer_virtual_arrow = true
 
 [qianji.duckdb]
 enabled = true
-database_path = "$PRJ_DATA_HOME/qianji/duckdb/workflow.db"
-temp_directory = "$PRJ_CACHE_HOME/qianji/duckdb/tmp"
+database_path_policy = "stage_local"
+temp_directory_policy = "project_temp"
 ```
 
 These keys are architectural placeholders in this RFC. Exact naming and
@@ -893,6 +894,35 @@ statement surface:
 5. the slice stays bounded to performance evidence only: it does not widen
    FlightSQL planning, discovery ownership, or the published Parquet surface
 
+### 10.20 Wendao Semantic SSOT Read-Model and Compute Lane
+
+The next bounded pilot is the **Semantic SSOT Read-Model and Compute Lane**:
+
+1. DuckDB acts as a high-performance read model for the repo-native SSOT layer
+   defined in `2026-05-03-repo-native-semantic-ssot-layer-rfc.md`; it does not
+   own canonical semantic truth.
+2. Accepted objects from the approved semantic artifact root are materialized
+   into a provisional `semantic_objects` table.
+3. Accepted relations are materialized into a provisional `semantic_relations`
+   edge table.
+4. SQL-backed invariant checks may emit validation evidence for Qianji guards,
+   but they do not replace required repository validation commands.
+5. Refresh behavior must carry source revision and projection revision
+   metadata, and must use a transaction or snapshot-swap discipline before any
+   watcher or refresh-latency claim is made.
+6. The current `DuckDbLocalRelationEngine` already provides the physical
+   feasibility anchor through virtual Arrow registration, materialized appender
+   registration, and bounded `query_batches` execution. The pilot should reuse
+   that relation-engine seam rather than introducing a separate database owner.
+7. Julia acts as an optional compute augmentation lane for graph-structural
+   rerank, calibration, and numerically dense advisory evidence. It consumes
+   bounded Arrow-shaped projections and returns versioned evidence rows; it
+   does not own semantic object state.
+8. The existing `xiuxian-wendao-julia` graph-structural and memory-compute
+   contracts should be reused before adding new Rust-local compute contracts
+   for surfaces where Rust is mainly acting as orchestration and validation
+   glue.
+
 ## 11. Telemetry and Explain
 
 The DuckDB lane must participate in the same explain discipline as the rest of
@@ -1000,9 +1030,9 @@ Revisit this direction if:
    reuse the same bounded Parquet query-engine seam, again with engine-safe
    SQL generation for both DataFusion and DuckDB
 9. `/search/intent` now has a bounded composition proof that records internal
-   source-lane query-engine metadata and proves the route composes DuckDB-fed
-   `knowledge_section`, `local_symbol`, and repo-intent lanes without widening
-   the public contract
+   source-lane query-engine metadata and demonstrates that the route composes
+   DuckDB-fed `knowledge_section`, `local_symbol`, and repo-intent lanes without
+   widening the public contract
 10. `/search/symbols` now reuses the published `local_symbol` lane instead of
     the in-memory `UnifiedSymbolIndex`, while preserving the existing route
     contract and pending/indexing behavior

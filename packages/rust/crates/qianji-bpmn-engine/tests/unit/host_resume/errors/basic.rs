@@ -1,4 +1,4 @@
-use super::super::support::{StubHost, blocking_process, create_blocked_instance};
+use crate::host_resume::support::{StubHost, blocking_process, create_blocked_instance};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, PendingHostWorkResult,

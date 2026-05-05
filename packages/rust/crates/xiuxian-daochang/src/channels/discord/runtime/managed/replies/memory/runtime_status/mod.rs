@@ -1,5 +1,7 @@
-mod helpers;
+//! Discord memory runtime-status reply branch for text and JSON rendering.
+
 mod json;
+mod readiness;
 mod text;
 
 pub(super) use json::format_downstream_admission_status_json;

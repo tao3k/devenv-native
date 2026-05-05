@@ -1,3 +1,5 @@
+//! Public dmn model decision evaluation contracts for BPMN/DMN engine integration.
+
 use super::{Arc, DmnDecisionRef, Value};
 
 /// DMN evaluation request surface.

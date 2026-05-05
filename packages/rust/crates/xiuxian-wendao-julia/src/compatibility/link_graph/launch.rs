@@ -1,3 +1,5 @@
+//! Launch configuration for Julia-backed link-graph compatibility routes.
+
 use serde::{Deserialize, Serialize};
 use xiuxian_wendao_core::artifacts::PluginLaunchSpec;
 

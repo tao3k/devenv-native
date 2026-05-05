@@ -1,3 +1,5 @@
+//! Service-mount policy types for agent bootstrap configuration.
+
 use serde::{Deserialize, Serialize};
 
 /// Service mount lifecycle status.

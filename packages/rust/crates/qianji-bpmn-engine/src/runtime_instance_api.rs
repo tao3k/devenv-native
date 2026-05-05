@@ -40,6 +40,36 @@ impl BpmnInstanceInit {
     }
 }
 
+/// Public BPMN process identifier for runtime instance construction.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BpmnProcessId(String);
+
+impl BpmnProcessId {
+    /// Borrows the serialized BPMN process identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for BpmnProcessId {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl From<&String> for BpmnProcessId {
+    fn from(value: &String) -> Self {
+        Self(value.clone())
+    }
+}
+
+impl From<String> for BpmnProcessId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
 /// High-level node runtime status shell.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -354,16 +384,22 @@ pub struct BpmnInstanceState {
 
 /// Creates a workflow instance shell for one process.
 ///
+/// # Identifier Boundary
+///
+/// The `process_id` primitive is kept at this public boundary because callers
+/// pass the BPMN process id exactly as it appears in parsed package metadata.
+///
 /// # Errors
 ///
 /// Returns [`BpmnEngineError::MissingProcess`] when the target process does not
 /// exist in the provided package.
 pub fn create_instance(
     package: impl Borrow<BpmnPackage>,
-    process_id: &str,
+    process_id: impl Into<BpmnProcessId>,
     init: BpmnInstanceInit,
 ) -> Result<BpmnInstanceState> {
-    crate::runtime::create_instance_impl(package, process_id, init)
+    let process_id = process_id.into();
+    crate::runtime::create_instance_impl(package, process_id.as_str(), init)
 }
 
 fn deserialize_pending_host_work_collection<'de, D>(

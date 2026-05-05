@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::gateway::studio::search::is_markdown_path;
-use crate::gateway::studio::types::AstSearchHit;
+use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::is_markdown_path;
 use crate::search::local_symbol::build::LocalSymbolPartitionBuildPlan;
 use crate::search::{MarkdownProjectSnapshot, ProjectScannedFile, SearchPlaneService};
 

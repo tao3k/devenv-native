@@ -1,8 +1,8 @@
-use super::super::TRANSACTION_PROCESS_ID;
 use super::helpers::{
     advance_and_expect_blocked, assert_main_success_completion, assert_pending_handler_node,
     complete_default_compensation_pair, complete_user_task, create_transaction_test_instance,
 };
+use crate::runtime::call_activity::TRANSACTION_PROCESS_ID;
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, apply_pending_host_work_result, create_instance,
@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[tokio::test(flavor = "current_thread")]
 async fn runtime_transaction_async_throw_compensation_end_resumes_parent_before_handler_completion()
 {
-    let package = Arc::new(super::super::parsed_fixture_package(
+    let package = Arc::new(crate::runtime::call_activity::parsed_fixture_package(
         "transaction-throw-compensation-end-async.bpmn",
     ));
     let mut instance = create_instance(
@@ -26,7 +26,7 @@ async fn runtime_transaction_async_throw_compensation_end_resumes_parent_before_
         ),
     )
     .must("instance should be created");
-    let host = super::super::StubHost::new(55);
+    let host = crate::runtime::call_activity::StubHost::new(55);
 
     let pending = advance_and_expect_blocked(
         package.as_ref(),

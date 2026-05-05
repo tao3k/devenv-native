@@ -1,3 +1,5 @@
+//! Markdown section extraction from parsed structure.
+
 use std::collections::HashMap;
 
 use crate::markdown_structure::{MarkdownStructure, parse_markdown_structure};

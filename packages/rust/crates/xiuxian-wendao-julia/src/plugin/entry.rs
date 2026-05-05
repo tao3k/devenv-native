@@ -1,3 +1,5 @@
+//! Julia repository plugin entry point and analysis registration.
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 

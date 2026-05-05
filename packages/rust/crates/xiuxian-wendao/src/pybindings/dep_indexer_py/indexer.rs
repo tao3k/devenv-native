@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{pyclass, pymethods};
 
 use crate::dependency_indexer::{DependencyIndexResult, DependencyIndexer, DependencyStats};
 

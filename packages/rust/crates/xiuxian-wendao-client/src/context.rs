@@ -1,3 +1,5 @@
+//! Runtime context passed from CLI parsing into command executors.
+
 use crate::OutputFormat;
 use std::path::{Path, PathBuf};
 

@@ -5,7 +5,7 @@ use crate::analyzers::{
     backlinks_for, hierarchy_segments_from_path, projection_pages_for, record_hierarchical_uri,
     related_modules_for_example, related_symbols_for_example,
 };
-use crate::gateway::studio::types::{SearchBacklinkItem, SearchHit};
+use crate::search::contracts::{SearchBacklinkItem, SearchHit};
 use crate::search::repo_entity::schema::definitions::{ENTITY_KIND_EXAMPLE, RepoEntityRow};
 use crate::search::repo_entity::schema::helpers::{
     infer_code_language, map_backlink_items, repo_entity_tags, repo_navigation_target,

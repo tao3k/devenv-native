@@ -1,3 +1,5 @@
+//! Diagnostic fact extraction for markdown lint rule rendering.
+
 mod context;
 mod facts;
 mod link;

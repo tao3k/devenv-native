@@ -7,11 +7,15 @@ pub(crate) const MIN_RETAINED_ATTACHMENTS: usize = 32;
 pub(crate) const RETAINED_ATTACHMENT_MULTIPLIER: usize = 2;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum AttachmentSearchError {
+/// Errors returned while querying the attachment search index.
+pub enum AttachmentSearchError {
+    /// The attachment index has not published a readable epoch yet.
     #[error("attachment index has no published epoch")]
     NotReady,
+    /// The vector-store or query-engine layer failed.
     #[error(transparent)]
     Storage(#[from] VectorStoreError),
+    /// Stored attachment rows could not be decoded into search hits.
     #[error("{0}")]
     Decode(String),
 }

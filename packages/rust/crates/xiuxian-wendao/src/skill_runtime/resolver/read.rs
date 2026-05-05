@@ -2,8 +2,8 @@ use std::path::Path;
 use std::sync::Arc;
 use xiuxian_wendao_core::WendaoResourceUri;
 
-use super::super::SkillRuntimeError;
 use super::core::SkillRuntimeResolver;
+use crate::skill_runtime::SkillRuntimeError;
 
 impl SkillRuntimeResolver {
     /// Resolve one Wendao URI and return UTF-8 file content.
@@ -22,7 +22,7 @@ impl SkillRuntimeResolver {
     ///
     /// Lookup order for semantic URIs:
     /// 1. `content_cache`
-    /// 2. Local semantic reference path indexed by [`super::super::SkillInventory`]
+    /// 2. Local semantic reference path indexed by [`crate::skill_runtime::SkillInventory`]
     /// 3. Embedded `include_dir` resources (when enabled)
     ///
     /// # Errors

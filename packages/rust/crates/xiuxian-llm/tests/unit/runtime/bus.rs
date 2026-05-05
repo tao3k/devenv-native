@@ -1,4 +1,6 @@
-use crate::runtime::{ExecutorId, ModelBus, ModelMetadata, ModelSlot, ModelSlotId, SlotState};
+use crate::model_runtime::{
+    ExecutorId, ModelBus, ModelMetadata, ModelSlot, ModelSlotId, SlotState,
+};
 
 #[test]
 fn model_bus_register_and_get() {

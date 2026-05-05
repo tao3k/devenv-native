@@ -2,27 +2,27 @@ use std::path::Path;
 
 use tokio::runtime::Handle;
 
-use crate::gateway::studio::types::UiProjectConfig;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::attachment::build::AttachmentBuildError;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::attachment::build::plan_attachment_build;
 use crate::search::attachment::build::{
     plan_attachment_build_with_scanned_files, write_attachment_epoch,
 };
 use crate::search::attachment::schema::projected_columns_with_hit_json;
 use crate::search::cache::SearchPlaneFileFingerprintScope;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::{
     BeginBuildDecision, ProjectScannedFile, SearchCorpusKind, SearchPlaneService,
     fingerprint_note_projects_from_scanned_files,
 };
 
-#[cfg(test)]
-pub(crate) fn ensure_attachment_index_started(
+#[cfg(any(test, feature = "test-support"))]
+pub fn ensure_attachment_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> bool {
     if projects.is_empty() {
         return false;
@@ -44,11 +44,11 @@ pub(crate) fn ensure_attachment_index_started(
     )
 }
 
-pub(crate) fn ensure_attachment_index_started_with_scanned_files(
+pub fn ensure_attachment_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
 ) -> bool {
     if projects.is_empty() {
@@ -75,7 +75,7 @@ fn ensure_attachment_index_started_with_fingerprint_and_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: String,
     scanned_files: Vec<ProjectScannedFile>,
 ) -> bool {
@@ -173,12 +173,12 @@ fn ensure_attachment_index_started_with_fingerprint_and_scanned_files(
     true
 }
 
-#[cfg(test)]
-pub(crate) async fn publish_attachments_from_projects(
+#[cfg(any(test, feature = "test-support"))]
+pub async fn publish_attachments_from_projects(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: &str,
 ) -> Result<(), AttachmentBuildError> {
     let lease = match service.coordinator().begin_build(

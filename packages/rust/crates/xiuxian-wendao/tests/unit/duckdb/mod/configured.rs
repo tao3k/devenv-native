@@ -1,5 +1,8 @@
 #[cfg(feature = "duckdb")]
-use super::*;
+use super::{
+    LocalRelationEngineKind, ParquetQueryEngine, TestResult, serial,
+    write_search_duckdb_runtime_override,
+};
 
 #[cfg(feature = "duckdb")]
 #[test]

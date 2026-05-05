@@ -1,0 +1,13 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "gaps": [],
+  "repo_id": "modelica-gateway-projected-gap-report",
+  "summary": {
+    "by_kind": [],
+    "gap_count": 0,
+    "page_count": 11
+  }
+}

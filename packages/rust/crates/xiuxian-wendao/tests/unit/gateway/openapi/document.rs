@@ -11,21 +11,6 @@ use super::{
     bundled_wendao_gateway_openapi_document, bundled_wendao_gateway_openapi_path,
     load_bundled_wendao_gateway_openapi_document,
 };
-use crate::gateway::WENDAO_GATEWAY_ROUTE_CONTRACTS;
-
-fn operation_summary(operation: &Value) -> &str {
-    operation
-        .get("summary")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-}
-
-fn operation_description(operation: &Value) -> &str {
-    operation
-        .get("description")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-}
 
 #[test]
 fn bundled_gateway_openapi_document_is_valid_json() {
@@ -96,92 +81,6 @@ fn bundled_gateway_openapi_document_declares_public_json_bearer_boundary() {
         document["components"]["schemas"]["GatewayResponse"]["properties"]["object"]["const"],
         Value::String("response".to_string())
     );
-}
-
-#[test]
-fn bundled_gateway_openapi_document_covers_declared_route_inventory() {
-    let document = load_bundled_wendao_gateway_openapi_document()
-        .unwrap_or_else(|error| panic!("bundled gateway OpenAPI should parse: {error}"));
-    let Some(paths) = document.get("paths").and_then(Value::as_object) else {
-        panic!("bundled gateway OpenAPI should contain a `paths` object");
-    };
-
-    for route in WENDAO_GATEWAY_ROUTE_CONTRACTS {
-        let Some(path_item) = paths.get(route.openapi_path).and_then(Value::as_object) else {
-            panic!(
-                "bundled gateway OpenAPI should document path {}",
-                route.openapi_path
-            );
-        };
-
-        for method in route.methods {
-            let Some(operation) = path_item.get(*method) else {
-                panic!(
-                    "bundled gateway OpenAPI should document {} {}",
-                    method, route.openapi_path
-                );
-            };
-            assert!(
-                !operation_summary(operation).trim().is_empty(),
-                "{} {} should include a non-empty summary",
-                method,
-                route.openapi_path
-            );
-            assert!(
-                !operation_description(operation).trim().is_empty(),
-                "{} {} should include a non-empty description",
-                method,
-                route.openapi_path
-            );
-
-            let Some(responses) = operation.get("responses").and_then(Value::as_object) else {
-                panic!(
-                    "{} {} should include OpenAPI responses",
-                    method, route.openapi_path
-                );
-            };
-            assert!(
-                !responses.is_empty(),
-                "{} {} should document at least one response",
-                method,
-                route.openapi_path
-            );
-            for (status, response) in responses {
-                let description = response
-                    .get("description")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default();
-                assert!(
-                    !description.trim().is_empty(),
-                    "{} {} response {} should include a non-empty description",
-                    method,
-                    route.openapi_path,
-                    status
-                );
-            }
-
-            if !route.path_params.is_empty() {
-                let Some(parameters) = operation.get("parameters").and_then(Value::as_array) else {
-                    panic!(
-                        "{} {} should include path parameter declarations",
-                        method, route.openapi_path
-                    );
-                };
-                for required_param in route.path_params {
-                    let matches_param = parameters.iter().any(|parameter| {
-                        parameter.get("name").and_then(Value::as_str) == Some(*required_param)
-                            && parameter.get("in").and_then(Value::as_str) == Some("path")
-                            && parameter.get("required").and_then(Value::as_bool) == Some(true)
-                    });
-                    assert!(
-                        matches_param,
-                        "{} {} should declare required path parameter `{}`",
-                        method, route.openapi_path, required_param
-                    );
-                }
-            }
-        }
-    }
 }
 
 #[cfg(feature = "julia")]

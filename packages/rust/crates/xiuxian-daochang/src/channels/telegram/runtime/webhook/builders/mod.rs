@@ -1,3 +1,5 @@
+//! Telegram webhook builder branch for API, channel, and core assembly.
+
 mod api;
 mod core;
 

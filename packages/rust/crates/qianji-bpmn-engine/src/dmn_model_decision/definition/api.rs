@@ -1,3 +1,5 @@
+//! Public dmn model decision definition contracts for BPMN/DMN engine integration.
+
 use super::{
     Arc, DmnContextExpression, DmnDecisionRef, DmnDecisionTable,
     DmnInformationRequirementReference, DmnInvocation, DmnKnowledgeRequirementReference,

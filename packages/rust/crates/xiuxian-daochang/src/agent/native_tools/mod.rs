@@ -1,3 +1,5 @@
+//! Native tool branch for registry, schemas, and runtime dispatch.
+
 pub(crate) mod alias;
 pub(crate) mod macros;
 pub(crate) mod registry;

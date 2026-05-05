@@ -1,13 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::cache::SearchPlaneFileFingerprintScope;
+use crate::search::contracts::SearchProjectConfig;
 use crate::search::knowledge_section::build::rows::build_knowledge_section_rows_for_entry;
 use crate::search::knowledge_section::build::types::KnowledgeSectionBuildPlan;
 use crate::search::knowledge_section::build::write::write_knowledge_section_epoch;
 use crate::search::knowledge_section::schema::projected_columns;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::scan_note_project_files;
 use crate::search::{
     BeginBuildDecision, ProjectScannedFile, SearchCorpusKind, SearchFileFingerprint,
@@ -17,12 +17,12 @@ use tokio::runtime::Handle;
 
 const KNOWLEDGE_SECTION_EXTRACTOR_VERSION: u32 = 1;
 
-#[cfg(test)]
-pub(crate) fn ensure_knowledge_section_index_started(
+#[cfg(any(test, feature = "test-support"))]
+pub fn ensure_knowledge_section_index_started(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> bool {
     if projects.is_empty() {
         return false;
@@ -44,11 +44,11 @@ pub(crate) fn ensure_knowledge_section_index_started(
     )
 }
 
-pub(crate) fn ensure_knowledge_section_index_started_with_scanned_files(
+pub fn ensure_knowledge_section_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
 ) -> bool {
     if projects.is_empty() {
@@ -75,7 +75,7 @@ fn ensure_knowledge_section_index_started_with_fingerprint_and_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     fingerprint: String,
     scanned_files: Vec<ProjectScannedFile>,
 ) -> bool {
@@ -175,12 +175,12 @@ fn ensure_knowledge_section_index_started_with_fingerprint_and_scanned_files(
     true
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(super) fn plan_knowledge_section_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> KnowledgeSectionBuildPlan {
@@ -205,7 +205,7 @@ fn plan_knowledge_section_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,

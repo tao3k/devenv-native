@@ -1,0 +1,26 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "entries": [
+    {
+      "contentType": null,
+      "isDir": true,
+      "name": "docs",
+      "path": "docs",
+      "projectName": "kernel",
+      "rootLabel": "docs",
+      "size": 0
+    },
+    {
+      "contentType": null,
+      "isDir": true,
+      "name": "skills",
+      "path": "skills",
+      "projectName": "kernel",
+      "rootLabel": "skills",
+      "size": 0
+    }
+  ]
+}

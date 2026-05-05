@@ -1,4 +1,11 @@
-use super::support::*;
+use super::support::{
+    Arc, PathBuf, PreparedIncrementalAnalysis, RegisteredRepository, RepoSourceKind,
+    RepoSyncResult, RepositoryRefreshPolicy, SearchPlaneService,
+    analyze_registered_repository_with_registry,
+    bootstrap_builtin_registry_with_runtime_rust_plugin, commit_all,
+    ensure_linked_modelica_parser_summary_service, fs, init_git_repository,
+    mixed_modelica_rust_plugin_configs, new_coordinator_with_registry,
+};
 
 #[tokio::test]
 async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_mixed_modelica_rust_rust_source_churn()

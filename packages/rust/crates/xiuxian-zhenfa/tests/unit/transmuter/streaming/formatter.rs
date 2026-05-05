@@ -1,4 +1,4 @@
-use super::*;
+use super::{AnsiFormatter, DisplayStyle, ZhenfaStreamingEvent};
 
 #[test]
 fn ansi_formatter_formats_plain_and_ansi_output() {

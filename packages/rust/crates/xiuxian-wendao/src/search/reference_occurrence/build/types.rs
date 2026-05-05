@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::gateway::studio::types::ReferenceSearchHit;
 use crate::search::SearchFileFingerprint;
+use crate::search::contracts::ReferenceSearchHit;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ReferenceOccurrenceBuildPlan {
@@ -17,9 +17,9 @@ pub(crate) struct ReferenceOccurrenceWriteResult {
     pub(crate) fragment_count: u64,
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum ReferenceOccurrenceBuildError {
+pub enum ReferenceOccurrenceBuildError {
     #[error(transparent)]
     Storage(#[from] xiuxian_db_store::VectorStoreError),
 }

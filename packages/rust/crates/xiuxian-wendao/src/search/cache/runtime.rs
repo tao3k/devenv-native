@@ -21,9 +21,12 @@ pub(crate) struct SearchPlaneCacheRuntime {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct SearchPlaneCacheConnectionTarget {
-    pub(crate) valkey_url: String,
-    pub(crate) config: SearchPlaneCacheConfig,
+/// Resolved cache connection target for diagnostics and startup health checks.
+pub struct SearchPlaneCacheConnectionTarget {
+    /// Effective Valkey URL selected from settings or environment.
+    pub valkey_url: String,
+    /// Effective cache timeout and TTL configuration.
+    pub config: SearchPlaneCacheConfig,
 }
 
 pub(crate) fn resolve_search_plane_cache_runtime() -> SearchPlaneCacheRuntime {
@@ -31,7 +34,12 @@ pub(crate) fn resolve_search_plane_cache_runtime() -> SearchPlaneCacheRuntime {
     resolve_search_plane_cache_runtime_with_lookup(&settings, &|name| std::env::var(name).ok())
 }
 
-pub(crate) fn resolve_search_plane_cache_connection_target()
+/// Resolve the cache connection target without opening the runtime cache client.
+///
+/// # Errors
+///
+/// Returns a message when an explicitly configured Valkey URL is invalid.
+pub fn resolve_search_plane_cache_connection_target()
 -> Result<SearchPlaneCacheConnectionTarget, String> {
     let settings = merged_wendao_settings();
     resolve_search_plane_cache_connection_target_with_lookup(&settings, &|name| {

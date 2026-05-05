@@ -1,3 +1,5 @@
+//! Builtin artifact selectors and serialized fixture rendering.
+
 mod dispatch;
 mod gateway;
 mod openapi;

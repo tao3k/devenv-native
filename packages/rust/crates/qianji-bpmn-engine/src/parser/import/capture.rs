@@ -1,3 +1,5 @@
+//! parser import capture branch wiring for focused BPMN/DMN owner leaves.
+
 #[path = "capture_multi_instance.rs"]
 mod multi_instance;
 #[path = "capture_node.rs"]

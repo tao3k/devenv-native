@@ -1,3 +1,5 @@
+//! Arrow response decoding and validation for Plugin Arrow exchange scoring.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use arrow_array::{Array, Float64Array, RecordBatch, StringArray};

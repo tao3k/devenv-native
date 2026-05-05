@@ -76,7 +76,7 @@ fn lance_batches_round_trip_into_engine_batches() -> Result<()> {
     let schema = local_symbol_schema();
     let batch = local_symbol_batch(&[("sym-1", "AlphaSymbol"), ("sym-2", "BetaSymbol")], schema)?;
 
-    let engine_batch = lance_batch_to_engine_batch(&batch)?;
+    let engine_batch = lance_batch_to_engine_batch(&batch);
 
     assert_eq!(
         rows_from_engine_batch(&engine_batch),
@@ -100,8 +100,8 @@ fn lance_batches_round_trip_into_engine_batches() -> Result<()> {
 fn engine_batches_round_trip_back_into_lance_batches() -> Result<()> {
     let schema = local_symbol_schema();
     let batch = local_symbol_batch(&[("sym-1", "AlphaSymbol"), ("sym-2", "BetaSymbol")], schema)?;
-    let engine_batch = lance_batch_to_engine_batch(&batch)?;
-    let lance_batch = engine_batch_to_lance_batch(&engine_batch)?;
+    let engine_batch = lance_batch_to_engine_batch(&batch);
+    let lance_batch = engine_batch_to_lance_batch(&engine_batch);
 
     assert_eq!(
         rows_from_lance_batch(&lance_batch),

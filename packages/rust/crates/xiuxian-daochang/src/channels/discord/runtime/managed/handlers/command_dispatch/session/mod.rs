@@ -1,3 +1,5 @@
+//! Discord managed session-command branch for admin and injection handling.
+
 mod admin;
 mod budget;
 mod feedback;

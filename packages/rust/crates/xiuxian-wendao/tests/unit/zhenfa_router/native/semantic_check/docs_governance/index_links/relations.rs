@@ -1,4 +1,19 @@
-use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::*;
+use std::fs;
+
+use tempfile::TempDir;
+use xiuxian_zhenfa::ZhenfaContext;
+
+use crate::link_graph::LinkGraphIndex;
+use crate::parsers::docs_governance::{derive_opaque_doc_id, extract_wikilinks};
+use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::PanicExt;
+use crate::zhenfa_router::native::semantic_check::docs_governance::{
+    MISSING_PACKAGE_DOCS_INDEX_RELATION_LINK_ISSUE_TYPE,
+    MISSING_PACKAGE_DOCS_INDEX_RELATIONS_BLOCK_ISSUE_TYPE,
+    STALE_PACKAGE_DOCS_INDEX_RELATION_LINK_ISSUE_TYPE, collect_workspace_doc_governance_issues,
+};
+use crate::zhenfa_router::native::semantic_check::{
+    CheckType, WendaoSemanticCheckArgs, run_audit_core,
+};
 
 #[test]
 fn relation_line_wikilinks_use_canonical_parser_contract() {

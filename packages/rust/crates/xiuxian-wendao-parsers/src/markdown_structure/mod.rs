@@ -1,3 +1,5 @@
+//! Internal Markdown structure extraction shared by parser owners.
+
 mod api;
 mod target_scan;
 mod types;

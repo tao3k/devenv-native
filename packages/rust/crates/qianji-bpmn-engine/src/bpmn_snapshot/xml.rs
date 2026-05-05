@@ -5,7 +5,7 @@ use quick_xml::escape::{resolve_predefined_entity, unescape};
 use quick_xml::events::{BytesRef, BytesStart};
 use std::borrow::Cow;
 
-pub(super) fn attribute_value(
+pub(in crate::bpmn_snapshot) fn attribute_value(
     source: &BpmnSourceFile,
     reader: &Reader<&[u8]>,
     event: &BytesStart<'_>,
@@ -31,7 +31,7 @@ pub(super) fn attribute_value(
     Ok(None)
 }
 
-pub(super) fn boolean_attribute_value(
+pub(in crate::bpmn_snapshot) fn boolean_attribute_value(
     source: &BpmnSourceFile,
     reader: &Reader<&[u8]>,
     event: &BytesStart<'_>,
@@ -46,7 +46,7 @@ pub(super) fn boolean_attribute_value(
     )
 }
 
-pub(super) fn bpmn_model_namespace(
+pub(in crate::bpmn_snapshot) fn bpmn_model_namespace(
     source: &BpmnSourceFile,
     reader: &Reader<&[u8]>,
     event: &BytesStart<'_>,
@@ -129,7 +129,7 @@ pub(super) fn append_reference_content(
     Ok(())
 }
 
-pub(super) fn local_name(name: &[u8]) -> &str {
+pub(in crate::bpmn_snapshot) fn local_name(name: &[u8]) -> &str {
     std::str::from_utf8(name)
         .ok()
         .map_or("", |raw| raw.rsplit(':').next().unwrap_or(raw))

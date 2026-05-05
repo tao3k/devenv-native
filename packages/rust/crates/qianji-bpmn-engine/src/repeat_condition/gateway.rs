@@ -1,4 +1,4 @@
-use super::common::{
+use super::operand::{
     ComparisonOperator, ParsedBooleanPathCondition, compare_numbers, is_identifier_path,
     parse_boolean_path_condition, parse_comparison_operator, parse_numeric_literal,
     resolve_boolean_variable_path, resolve_numeric_variable_path,

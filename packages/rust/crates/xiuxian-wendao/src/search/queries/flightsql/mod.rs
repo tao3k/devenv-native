@@ -1,3 +1,4 @@
+#[path = "discovery/mod.rs"]
 mod discovery;
 mod execution;
 mod metadata;

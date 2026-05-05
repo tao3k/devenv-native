@@ -7,12 +7,12 @@ mod anchor;
 mod anchored_show;
 #[path = "../flowhub_api.rs"]
 mod api;
-#[path = "../flowhub_check.rs"]
+#[path = "../flowhub_check/mod.rs"]
 mod check;
 #[path = "../flowhub_discover.rs"]
 mod discover;
 mod flowchart;
-#[path = "../flowhub_graph_show.rs"]
+#[path = "../flowhub_graph_show/mod.rs"]
 mod graph_show;
 #[path = "../flowhub_load.rs"]
 mod load;
@@ -64,7 +64,7 @@ mod scenario_ir_compile_nodes;
 mod scenario_ir_compile_workdir;
 #[path = "scenario_ir/model.rs"]
 mod scenario_ir_model;
-#[path = "../flowhub_show.rs"]
+#[path = "../flowhub_show/mod.rs"]
 mod show;
 mod validate;
 

@@ -1,4 +1,4 @@
-use super::helpers::{resolve_f64, resolve_usize};
+use super::scalar::{resolve_f64, resolve_usize};
 use crate::config::LinkGraphAgenticRuntimeConfig;
 use crate::config::constants::{
     LINK_GRAPH_AGENTIC_EXPANSION_MAX_CANDIDATES_ENV,

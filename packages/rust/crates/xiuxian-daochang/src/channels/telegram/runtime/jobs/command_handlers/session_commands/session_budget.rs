@@ -5,15 +5,15 @@ use crate::channels::managed_commands::SLASH_SCOPE_SESSION_BUDGET as TELEGRAM_SL
 use crate::channels::telegram::commands::parse_session_context_budget_command;
 use crate::channels::traits::{Channel, ChannelMessage};
 
-use super::super::super::observability::send_with_observability;
-use super::super::super::replies::{
-    format_context_budget_not_found_json, format_context_budget_snapshot,
-    format_context_budget_snapshot_json,
-};
-use super::super::slash_acl::ensure_slash_command_authorized;
 use super::{
     EVENT_TELEGRAM_COMMAND_SESSION_BUDGET_JSON_REPLIED,
     EVENT_TELEGRAM_COMMAND_SESSION_BUDGET_REPLIED,
+};
+use crate::channels::telegram::runtime::jobs::command_handlers::slash_acl::ensure_slash_command_authorized;
+use crate::channels::telegram::runtime::jobs::observability::send_with_observability;
+use crate::channels::telegram::runtime::jobs::replies::{
+    format_context_budget_not_found_json, format_context_budget_snapshot,
+    format_context_budget_snapshot_json,
 };
 
 pub(in crate::channels::telegram::runtime::jobs) async fn try_handle_session_budget_command(

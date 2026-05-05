@@ -1,8 +1,9 @@
 use std::sync::PoisonError;
 
-use super::super::{TelegramChannel, TelegramGroupPolicyMode};
 use super::acl::is_identity_in_allowlist;
 use super::types::ParsedTelegramUpdate;
+use crate::channels::telegram::TelegramChannel;
+use crate::channels::telegram::channel::group_policy::TelegramGroupPolicyMode;
 
 pub(super) fn group_policy_allows_message(
     channel: &TelegramChannel,

@@ -1,4 +1,4 @@
-use super::super::{LintDomain, lint_bpmn_source};
+use crate::lint::{LintDomain, lint_bpmn_source};
 use qianji_bpmn_engine::BpmnSourceFile;
 
 mod assignment;

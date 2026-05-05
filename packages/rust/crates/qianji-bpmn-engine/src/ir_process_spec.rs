@@ -1,3 +1,5 @@
+//! Public ir process spec contracts for BPMN/DMN engine integration.
+
 use crate::ir_data_api::BpmnDataObjectBindingSpec;
 use crate::ir_edge_api::BpmnEdgeSpec;
 use crate::ir_event_api::BpmnEventSpec;

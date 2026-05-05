@@ -17,7 +17,7 @@ struct WendaoTomlLinkGraphConfig {
     exclude_dirs: Vec<String>,
 }
 
-pub(super) fn configured_ignore_dirs(context: &ClientContext) -> Result<Vec<String>> {
+pub(crate) fn configured_ignore_dirs(context: &ClientContext) -> Result<Vec<String>> {
     let Some(config_path) = resolve_config_path(context)? else {
         return Ok(Vec::new());
     };

@@ -1,9 +1,9 @@
-use pyo3::prelude::*;
+use pyo3::{PyResult, pyclass, pymethods};
 
 use crate::graph::KnowledgeGraph;
 
-use super::super::{PyEntity, PyRelation, PySkillDoc};
 use super::{core_methods, persistence_methods, skill_methods};
+use crate::pybindings::graph_py::{PyEntity, PyRelation, PySkillDoc};
 
 /// Python wrapper for `KnowledgeGraph`.
 #[pyclass]

@@ -1,3 +1,5 @@
+//! Memory downcall contracts between Rust-owned memory facts and Julia compute lanes.
+
 mod calibration;
 /// Plugin-owned composition helpers that combine Rust host inputs with
 /// memory-family Julia downcalls.

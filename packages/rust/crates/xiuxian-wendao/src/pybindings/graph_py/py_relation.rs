@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{pyclass, pymethods};
 use serde_json::json;
 
 use crate::entity::Relation;

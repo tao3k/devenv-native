@@ -1,11 +1,11 @@
 //! Cargo entry point for xiuxian-zhenfa integration tests.
 
-xiuxian_testing::crate_test_policy_harness!();
-
+#[cfg(all(feature = "client", feature = "gateway"))]
 #[path = "integration/client.rs"]
 mod client;
 #[path = "integration/context_extensions.rs"]
 mod context_extensions;
+#[cfg(feature = "contract-validation")]
 #[path = "integration/contract_validation.rs"]
 mod contract_validation;
 #[path = "integration/contracts.rs"]

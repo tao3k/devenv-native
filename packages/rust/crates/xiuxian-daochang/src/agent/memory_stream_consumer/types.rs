@@ -9,13 +9,13 @@ const MAX_RECONNECT_BACKOFF_MS: u64 = 30_000;
 pub(super) const STREAM_CONSUMER_RESPONSE_TIMEOUT_GRACE_MS: u64 = 500;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct MemoryStreamEvent {
+pub(in crate::agent) struct MemoryStreamEvent {
     pub(super) id: String,
     pub(super) fields: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct MemoryStreamConsumerRuntimeConfig {
+pub(in crate::agent) struct MemoryStreamConsumerRuntimeConfig {
     pub(super) redis_url: String,
     pub(super) stream_name: String,
     pub(super) stream_key: String,
@@ -31,19 +31,19 @@ pub(super) struct MemoryStreamConsumerRuntimeConfig {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum StreamReadErrorKind {
+pub(in crate::agent) enum StreamReadErrorKind {
     MissingConsumerGroup,
     Transport,
     Other,
 }
 
-pub(super) struct StreamEventLogContext<'a> {
+pub(in crate::agent) struct StreamEventLogContext<'a> {
     pub(super) event_id: &'a str,
     pub(super) kind: &'a str,
     pub(super) session_id: Option<&'a str>,
 }
 
-pub(super) fn field_value_or_default(
+pub(in crate::agent) fn field_value_or_default(
     fields: &HashMap<String, String>,
     key: &str,
     default: &str,
@@ -55,7 +55,9 @@ pub(super) fn field_value_or_default(
         .map_or_else(|| default.to_string(), ToString::to_string)
 }
 
-pub(super) fn non_empty_string(value: Option<String>) -> Option<String> {
+pub(in crate::agent::memory_stream_consumer) fn non_empty_string(
+    value: Option<String>,
+) -> Option<String> {
     value
         .map(|raw| raw.trim().to_string())
         .filter(|raw| !raw.is_empty())
@@ -85,7 +87,7 @@ pub(super) fn compute_retry_backoff_ms(base_ms: u64, failure_streak: u32) -> u64
         .min(MAX_RECONNECT_BACKOFF_MS)
 }
 
-pub(super) fn bump_failure_streak_and_backoff(failure_streak: &mut u32) -> u64 {
+pub(in crate::agent) fn bump_failure_streak_and_backoff(failure_streak: &mut u32) -> u64 {
     *failure_streak = failure_streak.saturating_add(1);
     compute_retry_backoff_ms(RECONNECT_BACKOFF_MS, *failure_streak)
 }

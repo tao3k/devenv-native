@@ -1,4 +1,8 @@
-use super::{build_compiler, manifests::*};
+use super::build_compiler;
+use super::manifests::{
+    WENDAO_INGESTER_MANIFEST, WENDAO_REFRESH_MANIFEST, WENDAO_SQL_DISCOVER_MANIFEST,
+    WENDAO_SQL_EXECUTE_MANIFEST, WENDAO_SQL_VALIDATE_MANIFEST,
+};
 
 #[test]
 fn compiler_dispatches_wendao_ingester_via_leaf_lane() -> Result<(), Box<dyn std::error::Error>> {

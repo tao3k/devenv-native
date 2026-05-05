@@ -1,3 +1,5 @@
+//! Discord managed command-dispatch branch for control, jobs, and sessions.
+
 mod control;
 mod dispatch;
 mod jobs;

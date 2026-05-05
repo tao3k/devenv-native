@@ -1,3 +1,5 @@
+//! Host-side staging for Julia memory calibration request rows.
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
@@ -5,7 +7,7 @@ use crate::memory::{
     MemoryJuliaCalibrationRequestRow, build_memory_julia_calibration_request_batch,
 };
 
-use super::common::{optional_text, required_text};
+use super::staging::{optional_text, required_text};
 
 const SURFACE: &str = "memory Julia memory_calibration host staging";
 
@@ -74,7 +76,7 @@ fn build_request_row(
 }
 
 fn staging_error(message: impl Into<String>) -> RepoIntelligenceError {
-    super::common::staging_error(SURFACE, message)
+    super::staging::staging_error(SURFACE, message)
 }
 
 #[cfg(test)]

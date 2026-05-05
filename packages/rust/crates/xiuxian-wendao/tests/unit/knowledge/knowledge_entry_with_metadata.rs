@@ -1,4 +1,4 @@
-use super::*;
+use xiuxian_wendao::{KnowledgeCategory, KnowledgeEntry};
 
 #[test]
 fn test_knowledge_entry_with_metadata() {

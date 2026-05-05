@@ -1,5 +1,5 @@
 use crate::unified_symbol::UnifiedIndexStats;
-use pyo3::prelude::*;
+use pyo3::{pyclass, pymethods};
 use xiuxian_macros::py_from;
 
 /// Python wrapper for `UnifiedIndexStats`.

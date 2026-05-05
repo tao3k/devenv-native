@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::gateway::studio::types::{AstSearchHit, AttachmentSearchHit, ReferenceSearchHit};
+use crate::search::contracts::{AstSearchHit, AttachmentSearchHit, ReferenceSearchHit};
 
 #[must_use]
 pub(crate) fn ast_hits_fingerprint(hits: &[AstSearchHit]) -> String {

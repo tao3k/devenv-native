@@ -1,4 +1,4 @@
-use super::super::{StubHost, parallel_dual_host_block_process, parallel_host_and_wait_process};
+use crate::runtime::{StubHost, parallel_dual_host_block_process, parallel_host_and_wait_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnFrontierEntryStatus, BpmnInstanceInit, BpmnPackage,

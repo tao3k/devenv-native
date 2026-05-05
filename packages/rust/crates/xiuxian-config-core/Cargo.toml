@@ -12,9 +12,9 @@ serde = { workspace = true }
 toml = { workspace = true }
 thiserror = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
-xiuxian-testing = { path = "../xiuxian-testing" }
 
 [dev-dependencies]
+rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

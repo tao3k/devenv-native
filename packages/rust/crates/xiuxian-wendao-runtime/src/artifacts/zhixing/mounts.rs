@@ -1,3 +1,5 @@
+//! Zhixing mount artifact definitions for runtime package wiring.
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;

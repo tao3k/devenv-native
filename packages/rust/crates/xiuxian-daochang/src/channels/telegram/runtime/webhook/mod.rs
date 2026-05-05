@@ -1,3 +1,5 @@
+//! Telegram webhook branch for app, builders, handler, and serving.
+
 mod app;
 mod auth;
 mod builders;

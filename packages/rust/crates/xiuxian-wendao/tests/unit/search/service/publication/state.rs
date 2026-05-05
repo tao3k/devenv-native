@@ -1,6 +1,17 @@
 use std::fs;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
-use crate::search::service::tests::support::*;
+use crate::repo_index::{
+    RepoCodeDocument, RepoIndexEntryStatus, RepoIndexPhase, RepoIndexStatusResponse,
+};
+use crate::search::cache::SearchPlaneCache;
+use crate::search::service::tests::support::{
+    ok_or_panic, publish_repo_bundle, repo_phase, repo_status_entry,
+    service_test_manifest_keyspace, some_or_panic, temp_dir, unique_test_manifest_keyspace,
+};
+use crate::search::{RepoSearchAvailability, SearchMaintenancePolicy, SearchPlaneService};
 
 #[tokio::test]
 async fn repo_search_publication_state_prefers_publications_over_runtime_phase() {

@@ -1,3 +1,5 @@
+//! Modelica AST query contracts, transport, and fetch helpers.
+
 mod contract;
 mod fetch;
 

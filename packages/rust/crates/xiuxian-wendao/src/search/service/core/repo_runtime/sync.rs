@@ -142,13 +142,16 @@ impl SearchPlaneService {
         true
     }
 
-    #[cfg(test)]
-    pub(crate) fn advance_repo_runtime_generation_for_test(&self) -> u64 {
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    #[must_use]
+    pub fn advance_repo_runtime_generation_for_test(&self) -> u64 {
         self.advance_repo_runtime_generation()
     }
 
-    #[cfg(test)]
-    pub(crate) async fn refresh_repo_runtime_cache_for_test(
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    pub async fn refresh_repo_runtime_cache_for_test(
         &self,
         generation: u64,
         runtime_records: Vec<crate::search::SearchRepoRuntimeRecord>,
@@ -157,11 +160,9 @@ impl SearchPlaneService {
             .await;
     }
 
-    #[cfg(test)]
-    pub(crate) async fn synchronize_repo_runtime_for_test(
-        &self,
-        repo_status: &RepoIndexStatusResponse,
-    ) {
+    #[cfg(any(test, feature = "test-support"))]
+    #[doc(hidden)]
+    pub async fn synchronize_repo_runtime_for_test(&self, repo_status: &RepoIndexStatusResponse) {
         let Some((generation, removed_repo_ids, runtime_records)) =
             self.prepare_repo_runtime_refresh(repo_status)
         else {

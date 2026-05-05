@@ -1,0 +1,140 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "center": {
+    "distance": 0,
+    "id": "main/docs/index.md#document",
+    "isCenter": true,
+    "label": "index.md",
+    "nodeType": "doc",
+    "path": "main/docs/index.md"
+  },
+  "links": [
+    {
+      "direction": "outgoing",
+      "distance": 1,
+      "source": "main/docs/index.md#document",
+      "target": "main/docs/index.md#section:overview"
+    },
+    {
+      "direction": "references",
+      "distance": 3,
+      "source": "main/docs/index.md#observe:1",
+      "target": "main/docs/index.md#symbol:compile"
+    },
+    {
+      "direction": "outgoing",
+      "distance": 2,
+      "source": "main/docs/index.md#section:overview",
+      "target": "main/docs/index.md#observe:1"
+    },
+    {
+      "direction": "outgoing",
+      "distance": 2,
+      "source": "main/docs/index.md#section:overview",
+      "target": "main/docs/index.md#prop:id"
+    },
+    {
+      "direction": "next_step",
+      "distance": 2,
+      "source": "main/docs/index.md#section:overview",
+      "target": "main/docs/index.md#task:1"
+    }
+  ],
+  "nodes": [
+    {
+      "distance": 0,
+      "id": "main/docs/index.md#document",
+      "isCenter": true,
+      "label": "index.md",
+      "navigationTarget": {
+        "category": "doc",
+        "column": 1,
+        "line": 1,
+        "lineEnd": 20,
+        "path": "main/docs/index.md"
+      },
+      "nodeType": "doc",
+      "path": "main/docs/index.md"
+    },
+    {
+      "distance": 2,
+      "id": "main/docs/index.md#observe:1",
+      "isCenter": false,
+      "label": ":OBSERVE: lang:rust \"fn compile() { $$$ }\"",
+      "navigationTarget": {
+        "category": "doc",
+        "column": 1,
+        "line": 5,
+        "lineEnd": 5,
+        "path": "main/docs/index.md"
+      },
+      "nodeType": "knowledge",
+      "path": "main/docs/index.md"
+    },
+    {
+      "distance": 2,
+      "id": "main/docs/index.md#prop:id",
+      "isCenter": false,
+      "label": ":ID: GraphProtocol",
+      "navigationTarget": {
+        "category": "doc",
+        "column": 1,
+        "line": 4,
+        "lineEnd": 4,
+        "path": "main/docs/index.md"
+      },
+      "nodeType": "knowledge",
+      "path": "main/docs/index.md"
+    },
+    {
+      "distance": 1,
+      "id": "main/docs/index.md#section:overview",
+      "isCenter": false,
+      "label": "Overview",
+      "navigationTarget": {
+        "category": "doc",
+        "column": 1,
+        "line": 3,
+        "lineEnd": 12,
+        "path": "main/docs/index.md"
+      },
+      "nodeType": "doc",
+      "path": "main/docs/index.md"
+    },
+    {
+      "distance": 3,
+      "id": "main/docs/index.md#symbol:compile",
+      "isCenter": false,
+      "label": "compile",
+      "navigationTarget": {
+        "category": "doc",
+        "column": 1,
+        "line": 5,
+        "lineEnd": 5,
+        "path": "main/docs/index.md"
+      },
+      "nodeType": "knowledge",
+      "path": "main/docs/index.md"
+    },
+    {
+      "distance": 2,
+      "id": "main/docs/index.md#task:1",
+      "isCenter": false,
+      "label": "Finish gateway fallback",
+      "navigationTarget": {
+        "category": "doc",
+        "column": 1,
+        "line": 8,
+        "lineEnd": 8,
+        "path": "main/docs/index.md"
+      },
+      "nodeType": "knowledge",
+      "path": "main/docs/index.md"
+    }
+  ],
+  "totalLinks": 5,
+  "totalNodes": 6
+}

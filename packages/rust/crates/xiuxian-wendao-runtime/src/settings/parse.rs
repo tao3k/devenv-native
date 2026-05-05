@@ -1,3 +1,5 @@
+//! Scalar parsing helpers for runtime configuration values.
+
 /// Parse a positive integer in `u64` form.
 #[must_use]
 pub fn parse_positive_u64(raw: &str) -> Option<u64> {

@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use crate::gateway::studio::types::UiProjectConfig;
 use crate::search::attachment::build::AttachmentBuildPlan;
 use crate::search::attachment::build::extract::build_attachment_hits_for_entry;
-#[cfg(test)]
+use crate::search::contracts::SearchProjectConfig;
+#[cfg(any(test, feature = "test-support"))]
 use crate::search::scan_note_project_files;
 use crate::search::{
     ProjectScannedFile, SearchCorpusKind, SearchFileFingerprint, SearchPlaneService,
@@ -13,12 +13,12 @@ use crate::search::{
 
 const ATTACHMENT_EXTRACTOR_VERSION: u32 = 1;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) fn plan_attachment_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> AttachmentBuildPlan {
@@ -43,7 +43,7 @@ pub(crate) fn plan_attachment_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     _config_root: &Path,
-    _projects: &[UiProjectConfig],
+    _projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,

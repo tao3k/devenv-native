@@ -1,5 +1,5 @@
-use super::super::{StubHost, linear_blocking_process};
 use super::{PendingHostWorkExpectation, assert_single_pending_host_work};
+use crate::runtime::{StubHost, linear_blocking_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
@@ -86,7 +86,7 @@ async fn runtime_repairs_stale_process_index_before_advancing() {
     let package = Arc::new(BpmnPackage::new(
         "pkg_runtime",
         vec![
-            super::super::start_end_process_with_id("complete"),
+            crate::runtime::start_end_process_with_id("complete"),
             linear_blocking_process("block", BpmnNodeKind::ServiceTask),
         ],
     ));

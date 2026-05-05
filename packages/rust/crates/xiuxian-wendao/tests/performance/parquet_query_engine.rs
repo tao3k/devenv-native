@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use super::support::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use serial_test::file_serial;
 use tempfile::TempDir;
 use xiuxian_db_store::{
     LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array,
     SearchEngineContext, write_lance_batches_to_parquet_file,
 };
-use xiuxian_testing::{PerfBudget, PerfReport, PerfRunConfig, assert_perf_budget, run_sync_budget};
 use xiuxian_wendao::duckdb::{
     DataFusionParquetQueryEngine, DuckDbDatabasePath, ParquetQueryEngine,
     SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,

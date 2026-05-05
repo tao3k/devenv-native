@@ -1,3 +1,5 @@
+//! Feature-gated `DuckDB` connection opening and runtime setting application.
+
 use std::fs;
 
 use super::{DuckDbDatabasePath, DuckDbRuntimeConfig};

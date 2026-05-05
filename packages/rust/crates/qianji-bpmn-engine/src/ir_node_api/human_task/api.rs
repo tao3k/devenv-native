@@ -1,3 +1,5 @@
+//! Public ir node api human task contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Standard BPMN human-task assignment metadata preserved for host dispatch.

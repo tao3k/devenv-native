@@ -30,8 +30,6 @@ impl QianjiMechanism for SelfHealingMock {
     }
 }
 
-xiuxian_testing::crate_test_policy_harness!();
-
 #[tokio::test]
 async fn test_formal_adversarial_audit_convergence() -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;

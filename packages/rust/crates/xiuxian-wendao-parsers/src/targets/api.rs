@@ -1,3 +1,5 @@
+//! Public Markdown target occurrence extraction API.
+
 use super::types::MarkdownTargetOccurrence;
 
 /// Extract raw Markdown target occurrences in document order.

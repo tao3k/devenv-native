@@ -1,6 +1,6 @@
 //! `PyO3` bindings for `KnowledgeStorage` (Valkey operations).
 
-use pyo3::prelude::*;
+use pyo3::{PyErr, PyResult, pyclass, pymethods};
 use tokio::runtime::Runtime;
 
 use super::knowledge_py::PyKnowledgeEntry;

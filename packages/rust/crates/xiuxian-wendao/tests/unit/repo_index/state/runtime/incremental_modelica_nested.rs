@@ -1,4 +1,10 @@
-use super::support::*;
+use super::support::{
+    Arc, PathBuf, PreparedIncrementalAnalysis, RegisteredRepository, RepoSourceKind,
+    RepoSyncResult, RepositoryPluginConfig, RepositoryRefreshPolicy, SearchPlaneService,
+    analyze_registered_repository_with_registry, bootstrap_builtin_registry, commit_all,
+    ensure_linked_modelica_parser_summary_service, fs, init_git_repository,
+    new_coordinator_with_registry,
+};
 
 #[tokio::test]
 async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_nested_modelica_package_source_churn()

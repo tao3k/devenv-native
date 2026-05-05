@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use xiuxian_daochang::{Agent, RuntimeSettings, run_stdio};
+use crate::{Agent, RuntimeSettings, run_stdio};
 
 use crate::agent_builder::build_agent;
 

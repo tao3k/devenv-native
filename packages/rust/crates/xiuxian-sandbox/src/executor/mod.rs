@@ -1,6 +1,8 @@
 //! Sandbox execution backends.
 
+/// Linux `nsjail` executor backend.
 pub mod nsjail;
+/// macOS Seatbelt executor backend.
 pub mod seatbelt;
 mod types;
 pub use nsjail::NsJailExecutor;

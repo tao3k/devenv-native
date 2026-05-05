@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 024_cache_reuses_snapshot [cache_build]: Cache Build: reuses snapshot"
 expression: result
 info:

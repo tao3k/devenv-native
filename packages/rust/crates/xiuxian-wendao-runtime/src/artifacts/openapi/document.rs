@@ -1,3 +1,5 @@
+//! `OpenAPI` document rendering for runtime-owned artifact generation.
+
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};

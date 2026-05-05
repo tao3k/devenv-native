@@ -1,4 +1,4 @@
-use super::super::PyLinkGraphEngine;
+use crate::pybindings::link_graph_py::engine::PyLinkGraphEngine;
 use pyo3::PyResult;
 use serde_json::Value;
 use std::path::PathBuf;

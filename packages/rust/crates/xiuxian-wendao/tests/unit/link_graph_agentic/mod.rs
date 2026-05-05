@@ -3,12 +3,6 @@
 use redis::Connection;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
-use xiuxian_wendao::{
-    LinkGraphSuggestedLinkDecisionRequest, LinkGraphSuggestedLinkRequest,
-    LinkGraphSuggestedLinkState, valkey_suggested_link_decide_with_valkey,
-    valkey_suggested_link_decisions_recent_with_valkey, valkey_suggested_link_log_with_valkey,
-    valkey_suggested_link_recent_latest_with_valkey, valkey_suggested_link_recent_with_valkey,
-};
 
 const TEST_VALKEY_URL: &str = "redis://127.0.0.1:6379/0";
 static PREFIX_COUNTER: AtomicU64 = AtomicU64::new(0);

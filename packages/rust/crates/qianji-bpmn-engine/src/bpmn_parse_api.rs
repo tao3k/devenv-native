@@ -1,3 +1,5 @@
+//! Public bpmn parse api contracts for BPMN/DMN engine integration.
+
 use crate::dmn_model_api::DmnSourceFile;
 use crate::error::Result;
 use crate::ir_package_api::BpmnPackage;

@@ -6,7 +6,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 COMMON_SETUP = PROJECT_ROOT / ".github/actions/common-setup/action.yml"
 VALKEY_LIVE = PROJECT_ROOT / ".github/workflows/xiuxian-daochang-valkey-live.yaml"
-EMBEDDING_GATES = PROJECT_ROOT / ".github/workflows/xiuxian-daochang-embedding-gates.yaml"
+EMBEDDING_GATES = (
+    PROJECT_ROOT / ".github/workflows/xiuxian-daochang-embedding-gates.yaml"
+)
 WENDAO_PERF = PROJECT_ROOT / ".github/workflows/xiuxian-wendao-performance-gates.yaml"
 
 
@@ -60,7 +62,10 @@ def test_wendao_performance_gates_skip_when_mimo_secret_is_unavailable() -> None
     workflow = WENDAO_PERF.read_text(encoding="utf-8")
 
     assert workflow.count("MIMO_API_KEY_AVAILABLE != 'true'") == 2
-    assert workflow.count("skipped: MIMO_API_KEY is not configured for this repository.") >= 4
+    assert (
+        workflow.count("skipped: MIMO_API_KEY is not configured for this repository.")
+        >= 4
+    )
     for task in [
         "devenv tasks run ci:rust-wendao-performance-quick",
         "devenv tasks run ci:rust-wendao-performance-gateway-formal",

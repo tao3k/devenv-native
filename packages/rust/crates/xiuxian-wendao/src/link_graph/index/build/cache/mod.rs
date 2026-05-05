@@ -1,4 +1,5 @@
 #[cfg(feature = "duckdb")]
+#[path = "arrow_snapshot/mod.rs"]
 mod arrow_snapshot;
 mod duckdb;
 mod schema;

@@ -1,4 +1,4 @@
-use super::super::{
+use crate::link_graph::index::{
     LinkGraphIndex, LinkGraphMatchStrategy, LinkGraphSearchOptions, normalize_path_filter,
     normalize_with_case, tokenize,
 };

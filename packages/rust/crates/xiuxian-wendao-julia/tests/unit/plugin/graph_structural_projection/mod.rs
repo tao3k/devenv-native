@@ -1,0 +1,53 @@
+//! Folder-first tests for graph-structural projection helpers.
+
+pub(super) use super::{
+    GraphStructuralCandidateSubgraph, GraphStructuralFilterConstraint,
+    GraphStructuralGenericTopologyCandidateInputs,
+    GraphStructuralGenericTopologyCandidateMetadataInputs,
+    GraphStructuralKeywordOverlapCandidateInputs, GraphStructuralKeywordOverlapPairInputs,
+    GraphStructuralKeywordOverlapPairRequestInputs, GraphStructuralKeywordOverlapPairRerankInputs,
+    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInputs,
+    GraphStructuralKeywordTagQueryInputs, GraphStructuralNodeMetadataInputs,
+    GraphStructuralPairCandidateInputs, GraphStructuralQueryAnchor, GraphStructuralQueryContext,
+    GraphStructuralRerankSignals, build_graph_structural_filter_request_row,
+    build_graph_structural_generic_topology_candidate_inputs,
+    build_graph_structural_generic_topology_candidate_inputs_from_pair_collection,
+    build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs,
+    build_graph_structural_generic_topology_candidate_inputs_from_scored_pair_collection,
+    build_graph_structural_generic_topology_candidate_metadata_inputs,
+    build_graph_structural_generic_topology_candidate_metadata_inputs_from_pair_collection,
+    build_graph_structural_generic_topology_candidate_subgraph,
+    build_graph_structural_generic_topology_rerank_request_batch,
+    build_graph_structural_generic_topology_rerank_request_batch_from_raw_connected_pair_collections,
+    build_graph_structural_generic_topology_rerank_request_row,
+    build_graph_structural_keyword_overlap_candidate_inputs,
+    build_graph_structural_keyword_overlap_pair_candidate_inputs,
+    build_graph_structural_keyword_overlap_pair_candidate_inputs_from_raw,
+    build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
+    build_graph_structural_keyword_overlap_pair_request_input,
+    build_graph_structural_keyword_overlap_pair_rerank_request_batch,
+    build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_inputs,
+    build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_metadata,
+    build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_raw_candidates,
+    build_graph_structural_keyword_overlap_pair_rerank_request_row,
+    build_graph_structural_keyword_overlap_pair_rerank_request_row_from_metadata,
+    build_graph_structural_keyword_overlap_query_inputs,
+    build_graph_structural_keyword_overlap_raw_candidate_inputs,
+    build_graph_structural_keyword_tag_pair_rerank_request_row,
+    build_graph_structural_keyword_tag_query_context,
+    build_graph_structural_keyword_tag_rerank_signals,
+    build_graph_structural_pair_candidate_inputs, build_graph_structural_pair_candidate_subgraph,
+    build_graph_structural_pair_filter_request_row, build_graph_structural_pair_rerank_request_row,
+    build_graph_structural_raw_connected_pair_collection_candidate_inputs_from_raw_tuples,
+    build_graph_structural_raw_connected_pair_inputs, build_graph_structural_rerank_request_row,
+    build_graph_structural_scored_pair_candidate_inputs, graph_structural_pair_candidate_id,
+    graph_structural_shared_tag_anchors,
+};
+pub(super) use crate::{
+    build_graph_structural_filter_request_batch, build_graph_structural_rerank_request_batch,
+};
+
+mod invariants;
+mod keyword_overlap;
+mod rows_and_pairs;
+mod topology;

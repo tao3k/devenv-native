@@ -118,13 +118,13 @@ fn spawn_repo_intelligence_parser_summary_service()
 }
 
 fn real_repo_intelligence_parser_summary_service_is_available() -> bool {
-    std::env::var_os("WENDAOSEARCH_PACKAGE_DIR")
+    std::env::var_os("WENDAO_CODE_PARSER_PACKAGE_DIR")
         .filter(|value| !value.is_empty())
         .is_some_and(|path| Path::new(&path).exists())
         || Path::new(env!("CARGO_MANIFEST_DIR"))
             .ancestors()
             .nth(4)
-            .is_some_and(|root| root.join(".data").join("WendaoSearch.jl").is_dir())
+            .is_some_and(|root| root.join(".data").join("WendaoCodeParser.jl").is_dir())
 }
 
 fn spawn_real_repo_intelligence_parser_summary_service()

@@ -1,3 +1,5 @@
+"""Run the built-in score-rank analyzer against a host-backed repo-search endpoint."""
+
 from __future__ import annotations
 
 import argparse
@@ -14,7 +16,7 @@ from xiuxian_wendao_analyzer import (
 )
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_repo_search_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run a host-backed repo-search analyzer workflow.",
     )
@@ -27,8 +29,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
+def _run_repo_search_workflow() -> None:
+    args = _parse_repo_search_args()
     client = WendaoTransportClient(
         WendaoTransportConfig(
             endpoint=WendaoTransportEndpoint(host=args.host, port=args.port),
@@ -52,4 +54,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _run_repo_search_workflow()

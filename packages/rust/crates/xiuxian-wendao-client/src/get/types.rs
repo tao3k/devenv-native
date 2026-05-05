@@ -1,3 +1,5 @@
+//! Serializable DTOs for local docs page-index projections.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

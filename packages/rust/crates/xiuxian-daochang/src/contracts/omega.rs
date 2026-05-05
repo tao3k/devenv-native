@@ -1,3 +1,5 @@
+//! Omega decision contract payloads for strategic supervision.
+
 use serde::{Deserialize, Serialize};
 
 /// Route selected by Omega governance.

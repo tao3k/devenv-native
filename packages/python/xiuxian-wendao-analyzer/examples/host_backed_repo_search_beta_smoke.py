@@ -1,3 +1,5 @@
+"""Run the host-backed repo-search beta smoke workflow against local Rust binaries."""
+
 from __future__ import annotations
 
 import argparse
@@ -5,33 +7,44 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
 
 
-def package_root() -> Path:
+def _package_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def project_root() -> Path:
+def _project_root() -> Path:
     env_root = os.environ.get("PRJ_ROOT")
     if env_root:
         return Path(env_root)
     return Path(__file__).resolve().parents[4]
 
 
-def default_search_server_binary() -> Path:
+def _default_search_server_binary() -> Path:
     return (
-        project_root() / ".cache" / "pyflight-f56-target" / "debug" / "wendao_search_flight_server"
+        _project_root()
+        / ".cache"
+        / "pyflight-f56-target"
+        / "debug"
+        / "wendao_search_flight_server"
     )
 
 
-def default_seed_binary() -> Path:
-    return project_root() / ".cache" / "pyflight-f56-target" / "debug" / "wendao_search_seed_sample"
+def _default_seed_binary() -> Path:
+    return (
+        _project_root()
+        / ".cache"
+        / "pyflight-f56-target"
+        / "debug"
+        / "wendao_search_seed_sample"
+    )
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_host_backed_smoke_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the full host-backed repo-search beta smoke path.",
     )
@@ -49,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_checked(
+def _run_checked(
     command: list[str], *, cwd: Path, env: dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
@@ -70,14 +83,18 @@ def run_checked(
     return result
 
 
-def ensure_binaries(*, build: bool) -> tuple[Path, Path]:
+def _ensure_binaries(*, build: bool) -> tuple[Path, Path]:
     server_binary = Path(
-        os.environ.get("WENDAO_SEARCH_SERVER_BINARY", str(default_search_server_binary()))
+        os.environ.get(
+            "WENDAO_SEARCH_SERVER_BINARY", str(_default_search_server_binary())
+        )
     )
-    seed_binary = Path(os.environ.get("WENDAO_SEARCH_SEED_BINARY", str(default_seed_binary())))
+    seed_binary = Path(
+        os.environ.get("WENDAO_SEARCH_SEED_BINARY", str(_default_seed_binary()))
+    )
 
     if build:
-        run_checked(
+        _run_checked(
             [
                 "direnv",
                 "exec",
@@ -93,7 +110,7 @@ def ensure_binaries(*, build: bool) -> tuple[Path, Path]:
                 "--bin",
                 "wendao_search_seed_sample",
             ],
-            cwd=project_root(),
+            cwd=_project_root(),
         )
 
     if not server_binary.exists():
@@ -109,7 +126,7 @@ def ensure_binaries(*, build: bool) -> tuple[Path, Path]:
     return server_binary, seed_binary
 
 
-def choose_port(host: str, requested_port: int) -> int:
+def _choose_port(host: str, requested_port: int) -> int:
     if requested_port != 0:
         return requested_port
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -117,11 +134,11 @@ def choose_port(host: str, requested_port: int) -> int:
         return int(sock.getsockname()[1])
 
 
-def seed_workspace(seed_binary: Path, workspace_root: Path, repo_id: str) -> None:
-    run_checked([str(seed_binary), repo_id, str(workspace_root)], cwd=project_root())
+def _seed_workspace(seed_binary: Path, workspace_root: Path, repo_id: str) -> None:
+    _run_checked([str(seed_binary), repo_id, str(workspace_root)], cwd=_project_root())
 
 
-def spawn_search_server(
+def _spawn_search_server(
     server_binary: Path,
     *,
     host: str,
@@ -144,7 +161,7 @@ def spawn_search_server(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        env={**os.environ, "PRJ_ROOT": str(project_root())},
+        env={**os.environ, "PRJ_ROOT": str(_project_root())},
     )
     deadline = time.time() + 120
     while time.time() < deadline:
@@ -158,7 +175,7 @@ def spawn_search_server(
     raise RuntimeError("timed out waiting for search server readiness")
 
 
-def terminate_process(process: subprocess.Popen[str]) -> None:
+def _terminate_process(process: subprocess.Popen[str]) -> None:
     process.terminate()
     try:
         process.wait(timeout=10)
@@ -167,7 +184,7 @@ def terminate_process(process: subprocess.Popen[str]) -> None:
         process.wait(timeout=10)
 
 
-def run_repo_search_example(
+def _run_repo_search_example(
     *,
     mode: str,
     host: str,
@@ -197,14 +214,18 @@ def run_repo_search_example(
     ]
     for prefix in path_prefixes:
         command.extend(["--path-prefix", prefix])
-    return run_checked(command, cwd=package_root())
+    return _run_checked(command, cwd=_package_root())
 
 
-def main() -> None:
-    args = parse_args()
+def _emit(label: str, value: object) -> None:
+    sys.stdout.write(f"{label}= {value}\n")
+
+
+def _run_host_backed_smoke() -> None:
+    args = _parse_host_backed_smoke_args()
     host = args.host
-    port = choose_port(host, args.port)
-    server_binary, seed_binary = ensure_binaries(build=args.build)
+    port = _choose_port(host, args.port)
+    server_binary, seed_binary = _ensure_binaries(build=args.build)
 
     temporary_workspace = args.workspace_root is None
     workspace_root = (
@@ -216,8 +237,8 @@ def main() -> None:
 
     process: subprocess.Popen[str] | None = None
     try:
-        seed_workspace(seed_binary, workspace_root, args.repo_id)
-        process = spawn_search_server(
+        _seed_workspace(seed_binary, workspace_root, args.repo_id)
+        process = _spawn_search_server(
             server_binary,
             host=host,
             port=port,
@@ -226,7 +247,7 @@ def main() -> None:
             workspace_root=workspace_root,
             result_limit=args.result_limit,
         )
-        result = run_repo_search_example(
+        result = _run_repo_search_example(
             mode=args.mode,
             host=host,
             port=port,
@@ -234,18 +255,18 @@ def main() -> None:
             path_prefixes=list(args.path_prefix),
             schema_version=args.schema_version,
         )
-        print(f"mode= {args.mode}")
-        print(f"workspace_root= {workspace_root}")
-        print(f"keep_workspace= {args.keep_workspace}")
-        print(f"host= {host}")
-        print(f"port= {port}")
-        print(result.stdout, end="")
+        _emit("mode", args.mode)
+        _emit("workspace_root", workspace_root)
+        _emit("keep_workspace", args.keep_workspace)
+        _emit("host", host)
+        _emit("port", port)
+        sys.stdout.write(result.stdout)
     finally:
         if process is not None:
-            terminate_process(process)
+            _terminate_process(process)
         if temporary_workspace and not args.keep_workspace and workspace_root.exists():
             shutil.rmtree(workspace_root)
 
 
 if __name__ == "__main__":
-    main()
+    _run_host_backed_smoke()

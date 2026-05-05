@@ -1,3 +1,5 @@
+//! Transport owner for Julia memory compute Flight routes.
+
 mod client;
 mod fetch;
 mod process;

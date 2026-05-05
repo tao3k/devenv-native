@@ -1,3 +1,5 @@
+//! Coordinates docs-tool projection requests across registry, page, and retrieval owners.
+
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "zhenfa-router")]
@@ -144,7 +146,13 @@ impl DocsToolService {
     }
 
     #[cfg(feature = "zhenfa-router")]
-    pub(crate) fn get_document_for_registered_repository(
+    /// Return one projected document page from a supplied registered repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
+    /// requested page cannot be projected.
+    pub fn get_document_for_registered_repository(
         &self,
         page_id: &str,
         repository: &RegisteredRepository,
@@ -294,7 +302,13 @@ impl DocsToolService {
     }
 
     #[cfg(feature = "zhenfa-router")]
-    pub(crate) fn get_page_index_tree_for_registered_repository(
+    /// Return one projected page-index tree from a supplied registered repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
+    /// requested page tree cannot be projected.
+    pub fn get_page_index_tree_for_registered_repository(
         &self,
         page_id: &str,
         repository: &RegisteredRepository,
@@ -377,7 +391,13 @@ impl DocsToolService {
     }
 
     #[cfg(feature = "zhenfa-router")]
-    pub(crate) fn get_navigation_with_options_for_registered_repository(
+    /// Return navigation context for a supplied registered repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
+    /// navigation context cannot be projected.
+    pub fn get_navigation_with_options_for_registered_repository(
         &self,
         page_id: &str,
         repository: &RegisteredRepository,
@@ -446,7 +466,13 @@ impl DocsToolService {
     }
 
     #[cfg(feature = "zhenfa-router")]
-    pub(crate) fn get_retrieval_context_with_options_for_registered_repository(
+    /// Return retrieval context for a supplied registered repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
+    /// retrieval context cannot be projected.
+    pub fn get_retrieval_context_with_options_for_registered_repository(
         &self,
         page_id: &str,
         repository: &RegisteredRepository,

@@ -1,7 +1,11 @@
 use crate::search::repo_content_chunk_file_fingerprints;
 use crate::search::repo_staging::versioned_repo_table_name;
 use crate::search::service::core::RepoMaintenanceTaskKind;
-use crate::search::service::tests::support::*;
+use crate::search::service::tests::support::{
+    PathBuf, ok_or_panic, publish_repo_bundle, sample_repo_documents,
+    service_test_manifest_keyspace, some_or_panic, temp_dir,
+};
+use crate::search::{SearchCorpusKind, SearchMaintenancePolicy, SearchPlaneService};
 
 #[tokio::test]
 async fn repo_publication_runs_prewarm_via_maintenance_task_and_releases_repo_slot() {

@@ -1,4 +1,6 @@
-use super::super::attachments::{attachments_for_parsed_note, expand_document_attachments};
+use crate::link_graph::index::build::attachments::{
+    attachments_for_parsed_note, expand_document_attachments,
+};
 use crate::link_graph::index::{IndexedSection, LinkGraphIndex};
 use crate::parsers::markdown::{ParsedNote, normalize_alias};
 use std::collections::HashSet;

@@ -1,3 +1,5 @@
+//! Arrow IPC encoding and metadata helpers shared across vector interfaces.
+
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::Arc;

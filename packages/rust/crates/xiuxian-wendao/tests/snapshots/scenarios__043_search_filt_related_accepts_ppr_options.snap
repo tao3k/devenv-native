@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 043_search_filt_related_accepts_ppr_options [search_filters]: related accepts ppr options"
 expression: result
 info:

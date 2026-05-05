@@ -1,3 +1,5 @@
+//! `MiniMax` `LiteLLM` provider construction.
+
 #[cfg(feature = "provider-litellm")]
 use crate::llm::error::sanitize_user_visible;
 #[cfg(feature = "provider-litellm")]

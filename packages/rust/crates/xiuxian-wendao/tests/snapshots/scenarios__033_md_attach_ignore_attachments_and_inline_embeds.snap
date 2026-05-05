@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-wendao/tests/support/scenario.rs
 description: "Scenario 033_md_attach_ignore_attachments_and_inline_embeds [markdown_attachments]: ignore attachments and inline embeds"
 expression: result
 info:

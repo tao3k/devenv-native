@@ -6,12 +6,12 @@ use crate::channels::telegram::commands::parse_background_prompt;
 use crate::channels::traits::{Channel, ChannelMessage};
 use crate::jobs::JobManager;
 
-use super::super::super::observability::send_with_observability;
-use super::super::slash_acl::ensure_slash_command_authorized;
 use super::{
     EVENT_TELEGRAM_COMMAND_BACKGROUND_SUBMIT_FAILED_REPLIED,
     EVENT_TELEGRAM_COMMAND_BACKGROUND_SUBMIT_REPLIED,
 };
+use crate::channels::telegram::runtime::jobs::command_handlers::slash_acl::ensure_slash_command_authorized;
+use crate::channels::telegram::runtime::jobs::observability::send_with_observability;
 
 pub(in crate::channels::telegram::runtime::jobs) async fn try_handle_background_prompt_command(
     msg: &ChannelMessage,

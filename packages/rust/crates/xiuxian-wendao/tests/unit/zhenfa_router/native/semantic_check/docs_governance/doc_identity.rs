@@ -1,4 +1,7 @@
-use crate::zhenfa_router::native::semantic_check::docs_governance::tests::support::*;
+use crate::parsers::docs_governance::derive_opaque_doc_id;
+use crate::zhenfa_router::native::semantic_check::docs_governance::{
+    DOC_IDENTITY_PROTOCOL_ISSUE_TYPE, collect_doc_governance_issues,
+};
 
 #[test]
 fn detects_non_opaque_doc_identity_for_package_local_docs() {

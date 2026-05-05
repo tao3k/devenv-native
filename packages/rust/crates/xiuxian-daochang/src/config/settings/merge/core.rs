@@ -1,4 +1,4 @@
-use super::super::types::{
+use crate::config::settings::types::{
     AgentSettings, EmbeddingSettings, InferenceSettings, MemorySettings, MistralSettings,
     RuntimeSettings, SessionSettings, ToolRuntimeSettings,
 };

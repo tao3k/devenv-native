@@ -1,3 +1,5 @@
+//! Parquet write helpers for search-plane and Lance record batches.
+
 use std::fs::File;
 use std::path::Path;
 
@@ -32,16 +34,16 @@ pub fn write_engine_batches_to_parquet_file(
     Ok(())
 }
 
-/// Write Lance/Arrow-57 batches to a Parquet file through the Arrow-58 engine bridge.
+/// Write Lance/Arrow-58 batches to a Parquet file through the engine bridge.
 ///
 /// # Errors
 ///
-/// Returns an error when Arrow IPC conversion or Parquet writing fails.
+/// Returns an error when Parquet writing fails.
 pub fn write_lance_batches_to_parquet_file(
     output_path: &Path,
     batches: &[LanceRecordBatch],
 ) -> Result<(), VectorStoreError> {
-    let engine_batches = lance_batches_to_engine_batches(batches)?;
+    let engine_batches = lance_batches_to_engine_batches(batches);
     write_engine_batches_to_parquet_file(output_path, &engine_batches)
 }
 
@@ -50,7 +52,7 @@ impl VectorStore {
     ///
     /// # Errors
     ///
-    /// Returns an error when the source table scan, Arrow conversion, or Parquet write fails.
+    /// Returns an error when the source table scan or Parquet write fails.
     pub async fn write_vector_store_table_to_parquet_file(
         &self,
         table_name: &str,

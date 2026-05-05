@@ -1,4 +1,4 @@
-use super::process::normalize_node_index;
+use super::normalize_node_index;
 use super::repeat::normalize_repeat_spec;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_edge_api::BpmnEdgeSpec;

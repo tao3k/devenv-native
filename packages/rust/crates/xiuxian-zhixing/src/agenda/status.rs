@@ -1,3 +1,5 @@
+//! Agenda status state machine for task progression.
+
 use serde::{Deserialize, Serialize};
 
 /// Status of an agenda task.

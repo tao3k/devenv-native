@@ -1,6 +1,6 @@
-use super::super::semantic_policy::LinkGraphSemanticSearchPolicy;
 use super::retrieval_plan::LinkGraphRetrievalBudget;
 use crate::link_graph::models::LinkGraphRelatedPprOptions;
+use crate::link_graph::models::LinkGraphSemanticSearchPolicy;
 use serde::{Deserialize, Serialize};
 
 /// One semantic anchor hit returned by a vector backend.

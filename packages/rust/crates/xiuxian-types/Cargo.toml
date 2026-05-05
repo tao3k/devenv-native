@@ -11,4 +11,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 schemars = { workspace = true }
-xiuxian-testing = { path = "../xiuxian-testing" }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }

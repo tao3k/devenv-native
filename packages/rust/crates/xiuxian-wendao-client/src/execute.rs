@@ -1,3 +1,5 @@
+//! Command dispatch for Wendao client subcommands.
+
 use crate::{ClientCommand, ClientContext, LintCommand, get, lint};
 use anyhow::Result;
 

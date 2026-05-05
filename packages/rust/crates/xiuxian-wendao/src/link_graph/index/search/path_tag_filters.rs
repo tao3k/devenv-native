@@ -1,4 +1,4 @@
-use super::super::{
+use crate::link_graph::index::{
     LinkGraphDocument, LinkGraphIndex, LinkGraphSearchOptions, normalize_with_case,
     path_matches_filter,
 };

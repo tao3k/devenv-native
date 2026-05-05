@@ -1,5 +1,5 @@
 ---
-source: packages/rust/crates/xiuxian-testing/src/scenario.rs
+source: packages/rust/crates/xiuxian-qianji/tests/support/scenario.rs
 description: "Scenario audit_triple_loop [audit_flow]: Audit Triple Loop"
 expression: result
 info:

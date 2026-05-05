@@ -1,3 +1,5 @@
+//! Settings extraction for Julia link-graph compatibility artifacts.
+
 use serde_yaml::Value;
 
 use super::runtime::LinkGraphJuliaRerankRuntimeConfig;

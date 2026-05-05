@@ -1,5 +1,5 @@
 use crate::duckdb::ParquetQueryEngine;
-use crate::gateway::studio::types::AttachmentSearchHit;
+use crate::search::contracts::AttachmentSearchHit;
 use crate::search::ranking::sort_by_rank;
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 

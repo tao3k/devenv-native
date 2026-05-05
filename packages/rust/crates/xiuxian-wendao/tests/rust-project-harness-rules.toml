@@ -1,0 +1,4 @@
+[tests]
+allowed_root_files = [
+  { name = "wendao-validation-gate.rs", explanation = "explicit aggregate for Wendao policy, scenario, integration, and performance validation suites" },
+]

@@ -1,3 +1,5 @@
+//! Planned-search runtime config fixtures for Julia compatibility tests.
+
 use crate::compatibility::link_graph::DEFAULT_JULIA_RERANK_FLIGHT_ROUTE;
 
 const JULIA_PLANNED_SEARCH_SCHEMA_VERSION: &str = "v1";

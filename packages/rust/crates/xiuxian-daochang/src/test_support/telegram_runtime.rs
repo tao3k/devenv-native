@@ -27,6 +27,7 @@ impl TelegramForegroundInterruptController {
     }
 }
 
+/// Handles one Telegram inbound message with interrupt coordination.
 pub async fn handle_telegram_inbound_message_with_interrupt(
     msg: ChannelMessage,
     channel: &Arc<dyn Channel>,
@@ -48,6 +49,7 @@ pub async fn handle_telegram_inbound_message_with_interrupt(
     .await
 }
 
+/// Pushes a background job completion into the Telegram runtime surface.
 pub async fn push_telegram_background_completion(
     channel: &Arc<dyn Channel>,
     agent: &Arc<Agent>,
@@ -57,6 +59,7 @@ pub async fn push_telegram_background_completion(
 }
 
 #[must_use]
+/// Resolves the Telegram runtime snapshot interval from a lookup function.
 pub fn resolve_telegram_snapshot_interval_secs<F>(lookup: F) -> Option<u64>
 where
     F: Fn(&str) -> Option<String>,
@@ -65,6 +68,7 @@ where
 }
 
 #[must_use]
+/// Builds the bounded preview used in Telegram runtime logs.
 pub fn telegram_log_preview(s: &str) -> String {
     runtime::test_log_preview(s)
 }

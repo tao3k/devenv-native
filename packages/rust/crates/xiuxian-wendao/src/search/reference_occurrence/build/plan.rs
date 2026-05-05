@@ -1,24 +1,26 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use crate::gateway::studio::types::UiProjectConfig;
+use crate::search::contracts::SearchProjectConfig;
+#[cfg(test)]
+use crate::search::fingerprint_source_projects;
 use crate::search::reference_occurrence::build::ReferenceOccurrenceBuildPlan;
 use crate::search::reference_occurrence::build::extract::build_reference_occurrences_for_file;
+#[cfg(any(test, feature = "test-support"))]
+use crate::search::scan_source_project_files;
 use crate::search::{
     ProjectScannedFile, SearchCorpusKind, SearchFileFingerprint, SearchPlaneService,
     reference_hits_fingerprint,
 };
-#[cfg(test)]
-use crate::search::{fingerprint_source_projects, scan_source_project_files};
 
 const REFERENCE_OCCURRENCE_EXTRACTOR_VERSION: u32 = 1;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 pub(crate) fn plan_reference_occurrence_build(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
 ) -> ReferenceOccurrenceBuildPlan {
@@ -43,7 +45,7 @@ pub(crate) fn plan_reference_occurrence_build_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
     scanned_files: &[ProjectScannedFile],
     active_epoch: Option<u64>,
     previous_fingerprints: &BTreeMap<String, SearchFileFingerprint>,
@@ -138,7 +140,7 @@ pub(crate) fn plan_reference_occurrence_build_with_scanned_files(
 pub(crate) fn fingerprint_projects(
     project_root: &Path,
     config_root: &Path,
-    projects: &[UiProjectConfig],
+    projects: &[SearchProjectConfig],
 ) -> String {
     fingerprint_source_projects(project_root, config_root, projects)
 }

@@ -1,3 +1,5 @@
+//! Shared output format selection for client commands.
+
 use clap::ValueEnum;
 
 /// Output format supported by lightweight client commands.

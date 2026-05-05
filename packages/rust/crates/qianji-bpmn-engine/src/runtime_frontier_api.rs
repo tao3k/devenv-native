@@ -1,10 +1,15 @@
+//! Runtime frontier coordination API.
+//!
+//! This module owns the public frontier planning contract while delegating
+//! batch reduction and snapshot scanning to focused runtime/frontier leaves.
+
 #[path = "runtime/frontier/batch.rs"]
 mod batch;
 #[path = "runtime/frontier/snapshot.rs"]
 mod snapshot;
 
+use crate::BpmnNodeIndex;
 use crate::ir::BpmnProcessSpec;
-use crate::ir_index_api::BpmnNodeIndex;
 use crate::runtime::{BpmnInstanceState, PendingHostWork, SuspendReason};
 
 /// Classification for one active runtime token inside the current frontier.

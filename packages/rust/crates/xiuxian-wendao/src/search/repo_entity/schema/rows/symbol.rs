@@ -4,7 +4,7 @@ use crate::analyzers::SymbolRecord;
 use crate::analyzers::{
     backlinks_for, hierarchy_segments_from_path, projection_pages_for, record_hierarchical_uri,
 };
-use crate::gateway::studio::types::SearchHit;
+use crate::search::contracts::SearchHit;
 use crate::search::repo_entity::schema::definitions::{ENTITY_KIND_SYMBOL, RepoEntityRow};
 use crate::search::repo_entity::schema::helpers::{
     infer_code_language, map_backlink_items, repo_entity_tags, repo_navigation_target,

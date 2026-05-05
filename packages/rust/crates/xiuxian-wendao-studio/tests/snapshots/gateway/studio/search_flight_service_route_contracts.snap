@@ -1,0 +1,109 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/src/studio/search/handlers/flight.rs
+expression: value
+---
+[
+  {
+    "descriptorPath": [
+      "search",
+      "intent"
+    ],
+    "endpointCount": 1,
+    "limit": 5,
+    "query": "alpha",
+    "route": "/search/intent",
+    "schemaLength": 960,
+    "ticket": "/search/intent"
+  },
+  {
+    "descriptorPath": [
+      "search",
+      "knowledge"
+    ],
+    "endpointCount": 1,
+    "limit": 5,
+    "query": "Alpha body",
+    "route": "/search/knowledge",
+    "schemaLength": 960,
+    "ticket": "/search/knowledge"
+  },
+  {
+    "descriptorPath": [
+      "search",
+      "attachments"
+    ],
+    "endpointCount": 1,
+    "extFilters": [
+      "png"
+    ],
+    "kindFilters": [
+      "image"
+    ],
+    "limit": 5,
+    "query": "topology",
+    "route": "/search/attachments",
+    "schemaLength": 832,
+    "ticket": "/search/attachments"
+  },
+  {
+    "descriptorPath": [
+      "search",
+      "references"
+    ],
+    "endpointCount": 1,
+    "limit": 5,
+    "query": "AlphaService",
+    "route": "/search/references",
+    "schemaLength": 640,
+    "ticket": "/search/references"
+  },
+  {
+    "descriptorPath": [
+      "search",
+      "symbols"
+    ],
+    "endpointCount": 1,
+    "limit": 5,
+    "query": "alpha",
+    "route": "/search/symbols",
+    "schemaLength": 704,
+    "ticket": "/search/symbols"
+  },
+  {
+    "descriptorPath": [
+      "search",
+      "ast"
+    ],
+    "endpointCount": 1,
+    "limit": 5,
+    "query": "alpha",
+    "route": "/search/ast",
+    "schemaLength": 768,
+    "ticket": "/search/ast"
+  },
+  {
+    "descriptorPath": [
+      "search",
+      "definition"
+    ],
+    "endpointCount": 1,
+    "query": "AlphaService",
+    "route": "/search/definition",
+    "schemaLength": 832,
+    "sourceLine": 2,
+    "sourcePath": "packages/rust/crates/demo/src/lib.rs",
+    "ticket": "/search/definition"
+  },
+  {
+    "descriptorPath": [
+      "search",
+      "autocomplete"
+    ],
+    "endpointCount": 1,
+    "limit": 5,
+    "prefix": "Alpha",
+    "route": "/search/autocomplete",
+    "schemaLength": 192,
+    "ticket": "/search/autocomplete"
+  }
+]

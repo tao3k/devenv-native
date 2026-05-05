@@ -1,3 +1,5 @@
+//! Hot-reload runtime coordination for registered Qianhuan targets.
+
 use super::{HotReloadTarget, HotReloadVersionBackend};
 use anyhow::{Result, anyhow};
 use std::collections::BTreeMap;

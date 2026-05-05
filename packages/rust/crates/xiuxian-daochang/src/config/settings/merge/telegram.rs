@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::super::types::{
+use crate::config::settings::{
     TelegramAclAllowSettings, TelegramAclControlSettings, TelegramAclPrincipalSettings,
     TelegramAclSettings, TelegramAclSlashSettings, TelegramGroupSettings, TelegramSettings,
     TelegramTopicSettings,

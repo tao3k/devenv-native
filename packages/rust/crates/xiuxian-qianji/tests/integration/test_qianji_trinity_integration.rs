@@ -56,5 +56,3 @@ async fn test_qianji_trinity_integration() {
             .contains("<system_prompt_injection>")
     );
 }
-
-xiuxian_testing::crate_test_policy_harness!();

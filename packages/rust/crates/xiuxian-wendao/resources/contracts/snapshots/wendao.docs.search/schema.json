@@ -18,10 +18,7 @@
     },
     "limit": {
       "description": "Optional result-limit override.",
-      "type": [
-        "integer",
-        "null"
-      ],
+      "type": ["integer", "null"],
       "format": "uint",
       "default": null,
       "minimum": 0
@@ -31,9 +28,7 @@
       "type": "string"
     }
   },
-  "required": [
-    "query"
-  ],
+  "required": ["query"],
   "$defs": {
     "ProjectionPageKind": {
       "description": "Deterministic projected page family derived from stage-1 repository truth.",

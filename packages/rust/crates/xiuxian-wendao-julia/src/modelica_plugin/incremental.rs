@@ -1,3 +1,5 @@
+//! Incremental-safety helpers for Modelica repository analysis.
+
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -9,17 +11,15 @@ use xiuxian_wendao_core::repo_intelligence::{
 use super::analysis::{
     load_modelica_repository_context_for_source, modelica_root_relative_source_path,
 };
-use super::discovery::{
-    containing_module_name, is_api_surface_path, qualified_module_name,
-    safe_package_overlay_metadata_for_relative_path,
-};
+use super::discovery::{is_api_surface_path, safe_package_overlay_metadata_for_relative_path};
 use super::parser_summary::fetch_modelica_parser_file_summary_blocking_for_repository;
 use super::parsing::{
     RootPackageOverlayMetadata, contains_documentation_annotation,
     parse_package_name_for_repository, parse_safe_root_package_overlay_metadata,
 };
+use super::pathing::{containing_module_name, qualified_module_name};
 use super::relations::annotation_doc_title;
-use super::types::ParsedDeclaration;
+use super::types::{ModelicaSourceId, ParsedDeclaration};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RepoOwnedModelicaIncrementalKind {
@@ -52,9 +52,10 @@ struct RepoOwnedModelicaIncrementalContext {
 pub fn modelica_parser_summary_allows_safe_incremental_file_for_repository(
     repository: &RegisteredRepository,
     repository_root: &Path,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<bool, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     Ok(resolve_safe_modelica_incremental_context(
         repository,
         repository_root,
@@ -79,9 +80,10 @@ pub fn modelica_parser_summary_allows_safe_incremental_file_for_repository(
 pub fn modelica_parser_summary_allows_safe_root_package_incremental_file_for_repository(
     repository: &RegisteredRepository,
     repository_root: &Path,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<bool, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     Ok(resolve_safe_root_package_modelica_incremental_context(
         repository,
         repository_root,
@@ -104,9 +106,10 @@ pub fn modelica_parser_summary_allows_safe_root_package_incremental_file_for_rep
 pub fn modelica_parser_summary_allows_safe_package_incremental_file_for_repository(
     repository: &RegisteredRepository,
     repository_root: &Path,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<bool, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     Ok(resolve_safe_package_file_modelica_incremental_context(
         repository,
         repository_root,
@@ -126,9 +129,10 @@ pub fn modelica_parser_summary_allows_safe_package_incremental_file_for_reposito
 pub fn modelica_parser_summary_root_package_name_matches_repository_context(
     repository: &RegisteredRepository,
     repository_root: &Path,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<bool, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     let Some(context) = resolve_safe_root_package_modelica_incremental_context(
         repository,
         repository_root,
@@ -160,9 +164,10 @@ pub fn modelica_parser_summary_root_package_name_matches_repository_context(
 pub fn modelica_root_package_incremental_semantic_fingerprint_for_repository(
     repository: &RegisteredRepository,
     repository_root: &Path,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<Option<String>, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     let Some(context) = resolve_safe_root_package_modelica_incremental_context(
         repository,
         repository_root,
@@ -195,9 +200,10 @@ pub fn modelica_root_package_incremental_semantic_fingerprint_for_repository(
 pub fn modelica_package_incremental_semantic_fingerprint_for_repository(
     repository: &RegisteredRepository,
     repository_root: &Path,
-    source_id: &str,
+    source_id: ModelicaSourceId<'_>,
     source_text: &str,
 ) -> Result<Option<String>, RepoIntelligenceError> {
+    let source_id = source_id.as_str();
     let Some(context) = resolve_safe_package_file_modelica_incremental_context(
         repository,
         repository_root,

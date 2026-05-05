@@ -38,8 +38,7 @@ impl FlightRoutePayload {
                 "Flight route payload must contain at least one record batch",
             ));
         }
-        let engine_batches = lance_batches_to_engine_batches(batches)
-            .map_err(|error| Status::internal(error.to_string()))?;
+        let engine_batches = lance_batches_to_engine_batches(batches);
         Ok(Self {
             batches: engine_batches,
             app_metadata,

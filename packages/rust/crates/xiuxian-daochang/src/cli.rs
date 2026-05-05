@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use xiuxian_logging::LogCliArgs;
 
-pub(crate) use xiuxian_daochang::{
+pub(crate) use crate::{
     ChannelProvider, DEFAULT_STDIO_SESSION_ID, DiscordRuntimeMode, TelegramChannelMode,
     WebhookDedupBackendMode,
 };

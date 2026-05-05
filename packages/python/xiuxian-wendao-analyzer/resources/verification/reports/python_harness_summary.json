@@ -1,0 +1,44 @@
+{
+  "blocking_rule_ids": [],
+  "blocking_severities": [
+    "error",
+    "warning"
+  ],
+  "disabled_rule_ids": [],
+  "finding_counts": {
+    "advisory": 0,
+    "blocking": 0,
+    "total": 0
+  },
+  "is_clean": true,
+  "parsed_count": 74,
+  "project": {
+    "import_names": [],
+    "name": "xiuxian-wendao-analyzer",
+    "package_roots": [
+      "src/xiuxian_wendao_analyzer"
+    ],
+    "requires_python": ">=3.12",
+    "scripts": [
+      "wendao-document-extract",
+      "xiuxian-wendao-document-extract"
+    ]
+  },
+  "reasoning_tree": {
+    "import_edge_count": 582,
+    "node_count": 74,
+    "shadowed_module_source_count": 0
+  },
+  "rule_packs": [
+    "python.syntax",
+    "python.project_policy",
+    "python.modern_design",
+    "python.modularity",
+    "python.test_layout",
+    "python.agent_policy"
+  ],
+  "source": {
+    "file_count": 74,
+    "module_count": 74
+  }
+}

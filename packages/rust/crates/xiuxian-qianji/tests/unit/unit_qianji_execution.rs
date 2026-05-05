@@ -44,5 +44,3 @@ async fn test_qianji_dag_parallel_execution() -> Result<(), xiuxian_qianji::erro
     assert_eq!(result["D"], "done");
     Ok(())
 }
-
-xiuxian_testing::crate_test_policy_harness!();

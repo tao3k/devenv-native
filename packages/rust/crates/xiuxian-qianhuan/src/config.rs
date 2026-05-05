@@ -1,3 +1,5 @@
+//! Injection-window configuration records for Qianhuan prompt assembly.
+
 /// Window limits for injected prompt content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InjectionWindowConfig {

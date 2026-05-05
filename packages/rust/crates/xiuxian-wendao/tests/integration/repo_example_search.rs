@@ -1,10 +1,9 @@
 //! Integration tests for Repo Intelligence example search flow.
 
-use std::process::Command;
-
 use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
 };
+use crate::support::wendao_command;
 use serde_json::json;
 use xiuxian_wendao::analyzers::{ExampleSearchQuery, example_search_from_config};
 
@@ -107,7 +106,7 @@ fn cli_repo_example_search_returns_serialized_result() -> TestResult {
     let repo_dir = create_sample_julia_repo(temp.path(), "CliExamplePkg", true)?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-example")?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_wendao"))
+    let output = wendao_command()
         .arg("--conf")
         .arg(&config_path)
         .arg("--output")

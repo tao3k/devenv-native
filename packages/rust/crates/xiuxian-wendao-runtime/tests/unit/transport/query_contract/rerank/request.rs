@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use arrow_schema::{DataType, Field, Schema};
 
-use super::super::{
+use super::support::build_rerank_request_batch;
+use crate::transport::query_contract::{
     RERANK_REQUEST_DOC_ID_COLUMN, RERANK_REQUEST_EMBEDDING_COLUMN,
     RERANK_REQUEST_QUERY_EMBEDDING_COLUMN, RERANK_REQUEST_VECTOR_SCORE_COLUMN,
     validate_rerank_request_batch, validate_rerank_request_schema,
 };
-use super::support::build_rerank_request_batch;
 
 #[test]
 fn rerank_request_schema_validation_accepts_stable_shape() {

@@ -2,6 +2,7 @@ use super::compensation::normalize_compensation_handlers;
 use super::digest::process_digest_hex;
 use super::event::{normalize_event_spec, normalize_events};
 use super::node::normalize_nodes;
+use super::normalize_node_index;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_data_api::BpmnDataObjectBindingSpec;
 use crate::ir_edge_api::BpmnEdgeSpec;
@@ -100,10 +101,6 @@ fn normalize_event_subprocess_owner_events(
         events.push(normalize_event_spec(owner_index, &start.bpmn_id, event));
     }
     Ok(events)
-}
-
-pub(super) fn normalize_node_index(index: usize, operation: &'static str) -> Result<u32> {
-    u32::try_from(index).map_err(|_| BpmnEngineError::UnsupportedOperation { operation })
 }
 
 fn normalize_data_object_bindings(raw: &RawProcess) -> Result<Vec<BpmnDataObjectBindingSpec>> {

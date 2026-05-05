@@ -1,6 +1,8 @@
 use super::payload::DiffPreview;
 use super::rate_limiter::RateLimiter;
-use super::*;
+use super::{
+    AffectedDocInfo, ForwardNotification, ForwardNotifier, ForwarderConfig, SuggestedAction,
+};
 use crate::zhenfa_router::native::sentinel::{DriftConfidence, SemanticDriftSignal};
 
 #[test]

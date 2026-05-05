@@ -1,4 +1,10 @@
-use super::{build_compiler, manifests::*};
+use super::build_compiler;
+use super::manifests::{
+    ANNOTATION_DERIVED_AFFINITY_MANIFEST, ANNOTATION_EXPLICIT_AFFINITY_MANIFEST,
+    FORMAL_AUDIT_NATIVE_MANIFEST, FORMAL_AUDIT_NATIVE_WITH_MAX_RETRIES_MANIFEST,
+};
+#[cfg(not(feature = "llm"))]
+use super::manifests::{FORMAL_AUDIT_LLM_MANIFEST, LLM_TASK_MANIFEST};
 
 #[test]
 fn compiler_dispatches_annotation_and_keeps_explicit_execution_affinity()

@@ -1,3 +1,5 @@
+//! Public dmn model import contracts for BPMN/DMN engine integration.
+
 use crate::dmn_model_document::DmnImportSnapshot;
 use crate::dmn_model_source::DmnSourceDefinition;
 use std::sync::Arc;

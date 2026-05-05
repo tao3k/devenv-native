@@ -1,3 +1,5 @@
+//! Public dmn model document decision contracts for BPMN/DMN engine integration.
+
 use super::{DmnFunctionDefinitionSnapshot, DmnInvocationSnapshot};
 
 /// Snapshot of one direct decision-owned requirement reference placeholder.

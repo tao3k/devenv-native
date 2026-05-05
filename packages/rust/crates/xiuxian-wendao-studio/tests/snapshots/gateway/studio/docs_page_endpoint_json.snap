@@ -1,0 +1,77 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "page": {
+    "doc_id": "repo:gateway-sync:doc:docs/solve.md",
+    "doc_ids": [
+      "repo:gateway-sync:doc:docs/solve.md"
+    ],
+    "example_ids": [
+      "repo:gateway-sync:example:examples/solve_demo.jl"
+    ],
+    "format_hints": [
+      "md"
+    ],
+    "keywords": [
+      "docs/solve.md",
+      "md",
+      "repo:gateway-sync:doc:docs/solve.md",
+      "solve"
+    ],
+    "kind": "reference",
+    "module_ids": [],
+    "page_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+    "path": "docs/solve.md",
+    "paths": [
+      "docs/solve.md",
+      "examples/solve_demo.jl"
+    ],
+    "repo_id": "gateway-sync",
+    "sections": [
+      {
+        "body": "Projected reference page for `solve`.\nFormat hints:\n- `md`\nSource paths:\n- `docs/solve.md`\n- `examples/solve_demo.jl`",
+        "level": 1,
+        "paths": [
+          "docs/solve.md",
+          "examples/solve_demo.jl"
+        ],
+        "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#overview",
+        "title": "Overview"
+      },
+      {
+        "body": "Symbols:\n- `GatewaySyncPkg.solve` (src/GatewaySyncPkg.jl)",
+        "level": 2,
+        "paths": [
+          "src/GatewaySyncPkg.jl"
+        ],
+        "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#anchors",
+        "title": "Anchors"
+      },
+      {
+        "body": "Documentation:\n- `solve` (docs/solve.md)",
+        "level": 2,
+        "paths": [
+          "docs/solve.md"
+        ],
+        "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#sources",
+        "title": "Documentation"
+      },
+      {
+        "body": "Examples:\n- `solve_demo` (examples/solve_demo.jl)",
+        "level": 2,
+        "paths": [
+          "examples/solve_demo.jl"
+        ],
+        "section_id": "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md#examples",
+        "title": "Examples"
+      }
+    ],
+    "symbol_ids": [
+      "repo:gateway-sync:symbol:GatewaySyncPkg.solve"
+    ],
+    "title": "solve"
+  },
+  "repo_id": "gateway-sync"
+}

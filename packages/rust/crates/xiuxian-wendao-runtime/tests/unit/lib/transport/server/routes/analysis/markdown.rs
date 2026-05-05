@@ -6,12 +6,16 @@ use tonic::Request;
 
 use crate::transport::ANALYSIS_MARKDOWN_ROUTE;
 
-use super::super::super::assertions::{
+use crate::tests::transport::server::assertions::{
     must_err, must_ok, parse_json, route_descriptor, ticket_string,
 };
-use super::super::super::fixtures::{build_service_with_route_providers, decode_flight_batches};
-use super::super::super::providers::{RecordingMarkdownAnalysisProvider, RecordingSearchProvider};
-use super::super::super::request_headers::populate_schema_and_markdown_analysis_headers;
+use crate::tests::transport::server::fixtures::{
+    build_service_with_route_providers, decode_flight_batches,
+};
+use crate::tests::transport::server::providers::{
+    RecordingMarkdownAnalysisProvider, RecordingSearchProvider,
+};
+use crate::tests::transport::server::request_headers::populate_schema_and_markdown_analysis_headers;
 
 #[tokio::test]
 async fn wendao_flight_service_get_flight_info_uses_markdown_analysis_provider() {

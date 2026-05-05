@@ -1,0 +1,38 @@
+---
+source: packages/rust/crates/xiuxian-wendao/src/../tests/unit/support/mod.rs
+assertion_line: 26
+expression: value
+---
+{
+  "center": {
+    "node_id": "alpha",
+    "path": "alpha.md",
+    "title": "Alpha",
+    "distance": 0,
+    "is_center": true
+  },
+  "nodes": [
+    {
+      "node_id": "alpha",
+      "path": "alpha.md",
+      "title": "Alpha",
+      "distance": 0,
+      "is_center": true
+    },
+    {
+      "node_id": "beta",
+      "path": "beta.md",
+      "title": "Beta",
+      "distance": 1,
+      "is_center": false
+    }
+  ],
+  "links": [
+    {
+      "source_path": "alpha.md",
+      "target_path": "beta.md",
+      "direction": "outgoing",
+      "distance": 1
+    }
+  ]
+}

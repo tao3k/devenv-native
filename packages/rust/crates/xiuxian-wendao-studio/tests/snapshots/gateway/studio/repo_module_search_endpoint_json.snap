@@ -1,0 +1,49 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 9
+expression: value
+---
+{
+  "module_hits": [
+    {
+      "hierarchical_uri": "wendao://repo/unknown/gateway-sync/api/src:GatewaySyncPkg.jl/repo:gateway-sync:module:GatewaySyncPkg",
+      "hierarchy": [
+        "src",
+        "GatewaySyncPkg.jl"
+      ],
+      "implicit_backlink_items": [
+        {
+          "id": "repo:gateway-sync:doc:README.md",
+          "kind": "documents",
+          "path": "README.md",
+          "title": "README.md"
+        }
+      ],
+      "implicit_backlinks": [
+        "repo:gateway-sync:doc:README.md"
+      ],
+      "module": {
+        "module_id": "repo:gateway-sync:module:GatewaySyncPkg",
+        "path": "src/GatewaySyncPkg.jl",
+        "qualified_name": "GatewaySyncPkg",
+        "repo_id": "gateway-sync"
+      },
+      "projection_page_ids": [
+        "repo:gateway-sync:projection:explanation:doc:repo:gateway-sync:doc:README.md",
+        "repo:gateway-sync:projection:reference:module:repo:gateway-sync:module:GatewaySyncPkg"
+      ],
+      "rank": 1,
+      "saliency_score": 0.0,
+      "score": 1.0
+    }
+  ],
+  "modules": [
+    {
+      "module_id": "repo:gateway-sync:module:GatewaySyncPkg",
+      "path": "src/GatewaySyncPkg.jl",
+      "qualified_name": "GatewaySyncPkg",
+      "repo_id": "gateway-sync"
+    }
+  ],
+  "repo_id": "gateway-sync"
+}

@@ -1,0 +1,106 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+expression: value
+---
+{
+  "contractVersion": "1",
+  "codeSearch": {
+    "queryGrammarVersion": "repo_code_query.v1",
+    "intent": "code_search",
+    "backendPrefixes": [
+      "lang",
+      "kind",
+      "repo"
+    ],
+    "composedPrefixes": [
+      "path"
+    ],
+    "prefixAliases": [
+      {
+        "alias": "language",
+        "canonical": "lang"
+      }
+    ],
+    "structuralPrefixes": [
+      "ast",
+      "sg"
+    ],
+    "backendKindFilters": [
+      "file",
+      "symbol",
+      "function",
+      "module",
+      "example"
+    ],
+    "routes": {
+      "knowledge": "/search/knowledge",
+      "intent": "/search/intent",
+      "autocomplete": "/search/autocomplete"
+    },
+    "examples": [
+      {
+        "id": "dedupe_free_text",
+        "lane": "backend_code_search",
+        "query": "sec lang:julia sec kind:function",
+        "normalizedQuery": "sec lang:julia kind:function",
+        "baseQuery": "sec",
+        "languageFilters": [
+          "julia"
+        ],
+        "kindFilters": [
+          "function"
+        ],
+        "repoFilters": [],
+        "pathFilters": []
+      },
+      {
+        "id": "structural_repo_query",
+        "lane": "backend_code_search",
+        "query": "repo:lancd lang:rust ast:\"fn $NAME($$$ARGS) { $$$BODY }\"",
+        "normalizedQuery": "repo:lancd lang:rust ast:\"fn $NAME($$$ARGS) { $$$BODY }\"",
+        "baseQuery": "ast:\"fn $NAME($$$ARGS) { $$$BODY }\"",
+        "languageFilters": [
+          "rust"
+        ],
+        "kindFilters": [],
+        "repoFilters": [
+          "lancd"
+        ],
+        "pathFilters": []
+      },
+      {
+        "id": "frontend_path_filter",
+        "lane": "frontend_composed_filter",
+        "query": "solver path:src/",
+        "normalizedQuery": "solver path:src/",
+        "baseQuery": "solver",
+        "languageFilters": [],
+        "kindFilters": [],
+        "repoFilters": [],
+        "pathFilters": [
+          "src/"
+        ]
+      }
+    ]
+  },
+  "repoDiscovery": {
+    "suggest": {
+      "source": "repo_index_status",
+      "defaultLimit": 6,
+      "queryScoped": false,
+      "exhaustive": true
+    },
+    "facet": {
+      "source": "search_results",
+      "defaultLimit": 6,
+      "queryScoped": true,
+      "exhaustive": false
+    },
+    "inventory": {
+      "source": "repo_index_status",
+      "defaultLimit": 200,
+      "queryScoped": false,
+      "exhaustive": true
+    }
+  }
+}

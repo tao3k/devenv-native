@@ -1,3 +1,5 @@
+//! Markdown property drawer parsing.
+
 use std::collections::HashMap;
 
 /// Parse one property drawer line such as `:ID: value`.

@@ -1,5 +1,7 @@
+#[path = "api/mod.rs"]
 mod api;
 mod scoring;
+#[path = "workset/mod.rs"]
 mod workset;
 
 pub use api::{

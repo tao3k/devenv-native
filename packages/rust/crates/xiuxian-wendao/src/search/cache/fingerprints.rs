@@ -38,7 +38,7 @@ impl SearchPlaneCache {
         &self,
         scope: SearchPlaneFileFingerprintScope<'_>,
     ) -> Option<BTreeMap<String, SearchFileFingerprint>> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         match scope {
             SearchPlaneFileFingerprintScope::Corpus(corpus) => {
                 if let Some(fingerprints) = self
@@ -75,7 +75,7 @@ impl SearchPlaneCache {
         scope: SearchPlaneFileFingerprintScope<'_>,
         fingerprints: &BTreeMap<String, SearchFileFingerprint>,
     ) {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         match scope {
             SearchPlaneFileFingerprintScope::Corpus(corpus) => {
                 self.shadow
@@ -113,7 +113,7 @@ impl SearchPlaneCache {
         &self,
         scope: SearchPlaneFileFingerprintScope<'_>,
     ) {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         match scope {
             SearchPlaneFileFingerprintScope::Corpus(corpus) => {
                 self.shadow

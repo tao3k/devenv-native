@@ -1,3 +1,5 @@
+//! Public ir node api lane contracts for BPMN/DMN engine integration.
+
 use std::sync::Arc;
 
 /// Passive BPMN lane membership metadata attached to one flow node.

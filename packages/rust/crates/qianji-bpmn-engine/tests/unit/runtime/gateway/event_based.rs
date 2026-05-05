@@ -1,4 +1,4 @@
-use super::super::{StubHost, event_based_gateway_process};
+use crate::runtime::{StubHost, event_based_gateway_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,

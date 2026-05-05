@@ -1,3 +1,5 @@
+//! Runtime registration for Julia memory compute plugin surfaces.
+
 use xiuxian_wendao_core::{
     capabilities::{ContractVersion, PluginCapabilityBinding, PluginProviderSelector},
     ids::{CapabilityId, PluginId},

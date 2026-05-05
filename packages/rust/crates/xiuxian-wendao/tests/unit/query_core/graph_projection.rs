@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use crate::gateway::studio::test_support::assert_wendao_json_snapshot;
 use crate::link_graph::LinkGraphIndex;
 use crate::query_core::WendaoRelation;
 use crate::query_core::graph::graph_projection_from_relation;
 use crate::query_core::operators::GraphDirection;
 use crate::query_core::service::query_graph_neighbors_projection;
+use crate::test_support::assert_wendao_json_snapshot;
 
 use super::support::{tempdir_or_panic, write_fixture};
 

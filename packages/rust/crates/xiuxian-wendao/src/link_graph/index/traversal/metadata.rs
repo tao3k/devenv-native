@@ -1,4 +1,6 @@
-use super::super::{LinkGraphDocument, LinkGraphIndex, LinkGraphMetadata, doc_sort_key};
+use crate::link_graph::index::{
+    LinkGraphDocument, LinkGraphIndex, LinkGraphMetadata, doc_sort_key,
+};
 use crate::parsers::markdown::normalize_alias;
 
 impl LinkGraphIndex {

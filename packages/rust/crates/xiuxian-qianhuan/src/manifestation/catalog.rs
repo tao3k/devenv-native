@@ -1,3 +1,5 @@
+//! Embedded manifestation template catalog adapter.
+
 use std::sync::OnceLock;
 
 use serde_json::Value;

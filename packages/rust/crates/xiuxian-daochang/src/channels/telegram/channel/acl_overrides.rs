@@ -1,3 +1,5 @@
+//! Telegram ACL override parsing for control-command authorization.
+
 use anyhow::Result;
 
 use crate::config::{

@@ -3,12 +3,13 @@ use std::sync::Arc;
 use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 
-use super::super::{
+use super::support::build_rerank_response_batch;
+use crate::transport::query_contract::tests::must_ok;
+use crate::transport::query_contract::{
     RERANK_RESPONSE_DOC_ID_COLUMN, RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
-    RERANK_RESPONSE_SEMANTIC_SCORE_COLUMN, RERANK_RESPONSE_VECTOR_SCORE_COLUMN, must_ok,
+    RERANK_RESPONSE_SEMANTIC_SCORE_COLUMN, RERANK_RESPONSE_VECTOR_SCORE_COLUMN,
     validate_rerank_response_batch, validate_rerank_response_schema,
 };
-use super::support::build_rerank_response_batch;
 
 #[test]
 fn rerank_response_schema_validation_accepts_stable_shape() {

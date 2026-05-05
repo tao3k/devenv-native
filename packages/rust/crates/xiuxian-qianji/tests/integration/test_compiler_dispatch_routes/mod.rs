@@ -19,5 +19,3 @@ fn build_compiler(index_root: &Path) -> Result<QianjiCompiler, Box<dyn std::erro
     let registry = Arc::new(PersonaRegistry::with_builtins());
     Ok(QianjiCompiler::new(index, orchestrator, registry, None))
 }
-
-xiuxian_testing::crate_test_policy_harness!();

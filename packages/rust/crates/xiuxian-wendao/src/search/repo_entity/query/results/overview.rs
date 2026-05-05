@@ -13,16 +13,29 @@ use crate::search::repo_entity::schema::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct RepoEntityOverviewSummary {
-    pub(crate) display_name: Option<String>,
-    pub(crate) source_revision: Option<String>,
-    pub(crate) module_count: usize,
-    pub(crate) symbol_count: usize,
-    pub(crate) example_count: usize,
-    pub(crate) doc_count: usize,
+/// Summary statistics for the repository entity publication overview.
+pub struct RepoEntityOverviewSummary {
+    /// Display name inferred from the shallowest module entity.
+    pub display_name: Option<String>,
+    /// Source revision associated with the indexed repository publication.
+    pub source_revision: Option<String>,
+    /// Number of module entities in the publication.
+    pub module_count: usize,
+    /// Number of symbol entities in the publication.
+    pub symbol_count: usize,
+    /// Number of example entities in the publication.
+    pub example_count: usize,
+    /// Number of projected documentation pages referenced by entities.
+    pub doc_count: usize,
 }
 
-pub(crate) async fn summarize_repo_entity_overview(
+/// Build a compact repository entity overview from the published entity table.
+///
+/// # Errors
+///
+/// Returns a repository entity search error when the underlying publication
+/// cannot be opened or decoded.
+pub async fn summarize_repo_entity_overview(
     service: &SearchPlaneService,
     repo_id: &str,
 ) -> Result<Option<RepoEntityOverviewSummary>, RepoEntitySearchError> {

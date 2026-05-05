@@ -1,4 +1,4 @@
-use super::*;
+use super::{MIN_ACTIVATION_COUNT, SALIENCY_THRESHOLD_HIGH, SaliencySnapshot};
 
 #[test]
 fn test_empty_snapshot() {

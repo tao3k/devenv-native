@@ -1,0 +1,86 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/tests/unit/gateway/studio/support.rs
+assertion_line: 17
+expression: value
+---
+{
+  "repo_id": "modelica-gateway-symbol-search",
+  "symbol_hits": [
+    {
+      "hierarchical_uri": "wendao://repo/msl/modelica-gateway-symbol-search/api/Controllers:PI.mo/repo:modelica-gateway-symbol-search:symbol:Projectionica.Controllers.PI",
+      "hierarchy": [
+        "Controllers",
+        "PI.mo"
+      ],
+      "implicit_backlink_items": [
+        {
+          "id": "repo:modelica-gateway-symbol-search:doc:Controllers/PI.mo#annotation.documentation",
+          "kind": "documents",
+          "path": "Controllers/PI.mo#annotation.documentation",
+          "title": "PI documentation"
+        }
+      ],
+      "implicit_backlinks": [
+        "repo:modelica-gateway-symbol-search:doc:Controllers/PI.mo#annotation.documentation"
+      ],
+      "projection_page_ids": [
+        "repo:modelica-gateway-symbol-search:projection:reference:doc:repo:modelica-gateway-symbol-search:doc:Controllers/PI.mo#annotation.documentation",
+        "repo:modelica-gateway-symbol-search:projection:reference:symbol:repo:modelica-gateway-symbol-search:symbol:Projectionica.Controllers.PI"
+      ],
+      "rank": 1,
+      "saliency_score": 0.4,
+      "score": 1.0,
+      "symbol": {
+        "attributes": {
+          "class_name": "PI",
+          "class_path": "PI",
+          "is_encapsulated": "false",
+          "is_final": "false",
+          "is_partial": "false",
+          "parser_kind": "model",
+          "restriction": "model",
+          "top_level": "true",
+          "visibility": "public"
+        },
+        "kind": "type",
+        "line_end": 4,
+        "line_start": 2,
+        "module_id": "repo:modelica-gateway-symbol-search:module:Projectionica.Controllers",
+        "name": "PI",
+        "path": "Controllers/PI.mo",
+        "qualified_name": "Projectionica.Controllers.PI",
+        "repo_id": "modelica-gateway-symbol-search",
+        "signature": "model PI",
+        "symbol_id": "repo:modelica-gateway-symbol-search:symbol:Projectionica.Controllers.PI",
+        "verification_state": "verified"
+      },
+      "verification_state": "verified"
+    }
+  ],
+  "symbols": [
+    {
+      "attributes": {
+        "class_name": "PI",
+        "class_path": "PI",
+        "is_encapsulated": "false",
+        "is_final": "false",
+        "is_partial": "false",
+        "parser_kind": "model",
+        "restriction": "model",
+        "top_level": "true",
+        "visibility": "public"
+      },
+      "kind": "type",
+      "line_end": 4,
+      "line_start": 2,
+      "module_id": "repo:modelica-gateway-symbol-search:module:Projectionica.Controllers",
+      "name": "PI",
+      "path": "Controllers/PI.mo",
+      "qualified_name": "Projectionica.Controllers.PI",
+      "repo_id": "modelica-gateway-symbol-search",
+      "signature": "model PI",
+      "symbol_id": "repo:modelica-gateway-symbol-search:symbol:Projectionica.Controllers.PI",
+      "verification_state": "verified"
+    }
+  ]
+}
