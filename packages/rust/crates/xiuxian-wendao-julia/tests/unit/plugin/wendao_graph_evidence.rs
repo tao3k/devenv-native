@@ -37,14 +37,18 @@ fn wendao_graph_evidence_contracts_match_julia_table_names() {
         "link_frontier"
     );
 
-    let nodes = wendao_graph_evidence_request_table_contract("nodes")
-        .expect("nodes request contract should exist");
+    let nodes = match wendao_graph_evidence_request_table_contract("nodes") {
+        Ok(contract) => contract,
+        Err(error) => panic!("nodes request contract should exist: {error}"),
+    };
     assert_eq!(nodes.kind, WendaoGraphEvidenceTableKind::Request);
     assert!(nodes.required);
     assert_eq!(nodes.columns[0].name, "node_id");
 
-    let link_frontier = wendao_graph_evidence_response_table_contract("link_frontier")
-        .expect("link_frontier response contract should exist");
+    let link_frontier = match wendao_graph_evidence_response_table_contract("link_frontier") {
+        Ok(contract) => contract,
+        Err(error) => panic!("link_frontier response contract should exist: {error}"),
+    };
     assert_eq!(link_frontier.kind, WendaoGraphEvidenceTableKind::Response);
     assert_eq!(link_frontier.columns.len(), 10);
     assert_eq!(link_frontier.columns[9].name, "disclosure_budget");
@@ -52,13 +56,17 @@ fn wendao_graph_evidence_contracts_match_julia_table_names() {
 
 #[test]
 fn wendao_graph_evidence_schema_validation_accepts_request_tables() {
-    let schema = wendao_graph_evidence_table_schema(
+    let schema = match wendao_graph_evidence_table_schema(
         WendaoGraphEvidenceTableKind::Request,
         "semantic_neighbors",
-    )
-    .expect("semantic neighbor request schema should build");
-    validate_wendao_graph_evidence_request_schema("semantic_neighbors", schema.as_ref())
-        .expect("semantic neighbor request schema should validate");
+    ) {
+        Ok(schema) => schema,
+        Err(error) => panic!("semantic neighbor request schema should build: {error}"),
+    };
+    assert_eq!(
+        validate_wendao_graph_evidence_request_schema("semantic_neighbors", schema.as_ref()),
+        Ok(())
+    );
     assert_eq!(schema.field(0).name(), "query_id");
     assert_eq!(schema.field(2).data_type(), &DataType::Int64);
     assert_eq!(schema.field(5).data_type(), &DataType::Float64);
@@ -66,13 +74,17 @@ fn wendao_graph_evidence_schema_validation_accepts_request_tables() {
 
 #[test]
 fn wendao_graph_evidence_schema_validation_accepts_response_tables() {
-    let schema = wendao_graph_evidence_table_schema(
+    let schema = match wendao_graph_evidence_table_schema(
         WendaoGraphEvidenceTableKind::Response,
         "diffusion_scores",
-    )
-    .expect("diffusion score response schema should build");
-    validate_wendao_graph_evidence_response_schema("diffusion_scores", schema.as_ref())
-        .expect("diffusion score response schema should validate");
+    ) {
+        Ok(schema) => schema,
+        Err(error) => panic!("diffusion score response schema should build: {error}"),
+    };
+    assert_eq!(
+        validate_wendao_graph_evidence_response_schema("diffusion_scores", schema.as_ref()),
+        Ok(())
+    );
     assert_eq!(schema.field(0).name(), "node_id");
     assert_eq!(schema.field(6).name(), "iteration_count");
     assert_eq!(schema.field(6).data_type(), &DataType::Int64);
