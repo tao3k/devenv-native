@@ -23,11 +23,13 @@ schemars = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 toml = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
 walkdir = { workspace = true }
 rayon = { workspace = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 
 [dev-dependencies]
 criterion = { workspace = true }

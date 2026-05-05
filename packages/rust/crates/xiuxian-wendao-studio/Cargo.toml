@@ -83,6 +83,7 @@ local-runtime = [
   "dep:xiuxian-wendao-builtin",
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-parsers",
+  "dep:xiuxian-wendao-sql",
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/native",
   "xiuxian-wendao/builtin-plugins",
@@ -168,6 +169,7 @@ xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional 
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }
+xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tempfile::TempDir;
 
-use super::run_semantic_lint;
+use super::{run_semantic_lint, run_semantic_lint_with_args};
 
 #[test]
 fn semantic_lint_accepts_valid_semantic_root() -> Result<()> {
@@ -44,6 +44,32 @@ fn semantic_lint_reports_unresolved_relations() -> Result<()> {
     assert!(
         stdout.contains("component.missing"),
         "unresolved target should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_lint_sql_guard_reports_stale_projection() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout) =
+        run_semantic_lint_with_args(&temp, Some("semantic"), &["--semantic-sql-guard"])?;
+
+    assert_eq!(status, Some(1));
+    assert!(
+        stdout.contains("SQL guard semantic_sql.projection_freshness review_required"),
+        "SQL guard status should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("1 failing row(s)"),
+        "SQL guard failing row count should be rendered: {stdout}"
     );
     Ok(())
 }

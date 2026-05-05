@@ -62,7 +62,7 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
         StudioCodeAstAnalysisFlightRouteProvider::new(Arc::clone(&state)),
     ));
     route_providers.semantic_scope = Some(Arc::new(StudioSemanticScopeFlightRouteProvider::new(
-        Arc::clone(&state),
+        state.as_ref(),
     )));
     route_providers.document_extract = Some(Arc::new(
         StudioDocumentExtractFlightRouteProvider::new(state.as_ref()),

@@ -5,10 +5,11 @@ use std::path::Path;
 
 use tempfile::TempDir;
 use xiuxian_qianji::{
-    WorkdirMarkdownSurface, WorkdirVisibleSurfaceKind, build_workdir_check_follow_up_query,
-    check_workdir, load_workdir_manifest, parse_workdir_manifest,
-    query_workdir_check_follow_up_payload, query_workdir_markdown_payload,
-    render_workdir_check_markdown, render_workdir_show, show_workdir,
+    WorkdirMarkdownSurface, WorkdirSemanticScopeGuardStatus, WorkdirVisibleSurfaceKind,
+    build_workdir_check_follow_up_query, check_workdir, load_workdir_manifest,
+    parse_workdir_manifest, query_workdir_check_follow_up_payload, query_workdir_markdown_payload,
+    render_workdir_check_markdown, render_workdir_semantic_scope_guard_trace, render_workdir_show,
+    show_workdir, trace_workdir_semantic_scope_json,
 };
 
 fn assert_common_diagnostic_shape(rendered: &str) {
@@ -118,6 +119,127 @@ fn create_semantic_workdir(temp_dir: &TempDir) -> std::path::PathBuf {
         "# Demo Change Intent\n\n## Required Validations\n\n- cargo test\n",
     );
     workdir
+}
+
+fn semantic_scope_metadata_json(projection_staleness: &str, unresolved_ids: &[&str]) -> String {
+    serde_json::json!({
+        "semanticScopeBundle": {
+            "task_id": "task.demo",
+            "requested_object_ids": ["component.demo", "task.demo"],
+            "objects": [
+                {
+                    "id": "component.demo",
+                    "kind": "component",
+                    "title": "Demo Component",
+                    "status": "active",
+                    "confidence": {
+                        "score": 0.95,
+                        "source": "verified"
+                    },
+                    "owners": [
+                        {
+                            "scope": "xiuxian-qianji",
+                            "role": "semantic_scope_consumer"
+                        }
+                    ],
+                    "provenance": {
+                        "source": "docs/rfcs/demo.md",
+                        "recorded_by": "test",
+                        "recorded_at": "2026-05-05"
+                    },
+                    "verification": {
+                        "required": ["cargo test -p xiuxian-qianji workdir_semantic"]
+                    },
+                    "relations": []
+                },
+                {
+                    "id": "task.demo",
+                    "kind": "task",
+                    "title": "Candidate Demo Task",
+                    "status": "candidate",
+                    "confidence": {
+                        "score": 0.55,
+                        "source": "llm_suggested"
+                    },
+                    "owners": [
+                        {
+                            "scope": "xiuxian-qianji",
+                            "role": "candidate_scope_consumer"
+                        }
+                    ],
+                    "provenance": {
+                        "source": "semantic/change-intents/demo-change.md",
+                        "recorded_by": "test",
+                        "recorded_at": "2026-05-05"
+                    },
+                    "verification": {
+                        "required": ["cargo test -p xiuxian-qianji workdir_semantic"]
+                    },
+                    "relations": []
+                }
+            ],
+            "relations": [
+                {
+                    "source": "component.demo",
+                    "kind": "validates",
+                    "target": "task.demo"
+                }
+            ],
+            "change_intents": [
+                {
+                    "type": "semantic_change_intent",
+                    "id": "change.demo",
+                    "title": "Demo Change",
+                    "status": "active",
+                    "touched_objects": ["component.demo"],
+                    "changed_relations": [],
+                    "affected_invariants": ["task.demo"],
+                    "required_validations": ["cargo test -p xiuxian-qianji workdir_semantic"],
+                    "projections_to_refresh": ["llm_compression"],
+                    "candidate_suggestions": ["task.demo"]
+                }
+            ],
+            "affected_invariants": ["task.demo"],
+            "required_validations": ["cargo test -p xiuxian-qianji workdir_semantic"],
+            "projection_revision": "semantic-scope-demo",
+            "projection_source_revision": "blake3:demo",
+            "projection_staleness": projection_staleness,
+            "provenance": [
+                {
+                    "object_id": "component.demo",
+                    "source_path": "semantic/objects/component/demo.md",
+                    "source": "docs/rfcs/demo.md"
+                }
+            ],
+            "unresolved_ids": unresolved_ids
+        }
+    })
+    .to_string()
+}
+
+fn semantic_scope_metadata_with_sql_guard_json(
+    status: &str,
+    failing_row_count: usize,
+    message: &str,
+) -> String {
+    let mut value =
+        serde_json::from_str::<serde_json::Value>(&semantic_scope_metadata_json("fresh", &[]))
+            .unwrap_or_else(|error| {
+                panic!("semantic-scope metadata fixture should decode: {error}")
+            });
+    value
+        .as_object_mut()
+        .unwrap_or_else(|| panic!("semantic-scope metadata fixture should be an object"))
+        .insert(
+            "semanticSqlGuardEvidence".to_string(),
+            serde_json::json!({
+                "guardId": "semantic_sql.projection_freshness",
+                "status": status,
+                "failingRowCount": failing_row_count,
+                "message": message
+            }),
+        );
+    value.to_string()
 }
 
 fn step_aware_workdir_manifest() -> &'static str {
@@ -592,6 +714,113 @@ async fn workdir_semantic_query_surface_returns_sql_payload() {
                 |row| row.get("heading_path").and_then(serde_json::Value::as_str)
                     == Some("Demo Component/Authority")
             )
+    );
+}
+
+#[test]
+fn workdir_semantic_scope_guard_trace_consumes_wendao_metadata_bundle() {
+    let trace = trace_workdir_semantic_scope_json(&semantic_scope_metadata_json("fresh", &[]))
+        .unwrap_or_else(|error| panic!("semantic-scope metadata should decode: {error}"));
+
+    assert_eq!(trace.status, WorkdirSemanticScopeGuardStatus::Ready);
+    assert_eq!(trace.task_id.as_deref(), Some("task.demo"));
+    assert_eq!(trace.relation_count, 1);
+    assert_eq!(trace.change_intent_ids, vec!["change.demo"]);
+    assert!(
+        trace
+            .objects
+            .iter()
+            .any(|object| object.id == "task.demo" && object.status == "candidate")
+    );
+    assert!(
+        trace
+            .required_validations
+            .contains(&"cargo test -p xiuxian-qianji workdir_semantic".to_string())
+    );
+
+    let rendered = render_workdir_semantic_scope_guard_trace(&trace);
+    assert!(rendered.contains("Status: ready"));
+    assert!(rendered.contains("task.demo [task / candidate]"));
+    assert!(rendered.contains("change.demo"));
+}
+
+#[test]
+fn workdir_semantic_scope_guard_trace_marks_stale_projection_for_review() {
+    let trace = trace_workdir_semantic_scope_json(&semantic_scope_metadata_json("stale", &[]))
+        .unwrap_or_else(|error| panic!("stale semantic-scope metadata should decode: {error}"));
+
+    assert_eq!(
+        trace.status,
+        WorkdirSemanticScopeGuardStatus::ReviewRequired
+    );
+    assert!(
+        trace
+            .issues
+            .iter()
+            .any(|issue| issue.contains("semantic projection is stale"))
+    );
+}
+
+#[test]
+fn workdir_semantic_scope_guard_trace_consumes_sql_guard_review_evidence() {
+    let trace = trace_workdir_semantic_scope_json(&semantic_scope_metadata_with_sql_guard_json(
+        "review_required",
+        1,
+        "semantic projection freshness guard requires review: 1 stale projection row(s)",
+    ))
+    .unwrap_or_else(|error| panic!("semantic SQL guard evidence should decode: {error}"));
+
+    assert_eq!(
+        trace.status,
+        WorkdirSemanticScopeGuardStatus::ReviewRequired
+    );
+    assert_eq!(trace.sql_guard_evidence.len(), 1);
+    assert_eq!(
+        trace.sql_guard_evidence[0].guard_id,
+        "semantic_sql.projection_freshness"
+    );
+    assert_eq!(trace.sql_guard_evidence[0].failing_row_count, 1);
+    assert!(
+        trace
+            .issues
+            .iter()
+            .any(|issue| issue.contains("semantic_sql.projection_freshness"))
+    );
+
+    let rendered = render_workdir_semantic_scope_guard_trace(&trace);
+    assert!(rendered.contains("## SQL Guard Evidence"));
+    assert!(rendered.contains("semantic_sql.projection_freshness"));
+}
+
+#[test]
+fn workdir_semantic_scope_guard_trace_keeps_passed_sql_guard_ready() {
+    let trace = trace_workdir_semantic_scope_json(&semantic_scope_metadata_with_sql_guard_json(
+        "passed",
+        0,
+        "semantic projection freshness guard passed: no stale projection rows",
+    ))
+    .unwrap_or_else(|error| panic!("passed semantic SQL guard evidence should decode: {error}"));
+
+    assert_eq!(trace.status, WorkdirSemanticScopeGuardStatus::Ready);
+    assert_eq!(trace.sql_guard_evidence.len(), 1);
+    assert!(trace.issues.is_empty());
+}
+
+#[test]
+fn workdir_semantic_scope_guard_trace_blocks_unresolved_ids() {
+    let trace = trace_workdir_semantic_scope_json(&semantic_scope_metadata_json(
+        "fresh",
+        &["decision.missing"],
+    ))
+    .unwrap_or_else(|error| panic!("unresolved semantic-scope metadata should decode: {error}"));
+
+    assert_eq!(trace.status, WorkdirSemanticScopeGuardStatus::Blocked);
+    assert_eq!(trace.unresolved_ids, vec!["decision.missing"]);
+    assert!(
+        trace
+            .issues
+            .iter()
+            .any(|issue| issue.contains("decision.missing"))
     );
 }
 

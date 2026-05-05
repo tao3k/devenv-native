@@ -43,9 +43,20 @@ pub(super) fn run_semantic_lint(
     temp: &TempDir,
     scope: Option<&str>,
 ) -> Result<(Option<i32>, String)> {
+    run_semantic_lint_with_args(temp, scope, &[])
+}
+
+pub(super) fn run_semantic_lint_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String)> {
     let mut command = Command::new(env!("CARGO_BIN_EXE_wendao-client"));
     command.arg("--root").arg(temp.path());
     command.arg("lint").arg("semantic");
+    for arg in args {
+        command.arg(arg);
+    }
     if let Some(scope) = scope {
         command.arg(scope);
     }

@@ -1,5 +1,7 @@
 //! `FlightService` implementation for the transport-owned Wendao service core.
 
+use std::sync::Arc;
+
 use arrow_array::RecordBatch as EngineRecordBatch;
 use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::encode::FlightDataEncoderBuilder;
@@ -24,6 +26,7 @@ use crate::transport::server::{
 };
 
 use super::ServiceCore as WendaoFlightService;
+use super::routing::route_payload_cacheable;
 
 const ANALYSIS_ROUTE_PREFIX: &str = "/analysis/";
 
@@ -67,6 +70,11 @@ impl FlightService for WendaoFlightService {
         let route_payload = self
             .cached_route_payload(route.as_str(), &metadata, &cache_key)
             .await?;
+        if !route_payload_cacheable(route.as_str()) {
+            self.route_payload_cache
+                .insert_handoff(cache_key, Arc::clone(&route_payload))
+                .await;
+        }
         if route.starts_with(ANALYSIS_ROUTE_PREFIX) {
             let route_payload = route_payload.clone();
             drop(tokio::spawn(async move {
@@ -112,11 +120,16 @@ impl FlightService for WendaoFlightService {
         let ticket = request.into_inner();
         let route = ticket_route(&ticket)?;
         let cache_key = Self::route_request_cache_key(route.as_str(), &metadata)?;
-        let do_get_frames = self
-            .cached_route_payload(route.as_str(), &metadata, &cache_key)
-            .await?
-            .do_get_frames()
-            .await?;
+        let route_payload = if route_payload_cacheable(route.as_str()) {
+            self.cached_route_payload(route.as_str(), &metadata, &cache_key)
+                .await?
+        } else if let Some(handoff) = self.route_payload_cache.take_handoff(&cache_key).await {
+            handoff
+        } else {
+            self.cached_route_payload(route.as_str(), &metadata, &cache_key)
+                .await?
+        };
+        let do_get_frames = route_payload.do_get_frames().await?;
         let response_stream =
             stream::unfold((do_get_frames, 0_usize), |(frames, index)| async move {
                 frames

@@ -11762,11 +11762,13 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "tokio",
  "toml 0.8.23",
  "walkdir",
  "xiuxian-config-core",
  "xiuxian-logging",
  "xiuxian-wendao-parsers",
+ "xiuxian-wendao-sql",
 ]
 
 [[package]]
@@ -11951,6 +11953,7 @@ dependencies = [
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
  "xiuxian-wendao-server",
+ "xiuxian-wendao-sql",
  "xiuxian-zhenfa",
 ]
 

@@ -18,7 +18,31 @@ fn parses_semantic_lint_command() {
         panic!("expected lint command");
     };
     match command {
-        LintCommand::Semantic(args) => assert_eq!(args.paths, vec![PathBuf::from("semantic")]),
+        LintCommand::Semantic(args) => {
+            assert!(!args.semantic_sql_guard);
+            assert_eq!(args.paths, vec![PathBuf::from("semantic")]);
+        }
+        LintCommand::Markdown(_) => panic!("expected semantic lint command"),
+    }
+}
+
+#[test]
+fn parses_semantic_lint_sql_guard_flag() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "lint",
+        "semantic",
+        "--semantic-sql-guard",
+        "semantic",
+    ]);
+    let ClientCommand::Lint { command } = cli.command else {
+        panic!("expected lint command");
+    };
+    match command {
+        LintCommand::Semantic(args) => {
+            assert!(args.semantic_sql_guard);
+            assert_eq!(args.paths, vec![PathBuf::from("semantic")]);
+        }
         LintCommand::Markdown(_) => panic!("expected semantic lint command"),
     }
 }

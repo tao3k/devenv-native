@@ -14,6 +14,10 @@ use std::path::{Path, PathBuf};
 use xiuxian_wendao_parsers::{
     SemanticValidationIssue, lint_markdown_syntax_with_path, load_semantic_repository,
 };
+use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
+use xiuxian_wendao_sql::semantic_read_model::{
+    SemanticSqlGuardEvidence, run_semantic_sql_projection_freshness_guard_with_engine,
+};
 
 #[derive(serde::Serialize)]
 struct SemanticLintRootReport {
@@ -22,6 +26,7 @@ struct SemanticLintRootReport {
     projection_count: usize,
     change_intent_count: usize,
     issues: Vec<SemanticValidationIssue>,
+    sql_guard: Option<SemanticLintSqlGuardReport>,
 }
 
 #[derive(serde::Serialize)]
@@ -31,7 +36,19 @@ struct SemanticLintReport {
     projection_count: usize,
     change_intent_count: usize,
     issue_count: usize,
+    sql_guard_issue_count: usize,
     roots: Vec<SemanticLintRootReport>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SemanticLintSqlGuardReport {
+    guard_id: String,
+    semantic_object_id: String,
+    status: String,
+    failing_row_count: usize,
+    message: String,
+    local_relation_engine: Option<String>,
 }
 
 pub(crate) fn run_markdown_lint(
@@ -117,15 +134,22 @@ pub(crate) fn run_semantic_lint(
         .iter()
         .map(|root| {
             let repository = load_semantic_repository(root);
-            SemanticLintRootReport {
+            let semantic_issue_count = repository.report.issues.len();
+            let sql_guard = if args.semantic_sql_guard && semantic_issue_count == 0 {
+                Some(semantic_sql_guard_report(&repository)?)
+            } else {
+                None
+            };
+            Ok(SemanticLintRootReport {
                 root: display_semantic_root(root, context.root()),
                 object_count: repository.objects.len(),
                 projection_count: repository.projections.len(),
                 change_intent_count: repository.change_intents.len(),
                 issues: repository.report.issues,
-            }
+                sql_guard,
+            })
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()?;
     let report = SemanticLintReport {
         checked_roots: root_reports.len(),
         object_count: root_reports.iter().map(|root| root.object_count).sum(),
@@ -135,15 +159,53 @@ pub(crate) fn run_semantic_lint(
             .map(|root| root.change_intent_count)
             .sum(),
         issue_count: root_reports.iter().map(|root| root.issues.len()).sum(),
+        sql_guard_issue_count: root_reports
+            .iter()
+            .filter_map(|root| root.sql_guard.as_ref())
+            .map(|guard| guard.failing_row_count)
+            .sum(),
         roots: root_reports,
     };
 
     emit_semantic_report(&report, context.output())?;
-    Ok(if report.issue_count == 0 {
-        CommandOutcome::success()
-    } else {
-        CommandOutcome::failure(1)
-    })
+    Ok(
+        if report.issue_count == 0 && report.sql_guard_issue_count == 0 {
+            CommandOutcome::success()
+        } else {
+            CommandOutcome::failure(1)
+        },
+    )
+}
+
+fn semantic_sql_guard_report(
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+) -> Result<SemanticLintSqlGuardReport> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .context("failed to create semantic SQL guard runtime")?;
+    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let evidence = runtime
+        .block_on(run_semantic_sql_projection_freshness_guard_with_engine(
+            repository,
+            &query_engine,
+        ))
+        .map_err(anyhow::Error::msg)
+        .context("failed to run semantic SQL projection freshness guard")?;
+    Ok(semantic_sql_guard_report_from_evidence(&evidence))
+}
+
+fn semantic_sql_guard_report_from_evidence(
+    evidence: &SemanticSqlGuardEvidence,
+) -> SemanticLintSqlGuardReport {
+    SemanticLintSqlGuardReport {
+        guard_id: evidence.guard_id.clone(),
+        semantic_object_id: evidence.semantic_object_id.clone(),
+        status: evidence.status.as_str().to_string(),
+        failing_row_count: evidence.failing_row_count,
+        message: evidence.message.clone(),
+        local_relation_engine: evidence.local_relation_engine.clone(),
+    }
 }
 
 fn build_file_report(
@@ -233,19 +295,22 @@ fn emit_semantic_report(report: &SemanticLintReport, output: OutputFormat) -> Re
 }
 
 fn render_semantic_text_report(report: &SemanticLintReport) -> String {
-    if report.issue_count == 0 {
-        return format!(
+    if report.issue_count == 0 && report.sql_guard_issue_count == 0 {
+        let mut rendered = format!(
             "Semantic lint passed: checked {} root(s), {} object(s), {} projection(s), {} change intent(s), 0 issue(s).\n",
             report.checked_roots,
             report.object_count,
             report.projection_count,
             report.change_intent_count
         );
+        render_semantic_sql_guard_text(report, &mut rendered);
+        return rendered;
     }
 
     let mut rendered = format!(
-        "Semantic lint found {} issue(s) across {} root(s), {} object(s), {} projection(s), and {} change intent(s).\n",
+        "Semantic lint found {} issue(s) and {} SQL guard issue(s) across {} root(s), {} object(s), {} projection(s), and {} change intent(s).\n",
         report.issue_count,
+        report.sql_guard_issue_count,
         report.checked_roots,
         report.object_count,
         report.projection_count,
@@ -264,7 +329,30 @@ fn render_semantic_text_report(report: &SemanticLintReport) -> String {
             rendered.push('\n');
         }
     }
+    render_semantic_sql_guard_text(report, &mut rendered);
     rendered
+}
+
+fn render_semantic_sql_guard_text(report: &SemanticLintReport, rendered: &mut String) {
+    for root in &report.roots {
+        let Some(guard) = &root.sql_guard else {
+            continue;
+        };
+        rendered.push_str("- ");
+        rendered.push_str(root.root.display().to_string().as_str());
+        rendered.push_str(": SQL guard ");
+        rendered.push_str(guard.guard_id.as_str());
+        rendered.push(' ');
+        rendered.push_str(guard.status.as_str());
+        rendered.push_str(" (");
+        rendered.push_str(guard.failing_row_count.to_string().as_str());
+        rendered.push_str(" failing row(s))");
+        if !guard.message.is_empty() {
+            rendered.push_str(": ");
+            rendered.push_str(guard.message.as_str());
+        }
+        rendered.push('\n');
+    }
 }
 
 fn render_semantic_json_report(report: &SemanticLintReport, pretty: bool) -> Result<String> {

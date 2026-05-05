@@ -29,6 +29,10 @@ pub struct MarkdownLintArgs {
 /// CLI arguments for repo-native semantic SSOT linting.
 #[derive(Args, Debug)]
 pub struct SemanticLintArgs {
+    /// Also run advisory semantic SQL guard evidence after schema validation succeeds.
+    #[arg(long = "semantic-sql-guard")]
+    pub semantic_sql_guard: bool,
+
     /// Semantic artifact roots to inspect. When omitted, lint checks
     /// `$PRJ_ROOT/semantic` through the active client root.
     #[arg(value_name = "PATH")]

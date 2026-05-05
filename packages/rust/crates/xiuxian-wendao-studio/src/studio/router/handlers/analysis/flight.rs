@@ -3,13 +3,18 @@ use std::{path::PathBuf, sync::Arc};
 use async_trait::async_trait;
 use xiuxian_wendao_parsers::{
     SemanticChangeIntent, SemanticConfidenceSource, SemanticObjectKind,
-    SemanticProjectionStaleness, SemanticScopeBundle, SemanticScopeRequest, SemanticStatus,
-    SemanticValidationReport, load_semantic_repository, semantic_scope_bundle,
+    SemanticProjectionStaleness, SemanticRepository, SemanticScopeBundle, SemanticScopeRequest,
+    SemanticStatus, SemanticValidationReport, load_semantic_repository, semantic_scope_bundle,
 };
 use xiuxian_wendao_server::transport::{
     AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
     MarkdownAnalysisFlightRouteProvider, SemanticScopeFlightRequest,
     SemanticScopeFlightRouteProvider,
+};
+use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
+use xiuxian_wendao_sql::semantic_read_model::{
+    SemanticProjectionFreshnessFinding, SemanticSqlGuardEvidence,
+    run_semantic_sql_projection_freshness_guard_with_engine,
 };
 
 use crate::studio::arrow_types::{
@@ -123,7 +128,7 @@ pub(crate) struct StudioSemanticScopeFlightRouteProvider {
 
 impl StudioSemanticScopeFlightRouteProvider {
     #[must_use]
-    pub(crate) fn new(state: Arc<GatewayState>) -> Self {
+    pub(crate) fn new(state: &GatewayState) -> Self {
         Self {
             semantic_root: state.studio.project_root.join("semantic"),
         }
@@ -166,48 +171,69 @@ impl SemanticScopeFlightRouteProvider for StudioSemanticScopeFlightRouteProvider
                 object_ids: request.object_ids.clone(),
             },
         );
+        let sql_guard_evidence = semantic_sql_guard_evidence(&repository).await?;
         let batch = semantic_scope_bundle_batch(&bundle)?;
-        let metadata = semantic_scope_bundle_metadata(&bundle)?;
+        let metadata = semantic_scope_bundle_metadata(&bundle, &sql_guard_evidence)?;
         Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(metadata))
     }
 }
 
+struct SemanticScopeBatchColumns<'a> {
+    object_ids: Vec<&'a str>,
+    kinds: Vec<&'static str>,
+    statuses: Vec<&'static str>,
+    titles: Vec<&'a str>,
+    confidence_scores: Vec<f64>,
+    confidence_sources: Vec<&'static str>,
+    source_paths: Vec<String>,
+    required_validations_json: Vec<String>,
+    relation_targets_json: Vec<String>,
+    change_intent_ids_json: Vec<String>,
+    projection_revisions: Vec<&'a str>,
+    projection_source_revisions: Vec<&'a str>,
+    projection_staleness: Vec<&'static str>,
+}
+
 fn semantic_scope_bundle_batch(bundle: &SemanticScopeBundle) -> Result<LanceRecordBatch, String> {
-    let object_ids = bundle
-        .objects
-        .iter()
-        .map(|object| object.id.as_str())
-        .collect::<Vec<_>>();
-    let kinds = bundle
-        .objects
-        .iter()
-        .map(|object| semantic_kind_token(&object.kind))
-        .collect::<Vec<_>>();
-    let statuses = bundle
-        .objects
-        .iter()
-        .map(|object| semantic_status_token(&object.status))
-        .collect::<Vec<_>>();
-    let titles = bundle
-        .objects
-        .iter()
-        .map(|object| object.title.as_str())
-        .collect::<Vec<_>>();
-    let confidence_scores = bundle
-        .objects
-        .iter()
-        .map(|object| object.confidence.score)
-        .collect::<Vec<_>>();
-    let confidence_sources = bundle
-        .objects
-        .iter()
-        .map(|object| semantic_confidence_source_token(&object.confidence.source))
-        .collect::<Vec<_>>();
-    let source_paths = bundle
-        .objects
-        .iter()
-        .map(|object| object.source_path.display().to_string())
-        .collect::<Vec<_>>();
+    let columns = semantic_scope_batch_columns(bundle)?;
+    LanceRecordBatch::try_new(
+        Arc::new(LanceSchema::new(vec![
+            LanceField::new("objectId", LanceDataType::Utf8, false),
+            LanceField::new("kind", LanceDataType::Utf8, false),
+            LanceField::new("status", LanceDataType::Utf8, false),
+            LanceField::new("title", LanceDataType::Utf8, false),
+            LanceField::new("confidenceScore", LanceDataType::Float64, false),
+            LanceField::new("confidenceSource", LanceDataType::Utf8, false),
+            LanceField::new("sourcePath", LanceDataType::Utf8, false),
+            LanceField::new("requiredValidationsJson", LanceDataType::Utf8, false),
+            LanceField::new("relationTargetsJson", LanceDataType::Utf8, false),
+            LanceField::new("changeIntentIdsJson", LanceDataType::Utf8, false),
+            LanceField::new("projectionRevision", LanceDataType::Utf8, false),
+            LanceField::new("projectionSourceRevision", LanceDataType::Utf8, false),
+            LanceField::new("projectionStaleness", LanceDataType::Utf8, false),
+        ])),
+        vec![
+            Arc::new(LanceStringArray::from(columns.object_ids)),
+            Arc::new(LanceStringArray::from(columns.kinds)),
+            Arc::new(LanceStringArray::from(columns.statuses)),
+            Arc::new(LanceStringArray::from(columns.titles)),
+            Arc::new(LanceFloat64Array::from(columns.confidence_scores)),
+            Arc::new(LanceStringArray::from(columns.confidence_sources)),
+            Arc::new(LanceStringArray::from(columns.source_paths)),
+            Arc::new(LanceStringArray::from(columns.required_validations_json)),
+            Arc::new(LanceStringArray::from(columns.relation_targets_json)),
+            Arc::new(LanceStringArray::from(columns.change_intent_ids_json)),
+            Arc::new(LanceStringArray::from(columns.projection_revisions)),
+            Arc::new(LanceStringArray::from(columns.projection_source_revisions)),
+            Arc::new(LanceStringArray::from(columns.projection_staleness)),
+        ],
+    )
+    .map_err(|error| format!("failed to build semantic-scope Flight batch: {error}"))
+}
+
+fn semantic_scope_batch_columns(
+    bundle: &SemanticScopeBundle,
+) -> Result<SemanticScopeBatchColumns<'_>, String> {
     let required_validations_json = bundle
         .objects
         .iter()
@@ -239,72 +265,116 @@ fn semantic_scope_bundle_batch(bundle: &SemanticScopeBundle) -> Result<LanceReco
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("failed to encode semantic change intent id list: {error}"))?;
-    let projection_revisions = bundle
-        .objects
-        .iter()
-        .map(|_| bundle.projection_revision.as_str())
-        .collect::<Vec<_>>();
-    let projection_source_revisions = bundle
-        .objects
-        .iter()
-        .map(|_| {
-            bundle
-                .projection_source_revision
-                .as_deref()
-                .unwrap_or("semantic-ssot-unprojected")
-        })
-        .collect::<Vec<_>>();
-    let projection_staleness = bundle
-        .objects
-        .iter()
-        .map(|_| {
-            bundle
-                .projection_staleness
-                .as_ref()
-                .map_or("unprojected", semantic_projection_staleness_token)
-        })
-        .collect::<Vec<_>>();
 
-    LanceRecordBatch::try_new(
-        Arc::new(LanceSchema::new(vec![
-            LanceField::new("objectId", LanceDataType::Utf8, false),
-            LanceField::new("kind", LanceDataType::Utf8, false),
-            LanceField::new("status", LanceDataType::Utf8, false),
-            LanceField::new("title", LanceDataType::Utf8, false),
-            LanceField::new("confidenceScore", LanceDataType::Float64, false),
-            LanceField::new("confidenceSource", LanceDataType::Utf8, false),
-            LanceField::new("sourcePath", LanceDataType::Utf8, false),
-            LanceField::new("requiredValidationsJson", LanceDataType::Utf8, false),
-            LanceField::new("relationTargetsJson", LanceDataType::Utf8, false),
-            LanceField::new("changeIntentIdsJson", LanceDataType::Utf8, false),
-            LanceField::new("projectionRevision", LanceDataType::Utf8, false),
-            LanceField::new("projectionSourceRevision", LanceDataType::Utf8, false),
-            LanceField::new("projectionStaleness", LanceDataType::Utf8, false),
-        ])),
-        vec![
-            Arc::new(LanceStringArray::from(object_ids)),
-            Arc::new(LanceStringArray::from(kinds)),
-            Arc::new(LanceStringArray::from(statuses)),
-            Arc::new(LanceStringArray::from(titles)),
-            Arc::new(LanceFloat64Array::from(confidence_scores)),
-            Arc::new(LanceStringArray::from(confidence_sources)),
-            Arc::new(LanceStringArray::from(source_paths)),
-            Arc::new(LanceStringArray::from(required_validations_json)),
-            Arc::new(LanceStringArray::from(relation_targets_json)),
-            Arc::new(LanceStringArray::from(change_intent_ids_json)),
-            Arc::new(LanceStringArray::from(projection_revisions)),
-            Arc::new(LanceStringArray::from(projection_source_revisions)),
-            Arc::new(LanceStringArray::from(projection_staleness)),
-        ],
-    )
-    .map_err(|error| format!("failed to build semantic-scope Flight batch: {error}"))
+    Ok(SemanticScopeBatchColumns {
+        object_ids: bundle
+            .objects
+            .iter()
+            .map(|object| object.id.as_str())
+            .collect(),
+        kinds: bundle
+            .objects
+            .iter()
+            .map(|object| semantic_kind_token(&object.kind))
+            .collect(),
+        statuses: bundle
+            .objects
+            .iter()
+            .map(|object| semantic_status_token(&object.status))
+            .collect(),
+        titles: bundle
+            .objects
+            .iter()
+            .map(|object| object.title.as_str())
+            .collect(),
+        confidence_scores: bundle
+            .objects
+            .iter()
+            .map(|object| object.confidence.score)
+            .collect(),
+        confidence_sources: bundle
+            .objects
+            .iter()
+            .map(|object| semantic_confidence_source_token(&object.confidence.source))
+            .collect(),
+        source_paths: bundle
+            .objects
+            .iter()
+            .map(|object| object.source_path.display().to_string())
+            .collect(),
+        required_validations_json,
+        relation_targets_json,
+        change_intent_ids_json,
+        projection_revisions: bundle
+            .objects
+            .iter()
+            .map(|_| bundle.projection_revision.as_str())
+            .collect(),
+        projection_source_revisions: bundle
+            .objects
+            .iter()
+            .map(|_| {
+                bundle
+                    .projection_source_revision
+                    .as_deref()
+                    .unwrap_or("semantic-ssot-unprojected")
+            })
+            .collect(),
+        projection_staleness: bundle
+            .objects
+            .iter()
+            .map(|_| {
+                bundle
+                    .projection_staleness
+                    .as_ref()
+                    .map_or("unprojected", semantic_projection_staleness_token)
+            })
+            .collect(),
+    })
 }
 
-fn semantic_scope_bundle_metadata(bundle: &SemanticScopeBundle) -> Result<Vec<u8>, String> {
+async fn semantic_sql_guard_evidence(
+    repository: &SemanticRepository,
+) -> Result<SemanticSqlGuardEvidence, String> {
+    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    run_semantic_sql_projection_freshness_guard_with_engine(repository, &query_engine).await
+}
+
+fn semantic_scope_bundle_metadata(
+    bundle: &SemanticScopeBundle,
+    sql_guard_evidence: &SemanticSqlGuardEvidence,
+) -> Result<Vec<u8>, String> {
     serde_json::to_vec(&serde_json::json!({
         "semanticScopeBundle": bundle,
+        "semanticSqlGuardEvidence": semantic_sql_guard_evidence_json(sql_guard_evidence),
     }))
     .map_err(|error| format!("failed to encode semantic-scope metadata: {error}"))
+}
+
+fn semantic_sql_guard_evidence_json(evidence: &SemanticSqlGuardEvidence) -> serde_json::Value {
+    serde_json::json!({
+        "guardId": evidence.guard_id.as_str(),
+        "semanticObjectId": evidence.semantic_object_id.as_str(),
+        "status": evidence.status.as_str(),
+        "queryText": evidence.query_text.as_str(),
+        "failingRowCount": evidence.failing_row_count,
+        "findings": evidence.findings.iter().map(semantic_sql_guard_finding_json).collect::<Vec<_>>(),
+        "message": evidence.message.as_str(),
+        "localRelationEngine": evidence.local_relation_engine.as_deref(),
+    })
+}
+
+fn semantic_sql_guard_finding_json(
+    finding: &SemanticProjectionFreshnessFinding,
+) -> serde_json::Value {
+    serde_json::json!({
+        "projection": finding.projection.as_str(),
+        "sourceRevision": finding.source_revision.as_str(),
+        "currentSourceRevision": finding.current_source_revision.as_str(),
+        "projectionRevision": finding.projection_revision.as_str(),
+        "staleness": finding.staleness.as_str(),
+        "sourcePath": finding.source_path.as_str(),
+    })
 }
 
 fn change_intent_ids_for_object<'a>(
@@ -589,6 +659,22 @@ candidate_suggestions: []
             metadata["semanticScopeBundle"]["change_intents"]
                 .as_array()
                 .expect("change intent metadata")
+                .len(),
+            1
+        );
+        assert_eq!(
+            metadata["semanticSqlGuardEvidence"]["guardId"],
+            "semantic_sql.projection_freshness"
+        );
+        assert_eq!(
+            metadata["semanticSqlGuardEvidence"]["status"],
+            "review_required"
+        );
+        assert_eq!(metadata["semanticSqlGuardEvidence"]["failingRowCount"], 1);
+        assert_eq!(
+            metadata["semanticSqlGuardEvidence"]["findings"]
+                .as_array()
+                .expect("semantic SQL guard findings metadata")
                 .len(),
             1
         );
