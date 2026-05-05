@@ -261,7 +261,8 @@ fn semantic_scope_metadata_with_projection_policy_json(
                 "policyId": "semantic_projection.required_refresh_targets",
                 "status": status,
                 "failingProjectionCount": failing_projection_count,
-                "message": message
+                "message": message,
+                "projections": []
             }),
         );
     value.to_string()

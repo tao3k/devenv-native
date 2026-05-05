@@ -78,6 +78,10 @@ As of 2026-05-05, the first physical slice is implemented:
 14. Studio emits the same projection freshness policy evidence through
     semantic-scope Flight metadata as `semanticProjectionPolicyEvidence`,
     using the shared parser-owned policy report contract
+15. semantic-scope Flight app metadata now uses a parser-owned envelope
+    contract shared by Studio producers and Qianji consumers; SQL guard
+    evidence stays advisory JSON and projection freshness evidence stays typed
+    by the semantic parser contract
 
 The full RFC is not complete. Remaining work includes background projection
 refresh, broader workflow-level Qianji consumption, and any future Julia or

@@ -2,11 +2,11 @@ use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use xiuxian_wendao_parsers::{
-    SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY, SEMANTIC_SCOPE_BUNDLE_METADATA_KEY,
     SemanticChangeIntent, SemanticConfidenceSource, SemanticObjectKind,
     SemanticProjectionFreshnessPolicyReport, SemanticProjectionStaleness, SemanticRepository,
     SemanticScopeBundle, SemanticScopeRequest, SemanticStatus, SemanticValidationReport,
     load_semantic_repository, semantic_projection_freshness_policy_report, semantic_scope_bundle,
+    semantic_scope_metadata_envelope, semantic_scope_metadata_envelope_to_vec,
 };
 use xiuxian_wendao_server::transport::{
     AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
@@ -352,23 +352,12 @@ fn semantic_scope_bundle_metadata(
     sql_guard_evidence: &SemanticSqlGuardEvidence,
     projection_policy_evidence: &SemanticProjectionFreshnessPolicyReport,
 ) -> Result<Vec<u8>, String> {
-    let mut metadata = serde_json::Map::new();
-    metadata.insert(
-        SEMANTIC_SCOPE_BUNDLE_METADATA_KEY.to_string(),
-        serde_json::to_value(bundle)
-            .map_err(|error| format!("failed to encode semantic-scope bundle metadata: {error}"))?,
+    let envelope = semantic_scope_metadata_envelope(
+        bundle.clone(),
+        Some(semantic_sql_guard_evidence_json(sql_guard_evidence)),
+        Some(projection_policy_evidence.clone()),
     );
-    metadata.insert(
-        "semanticSqlGuardEvidence".to_string(),
-        semantic_sql_guard_evidence_json(sql_guard_evidence),
-    );
-    metadata.insert(
-        SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY.to_string(),
-        serde_json::to_value(projection_policy_evidence).map_err(|error| {
-            format!("failed to encode semantic projection policy metadata: {error}")
-        })?,
-    );
-    serde_json::to_vec(&metadata)
+    semantic_scope_metadata_envelope_to_vec(&envelope)
         .map_err(|error| format!("failed to encode semantic-scope metadata: {error}"))
 }
 

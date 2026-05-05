@@ -270,6 +270,22 @@ pub struct SemanticProjectionFreshnessPolicyEntry {
     pub source_path: Option<String>,
 }
 
+/// Semantic-scope Flight app metadata envelope shared by producers and consumers.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SemanticScopeMetadataEnvelope {
+    /// Full semantic-scope bundle.
+    #[serde(rename = "semanticScopeBundle")]
+    pub bundle: SemanticScopeBundle,
+    /// Optional SQL guard evidence JSON owned by the semantic read-model layer.
+    #[serde(rename = "semanticSqlGuardEvidence")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sql_guard_evidence: Option<serde_json::Value>,
+    /// Optional projection freshness policy evidence.
+    #[serde(rename = "semanticProjectionPolicyEvidence")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub projection_policy_evidence: Option<SemanticProjectionFreshnessPolicyReport>,
+}
+
 /// Governance declaration for one semantic change.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SemanticChangeIntent {

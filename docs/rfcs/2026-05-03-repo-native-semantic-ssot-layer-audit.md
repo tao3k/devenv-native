@@ -56,6 +56,9 @@ emits the same projection freshness policy evidence as
 Qianji advisory consumption. The policy report type, policy id, metadata key,
 and report construction now live in `xiuxian-wendao-parsers` so client lint and
 Studio runtime metadata share the same semantic contract.
+Semantic-scope Flight app metadata now also has a parser-owned envelope shared
+by Studio producers and Qianji consumers, while SQL guard evidence remains
+advisory JSON outside parser authority.
 
 The RFC is still not fully complete. Background projection refresh, broader
 Qianji workflow consumption, and future Julia or DuckDB-backed derived lanes
