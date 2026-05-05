@@ -1,7 +1,11 @@
 use super::context_path::{context_value_to_text, lookup_context_path};
 use super::query::resolve_dynamic_query_with_uri_expansion;
 use super::wendao_uri::resolve_wendao_uri_with_zhenfa;
+use crate::workdir::{trace_workdir_semantic_scope_json, workdir_semantic_scope_guard_trace_json};
 use serde_json::{Map, Value};
+
+const SEMANTIC_SCOPE_METADATA_KEYS: &[&str] = &["semanticScopeMetadata", "semantic_scope_metadata"];
+const SEMANTIC_SCOPE_GUARD_TRACE_KEY: &str = "semanticScopeGuardTrace";
 
 /// Resolves `$wendao://...` placeholders recursively before node execution.
 ///
@@ -10,7 +14,8 @@ use serde_json::{Map, Value};
 /// Returns an error when a placeholder token is empty or when one semantic URI
 /// cannot be resolved from embedded Wendao resources.
 pub(crate) fn resolve_wendao_placeholders_in_context(context: &Value) -> Result<Value, String> {
-    resolve_value(context, context)
+    let resolved = resolve_value(context, context)?;
+    inject_semantic_scope_guard_trace(resolved)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,4 +114,38 @@ pub(crate) fn resolve_semantic_content(raw: &str, context: &Value) -> Result<Str
 /// Returns an error when the placeholder token is empty.
 pub(crate) fn resolve_semantic_reference(raw: &str, context: &Value) -> Result<String, String> {
     resolve_string(raw, context, SemanticResolutionMode::Reference)
+}
+
+fn inject_semantic_scope_guard_trace(value: Value) -> Result<Value, String> {
+    let Value::Object(mut object) = value else {
+        return Ok(value);
+    };
+    let Some(raw_metadata_json) = semantic_scope_metadata_json(&object)? else {
+        return Ok(Value::Object(object));
+    };
+    let trace = trace_workdir_semantic_scope_json(raw_metadata_json.as_str())
+        .map_err(|error| format!("semantic-scope guard preflight failed: {error}"))?;
+    object.insert(
+        SEMANTIC_SCOPE_GUARD_TRACE_KEY.to_string(),
+        workdir_semantic_scope_guard_trace_json(&trace),
+    );
+    Ok(Value::Object(object))
+}
+
+fn semantic_scope_metadata_json(object: &Map<String, Value>) -> Result<Option<String>, String> {
+    let Some((key, value)) = SEMANTIC_SCOPE_METADATA_KEYS
+        .iter()
+        .find_map(|key| object.get(*key).map(|value| (*key, value)))
+    else {
+        return Ok(None);
+    };
+
+    match value {
+        Value::Null => Ok(None),
+        Value::String(raw) => Ok(Some(raw.clone())),
+        Value::Object(_) => serde_json::to_string(value)
+            .map(Some)
+            .map_err(|error| format!("failed to encode `{key}` semantic-scope metadata: {error}")),
+        _ => Err(format!("`{key}` must be a JSON object or JSON string")),
+    }
 }

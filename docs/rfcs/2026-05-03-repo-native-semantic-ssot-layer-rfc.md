@@ -82,11 +82,15 @@ As of 2026-05-05, the first physical slice is implemented:
     contract shared by Studio producers and Qianji consumers; SQL guard
     evidence stays advisory JSON and projection freshness evidence stays typed
     by the semantic parser contract
+16. Qianji scheduler preflight can inject a read-only
+    `semanticScopeGuardTrace` into workflow context when the run context
+    carries Wendao semantic-scope metadata, giving mechanisms advisory
+    semantic status, issues, validations, and projection evidence
 
 The full RFC is not complete. Remaining work includes background projection
-refresh, broader workflow-level Qianji consumption, and any future Julia or
-DuckDB-backed compute/read-model expansion. Those remain advisory or derived
-lanes; they do not change repo-native authority.
+refresh, deeper workflow policy actions based on semantic-scope traces, and
+any future Julia or DuckDB-backed compute/read-model expansion. Those remain
+advisory or derived lanes; they do not change repo-native authority.
 
 ## 2. Alignment
 

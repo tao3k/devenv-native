@@ -23,6 +23,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-sql bounded_work_markdown -- --nocapture
     - direnv exec . cargo test -p xiuxian-qianji workdir_semantic -- --nocapture
+    - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
     - direnv exec . wendao-client lint semantic
   evidence:
     - docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-audit.md
@@ -44,4 +45,5 @@ relations:
 # Semantic SSOT Object Schema Pilot
 
 This task lands the first parser-validated semantic object schema, seed object
-set, Wendao semantic-scope route, and Qianji semantic-surface consumer.
+set, Wendao semantic-scope route, Qianji semantic-surface consumer, and
+workflow preflight advisory semantic-scope trace.

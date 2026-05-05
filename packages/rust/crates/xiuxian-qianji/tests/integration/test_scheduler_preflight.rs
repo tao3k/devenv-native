@@ -30,6 +30,9 @@ impl QianjiMechanism for EchoAssetMechanism {
 #[derive(Debug, Default)]
 struct ProduceAgendaMechanism;
 
+#[derive(Debug, Default)]
+struct EchoSemanticScopeTraceMechanism;
+
 #[async_trait]
 impl QianjiMechanism for ProduceAgendaMechanism {
     async fn execute(&self, _context: &Value) -> Result<QianjiOutput, String> {
@@ -38,6 +41,25 @@ impl QianjiMechanism for ProduceAgendaMechanism {
                 "agenda_steward_propose": {
                     "output": "structured agenda draft"
                 }
+            }),
+            instruction: FlowInstruction::Continue,
+        })
+    }
+
+    fn weight(&self) -> f32 {
+        1.0
+    }
+}
+
+#[async_trait]
+impl QianjiMechanism for EchoSemanticScopeTraceMechanism {
+    async fn execute(&self, context: &Value) -> Result<QianjiOutput, String> {
+        Ok(QianjiOutput {
+            data: json!({
+                "semanticScopeGuardTrace": context
+                    .get("semanticScopeGuardTrace")
+                    .cloned()
+                    .unwrap_or(Value::Null)
             }),
             instruction: FlowInstruction::Continue,
         })
@@ -158,4 +180,95 @@ async fn shell_mechanism_resolves_semantic_placeholder_in_command_field() {
         .unwrap_or_else(|error| panic!("shell mechanism should resolve semantic command: {error}"));
 
     assert_eq!(output.data["stdout"], "semantic-cmd-ok");
+}
+
+#[tokio::test]
+async fn scheduler_preflight_injects_semantic_scope_guard_trace_into_context() {
+    let mut engine = QianjiEngine::new();
+    let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
+    let scheduler = QianjiScheduler::new(engine);
+
+    let output = scheduler
+        .run(json!({
+            "semanticScopeMetadata": semantic_scope_metadata_value("stale", &[])
+        }))
+        .await
+        .unwrap_or_else(|error| panic!("scheduler run should succeed: {error}"));
+
+    let trace = &output["semanticScopeGuardTrace"];
+    assert_eq!(trace["status"], "review_required");
+    assert_eq!(trace["taskId"], "task.demo");
+    assert_eq!(trace["projectionStaleness"], "stale");
+    assert!(
+        trace["issues"]
+            .as_array()
+            .unwrap_or_else(|| panic!("semantic scope issues should be an array"))
+            .iter()
+            .any(|issue| issue
+                .as_str()
+                .is_some_and(|issue| issue.contains("semantic projection is stale"))),
+        "stale semantic scope should be surfaced as advisory issue: {trace}"
+    );
+}
+
+fn semantic_scope_metadata_value(projection_staleness: &str, unresolved_ids: &[&str]) -> Value {
+    json!({
+        "semanticScopeBundle": {
+            "task_id": "task.demo",
+            "requested_object_ids": ["task.demo"],
+            "objects": [
+                {
+                    "id": "task.demo",
+                    "kind": "task",
+                    "title": "Demo Task",
+                    "status": "active",
+                    "confidence": {
+                        "score": 0.95,
+                        "source": "verified"
+                    },
+                    "owners": [
+                        {
+                            "scope": "xiuxian-qianji",
+                            "role": "workflow_semantic_scope_consumer"
+                        }
+                    ],
+                    "provenance": {
+                        "source": "semantic/objects/task/demo.md",
+                        "recorded_by": "test",
+                        "recorded_at": "2026-05-05"
+                    },
+                    "verification": {
+                        "required": ["cargo test -p xiuxian-qianji scheduler_preflight"]
+                    },
+                    "relations": []
+                }
+            ],
+            "relations": [],
+            "change_intents": [
+                {
+                    "type": "semantic_change_intent",
+                    "id": "change.demo",
+                    "title": "Demo Change",
+                    "status": "active",
+                    "touched_objects": ["task.demo"],
+                    "affected_invariants": [],
+                    "required_validations": ["cargo test -p xiuxian-qianji scheduler_preflight"],
+                    "projections_to_refresh": ["llm_compression"]
+                }
+            ],
+            "affected_invariants": [],
+            "required_validations": ["cargo test -p xiuxian-qianji scheduler_preflight"],
+            "projection_revision": "semantic-scope-preflight-demo",
+            "projection_source_revision": "blake3:demo",
+            "projection_staleness": projection_staleness,
+            "provenance": [
+                {
+                    "object_id": "task.demo",
+                    "source_path": "semantic/objects/task/demo.md",
+                    "source": "semantic/objects/task/demo.md"
+                }
+            ],
+            "unresolved_ids": unresolved_ids
+        }
+    })
 }

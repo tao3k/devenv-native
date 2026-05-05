@@ -35,6 +35,7 @@ pub use api::{
     render_workdir_semantic_scope_guard_trace, render_workdir_show, show_workdir,
     trace_workdir_semantic_scope_bundle, trace_workdir_semantic_scope_bundle_with_evidence,
     trace_workdir_semantic_scope_bundle_with_sql_guard_evidence, trace_workdir_semantic_scope_json,
+    workdir_semantic_scope_guard_trace_json,
 };
 pub(crate) use api::{
     WorkdirAllowedNextIssue, WorkdirCurrentNodeIssue, WorkdirRuntimeNode, WorkdirRuntimeState,

@@ -16,6 +16,7 @@ provenance:
 verification:
   required:
     - direnv exec . cargo test -p xiuxian-qianji workdir_semantic -- --nocapture
+    - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
   evidence:
     - docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-audit.md
 relations:
@@ -28,4 +29,5 @@ relations:
 # Qianji Execution Plane
 
 Qianji owns workflow execution and consumes semantic scope as advisory context.
-It does not own canonical semantic ontology truth.
+Scheduler preflight may inject a read-only semantic-scope guard trace into
+workflow context, but Qianji does not own canonical semantic ontology truth.

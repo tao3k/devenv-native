@@ -37,6 +37,7 @@ affected_invariants:
 required_validations:
   - direnv exec . cargo test -p xiuxian-wendao-parsers semantic -- --nocapture
   - direnv exec . cargo test -p xiuxian-wendao-client semantic -- --nocapture
+  - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
   - CARGO_TARGET_DIR=.cache/cargo-target/semantic-ssot direnv exec . cargo run -p xiuxian-wendao-client --bin wendao-client -- lint semantic
 projections_to_refresh:
   - llm_compression

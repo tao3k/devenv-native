@@ -240,6 +240,30 @@ pub fn trace_workdir_semantic_scope_json(
     ))
 }
 
+/// Render one semantic-scope guard trace as compact JSON for workflow context.
+#[must_use]
+pub fn workdir_semantic_scope_guard_trace_json(
+    trace: &WorkdirSemanticScopeGuardTrace,
+) -> serde_json::Value {
+    serde_json::json!({
+        "status": trace.status.as_str(),
+        "taskId": &trace.task_id,
+        "requestedObjectIds": &trace.requested_object_ids,
+        "objects": trace.objects.iter().map(workdir_semantic_scope_object_json).collect::<Vec<_>>(),
+        "relationCount": trace.relation_count,
+        "changeIntentIds": &trace.change_intent_ids,
+        "affectedInvariants": &trace.affected_invariants,
+        "requiredValidations": &trace.required_validations,
+        "projectionRevision": &trace.projection_revision,
+        "projectionSourceRevision": &trace.projection_source_revision,
+        "projectionStaleness": &trace.projection_staleness,
+        "unresolvedIds": &trace.unresolved_ids,
+        "sqlGuardEvidence": trace.sql_guard_evidence.iter().map(workdir_semantic_sql_guard_json).collect::<Vec<_>>(),
+        "projectionPolicyEvidence": trace.projection_policy_evidence.iter().map(workdir_semantic_projection_policy_json).collect::<Vec<_>>(),
+        "issues": &trace.issues,
+    })
+}
+
 /// Render one semantic-scope guard trace as compact Markdown.
 #[must_use]
 pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGuardTrace) -> String {
@@ -317,6 +341,37 @@ pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGua
     }
 
     rendered
+}
+
+fn workdir_semantic_scope_object_json(
+    object: &WorkdirSemanticScopeObjectSummary,
+) -> serde_json::Value {
+    serde_json::json!({
+        "id": &object.id,
+        "kind": &object.kind,
+        "status": &object.status,
+        "title": &object.title,
+    })
+}
+
+fn workdir_semantic_sql_guard_json(guard: &WorkdirSemanticSqlGuardSummary) -> serde_json::Value {
+    serde_json::json!({
+        "guardId": &guard.guard_id,
+        "status": &guard.status,
+        "failingRowCount": guard.failing_row_count,
+        "message": &guard.message,
+    })
+}
+
+fn workdir_semantic_projection_policy_json(
+    policy: &WorkdirSemanticProjectionPolicySummary,
+) -> serde_json::Value {
+    serde_json::json!({
+        "policyId": &policy.policy_id,
+        "status": &policy.status,
+        "failingProjectionCount": policy.failing_projection_count,
+        "message": &policy.message,
+    })
 }
 
 fn semantic_sql_guard_summaries_from_optional_metadata(
