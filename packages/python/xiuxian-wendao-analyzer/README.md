@@ -439,10 +439,22 @@ composite output must split back into one non-empty Markdown result per region
 sentinel marker; otherwise the worker falls back to individual region requests
 so the existing row/order contract is preserved. Batched page-window responses
 follow the same marker-split rule for page markers. Set
+`WENDAO_DEEPSEEK_OCR2_SCAFFOLD_MODE=region-table-json`, or pass
+`--deepseek-ocr2-scaffold-mode region-table-json` in the benchmark harness, to
+enable structural scaffold recovery for OCR2 region rows. In that mode the
+worker loads Studio's `_ocr2_region_scaffolds.json` sidecar beside the rendered
+region images, validates the shard id, parent shard id, source content hash,
+and raster hash, asks OCR2 for JSON-only output keyed by exact region markers,
+and canonicalizes valid table/text JSON back into Markdown result rows. Missing
+sidecars, fingerprint mismatches, malformed JSON, marker or row-count
+mismatches, empty canonical text, and invalid table cell shapes return failed
+rows so the existing Rust precision fallback protects correctness. Set
 `WENDAO_DEEPSEEK_OCR2_TRACE_PATH` to a JSONL file when a benchmark needs
 request-level latency, HTTP status, image-byte, Markdown character,
-shard-type, region-count, render-DPI, and source-pixel-area telemetry. Trace
-records intentionally omit API keys and image payloads. OCR2 recovery
+shard-type, region-count, render-DPI, source-pixel-area, scaffold mode,
+scaffold applied count, scaffold validation failure count, JSON character
+count, and canonical Markdown character telemetry. Trace records intentionally
+omit API keys and image payloads. OCR2 recovery
 benchmarks must not lower render DPI to gain speed; region shrinkage and
 provider capability gates are the accepted optimization levers. Set
 `WENDAO_DEEPSEEK_OCR2_PROVIDER=openrouter` to use OpenRouter's

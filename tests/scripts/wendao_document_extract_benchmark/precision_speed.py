@@ -231,6 +231,21 @@ def ocr2_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
         reasons.append(
             f"OCR2 parse error count was {request_summary.get('parseErrorCount')}"
         )
+    scaffold_mode = deepseek_ocr2.get("scaffoldMode") or "disabled"
+    if scaffold_mode != "disabled":
+        scaffold_failures = request_summary.get("scaffoldValidationFailureCount", 0)
+        if scaffold_failures != 0:
+            reasons.append(
+                f"OCR2 scaffold validation failure count was {scaffold_failures}"
+            )
+        region_shards = request_summary.get("regionShardCount", 0)
+        scaffold_applied = request_summary.get("scaffoldAppliedCount", 0)
+        if region_shards > 0 and scaffold_applied != region_shards:
+            reasons.append(
+                "OCR2 scaffold applied count "
+                f"{scaffold_applied} did not match region shard count "
+                f"{region_shards}"
+            )
     if deepseek_ocr2.get("provider") == "openrouter" and not deepseek_ocr2.get(
         "openRouterApiKeyConfigured"
     ):
@@ -277,6 +292,7 @@ def ocr2_promotion_observed(
         "provider": deepseek_ocr2.get("provider"),
         "openRouterModel": deepseek_ocr2.get("openRouterModel"),
         "openRouterApiKeyConfigured": deepseek_ocr2.get("openRouterApiKeyConfigured"),
+        "scaffoldMode": deepseek_ocr2.get("scaffoldMode"),
         "precisionGatePassed": precision_speed.get("precisionGatePassed"),
         "errorRows": precision_speed.get("errorRows"),
         "structureReadingOrderSorted": precision_speed.get(
@@ -303,6 +319,14 @@ def ocr2_promotion_observed(
         "failureCount": request_summary.get("failureCount"),
         "parseErrorCount": request_summary.get("parseErrorCount"),
         "regionShardCount": request_summary.get("regionShardCount"),
+        "scaffoldAppliedCount": request_summary.get("scaffoldAppliedCount"),
+        "scaffoldValidationFailureCount": request_summary.get(
+            "scaffoldValidationFailureCount"
+        ),
+        "scaffoldJsonCharCountTotal": request_summary.get("scaffoldJsonCharCountTotal"),
+        "canonicalMarkdownCharCountTotal": request_summary.get(
+            "canonicalMarkdownCharCountTotal"
+        ),
         "requestLatencyMsP95": request_summary.get("latencyMsP95"),
         "requestWallSpanMs": request_summary.get("requestWallSpanMs"),
         "requestLatencyOverlapRatio": request_summary.get("requestLatencyOverlapRatio"),
@@ -378,8 +402,7 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
         if ocr_region_blocks > 0:
             if shard_cache_reuse_scheduler_ms is None:
                 regressions.append(
-                    "missing shardCacheReuseMetricsRustSchedulerElapsedMs "
-                    "for OCR2 region sidecars"
+                    "missing shardCacheReuseMetricsRustSchedulerElapsedMs for OCR2 region sidecars"
                 )
             elif (
                 shard_cache_reuse_scheduler_ms

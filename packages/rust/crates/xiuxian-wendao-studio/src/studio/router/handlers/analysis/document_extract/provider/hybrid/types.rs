@@ -17,6 +17,68 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO";
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE";
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE: &str = "region-table-json";
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HybridPdfOcr2ScaffoldMode {
+    Disabled,
+    RegionTableJson,
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+pub(crate) fn hybrid_page_ocr2_scaffold_mode_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> HybridPdfOcr2ScaffoldMode {
+    match lookup(DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV)
+        .unwrap_or_default()
+        .trim()
+        .replace('_', "-")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE => HybridPdfOcr2ScaffoldMode::RegionTableJson,
+        _ => HybridPdfOcr2ScaffoldMode::Disabled,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV, HybridPdfOcr2ScaffoldMode,
+        hybrid_page_ocr2_scaffold_mode_with_lookup,
+    };
+
+    #[test]
+    fn scaffold_mode_accepts_region_table_json() {
+        assert_eq!(
+            hybrid_page_ocr2_scaffold_mode_with_lookup(&|key| {
+                (key == DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV)
+                    .then(|| "region_table_json".to_string())
+            }),
+            HybridPdfOcr2ScaffoldMode::RegionTableJson
+        );
+    }
+
+    #[test]
+    fn scaffold_mode_defaults_unknown_values_to_disabled() {
+        assert_eq!(
+            hybrid_page_ocr2_scaffold_mode_with_lookup(&|_key| None),
+            HybridPdfOcr2ScaffoldMode::Disabled
+        );
+        assert_eq!(
+            hybrid_page_ocr2_scaffold_mode_with_lookup(&|key| {
+                (key == DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV).then(|| "unknown".to_string())
+            }),
+            HybridPdfOcr2ScaffoldMode::Disabled
+        );
+    }
+}
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

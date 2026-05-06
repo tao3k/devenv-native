@@ -302,6 +302,11 @@ binds each region back to the retained fast parent page. `_resources.arrow`
 remains the stable nine-column result table; structure metadata is kept in the
 sidecar so downstream consumers can restore document order without expanding
 the user resource schema.
+When Studio enables OCR2 structural scaffold mode, its separate
+`_ocr2_region_scaffolds.json` sidecar remains Studio-owned and does not change
+attachment render output columns or the OCR shard Arrow schema. Attachments
+continue to own the raster, crop, source-pixel-box, source-page profile, and
+order facts that Studio copies into that scaffold for analyzer-side validation.
 
 This is still opt-in infrastructure. No OCR worker is started by the
 production Wendao gateway, and default document extraction does not consume

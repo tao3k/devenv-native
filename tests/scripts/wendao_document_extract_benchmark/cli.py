@@ -315,6 +315,7 @@ def build_report_payload(
             "regionCompositeSize": getattr(
                 args, "deepseek_ocr2_region_composite_size", None
             ),
+            "scaffoldMode": getattr(args, "deepseek_ocr2_scaffold_mode", "disabled"),
             "timeoutSeconds": getattr(args, "deepseek_ocr2_timeout_seconds", None),
             "requestConcurrency": getattr(
                 args, "deepseek_ocr2_request_concurrency", None

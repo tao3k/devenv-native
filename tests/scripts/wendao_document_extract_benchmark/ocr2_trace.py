@@ -68,6 +68,7 @@ def _empty_trace_summary() -> dict[str, Any]:
         "httpStatusCounts": {},
         "modelCounts": {},
         "requestKindCounts": {},
+        "scaffoldModeCounts": {},
         "shardTypeCounts": {},
         "renderDpiCounts": {},
         "pageCountTotal": 0,
@@ -75,6 +76,10 @@ def _empty_trace_summary() -> dict[str, Any]:
         "regionShardCount": 0,
         "pageShardCount": 0,
         "charCountTotal": 0,
+        "scaffoldAppliedCount": 0,
+        "scaffoldValidationFailureCount": 0,
+        "scaffoldJsonCharCountTotal": 0,
+        "canonicalMarkdownCharCountTotal": 0,
         "imageBytesTotal": 0,
         "sourcePixelAreaTotal": 0,
         "latencyMsP50": None,
@@ -115,6 +120,10 @@ def _accumulate_trace_record(
     if isinstance(request_kind, str) and request_kind:
         _increment(summary["requestKindCounts"], request_kind)
 
+    scaffold_mode = record.get("scaffoldMode")
+    if isinstance(scaffold_mode, str) and scaffold_mode:
+        _increment(summary["scaffoldModeCounts"], scaffold_mode)
+
     render_dpi = record.get("renderDpi")
     if isinstance(render_dpi, int):
         _increment(summary["renderDpiCounts"], str(render_dpi))
@@ -152,6 +161,22 @@ def _accumulate_trace_record(
     markdown_chars = record.get("markdownChars")
     if isinstance(markdown_chars, int):
         summary["charCountTotal"] += markdown_chars
+
+    scaffold_applied_count = record.get("scaffoldAppliedCount")
+    if isinstance(scaffold_applied_count, int):
+        summary["scaffoldAppliedCount"] += scaffold_applied_count
+
+    scaffold_validation_failure_count = record.get("scaffoldValidationFailureCount")
+    if isinstance(scaffold_validation_failure_count, int):
+        summary["scaffoldValidationFailureCount"] += scaffold_validation_failure_count
+
+    scaffold_json_chars = record.get("scaffoldJsonChars")
+    if isinstance(scaffold_json_chars, int):
+        summary["scaffoldJsonCharCountTotal"] += scaffold_json_chars
+
+    canonical_markdown_chars = record.get("canonicalMarkdownChars")
+    if isinstance(canonical_markdown_chars, int):
+        summary["canonicalMarkdownCharCountTotal"] += canonical_markdown_chars
 
     image_bytes = record.get("imageBytes")
     if isinstance(image_bytes, int):

@@ -156,6 +156,7 @@ def test_deepseek_ocr2_process_env_maps_cli_args() -> None:
         deepseek_ocr2_max_tokens=4096,
         deepseek_ocr2_region_max_tokens=2048,
         deepseek_ocr2_region_composite_size=2,
+        deepseek_ocr2_scaffold_mode="region-table-json",
         deepseek_ocr2_timeout_seconds=120.0,
         deepseek_ocr2_request_concurrency=4,
         deepseek_ocr2_page_window_size=3,
@@ -172,6 +173,7 @@ def test_deepseek_ocr2_process_env_maps_cli_args() -> None:
         "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS": "4096",
         "WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS": "2048",
         "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE": "2",
+        "WENDAO_DEEPSEEK_OCR2_SCAFFOLD_MODE": "region-table-json",
         "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS": "120.0",
         "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY": "4",
         "WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE": "3",
@@ -191,6 +193,7 @@ def test_deepseek_ocr2_process_env_defaults_openrouter_smoke_model() -> None:
         deepseek_ocr2_max_tokens=None,
         deepseek_ocr2_region_max_tokens=None,
         deepseek_ocr2_region_composite_size=None,
+        deepseek_ocr2_scaffold_mode=None,
         deepseek_ocr2_timeout_seconds=None,
         deepseek_ocr2_request_concurrency=None,
         deepseek_ocr2_page_window_size=None,
@@ -228,6 +231,11 @@ def test_summarize_deepseek_ocr2_request_traces(tmp_path: Path) -> None:
                         "shardTypeCounts": {"page": 2},
                         "sourcePixelArea": 2000,
                         "renderDpi": 300,
+                        "scaffoldMode": "disabled",
+                        "scaffoldAppliedCount": 0,
+                        "scaffoldValidationFailureCount": 0,
+                        "scaffoldJsonChars": 0,
+                        "canonicalMarkdownChars": 0,
                     }
                 ),
                 json.dumps(
@@ -245,6 +253,11 @@ def test_summarize_deepseek_ocr2_request_traces(tmp_path: Path) -> None:
                         "shardTypeCounts": {"region": 1},
                         "sourcePixelArea": 400,
                         "renderDpi": 300,
+                        "scaffoldMode": "region-table-json",
+                        "scaffoldAppliedCount": 1,
+                        "scaffoldValidationFailureCount": 1,
+                        "scaffoldJsonChars": 17,
+                        "canonicalMarkdownChars": 0,
                     }
                 ),
                 "{bad-json",
@@ -267,6 +280,10 @@ def test_summarize_deepseek_ocr2_request_traces(tmp_path: Path) -> None:
         "page-window-canary": 1,
         "region": 1,
     }
+    assert summary["scaffoldModeCounts"] == {
+        "disabled": 1,
+        "region-table-json": 1,
+    }
     assert summary["shardTypeCounts"] == {"page": 2, "region": 1}
     assert summary["renderDpiCounts"] == {"300": 2}
     assert summary["pageCountTotal"] == 3
@@ -274,6 +291,10 @@ def test_summarize_deepseek_ocr2_request_traces(tmp_path: Path) -> None:
     assert summary["pageShardCount"] == 2
     assert summary["regionShardCount"] == 1
     assert summary["charCountTotal"] == 100
+    assert summary["scaffoldAppliedCount"] == 1
+    assert summary["scaffoldValidationFailureCount"] == 1
+    assert summary["scaffoldJsonCharCountTotal"] == 17
+    assert summary["canonicalMarkdownCharCountTotal"] == 0
     assert summary["imageBytesTotal"] == 3072
     assert summary["sourcePixelAreaTotal"] == 2400
     assert summary["latencyMsP50"] == 10.0

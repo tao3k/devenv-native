@@ -25,6 +25,7 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
     DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV,
     DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
+    DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV,
     DEEPSEEK_OCR2_TRACE_PATH_ENV,
     PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
@@ -43,6 +44,59 @@ from .support import (
     threading,
     time,
 )
+
+
+def _ocr2_region_marker(row: dict[str, object]) -> str:
+    return (
+        "<!-- xiuxian-wendao-ocr2-region:"
+        f"{row['pageIndex']}:{row['regionIndex']}:{row['shardElementId']}"
+        " -->"
+    )
+
+
+def _write_ocr2_region_scaffold_sidecar(
+    directory: Path,
+    rows: list[dict[str, object]],
+    *,
+    raster_sha256: str = "rasterhash",
+) -> None:
+    items = []
+    for row in rows:
+        items.append(
+            {
+                "scaffoldKind": "table_candidate",
+                "shardElementId": row["shardElementId"],
+                "parentShardElementId": row["parentShardElementId"],
+                "pageIndex": row["pageIndex"],
+                "regionIndex": row["regionIndex"],
+                "sourceContentHash": row["sourceContentHash"],
+                "rasterSha256": raster_sha256,
+                "renderDpi": row["renderDpi"],
+                "cropBox": {
+                    "left": row["cropLeft"],
+                    "bottom": row["cropBottom"],
+                    "right": row["cropRight"],
+                    "top": row["cropTop"],
+                },
+                "sourcePagePixelBox": {
+                    "left": row["sourcePagePixelLeft"],
+                    "top": row["sourcePagePixelTop"],
+                    "right": row["sourcePagePixelRight"],
+                    "bottom": row["sourcePagePixelBottom"],
+                },
+                "sourcePageProfile": None,
+            }
+        )
+    (directory / "_ocr2_region_scaffolds.json").write_text(
+        json.dumps(
+            {
+                "schema": "xiuxian_wendao.ocr2_region_scaffold.v1",
+                "mode": "region-table-json",
+                "items": items,
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_docling_pdf_ocr_worker_uses_single_page_break_export_for_ranges(
@@ -188,7 +242,7 @@ def test_docling_pdf_ocr_worker_uses_deepseek_ocr2_openai_endpoint(
     monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
     monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "community/deepseek-ocr2-awq")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
 
@@ -248,11 +302,11 @@ def test_docling_pdf_ocr_worker_retries_transient_deepseek_ocr2_http_error(
         return FakeResponse()
 
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.time.sleep",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.sleep",
         lambda seconds: sleeps.append(seconds),
     )
 
@@ -308,11 +362,11 @@ def test_docling_pdf_ocr_worker_honors_ocr2_retry_after(
         return FakeResponse()
 
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.time.sleep",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.sleep",
         lambda seconds: sleeps.append(seconds),
     )
 
@@ -372,11 +426,11 @@ def test_docling_pdf_ocr_worker_retries_transient_failed_group_rows(
         return FakeResponse(f"retry ok {len(requests)}")
 
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.time.sleep",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.sleep",
         lambda seconds: sleeps.append(seconds),
     )
 
@@ -433,7 +487,7 @@ def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
     monkeypatch.setenv(DEEPSEEK_OCR2_API_KEY_ENV, "secret-key")
     monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: FakeResponse(),
     )
 
@@ -474,6 +528,11 @@ def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
             "renderDpi": 300,
             "requestKind": "page",
             "schema": "xiuxian_wendao.deepseek_ocr2_request_trace.v1",
+            "canonicalMarkdownChars": 0,
+            "scaffoldAppliedCount": 0,
+            "scaffoldJsonChars": 0,
+            "scaffoldMode": "disabled",
+            "scaffoldValidationFailureCount": 0,
             "shardCount": 1,
             "shardElementId": "ocr2-trace-shard",
             "shardType": "page",
@@ -529,7 +588,7 @@ def test_docling_pdf_ocr_worker_caps_region_ocr2_tokens(
     monkeypatch.delenv(DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV, raising=False)
     monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
 
@@ -591,7 +650,7 @@ def test_docling_pdf_ocr_worker_uses_lower_global_region_ocr2_token_limit(
     monkeypatch.setenv(DEEPSEEK_OCR2_MAX_TOKENS_ENV, "1024")
     monkeypatch.delenv(DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV, raising=False)
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: payloads.append(
             json.loads(request.data.decode("utf-8"))
         )
@@ -661,7 +720,7 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
     monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
     monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     input_table = pa.concat_tables(
@@ -758,7 +817,7 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
     monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
     monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     input_table = pa.concat_tables(
@@ -789,6 +848,315 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
         "# fallback region 3",
     ]
     assert request_image_counts == [2, 1, 1]
+
+
+def test_docling_pdf_ocr_worker_uses_region_scaffold_json(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "ocr-shards" / "region-hash" / "region-00001.png"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"region png fixture")
+    requests: list[object] = []
+    input_table = _sample_pdf_ocr_input_table(
+        image_path=str(image),
+        shard_element_id="region-a",
+        shard_type="region",
+        region_index=1,
+        parent_shard_element_id="parent-page",
+        ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+    )
+    input_row = input_table.to_pylist()[0]
+    _write_ocr2_region_scaffold_sidecar(tmp_path, [input_row])
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "regions": [
+                                            {
+                                                "marker": _ocr2_region_marker(
+                                                    input_row
+                                                ),
+                                                "shardElementId": "region-a",
+                                                "text": "Table title",
+                                                "tables": [
+                                                    {
+                                                        "rows": [
+                                                            ["A", "B"],
+                                                            ["1", "2"],
+                                                        ]
+                                                    }
+                                                ],
+                                            }
+                                        ]
+                                    }
+                                )
+                            }
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV, "region-table-json")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        lambda request, *, timeout: requests.append(request) or FakeResponse(),
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "Table title\n\n| A | B |\n| --- | --- |\n| 1 | 2 |"
+    payload = json.loads(requests[0].data.decode("utf-8"))
+    prompt_text = payload["messages"][0]["content"][0]["text"]
+    assert "Return JSON only" in prompt_text
+    assert "Every region must contain non-empty recognized content" in prompt_text
+    assert '"scaffoldKind": "table_candidate"' in prompt_text
+    assert _ocr2_region_marker(input_row) in prompt_text
+    assert payload["max_tokens"] == DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS
+
+
+def test_docling_pdf_ocr_worker_uses_composite_region_scaffold_json(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
+    for image in images:
+        image.write_bytes(b"region png fixture")
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                image_path=str(images[index]),
+                shard_element_id=f"region-{index}",
+                shard_type="region",
+                region_index=index + 1,
+                parent_shard_element_id="parent-page",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for index in range(2)
+        ]
+    )
+    input_rows = input_table.to_pylist()
+    _write_ocr2_region_scaffold_sidecar(tmp_path, input_rows)
+    requests: list[object] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "regions": [
+                                            {
+                                                "marker": _ocr2_region_marker(row),
+                                                "shardElementId": row["shardElementId"],
+                                                "content": f"region text {index}",
+                                                "tables": [],
+                                            }
+                                            for index, row in enumerate(input_rows)
+                                        ]
+                                    }
+                                )
+                            }
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV, "region-table-json")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        lambda request, *, timeout: requests.append(request) or FakeResponse(),
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["text"] for row in table.to_pylist()] == [
+        "region text 0",
+        "region text 1",
+    ]
+    assert len(requests) == 1
+    payload = json.loads(requests[0].data.decode("utf-8"))
+    assert (
+        sum(
+            1
+            for part in payload["messages"][0]["content"]
+            if part["type"] == "image_url"
+        )
+        == 2
+    )
+
+
+def test_docling_pdf_ocr_worker_fails_invalid_region_scaffolds(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    cases = [
+        ("missing sidecar", None, None),
+        ("fingerprint mismatch", "wrong-raster", None),
+        ("malformed json", "rasterhash", "{not-json"),
+        (
+            "missing marker",
+            "rasterhash",
+            json.dumps(
+                {
+                    "regions": [
+                        {"marker": "wrong", "shardElementId": "region-a", "text": "x"}
+                    ]
+                }
+            ),
+        ),
+        (
+            "row mismatch",
+            "rasterhash",
+            json.dumps({"regions": []}),
+        ),
+        (
+            "empty output",
+            "rasterhash",
+            json.dumps(
+                {
+                    "regions": [
+                        {
+                            "marker": "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->",
+                            "shardElementId": "region-a",
+                            "text": "",
+                            "tables": [],
+                        }
+                    ]
+                }
+            ),
+        ),
+        (
+            "invalid table shape",
+            "rasterhash",
+            json.dumps(
+                {
+                    "regions": [
+                        {
+                            "marker": "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->",
+                            "shardElementId": "region-a",
+                            "tables": [{"rows": [["A", "B"], ["1"]]}],
+                        }
+                    ]
+                }
+            ),
+        ),
+    ]
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, content: str) -> None:
+            self._content = content
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._content}}]}
+            ).encode("utf-8")
+
+    requests: list[object] = []
+    responses: list[str] = []
+    trace_path = tmp_path / "invalid-scaffold-trace.jsonl"
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        return FakeResponse(responses.pop(0))
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV, "region-table-json")
+    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    for index, (_label, raster_sha256, response) in enumerate(cases):
+        case_dir = tmp_path / f"case-{index}"
+        case_dir.mkdir()
+        image = case_dir / "region-00001.png"
+        image.write_bytes(b"region png fixture")
+        input_table = _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            shard_element_id="region-a",
+            shard_type="region",
+            region_index=1,
+            parent_shard_element_id="parent-page",
+            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+        )
+        input_row = input_table.to_pylist()[0]
+        if raster_sha256 is not None:
+            _write_ocr2_region_scaffold_sidecar(
+                case_dir,
+                [input_row],
+                raster_sha256=raster_sha256,
+            )
+        if response is not None:
+            responses.append(response)
+
+        table = build_pdf_ocr_shard_result_table(
+            input_table,
+            worker=DoclingPdfOcrShardWorker(max_workers=1),
+        )
+
+        row = table.to_pylist()[0]
+        assert row["status"] == "failed"
+        assert "DeepSeek-OCR-2 OCR failed" in row["errorMessage"]
+
+    trace_records = [
+        json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+    response_validation_records = [
+        record
+        for record in trace_records
+        if record["status"] == "failed" and record["httpStatus"] == 200
+    ]
+    assert response_validation_records
+    assert all(
+        record["scaffoldJsonChars"] > 0 for record in response_validation_records
+    )
 
 
 def test_docling_pdf_ocr_worker_batches_direct_ocr2_page_window(
@@ -838,7 +1206,7 @@ def test_docling_pdf_ocr_worker_batches_direct_ocr2_page_window(
     monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "unit/window-success")
     monkeypatch.setenv(DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV, "2")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     input_table = pa.concat_tables(
@@ -916,7 +1284,7 @@ def test_docling_pdf_ocr_worker_falls_back_when_ocr2_page_window_is_invalid(
     monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "unit/window-fallback")
     monkeypatch.setenv(DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV, "2")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     input_table = pa.concat_tables(
@@ -985,7 +1353,7 @@ def test_docling_pdf_ocr_worker_uses_openrouter_provider_preset(
     )
     monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV, "Wendao OCR Benchmark")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
 
@@ -1031,7 +1399,7 @@ def test_docling_pdf_ocr_worker_uses_openrouter_smoke_model_by_default(
     monkeypatch.setenv(DEEPSEEK_OCR2_PROVIDER_ENV, DEEPSEEK_OCR2_OPENROUTER_PROVIDER)
     monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV, "or-key")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: requests.append(request) or FakeResponse(),
     )
 
@@ -1092,7 +1460,7 @@ def test_docling_pdf_ocr_worker_parallelizes_direct_ocr2_requests(
     monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
     monkeypatch.setenv(DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV, "2")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     input_table = pa.concat_tables(
@@ -1158,7 +1526,7 @@ def test_docling_pdf_ocr_worker_coalesces_noncontiguous_direct_ocr2_requests(
     monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
     monkeypatch.delenv(DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV, raising=False)
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
     )
     input_table = pa.concat_tables(
@@ -1248,7 +1616,7 @@ def test_docling_pdf_ocr_worker_accepts_openroute_key_compat_alias(
     monkeypatch.setenv(DEEPSEEK_OCR2_PROVIDER_ENV, DEEPSEEK_OCR2_OPENROUTER_PROVIDER)
     monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTE_COMPAT_API_KEY_ENV, "or-compat-key")
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: requests.append(request) or FakeResponse(),
     )
 
@@ -1285,7 +1653,7 @@ def test_docling_pdf_ocr_worker_reports_empty_deepseek_ocr2_response(
             )
 
     monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: FakeResponse(),
     )
 

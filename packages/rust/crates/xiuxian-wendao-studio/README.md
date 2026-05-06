@@ -135,12 +135,24 @@ same-parent region composite canary through
 when sentinel markers split back into one non-empty Markdown result per region;
 otherwise the worker falls back to individual region requests and the Rust
 row/order gate still sees the unchanged OCR shard result schema.
+For table and complex-layout region recovery, the benchmark can also opt into
+`--deepseek-ocr2-scaffold-mode region-table-json`. Studio forwards that as
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE=region-table-json` and writes
+`_ocr2_region_scaffolds.json` beside the rendered OCR2 region images. The
+sidecar records shard ids, parent shard ids, source and raster fingerprints,
+render DPI, crop boxes, source pixel boxes, source-page profile signals, and a
+conservative scaffold kind such as `table_candidate`,
+`complex_layout_candidate`, or `manual_region_candidate`. Studio does not
+invent hard table row or column counts in this slice; the sidecar is a
+fingerprinted routing and prompt contract consumed by the analyzer worker,
+which must return failed rows on scaffold validation errors so the Rust
+precision fallback remains authoritative.
 All OCR2 modes stay opt-in until the real benchmark gate proves the current
 precision envelope and beats the 12,856.546 ms `fast-risk-window`
 force-refresh evidence. Benchmark reports expose that decision as
 `ocr2PromotionGate`, which keeps OCR2 profile promotion tied to the frozen
-precision, row/order, character-floor, hosted-request, force-refresh, and
-shard-cache reuse gates.
+precision, row/order, character-floor, hosted-request, force-refresh,
+shard-cache reuse, and zero scaffold-validation-failure gates.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

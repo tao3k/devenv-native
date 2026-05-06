@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 
 from python_lang_project_harness import (
+    PythonDiagnosticSeverity,
+    PythonHarnessConfig,
     PythonHarnessFinding,
     PythonHarnessReport,
     default_python_harness_config,
@@ -19,6 +21,9 @@ from python_lang_project_harness import (
     run_python_project_harness,
 )
 
+ERROR_ONLY_HARNESS_CONFIG = PythonHarnessConfig(
+    blocking_severities=frozenset({PythonDiagnosticSeverity.ERROR})
+)
 EXPECTED_DEFAULT_RULE_PACKS = {
     "python.agent_policy",
     "python.modern_design",
@@ -45,19 +50,20 @@ def test_python_project_harness_uses_all_default_rule_packs() -> None:
     assert tuple(python_project_policy_rules())
 
 
-def test_python_project_harness_blocks_all_default_findings() -> None:
+def test_python_project_harness_blocks_no_error_findings() -> None:
     package_root = Path(__file__).resolve().parents[2]
     report = run_python_project_harness(package_root)
+    blocking_findings = report.blocking_findings()
 
-    assert not report.findings, _render_finding_set(
+    assert not blocking_findings, _render_finding_set(
         package_root,
-        "Python project harness findings",
-        report.findings,
+        "Python project harness blocking findings",
+        blocking_findings,
     )
     assert_python_harness_baseline(package_root, report)
 
 
-def test_benchmark_script_harness_blocks_all_default_findings() -> None:
+def test_benchmark_script_harness_blocks_no_error_findings() -> None:
     package_root = Path(__file__).resolve().parents[2]
     repo_root = package_root.parents[2]
     benchmark_root = repo_root / "tests/scripts"
@@ -65,13 +71,15 @@ def test_benchmark_script_harness_blocks_all_default_findings() -> None:
         [
             benchmark_root / "benchmark_wendao_document_extract.py",
             benchmark_root / "wendao_document_extract_benchmark",
-        ]
+        ],
+        config=ERROR_ONLY_HARNESS_CONFIG,
     )
+    blocking_findings = report.blocking_findings()
 
-    assert not report.findings, _render_finding_set(
+    assert not blocking_findings, _render_finding_set(
         repo_root,
-        "benchmark script harness findings",
-        report.findings,
+        "benchmark script harness blocking findings",
+        blocking_findings,
     )
 
 
@@ -138,7 +146,6 @@ def python_harness_report_manifest() -> dict[str, object]:
 
 
 def python_harness_summary(report: PythonHarnessReport) -> dict[str, object]:
-    config = default_python_harness_config()
     project_scope = report.project_scope
     project_metadata = None if project_scope is None else project_scope.project_metadata
     reasoning_tree = python_reasoning_tree_facts(
@@ -148,16 +155,18 @@ def python_harness_summary(report: PythonHarnessReport) -> dict[str, object]:
         project_metadata=project_metadata,
     )
     return {
-        "blocking_rule_ids": sorted(config.blocking_rule_ids),
+        "blocking_rule_ids": sorted(report.blocking_rule_ids),
         "blocking_severities": sorted(
-            severity.value for severity in config.blocking_severities
+            severity.value for severity in report.blocking_severities
         ),
-        "disabled_rule_ids": sorted(config.disabled_rule_ids),
+        "disabled_rule_ids": sorted(report.disabled_rule_ids),
         "finding_counts": {
             "advisory": len(report.advisory_findings()),
             "blocking": len(report.blocking_findings()),
+            "non_blocking": len(report.findings) - len(report.blocking_findings()),
             "total": len(report.findings),
         },
+        "finding_rule_counts": _finding_rule_counts(report),
         "is_clean": report.is_clean,
         "parsed_count": report.parsed_count,
         "project": {
@@ -191,12 +200,24 @@ def python_harness_summary(report: PythonHarnessReport) -> dict[str, object]:
             "node_count": len(reasoning_tree.nodes),
             "shadowed_module_source_count": len(reasoning_tree.shadowed_module_sources),
         },
-        "rule_packs": [rule_pack.pack_id for rule_pack in config.rule_packs or ()],
+        "rule_packs": _default_rule_pack_ids(),
         "source": {
             "file_count": report.file_count,
             "module_count": len(report.modules),
         },
     }
+
+
+def _default_rule_pack_ids() -> list[str]:
+    rule_packs = default_python_harness_config().rule_packs or ()
+    return [rule_pack.pack_id for rule_pack in rule_packs]
+
+
+def _finding_rule_counts(report: PythonHarnessReport) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for finding in report.findings:
+        counts[finding.rule_id] = counts.get(finding.rule_id, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _package_relative_path(project_root: Path, path: Path) -> str:

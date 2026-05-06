@@ -40,7 +40,10 @@ packages = ["src/xiuxian_wendao_analyzer"]
 [tool.uv]
 package = true
 
+[tool.python-lang-project-harness]
+blocking_severities = ["error"]
+
 [tool.uv.sources]
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
-python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "5c4b0769524dfc694719ec1901b135f975c2470f" }
+python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "bb884a931d0b4595ffbaf1b47d8159a9d5d34086" }

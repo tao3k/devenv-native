@@ -205,6 +205,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--deepseek-ocr2-scaffold-mode",
+        choices=("disabled", "region-table-json"),
+        default="disabled",
+        help=(
+            "Opt-in structural scaffold mode forwarded to both Rust and Python "
+            "OCR2 region recovery. `region-table-json` writes Rust region "
+            "scaffold sidecars and asks the OCR2 worker for strict JSON that "
+            "is canonicalized back into Markdown."
+        ),
+    )
+    parser.add_argument(
         "--deepseek-ocr2-timeout-seconds",
         type=float,
         help="Request timeout forwarded to WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS.",

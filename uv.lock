@@ -1987,7 +1987,7 @@ wheels = [
 [[package]]
 name = "python-lang-project-harness"
 version = "0.1.0"
-source = { git = "https://github.com/tao3k/python-lang-project-harness?rev=5c4b0769524dfc694719ec1901b135f975c2470f#5c4b0769524dfc694719ec1901b135f975c2470f" }
+source = { git = "https://github.com/tao3k/python-lang-project-harness?rev=bb884a931d0b4595ffbaf1b47d8159a9d5d34086#bb884a931d0b4595ffbaf1b47d8159a9d5d34086" }
 
 [[package]]
 name = "python-pptx"
@@ -3005,7 +3005,7 @@ dev = [
     { name = "pytest-rerunfailures", specifier = ">=14.0" },
     { name = "pytest-timeout", specifier = ">=2.3.0" },
     { name = "pytest-xdist", specifier = ">=3.6.1" },
-    { name = "python-lang-project-harness", git = "https://github.com/tao3k/python-lang-project-harness?rev=5c4b0769524dfc694719ec1901b135f975c2470f" },
+    { name = "python-lang-project-harness", git = "https://github.com/tao3k/python-lang-project-harness?rev=bb884a931d0b4595ffbaf1b47d8159a9d5d34086" },
     { name = "qianji-workflow-contracts", editable = "packages/python/qianji-workflow-contracts" },
     { name = "ruff", specifier = ">=0.14.10" },
     { name = "vulture", specifier = ">=2.14" },
@@ -3117,7 +3117,7 @@ provides-extras = ["documents", "documents-audio"]
 [package.metadata.requires-dev]
 test = [
     { name = "pytest", specifier = ">=8.0" },
-    { name = "python-lang-project-harness", git = "https://github.com/tao3k/python-lang-project-harness?rev=5c4b0769524dfc694719ec1901b135f975c2470f" },
+    { name = "python-lang-project-harness", git = "https://github.com/tao3k/python-lang-project-harness?rev=bb884a931d0b4595ffbaf1b47d8159a9d5d34086" },
 ]
 
 [[package]]

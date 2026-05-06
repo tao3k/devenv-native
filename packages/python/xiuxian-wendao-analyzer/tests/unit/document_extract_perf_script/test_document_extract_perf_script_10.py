@@ -430,6 +430,43 @@ def test_ocr2_promotion_gate_treats_adaptive_region_planner_as_candidate() -> No
     )
 
 
+def test_ocr2_promotion_gate_requires_clean_scaffold_validation() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _ocr2_promotion_payload(
+        benchmark,
+        scaffold_mode="region-table-json",
+        scaffold_applied_count=3,
+        scaffold_validation_failure_count=1,
+    )
+
+    gate = benchmark.ocr2_promotion_gate(payload)
+
+    assert gate["checked"] is True
+    assert gate["passed"] is False
+    assert "OCR2 scaffold validation failure count was 1" in gate["reasons"]
+    assert gate["observed"]["scaffoldMode"] == "region-table-json"
+    assert gate["observed"]["scaffoldValidationFailureCount"] == 1
+
+
+def test_ocr2_promotion_gate_requires_scaffold_count_coverage() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _ocr2_promotion_payload(
+        benchmark,
+        scaffold_mode="region-table-json",
+        scaffold_applied_count=2,
+        scaffold_validation_failure_count=0,
+    )
+
+    gate = benchmark.ocr2_promotion_gate(payload)
+
+    assert gate["checked"] is True
+    assert gate["passed"] is False
+    assert (
+        "OCR2 scaffold applied count 2 did not match region shard count 3"
+        in gate["reasons"]
+    )
+
+
 def _pdf_ocr_milestone_result(
     *,
     fixture: str = "ocr-positive-pdf",
@@ -502,6 +539,9 @@ def _ocr2_promotion_payload(
     failure_count: int = 0,
     parse_error_count: int = 0,
     ocr_region_blocks: int = 3,
+    scaffold_mode: str = "disabled",
+    scaffold_applied_count: int = 0,
+    scaffold_validation_failure_count: int = 0,
 ) -> dict[str, object]:
     result = _pdf_ocr_milestone_result(
         force_ms=force_ms,
@@ -524,12 +564,17 @@ def _ocr2_promotion_payload(
             "provider": "openrouter",
             "openRouterModel": "baidu/qianfan-ocr-fast:free",
             "openRouterApiKeyConfigured": True,
+            "scaffoldMode": scaffold_mode,
             "requestSummary": {
                 "requestCount": request_count,
                 "successCount": success_count,
                 "failureCount": failure_count,
                 "parseErrorCount": parse_error_count,
                 "regionShardCount": ocr_region_blocks,
+                "scaffoldAppliedCount": scaffold_applied_count,
+                "scaffoldValidationFailureCount": scaffold_validation_failure_count,
+                "scaffoldJsonCharCountTotal": 800,
+                "canonicalMarkdownCharCountTotal": 640,
                 "latencyMsP95": 10_000.0,
                 "sourcePixelAreaTotal": 8_734_917,
             },

@@ -1,6 +1,6 @@
 use super::{
-    Arc, DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV,
-    DocumentExtractJobRegistry, StudioDocumentExtractFlightRouteProvider,
+    Arc, DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV, DocumentExtractJobRegistry,
+    StudioDocumentExtractFlightRouteProvider,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::transport::{
     document_extract_default_endpoint_with_lookup, document_extract_endpoint_urls_with_lookup,
