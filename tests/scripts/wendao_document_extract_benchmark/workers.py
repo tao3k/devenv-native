@@ -14,6 +14,7 @@ from .processes import start_logged_process
 from .server_code import fixture_server_code, real_docling_server_code
 
 OPENROUTER_OCR_SMOKE_MODEL = "baidu/qianfan-ocr-fast:free"
+DEEPSEEK_OCR2_TRACE_PATH_ENV = "WENDAO_DEEPSEEK_OCR2_TRACE_PATH"
 
 
 @dataclass(frozen=True)
@@ -113,7 +114,11 @@ def start_server_pool(
             pdf_ocr_workers=pdf_ocr_workers,
             python_uv_package=python_uv_package,
             python_uv_extras=python_uv_extras,
-            deepseek_ocr2_env=deepseek_ocr2_env,
+            deepseek_ocr2_env=deepseek_ocr2_trace_env(
+                deepseek_ocr2_env,
+                log_dir=log_dir,
+                process_name=name,
+            ),
             log_dir=log_dir,
             process_name=name,
         )
@@ -176,16 +181,36 @@ def start_server(
         Path(os.environ.get("PRJ_RUNTIME_DIR", ".run"))
         / "document-extract-perf-process-logs"
     )
+    worker_ocr2_env = deepseek_ocr2_trace_env(
+        deepseek_ocr2_env,
+        log_dir=effective_log_dir,
+        process_name=process_name,
+    )
     process_env = None
-    if deepseek_ocr2_env:
+    if worker_ocr2_env:
         process_env = os.environ.copy()
-        process_env.update(deepseek_ocr2_env)
+        process_env.update(worker_ocr2_env)
     return start_logged_process(
         command,
         log_dir=effective_log_dir,
         name=process_name,
         env=process_env,
     )
+
+
+def deepseek_ocr2_trace_env(
+    deepseek_ocr2_env: dict[str, str] | None,
+    *,
+    log_dir: Path | None,
+    process_name: str,
+) -> dict[str, str]:
+    env = dict(deepseek_ocr2_env or {})
+    if log_dir is not None:
+        env.setdefault(
+            DEEPSEEK_OCR2_TRACE_PATH_ENV,
+            str(log_dir / f"{process_name}.ocr2.jsonl"),
+        )
+    return env
 
 
 def deepseek_ocr2_process_env(args: object) -> dict[str, str]:
@@ -196,10 +221,15 @@ def deepseek_ocr2_process_env(args: object) -> dict[str, str]:
         "deepseek_ocr2_model": "WENDAO_DEEPSEEK_OCR2_MODEL",
         "deepseek_ocr2_prompt": "WENDAO_DEEPSEEK_OCR2_PROMPT",
         "deepseek_ocr2_max_tokens": "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS",
+        "deepseek_ocr2_region_max_tokens": ("WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS"),
+        "deepseek_ocr2_region_composite_size": (
+            "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE"
+        ),
         "deepseek_ocr2_timeout_seconds": "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS",
         "deepseek_ocr2_request_concurrency": (
             "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY"
         ),
+        "deepseek_ocr2_page_window_size": "WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE",
         "openrouter_model": "WENDAO_OPENROUTER_MODEL",
         "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
         "openrouter_title": "WENDAO_OPENROUTER_TITLE",

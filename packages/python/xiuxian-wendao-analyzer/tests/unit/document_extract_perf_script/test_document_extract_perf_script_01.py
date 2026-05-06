@@ -153,3 +153,19 @@ def test_explicit_fixture_suite_requires_extra_fixture(tmp_path: Path) -> None:
         assert "--fixture-suite explicit requires --extra-fixture" in str(error)
     else:
         raise AssertionError("explicit suite without fixtures should fail")
+
+
+def test_milestone_fixture_suite_uses_repo_owned_inputs(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    args = argparse.Namespace(fixture_suite="milestone", extra_fixture=[])
+
+    fixtures, real_fixture_root = benchmark.resolve_fixtures(
+        args,
+        tmp_path / "fixtures",
+    )
+
+    assert set(fixtures) == {"autosearch-2604.17337"}
+    assert fixtures["autosearch-2604.17337"].is_file()
+    assert fixtures["autosearch-2604.17337"].name == "autosearch-2604.17337.pdf"
+    assert ".data" not in fixtures["autosearch-2604.17337"].parts
+    assert real_fixture_root is None

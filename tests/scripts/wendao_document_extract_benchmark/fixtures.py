@@ -13,6 +13,7 @@ from .constants import (
     DOCLING_DEFAULT_GIT_REF,
     DOCLING_REAL_FIXTURE_PATHS,
     DOCLING_REAL_PDF_CORPUS_FIXTURE_PATHS,
+    MILESTONE_FIXTURE_PATHS,
 )
 from .fake_fixtures import write_fake_fixtures
 
@@ -41,6 +42,14 @@ def resolve_fixtures(
         if not fixtures:
             raise SystemExit("--fixture-suite explicit requires --extra-fixture")
         return fixtures, None
+    if args.fixture_suite == "milestone":
+        return (
+            merge_extra_fixtures(
+                milestone_fixtures(),
+                getattr(args, "extra_fixture", []),
+            ),
+            None,
+        )
 
     if not args.real_docling:
         raise SystemExit("--fixture-suite docling-real requires --real-docling")
@@ -95,6 +104,17 @@ def merge_extra_fixtures(
             + ", ".join(collisions)
         )
     return {**fixtures, **extra_fixtures}
+
+
+def milestone_fixtures() -> dict[str, Path]:
+    missing = [
+        f"{fixture_name}: {fixture_path}"
+        for fixture_name, fixture_path in MILESTONE_FIXTURE_PATHS.items()
+        if not fixture_path.exists()
+    ]
+    if missing:
+        raise SystemExit("Missing milestone fixtures:\n" + "\n".join(missing))
+    return dict(MILESTONE_FIXTURE_PATHS)
 
 
 def parse_extra_fixtures(fixture_specs: list[str]) -> dict[str, Path]:

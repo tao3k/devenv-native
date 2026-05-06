@@ -14,19 +14,26 @@ if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
 _args = importlib.import_module("wendao_document_extract_benchmark.args")
-_artifact_summary = importlib.import_module("wendao_document_extract_benchmark.artifact_summary")
+_artifact_summary = importlib.import_module(
+    "wendao_document_extract_benchmark.artifact_summary"
+)
 _attachment_classes = importlib.import_module(
     "wendao_document_extract_benchmark.attachment_classes"
 )
 _cache = importlib.import_module("wendao_document_extract_benchmark.cache")
 _constants = importlib.import_module("wendao_document_extract_benchmark.constants")
-_fake_fixtures = importlib.import_module("wendao_document_extract_benchmark.fake_fixtures")
+_fake_fixtures = importlib.import_module(
+    "wendao_document_extract_benchmark.fake_fixtures"
+)
 _features = importlib.import_module("wendao_document_extract_benchmark.features")
 _fixtures = importlib.import_module("wendao_document_extract_benchmark.fixtures")
 _http_status = importlib.import_module("wendao_document_extract_benchmark.http_status")
+_ocr2_trace = importlib.import_module("wendao_document_extract_benchmark.ocr2_trace")
 _pdf_render = importlib.import_module("wendao_document_extract_benchmark.pdf_render")
 _pdfium = importlib.import_module("wendao_document_extract_benchmark.pdfium")
-_precision_speed = importlib.import_module("wendao_document_extract_benchmark.precision_speed")
+_precision_speed = importlib.import_module(
+    "wendao_document_extract_benchmark.precision_speed"
+)
 _probes = importlib.import_module("wendao_document_extract_benchmark.probes")
 _providers = importlib.import_module("wendao_document_extract_benchmark.providers")
 _reporting = importlib.import_module("wendao_document_extract_benchmark.reporting")
@@ -50,6 +57,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _pdfium,
     _precision_speed,
     _features,
+    _ocr2_trace,
     _workers,
     _providers,
     _http_status,

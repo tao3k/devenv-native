@@ -324,8 +324,12 @@ extraction into a fresh output directory after the first force run and reports
 `ocrShardCache` summary with the shard cache root, Arrow file count, total
 bytes, and configured limits. Hybrid OCR reports also summarize the internal
 `_metrics.arrow` sidecar: shard metric row count, OCR result characters, bbox
-coverage count, and Rust scheduler elapsed time. The Rust provider defaults the
-OCR shard cache limit to 10 GiB and supports
+coverage count, and Rust scheduler elapsed time. OCR2 benchmark reports also
+include `ocr2PromotionGate`, which checks precision, row/order stability,
+character floor, OCR2 request success, hosted key presence, force-refresh
+latency, and shard-cache reuse against the locked `fast-risk-window` promotion
+baseline. This is a reporting gate only; it does not change runtime routing.
+The Rust provider defaults the OCR shard cache limit to 10 GiB and supports
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES`,
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES`, and
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS` for deployment-specific
@@ -385,8 +389,62 @@ over the same shard rows. That path calls an externally managed
 OpenAI-compatible backend, with vLLM as the preferred runtime, using
 `WENDAO_DEEPSEEK_OCR2_BASE_URL`, `WENDAO_DEEPSEEK_OCR2_MODEL`,
 `WENDAO_DEEPSEEK_OCR2_API_KEY`, `WENDAO_DEEPSEEK_OCR2_PROMPT`,
-`WENDAO_DEEPSEEK_OCR2_MAX_TOKENS`, and
+`WENDAO_DEEPSEEK_OCR2_MAX_TOKENS`,
+`WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS`, and
 `WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS`. Set
+`WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY` to tune direct remote request
+fan-out; keep it provider-gated by benchmark evidence because some hosted
+models lose stability when concurrency is too high. The direct client retries
+transient hosted HTTP failures such as `429`, `500`, `502`, `503`, and `504`
+with a short bounded backoff before returning a failed row, so Rust precision
+and fallback gates still own the final decision. Set
+`WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE` above `1` to let the direct worker
+combine contiguous page images into one request as a provider capability
+canary. Current hosted OCR2 optimization keeps this disabled by default. The
+`ocr2-risk-window` planner sends only the source-profile risk window to OCR2
+while leaving ordinary pages on the fast profile; explicit `region-shards`
+benchmarks are the narrower recovery-surface proof before automatic region
+discovery is promoted. In the current mixed-render route, Rust keeps ordinary
+pages as source-range rows and renders 300 DPI page images only for OCR2
+recovery pages, preserving the existing Arrow input and result schemas. When
+the benchmark supplies explicit region shards, Rust keeps the parent page on
+the fast source-range profile and appends OCR2 region rows as supplemental
+recovery inputs. Rust binds each OCR2 region row to the retained fast parent
+page and records a `sentinel-sidecar-v1` structure provenance marker so region
+recovery remains a validated sidecar patch rather than an implicit string
+splice. When no explicit region JSON is configured,
+`--rust-pdf-ocr2-region-planner profile-risk-window` lets Rust derive a
+conservative content-band region for pages already selected by
+`ocr2-risk-window`; this remains benchmark-only until region precision and
+stitching pass the promotion gate. The adjacent benchmark-only
+`profile-risk-window-slices` planner splits that same content band into
+top/middle/bottom same-page regions so hosted OCR2 tests can exercise
+same-page composite requests without changing the Arrow shard schema.
+`profile-risk-window-adaptive` keeps the same benchmark-only source selection
+but chooses one, two, or three slices from Rust's source-page structure profile
+and estimated content-band pixel area. Exact structure-risk pages may receive
+more slices, while low-complexity risk-window neighbor pages can stay as one
+region. It is the preferred next hosted benchmark profile because it targets
+the measured trade-off between single-band provider tail latency and blanket
+three-slice request overhead without lowering DPI. Region rows use
+`WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS`,
+defaulting to 2048 and clamped by `WENDAO_DEEPSEEK_OCR2_MAX_TOKENS`, so a
+single hosted region response cannot silently consume the full page-token
+budget unless the benchmark explicitly raises the region cap through
+`--deepseek-ocr2-region-max-tokens`. Set
+`WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE` above `1`, or pass
+`--deepseek-ocr2-region-composite-size`, to let the direct worker combine
+same-page, same-parent OCR2 region rows into one multi-image request. Region
+composite output must split back into one non-empty Markdown result per region
+sentinel marker; otherwise the worker falls back to individual region requests
+so the existing row/order contract is preserved. Batched page-window responses
+follow the same marker-split rule for page markers. Set
+`WENDAO_DEEPSEEK_OCR2_TRACE_PATH` to a JSONL file when a benchmark needs
+request-level latency, HTTP status, image-byte, Markdown character,
+shard-type, region-count, render-DPI, and source-pixel-area telemetry. Trace
+records intentionally omit API keys and image payloads. OCR2 recovery
+benchmarks must not lower render DPI to gain speed; region shrinkage and
+provider capability gates are the accepted optimization levers. Set
 `WENDAO_DEEPSEEK_OCR2_PROVIDER=openrouter` to use OpenRouter's
 OpenAI-compatible `/chat/completions` API instead of a local model server. The
 OpenRouter preset defaults the base URL to `https://openrouter.ai/api/v1`,
@@ -477,12 +535,17 @@ Production deployments can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
 evidence shows a fixed override is appropriate for that machine profile, but
 that override is not the default correctness or performance gate.
-Pass `--fixture-suite explicit` with `--extra-fixture NAME=PATH` when a real
-milestone document should be benchmarked without preparing the full Docling
-fixture checkout. Add `--fail-on-pdf-milestone-regression` to fail an
-OCR-positive 21-page PDF run when it drops below the stored arXiv `2604.17337`
-precision/speed envelope. The guard is evaluated after the JSON and Markdown
-reports are written so a failing run still leaves evidence for diagnosis.
+Pass `--fixture-suite milestone --only-fixture autosearch-2604.17337` for the
+repo-owned OCR milestone input. Use `--fixture-suite explicit` with
+`--extra-fixture NAME=PATH` only when benchmarking another audited real input
+without preparing the full Docling fixture checkout. Milestone inputs that
+define regression gates must come from a repo-tracked fixture path or another
+explicit, auditable source path; `.data` downloads are cache material only. Add
+`--fail-on-pdf-milestone-regression` to fail an OCR-positive milestone run when
+it drops below the stored `2604.17337` precision/speed envelope. The guard is
+evaluated after the JSON and Markdown reports are written so a failing run
+still leaves evidence for diagnosis. Low `metricsResultChars` is recorded as a
+milestone regression, not as a missing milestone observation.
 The May 5, 2026 source-range endpoint-fanout profile kept the default Rust
 source-range worker policy unset, used the default local endpoint auto fanout,
 and observed a 21-page force latency of 18,969.021 ms with zero error rows,

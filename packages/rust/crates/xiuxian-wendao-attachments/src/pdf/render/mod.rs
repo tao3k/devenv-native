@@ -17,7 +17,8 @@ pub use entrypoints::{
 };
 #[cfg(feature = "pdf-render")]
 pub use entrypoints::{
-    render_pdf_page_shards, render_pdf_page_shards_with_selection, render_pdf_region_shards,
+    render_pdf_page_shards, render_pdf_page_shards_for_page_indices,
+    render_pdf_page_shards_with_selection, render_pdf_region_shards,
 };
 pub use manifest::{
     build_region_shard_manifest, build_shard_manifest, region_pixel_box_for_crop,

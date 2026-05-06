@@ -37,7 +37,9 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
         rust_pdf_ocr_profile_planner="fast-risk-window",
-        rust_pdf_ocr2_render_dpi=180,
+        rust_pdf_ocr2_render_dpi=360,
+        rust_pdf_ocr_region_context_ratio=0.2,
+        rust_pdf_ocr2_region_planner="profile-risk-window",
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
         rust_document_extract_endpoint=["http://127.0.0.1:53051"],
     )
@@ -67,18 +69,16 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] == "fast-risk-window"
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI"] == "180"
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
-        "http://127.0.0.1:52051"
-    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI"] == "360"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO"] == "0.2"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER"] == "profile-risk-window"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == ("http://127.0.0.1:52051")
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] == "http://127.0.0.1:53051"
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
     )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == "region_shards"
-    regions = benchmark.json.loads(
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"]
-    )
+    regions = benchmark.json.loads(env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON"])
     assert regions[0]["source"] == str(tmp_path / "sample.pdf")
     assert regions[0]["regions"][0]["regionIndex"] == 1
 
@@ -111,6 +111,9 @@ def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_ocr_profile_planner="disabled",
+        rust_pdf_ocr2_render_dpi=None,
+        rust_pdf_ocr_region_context_ratio=None,
+        rust_pdf_ocr2_region_planner=None,
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )
@@ -126,6 +129,54 @@ def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
 
     env = calls[0][1]["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] == "http://127.0.0.1:51051"
+
+
+def test_start_rust_provider_does_not_forward_ocr2_dpi_downgrade(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            calls.append((command, kwargs))
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", FakePopen)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        rust_provider_bin=None,
+        rust_provider_features="cli-bin-support,zhenfa-router,duckdb",
+        flight_mode="hybrid-page-ocr",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=[],
+        benchmark_fixtures={},
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        rust_pdf_ocr_workers=None,
+        rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_ocr_profile_planner="ocr2-all",
+        rust_pdf_ocr2_render_dpi=180,
+        rust_pdf_ocr_region_context_ratio=None,
+        rust_pdf_ocr2_region_planner=None,
+        rust_pdf_ocr_endpoint=[],
+        rust_document_extract_endpoint=[],
+    )
+
+    benchmark.start_rust_provider_server(
+        args,
+        rust_host="127.0.0.1",
+        rust_port=51052,
+        python_host="127.0.0.1",
+        python_port=51051,
+        temp_root=tmp_path,
+    )
+
+    env = calls[0][1]["env"]
+    assert "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI" not in env
 
 
 def test_start_rust_provider_ocr2_planner_enables_pdf_render_feature(
@@ -156,6 +207,9 @@ def test_start_rust_provider_ocr2_planner_enables_pdf_render_feature(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_ocr_profile_planner="ocr2-all",
+        rust_pdf_ocr2_render_dpi=None,
+        rust_pdf_ocr_region_context_ratio=None,
+        rust_pdf_ocr2_region_planner=None,
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )
@@ -202,6 +256,9 @@ def test_start_rust_provider_can_use_prebuilt_binary(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_ocr_profile_planner="disabled",
+        rust_pdf_ocr2_render_dpi=None,
+        rust_pdf_ocr_region_context_ratio=None,
+        rust_pdf_ocr2_region_planner=None,
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )
@@ -225,9 +282,7 @@ def test_start_rust_provider_can_use_prebuilt_binary(
     ]
 
 
-def test_start_valkey_server_uses_temp_runtime_flags(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_start_valkey_server_uses_temp_runtime_flags(monkeypatch, tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     calls = []
 
@@ -470,9 +525,7 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         ],
     )
 
-    class_summary = {
-        item["attachmentClass"]: item for item in summary["attachmentClassSummary"]
-    }
+    class_summary = {item["attachmentClass"]: item for item in summary["attachmentClassSummary"]}
     assert set(class_summary) == {"image", "office"}
     assert summary["imageAttachmentAuditCount"] == 1
     assert summary["imageKnownDimensionCount"] == 1
@@ -484,9 +537,7 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
     assert summary["maxImagePixelCount"] == 307200
     assert class_summary["office"]["fixtureCount"] == 1
     assert class_summary["office"]["fixtures"] == ["docx"]
-    assert (
-        class_summary["office"]["precisionSpeedSummary"]["precisionGatePassed"] is True
-    )
+    assert class_summary["office"]["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert class_summary["office"]["precisionSpeedSummary"]["maxForceRefreshMs"] == 20.0
     assert class_summary["office"]["resourcesRows"] == 4
     assert class_summary["office"]["resourceTypeCounts"] == {
@@ -519,9 +570,7 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
     assert class_summary["image"]["imageKnownDimensionCount"] == 1
     assert class_summary["image"]["imageFormatCounts"] == {"png": 1}
     assert class_summary["image"]["imageDimensionSourceCounts"] == {"png_ihdr": 1}
-    assert class_summary["image"]["imageAccelerationCandidates"] == {
-        "image_ocr_cache_candidate": 1
-    }
+    assert class_summary["image"]["imageAccelerationCandidates"] == {"image_ocr_cache_candidate": 1}
     assert class_summary["image"]["maxImageWidthPx"] == 640
     assert class_summary["image"]["maxImageHeightPx"] == 480
     assert class_summary["image"]["maxImagePixelCount"] == 307200
@@ -534,25 +583,18 @@ def test_attachment_class_summary_groups_precision_and_speed() -> None:
         "latencyMs": 5.0,
     }
     assert class_summary["image"]["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 5.0
-    assert (
-        class_summary["image"]["precisionSpeedSummary"]["maxDocumentTimingOverheadMs"]
-        == 5.0
-    )
+    assert class_summary["image"]["precisionSpeedSummary"]["maxDocumentTimingOverheadMs"] == 5.0
     assert class_summary["image"]["documentTimingPhaseElapsedMs"] == {
         "doclingConvert": 40.0,
         "total": 45.0,
     }
-    assert class_summary["image"]["precisionSpeedSummary"]["maxDoclingConvertMs"] == (
-        40.0
-    )
+    assert class_summary["image"]["precisionSpeedSummary"]["maxDoclingConvertMs"] == (40.0)
     assert class_summary["image"]["precisionSpeedSummary"][
         "maxDoclingConvertShare"
     ] == pytest.approx(40.0 / 45.0)
 
 
-def test_summarize_ocr_shard_cache_reports_root_files_and_limits(
-    monkeypatch, tmp_path
-) -> None:
+def test_summarize_ocr_shard_cache_reports_root_files_and_limits(monkeypatch, tmp_path) -> None:
     benchmark = _load_benchmark_module()
     cache_root = tmp_path / "ocr-shards"
     (cache_root / "aa").mkdir(parents=True)

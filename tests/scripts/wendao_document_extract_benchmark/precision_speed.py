@@ -30,6 +30,23 @@ PDF_OCR_MILESTONE_BASELINE = {
     "minMetricsResultChars": 103_984,
 }
 
+OCR2_PROMOTION_BASELINE = {
+    "id": "arxiv-2604.17337-fast-risk-window-r9",
+    "forceRefreshMs": 12_856.546292,
+    "maxShardCacheReuseForceMs": PDF_OCR_MILESTONE_BASELINE[
+        "maxShardCacheReuseForceMs"
+    ],
+    "minMetricsResultChars": PDF_OCR_MILESTONE_BASELINE["minMetricsResultChars"],
+    "expectedOcrPageBlocks": PDF_OCR_MILESTONE_BASELINE["ocrPageBlocks"],
+    "minMetricsRows": PDF_OCR_MILESTONE_BASELINE["metricsRows"],
+}
+
+OCR2_AUTOMATIC_REGION_PLANNERS = {
+    "profile-risk-window",
+    "profile-risk-window-slices",
+    "profile-risk-window-adaptive",
+}
+
 
 def precision_speed_summary(
     results: list[dict[str, Any]],
@@ -103,18 +120,208 @@ def pdf_ocr_milestone_guard(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def ocr2_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
+    summary = payload.get("summary", {})
+    precision_speed = summary.get("precisionSpeedSummary", {})
+    deepseek_ocr2 = payload.get("deepseekOcr2") or {}
+    request_summary = deepseek_ocr2.get("requestSummary") or {}
+    reasons: list[str] = []
+    checked = ocr2_promotion_candidate(payload, precision_speed, request_summary)
+
+    if not checked:
+        return {
+            "checked": False,
+            "passed": False,
+            "baseline": OCR2_PROMOTION_BASELINE,
+            "reasons": ["not an OCR2 promotion candidate"],
+            "observed": ocr2_promotion_observed(
+                payload, precision_speed, request_summary
+            ),
+        }
+
+    if precision_speed.get("precisionGatePassed") is not True:
+        reasons.append("precision gate did not pass")
+    if precision_speed.get("errorRows") != 0:
+        reasons.append(
+            f"expected zero error rows, observed {precision_speed.get('errorRows')}"
+        )
+    if precision_speed.get("structureReadingOrderSorted") is not True:
+        reasons.append("structure reading order is not sorted")
+    if precision_speed.get("structureOrderStable") is not True:
+        reasons.append("structure order is not stable")
+    if precision_speed.get("structureOrderMismatches") != 0:
+        reasons.append(
+            "expected zero structure order mismatches, observed "
+            f"{precision_speed.get('structureOrderMismatches')}"
+        )
+    if (
+        precision_speed.get("ocrPageBlocks")
+        != OCR2_PROMOTION_BASELINE["expectedOcrPageBlocks"]
+    ):
+        reasons.append(
+            "expected "
+            f"{OCR2_PROMOTION_BASELINE['expectedOcrPageBlocks']} OCR page blocks, "
+            f"observed {precision_speed.get('ocrPageBlocks')}"
+        )
+    if (
+        precision_speed.get("metricsRows", 0)
+        < OCR2_PROMOTION_BASELINE["minMetricsRows"]
+    ):
+        reasons.append(
+            "metricsRows "
+            f"{precision_speed.get('metricsRows')} below promotion floor "
+            f"{OCR2_PROMOTION_BASELINE['minMetricsRows']}"
+        )
+    if (
+        precision_speed.get("metricsResultChars", 0)
+        < OCR2_PROMOTION_BASELINE["minMetricsResultChars"]
+    ):
+        reasons.append(
+            "metricsResultChars "
+            f"{precision_speed.get('metricsResultChars')} below promotion floor "
+            f"{OCR2_PROMOTION_BASELINE['minMetricsResultChars']}"
+        )
+    force_ms = numeric_or_none(precision_speed.get("maxForceRefreshMs"))
+    if force_ms is None:
+        reasons.append("missing maxForceRefreshMs")
+    elif force_ms > OCR2_PROMOTION_BASELINE["forceRefreshMs"]:
+        reasons.append(
+            "maxForceRefreshMs "
+            f"{force_ms:.3f} exceeded promotion baseline "
+            f"{OCR2_PROMOTION_BASELINE['forceRefreshMs']:.3f}"
+        )
+    shard_cache_reuse_ms = numeric_or_none(
+        precision_speed.get("maxShardCacheReuseForceMs")
+    )
+    shard_cache_reuse_scheduler_ms = numeric_or_none(
+        precision_speed.get("maxShardCacheReuseSchedulerElapsedMs")
+    )
+    has_ocr2_region_sidecars = precision_speed.get("ocrRegionBlocks", 0) > 0
+    if shard_cache_reuse_ms is None:
+        reasons.append("missing maxShardCacheReuseForceMs")
+    elif has_ocr2_region_sidecars:
+        if shard_cache_reuse_scheduler_ms is None:
+            reasons.append("missing maxShardCacheReuseSchedulerElapsedMs")
+        elif (
+            shard_cache_reuse_scheduler_ms
+            > OCR2_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]
+        ):
+            reasons.append(
+                "maxShardCacheReuseSchedulerElapsedMs "
+                f"{shard_cache_reuse_scheduler_ms:.3f} exceeded promotion baseline "
+                f"{OCR2_PROMOTION_BASELINE['maxShardCacheReuseForceMs']:.3f}"
+            )
+    elif shard_cache_reuse_ms > OCR2_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]:
+        reasons.append(
+            "maxShardCacheReuseForceMs "
+            f"{shard_cache_reuse_ms:.3f} exceeded promotion baseline "
+            f"{OCR2_PROMOTION_BASELINE['maxShardCacheReuseForceMs']:.3f}"
+        )
+    if request_summary.get("requestCount", 0) <= 0:
+        reasons.append("no OCR2 requests observed")
+    if request_summary.get("successCount", 0) != request_summary.get("requestCount", 0):
+        reasons.append(
+            "OCR2 success count "
+            f"{request_summary.get('successCount')} did not match request count "
+            f"{request_summary.get('requestCount')}"
+        )
+    if request_summary.get("failureCount", 0) != 0:
+        reasons.append(f"OCR2 failure count was {request_summary.get('failureCount')}")
+    if request_summary.get("parseErrorCount", 0) != 0:
+        reasons.append(
+            f"OCR2 parse error count was {request_summary.get('parseErrorCount')}"
+        )
+    if deepseek_ocr2.get("provider") == "openrouter" and not deepseek_ocr2.get(
+        "openRouterApiKeyConfigured"
+    ):
+        reasons.append("OpenRouter key was not configured")
+    if (
+        payload.get("rustPdfOcr2RegionPlanner") in OCR2_AUTOMATIC_REGION_PLANNERS
+        and request_summary.get("regionShardCount", 0) <= 0
+    ):
+        reasons.append("automatic OCR2 region planner produced no OCR2 region requests")
+
+    return {
+        "checked": True,
+        "passed": not reasons,
+        "baseline": OCR2_PROMOTION_BASELINE,
+        "reasons": reasons,
+        "observed": ocr2_promotion_observed(payload, precision_speed, request_summary),
+    }
+
+
+def ocr2_promotion_candidate(
+    payload: dict[str, Any],
+    precision_speed: dict[str, Any],
+    request_summary: dict[str, Any],
+) -> bool:
+    planner = payload.get("rustPdfOcrProfilePlanner")
+    if planner in {"ocr2-all", "ocr2-risk-window"}:
+        return True
+    if payload.get("rustPdfOcr2RegionPlanner") in OCR2_AUTOMATIC_REGION_PLANNERS:
+        return True
+    if precision_speed.get("ocrRegionBlocks", 0) > 0:
+        return True
+    return request_summary.get("requestCount", 0) > 0
+
+
+def ocr2_promotion_observed(
+    payload: dict[str, Any],
+    precision_speed: dict[str, Any],
+    request_summary: dict[str, Any],
+) -> dict[str, Any]:
+    deepseek_ocr2 = payload.get("deepseekOcr2") or {}
+    return {
+        "rustPdfOcrProfilePlanner": payload.get("rustPdfOcrProfilePlanner"),
+        "rustPdfOcr2RegionPlanner": payload.get("rustPdfOcr2RegionPlanner"),
+        "provider": deepseek_ocr2.get("provider"),
+        "openRouterModel": deepseek_ocr2.get("openRouterModel"),
+        "openRouterApiKeyConfigured": deepseek_ocr2.get("openRouterApiKeyConfigured"),
+        "precisionGatePassed": precision_speed.get("precisionGatePassed"),
+        "errorRows": precision_speed.get("errorRows"),
+        "structureReadingOrderSorted": precision_speed.get(
+            "structureReadingOrderSorted"
+        ),
+        "structureOrderStable": precision_speed.get("structureOrderStable"),
+        "structureOrderMismatches": precision_speed.get("structureOrderMismatches"),
+        "metricsRows": precision_speed.get("metricsRows"),
+        "metricsResultChars": precision_speed.get("metricsResultChars"),
+        "ocrPageBlocks": precision_speed.get("ocrPageBlocks"),
+        "ocrRegionBlocks": precision_speed.get("ocrRegionBlocks"),
+        "bboxBlocks": precision_speed.get("bboxBlocks"),
+        "maxForceRefreshMs": precision_speed.get("maxForceRefreshMs"),
+        "maxShardCacheReuseForceMs": precision_speed.get("maxShardCacheReuseForceMs"),
+        "maxShardCacheReuseSchedulerElapsedMs": precision_speed.get(
+            "maxShardCacheReuseSchedulerElapsedMs"
+        ),
+        "maxShardCacheReuseRegionMaterializeMs": precision_speed.get(
+            "maxShardCacheReuseRegionMaterializeMs"
+        ),
+        "maxCacheHitP95Ms": precision_speed.get("maxCacheHitP95Ms"),
+        "requestCount": request_summary.get("requestCount"),
+        "successCount": request_summary.get("successCount"),
+        "failureCount": request_summary.get("failureCount"),
+        "parseErrorCount": request_summary.get("parseErrorCount"),
+        "regionShardCount": request_summary.get("regionShardCount"),
+        "requestLatencyMsP95": request_summary.get("latencyMsP95"),
+        "requestWallSpanMs": request_summary.get("requestWallSpanMs"),
+        "requestLatencyOverlapRatio": request_summary.get("requestLatencyOverlapRatio"),
+        "sourcePixelAreaTotal": request_summary.get("sourcePixelAreaTotal"),
+    }
+
+
 def is_pdf_ocr_milestone_candidate(result: dict[str, Any]) -> bool:
+    ocr_region_blocks = int(result.get("structureOcrRegionBlocks") or 0)
+    expected_rows = PDF_OCR_MILESTONE_BASELINE["resourcesRows"] + ocr_region_blocks
+    expected_bbox_blocks = PDF_OCR_MILESTONE_BASELINE["bboxBlocks"] + ocr_region_blocks
     return (
         result.get("attachmentClass") == "pdf"
-        and result.get("resourcesRows") == PDF_OCR_MILESTONE_BASELINE["resourcesRows"]
-        and result.get("structureRows") == PDF_OCR_MILESTONE_BASELINE["structureRows"]
+        and result.get("resourcesRows") == expected_rows
+        and result.get("structureRows") == expected_rows
         and result.get("structureOcrPageBlocks")
         == PDF_OCR_MILESTONE_BASELINE["ocrPageBlocks"]
-        and result.get("structureBboxBlocks")
-        == PDF_OCR_MILESTONE_BASELINE["bboxBlocks"]
-        and result.get("metricsRows") == PDF_OCR_MILESTONE_BASELINE["metricsRows"]
-        and result.get("metricsResultChars", 0)
-        >= PDF_OCR_MILESTONE_BASELINE["minMetricsResultChars"]
+        and result.get("structureBboxBlocks") == expected_bbox_blocks
+        and result.get("metricsRows") == expected_rows
     )
 
 
@@ -123,6 +330,10 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
     force_ms = numeric_or_none(result.get("forceRefreshMs"))
     cache_p95_ms = numeric_or_none(result.get("cacheHitP95Ms"))
     shard_cache_reuse_ms = numeric_or_none(result.get("shardCacheReuseForceMs"))
+    shard_cache_reuse_scheduler_ms = numeric_or_none(
+        result.get("shardCacheReuseMetricsRustSchedulerElapsedMs")
+    )
+    ocr_region_blocks = int(result.get("structureOcrRegionBlocks") or 0)
     structure_stable = result.get("structureOrderStable")
     structure_mismatches = result.get("structureOrderMismatchCount", 0)
     error_rows = (
@@ -164,10 +375,33 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
         and shard_cache_reuse_ms
         > PDF_OCR_MILESTONE_BASELINE["maxShardCacheReuseForceMs"]
     ):
+        if ocr_region_blocks > 0:
+            if shard_cache_reuse_scheduler_ms is None:
+                regressions.append(
+                    "missing shardCacheReuseMetricsRustSchedulerElapsedMs "
+                    "for OCR2 region sidecars"
+                )
+            elif (
+                shard_cache_reuse_scheduler_ms
+                > PDF_OCR_MILESTONE_BASELINE["maxShardCacheReuseForceMs"]
+            ):
+                regressions.append(
+                    "shardCacheReuseMetricsRustSchedulerElapsedMs "
+                    f"{shard_cache_reuse_scheduler_ms:.3f} exceeded baseline "
+                    f"{PDF_OCR_MILESTONE_BASELINE['maxShardCacheReuseForceMs']:.3f}"
+                )
+        else:
+            regressions.append(
+                "shardCacheReuseForceMs "
+                f"{shard_cache_reuse_ms:.3f} exceeded baseline "
+                f"{PDF_OCR_MILESTONE_BASELINE['maxShardCacheReuseForceMs']:.3f}"
+            )
+    metrics_result_chars = result.get("metricsResultChars", 0)
+    if metrics_result_chars < PDF_OCR_MILESTONE_BASELINE["minMetricsResultChars"]:
         regressions.append(
-            "shardCacheReuseForceMs "
-            f"{shard_cache_reuse_ms:.3f} exceeded baseline "
-            f"{PDF_OCR_MILESTONE_BASELINE['maxShardCacheReuseForceMs']:.3f}"
+            "metricsResultChars "
+            f"{metrics_result_chars} below baseline "
+            f"{PDF_OCR_MILESTONE_BASELINE['minMetricsResultChars']}"
         )
 
     return {
@@ -176,9 +410,11 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
         "forceRefreshMs": force_ms,
         "cacheHitP95Ms": cache_p95_ms,
         "shardCacheReuseForceMs": shard_cache_reuse_ms,
+        "shardCacheReuseMetricsRustSchedulerElapsedMs": shard_cache_reuse_scheduler_ms,
         "resourcesRows": result.get("resourcesRows"),
         "structureRows": result.get("structureRows"),
         "ocrPageBlocks": result.get("structureOcrPageBlocks"),
+        "ocrRegionBlocks": result.get("structureOcrRegionBlocks"),
         "bboxBlocks": result.get("structureBboxBlocks"),
         "metricsRows": result.get("metricsRows"),
         "metricsResultChars": result.get("metricsResultChars"),
@@ -233,6 +469,20 @@ def speed_observation_summary(
         "maxForceRefreshMs": max_numeric(results, "forceRefreshMs"),
         "maxCacheHitP95Ms": max_numeric(results, "cacheHitP95Ms"),
         "maxShardCacheReuseForceMs": max_numeric(results, "shardCacheReuseForceMs"),
+        "maxShardCacheReuseSchedulerElapsedMs": max_numeric(
+            results,
+            "shardCacheReuseMetricsRustSchedulerElapsedMs",
+        ),
+        "maxShardCacheReuseRegionMaterializeMs": max_nested_numeric(
+            results,
+            "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs",
+            "regionMaterialize",
+        ),
+        "maxForceHybridPageOcrRegionMaterializeMs": max_nested_numeric(
+            results,
+            "forceHybridPageOcrTimingPhaseElapsedMs",
+            "regionMaterialize",
+        ),
         "maxArtifactRegistryReuseForceMs": max_numeric(
             results,
             "artifactRegistryReuseForceMs",

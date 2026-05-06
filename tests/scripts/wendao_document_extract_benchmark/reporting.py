@@ -116,6 +116,34 @@ def summarize_results(
         "documentTimingPhaseElapsedMs": _combine_float_counts(
             result.get("documentTimingPhaseElapsedMs", {}) for result in results
         ),
+        "forceHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
+            result.get("forceHybridPageOcrTimingPhaseElapsedMs", {})
+            for result in results
+        ),
+        "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
+            result.get("shardCacheReuseHybridPageOcrTimingPhaseElapsedMs", {})
+            for result in results
+        ),
+        "maxShardCacheReuseMetricsRustSchedulerElapsedMs": max(
+            (
+                value
+                for result in results
+                if isinstance(
+                    (
+                        value := result.get(
+                            "shardCacheReuseMetricsRustSchedulerElapsedMs"
+                        )
+                    ),
+                    int | float,
+                )
+            ),
+            default=None,
+        ),
+        "hybridPageOcrFallbackReasons": [
+            reason
+            for result in results
+            for reason in result.get("hybridPageOcrFallbackReasons", [])
+        ],
         "imageAttachmentAuditCount": image_attachment_audit_count(results),
         "imageKnownDimensionCount": image_known_dimension_count(results),
         "imageFormatCounts": aggregate_image_audit_strings(results, "format"),
@@ -241,7 +269,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
     structure_baseline = payload.get("structureBaseline") or {}
     precision_speed = payload["summary"].get("precisionSpeedSummary", {})
     pdf_milestone = precision_speed.get("pdfOcrMilestoneGuard", {})
+    ocr2_promotion = payload.get("ocr2PromotionGate") or {}
     deepseek_ocr2 = payload.get("deepseekOcr2") or {}
+    deepseek_ocr2_requests = deepseek_ocr2.get("requestSummary") or {}
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -260,6 +290,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
         f"- Rust PDF OCR profile planner: `{payload.get('rustPdfOcrProfilePlanner')}`",
         f"- Rust PDF OCR2 render DPI: `{payload.get('rustPdfOcr2RenderDpi')}`",
+        f"- Rust PDF OCR2 region planner: `{payload.get('rustPdfOcr2RegionPlanner')}`",
         f"- DeepSeek-OCR-2 backend: `{deepseek_ocr2.get('backend')}`",
         f"- DeepSeek-OCR-2 provider: `{deepseek_ocr2.get('provider')}`",
         f"- DeepSeek-OCR-2 base URL: `{deepseek_ocr2.get('baseUrl')}`",
@@ -267,8 +298,27 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- OpenRouter model: `{deepseek_ocr2.get('openRouterModel')}`",
         f"- OpenRouter key configured: `{deepseek_ocr2.get('openRouterApiKeyConfigured')}`",
         f"- DeepSeek-OCR-2 max tokens: `{deepseek_ocr2.get('maxTokens')}`",
+        f"- DeepSeek-OCR-2 region max tokens: `{deepseek_ocr2.get('regionMaxTokens')}`",
+        f"- DeepSeek-OCR-2 region composite size: `{deepseek_ocr2.get('regionCompositeSize')}`",
         f"- DeepSeek-OCR-2 timeout seconds: `{deepseek_ocr2.get('timeoutSeconds')}`",
         f"- DeepSeek-OCR-2 request concurrency: `{deepseek_ocr2.get('requestConcurrency')}`",
+        f"- DeepSeek-OCR-2 page window size: `{deepseek_ocr2.get('pageWindowSize')}`",
+        "- DeepSeek-OCR-2 requests: "
+        f"`count={deepseek_ocr2_requests.get('requestCount')}, "
+        f"pages={deepseek_ocr2_requests.get('pageCountTotal')}, "
+        f"shards={deepseek_ocr2_requests.get('shardCountTotal')}, "
+        f"regions={deepseek_ocr2_requests.get('regionShardCount')}, "
+        f"sourcePixels={deepseek_ocr2_requests.get('sourcePixelAreaTotal')}, "
+        f"success={deepseek_ocr2_requests.get('successCount')}, "
+        f"failed={deepseek_ocr2_requests.get('failureCount')}, "
+        f"p50Ms={_format_optional_float(deepseek_ocr2_requests.get('latencyMsP50'))}, "
+        f"p95Ms={_format_optional_float(deepseek_ocr2_requests.get('latencyMsP95'))}, "
+        f"maxMs={_format_optional_float(deepseek_ocr2_requests.get('latencyMsMax'))}, "
+        f"wallSpanMs={_format_optional_float(deepseek_ocr2_requests.get('requestWallSpanMs'))}, "
+        f"overlapRatio={_format_optional_float(deepseek_ocr2_requests.get('requestLatencyOverlapRatio'))}, "
+        f"chars={deepseek_ocr2_requests.get('charCountTotal')}, "
+        f"kinds={_format_counts(deepseek_ocr2_requests.get('requestKindCounts'))}, "
+        f"http={_format_counts(deepseek_ocr2_requests.get('httpStatusCounts'))}`",
         f"- Rust document extract endpoints: `{payload.get('rustDocumentExtractEndpoints', [])}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
         f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",
@@ -340,6 +390,15 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"{_format_optional_float(payload['summary'].get('totalDocumentTimingOverheadMs'))}, "
         "phases="
         f"{_format_float_counts(payload['summary'].get('documentTimingPhaseElapsedMs'))}`",
+        "- Hybrid OCR fallback reasons: "
+        f"`{'; '.join(payload['summary'].get('hybridPageOcrFallbackReasons', []))}`",
+        "- Hybrid OCR timing sidecar: "
+        "forcePhases="
+        f"`{_format_float_counts(payload['summary'].get('forceHybridPageOcrTimingPhaseElapsedMs'))}`, "
+        "shardReusePhases="
+        f"`{_format_float_counts(payload['summary'].get('shardCacheReuseHybridPageOcrTimingPhaseElapsedMs'))}`, "
+        "shardReuseSchedulerMs="
+        f"`{_format_optional_float(payload['summary'].get('maxShardCacheReuseMetricsRustSchedulerElapsedMs'))}`",
         "- Image audit summary: "
         f"`audits={payload['summary'].get('imageAttachmentAuditCount')}, "
         f"knownDims={payload['summary'].get('imageKnownDimensionCount')}, "
@@ -381,6 +440,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"passed={pdf_milestone.get('passed')}, "
         f"reason={pdf_milestone.get('reason')}, "
         f"regressions={len(pdf_milestone.get('regressions', []))}`",
+        "- OCR2 promotion gate: "
+        f"`checked={ocr2_promotion.get('checked')}, "
+        f"passed={ocr2_promotion.get('passed')}, "
+        f"reasons={len(ocr2_promotion.get('reasons', []))}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
         "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",

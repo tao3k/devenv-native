@@ -75,6 +75,26 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "documentTimingPhaseElapsedMs",
         ),
+        "hybridPageOcrFallbackReasons": _hybrid_page_ocr_fallback_reasons(reports),
+        "hybridPageOcrTimingReportExists": any(
+            _hybrid_page_ocr_timing_report_exists(report) for report in reports
+        ),
+        "hybridPageOcrTimingTotalElapsedMs": _sum_float_report_values(
+            reports,
+            "hybridPageOcrTimingTotalElapsedMs",
+        ),
+        "hybridPageOcrTimingPhaseElapsedMs": _aggregate_float_report_maps(
+            reports,
+            "hybridPageOcrTimingPhaseElapsedMs",
+        ),
+        "hybridPageOcrTimingOcrShardCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcrShardCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionShardCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionShardCount",
+        ),
         "imageAttachmentAuditCount": _image_attachment_audit_count(reports),
         "imageKnownDimensionCount": _image_known_dimension_count(reports),
         "imageFormatCounts": _image_format_counts(reports),
@@ -100,6 +120,15 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             1 for report in reports if report.get("artifactError")
         ),
     }
+
+
+def _hybrid_page_ocr_fallback_reasons(reports: list[dict[str, Any]]) -> list[str]:
+    return [
+        reason
+        for report in reports
+        if isinstance((reason := report.get("hybridPageOcrFallbackReason")), str)
+        and reason
+    ]
 
 
 def _structure_parity_passed(reports: list[dict[str, Any]]) -> bool | None:
@@ -155,6 +184,18 @@ def _document_timing_arrow_exists(report: dict[str, Any]) -> bool:
     return (isinstance(arrow_bytes, int) and arrow_bytes > 0) or (
         isinstance(row_count, int) and row_count > 0
     )
+
+
+def _hybrid_page_ocr_timing_report_exists(report: dict[str, Any]) -> bool:
+    if bool(report.get("hybridPageOcrTimingReportExists")):
+        return True
+    report_bytes = report.get("hybridPageOcrTimingReportBytes")
+    total_elapsed_ms = report.get("hybridPageOcrTimingTotalElapsedMs")
+    has_report_bytes = isinstance(report_bytes, int) and report_bytes > 0
+    has_total_elapsed = (
+        isinstance(total_elapsed_ms, int | float) and total_elapsed_ms > 0
+    )
+    return has_report_bytes or has_total_elapsed
 
 
 def _image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:

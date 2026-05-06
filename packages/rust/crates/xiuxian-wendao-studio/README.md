@@ -96,11 +96,51 @@ Studio also owns the opt-in source-range OCR profile planner exposed through
 `--rust-pdf-ocr-profile-planner`. The proven `fast-risk-window` mode uses
 attachment-owned source-page structure facts to keep table-risk pages on the
 default Docling-compatible profile while assigning `docling-fast-text-ocr`
-only to non-risk source-page ranges. The same planner now exposes
-`ocr2-all` and `ocr2-risk-window` for the first-class
-`deepseek-ocr2-direct-vlm` profile. Those OCR2 modes stay opt-in until the
-real benchmark gate proves the current precision envelope and beats the
-12,856.546 ms `fast-risk-window` force-refresh evidence.
+only to non-risk source-page ranges. The same planner now exposes `ocr2-all`
+for full OCR2 probes and `ocr2-risk-window` for surgical recovery: ordinary
+pages stay on `docling-fast-text-ocr`, while the source-profile risk window
+uses `deepseek-ocr2-direct-vlm`. The `ocr2-risk-window` route keeps the primary
+manifest on source-range rows and materializes rendered page images only for
+OCR2 recovery pages, so ordinary fast pages do not pay page-raster cost. Those
+same planner semantics apply to explicit region-shard recovery: the parent page
+stays on the fast source-range profile and the rendered region rows are
+appended as supplemental OCR2 inputs, preserving the stable OCR shard schema
+and the Rust-side row/order validation gate. Region recovery now normalizes the
+rendered region's parent shard id to the retained fast parent page and records
+`sentinel-sidecar-v1` in structure provenance; this is a safe sidecar patch
+protocol, not default in-place Markdown replacement.
+When no explicit region JSON is configured, the benchmark can opt into
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER=profile-risk-window` through
+`--rust-pdf-ocr2-region-planner profile-risk-window`. That first automatic
+planner only acts on pages already selected by `ocr2-risk-window` and builds a
+conservative content-band region from the page crop box; it is a recovery
+surface probe, not a claimed table-detector or default routing policy.
+`profile-risk-window-slices` is the next benchmark-only variant: it preserves
+the same source page selection but splits each content band into
+top/middle/bottom same-page regions in reading order, giving the analyzer's
+region composite canary a real hosted benchmark surface without changing the
+OCR shard schema.
+`profile-risk-window-adaptive` is the current algorithmic follow-up: it keeps
+the same source page selection, reuses attachment-owned source-page structure
+profiles, estimates content-band pixel area, and chooses one, two, or three
+same-page slices. Exact structure-risk pages may receive more slices, while
+low-complexity neighbor pages can stay as one region. The goal is to avoid
+both a broad single-region provider tail and blanket three-slice request
+overhead while keeping 300 DPI, semantic padding, parent binding, and the
+stable shard schema.
+The analyzer-side direct OCR2 worker can additionally opt into a same-page,
+same-parent region composite canary through
+`WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE` or the benchmark flag
+`--deepseek-ocr2-region-composite-size`. Composite responses are accepted only
+when sentinel markers split back into one non-empty Markdown result per region;
+otherwise the worker falls back to individual region requests and the Rust
+row/order gate still sees the unchanged OCR shard result schema.
+All OCR2 modes stay opt-in until the real benchmark gate proves the current
+precision envelope and beats the 12,856.546 ms `fast-risk-window`
+force-refresh evidence. Benchmark reports expose that decision as
+`ocr2PromotionGate`, which keeps OCR2 profile promotion tied to the frozen
+precision, row/order, character-floor, hosted-request, force-refresh, and
+shard-cache reuse gates.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

@@ -91,7 +91,7 @@ pub(crate) fn hybrid_page_ocr_profile_planner() -> HybridPdfOcrProfilePlanner {
 
 impl HybridPdfOcrProfilePlanner {
     pub(crate) fn requires_rendered_page_images(self) -> bool {
-        matches!(self, Self::Ocr2All | Self::Ocr2RiskWindow)
+        matches!(self, Self::Ocr2All)
     }
 }
 
@@ -161,15 +161,12 @@ pub(crate) fn apply_hybrid_page_ocr2_profile_plan_for_profiles(
         return inputs;
     }
 
-    let accurate_pages = accurate_recovery_pages(profiles);
-    if accurate_pages.len() >= inputs.len() {
-        return inputs;
-    }
-    apply_candidate_profile_plan(
+    let recovery_pages = accurate_recovery_pages(profiles);
+    apply_ocr2_recovery_profile_plan(
         inputs,
-        accurate_pages,
-        PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
-        PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_ENGINE,
+        recovery_pages,
+        PDF_OCR_FAST_TEXT_PROFILE,
+        PDF_OCR_FAST_TEXT_ENGINE,
     )
 }
 
@@ -193,6 +190,30 @@ fn apply_candidate_profile_plan(
     log::info!(
         "hybrid PDF OCR profile planner selected {candidate_count} `{candidate_profile}` pages and {} accurate pages",
         inputs.len().saturating_sub(candidate_count)
+    );
+    inputs
+}
+
+fn apply_ocr2_recovery_profile_plan(
+    mut inputs: Vec<PdfOcrShardInput>,
+    recovery_pages: BTreeSet<u32>,
+    default_profile: &str,
+    default_engine: &str,
+) -> Vec<PdfOcrShardInput> {
+    let mut recovery_count = 0usize;
+    for input in &mut inputs {
+        if recovery_pages.contains(&input.page_index) {
+            input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
+            input.ocr_engine = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_ENGINE.to_string();
+            recovery_count = recovery_count.saturating_add(1);
+        } else {
+            input.ocr_profile = default_profile.to_string();
+            input.ocr_engine = default_engine.to_string();
+        }
+    }
+    log::info!(
+        "hybrid PDF OCR profile planner selected {recovery_count} OCR2 recovery pages and {} `{default_profile}` pages",
+        inputs.len().saturating_sub(recovery_count)
     );
     inputs
 }

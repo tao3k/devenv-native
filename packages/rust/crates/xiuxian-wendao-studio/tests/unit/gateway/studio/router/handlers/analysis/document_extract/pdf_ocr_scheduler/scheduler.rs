@@ -2,11 +2,13 @@ use std::sync::Arc;
 
 use super::{
     DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, PdfOcrWorkerScheduler, endpoint_index_for_request,
-    pdf_ocr_worker_limit_with_lookup, source_pdf_page_range_chunks,
+    pdf_ocr_worker_limit_with_lookup, scheduler_shard_groups, source_pdf_page_range_chunks,
     source_pdf_page_range_chunks_with_weights,
 };
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_cache::PdfOcrShardCache;
-use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
+use xiuxian_wendao_attachments::pdf::ocr::{
+    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
+};
 
 #[test]
 fn pdf_ocr_worker_limit_defaults_to_available_parallelism() {
@@ -100,6 +102,28 @@ async fn pdf_ocr_scheduler_returns_full_cache_hits_without_python_endpoint() -> 
     assert_eq!(snapshot.cache_misses, 0);
     assert_eq!(snapshot.live_requests, 0);
     Ok(())
+}
+
+#[test]
+fn pdf_ocr_scheduler_partitions_source_range_pages_from_direct_ocr2_regions() {
+    let mut inputs = vec![
+        sample_ocr_input("/tmp/source.pdf", 0, "page"),
+        sample_ocr_input("/tmp/source.pdf", 1, "page"),
+        sample_ocr_input("/tmp/source.pdf", 11, "region"),
+        sample_ocr_input("/tmp/source.pdf", 12, "region"),
+    ];
+    for input in &mut inputs[2..] {
+        input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
+        input.ocr_engine = "deepseek-ocr2-direct-vlm".to_string();
+    }
+
+    let groups = scheduler_shard_groups(inputs.as_slice());
+    let positions = groups
+        .iter()
+        .map(|group| group.positions.clone())
+        .collect::<Vec<_>>();
+
+    assert_eq!(positions, vec![vec![0, 1], vec![2, 3]]);
 }
 
 #[test]

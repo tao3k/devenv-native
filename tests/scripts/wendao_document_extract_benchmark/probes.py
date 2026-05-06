@@ -281,23 +281,36 @@ def run_fixture_probe(
         else 0
     )
     cache_error_rows = cached_report.get("errorRowCount", 0)
+    force_artifact_summary = summarize_artifact_reports(
+        force_report.get("artifactReports", [])
+    )
     artifact_summary = summarize_artifact_reports(
         cached_report.get("artifactReports", [])
     )
+    shard_cache_reuse_artifact_summary = (
+        summarize_artifact_reports(shard_cache_reuse_report.get("artifactReports", []))
+        if shard_cache_reuse_report
+        else None
+    )
+    artifact_registry_reuse_artifact_summary = (
+        summarize_artifact_reports(
+            artifact_registry_reuse_report.get("artifactReports", [])
+        )
+        if artifact_registry_reuse_report
+        else None
+    )
     metrics_rows_by_run = {
-        "force": summarize_artifact_reports(force_report.get("artifactReports", []))[
-            "metricsRows"
-        ],
+        "force": force_artifact_summary["metricsRows"],
         "cache": artifact_summary["metricsRows"],
     }
-    if shard_cache_reuse_report:
-        metrics_rows_by_run["shard_cache_reuse"] = summarize_artifact_reports(
-            shard_cache_reuse_report.get("artifactReports", [])
-        )["metricsRows"]
-    if artifact_registry_reuse_report:
-        metrics_rows_by_run["artifact_registry_reuse"] = summarize_artifact_reports(
-            artifact_registry_reuse_report.get("artifactReports", [])
-        )["metricsRows"]
+    if shard_cache_reuse_artifact_summary:
+        metrics_rows_by_run["shard_cache_reuse"] = shard_cache_reuse_artifact_summary[
+            "metricsRows"
+        ]
+    if artifact_registry_reuse_artifact_summary:
+        metrics_rows_by_run["artifact_registry_reuse"] = (
+            artifact_registry_reuse_artifact_summary["metricsRows"]
+        )
     structure_order_consistency = fixture_structure_order_consistency(
         force_report,
         cached_report,
@@ -324,9 +337,20 @@ def run_fixture_probe(
             if metrics_rows <= 0
         ]
         if missing_metrics_runs:
+            fallback_reasons = hybrid_page_ocr_fallback_reasons_by_run(
+                force_report,
+                cached_report,
+                shard_cache_reuse_report,
+                artifact_registry_reuse_report,
+            )
+            reason_suffix = (
+                "; hybrid fallback reasons: " + "; ".join(fallback_reasons)
+                if fallback_reasons
+                else ""
+            )
             raise SystemExit(
                 f"fixture `{fixture_name}` produced no OCR metrics rows for: "
-                f"{', '.join(missing_metrics_runs)}"
+                f"{', '.join(missing_metrics_runs)}{reason_suffix}"
             )
     if (
         getattr(args, "fail_on_structure_order_mismatch", False)
@@ -453,6 +477,37 @@ def run_fixture_probe(
         "metricsRustSchedulerElapsedMs": artifact_summary[
             "metricsRustSchedulerElapsedMs"
         ],
+        "forceHybridPageOcrTimingTotalElapsedMs": force_artifact_summary[
+            "hybridPageOcrTimingTotalElapsedMs"
+        ],
+        "forceHybridPageOcrTimingPhaseElapsedMs": force_artifact_summary[
+            "hybridPageOcrTimingPhaseElapsedMs"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionShardCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionShardCount"
+        ],
+        "shardCacheReuseMetricsRustSchedulerElapsedMs": (
+            shard_cache_reuse_artifact_summary["metricsRustSchedulerElapsedMs"]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingTotalElapsedMs": (
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingTotalElapsedMs"]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs": (
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingPhaseElapsedMs"]
+            if shard_cache_reuse_artifact_summary
+            else {}
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionShardCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionShardCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
         "documentTimingArrowExists": artifact_summary["documentTimingArrowExists"],
         "documentTimingRows": artifact_summary["documentTimingRows"],
         "documentTimingTotalElapsedMs": artifact_summary[
@@ -461,6 +516,9 @@ def run_fixture_probe(
         "documentTimingOverheadMs": document_timing_overhead_ms,
         "documentTimingPhaseElapsedMs": artifact_summary[
             "documentTimingPhaseElapsedMs"
+        ],
+        "hybridPageOcrFallbackReasons": artifact_summary[
+            "hybridPageOcrFallbackReasons"
         ],
         "imageAttachmentAuditCount": artifact_summary["imageAttachmentAuditCount"],
         "imageKnownDimensionCount": artifact_summary["imageKnownDimensionCount"],
@@ -489,6 +547,28 @@ def run_fixture_probe(
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
         "cacheSpeedup": force_refresh_ms / max(percentile(cached_latencies, 50), 0.001),
     }
+
+
+def hybrid_page_ocr_fallback_reasons_by_run(
+    force_report: dict[str, Any],
+    cached_report: dict[str, Any],
+    shard_cache_reuse_report: dict[str, Any] | None,
+    artifact_registry_reuse_report: dict[str, Any] | None,
+) -> list[str]:
+    reports_by_run = {
+        "force": force_report,
+        "cache": cached_report,
+    }
+    if shard_cache_reuse_report is not None:
+        reports_by_run["shard_cache_reuse"] = shard_cache_reuse_report
+    if artifact_registry_reuse_report is not None:
+        reports_by_run["artifact_registry_reuse"] = artifact_registry_reuse_report
+    reasons = []
+    for run_name, report in reports_by_run.items():
+        summary = summarize_artifact_reports(report.get("artifactReports", []))
+        for reason in summary.get("hybridPageOcrFallbackReasons", []):
+            reasons.append(f"{run_name}: {reason}")
+    return reasons
 
 
 def document_timing_overhead(

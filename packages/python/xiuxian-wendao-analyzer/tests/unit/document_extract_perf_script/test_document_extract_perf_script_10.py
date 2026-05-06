@@ -106,6 +106,15 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
                     "metricsResultChars": 2048,
                     "metricsBboxCount": 21,
                     "metricsRustSchedulerElapsedMs": 40.0,
+                    "hybridPageOcrTimingReportBytes": 128,
+                    "hybridPageOcrTimingTotalElapsedMs": latency,
+                    "hybridPageOcrTimingPhaseElapsedMs": {
+                        "regionMaterialize": 38.0,
+                        "ocrScheduler": 4.0,
+                        "total": latency,
+                    },
+                    "hybridPageOcrTimingOcrShardCount": 21,
+                    "hybridPageOcrTimingOcr2RegionShardCount": 0,
                 }
             ],
         }
@@ -142,6 +151,11 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
     assert result["shardCacheReuseEnabled"] is True
     assert result["shardCacheReuseForceMs"] == 42.0
     assert result["shardCacheReuseErrorRows"] == 0
+    assert result["shardCacheReuseMetricsRustSchedulerElapsedMs"] == 40.0
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingPhaseElapsedMs"]["ocrScheduler"]
+        == 4.0
+    )
     assert result["artifactRegistryReuseEnabled"] is True
     assert result["artifactRegistryReuseForceMs"] == 9.0
     assert result["artifactRegistryReuseErrorRows"] == 0
@@ -247,6 +261,76 @@ def test_pdf_ocr_milestone_guard_flags_latency_regression() -> None:
     )
 
 
+def test_pdf_ocr_milestone_guard_flags_char_count_regression() -> None:
+    benchmark = _load_benchmark_module()
+    result = _pdf_ocr_milestone_result(metrics_result_chars=98_157)
+
+    guard = benchmark.summarize_results([result])["precisionSpeedSummary"][
+        "pdfOcrMilestoneGuard"
+    ]
+
+    assert guard["checked"] is True
+    assert guard["passed"] is False
+    assert "metricsResultChars 98157 below baseline 103984" in guard["regressions"]
+    assert guard["observations"][0]["metricsResultChars"] == 98_157
+
+
+def test_pdf_ocr_milestone_guard_accepts_region_sidecars() -> None:
+    benchmark = _load_benchmark_module()
+    result = _pdf_ocr_milestone_result(
+        force_ms=25_660.228292,
+        resources_rows=27,
+        structure_rows=27,
+        ocr_page_blocks=21,
+        ocr_region_blocks=6,
+        bbox_blocks=27,
+        metrics_rows=27,
+        metrics_result_chars=113_088,
+        shard_cache_reuse_ms=5600.0,
+        shard_cache_reuse_scheduler_ms=3.6,
+    )
+
+    guard = benchmark.summarize_results([result])["precisionSpeedSummary"][
+        "pdfOcrMilestoneGuard"
+    ]
+
+    assert guard["checked"] is True
+    assert guard["passed"] is True
+    assert guard["regressions"] == []
+    assert guard["observations"][0]["ocrPageBlocks"] == 21
+    assert guard["observations"][0]["ocrRegionBlocks"] == 6
+    assert guard["observations"][0]["shardCacheReuseForceMs"] == 5600.0
+    assert (
+        guard["observations"][0]["shardCacheReuseMetricsRustSchedulerElapsedMs"] == 3.6
+    )
+
+
+def test_pdf_ocr_milestone_guard_flags_region_sidecar_scheduler_regression() -> None:
+    benchmark = _load_benchmark_module()
+    result = _pdf_ocr_milestone_result(
+        resources_rows=27,
+        structure_rows=27,
+        ocr_page_blocks=21,
+        ocr_region_blocks=6,
+        bbox_blocks=27,
+        metrics_rows=27,
+        metrics_result_chars=113_088,
+        shard_cache_reuse_ms=5600.0,
+        shard_cache_reuse_scheduler_ms=300.0,
+    )
+
+    guard = benchmark.summarize_results([result])["precisionSpeedSummary"][
+        "pdfOcrMilestoneGuard"
+    ]
+
+    assert guard["checked"] is True
+    assert guard["passed"] is False
+    assert (
+        "shardCacheReuseMetricsRustSchedulerElapsedMs 300.000 exceeded baseline 213.161"
+        in guard["regressions"]
+    )
+
+
 def test_pdf_ocr_milestone_guard_ignores_non_milestone_fixture() -> None:
     benchmark = _load_benchmark_module()
     result = _pdf_ocr_milestone_result(
@@ -269,14 +353,94 @@ def test_pdf_ocr_milestone_guard_ignores_non_milestone_fixture() -> None:
     assert guard["reason"] == "no OCR-positive 21-page PDF milestone fixture observed"
 
 
+def test_ocr2_promotion_gate_ignores_non_ocr2_candidate() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _ocr2_promotion_payload(
+        benchmark,
+        rust_pdf_ocr_profile_planner="fast-risk-window",
+        rust_pdf_ocr2_region_planner="disabled",
+        request_count=0,
+        ocr_region_blocks=0,
+    )
+
+    gate = benchmark.ocr2_promotion_gate(payload)
+
+    assert gate["checked"] is False
+    assert gate["passed"] is False
+    assert gate["reasons"] == ["not an OCR2 promotion candidate"]
+
+
+def test_ocr2_promotion_gate_passes_precise_fast_candidate() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _ocr2_promotion_payload(
+        benchmark,
+        force_ms=10_000.0,
+        shard_cache_reuse_ms=144.232,
+    )
+
+    gate = benchmark.ocr2_promotion_gate(payload)
+
+    assert gate["checked"] is True
+    assert gate["passed"] is True
+    assert gate["reasons"] == []
+    assert gate["observed"]["requestCount"] == 3
+    assert gate["observed"]["ocrRegionBlocks"] == 3
+
+
+def test_ocr2_promotion_gate_rejects_current_auto_region_latency() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _ocr2_promotion_payload(
+        benchmark,
+        force_ms=39_276.940291,
+        shard_cache_reuse_ms=3268.908833,
+        shard_cache_reuse_scheduler_ms=3.6,
+    )
+
+    gate = benchmark.ocr2_promotion_gate(payload)
+
+    assert gate["checked"] is True
+    assert gate["passed"] is False
+    assert any(
+        "maxForceRefreshMs 39276.940 exceeded" in reason for reason in gate["reasons"]
+    )
+    assert not any(
+        "maxShardCacheReuseForceMs 3268.909 exceeded" in reason
+        for reason in gate["reasons"]
+    )
+
+
+def test_ocr2_promotion_gate_treats_adaptive_region_planner_as_candidate() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _ocr2_promotion_payload(
+        benchmark,
+        rust_pdf_ocr_profile_planner="fast-risk-window",
+        rust_pdf_ocr2_region_planner="profile-risk-window-adaptive",
+        request_count=0,
+        ocr_region_blocks=0,
+    )
+
+    gate = benchmark.ocr2_promotion_gate(payload)
+
+    assert gate["checked"] is True
+    assert gate["passed"] is False
+    assert "no OCR2 requests observed" in gate["reasons"]
+    assert (
+        "automatic OCR2 region planner produced no OCR2 region requests"
+        in gate["reasons"]
+    )
+
+
 def _pdf_ocr_milestone_result(
     *,
     fixture: str = "ocr-positive-pdf",
     attachment_class: str = "pdf",
     force_ms: float = 43_917.25,
+    shard_cache_reuse_ms: float = 144.232,
+    shard_cache_reuse_scheduler_ms: float | None = 144.232,
     resources_rows: int = 21,
     structure_rows: int = 21,
     ocr_page_blocks: int = 21,
+    ocr_region_blocks: int = 0,
     bbox_blocks: int = 21,
     metrics_rows: int = 21,
     metrics_result_chars: int = 103_984,
@@ -287,8 +451,14 @@ def _pdf_ocr_milestone_result(
         "attachmentClass": attachment_class,
         "forceRefreshMs": force_ms,
         "forceErrorRows": 0,
-        "shardCacheReuseForceMs": 144.232,
+        "shardCacheReuseForceMs": shard_cache_reuse_ms,
         "shardCacheReuseErrorRows": 0,
+        "shardCacheReuseMetricsRustSchedulerElapsedMs": shard_cache_reuse_scheduler_ms,
+        "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs": {
+            "regionMaterialize": max(shard_cache_reuse_ms - 10.0, 0.0),
+            "ocrScheduler": shard_cache_reuse_scheduler_ms,
+            "total": shard_cache_reuse_ms,
+        },
         "artifactRegistryReuseErrorRows": 0,
         "cacheHitP95Ms": 11.921,
         "cacheErrorRows": 0,
@@ -300,7 +470,7 @@ def _pdf_ocr_milestone_result(
         "resourcesRows": resources_rows,
         "structureRows": structure_rows,
         "structureOcrPageBlocks": ocr_page_blocks,
-        "structureOcrRegionBlocks": 0,
+        "structureOcrRegionBlocks": ocr_region_blocks,
         "structureBboxBlocks": bbox_blocks,
         "structureReadingOrderSorted": True,
         "structureOrderStable": True,
@@ -315,6 +485,55 @@ def _pdf_ocr_milestone_result(
         "documentTimingPhaseElapsedMs": {"doclingConvert": force_ms - 100.0},
         "artifactErrorCount": 0,
         "rustJobsStatusSummary": {},
+    }
+
+
+def _ocr2_promotion_payload(
+    benchmark: object,
+    *,
+    rust_pdf_ocr_profile_planner: str = "ocr2-risk-window",
+    rust_pdf_ocr2_region_planner: str = "profile-risk-window",
+    force_ms: float = 10_000.0,
+    shard_cache_reuse_ms: float = 144.232,
+    shard_cache_reuse_scheduler_ms: float | None = 144.232,
+    metrics_result_chars: int = 109_412,
+    request_count: int = 3,
+    success_count: int = 3,
+    failure_count: int = 0,
+    parse_error_count: int = 0,
+    ocr_region_blocks: int = 3,
+) -> dict[str, object]:
+    result = _pdf_ocr_milestone_result(
+        force_ms=force_ms,
+        shard_cache_reuse_ms=shard_cache_reuse_ms,
+        shard_cache_reuse_scheduler_ms=shard_cache_reuse_scheduler_ms,
+        resources_rows=21 + ocr_region_blocks,
+        structure_rows=21 + ocr_region_blocks,
+        ocr_page_blocks=21,
+        ocr_region_blocks=ocr_region_blocks,
+        bbox_blocks=21 + ocr_region_blocks,
+        metrics_rows=21 + ocr_region_blocks,
+        metrics_result_chars=metrics_result_chars,
+    )
+    summary = benchmark.summarize_results([result])
+    return {
+        "rustPdfOcrProfilePlanner": rust_pdf_ocr_profile_planner,
+        "rustPdfOcr2RegionPlanner": rust_pdf_ocr2_region_planner,
+        "summary": summary,
+        "deepseekOcr2": {
+            "provider": "openrouter",
+            "openRouterModel": "baidu/qianfan-ocr-fast:free",
+            "openRouterApiKeyConfigured": True,
+            "requestSummary": {
+                "requestCount": request_count,
+                "successCount": success_count,
+                "failureCount": failure_count,
+                "parseErrorCount": parse_error_count,
+                "regionShardCount": ocr_region_blocks,
+                "latencyMsP95": 10_000.0,
+                "sourcePixelAreaTotal": 8_734_917,
+            },
+        },
     }
 
 

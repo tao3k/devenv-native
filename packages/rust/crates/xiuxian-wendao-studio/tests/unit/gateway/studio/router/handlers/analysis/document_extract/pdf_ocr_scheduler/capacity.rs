@@ -3,7 +3,9 @@ use super::{
     is_contiguous_source_pdf_page_range, is_source_pdf_page_range_batch,
     scheduled_ocr_worker_budget,
 };
-use xiuxian_wendao_attachments::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput};
+use xiuxian_wendao_attachments::pdf::ocr::{
+    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
+};
 
 #[test]
 fn adaptive_capacity_increases_after_healthy_window() {
@@ -140,6 +142,18 @@ fn source_pdf_page_range_batch_rejects_mixed_sources() {
         sample_ocr_input("/tmp/source-a.pdf", 0, "page"),
         sample_ocr_input("/tmp/source-b.pdf", 1, "page"),
     ];
+
+    assert!(!is_source_pdf_page_range_batch(inputs.as_slice()));
+    assert_eq!(
+        classify_ocr_lane(inputs.as_slice()),
+        OcrSchedulerLane::RenderedPage
+    );
+}
+
+#[test]
+fn source_pdf_page_range_batch_rejects_direct_ocr2_pages() {
+    let mut inputs = vec![sample_ocr_input("/tmp/source.pdf", 0, "page")];
+    inputs[0].ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
 
     assert!(!is_source_pdf_page_range_batch(inputs.as_slice()));
     assert_eq!(

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from .support import (
     Path,
     _load_benchmark_module,
@@ -127,10 +129,20 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "python-worker-1.txt",
         "python-worker-2.txt",
     ]
-    assert [call[2]["deepseek_ocr2_env"] for call in calls] == [
-        {"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
-        {"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
-        {"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
+    assert [
+        call[2]["deepseek_ocr2_env"]["WENDAO_DEEPSEEK_OCR2_MODEL"] for call in calls
+    ] == [
+        "community/ocr2-awq",
+        "community/ocr2-awq",
+        "community/ocr2-awq",
+    ]
+    assert [
+        Path(call[2]["deepseek_ocr2_env"]["WENDAO_DEEPSEEK_OCR2_TRACE_PATH"]).name
+        for call in calls
+    ] == [
+        "python-worker-0.ocr2.jsonl",
+        "python-worker-1.ocr2.jsonl",
+        "python-worker-2.ocr2.jsonl",
     ]
 
 
@@ -142,8 +154,11 @@ def test_deepseek_ocr2_process_env_maps_cli_args() -> None:
         deepseek_ocr2_model="community/deepseek-ocr2-awq",
         deepseek_ocr2_prompt="<image>\nmarkdown",
         deepseek_ocr2_max_tokens=4096,
+        deepseek_ocr2_region_max_tokens=2048,
+        deepseek_ocr2_region_composite_size=2,
         deepseek_ocr2_timeout_seconds=120.0,
         deepseek_ocr2_request_concurrency=4,
+        deepseek_ocr2_page_window_size=3,
         openrouter_model="openrouter/vision-ocr",
         openrouter_http_referer="https://wendao.local",
         openrouter_title="Wendao OCR Benchmark",
@@ -155,8 +170,11 @@ def test_deepseek_ocr2_process_env_maps_cli_args() -> None:
         "WENDAO_DEEPSEEK_OCR2_MODEL": "community/deepseek-ocr2-awq",
         "WENDAO_DEEPSEEK_OCR2_PROMPT": "<image>\nmarkdown",
         "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS": "4096",
+        "WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS": "2048",
+        "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE": "2",
         "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS": "120.0",
         "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY": "4",
+        "WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE": "3",
         "WENDAO_OPENROUTER_MODEL": "openrouter/vision-ocr",
         "WENDAO_OPENROUTER_HTTP_REFERER": "https://wendao.local",
         "WENDAO_OPENROUTER_TITLE": "Wendao OCR Benchmark",
@@ -171,8 +189,11 @@ def test_deepseek_ocr2_process_env_defaults_openrouter_smoke_model() -> None:
         deepseek_ocr2_model=None,
         deepseek_ocr2_prompt=None,
         deepseek_ocr2_max_tokens=None,
+        deepseek_ocr2_region_max_tokens=None,
+        deepseek_ocr2_region_composite_size=None,
         deepseek_ocr2_timeout_seconds=None,
         deepseek_ocr2_request_concurrency=None,
+        deepseek_ocr2_page_window_size=None,
         openrouter_model=None,
         openrouter_http_referer=None,
         openrouter_title=None,
@@ -182,6 +203,87 @@ def test_deepseek_ocr2_process_env_defaults_openrouter_smoke_model() -> None:
         "WENDAO_DEEPSEEK_OCR2_PROVIDER": "openrouter",
         "WENDAO_OPENROUTER_MODEL": "baidu/qianfan-ocr-fast:free",
     }
+
+
+def test_summarize_deepseek_ocr2_request_traces(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "python-worker.ocr2.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "status": "succeeded",
+                        "httpStatus": 200,
+                        "startedUnixMs": 1_000,
+                        "endedUnixMs": 1_010,
+                        "latencyMs": 10.0,
+                        "model": "baidu/qianfan-ocr-fast:free",
+                        "markdownChars": 100,
+                        "imageBytes": 2048,
+                        "pageCount": 2,
+                        "requestKind": "page-window-canary",
+                        "shardCount": 2,
+                        "shardTypeCounts": {"page": 2},
+                        "sourcePixelArea": 2000,
+                        "renderDpi": 300,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "status": "failed",
+                        "httpStatus": 429,
+                        "startedUnixMs": 1_005,
+                        "endedUnixMs": 1_035,
+                        "latencyMs": 30.0,
+                        "model": "baidu/qianfan-ocr-fast:free",
+                        "markdownChars": 0,
+                        "imageBytes": 1024,
+                        "requestKind": "region",
+                        "shardCount": 1,
+                        "shardTypeCounts": {"region": 1},
+                        "sourcePixelArea": 400,
+                        "renderDpi": 300,
+                    }
+                ),
+                "{bad-json",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    summary = benchmark.summarize_deepseek_ocr2_request_traces(log_dir)
+
+    assert summary["traceFileCount"] == 1
+    assert summary["requestCount"] == 2
+    assert summary["successCount"] == 1
+    assert summary["failureCount"] == 1
+    assert summary["parseErrorCount"] == 1
+    assert summary["statusCounts"] == {"failed": 1, "succeeded": 1}
+    assert summary["httpStatusCounts"] == {"200": 1, "429": 1}
+    assert summary["modelCounts"] == {"baidu/qianfan-ocr-fast:free": 2}
+    assert summary["requestKindCounts"] == {
+        "page-window-canary": 1,
+        "region": 1,
+    }
+    assert summary["shardTypeCounts"] == {"page": 2, "region": 1}
+    assert summary["renderDpiCounts"] == {"300": 2}
+    assert summary["pageCountTotal"] == 3
+    assert summary["shardCountTotal"] == 3
+    assert summary["pageShardCount"] == 2
+    assert summary["regionShardCount"] == 1
+    assert summary["charCountTotal"] == 100
+    assert summary["imageBytesTotal"] == 3072
+    assert summary["sourcePixelAreaTotal"] == 2400
+    assert summary["latencyMsP50"] == 10.0
+    assert summary["latencyMsP95"] == 30.0
+    assert summary["latencyMsMax"] == 30.0
+    assert summary["requestLatencyMsTotal"] == 40.0
+    assert summary["requestWallStartUnixMs"] == 1_000
+    assert summary["requestWallEndUnixMs"] == 1_035
+    assert summary["requestWallSpanMs"] == 35
+    assert summary["requestLatencyOverlapRatio"] == 1.143
 
 
 def test_openrouter_key_configured_reads_environment(monkeypatch) -> None:

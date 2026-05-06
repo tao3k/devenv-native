@@ -237,6 +237,10 @@ OCR: `lopdf` reads the page tree, Rust emits one source-range shard row per
 selected page, and Docling remains the OCR authority over the original PDF page
 range. PDFium-backed rendering remains available for region/raster proofs, but
 it is not required for the full-page source-range hot path.
+When Studio asks for OCR2 risk-window recovery, attachments can materialize a
+bounded set of selected page indices through the same PDFium page-shard
+contract. This lets the provider keep ordinary pages on source-range rows while
+rendering only the recovery pages that require VLM image input.
 Rust may split one contiguous source-PDF page range into multiple contiguous
 subranges when OCR worker permits are available. The source-range lane uses a
 current adaptive OCR budget, machine-derived worker bound, and page count to let
@@ -271,14 +275,33 @@ The same explicit region fixture syntax can drive the opt-in live
 `hybrid-page-ocr` benchmark through `--hybrid-pdf-render-selection
 region-shards`. In that mode, region OCR is supplemental: native text page
 coverage remains required for the page, and full-page OCR shards continue to
-replace only their selected pages.
+replace only their selected pages. Studio may deescalate the parent page back
+to the fast source-range profile and append the rendered region rows as OCR2
+recovery inputs, but the Arrow OCR shard input/result schema remains unchanged.
+The Studio hybrid provider applies bounded semantic context padding to those
+region requests before OCR2 recovery so table captions, formula surroundings,
+and nearby headers are not cropped away. The benchmark can override that
+padding with `--rust-pdf-ocr-region-context-ratio`; `0` disables padding for
+controlled experiments. If no explicit region fixture is configured, Studio may
+opt into a benchmark-only `profile-risk-window` OCR2 region planner that builds
+a conservative content-band region from the parent page crop box for pages
+already selected by the OCR2 risk-window planner. The adjacent
+`profile-risk-window-slices` and `profile-risk-window-adaptive` variants keep
+the same source selection while splitting that content band for hosted OCR2
+tail-latency probes; adaptive splitting chooses the slice count from
+attachment-owned source-page structure profiles plus estimated region pixel
+area instead of applying a fixed three-way split. OCR2 render DPI is a fidelity
+floor, not a speed knob: values below the default OCR DPI are ignored by the
+provider.
 
 When region shards pass through the hybrid provider, `_structure.arrow`
 preserves their `readingOrderKey`, PDF-point bbox, confidence, shard identity,
-parent shard identity, and raster/image provenance. `_resources.arrow` remains
-the stable nine-column result table; structure metadata is kept in the sidecar
-so downstream consumers can restore document order without expanding the user
-resource schema.
+parent shard identity, and raster/image provenance. OCR2 recovery region rows
+use a `sentinel-sidecar-v1` patch protocol in structure provenance after Studio
+binds each region back to the retained fast parent page. `_resources.arrow`
+remains the stable nine-column result table; structure metadata is kept in the
+sidecar so downstream consumers can restore document order without expanding
+the user resource schema.
 
 This is still opt-in infrastructure. No OCR worker is started by the
 production Wendao gateway, and default document extraction does not consume

@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 
 from xiuxian_wendao_analyzer.pdf_ocr import (
+    DEEPSEEK_OCR2_API_KEY_ENV,
     DEEPSEEK_OCR2_BASE_URL_ENV,
+    DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
+    DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS,
+    DEEPSEEK_OCR2_MAX_TOKENS_ENV,
     DEEPSEEK_OCR2_MODEL_ENV,
     DEEPSEEK_OCR2_OPENROUTE_COMPAT_API_KEY_ENV,
     DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV,
@@ -15,8 +20,12 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     DEEPSEEK_OCR2_OPENROUTER_PROVIDER,
     DEEPSEEK_OCR2_OPENROUTER_TEST_MODEL,
     DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV,
+    DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV,
     DEEPSEEK_OCR2_PROVIDER_ENV,
+    DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
+    DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV,
     DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
+    DEEPSEEK_OCR2_TRACE_PATH_ENV,
     PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
@@ -202,6 +211,747 @@ def test_docling_pdf_ocr_worker_uses_deepseek_ocr2_openai_endpoint(
     )
 
 
+def test_docling_pdf_ocr_worker_retries_transient_deepseek_ocr2_http_error(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+    requests: list[object] = []
+    sleeps: list[float] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "retry ok"}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        if len(requests) == 1:
+            raise urllib.error.HTTPError(
+                url="http://127.0.0.1:8999/v1/chat/completions",
+                code=502,
+                msg="Bad Gateway",
+                hdrs={},
+                fp=None,
+            )
+        return FakeResponse()
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.time.sleep",
+        lambda seconds: sleeps.append(seconds),
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "retry ok"
+    assert len(requests) == 2
+    assert sleeps == [0.25]
+
+
+def test_docling_pdf_ocr_worker_honors_ocr2_retry_after(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+    requests: list[object] = []
+    sleeps: list[float] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "retry ok"}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        if len(requests) == 1:
+            raise urllib.error.HTTPError(
+                url="http://127.0.0.1:8999/v1/chat/completions",
+                code=429,
+                msg="Too Many Requests",
+                hdrs={"Retry-After": "3"},
+                fp=None,
+            )
+        return FakeResponse()
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.time.sleep",
+        lambda seconds: sleeps.append(seconds),
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "retry ok"
+    assert len(requests) == 2
+    assert sleeps == [3.0]
+
+
+def test_docling_pdf_ocr_worker_retries_transient_failed_group_rows(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    images = [tmp_path / f"page-{page_index:05}.png" for page_index in range(2)]
+    for image in images:
+        image.write_bytes(b"png fixture")
+    requests: list[object] = []
+    sleeps: list[float] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, text: str) -> None:
+            self._text = text
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._text}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        if len(requests) <= 4:
+            raise urllib.error.HTTPError(
+                url="http://127.0.0.1:8999/v1/chat/completions",
+                code=502,
+                msg="Bad Gateway",
+                hdrs={},
+                fp=None,
+            )
+        return FakeResponse(f"retry ok {len(requests)}")
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.time.sleep",
+        lambda seconds: sleeps.append(seconds),
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(
+            [
+                _sample_pdf_ocr_input_table(
+                    image_path=str(images[0]),
+                    page_index=0,
+                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ),
+                _sample_pdf_ocr_input_table(
+                    image_path=str(images[1]),
+                    page_index=1,
+                    shard_element_id="shard-1",
+                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ),
+            ]
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    rows = table.to_pylist()
+    assert [row["status"] for row in rows] == ["succeeded", "succeeded"]
+    assert [row["text"] for row in rows] == ["retry ok 6", "retry ok 5"]
+    assert len(requests) == 6
+    assert sleeps == [0.25, 0.5, 1.0, 8.0]
+
+
+def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+    trace_path = tmp_path / "ocr2.jsonl"
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "# traced\n"}}]}
+            ).encode("utf-8")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "community/deepseek-ocr2-awq")
+    monkeypatch.setenv(DEEPSEEK_OCR2_API_KEY_ENV, "secret-key")
+    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        lambda request, *, timeout: FakeResponse(),
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            page_index=7,
+            shard_element_id="ocr2-trace-shard",
+            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert table.to_pylist()[0]["text"] == "# traced\n"
+    trace_text = trace_path.read_text(encoding="utf-8")
+    assert "secret-key" not in trace_text
+    records = [json.loads(line) for line in trace_text.splitlines()]
+    assert records == [
+        {
+            "endpoint": "http://127.0.0.1:8999/v1/chat/completions",
+            "endedUnixMs": records[0]["endedUnixMs"],
+            "errorMessage": None,
+            "errorType": None,
+            "httpStatus": 200,
+            "imageBytes": len(b"png fixture"),
+            "latencyMs": records[0]["latencyMs"],
+            "markdownChars": len("# traced\n"),
+            "maxTokens": 8192,
+            "model": "community/deepseek-ocr2-awq",
+            "ocrProfile": PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            "parentShardElementId": "",
+            "pageCount": 1,
+            "pageIndex": 7,
+            "rasterHeightPx": 3100,
+            "rasterWidthPx": 2400,
+            "readingOrderKey": "000000.000000",
+            "regionIndex": 0,
+            "renderDpi": 300,
+            "requestKind": "page",
+            "schema": "xiuxian_wendao.deepseek_ocr2_request_trace.v1",
+            "shardCount": 1,
+            "shardElementId": "ocr2-trace-shard",
+            "shardType": "page",
+            "shardTypeCounts": {"page": 1},
+            "sourcePagePixelBottom": 3100,
+            "sourcePagePixelLeft": 0,
+            "sourcePagePixelRight": 2400,
+            "sourcePagePixelTop": 0,
+            "sourcePixelArea": 7_440_000,
+            "startedUnixMs": records[0]["startedUnixMs"],
+            "status": "succeeded",
+            "timestampUnixMs": records[0]["timestampUnixMs"],
+        }
+    ]
+    assert records[0]["latencyMs"] >= 0
+    assert records[0]["startedUnixMs"] <= records[0]["endedUnixMs"]
+    assert records[0]["timestampUnixMs"] == records[0]["endedUnixMs"]
+    assert records[0]["timestampUnixMs"] > 0
+
+
+def test_docling_pdf_ocr_worker_caps_region_ocr2_tokens(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    page_image = tmp_path / "page-00000.png"
+    region_image = tmp_path / "region-00000.png"
+    page_image.write_bytes(b"page png fixture")
+    region_image.write_bytes(b"region png fixture")
+    payloads: list[dict[str, object]] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "# OCR2\n"}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payloads.append(json.loads(request.data.decode("utf-8")))
+        return FakeResponse()
+
+    monkeypatch.delenv(DEEPSEEK_OCR2_MAX_TOKENS_ENV, raising=False)
+    monkeypatch.delenv(DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV, raising=False)
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(
+            [
+                _sample_pdf_ocr_input_table(
+                    source_path=str(source),
+                    image_path=str(page_image),
+                    page_index=0,
+                    shard_element_id="ocr2-page",
+                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ),
+                _sample_pdf_ocr_input_table(
+                    source_path=str(source),
+                    image_path=str(region_image),
+                    page_index=0,
+                    shard_element_id="ocr2-region",
+                    shard_type="region",
+                    region_index=1,
+                    parent_shard_element_id="ocr2-page",
+                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ),
+            ]
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == ["succeeded", "succeeded"]
+    assert [payload["max_tokens"] for payload in payloads] == [
+        DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
+        DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS,
+    ]
+
+
+def test_docling_pdf_ocr_worker_uses_lower_global_region_ocr2_token_limit(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "region-00000.png"
+    image.write_bytes(b"region png fixture")
+    payloads: list[dict[str, object]] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "# OCR2\n"}}]}
+            ).encode("utf-8")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_MAX_TOKENS_ENV, "1024")
+    monkeypatch.delenv(DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV, raising=False)
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        lambda request, *, timeout: payloads.append(
+            json.loads(request.data.decode("utf-8"))
+        )
+        or FakeResponse(),
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            shard_type="region",
+            region_index=1,
+            parent_shard_element_id="ocr2-page",
+            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert table.to_pylist()[0]["status"] == "succeeded"
+    assert payloads[0]["max_tokens"] == 1024
+
+
+def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
+    for index, image in enumerate(region_images):
+        image.write_bytes(f"region png fixture {index}".encode())
+    trace_path = tmp_path / "ocr2-region-composite.jsonl"
+    requests: list[object] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->\n"
+                                    "| A | B |\n"
+                                    "<!-- xiuxian-wendao-ocr2-region:0:2:region-b -->\n"
+                                    "$x^2$\n"
+                                )
+                            }
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        return FakeResponse()
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[0]),
+                page_index=0,
+                shard_element_id="region-a",
+                shard_type="region",
+                region_index=1,
+                parent_shard_element_id="parent-page",
+                reading_order_key="000000.010000",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ),
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[1]),
+                page_index=0,
+                shard_element_id="region-b",
+                shard_type="region",
+                region_index=2,
+                parent_shard_element_id="parent-page",
+                reading_order_key="000000.020000",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ),
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["text"] for row in table.to_pylist()] == ["| A | B |", "$x^2$"]
+    assert len(requests) == 1
+    payload = json.loads(requests[0].data.decode("utf-8"))
+    content = payload["messages"][0]["content"]
+    assert payload["max_tokens"] == DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS * 2
+    assert sum(1 for part in content if part["type"] == "image_url") == 2
+    assert "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->" in content[0]["text"]
+    assert "<!-- xiuxian-wendao-ocr2-region:0:2:region-b -->" in content[0]["text"]
+    records = [
+        json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert records[0]["requestKind"] == "region-composite"
+    assert records[0]["shardCount"] == 2
+    assert records[0]["shardTypeCounts"] == {"region": 2}
+    assert records[0]["sourcePixelArea"] == 14_880_000
+    assert records[0]["maxTokens"] == DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS * 2
+
+
+def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
+    for image in region_images:
+        image.write_bytes(b"region png fixture")
+    request_image_counts: list[int] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, markdown: str) -> None:
+            self._markdown = markdown
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._markdown}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        image_count = sum(
+            1
+            for part in payload["messages"][0]["content"]
+            if part["type"] == "image_url"
+        )
+        request_image_counts.append(image_count)
+        if image_count > 1:
+            return FakeResponse("missing region markers")
+        return FakeResponse(f"# fallback region {len(request_image_counts)}")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[index]),
+                page_index=0,
+                shard_element_id=f"region-{index}",
+                shard_type="region",
+                region_index=index + 1,
+                parent_shard_element_id="parent-page",
+                reading_order_key=f"000000.0{index + 1}0000",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for index in range(2)
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == ["succeeded", "succeeded"]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "# fallback region 2",
+        "# fallback region 3",
+    ]
+    assert request_image_counts == [2, 1, 1]
+
+
+def test_docling_pdf_ocr_worker_batches_direct_ocr2_page_window(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    image_paths = [tmp_path / f"page-{page_index:05}.png" for page_index in range(2)]
+    for page_index, image_path in enumerate(image_paths):
+        image_path.write_bytes(f"png fixture {page_index}".encode())
+    requests: list[object] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    "<!-- xiuxian-wendao-ocr2-page:0 -->\n"
+                                    "# Page zero\n"
+                                    "<!-- xiuxian-wendao-ocr2-page:1 -->\n"
+                                    "# Page one\n"
+                                )
+                            }
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        return FakeResponse()
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "unit/window-success")
+    monkeypatch.setenv(DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV, "2")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(image_path),
+                page_index=page_index,
+                shard_element_id=f"ocr2-shard-{page_index}",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for page_index, image_path in enumerate(image_paths)
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["text"] for row in table.to_pylist()] == [
+        "# Page zero",
+        "# Page one",
+    ]
+    assert len(requests) == 1
+    payload = json.loads(requests[0].data.decode("utf-8"))
+    content = payload["messages"][0]["content"]
+    assert sum(1 for part in content if part["type"] == "image_url") == 2
+    assert "<!-- xiuxian-wendao-ocr2-page:0 -->" in content[0]["text"]
+    assert "<!-- xiuxian-wendao-ocr2-page:1 -->" in content[0]["text"]
+
+
+def test_docling_pdf_ocr_worker_falls_back_when_ocr2_page_window_is_invalid(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    image_paths = [tmp_path / f"page-{page_index:05}.png" for page_index in range(4)]
+    for image_path in image_paths:
+        image_path.write_bytes(b"png fixture")
+    request_image_counts: list[int] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, markdown: str) -> None:
+            self._markdown = markdown
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._markdown}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        image_count = sum(
+            1
+            for part in payload["messages"][0]["content"]
+            if part["type"] == "image_url"
+        )
+        request_image_counts.append(image_count)
+        if image_count > 1:
+            return FakeResponse("missing page markers")
+        return FakeResponse(f"# fallback {len(request_image_counts)}")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "unit/window-fallback")
+    monkeypatch.setenv(DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV, "2")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(image_path),
+                page_index=page_index,
+                shard_element_id=f"ocr2-shard-{page_index}",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for page_index, image_path in enumerate(image_paths)
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == [
+        "succeeded",
+        "succeeded",
+        "succeeded",
+        "succeeded",
+    ]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "# fallback 2",
+        "# fallback 3",
+        "# fallback 4",
+        "# fallback 5",
+    ]
+    assert request_image_counts == [2, 1, 1, 1, 1]
+
+
 def test_docling_pdf_ocr_worker_uses_openrouter_provider_preset(
     tmp_path: Path,
     monkeypatch,
@@ -364,6 +1114,93 @@ def test_docling_pdf_ocr_worker_parallelizes_direct_ocr2_requests(
     )
 
     assert [row["status"] for row in table.to_pylist()] == ["succeeded", "succeeded"]
+    assert max_active == 2
+
+
+def test_docling_pdf_ocr_worker_coalesces_noncontiguous_direct_ocr2_requests(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    image_paths = [tmp_path / f"page-{page_index:05}.png" for page_index in range(3)]
+    for image_path in image_paths:
+        image_path.write_bytes(b"png fixture")
+    active = 0
+    max_active = 0
+    lock = threading.Lock()
+
+    class FakeResponse:
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps({"choices": [{"message": {"content": "OCR2"}}]}).encode(
+                "utf-8"
+            )
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        nonlocal active, max_active
+        _ = request, timeout
+        with lock:
+            active += 1
+            max_active = max(max_active, active)
+        try:
+            time.sleep(0.05)
+            return FakeResponse()
+        finally:
+            with lock:
+                active -= 1
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.delenv(DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV, raising=False)
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(image_paths[0]),
+                page_index=0,
+                shard_element_id="ocr2-shard-0",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ),
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(image_paths[1]),
+                page_index=1,
+                shard_element_id="fast-shard-1",
+                ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+            ),
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(image_paths[2]),
+                page_index=2,
+                shard_element_id="ocr2-shard-2",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ),
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(
+            FakeDoclingConverter("fast text"), max_workers=1
+        ),
+        max_workers=2,
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == [
+        "succeeded",
+        "succeeded",
+        "succeeded",
+    ]
+    assert [row["text"] for row in table.to_pylist()] == ["OCR2", "fast text", "OCR2"]
     assert max_active == 2
 
 

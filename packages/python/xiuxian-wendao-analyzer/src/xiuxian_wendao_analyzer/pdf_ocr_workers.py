@@ -6,6 +6,7 @@ import base64
 import json
 import os
 import threading
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
@@ -21,7 +22,10 @@ from .pdf_ocr_contracts import (
     DEEPSEEK_OCR2_DEFAULT_BASE_URL,
     DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
     DEEPSEEK_OCR2_DEFAULT_MODEL,
+    DEEPSEEK_OCR2_DEFAULT_PAGE_WINDOW_SIZE,
     DEEPSEEK_OCR2_DEFAULT_PROMPT,
+    DEEPSEEK_OCR2_DEFAULT_REGION_COMPOSITE_SIZE,
+    DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS,
     DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
     DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
     DEEPSEEK_OCR2_MAX_TOKENS_ENV,
@@ -35,10 +39,14 @@ from .pdf_ocr_contracts import (
     DEEPSEEK_OCR2_OPENROUTER_PUBLIC_API_KEY_ENV,
     DEEPSEEK_OCR2_OPENROUTER_TEST_MODEL,
     DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV,
+    DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV,
     DEEPSEEK_OCR2_PROMPT_ENV,
     DEEPSEEK_OCR2_PROVIDER_ENV,
+    DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
+    DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV,
     DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
     DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
+    DEEPSEEK_OCR2_TRACE_PATH_ENV,
     PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
@@ -56,6 +64,21 @@ from .pdf_ocr_tables import resolve_pdf_ocr_worker_count
 
 if TYPE_CHECKING:
     from .documents import DocumentConverterProtocol
+
+
+_DEEPSEEK_OCR2_TRACE_LOCK = threading.Lock()
+_DEEPSEEK_OCR2_PAGE_WINDOW_PROBE_LOCK = threading.Lock()
+_DEEPSEEK_OCR2_PAGE_WINDOW_COMPATIBILITY: dict[tuple[str, int], bool] = {}
+_DEEPSEEK_OCR2_PAGE_MARKER_PREFIX = "<!-- xiuxian-wendao-ocr2-page:"
+_DEEPSEEK_OCR2_PAGE_MARKER_SUFFIX = " -->"
+_DEEPSEEK_OCR2_REGION_MARKER_PREFIX = "<!-- xiuxian-wendao-ocr2-region:"
+_DEEPSEEK_OCR2_REGION_MARKER_SUFFIX = " -->"
+_DEEPSEEK_OCR2_TRANSIENT_HTTP_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
+_DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES = 3
+_DEEPSEEK_OCR2_RETRY_BASE_SECONDS = 0.25
+_DEEPSEEK_OCR2_RATE_LIMIT_RETRY_BASE_SECONDS = 2.0
+_DEEPSEEK_OCR2_MAX_RETRY_DELAY_SECONDS = 8.0
+_DEEPSEEK_OCR2_GROUP_RETRY_DELAYS_SECONDS = (8.0, 16.0)
 
 
 class SkippingPdfOcrShardWorker:
@@ -108,9 +131,12 @@ class DoclingPdfOcrShardWorker:
     ) -> Sequence[Mapping[str, Any]]:
         input_rows = list(inputs)
         recognition_groups = _group_pdf_ocr_inputs(input_rows)
+        effective_max_workers = (
+            max_workers if max_workers is not None else self._max_workers
+        )
         worker_count = resolve_pdf_ocr_worker_count(
             len(recognition_groups),
-            max_workers if max_workers is not None else self._max_workers,
+            effective_max_workers,
         )
         if self._converter is not None and self._converter_factory is None:
             worker_count = 1
@@ -118,7 +144,11 @@ class DoclingPdfOcrShardWorker:
             return _flatten_group_results(
                 len(input_rows),
                 [
-                    self._recognize_group_with_thread_converter(indexes, rows)
+                    self._recognize_group_with_thread_converter(
+                        indexes,
+                        rows,
+                        max_workers,
+                    )
                     for indexes, rows in recognition_groups
                 ],
             )
@@ -128,6 +158,7 @@ class DoclingPdfOcrShardWorker:
                     self._recognize_group_with_thread_converter,
                     indexes,
                     rows,
+                    max_workers,
                 )
                 for indexes, rows in recognition_groups
             ]
@@ -140,6 +171,7 @@ class DoclingPdfOcrShardWorker:
         self,
         indexes: Sequence[int],
         input_rows: Sequence[Mapping[str, Any]],
+        max_workers: int | str | None,
     ) -> list[tuple[int, Mapping[str, Any]]]:
         ocr_profile = _ocr_profile(input_rows[0])
         if ocr_profile == PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE:
@@ -147,7 +179,9 @@ class DoclingPdfOcrShardWorker:
                 (index, result)
                 for index, result in zip(
                     indexes,
-                    _recognize_deepseek_ocr2_many(input_rows),
+                    _recognize_deepseek_ocr2_many(
+                        input_rows, request_concurrency=max_workers
+                    ),
                     strict=True,
                 )
             ]
@@ -396,9 +430,13 @@ def _new_docling_converter(
 
 def _recognize_deepseek_ocr2_many(
     input_rows: Sequence[Mapping[str, Any]],
+    *,
+    request_concurrency: int | str | None = None,
 ) -> list[Mapping[str, Any]]:
     try:
-        client = _DeepSeekOcr2OpenAiClient.from_env()
+        client = _DeepSeekOcr2OpenAiClient.from_env(
+            request_concurrency=request_concurrency
+        )
     except ValueError as exc:
         return [
             failed_pdf_ocr_shard_result(input_row, f"DeepSeek-OCR-2 OCR failed: {exc}")
@@ -416,8 +454,12 @@ class _DeepSeekOcr2OpenAiClient:
         api_key: str,
         prompt: str,
         max_tokens: int,
+        region_max_tokens: int,
+        region_composite_size: int,
         timeout_seconds: float,
         request_concurrency: int,
+        page_window_size: int,
+        trace_path: Path | None = None,
         extra_headers: Mapping[str, str] | None = None,
     ) -> None:
         self._completion_url = _chat_completion_url(base_url)
@@ -425,12 +467,21 @@ class _DeepSeekOcr2OpenAiClient:
         self._api_key = api_key
         self._prompt = prompt
         self._max_tokens = max_tokens
+        self._region_max_tokens = region_max_tokens
+        self._region_composite_size = region_composite_size
         self._timeout_seconds = timeout_seconds
         self._request_concurrency = request_concurrency
+        self._page_window_size = page_window_size
+        self._trace_path = trace_path
         self._extra_headers = dict(extra_headers or {})
 
     @classmethod
-    def from_env(cls) -> _DeepSeekOcr2OpenAiClient:
+    def from_env(
+        cls,
+        *,
+        request_concurrency: int | str | None = None,
+    ) -> _DeepSeekOcr2OpenAiClient:
+        resolved_request_concurrency = _positive_int_value(request_concurrency)
         provider = _env_value(DEEPSEEK_OCR2_PROVIDER_ENV, "")
         if provider == DEEPSEEK_OCR2_OPENROUTER_PROVIDER:
             return cls(
@@ -453,14 +504,30 @@ class _DeepSeekOcr2OpenAiClient:
                     DEEPSEEK_OCR2_MAX_TOKENS_ENV,
                     DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
                 ),
+                region_max_tokens=_positive_int_env(
+                    DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS,
+                ),
+                region_composite_size=_positive_int_env(
+                    DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_REGION_COMPOSITE_SIZE,
+                ),
                 timeout_seconds=_positive_float_env(
                     DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
                     DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
                 ),
-                request_concurrency=_positive_int_env(
-                    DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
-                    DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
+                request_concurrency=(
+                    resolved_request_concurrency
+                    or _positive_int_env(
+                        DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
+                        DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
+                    )
                 ),
+                page_window_size=_positive_int_env(
+                    DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_PAGE_WINDOW_SIZE,
+                ),
+                trace_path=_optional_path_env(DEEPSEEK_OCR2_TRACE_PATH_ENV),
                 extra_headers=_openrouter_headers(),
             )
         if provider and provider != "openai-compatible":
@@ -489,14 +556,30 @@ class _DeepSeekOcr2OpenAiClient:
                 DEEPSEEK_OCR2_MAX_TOKENS_ENV,
                 DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
             ),
+            region_max_tokens=_positive_int_env(
+                DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV,
+                DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS,
+            ),
+            region_composite_size=_positive_int_env(
+                DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
+                DEEPSEEK_OCR2_DEFAULT_REGION_COMPOSITE_SIZE,
+            ),
             timeout_seconds=_positive_float_env(
                 DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
                 DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
             ),
-            request_concurrency=_positive_int_env(
-                DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
-                DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
+            request_concurrency=(
+                resolved_request_concurrency
+                or _positive_int_env(
+                    DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
+                    DEEPSEEK_OCR2_DEFAULT_REQUEST_CONCURRENCY,
+                )
             ),
+            page_window_size=_positive_int_env(
+                DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV,
+                DEEPSEEK_OCR2_DEFAULT_PAGE_WINDOW_SIZE,
+            ),
+            trace_path=_optional_path_env(DEEPSEEK_OCR2_TRACE_PATH_ENV),
         )
 
     def recognize_many(
@@ -504,12 +587,334 @@ class _DeepSeekOcr2OpenAiClient:
         input_rows: Sequence[Mapping[str, Any]],
     ) -> list[Mapping[str, Any]]:
         rows = list(input_rows)
+        if self._region_composite_size > 1:
+            region_tasks = _ocr2_region_composite_tasks(
+                rows,
+                self._region_composite_size,
+            )
+            if any(len(task) > 1 for task in region_tasks):
+                return self._retry_transient_failed_results(
+                    rows,
+                    self._recognize_region_composite_tasks(region_tasks),
+                )
+        if self._page_window_size <= 1:
+            return self._retry_transient_failed_results(
+                rows,
+                self._recognize_page_tasks_once(rows),
+            )
+        windows = _ocr2_page_windows(rows, self._page_window_size)
+        if len(windows) == len(rows) and all(len(window) == 1 for window in windows):
+            return self._retry_transient_failed_results(
+                rows,
+                self._recognize_page_tasks_once(rows),
+            )
+        probe_index = next(
+            (index for index, window in enumerate(windows) if len(window) > 1),
+            None,
+        )
+        if probe_index is None:
+            return self._retry_transient_failed_results(
+                rows,
+                self._recognize_page_tasks_once(rows),
+            )
+        probe_result = self._probe_page_window_compatibility(windows[probe_index])
+        if probe_result is None:
+            return self._retry_transient_failed_results(
+                rows,
+                self._recognize_page_tasks_once(rows),
+            )
+        if len(windows) == 1:
+            return self._retry_transient_failed_results(rows, probe_result)
+        window_results: list[list[Mapping[str, Any]] | None] = [None] * len(windows)
+        window_results[probe_index] = probe_result
+        pending_windows = [
+            (index, window)
+            for index, window in enumerate(windows)
+            if index != probe_index
+        ]
+        for index, result in self._recognize_indexed_window_tasks(pending_windows):
+            window_results[index] = result
+        return self._retry_transient_failed_results(
+            rows,
+            _flatten_page_window_results(
+                [result for result in window_results if result is not None]
+            ),
+        )
+
+    def _probe_page_window_compatibility(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]] | None:
+        compatibility_key = (self._model, self._page_window_size)
+        with _DEEPSEEK_OCR2_PAGE_WINDOW_PROBE_LOCK:
+            is_compatible = _DEEPSEEK_OCR2_PAGE_WINDOW_COMPATIBILITY.get(
+                compatibility_key
+            )
+            if is_compatible is False:
+                return None
+            if is_compatible is True:
+                should_probe = False
+            else:
+                should_probe = True
+                probe_result = self._try_recognize_page_window(input_rows)
+                _DEEPSEEK_OCR2_PAGE_WINDOW_COMPATIBILITY[compatibility_key] = (
+                    probe_result is not None
+                )
+                return probe_result
+        if not should_probe:
+            return self._try_recognize_page_window(input_rows)
+        return None
+
+    def _recognize_page_tasks_once(
+        self,
+        rows: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]]:
         if self._request_concurrency <= 1 or len(rows) <= 1:
             return [self.recognize(input_row) for input_row in rows]
         worker_count = min(self._request_concurrency, len(rows))
         with ThreadPoolExecutor(max_workers=worker_count) as executor:
             futures = [executor.submit(self.recognize, input_row) for input_row in rows]
             return [future.result() for future in futures]
+
+    def _retry_transient_failed_results(
+        self,
+        rows: Sequence[Mapping[str, Any]],
+        results: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]]:
+        output = list(results)
+        if len(output) != len(rows):
+            return output
+        for delay_seconds in _DEEPSEEK_OCR2_GROUP_RETRY_DELAYS_SECONDS:
+            retry_indexes = [
+                index
+                for index, result in enumerate(output)
+                if _is_transient_ocr2_failure(result)
+            ]
+            if not retry_indexes:
+                break
+            time.sleep(delay_seconds)
+            retry_rows = [rows[index] for index in retry_indexes]
+            retry_results = self._recognize_page_tasks_once(retry_rows)
+            for index, result in zip(retry_indexes, retry_results, strict=True):
+                output[index] = result
+        return output
+
+    def _recognize_window_tasks(
+        self,
+        windows: Sequence[Sequence[Mapping[str, Any]]],
+    ) -> list[list[Mapping[str, Any]]]:
+        if self._request_concurrency <= 1 or len(windows) <= 1:
+            return [self.recognize_window(window) for window in windows]
+        worker_count = min(self._request_concurrency, len(windows))
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = [
+                executor.submit(self.recognize_window, window) for window in windows
+            ]
+            return [future.result() for future in futures]
+
+    def _recognize_indexed_window_tasks(
+        self,
+        windows: Sequence[tuple[int, Sequence[Mapping[str, Any]]]],
+    ) -> list[tuple[int, list[Mapping[str, Any]]]]:
+        if self._request_concurrency <= 1 or len(windows) <= 1:
+            return [(index, self.recognize_window(window)) for index, window in windows]
+        worker_count = min(self._request_concurrency, len(windows))
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = [
+                executor.submit(self.recognize_window, window)
+                for _index, window in windows
+            ]
+            return [
+                (index, future.result())
+                for (index, _window), future in zip(windows, futures, strict=True)
+            ]
+
+    def _recognize_region_composite_tasks(
+        self,
+        tasks: Sequence[Sequence[Mapping[str, Any]]],
+    ) -> list[Mapping[str, Any]]:
+        if self._request_concurrency <= 1 or len(tasks) <= 1:
+            return _flatten_page_window_results(
+                [self.recognize_region_composite(task) for task in tasks]
+            )
+        worker_count = min(self._request_concurrency, len(tasks))
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = [
+                executor.submit(self.recognize_region_composite, task) for task in tasks
+            ]
+            return _flatten_page_window_results([future.result() for future in futures])
+
+    def recognize_window(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]]:
+        rows = list(input_rows)
+        if len(rows) <= 1:
+            return [self.recognize(row) for row in rows]
+        batch_result = self._try_recognize_page_window(rows)
+        if batch_result is not None:
+            return batch_result
+        return [self.recognize(row) for row in rows]
+
+    def recognize_region_composite(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]]:
+        rows = list(input_rows)
+        if len(rows) <= 1:
+            return [self.recognize(row) for row in rows]
+        composite_result = self._try_recognize_region_composite(rows)
+        if composite_result is not None:
+            return composite_result
+        return [self.recognize(row) for row in rows]
+
+    def _try_recognize_page_window(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]] | None:
+        image_paths = [Path(str(input_row["imagePath"])) for input_row in input_rows]
+        missing_path = next(
+            (image_path for image_path in image_paths if not image_path.is_file()),
+            None,
+        )
+        if missing_path is not None:
+            return None
+        image_bytes = sum(image_path.stat().st_size for image_path in image_paths)
+        started = time.perf_counter()
+        http_status = None
+        try:
+            payload = self._window_request_payload(input_rows, image_paths)
+            http_status, response_payload = self._send_completion_request(payload)
+            markdown = _extract_openai_message_content(response_payload)
+            page_texts = _extract_ocr2_page_window_markdown(markdown, input_rows)
+        except urllib.error.HTTPError as exc:
+            self._write_trace(
+                input_rows[0],
+                status="failed",
+                started=started,
+                http_status=exc.code,
+                image_bytes=image_bytes,
+                markdown_chars=0,
+                error=exc,
+                page_count=len(input_rows),
+                input_rows=input_rows,
+                max_tokens=self._max_tokens,
+            )
+            return None
+        except (OSError, ValueError, urllib.error.URLError) as exc:
+            self._write_trace(
+                input_rows[0],
+                status="failed",
+                started=started,
+                http_status=http_status,
+                image_bytes=image_bytes,
+                markdown_chars=0,
+                error=exc,
+                page_count=len(input_rows),
+                input_rows=input_rows,
+                max_tokens=self._max_tokens,
+            )
+            return None
+        self._write_trace(
+            input_rows[0],
+            status="succeeded",
+            started=started,
+            http_status=http_status,
+            image_bytes=image_bytes,
+            markdown_chars=sum(len(text) for text in page_texts),
+            error=None,
+            page_count=len(input_rows),
+            input_rows=input_rows,
+            max_tokens=self._max_tokens,
+        )
+        return [
+            {
+                "status": "succeeded",
+                "text": text,
+                "textMimeType": "text/markdown",
+                "confidence": None,
+                "errorMessage": None,
+            }
+            for text in page_texts
+        ]
+
+    def _try_recognize_region_composite(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> list[Mapping[str, Any]] | None:
+        image_paths = [Path(str(input_row["imagePath"])) for input_row in input_rows]
+        missing_path = next(
+            (image_path for image_path in image_paths if not image_path.is_file()),
+            None,
+        )
+        if missing_path is not None:
+            return None
+        image_bytes = sum(image_path.stat().st_size for image_path in image_paths)
+        max_tokens = self._max_tokens_for_region_composite(input_rows)
+        started = time.perf_counter()
+        http_status = None
+        try:
+            payload = self._region_composite_request_payload(
+                input_rows,
+                image_paths,
+                max_tokens,
+            )
+            http_status, response_payload = self._send_completion_request(payload)
+            markdown = _extract_openai_message_content(response_payload)
+            region_texts = _extract_ocr2_region_composite_markdown(
+                markdown,
+                input_rows,
+            )
+        except urllib.error.HTTPError as exc:
+            self._write_trace(
+                input_rows[0],
+                status="failed",
+                started=started,
+                http_status=exc.code,
+                image_bytes=image_bytes,
+                markdown_chars=0,
+                error=exc,
+                input_rows=input_rows,
+                max_tokens=max_tokens,
+                request_kind="region-composite",
+            )
+            return None
+        except (OSError, ValueError, urllib.error.URLError) as exc:
+            self._write_trace(
+                input_rows[0],
+                status="failed",
+                started=started,
+                http_status=http_status,
+                image_bytes=image_bytes,
+                markdown_chars=0,
+                error=exc,
+                input_rows=input_rows,
+                max_tokens=max_tokens,
+                request_kind="region-composite",
+            )
+            return None
+        self._write_trace(
+            input_rows[0],
+            status="succeeded",
+            started=started,
+            http_status=http_status,
+            image_bytes=image_bytes,
+            markdown_chars=sum(len(text) for text in region_texts),
+            error=None,
+            input_rows=input_rows,
+            max_tokens=max_tokens,
+            request_kind="region-composite",
+        )
+        return [
+            {
+                "status": "succeeded",
+                "text": text,
+                "textMimeType": "text/markdown",
+                "confidence": None,
+                "errorMessage": None,
+            }
+            for text in region_texts
+        ]
 
     def recognize(self, input_row: Mapping[str, Any]) -> Mapping[str, Any]:
         image_path = Path(str(input_row["imagePath"]))
@@ -518,34 +923,67 @@ class _DeepSeekOcr2OpenAiClient:
                 input_row,
                 f"DeepSeek-OCR-2 shard image does not exist: {image_path}",
             )
+        image_bytes = image_path.stat().st_size
+        started = time.perf_counter()
+        http_status = None
+        max_tokens = self._max_tokens_for_row(input_row)
         try:
-            payload = self._request_payload(input_row, image_path)
-            request = urllib.request.Request(
-                self._completion_url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers=self._headers(),
-                method="POST",
-            )
-            with urllib.request.urlopen(
-                request,
-                timeout=self._timeout_seconds,
-            ) as response:
-                response_payload = json.loads(response.read().decode("utf-8"))
+            payload = self._request_payload(input_row, image_path, max_tokens)
+            http_status, response_payload = self._send_completion_request(payload)
             markdown = _extract_openai_message_content(response_payload)
-        except (
-            OSError,
-            ValueError,
-            urllib.error.URLError,
-            urllib.error.HTTPError,
-        ) as exc:
+        except urllib.error.HTTPError as exc:
+            self._write_trace(
+                input_row,
+                status="failed",
+                started=started,
+                http_status=exc.code,
+                image_bytes=image_bytes,
+                markdown_chars=0,
+                error=exc,
+                max_tokens=max_tokens,
+            )
+            return failed_pdf_ocr_shard_result(
+                input_row, f"DeepSeek-OCR-2 OCR failed: {exc}"
+            )
+        except (OSError, ValueError, urllib.error.URLError) as exc:
+            self._write_trace(
+                input_row,
+                status="failed",
+                started=started,
+                http_status=http_status,
+                image_bytes=image_bytes,
+                markdown_chars=0,
+                error=exc,
+                max_tokens=max_tokens,
+            )
             return failed_pdf_ocr_shard_result(
                 input_row, f"DeepSeek-OCR-2 OCR failed: {exc}"
             )
         if not markdown.strip():
+            self._write_trace(
+                input_row,
+                status="failed",
+                started=started,
+                http_status=http_status,
+                image_bytes=image_bytes,
+                markdown_chars=0,
+                error=ValueError("empty OCR text"),
+                max_tokens=max_tokens,
+            )
             return failed_pdf_ocr_shard_result(
                 input_row,
                 "DeepSeek-OCR-2 OCR returned empty text",
             )
+        self._write_trace(
+            input_row,
+            status="succeeded",
+            started=started,
+            http_status=http_status,
+            image_bytes=image_bytes,
+            markdown_chars=len(markdown),
+            error=None,
+            max_tokens=max_tokens,
+        )
         return {
             "status": "succeeded",
             "text": markdown,
@@ -554,17 +992,44 @@ class _DeepSeekOcr2OpenAiClient:
             "errorMessage": None,
         }
 
+    def _send_completion_request(
+        self, payload: Mapping[str, Any]
+    ) -> tuple[int | None, Any]:
+        request_data = json.dumps(payload).encode("utf-8")
+        for attempt in range(_DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES + 1):
+            request = urllib.request.Request(
+                self._completion_url,
+                data=request_data,
+                headers=self._headers(),
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(
+                    request,
+                    timeout=self._timeout_seconds,
+                ) as response:
+                    http_status = _response_http_status(response)
+                    response_payload = json.loads(response.read().decode("utf-8"))
+                return http_status, response_payload
+            except urllib.error.HTTPError as exc:
+                if not _should_retry_ocr2_http_error(exc, attempt):
+                    raise
+                time.sleep(_ocr2_retry_delay_seconds(attempt, exc))
+            except (OSError, urllib.error.URLError):
+                if attempt >= _DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES:
+                    raise
+                time.sleep(_ocr2_retry_delay_seconds(attempt, None))
+        raise RuntimeError("unreachable OCR2 retry loop")
+
     def _request_payload(
         self,
         input_row: Mapping[str, Any],
         image_path: Path,
+        max_tokens: int,
     ) -> dict[str, Any]:
         image_bytes = image_path.read_bytes()
         image_mime_type = str(input_row.get("imageMimeType") or "image/png")
-        image_data_url = (
-            f"data:{image_mime_type};base64,"
-            f"{base64.b64encode(image_bytes).decode('ascii')}"
-        )
+        image_data_url = f"data:{image_mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
         return {
             "model": self._model,
             "messages": [
@@ -576,15 +1041,223 @@ class _DeepSeekOcr2OpenAiClient:
                     ],
                 }
             ],
+            "max_tokens": max_tokens,
+            "temperature": 0,
+        }
+
+    def _window_request_payload(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+        image_paths: Sequence[Path],
+    ) -> dict[str, Any]:
+        content: list[dict[str, Any]] = [
+            {"type": "text", "text": self._window_prompt(input_rows)}
+        ]
+        for ordinal, (input_row, image_path) in enumerate(
+            zip(input_rows, image_paths, strict=True),
+            start=1,
+        ):
+            image_bytes = image_path.read_bytes()
+            image_mime_type = str(input_row.get("imageMimeType") or "image/png")
+            image_data_url = f"data:{image_mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+            marker = _ocr2_page_marker(input_row)
+            content.append(
+                {
+                    "type": "text",
+                    "text": f"Image {ordinal} must produce section marker {marker}.",
+                }
+            )
+            content.append({"type": "image_url", "image_url": {"url": image_data_url}})
+        return {
+            "model": self._model,
+            "messages": [{"role": "user", "content": content}],
             "max_tokens": self._max_tokens,
             "temperature": 0,
         }
+
+    def _region_composite_request_payload(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+        image_paths: Sequence[Path],
+        max_tokens: int,
+    ) -> dict[str, Any]:
+        content: list[dict[str, Any]] = [
+            {"type": "text", "text": self._region_composite_prompt(input_rows)}
+        ]
+        for ordinal, (input_row, image_path) in enumerate(
+            zip(input_rows, image_paths, strict=True),
+            start=1,
+        ):
+            image_bytes = image_path.read_bytes()
+            image_mime_type = str(input_row.get("imageMimeType") or "image/png")
+            image_data_url = f"data:{image_mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+            marker = _ocr2_region_marker(input_row)
+            content.append(
+                {
+                    "type": "text",
+                    "text": f"Region image {ordinal} must produce section marker {marker}.",
+                }
+            )
+            content.append({"type": "image_url", "image_url": {"url": image_data_url}})
+        return {
+            "model": self._model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": max_tokens,
+            "temperature": 0,
+        }
+
+    def _max_tokens_for_row(self, input_row: Mapping[str, Any]) -> int:
+        if str(input_row.get("shardType") or "") == "region":
+            return min(self._max_tokens, self._region_max_tokens)
+        return self._max_tokens
+
+    def _max_tokens_for_region_composite(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> int:
+        return min(self._max_tokens, self._region_max_tokens * len(input_rows))
+
+    def _window_prompt(self, input_rows: Sequence[Mapping[str, Any]]) -> str:
+        markers = "\n".join(_ocr2_page_marker(row) for row in input_rows)
+        return (
+            f"{self._prompt}\n\n"
+            "You will receive multiple page images from the same PDF. Convert "
+            "each image to Markdown independently and preserve all visible text, "
+            "tables, formulas, headings, and reading order. Return exactly one "
+            "section for each image, in the same order as the images. Start each "
+            "section with the exact marker assigned to that image. Do not merge "
+            "pages and do not omit empty-looking pages; if a page has no text, "
+            "write the marker followed by a blank line.\n\n"
+            "Required section markers:\n"
+            f"{markers}"
+        )
+
+    def _region_composite_prompt(
+        self,
+        input_rows: Sequence[Mapping[str, Any]],
+    ) -> str:
+        markers = "\n".join(_ocr2_region_marker(row) for row in input_rows)
+        return (
+            f"{self._prompt}\n\n"
+            "You will receive multiple cropped recovery-region images from the "
+            "same PDF page and parent page OCR shard. Convert each region to "
+            "Markdown independently and preserve all visible text, tables, "
+            "formulas, headings, and reading order. Return exactly one section "
+            "for each region, in the same order as the images. Start each "
+            "section with the exact marker assigned to that region. Do not "
+            "merge regions and do not invent missing context.\n\n"
+            "Required section markers:\n"
+            f"{markers}"
+        )
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json", **self._extra_headers}
         if self._api_key and self._api_key != DEEPSEEK_OCR2_DEFAULT_API_KEY:
             headers["Authorization"] = f"Bearer {self._api_key}"
         return headers
+
+    def _write_trace(
+        self,
+        input_row: Mapping[str, Any],
+        *,
+        status: str,
+        started: float,
+        http_status: int | None,
+        image_bytes: int,
+        markdown_chars: int,
+        error: BaseException | None,
+        page_count: int = 1,
+        input_rows: Sequence[Mapping[str, Any]] | None = None,
+        max_tokens: int | None = None,
+        request_kind: str | None = None,
+    ) -> None:
+        if self._trace_path is None:
+            return
+        rows = list(input_rows or [input_row])
+        ended_unix_ms = int(time.time() * 1000)
+        latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
+        started_unix_ms = max(0, ended_unix_ms - round(latency_ms))
+        record = {
+            "schema": "xiuxian_wendao.deepseek_ocr2_request_trace.v1",
+            "timestampUnixMs": ended_unix_ms,
+            "startedUnixMs": started_unix_ms,
+            "endedUnixMs": ended_unix_ms,
+            "status": status,
+            "httpStatus": http_status,
+            "latencyMs": latency_ms,
+            "model": self._model,
+            "endpoint": self._completion_url,
+            "pageIndex": input_row.get("pageIndex"),
+            "shardElementId": input_row.get("shardElementId"),
+            "shardType": input_row.get("shardType"),
+            "regionIndex": input_row.get("regionIndex"),
+            "parentShardElementId": input_row.get("parentShardElementId"),
+            "readingOrderKey": input_row.get("readingOrderKey"),
+            "ocrProfile": input_row.get("ocrProfile"),
+            "requestKind": (
+                request_kind
+                if request_kind is not None
+                else _ocr2_trace_request_kind(input_row, page_count)
+            ),
+            "shardCount": len(rows),
+            "shardTypeCounts": _ocr2_trace_shard_type_counts(rows),
+            "pageCount": page_count,
+            "imageBytes": image_bytes,
+            "sourcePixelArea": _ocr2_trace_source_pixel_area(rows),
+            "renderDpi": input_row.get("renderDpi"),
+            "rasterWidthPx": input_row.get("rasterWidthPx"),
+            "rasterHeightPx": input_row.get("rasterHeightPx"),
+            "sourcePagePixelLeft": input_row.get("sourcePagePixelLeft"),
+            "sourcePagePixelTop": input_row.get("sourcePagePixelTop"),
+            "sourcePagePixelRight": input_row.get("sourcePagePixelRight"),
+            "sourcePagePixelBottom": input_row.get("sourcePagePixelBottom"),
+            "markdownChars": markdown_chars,
+            "maxTokens": max_tokens if max_tokens is not None else self._max_tokens,
+            "errorType": type(error).__name__ if error is not None else None,
+            "errorMessage": _short_error_message(error),
+        }
+        try:
+            with _DEEPSEEK_OCR2_TRACE_LOCK:
+                self._trace_path.parent.mkdir(parents=True, exist_ok=True)
+                with self._trace_path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(record, sort_keys=True))
+                    handle.write("\n")
+        except OSError:
+            return
+
+
+def _ocr2_trace_request_kind(input_row: Mapping[str, Any], page_count: int) -> str:
+    if page_count > 1:
+        return "page-window-canary"
+    shard_type = str(input_row.get("shardType") or "")
+    if shard_type == "region":
+        return "region"
+    return "page"
+
+
+def _ocr2_trace_shard_type_counts(
+    input_rows: Sequence[Mapping[str, Any]],
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in input_rows:
+        shard_type = str(row.get("shardType") or "unknown")
+        counts[shard_type] = counts.get(shard_type, 0) + 1
+    return counts
+
+
+def _ocr2_trace_source_pixel_area(input_rows: Sequence[Mapping[str, Any]]) -> int:
+    return sum(_row_source_pixel_area(row) for row in input_rows)
+
+
+def _row_source_pixel_area(input_row: Mapping[str, Any]) -> int:
+    try:
+        left = int(input_row.get("sourcePagePixelLeft") or 0)
+        top = int(input_row.get("sourcePagePixelTop") or 0)
+        right = int(input_row.get("sourcePagePixelRight") or 0)
+        bottom = int(input_row.get("sourcePagePixelBottom") or 0)
+    except (TypeError, ValueError):
+        return 0
+    return max(0, right - left) * max(0, bottom - top)
 
 
 def _resolve_openrouter_api_key() -> str:
@@ -610,6 +1283,180 @@ def _resolve_openrouter_api_key() -> str:
     return api_key
 
 
+def _ocr2_page_windows(
+    input_rows: Sequence[Mapping[str, Any]],
+    window_size: int,
+) -> list[list[Mapping[str, Any]]]:
+    windows: list[list[Mapping[str, Any]]] = []
+    current: list[Mapping[str, Any]] = []
+    for row in input_rows:
+        if not _is_page_window_candidate(row):
+            if current:
+                windows.append(current)
+                current = []
+            windows.append([row])
+            continue
+        if not current:
+            current.append(row)
+            continue
+        if len(current) >= window_size or not _can_extend_ocr2_page_window(
+            current[-1],
+            row,
+        ):
+            windows.append(current)
+            current = [row]
+            continue
+        current.append(row)
+    if current:
+        windows.append(current)
+    return windows
+
+
+def _ocr2_region_composite_tasks(
+    input_rows: Sequence[Mapping[str, Any]],
+    composite_size: int,
+) -> list[list[Mapping[str, Any]]]:
+    tasks: list[list[Mapping[str, Any]]] = []
+    current: list[Mapping[str, Any]] = []
+    for row in input_rows:
+        if not _is_region_composite_candidate(row):
+            if current:
+                tasks.append(current)
+                current = []
+            tasks.append([row])
+            continue
+        if not current:
+            current.append(row)
+            continue
+        if len(current) >= composite_size or not _can_extend_ocr2_region_composite(
+            current[-1],
+            row,
+        ):
+            tasks.append(current)
+            current = [row]
+            continue
+        current.append(row)
+    if current:
+        tasks.append(current)
+    return tasks
+
+
+def _is_page_window_candidate(row: Mapping[str, Any]) -> bool:
+    return str(row.get("shardType") or "") == "page"
+
+
+def _is_region_composite_candidate(row: Mapping[str, Any]) -> bool:
+    return str(row.get("shardType") or "") == "region"
+
+
+def _can_extend_ocr2_page_window(
+    previous: Mapping[str, Any],
+    current: Mapping[str, Any],
+) -> bool:
+    if str(previous.get("sourcePath")) != str(current.get("sourcePath")):
+        return False
+    if str(previous.get("sourceContentHash")) != str(current.get("sourceContentHash")):
+        return False
+    previous_page = previous.get("pageIndex")
+    current_page = current.get("pageIndex")
+    return (
+        isinstance(previous_page, int)
+        and isinstance(current_page, int)
+        and current_page == previous_page + 1
+    )
+
+
+def _can_extend_ocr2_region_composite(
+    previous: Mapping[str, Any],
+    current: Mapping[str, Any],
+) -> bool:
+    return (
+        str(previous.get("sourcePath")) == str(current.get("sourcePath"))
+        and str(previous.get("sourceContentHash"))
+        == str(current.get("sourceContentHash"))
+        and previous.get("pageIndex") == current.get("pageIndex")
+        and str(previous.get("parentShardElementId"))
+        == str(current.get("parentShardElementId"))
+    )
+
+
+def _flatten_page_window_results(
+    window_results: Sequence[Sequence[Mapping[str, Any]]],
+) -> list[Mapping[str, Any]]:
+    return [result for window in window_results for result in window]
+
+
+def _ocr2_page_marker(input_row: Mapping[str, Any]) -> str:
+    return (
+        f"{_DEEPSEEK_OCR2_PAGE_MARKER_PREFIX}"
+        f"{input_row.get('pageIndex')}"
+        f"{_DEEPSEEK_OCR2_PAGE_MARKER_SUFFIX}"
+    )
+
+
+def _ocr2_region_marker(input_row: Mapping[str, Any]) -> str:
+    return (
+        f"{_DEEPSEEK_OCR2_REGION_MARKER_PREFIX}"
+        f"{input_row.get('pageIndex')}:"
+        f"{input_row.get('regionIndex')}:"
+        f"{input_row.get('shardElementId')}"
+        f"{_DEEPSEEK_OCR2_REGION_MARKER_SUFFIX}"
+    )
+
+
+def _extract_ocr2_page_window_markdown(
+    markdown: str,
+    input_rows: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    return _extract_ocr2_marked_sections(
+        markdown,
+        [_ocr2_page_marker(row) for row in input_rows],
+        "page-window",
+    )
+
+
+def _extract_ocr2_region_composite_markdown(
+    markdown: str,
+    input_rows: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    return _extract_ocr2_marked_sections(
+        markdown,
+        [_ocr2_region_marker(row) for row in input_rows],
+        "region-composite",
+    )
+
+
+def _extract_ocr2_marked_sections(
+    markdown: str,
+    markers: Sequence[str],
+    label: str,
+) -> list[str]:
+    if not markdown.strip():
+        raise ValueError(f"OCR2 {label} response returned empty text")
+    sections = []
+    cursor = 0
+    for index, marker in enumerate(markers):
+        marker_position = markdown.find(marker, cursor)
+        if marker_position < 0:
+            raise ValueError(f"OCR2 {label} response is missing a section marker")
+        content_start = marker_position + len(marker)
+        if index + 1 < len(markers):
+            next_position = markdown.find(markers[index + 1], content_start)
+            if next_position < 0:
+                raise ValueError(
+                    f"OCR2 {label} response is missing the next section marker"
+                )
+            content_end = next_position
+        else:
+            content_end = len(markdown)
+        text = markdown[content_start:content_end].strip()
+        if not text:
+            raise ValueError(f"OCR2 {label} response returned an empty section")
+        sections.append(text)
+        cursor = content_end
+    return sections
+
+
 def _openrouter_headers() -> dict[str, str]:
     headers = {}
     referer = _env_value(DEEPSEEK_OCR2_OPENROUTER_HTTP_REFERER_ENV, "")
@@ -626,6 +1473,76 @@ def _chat_completion_url(base_url: str) -> str:
     if normalized.endswith("/chat/completions"):
         return normalized
     return f"{normalized}/chat/completions"
+
+
+def _response_http_status(response: object) -> int | None:
+    status = getattr(response, "status", None)
+    if isinstance(status, int):
+        return status
+    code = getattr(response, "code", None)
+    if isinstance(code, int):
+        return code
+    return None
+
+
+def _should_retry_ocr2_http_error(error: urllib.error.HTTPError, attempt: int) -> bool:
+    return (
+        error.code in _DEEPSEEK_OCR2_TRANSIENT_HTTP_STATUS
+        and attempt < _DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES
+    )
+
+
+def _is_transient_ocr2_failure(result: Mapping[str, Any]) -> bool:
+    if result.get("status") != "failed":
+        return False
+    error_message = str(result.get("errorMessage") or "")
+    return any(
+        f"HTTP Error {status}" in error_message
+        for status in _DEEPSEEK_OCR2_TRANSIENT_HTTP_STATUS
+    )
+
+
+def _ocr2_retry_delay_seconds(
+    attempt: int,
+    error: urllib.error.HTTPError | None,
+) -> float:
+    retry_after = _ocr2_retry_after_seconds(error)
+    if retry_after is not None:
+        return retry_after
+    base_seconds = (
+        _DEEPSEEK_OCR2_RATE_LIMIT_RETRY_BASE_SECONDS
+        if error is not None and error.code == 429
+        else _DEEPSEEK_OCR2_RETRY_BASE_SECONDS
+    )
+    return min(
+        base_seconds * (2**attempt),
+        _DEEPSEEK_OCR2_MAX_RETRY_DELAY_SECONDS,
+    )
+
+
+def _ocr2_retry_after_seconds(error: urllib.error.HTTPError | None) -> float | None:
+    if error is None:
+        return None
+    headers = getattr(error, "headers", None)
+    if headers is None:
+        return None
+    value = headers.get("Retry-After")
+    if value is None:
+        return None
+    try:
+        seconds = float(value)
+    except ValueError:
+        return None
+    return min(max(seconds, 0.0), _DEEPSEEK_OCR2_MAX_RETRY_DELAY_SECONDS)
+
+
+def _short_error_message(error: BaseException | None) -> str | None:
+    if error is None:
+        return None
+    message = str(error)
+    if len(message) <= 240:
+        return message
+    return f"{message[:237]}..."
 
 
 def _extract_openai_message_content(payload: Mapping[str, Any]) -> str:
@@ -659,6 +1576,16 @@ def _positive_int_env(key: str, default: int) -> int:
     return value if value > 0 else default
 
 
+def _positive_int_value(value: int | str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
 def _positive_float_env(key: str, default: float) -> float:
     try:
         value = float(os.environ.get(key, ""))
@@ -672,3 +1599,10 @@ def _env_value(key: str, default: str) -> str:
     if value is None or not value.strip():
         return default
     return value
+
+
+def _optional_path_env(key: str) -> Path | None:
+    value = os.environ.get(key)
+    if value is None or not value.strip():
+        return None
+    return Path(value)

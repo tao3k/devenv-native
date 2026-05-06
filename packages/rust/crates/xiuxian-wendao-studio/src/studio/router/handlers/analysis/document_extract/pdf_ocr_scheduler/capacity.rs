@@ -1,6 +1,8 @@
 use std::sync::{Mutex, MutexGuard};
 
-use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
+use xiuxian_wendao_attachments::pdf::ocr::{
+    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PdfOcrShardInput,
+};
 use xiuxian_wendao_attachments::polyglot::{
     pdf_ocr_shard_pressure_evidence, pdf_ocr_shard_schedule_plan,
     pdf_ocr_source_range_shard_schedule_plan,
@@ -192,6 +194,7 @@ pub(super) fn is_source_pdf_page_range_batch(inputs: &[PdfOcrShardInput]) -> boo
 fn is_source_pdf_page_input(input: &PdfOcrShardInput, source_path: &str) -> bool {
     input.source_path == source_path
         && input.shard_type == "page"
+        && input.ocr_profile != PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE
         && input.source_path.to_ascii_lowercase().ends_with(".pdf")
 }
 

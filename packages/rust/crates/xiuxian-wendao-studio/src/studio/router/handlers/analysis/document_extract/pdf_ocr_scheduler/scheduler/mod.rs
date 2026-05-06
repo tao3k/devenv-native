@@ -8,7 +8,7 @@ pub(crate) use core::PdfOcrWorkerScheduler;
 pub(super) use limit::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
 
 #[cfg(test)]
-pub(super) use dispatch::endpoint_index_for_request;
+pub(super) use dispatch::{endpoint_index_for_request, scheduler_shard_groups};
 
 #[cfg(test)]
 pub(super) use limit::{

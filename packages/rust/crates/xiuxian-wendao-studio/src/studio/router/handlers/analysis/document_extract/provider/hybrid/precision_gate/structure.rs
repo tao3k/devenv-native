@@ -3,6 +3,8 @@ use std::collections::{HashMap, HashSet};
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, PdfOcrShardResult};
 use xiuxian_wendao_attachments::pdf::structure::DocumentStructureBlock;
 
+const OCR_REGION_PATCH_PROTOCOL: &str = "sentinel-sidecar-v1";
+
 pub(super) fn validate_structure_rows(
     page_count: u32,
     structure_blocks: &[DocumentStructureBlock],
@@ -100,6 +102,55 @@ fn validate_ocr_structure_provenance(
                 block.block_id
             ));
         }
+        if block.block_type == "ocr_region" {
+            validate_region_patch_provenance(block, input)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_region_patch_provenance(
+    block: &DocumentStructureBlock,
+    input: &PdfOcrShardInput,
+) -> Result<(), String> {
+    if block.parent_block_id.trim().is_empty() {
+        return Err(format!(
+            "hybrid structure OCR region block `{}` has no parent shard id",
+            block.block_id
+        ));
+    }
+    let provenance =
+        serde_json::from_str::<serde_json::Value>(block.provenance.as_str()).map_err(|error| {
+            format!(
+                "hybrid structure OCR region block `{}` has invalid provenance JSON: {error}",
+                block.block_id
+            )
+        })?;
+    if provenance
+        .get("parentShardElementId")
+        .and_then(serde_json::Value::as_str)
+        != Some(block.parent_block_id.as_str())
+    {
+        return Err(format!(
+            "hybrid structure OCR region block `{}` does not preserve parent shard provenance",
+            block.block_id
+        ));
+    }
+    if provenance
+        .get("patchProtocol")
+        .and_then(serde_json::Value::as_str)
+        != Some(OCR_REGION_PATCH_PROTOCOL)
+    {
+        return Err(format!(
+            "hybrid structure OCR region block `{}` is missing sentinel patch protocol",
+            block.block_id
+        ));
+    }
+    if block.parent_block_id != input.parent_shard_element_id {
+        return Err(format!(
+            "hybrid structure OCR region block `{}` parent shard does not match OCR input",
+            block.block_id
+        ));
     }
     Ok(())
 }

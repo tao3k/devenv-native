@@ -117,7 +117,37 @@ def parse_args() -> argparse.Namespace:
         help=(
             "OCR2 rendered-page DPI forwarded to "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI for Rust provider "
-            "page-image payload experiments."
+            "page-image payload experiments. Values below the default OCR DPI "
+            "are ignored by the Rust provider."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-ocr-region-context-ratio",
+        type=float,
+        help=(
+            "Semantic padding ratio forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO for hybrid "
+            "region-shard OCR2 recovery. Use 0 to disable padding."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-ocr2-region-planner",
+        choices=(
+            "disabled",
+            "profile-risk-window",
+            "profile-risk-window-slices",
+            "profile-risk-window-adaptive",
+        ),
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER. "
+            "`profile-risk-window` builds conservative OCR2 content-band "
+            "regions for pages already selected by the OCR2 risk-window "
+            "profile planner when no explicit region JSON is configured. "
+            "`profile-risk-window-slices` splits that content band into "
+            "top/middle/bottom regions for same-page OCR2 composite tests. "
+            "`profile-risk-window-adaptive` chooses one, two, or three slices "
+            "from the estimated region pixel area."
         ),
     )
     parser.add_argument(
@@ -154,6 +184,27 @@ def parse_args() -> argparse.Namespace:
         help="Max tokens forwarded to WENDAO_DEEPSEEK_OCR2_MAX_TOKENS.",
     )
     parser.add_argument(
+        "--deepseek-ocr2-region-max-tokens",
+        type=int,
+        help=(
+            "Region-shard max tokens forwarded to "
+            "WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS. The analyzer clamps this "
+            "by WENDAO_DEEPSEEK_OCR2_MAX_TOKENS and applies it only to OCR2 "
+            "region rows."
+        ),
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-region-composite-size",
+        type=int,
+        help=(
+            "Direct OCR2 same-page region composite size forwarded to "
+            "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE. Values above 1 batch "
+            "same-page, same-parent region images in one request and fall back "
+            "to individual region requests when the response cannot be split "
+            "back into rows."
+        ),
+    )
+    parser.add_argument(
         "--deepseek-ocr2-timeout-seconds",
         type=float,
         help="Request timeout forwarded to WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS.",
@@ -162,8 +213,17 @@ def parse_args() -> argparse.Namespace:
         "--deepseek-ocr2-request-concurrency",
         type=int,
         help=(
-            "Direct OCR2 request concurrency forwarded to "
-            "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY."
+            "Direct OCR2 request concurrency forwarded to WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY."
+        ),
+    )
+    parser.add_argument(
+        "--deepseek-ocr2-page-window-size",
+        type=int,
+        help=(
+            "Direct OCR2 contiguous page-window size forwarded to "
+            "WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE. Values above 1 batch "
+            "adjacent page images in one request and fall back to page-level "
+            "requests when the response cannot be split back into rows."
         ),
     )
     parser.add_argument(
@@ -435,15 +495,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--real-docling", action="store_true")
     parser.add_argument(
         "--fixture-suite",
-        choices=("fake", "docling-real", "explicit"),
+        choices=("fake", "docling-real", "explicit", "milestone"),
         default="fake",
     )
     parser.add_argument(
         "--docling-source-root",
         type=Path,
         help=(
-            "Docling fixture checkout root used for docling-real fixtures. "
-            "Defaults to $PRJ_DATA_HOME/docling-real-fixtures or "
+            "Docling fixture checkout root used for docling-real fixtures. This "
+            "is a cache/download surface, not a canonical milestone fixture "
+            "authority. Defaults to $PRJ_DATA_HOME/docling-real-fixtures or "
             ".data/docling-real-fixtures."
         ),
     )
@@ -521,8 +582,10 @@ def parse_args() -> argparse.Namespace:
         "--fail-on-pdf-milestone-regression",
         action="store_true",
         help=(
-            "Fail when an OCR-positive PDF milestone run is missing or regresses "
-            "below the stored 2604.17337 precision/speed envelope."
+            "Fail when an OCR-positive milestone run is missing or regresses "
+            "below the stored 2604.17337 precision/speed envelope. Milestone "
+            "inputs should be supplied from repo-tracked or explicit auditable "
+            "fixture paths, not transient .data downloads."
         ),
     )
     return parser.parse_args()

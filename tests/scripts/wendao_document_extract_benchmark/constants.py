@@ -14,6 +14,12 @@ PDFIUM_BINARIES_BASE_URL = (
 )
 DEFAULT_OCR_SHARD_CACHE_MAX_BYTES = 10 * 1024 * 1024 * 1024
 OCR_SHARD_CACHE_ROOT_ENV = "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"
+BENCHMARK_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+MILESTONE_FIXTURE_PATHS = {
+    "autosearch-2604.17337": BENCHMARK_REPO_ROOT
+    / "tests/fixtures/document-extract/milestones/autosearch-2604.17337.pdf",
+}
 
 DOCLING_REAL_FIXTURE_PATHS = {
     "pdf": "tests/data/pdf/2206.01062.pdf",

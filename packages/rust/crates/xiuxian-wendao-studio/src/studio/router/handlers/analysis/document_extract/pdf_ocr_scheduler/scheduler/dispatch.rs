@@ -29,6 +29,12 @@ struct OwnedShardRequest {
     input: PdfOcrShardInput,
 }
 
+#[derive(Debug)]
+pub(crate) struct SchedulerShardGroup {
+    pub(super) positions: Vec<usize>,
+    pub(super) inputs: Vec<PdfOcrShardInput>,
+}
+
 impl PdfOcrWorkerScheduler {
     pub(crate) async fn request_shards_with_endpoints(
         &self,
@@ -150,6 +156,71 @@ impl PdfOcrWorkerScheduler {
     }
 
     async fn request_uncached_shards(
+        &self,
+        clients: &[PdfOcrShardFlightClient],
+        inputs: &[PdfOcrShardInput],
+    ) -> Result<Vec<PdfOcrShardResult>, String> {
+        let groups = scheduler_shard_groups(inputs);
+        if groups.len() > 1 {
+            return self
+                .request_partitioned_uncached_shards(clients, groups)
+                .await;
+        }
+        self.request_uncached_shard_group(clients, inputs).await
+    }
+
+    async fn request_partitioned_uncached_shards(
+        &self,
+        clients: &[PdfOcrShardFlightClient],
+        groups: Vec<SchedulerShardGroup>,
+    ) -> Result<Vec<PdfOcrShardResult>, String> {
+        let input_count = groups
+            .iter()
+            .map(|group| group.positions.len())
+            .sum::<usize>();
+        let mut requests = Vec::with_capacity(groups.len());
+        for group in groups {
+            let clients = clients.to_vec();
+            requests.push(async move {
+                let results = self
+                    .request_uncached_shard_group(clients.as_slice(), group.inputs.as_slice())
+                    .await?;
+                Ok::<_, String>((group.positions, results))
+            });
+        }
+        let group_results = try_join_all(requests).await?;
+        let mut slots = vec![None; input_count];
+        for (positions, results) in group_results {
+            if positions.len() != results.len() {
+                return Err(format!(
+                    "PDF OCR scheduler group returned {} rows for {} inputs",
+                    results.len(),
+                    positions.len()
+                ));
+            }
+            for (position, result) in positions.into_iter().zip(results) {
+                let Some(slot) = slots.get_mut(position) else {
+                    return Err(format!(
+                        "PDF OCR scheduler group result position {position} exceeded input count {input_count}"
+                    ));
+                };
+                *slot = Some(result);
+            }
+        }
+        slots
+            .into_iter()
+            .enumerate()
+            .map(|(position, result)| {
+                result.ok_or_else(|| {
+                    format!(
+                        "PDF OCR scheduler group merge left input position {position} unresolved"
+                    )
+                })
+            })
+            .collect()
+    }
+
+    async fn request_uncached_shard_group(
         &self,
         clients: &[PdfOcrShardFlightClient],
         inputs: &[PdfOcrShardInput],
@@ -285,6 +356,37 @@ impl PdfOcrWorkerScheduler {
         }
         Ok((permits, queue_wait))
     }
+}
+
+pub(crate) fn scheduler_shard_groups(inputs: &[PdfOcrShardInput]) -> Vec<SchedulerShardGroup> {
+    let mut groups = Vec::new();
+    let mut current_lane = None;
+    let mut current_positions = Vec::new();
+    let mut current_inputs = Vec::new();
+    for (position, input) in inputs.iter().enumerate() {
+        let lane = classify_ocr_lane(std::slice::from_ref(input));
+        if current_lane == Some(lane) {
+            current_positions.push(position);
+            current_inputs.push(input.clone());
+            continue;
+        }
+        if !current_inputs.is_empty() {
+            groups.push(SchedulerShardGroup {
+                positions: current_positions,
+                inputs: current_inputs,
+            });
+        }
+        current_lane = Some(lane);
+        current_positions = vec![position];
+        current_inputs = vec![input.clone()];
+    }
+    if !current_inputs.is_empty() {
+        groups.push(SchedulerShardGroup {
+            positions: current_positions,
+            inputs: current_inputs,
+        });
+    }
+    groups
 }
 
 async fn connect_pdf_ocr_clients(

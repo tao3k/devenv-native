@@ -98,6 +98,9 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
                     "doclingConvert": 4.0,
                     "total": 5.0,
                 },
+                "hybridPageOcrFallbackReason": (
+                    "routing decision `full_docling_fallback` is not eligible for hybrid OCR"
+                ),
                 "artifactError": None,
             },
         ]
@@ -127,6 +130,9 @@ def test_artifact_report_summary_tracks_structure_precision() -> None:
         "total": 25.0,
         "writeResourcesArrow": 2.0,
     }
+    assert summary["hybridPageOcrFallbackReasons"] == [
+        "routing decision `full_docling_fallback` is not eligible for hybrid OCR"
+    ]
     assert summary["imageAttachmentAuditCount"] == 1
     assert summary["imageKnownDimensionCount"] == 1
     assert summary["imageFormatCounts"] == {"png": 1}

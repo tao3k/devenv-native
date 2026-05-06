@@ -57,9 +57,23 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
             rust_pdf_ocr_profile_planner
         )
     rust_pdf_ocr2_render_dpi = getattr(args, "rust_pdf_ocr2_render_dpi", None)
-    if rust_pdf_ocr2_render_dpi:
+    if rust_pdf_ocr2_render_dpi and rust_pdf_ocr2_render_dpi >= 300:
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI"] = str(
             rust_pdf_ocr2_render_dpi
+        )
+    rust_pdf_ocr_region_context_ratio = getattr(
+        args,
+        "rust_pdf_ocr_region_context_ratio",
+        None,
+    )
+    if rust_pdf_ocr_region_context_ratio is not None:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO"] = str(
+            rust_pdf_ocr_region_context_ratio
+        )
+    rust_pdf_ocr2_region_planner = getattr(args, "rust_pdf_ocr2_region_planner", None)
+    if rust_pdf_ocr2_region_planner and rust_pdf_ocr2_region_planner != "disabled":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER"] = str(
+            rust_pdf_ocr2_region_planner
         )
     ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
     if ocr_endpoint_pool:

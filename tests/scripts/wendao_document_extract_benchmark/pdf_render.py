@@ -237,6 +237,31 @@ def resolve_pdfium_library_path(args: argparse.Namespace) -> Path | None:
     explicit_path = getattr(args, "pdfium_library_path", None)
     if explicit_path is not None:
         return validate_pdfium_library_path(explicit_path)
-    if getattr(args, "prepare_pdfium_runtime", False):
+    if getattr(args, "prepare_pdfium_runtime", False) or hybrid_pdf_ocr_requires_pdfium(
+        args
+    ):
         return prepare_pdfium_runtime()
     return None
+
+
+def hybrid_pdf_ocr_requires_pdfium(args: argparse.Namespace) -> bool:
+    profile_planner = (
+        str(getattr(args, "rust_pdf_ocr_profile_planner", "") or "")
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if profile_planner in {"ocr2-all", "ocr2-risk-window"}:
+        return True
+    region_planner = (
+        str(getattr(args, "rust_pdf_ocr2_region_planner", "") or "")
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if region_planner and region_planner != "disabled":
+        return True
+    selection = normalize_render_selection(
+        getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
+    )
+    return selection == "region_shards"
