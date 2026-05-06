@@ -2,7 +2,8 @@
 
 use super::{
     SemanticCheckReadModelSnapshotArgs, SemanticCommand, SemanticDescribeReadModelArgs,
-    SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
+    SemanticPlanReadModelMaterializationArgs, SemanticReadModelQueryArgs,
+    SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
 };
 use crate::lint::{
     self, SemanticLintArgs, SemanticLintProjectionValidationArgs, SemanticLintValidationArgs,
@@ -17,8 +18,10 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 use xiuxian_wendao_sql::semantic_read_model::{
-    SemanticReadModelCatalog, SemanticReadModelSnapshot, SemanticReadModelSnapshotCheck,
-    query_semantic_read_model_payload, semantic_read_model_catalog_from_root,
+    SemanticReadModelCatalog, SemanticReadModelMaterializationPlan,
+    SemanticReadModelMaterializationStatus, SemanticReadModelSnapshot,
+    SemanticReadModelSnapshotCheck, query_semantic_read_model_payload,
+    semantic_read_model_catalog_from_root, semantic_read_model_materialization_plan_from_root,
     semantic_read_model_snapshot_check_from_root, semantic_read_model_snapshot_from_root,
 };
 use xiuxian_wendao_sql::{SqlBatchPayload, SqlQueryPayload};
@@ -54,6 +57,13 @@ struct SemanticReadModelSnapshotCheckReport {
     check: SemanticReadModelSnapshotCheck,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SemanticReadModelMaterializationPlanReport {
+    root: PathBuf,
+    plan: SemanticReadModelMaterializationPlan,
+}
+
 pub(crate) fn run_command(
     command: &SemanticCommand,
     context: &ClientContext,
@@ -63,10 +73,42 @@ pub(crate) fn run_command(
             run_check_read_model_snapshot(args, context)
         }
         SemanticCommand::DescribeReadModel(args) => run_describe_read_model(args, context),
+        SemanticCommand::PlanReadModelMaterialization(args) => {
+            run_plan_read_model_materialization(args, context)
+        }
         SemanticCommand::QueryReadModel(args) => run_query_read_model(args, context),
         SemanticCommand::RefreshProjections(args) => run_refresh_projections_worker(args, context),
         SemanticCommand::SnapshotReadModel(args) => run_snapshot_read_model(args, context),
     }
+}
+
+fn run_plan_read_model_materialization(
+    args: &SemanticPlanReadModelMaterializationArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let root = semantic_root(args.path.as_ref(), context.root());
+    let plan = semantic_read_model_materialization_plan_from_root(
+        root.as_path(),
+        args.expected_snapshot_revision.as_deref(),
+    )
+    .map_err(anyhow::Error::msg)
+    .with_context(|| {
+        format!(
+            "failed to plan semantic read-model materialization under `{}`",
+            root.display()
+        )
+    })?;
+    let is_blocked = plan.status == SemanticReadModelMaterializationStatus::Blocked;
+    let report = SemanticReadModelMaterializationPlanReport {
+        root: display_semantic_root(root.as_path(), context.root()),
+        plan,
+    };
+    emit_read_model_materialization_plan_report(&report, context.output())?;
+    Ok(if is_blocked {
+        CommandOutcome::failure(1)
+    } else {
+        CommandOutcome::success()
+    })
 }
 
 fn run_check_read_model_snapshot(
@@ -295,6 +337,19 @@ fn emit_read_model_snapshot_check_report(
     Ok(())
 }
 
+fn emit_read_model_materialization_plan_report(
+    report: &SemanticReadModelMaterializationPlanReport,
+    output: OutputFormat,
+) -> Result<()> {
+    let rendered = match output {
+        OutputFormat::Text => render_read_model_materialization_plan_text_report(report),
+        OutputFormat::Json => render_json_report(report, false)?,
+        OutputFormat::Pretty => render_json_report(report, true)?,
+    };
+    print!("{rendered}");
+    Ok(())
+}
+
 fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport) -> String {
     let mut rendered = format!(
         "Semantic read-model catalog: {} table(s), {} row(s) from {}.\n",
@@ -327,6 +382,55 @@ fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport
             rendered.push('\n');
         }
     }
+    rendered
+}
+
+fn render_read_model_materialization_plan_text_report(
+    report: &SemanticReadModelMaterializationPlanReport,
+) -> String {
+    let mut rendered = format!(
+        "Semantic read-model materialization plan {}: {} {} from {}.\n",
+        report.plan.status.as_str(),
+        report.plan.target_engine,
+        report.plan.refresh_discipline,
+        report.root.display()
+    );
+    rendered.push_str("- snapshot: ");
+    rendered.push_str(report.plan.snapshot_revision.as_str());
+    if let Some(expected) = report.plan.expected_snapshot_revision.as_deref() {
+        rendered.push_str("\n- expected: ");
+        rendered.push_str(expected);
+        rendered.push_str(if report.plan.snapshot_matches_expected == Some(true) {
+            " (matched)"
+        } else {
+            " (mismatch)"
+        });
+    }
+    rendered.push_str("\n- authority: ");
+    rendered.push_str(report.plan.authority.as_str());
+    rendered.push_str("\n- writeback: ");
+    rendered.push_str(report.plan.writeback_policy.as_str());
+    rendered.push_str("\n- tables: ");
+    rendered.push_str(report.plan.tables.len().to_string().as_str());
+    rendered.push_str(" planned table(s)\n");
+    for table in &report.plan.tables {
+        rendered.push_str("- ");
+        rendered.push_str(table.name.as_str());
+        rendered.push_str(": ");
+        rendered.push_str(table.row_count.to_string().as_str());
+        rendered.push_str(" row(s), ");
+        rendered.push_str(table.column_count.to_string().as_str());
+        rendered.push_str(" column(s), ");
+        rendered.push_str(table.planned_materialization_state.as_str());
+        rendered.push_str(" via ");
+        rendered.push_str(table.planned_registration_strategy.as_str());
+        rendered.push_str(", revision ");
+        rendered.push_str(table.row_revision.as_str());
+        rendered.push('\n');
+    }
+    rendered.push_str("- steps: ");
+    rendered.push_str(report.plan.required_steps.join(", ").as_str());
+    rendered.push('\n');
     rendered
 }
 

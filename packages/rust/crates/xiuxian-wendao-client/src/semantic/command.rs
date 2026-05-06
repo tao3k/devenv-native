@@ -13,10 +13,25 @@ pub enum SemanticCommand {
     DescribeReadModel(SemanticDescribeReadModelArgs),
     /// Execute a read-only SQL query over advisory semantic read-model tables.
     QueryReadModel(SemanticReadModelQueryArgs),
+    /// Plan future read-model materialization without writing derived state.
+    PlanReadModelMaterialization(SemanticPlanReadModelMaterializationArgs),
     /// Run the semantic projection metadata refresh worker.
     RefreshProjections(SemanticRefreshProjectionsArgs),
     /// Render deterministic advisory semantic read-model snapshot revisions.
     SnapshotReadModel(SemanticSnapshotReadModelArgs),
+}
+
+/// CLI arguments for advisory semantic read-model materialization planning.
+#[derive(Args, Debug)]
+pub struct SemanticPlanReadModelMaterializationArgs {
+    /// Expected aggregate snapshot revision gate, including the `blake3:` prefix.
+    #[arg(long = "expect-snapshot", value_name = "SNAPSHOT_REVISION")]
+    pub expected_snapshot_revision: Option<String>,
+
+    /// Semantic artifact root to plan. When omitted, checks
+    /// `$PRJ_ROOT/semantic` through the active client root.
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
 }
 
 /// CLI arguments for advisory semantic read-model snapshot verification.

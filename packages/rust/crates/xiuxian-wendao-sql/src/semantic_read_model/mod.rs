@@ -2,6 +2,7 @@
 
 mod catalog;
 mod guard;
+mod materialization;
 mod query;
 mod register;
 mod rows;
@@ -17,6 +18,15 @@ pub use guard::{
     SEMANTIC_SQL_PROJECTION_FRESHNESS_QUERY, SemanticProjectionFreshnessFinding,
     SemanticSqlGuardEvidence, SemanticSqlGuardStatus, run_semantic_sql_projection_freshness_guard,
     run_semantic_sql_projection_freshness_guard_with_engine,
+};
+pub use materialization::{
+    SEMANTIC_READ_MODEL_MATERIALIZATION_REFRESH_DISCIPLINE,
+    SEMANTIC_READ_MODEL_MATERIALIZATION_TARGET_ENGINE,
+    SEMANTIC_READ_MODEL_PLANNED_MATERIALIZATION_STATE,
+    SEMANTIC_READ_MODEL_PLANNED_REGISTRATION_STRATEGY, SEMANTIC_READ_MODEL_WRITEBACK_POLICY,
+    SemanticReadModelMaterializationPlan, SemanticReadModelMaterializationStatus,
+    SemanticReadModelMaterializationTablePlan, semantic_read_model_materialization_plan,
+    semantic_read_model_materialization_plan_from_root,
 };
 pub use query::{
     query_semantic_read_model_payload, query_semantic_read_model_payload_with_engine,

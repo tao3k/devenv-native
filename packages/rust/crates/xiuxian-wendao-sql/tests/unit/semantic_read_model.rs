@@ -11,7 +11,8 @@ use crate::semantic_read_model::{
     SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
     SEMANTIC_RELATIONS_TABLE_NAME, SemanticSqlGuardStatus, build_semantic_read_model_rows,
     query_semantic_read_model_payload, run_semantic_sql_projection_freshness_guard,
-    semantic_read_model_catalog, semantic_read_model_snapshot, semantic_read_model_snapshot_check,
+    semantic_read_model_catalog, semantic_read_model_materialization_plan,
+    semantic_read_model_snapshot, semantic_read_model_snapshot_check,
     validate_semantic_read_model_query_text,
 };
 
@@ -360,6 +361,61 @@ fn semantic_read_model_snapshot_check_reports_match_and_mismatch() -> TestResult
         invalid.contains("blake3"),
         "invalid revision should explain the scheme: {invalid}"
     );
+    Ok(())
+}
+
+#[test]
+fn semantic_read_model_materialization_plan_reports_ready_and_blocked_states() -> TestResult {
+    let temp_dir = tempdir()?;
+    let root = temp_dir.path();
+    write_semantic_read_model_fixture(root)?;
+
+    let repository = load_semantic_repository(root);
+    let snapshot = semantic_read_model_snapshot(&repository).map_err(std::io::Error::other)?;
+    let expected_revision = snapshot.snapshot_revision.clone();
+
+    let ready = semantic_read_model_materialization_plan(
+        snapshot.clone(),
+        Some(expected_revision.as_str()),
+    )
+    .map_err(std::io::Error::other)?;
+    assert_eq!(ready.status.as_str(), "ready");
+    assert!(ready.advisory);
+    assert_eq!(ready.authority, "repo_native_semantic_artifacts");
+    assert_eq!(ready.target_engine, "duckdb");
+    assert_eq!(ready.refresh_discipline, "snapshot_swap");
+    assert_eq!(
+        ready.writeback_policy,
+        "read_model_only_no_semantic_writeback"
+    );
+    assert_eq!(ready.snapshot_matches_expected, Some(true));
+    assert!(
+        ready
+            .required_steps
+            .iter()
+            .any(|step| step == "check_expected_snapshot_revision")
+    );
+    let objects = ready
+        .tables
+        .iter()
+        .find(|table| table.name == SEMANTIC_OBJECTS_TABLE_NAME)
+        .ok_or_else(|| {
+            std::io::Error::other("semantic_objects table should have a materialization plan")
+        })?;
+    assert_eq!(objects.row_count, 2);
+    assert_eq!(
+        objects.planned_registration_strategy,
+        "duckdb_materialized_arrow_staging"
+    );
+    assert_eq!(objects.planned_materialization_state, "materialized");
+
+    let blocked = semantic_read_model_materialization_plan(
+        snapshot,
+        Some("blake3:0000000000000000000000000000000000000000000000000000000000000000"),
+    )
+    .map_err(std::io::Error::other)?;
+    assert_eq!(blocked.status.as_str(), "blocked");
+    assert_eq!(blocked.snapshot_matches_expected, Some(false));
     Ok(())
 }
 

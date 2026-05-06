@@ -103,6 +103,9 @@ advisory row and schema revisions for future read-model snapshot comparison.
 `wendao-client semantic check-read-model-snapshot --expect REVISION` now
 compares the current aggregate advisory snapshot against an expected `blake3:`
 revision and returns a non-zero status on mismatch.
+`wendao-client semantic plan-read-model-materialization --expect-snapshot
+REVISION` now renders a read-only future DuckDB snapshot-swap plan and blocks
+when the expected snapshot does not match the current aggregate revision.
 `wendao-client semantic query-read-model --query SQL` now exposes the same
 provisional tables as a bounded read-only SQL evidence surface.
 `xiuxian-wendao-sql` now rejects blank, multi-statement, and mutation SQL for
@@ -326,6 +329,9 @@ snapshot-swap verification work.
 `wendao-client semantic check-read-model-snapshot --expect REVISION` now uses
 that aggregate revision as an explicit read-only verification guard and
 renders table revisions for mismatch triage.
+`wendao-client semantic plan-read-model-materialization --expect-snapshot
+REVISION` now reports the future DuckDB staging strategy, writeback policy,
+and required snapshot-swap steps without adding physical DuckDB persistence.
 `wendao-client semantic query-read-model --query SQL` now lets operators run
 bounded read-only SQL against that surface while keeping query output as
 evidence only. The query path now admits exactly one read-only SQL statement,

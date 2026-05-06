@@ -156,6 +156,12 @@ As of 2026-05-05, the first physical slice is implemented:
     mismatch while rendering the current table revisions for operator review.
     The check is evidence only and does not make hashes, SQL, or DuckDB
     authoritative.
+30. `wendao-client semantic plan-read-model-materialization
+--expect-snapshot REVISION` now renders the next read-model step as a
+    read-only future DuckDB snapshot-swap plan. It reports the current
+    aggregate/table revisions, planned staging strategy, writeback policy, and
+    required swap steps, and it blocks on expected-snapshot mismatch without
+    registering DuckDB tables or writing derived state.
 
 The full RFC is not complete. Remaining work includes wider rollout of
 semantic guard route-aware real workflows, DuckDB-backed materialized read
@@ -460,6 +466,9 @@ aggregate revisions over the same advisory rows.
 `wendao-client semantic check-read-model-snapshot --expect REVISION` verifies
 that aggregate revision as a read-only guard and renders the current table
 revisions for mismatch triage.
+`wendao-client semantic plan-read-model-materialization --expect-snapshot
+REVISION` renders the future DuckDB snapshot-swap plan around that revision
+without creating a physical DuckDB materialization.
 `wendao-client semantic query-read-model --query SQL` also exposes bounded
 read-only SQL queries over those tables, with SQL admission requiring exactly
 one read-only query statement. This is not yet a DuckDB materialization or

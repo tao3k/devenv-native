@@ -23,6 +23,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-wendao-client semantic_describe_read_model -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client semantic_snapshot_read_model -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client semantic_check_read_model_snapshot -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-client semantic_plan_read_model_materialization -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client query_read_model -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-server semantic_scope -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-studio --features zhenfa-router --test semantic_scope_provider semantic_scope -- --nocapture
@@ -80,6 +81,8 @@ catalog with `wendao-client semantic describe-read-model`, render
 deterministic advisory row and schema revisions with
 `wendao-client semantic snapshot-read-model`, verify the current aggregate
 revision with `wendao-client semantic check-read-model-snapshot --expect
-REVISION`, and then run bounded read-only SQL against those same advisory tables with
+REVISION`, render a future DuckDB snapshot-swap plan with `wendao-client
+semantic plan-read-model-materialization --expect-snapshot REVISION`, and then
+run bounded read-only SQL against those same advisory tables with
 `wendao-client semantic query-read-model --query`; the SQL crate rejects
 blank, multi-statement, and mutation SQL before table registration.

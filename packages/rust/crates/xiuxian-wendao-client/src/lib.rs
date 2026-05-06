@@ -38,5 +38,6 @@ pub use lint::{
 pub use output::OutputFormat;
 pub use semantic::{
     SemanticCheckReadModelSnapshotArgs, SemanticCommand, SemanticDescribeReadModelArgs,
-    SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
+    SemanticPlanReadModelMaterializationArgs, SemanticReadModelQueryArgs,
+    SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
 };

@@ -4,9 +4,10 @@ use tempfile::TempDir;
 
 use super::{
     run_semantic_check_read_model_snapshot_with_args, run_semantic_describe_read_model,
-    run_semantic_lint, run_semantic_lint_with_args, run_semantic_query_read_model_with_args,
-    run_semantic_query_read_model_with_args_and_stderr, run_semantic_refresh_projections,
-    run_semantic_refresh_projections_with_args,
+    run_semantic_lint, run_semantic_lint_with_args,
+    run_semantic_plan_read_model_materialization_with_args,
+    run_semantic_query_read_model_with_args, run_semantic_query_read_model_with_args_and_stderr,
+    run_semantic_refresh_projections, run_semantic_refresh_projections_with_args,
     run_semantic_refresh_projections_with_args_and_stderr, run_semantic_snapshot_read_model,
 };
 
@@ -255,6 +256,88 @@ fn semantic_check_read_model_snapshot_rejects_mismatch() -> Result<()> {
     assert!(
         stdout.contains("- current: blake3:"),
         "current revision should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_plan_read_model_materialization_renders_ready_plan() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+    let (status, snapshot_stdout) = run_semantic_snapshot_read_model(&temp, None)?;
+    assert_eq!(status, Some(0), "{snapshot_stdout}");
+    let expected_revision = read_snapshot_revision(&snapshot_stdout)?;
+
+    let args = ["--expect-snapshot", expected_revision.as_str()];
+    let (status, stdout, stderr) =
+        run_semantic_plan_read_model_materialization_with_args(&temp, None, &args)?;
+
+    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stdout.contains("Semantic read-model materialization plan ready: duckdb snapshot_swap"),
+        "materialization plan should be ready: {stdout}"
+    );
+    assert!(
+        stdout.contains("- expected: "),
+        "expected snapshot should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("(matched)"),
+        "expected snapshot should be marked matched: {stdout}"
+    );
+    assert!(
+        stdout.contains("- writeback: read_model_only_no_semantic_writeback"),
+        "writeback boundary should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_objects: 1 row(s), 18 column(s), materialized via duckdb_materialized_arrow_staging"),
+        "table plan should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("check_expected_snapshot_revision"),
+        "snapshot gate step should be included: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_plan_read_model_materialization_blocks_snapshot_mismatch() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout, stderr) = run_semantic_plan_read_model_materialization_with_args(
+        &temp,
+        None,
+        &[
+            "--expect-snapshot",
+            "blake3:0000000000000000000000000000000000000000000000000000000000000000",
+        ],
+    )?;
+
+    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stdout.contains("Semantic read-model materialization plan blocked"),
+        "materialization plan should be blocked: {stdout}"
+    );
+    assert!(
+        stdout.contains("(mismatch)"),
+        "snapshot mismatch should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("- snapshot: blake3:"),
+        "current snapshot should be rendered: {stdout}"
     );
     Ok(())
 }

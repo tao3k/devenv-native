@@ -5,6 +5,7 @@ mod run;
 
 pub use command::{
     SemanticCheckReadModelSnapshotArgs, SemanticCommand, SemanticDescribeReadModelArgs,
-    SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
+    SemanticPlanReadModelMaterializationArgs, SemanticReadModelQueryArgs,
+    SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
 };
 pub(crate) use run::run_command;

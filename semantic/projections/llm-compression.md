@@ -12,8 +12,8 @@ source_objects:
   - invariant.execution-graph-is-not-semantic-graph
   - invariant.valkey-is-not-semantic-authority
   - task.semantic-ssot.object-schema-pilot
-source_revision: "blake3:80b50315c3c487d5ce160f3bf84c876198411eee13b50f82c0f161f98efaeecf"
-projection_revision: "2026-05-05.semantic-ssot-runtime-pilot.v5"
+source_revision: "blake3:8b9d40e97e625177c202ced07f7b9a269c86add0af4514025b3d3e4305cdb774"
+projection_revision: "2026-05-05.semantic-ssot-runtime-pilot.v6"
 staleness: fresh
 status: active
 ---
@@ -23,7 +23,7 @@ status: active
 For agent context, compress this semantic graph as:
 
 1. repository artifacts own semantic truth
-2. Wendao validates semantic object scopes and serves guarded advisory read-model summaries, catalogs, snapshots, snapshot checks, and queries
+2. Wendao validates semantic object scopes and serves guarded advisory read-model summaries, catalogs, snapshots, snapshot checks, materialization plans, and queries
 3. Qianji consumes semantic scope before execution
 4. docs and LLM summaries are projections
 5. Valkey is runtime state, not authority

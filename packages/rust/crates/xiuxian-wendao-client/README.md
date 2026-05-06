@@ -19,6 +19,7 @@ wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--pro
 wendao-client semantic describe-read-model [PATH]
 wendao-client semantic snapshot-read-model [PATH]
 wendao-client semantic check-read-model-snapshot --expect SNAPSHOT_REVISION [PATH]
+wendao-client semantic plan-read-model-materialization [--expect-snapshot SNAPSHOT_REVISION] [PATH]
 wendao-client semantic query-read-model --query SQL [PATH]
 wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
@@ -145,7 +146,14 @@ Behavior:
     current table revisions for operator review. This is a read-only evidence
     guard for future snapshot-swap work and does not make hashes or SQL
     authoritative
-34. executes read-only SQL over advisory semantic read-model tables with
+34. renders a read-only future materialization plan with
+    `semantic plan-read-model-materialization`, defaulting to the active
+    `semantic/` root. The plan targets a future DuckDB snapshot-swap read
+    model, lists the current aggregate and table revisions, and can be gated
+    with `--expect-snapshot SNAPSHOT_REVISION`. A mismatched expected snapshot
+    returns a blocked plan and a non-zero exit status. The command does not
+    register DuckDB tables, write derived state, or make DuckDB authoritative
+35. executes read-only SQL over advisory semantic read-model tables with
     `semantic query-read-model --query SQL`, defaulting to the active
     `semantic/` root and rendering text, JSON, or pretty JSON through the
     global output option. The registered tables are `semantic_objects`,
