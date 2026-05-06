@@ -6,6 +6,10 @@ mod flight;
 #[path = "service/mod.rs"]
 mod service;
 
+#[cfg(test)]
+#[path = "../../../../../tests/unit/studio/router/handlers/analysis/flight.rs"]
+mod flight_tests;
+
 pub(crate) use document_extract::{
     DocumentExtractJobStatus, DocumentExtractRuntimeSnapshot,
     StudioDocumentExtractFlightRouteProvider, default_output_dir,

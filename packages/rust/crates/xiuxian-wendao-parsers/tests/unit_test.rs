@@ -22,7 +22,7 @@ mod references;
 mod section_create;
 #[path = "unit/sections.rs"]
 mod sections;
-#[path = "unit/semantic_ssot.rs"]
+#[path = "unit/semantic_ssot/mod.rs"]
 mod semantic_ssot;
 #[path = "unit/targets.rs"]
 mod targets;

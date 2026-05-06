@@ -2,495 +2,104 @@ use anyhow::Result;
 use std::process::Command;
 use tempfile::TempDir;
 
-use super::{
-    run_semantic_check_read_model_snapshot_with_args, run_semantic_describe_read_model,
-    run_semantic_lint, run_semantic_lint_with_args,
-    run_semantic_plan_read_model_materialization_with_args,
-    run_semantic_preflight_read_model_materialization_with_args,
-    run_semantic_query_read_model_with_args, run_semantic_query_read_model_with_args_and_stderr,
-    run_semantic_refresh_projections, run_semantic_refresh_projections_with_args,
-    run_semantic_refresh_projections_with_args_and_stderr, run_semantic_snapshot_read_model,
-};
+#[path = "semantic/basic.rs"]
+mod basic;
+#[path = "semantic/lifecycle.rs"]
+mod lifecycle;
+#[path = "semantic/projection.rs"]
+mod projection;
+#[path = "semantic/read_model.rs"]
+mod read_model;
+#[path = "semantic/refresh.rs"]
+mod refresh;
 
-#[test]
-fn semantic_lint_accepts_valid_semantic_root() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_lint(&temp, None)?;
-
-    assert_eq!(status, Some(0));
-    assert!(
-        stdout.contains(
-            "Semantic lint passed: checked 1 root(s), 1 object(s), 1 projection(s), 0 change intent(s), 0 issue(s)."
-        ),
-        "{stdout}"
-    );
-    Ok(())
+fn run_semantic_lint(temp: &TempDir, scope: Option<&str>) -> Result<(Option<i32>, String)> {
+    super::run_semantic_lint(temp, scope)
 }
 
-#[test]
-fn semantic_lint_reports_unresolved_relations() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture_with_relation(
-        &temp,
-        "task.fixture",
-        "task",
-        "Task Fixture",
-        "active",
-        "  - kind: depends_on\n    target: component.missing\n",
-    )?;
-
-    let (status, stdout) = run_semantic_lint(&temp, None)?;
-
-    assert_eq!(status, Some(1));
-    assert!(
-        stdout.contains("component.missing"),
-        "unresolved target should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_lint_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String)> {
+    super::run_semantic_lint_with_args(temp, scope, args)
 }
 
-#[test]
-fn semantic_lint_sql_guard_reports_stale_projection() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--semantic-sql-guard"])?;
-
-    assert_eq!(status, Some(1));
-    assert!(
-        stdout.contains("SQL guard semantic_sql.projection_freshness review_required"),
-        "SQL guard status should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("1 failing row(s)"),
-        "SQL guard failing row count should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_refresh_projections(
+    temp: &TempDir,
+    scope: Option<&str>,
+) -> Result<(Option<i32>, String)> {
+    super::run_semantic_refresh_projections(temp, scope)
 }
 
-#[test]
-fn semantic_lint_renders_read_model_summary() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--read-model-summary"])?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Read-model summary projected"),
-        "read-model status should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_objects 1 row(s)"),
-        "object row count should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_projection_state 1 row(s)"),
-        "projection-state row count should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("repo-native semantic artifacts remain authoritative"),
-        "authority boundary should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_refresh_projections_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String)> {
+    super::run_semantic_refresh_projections_with_args(temp, scope, args)
 }
 
-#[test]
-fn semantic_describe_read_model_renders_catalog() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_describe_read_model(&temp, None)?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Semantic read-model catalog: 3 table(s), 2 row(s)"),
-        "catalog summary should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_objects: 1 row(s), 18 column(s)"),
-        "semantic object table should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("  - id: Utf8 not null"),
-        "column metadata should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_projection_state: 1 row(s), 9 column(s)"),
-        "projection-state table should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("repo_native_semantic_artifacts"),
-        "authority boundary should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_refresh_projections_with_args_and_stderr(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String, String)> {
+    super::run_semantic_refresh_projections_with_args_and_stderr(temp, scope, args)
 }
 
-#[test]
-fn semantic_snapshot_read_model_renders_revisions() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_snapshot_read_model(&temp, None)?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Semantic read-model snapshot: blake3:"),
-        "snapshot revision should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("tables: 3 table(s), 2 row(s)"),
-        "snapshot summary should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_objects: 1 row(s), 18 column(s), revision blake3:"),
-        "object table revision should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_projection_state: 1 row(s), 9 column(s), revision blake3:"),
-        "projection-state table revision should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("repo_native_semantic_artifacts"),
-        "authority boundary should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_describe_read_model(
+    temp: &TempDir,
+    scope: Option<&str>,
+) -> Result<(Option<i32>, String)> {
+    super::run_semantic_describe_read_model(temp, scope)
 }
 
-#[test]
-fn semantic_check_read_model_snapshot_accepts_expected_revision() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-    let (status, snapshot_stdout) = run_semantic_snapshot_read_model(&temp, None)?;
-    assert_eq!(status, Some(0), "{snapshot_stdout}");
-    let expected_revision = read_snapshot_revision(&snapshot_stdout)?;
-
-    let args = ["--expect", expected_revision.as_str()];
-    let (status, stdout, stderr) =
-        run_semantic_check_read_model_snapshot_with_args(&temp, None, &args)?;
-
-    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stdout.contains("Semantic read-model snapshot check passed"),
-        "snapshot check should pass: {stdout}"
-    );
-    assert!(
-        stdout.contains(expected_revision.as_str()),
-        "expected revision should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_objects: 1 row(s), revision blake3:"),
-        "table revisions should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_snapshot_read_model(
+    temp: &TempDir,
+    scope: Option<&str>,
+) -> Result<(Option<i32>, String)> {
+    super::run_semantic_snapshot_read_model(temp, scope)
 }
 
-#[test]
-fn semantic_check_read_model_snapshot_rejects_mismatch() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout, stderr) = run_semantic_check_read_model_snapshot_with_args(
-        &temp,
-        None,
-        &[
-            "--expect",
-            "blake3:0000000000000000000000000000000000000000000000000000000000000000",
-        ],
-    )?;
-
-    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stdout.contains("Semantic read-model snapshot check failed"),
-        "snapshot check should fail: {stdout}"
-    );
-    assert!(
-        stdout.contains(
-            "- expected: blake3:0000000000000000000000000000000000000000000000000000000000000000"
-        ),
-        "expected revision should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("- current: blake3:"),
-        "current revision should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_check_read_model_snapshot_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String, String)> {
+    super::run_semantic_check_read_model_snapshot_with_args(temp, scope, args)
 }
 
-#[test]
-fn semantic_plan_read_model_materialization_renders_ready_plan() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-    let (status, snapshot_stdout) = run_semantic_snapshot_read_model(&temp, None)?;
-    assert_eq!(status, Some(0), "{snapshot_stdout}");
-    let expected_revision = read_snapshot_revision(&snapshot_stdout)?;
-
-    let args = ["--expect-snapshot", expected_revision.as_str()];
-    let (status, stdout, stderr) =
-        run_semantic_plan_read_model_materialization_with_args(&temp, None, &args)?;
-
-    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stdout.contains("Semantic read-model materialization plan ready: duckdb snapshot_swap"),
-        "materialization plan should be ready: {stdout}"
-    );
-    assert!(
-        stdout.contains("- expected: "),
-        "expected snapshot should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("(matched)"),
-        "expected snapshot should be marked matched: {stdout}"
-    );
-    assert!(
-        stdout.contains("- writeback: read_model_only_no_semantic_writeback"),
-        "writeback boundary should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_objects: 1 row(s), 18 column(s), materialized via duckdb_materialized_arrow_staging"),
-        "table plan should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("check_expected_snapshot_revision"),
-        "snapshot gate step should be included: {stdout}"
-    );
-    Ok(())
+fn run_semantic_plan_read_model_materialization_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String, String)> {
+    super::run_semantic_plan_read_model_materialization_with_args(temp, scope, args)
 }
 
-#[test]
-fn semantic_plan_read_model_materialization_blocks_snapshot_mismatch() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout, stderr) = run_semantic_plan_read_model_materialization_with_args(
-        &temp,
-        None,
-        &[
-            "--expect-snapshot",
-            "blake3:0000000000000000000000000000000000000000000000000000000000000000",
-        ],
-    )?;
-
-    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stdout.contains("Semantic read-model materialization plan blocked"),
-        "materialization plan should be blocked: {stdout}"
-    );
-    assert!(
-        stdout.contains("(mismatch)"),
-        "snapshot mismatch should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("- snapshot: blake3:"),
-        "current snapshot should be rendered: {stdout}"
-    );
-    Ok(())
+fn run_semantic_preflight_read_model_materialization_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String, String)> {
+    super::run_semantic_preflight_read_model_materialization_with_args(temp, scope, args)
 }
 
-#[test]
-fn semantic_preflight_read_model_materialization_runs_ready_smoke_query() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-    let (status, snapshot_stdout) = run_semantic_snapshot_read_model(&temp, None)?;
-    assert_eq!(status, Some(0), "{snapshot_stdout}");
-    let expected_revision = read_snapshot_revision(&snapshot_stdout)?;
-
-    let args = ["--expect-snapshot", expected_revision.as_str()];
-    let (status, stdout, stderr) =
-        run_semantic_preflight_read_model_materialization_with_args(&temp, None, &args)?;
-
-    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stdout.contains(
-            "Semantic read-model materialization preflight ready: target duckdb, execution datafusion"
-        ),
-        "preflight should be ready: {stdout}"
-    );
-    assert!(
-        stdout.contains("(matched)"),
-        "expected snapshot should be marked matched: {stdout}"
-    );
-    assert!(
-        stdout.contains("- registered: 3 table(s), 2 row(s), 3 batch(es)"),
-        "registration stats should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("- smoke result: 3 row(s) across"),
-        "smoke query result should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_objects: 1 row(s), 18 column(s), materialized via datafusion_request_scoped_arrow"),
-        "table preflight should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("semantic_projection_state"),
-        "smoke query should mention projection-state table: {stdout}"
-    );
-    Ok(())
+fn run_semantic_query_read_model_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String)> {
+    super::run_semantic_query_read_model_with_args(temp, scope, args)
 }
 
-#[test]
-fn semantic_preflight_read_model_materialization_blocks_snapshot_mismatch() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout, stderr) = run_semantic_preflight_read_model_materialization_with_args(
-        &temp,
-        None,
-        &[
-            "--expect-snapshot",
-            "blake3:0000000000000000000000000000000000000000000000000000000000000000",
-        ],
-    )?;
-
-    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stdout.contains("Semantic read-model materialization preflight blocked"),
-        "preflight should be blocked: {stdout}"
-    );
-    assert!(
-        stdout.contains("(mismatch)"),
-        "snapshot mismatch should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("- execution: skipped_snapshot_gate_blocked"),
-        "blocked preflight should skip registration: {stdout}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_query_read_model_runs_sql() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_query_read_model_with_args(
-        &temp,
-        None,
-        &[
-            "--query",
-            "select id, kind from semantic_objects order by id",
-        ],
-    )?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Semantic read-model query returned 1 row(s)"),
-        "query row count should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains(
-            "registered tables: semantic_objects, semantic_relations, semantic_projection_state"
-        ),
-        "registered read-model tables should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("id=decision.fixture, kind=decision"),
-        "query rows should be rendered: {stdout}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_query_read_model_rejects_mutation_sql() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout, stderr) = run_semantic_query_read_model_with_args_and_stderr(
-        &temp,
-        None,
-        &[
-            "--query",
-            "insert into semantic_objects (id) values ('decision.bad')",
-        ],
-    )?;
-
-    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stderr.contains("read-only query statement"),
-        "mutation rejection should explain the read-only contract: {stderr}"
-    );
-    Ok(())
+fn run_semantic_query_read_model_with_args_and_stderr(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String, String)> {
+    super::run_semantic_query_read_model_with_args_and_stderr(temp, scope, args)
 }
 
 fn read_snapshot_revision(stdout: &str) -> Result<String> {
@@ -507,323 +116,6 @@ fn read_snapshot_revision(stdout: &str) -> Result<String> {
         anyhow::bail!("snapshot output revision line had unexpected shape: {line}");
     };
     Ok(revision.to_string())
-}
-
-#[test]
-fn semantic_lint_refreshes_projection_source_revision() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--refresh-projections"])?;
-
-    assert_eq!(status, Some(0));
-    assert!(
-        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
-        "refresh count should be rendered: {stdout}"
-    );
-    let projection =
-        std::fs::read_to_string(temp.path().join("semantic/projections/llm-compression.md"))?;
-    assert!(
-        !projection.contains("source_revision: stale-fixture"),
-        "stale source revision should be replaced: {projection}"
-    );
-    assert!(
-        projection.contains("staleness: fresh"),
-        "staleness should be marked fresh: {projection}"
-    );
-    assert!(
-        projection.contains("source_objects:\n  - decision.fixture"),
-        "projection refresh should preserve block sequence indentation: {projection}"
-    );
-    assert!(
-        projection.contains("source_revision: \"blake3:"),
-        "projection refresh should keep source revision quoted: {projection}"
-    );
-    assert!(
-        projection.contains("projection_revision: test.v1"),
-        "projection revision should remain unchanged: {projection}"
-    );
-
-    let (status, stdout) = run_semantic_lint(&temp, None)?;
-    assert_eq!(status, Some(0), "{stdout}");
-    Ok(())
-}
-
-#[test]
-fn semantic_lint_reports_lifecycle_plan() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_lifecycle_fixture(&temp)?;
-
-    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--lifecycle-plan"])?;
-
-    assert_eq!(status, Some(0));
-    assert!(
-        stdout.contains(
-            "Lifecycle plan 1 promotion(s), 0 demotion(s), 0 other transition(s), 0 pending apply target(s), 1 already-applied writeback target(s), 0 blocked target(s)."
-        ),
-        "lifecycle plan summary should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains(
-            "change.fixture.lifecycle: task.accepted candidate -> active (promotion, already_applied)"
-        ),
-        "lifecycle plan entry should be rendered: {stdout}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_lint_requires_fresh_projection_refresh_targets() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_lifecycle_fixture(&temp)?;
-
-    let (status, stdout) =
-        run_semantic_lint_with_args(&temp, None, &["--require-fresh-projections"])?;
-
-    assert_eq!(status, Some(1));
-    assert!(
-        stdout.contains("1 projection policy issue(s)"),
-        "projection policy issue count should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains(
-            "Projection freshness policy semantic_projection.required_refresh_targets review_required"
-        ),
-        "projection policy failure should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("llm_compression (stale, stale)"),
-        "stale projection entry should be rendered: {stdout}"
-    );
-
-    let (status, stdout) = run_semantic_lint_with_args(
-        &temp,
-        None,
-        &["--refresh-projections", "--require-fresh-projections"],
-    )?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
-        "refresh count should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains(
-            "Projection freshness policy semantic_projection.required_refresh_targets passed (0 failing projection(s))"
-        ),
-        "projection policy pass should be rendered: {stdout}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_lint_renders_projection_refresh_plan() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) =
-        run_semantic_lint_with_args(&temp, None, &["--projection-refresh-plan"])?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Projection refresh plan refresh_required"),
-        "projection refresh plan should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains("llm_compression -> refresh_source_revision (stale, stale)"),
-        "projection refresh entry should be rendered: {stdout}"
-    );
-
-    let (status, stdout) = run_semantic_lint_with_args(
-        &temp,
-        None,
-        &["--refresh-projections", "--projection-refresh-plan"],
-    )?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Projection refresh plan up_to_date (0 refreshable projection(s))"),
-        "refreshed projection should make plan empty: {stdout}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_refresh_projections_command_runs_one_worker_pass() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_refresh_projections(&temp, None)?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
-        "worker should refresh stale projection metadata: {stdout}"
-    );
-    assert!(
-        stdout.contains("Projection refresh plan up_to_date"),
-        "worker should report an empty post-refresh plan: {stdout}"
-    );
-    assert!(
-        stdout.contains(
-            "Projection freshness policy semantic_projection.required_refresh_targets passed"
-        ),
-        "worker should enforce post-refresh projection freshness: {stdout}"
-    );
-
-    let projection =
-        std::fs::read_to_string(temp.path().join("semantic/projections/llm-compression.md"))?;
-    assert!(
-        projection.contains("staleness: fresh"),
-        "worker should mark projection metadata fresh: {projection}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_refresh_projections_command_runs_bounded_repeated_worker_passes() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-
-    let (status, stdout) = run_semantic_refresh_projections_with_args(
-        &temp,
-        None,
-        &["--interval-secs", "0", "--max-runs", "2"],
-    )?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
-        "first worker pass should refresh stale projection metadata: {stdout}"
-    );
-    assert_eq!(
-        stdout.matches("Projection refresh plan up_to_date").count(),
-        2,
-        "bounded runner should render a post-refresh plan for each pass: {stdout}"
-    );
-    assert_eq!(
-        stdout
-            .matches(
-                "Projection freshness policy semantic_projection.required_refresh_targets passed"
-            )
-            .count(),
-        2,
-        "bounded runner should enforce freshness for each pass: {stdout}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_refresh_projections_clean_worktree_guard_accepts_clean_git_root() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-    initialize_git_fixture(&temp)?;
-
-    let (status, stdout, stderr) = run_semantic_refresh_projections_with_args_and_stderr(
-        &temp,
-        None,
-        &["--require-clean-worktree"],
-    )?;
-
-    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stdout.contains("Refreshed 1 semantic projection source revision(s)."),
-        "clean root should allow supervised refresh: {stdout}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_refresh_projections_clean_worktree_guard_rejects_dirty_git_root() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-    initialize_git_fixture(&temp)?;
-    std::fs::write(temp.path().join("dirty.md"), "# Dirty\n")?;
-
-    let (status, stdout, stderr) = run_semantic_refresh_projections_with_args_and_stderr(
-        &temp,
-        None,
-        &["--require-clean-worktree"],
-    )?;
-
-    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
-    assert!(
-        stderr.contains("requires a clean git worktree"),
-        "dirty root should be rejected before refresh: {stderr}"
-    );
-    assert!(
-        stderr.contains("dirty.md"),
-        "dirty path should be rendered for supervisor triage: {stderr}"
-    );
-    Ok(())
-}
-
-#[test]
-fn semantic_lint_renders_projection_refresh_plan_for_fresh_revision_mismatch() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_semantic_fixture(
-        &temp,
-        "decision.fixture",
-        "decision",
-        "Decision Fixture",
-        "active",
-    )?;
-    let projection_path = temp.path().join("semantic/projections/llm-compression.md");
-    let projection = std::fs::read_to_string(&projection_path)?;
-    std::fs::write(
-        &projection_path,
-        projection.replace("staleness: stale", "staleness: fresh"),
-    )?;
-
-    let (status, stdout) =
-        run_semantic_lint_with_args(&temp, None, &["--projection-refresh-plan"])?;
-
-    assert_eq!(status, Some(1), "{stdout}");
-    assert!(
-        stdout.contains("Projection refresh plan refresh_required"),
-        "projection refresh plan should render even for refreshable validation issues: {stdout}"
-    );
-    assert!(
-        stdout.contains("llm_compression -> refresh_source_revision"),
-        "projection refresh entry should be rendered: {stdout}"
-    );
-    Ok(())
 }
 
 fn initialize_git_fixture(temp: &TempDir) -> Result<()> {
@@ -850,49 +142,6 @@ fn run_git(temp: &TempDir, args: &[&str]) -> Result<()> {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
-    Ok(())
-}
-
-#[test]
-fn semantic_lint_applies_pending_lifecycle_plan() -> Result<()> {
-    let temp = TempDir::new()?;
-    write_pending_semantic_lifecycle_fixture(&temp)?;
-
-    let (status, stdout) = run_semantic_lint_with_args(&temp, None, &["--apply-lifecycle-plan"])?;
-
-    assert_eq!(status, Some(0), "{stdout}");
-    assert!(
-        stdout.contains("Applied 1 semantic lifecycle writeback(s)."),
-        "apply count should be rendered: {stdout}"
-    );
-    assert!(
-        stdout.contains(
-            "Lifecycle plan 1 promotion(s), 0 demotion(s), 0 other transition(s), 0 pending apply target(s), 1 already-applied writeback target(s), 0 blocked target(s)."
-        ),
-        "post-apply lifecycle plan should be rendered: {stdout}"
-    );
-
-    let object = std::fs::read_to_string(temp.path().join("semantic/objects/task/accepted.md"))?;
-    assert!(
-        object.contains("status: active"),
-        "object status should be promoted: {object}"
-    );
-    assert!(
-        object.contains("source: human_signed"),
-        "promotion should update confidence source: {object}"
-    );
-    assert!(
-        !object.contains("source: llm_suggested"),
-        "promoted object must not keep llm_suggested confidence: {object}"
-    );
-    let intent = std::fs::read_to_string(temp.path().join("semantic/change-intents/lifecycle.md"))?;
-    assert!(
-        intent.contains("candidate_suggestions: []"),
-        "promoted object should be removed from candidate suggestions: {intent}"
-    );
-
-    let (status, stdout) = run_semantic_lint(&temp, None)?;
-    assert_eq!(status, Some(0), "{stdout}");
     Ok(())
 }
 

@@ -1,4 +1,4 @@
 //! Thin root target for workdir contract integration coverage.
 
-#[path = "workdir_contracts_suite.rs"]
+#[path = "workdir_contracts_suite/mod.rs"]
 mod suite;

@@ -54,6 +54,22 @@ fn semantic_scope_request_accepts_task_and_object_ids() {
     );
 }
 
+#[test]
+fn semantic_scope_request_allows_default_active_scope() {
+    let request = validate_semantic_scope_request(None, &[])
+        .unwrap_or_else(|error| panic!("default semantic scope should validate: {error}"));
+
+    assert!(request.task_id.is_none());
+    assert!(request.object_ids.is_empty());
+}
+
+#[test]
+fn semantic_scope_request_rejects_blank_object_ids() {
+    let result = validate_semantic_scope_request(None, &[String::new()]);
+
+    assert!(result.is_err());
+}
+
 #[tokio::test]
 async fn semantic_scope_flight_info_routes_to_provider_and_preserves_metadata() {
     let observed_request = Arc::new(Mutex::new(None));
