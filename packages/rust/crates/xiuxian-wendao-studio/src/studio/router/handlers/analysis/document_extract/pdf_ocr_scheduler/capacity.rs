@@ -89,13 +89,16 @@ impl OcrCapacityController {
                 snapshot.max_worker_bound,
                 source_range_override,
             ),
-            OcrSchedulerLane::RenderedPage | OcrSchedulerLane::RenderedRegion => {
-                scheduled_ocr_worker_budget(
-                    shard_count,
-                    snapshot.current_worker_budget,
-                    snapshot.max_worker_bound,
-                )
-            }
+            OcrSchedulerLane::RenderedPage => scheduled_ocr_worker_budget(
+                shard_count,
+                snapshot.current_worker_budget,
+                snapshot.max_worker_bound,
+            ),
+            OcrSchedulerLane::RenderedRegion => scheduled_region_worker_budget(
+                shard_count,
+                snapshot.current_worker_budget,
+                snapshot.max_worker_bound,
+            ),
         }
     }
 
@@ -253,6 +256,21 @@ fn scheduled_ocr_worker_budget(
     );
     usize::try_from(plan.recommended_workers)
         .unwrap_or(usize::MAX)
+        .max(1)
+}
+
+fn scheduled_region_worker_budget(
+    shard_count: usize,
+    current_worker_budget: usize,
+    max_worker_bound: usize,
+) -> usize {
+    let shard_count = shard_count.max(1);
+    let current_worker_budget = current_worker_budget.max(1);
+    let max_worker_bound = max_worker_bound.max(1);
+    current_worker_budget
+        .saturating_add(ceil_sqrt_usize(shard_count))
+        .min(shard_count)
+        .min(max_worker_bound)
         .max(1)
 }
 

@@ -55,16 +55,17 @@ fn ordering_backlog_escalates_ocr_pressure() {
 }
 
 #[test]
-fn pressure_evidence_serializes_capability_and_counts() {
+fn pressure_evidence_serializes_capability_and_counts() -> Result<(), serde_json::Error> {
     let evidence = WorkerPressureEvidence::ocr_shard_extraction()
         .with_worker_budget(Some(8), 2)
         .with_queue_depth(5)
         .with_failures(1, 1)
         .with_ordering_backlog(3);
 
-    let serialized = serde_json::to_string(&evidence).expect("serialize pressure evidence");
+    let serialized = serde_json::to_string(&evidence)?;
 
     assert!(serialized.contains("ocr_shard_extraction"));
     assert!(serialized.contains("queued_items"));
     assert!(serialized.contains("ordering_backlog"));
+    Ok(())
 }

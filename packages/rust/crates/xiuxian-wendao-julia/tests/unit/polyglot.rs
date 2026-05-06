@@ -10,7 +10,7 @@ use crate::memory::{
 };
 use xiuxian_polyglot_orchestrator::{
     AdmissionDecision, BenchmarkState, ContractOwner, PolyglotLane, ReadinessState,
-    RejectionReason, WarmupState,
+    RejectionReason, SnapshotInvariantError, WarmupState,
 };
 use xiuxian_wendao_runtime::config::{
     MemoryJuliaComputeFallbackMode, MemoryJuliaComputeRuntimeConfig,
@@ -29,7 +29,7 @@ fn profile_ref_projects_runtime_route_and_schema() {
         memory_julia_compute_profile_ref(&runtime, MemoryJuliaComputeProfile::MemoryGateScore);
 
     assert_eq!(reference.lane, PolyglotLane::JuliaCompute);
-    assert_eq!(reference.owner, ContractOwner::WendaoJulia);
+    assert_eq!(reference.owner, ContractOwner::Julia);
     assert_eq!(reference.route, "/memory/custom_gate_score");
     assert_eq!(
         reference.profile.as_deref(),
@@ -57,7 +57,7 @@ fn manifest_row_ref_preserves_julia_owner() {
     let reference = memory_julia_compute_manifest_row_ref(&row);
 
     assert_eq!(reference.lane, PolyglotLane::JuliaCompute);
-    assert_eq!(reference.owner, ContractOwner::WendaoJulia);
+    assert_eq!(reference.owner, ContractOwner::Julia);
     assert_eq!(reference.route, "/memory/gate_score");
     assert_eq!(reference.profile.as_deref(), Some("memory_gate_score"));
     assert_eq!(reference.schema_version.as_deref(), Some("v1"));
@@ -77,7 +77,7 @@ fn profile_refs_cover_staged_memory_profiles() {
     assert!(
         references
             .iter()
-            .all(|reference| reference.owner == ContractOwner::WendaoJulia)
+            .all(|reference| reference.owner == ContractOwner::Julia)
     );
 }
 
@@ -100,15 +100,15 @@ fn config_readiness_maps_enabled_flag() {
 }
 
 #[test]
-fn memory_julia_snapshot_materializes_profile_refs_and_readiness() {
+fn memory_julia_snapshot_materializes_profile_refs_and_readiness()
+-> Result<(), SnapshotInvariantError> {
     let runtime = MemoryJuliaComputeRuntimeConfig {
         enabled: true,
         schema_version: "v1".to_string(),
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
 
-    let snapshot =
-        memory_julia_compute_snapshot(&runtime).expect("memory Julia snapshot should validate");
+    let snapshot = memory_julia_compute_snapshot(&runtime)?;
 
     assert_eq!(
         snapshot.route_refs().len(),
@@ -118,7 +118,7 @@ fn memory_julia_snapshot_materializes_profile_refs_and_readiness() {
         snapshot
             .route_refs()
             .iter()
-            .all(|reference| reference.owner == ContractOwner::WendaoJulia)
+            .all(|reference| reference.owner == ContractOwner::Julia)
     );
     assert_eq!(
         snapshot
@@ -126,6 +126,7 @@ fn memory_julia_snapshot_materializes_profile_refs_and_readiness() {
             .map(|evidence| evidence.readiness),
         Some(ReadinessState::Ready)
     );
+    Ok(())
 }
 
 #[test]
@@ -159,6 +160,28 @@ fn readiness_evidence_projects_enabled_profile_facts() {
 }
 
 #[test]
+fn readiness_evidence_saturates_wide_admission_window_values() {
+    let runtime = MemoryJuliaComputeRuntimeConfig {
+        enabled: true,
+        schema_version: "v1".to_string(),
+        max_in_flight_requests: u64::MAX,
+        fallback_mode: MemoryJuliaComputeFallbackMode::Rust,
+        ..MemoryJuliaComputeRuntimeConfig::default()
+    };
+
+    let evidence = memory_julia_compute_readiness_evidence(
+        &runtime,
+        MemoryJuliaComputeProfile::EpisodicRecall,
+        WarmupState::Ready,
+        BenchmarkState::WithinThreshold,
+        0,
+        0,
+    );
+
+    assert_eq!(evidence.to_admission_budget().max_in_flight, Some(u32::MAX));
+}
+
+#[test]
 fn readiness_evidence_disables_disabled_runtime() {
     let runtime = MemoryJuliaComputeRuntimeConfig {
         enabled: false,
@@ -187,7 +210,7 @@ fn readiness_evidence_disables_disabled_runtime() {
 }
 
 #[test]
-fn readiness_snapshot_materializes_ref_budget_and_evidence() {
+fn readiness_snapshot_materializes_ref_budget_and_evidence() -> Result<(), SnapshotInvariantError> {
     let runtime = MemoryJuliaComputeRuntimeConfig {
         enabled: true,
         schema_version: "v1".to_string(),
@@ -202,8 +225,7 @@ fn readiness_snapshot_materializes_ref_budget_and_evidence() {
         BenchmarkState::AboveThreshold,
         1,
         0,
-    )
-    .expect("memory Julia readiness snapshot should validate");
+    )?;
 
     assert_eq!(snapshot.route_refs().len(), 1);
     assert_eq!(snapshot.admission_budgets().len(), 1);
@@ -213,4 +235,5 @@ fn readiness_snapshot_materializes_ref_budget_and_evidence() {
             .map(|evidence| evidence.readiness),
         Some(ReadinessState::Degraded)
     );
+    Ok(())
 }

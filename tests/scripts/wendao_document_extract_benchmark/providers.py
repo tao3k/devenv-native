@@ -80,6 +80,15 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE"] = str(
             deepseek_ocr2_scaffold_mode
         )
+    deepseek_ocr2_region_composite_size = getattr(
+        args,
+        "deepseek_ocr2_region_composite_size",
+        None,
+    )
+    if deepseek_ocr2_region_composite_size and deepseek_ocr2_region_composite_size > 1:
+        env["WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE"] = str(
+            deepseek_ocr2_region_composite_size
+        )
     ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
     if ocr_endpoint_pool:
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] = ocr_endpoint_pool

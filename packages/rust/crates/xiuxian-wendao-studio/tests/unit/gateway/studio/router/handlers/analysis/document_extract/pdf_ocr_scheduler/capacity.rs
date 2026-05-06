@@ -1,7 +1,7 @@
 use super::{
     OcrCapacityController, OcrSchedulerLane, PRESSURE_LATENCY_MS, classify_ocr_lane,
     is_contiguous_source_pdf_page_range, is_source_pdf_page_range_batch,
-    scheduled_ocr_worker_budget,
+    scheduled_ocr_worker_budget, scheduled_region_worker_budget,
 };
 use xiuxian_wendao_attachments::pdf::ocr::{
     PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
@@ -77,12 +77,19 @@ fn source_range_override_is_capped_by_current_budget_and_shards() {
 }
 
 #[test]
-fn rendered_region_uses_current_budget() {
+fn rendered_region_uses_bounded_burst_budget() {
     let controller = OcrCapacityController::new_with_current_budget(12, 5);
 
     let budget = controller.budget_for_lane(21, OcrSchedulerLane::RenderedRegion, None);
 
-    assert_eq!(budget, 5);
+    assert_eq!(budget, 10);
+}
+
+#[test]
+fn rendered_region_burst_budget_covers_small_recovery_windows() {
+    let budget = scheduled_region_worker_budget(6, 4, 12);
+
+    assert_eq!(budget, 6);
 }
 
 #[test]

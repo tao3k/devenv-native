@@ -95,6 +95,22 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "hybridPageOcrTimingOcr2RegionShardCount",
         ),
+        "hybridPageOcrTimingOcr2RegionRequestCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRequestCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderedShardCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRenderedShardCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderCacheHitCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRenderCacheHitCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderCacheMissCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRenderCacheMissCount",
+        ),
         "imageAttachmentAuditCount": _image_attachment_audit_count(reports),
         "imageKnownDimensionCount": _image_known_dimension_count(reports),
         "imageFormatCounts": _image_format_counts(reports),

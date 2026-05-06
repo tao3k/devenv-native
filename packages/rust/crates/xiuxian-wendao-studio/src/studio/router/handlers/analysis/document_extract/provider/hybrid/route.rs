@@ -1,10 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use serde_json::Value;
 use serde_json::json;
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+use sha2::{Digest, Sha256};
 use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_FAST_TEXT_PROFILE;
@@ -16,6 +18,10 @@ use xiuxian_wendao_attachments::pdf::profile::{
     PdfSourcePageProfile, source_pdf_page_profiles_cached,
 };
 use xiuxian_wendao_attachments::pdf::render::PdfPageRenderShardReport;
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+use xiuxian_wendao_attachments::pdf::render::{
+    PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfRenderRoutingDecision, PdfRenderStatus,
+};
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::{
     render_pdf_page_shards_for_page_indices, render_pdf_region_shards,
@@ -54,6 +60,17 @@ use crate::studio::router::handlers::analysis::document_extract::provider::{
 
 const HYBRID_PAGE_OCR_FALLBACK_REPORT_NAME: &str = "_hybrid_page_ocr_fallback.json";
 const HYBRID_PAGE_OCR_TIMING_REPORT_NAME: &str = "_hybrid_page_ocr_timing.json";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_REGION_RENDER_CACHE_DIR_NAME: &str = "ocr2-region-renders";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_SCAFFOLD_FILE_NAME: &str = "_ocr2_region_scaffolds.json";
 
@@ -253,6 +270,8 @@ fn record_phase_elapsed(
 struct Ocr2RegionMaterializationStats {
     requested_region_count: usize,
     rendered_region_count: usize,
+    render_cache_hit_count: usize,
+    render_cache_miss_count: usize,
 }
 
 #[derive(Debug)]
@@ -325,6 +344,8 @@ async fn write_hybrid_page_ocr_timing_report(
             .count(),
         "ocr2RegionRequestCount": region_materialization_stats.requested_region_count,
         "ocr2RegionRenderedShardCount": region_materialization_stats.rendered_region_count,
+        "ocr2RegionRenderCacheHitCount": region_materialization_stats.render_cache_hit_count,
+        "ocr2RegionRenderCacheMissCount": region_materialization_stats.render_cache_miss_count,
         "totalElapsedMs": total_elapsed_ms,
         "phaseElapsedMs": phase_elapsed_ms,
     });
@@ -423,25 +444,43 @@ async fn materialize_ocr2_recovery_region_images(
     #[cfg(feature = "document-extract-pdf-render")]
     {
         let phase_started = Instant::now();
-        let output_dir = Path::new(render_report.output_dir.as_str()).join("_ocr2-region-renders");
+        let request_count = regions.len();
         let region_pages = regions
             .iter()
             .map(|region| region.page_index)
             .collect::<BTreeSet<_>>();
         let render_profile =
             hybrid_page_ocr_render_profile_with_lookup(true, &|key| std::env::var(key).ok());
-        let source_for_render = source_path.clone();
-        let output_for_render = output_dir.clone();
-        let region_render_report = tokio::task::spawn_blocking(move || {
-            render_pdf_region_shards(
-                source_for_render.as_path(),
-                output_for_render.as_path(),
-                &render_profile,
-                regions.as_slice(),
-            )
-        })
-        .await
-        .map_err(|error| format!("join OCR2 recovery region render task: {error}"))??;
+        let output_dir = ocr2_region_render_cache_dir(
+            source_path.as_path(),
+            &render_profile,
+            regions.as_slice(),
+        )?;
+        let cached_region_render_report = cached_ocr2_region_render_report(
+            source_path.as_path(),
+            output_dir.as_path(),
+            render_report.page_count,
+            &render_profile,
+            request_count,
+        )?;
+        let render_cache_hit = cached_region_render_report.is_some();
+        let region_render_report = if let Some(report) = cached_region_render_report {
+            report
+        } else {
+            let source_for_render = source_path.clone();
+            let output_for_render = output_dir.clone();
+            let regions_for_render = regions.clone();
+            tokio::task::spawn_blocking(move || {
+                render_pdf_region_shards(
+                    source_for_render.as_path(),
+                    output_for_render.as_path(),
+                    &render_profile,
+                    regions_for_render.as_slice(),
+                )
+            })
+            .await
+            .map_err(|error| format!("join OCR2 recovery region render task: {error}"))??
+        };
         materialization.record_phase_elapsed("regionMaterializeRender", phase_started);
 
         let phase_started = Instant::now();
@@ -449,6 +488,11 @@ async fn materialize_ocr2_recovery_region_images(
         let input_batches = read_arrow_file(ocr_input_path.as_path())?;
         let rendered_inputs = decode_ocr_shard_input_batches(&input_batches)?;
         materialization.stats.rendered_region_count = rendered_inputs.len();
+        if render_cache_hit {
+            materialization.stats.render_cache_hit_count = rendered_inputs.len();
+        } else {
+            materialization.stats.render_cache_miss_count = rendered_inputs.len();
+        }
         let existing_inputs = std::mem::take(&mut materialization.inputs);
         let merged_inputs =
             merge_ocr2_recovery_region_inputs(existing_inputs, rendered_inputs, &region_pages)?;
@@ -472,6 +516,104 @@ async fn materialize_ocr2_recovery_region_images(
         let _ = render_report;
         Err("OCR2 recovery regions require the `document-extract-pdf-render` feature".to_string())
     }
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+fn ocr2_region_render_cache_dir(
+    source: &Path,
+    profile: &PdfPageRenderProfile,
+    regions: &[PdfPageRegionRenderRequest],
+) -> Result<PathBuf, String> {
+    Ok(ocr2_region_render_cache_root()
+        .join(ocr2_region_render_cache_key(source, profile, regions)?))
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+fn ocr2_region_render_cache_root() -> PathBuf {
+    if let Some(root) = std::env::var_os(DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV) {
+        let root = PathBuf::from(root);
+        return root.parent().map_or_else(
+            || root.join(OCR2_REGION_RENDER_CACHE_DIR_NAME),
+            |parent| parent.join(OCR2_REGION_RENDER_CACHE_DIR_NAME),
+        );
+    }
+    let cache_root =
+        std::env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
+    cache_root
+        .join("wendao-document-extract")
+        .join(OCR2_REGION_RENDER_CACHE_DIR_NAME)
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+fn ocr2_region_render_cache_key(
+    source: &Path,
+    profile: &PdfPageRenderProfile,
+    regions: &[PdfPageRegionRenderRequest],
+) -> Result<String, String> {
+    let source_content_hash = sha256_file_hex(source)?;
+    let payload = serde_json::to_vec(&json!({
+        "schema": "xiuxian_wendao.ocr2_region_render_cache_key.v1",
+        "sourceContentHash": source_content_hash,
+        "renderProfile": profile,
+        "regions": regions,
+    }))
+    .map_err(|error| format!("serialize OCR2 region render cache key: {error}"))?;
+    Ok(sha256_hex(payload.as_slice()))
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+fn cached_ocr2_region_render_report(
+    source: &Path,
+    output_dir: &Path,
+    page_count: u32,
+    profile: &PdfPageRenderProfile,
+    request_count: usize,
+) -> Result<Option<PdfPageRenderShardReport>, String> {
+    let manifest_arrow_path = output_dir.join(OCR_SHARD_MANIFEST_ARROW_NAME);
+    let ocr_input_arrow_path = output_dir.join(OCR_SHARD_INPUT_ARROW_NAME);
+    let pending_resource_arrow_path = output_dir.join(OCR_PENDING_RESOURCE_ARROW_NAME);
+    if !manifest_arrow_path.is_file()
+        || !ocr_input_arrow_path.is_file()
+        || !pending_resource_arrow_path.is_file()
+    {
+        return Ok(None);
+    }
+
+    let input_batches = match read_arrow_file(ocr_input_arrow_path.as_path()) {
+        Ok(batches) => batches,
+        Err(_) => return Ok(None),
+    };
+    let inputs = match decode_ocr_shard_input_batches(&input_batches) {
+        Ok(inputs) => inputs,
+        Err(_) => return Ok(None),
+    };
+    if inputs.len() != request_count
+        || inputs.iter().any(|input| {
+            input.shard_type != "region" || !Path::new(input.image_path.as_str()).is_file()
+        })
+    {
+        return Ok(None);
+    }
+
+    Ok(Some(PdfPageRenderShardReport {
+        source_path: source.to_string_lossy().to_string(),
+        output_dir: output_dir.to_string_lossy().to_string(),
+        page_count,
+        shard_count: u32::try_from(inputs.len()).unwrap_or(u32::MAX),
+        manifest_arrow_path: Some(manifest_arrow_path.to_string_lossy().to_string()),
+        ocr_input_arrow_path: Some(ocr_input_arrow_path.to_string_lossy().to_string()),
+        pending_resource_arrow_path: Some(
+            pending_resource_arrow_path.to_string_lossy().to_string(),
+        ),
+        render_profile: profile.profile_id.clone(),
+        render_selection: "region_shards".to_string(),
+        status: PdfRenderStatus::Rendered.as_str().to_string(),
+        routing_decision: PdfRenderRoutingDecision::HybridPageOcrCandidate
+            .as_str()
+            .to_string(),
+        elapsed_ms: 0.0,
+        error_message: None,
+    }))
 }
 
 pub(crate) fn has_ocr2_recovery_page_candidates(inputs: &[PdfOcrShardInput]) -> bool {
@@ -543,6 +685,24 @@ fn write_ocr2_region_scaffold_sidecar_with_lookup(
         .map_err(|error| format!("serialize OCR2 region scaffold sidecar: {error}"))?;
     std::fs::write(output_dir.join(OCR2_REGION_SCAFFOLD_FILE_NAME), bytes)
         .map_err(|error| format!("write OCR2 region scaffold sidecar: {error}"))
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+fn sha256_file_hex(path: &Path) -> Result<String, String> {
+    let bytes = std::fs::read(path).map_err(|error| {
+        format!(
+            "read OCR2 region render cache source `{}`: {error}",
+            path.display()
+        )
+    })?;
+    Ok(sha256_hex(bytes.as_slice()))
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
 }
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
@@ -645,145 +805,8 @@ fn source_page_profile_json(profile: &PdfSourcePageProfile) -> Value {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use xiuxian_wendao_attachments::pdf::ocr::{
-        PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_FAST_TEXT_PROFILE,
-        PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
-    };
-
-    use super::{
-        OCR2_REGION_SCAFFOLD_FILE_NAME, has_ocr2_recovery_page_candidates,
-        ocr2_region_scaffold_payload, write_ocr2_region_scaffold_sidecar_with_lookup,
-    };
-    use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV;
-
-    #[test]
-    fn ocr2_region_scaffold_payload_is_disabled_by_default() -> Result<(), String> {
-        let region = sample_region_input();
-
-        let payload = ocr2_region_scaffold_payload(
-            Path::new("/tmp/source.pdf"),
-            &[region],
-            false,
-            &|_key| None,
-        )?;
-
-        assert!(payload.is_none());
-        Ok(())
-    }
-
-    #[test]
-    fn ocr2_region_scaffold_payload_records_region_fingerprints() -> Result<(), String> {
-        let mut region = sample_region_input();
-        region.parent_shard_element_id = "parent-page-shard".to_string();
-        region.source_content_hash = "parent-page-hash".to_string();
-        region.raster_sha256 = "region-raster-hash".to_string();
-        region.render_dpi = 300;
-
-        let payload = ocr2_region_scaffold_payload(
-            Path::new("/tmp/source.pdf"),
-            &[region],
-            true,
-            &scaffold_enabled_lookup,
-        )?
-        .ok_or_else(|| "expected OCR2 scaffold payload".to_string())?;
-        let items = payload
-            .get("items")
-            .and_then(|value| value.as_array())
-            .ok_or_else(|| "missing scaffold items".to_string())?;
-
-        assert_eq!(items.len(), 1);
-        assert_eq!(items[0]["scaffoldKind"], "manual_region_candidate");
-        assert_eq!(items[0]["parentShardElementId"], "parent-page-shard");
-        assert_eq!(items[0]["sourceContentHash"], "parent-page-hash");
-        assert_eq!(items[0]["rasterSha256"], "region-raster-hash");
-        assert_eq!(items[0]["renderDpi"], 300);
-        assert_eq!(items[0]["sourcePagePixelBox"]["right"], 1000);
-        Ok(())
-    }
-
-    #[test]
-    fn ocr2_region_scaffold_sidecar_writes_only_when_enabled() -> Result<(), String> {
-        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
-        let region = sample_region_input();
-
-        write_ocr2_region_scaffold_sidecar_with_lookup(
-            Path::new("/tmp/source.pdf"),
-            temp.path(),
-            std::slice::from_ref(&region),
-            false,
-            &|_key| None,
-        )?;
-        assert!(!temp.path().join(OCR2_REGION_SCAFFOLD_FILE_NAME).exists());
-
-        write_ocr2_region_scaffold_sidecar_with_lookup(
-            Path::new("/tmp/source.pdf"),
-            temp.path(),
-            std::slice::from_ref(&region),
-            false,
-            &scaffold_enabled_lookup,
-        )?;
-        assert!(temp.path().join(OCR2_REGION_SCAFFOLD_FILE_NAME).is_file());
-        Ok(())
-    }
-
-    #[test]
-    fn ocr2_region_candidate_detection_requires_direct_page_profile() {
-        let mut input = sample_region_input();
-        assert!(!has_ocr2_recovery_page_candidates(&[input.clone()]));
-
-        input.shard_type = "page".to_string();
-        input.ocr_profile = PDF_OCR_FAST_TEXT_PROFILE.to_string();
-        assert!(!has_ocr2_recovery_page_candidates(&[input.clone()]));
-
-        input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
-        assert!(has_ocr2_recovery_page_candidates(&[input]));
-    }
-
-    fn scaffold_enabled_lookup(key: &str) -> Option<String> {
-        (key == DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV)
-            .then(|| "region-table-json".to_string())
-    }
-
-    fn sample_region_input() -> PdfOcrShardInput {
-        PdfOcrShardInput {
-            contract_version: PDF_OCR_SHARD_INPUT_SCHEMA_VERSION.to_string(),
-            source_path: "/tmp/source.pdf".to_string(),
-            source_content_hash: "sourcehash".to_string(),
-            page_index: 1,
-            image_path: "/tmp/out/_ocr2-region-renders/page-00001-region-00001.png".to_string(),
-            image_mime_type: "image/png".to_string(),
-            raster_sha256: "raster-1".to_string(),
-            render_profile: "pdfium-render-page-shards-v1".to_string(),
-            ocr_profile: PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string(),
-            ocr_engine: "deepseek-ocr2-direct-vlm".to_string(),
-            preferred_languages: vec!["auto".to_string()],
-            min_confidence: 0.0,
-            preserve_layout: true,
-            raster_width_px: 1000,
-            raster_height_px: 1000,
-            render_dpi: 300,
-            rotation_degrees: 0,
-            crop_left: 10.0,
-            crop_bottom: 20.0,
-            crop_right: 110.0,
-            crop_top: 220.0,
-            point_to_pixel_scale_x: 3.0,
-            point_to_pixel_scale_y: 3.0,
-            shard_element_id: "region-shard".to_string(),
-            shard_type: "region".to_string(),
-            region_index: 1,
-            parent_shard_element_id: "parent-shard".to_string(),
-            reading_order_key: "000001.000050".to_string(),
-            source_page_pixel_left: 0,
-            source_page_pixel_top: 100,
-            source_page_pixel_right: 1000,
-            source_page_pixel_bottom: 900,
-        }
-    }
-}
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/hybrid/route.rs"]
+mod tests;
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 pub(crate) fn merge_ocr2_recovery_page_inputs(

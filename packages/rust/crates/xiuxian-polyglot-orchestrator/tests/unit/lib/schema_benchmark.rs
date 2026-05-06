@@ -55,23 +55,25 @@ fn global_super_schema_is_not_privileged_without_evidence() {
 }
 
 #[test]
-fn benchmark_evidence_serializes_candidate_and_costs() {
+fn benchmark_evidence_serializes_candidate_and_costs() -> Result<(), serde_json::Error> {
     let evidence = SchemaBenchmarkEvidence::normalized_long_table()
         .with_row_count(32)
         .with_lossy_projection_count(1);
 
-    let serialized = serde_json::to_string(&evidence).expect("serialize schema evidence");
+    let serialized = serde_json::to_string(&evidence)?;
 
     assert!(serialized.contains("normalized_long_table"));
     assert!(serialized.contains("lossy_projection_count"));
+    Ok(())
 }
 
 #[test]
 fn report_rejects_empty_evidence() {
     let case = SchemaBenchmarkCase::new("doc-table-small", "small document table");
 
-    let error = SchemaBenchmarkReport::new(case, Vec::new())
-        .expect_err("empty evidence should be rejected");
+    let Err(error) = SchemaBenchmarkReport::new(case, Vec::new()) else {
+        panic!("empty evidence should be rejected");
+    };
 
     assert_eq!(
         error,
@@ -89,8 +91,9 @@ fn report_rejects_duplicate_candidates() {
         SchemaBenchmarkEvidence::profile_specific().with_row_count(10),
     ];
 
-    let error = SchemaBenchmarkReport::new(case, evidence)
-        .expect_err("duplicate candidates should be rejected");
+    let Err(error) = SchemaBenchmarkReport::new(case, evidence) else {
+        panic!("duplicate candidates should be rejected");
+    };
 
     assert_eq!(
         error,
@@ -102,7 +105,7 @@ fn report_rejects_duplicate_candidates() {
 }
 
 #[test]
-fn report_returns_unique_preferred_candidate() {
+fn report_returns_unique_preferred_candidate() -> Result<(), SchemaBenchmarkReportError> {
     let case = SchemaBenchmarkCase::new("memory-profile", "memory profile projection")
         .with_input_size(128, 32 * 1024);
     let report = SchemaBenchmarkReport::new(
@@ -116,17 +119,17 @@ fn report_returns_unique_preferred_candidate() {
                 .with_encoded_bytes(128 * 1024)
                 .with_null_density(9_000, 10_000),
         ],
-    )
-    .expect("report should validate");
+    )?;
 
     assert_eq!(
         report.preferred_candidate(),
         Some(SchemaStrategyCandidate::ProfileSpecific)
     );
+    Ok(())
 }
 
 #[test]
-fn report_returns_no_preference_for_ties() {
+fn report_returns_no_preference_for_ties() -> Result<(), SchemaBenchmarkReportError> {
     let case = SchemaBenchmarkCase::new("tie-case", "tie case");
     let report = SchemaBenchmarkReport::new(
         case,
@@ -134,8 +137,8 @@ fn report_returns_no_preference_for_ties() {
             SchemaBenchmarkEvidence::profile_specific(),
             SchemaBenchmarkEvidence::global_super_schema(),
         ],
-    )
-    .expect("report should validate");
+    )?;
 
     assert_eq!(report.preferred_candidate(), None);
+    Ok(())
 }

@@ -8,7 +8,7 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 };
 
 use super::core::PdfOcrWorkerScheduler;
-use super::limit::{duration_to_ms, source_pdf_page_range_chunks};
+use super::limit::{duration_to_ms, rendered_region_shard_chunks, source_pdf_page_range_chunks};
 use crate::studio::document_extract_pdf_ocr_client::{
     PdfOcrShardFlightClient, PdfOcrShardFlightResponse,
 };
@@ -228,12 +228,15 @@ impl PdfOcrWorkerScheduler {
         if clients.is_empty() {
             return Err("PDF OCR shard endpoint pool cannot be empty".to_string());
         }
-        if classify_ocr_lane(inputs) == OcrSchedulerLane::SourcePdfPageRange {
+        let lane = classify_ocr_lane(inputs);
+        if lane == OcrSchedulerLane::SourcePdfPageRange {
             return self
                 .request_source_pdf_page_range_shards(clients, inputs)
                 .await;
         }
-        let lane = classify_ocr_lane(inputs);
+        if lane == OcrSchedulerLane::RenderedRegion {
+            return self.request_rendered_region_shards(clients, inputs).await;
+        }
         let mut results = Vec::with_capacity(inputs.len());
         let mut offset = 0;
         let mut request_index = 0usize;
@@ -276,6 +279,64 @@ impl PdfOcrWorkerScheduler {
             offset = end;
         }
         Ok(results)
+    }
+
+    async fn request_rendered_region_shards(
+        &self,
+        clients: &[PdfOcrShardFlightClient],
+        inputs: &[PdfOcrShardInput],
+    ) -> Result<Vec<PdfOcrShardResult>, String> {
+        let lane = OcrSchedulerLane::RenderedRegion;
+        let target = self.capacity.budget_for_lane(
+            inputs.len(),
+            lane,
+            source_range_override_from_environment(),
+        );
+        let (permits, queue_wait) = self.acquire_worker_permits(target).await?;
+        self.metrics.record_queue_wait(queue_wait);
+        let max_parallel_chunks = permits.len().clamp(1, inputs.len());
+        let chunks = rendered_region_shard_chunks(inputs);
+        self.metrics.record_live_request(lane, inputs.len());
+        let latency_start = Instant::now();
+        let mut chunk_results = Vec::with_capacity(chunks.len());
+        let mut chunk_error = None;
+        let mut request_index = 0usize;
+        for wave in chunks.chunks(max_parallel_chunks) {
+            let mut wave_requests = Vec::with_capacity(wave.len());
+            for chunk in wave {
+                let chunk = *chunk;
+                let client = endpoint_client_for_index(clients, request_index).cloned();
+                request_index = request_index.saturating_add(1);
+                wave_requests.push(async move {
+                    let client = client?;
+                    let response = client.request_with_worker_budget(chunk, Some(1)).await?;
+                    order_ocr_results_by_inputs(chunk, response.results)
+                });
+            }
+            match try_join_all(wave_requests).await {
+                Ok(wave_results) => chunk_results.extend(wave_results),
+                Err(error) => {
+                    chunk_error = Some(error);
+                    break;
+                }
+            }
+        }
+        let latency = latency_start.elapsed();
+        self.metrics.record_ocr_latency(latency);
+        drop(permits);
+
+        if let Some(error) = chunk_error {
+            self.capacity.record_failure();
+            return Err(error);
+        }
+        self.capacity
+            .record_success(duration_to_ms(queue_wait), duration_to_ms(latency));
+
+        let mut results = Vec::with_capacity(inputs.len());
+        for chunk in chunk_results {
+            results.extend(chunk);
+        }
+        order_ocr_results_by_inputs(inputs, results)
     }
 
     async fn request_source_pdf_page_range_shards(

@@ -68,7 +68,7 @@ fn invalid_schema_disables_lane_admission() {
 }
 
 #[test]
-fn readiness_evidence_serializes_profile_and_states() {
+fn readiness_evidence_serializes_profile_and_states() -> Result<(), serde_json::Error> {
     let evidence = JuliaReadinessEvidence::memory_profile("calibration")
         .with_route_validation(ContractValidationState::Valid)
         .with_schema_validation(ContractValidationState::Valid)
@@ -76,7 +76,7 @@ fn readiness_evidence_serializes_profile_and_states() {
         .with_warmup(WarmupState::Ready)
         .with_benchmark(BenchmarkState::AboveThreshold);
 
-    let serialized = serde_json::to_string(&evidence).expect("serialize readiness evidence");
+    let serialized = serde_json::to_string(&evidence)?;
 
     assert!(serialized.contains("calibration"));
     assert!(serialized.contains("above_threshold"));
@@ -84,4 +84,5 @@ fn readiness_evidence_serializes_profile_and_states() {
         evidence.to_lane_evidence().readiness,
         ReadinessState::Degraded
     );
+    Ok(())
 }

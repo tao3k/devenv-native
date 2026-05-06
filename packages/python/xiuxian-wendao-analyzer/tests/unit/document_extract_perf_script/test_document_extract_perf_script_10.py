@@ -115,6 +115,14 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
                     },
                     "hybridPageOcrTimingOcrShardCount": 21,
                     "hybridPageOcrTimingOcr2RegionShardCount": 0,
+                    "hybridPageOcrTimingOcr2RegionRequestCount": 6,
+                    "hybridPageOcrTimingOcr2RegionRenderedShardCount": 6,
+                    "hybridPageOcrTimingOcr2RegionRenderCacheHitCount": (
+                        6 if report_path.name == "shard-cache-reuse.json" else 0
+                    ),
+                    "hybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
+                        0 if report_path.name == "shard-cache-reuse.json" else 6
+                    ),
                 }
             ],
         }
@@ -155,6 +163,13 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
     assert (
         result["shardCacheReuseHybridPageOcrTimingPhaseElapsedMs"]["ocrScheduler"]
         == 4.0
+    )
+    assert result["forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount"] == 6
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount"] == 6
+    )
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount"] == 0
     )
     assert result["artifactRegistryReuseEnabled"] is True
     assert result["artifactRegistryReuseForceMs"] == 9.0

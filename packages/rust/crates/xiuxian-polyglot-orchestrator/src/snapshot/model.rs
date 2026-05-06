@@ -176,7 +176,7 @@ impl PolyglotControlSnapshot {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SnapshotInvariantError {
     /// A route/profile reference was repeated exactly.
-    DuplicateRouteRef {
+    RouteRef {
         /// Lane carrying the duplicated reference.
         lane: PolyglotLane,
         /// Owner carrying the duplicated reference.
@@ -189,12 +189,12 @@ pub enum SnapshotInvariantError {
         schema_version: Option<String>,
     },
     /// More than one admission budget exists for a lane.
-    DuplicateAdmissionBudget {
+    AdmissionBudget {
         /// Duplicated lane.
         lane: PolyglotLane,
     },
     /// More than one evidence envelope exists for a lane.
-    DuplicateLaneEvidence {
+    LaneEvidence {
         /// Duplicated lane.
         lane: PolyglotLane,
     },
@@ -203,7 +203,7 @@ pub enum SnapshotInvariantError {
 impl fmt::Display for SnapshotInvariantError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DuplicateRouteRef {
+            Self::RouteRef {
                 lane,
                 owner,
                 route,
@@ -218,12 +218,12 @@ impl fmt::Display for SnapshotInvariantError {
                 profile,
                 schema_version
             ),
-            Self::DuplicateAdmissionBudget { lane } => write!(
+            Self::AdmissionBudget { lane } => write!(
                 formatter,
                 "duplicate admission budget for lane `{}`",
                 lane.as_str()
             ),
-            Self::DuplicateLaneEvidence { lane } => {
+            Self::LaneEvidence { lane } => {
                 write!(
                     formatter,
                     "duplicate lane evidence for lane `{}`",
@@ -244,7 +244,7 @@ fn validate_unique_route_refs(
             .iter()
             .any(|existing| existing == reference)
         {
-            return Err(SnapshotInvariantError::DuplicateRouteRef {
+            return Err(SnapshotInvariantError::RouteRef {
                 lane: reference.lane,
                 owner: reference.owner,
                 route: reference.route.clone(),
@@ -262,7 +262,7 @@ fn validate_unique_budget_lanes(budgets: &[AdmissionBudget]) -> Result<(), Snaps
             .iter()
             .any(|existing| existing.lane == budget.lane)
         {
-            return Err(SnapshotInvariantError::DuplicateAdmissionBudget { lane: budget.lane });
+            return Err(SnapshotInvariantError::AdmissionBudget { lane: budget.lane });
         }
     }
     Ok(())
@@ -274,7 +274,7 @@ fn validate_unique_evidence_lanes(evidence: &[LaneEvidence]) -> Result<(), Snaps
             .iter()
             .any(|existing| existing.lane == current.lane)
         {
-            return Err(SnapshotInvariantError::DuplicateLaneEvidence { lane: current.lane });
+            return Err(SnapshotInvariantError::LaneEvidence { lane: current.lane });
         }
     }
     Ok(())

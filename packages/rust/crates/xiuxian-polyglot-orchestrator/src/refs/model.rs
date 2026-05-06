@@ -9,13 +9,17 @@ use crate::lanes::PolyglotLane;
 #[serde(rename_all = "snake_case")]
 pub enum ContractOwner {
     /// Runtime-owned deployment and transport configuration.
-    WendaoRuntime,
+    #[serde(rename = "wendao_runtime")]
+    Runtime,
     /// Attachment-owned OCR and cache contracts.
-    WendaoAttachments,
+    #[serde(rename = "wendao_attachments")]
+    Attachments,
     /// Julia-owned profile, schema, and readiness contracts.
-    WendaoJulia,
+    #[serde(rename = "wendao_julia")]
+    Julia,
     /// Analyzer-owned Python Docling worker routes.
-    WendaoAnalyzer,
+    #[serde(rename = "wendao_analyzer")]
+    Analyzer,
 }
 
 /// Typed reference to an existing route, profile, or schema owner.
@@ -39,7 +43,7 @@ impl RouteProfileRef {
     pub fn document_extract(route: impl Into<String>) -> Self {
         Self {
             lane: PolyglotLane::PythonDocling,
-            owner: ContractOwner::WendaoAnalyzer,
+            owner: ContractOwner::Analyzer,
             route: route.into(),
             profile: None,
             schema_version: None,
@@ -51,7 +55,7 @@ impl RouteProfileRef {
     pub fn ocr_shards(route: impl Into<String>, schema_version: impl Into<String>) -> Self {
         Self {
             lane: PolyglotLane::PythonDocling,
-            owner: ContractOwner::WendaoAttachments,
+            owner: ContractOwner::Attachments,
             route: route.into(),
             profile: None,
             schema_version: Some(schema_version.into()),
@@ -67,7 +71,7 @@ impl RouteProfileRef {
     ) -> Self {
         Self {
             lane: PolyglotLane::JuliaCompute,
-            owner: ContractOwner::WendaoJulia,
+            owner: ContractOwner::Julia,
             route: route.into(),
             profile: Some(profile.into()),
             schema_version: Some(schema_version.into()),

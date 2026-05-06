@@ -189,12 +189,8 @@ fn route_for_profile(
     }
 }
 
-const fn max_in_flight_as_u32(max_in_flight_requests: u64) -> u32 {
-    if max_in_flight_requests > u32::MAX as u64 {
-        u32::MAX
-    } else {
-        max_in_flight_requests as u32
-    }
+fn max_in_flight_as_u32(max_in_flight_requests: u64) -> u32 {
+    u32::try_from(max_in_flight_requests).unwrap_or(u32::MAX)
 }
 
 #[cfg(test)]

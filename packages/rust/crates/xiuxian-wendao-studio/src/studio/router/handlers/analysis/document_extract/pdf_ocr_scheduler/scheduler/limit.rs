@@ -7,6 +7,7 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS";
+const DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV: &str = "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE";
 
 pub(super) fn pdf_ocr_worker_limit() -> usize {
     pdf_ocr_worker_limit_with_lookup(
@@ -44,6 +45,82 @@ pub(crate) fn source_pdf_page_range_chunks(
         return source_pdf_page_range_chunks_with_weights(inputs, chunk_count, weights.as_slice());
     }
     source_pdf_page_range_chunks_without_weights(inputs, chunk_count)
+}
+
+pub(crate) fn rendered_region_shard_chunks(
+    inputs: &[PdfOcrShardInput],
+) -> Vec<&[PdfOcrShardInput]> {
+    rendered_region_shard_chunks_with_composite_size(
+        inputs,
+        rendered_region_composite_size_from_environment(),
+    )
+}
+
+pub(crate) fn rendered_region_shard_chunks_with_composite_size(
+    inputs: &[PdfOcrShardInput],
+    composite_size: usize,
+) -> Vec<&[PdfOcrShardInput]> {
+    if inputs.is_empty() {
+        return Vec::new();
+    }
+    if composite_size > 1 {
+        return rendered_region_composite_chunks(inputs, composite_size);
+    }
+    let mut chunks = inputs.chunks(1).collect::<Vec<_>>();
+    chunks.sort_by(|left, right| {
+        rendered_region_shard_weight(&right[0])
+            .cmp(&rendered_region_shard_weight(&left[0]))
+            .then_with(|| left[0].page_index.cmp(&right[0].page_index))
+            .then_with(|| left[0].region_index.cmp(&right[0].region_index))
+            .then_with(|| left[0].reading_order_key.cmp(&right[0].reading_order_key))
+    });
+    chunks
+}
+
+fn rendered_region_composite_size_from_environment() -> usize {
+    std::env::var(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV)
+        .ok()
+        .and_then(|value| value.trim().parse::<usize>().ok())
+        .filter(|value| *value > 1)
+        .unwrap_or(1)
+}
+
+fn rendered_region_composite_chunks(
+    inputs: &[PdfOcrShardInput],
+    composite_size: usize,
+) -> Vec<&[PdfOcrShardInput]> {
+    let composite_size = composite_size.max(1);
+    let mut chunks = Vec::new();
+    let mut start = 0usize;
+    for index in 1..inputs.len() {
+        let previous = &inputs[index - 1];
+        let current = &inputs[index];
+        if index - start >= composite_size
+            || !can_extend_rendered_region_composite(previous, current)
+        {
+            chunks.push(&inputs[start..index]);
+            start = index;
+        }
+    }
+    chunks.push(&inputs[start..]);
+    chunks.sort_by(|left, right| {
+        rendered_region_chunk_weight(right)
+            .cmp(&rendered_region_chunk_weight(left))
+            .then_with(|| left[0].page_index.cmp(&right[0].page_index))
+            .then_with(|| left[0].region_index.cmp(&right[0].region_index))
+            .then_with(|| left[0].reading_order_key.cmp(&right[0].reading_order_key))
+    });
+    chunks
+}
+
+fn can_extend_rendered_region_composite(
+    previous: &PdfOcrShardInput,
+    current: &PdfOcrShardInput,
+) -> bool {
+    previous.source_path == current.source_path
+        && previous.source_content_hash == current.source_content_hash
+        && previous.page_index == current.page_index
+        && previous.parent_shard_element_id == current.parent_shard_element_id
 }
 
 pub(crate) fn source_pdf_page_range_chunks_with_weights<'a>(
@@ -206,6 +283,27 @@ fn total_weight(weights: &[u32]) -> u32 {
         .copied()
         .map(|weight| weight.max(1))
         .fold(0_u32, u32::saturating_add)
+}
+
+fn rendered_region_shard_weight(input: &PdfOcrShardInput) -> u64 {
+    let source_width = input
+        .source_page_pixel_right
+        .saturating_sub(input.source_page_pixel_left);
+    let source_height = input
+        .source_page_pixel_bottom
+        .saturating_sub(input.source_page_pixel_top);
+    let source_area = u64::from(source_width).saturating_mul(u64::from(source_height));
+    if source_area > 0 {
+        return source_area;
+    }
+    u64::from(input.raster_width_px).saturating_mul(u64::from(input.raster_height_px))
+}
+
+fn rendered_region_chunk_weight(inputs: &[PdfOcrShardInput]) -> u64 {
+    inputs
+        .iter()
+        .map(rendered_region_shard_weight)
+        .fold(0_u64, u64::saturating_add)
 }
 
 fn source_pdf_page_range_weights(inputs: &[PdfOcrShardInput]) -> Option<Vec<u32>> {

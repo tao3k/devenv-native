@@ -27,7 +27,8 @@ fn capabilities_map_to_existing_lane_owners() {
 }
 
 #[test]
-fn lane_serialization_is_snake_case() {
-    let serialized = serde_json::to_string(&PolyglotLane::PythonDocling).expect("serialize lane");
+fn lane_serialization_is_snake_case() -> Result<(), serde_json::Error> {
+    let serialized = serde_json::to_string(&PolyglotLane::PythonDocling)?;
     assert_eq!(serialized, "\"python_docling\"");
+    Ok(())
 }

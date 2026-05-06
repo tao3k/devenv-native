@@ -486,6 +486,18 @@ def run_fixture_probe(
         "forceHybridPageOcrTimingOcr2RegionShardCount": force_artifact_summary[
             "hybridPageOcrTimingOcr2RegionShardCount"
         ],
+        "forceHybridPageOcrTimingOcr2RegionRequestCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRequestCount"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionRenderedShardCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRenderedShardCount"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionRenderCacheHitCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRenderCacheHitCount"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
+        ],
         "shardCacheReuseMetricsRustSchedulerElapsedMs": (
             shard_cache_reuse_artifact_summary["metricsRustSchedulerElapsedMs"]
             if shard_cache_reuse_artifact_summary
@@ -504,6 +516,34 @@ def run_fixture_probe(
         "shardCacheReuseHybridPageOcrTimingOcr2RegionShardCount": (
             shard_cache_reuse_artifact_summary[
                 "hybridPageOcrTimingOcr2RegionShardCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRequestCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRequestCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderedShardCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderedShardCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderCacheHitCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
             ]
             if shard_cache_reuse_artifact_summary
             else None

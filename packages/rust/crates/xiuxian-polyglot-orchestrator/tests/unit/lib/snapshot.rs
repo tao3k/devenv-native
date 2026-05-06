@@ -5,7 +5,7 @@ use crate::{
 };
 
 #[test]
-fn snapshot_filters_refs_and_projects_decisions() {
+fn snapshot_filters_refs_and_projects_decisions() -> Result<(), SnapshotInvariantError> {
     let python_budget = AdmissionBudget {
         lane: PolyglotLane::PythonDocling,
         max_in_flight: Some(4),
@@ -29,14 +29,13 @@ fn snapshot_filters_refs_and_projects_decisions() {
         ],
         vec![python_budget],
         vec![evidence],
-    )
-    .expect("snapshot should validate");
+    )?;
 
     let python_refs = snapshot
         .route_refs_for_lane(PolyglotLane::PythonDocling)
         .collect::<Vec<_>>();
     assert_eq!(python_refs.len(), 1);
-    assert_eq!(python_refs[0].owner, ContractOwner::WendaoAnalyzer);
+    assert_eq!(python_refs[0].owner, ContractOwner::Analyzer);
     assert_eq!(
         snapshot.admission_decision_for_lane(PolyglotLane::PythonDocling),
         Some(AdmissionDecision::Allow {
@@ -49,23 +48,25 @@ fn snapshot_filters_refs_and_projects_decisions() {
             .evidence_for_lane(PolyglotLane::PythonDocling)
             .is_some()
     );
+    Ok(())
 }
 
 #[test]
 fn snapshot_rejects_duplicate_route_refs() {
     let reference = RouteProfileRef::document_extract("/analysis/document-extract");
-    let error = PolyglotControlSnapshot::from_parts(
+    let Err(error) = PolyglotControlSnapshot::from_parts(
         vec![reference.clone(), reference],
         Vec::new(),
         Vec::new(),
-    )
-    .expect_err("duplicate route ref should fail");
+    ) else {
+        panic!("duplicate route ref should fail");
+    };
 
     assert!(matches!(
         error,
-        SnapshotInvariantError::DuplicateRouteRef {
+        SnapshotInvariantError::RouteRef {
             lane: PolyglotLane::PythonDocling,
-            owner: ContractOwner::WendaoAnalyzer,
+            owner: ContractOwner::Analyzer,
             ..
         }
     ));
@@ -74,28 +75,30 @@ fn snapshot_rejects_duplicate_route_refs() {
 #[test]
 fn snapshot_rejects_duplicate_budget_lanes() {
     let budget = AdmissionBudget::new(PolyglotLane::JuliaCompute);
-    let error = PolyglotControlSnapshot::from_parts(Vec::new(), vec![budget, budget], Vec::new())
-        .expect_err("duplicate budget lane should fail");
+    let Err(error) =
+        PolyglotControlSnapshot::from_parts(Vec::new(), vec![budget, budget], Vec::new())
+    else {
+        panic!("duplicate budget lane should fail");
+    };
 
     assert_eq!(
         error,
-        SnapshotInvariantError::DuplicateAdmissionBudget {
+        SnapshotInvariantError::AdmissionBudget {
             lane: PolyglotLane::JuliaCompute,
         }
     );
 }
 
 #[test]
-fn snapshot_serializes_owned_contracts() {
-    let snapshot = PolyglotControlSnapshot::new()
-        .with_route_ref(RouteProfileRef::ocr_shards(
-            "/analysis/pdf-ocr-shards",
-            "xiuxian_wendao.pdf_ocr_shard_input.v1",
-        ))
-        .expect("route ref should validate");
+fn snapshot_serializes_owned_contracts() -> Result<(), Box<dyn std::error::Error>> {
+    let snapshot = PolyglotControlSnapshot::new().with_route_ref(RouteProfileRef::ocr_shards(
+        "/analysis/pdf-ocr-shards",
+        "xiuxian_wendao.pdf_ocr_shard_input.v1",
+    ))?;
 
-    let serialized = serde_json::to_string(&snapshot).expect("serialize snapshot");
+    let serialized = serde_json::to_string(&snapshot)?;
 
     assert!(serialized.contains("pdf_ocr_shard_input"));
     assert!(serialized.contains("wendao_attachments"));
+    Ok(())
 }

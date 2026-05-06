@@ -7,7 +7,7 @@ use crate::config::MemoryJuliaComputeRuntimeConfig;
 use crate::transport::ANALYSIS_DOCUMENT_EXTRACT_ROUTE;
 use xiuxian_polyglot_orchestrator::{
     AdmissionDecision, ContractOwner, DoclingScheduleAction, DoclingScheduleReason, PolyglotLane,
-    PressureLevel, ReadinessState, RejectionReason,
+    PressureLevel, ReadinessState, RejectionReason, SnapshotInvariantError,
 };
 
 #[test]
@@ -15,7 +15,7 @@ fn document_extract_ref_preserves_analyzer_route() {
     let reference = document_extract_route_ref();
 
     assert_eq!(reference.lane, PolyglotLane::PythonDocling);
-    assert_eq!(reference.owner, ContractOwner::WendaoAnalyzer);
+    assert_eq!(reference.owner, ContractOwner::Analyzer);
     assert_eq!(reference.route, ANALYSIS_DOCUMENT_EXTRACT_ROUTE);
     assert!(reference.profile.is_none());
     assert!(reference.schema_version.is_none());
@@ -50,15 +50,31 @@ fn julia_config_projects_to_admission_budget() {
 }
 
 #[test]
-fn runtime_snapshot_projects_route_and_admission_facts() {
+fn julia_config_saturates_admission_budget_for_wide_config_values() {
+    let config = MemoryJuliaComputeRuntimeConfig {
+        max_in_flight_requests: u64::MAX,
+        ..MemoryJuliaComputeRuntimeConfig::default()
+    };
+    let budget = memory_julia_compute_admission_budget(
+        &config,
+        0,
+        0,
+        ReadinessState::Ready,
+        PressureLevel::Low,
+    );
+
+    assert_eq!(budget.max_in_flight, Some(u32::MAX));
+}
+
+#[test]
+fn runtime_snapshot_projects_route_and_admission_facts() -> Result<(), SnapshotInvariantError> {
     let config = MemoryJuliaComputeRuntimeConfig {
         max_in_flight_requests: 9,
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
 
     let snapshot =
-        runtime_polyglot_snapshot(&config, 4, 1, ReadinessState::Ready, PressureLevel::Medium)
-            .expect("runtime snapshot should validate");
+        runtime_polyglot_snapshot(&config, 4, 1, ReadinessState::Ready, PressureLevel::Medium)?;
 
     assert_eq!(snapshot.route_refs().len(), 1);
     assert_eq!(
@@ -72,14 +88,15 @@ fn runtime_snapshot_projects_route_and_admission_facts() {
             remaining_permits: 5,
         })
     );
+    Ok(())
 }
 
 #[test]
-fn document_extract_pressure_snapshot_projects_supplied_counters() {
+fn document_extract_pressure_snapshot_projects_supplied_counters()
+-> Result<(), SnapshotInvariantError> {
     let pressure = document_extract_pressure_evidence(Some(2), 2, 1, 0, 0, true);
 
-    let snapshot = document_extract_pressure_snapshot(pressure)
-        .expect("document extract pressure snapshot should validate");
+    let snapshot = document_extract_pressure_snapshot(pressure)?;
 
     assert_eq!(pressure.pressure_level(), PressureLevel::Critical);
     assert_eq!(snapshot.route_refs().len(), 1);
@@ -96,6 +113,7 @@ fn document_extract_pressure_snapshot_projects_supplied_counters() {
             .map(|evidence| evidence.pressure),
         Some(PressureLevel::Critical)
     );
+    Ok(())
 }
 
 #[test]

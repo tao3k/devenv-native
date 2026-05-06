@@ -17,7 +17,7 @@ fn ocr_input_ref_preserves_attachment_schema_owner() {
     let reference = pdf_ocr_shard_input_ref("/analysis/pdf-ocr-shards");
 
     assert_eq!(reference.lane, PolyglotLane::PythonDocling);
-    assert_eq!(reference.owner, ContractOwner::WendaoAttachments);
+    assert_eq!(reference.owner, ContractOwner::Attachments);
     assert_eq!(reference.route, "/analysis/pdf-ocr-shards");
     assert_eq!(reference.profile.as_deref(), Some(PDF_OCR_DEFAULT_PROFILE));
     assert_eq!(
@@ -31,7 +31,7 @@ fn ocr_result_ref_preserves_attachment_schema_owner() {
     let reference = pdf_ocr_shard_result_ref("/analysis/pdf-ocr-shards");
 
     assert_eq!(reference.lane, PolyglotLane::PythonDocling);
-    assert_eq!(reference.owner, ContractOwner::WendaoAttachments);
+    assert_eq!(reference.owner, ContractOwner::Attachments);
     assert_eq!(reference.route, "/analysis/pdf-ocr-shards");
     assert_eq!(reference.profile.as_deref(), Some(PDF_OCR_DEFAULT_PROFILE));
     assert_eq!(
@@ -50,7 +50,7 @@ fn ocr_contract_snapshot_materializes_input_and_result_refs() {
         snapshot
             .route_refs()
             .iter()
-            .all(|reference| reference.owner == ContractOwner::WendaoAttachments)
+            .all(|reference| reference.owner == ContractOwner::Attachments)
     );
     assert!(
         snapshot

@@ -78,14 +78,15 @@ fn critical_pressure_rejects_without_fallback() {
 }
 
 #[test]
-fn serialization_uses_snake_case_action_and_reason() {
+fn serialization_uses_snake_case_action_and_reason() -> Result<(), serde_json::Error> {
     let pressure = WorkerPressureEvidence::document_extraction().with_worker_budget(Some(2), 0);
     let plan = DoclingSchedulingInput::document_extraction(pressure).plan();
 
-    let serialized = serde_json::to_string(&plan).expect("serialize docling schedule plan");
+    let serialized = serde_json::to_string(&plan)?;
 
     assert!(serialized.contains("\"action\":\"dispatch\""));
     assert!(serialized.contains("\"reason\":\"capacity_available\""));
+    Ok(())
 }
 
 #[test]

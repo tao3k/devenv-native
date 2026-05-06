@@ -16,7 +16,7 @@ fn readiness_states_identify_normal_traffic() {
 }
 
 #[test]
-fn lane_evidence_serializes_lane_and_states() {
+fn lane_evidence_serializes_lane_and_states() -> Result<(), serde_json::Error> {
     let evidence = LaneEvidence::new(
         PolyglotLane::JuliaCompute,
         HealthState::Healthy,
@@ -24,8 +24,9 @@ fn lane_evidence_serializes_lane_and_states() {
         PressureLevel::Low,
         FallbackEvidence::new(false),
     );
-    let serialized = serde_json::to_string(&evidence).expect("serialize evidence");
+    let serialized = serde_json::to_string(&evidence)?;
     assert!(serialized.contains("julia_compute"));
     assert!(serialized.contains("healthy"));
     assert!(serialized.contains("ready"));
+    Ok(())
 }

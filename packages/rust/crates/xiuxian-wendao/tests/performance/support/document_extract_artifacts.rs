@@ -76,6 +76,10 @@ pub(crate) struct ArtifactReport {
     pub(crate) hybrid_page_ocr_timing_total_elapsed_ms: f64,
     pub(crate) hybrid_page_ocr_timing_ocr_shard_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_shard_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_request_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: usize,
     #[cfg(feature = "document-extract-attachment-audit")]
     pub(crate) image_attachment_audit: Option<AttachmentAudit>,
     #[cfg(feature = "document-extract-attachment-audit")]
@@ -156,6 +160,10 @@ fn inspect_artifact_dir(
         hybrid_page_ocr_timing_total_elapsed_ms: 0.0,
         hybrid_page_ocr_timing_ocr_shard_count: 0,
         hybrid_page_ocr_timing_ocr2_region_shard_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_request_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: 0,
         #[cfg(feature = "document-extract-attachment-audit")]
         image_attachment_audit: None,
         #[cfg(feature = "document-extract-attachment-audit")]
@@ -309,6 +317,26 @@ fn populate_hybrid_page_ocr_timing_report(
         .unwrap_or_default();
     report.hybrid_page_ocr_timing_ocr2_region_shard_count = value
         .get("ocr2RegionShardCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_request_count = value
+        .get("ocr2RegionRequestCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_rendered_shard_count = value
+        .get("ocr2RegionRenderedShardCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count = value
+        .get("ocr2RegionRenderCacheHitCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count = value
+        .get("ocr2RegionRenderCacheMissCount")
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or_default();
@@ -831,6 +859,10 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
             "schema": "xiuxian_wendao.hybrid_page_ocr_timing.v1",
             "ocrShardCount": 27,
             "ocr2RegionShardCount": 6,
+            "ocr2RegionRequestCount": 6,
+            "ocr2RegionRenderedShardCount": 6,
+            "ocr2RegionRenderCacheHitCount": 6,
+            "ocr2RegionRenderCacheMissCount": 0,
             "totalElapsedMs": 5600.0,
             "phaseElapsedMs": {
                 "regionMaterialize": 5550.0,
@@ -848,6 +880,19 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
     assert!(report.hybrid_page_ocr_timing_report_bytes > 0);
     assert_eq!(report.hybrid_page_ocr_timing_ocr_shard_count, 27);
     assert_eq!(report.hybrid_page_ocr_timing_ocr2_region_shard_count, 6);
+    assert_eq!(report.hybrid_page_ocr_timing_ocr2_region_request_count, 6);
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_rendered_shard_count,
+        6
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count,
+        6
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count,
+        0
+    );
     assert_float_eq(Some(report.hybrid_page_ocr_timing_total_elapsed_ms), 5600.0)?;
     assert_float_eq(
         report

@@ -32,6 +32,10 @@ use super::types::{
 /// Environment variable that points to a dynamically loaded `PDFium` library.
 #[cfg(feature = "pdf-render")]
 pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
+#[cfg(feature = "pdf-render")]
+const PDF_REGION_RENDER_MODE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE";
+#[cfg(feature = "pdf-render")]
+const PDF_REGION_RENDER_MODE_DIRECT_CROP: &str = "direct-crop";
 
 #[cfg(feature = "pdf-render")]
 pub(super) fn bind_pdfium() -> Result<Pdfium, String> {
@@ -232,6 +236,16 @@ fn render_page_region_manifests(
     source_hash: &str,
     regions: &[PdfPageRegionRenderRequest],
 ) -> Result<Vec<PdfPageShardManifest>, String> {
+    let render_mode = pdf_region_render_mode();
+    if render_mode == PdfRegionRenderMode::DirectCrop {
+        return render_page_region_direct_crop_manifests(
+            page,
+            page_index,
+            context,
+            source_hash,
+            regions,
+        );
+    }
     let rendered = render_page_image(
         page,
         i32::try_from(page_index).unwrap_or(i32::MAX),
@@ -280,6 +294,109 @@ fn render_page_region_manifests(
 }
 
 #[cfg(feature = "pdf-render")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PdfRegionRenderMode {
+    Default,
+    DirectCrop,
+}
+
+#[cfg(feature = "pdf-render")]
+fn pdf_region_render_mode() -> PdfRegionRenderMode {
+    pdf_region_render_mode_from_value(std::env::var(PDF_REGION_RENDER_MODE_ENV).ok().as_deref())
+}
+
+#[cfg(feature = "pdf-render")]
+fn pdf_region_render_mode_from_value(mode: Option<&str>) -> PdfRegionRenderMode {
+    let Some(mode) = mode else {
+        return PdfRegionRenderMode::Default;
+    };
+    match mode.trim().replace('_', "-").to_ascii_lowercase().as_str() {
+        PDF_REGION_RENDER_MODE_DIRECT_CROP => PdfRegionRenderMode::DirectCrop,
+        _ => PdfRegionRenderMode::Default,
+    }
+}
+
+#[cfg(feature = "pdf-render")]
+fn render_page_region_direct_crop_manifests(
+    page: &PdfPage<'_>,
+    page_index: u32,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    regions: &[PdfPageRegionRenderRequest],
+) -> Result<Vec<PdfPageShardManifest>, String> {
+    let page_index_i32 = i32::try_from(page_index).unwrap_or(i32::MAX);
+    let geometry = page_geometry(page, page_index_i32, context.profile)?;
+    let parent_shard_element_id =
+        shard_element_id(source_hash, page_index, context.profile.profile_id.as_str());
+    regions
+        .iter()
+        .map(|request| {
+            build_direct_crop_region_manifest(
+                page,
+                page_index_i32,
+                context,
+                source_hash,
+                request,
+                &geometry,
+                parent_shard_element_id.as_str(),
+            )
+        })
+        .collect()
+}
+
+#[cfg(feature = "pdf-render")]
+fn build_direct_crop_region_manifest(
+    page: &PdfPage<'_>,
+    page_index_i32: i32,
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    request: &PdfPageRegionRenderRequest,
+    geometry: &PageGeometry,
+    parent_shard_element_id: &str,
+) -> Result<PdfPageShardManifest, String> {
+    let region_box = request
+        .region_box
+        .intersection(geometry.crop_box)
+        .ok_or_else(|| "region does not intersect page crop box".to_string())?;
+    let source_page_pixel_box = region_pixel_box_for_crop(
+        geometry.crop_box,
+        region_box,
+        geometry.raster_width_px,
+        geometry.raster_height_px,
+    )?;
+    let image_path = context.shard_dir(source_hash).join(format!(
+        "page-{:05}-region-{:05}.{}",
+        request.page_index, request.region_index, context.profile.image_extension
+    ));
+    let raster = render_direct_region_crop_image(
+        page,
+        page_index_i32,
+        context.profile,
+        geometry,
+        source_page_pixel_box,
+        image_path.as_path(),
+    )?;
+    build_region_shard_manifest(PdfPageRegionShardManifestInput {
+        source_path: context.path,
+        source_content_hash: source_hash,
+        page_index: request.page_index,
+        profile: context.profile,
+        media_box: geometry.media_box,
+        page_crop_box: geometry.crop_box,
+        region: PdfPageRegion::new(
+            request.region_index,
+            region_box,
+            parent_shard_element_id,
+            request.effective_reading_order_key(),
+        ),
+        rotation_degrees: geometry.rotation_degrees,
+        page_raster_width_px: geometry.raster_width_px,
+        page_raster_height_px: geometry.raster_height_px,
+        raster,
+    })
+}
+
+#[cfg(feature = "pdf-render")]
 struct RenderedPageImage {
     image: DynamicImage,
     media_box: PdfPageBox,
@@ -323,6 +440,43 @@ fn render_page_image(
         crop_box: geometry.crop_box,
         rotation_degrees: geometry.rotation_degrees,
     })
+}
+
+#[cfg(feature = "pdf-render")]
+fn render_direct_region_crop_image(
+    page: &PdfPage<'_>,
+    page_index: i32,
+    profile: &PdfPageRenderProfile,
+    geometry: &PageGeometry,
+    pixel_box: PdfPagePixelBox,
+    image_path: &Path,
+) -> Result<RenderedRasterIdentity, String> {
+    let scale_x = geometry.raster_width_px as f32 / page.width().value.max(1.0);
+    let scale_y = geometry.raster_height_px as f32 / page.height().value.max(1.0);
+    let config = PdfRenderConfig::new()
+        .set_fixed_size(
+            checked_pixels_i32(pixel_box.width_px())?,
+            checked_pixels_i32(pixel_box.height_px())?,
+        )
+        .set_format(PdfBitmapFormat::BGRA)
+        .render_annotations(profile.render_annotations)
+        .render_form_data(false)
+        .transform(
+            scale_x,
+            0.0,
+            0.0,
+            scale_y,
+            -(pixel_box.left as f32),
+            -(pixel_box.top as f32),
+        )
+        .map_err(|error| format!("configure direct region crop render: {error}"))?;
+    let bitmap = page
+        .render_with_config(&config)
+        .map_err(|error| format!("render direct region crop page {page_index}: {error}"))?;
+    let image = bitmap.as_image().map_err(|error| {
+        format!("convert direct region crop page {page_index} bitmap to image: {error}")
+    })?;
+    save_image_identity(&image, image_path)
 }
 
 #[cfg(feature = "pdf-render")]
@@ -395,3 +549,7 @@ pub(super) fn save_region_crop_image(
     );
     save_image_identity(&crop, image_path)
 }
+
+#[cfg(all(test, feature = "pdf-render"))]
+#[path = "../../../tests/unit/pdf/render/document.rs"]
+mod tests;

@@ -40,6 +40,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_ocr2_render_dpi=360,
         rust_pdf_ocr_region_context_ratio=0.2,
         rust_pdf_ocr2_region_planner="profile-risk-window",
+        deepseek_ocr2_region_composite_size=3,
         deepseek_ocr2_scaffold_mode="region-table-json",
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
         rust_document_extract_endpoint=["http://127.0.0.1:53051"],
@@ -75,6 +76,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER"] == "profile-risk-window"
     )
+    assert env["WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE"] == "3"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE"] == "region-table-json"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
         "http://127.0.0.1:52051"

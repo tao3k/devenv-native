@@ -142,8 +142,7 @@ impl WorkerPressureEvidence {
         match self.max_in_flight {
             Some(0) => ReadinessState::Disabled,
             _ => match self.pressure_level() {
-                PressureLevel::Critical => ReadinessState::Degraded,
-                PressureLevel::High => ReadinessState::Degraded,
+                PressureLevel::Critical | PressureLevel::High => ReadinessState::Degraded,
                 _ => ReadinessState::Ready,
             },
         }
