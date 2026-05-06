@@ -106,7 +106,7 @@ fn build_default_follow_up_query_text(surfaces: &[WorkdirMarkdownSurface]) -> St
     };
 
     format!(
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where {predicate} \
 order by surface, path, heading_path"

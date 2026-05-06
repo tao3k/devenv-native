@@ -320,13 +320,13 @@ fn markdown_lint_common_frontmatter_rules() -> Vec<MarkdownLintRuleContractManif
         ),
         parser_rule(
             "missing_frontmatter_retrieval_saliency_base",
-            "Common frontmatter must include numeric `metadata.retrieval.saliency_base`.",
-            "Set `metadata.retrieval.saliency_base` to a number.",
+            "Common frontmatter must include numeric top-level `saliency_base`.",
+            "Set top-level `saliency_base` to a number.",
         ),
         parser_rule(
             "missing_frontmatter_retrieval_decay_rate",
-            "Common frontmatter must include numeric `metadata.retrieval.decay_rate`.",
-            "Set `metadata.retrieval.decay_rate` to a number.",
+            "Common frontmatter must include numeric top-level `decay_rate`.",
+            "Set top-level `decay_rate` to a number.",
         ),
     ]
 }

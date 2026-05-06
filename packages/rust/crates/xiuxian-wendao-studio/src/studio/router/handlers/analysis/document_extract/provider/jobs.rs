@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use arrow::array::{Array, StringArray};
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_server::transport::{
-    DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
+    DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
 };
 
 use super::StudioDocumentExtractFlightRouteProvider;
@@ -25,6 +25,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         output_dir: &str,
         force: bool,
         error_row: bool,
+        profile: &str,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
         let source = PathBuf::from(source_path);
         let output = if output_dir.trim().is_empty() {
@@ -51,7 +52,13 @@ impl StudioDocumentExtractFlightRouteProvider {
 
         let output_string = output.to_string_lossy().to_string();
         let engine_batches = self
-            .request_python_document_extract(source_path, output_string.as_str(), force, error_row)
+            .request_python_document_extract(
+                source_path,
+                output_string.as_str(),
+                force,
+                error_row,
+                profile,
+            )
             .await?;
         if source.exists()
             && document_extract_batches_are_cacheable(engine_batches.as_slice())
@@ -137,6 +144,18 @@ impl StudioDocumentExtractFlightRouteProvider {
         &self,
         request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        if request.profile != DOCUMENT_EXTRACT_FULL_PROFILE {
+            return self
+                .sync_document_extract_batch(
+                    request.source_path.as_str(),
+                    request.output_dir.as_str(),
+                    request.force,
+                    request.error_row,
+                    request.profile.as_str(),
+                )
+                .await;
+        }
+
         let source = PathBuf::from(request.source_path.as_str());
         let output = if request.output_dir.trim().is_empty() {
             default_output_dir(source.as_path())
@@ -262,6 +281,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 status.artifact_dir.as_str(),
                 true,
                 false,
+                DOCUMENT_EXTRACT_FULL_PROFILE,
             )
             .await;
 

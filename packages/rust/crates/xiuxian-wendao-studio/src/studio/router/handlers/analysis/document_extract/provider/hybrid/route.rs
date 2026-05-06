@@ -140,6 +140,7 @@ impl StudioDocumentExtractFlightRouteProvider {
             output_string.as_str(),
             request.force,
             request.error_row,
+            request.profile.as_str(),
         )
         .await
     }

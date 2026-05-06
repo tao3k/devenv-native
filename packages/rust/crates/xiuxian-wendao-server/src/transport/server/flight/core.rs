@@ -14,8 +14,9 @@ use crate::transport::server::{
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider, RepoSearchFlightRouteProvider,
     RepoSyncFlightRouteProvider, RerankFlightRouteHandler, SearchFlightRouteProvider,
-    SqlFlightRouteProvider, Topology3dFlightRouteProvider, VfsContentFlightRouteProvider,
-    VfsResolveFlightRouteProvider, VfsScanFlightRouteProvider, WendaoFlightRouteProviders,
+    SemanticScopeFlightRouteProvider, SqlFlightRouteProvider, Topology3dFlightRouteProvider,
+    VfsContentFlightRouteProvider, VfsResolveFlightRouteProvider, VfsScanFlightRouteProvider,
+    WendaoFlightRouteProviders,
 };
 
 /// Transport-owned minimal Wendao Flight service surface for the stable query and
@@ -36,6 +37,7 @@ pub struct WendaoFlightService {
     pub(super) topology_3d_provider: Option<Arc<dyn Topology3dFlightRouteProvider>>,
     pub(super) markdown_analysis_provider: Option<Arc<dyn MarkdownAnalysisFlightRouteProvider>>,
     pub(super) code_ast_analysis_provider: Option<Arc<dyn CodeAstAnalysisFlightRouteProvider>>,
+    pub(super) semantic_scope_provider: Option<Arc<dyn SemanticScopeFlightRouteProvider>>,
     pub(super) repo_overview_provider: Option<Arc<dyn RepoOverviewFlightRouteProvider>>,
     pub(super) repo_index_provider: Option<Arc<dyn RepoIndexFlightRouteProvider>>,
     pub(super) repo_index_status_provider: Option<Arc<dyn RepoIndexStatusFlightRouteProvider>>,
@@ -66,6 +68,7 @@ impl WendaoFlightService {
             autocomplete: autocomplete_provider,
             markdown_analysis: markdown_analysis_provider,
             code_ast_analysis: code_ast_analysis_provider,
+            semantic_scope: semantic_scope_provider,
             repo_overview: repo_overview_provider,
             repo_index: repo_index_provider,
             repo_index_status: repo_index_status_provider,
@@ -96,6 +99,7 @@ impl WendaoFlightService {
             topology_3d_provider,
             markdown_analysis_provider,
             code_ast_analysis_provider,
+            semantic_scope_provider,
             repo_overview_provider,
             repo_index_provider,
             repo_index_status_provider,

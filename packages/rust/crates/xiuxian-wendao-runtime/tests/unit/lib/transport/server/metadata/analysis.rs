@@ -1,11 +1,12 @@
 use crate::transport::{
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_SYNC_ROUTE, DocumentExtractMode,
-    WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
-    is_search_family_route, validate_document_extract_request_metadata,
-    validate_document_extract_status_request_metadata, validate_markdown_analysis_request_metadata,
-    validate_repo_doc_coverage_request_metadata, validate_repo_index_status_request_metadata,
-    validate_repo_overview_request_metadata, validate_repo_sync_request_metadata,
+    WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, is_search_family_route,
+    validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
+    validate_markdown_analysis_request_metadata, validate_repo_doc_coverage_request_metadata,
+    validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
+    validate_repo_sync_request_metadata,
 };
 
 use crate::tests::transport::server::assertions::{must_err, must_ok};
@@ -57,6 +58,7 @@ fn validate_document_extract_request_metadata_accepts_latest_request() {
     assert_eq!(request.output_dir, ".cache/document-extract");
     assert!(request.force);
     assert!(!request.error_row);
+    assert_eq!(request.profile, "full");
     assert_eq!(request.mode, DocumentExtractMode::Sync);
     assert_eq!(request.wait_ms, 0);
 }
@@ -73,8 +75,30 @@ fn validate_document_extract_request_metadata_uses_latest_defaults() {
     assert_eq!(request.output_dir, "");
     assert!(!request.force);
     assert!(request.error_row);
+    assert_eq!(request.profile, "full");
     assert_eq!(request.mode, DocumentExtractMode::Sync);
     assert_eq!(request.wait_ms, 0);
+}
+
+#[test]
+fn validate_document_extract_request_metadata_accepts_fast_text_profile() {
+    let mut metadata = build_document_extract_metadata(
+        "docs/manual.pdf",
+        Some(".cache/document-extract"),
+        None,
+        None,
+    );
+    metadata.insert(
+        WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+        tonic::metadata::MetadataValue::from_static("attachment"),
+    );
+
+    let request = must_ok(
+        validate_document_extract_request_metadata(&metadata),
+        "fast text document extraction profile should validate",
+    );
+
+    assert_eq!(request.profile, "fast-text");
 }
 
 #[test]
@@ -150,6 +174,25 @@ fn validate_document_extract_request_metadata_rejects_invalid_bool() {
     assert_eq!(
         error.message(),
         "invalid document extract force header `x-wendao-document-extract-force`"
+    );
+}
+
+#[test]
+fn validate_document_extract_request_metadata_rejects_invalid_profile() {
+    let mut metadata = build_document_extract_metadata("docs/manual.pdf", None, None, None);
+    metadata.insert(
+        WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+        tonic::metadata::MetadataValue::from_static("expensive-magic"),
+    );
+
+    let error = must_err(
+        validate_document_extract_request_metadata(&metadata),
+        "invalid document extraction profile should fail",
+    );
+
+    assert_eq!(
+        error.message(),
+        "unsupported document extract profile `expensive-magic`",
     );
 }
 

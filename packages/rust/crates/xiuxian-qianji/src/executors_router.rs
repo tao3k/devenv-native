@@ -3,12 +3,14 @@
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
 use async_trait::async_trait;
 use rand::Rng;
-use serde_json::json;
+use serde_json::{Value, json};
 
 /// Mechanism responsible for dynamic probabilistic path selection.
 pub struct ProbabilisticRouter {
     /// List of available branches and their relative weights.
     pub branches: Vec<(String, f32)>, // (BranchName, StaticWeight)
+    /// Optional context key containing a semantic guard route object.
+    pub semantic_guard_route_key: Option<String>,
 }
 
 #[async_trait]
@@ -16,6 +18,14 @@ impl QianjiMechanism for ProbabilisticRouter {
     async fn execute(&self, context: &serde_json::Value) -> Result<QianjiOutput, String> {
         if self.branches.is_empty() {
             return Err("Router has no branches configured".to_string());
+        }
+
+        if let Some(selected_branch) = semantic_guard_route_branch(
+            context,
+            self.semantic_guard_route_key.as_deref(),
+            &self.branches,
+        )? {
+            return Ok(router_output(selected_branch));
         }
 
         let confidence_bias = confidence_bias(context)?;
@@ -45,15 +55,57 @@ impl QianjiMechanism for ProbabilisticRouter {
             }
         }
 
-        Ok(QianjiOutput {
-            data: json!({ "selected_route": selected_branch }),
-            instruction: FlowInstruction::SelectBranch(selected_branch),
-        })
+        Ok(router_output(selected_branch))
     }
 
     fn weight(&self) -> f32 {
         1.0
     }
+}
+
+fn router_output(selected_branch: String) -> QianjiOutput {
+    QianjiOutput {
+        data: json!({ "selected_route": selected_branch }),
+        instruction: FlowInstruction::SelectBranch(selected_branch),
+    }
+}
+
+fn semantic_guard_route_branch(
+    context: &Value,
+    route_key: Option<&str>,
+    branches: &[(String, f32)],
+) -> Result<Option<String>, String> {
+    let Some(route_key) = route_key else {
+        return Ok(None);
+    };
+    let Some(route) = context.get(route_key) else {
+        return Ok(None);
+    };
+    if route.is_null() {
+        return Ok(None);
+    }
+    let Some(route) = route.as_object() else {
+        return Err(format!(
+            "{route_key} must be an object when semantic guard routing is enabled"
+        ));
+    };
+    let Some(action) = route
+        .get("recommendedAction")
+        .or_else(|| route.get("recommended_action"))
+    else {
+        return Ok(None);
+    };
+    let Some(action) = action.as_str() else {
+        return Err(format!("{route_key}.recommendedAction must be a string"));
+    };
+    let action = action.trim();
+    if action.is_empty() {
+        return Ok(None);
+    }
+    Ok(branches
+        .iter()
+        .find(|(name, weight)| name == action && weight.is_finite() && *weight > 0.0)
+        .map(|(name, _weight)| name.clone()))
 }
 
 fn confidence_bias(context: &serde_json::Value) -> Result<f32, String> {

@@ -203,11 +203,17 @@ pub use telemetry::{
 #[cfg(feature = "qianji-full")]
 pub use workdir::{
     WorkdirAdvance, WorkdirCheckFollowUpQuery, WorkdirCheckReport, WorkdirDiagnostic,
-    WorkdirMarkdownSurface, WorkdirShow, WorkdirVisibleSurface, WorkdirVisibleSurfaceKind,
-    advance_workdir_step, build_workdir_check_follow_up_query, check_workdir,
-    load_workdir_manifest, looks_like_workdir_dir, parse_workdir_manifest,
-    query_workdir_check_follow_up_payload, query_workdir_markdown_payload, render_workdir_advance,
-    render_workdir_check_markdown, render_workdir_show, show_workdir,
+    WorkdirMarkdownSurface, WorkdirSemanticProjectionPolicySummary,
+    WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
+    WorkdirSemanticScopeObjectSummary, WorkdirSemanticSqlGuardSummary, WorkdirShow,
+    WorkdirVisibleSurface, WorkdirVisibleSurfaceKind, advance_workdir_step,
+    build_workdir_check_follow_up_query, check_workdir, load_workdir_manifest,
+    looks_like_workdir_dir, parse_workdir_manifest, query_workdir_check_follow_up_payload,
+    query_workdir_markdown_payload, render_workdir_advance, render_workdir_check_markdown,
+    render_workdir_semantic_scope_guard_trace, render_workdir_show, show_workdir,
+    trace_workdir_semantic_scope_bundle, trace_workdir_semantic_scope_bundle_with_evidence,
+    trace_workdir_semantic_scope_bundle_with_sql_guard_evidence, trace_workdir_semantic_scope_json,
+    workdir_semantic_scope_guard_trace_json,
 };
 
 #[cfg(test)]

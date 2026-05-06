@@ -98,6 +98,12 @@ impl StudioConfiguredOwners {
     }
 }
 
+#[derive(Default)]
+pub(crate) struct LocalCorpusScanCoalescingState {
+    pub(crate) note_bundle_last_scanned_at: Option<Instant>,
+    pub(crate) code_bundle_last_scanned_at: Option<Instant>,
+}
+
 /// Shared state for the Studio API.
 ///
 /// Contains configuration, VFS roots, and cached graph index.
@@ -114,6 +120,7 @@ pub struct StudioState {
     pub(crate) graph_index: Arc<RwLock<Option<GraphIndexCacheEntry>>>,
     pub(crate) symbol_index: Arc<RwLock<Option<Arc<UnifiedSymbolIndex>>>>,
     pub(crate) symbol_index_coordinator: Arc<SymbolIndexCoordinator>,
+    pub(crate) local_corpus_scan_coalescing: Arc<RwLock<LocalCorpusScanCoalescingState>>,
     pub(crate) search_plane: SearchPlaneService,
     pub(crate) vfs_scan: Arc<RwLock<Option<VfsScanResult>>>,
     pub(crate) repo_index: Arc<RepoIndexCoordinator>,

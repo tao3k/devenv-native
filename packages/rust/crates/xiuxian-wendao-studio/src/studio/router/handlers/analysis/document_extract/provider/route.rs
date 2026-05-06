@@ -12,17 +12,20 @@ use xiuxian_wendao_server::transport::{
 use super::core::DocumentExtractProviderRuntime;
 use super::core::{DocumentExtractRuntimeSnapshot, StudioDocumentExtractFlightRouteProvider};
 use super::runtime::shared_document_extract_provider_runtime;
-use crate::studio::router::GatewayState;
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::build_status_batch;
 #[cfg(test)]
 use crate::studio::router::handlers::analysis::document_extract::registry::DocumentExtractJobRegistry;
 use crate::studio::router::handlers::analysis::document_extract::registry::DocumentExtractJobStatus;
+use crate::studio::router::{GatewayState, load_document_extract_endpoint_from_wendao_toml};
 
 impl StudioDocumentExtractFlightRouteProvider {
     #[must_use]
     pub(crate) fn new(state: &GatewayState) -> Self {
         Self {
             runtime: shared_document_extract_provider_runtime(state.studio.project_root.as_path()),
+            configured_default_endpoint: load_document_extract_endpoint_from_wendao_toml(
+                state.studio.config_root.as_path(),
+            ),
         }
     }
 
@@ -36,6 +39,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 registry,
                 conversion_limit,
             )),
+            configured_default_endpoint: None,
         }
     }
 
@@ -53,6 +57,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                     pdf_ocr_worker_limit,
                 ),
             ),
+            configured_default_endpoint: None,
         }
     }
 
@@ -137,8 +142,9 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
         output_dir: &str,
         force: bool,
         error_row: bool,
+        profile: &str,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
-        self.sync_document_extract_batch(source_path, output_dir, force, error_row)
+        self.sync_document_extract_batch(source_path, output_dir, force, error_row, profile)
             .await
     }
 
@@ -153,6 +159,7 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
                     request.output_dir.as_str(),
                     request.force,
                     request.error_row,
+                    request.profile.as_str(),
                 )
                 .await
             }

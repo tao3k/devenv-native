@@ -11,6 +11,8 @@ pub mod bounded_work_markdown;
 /// Request-scoped local relation-engine seams for bounded SQL helpers.
 pub mod local_relation;
 mod payload;
+/// Provisional semantic SSOT read-model tables for bounded SQL evidence.
+pub mod semantic_read_model;
 
 pub use local_relation::{
     DataFusionLocalRelationEngine, LocalRelationEngine, LocalRelationEngineKind,

@@ -108,6 +108,7 @@ async fn sync_document_extract_reuses_succeeded_content_artifact() -> Result<(),
             second_output.to_string_lossy().as_ref(),
             false,
             false,
+            "full",
         )
         .await?;
 

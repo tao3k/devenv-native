@@ -11,10 +11,9 @@ name: git
 description: Use when committing code, managing branches, pushing to remote, creating pull requests, or performing version control operations. Conforms to docs/reference/skill-routing-value-standard.md.
 author: xiuxian-artisan-workshop
 date: 2026-04-26T09:30-07:00
+saliency_base: 5.5
+decay_rate: 0.05
 metadata:
-  retrieval:
-    saliency_base: 5.5
-    decay_rate: 0.05
   version: "2.0.0"
   source: "https://github.com/tao3k/xiuxian-artisan-workshop/tree/main/skills/git"
   routing_keywords:

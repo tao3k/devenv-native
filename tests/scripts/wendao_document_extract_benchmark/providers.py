@@ -50,6 +50,7 @@ def start_rust_provider_server(
 ) -> subprocess.Popen[str]:
     provider_root = temp_root / "rust-provider"
     provider_root.mkdir(parents=True, exist_ok=True)
+    local_document_extract_endpoint = f"http://{python_host}:{python_port}"
     env = rust_process_env()
     pdfium_library_path = resolve_pdfium_library_path(args)
     ocr_shard_cache_root = getattr(
@@ -68,9 +69,9 @@ def start_rust_provider_server(
             ),
         }
     )
-    document_endpoint_pool = rust_document_extract_endpoint_pool(args)
-    if document_endpoint_pool:
-        env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = document_endpoint_pool
+    env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = (
+        rust_document_extract_endpoint_pool(args) or local_document_extract_endpoint
+    )
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
@@ -93,7 +94,7 @@ def start_rust_provider_server(
         args.cargo,
         "run",
         "-p",
-        "xiuxian-wendao",
+        "xiuxian-wendao-studio",
         "--no-default-features",
         "--features",
         cargo_features_for_provider_mode(args.rust_provider_features, args),
@@ -157,6 +158,7 @@ def start_gateway_server(
     gateway_root = temp_root / "gateway"
     gateway_root.mkdir(parents=True, exist_ok=True)
     config_path = write_gateway_benchmark_config(gateway_root, valkey_url=valkey_url)
+    local_document_extract_endpoint = f"http://{python_host}:{python_port}"
     env = rust_process_env()
     pdfium_library_path = resolve_pdfium_library_path(args)
     ocr_shard_cache_root = getattr(
@@ -180,9 +182,9 @@ def start_gateway_server(
             "XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING": "false",
         }
     )
-    document_endpoint_pool = rust_document_extract_endpoint_pool(args)
-    if document_endpoint_pool:
-        env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = document_endpoint_pool
+    env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = (
+        rust_document_extract_endpoint_pool(args) or local_document_extract_endpoint
+    )
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
@@ -205,7 +207,7 @@ def start_gateway_server(
         args.cargo,
         "run",
         "-p",
-        "xiuxian-wendao",
+        "xiuxian-wendao-studio",
         "--no-default-features",
         "--features",
         cargo_features_for_provider_mode(args.gateway_features, args),

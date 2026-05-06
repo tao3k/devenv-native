@@ -220,6 +220,13 @@ pub use link_graph::{
     valkey_suggested_link_recent_latest, valkey_suggested_link_recent_latest_with_valkey,
     valkey_suggested_link_recent_with_valkey,
 };
+#[cfg(feature = "julia")]
+pub use link_graph::{
+    LinkGraphWendaoGraphEvidenceError, WendaoGraphEvidenceRequestBundle,
+    WendaoGraphEvidenceRequestOptions, WendaoGraphEvidenceSeed,
+    build_wendao_graph_evidence_request_bundle,
+    build_wendao_graph_evidence_request_bundle_with_options,
+};
 pub use link_graph_refs::{
     LinkGraphEntityRef, LinkGraphRefStats, count_entity_refs, extract_entity_refs,
     extract_entity_refs_batch, find_notes_referencing_entity, get_ref_stats, is_valid_entity_ref,

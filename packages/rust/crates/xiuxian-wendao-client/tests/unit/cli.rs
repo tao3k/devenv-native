@@ -1,3 +1,6 @@
+#[path = "cli/semantic.rs"]
+mod semantic;
+
 use clap::Parser;
 use std::path::PathBuf;
 use xiuxian_wendao_client::{ClientCli, ClientCommand, GetCommand, LintCommand};

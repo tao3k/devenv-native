@@ -28,6 +28,9 @@ pub mod runtime_config;
 pub mod saliency;
 #[path = "stats_cache/mod.rs"]
 mod stats_cache;
+#[cfg(feature = "julia")]
+#[path = "wendao_graph_evidence/mod.rs"]
+pub mod wendao_graph_evidence;
 
 pub use addressing::{
     Address, EnhancedResolvedNode, IdCollision, IndexedNode, MatchType, ModificationError,
@@ -122,4 +125,11 @@ pub use saliency::{
 pub use stats_cache::{
     LINK_GRAPH_STATS_CACHE_SCHEMA_VERSION, valkey_stats_cache_del, valkey_stats_cache_get,
     valkey_stats_cache_set,
+};
+#[cfg(feature = "julia")]
+pub use wendao_graph_evidence::{
+    LinkGraphWendaoGraphEvidenceError, WendaoGraphEvidenceRequestBundle,
+    WendaoGraphEvidenceRequestOptions, WendaoGraphEvidenceSeed,
+    build_wendao_graph_evidence_request_bundle,
+    build_wendao_graph_evidence_request_bundle_with_options,
 };

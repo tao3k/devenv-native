@@ -19,10 +19,14 @@ Markdown/frontmatter contract:
 
 - **AUDIT.md**: Highly recommended for industrial traceability. If missing, a warning is emitted, but the skill is accepted.
 
-### 2.2 Strict Metadata Schema
+### 2.2 Frontmatter and Metadata Boundary
 
-Every `.md` file (Skill manifest or Persona) MUST pass the `UnifiedMetadata` validation.
+Every `.md` file (Skill manifest or Persona) MUST keep canonical document
+identity in top-level YAML frontmatter.
 
-- **type**: Must be explicitly `skill` or `persona`.
-- **metadata**: High-fidelity identity fields are mandatory.
-- **Failure**: malformed YAML or missing 'type' will trigger a load-blocker for that specific asset.
+- **Core identity**: `title`, `kind` or type-equivalent fields, `category`,
+  `tags`, provenance fields, and retrieval hints belong at top level.
+- **metadata**: Optional extension space. Do not duplicate top-level identity
+  fields such as `title` under `metadata`.
+- **Failure**: malformed YAML or missing required top-level fields will trigger
+  a load-blocker for that specific asset.

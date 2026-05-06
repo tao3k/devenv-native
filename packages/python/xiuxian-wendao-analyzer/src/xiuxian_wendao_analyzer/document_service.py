@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any
 
 import pyarrow.flight as flight
 
+from .document_profiles import (
+    DOCUMENT_EXTRACT_DEFAULT_PROFILE,
+    DOCUMENT_EXTRACT_PROFILE_ENV,
+    normalize_document_extract_profile,
+)
 from .documents import (
     DOCUMENT_RESOURCE_SCHEMA,
     DocumentConverterProtocol,
@@ -30,6 +36,7 @@ WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER = "x-wendao-document-extract-source-p
 WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER = "x-wendao-document-extract-output-dir"
 WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER = "x-wendao-document-extract-force"
 WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER = "x-wendao-document-extract-error-row"
+WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER = "x-wendao-document-extract-profile"
 
 EXPECTED_SCHEMA_VERSION = "v2"
 SUPPORTED_DOCUMENT_ROUTES = (
@@ -63,11 +70,13 @@ def build_document_extract_table(
     output_dir = headers.get(WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, "")
     force = _header_bool(headers, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, False)
     error_row = _header_bool(headers, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, True)
+    profile = _document_extract_profile(headers)
 
     return extract_document_table(
         source_path,
         output_dir or None,
         converter=converter,
+        profile=profile,
         force=force,
         error_row=error_row,
     )
@@ -241,6 +250,15 @@ def _header_bool(headers: Mapping[str, str], key: str, default: bool) -> bool:
     return default
 
 
+def _document_extract_profile(headers: Mapping[str, str]) -> str:
+    requested_profile = headers.get(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER)
+    default_profile = os.environ.get(
+        DOCUMENT_EXTRACT_PROFILE_ENV,
+        DOCUMENT_EXTRACT_DEFAULT_PROFILE,
+    )
+    return normalize_document_extract_profile(requested_profile or default_profile)
+
+
 def _flatten_headers(headers: Mapping[str, Any]) -> dict[str, str]:
     flat: dict[str, str] = {}
     for key, value in headers.items():
@@ -265,6 +283,7 @@ __all__ = [
     "WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER",
+    "WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER",
     "WENDAO_PDF_OCR_WORKERS_HEADER",
     "WENDAO_SCHEMA_VERSION_HEADER",

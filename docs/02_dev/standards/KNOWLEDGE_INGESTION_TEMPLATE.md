@@ -7,8 +7,6 @@ tags:
   - KNOWLEDGE_INGESTION_TEMPLATE
 saliency_base: 6.8
 decay_rate: 0.03
-metadata:
-  title: "Template: Knowledge Ingestion (CyberXiuXian Artisan workshop)"
 ---
 
 # Template: Knowledge Ingestion (CyberXiuXian Artisan workshop)

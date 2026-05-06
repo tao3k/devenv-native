@@ -9,7 +9,7 @@ fn markdown_lint_emits_json_output_when_requested() -> Result<()> {
     let temp = TempDir::new()?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide\n---\n# Guide\n\nAll clear.\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Guide\n---\n# Guide\n\nAll clear.\n",
     )?;
 
     let (status, stdout) = run_markdown_lint_with_output(&temp, None, Some("json"))?;

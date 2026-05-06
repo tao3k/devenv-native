@@ -14,6 +14,15 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
+wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
+wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
+wendao-client semantic describe-read-model [PATH]
+wendao-client semantic snapshot-read-model [PATH]
+wendao-client semantic check-read-model-snapshot --expect SNAPSHOT_REVISION [PATH]
+wendao-client semantic plan-read-model-materialization [--expect-snapshot SNAPSHOT_REVISION] [PATH]
+wendao-client semantic preflight-read-model-materialization [--expect-snapshot SNAPSHOT_REVISION] [PATH]
+wendao-client semantic query-read-model --query SQL [PATH]
+wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -67,6 +76,99 @@ Behavior:
     explicit Obsidian note links and standard Markdown note links
 22. when a directory style mismatch is found, emits a precise rewrite for the
     offending link instead of a style-only hint
+23. validates repo-native semantic SSOT roots with `lint semantic`, defaulting
+    to `semantic/` when no path is supplied. Explicit `[PATH]...` arguments are
+    only needed for custom semantic roots. The command fails on invalid object
+    frontmatter, duplicate IDs,
+    unresolved relation targets, unresolved projection source objects, empty
+    owner/provenance/verification fields, and invalid active confidence
+    sources; fresh projection artifacts must also declare the current source
+    revision, while stale projections must be explicitly marked stale; optional
+    `semantic/change-intents/` artifacts must resolve touched objects,
+    relation endpoints, landed status transitions, affected invariants,
+    projection refresh targets, candidate suggestion IDs, and explicit
+    promotion/demotion target outcomes
+24. refreshes semantic projection `source_revision` and `staleness` metadata
+    only when `lint semantic --refresh-projections` is passed; this is an
+    explicit derived-metadata writeback and does not regenerate projection
+    bodies or make projections authoritative
+25. renders a read-only lifecycle writeback preview when
+    `lint semantic --lifecycle-plan` is passed, listing validated promotion,
+    demotion, and other status-transition outcomes without mutating semantic
+    object files
+26. applies pending lifecycle status transitions only when
+    `lint semantic --apply-lifecycle-plan` is passed. The object current
+    status must match the declared transition `from` status; promotion also
+    rewrites `confidence.source` to `human_signed` and removes the promoted
+    object from change-intent `candidate_suggestions`
+27. requires projections named by active change intents to be fresh when
+    `lint semantic --require-fresh-projections` is passed. This is a
+    closure-level policy gate; ordinary semantic lint still accepts explicitly
+    stale advisory projections
+28. renders a read-only projection metadata refresh plan when
+    `lint semantic --projection-refresh-plan` is passed. This is the
+    parser-owned queue contract for future background refresh workers; the
+    command does not mutate projection artifacts unless `--refresh-projections`
+    is also passed explicitly
+29. runs an explicit semantic projection metadata refresh worker with
+    `semantic refresh-projections`. The default remains one pass. Passing
+    `--interval-secs` makes the same worker run as a recurring local runner;
+    `--max-runs` bounds repeated runs for verification or supervised jobs.
+    `--require-clean-worktree` makes supervised starts fail before any
+    projection writeback when the root git worktree already has pending
+    changes. Each pass uses the same semantic lint engine, applies projection
+    metadata refresh through the existing writeback path, renders the
+    post-refresh plan, and requires projection freshness before returning
+    success. The project `process-compose` surface packages this runner as
+    `wendao-semantic-refresh`, with managed pid/log state and
+    `WENDAO_SEMANTIC_REFRESH_INTERVAL_SECS` /
+    `WENDAO_SEMANTIC_REFRESH_MAX_RUNS` operator controls
+30. renders an advisory semantic read-model summary when
+    `lint semantic --read-model-summary` is passed, showing row counts for
+    `semantic_objects`, `semantic_relations`, and
+    `semantic_projection_state` while leaving repo-native semantic artifacts
+    authoritative
+31. describes the advisory semantic read-model catalog with
+    `semantic describe-read-model`, defaulting to the active `semantic/` root
+    and rendering stable table, column, nullability, and row-count metadata
+    for `semantic_objects`, `semantic_relations`, and
+    `semantic_projection_state` without registering a query or mutating
+    semantic artifacts
+32. renders deterministic advisory semantic read-model snapshot revisions with
+    `semantic snapshot-read-model`, defaulting to the active `semantic/` root.
+    The snapshot covers table schemas and projected rows for
+    `semantic_objects`, `semantic_relations`, and
+    `semantic_projection_state`; it is evidence for future snapshot-swap
+    read-model work and does not make hashes or SQL authoritative
+33. checks the current advisory semantic read-model snapshot revision with
+    `semantic check-read-model-snapshot --expect SNAPSHOT_REVISION`,
+    defaulting to the active `semantic/` root. The check exits zero on exact
+    aggregate revision match and non-zero on mismatch while rendering the
+    current table revisions for operator review. This is a read-only evidence
+    guard for future snapshot-swap work and does not make hashes or SQL
+    authoritative
+34. renders a read-only future materialization plan with
+    `semantic plan-read-model-materialization`, defaulting to the active
+    `semantic/` root. The plan targets a future DuckDB snapshot-swap read
+    model, lists the current aggregate and table revisions, and can be gated
+    with `--expect-snapshot SNAPSHOT_REVISION`. A mismatched expected snapshot
+    returns a blocked plan and a non-zero exit status. The command does not
+    register DuckDB tables, write derived state, or make DuckDB authoritative
+35. executes a read-only materialization preflight with
+    `semantic preflight-read-model-materialization`, defaulting to the active
+    `semantic/` root. The preflight reuses the snapshot gate, registers the
+    three advisory semantic read-model tables into the request-scoped local
+    relation engine, runs a smoke query, and reports runtime registration
+    evidence. It still writes no derived state and does not make DuckDB
+    authoritative
+36. executes read-only SQL over advisory semantic read-model tables with
+    `semantic query-read-model --query SQL`, defaulting to the active
+    `semantic/` root and rendering text, JSON, or pretty JSON through the
+    global output option. The registered tables are `semantic_objects`,
+    `semantic_relations`, and `semantic_projection_state`; query results are
+    evidence only and do not mutate semantic artifacts. The SQL crate admits
+    exactly one read-only query statement and rejects blank, multi-statement,
+    or mutation SQL before table registration
 
 Diagnostic rendering is split deliberately:
 

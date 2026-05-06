@@ -1,1 +1,61 @@
-{"project_root":"$CRATE_ROOT","records":[{"fingerprint":"rustv:4f0bad7fc2a45113","state":"pending","phase":"after_unit_tests_pass","package_root":"$CRATE_ROOT","owner_path":"$CRATE_ROOT/src/qianji_bpmn/store.rs","owner_namespace":["src","qianji_bpmn","store"],"skill":"rust-verification-performance@criterion","contract_ref":"rust-verification-performance@criterion","required_evidence_keys":["benchmark_command","baseline","regression_threshold","latency_or_throughput","profile_artifact"],"task_evidence":[{"label":"profile","value":"external_dependency,latency_sensitive,availability_critical"},{"label":"rationale","value":"BPMN DuckDB store owns workflow-state persistence latency"},{"label":"skill","value":"rust-verification-performance@criterion"}]}]}
+{
+  "project_root": "$CRATE_ROOT",
+  "records": [
+    {
+      "fingerprint": "rustv:90af127adf8207d2",
+      "state": "pending",
+      "phase": "after_unit_tests_pass",
+      "package_root": "$CRATE_ROOT",
+      "owner_path": "$CRATE_ROOT/src/duckdb/ducklake/mod.rs",
+      "owner_namespace": ["src", "duckdb", "ducklake"],
+      "skill": "rust-verification-performance@criterion",
+      "contract_ref": "rust-verification-performance@criterion",
+      "required_evidence_keys": [
+        "benchmark_command",
+        "baseline",
+        "regression_threshold",
+        "latency_or_throughput",
+        "profile_artifact"
+      ],
+      "task_evidence": [
+        {
+          "label": "profile",
+          "value": "public_api,external_dependency,availability_critical"
+        },
+        {
+          "label": "rationale",
+          "value": "DuckLake substrate owns the embedded attach/appender/external-probe chain and reusable appender throughput used by downstream event lakes"
+        },
+        { "label": "skill", "value": "rust-verification-performance@criterion" }
+      ]
+    },
+    {
+      "fingerprint": "rustv:4f0bad7fc2a45113",
+      "state": "pending",
+      "phase": "after_unit_tests_pass",
+      "package_root": "$CRATE_ROOT",
+      "owner_path": "$CRATE_ROOT/src/qianji_bpmn/store.rs",
+      "owner_namespace": ["src", "qianji_bpmn", "store"],
+      "skill": "rust-verification-performance@criterion",
+      "contract_ref": "rust-verification-performance@criterion",
+      "required_evidence_keys": [
+        "benchmark_command",
+        "baseline",
+        "regression_threshold",
+        "latency_or_throughput",
+        "profile_artifact"
+      ],
+      "task_evidence": [
+        {
+          "label": "profile",
+          "value": "external_dependency,latency_sensitive,availability_critical"
+        },
+        {
+          "label": "rationale",
+          "value": "BPMN DuckDB store owns workflow-state persistence latency"
+        },
+        { "label": "skill", "value": "rust-verification-performance@criterion" }
+      ]
+    }
+  ]
+}

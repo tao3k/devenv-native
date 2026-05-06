@@ -13,7 +13,7 @@ pub(crate) fn discover_bounded_work_markdown_files(
     root: &Path,
 ) -> Result<Vec<DiscoveredMarkdownFile>, String> {
     let mut files = Vec::new();
-    for surface in ["blueprint", "plan"] {
+    for surface in ["blueprint", "plan", "semantic"] {
         let surface_root = root.join(surface);
         if !surface_root.exists() {
             continue;

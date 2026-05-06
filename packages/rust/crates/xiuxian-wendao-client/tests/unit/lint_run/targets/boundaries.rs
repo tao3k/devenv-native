@@ -10,7 +10,7 @@ fn lint_reports_local_target_outside_root() -> Result<()> {
     std::fs::create_dir_all(workspace.join("docs"))?;
     std::fs::write(
         temp.path().join("outside.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Outside\n---\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Outside\n---\n",
     )?;
     std::fs::write(
         workspace.join("docs/guide.md"),
@@ -24,10 +24,8 @@ fn lint_reports_local_target_outside_root() -> Result<()> {
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [Outside](../../outside.md).\n",
@@ -56,7 +54,7 @@ fn lint_reports_local_target_inside_transient_repo_dir() -> Result<()> {
     std::fs::create_dir_all(temp.path().join(".data"))?;
     std::fs::write(
         temp.path().join(".data/internal.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Internal Artifact\n---\n# Internal Artifact\n## Stable Heading\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Internal Artifact\n---\n# Internal Artifact\n## Stable Heading\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
@@ -70,10 +68,8 @@ fn lint_reports_local_target_inside_transient_repo_dir() -> Result<()> {
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Guide\n",
             "See [.data](.data/internal.md#Stable Heading).\n",

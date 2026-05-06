@@ -252,7 +252,7 @@ fn materialize_flowhub_scenario_reports_follow_up_query_for_invalid_generated_su
     assert_eq!(rendered.matches("## Follow-up Query").count(), 1);
     assert!(rendered.contains("Surfaces: blueprint, plan"));
     assert!(rendered.contains(
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface in ('blueprint', 'plan') \
 order by surface, path, heading_path"

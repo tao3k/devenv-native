@@ -2,7 +2,7 @@
 type: knowledge
 title: "Audit: Repo-Native Semantic SSOT Layer"
 category: "audit"
-status: "draft"
+status: "implemented-first-slice"
 authors:
   - codex
 created: 2026-05-03
@@ -22,8 +22,7 @@ metadata:
 - **RFC Reference**:
   [2026-05-03-repo-native-semantic-ssot-layer-rfc.md](./2026-05-03-repo-native-semantic-ssot-layer-rfc.md)
 - **Auditor**: Codex architecture audit pass
-- **Status**: Recommended for Sovereign approval review; physical landing is
-  still gated.
+- **Status**: First physical slice implemented; full RFC remains open.
 - **Advisory Confidence**: 0.78/1.0
 
 ## 1. Executive Summary
@@ -42,9 +41,82 @@ The strongest refinements are:
 3. `candidate`, which keeps LLM-suggested objects and relations out of
    authoritative truth until accepted
 
-This audit is advisory. It does not approve physical initialization of
-`semantic/`, seed objects, validators, or Qianji hooks. Approval must come from
-the Sovereign or another repository-governed authority path.
+This audit began as advisory review. The implementation approval was later
+used to land the first physical slice: repo-native `semantic/` artifacts,
+parser validation, CLI linting, the Wendao semantic-scope route, Studio
+runtime serving, Qianji advisory consumption, explicit projection metadata
+refresh through `wendao-client lint semantic --refresh-projections`, and
+read-only lifecycle writeback preview through
+`wendao-client lint semantic --lifecycle-plan`, plus explicit lifecycle apply
+tooling through `wendao-client lint semantic --apply-lifecycle-plan`, and
+closure-level projection freshness policy through
+`wendao-client lint semantic --require-fresh-projections`. Studio now also
+emits the same projection freshness policy evidence as
+`semanticProjectionPolicyEvidence` in semantic-scope Flight metadata for
+Qianji advisory consumption. The policy report type, policy id, metadata key,
+and report construction now live in `xiuxian-wendao-parsers` so client lint and
+Studio runtime metadata share the same semantic contract.
+Semantic-scope Flight app metadata now also has a parser-owned envelope shared
+by Studio producers and Qianji consumers, while SQL guard evidence remains
+advisory JSON outside parser authority.
+Qianji scheduler preflight now consumes that metadata at workflow runtime by
+injecting a read-only `semanticScopeGuardTrace` into node context.
+It also injects `semanticScopeGuardRoute`, a compact downstream routing record
+that carries the configured policy, semantic status, execution outcome, and
+recommended semantic action when preflight execution proceeds.
+Workflow authors can also opt into explicit scheduler preflight blocking with
+`semanticScopeGuardPolicy` values for blocked or review-required semantic
+scope; the default remains advisory.
+`wendao-client lint semantic --projection-refresh-plan` now renders the
+read-only projection metadata refresh queue contract for future background
+refresh workers, while artifact mutation remains explicit through
+`--refresh-projections`.
+`wendao-client semantic refresh-projections` now runs an explicit refresh
+worker that consumes that plan, applies the existing projection metadata
+writeback path, and enforces post-refresh freshness. Its default remains one
+pass, while `--interval-secs` and `--max-runs` expose a bounded or
+long-running recurring runner for supervised background use. Supervised starts
+can also pass `--require-clean-worktree` to refuse projection writeback when
+the root git worktree already has pending changes.
+`process-compose` now packages that same guarded runner as
+`wendao-semantic-refresh`, using managed entrypoint and healthcheck scripts
+under `scripts/channel/processes/wendao-semantic-refresh/` while keeping
+projection writes routed through the explicit client command.
+Qianji router nodes can now opt into workflow-level consumption of
+`semanticScopeGuardRoute.recommendedAction`, selecting a matching
+`continue`, `review_required`, or `blocked` branch before probabilistic
+fallback while preserving default router behavior.
+Qianji now also carries a checked-in guard route-aware workflow fixture that
+compiles through the normal TOML manifest path and proves stale semantic scope
+routes to the `review_required` branch while leaving non-selected branches
+inactive.
+The same shape is now exposed through
+`qianji template --semantic-guard-route`, giving workflow authors a reusable
+operator template while leaving semantic authority in repo-native artifacts.
+`wendao-client lint semantic --read-model-summary` now exposes the provisional
+semantic read-model row and table counts for operator review while keeping the
+projection advisory and read-only.
+`wendao-client semantic describe-read-model` now exposes the same advisory
+surface as a stable table and column catalog before SQL query selection.
+`wendao-client semantic snapshot-read-model` now renders deterministic
+advisory row and schema revisions for future read-model snapshot comparison.
+`wendao-client semantic check-read-model-snapshot --expect REVISION` now
+compares the current aggregate advisory snapshot against an expected `blake3:`
+revision and returns a non-zero status on mismatch.
+`wendao-client semantic plan-read-model-materialization --expect-snapshot
+REVISION` now renders a read-only future DuckDB snapshot-swap plan and blocks
+when the expected snapshot does not match the current aggregate revision.
+`wendao-client semantic preflight-read-model-materialization --expect-snapshot
+REVISION` now executes the read-only registration and smoke-query preflight
+for that plan using the request-scoped local relation engine.
+`wendao-client semantic query-read-model --query SQL` now exposes the same
+provisional tables as a bounded read-only SQL evidence surface.
+`xiuxian-wendao-sql` now rejects blank, multi-statement, and mutation SQL for
+that surface before table registration.
+
+The RFC is still not fully complete. Wider rollout of guard route-aware
+real workflows, DuckDB-backed materialized read-model expansion, and future
+Julia compute lanes remain outside the completed slice.
 
 ## 2. Evidence Map
 
@@ -147,7 +219,8 @@ The RFC is recommended for approval review if these conditions hold:
 3. SQL guards remain optional validation evidence until proven locally
 4. derived confidence remains advisory and does not mutate canonical status
 5. Julia compute outputs remain advisory evidence rows, not canonical truth
-6. physical initialization of `semantic/` waits for Sovereign approval
+6. physical initialization of `semantic/` is governed by explicit approval and
+   repository validation
 
 ### 3.2 Violations and Risks
 
@@ -181,8 +254,11 @@ The RFC is recommended for approval review if these conditions hold:
 
 1. **Schema validator**: validate `id`, `kind`, `status`, `confidence`,
    `owners`, `provenance`, `verification`, and `relations`.
-2. **Read-model pilot**: materialize accepted objects and relations into
-   DuckDB with explicit source revision and projection revision metadata.
+2. **Read-model pilot**: expose and query accepted objects and relations with
+   explicit source revision and projection revision metadata. The
+   engine-neutral row contract, client summary, snapshot guard, and executable
+   materialization preflight are landed; DuckDB-backed materialization remains
+   the next derived expansion.
 3. **Derived-confidence pilot**: define one advisory `derived_confidence` view
    and compare it against human review outcomes before using it in guards.
 4. **SQL-guard pilot**: let one invariant emit SQL-backed validation evidence
@@ -190,8 +266,9 @@ The RFC is recommended for approval review if these conditions hold:
 5. **Julia compute pilot**: export one bounded semantic subgraph or
    derived-confidence input batch to a staged Julia compute profile and import
    advisory evidence rows through versioned Arrow contracts.
-6. **Qianji integration**: let one guard consume a bounded semantic-scope
-   bundle after validator and read-model contracts are stable.
+6. **Qianji integration**: extend guard route-aware real workflows after the
+   router-level opt-in path, checked-in fixture, and template CLI evidence are
+   stable.
 7. **Hot-path clone audit**: consider replacing repeated Q-table episode-id
    clones with shared identifiers such as `Arc<str>` only after profiling
    confirms the clone pressure is material.
@@ -205,17 +282,69 @@ The second-round additions are directionally useful but require downgrade:
 3. SQL guards must complement, not replace, repository validation commands
 4. confidence propagation must be advisory until local calibration exists
 5. watcher or latency claims must wait for implementation evidence
-6. physical DuckDB support raises feasibility, but does not waive the approval
-   gate for `semantic/`, validators, or runtime hooks
+6. physical DuckDB support raises feasibility, but does not become semantic
+   authority
 7. Julia compute support raises feasibility for the weak Rust compute surfaces,
    but it must stay behind explicit Arrow schemas and advisory evidence rules
 
-## 5. Final Verdict: Pass Recommendation With Conditions
+## 5. Current Verdict: First Slice Landed With Conditions
 
-The RFC is ready for Sovereign approval review after the second-round
-calibration above. It is not yet approved for physical `semantic/`
-initialization, DuckDB read-model implementation, Julia compute integration,
-SQL-guard enforcement, or Qianji runtime hook integration.
+The RFC has passed the first physical implementation slice. Repo-native
+semantic objects are now the authority surface; Wendao validates and serves a
+scoped bundle; Qianji consumes the semantic surface as advisory context.
+
+This does not close the full RFC. DuckDB and Julia remain derived or advisory
+lanes, SQL guard evidence is not authority, and guard route-aware real
+workflows still need broader rollout before the semantic layer can be
+considered fully landed. Minimal parser governance now prevents free-floating
+candidate objects by requiring `llm_suggested`
+confidence and an active change-intent `candidate_suggestions` reference.
+Change intents can now declare landed `status_transitions`, with parser
+validation for the current target status and allowed lifecycle edge, and
+explicit `promotion_targets` / `demotion_targets` for lifecycle outcomes.
+`wendao-client lint semantic --lifecycle-plan` now renders a read-only
+writeback preview for those lifecycle outcomes, and
+`wendao-client lint semantic --apply-lifecycle-plan` can explicitly apply
+pending lifecycle transitions before re-validating the repository semantic
+surface. `wendao-client lint semantic --require-fresh-projections` now lets
+callers enforce that active change-intent projection refresh targets are fresh
+before closing a semantic change.
+`wendao-client lint semantic --projection-refresh-plan` now exposes the
+read-only refresh plan that a future background refresh worker can consume
+without silently mutating repo-native projection artifacts.
+`wendao-client semantic refresh-projections` now provides the explicit worker
+entrypoint for that contract while still routing writes through the explicit
+projection metadata refresh implementation. The command can also run repeated
+passes with `--interval-secs`, can be bounded with `--max-runs`, and can
+require a clean startup worktree with `--require-clean-worktree`.
+`process-compose` now exposes the guarded recurring runner as
+`wendao-semantic-refresh` without adding another projection mutation path.
+Qianji now has a checked-in semantic guard route fixture plus integration
+coverage for `review_required` branch selection from stale semantic scope.
+`wendao-client lint semantic --read-model-summary` now renders the advisory
+read-model table counts so operators can inspect the projected
+`semantic_objects`, `semantic_relations`, and `semantic_projection_state`
+surface without making SQL the authority path.
+`wendao-client semantic describe-read-model` now renders that surface as a
+stable catalog with table, column, nullability, and row-count metadata.
+`wendao-client semantic snapshot-read-model` now renders deterministic
+advisory table revisions and one aggregate snapshot revision for future
+snapshot-swap verification work.
+`wendao-client semantic check-read-model-snapshot --expect REVISION` now uses
+that aggregate revision as an explicit read-only verification guard and
+renders table revisions for mismatch triage.
+`wendao-client semantic plan-read-model-materialization --expect-snapshot
+REVISION` now reports the future DuckDB staging strategy, writeback policy,
+and required snapshot-swap steps without adding physical DuckDB persistence.
+`wendao-client semantic preflight-read-model-materialization --expect-snapshot
+REVISION` now registers the advisory read-model tables into the request-scoped
+local relation engine and runs a smoke query without writing derived state.
+`wendao-client semantic query-read-model --query SQL` now lets operators run
+bounded read-only SQL against that surface while keeping query output as
+evidence only. The query path now admits exactly one read-only SQL statement,
+so mutation or multi-statement input cannot reach table registration.
+The template CLI now also renders that manifest shape through
+`qianji template --semantic-guard-route`.
 
 ## 6. Formal Research References
 

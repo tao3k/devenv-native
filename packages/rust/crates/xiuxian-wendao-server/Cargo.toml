@@ -27,6 +27,10 @@ name = "wendao_transport_performance"
 harness = false
 required-features = ["performance"]
 
+[[example]]
+name = "attachment_flight_contract_server"
+required-features = ["transport"]
+
 [dependencies]
 arrow-array = { workspace = true, optional = true }
 arrow-flight = { workspace = true, optional = true }

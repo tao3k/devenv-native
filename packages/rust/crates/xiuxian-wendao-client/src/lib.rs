@@ -15,6 +15,7 @@ mod execute;
 mod get;
 mod lint;
 mod output;
+mod semantic;
 
 pub use cli::{ClientCli, ClientCommand};
 pub use context::ClientContext;
@@ -29,8 +30,14 @@ pub use get::{
 pub use lint::{
     LintCommand, MARKDOWN_LINT_DIAGNOSTIC_CONTRACT_IDS, MARKDOWN_LINT_DIAGNOSTICS_CONTRACT_ID,
     MarkdownLintArgs, MarkdownLintDiagnosticContractAssets, MarkdownLintDiagnosticContractId,
-    MarkdownLintFileReport, MarkdownLintIssue, MarkdownLintReport,
+    MarkdownLintFileReport, MarkdownLintIssue, MarkdownLintReport, SemanticLintArgs,
+    SemanticLintValidationArgs, SemanticLintWritebackArgs,
     markdown_lint_diagnostic_contract_assets, markdown_lint_diagnostic_contract_snapshot,
     markdown_lint_diagnostic_schema_snapshot,
 };
 pub use output::OutputFormat;
+pub use semantic::{
+    SemanticCheckReadModelSnapshotArgs, SemanticCommand, SemanticDescribeReadModelArgs,
+    SemanticPlanReadModelMaterializationArgs, SemanticPreflightReadModelMaterializationArgs,
+    SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
+};

@@ -39,6 +39,9 @@ pub(in crate::engine::compiler) fn wendao_refresh(
 pub(in crate::engine::compiler) fn router(
     node_def: &NodeDefinition,
 ) -> Result<Arc<dyn QianjiMechanism>, QianjiError> {
-    let branches = router::branches(node_def)?;
-    Ok(Arc::new(crate::executors::ProbabilisticRouter { branches }))
+    let cfg = router::config(node_def)?;
+    Ok(Arc::new(crate::executors::ProbabilisticRouter {
+        branches: cfg.branches,
+        semantic_guard_route_key: cfg.semantic_guard_route_key,
+    }))
 }

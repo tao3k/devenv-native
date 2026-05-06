@@ -65,7 +65,7 @@ fn run_check_workdir_command_renders_follow_up_query() {
     assert_eq!(output.exit_code, 2);
     assert!(output.rendered.contains("## Follow-up Query"));
     assert!(output.rendered.contains(
-        "select path, surface, heading_path, skeleton \
+        "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface = 'plan' \
 order by surface, path, heading_path"

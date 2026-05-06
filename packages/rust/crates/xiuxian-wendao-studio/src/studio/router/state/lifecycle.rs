@@ -4,7 +4,9 @@ use log::info;
 use xiuxian_zhenfa::ZhenfaSignal;
 
 use crate::studio::router::state::cold_start::StudioSearchColdStartTelemetryState;
-use crate::studio::router::state::types::{GatewayState, StudioConfiguredOwners, StudioState};
+use crate::studio::router::state::types::{
+    GatewayState, LocalCorpusScanCoalescingState, StudioConfiguredOwners, StudioState,
+};
 use crate::studio::router::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,
     resolve_studio_config_root,
@@ -137,6 +139,9 @@ impl StudioState {
             graph_index: Arc::new(std::sync::RwLock::new(None)),
             symbol_index: Arc::new(std::sync::RwLock::new(None)),
             symbol_index_coordinator,
+            local_corpus_scan_coalescing: Arc::new(std::sync::RwLock::new(
+                LocalCorpusScanCoalescingState::default(),
+            )),
             search_plane,
             vfs_scan: Arc::new(std::sync::RwLock::new(None)),
             repo_index,

@@ -7,8 +7,6 @@ tags:
   - "<domain>"
 saliency_base: 7.0
 decay_rate: 0.03
-metadata:
-  title: "<Domain MOC>"
 ---
 
 # <Domain MOC>

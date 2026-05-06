@@ -9,6 +9,13 @@ from .document_metrics import (
     DocumentTimingRow,
     document_timing_to_table,
 )
+from .document_profiles import (
+    DOCUMENT_EXTRACT_DEFAULT_PROFILE,
+    DOCUMENT_EXTRACT_FAST_TEXT_PROFILE,
+    DOCUMENT_EXTRACT_FULL_PROFILE,
+    DOCUMENT_EXTRACT_PROFILE_ENV,
+    normalize_document_extract_profile,
+)
 from .document_service import (
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_PDF_OCR_SHARDS_ROUTE,
@@ -17,6 +24,7 @@ from .document_service import (
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_PDF_OCR_WORKERS_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
@@ -110,6 +118,10 @@ __all__ = [
     "ANALYSIS_PDF_OCR_SHARDS_ROUTE",
     "DOCLING_COMMON_SOURCE_SUFFIXES",
     "DOCLING_SUPPORTED_DOCUMENT_FORMATS",
+    "DOCUMENT_EXTRACT_DEFAULT_PROFILE",
+    "DOCUMENT_EXTRACT_FAST_TEXT_PROFILE",
+    "DOCUMENT_EXTRACT_FULL_PROFILE",
+    "DOCUMENT_EXTRACT_PROFILE_ENV",
     "DOCUMENT_RESOURCE_ARROW_CACHE_NAME",
     "DOCUMENT_RESOURCE_FIELDS",
     "DOCUMENT_RESOURCE_SCHEMA",
@@ -132,6 +144,7 @@ __all__ = [
     "WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER",
+    "WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER",
     "WENDAO_PDF_OCR_WORKERS_HEADER",
     "WENDAO_SCHEMA_VERSION_HEADER",
@@ -175,6 +188,7 @@ __all__ = [
     "extract_pdf_table",
     "failed_pdf_ocr_shard_result",
     "is_known_docling_source",
+    "normalize_document_extract_profile",
     "normalize_pdf_ocr_shard_result",
     "parse_analyzer_result_rows",
     "resolve_pdf_ocr_worker_count",

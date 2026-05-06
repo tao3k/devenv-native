@@ -9,9 +9,10 @@ use crate::transport::query_contract::{
     ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE,
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
-    ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE,
-    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
-    TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
+    ANALYSIS_REPO_SYNC_ROUTE, ANALYSIS_SEMANTIC_SCOPE_ROUTE, GRAPH_NEIGHBORS_ROUTE,
+    QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
+    SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE, TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE,
+    VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
 };
 
 use crate::transport::server::{
@@ -24,8 +25,9 @@ use crate::transport::server::{
     validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
     validate_repo_projected_page_index_tree_request_metadata,
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
-    validate_search_request_metadata, validate_sql_request_metadata,
-    validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
+    validate_search_request_metadata, validate_semantic_scope_request_metadata,
+    validate_sql_request_metadata, validate_vfs_content_request_metadata,
+    validate_vfs_resolve_request_metadata,
 };
 
 use super::ServiceCore as WendaoFlightService;
@@ -55,107 +57,140 @@ fn document_extract_status_cache_key(
     Ok(format!("{route}|{job_id:?}"))
 }
 
+fn core_route_request_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<Option<String>, Status> {
+    if route == REPO_SEARCH_ROUTE {
+        let request = validate_repo_search_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{repo_id:?}|{query_text:?}|{limit}|{}|{}|{}|{}|{}",
+            join_sorted_set(&request.language_filters),
+            join_sorted_set(&request.path_prefixes),
+            join_sorted_set(&request.title_filters),
+            join_sorted_set(&request.tag_filters),
+            join_sorted_set(&request.filename_filters),
+            repo_id = request.repo_id,
+            query_text = request.query_text,
+            limit = request.limit,
+        )))
+    } else if route == SEARCH_ATTACHMENTS_ROUTE {
+        let (query_text, limit, ext_filters, kind_filters, case_sensitive) =
+            validate_attachment_search_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{query_text:?}|{limit}|{}|{}|{case_sensitive}",
+            join_sorted_set(&ext_filters),
+            join_sorted_set(&kind_filters),
+        )))
+    } else if route == SEARCH_AST_ROUTE {
+        let (query_text, limit, intent, repo_hint) = validate_search_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{query_text:?}|{limit}|{intent:?}|{repo_hint:?}"
+        )))
+    } else if route == SEARCH_DEFINITION_ROUTE {
+        let (query_text, source_path, source_line) =
+            validate_definition_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{query_text:?}|{source_path:?}|{source_line:?}"
+        )))
+    } else if route == SEARCH_AUTOCOMPLETE_ROUTE {
+        let (prefix, limit) = validate_autocomplete_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{prefix:?}|{limit}")))
+    } else if route == QUERY_SQL_ROUTE {
+        let query_text = validate_sql_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{query_text:?}")))
+    } else if route == VFS_RESOLVE_ROUTE {
+        let path = validate_vfs_resolve_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{path:?}")))
+    } else if route == VFS_CONTENT_ROUTE {
+        let path = validate_vfs_content_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{path:?}")))
+    } else if route == VFS_SCAN_ROUTE || route == TOPOLOGY_3D_ROUTE {
+        Ok(Some(route.to_string()))
+    } else if route == GRAPH_NEIGHBORS_ROUTE {
+        let (node_id, direction, hops, limit) =
+            validate_graph_neighbors_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{node_id:?}|{direction:?}|{hops}|{limit}"
+        )))
+    } else if is_search_family_route(route) {
+        let (query_text, limit, intent, repo_hint) = validate_search_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{query_text:?}|{limit}|{intent:?}|{repo_hint:?}"
+        )))
+    } else {
+        Ok(None)
+    }
+}
+
+fn analysis_route_request_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<Option<String>, Status> {
+    if route == ANALYSIS_MARKDOWN_ROUTE {
+        let path = validate_markdown_analysis_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{path:?}")))
+    } else if route == ANALYSIS_CODE_AST_ROUTE {
+        let (path, repo_id, line_hint) = validate_code_ast_analysis_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{path:?}|{repo_id:?}|{line_hint:?}")))
+    } else if route == ANALYSIS_SEMANTIC_SCOPE_ROUTE {
+        let request = validate_semantic_scope_request_metadata(metadata)?;
+        let mut object_ids = request.object_ids;
+        object_ids.sort();
+        Ok(Some(format!(
+            "{route}|{:?}|{}",
+            request.task_id,
+            object_ids.join(",")
+        )))
+    } else if route == ANALYSIS_REPO_OVERVIEW_ROUTE {
+        let repo_id = validate_repo_overview_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{repo_id:?}")))
+    } else if route == ANALYSIS_REPO_INDEX_ROUTE {
+        let (repo_id, refresh, request_id) = validate_repo_index_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{repo_id:?}|{refresh}|{request_id:?}"
+        )))
+    } else if route == ANALYSIS_REPO_INDEX_STATUS_ROUTE {
+        let repo_id = validate_repo_index_status_request_metadata(metadata);
+        Ok(Some(format!("{route}|{repo_id:?}")))
+    } else if route == ANALYSIS_REPO_SYNC_ROUTE {
+        let (repo_id, mode) = validate_repo_sync_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{repo_id:?}|{mode:?}")))
+    } else if route == ANALYSIS_REPO_DOC_COVERAGE_ROUTE {
+        let (repo_id, module_id) = validate_repo_doc_coverage_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{repo_id:?}|{module_id:?}")))
+    } else if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE {
+        let (repo_id, page_id) =
+            validate_repo_projected_page_index_tree_request_metadata(metadata)?;
+        Ok(Some(format!("{route}|{repo_id:?}|{page_id:?}")))
+    } else if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
+        document_extract_cache_key(route, metadata).map(Some)
+    } else if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
+        document_extract_status_cache_key(route, metadata).map(Some)
+    } else if route == ANALYSIS_REFINE_DOC_ROUTE {
+        let (repo_id, entity_id, user_hints) = validate_refine_doc_request_metadata(metadata)?;
+        Ok(Some(format!(
+            "{route}|{repo_id:?}|{entity_id:?}|{user_hints:?}"
+        )))
+    } else {
+        Ok(None)
+    }
+}
+
 impl WendaoFlightService {
     pub(super) fn route_request_cache_key(
         route: &str,
         metadata: &tonic::metadata::MetadataMap,
     ) -> Result<String, Status> {
-        if route == REPO_SEARCH_ROUTE {
-            let request = validate_repo_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{repo_id:?}|{query_text:?}|{limit}|{}|{}|{}|{}|{}",
-                join_sorted_set(&request.language_filters),
-                join_sorted_set(&request.path_prefixes),
-                join_sorted_set(&request.title_filters),
-                join_sorted_set(&request.tag_filters),
-                join_sorted_set(&request.filename_filters),
-                repo_id = request.repo_id,
-                query_text = request.query_text,
-                limit = request.limit,
-            ))
-        } else if route == SEARCH_ATTACHMENTS_ROUTE {
-            let (query_text, limit, ext_filters, kind_filters, case_sensitive) =
-                validate_attachment_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{query_text:?}|{limit}|{}|{}|{case_sensitive}",
-                join_sorted_set(&ext_filters),
-                join_sorted_set(&kind_filters),
-            ))
-        } else if route == SEARCH_AST_ROUTE {
-            let (query_text, limit, intent, repo_hint) =
-                validate_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{query_text:?}|{limit}|{intent:?}|{repo_hint:?}"
-            ))
-        } else if route == SEARCH_DEFINITION_ROUTE {
-            let (query_text, source_path, source_line) =
-                validate_definition_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{query_text:?}|{source_path:?}|{source_line:?}"
-            ))
-        } else if route == SEARCH_AUTOCOMPLETE_ROUTE {
-            let (prefix, limit) = validate_autocomplete_request_metadata(metadata)?;
-            Ok(format!("{route}|{prefix:?}|{limit}"))
-        } else if route == QUERY_SQL_ROUTE {
-            let query_text = validate_sql_request_metadata(metadata)?;
-            Ok(format!("{route}|{query_text:?}"))
-        } else if route == VFS_RESOLVE_ROUTE {
-            let path = validate_vfs_resolve_request_metadata(metadata)?;
-            Ok(format!("{route}|{path:?}"))
-        } else if route == VFS_CONTENT_ROUTE {
-            let path = validate_vfs_content_request_metadata(metadata)?;
-            Ok(format!("{route}|{path:?}"))
-        } else if route == VFS_SCAN_ROUTE {
-            Ok(route.to_string())
-        } else if route == GRAPH_NEIGHBORS_ROUTE {
-            let (node_id, direction, hops, limit) =
-                validate_graph_neighbors_request_metadata(metadata)?;
-            Ok(format!("{route}|{node_id:?}|{direction:?}|{hops}|{limit}"))
-        } else if route == TOPOLOGY_3D_ROUTE {
-            Ok(route.to_string())
-        } else if route == ANALYSIS_MARKDOWN_ROUTE {
-            let path = validate_markdown_analysis_request_metadata(metadata)?;
-            Ok(format!("{route}|{path:?}"))
-        } else if route == ANALYSIS_CODE_AST_ROUTE {
-            let (path, repo_id, line_hint) = validate_code_ast_analysis_request_metadata(metadata)?;
-            Ok(format!("{route}|{path:?}|{repo_id:?}|{line_hint:?}"))
-        } else if route == ANALYSIS_REPO_OVERVIEW_ROUTE {
-            let repo_id = validate_repo_overview_request_metadata(metadata)?;
-            Ok(format!("{route}|{repo_id:?}"))
-        } else if route == ANALYSIS_REPO_INDEX_ROUTE {
-            let (repo_id, refresh, request_id) = validate_repo_index_request_metadata(metadata)?;
-            Ok(format!("{route}|{repo_id:?}|{refresh}|{request_id:?}"))
-        } else if route == ANALYSIS_REPO_INDEX_STATUS_ROUTE {
-            let repo_id = validate_repo_index_status_request_metadata(metadata);
-            Ok(format!("{route}|{repo_id:?}"))
-        } else if route == ANALYSIS_REPO_SYNC_ROUTE {
-            let (repo_id, mode) = validate_repo_sync_request_metadata(metadata)?;
-            Ok(format!("{route}|{repo_id:?}|{mode:?}"))
-        } else if route == ANALYSIS_REPO_DOC_COVERAGE_ROUTE {
-            let (repo_id, module_id) = validate_repo_doc_coverage_request_metadata(metadata)?;
-            Ok(format!("{route}|{repo_id:?}|{module_id:?}"))
-        } else if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE {
-            let (repo_id, page_id) =
-                validate_repo_projected_page_index_tree_request_metadata(metadata)?;
-            Ok(format!("{route}|{repo_id:?}|{page_id:?}"))
-        } else if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
-            document_extract_cache_key(route, metadata)
-        } else if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
-            document_extract_status_cache_key(route, metadata)
-        } else if route == ANALYSIS_REFINE_DOC_ROUTE {
-            let (repo_id, entity_id, user_hints) = validate_refine_doc_request_metadata(metadata)?;
-            Ok(format!("{route}|{repo_id:?}|{entity_id:?}|{user_hints:?}"))
-        } else if is_search_family_route(route) {
-            let (query_text, limit, intent, repo_hint) =
-                validate_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{query_text:?}|{limit}|{intent:?}|{repo_hint:?}"
-            ))
-        } else {
-            Err(Status::invalid_argument(format!(
-                "unexpected routed Flight request: {route}"
-            )))
+        if let Some(cache_key) = core_route_request_cache_key(route, metadata)? {
+            return Ok(cache_key);
         }
+        if let Some(cache_key) = analysis_route_request_cache_key(route, metadata)? {
+            return Ok(cache_key);
+        }
+        Err(Status::invalid_argument(format!(
+            "unexpected routed Flight request: {route}"
+        )))
     }
 
     pub(super) async fn read_route_payload(
@@ -189,6 +224,8 @@ impl WendaoFlightService {
             self.read_markdown_analysis_payload(route, metadata).await
         } else if route == ANALYSIS_CODE_AST_ROUTE {
             self.read_code_ast_analysis_payload(route, metadata).await
+        } else if route == ANALYSIS_SEMANTIC_SCOPE_ROUTE {
+            self.read_semantic_scope_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_OVERVIEW_ROUTE {
             self.read_repo_overview_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_INDEX_ROUTE {
@@ -457,6 +494,26 @@ impl WendaoFlightService {
             })
     }
 
+    async fn read_semantic_scope_payload(
+        &self,
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<FlightRoutePayload, Status> {
+        let request = validate_semantic_scope_request_metadata(metadata)?;
+        let provider = self.semantic_scope_provider.as_ref().ok_or_else(|| {
+            Status::unimplemented(format!(
+                "semantic-scope Flight route `{route}` is not configured for this transport host"
+            ))
+        })?;
+        provider
+            .semantic_scope_batch(&request)
+            .await
+            .map_err(Status::internal)
+            .and_then(|response| {
+                FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)
+            })
+    }
+
     async fn read_repo_overview_payload(
         &self,
         route: &str,
@@ -677,7 +734,7 @@ impl WendaoFlightService {
         metadata: &tonic::metadata::MetadataMap,
         cache_key: &str,
     ) -> Result<Arc<FlightRoutePayload>, Status> {
-        if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
+        if !route_payload_cacheable(route) {
             return self.read_route_payload(route, metadata).await.map(Arc::new);
         }
         if let Some(cached) = self.route_payload_cache.get(cache_key).await {
@@ -689,4 +746,17 @@ impl WendaoFlightService {
             .insert(cache_key.to_string(), payload)
             .await)
     }
+}
+
+pub(super) fn route_payload_cacheable(route: &str) -> bool {
+    !matches!(
+        route,
+        REPO_SEARCH_ROUTE
+            | SEARCH_ATTACHMENTS_ROUTE
+            | SEARCH_AST_ROUTE
+            | SEARCH_AUTOCOMPLETE_ROUTE
+            | SEARCH_DEFINITION_ROUTE
+            | QUERY_SQL_ROUTE
+            | ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE
+    ) && !is_search_family_route(route)
 }

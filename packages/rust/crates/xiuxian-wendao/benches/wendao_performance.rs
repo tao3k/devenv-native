@@ -4,8 +4,17 @@ use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+#[cfg(feature = "duckdb")]
+use chrono::{TimeZone, Utc};
 use criterion::{BatchSize, Criterion, Throughput, black_box};
+#[cfg(feature = "duckdb")]
+use serde_json::json;
 use tempfile::{TempDir, tempdir};
+#[cfg(feature = "duckdb")]
+use xiuxian_wendao::duckdb::{
+    WendaoEventLakeAppender, WendaoEventQuery, WendaoEventRecord, query_wendao_events,
+    wendao_event_record_batch,
+};
 use xiuxian_wendao::repo_index::perf_support::{
     RepoBootstrapBenchmarkFixture, benchmark_collect_full_repo_code_documents,
     benchmark_collect_incremental_repo_code_documents,
@@ -28,6 +37,10 @@ const REPO_BOOTSTRAP_BENCH_REPO_COUNT: usize = 10_000;
 const REPO_PUBLICATION_PARQUET_SMALL_DOC_COUNT: usize = 1_000;
 const REPO_PUBLICATION_PARQUET_LARGE_DOC_COUNT: usize = 10_000;
 const REPO_QUERY_BENCH_DOC_COUNT: usize = 100_000;
+#[cfg(feature = "duckdb")]
+const EVENT_LAKE_BENCH_RECORDS: usize = 1_024;
+#[cfg(feature = "duckdb")]
+const EVENT_LAKE_BENCH_ROWS_PER_BATCH: usize = 256;
 
 fn note_id(i: usize) -> String {
     format!("note-{i:05}")
@@ -361,6 +374,149 @@ fn bench_narration_fusion(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "duckdb")]
+fn bench_event_lake_append_chain(c: &mut Criterion) {
+    let records = build_event_lake_records(EVENT_LAKE_BENCH_RECORDS);
+    let query_fixture = build_event_lake_query_fixture(records.as_slice());
+    let query = WendaoEventQuery::for_case("tenant-a", "case-1")
+        .with_event_type("tool.call")
+        .with_limit(EVENT_LAKE_BENCH_RECORDS as u32);
+    let mut group = c.benchmark_group("wendao_event_lake_append_chain");
+    group.throughput(Throughput::Elements(EVENT_LAKE_BENCH_RECORDS as u64));
+    group.bench_function("record_batch_builder", |bench| {
+        bench.iter(|| {
+            let batch = wendao_event_record_batch(black_box(records.as_slice()))
+                .unwrap_or_else(|error| panic!("build event-lake Arrow batch: {error}"));
+            black_box(batch.num_rows());
+        });
+    });
+    group.bench_function("memory_appender_chunked_append_and_count", |bench| {
+        bench.iter_batched(
+            || build_event_lake_append_fixture(records.as_slice()),
+            |fixture| {
+                let mut appender = WendaoEventLakeAppender::open(&fixture.connection, "memory")
+                    .unwrap_or_else(|error| panic!("open event-lake benchmark appender: {error}"));
+                let appended = appender
+                    .append_events_chunked(
+                        fixture.records.as_slice(),
+                        EVENT_LAKE_BENCH_ROWS_PER_BATCH,
+                    )
+                    .unwrap_or_else(|error| panic!("append event-lake benchmark events: {error}"));
+                appender
+                    .flush()
+                    .unwrap_or_else(|error| panic!("flush event-lake benchmark appender: {error}"));
+                let count: i64 = fixture
+                    .connection
+                    .query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))
+                    .unwrap_or_else(|error| panic!("count event-lake benchmark rows: {error}"));
+                black_box((appended, count));
+            },
+            BatchSize::LargeInput,
+        );
+    });
+    group.bench_function("bounded_query_filtered_rows", |bench| {
+        bench.iter(|| {
+            let rows = query_wendao_events(&query_fixture.connection, "memory", black_box(&query))
+                .unwrap_or_else(|error| panic!("query event-lake benchmark rows: {error}"));
+            assert!(
+                !rows.is_empty(),
+                "event-lake benchmark query fixture returned no rows"
+            );
+            black_box(rows.len());
+        });
+    });
+    group.finish();
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn bench_event_lake_append_chain(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wendao_event_lake_append_chain");
+    group.bench_function("feature_disabled", |bench| {
+        bench.iter(|| black_box("enable duckdb for event-lake append-chain benchmarks"));
+    });
+    group.finish();
+}
+
+#[cfg(feature = "duckdb")]
+struct EventLakeAppendFixture {
+    connection: ::duckdb::Connection,
+    records: Vec<WendaoEventRecord>,
+}
+
+#[cfg(feature = "duckdb")]
+struct EventLakeQueryFixture {
+    connection: ::duckdb::Connection,
+}
+
+#[cfg(feature = "duckdb")]
+fn build_event_lake_append_fixture(records: &[WendaoEventRecord]) -> EventLakeAppendFixture {
+    EventLakeAppendFixture {
+        connection: open_event_lake_benchmark_connection(),
+        records: records.to_vec(),
+    }
+}
+
+#[cfg(feature = "duckdb")]
+fn build_event_lake_query_fixture(records: &[WendaoEventRecord]) -> EventLakeQueryFixture {
+    let connection = open_event_lake_benchmark_connection();
+    let mut appender = WendaoEventLakeAppender::open(&connection, "memory")
+        .unwrap_or_else(|error| panic!("open event-lake query benchmark appender: {error}"));
+    appender
+        .append_events_chunked(records, EVENT_LAKE_BENCH_ROWS_PER_BATCH)
+        .unwrap_or_else(|error| panic!("append event-lake query benchmark records: {error}"));
+    appender
+        .flush()
+        .unwrap_or_else(|error| panic!("flush event-lake query benchmark records: {error}"));
+    drop(appender);
+    EventLakeQueryFixture { connection }
+}
+
+#[cfg(feature = "duckdb")]
+fn open_event_lake_benchmark_connection() -> ::duckdb::Connection {
+    let connection = ::duckdb::Connection::open_in_memory()
+        .unwrap_or_else(|error| panic!("open event-lake benchmark DuckDB: {error}"));
+    connection
+        .execute_batch(
+            "CREATE TABLE events (\
+tenant_id VARCHAR, \
+case_id VARCHAR, \
+event_type VARCHAR, \
+payload VARCHAR, \
+created_at TIMESTAMP\
+);",
+        )
+        .unwrap_or_else(|error| panic!("create event-lake benchmark table: {error}"));
+    connection
+}
+
+#[cfg(feature = "duckdb")]
+fn build_event_lake_records(count: usize) -> Vec<WendaoEventRecord> {
+    let base = Utc
+        .with_ymd_and_hms(2026, 5, 5, 8, 0, 0)
+        .single()
+        .unwrap_or_else(|| panic!("valid benchmark UTC timestamp"));
+    (0..count)
+        .map(|index| {
+            let payload = json!({
+                "index": index,
+                "tool": format!("tool-{}", index % 16),
+                "status": "ok",
+            });
+            WendaoEventRecord::new(
+                "tenant-a",
+                format!("case-{}", index % 64),
+                match index % 3 {
+                    0 => "tool.call",
+                    1 => "llm.call",
+                    _ => "bpmn.step",
+                },
+                &payload,
+                base + chrono::TimeDelta::milliseconds(index as i64),
+            )
+        })
+        .collect()
+}
+
 fn main() {
     let mut criterion = Criterion::default().configure_from_args();
     bench_related_ppr(&mut criterion);
@@ -369,5 +525,6 @@ fn main() {
     bench_repo_content_parquet_mutation(&mut criterion);
     bench_repo_content_query(&mut criterion);
     bench_narration_fusion(&mut criterion);
+    bench_event_lake_append_chain(&mut criterion);
     criterion.final_summary();
 }

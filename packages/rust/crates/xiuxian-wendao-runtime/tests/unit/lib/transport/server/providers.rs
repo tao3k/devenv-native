@@ -36,7 +36,7 @@ type RepoOverviewRequestRecord = String;
 type RepoIndexStatusRequestRecord = Option<String>;
 type RepoSyncRequestRecord = (String, String);
 type RepoDocCoverageRequestRecord = (String, Option<String>);
-type DocumentExtractRequestRecord = (String, String, bool, bool);
+type DocumentExtractRequestRecord = (String, String, bool, bool, String);
 type VfsContentRequestRecord = String;
 
 fn lock_or_panic<'a, T>(mutex: &'a Mutex<T>, context: &str) -> std::sync::MutexGuard<'a, T> {
@@ -1131,6 +1131,7 @@ impl DocumentExtractFlightRouteProvider for RecordingDocumentExtractProvider {
         output_dir: &str,
         force: bool,
         error_row: bool,
+        profile: &str,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
         *lock_or_panic(
             &self.request,
@@ -1140,6 +1141,7 @@ impl DocumentExtractFlightRouteProvider for RecordingDocumentExtractProvider {
             output_dir.to_string(),
             force,
             error_row,
+            profile.to_string(),
         ));
         *lock_or_panic(
             &self.call_count,

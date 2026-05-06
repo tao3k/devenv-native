@@ -29,6 +29,7 @@ use xiuxian_wendao_runtime::config::{
 };
 
 mod configured;
+mod event_lake;
 mod relation_engine;
 mod runtime;
 

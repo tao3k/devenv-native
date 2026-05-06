@@ -10,7 +10,9 @@ publish = false
 [dependencies]
 arrow = { workspace = true }
 async-trait = { workspace = true }
+blake3 = { workspace = true }
 datafusion = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 walkdir = { workspace = true }

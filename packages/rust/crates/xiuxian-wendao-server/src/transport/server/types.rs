@@ -17,7 +17,7 @@ use crate::transport::query_contract::{
     DocumentExtractFlightRequest, RERANK_RESPONSE_DOC_ID_COLUMN,
     RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
     RERANK_RESPONSE_SEMANTIC_SCORE_COLUMN, RERANK_RESPONSE_VECTOR_SCORE_COLUMN, RerankScoreWeights,
-    score_rerank_request_batch_with_weights,
+    SemanticScopeFlightRequest, score_rerank_request_batch_with_weights,
 };
 
 type EngineRecordBatch = LanceRecordBatch;
@@ -71,6 +71,8 @@ pub struct WendaoFlightRouteProviders {
     pub markdown_analysis: Option<Arc<dyn MarkdownAnalysisFlightRouteProvider>>,
     /// Optional code-AST-analysis provider.
     pub code_ast_analysis: Option<Arc<dyn CodeAstAnalysisFlightRouteProvider>>,
+    /// Optional semantic-scope analysis provider.
+    pub semantic_scope: Option<Arc<dyn SemanticScopeFlightRouteProvider>>,
     /// Optional repo-overview analysis provider.
     pub repo_overview: Option<Arc<dyn RepoOverviewFlightRouteProvider>>,
     /// Optional repo-index analysis provider.
@@ -115,6 +117,7 @@ impl WendaoFlightRouteProviders {
             autocomplete: None,
             markdown_analysis: None,
             code_ast_analysis: None,
+            semantic_scope: None,
             repo_overview: None,
             repo_index: None,
             repo_index_status: None,
@@ -644,6 +647,21 @@ pub trait MarkdownAnalysisFlightRouteProvider: std::fmt::Debug + Send + Sync {
     ) -> Result<AnalysisFlightRouteResponse, String>;
 }
 
+/// Transport-owned provider contract for stable semantic-scope Flight reads.
+#[async_trait]
+pub trait SemanticScopeFlightRouteProvider: std::fmt::Debug + Send + Sync {
+    /// Resolve one stable semantic-scope response batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested semantic-scope payload cannot be
+    /// materialized for the current transport host.
+    async fn semantic_scope_batch(
+        &self,
+        request: &SemanticScopeFlightRequest,
+    ) -> Result<AnalysisFlightRouteResponse, String>;
+}
+
 /// Transport-owned provider contract for stable document extraction Flight reads.
 #[async_trait]
 pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
@@ -659,6 +677,7 @@ pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
         output_dir: &str,
         force: bool,
         error_row: bool,
+        profile: &str,
     ) -> Result<DocumentExtractFlightRouteResponse, String>;
 
     /// Resolve a document extraction request with the latest metadata shape.
@@ -676,6 +695,7 @@ pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
             request.output_dir.as_str(),
             request.force,
             request.error_row,
+            request.profile.as_str(),
         )
         .await
     }

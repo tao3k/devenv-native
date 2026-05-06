@@ -29,6 +29,8 @@ pub mod references;
 pub mod section_create;
 /// Shared Markdown section parsing and parser-owned section contracts.
 pub mod sections;
+/// Parser-owned repo-native semantic SSOT artifact contracts.
+pub mod semantic_ssot;
 /// Shared source-position helpers used by parser-owned Markdown scans.
 pub mod sourcepos;
 /// Parser-owned raw Markdown target-occurrence extraction.
@@ -77,6 +79,23 @@ pub use section_create::{
 };
 pub use sections::{
     LogbookEntry, MarkdownSection, SectionCore, SectionMetadata, SectionScope, extract_sections,
+};
+pub use semantic_ssot::{
+    SEMANTIC_PROJECTION_FRESHNESS_POLICY_ID, SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY,
+    SEMANTIC_SCOPE_BUNDLE_METADATA_KEY, SEMANTIC_SQL_GUARD_EVIDENCE_METADATA_KEY,
+    SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidence, SemanticConfidenceSource,
+    SemanticObject, SemanticObjectKind, SemanticOwner, SemanticProjection,
+    SemanticProjectionFreshnessPolicyEntry, SemanticProjectionFreshnessPolicyReport,
+    SemanticProjectionRefreshPlanEntry, SemanticProjectionRefreshPlanReport,
+    SemanticProjectionStaleness, SemanticProvenance, SemanticRelation, SemanticRelationChange,
+    SemanticRelationChangeAction, SemanticRelationEdge, SemanticRelationKind, SemanticRepository,
+    SemanticScopeBundle, SemanticScopeMetadataEnvelope, SemanticScopeRequest, SemanticStatus,
+    SemanticStatusTransition, SemanticValidationIssue, SemanticValidationReport,
+    SemanticVerification, load_semantic_repository, parse_semantic_change_intent,
+    parse_semantic_object, parse_semantic_projection, parse_semantic_scope_metadata_envelope_json,
+    semantic_projection_freshness_policy_report, semantic_projection_refresh_plan_report,
+    semantic_projection_source_revision, semantic_scope_bundle, semantic_scope_metadata_envelope,
+    semantic_scope_metadata_envelope_to_vec,
 };
 pub use sourcepos::line_col_to_byte_range;
 pub use targets::{

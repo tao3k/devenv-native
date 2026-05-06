@@ -51,6 +51,7 @@ async fn registers_bounded_work_markdown_rows_into_sql_surface() -> TestResult {
         rows.iter().any(|row| {
             row.path == "blueprint/blueprint.md"
                 && row.surface == "blueprint"
+                && row.surface_kind == "blueprint_note"
                 && row.heading_path == "Blueprint/Boundary"
         }),
         "expected a normalized heading_path row for blueprint boundary"
@@ -59,6 +60,7 @@ async fn registers_bounded_work_markdown_rows_into_sql_surface() -> TestResult {
         rows.iter().any(|row| {
             row.path == "plan/tasks.md"
                 && row.surface == "plan"
+                && row.surface_kind == "plan_note"
                 && row.heading_path == "Plan/Implement"
         }),
         "expected a normalized heading_path row for plan implement section"
@@ -145,6 +147,84 @@ async fn bootstraps_bounded_work_markdown_query_engine() -> TestResult {
 }
 
 #[tokio::test]
+async fn discovers_semantic_markdown_surface() -> TestResult {
+    let temp_dir = tempdir()?;
+    let root = temp_dir.path();
+    write_bounded_work_fixture(
+        root,
+        "blueprint/overview.md",
+        "# Blueprint\n\n## Scope\n- [ ] Keep aligned\n",
+        "plan/steps.md",
+        "# Plan\n\n## Validate\n- [ ] Query markdown\n",
+    )?;
+    fs::create_dir_all(root.join("semantic/objects/component"))?;
+    fs::write(
+        root.join("semantic/objects/component/demo.md"),
+        "# Demo Component\n\n## Authority\n- Repo-native semantic object\n",
+    )?;
+    fs::create_dir_all(root.join("semantic/change-intents"))?;
+    fs::write(
+        root.join("semantic/change-intents/demo-change.md"),
+        "# Demo Change Intent\n\n## Required Validations\n- cargo test\n",
+    )?;
+
+    let payload = query_bounded_work_markdown_payload(
+        root,
+        "select path, surface, surface_kind, heading_path from markdown where surface = 'semantic' order by path, heading_path",
+    )
+    .await
+    .map_err(std::io::Error::other)?;
+
+    assert!(
+        payload
+            .batches
+            .iter()
+            .flat_map(|batch| batch.rows.iter())
+            .any(|row| row.get("path").and_then(serde_json::Value::as_str)
+                == Some("semantic/objects/component/demo.md"))
+    );
+    assert!(
+        payload
+            .batches
+            .iter()
+            .flat_map(|batch| batch.rows.iter())
+            .any(
+                |row| row.get("surface_kind").and_then(serde_json::Value::as_str)
+                    == Some("semantic_object")
+            )
+    );
+    assert!(
+        payload
+            .batches
+            .iter()
+            .flat_map(|batch| batch.rows.iter())
+            .any(|row| row.get("path").and_then(serde_json::Value::as_str)
+                == Some("semantic/change-intents/demo-change.md"))
+    );
+    assert!(
+        payload
+            .batches
+            .iter()
+            .flat_map(|batch| batch.rows.iter())
+            .any(
+                |row| row.get("surface_kind").and_then(serde_json::Value::as_str)
+                    == Some("semantic_change_intent")
+            )
+    );
+    assert!(
+        payload
+            .batches
+            .iter()
+            .flat_map(|batch| batch.rows.iter())
+            .any(
+                |row| row.get("heading_path").and_then(serde_json::Value::as_str)
+                    == Some("Demo Component/Authority")
+            )
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn queries_bounded_work_markdown_payload() -> TestResult {
     let temp_dir = tempdir()?;
     let root = temp_dir.path();
@@ -168,7 +248,7 @@ async fn queries_bounded_work_markdown_payload() -> TestResult {
         vec!["markdown".to_string()]
     );
     assert_eq!(payload.metadata.registered_table_count, 1);
-    assert_eq!(payload.metadata.registered_column_count, 7);
+    assert_eq!(payload.metadata.registered_column_count, 8);
     assert!(
         payload
             .metadata

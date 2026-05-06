@@ -10,7 +10,7 @@ use super::provider::StudioSearchFlightRouteProvider;
 use crate::studio::GatewayState;
 use crate::studio::router::handlers::analysis::{
     StudioCodeAstAnalysisFlightRouteProvider, StudioDocumentExtractFlightRouteProvider,
-    StudioMarkdownAnalysisFlightRouteProvider,
+    StudioMarkdownAnalysisFlightRouteProvider, StudioSemanticScopeFlightRouteProvider,
 };
 use crate::studio::router::handlers::graph::flight::StudioGraphNeighborsFlightRouteProvider;
 use crate::studio::router::handlers::graph::topology_flight::StudioTopology3dFlightRouteProvider;
@@ -61,6 +61,9 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     route_providers.code_ast_analysis = Some(Arc::new(
         StudioCodeAstAnalysisFlightRouteProvider::new(Arc::clone(&state)),
     ));
+    route_providers.semantic_scope = Some(Arc::new(StudioSemanticScopeFlightRouteProvider::new(
+        state.as_ref(),
+    )));
     route_providers.document_extract = Some(Arc::new(
         StudioDocumentExtractFlightRouteProvider::new(state.as_ref()),
     ));

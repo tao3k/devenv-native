@@ -49,6 +49,7 @@ async fn wendao_flight_service_get_flight_info_uses_document_extract_provider() 
             ".cache/document-extract".to_string(),
             true,
             false,
+            "full".to_string(),
         ))
     );
     assert_eq!(provider.call_count(), 1);

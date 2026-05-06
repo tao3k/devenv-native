@@ -15,6 +15,10 @@ from .document_cache import (
     _write_document_timing_sidecar,
 )
 from .document_metrics import DocumentTimingRecorder
+from .document_profiles import (
+    DOCUMENT_EXTRACT_FULL_PROFILE,
+    normalize_document_extract_profile,
+)
 from .document_structure import (
     _document_structure_blocks,
     _structured_document_resources,
@@ -35,6 +39,7 @@ def extract_document_table(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> pa.Table:
@@ -63,6 +68,7 @@ def extract_document_table(
             source,
             output_dir,
             converter=converter,
+            profile=profile,
             force=force,
             error_row=error_row,
         )
@@ -74,6 +80,7 @@ def extract_document_resources(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> list[DocumentResourceRow]:
@@ -90,16 +97,9 @@ def extract_document_resources(
     if not source.exists():
         if error_row:
             return [
-                DocumentResourceRow(
-                    sourcePath=str(source),
-                    resourceType="error",
-                    resourcePath="",
-                    pageIndex=0,
-                    caption="",
-                    content=f"document source path does not exist: {source}",
-                    mimeType="text/plain",
-                    status="error",
-                    elementId="",
+                _document_extract_error_row(
+                    source,
+                    f"document source path does not exist: {source}",
                 )
             ]
         raise FileNotFoundError(f"document source path does not exist: {source}")
@@ -116,18 +116,58 @@ def extract_document_resources(
         if cached is not None:
             return cached
 
+    if _should_isolate_document_extract(converter=converter, profile=profile):
+        try:
+            from .document_isolation import run_isolated_document_extract
+
+            run_isolated_document_extract(
+                source,
+                out,
+                profile=DOCUMENT_EXTRACT_FULL_PROFILE,
+                force=force,
+            )
+            cached = _read_cached_resources(source, out)
+            if cached is None:
+                raise RuntimeError(
+                    "isolated document extraction completed without a resource cache"
+                )
+            return cached
+        except Exception as exc:
+            _write_extract_error_timing(source, out, exc)
+            if not error_row:
+                raise
+            return [_document_extract_error_row(source, str(exc))]
+
+    return _extract_document_resources_inline(
+        source,
+        out,
+        converter=converter,
+        profile=profile,
+        error_row=error_row,
+    )
+
+
+def _extract_document_resources_inline(
+    source: Path,
+    output_dir: Path,
+    *,
+    converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
+    error_row: bool = False,
+) -> list[DocumentResourceRow]:
+    output_dir.mkdir(parents=True, exist_ok=True)
     timing = DocumentTimingRecorder(source)
     try:
         if converter is not None:
             resolved_converter = converter
         else:
             with timing.phase("doclingConverterInit"):
-                resolved_converter = _new_docling_converter()
+                resolved_converter = _new_docling_converter(profile)
         with timing.phase("doclingConvert"):
             document = resolved_converter.convert(source).document
         with timing.phase("doclingMarkdownExport"):
             markdown_text = document.export_to_markdown()
-        markdown_path = out / f"{source.stem}.md"
+        markdown_path = output_dir / f"{source.stem}.md"
         with timing.phase("writeMarkdown"):
             markdown_path.write_text(markdown_text, encoding="utf-8")
         with timing.phase("sourceHash"):
@@ -146,7 +186,9 @@ def extract_document_resources(
             )
         ]
         with timing.phase("resourceRowsBuild"):
-            resources.extend(_structured_document_resources(source, out, document))
+            resources.extend(
+                _structured_document_resources(source, output_dir, document)
+            )
         with timing.phase("structureRowsBuild"):
             structure = _document_structure_blocks(
                 source,
@@ -155,34 +197,68 @@ def extract_document_resources(
                 source_content_hash=source_content_hash,
             )
         with timing.phase("writeStructureArrow"):
-            _write_cached_structure(out, structure)
+            _write_cached_structure(output_dir, structure)
         with timing.phase("writeResourcesArrow"):
-            _write_cached_resources(out, resources)
+            _write_cached_resources(output_dir, resources)
         timing.finish(
             status="ok",
             resource_rows=len(resources),
             structure_rows=len(structure),
         )
-        _write_document_timing_sidecar(out, timing)
+        _write_document_timing_sidecar(output_dir, timing)
         return resources
     except Exception as exc:
-        timing.finish(status="error", detail=str(exc))
-        _write_document_timing_sidecar(out, timing)
+        _finish_extract_error_timing(timing, output_dir, exc)
         if not error_row:
             raise
-        return [
-            DocumentResourceRow(
-                sourcePath=str(source),
-                resourceType="error",
-                resourcePath="",
-                pageIndex=0,
-                caption="",
-                content=str(exc),
-                mimeType="text/plain",
-                status="error",
-                elementId="",
-            )
-        ]
+        return [_document_extract_error_row(source, str(exc))]
+
+
+def _should_isolate_document_extract(
+    *,
+    converter: DocumentConverterProtocol | None,
+    profile: str | None,
+) -> bool:
+    if converter is not None:
+        return False
+    if normalize_document_extract_profile(profile) != DOCUMENT_EXTRACT_FULL_PROFILE:
+        return False
+
+    from .document_isolation import full_profile_isolation_enabled
+
+    return full_profile_isolation_enabled()
+
+
+def _write_extract_error_timing(
+    source: Path,
+    output_dir: Path,
+    exc: Exception,
+) -> None:
+    timing = DocumentTimingRecorder(source)
+    _finish_extract_error_timing(timing, output_dir, exc)
+
+
+def _finish_extract_error_timing(
+    timing: DocumentTimingRecorder,
+    output_dir: Path,
+    exc: Exception,
+) -> None:
+    timing.finish(status="error", detail=str(exc))
+    _write_document_timing_sidecar(output_dir, timing)
+
+
+def _document_extract_error_row(source: Path, content: str) -> DocumentResourceRow:
+    return DocumentResourceRow(
+        sourcePath=str(source),
+        resourceType="error",
+        resourcePath="",
+        pageIndex=0,
+        caption="",
+        content=content,
+        mimeType="text/plain",
+        status="error",
+        elementId="",
+    )
 
 
 def extract_pdf_resources(
@@ -190,6 +266,7 @@ def extract_pdf_resources(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> list[DocumentResourceRow]:
@@ -204,6 +281,7 @@ def extract_pdf_resources(
         source_path,
         output_dir,
         converter=converter,
+        profile=profile,
         force=force,
         error_row=error_row,
     )
@@ -214,6 +292,7 @@ def extract_pdf_table(
     output_dir: str | Path | None = None,
     *,
     converter: DocumentConverterProtocol | None = None,
+    profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
 ) -> pa.Table:
@@ -228,6 +307,7 @@ def extract_pdf_table(
         source_path,
         output_dir,
         converter=converter,
+        profile=profile,
         force=force,
         error_row=error_row,
     )

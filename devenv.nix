@@ -104,6 +104,13 @@ in
   scripts.hello.exec = ''
     echo hello from $GREET
   '';
+  scripts.wendao-client.exec = ''
+    set -euo pipefail
+
+    cd "''${PRJ_ROOT:-$DEVENV_ROOT}"
+
+    exec cargo run -q -p xiuxian-wendao-client --bin wendao-client -- "$@"
+  '';
 
   # https://devenv.sh/tasks/
   # tasks = {

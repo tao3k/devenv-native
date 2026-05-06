@@ -54,6 +54,9 @@ pub(super) fn follow_up_surfaces_for_requirement(requirement: &str) -> Vec<Workd
     if requirement.starts_with("plan") {
         surfaces.push(WorkdirMarkdownSurface::Plan);
     }
+    if requirement.starts_with("semantic") {
+        surfaces.push(WorkdirMarkdownSurface::Semantic);
+    }
     surfaces
 }
 

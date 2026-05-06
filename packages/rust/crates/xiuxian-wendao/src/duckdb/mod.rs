@@ -12,6 +12,8 @@ mod arrow;
 #[cfg(feature = "duckdb")]
 mod connection;
 mod engine;
+#[cfg(feature = "duckdb")]
+pub mod event_lake;
 mod parquet;
 mod runtime;
 
@@ -28,6 +30,16 @@ pub(crate) use engine::DuckDbRegistrationStrategy;
 pub use engine::{
     DataFusionLocalRelationEngine, LocalRelationEngine, LocalRelationEngineKind,
     LocalRelationMaterializationState, LocalRelationRegistrationHint,
+};
+#[cfg(feature = "duckdb")]
+pub use event_lake::{
+    WENDAO_EVENT_APPEND_DEFAULT_BATCH_ROWS, WENDAO_EVENT_LAKE_DEFAULT_ALIAS,
+    WENDAO_EVENT_LAKE_EVENTS_TABLE, WENDAO_EVENT_QUERY_DEFAULT_LIMIT, WENDAO_EVENT_QUERY_MAX_LIMIT,
+    WendaoEventLake, WendaoEventLakeAppender, WendaoEventLakeLocalConfig, WendaoEventQuery,
+    WendaoEventRecord, WendaoEventTypeCount, append_wendao_event_batches, append_wendao_events,
+    build_wendao_event_lake_table_sql, ensure_wendao_event_lake_table,
+    query_wendao_event_type_counts, query_wendao_events, validate_wendao_event_batch,
+    wendao_event_record_batch, wendao_event_schema,
 };
 #[cfg(feature = "duckdb")]
 pub use parquet::DuckDbParquetQueryEngine;

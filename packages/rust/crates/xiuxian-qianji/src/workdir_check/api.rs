@@ -15,6 +15,8 @@ pub enum WorkdirMarkdownSurface {
     Blueprint,
     /// The `plan/` markdown surface.
     Plan,
+    /// The `semantic/` advisory markdown surface.
+    Semantic,
 }
 
 impl WorkdirMarkdownSurface {
@@ -24,6 +26,7 @@ impl WorkdirMarkdownSurface {
         match self {
             Self::Blueprint => "blueprint",
             Self::Plan => "plan",
+            Self::Semantic => "semantic",
         }
     }
 
@@ -31,6 +34,7 @@ impl WorkdirMarkdownSurface {
         match surface {
             "blueprint" => Some(Self::Blueprint),
             "plan" => Some(Self::Plan),
+            "semantic" => Some(Self::Semantic),
             _ => None,
         }
     }

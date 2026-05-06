@@ -300,6 +300,19 @@ The currently landed Wendao slices are:
     `CommandGetDbSchemas` and `CommandGetTables` from publication metadata
     plus logical-view contracts through one request-scoped `SqlQuerySurface`,
     so FlightSQL discovery no longer opens the residual DataFusion query core
+43. a bounded DuckLake event-lake consumer slice now exposes
+    `WendaoEventLake` as the connection-light handle for attaching a generic
+    DuckLake catalog, ensuring the Wendao event table, appending Arrow-backed
+    event rows, and querying grouped event counts without introducing
+    SwanLake, connection pooling, or external service provisioning
+44. a bounded DuckLake event-row query slice now exposes `WendaoEventQuery`
+    for tenant, case, event-type, and limit filters, and validates filtered
+    event-stream reads over the same embedded DuckLake path without moving
+    Wendao event semantics into `xiuxian-db-store`
+45. a bounded local event-lake config slice now exposes
+    `WendaoEventLakeLocalConfig`, which derives local DuckLake metadata and
+    data paths from `$PRJ_DATA_HOME/wendao/event_lake/` and converts that
+    Wendao-owned path policy into generic `DuckLakeAttachConfig`
 
 Qianji does not yet have a stage-local DuckDB pilot, and the shared query
 system still contains DataFusion-led residue on some shared query paths.
@@ -1182,18 +1195,52 @@ The final decision of this RFC is:
 
 ## Appendix A: Current Bounded Dependency Set
 
-The current bounded Wendao landing uses the following DuckDB dependency:
+The current bounded DuckDB/DuckLake landing uses the following workspace
+dependency:
 
 ```toml
 [dependencies]
-duckdb = { version = "=1.10501.0", default-features = false, features = [
+duckdb = { version = "=1.10502.0", default-features = false, features = [
   "bundled",
   "appender-arrow",
+  "parquet",
 ] }
 ```
 
 The current workspace Arrow baseline for this lane is `58.1.0`, and the
 participating Wendao crates enable `arrow-flight` with `flight-sql`.
+
+DuckLake is owned as a generic embedded storage substrate by
+`xiuxian-db-store`. Wendao event-lake schemas and queries remain consumer
+semantics built on that substrate rather than part of the generic storage
+module.
+
+The first Wendao event-lake consumer slice lives under `xiuxian-wendao`'s
+DuckDB bridge. It defines the Wendao event table, converts Wendao events into
+Arrow record batches, appends them through db-store DuckLake appender
+primitives, and queries counts by `event_type`. The performance path keeps one
+DuckLake Arrow appender open across multiple batches, converts event records
+into bounded Arrow chunks instead of one unbounded batch, and flushes once
+before querying. One-shot helpers remain thin wrappers around the same reusable
+appender path. Bounded event queries preallocate result storage from the
+validated limit contract before reading DuckDB rows. The MVP stores `payload`
+as JSON text in a `VARCHAR` column so Arrow appends stay direct; DuckDB queries
+can validate or cast the payload as JSON when needed. `WendaoEventRecord`
+serializes producer payloads once into compact JSON text, and callers parse the
+payload on demand when they need structured JSON values.
+
+The external-catalog contract is represented in `xiuxian-db-store` rather than
+Wendao. DuckLake data paths are typed as local filesystem paths or remote URIs,
+so local attach prepares directories while `s3://...` and similar remote paths
+are rendered directly into DuckDB attach SQL. S3/httpfs credentials are
+represented as SQL-renderable DuckDB secrets; live PostgreSQL databases, S3
+buckets, and SwanLake service coordination remain future probes.
+
+An ignored external probe now provides the live-test entry point for operators
+who already have PostgreSQL and optional S3-compatible storage available. It
+uses explicit `XIUXIAN_DUCKLAKE_EXTERNAL_*` environment variables and skips
+cleanly when the required variables are absent, so default CI remains local and
+embedded-first.
 
 ## Appendix B: One-Line Ownership Map
 

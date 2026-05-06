@@ -1,7 +1,8 @@
 use std::fs;
 
 use crate::studio::router::{
-    load_ui_config_from_wendao_toml, studio_wendao_overlay_toml_path, studio_wendao_toml_path,
+    load_document_extract_endpoint_from_wendao_toml, load_ui_config_from_wendao_toml,
+    studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -57,6 +58,23 @@ dirs = ["docs", "src"]
     assert_eq!(
         config.projects[0].dirs,
         vec!["docs".to_string(), "src".to_string()]
+    );
+    Ok(())
+}
+
+#[test]
+fn load_document_extract_endpoint_from_wendao_toml_reads_effective_config() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        studio_wendao_toml_path(temp.path()),
+        r#"[document_extract]
+endpoint = "http://127.0.0.1:50051/"
+"#,
+    )?;
+
+    assert_eq!(
+        load_document_extract_endpoint_from_wendao_toml(temp.path()).as_deref(),
+        Some("http://127.0.0.1:50051")
     );
     Ok(())
 }

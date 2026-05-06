@@ -416,6 +416,14 @@ back into that artifact registry for future reuse. First-time Docling
 conversion is still CPU/model bound and should be handled with queueing and
 worker-pool sizing in production. The Rust provider limits concurrently
 running cold conversions with host `available_parallelism()` by default.
+Full-profile Docling conversion runs in a child Python process by default, so
+native crashes in heavyweight model paths fail the current extraction instead
+of terminating the Arrow Flight worker. Set
+`WENDAO_DOCUMENT_EXTRACT_FULL_ISOLATION=false` only for local diagnostics that
+need inline stack traces. Set `WENDAO_DOCUMENT_EXTRACT_FULL_TIMEOUT_SECONDS`
+when a deployment needs a stricter wall-clock bound than the default 900
+seconds. Attachment-oriented `fast-text` extraction remains inline and uses the
+lighter profile selected by the Rust or frontend request header.
 `WENDAO_DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS` is a deployment upper bound:
 set it when a host should run fewer simultaneous Docling conversions than its
 CPU budget would otherwise allow. Jobs waiting for this Rust-owned capacity

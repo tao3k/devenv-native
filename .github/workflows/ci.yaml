@@ -392,6 +392,16 @@ jobs:
             echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1"
           } >> "${GITHUB_ENV}"
 
+      - name: Checkout WendaoSearch solver-demo source
+        uses: actions/checkout@v6
+        with:
+          repository: tao3k/WendaoSearch.jl
+          ref: main
+          fetch-depth: 1
+          path: .cache/ci/WendaoSearch.jl
+          persist-credentials: false
+          ssh-key: ${{ secrets.WENDAOSEARCH_DEPLOY_KEY }}
+
       - name: Start WendaoCodeParser parser-summary service for Rust tests
         run: |
           set -euo pipefail
@@ -442,9 +452,8 @@ jobs:
       - name: Bootstrap WendaoSearch solver-demo runtime dependencies
         run: |
           set -euo pipefail
-          export WENDAOSEARCH_PACKAGE_DIR="${RUNNER_TEMP}/WendaoSearch.jl"
+          export WENDAOSEARCH_PACKAGE_DIR="${PRJ_CACHE_HOME}/ci/WendaoSearch.jl"
           export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
-          git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git "${WENDAOSEARCH_PACKAGE_DIR}"
           git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD
           julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
             using Pkg

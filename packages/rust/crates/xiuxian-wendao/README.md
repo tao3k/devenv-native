@@ -128,6 +128,16 @@ Use `xiuxian-wendao` for:
 - knowledge graph and link-graph behavior
 - search, retrieval, and search-plane business semantics
 - Valkey/Lance-backed storage behavior and DuckDB-backed local cache behavior
+- Wendao event-lake schema and query semantics over the generic DuckLake
+  substrate exposed by `xiuxian-db-store`; `WendaoEventLake` is the
+  connection-light handle for attach, table setup, reusable appenders,
+  chunked event-record ingestion, grouped count queries, and bounded filtered
+  event-row reads with benchmark coverage for append and query throughput;
+  event payloads are serialized once into compact JSON text at record
+  construction so append and query hot paths avoid repeated JSON conversion;
+  `WendaoEventLakeLocalConfig`
+  resolves the local embedded path convention under
+  `$PRJ_DATA_HOME/wendao/event_lake/`
 - analyzers, enhancers, and other Wendao domain services
 - business handlers that materialize Wendao-specific responses
 - temporary compatibility seams that have not been extracted yet
@@ -686,6 +696,14 @@ memory profile contracts, manifest semantics, validators, decoders, route
 defaults, host staging, transport, and composed downcalls belong in
 `xiuxian-wendao-julia`. `xiuxian-wendao` now keeps only the thin
 `memory::julia` bridge that points at those plugin-owned surfaces.
+
+For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` now provides the local
+`link_graph::wendao_graph_evidence` adapter. It maps `LinkGraphIndex` document
+links, PageIndex parent-child topology, and optional seed rows into validated
+WendaoGraph request `RecordBatch` bundles by reusing the
+`xiuxian-wendao-julia` contract mirror. This is still transport-neutral: the
+adapter does not call Julia, does not add a Flight route, and does not change
+search ranking behavior.
 
 For link-graph semantic retrieval, `VectorStoreSemanticIgnition` now also
 provides `build_julia_rerank_request_batch(...)`, which reuses anchor ids as

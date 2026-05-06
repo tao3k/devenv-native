@@ -28,11 +28,11 @@ pub enum MarkdownSyntaxLintCode {
     MissingFrontmatterDate,
     /// The common `date` field exists but is not minute-precision timestamp.
     InvalidFrontmatterDatePrecision,
-    /// The YAML frontmatter exists but does not carry a numeric common
-    /// `metadata.retrieval.saliency_base`.
+    /// The YAML frontmatter exists but does not carry a numeric top-level
+    /// `saliency_base`.
     MissingFrontmatterRetrievalSaliencyBase,
-    /// The YAML frontmatter exists but does not carry a numeric common
-    /// `metadata.retrieval.decay_rate`.
+    /// The YAML frontmatter exists but does not carry a numeric top-level
+    /// `decay_rate`.
     MissingFrontmatterRetrievalDecayRate,
     /// A skill-shaped document exists but does not carry a non-empty skill name.
     MissingSkillFrontmatterName,

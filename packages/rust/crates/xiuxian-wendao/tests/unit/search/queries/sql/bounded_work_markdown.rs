@@ -180,7 +180,7 @@ async fn queries_bounded_work_markdown_payload() -> TestResult {
         vec!["markdown".to_string()]
     );
     assert_eq!(payload.metadata.registered_table_count, 1);
-    assert_eq!(payload.metadata.registered_column_count, 7);
+    assert_eq!(payload.metadata.registered_column_count, 8);
     assert!(
         payload
             .metadata

@@ -6,6 +6,7 @@ use super::invalid_input;
 pub(crate) enum TemplateCliCommand {
     Bpmn,
     Dmn,
+    SemanticGuardRoute,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,6 +23,7 @@ pub(crate) fn run_template_command(command: &TemplateCliCommand) -> TemplateCliO
     let rendered = match command {
         TemplateCliCommand::Bpmn => bpmn_template(),
         TemplateCliCommand::Dmn => dmn_template(),
+        TemplateCliCommand::SemanticGuardRoute => semantic_guard_route_template(),
     };
     TemplateCliOutput {
         rendered: rendered.to_string(),
@@ -39,10 +41,12 @@ pub(crate) fn parse_template_command(args: &[String]) -> io::Result<Option<Templ
     let mut index = 2;
     let mut bpmn = false;
     let mut dmn = false;
+    let mut semantic_guard_route = false;
     while index < args.len() {
         match args[index].as_str() {
             "--bpmn" => bpmn = true,
             "--dmn" => dmn = true,
+            "--semantic-guard-route" => semantic_guard_route = true,
             other => {
                 return Err(invalid_input(format!(
                     "unsupported `template` option `{other}`"
@@ -53,15 +57,27 @@ pub(crate) fn parse_template_command(args: &[String]) -> io::Result<Option<Templ
         index += 1;
     }
 
-    match (bpmn, dmn) {
-        (true, false) => Ok(Some(TemplateCliCommand::Bpmn)),
-        (false, true) => Ok(Some(TemplateCliCommand::Dmn)),
-        (false, false) => Err(invalid_input(
-            "missing `--bpmn` or `--dmn` for `template` command",
-        )),
-        (true, true) => Err(invalid_input(
-            "`template` command requires exactly one of `--bpmn` or `--dmn`",
-        )),
+    let selected_count = [bpmn, dmn, semantic_guard_route]
+        .into_iter()
+        .filter(|selected| *selected)
+        .count();
+    if selected_count == 0 {
+        return Err(invalid_input(
+            "missing one of `--bpmn`, `--dmn`, or `--semantic-guard-route` for `template` command",
+        ));
+    }
+    if selected_count > 1 {
+        return Err(invalid_input(
+            "`template` command requires exactly one of `--bpmn`, `--dmn`, or `--semantic-guard-route`",
+        ));
+    }
+
+    if bpmn {
+        Ok(Some(TemplateCliCommand::Bpmn))
+    } else if dmn {
+        Ok(Some(TemplateCliCommand::Dmn))
+    } else {
+        Ok(Some(TemplateCliCommand::SemanticGuardRoute))
     }
 }
 
@@ -138,4 +154,8 @@ fn dmn_template() -> &'static str {
     </decisionTable>
   </decision>
 </definitions>"#
+}
+
+fn semantic_guard_route_template() -> &'static str {
+    include_str!("../../resources/tests/semantic_guard_route_branch.toml")
 }

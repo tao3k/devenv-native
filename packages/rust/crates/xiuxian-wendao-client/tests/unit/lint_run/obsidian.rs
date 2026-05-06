@@ -9,11 +9,11 @@ fn lint_reports_non_canonical_obsidian_wikilinks_as_text() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("01_core"))?;
     std::fs::write(
         temp.path().join("01_core/106_docs_maintenance_playbook.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Docs Maintenance Playbook\n---\n# Docs Maintenance Playbook\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Docs Maintenance Playbook\n---\n# Docs Maintenance Playbook\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[Docs Maintenance Playbook|01_core/106_docs_maintenance_playbook]].\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[Docs Maintenance Playbook|01_core/106_docs_maintenance_playbook]].\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -34,11 +34,11 @@ fn lint_reports_bare_obsidian_wikilinks_as_text() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Documentation Index\n---\n# Documentation Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Documentation Index\n---\n# Documentation Index\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[docs/index]].\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[docs/index]].\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -60,11 +60,11 @@ fn lint_reports_redundant_heading_labels_with_namespace_guidance() -> Result<()>
     std::fs::create_dir_all(temp.path().join("02_parser"))?;
     std::fs::write(
         temp.path().join("02_parser/index.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Wendao Parser Docs\n---\n# Wendao Parser Docs\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Wendao Parser Docs\n---\n# Wendao Parser Docs\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[02_parser/index#Semantic Check|Semantic Check]].\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[02_parser/index#Semantic Check|Semantic Check]].\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -84,11 +84,11 @@ fn lint_reports_mixed_link_syntax_as_official_syntax_failure() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Documentation Index\n---\n# Documentation Index\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Documentation Index\n---\n# Documentation Index\n",
     )?;
     std::fs::write(
         temp.path().join("guide.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[docs/index]](Documentation Index).\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Guide\n---\n# Heading\nSee [[docs/index]](Documentation Index).\n",
     )?;
 
     let (status, stdout) = run_markdown_lint(&temp, None)?;
@@ -108,11 +108,11 @@ fn lint_accepts_official_obsidian_embeds_and_addressed_targets() -> Result<()> {
     std::fs::create_dir_all(temp.path().join("docs"))?;
     std::fs::write(
         temp.path().join("docs/index.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Documentation Index\n---\n# Documentation Index\n## Parser Contracts\nParagraph.\n^block-id\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Documentation Index\n---\n# Documentation Index\n## Parser Contracts\nParagraph.\n^block-id\n",
     )?;
     std::fs::write(
         temp.path().join("Three laws of motion.md"),
-        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\ntitle: Three laws of motion\n---\n# Three laws of motion\n",
+        "---\nkind: reference\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\ntitle: Three laws of motion\n---\n# Three laws of motion\n",
     )?;
     std::fs::write(
         temp.path().join("Help and support.md"),
@@ -126,10 +126,8 @@ fn lint_accepts_official_obsidian_embeds_and_addressed_targets() -> Result<()> {
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Help and support\n",
             "## Questions and advice\n",
@@ -148,10 +146,8 @@ fn lint_accepts_official_obsidian_embeds_and_addressed_targets() -> Result<()> {
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Root\n",
             "## Local Heading\n",

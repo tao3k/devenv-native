@@ -92,6 +92,16 @@ weight = 1.0
 params = { branches = [["A", 0.6], ["B", 0.4]] }
 "#;
 
+pub(super) const ROUTER_SEMANTIC_GUARD_MANIFEST: &str = r#"
+name = "RouterSemanticGuardDispatch"
+
+[[nodes]]
+id = "Router"
+task_type = "router"
+weight = 1.0
+params = { branches = [["continue", 0.6], ["review_required", 0.4]], semantic_guard_route = true }
+"#;
+
 pub(super) const ROUTER_INVALID_WEIGHT_MANIFEST: &str = r#"
 name = "RouterInvalidWeightDispatch"
 

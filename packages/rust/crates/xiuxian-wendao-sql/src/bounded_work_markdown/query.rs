@@ -11,6 +11,7 @@ use super::register::{
     BOUNDED_WORK_MARKDOWN_TABLE_NAME, BoundedWorkMarkdownRegistration,
     register_bounded_work_markdown_table_with_stats,
 };
+use super::schema::bounded_work_markdown_schema;
 
 /// Execute one SQL query over the bounded-work `markdown` surface using one
 /// caller-provided local relation engine.
@@ -71,7 +72,7 @@ async fn payload_from_query_engine_batches(
         registered_tables: vec![BOUNDED_WORK_MARKDOWN_TABLE_NAME.to_string()],
         registered_table_count: 1,
         registered_view_count: 0,
-        registered_column_count: 7,
+        registered_column_count: bounded_work_markdown_schema().fields().len(),
         registered_view_source_count: 0,
         result_batch_count: engine_batches.len(),
         result_row_count,

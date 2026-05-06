@@ -76,10 +76,9 @@ fn markdown_lint_skill_schema_snapshot_names_required_repair_fields() -> Result<
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
             "name: demo-skill\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
             "  version: \"1.0.0\"\n",
             "---\n",
             "# Demo Skill\n",
@@ -117,11 +116,11 @@ fn markdown_lint_episteme_framework_snapshot_carries_repairable_help() -> Result
     std::fs::write(
         temp.path()
             .join("docs/frameworks/johnny_decimal/anchor_syntax.md"),
-        "---\nkind: reference\ntitle: Johnny.Decimal Anchor Syntax\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\n---\n# Johnny.Decimal Anchor Syntax\n",
+        "---\nkind: reference\ntitle: Johnny.Decimal Anchor Syntax\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\n---\n# Johnny.Decimal Anchor Syntax\n",
     )?;
     std::fs::write(
         temp.path().join("docs/Johnny.Decimal Anchor Syntax.md"),
-        "---\nkind: reference\ntitle: Johnny.Decimal Anchor Syntax\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nmetadata:\n  retrieval:\n    saliency_base: 5.5\n    decay_rate: 0.05\n---\n# Johnny.Decimal Anchor Syntax\n",
+        "---\nkind: reference\ntitle: Johnny.Decimal Anchor Syntax\ncategory: docs\ntags:\n  - docs\ndescription: Demo note\nauthor: xiuxian-artisan-workshop\ndate: 2026-04-26T09:30-07:00\nsaliency_base: 5.5\ndecay_rate: 0.05\n---\n# Johnny.Decimal Anchor Syntax\n",
     )?;
     std::fs::write(
         temp.path().join("docs/episteme_framework_matrix.md"),
@@ -135,10 +134,8 @@ fn markdown_lint_episteme_framework_snapshot_carries_repairable_help() -> Result
             "description: Demo note\n",
             "author: xiuxian-artisan-workshop\n",
             "date: 2026-04-26T09:30-07:00\n",
-            "metadata:\n",
-            "  retrieval:\n",
-            "    saliency_base: 5.5\n",
-            "    decay_rate: 0.05\n",
+            "saliency_base: 5.5\n",
+            "decay_rate: 0.05\n",
             "---\n",
             "# Wendao Episteme Framework Matrix\n",
             "Coverage: Johnny.Decimal, Diataxis, ADR, Evergreen, MOC, Folgezettel, IBIS, ",

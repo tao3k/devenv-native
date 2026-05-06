@@ -43,10 +43,18 @@ def test_ci_bootstraps_parser_summary_with_wendaocodeparser() -> None:
 def test_ci_bootstraps_wendaosearch_solver_demo_with_julia_pkg() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
-    assert (
-        "git clone --depth 1 --branch main https://github.com/tao3k/WendaoSearch.jl.git"
-        in workflow
-    )
+    assert "Checkout WendaoSearch solver-demo source" in workflow
+    assert "repository: tao3k/WendaoSearch.jl" in workflow
+    assert "ref: main" in workflow
+    assert "fetch-depth: 1" in workflow
+    assert "path: .cache/ci/WendaoSearch.jl" in workflow
+    assert "persist-credentials: false" in workflow
+    assert "ssh-key: ${{ secrets.WENDAOSEARCH_DEPLOY_KEY }}" in workflow
+    assert "WENDAOSEARCH_REPO_TOKEN" not in workflow
+    assert "auth_header" not in workflow
+    assert "x-access-token" not in workflow
+    assert "http.https://github.com/.extraheader" not in workflow
+    assert "https://github.com/tao3k/WendaoSearch.jl.git" not in workflow
     assert 'git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD' in workflow
     assert "WendaoSearch main Project.toml must declare HiGHS" not in workflow
     assert "ensure_registry" not in workflow
@@ -77,5 +85,6 @@ def test_ci_no_longer_uses_workspace_julia_checkouts() -> None:
         'WENDAOSEARCH_JULIA_PROJECT="${GITHUB_WORKSPACE}/.data/WendaoSearch.jl"'
         not in workflow
     )
-    assert "${RUNNER_TEMP}/WendaoSearch.jl" in workflow
+    assert "${RUNNER_TEMP}/WendaoSearch.jl" not in workflow
+    assert "${PRJ_CACHE_HOME}/ci/WendaoSearch.jl" in workflow
     assert "${RUNNER_TEMP}/WendaoCodeParser.jl" in workflow

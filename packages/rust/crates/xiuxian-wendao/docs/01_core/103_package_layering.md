@@ -127,6 +127,40 @@ The same data-plane stack splits across layers.
 - session bootstrap and query execution glue -> `runtime`
 - Wendao query semantics and business planning -> `wendao`
 
+### DuckDB And DuckLake
+
+- generic DuckDB runtime primitives and DuckLake attach/appender substrate ->
+  `xiuxian-db-store`
+- typed runtime config projection -> `xiuxian-wendao-runtime`
+- Wendao event-lake schema, Arrow batch conversion, and event query semantics
+  -> `xiuxian-wendao`
+
+The Wendao event-lake MVP keeps `payload` as JSON text in an Arrow-compatible
+`VARCHAR` column and validates JSON semantics at the Wendao layer. This keeps
+the direct Arrow appender path into DuckLake available while preserving the
+ability to cast or validate payloads as JSON in DuckDB queries. SwanLake,
+S3-backed data paths, and live PostgreSQL catalog orchestration are service
+or deployment concerns and do not belong in Wendao domain code.
+
+`WendaoEventLake` is the Wendao-owned handle for the consumer side of this
+lane. It composes the generic DuckLake attach and Arrow appender primitives
+with the Wendao event table contract. `WendaoEventQuery` adds bounded
+tenant/case/event-type row reads on the same handle. Neither type owns
+connection pooling, SwanLake sessions, or external service provisioning.
+High-throughput event ingestion should open one `WendaoEventLakeAppender`,
+append multiple Arrow batches or event-record batches, and flush once before
+querying. Event-record ingestion uses bounded chunks when converting records
+into Arrow, which keeps the event lake from building one unbounded batch for a
+long process/session stream. Bounded event queries preallocate result storage
+from the validated limit contract before reading DuckDB rows. The one-shot
+append helpers are thin wrappers over that reusable appender path.
+`WendaoEventRecord` stores payloads as compact JSON text after one producer-side
+serialization step; callers can parse payloads on demand, while append and
+query hot paths avoid repeated JSON serialization or parsing.
+`WendaoEventLakeLocalConfig` owns the local embedded path convention under
+`$PRJ_DATA_HOME/wendao/event_lake/`, with metadata stored below `metadata/`
+and data files below `data/`.
+
 ### Lance Vector-Store Facade
 
 If a component depends on Lance vector-store execution semantics, it is no

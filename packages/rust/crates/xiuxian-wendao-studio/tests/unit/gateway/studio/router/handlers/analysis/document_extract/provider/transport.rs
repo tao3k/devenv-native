@@ -1,6 +1,7 @@
-use super::DOCUMENT_EXTRACT_ENDPOINTS_ENV;
+use super::{DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV};
 use crate::studio::router::handlers::analysis::document_extract::provider::transport::{
-    document_extract_endpoint_urls_with_lookup, endpoint_index_for_request,
+    document_extract_default_endpoint_with_lookup, document_extract_endpoint_urls_with_lookup,
+    endpoint_index_for_request,
 };
 
 #[test]
@@ -8,6 +9,16 @@ fn document_extract_endpoint_urls_default_to_primary_endpoint() {
     let endpoints = document_extract_endpoint_urls_with_lookup("http://127.0.0.1:50051", &|_| None);
 
     assert_eq!(endpoints, vec!["http://127.0.0.1:50051"]);
+}
+
+#[test]
+fn document_extract_default_endpoint_prefers_toml_config_over_env() {
+    let endpoint =
+        document_extract_default_endpoint_with_lookup(Some("http://127.0.0.1:56051/"), &|key| {
+            (key == DOCUMENT_EXTRACT_ENDPOINT_ENV).then(|| "http://env:50051".to_string())
+        });
+
+    assert_eq!(endpoint, "http://127.0.0.1:56051");
 }
 
 #[test]

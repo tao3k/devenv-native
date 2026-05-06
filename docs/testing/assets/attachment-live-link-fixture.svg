@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180" role="img" aria-labelledby="title desc">
+  <title id="title">Wendao attachment live link fixture</title>
+  <desc id="desc">A deterministic SVG fixture used by live attachment link tests.</desc>
+  <rect width="320" height="180" fill="#13252f"/>
+  <rect x="24" y="24" width="272" height="132" rx="8" fill="#f5f7f8"/>
+  <circle cx="80" cy="90" r="34" fill="#2f9e7e"/>
+  <path d="M136 68h112v12H136zM136 92h88v12h-88zM136 116h64v12h-64z" fill="#13252f"/>
+</svg>
