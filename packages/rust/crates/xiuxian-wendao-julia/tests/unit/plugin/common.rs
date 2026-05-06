@@ -311,17 +311,17 @@ fn ensure_process_managed_modelica_parser_summary_service() -> Result<String, St
         .arg("processes")
         .arg("up")
         .arg("-d")
-        .arg("wendaosearch-parser-summary")
+        .arg("wendaocodeparser-parser-summary")
         .current_dir(repo_root())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
         .map_err(|error| {
-            format!("spawn process-managed wendaosearch-parser-summary service: {error}")
+            format!("spawn process-managed wendaocodeparser-parser-summary service: {error}")
         })?;
     if !status.success() {
         return Err(format!(
-            "process-managed wendaosearch-parser-summary exited with status {status}"
+            "process-managed wendaocodeparser-parser-summary exited with status {status}"
         ));
     }
 
@@ -379,17 +379,17 @@ fn ensure_process_managed_julia_parser_summary_service() -> Result<String, Strin
         .arg("processes")
         .arg("up")
         .arg("-d")
-        .arg("wendaosearch-parser-summary")
+        .arg("wendaocodeparser-parser-summary")
         .current_dir(repo_root())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
         .map_err(|error| {
-            format!("spawn process-managed wendaosearch-parser-summary service: {error}")
+            format!("spawn process-managed wendaocodeparser-parser-summary service: {error}")
         })?;
     if !status.success() {
         return Err(format!(
-            "process-managed wendaosearch-parser-summary exited with status {status}"
+            "process-managed wendaocodeparser-parser-summary exited with status {status}"
         ));
     }
 

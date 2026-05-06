@@ -24,7 +24,7 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 const RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV: &str = "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST";
 const WENDAOSEARCH_CONFIG_ENV: &str = "WENDAOSEARCH_CONFIG";
 const WENDAOSEARCH_PACKAGE_DIR_ENV: &str = "WENDAOSEARCH_PACKAGE_DIR";
-const PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME: &str = "wendaosearch-parser-summary";
+const PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME: &str = "wendaocodeparser-parser-summary";
 const PROCESS_MANAGED_READY_ATTEMPTS: usize = 600;
 
 struct LinkedParserSummaryService {

@@ -74,7 +74,7 @@ too. `analysis/code-ast`, `analysis/repo-overview`,
 through the shared repo fixture and run on the default unit-test surface
 without a Julia-only gate.
 That same shared fixture can now also target the canonical process-managed
-`wendaosearch-parser-summary` parser-summary service when
+`wendaocodeparser-parser-summary` parser-summary service when
 `RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1` is set, so focused gateway
 `code_search` and `code_ast` proofs can validate the formal `process.nix`
 startup path instead of only the self-spawn test helper.

@@ -125,11 +125,11 @@ in
       };
     };
 
-    wendaosearch-parser-summary = {
-      exec = processEntrypoint "wendaosearch-parser-summary";
+    wendaocodeparser-parser-summary = {
+      exec = processEntrypoint "wendaocodeparser-parser-summary";
       process-compose = {
         readiness_probe = {
-          exec.command = processHealthcheck "wendaosearch-parser-summary";
+          exec.command = processHealthcheck "wendaocodeparser-parser-summary";
           initial_delay_seconds = 5;
           period_seconds = 2;
           timeout_seconds = 3;

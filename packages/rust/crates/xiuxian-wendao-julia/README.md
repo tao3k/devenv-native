@@ -62,14 +62,14 @@ needs a feature-gated second plugin bundle for these languages.
   background service is still running from an older process-compose generation
   that predates the current launcher
 - the repository now also exposes one canonical process-managed
-  `wendaosearch-parser-summary` background service for the native Julia and Modelica
-  parser-summary lane; unlike `wendaosearch-solver-demo`, it launches
+  `wendaocodeparser-parser-summary` background service for the native Julia and
+  Modelica parser-summary lane; unlike `wendaosearch-solver-demo`, it launches
   the package-owned `config/live/parser_summary.toml` through
-  `scripts/run_parser_summary_service.jl` and is the intended managed-service
-  surface for gateway `code_search` and `code_ast` integration
+  `scripts/run_service.jl` and is the intended managed-service surface for
+  gateway `code_search` and `code_ast` integration
 - the Rust gateway parser-summary test seam now also understands that managed
   service directly: setting `RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1` makes the
-  linked parser-summary helper bind to `wendaosearch-parser-summary` instead of
+  linked parser-summary helper bind to `wendaocodeparser-parser-summary` instead of
   self-spawning an in-process Julia service, so focused gateway search or
   code-AST proofs can exercise the same process-managed service shape that
   `process.nix` owns
