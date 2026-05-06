@@ -20,13 +20,18 @@ pub use guard::{
     run_semantic_sql_projection_freshness_guard_with_engine,
 };
 pub use materialization::{
+    SEMANTIC_READ_MODEL_MATERIALIZATION_PREFLIGHT_SMOKE_QUERY,
     SEMANTIC_READ_MODEL_MATERIALIZATION_REFRESH_DISCIPLINE,
     SEMANTIC_READ_MODEL_MATERIALIZATION_TARGET_ENGINE,
     SEMANTIC_READ_MODEL_PLANNED_MATERIALIZATION_STATE,
     SEMANTIC_READ_MODEL_PLANNED_REGISTRATION_STRATEGY, SEMANTIC_READ_MODEL_WRITEBACK_POLICY,
-    SemanticReadModelMaterializationPlan, SemanticReadModelMaterializationStatus,
-    SemanticReadModelMaterializationTablePlan, semantic_read_model_materialization_plan,
-    semantic_read_model_materialization_plan_from_root,
+    SemanticReadModelMaterializationExecutionReport, SemanticReadModelMaterializationPlan,
+    SemanticReadModelMaterializationPreflightReport, SemanticReadModelMaterializationStatus,
+    SemanticReadModelMaterializationTablePlan, SemanticReadModelMaterializationTablePreflight,
+    semantic_read_model_materialization_plan, semantic_read_model_materialization_plan_from_root,
+    semantic_read_model_materialization_preflight,
+    semantic_read_model_materialization_preflight_from_root,
+    semantic_read_model_materialization_preflight_with_engine,
 };
 pub use query::{
     query_semantic_read_model_payload, query_semantic_read_model_payload_with_engine,

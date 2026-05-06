@@ -2,8 +2,8 @@
 
 use super::{
     SemanticCheckReadModelSnapshotArgs, SemanticCommand, SemanticDescribeReadModelArgs,
-    SemanticPlanReadModelMaterializationArgs, SemanticReadModelQueryArgs,
-    SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
+    SemanticPlanReadModelMaterializationArgs, SemanticPreflightReadModelMaterializationArgs,
+    SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
 };
 use crate::lint::{
     self, SemanticLintArgs, SemanticLintProjectionValidationArgs, SemanticLintValidationArgs,
@@ -19,9 +19,10 @@ use std::thread;
 use std::time::Duration;
 use xiuxian_wendao_sql::semantic_read_model::{
     SemanticReadModelCatalog, SemanticReadModelMaterializationPlan,
-    SemanticReadModelMaterializationStatus, SemanticReadModelSnapshot,
-    SemanticReadModelSnapshotCheck, query_semantic_read_model_payload,
+    SemanticReadModelMaterializationPreflightReport, SemanticReadModelMaterializationStatus,
+    SemanticReadModelSnapshot, SemanticReadModelSnapshotCheck, query_semantic_read_model_payload,
     semantic_read_model_catalog_from_root, semantic_read_model_materialization_plan_from_root,
+    semantic_read_model_materialization_preflight_from_root,
     semantic_read_model_snapshot_check_from_root, semantic_read_model_snapshot_from_root,
 };
 use xiuxian_wendao_sql::{SqlBatchPayload, SqlQueryPayload};
@@ -64,6 +65,13 @@ struct SemanticReadModelMaterializationPlanReport {
     plan: SemanticReadModelMaterializationPlan,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SemanticReadModelMaterializationPreflightCliReport {
+    root: PathBuf,
+    preflight: SemanticReadModelMaterializationPreflightReport,
+}
+
 pub(crate) fn run_command(
     command: &SemanticCommand,
     context: &ClientContext,
@@ -75,6 +83,9 @@ pub(crate) fn run_command(
         SemanticCommand::DescribeReadModel(args) => run_describe_read_model(args, context),
         SemanticCommand::PlanReadModelMaterialization(args) => {
             run_plan_read_model_materialization(args, context)
+        }
+        SemanticCommand::PreflightReadModelMaterialization(args) => {
+            run_preflight_read_model_materialization(args, context)
         }
         SemanticCommand::QueryReadModel(args) => run_query_read_model(args, context),
         SemanticCommand::RefreshProjections(args) => run_refresh_projections_worker(args, context),
@@ -104,6 +115,40 @@ fn run_plan_read_model_materialization(
         plan,
     };
     emit_read_model_materialization_plan_report(&report, context.output())?;
+    Ok(if is_blocked {
+        CommandOutcome::failure(1)
+    } else {
+        CommandOutcome::success()
+    })
+}
+
+fn run_preflight_read_model_materialization(
+    args: &SemanticPreflightReadModelMaterializationArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let root = semantic_root(args.path.as_ref(), context.root());
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .context("failed to create semantic read-model materialization preflight runtime")?;
+    let preflight = runtime
+        .block_on(semantic_read_model_materialization_preflight_from_root(
+            root.as_path(),
+            args.expected_snapshot_revision.as_deref(),
+        ))
+        .map_err(anyhow::Error::msg)
+        .with_context(|| {
+            format!(
+                "failed to preflight semantic read-model materialization under `{}`",
+                root.display()
+            )
+        })?;
+    let is_blocked = preflight.plan.status == SemanticReadModelMaterializationStatus::Blocked;
+    let report = SemanticReadModelMaterializationPreflightCliReport {
+        root: display_semantic_root(root.as_path(), context.root()),
+        preflight,
+    };
+    emit_read_model_materialization_preflight_report(&report, context.output())?;
     Ok(if is_blocked {
         CommandOutcome::failure(1)
     } else {
@@ -350,6 +395,19 @@ fn emit_read_model_materialization_plan_report(
     Ok(())
 }
 
+fn emit_read_model_materialization_preflight_report(
+    report: &SemanticReadModelMaterializationPreflightCliReport,
+    output: OutputFormat,
+) -> Result<()> {
+    let rendered = match output {
+        OutputFormat::Text => render_read_model_materialization_preflight_text_report(report),
+        OutputFormat::Json => render_json_report(report, false)?,
+        OutputFormat::Pretty => render_json_report(report, true)?,
+    };
+    print!("{rendered}");
+    Ok(())
+}
+
 fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport) -> String {
     let mut rendered = format!(
         "Semantic read-model catalog: {} table(s), {} row(s) from {}.\n",
@@ -431,6 +489,83 @@ fn render_read_model_materialization_plan_text_report(
     rendered.push_str("- steps: ");
     rendered.push_str(report.plan.required_steps.join(", ").as_str());
     rendered.push('\n');
+    rendered
+}
+
+fn render_read_model_materialization_preflight_text_report(
+    report: &SemanticReadModelMaterializationPreflightCliReport,
+) -> String {
+    let plan = &report.preflight.plan;
+    let execution_engine = report
+        .preflight
+        .execution
+        .as_ref()
+        .map_or("not_started", |execution| {
+            execution.execution_engine.as_str()
+        });
+    let mut rendered = format!(
+        "Semantic read-model materialization preflight {}: target {}, execution {}, {} from {}.\n",
+        plan.status.as_str(),
+        plan.target_engine,
+        execution_engine,
+        plan.refresh_discipline,
+        report.root.display()
+    );
+    rendered.push_str("- snapshot: ");
+    rendered.push_str(plan.snapshot_revision.as_str());
+    if let Some(expected) = plan.expected_snapshot_revision.as_deref() {
+        rendered.push_str("\n- expected: ");
+        rendered.push_str(expected);
+        rendered.push_str(if plan.snapshot_matches_expected == Some(true) {
+            " (matched)"
+        } else {
+            " (mismatch)"
+        });
+    }
+    rendered.push_str("\n- authority: ");
+    rendered.push_str(plan.authority.as_str());
+    rendered.push_str("\n- writeback: ");
+    rendered.push_str(plan.writeback_policy.as_str());
+
+    let Some(execution) = &report.preflight.execution else {
+        rendered.push_str("\n- execution: skipped_snapshot_gate_blocked\n");
+        return rendered;
+    };
+
+    rendered.push_str("\n- registered: ");
+    rendered.push_str(execution.registered_table_count.to_string().as_str());
+    rendered.push_str(" table(s), ");
+    rendered.push_str(execution.registered_input_row_count.to_string().as_str());
+    rendered.push_str(" row(s), ");
+    rendered.push_str(execution.registered_input_batch_count.to_string().as_str());
+    rendered.push_str(" batch(es), ");
+    rendered.push_str(execution.registered_input_bytes.to_string().as_str());
+    rendered.push_str(" byte(s)");
+    rendered.push_str("\n- smoke result: ");
+    rendered.push_str(execution.smoke_result_row_count.to_string().as_str());
+    rendered.push_str(" row(s) across ");
+    rendered.push_str(execution.smoke_result_batch_count.to_string().as_str());
+    rendered.push_str(" batch(es), ");
+    rendered.push_str(execution.smoke_result_bytes.to_string().as_str());
+    rendered.push_str(" byte(s)");
+    rendered.push_str("\n- smoke query: ");
+    rendered.push_str(execution.smoke_query.as_str());
+    rendered.push('\n');
+    for table in &execution.tables {
+        rendered.push_str("- ");
+        rendered.push_str(table.name.as_str());
+        rendered.push_str(": ");
+        rendered.push_str(table.row_count.to_string().as_str());
+        rendered.push_str(" row(s), ");
+        rendered.push_str(table.column_count.to_string().as_str());
+        rendered.push_str(" column(s), ");
+        rendered.push_str(table.materialization_state.as_str());
+        rendered.push_str(" via ");
+        rendered.push_str(table.registration_strategy.as_str());
+        rendered.push_str(", revision ");
+        rendered.push_str(table.row_revision.as_str());
+        rendered.push('\n');
+    }
     rendered
 }
 

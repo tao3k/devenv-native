@@ -106,6 +106,9 @@ revision and returns a non-zero status on mismatch.
 `wendao-client semantic plan-read-model-materialization --expect-snapshot
 REVISION` now renders a read-only future DuckDB snapshot-swap plan and blocks
 when the expected snapshot does not match the current aggregate revision.
+`wendao-client semantic preflight-read-model-materialization --expect-snapshot
+REVISION` now executes the read-only registration and smoke-query preflight
+for that plan using the request-scoped local relation engine.
 `wendao-client semantic query-read-model --query SQL` now exposes the same
 provisional tables as a bounded read-only SQL evidence surface.
 `xiuxian-wendao-sql` now rejects blank, multi-statement, and mutation SQL for
@@ -253,8 +256,9 @@ The RFC is recommended for approval review if these conditions hold:
    `owners`, `provenance`, `verification`, and `relations`.
 2. **Read-model pilot**: expose and query accepted objects and relations with
    explicit source revision and projection revision metadata. The
-   engine-neutral row contract and client summary are landed; DuckDB-backed
-   materialization remains the next derived expansion.
+   engine-neutral row contract, client summary, snapshot guard, and executable
+   materialization preflight are landed; DuckDB-backed materialization remains
+   the next derived expansion.
 3. **Derived-confidence pilot**: define one advisory `derived_confidence` view
    and compare it against human review outcomes before using it in guards.
 4. **SQL-guard pilot**: let one invariant emit SQL-backed validation evidence
@@ -332,6 +336,9 @@ renders table revisions for mismatch triage.
 `wendao-client semantic plan-read-model-materialization --expect-snapshot
 REVISION` now reports the future DuckDB staging strategy, writeback policy,
 and required snapshot-swap steps without adding physical DuckDB persistence.
+`wendao-client semantic preflight-read-model-materialization --expect-snapshot
+REVISION` now registers the advisory read-model tables into the request-scoped
+local relation engine and runs a smoke query without writing derived state.
 `wendao-client semantic query-read-model --query SQL` now lets operators run
 bounded read-only SQL against that surface while keeping query output as
 evidence only. The query path now admits exactly one read-only SQL statement,

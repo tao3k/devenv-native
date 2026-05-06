@@ -15,6 +15,8 @@ pub enum SemanticCommand {
     QueryReadModel(SemanticReadModelQueryArgs),
     /// Plan future read-model materialization without writing derived state.
     PlanReadModelMaterialization(SemanticPlanReadModelMaterializationArgs),
+    /// Execute a read-only materialization preflight without writing derived state.
+    PreflightReadModelMaterialization(SemanticPreflightReadModelMaterializationArgs),
     /// Run the semantic projection metadata refresh worker.
     RefreshProjections(SemanticRefreshProjectionsArgs),
     /// Render deterministic advisory semantic read-model snapshot revisions.
@@ -29,6 +31,19 @@ pub struct SemanticPlanReadModelMaterializationArgs {
     pub expected_snapshot_revision: Option<String>,
 
     /// Semantic artifact root to plan. When omitted, checks
+    /// `$PRJ_ROOT/semantic` through the active client root.
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
+}
+
+/// CLI arguments for advisory semantic read-model materialization preflight.
+#[derive(Args, Debug)]
+pub struct SemanticPreflightReadModelMaterializationArgs {
+    /// Expected aggregate snapshot revision gate, including the `blake3:` prefix.
+    #[arg(long = "expect-snapshot", value_name = "SNAPSHOT_REVISION")]
+    pub expected_snapshot_revision: Option<String>,
+
+    /// Semantic artifact root to preflight. When omitted, checks
     /// `$PRJ_ROOT/semantic` through the active client root.
     #[arg(value_name = "PATH")]
     pub path: Option<PathBuf>,

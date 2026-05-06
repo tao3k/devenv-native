@@ -180,6 +180,29 @@ pub(super) fn run_semantic_plan_read_model_materialization_with_args(
     Ok((output.status.code(), stdout, stderr))
 }
 
+pub(super) fn run_semantic_preflight_read_model_materialization_with_args(
+    temp: &TempDir,
+    scope: Option<&str>,
+    args: &[&str],
+) -> Result<(Option<i32>, String, String)> {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_wendao-client"));
+    command.arg("--root").arg(temp.path());
+    command
+        .arg("semantic")
+        .arg("preflight-read-model-materialization");
+    for arg in args {
+        command.arg(arg);
+    }
+    if let Some(scope) = scope {
+        command.arg(scope);
+    }
+
+    let output = command.output()?;
+    let stdout = String::from_utf8(output.stdout)?;
+    let stderr = String::from_utf8(output.stderr)?;
+    Ok((output.status.code(), stdout, stderr))
+}
+
 pub(super) fn run_semantic_query_read_model_with_args(
     temp: &TempDir,
     scope: Option<&str>,

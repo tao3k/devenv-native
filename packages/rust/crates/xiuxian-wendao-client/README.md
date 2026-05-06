@@ -20,6 +20,7 @@ wendao-client semantic describe-read-model [PATH]
 wendao-client semantic snapshot-read-model [PATH]
 wendao-client semantic check-read-model-snapshot --expect SNAPSHOT_REVISION [PATH]
 wendao-client semantic plan-read-model-materialization [--expect-snapshot SNAPSHOT_REVISION] [PATH]
+wendao-client semantic preflight-read-model-materialization [--expect-snapshot SNAPSHOT_REVISION] [PATH]
 wendao-client semantic query-read-model --query SQL [PATH]
 wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
@@ -153,7 +154,14 @@ Behavior:
     with `--expect-snapshot SNAPSHOT_REVISION`. A mismatched expected snapshot
     returns a blocked plan and a non-zero exit status. The command does not
     register DuckDB tables, write derived state, or make DuckDB authoritative
-35. executes read-only SQL over advisory semantic read-model tables with
+35. executes a read-only materialization preflight with
+    `semantic preflight-read-model-materialization`, defaulting to the active
+    `semantic/` root. The preflight reuses the snapshot gate, registers the
+    three advisory semantic read-model tables into the request-scoped local
+    relation engine, runs a smoke query, and reports runtime registration
+    evidence. It still writes no derived state and does not make DuckDB
+    authoritative
+36. executes read-only SQL over advisory semantic read-model tables with
     `semantic query-read-model --query SQL`, defaulting to the active
     `semantic/` root and rendering text, JSON, or pretty JSON through the
     global output option. The registered tables are `semantic_objects`,

@@ -162,6 +162,12 @@ As of 2026-05-05, the first physical slice is implemented:
     aggregate/table revisions, planned staging strategy, writeback policy, and
     required swap steps, and it blocks on expected-snapshot mismatch without
     registering DuckDB tables or writing derived state.
+31. `wendao-client semantic preflight-read-model-materialization
+--expect-snapshot REVISION` now executes the read-only preflight for that
+    plan. It reuses the same snapshot gate, registers the three advisory
+    semantic read-model tables into the request-scoped local relation engine,
+    runs a smoke query, and reports runtime registration evidence without
+    writing derived state or promoting DuckDB to authority.
 
 The full RFC is not complete. Remaining work includes wider rollout of
 semantic guard route-aware real workflows, DuckDB-backed materialized read
@@ -469,6 +475,9 @@ revisions for mismatch triage.
 `wendao-client semantic plan-read-model-materialization --expect-snapshot
 REVISION` renders the future DuckDB snapshot-swap plan around that revision
 without creating a physical DuckDB materialization.
+`wendao-client semantic preflight-read-model-materialization
+--expect-snapshot REVISION` executes the read-only registration and smoke-query
+preflight for that plan using the request-scoped local relation engine.
 `wendao-client semantic query-read-model --query SQL` also exposes bounded
 read-only SQL queries over those tables, with SQL admission requiring exactly
 one read-only query statement. This is not yet a DuckDB materialization or

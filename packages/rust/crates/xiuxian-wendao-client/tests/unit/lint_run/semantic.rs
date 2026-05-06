@@ -6,6 +6,7 @@ use super::{
     run_semantic_check_read_model_snapshot_with_args, run_semantic_describe_read_model,
     run_semantic_lint, run_semantic_lint_with_args,
     run_semantic_plan_read_model_materialization_with_args,
+    run_semantic_preflight_read_model_materialization_with_args,
     run_semantic_query_read_model_with_args, run_semantic_query_read_model_with_args_and_stderr,
     run_semantic_refresh_projections, run_semantic_refresh_projections_with_args,
     run_semantic_refresh_projections_with_args_and_stderr, run_semantic_snapshot_read_model,
@@ -338,6 +339,90 @@ fn semantic_plan_read_model_materialization_blocks_snapshot_mismatch() -> Result
     assert!(
         stdout.contains("- snapshot: blake3:"),
         "current snapshot should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_preflight_read_model_materialization_runs_ready_smoke_query() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+    let (status, snapshot_stdout) = run_semantic_snapshot_read_model(&temp, None)?;
+    assert_eq!(status, Some(0), "{snapshot_stdout}");
+    let expected_revision = read_snapshot_revision(&snapshot_stdout)?;
+
+    let args = ["--expect-snapshot", expected_revision.as_str()];
+    let (status, stdout, stderr) =
+        run_semantic_preflight_read_model_materialization_with_args(&temp, None, &args)?;
+
+    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stdout.contains(
+            "Semantic read-model materialization preflight ready: target duckdb, execution datafusion"
+        ),
+        "preflight should be ready: {stdout}"
+    );
+    assert!(
+        stdout.contains("(matched)"),
+        "expected snapshot should be marked matched: {stdout}"
+    );
+    assert!(
+        stdout.contains("- registered: 3 table(s), 2 row(s), 3 batch(es)"),
+        "registration stats should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("- smoke result: 3 row(s) across"),
+        "smoke query result should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_objects: 1 row(s), 18 column(s), materialized via datafusion_request_scoped_arrow"),
+        "table preflight should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_projection_state"),
+        "smoke query should mention projection-state table: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_preflight_read_model_materialization_blocks_snapshot_mismatch() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout, stderr) = run_semantic_preflight_read_model_materialization_with_args(
+        &temp,
+        None,
+        &[
+            "--expect-snapshot",
+            "blake3:0000000000000000000000000000000000000000000000000000000000000000",
+        ],
+    )?;
+
+    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stdout.contains("Semantic read-model materialization preflight blocked"),
+        "preflight should be blocked: {stdout}"
+    );
+    assert!(
+        stdout.contains("(mismatch)"),
+        "snapshot mismatch should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("- execution: skipped_snapshot_gate_blocked"),
+        "blocked preflight should skip registration: {stdout}"
     );
     Ok(())
 }

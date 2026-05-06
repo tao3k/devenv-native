@@ -10,8 +10,9 @@ Current ownership in this crate:
 2. a request-scoped DataFusion local relation engine for that bounded lane
 3. stable SQL payload rendering over `xiuxian-wendao-core` DTOs
 4. advisory repo-native semantic read-model rows, catalogs, deterministic
-   snapshots, snapshot checks, materialization plans, and query payloads for
-   `semantic_objects`, `semantic_relations`, and `semantic_projection_state`
+   snapshots, snapshot checks, materialization plans, executable
+   materialization preflights, and query payloads for `semantic_objects`,
+   `semantic_relations`, and `semantic_projection_state`
 5. single-statement read-only SQL admission for semantic read-model queries
 
 This crate does not own the full shared-query architecture. Broader shared
