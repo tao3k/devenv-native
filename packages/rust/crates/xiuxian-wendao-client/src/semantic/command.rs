@@ -7,6 +7,8 @@ use std::path::PathBuf;
 /// Semantic-oriented client subcommands.
 #[derive(Subcommand, Debug)]
 pub enum SemanticCommand {
+    /// Check the current advisory semantic read-model snapshot revision.
+    CheckReadModelSnapshot(SemanticCheckReadModelSnapshotArgs),
     /// Describe advisory semantic read-model tables and columns.
     DescribeReadModel(SemanticDescribeReadModelArgs),
     /// Execute a read-only SQL query over advisory semantic read-model tables.
@@ -15,6 +17,19 @@ pub enum SemanticCommand {
     RefreshProjections(SemanticRefreshProjectionsArgs),
     /// Render deterministic advisory semantic read-model snapshot revisions.
     SnapshotReadModel(SemanticSnapshotReadModelArgs),
+}
+
+/// CLI arguments for advisory semantic read-model snapshot verification.
+#[derive(Args, Debug)]
+pub struct SemanticCheckReadModelSnapshotArgs {
+    /// Expected aggregate snapshot revision, including the `blake3:` prefix.
+    #[arg(long = "expect", value_name = "SNAPSHOT_REVISION")]
+    pub expected_snapshot_revision: String,
+
+    /// Semantic artifact root to check. When omitted, checks
+    /// `$PRJ_ROOT/semantic` through the active client root.
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
 }
 
 /// CLI arguments for advisory semantic read-model catalog inspection.

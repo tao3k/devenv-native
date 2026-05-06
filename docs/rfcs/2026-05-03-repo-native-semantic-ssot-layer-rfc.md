@@ -150,6 +150,12 @@ As of 2026-05-05, the first physical slice is implemented:
     advisory revisions for the same table schemas and projected rows. This
     gives future DuckDB snapshot-swap work a stable comparison contract without
     making snapshot hashes semantic authority.
+29. `wendao-client semantic check-read-model-snapshot --expect REVISION` now
+    verifies the current advisory aggregate snapshot revision against an
+    expected `blake3:` revision. It exits zero on match and non-zero on
+    mismatch while rendering the current table revisions for operator review.
+    The check is evidence only and does not make hashes, SQL, or DuckDB
+    authoritative.
 
 The full RFC is not complete. Remaining work includes wider rollout of
 semantic guard route-aware real workflows, DuckDB-backed materialized read
@@ -451,6 +457,9 @@ and `semantic_projection_state`, and `wendao-client lint semantic
 column catalog for the same advisory surface.
 `wendao-client semantic snapshot-read-model` exposes deterministic table and
 aggregate revisions over the same advisory rows.
+`wendao-client semantic check-read-model-snapshot --expect REVISION` verifies
+that aggregate revision as a read-only guard and renders the current table
+revisions for mismatch triage.
 `wendao-client semantic query-read-model --query SQL` also exposes bounded
 read-only SQL queries over those tables, with SQL admission requiring exactly
 one read-only query statement. This is not yet a DuckDB materialization or

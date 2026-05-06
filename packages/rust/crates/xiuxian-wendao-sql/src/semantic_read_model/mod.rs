@@ -32,8 +32,9 @@ pub use rows::{
     SemanticRelationReadModelRow,
 };
 pub use snapshot::{
-    SemanticReadModelSnapshot, SemanticReadModelTableSnapshot, semantic_read_model_snapshot,
-    semantic_read_model_snapshot_from_root,
+    SemanticReadModelSnapshot, SemanticReadModelSnapshotCheck, SemanticReadModelTableSnapshot,
+    semantic_read_model_snapshot, semantic_read_model_snapshot_check,
+    semantic_read_model_snapshot_check_from_root, semantic_read_model_snapshot_from_root,
 };
 
 #[cfg(test)]

@@ -47,6 +47,20 @@ pub struct SemanticReadModelTableSnapshot {
     pub row_revision: String,
 }
 
+/// Exact-revision check for one advisory semantic read-model snapshot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticReadModelSnapshotCheck {
+    /// Whether the current snapshot revision exactly matches the expected revision.
+    pub matches: bool,
+    /// Operator-provided expected aggregate snapshot revision.
+    pub expected_snapshot_revision: String,
+    /// Current aggregate snapshot revision computed from repo-native artifacts.
+    pub current_snapshot_revision: String,
+    /// Current snapshot used for the comparison.
+    pub current_snapshot: SemanticReadModelSnapshot,
+}
+
 /// Build a semantic read-model snapshot from a semantic artifact root.
 ///
 /// # Errors
@@ -71,6 +85,41 @@ pub fn semantic_read_model_snapshot(
 ) -> Result<SemanticReadModelSnapshot, String> {
     let rows = build_semantic_read_model_rows(repository)?;
     Ok(semantic_read_model_snapshot_from_rows(&rows))
+}
+
+/// Check a semantic read-model snapshot from a semantic artifact root.
+///
+/// # Errors
+///
+/// Returns an error when the expected revision is not a `blake3:` revision, the
+/// semantic repository under `root` is invalid, or row JSON metadata cannot be
+/// encoded.
+pub fn semantic_read_model_snapshot_check_from_root(
+    root: impl AsRef<Path>,
+    expected_snapshot_revision: &str,
+) -> Result<SemanticReadModelSnapshotCheck, String> {
+    let snapshot = semantic_read_model_snapshot_from_root(root)?;
+    semantic_read_model_snapshot_check(snapshot, expected_snapshot_revision)
+}
+
+/// Check one semantic read-model snapshot against an expected revision.
+///
+/// # Errors
+///
+/// Returns an error when `expected_snapshot_revision` is blank, contains
+/// surrounding whitespace, or does not use the `blake3:` revision scheme.
+pub fn semantic_read_model_snapshot_check(
+    snapshot: SemanticReadModelSnapshot,
+    expected_snapshot_revision: &str,
+) -> Result<SemanticReadModelSnapshotCheck, String> {
+    validate_expected_snapshot_revision(expected_snapshot_revision)?;
+    let current_snapshot_revision = snapshot.snapshot_revision.clone();
+    Ok(SemanticReadModelSnapshotCheck {
+        matches: current_snapshot_revision == expected_snapshot_revision,
+        expected_snapshot_revision: expected_snapshot_revision.to_string(),
+        current_snapshot_revision,
+        current_snapshot: snapshot,
+    })
 }
 
 fn semantic_read_model_snapshot_from_rows(
@@ -314,4 +363,23 @@ fn update_hash_usize(hasher: &mut blake3::Hasher, name: &str, value: usize) {
 
 fn finalize_revision(hasher: &blake3::Hasher) -> String {
     format!("blake3:{}", hasher.finalize().to_hex())
+}
+
+fn validate_expected_snapshot_revision(expected_snapshot_revision: &str) -> Result<(), String> {
+    if expected_snapshot_revision.is_empty() {
+        return Err("expected semantic read-model snapshot revision must not be empty".to_string());
+    }
+    if expected_snapshot_revision.trim() != expected_snapshot_revision {
+        return Err(
+            "expected semantic read-model snapshot revision must not contain surrounding whitespace"
+                .to_string(),
+        );
+    }
+    if !expected_snapshot_revision.starts_with("blake3:") {
+        return Err(
+            "expected semantic read-model snapshot revision must use the `blake3:` scheme"
+                .to_string(),
+        );
+    }
+    Ok(())
 }

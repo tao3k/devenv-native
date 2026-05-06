@@ -100,6 +100,9 @@ projection advisory and read-only.
 surface as a stable table and column catalog before SQL query selection.
 `wendao-client semantic snapshot-read-model` now renders deterministic
 advisory row and schema revisions for future read-model snapshot comparison.
+`wendao-client semantic check-read-model-snapshot --expect REVISION` now
+compares the current aggregate advisory snapshot against an expected `blake3:`
+revision and returns a non-zero status on mismatch.
 `wendao-client semantic query-read-model --query SQL` now exposes the same
 provisional tables as a bounded read-only SQL evidence surface.
 `xiuxian-wendao-sql` now rejects blank, multi-statement, and mutation SQL for
@@ -320,6 +323,9 @@ stable catalog with table, column, nullability, and row-count metadata.
 `wendao-client semantic snapshot-read-model` now renders deterministic
 advisory table revisions and one aggregate snapshot revision for future
 snapshot-swap verification work.
+`wendao-client semantic check-read-model-snapshot --expect REVISION` now uses
+that aggregate revision as an explicit read-only verification guard and
+renders table revisions for mismatch triage.
 `wendao-client semantic query-read-model --query SQL` now lets operators run
 bounded read-only SQL against that surface while keeping query output as
 evidence only. The query path now admits exactly one read-only SQL statement,

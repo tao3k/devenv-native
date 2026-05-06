@@ -3,9 +3,10 @@ use std::process::Command;
 use tempfile::TempDir;
 
 use super::{
-    run_semantic_describe_read_model, run_semantic_lint, run_semantic_lint_with_args,
-    run_semantic_query_read_model_with_args, run_semantic_query_read_model_with_args_and_stderr,
-    run_semantic_refresh_projections, run_semantic_refresh_projections_with_args,
+    run_semantic_check_read_model_snapshot_with_args, run_semantic_describe_read_model,
+    run_semantic_lint, run_semantic_lint_with_args, run_semantic_query_read_model_with_args,
+    run_semantic_query_read_model_with_args_and_stderr, run_semantic_refresh_projections,
+    run_semantic_refresh_projections_with_args,
     run_semantic_refresh_projections_with_args_and_stderr, run_semantic_snapshot_read_model,
 };
 
@@ -187,6 +188,78 @@ fn semantic_snapshot_read_model_renders_revisions() -> Result<()> {
 }
 
 #[test]
+fn semantic_check_read_model_snapshot_accepts_expected_revision() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+    let (status, snapshot_stdout) = run_semantic_snapshot_read_model(&temp, None)?;
+    assert_eq!(status, Some(0), "{snapshot_stdout}");
+    let expected_revision = read_snapshot_revision(&snapshot_stdout)?;
+
+    let args = ["--expect", expected_revision.as_str()];
+    let (status, stdout, stderr) =
+        run_semantic_check_read_model_snapshot_with_args(&temp, None, &args)?;
+
+    assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stdout.contains("Semantic read-model snapshot check passed"),
+        "snapshot check should pass: {stdout}"
+    );
+    assert!(
+        stdout.contains(expected_revision.as_str()),
+        "expected revision should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("semantic_objects: 1 row(s), revision blake3:"),
+        "table revisions should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_check_read_model_snapshot_rejects_mismatch() -> Result<()> {
+    let temp = TempDir::new()?;
+    write_semantic_fixture(
+        &temp,
+        "decision.fixture",
+        "decision",
+        "Decision Fixture",
+        "active",
+    )?;
+
+    let (status, stdout, stderr) = run_semantic_check_read_model_snapshot_with_args(
+        &temp,
+        None,
+        &[
+            "--expect",
+            "blake3:0000000000000000000000000000000000000000000000000000000000000000",
+        ],
+    )?;
+
+    assert_eq!(status, Some(1), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        stdout.contains("Semantic read-model snapshot check failed"),
+        "snapshot check should fail: {stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "- expected: blake3:0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        "expected revision should be rendered: {stdout}"
+    );
+    assert!(
+        stdout.contains("- current: blake3:"),
+        "current revision should be rendered: {stdout}"
+    );
+    Ok(())
+}
+
+#[test]
 fn semantic_query_read_model_runs_sql() -> Result<()> {
     let temp = TempDir::new()?;
     write_semantic_fixture(
@@ -250,6 +323,22 @@ fn semantic_query_read_model_rejects_mutation_sql() -> Result<()> {
         "mutation rejection should explain the read-only contract: {stderr}"
     );
     Ok(())
+}
+
+fn read_snapshot_revision(stdout: &str) -> Result<String> {
+    let Some(line) = stdout
+        .lines()
+        .find(|line| line.starts_with("Semantic read-model snapshot: blake3:"))
+    else {
+        anyhow::bail!("snapshot output did not contain an aggregate revision: {stdout}");
+    };
+    let Some(revision) = line
+        .strip_prefix("Semantic read-model snapshot: ")
+        .and_then(|rest| rest.strip_suffix(" from semantic."))
+    else {
+        anyhow::bail!("snapshot output revision line had unexpected shape: {line}");
+    };
+    Ok(revision.to_string())
 }
 
 #[test]

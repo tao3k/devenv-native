@@ -18,6 +18,7 @@ wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--pro
 wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
 wendao-client semantic describe-read-model [PATH]
 wendao-client semantic snapshot-read-model [PATH]
+wendao-client semantic check-read-model-snapshot --expect SNAPSHOT_REVISION [PATH]
 wendao-client semantic query-read-model --query SQL [PATH]
 wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
@@ -137,7 +138,14 @@ Behavior:
     `semantic_objects`, `semantic_relations`, and
     `semantic_projection_state`; it is evidence for future snapshot-swap
     read-model work and does not make hashes or SQL authoritative
-33. executes read-only SQL over advisory semantic read-model tables with
+33. checks the current advisory semantic read-model snapshot revision with
+    `semantic check-read-model-snapshot --expect SNAPSHOT_REVISION`,
+    defaulting to the active `semantic/` root. The check exits zero on exact
+    aggregate revision match and non-zero on mismatch while rendering the
+    current table revisions for operator review. This is a read-only evidence
+    guard for future snapshot-swap work and does not make hashes or SQL
+    authoritative
+34. executes read-only SQL over advisory semantic read-model tables with
     `semantic query-read-model --query SQL`, defaulting to the active
     `semantic/` root and rendering text, JSON, or pretty JSON through the
     global output option. The registered tables are `semantic_objects`,

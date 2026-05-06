@@ -28,6 +28,7 @@ verification:
     - direnv exec . cargo test -p xiuxian-wendao-client read_model_summary -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client semantic_describe_read_model -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client semantic_snapshot_read_model -- --nocapture
+    - direnv exec . cargo test -p xiuxian-wendao-client semantic_check_read_model_snapshot -- --nocapture
     - direnv exec . cargo test -p xiuxian-wendao-client query_read_model -- --nocapture
   evidence:
     - docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md
@@ -41,6 +42,6 @@ relations:
 # Wendao Query Substrate
 
 Wendao exposes parser-backed semantic object scopes through query contracts
-and advisory read-model summaries, catalogs, snapshots, and queries while leaving
-canonical truth in repository artifacts. The read-model query surface admits
-only one read-only SQL statement per request.
+and advisory read-model summaries, catalogs, snapshots, snapshot checks, and
+queries while leaving canonical truth in repository artifacts. The read-model
+query surface admits only one read-only SQL statement per request.

@@ -1,8 +1,8 @@
 //! Runtime dispatch for semantic SSOT commands.
 
 use super::{
-    SemanticCommand, SemanticDescribeReadModelArgs, SemanticReadModelQueryArgs,
-    SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
+    SemanticCheckReadModelSnapshotArgs, SemanticCommand, SemanticDescribeReadModelArgs,
+    SemanticReadModelQueryArgs, SemanticRefreshProjectionsArgs, SemanticSnapshotReadModelArgs,
 };
 use crate::lint::{
     self, SemanticLintArgs, SemanticLintProjectionValidationArgs, SemanticLintValidationArgs,
@@ -17,8 +17,9 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 use xiuxian_wendao_sql::semantic_read_model::{
-    SemanticReadModelCatalog, SemanticReadModelSnapshot, query_semantic_read_model_payload,
-    semantic_read_model_catalog_from_root, semantic_read_model_snapshot_from_root,
+    SemanticReadModelCatalog, SemanticReadModelSnapshot, SemanticReadModelSnapshotCheck,
+    query_semantic_read_model_payload, semantic_read_model_catalog_from_root,
+    semantic_read_model_snapshot_check_from_root, semantic_read_model_snapshot_from_root,
 };
 use xiuxian_wendao_sql::{SqlBatchPayload, SqlQueryPayload};
 
@@ -46,16 +47,55 @@ struct SemanticReadModelSnapshotReport {
     snapshot: SemanticReadModelSnapshot,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SemanticReadModelSnapshotCheckReport {
+    root: PathBuf,
+    check: SemanticReadModelSnapshotCheck,
+}
+
 pub(crate) fn run_command(
     command: &SemanticCommand,
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
     match command {
+        SemanticCommand::CheckReadModelSnapshot(args) => {
+            run_check_read_model_snapshot(args, context)
+        }
         SemanticCommand::DescribeReadModel(args) => run_describe_read_model(args, context),
         SemanticCommand::QueryReadModel(args) => run_query_read_model(args, context),
         SemanticCommand::RefreshProjections(args) => run_refresh_projections_worker(args, context),
         SemanticCommand::SnapshotReadModel(args) => run_snapshot_read_model(args, context),
     }
+}
+
+fn run_check_read_model_snapshot(
+    args: &SemanticCheckReadModelSnapshotArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let root = semantic_root(args.path.as_ref(), context.root());
+    let check = semantic_read_model_snapshot_check_from_root(
+        root.as_path(),
+        args.expected_snapshot_revision.as_str(),
+    )
+    .map_err(anyhow::Error::msg)
+    .with_context(|| {
+        format!(
+            "failed to check semantic read-model snapshot under `{}`",
+            root.display()
+        )
+    })?;
+    let matches = check.matches;
+    let report = SemanticReadModelSnapshotCheckReport {
+        root: display_semantic_root(root.as_path(), context.root()),
+        check,
+    };
+    emit_read_model_snapshot_check_report(&report, context.output())?;
+    Ok(if matches {
+        CommandOutcome::success()
+    } else {
+        CommandOutcome::failure(1)
+    })
 }
 
 fn run_describe_read_model(
@@ -242,6 +282,19 @@ fn emit_read_model_snapshot_report(
     Ok(())
 }
 
+fn emit_read_model_snapshot_check_report(
+    report: &SemanticReadModelSnapshotCheckReport,
+    output: OutputFormat,
+) -> Result<()> {
+    let rendered = match output {
+        OutputFormat::Text => render_read_model_snapshot_check_text_report(report),
+        OutputFormat::Json => render_json_report(report, false)?,
+        OutputFormat::Pretty => render_json_report(report, true)?,
+    };
+    print!("{rendered}");
+    Ok(())
+}
+
 fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport) -> String {
     let mut rendered = format!(
         "Semantic read-model catalog: {} table(s), {} row(s) from {}.\n",
@@ -273,6 +326,58 @@ fn render_read_model_catalog_text_report(report: &SemanticReadModelCatalogReport
             });
             rendered.push('\n');
         }
+    }
+    rendered
+}
+
+fn render_read_model_snapshot_check_text_report(
+    report: &SemanticReadModelSnapshotCheckReport,
+) -> String {
+    let status = if report.check.matches {
+        "passed"
+    } else {
+        "failed"
+    };
+    let mut rendered = format!(
+        "Semantic read-model snapshot check {status}: {} from {}.\n",
+        report.check.current_snapshot_revision,
+        report.root.display()
+    );
+    rendered.push_str("- expected: ");
+    rendered.push_str(report.check.expected_snapshot_revision.as_str());
+    rendered.push_str("\n- current: ");
+    rendered.push_str(report.check.current_snapshot_revision.as_str());
+    rendered.push_str("\n- authority: ");
+    rendered.push_str(report.check.current_snapshot.authority.as_str());
+    rendered.push_str("\n- tables: ");
+    rendered.push_str(
+        report
+            .check
+            .current_snapshot
+            .catalog
+            .table_count
+            .to_string()
+            .as_str(),
+    );
+    rendered.push_str(" table(s), ");
+    rendered.push_str(
+        report
+            .check
+            .current_snapshot
+            .catalog
+            .total_row_count
+            .to_string()
+            .as_str(),
+    );
+    rendered.push_str(" row(s)\n");
+    for table in &report.check.current_snapshot.tables {
+        rendered.push_str("- ");
+        rendered.push_str(table.name.as_str());
+        rendered.push_str(": ");
+        rendered.push_str(table.row_count.to_string().as_str());
+        rendered.push_str(" row(s), revision ");
+        rendered.push_str(table.row_revision.as_str());
+        rendered.push('\n');
     }
     rendered
 }
