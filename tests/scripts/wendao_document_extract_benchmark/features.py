@@ -31,7 +31,12 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
     profile_planner = str(getattr(args, "rust_pdf_ocr_profile_planner", "")).replace(
         "_", "-"
     )
-    if profile_planner in {"ocr2-all", "ocr2-risk-window"}:
+    if profile_planner in {
+        "ocr2-all",
+        "ocr2-risk-window",
+        "hosted-vlm-all",
+        "hosted-vlm-risk-window",
+    }:
         return cargo_features_with_pdf_render(features)
     selection = normalize_render_selection(
         getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")

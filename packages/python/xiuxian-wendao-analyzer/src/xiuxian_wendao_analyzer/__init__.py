@@ -103,6 +103,7 @@ from .pdf_ocr import (
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
+    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
     PDF_OCR_MAX_WORKERS_ENV,
     PDF_OCR_SHARD_INPUT_SCHEMA,
     PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
@@ -119,6 +120,7 @@ from .pdf_ocr import (
     skipped_pdf_ocr_shard_result,
     succeeded_pdf_ocr_shard_result,
     validate_pdf_ocr_shard_input_table,
+    is_hosted_vlm_direct_profile,
 )
 from .runtime import (
     analyze_query,
@@ -212,6 +214,7 @@ __all__ = [
     "PDF_OCR_DEFAULT_PROFILE",
     "PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE",
     "PDF_OCR_FAST_TEXT_PROFILE",
+    "PDF_OCR_HOSTED_VLM_DIRECT_PROFILE",
     "PDF_OCR_MAX_WORKERS_ENV",
     "PDF_OCR_SHARD_INPUT_SCHEMA",
     "PDF_OCR_SHARD_INPUT_SCHEMA_VERSION",
@@ -226,6 +229,7 @@ __all__ = [
     "WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER",
     "WENDAO_PDF_OCR_WORKERS_HEADER",
     "WENDAO_SCHEMA_VERSION_HEADER",
+    "is_hosted_vlm_direct_profile",
     "AnalysisSummary",
     "AnalyzerConfig",
     "AnalyzerResultRow",

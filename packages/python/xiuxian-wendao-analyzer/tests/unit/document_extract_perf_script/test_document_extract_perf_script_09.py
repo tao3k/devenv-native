@@ -168,7 +168,7 @@ def test_start_rust_provider_does_not_forward_ocr2_dpi_downgrade(
         prepare_pdfium_runtime=False,
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
-        rust_pdf_ocr_profile_planner="ocr2-all",
+        rust_pdf_ocr_profile_planner="hosted-vlm-risk-window",
         rust_pdf_ocr2_render_dpi=180,
         rust_pdf_ocr_region_context_ratio=None,
         rust_pdf_ocr2_region_planner=None,
@@ -189,7 +189,7 @@ def test_start_rust_provider_does_not_forward_ocr2_dpi_downgrade(
     assert "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI" not in env
 
 
-def test_start_rust_provider_ocr2_planner_enables_pdf_render_feature(
+def test_start_rust_provider_hosted_vlm_planner_enables_pdf_render_feature(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -216,7 +216,7 @@ def test_start_rust_provider_ocr2_planner_enables_pdf_render_feature(
         prepare_pdfium_runtime=False,
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
-        rust_pdf_ocr_profile_planner="ocr2-all",
+        rust_pdf_ocr_profile_planner="hosted-vlm-risk-window",
         rust_pdf_ocr2_render_dpi=None,
         rust_pdf_ocr_region_context_ratio=None,
         rust_pdf_ocr2_region_planner=None,
@@ -235,6 +235,10 @@ def test_start_rust_provider_ocr2_planner_enables_pdf_render_feature(
 
     command, _kwargs = calls[0]
     assert "document-extract-pdf-render" in command[6].split(",")
+    assert (
+        calls[0][1]["env"]["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"]
+        == "hosted-vlm-risk-window"
+    )
 
 
 def test_start_rust_provider_can_use_prebuilt_binary(

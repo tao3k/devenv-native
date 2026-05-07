@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .pdf_ocr_contracts import (
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
     PDF_OCR_PAGE_BREAK_SENTINEL,
+    is_hosted_vlm_direct_profile,
 )
 from .pdf_ocr_grouping import (
     _flatten_group_results,
@@ -123,7 +123,7 @@ class DoclingPdfOcrShardWorker:
         max_workers: int | str | None,
     ) -> list[tuple[int, Mapping[str, Any]]]:
         ocr_profile = _ocr_profile(input_rows[0])
-        if ocr_profile == PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE:
+        if is_hosted_vlm_direct_profile(ocr_profile):
             return [
                 (index, result)
                 for index, result in zip(

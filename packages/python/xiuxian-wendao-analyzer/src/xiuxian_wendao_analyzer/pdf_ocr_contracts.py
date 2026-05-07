@@ -20,7 +20,19 @@ PDF_OCR_FAST_TEXT_PROFILE = "docling-fast-text-ocr"
 
 PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE = "deepseek-ocr2-direct-vlm"
 
+PDF_OCR_HOSTED_VLM_DIRECT_PROFILE = "hosted-vlm-direct-ocr-v1"
+
 PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE = "docling-vlm-deepseek-ocr"
+
+
+def is_hosted_vlm_direct_profile(profile: str) -> bool:
+    """Return true when an OCR profile uses the hosted direct VLM worker."""
+
+    return profile in {
+        PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+        PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+    }
+
 
 PDF_OCR_WORKERS_ENV = "WENDAO_PDF_OCR_WORKERS"
 

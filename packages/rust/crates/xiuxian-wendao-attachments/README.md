@@ -90,9 +90,11 @@ provider process can reuse page facts across force-refresh, shard-cache reuse,
 and cache-hit probes without persisting transient profile state in Python.
 The stable OCR shard schema carries `ocrProfile` as the profile-selection
 surface. Current profile identifiers include `docling-compatible-page-ocr-v1`,
-`docling-fast-text-ocr`, `deepseek-ocr2-direct-vlm`, and
-`docling-vlm-deepseek-ocr`; adding those profile IDs does not change the Arrow
-input or result column set.
+`docling-fast-text-ocr`, `hosted-vlm-direct-ocr-v1`,
+`deepseek-ocr2-direct-vlm`, and `docling-vlm-deepseek-ocr`. The hosted VLM
+identifier is the model-agnostic direct recovery profile; the DeepSeek-OCR-2
+identifier remains a compatibility alias for existing benchmark evidence.
+Adding those profile IDs does not change the Arrow input or result column set.
 
 `PdfPageRenderSelection::ShardFallbackPages` is intentionally high-recall in
 the current source-range path. When no narrower safe region signal exists, it

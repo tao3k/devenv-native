@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{PdfOcrWorkerProfile, build_ocr_shard_inputs, sample_manifest, sample_region_manifest};
 use crate::pdf::ocr::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_FAST_TEXT_PROFILE,
+    PDF_OCR_FAST_TEXT_PROFILE, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
     downgrade_ocr2_region_parent_page_inputs, merge_ocr2_recovery_region_inputs,
     ocr2_region_parent_page_shards, prepare_ocr2_recovery_region_inputs,
 };
@@ -12,8 +12,8 @@ fn recovery_region_merge_downgrades_parent_page_and_binds_region() -> Result<(),
     let mut page_inputs = build_ocr_shard_inputs(
         &[sample_manifest()],
         &PdfOcrWorkerProfile {
-            profile_id: PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string(),
-            engine: "deepseek-ocr2-direct-vlm".to_string(),
+            profile_id: PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string(),
+            engine: "hosted-vlm-direct-ocr".to_string(),
             preferred_languages: vec!["auto".to_string()],
             min_confidence: 0.0,
             preserve_layout: true,
@@ -33,10 +33,7 @@ fn recovery_region_merge_downgrades_parent_page_and_binds_region() -> Result<(),
 
     assert_eq!(merged.len(), 2);
     assert_eq!(merged[0].ocr_profile, PDF_OCR_FAST_TEXT_PROFILE);
-    assert_eq!(
-        merged[1].ocr_profile,
-        PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE
-    );
+    assert_eq!(merged[1].ocr_profile, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE);
     assert_eq!(
         merged[1].parent_shard_element_id,
         merged[0].shard_element_id
@@ -76,8 +73,8 @@ fn recovery_region_parent_downgrade_only_touches_requested_pages() {
     let mut inputs = build_ocr_shard_inputs(
         &[sample_manifest()],
         &PdfOcrWorkerProfile {
-            profile_id: PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string(),
-            engine: "deepseek-ocr2-direct-vlm".to_string(),
+            profile_id: PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string(),
+            engine: "hosted-vlm-direct-ocr".to_string(),
             preferred_languages: vec!["auto".to_string()],
             min_confidence: 0.0,
             preserve_layout: true,
@@ -85,10 +82,7 @@ fn recovery_region_parent_downgrade_only_touches_requested_pages() {
     );
 
     downgrade_ocr2_region_parent_page_inputs(&mut inputs, &BTreeSet::from([9]));
-    assert_eq!(
-        inputs[0].ocr_profile,
-        PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE
-    );
+    assert_eq!(inputs[0].ocr_profile, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE);
 
     downgrade_ocr2_region_parent_page_inputs(&mut inputs, &BTreeSet::from([3]));
     assert_eq!(inputs[0].ocr_profile, PDF_OCR_FAST_TEXT_PROFILE);

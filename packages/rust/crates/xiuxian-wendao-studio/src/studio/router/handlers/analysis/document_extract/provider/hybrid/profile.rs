@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use xiuxian_wendao_attachments::pdf::ocr::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_DEFAULT_PROFILE, PDF_OCR_FAST_TEXT_PROFILE,
+    PDF_OCR_DEFAULT_PROFILE, PDF_OCR_FAST_TEXT_PROFILE, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
     PdfOcrShardInput,
 };
 use xiuxian_wendao_attachments::pdf::profile::{
@@ -12,19 +12,21 @@ use xiuxian_wendao_attachments::pdf::profile::{
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER";
 const PDF_OCR_FAST_TEXT_ENGINE: &str = "docling-fast-text-ocr";
-const PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_ENGINE: &str = "deepseek-ocr2-direct-vlm";
+const PDF_OCR_HOSTED_VLM_DIRECT_ENGINE: &str = "hosted-vlm-direct-ocr";
 const FAST_ALL_MODE: &str = "fast-all";
 const FAST_RISK_WINDOW_MODE: &str = "fast-risk-window";
 const OCR2_ALL_MODE: &str = "ocr2-all";
 const OCR2_RISK_WINDOW_MODE: &str = "ocr2-risk-window";
+const HOSTED_VLM_ALL_MODE: &str = "hosted-vlm-all";
+const HOSTED_VLM_RISK_WINDOW_MODE: &str = "hosted-vlm-risk-window";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum HybridPdfOcrProfilePlanner {
     Disabled,
     FastAll,
     FastRiskWindow,
-    Ocr2All,
-    Ocr2RiskWindow,
+    HostedVlmAll,
+    HostedVlmRiskWindow,
 }
 
 pub(crate) fn apply_hybrid_page_ocr_profile_plan(
@@ -36,7 +38,7 @@ pub(crate) fn apply_hybrid_page_ocr_profile_plan(
             if eligible_source_path(inputs.as_slice()).is_some() {
                 apply_candidate_profile_plan(
                     inputs,
-                    BTreeSet::new(),
+                    &BTreeSet::new(),
                     PDF_OCR_FAST_TEXT_PROFILE,
                     PDF_OCR_FAST_TEXT_ENGINE,
                 )
@@ -57,19 +59,19 @@ pub(crate) fn apply_hybrid_page_ocr_profile_plan(
             };
             apply_hybrid_page_ocr_profile_plan_for_profiles(inputs, profiles.as_slice())
         }
-        HybridPdfOcrProfilePlanner::Ocr2All => {
+        HybridPdfOcrProfilePlanner::HostedVlmAll => {
             if eligible_source_path(inputs.as_slice()).is_some() {
                 apply_candidate_profile_plan(
                     inputs,
-                    BTreeSet::new(),
-                    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
-                    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_ENGINE,
+                    &BTreeSet::new(),
+                    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+                    PDF_OCR_HOSTED_VLM_DIRECT_ENGINE,
                 )
             } else {
                 inputs
             }
         }
-        HybridPdfOcrProfilePlanner::Ocr2RiskWindow => {
+        HybridPdfOcrProfilePlanner::HostedVlmRiskWindow => {
             let Some(source_path) = eligible_source_path(inputs.as_slice()) else {
                 return inputs;
             };
@@ -80,7 +82,7 @@ pub(crate) fn apply_hybrid_page_ocr_profile_plan(
                     return inputs;
                 }
             };
-            apply_hybrid_page_ocr2_profile_plan_for_profiles(inputs, profiles.as_slice())
+            apply_hybrid_page_hosted_vlm_profile_plan_for_profiles(inputs, profiles.as_slice())
         }
     }
 }
@@ -91,7 +93,7 @@ pub(crate) fn hybrid_page_ocr_profile_planner() -> HybridPdfOcrProfilePlanner {
 
 impl HybridPdfOcrProfilePlanner {
     pub(crate) fn requires_rendered_page_images(self) -> bool {
-        matches!(self, Self::Ocr2All)
+        matches!(self, Self::HostedVlmAll)
     }
 }
 
@@ -107,8 +109,10 @@ pub(crate) fn hybrid_page_ocr_profile_planner_with_lookup(
     {
         FAST_ALL_MODE => HybridPdfOcrProfilePlanner::FastAll,
         FAST_RISK_WINDOW_MODE => HybridPdfOcrProfilePlanner::FastRiskWindow,
-        OCR2_ALL_MODE => HybridPdfOcrProfilePlanner::Ocr2All,
-        OCR2_RISK_WINDOW_MODE => HybridPdfOcrProfilePlanner::Ocr2RiskWindow,
+        OCR2_ALL_MODE | HOSTED_VLM_ALL_MODE => HybridPdfOcrProfilePlanner::HostedVlmAll,
+        OCR2_RISK_WINDOW_MODE | HOSTED_VLM_RISK_WINDOW_MODE => {
+            HybridPdfOcrProfilePlanner::HostedVlmRiskWindow
+        }
         _ => HybridPdfOcrProfilePlanner::Disabled,
     }
 }
@@ -137,13 +141,13 @@ pub(crate) fn apply_hybrid_page_ocr_profile_plan_for_profiles(
     }
     apply_candidate_profile_plan(
         inputs,
-        accurate_pages,
+        &accurate_pages,
         PDF_OCR_FAST_TEXT_PROFILE,
         PDF_OCR_FAST_TEXT_ENGINE,
     )
 }
 
-pub(crate) fn apply_hybrid_page_ocr2_profile_plan_for_profiles(
+pub(crate) fn apply_hybrid_page_hosted_vlm_profile_plan_for_profiles(
     inputs: Vec<PdfOcrShardInput>,
     profiles: &[PdfSourcePageProfile],
 ) -> Vec<PdfOcrShardInput> {
@@ -162,17 +166,25 @@ pub(crate) fn apply_hybrid_page_ocr2_profile_plan_for_profiles(
     }
 
     let recovery_pages = accurate_recovery_pages(profiles);
-    apply_ocr2_recovery_profile_plan(
+    apply_hosted_vlm_recovery_profile_plan(
         inputs,
-        recovery_pages,
+        &recovery_pages,
         PDF_OCR_FAST_TEXT_PROFILE,
         PDF_OCR_FAST_TEXT_ENGINE,
     )
 }
 
+#[cfg(test)]
+pub(crate) fn apply_hybrid_page_ocr2_profile_plan_for_profiles(
+    inputs: Vec<PdfOcrShardInput>,
+    profiles: &[PdfSourcePageProfile],
+) -> Vec<PdfOcrShardInput> {
+    apply_hybrid_page_hosted_vlm_profile_plan_for_profiles(inputs, profiles)
+}
+
 fn apply_candidate_profile_plan(
     mut inputs: Vec<PdfOcrShardInput>,
-    accurate_pages: BTreeSet<u32>,
+    accurate_pages: &BTreeSet<u32>,
     candidate_profile: &str,
     candidate_engine: &str,
 ) -> Vec<PdfOcrShardInput> {
@@ -194,17 +206,17 @@ fn apply_candidate_profile_plan(
     inputs
 }
 
-fn apply_ocr2_recovery_profile_plan(
+fn apply_hosted_vlm_recovery_profile_plan(
     mut inputs: Vec<PdfOcrShardInput>,
-    recovery_pages: BTreeSet<u32>,
+    recovery_pages: &BTreeSet<u32>,
     default_profile: &str,
     default_engine: &str,
 ) -> Vec<PdfOcrShardInput> {
     let mut recovery_count = 0usize;
     for input in &mut inputs {
         if recovery_pages.contains(&input.page_index) {
-            input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
-            input.ocr_engine = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_ENGINE.to_string();
+            input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
+            input.ocr_engine = PDF_OCR_HOSTED_VLM_DIRECT_ENGINE.to_string();
             recovery_count = recovery_count.saturating_add(1);
         } else {
             input.ocr_profile = default_profile.to_string();
@@ -212,7 +224,7 @@ fn apply_ocr2_recovery_profile_plan(
         }
     }
     log::info!(
-        "hybrid PDF OCR profile planner selected {recovery_count} OCR2 recovery pages and {} `{default_profile}` pages",
+        "hybrid PDF OCR profile planner selected {recovery_count} hosted VLM recovery pages and {} `{default_profile}` pages",
         inputs.len().saturating_sub(recovery_count)
     );
     inputs

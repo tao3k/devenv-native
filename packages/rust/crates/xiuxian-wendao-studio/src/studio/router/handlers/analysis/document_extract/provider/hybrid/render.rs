@@ -20,9 +20,7 @@ use super::types::{
     DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridPdfRegionInput,
 };
 use crate::studio::router::handlers::analysis::document_extract::registry::default_output_dir;
-use xiuxian_wendao_attachments::pdf::ocr::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PdfOcrShardInput,
-};
+use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, is_hosted_vlm_direct_profile};
 
 const DEFAULT_OCR2_REGION_CONTEXT_RATIO: f64 = 0.18;
 const OCR2_REGION_PLANNER_PROFILE_RISK_WINDOW: &str = "profile-risk-window";
@@ -68,7 +66,7 @@ pub(crate) async fn render_hybrid_page_ocr_shards(
             );
             #[cfg(not(feature = "document-extract-pdf-render"))]
             return Err(format!(
-                "OCR2 direct VLM planner for `{}` requires the `document-extract-pdf-render` feature",
+                "hosted VLM direct planner for `{}` requires the `document-extract-pdf-render` feature",
                 source_for_render.display()
             ));
         }
@@ -250,7 +248,7 @@ pub(crate) fn hybrid_page_ocr2_region_planner_with_lookup(
 fn ocr2_recovery_content_band_region(
     input: &PdfOcrShardInput,
 ) -> Option<PdfPageRegionRenderRequest> {
-    if input.shard_type != "page" || input.ocr_profile != PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE {
+    if input.shard_type != "page" || !is_hosted_vlm_direct_profile(input.ocr_profile.as_str()) {
         return None;
     }
     let width = input.crop_right - input.crop_left;
@@ -276,7 +274,7 @@ fn ocr2_recovery_content_slices(input: &PdfOcrShardInput) -> Vec<PdfPageRegionRe
     let Some(band) = ocr2_recovery_content_band_region(input) else {
         return Vec::new();
     };
-    ocr2_recovery_content_band_slices(band, OCR2_AUTO_REGION_SLICE_COUNT)
+    ocr2_recovery_content_band_slices(&band, OCR2_AUTO_REGION_SLICE_COUNT)
 }
 
 fn ocr2_recovery_content_adaptive_slices(
@@ -288,7 +286,7 @@ fn ocr2_recovery_content_adaptive_slices(
     };
     let content_pixels = estimated_region_pixels(input, band.region_box);
     let slice_count = adaptive_region_slice_count(content_pixels, profile);
-    ocr2_recovery_content_band_slices(band, slice_count)
+    ocr2_recovery_content_band_slices(&band, slice_count)
 }
 
 fn adaptive_region_slice_count(content_pixels: f64, profile: Option<&PdfSourcePageProfile>) -> u32 {
@@ -334,7 +332,7 @@ fn is_low_complexity_risk_neighbor(profile: &PdfSourcePageProfile) -> bool {
 }
 
 fn ocr2_recovery_content_band_slices(
-    band: PdfPageRegionRenderRequest,
+    band: &PdfPageRegionRenderRequest,
     slice_count: u32,
 ) -> Vec<PdfPageRegionRenderRequest> {
     let height = band.region_box.top - band.region_box.bottom;
@@ -360,7 +358,6 @@ fn ocr2_recovery_content_band_slices(
 
 fn slice_reading_order_offset(slice: u32, slice_count: u32) -> u32 {
     match slice_count {
-        1 => 50,
         2 => {
             if slice == 0 {
                 40
@@ -417,8 +414,7 @@ pub(crate) fn hybrid_page_ocr_region_context_ratio_with_lookup(
     lookup(DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV)
         .and_then(|value| value.trim().parse::<f64>().ok())
         .filter(|value| value.is_finite() && *value >= 0.0)
-        .map(|value| value.min(1.0))
-        .unwrap_or(DEFAULT_OCR2_REGION_CONTEXT_RATIO)
+        .map_or(DEFAULT_OCR2_REGION_CONTEXT_RATIO, |value| value.min(1.0))
 }
 
 fn apply_region_context_padding(

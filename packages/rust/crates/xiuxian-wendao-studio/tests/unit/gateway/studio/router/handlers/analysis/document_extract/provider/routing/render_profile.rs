@@ -2,6 +2,7 @@
 use super::{
     DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridPdfOcrProfilePlanner, PdfPageRenderSelection,
+    apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,
     apply_hybrid_page_ocr_profile_plan_for_profiles,
     apply_hybrid_page_ocr2_profile_plan_for_profiles, hybrid_page_ocr_profile_planner_with_lookup,
     hybrid_page_ocr_render_profile_with_lookup, hybrid_page_ocr_render_selection_with_lookup,
@@ -81,14 +82,21 @@ fn hybrid_page_ocr_profile_planner_accepts_fast_risk_window_override() {
         hybrid_page_ocr_profile_planner_with_lookup(&|key| {
             (key == DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV).then(|| "ocr2-all".to_string())
         }),
-        HybridPdfOcrProfilePlanner::Ocr2All
+        HybridPdfOcrProfilePlanner::HostedVlmAll
     );
     assert_eq!(
         hybrid_page_ocr_profile_planner_with_lookup(&|key| {
             (key == DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV)
                 .then(|| "ocr2_risk_window".to_string())
         }),
-        HybridPdfOcrProfilePlanner::Ocr2RiskWindow
+        HybridPdfOcrProfilePlanner::HostedVlmRiskWindow
+    );
+    assert_eq!(
+        hybrid_page_ocr_profile_planner_with_lookup(&|key| {
+            (key == DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV)
+                .then(|| "hosted_vlm_risk_window".to_string())
+        }),
+        HybridPdfOcrProfilePlanner::HostedVlmRiskWindow
     );
     assert_eq!(
         hybrid_page_ocr_profile_planner_with_lookup(&|_| None),
@@ -99,8 +107,8 @@ fn hybrid_page_ocr_profile_planner_accepts_fast_risk_window_override() {
 #[cfg(feature = "document-extract-pdf-source-range")]
 #[test]
 fn hybrid_page_ocr2_risk_window_keeps_source_range_rendering() {
-    assert!(HybridPdfOcrProfilePlanner::Ocr2All.requires_rendered_page_images());
-    assert!(!HybridPdfOcrProfilePlanner::Ocr2RiskWindow.requires_rendered_page_images());
+    assert!(HybridPdfOcrProfilePlanner::HostedVlmAll.requires_rendered_page_images());
+    assert!(!HybridPdfOcrProfilePlanner::HostedVlmRiskWindow.requires_rendered_page_images());
 }
 
 #[cfg(feature = "document-extract-pdf-source-range")]
@@ -142,6 +150,36 @@ fn hybrid_page_ocr2_profile_plan_keeps_risk_window_accurate() {
         .map(|page_index| sample_source_page_profile(page_index, page_index == 2))
         .collect::<Vec<_>>();
 
+    let planned =
+        apply_hybrid_page_hosted_vlm_profile_plan_for_profiles(inputs, profiles.as_slice());
+    let ocr_profiles = planned
+        .iter()
+        .map(|input| input.ocr_profile.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        ocr_profiles,
+        vec![
+            "docling-fast-text-ocr",
+            "hosted-vlm-direct-ocr-v1",
+            "hosted-vlm-direct-ocr-v1",
+            "hosted-vlm-direct-ocr-v1",
+            "docling-fast-text-ocr",
+            "docling-fast-text-ocr",
+        ]
+    );
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn legacy_ocr2_profile_plan_alias_uses_hosted_vlm_profile() {
+    let inputs = (0..6)
+        .map(|page_index| sample_ocr_input(page_index, "page"))
+        .collect::<Vec<_>>();
+    let profiles = (0..6)
+        .map(|page_index| sample_source_page_profile(page_index, page_index == 2))
+        .collect::<Vec<_>>();
+
     let planned = apply_hybrid_page_ocr2_profile_plan_for_profiles(inputs, profiles.as_slice());
     let ocr_profiles = planned
         .iter()
@@ -152,9 +190,9 @@ fn hybrid_page_ocr2_profile_plan_keeps_risk_window_accurate() {
         ocr_profiles,
         vec![
             "docling-fast-text-ocr",
-            "deepseek-ocr2-direct-vlm",
-            "deepseek-ocr2-direct-vlm",
-            "deepseek-ocr2-direct-vlm",
+            "hosted-vlm-direct-ocr-v1",
+            "hosted-vlm-direct-ocr-v1",
+            "hosted-vlm-direct-ocr-v1",
             "docling-fast-text-ocr",
             "docling-fast-text-ocr",
         ]

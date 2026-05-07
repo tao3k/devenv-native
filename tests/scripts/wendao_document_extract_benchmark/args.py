@@ -103,11 +103,13 @@ def parse_args() -> argparse.Namespace:
             "fast-risk-window",
             "ocr2-all",
             "ocr2-risk-window",
+            "hosted-vlm-all",
+            "hosted-vlm-risk-window",
         ),
         help=(
             "Optional Rust provider override for "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER. Use "
-            "`fast-*` or `ocr2-*` modes only when profiling mixed "
+            "`fast-*`, `hosted-vlm-*`, or legacy `ocr2-*` modes only when profiling mixed "
             "candidate/accurate source-range OCR."
         ),
     )

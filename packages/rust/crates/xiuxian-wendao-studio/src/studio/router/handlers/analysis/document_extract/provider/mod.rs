@@ -42,6 +42,7 @@ use hybrid::{
     DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
     HybridDocumentResourceBatch, HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner,
+    apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,
     apply_hybrid_page_ocr_profile_plan_for_profiles,
     apply_hybrid_page_ocr2_profile_plan_for_profiles,
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,

@@ -31,6 +31,7 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
+    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
 )
 
 from .support import (
@@ -255,7 +256,7 @@ def test_docling_pdf_ocr_worker_uses_deepseek_ocr2_openai_endpoint(
         _sample_pdf_ocr_input_table(
             source_path=str(source),
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )

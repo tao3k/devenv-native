@@ -251,7 +251,12 @@ def hybrid_pdf_ocr_requires_pdfium(args: argparse.Namespace) -> bool:
         .replace("_", "-")
         .lower()
     )
-    if profile_planner in {"ocr2-all", "ocr2-risk-window"}:
+    if profile_planner in {
+        "ocr2-all",
+        "ocr2-risk-window",
+        "hosted-vlm-all",
+        "hosted-vlm-risk-window",
+    }:
         return True
     region_planner = (
         str(getattr(args, "rust_pdf_ocr2_region_planner", "") or "")

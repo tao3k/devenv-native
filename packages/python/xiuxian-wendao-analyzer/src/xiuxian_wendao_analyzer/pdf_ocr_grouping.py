@@ -6,7 +6,7 @@ from itertools import pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .pdf_ocr_contracts import PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE
+from .pdf_ocr_contracts import is_hosted_vlm_direct_profile
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -76,9 +76,9 @@ def _is_same_direct_ocr2_source(
 
 
 def _direct_ocr2_batch_key(input_row: Mapping[str, Any]) -> tuple[str, str] | None:
-    if str(input_row.get("ocrProfile", "")) != PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE:
+    if not is_hosted_vlm_direct_profile(str(input_row.get("ocrProfile", ""))):
         return None
-    return (PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, "")
+    return ("hosted-vlm-direct", "")
 
 
 def _is_source_pdf_page_range_group(

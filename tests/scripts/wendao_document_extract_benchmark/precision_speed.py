@@ -276,7 +276,12 @@ def ocr2_promotion_candidate(
     request_summary: dict[str, Any],
 ) -> bool:
     planner = payload.get("rustPdfOcrProfilePlanner")
-    if planner in {"ocr2-all", "ocr2-risk-window"}:
+    if planner in {
+        "ocr2-all",
+        "ocr2-risk-window",
+        "hosted-vlm-all",
+        "hosted-vlm-risk-window",
+    }:
         return True
     if payload.get("rustPdfOcr2RegionPlanner") in OCR2_AUTOMATIC_REGION_PLANNERS:
         return True

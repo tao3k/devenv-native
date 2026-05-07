@@ -1,20 +1,21 @@
-//! OCR2 recovery shard binding helpers.
+//! Hosted VLM recovery shard binding helpers.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::types::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_FAST_TEXT_PROFILE, PdfOcrShardInput,
+    PDF_OCR_FAST_TEXT_PROFILE, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, PdfOcrShardInput,
+    is_hosted_vlm_direct_profile,
 };
 
-/// Downgrade OCR2 page shards that are covered by OCR2 recovery regions to the
-/// fast text profile so the page remains the deterministic parent surface.
+/// Downgrade hosted VLM page shards that are covered by recovery regions to
+/// the fast text profile so the page remains the deterministic parent surface.
 pub fn downgrade_ocr2_region_parent_page_inputs(
     inputs: &mut [PdfOcrShardInput],
     region_pages: &BTreeSet<u32>,
 ) {
     for input in inputs {
         if input.shard_type == "page"
-            && input.ocr_profile == PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE
+            && is_hosted_vlm_direct_profile(input.ocr_profile.as_str())
             && region_pages.contains(&input.page_index)
         {
             input.ocr_profile = PDF_OCR_FAST_TEXT_PROFILE.to_string();
@@ -33,8 +34,8 @@ pub fn ocr2_region_parent_page_shards(inputs: &[PdfOcrShardInput]) -> BTreeMap<u
         .collect()
 }
 
-/// Bind rendered OCR2 recovery region shards to parent page shards and stamp
-/// the OCR2 direct VLM profile.
+/// Bind rendered hosted VLM recovery region shards to parent page shards and
+/// stamp the direct hosted VLM profile.
 ///
 /// # Errors
 ///
@@ -49,7 +50,7 @@ pub fn prepare_ocr2_recovery_region_inputs(
         .map(|mut input| {
             if input.shard_type != "region" {
                 return Err(format!(
-                    "OCR2 recovery region render produced non-region shard `{}`",
+                    "hosted VLM recovery region render produced non-region shard `{}`",
                     input.shard_element_id
                 ));
             }
@@ -57,20 +58,20 @@ pub fn prepare_ocr2_recovery_region_inputs(
                 .get(&input.page_index)
                 .ok_or_else(|| {
                     format!(
-                        "OCR2 recovery region `{}` has no parent page shard for page {}",
+                        "hosted VLM recovery region `{}` has no parent page shard for page {}",
                         input.shard_element_id, input.page_index
                     )
                 })?
                 .clone();
             input.parent_shard_element_id = parent_shard_element_id;
-            input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
-            input.ocr_engine = "deepseek-ocr2-direct-vlm".to_string();
+            input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
+            input.ocr_engine = "hosted-vlm-direct-ocr".to_string();
             Ok(input)
         })
         .collect()
 }
 
-/// Merge rendered OCR2 recovery regions into the original OCR shard inputs.
+/// Merge rendered hosted VLM recovery regions into the original OCR shard inputs.
 ///
 /// # Errors
 ///

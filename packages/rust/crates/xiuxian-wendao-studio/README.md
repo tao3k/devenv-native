@@ -96,15 +96,20 @@ Studio also owns the opt-in source-range OCR profile planner exposed through
 `--rust-pdf-ocr-profile-planner`. The proven `fast-risk-window` mode uses
 attachment-owned source-page structure facts to keep table-risk pages on the
 default Docling-compatible profile while assigning `docling-fast-text-ocr`
-only to non-risk source-page ranges. The same planner now exposes `ocr2-all`
-for full OCR2 probes and `ocr2-risk-window` for surgical recovery: ordinary
-pages stay on `docling-fast-text-ocr`, while the source-profile risk window
-uses `deepseek-ocr2-direct-vlm`. The `ocr2-risk-window` route keeps the primary
-manifest on source-range rows and materializes rendered page images only for
-OCR2 recovery pages, so ordinary fast pages do not pay page-raster cost. Those
-same planner semantics apply to explicit region-shard recovery: the parent page
+only to non-risk source-page ranges. The same planner now exposes
+`hosted-vlm-all` for full hosted VLM/OCR probes and
+`hosted-vlm-risk-window` for surgical recovery: ordinary pages stay on
+`docling-fast-text-ocr`, while the source-profile risk window uses the
+model-agnostic `hosted-vlm-direct-ocr-v1` profile. The legacy `ocr2-all` and
+`ocr2-risk-window` spellings remain accepted aliases for existing benchmark
+evidence, but the optimization pipeline is provider/model agnostic. The hosted
+VLM risk-window route keeps the primary manifest on source-range rows and
+materializes rendered page images only for recovery pages, so ordinary fast
+pages do not pay page-raster cost. Narrow exact-risk-only routing is not the
+promotion path because the real milestone run lost the frozen character floor.
+The same planner semantics apply to explicit region-shard recovery: the parent page
 stays on the fast source-range profile and the rendered region rows are
-appended as supplemental OCR2 inputs, preserving the stable OCR shard schema
+appended as supplemental hosted VLM inputs, preserving the stable OCR shard schema
 and the Rust-side row/order validation gate. Region recovery now normalizes the
 rendered region's parent shard id to the retained fast parent page and records
 `sentinel-sidecar-v1` in structure provenance; this is a safe sidecar patch
@@ -112,7 +117,7 @@ protocol, not default in-place Markdown replacement.
 When no explicit region JSON is configured, the benchmark can opt into
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER=profile-risk-window` through
 `--rust-pdf-ocr2-region-planner profile-risk-window`. That first automatic
-planner only acts on pages already selected by `ocr2-risk-window` and builds a
+planner only acts on pages already selected by the hosted VLM risk-window planner and builds a
 conservative content-band region from the page crop box; it is a recovery
 surface probe, not a claimed table-detector or default routing policy.
 `profile-risk-window-slices` is the next benchmark-only variant: it preserves
@@ -144,7 +149,7 @@ on the unchanged Rust row/order, character-floor, and force-refresh gates.
 For table and complex-layout region recovery, the benchmark can also opt into
 `--deepseek-ocr2-scaffold-mode region-table-json`. Studio forwards that as
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE=region-table-json` and writes
-`_ocr2_region_scaffolds.json` beside the rendered OCR2 region images. The
+`_ocr2_region_scaffolds.json` beside the rendered hosted recovery region images. The
 sidecar records shard ids, parent shard ids, source and raster fingerprints,
 render DPI, crop boxes, source pixel boxes, source-page profile signals, and a
 conservative scaffold kind such as `table_candidate`,
@@ -153,12 +158,13 @@ invent hard table row or column counts in this slice; the sidecar is a
 fingerprinted routing and prompt contract consumed by the analyzer worker,
 which must return failed rows on scaffold validation errors so the Rust
 precision fallback remains authoritative.
-All OCR2 modes stay opt-in until the real benchmark gate proves the current
-precision envelope and beats the 12,856.546 ms `fast-risk-window`
-force-refresh evidence. Benchmark reports expose that decision as
-`ocr2PromotionGate`, which keeps OCR2 profile promotion tied to the frozen
-precision, row/order, character-floor, hosted-request, force-refresh,
-shard-cache reuse, and zero scaffold-validation-failure gates.
+All hosted VLM/OCR modes stay opt-in until the real benchmark gate proves the
+current precision envelope and beats the 12,856.546 ms `fast-risk-window`
+force-refresh evidence. Benchmark reports still expose that decision through
+the compatibility field `ocr2PromotionGate`, which keeps hosted profile
+promotion tied to the frozen precision, row/order, character-floor,
+hosted-request, force-refresh, shard-cache reuse, and zero
+scaffold-validation-failure gates.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

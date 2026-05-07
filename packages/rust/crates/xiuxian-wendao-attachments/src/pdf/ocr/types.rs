@@ -13,8 +13,19 @@ pub const PDF_OCR_DEFAULT_PROFILE: &str = "docling-compatible-page-ocr-v1";
 pub const PDF_OCR_FAST_TEXT_PROFILE: &str = "docling-fast-text-ocr";
 /// Direct DeepSeek-OCR-2 VLM worker profile identifier.
 pub const PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE: &str = "deepseek-ocr2-direct-vlm";
-/// Docling VLM adapter profile identifier for DeepSeek OCR comparator runs.
+/// Hosted OpenAI-compatible VLM/OCR worker profile identifier.
+pub const PDF_OCR_HOSTED_VLM_DIRECT_PROFILE: &str = "hosted-vlm-direct-ocr-v1";
+/// Docling VLM adapter profile identifier for `DeepSeek` OCR comparator runs.
 pub const PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE: &str = "docling-vlm-deepseek-ocr";
+
+/// Return true when an OCR profile uses the hosted direct VLM recovery path.
+#[must_use]
+pub fn is_hosted_vlm_direct_profile(profile: &str) -> bool {
+    matches!(
+        profile,
+        PDF_OCR_HOSTED_VLM_DIRECT_PROFILE | PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE
+    )
+}
 
 /// OCR worker profile used to derive shard input rows.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]

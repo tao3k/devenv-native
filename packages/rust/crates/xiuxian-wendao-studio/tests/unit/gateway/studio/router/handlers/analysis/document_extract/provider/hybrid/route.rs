@@ -21,7 +21,7 @@ fn ocr2_region_scaffold_payload_is_disabled_by_default() -> Result<(), String> {
     let region = sample_region_input();
 
     let payload =
-        ocr2_region_scaffold_payload(Path::new("/tmp/source.pdf"), &[region], false, &|_key| None)?;
+        ocr2_region_scaffold_payload(Path::new("/tmp/source.pdf"), &[region], false, &|_key| None);
 
     assert!(payload.is_none());
     Ok(())
@@ -40,7 +40,7 @@ fn ocr2_region_scaffold_payload_records_region_fingerprints() -> Result<(), Stri
         &[region],
         true,
         &scaffold_enabled_lookup,
-    )?
+    )
     .ok_or_else(|| "expected OCR2 scaffold payload".to_string())?;
     let items = payload
         .get("items")
@@ -148,7 +148,7 @@ fn cached_ocr2_region_render_report_rejects_missing_artifacts() -> Result<(), St
         1,
         &PdfPageRenderProfile::ocr_default(),
         1,
-    )?;
+    );
 
     assert!(cached.is_none());
     Ok(())
