@@ -22,6 +22,7 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV,
     DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV,
     DEEPSEEK_OCR2_PROVIDER_ENV,
+    DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV,
     DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
     DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV,
     DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
@@ -52,6 +53,10 @@ def _ocr2_region_marker(row: dict[str, object]) -> str:
         f"{row['pageIndex']}:{row['regionIndex']}:{row['shardElementId']}"
         " -->"
     )
+
+
+def _write_ppm_image(path: Path, color: bytes = b"\x00\x00\x00") -> None:
+    path.write_bytes(b"P6\n2 2\n255\n" + color * 4)
 
 
 def _write_ocr2_region_scaffold_sidecar(
@@ -848,6 +853,410 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
         "# fallback region 3",
     ]
     assert request_image_counts == [2, 1, 1]
+
+
+def test_docling_pdf_ocr_worker_disables_invalid_region_composite_canary(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(4)]
+    for image in region_images:
+        image.write_bytes(b"region png fixture")
+    request_image_counts: list[int] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, markdown: str) -> None:
+            self._markdown = markdown
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._markdown}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        image_count = sum(
+            1
+            for part in payload["messages"][0]["content"]
+            if part["type"] == "image_url"
+        )
+        request_image_counts.append(image_count)
+        if image_count > 1:
+            return FakeResponse("missing region markers")
+        return FakeResponse(f"# fallback region {len(request_image_counts)}")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[index]),
+                page_index=index // 2,
+                shard_element_id=f"region-{index}",
+                shard_type="region",
+                region_index=(index % 2) + 1,
+                parent_shard_element_id=f"parent-page-{index // 2}",
+                reading_order_key=f"00000{index // 2}.0{index + 1}0000",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for index in range(4)
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == ["succeeded"] * 4
+    assert request_image_counts == [2, 1, 1, 1, 1]
+
+
+def test_docling_pdf_ocr_worker_uses_region_atlas_json(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
+    _write_ppm_image(region_images[0], b"\xff\x00\x00")
+    _write_ppm_image(region_images[1], b"\x00\x00\xff")
+    trace_path = tmp_path / "ocr2-region-atlas.jsonl"
+    requests: list[object] = []
+
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[index]),
+                page_index=0,
+                shard_element_id=f"region-{index}",
+                shard_type="region",
+                region_index=index + 1,
+                parent_shard_element_id="parent-page",
+                reading_order_key=f"000000.0{index + 1}0000",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for index in range(2)
+        ]
+    )
+    input_rows = input_table.to_pylist()
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "regions": [
+                                            {
+                                                "panel": f"REGION {index + 1}",
+                                                "marker": _ocr2_region_marker(row),
+                                                "shardElementId": row["shardElementId"],
+                                                "text": f"atlas text {index}",
+                                                "tables": [],
+                                            }
+                                            for index, row in enumerate(input_rows)
+                                        ]
+                                    }
+                                )
+                            }
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        return FakeResponse()
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["text"] for row in table.to_pylist()] == [
+        "atlas text 0",
+        "atlas text 1",
+    ]
+    assert len(requests) == 1
+    payload = json.loads(requests[0].data.decode("utf-8"))
+    content = payload["messages"][0]["content"]
+    assert sum(1 for part in content if part["type"] == "image_url") == 1
+    assert "Atlas panel mapping" in content[0]["text"]
+    assert '"panel": "REGION 1"' in content[0]["text"]
+    assert _ocr2_region_marker(input_rows[0]) in content[0]["text"]
+    records = [
+        json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert records[0]["requestKind"] == "region-atlas"
+    assert records[0]["shardCount"] == 2
+    assert records[0]["canonicalMarkdownChars"] == len("atlas text 0atlas text 1")
+
+
+def test_docling_pdf_ocr_worker_falls_back_when_region_atlas_json_is_invalid(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
+    for image in region_images:
+        _write_ppm_image(image)
+    request_kinds: list[str] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, content: str) -> None:
+            self._content = content
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._content}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        prompt_text = payload["messages"][0]["content"][0]["text"]
+        if "Atlas panel mapping" in prompt_text:
+            request_kinds.append("atlas")
+            return FakeResponse('{"regions":[]}')
+        request_kinds.append("single")
+        return FakeResponse(f"# fallback atlas region {len(request_kinds)}")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[index]),
+                page_index=0,
+                shard_element_id=f"region-{index}",
+                shard_type="region",
+                region_index=index + 1,
+                parent_shard_element_id="parent-page",
+                reading_order_key=f"000000.0{index + 1}0000",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for index in range(2)
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == ["succeeded", "succeeded"]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "# fallback atlas region 2",
+        "# fallback atlas region 3",
+    ]
+    assert request_kinds == ["atlas", "single", "single"]
+
+
+def test_docling_pdf_ocr_worker_disables_invalid_region_atlas_canary(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(4)]
+    for image in region_images:
+        _write_ppm_image(image)
+    request_kinds: list[str] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, content: str) -> None:
+            self._content = content
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._content}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        prompt_text = payload["messages"][0]["content"][0]["text"]
+        if "Atlas panel mapping" in prompt_text:
+            request_kinds.append("atlas")
+            return FakeResponse('{"regions":[]}')
+        request_kinds.append("single")
+        return FakeResponse(f"# fallback atlas region {len(request_kinds)}")
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[index]),
+                page_index=index // 2,
+                shard_element_id=f"region-{index}",
+                shard_type="region",
+                region_index=(index % 2) + 1,
+                parent_shard_element_id=f"parent-page-{index // 2}",
+                reading_order_key=f"00000{index // 2}.0{index + 1}0000",
+                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            )
+            for index in range(4)
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == ["succeeded"] * 4
+    assert request_kinds == ["atlas", "single", "single", "single", "single"]
+
+
+def test_docling_pdf_ocr_worker_shares_invalid_region_atlas_canary_state(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(4)]
+    for image in region_images:
+        _write_ppm_image(image)
+    request_kinds: list[str] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, content: str) -> None:
+            self._content = content
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._content}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        prompt_text = payload["messages"][0]["content"][0]["text"]
+        if "Atlas panel mapping" in prompt_text:
+            request_kinds.append("atlas")
+            return FakeResponse('{"regions":[]}')
+        request_kinds.append("single")
+        return FakeResponse(f"# fallback atlas region {len(request_kinds)}")
+
+    def input_table_for_page(page_index: int, offset: int) -> pa.Table:
+        return pa.concat_tables(
+            [
+                _sample_pdf_ocr_input_table(
+                    source_path=str(source),
+                    image_path=str(region_images[offset + index]),
+                    page_index=page_index,
+                    shard_element_id=f"region-{offset + index}",
+                    shard_type="region",
+                    region_index=index + 1,
+                    parent_shard_element_id=f"parent-page-{page_index}",
+                    reading_order_key=f"00000{page_index}.0{index + 1}0000",
+                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                )
+                for index in range(2)
+            ]
+        )
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(log_dir / "worker-0.jsonl"))
+    first = build_pdf_ocr_shard_result_table(
+        input_table_for_page(0, 0),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(log_dir / "worker-1.jsonl"))
+    second = build_pdf_ocr_shard_result_table(
+        input_table_for_page(1, 2),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in first.to_pylist()] == ["succeeded"] * 2
+    assert [row["status"] for row in second.to_pylist()] == ["succeeded"] * 2
+    assert request_kinds == ["atlas", "single", "single", "single", "single"]
 
 
 def test_docling_pdf_ocr_worker_uses_region_scaffold_json(

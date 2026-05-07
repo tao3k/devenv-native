@@ -134,7 +134,13 @@ same-parent region composite canary through
 `--deepseek-ocr2-region-composite-size`. Composite responses are accepted only
 when sentinel markers split back into one non-empty Markdown result per region;
 otherwise the worker falls back to individual region requests and the Rust
-row/order gate still sees the unchanged OCR shard result schema.
+row/order gate still sees the unchanged OCR shard result schema. The benchmark
+can additionally set `WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE=same-page-json`
+or `--deepseek-ocr2-region-atlas-mode same-page-json` to pack each same-page
+region composite group into one labeled PNG atlas and require strict JSON keyed
+by exact shard markers. Atlas mode remains a request-surface canary: validation
+failure falls back to individual region requests, and promotion still depends
+on the unchanged Rust row/order, character-floor, and force-refresh gates.
 For table and complex-layout region recovery, the benchmark can also opt into
 `--deepseek-ocr2-scaffold-mode region-table-json`. Studio forwards that as
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE=region-table-json` and writes

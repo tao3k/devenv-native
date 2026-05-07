@@ -246,6 +246,11 @@ def ocr2_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
                 f"{scaffold_applied} did not match region shard count "
                 f"{region_shards}"
             )
+    atlas_mode = deepseek_ocr2.get("regionAtlasMode") or "disabled"
+    if atlas_mode != "disabled":
+        atlas_failures = request_summary.get("scaffoldValidationFailureCount", 0)
+        if atlas_failures != 0:
+            reasons.append(f"OCR2 atlas validation failure count was {atlas_failures}")
     if deepseek_ocr2.get("provider") == "openrouter" and not deepseek_ocr2.get(
         "openRouterApiKeyConfigured"
     ):
@@ -292,6 +297,7 @@ def ocr2_promotion_observed(
         "provider": deepseek_ocr2.get("provider"),
         "openRouterModel": deepseek_ocr2.get("openRouterModel"),
         "openRouterApiKeyConfigured": deepseek_ocr2.get("openRouterApiKeyConfigured"),
+        "regionAtlasMode": deepseek_ocr2.get("regionAtlasMode"),
         "scaffoldMode": deepseek_ocr2.get("scaffoldMode"),
         "precisionGatePassed": precision_speed.get("precisionGatePassed"),
         "errorRows": precision_speed.get("errorRows"),

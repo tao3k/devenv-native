@@ -40,6 +40,7 @@ from .env import (
     positive_float_env,
     positive_int_env,
     positive_int_value,
+    region_atlas_mode_env,
     resolve_openrouter_api_key,
     scaffold_mode_env,
 )
@@ -58,6 +59,7 @@ class Ocr2ClientConfig:
     max_tokens: int
     region_max_tokens: int
     region_composite_size: int
+    region_atlas_mode: str
     timeout_seconds: float
     request_concurrency: int
     page_window_size: int
@@ -99,6 +101,7 @@ def ocr2_client_config_from_env(
                 DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
                 DEEPSEEK_OCR2_DEFAULT_REGION_COMPOSITE_SIZE,
             ),
+            region_atlas_mode=region_atlas_mode_env(),
             timeout_seconds=positive_float_env(
                 DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
                 DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,
@@ -134,6 +137,7 @@ def ocr2_client_config_from_env(
             DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
             DEEPSEEK_OCR2_DEFAULT_REGION_COMPOSITE_SIZE,
         ),
+        region_atlas_mode=region_atlas_mode_env(),
         timeout_seconds=positive_float_env(
             DEEPSEEK_OCR2_TIMEOUT_SECONDS_ENV,
             DEEPSEEK_OCR2_DEFAULT_TIMEOUT_SECONDS,

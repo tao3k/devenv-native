@@ -2,15 +2,16 @@ use std::path::Path;
 
 use xiuxian_wendao_attachments::pdf::ocr::{
     PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_FAST_TEXT_PROFILE,
-    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
+    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult,
 };
 use xiuxian_wendao_attachments::pdf::render::{
-    PdfPageBox, PdfPageRegionRenderRequest, PdfPageRenderProfile,
+    PdfPageBox, PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfPageRenderShardReport,
 };
 
 use super::{
     OCR2_REGION_SCAFFOLD_FILE_NAME, cached_ocr2_region_render_report,
-    has_ocr2_recovery_page_candidates, ocr2_region_render_cache_key, ocr2_region_scaffold_payload,
+    has_ocr2_recovery_page_candidates, materialize_hybrid_page_ocr_resource_batch_from_results,
+    ocr2_region_render_cache_key, ocr2_region_scaffold_payload,
     write_ocr2_region_scaffold_sidecar_with_lookup,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV;
@@ -153,17 +154,76 @@ fn cached_ocr2_region_render_report_rejects_missing_artifacts() -> Result<(), St
     Ok(())
 }
 
+#[test]
+fn hybrid_page_ocr_resource_batch_orders_split_pipeline_results() -> Result<(), String> {
+    let mut page = sample_region_input();
+    page.page_index = 0;
+    page.shard_type = "page".to_string();
+    page.shard_element_id = "page-shard".to_string();
+    page.parent_shard_element_id.clear();
+    page.ocr_profile = PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    page.ocr_engine = "docling-fast-text-ocr".to_string();
+
+    let mut region = sample_region_input();
+    region.page_index = 0;
+    region.shard_element_id = "region-shard".to_string();
+    region.parent_shard_element_id = page.shard_element_id.clone();
+    let inputs = vec![page.clone(), region.clone()];
+    let results = vec![
+        PdfOcrShardResult::succeeded(&region, "region text", 1.0),
+        PdfOcrShardResult::succeeded(&page, "page text", 1.0),
+    ];
+
+    let batch = materialize_hybrid_page_ocr_resource_batch_from_results(
+        &sample_render_report(),
+        inputs,
+        results,
+        42.0,
+    )?;
+
+    assert_eq!(batch.ocr_results[0].shard_element_id, "page-shard");
+    assert_eq!(batch.ocr_results[1].shard_element_id, "region-shard");
+    assert_eq!(batch.ocr_metrics.len(), 2);
+    assert_eq!(batch.page_count, 1);
+    Ok(())
+}
+
 fn scaffold_enabled_lookup(key: &str) -> Option<String> {
     (key == DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV).then(|| "region-table-json".to_string())
 }
 
 fn sample_region_request(region_index: u32) -> PdfPageRegionRenderRequest {
+    sample_region_request_for_page(1, region_index)
+}
+
+fn sample_region_request_for_page(
+    page_index: u32,
+    region_index: u32,
+) -> PdfPageRegionRenderRequest {
     PdfPageRegionRenderRequest::new(
-        1,
+        page_index,
         region_index,
         PdfPageBox::new(10.0, 20.0, 110.0, 220.0),
-        Some(format!("000001.{region_index:06}")),
+        Some(format!("{page_index:06}.{region_index:06}")),
     )
+}
+
+fn sample_render_report() -> PdfPageRenderShardReport {
+    PdfPageRenderShardReport {
+        source_path: "/tmp/source.pdf".to_string(),
+        output_dir: "/tmp/out".to_string(),
+        page_count: 1,
+        shard_count: 2,
+        manifest_arrow_path: None,
+        ocr_input_arrow_path: None,
+        pending_resource_arrow_path: None,
+        render_profile: "pdfium-render-page-shards-v1".to_string(),
+        render_selection: "region_shards".to_string(),
+        status: "rendered".to_string(),
+        routing_decision: "hybrid_page_ocr_candidate".to_string(),
+        elapsed_ms: 0.0,
+        error_message: None,
+    }
 }
 
 fn sample_region_input() -> PdfOcrShardInput {

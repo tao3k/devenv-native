@@ -463,6 +463,23 @@ def test_ocr2_promotion_gate_requires_clean_scaffold_validation() -> None:
     assert gate["observed"]["scaffoldValidationFailureCount"] == 1
 
 
+def test_ocr2_promotion_gate_requires_clean_atlas_validation() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _ocr2_promotion_payload(
+        benchmark,
+        region_atlas_mode="same-page-json",
+        scaffold_validation_failure_count=1,
+    )
+
+    gate = benchmark.ocr2_promotion_gate(payload)
+
+    assert gate["checked"] is True
+    assert gate["passed"] is False
+    assert "OCR2 atlas validation failure count was 1" in gate["reasons"]
+    assert gate["observed"]["regionAtlasMode"] == "same-page-json"
+    assert gate["observed"]["scaffoldValidationFailureCount"] == 1
+
+
 def test_ocr2_promotion_gate_requires_scaffold_count_coverage() -> None:
     benchmark = _load_benchmark_module()
     payload = _ocr2_promotion_payload(
@@ -554,6 +571,7 @@ def _ocr2_promotion_payload(
     failure_count: int = 0,
     parse_error_count: int = 0,
     ocr_region_blocks: int = 3,
+    region_atlas_mode: str = "disabled",
     scaffold_mode: str = "disabled",
     scaffold_applied_count: int = 0,
     scaffold_validation_failure_count: int = 0,
@@ -579,6 +597,7 @@ def _ocr2_promotion_payload(
             "provider": "openrouter",
             "openRouterModel": "baidu/qianfan-ocr-fast:free",
             "openRouterApiKeyConfigured": True,
+            "regionAtlasMode": region_atlas_mode,
             "scaffoldMode": scaffold_mode,
             "requestSummary": {
                 "requestCount": request_count,

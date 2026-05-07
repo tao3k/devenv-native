@@ -225,6 +225,7 @@ def deepseek_ocr2_process_env(args: object) -> dict[str, str]:
         "deepseek_ocr2_region_composite_size": (
             "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE"
         ),
+        "deepseek_ocr2_region_atlas_mode": "WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE",
         "deepseek_ocr2_scaffold_mode": "WENDAO_DEEPSEEK_OCR2_SCAFFOLD_MODE",
         "deepseek_ocr2_timeout_seconds": "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS",
         "deepseek_ocr2_request_concurrency": (

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import threading
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 from ..pdf_ocr_contracts import DEEPSEEK_OCR2_DEFAULT_API_KEY
@@ -62,12 +64,14 @@ class _DeepSeekOcr2OpenAiClient:
         self._max_tokens = config.max_tokens
         self._region_max_tokens = config.region_max_tokens
         self._region_composite_size = config.region_composite_size
+        self._region_atlas_mode = config.region_atlas_mode
         self._timeout_seconds = config.timeout_seconds
         self._request_concurrency = config.request_concurrency
         self._page_window_size = config.page_window_size
         self._scaffold_mode = config.scaffold_mode
         self._trace_path = config.trace_path
         self._extra_headers = dict(config.extra_headers or {})
+        self._disabled_region_canaries: set[str] = set()
 
     def recognize_many(
         self,
@@ -110,6 +114,65 @@ class _DeepSeekOcr2OpenAiClient:
 
     def recognize(self, input_row: Mapping[str, Any]) -> Mapping[str, Any]:
         return recognize_single(self, input_row)
+
+    def _claim_region_canary(self, request_kind: str) -> bool:
+        if request_kind in self._disabled_region_canaries:
+            return False
+        state_paths = self._region_canary_state_paths(request_kind)
+        if state_paths is None:
+            return True
+        disabled_path, probing_path, supported_path = state_paths
+        if disabled_path.exists():
+            self._disabled_region_canaries.add(request_kind)
+            return False
+        if supported_path.exists():
+            return True
+        probing_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            descriptor = os.open(
+                probing_path,
+                os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+            )
+        except FileExistsError:
+            return False
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(str(os.getpid()))
+        return True
+
+    def _mark_region_canary_success(self, request_kind: str) -> None:
+        state_paths = self._region_canary_state_paths(request_kind)
+        if state_paths is None:
+            return
+        _, probing_path, supported_path = state_paths
+        supported_path.write_text(str(os.getpid()), encoding="utf-8")
+        with suppress(FileNotFoundError):
+            probing_path.unlink()
+
+    def _disable_region_canary(self, request_kind: str) -> None:
+        self._disabled_region_canaries.add(request_kind)
+        state_paths = self._region_canary_state_paths(request_kind)
+        if state_paths is None:
+            return
+        disabled_path, probing_path, _ = state_paths
+        disabled_path.write_text(str(os.getpid()), encoding="utf-8")
+        with suppress(FileNotFoundError):
+            probing_path.unlink()
+
+    def _region_canary_state_paths(
+        self, request_kind: str
+    ) -> tuple[Any, Any, Any] | None:
+        if self._trace_path is None:
+            return None
+        safe_kind = "".join(
+            character if character.isalnum() or character in {"-", "_"} else "-"
+            for character in request_kind
+        )
+        state_dir = self._trace_path.parent / "ocr2-region-canaries"
+        return (
+            state_dir / f"{safe_kind}.disabled",
+            state_dir / f"{safe_kind}.probing",
+            state_dir / f"{safe_kind}.supported",
+        )
 
     def _recognize_page_windows(
         self,

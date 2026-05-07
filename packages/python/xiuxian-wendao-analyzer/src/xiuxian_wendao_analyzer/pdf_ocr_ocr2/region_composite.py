@@ -8,10 +8,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from ..pdf_ocr_contracts import DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE
+from ..pdf_ocr_contracts import (
+    DEEPSEEK_OCR2_REGION_ATLAS_SAME_PAGE_JSON_MODE,
+    DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE,
+)
 from .http import extract_openai_message_content
 from .markers import extract_ocr2_region_composite_markdown
 from .payloads import region_composite_request_payload
+from .region_atlas import try_recognize_region_atlas
 from .results import succeeded_markdown_results
 from .routing import flatten_page_window_results
 from .scaffold_composite import recognize_region_composite_scaffold
@@ -24,6 +28,7 @@ class RegionCompositeClient(Protocol):
     _model: str
     _prompt: str
     _request_concurrency: int
+    _region_atlas_mode: str
     _scaffold_mode: str
 
     def recognize(self, input_row: Mapping[str, Any]) -> Mapping[str, Any]: ...
@@ -36,6 +41,12 @@ class RegionCompositeClient(Protocol):
     def _send_completion_request(
         self, payload: Mapping[str, Any]
     ) -> tuple[int | None, Any]: ...
+
+    def _claim_region_canary(self, request_kind: str) -> bool: ...
+
+    def _mark_region_canary_success(self, request_kind: str) -> None: ...
+
+    def _disable_region_canary(self, request_kind: str) -> None: ...
 
     def _write_trace(
         self,
@@ -83,9 +94,20 @@ def recognize_region_composite(
         return [client.recognize(row) for row in rows]
     if client._scaffold_mode == DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE:
         return recognize_region_composite_scaffold(client, rows)
-    composite_result = try_recognize_region_composite(client, rows)
-    if composite_result is not None:
-        return composite_result
+    if client._region_atlas_mode == DEEPSEEK_OCR2_REGION_ATLAS_SAME_PAGE_JSON_MODE:
+        if client._claim_region_canary("region-atlas"):
+            atlas_result = try_recognize_region_atlas(client, rows)
+            if atlas_result is not None:
+                client._mark_region_canary_success("region-atlas")
+                return atlas_result
+            client._disable_region_canary("region-atlas")
+        return [client.recognize(row) for row in rows]
+    if client._claim_region_canary("region-composite"):
+        composite_result = try_recognize_region_composite(client, rows)
+        if composite_result is not None:
+            client._mark_region_canary_success("region-composite")
+            return composite_result
+        client._disable_region_canary("region-composite")
     return [client.recognize(row) for row in rows]
 
 

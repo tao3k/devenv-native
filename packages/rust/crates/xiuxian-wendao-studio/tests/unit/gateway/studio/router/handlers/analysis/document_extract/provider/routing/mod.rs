@@ -13,8 +13,8 @@ use super::{
     hybrid_page_ocr_region_requests_for_source_with_lookup,
     hybrid_page_ocr_render_profile_with_lookup, hybrid_page_ocr_render_selection_with_lookup,
     hybrid_page_ocr2_region_planner_with_lookup, merge_ocr2_recovery_page_inputs,
-    merge_ocr2_recovery_region_inputs, sample_hybrid_page_ocr_report, sample_ocr_input,
-    sample_ocr_result, validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
+    sample_hybrid_page_ocr_report, sample_ocr_input, sample_ocr_result,
+    validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results,
 };
 

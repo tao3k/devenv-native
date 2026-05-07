@@ -20,15 +20,37 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV: &str =
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_REGION_PIPELINE_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PIPELINE";
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE: &str = "region-table-json";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_REGION_PIPELINE_RENDER_DISPATCH_MODE: &str = "render-dispatch";
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum HybridPdfOcr2ScaffoldMode {
     Disabled,
     RegionTableJson,
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HybridPdfOcr2RegionPipelineMode {
+    Disabled,
+    RenderDispatch,
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+impl HybridPdfOcr2RegionPipelineMode {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Disabled => "disabled",
+            Self::RenderDispatch => OCR2_REGION_PIPELINE_RENDER_DISPATCH_MODE,
+        }
+    }
 }
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
@@ -44,6 +66,24 @@ pub(crate) fn hybrid_page_ocr2_scaffold_mode_with_lookup(
     {
         OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE => HybridPdfOcr2ScaffoldMode::RegionTableJson,
         _ => HybridPdfOcr2ScaffoldMode::Disabled,
+    }
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+pub(crate) fn hybrid_page_ocr2_region_pipeline_mode_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> HybridPdfOcr2RegionPipelineMode {
+    match lookup(DOCUMENT_EXTRACT_PDF_OCR2_REGION_PIPELINE_ENV)
+        .unwrap_or_default()
+        .trim()
+        .replace('_', "-")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        OCR2_REGION_PIPELINE_RENDER_DISPATCH_MODE => {
+            HybridPdfOcr2RegionPipelineMode::RenderDispatch
+        }
+        _ => HybridPdfOcr2RegionPipelineMode::Disabled,
     }
 }
 

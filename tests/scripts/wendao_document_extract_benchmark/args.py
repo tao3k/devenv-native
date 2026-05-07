@@ -205,6 +205,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--deepseek-ocr2-region-atlas-mode",
+        choices=("disabled", "same-page-json"),
+        default="disabled",
+        help=(
+            "Opt-in direct OCR2 same-page region atlas mode forwarded to "
+            "WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE. same-page-json packs "
+            "same-page region crops into one labeled PNG atlas and requires "
+            "JSON output keyed by exact shard markers."
+        ),
+    )
+    parser.add_argument(
         "--deepseek-ocr2-scaffold-mode",
         choices=("disabled", "region-table-json"),
         default="disabled",

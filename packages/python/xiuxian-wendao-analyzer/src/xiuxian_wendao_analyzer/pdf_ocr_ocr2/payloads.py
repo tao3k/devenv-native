@@ -112,6 +112,38 @@ def region_composite_request_payload(
     }
 
 
+def region_atlas_request_payload(
+    *,
+    model: str,
+    prompt: str,
+    input_rows: Sequence[Mapping[str, Any]],
+    atlas_image_bytes: bytes,
+    max_tokens: int,
+) -> dict[str, Any]:
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": region_atlas_prompt(prompt, input_rows),
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": image_bytes_data_url(atlas_image_bytes, "image/png")
+                        },
+                    },
+                ],
+            }
+        ],
+        "max_tokens": max_tokens,
+        "temperature": 0,
+    }
+
+
 def region_scaffold_request_payload(
     *,
     model: str,
@@ -158,6 +190,10 @@ def region_scaffold_request_payload(
 def image_data_url(input_row: Mapping[str, Any], image_path: Path) -> str:
     image_bytes = image_path.read_bytes()
     image_mime_type = str(input_row.get("imageMimeType") or "image/png")
+    return image_bytes_data_url(image_bytes, image_mime_type)
+
+
+def image_bytes_data_url(image_bytes: bytes, image_mime_type: str) -> str:
     encoded = base64.b64encode(image_bytes).decode("ascii")
     return f"data:{image_mime_type};base64,{encoded}"
 
@@ -193,6 +229,52 @@ def region_composite_prompt(
         "merge regions and do not invent missing context.\n\n"
         "Required section markers:\n"
         f"{markers}"
+    )
+
+
+def region_atlas_prompt(prompt: str, input_rows: Sequence[Mapping[str, Any]]) -> str:
+    regions = [
+        {
+            "panel": f"REGION {index}",
+            "marker": ocr2_region_marker(row),
+            "shardElementId": str(row.get("shardElementId") or ""),
+            "pageIndex": row.get("pageIndex"),
+            "regionIndex": row.get("regionIndex"),
+            "parentShardElementId": row.get("parentShardElementId"),
+            "sourcePagePixelBox": {
+                "left": row.get("sourcePagePixelLeft"),
+                "top": row.get("sourcePagePixelTop"),
+                "right": row.get("sourcePagePixelRight"),
+                "bottom": row.get("sourcePagePixelBottom"),
+            },
+        }
+        for index, row in enumerate(input_rows, start=1)
+    ]
+    mapping_json = json.dumps({"regions": regions}, sort_keys=True)
+    return (
+        f"{prompt}\n\n"
+        "You will receive one atlas image containing cropped OCR recovery "
+        "regions from the same PDF page. Each panel starts with a visible "
+        "black label such as REGION 1. Recognize each panel independently; "
+        "do not merge panels and do not use content from one panel to fill "
+        "another. Preserve all visible text, table cells, formulas, symbols, "
+        "and reading order inside each panel. Return JSON only, with no "
+        "Markdown fences and no explanatory text.\n\n"
+        "Output schema:\n"
+        '{"regions":[{"panel":"REGION 1","marker":"exact marker",'
+        '"shardElementId":"exact shard id","text":"optional text",'
+        '"tables":[{"caption":"optional caption","rows":[["cell","cell"]]}]}]}\n\n'
+        "Rules:\n"
+        "- Return exactly one regions[] item per atlas panel, in mapping order.\n"
+        "- Copy panel, marker, and shardElementId exactly from the mapping.\n"
+        "- Use tables[].rows only when a table is visible; all rows in a table "
+        "must have the same cell count.\n"
+        "- Every region must contain non-empty recognized content. If a table "
+        "shape is unclear, put all visible words, numbers, formulas, and "
+        "symbols into text.\n"
+        "- Do not add cells, rows, columns, or headings that are not visible.\n\n"
+        "Atlas panel mapping:\n"
+        f"{mapping_json}"
     )
 
 

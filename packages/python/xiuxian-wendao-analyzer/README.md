@@ -438,7 +438,15 @@ same-page, same-parent OCR2 region rows into one multi-image request. Region
 composite output must split back into one non-empty Markdown result per region
 sentinel marker; otherwise the worker falls back to individual region requests
 so the existing row/order contract is preserved. Batched page-window responses
-follow the same marker-split rule for page markers. Set
+follow the same marker-split rule for page markers. The benchmark can also set
+`WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE=same-page-json`, or pass
+`--deepseek-ocr2-region-atlas-mode same-page-json`, to pack a same-page region
+composite group into one labeled PNG atlas and request strict JSON keyed by
+exact shard markers. Atlas mode is an opt-in request-surface canary: valid JSON
+is canonicalized back into Markdown rows, while invalid JSON, row-count
+mismatches, empty text, and HTTP failures fall back to individual region
+requests so the existing Arrow shard result contract and precision fallback
+remain unchanged. Set
 `WENDAO_DEEPSEEK_OCR2_SCAFFOLD_MODE=region-table-json`, or pass
 `--deepseek-ocr2-scaffold-mode region-table-json` in the benchmark harness, to
 enable structural scaffold recovery for OCR2 region rows. In that mode the

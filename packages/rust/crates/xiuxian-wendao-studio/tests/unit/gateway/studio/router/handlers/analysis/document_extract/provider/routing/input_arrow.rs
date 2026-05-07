@@ -2,10 +2,12 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
+use xiuxian_wendao_attachments::pdf::ocr::merge_ocr2_recovery_region_inputs;
+
+#[cfg(feature = "document-extract-pdf-source-range")]
 use super::{
     PdfRenderRoutingDecision, PdfRenderStatus, hybrid_page_ocr_input_arrow_path,
-    merge_ocr2_recovery_page_inputs, merge_ocr2_recovery_region_inputs,
-    sample_hybrid_page_ocr_report, sample_ocr_input,
+    merge_ocr2_recovery_page_inputs, sample_hybrid_page_ocr_report, sample_ocr_input,
 };
 
 #[cfg(feature = "document-extract-pdf-source-range")]

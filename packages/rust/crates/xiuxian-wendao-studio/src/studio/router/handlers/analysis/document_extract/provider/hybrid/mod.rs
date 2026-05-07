@@ -36,10 +36,7 @@ pub(super) use render::{
     hybrid_page_ocr2_region_planner_with_lookup,
 };
 #[cfg(test)]
-pub(super) use route::{
-    has_ocr2_recovery_page_candidates, merge_ocr2_recovery_page_inputs,
-    merge_ocr2_recovery_region_inputs,
-};
+pub(super) use route::{has_ocr2_recovery_page_candidates, merge_ocr2_recovery_page_inputs};
 #[cfg(test)]
 pub(super) use structure::{
     hybrid_document_structure_blocks, write_hybrid_document_resource_artifacts,

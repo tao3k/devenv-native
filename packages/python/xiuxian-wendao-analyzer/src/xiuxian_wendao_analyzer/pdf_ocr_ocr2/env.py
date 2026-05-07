@@ -8,12 +8,15 @@ from pathlib import Path
 from ..pdf_ocr_contracts import (
     DEEPSEEK_OCR2_API_KEY_ENV,
     DEEPSEEK_OCR2_DEFAULT_API_KEY,
+    DEEPSEEK_OCR2_DEFAULT_REGION_ATLAS_MODE,
     DEEPSEEK_OCR2_DEFAULT_SCAFFOLD_MODE,
     DEEPSEEK_OCR2_OPENROUTE_COMPAT_API_KEY_ENV,
     DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV,
     DEEPSEEK_OCR2_OPENROUTER_HTTP_REFERER_ENV,
     DEEPSEEK_OCR2_OPENROUTER_PUBLIC_API_KEY_ENV,
     DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV,
+    DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV,
+    DEEPSEEK_OCR2_REGION_ATLAS_SAME_PAGE_JSON_MODE,
     DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE,
     DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV,
 )
@@ -98,6 +101,29 @@ def scaffold_mode_env() -> str:
     raise ValueError(
         f"unsupported {DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV}={value}; "
         "supported values: disabled, region-table-json"
+    )
+
+
+def region_atlas_mode_env() -> str:
+    value = (
+        os.environ.get(
+            DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV,
+            DEEPSEEK_OCR2_DEFAULT_REGION_ATLAS_MODE,
+        )
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if not value:
+        return DEEPSEEK_OCR2_DEFAULT_REGION_ATLAS_MODE
+    if value in {
+        DEEPSEEK_OCR2_DEFAULT_REGION_ATLAS_MODE,
+        DEEPSEEK_OCR2_REGION_ATLAS_SAME_PAGE_JSON_MODE,
+    }:
+        return value
+    raise ValueError(
+        f"unsupported {DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV}={value}; "
+        "supported values: disabled, same-page-json"
     )
 
 

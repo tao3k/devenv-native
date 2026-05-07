@@ -300,6 +300,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- DeepSeek-OCR-2 max tokens: `{deepseek_ocr2.get('maxTokens')}`",
         f"- DeepSeek-OCR-2 region max tokens: `{deepseek_ocr2.get('regionMaxTokens')}`",
         f"- DeepSeek-OCR-2 region composite size: `{deepseek_ocr2.get('regionCompositeSize')}`",
+        f"- DeepSeek-OCR-2 region atlas mode: `{deepseek_ocr2.get('regionAtlasMode')}`",
         f"- DeepSeek-OCR-2 timeout seconds: `{deepseek_ocr2.get('timeoutSeconds')}`",
         f"- DeepSeek-OCR-2 request concurrency: `{deepseek_ocr2.get('requestConcurrency')}`",
         f"- DeepSeek-OCR-2 page window size: `{deepseek_ocr2.get('pageWindowSize')}`",

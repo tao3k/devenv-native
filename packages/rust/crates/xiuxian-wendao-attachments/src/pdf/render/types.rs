@@ -473,8 +473,9 @@ impl PdfPageRegionRenderRequest {
         }
     }
 
-    #[cfg(feature = "pdf-render")]
-    pub(super) fn effective_reading_order_key(&self) -> String {
+    /// Return the explicit reading-order key or the deterministic page/region fallback.
+    #[must_use]
+    pub fn effective_reading_order_key(&self) -> String {
         self.reading_order_key
             .clone()
             .unwrap_or_else(|| format!("{:06}.{:06}", self.page_index, self.region_index))
