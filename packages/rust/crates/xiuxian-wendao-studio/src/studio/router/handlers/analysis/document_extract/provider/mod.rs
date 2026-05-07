@@ -38,13 +38,13 @@ use super::arrow_cache::{read_arrow_file, write_arrow_file};
 use super::registry::DocumentExtractJobRegistry;
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
 use hybrid::{
-    DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV,
-    DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
-    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
-    HybridDocumentResourceBatch, HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
+    DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridDocumentResourceBatch,
+    HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner,
     apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,
     apply_hybrid_page_ocr_profile_plan_for_profiles,
-    apply_hybrid_page_ocr2_profile_plan_for_profiles,
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
     automatic_ocr2_recovery_region_requests_with_lookup, has_ocr2_recovery_page_candidates,
     hybrid_document_structure_blocks, hybrid_page_ocr_input_arrow_path,

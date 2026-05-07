@@ -1,7 +1,7 @@
 use super::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, endpoint_index_for_request,
-    rendered_region_shard_chunks, rendered_region_shard_chunks_with_composite_size,
-    sample_ocr_input, source_pdf_page_range_chunks, source_pdf_page_range_chunks_with_weights,
+    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, endpoint_index_for_request, rendered_region_shard_chunks,
+    rendered_region_shard_chunks_with_composite_size, sample_ocr_input,
+    source_pdf_page_range_chunks, source_pdf_page_range_chunks_with_weights,
 };
 
 #[test]
@@ -148,8 +148,8 @@ fn rendered_region_shard_chunks_start_largest_regions_first_for_tail_control() {
             let mut input = sample_ocr_input("/tmp/source.pdf", 12, "region");
             input.region_index = region_index;
             input.shard_element_id = format!("region-{region_index}");
-            input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
-            input.ocr_engine = "deepseek-ocr2-direct-vlm".to_string();
+            input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
+            input.ocr_engine = "hosted-vlm-direct-ocr".to_string();
             input
         })
         .collect::<Vec<_>>();
@@ -183,7 +183,7 @@ fn rendered_region_shard_chunks_group_same_page_regions_for_composite_canary() {
     let mut inputs = (0..6)
         .map(|region_index| {
             let mut input = sample_ocr_input("/tmp/source.pdf", 12, "region");
-            input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
+            input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
             input.shard_type = "region".to_string();
             input.region_index = region_index;
             input.reading_order_key = format!("000012.{region_index:06}");

@@ -10,9 +10,10 @@ mod types;
 
 #[cfg(test)]
 pub(super) use types::{
-    DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV,
-    DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
-    DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridDocumentResourceBatch,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
+    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
+    HybridDocumentResourceBatch,
 };
 
 #[cfg(test)]
@@ -24,8 +25,7 @@ pub(super) use precision_gate::{
 pub(super) use profile::{
     DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, HybridPdfOcrProfilePlanner,
     apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,
-    apply_hybrid_page_ocr_profile_plan_for_profiles,
-    apply_hybrid_page_ocr2_profile_plan_for_profiles, hybrid_page_ocr_profile_planner_with_lookup,
+    apply_hybrid_page_ocr_profile_plan_for_profiles, hybrid_page_ocr_profile_planner_with_lookup,
 };
 #[cfg(test)]
 pub(super) use render::{

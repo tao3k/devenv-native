@@ -22,7 +22,9 @@ from .pdf_ocr_grouping import (
     _is_source_pdf_page_range_group,
     _should_try_source_pdf_page_range,
 )
-from .pdf_ocr_ocr2 import recognize_deepseek_ocr2_many as _recognize_deepseek_ocr2_many
+from .pdf_ocr_ocr2 import (
+    recognize_hosted_vlm_ocr_many as _recognize_hosted_vlm_ocr_many,
+)
 from .pdf_ocr_results import failed_pdf_ocr_shard_result, skipped_pdf_ocr_shard_result
 from .pdf_ocr_tables import resolve_pdf_ocr_worker_count
 
@@ -128,7 +130,7 @@ class DoclingPdfOcrShardWorker:
                 (index, result)
                 for index, result in zip(
                     indexes,
-                    _recognize_deepseek_ocr2_many(
+                    _recognize_hosted_vlm_ocr_many(
                         input_rows, request_concurrency=max_workers
                     ),
                     strict=True,

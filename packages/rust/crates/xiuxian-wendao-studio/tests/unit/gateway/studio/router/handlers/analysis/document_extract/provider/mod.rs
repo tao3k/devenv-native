@@ -11,15 +11,15 @@ use super::{
 };
 #[cfg(feature = "document-extract-pdf-source-range")]
 use super::{
-    DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV,
-    DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
-    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
-    HybridDocumentResourceBatch, HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner,
-    PdfOcrShardInput, PdfOcrShardResult, PdfOcrShardResultStatus, PdfPageRenderSelection,
-    PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
+    DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridDocumentResourceBatch,
+    HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner, PdfOcrShardInput, PdfOcrShardResult,
+    PdfOcrShardResultStatus, PdfPageRenderSelection, PdfPageRenderShardReport,
+    PdfRenderRoutingDecision, PdfRenderStatus,
     apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,
     apply_hybrid_page_ocr_profile_plan_for_profiles,
-    apply_hybrid_page_ocr2_profile_plan_for_profiles,
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
     automatic_ocr2_recovery_region_requests_with_lookup, build_document_structure_batch,
     has_ocr2_recovery_page_candidates, hybrid_document_structure_blocks,

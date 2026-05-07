@@ -1,4 +1,4 @@
-"""OpenAI-compatible HTTP transport for OCR2 requests."""
+"""OpenAI-compatible HTTP transport for Hosted VLM/OCR requests."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ import urllib.request
 from collections.abc import Mapping
 from typing import Any
 
-_DEEPSEEK_OCR2_TRANSIENT_HTTP_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
-_DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES = 3
-_DEEPSEEK_OCR2_RETRY_BASE_SECONDS = 0.25
-_DEEPSEEK_OCR2_RATE_LIMIT_RETRY_BASE_SECONDS = 2.0
-_DEEPSEEK_OCR2_MAX_RETRY_DELAY_SECONDS = 8.0
+_HOSTED_VLM_OCR_TRANSIENT_HTTP_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
+_HOSTED_VLM_OCR_MAX_TRANSIENT_RETRIES = 3
+_HOSTED_VLM_OCR_RETRY_BASE_SECONDS = 0.25
+_HOSTED_VLM_OCR_RATE_LIMIT_RETRY_BASE_SECONDS = 2.0
+_HOSTED_VLM_OCR_MAX_RETRY_DELAY_SECONDS = 8.0
 
 
 def send_completion_request(
@@ -24,7 +24,7 @@ def send_completion_request(
     payload: Mapping[str, Any],
 ) -> tuple[int | None, Any]:
     request_data = json.dumps(payload).encode("utf-8")
-    for attempt in range(_DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES + 1):
+    for attempt in range(_HOSTED_VLM_OCR_MAX_TRANSIENT_RETRIES + 1):
         request = urllib.request.Request(
             completion_url,
             data=request_data,
@@ -41,10 +41,10 @@ def send_completion_request(
                 raise
             sleep(ocr2_retry_delay_seconds(attempt, exc))
         except (OSError, urllib.error.URLError):
-            if attempt >= _DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES:
+            if attempt >= _HOSTED_VLM_OCR_MAX_TRANSIENT_RETRIES:
                 raise
             sleep(ocr2_retry_delay_seconds(attempt, None))
-    raise RuntimeError("unreachable OCR2 retry loop")
+    raise RuntimeError("unreachable Hosted VLM/OCR retry loop")
 
 
 def sleep(seconds: float) -> None:
@@ -70,8 +70,8 @@ def response_http_status(response: object) -> int | None:
 
 def should_retry_ocr2_http_error(error: urllib.error.HTTPError, attempt: int) -> bool:
     return (
-        error.code in _DEEPSEEK_OCR2_TRANSIENT_HTTP_STATUS
-        and attempt < _DEEPSEEK_OCR2_MAX_TRANSIENT_RETRIES
+        error.code in _HOSTED_VLM_OCR_TRANSIENT_HTTP_STATUS
+        and attempt < _HOSTED_VLM_OCR_MAX_TRANSIENT_RETRIES
     )
 
 
@@ -81,7 +81,7 @@ def is_transient_ocr2_failure(result: Mapping[str, Any]) -> bool:
     error_message = str(result.get("errorMessage") or "")
     return any(
         f"HTTP Error {status}" in error_message
-        for status in _DEEPSEEK_OCR2_TRANSIENT_HTTP_STATUS
+        for status in _HOSTED_VLM_OCR_TRANSIENT_HTTP_STATUS
     )
 
 
@@ -93,13 +93,13 @@ def ocr2_retry_delay_seconds(
     if retry_after is not None:
         return retry_after
     base_seconds = (
-        _DEEPSEEK_OCR2_RATE_LIMIT_RETRY_BASE_SECONDS
+        _HOSTED_VLM_OCR_RATE_LIMIT_RETRY_BASE_SECONDS
         if error is not None and error.code == 429
-        else _DEEPSEEK_OCR2_RETRY_BASE_SECONDS
+        else _HOSTED_VLM_OCR_RETRY_BASE_SECONDS
     )
     return min(
         base_seconds * (2**attempt),
-        _DEEPSEEK_OCR2_MAX_RETRY_DELAY_SECONDS,
+        _HOSTED_VLM_OCR_MAX_RETRY_DELAY_SECONDS,
     )
 
 
@@ -116,7 +116,7 @@ def ocr2_retry_after_seconds(error: urllib.error.HTTPError | None) -> float | No
         seconds = float(value)
     except ValueError:
         return None
-    return min(max(seconds, 0.0), _DEEPSEEK_OCR2_MAX_RETRY_DELAY_SECONDS)
+    return min(max(seconds, 0.0), _HOSTED_VLM_OCR_MAX_RETRY_DELAY_SECONDS)
 
 
 def short_error_message(error: BaseException | None) -> str | None:

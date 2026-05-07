@@ -10,15 +10,14 @@ pub use batches::{
     decode_ocr_shard_result_batch, decode_ocr_shard_result_batches,
 };
 pub use recovery::{
-    downgrade_ocr2_region_parent_page_inputs, merge_ocr2_recovery_region_inputs,
-    ocr2_region_parent_page_shards, prepare_ocr2_recovery_region_inputs,
+    downgrade_hosted_vlm_region_parent_page_inputs, hosted_vlm_region_parent_page_shards,
+    merge_hosted_vlm_recovery_region_inputs, prepare_hosted_vlm_recovery_region_inputs,
 };
 pub use types::{
-    OcrShardManifestSource, PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_DEFAULT_PROFILE,
-    PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE, PDF_OCR_FAST_TEXT_PROFILE,
-    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
-    PDF_OCR_SHARD_RESULT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult,
-    PdfOcrShardResultStatus, PdfOcrWorkerProfile, is_hosted_vlm_direct_profile,
+    OcrShardManifestSource, PDF_OCR_DEFAULT_PROFILE, PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
+    PDF_OCR_FAST_TEXT_PROFILE, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PDF_OCR_SHARD_RESULT_SCHEMA_VERSION, PdfOcrShardInput,
+    PdfOcrShardResult, PdfOcrShardResultStatus, PdfOcrWorkerProfile, is_hosted_vlm_direct_profile,
 };
 
 #[cfg(test)]

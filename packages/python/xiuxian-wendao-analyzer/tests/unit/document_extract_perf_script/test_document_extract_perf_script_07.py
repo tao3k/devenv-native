@@ -151,7 +151,7 @@ def test_hybrid_pdf_render_region_env_ignores_non_region_selection(
     assert benchmark.build_hybrid_pdf_render_region_env(args) == {}
 
 
-def test_ocr2_hybrid_profiles_auto_prepare_pdfium_runtime(
+def test_hosted_vlm_hybrid_profiles_auto_prepare_pdfium_runtime(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -166,8 +166,8 @@ def test_ocr2_hybrid_profiles_auto_prepare_pdfium_runtime(
     args = benchmark.argparse.Namespace(
         pdfium_library_path=None,
         prepare_pdfium_runtime=False,
-        rust_pdf_ocr_profile_planner="ocr2-risk-window",
-        rust_pdf_ocr2_region_planner="profile-risk-window-slices",
+        rust_pdf_ocr_profile_planner="hosted-vlm-risk-window",
+        rust_pdf_hosted_vlm_region_planner="profile-risk-window-slices",
         hybrid_pdf_render_selection="shard-fallback-pages",
     )
 
@@ -180,7 +180,7 @@ def test_fast_source_range_profile_does_not_auto_prepare_pdfium_runtime() -> Non
         pdfium_library_path=None,
         prepare_pdfium_runtime=False,
         rust_pdf_ocr_profile_planner="fast-risk-window",
-        rust_pdf_ocr2_region_planner="disabled",
+        rust_pdf_hosted_vlm_region_planner="disabled",
         hybrid_pdf_render_selection="shard-fallback-pages",
     )
 

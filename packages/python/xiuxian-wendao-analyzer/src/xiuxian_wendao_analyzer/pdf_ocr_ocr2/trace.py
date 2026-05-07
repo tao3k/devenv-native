@@ -1,4 +1,4 @@
-"""OCR2 request trace writer."""
+"""Hosted VLM/OCR request trace writer."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
     from pathlib import Path
 
-_DEEPSEEK_OCR2_TRACE_LOCK = threading.Lock()
+_HOSTED_VLM_OCR_TRACE_LOCK = threading.Lock()
 
 
 def write_trace_record(
@@ -46,7 +46,7 @@ def write_trace_record(
     latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
     started_unix_ms = max(0, ended_unix_ms - round(latency_ms))
     record = {
-        "schema": "xiuxian_wendao.deepseek_ocr2_request_trace.v1",
+        "schema": "xiuxian_wendao.hosted_vlm_ocr_request_trace.v1",
         "timestampUnixMs": ended_unix_ms,
         "startedUnixMs": started_unix_ms,
         "endedUnixMs": ended_unix_ms,
@@ -86,7 +86,7 @@ def write_trace_record(
         "errorMessage": short_error_message(error),
     }
     try:
-        with _DEEPSEEK_OCR2_TRACE_LOCK:
+        with _HOSTED_VLM_OCR_TRACE_LOCK:
             trace_path.parent.mkdir(parents=True, exist_ok=True)
             with trace_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(record, sort_keys=True))

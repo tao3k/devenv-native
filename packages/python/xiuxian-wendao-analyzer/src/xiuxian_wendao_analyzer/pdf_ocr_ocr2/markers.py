@@ -1,4 +1,4 @@
-"""OCR2 page and region markers."""
+"""Hosted VLM/OCR page and region markers."""
 
 from __future__ import annotations
 
@@ -7,27 +7,27 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-_DEEPSEEK_OCR2_PAGE_MARKER_PREFIX = "<!-- xiuxian-wendao-ocr2-page:"
-_DEEPSEEK_OCR2_PAGE_MARKER_SUFFIX = " -->"
-_DEEPSEEK_OCR2_REGION_MARKER_PREFIX = "<!-- xiuxian-wendao-ocr2-region:"
-_DEEPSEEK_OCR2_REGION_MARKER_SUFFIX = " -->"
+_HOSTED_VLM_OCR_PAGE_MARKER_PREFIX = "<!-- xiuxian-wendao-hosted-vlm-page:"
+_HOSTED_VLM_OCR_PAGE_MARKER_SUFFIX = " -->"
+_HOSTED_VLM_OCR_REGION_MARKER_PREFIX = "<!-- xiuxian-wendao-hosted-vlm-region:"
+_HOSTED_VLM_OCR_REGION_MARKER_SUFFIX = " -->"
 
 
 def ocr2_page_marker(input_row: Mapping[str, Any]) -> str:
     return (
-        f"{_DEEPSEEK_OCR2_PAGE_MARKER_PREFIX}"
+        f"{_HOSTED_VLM_OCR_PAGE_MARKER_PREFIX}"
         f"{input_row.get('pageIndex')}"
-        f"{_DEEPSEEK_OCR2_PAGE_MARKER_SUFFIX}"
+        f"{_HOSTED_VLM_OCR_PAGE_MARKER_SUFFIX}"
     )
 
 
 def ocr2_region_marker(input_row: Mapping[str, Any]) -> str:
     return (
-        f"{_DEEPSEEK_OCR2_REGION_MARKER_PREFIX}"
+        f"{_HOSTED_VLM_OCR_REGION_MARKER_PREFIX}"
         f"{input_row.get('pageIndex')}:"
         f"{input_row.get('regionIndex')}:"
         f"{input_row.get('shardElementId')}"
-        f"{_DEEPSEEK_OCR2_REGION_MARKER_SUFFIX}"
+        f"{_HOSTED_VLM_OCR_REGION_MARKER_SUFFIX}"
     )
 
 
@@ -59,26 +59,30 @@ def extract_ocr2_marked_sections(
     label: str,
 ) -> list[str]:
     if not markdown.strip():
-        raise ValueError(f"OCR2 {label} response returned empty text")
+        raise ValueError(f"Hosted VLM/OCR {label} response returned empty text")
     sections = []
     cursor = 0
     for index, marker in enumerate(markers):
         marker_position = markdown.find(marker, cursor)
         if marker_position < 0:
-            raise ValueError(f"OCR2 {label} response is missing a section marker")
+            raise ValueError(
+                f"Hosted VLM/OCR {label} response is missing a section marker"
+            )
         content_start = marker_position + len(marker)
         if index + 1 < len(markers):
             next_position = markdown.find(markers[index + 1], content_start)
             if next_position < 0:
                 raise ValueError(
-                    f"OCR2 {label} response is missing the next section marker"
+                    f"Hosted VLM/OCR {label} response is missing the next section marker"
                 )
             content_end = next_position
         else:
             content_end = len(markdown)
         text = markdown[content_start:content_end].strip()
         if not text:
-            raise ValueError(f"OCR2 {label} response returned an empty section")
+            raise ValueError(
+                f"Hosted VLM/OCR {label} response returned an empty section"
+            )
         sections.append(text)
         cursor = content_end
     return sections

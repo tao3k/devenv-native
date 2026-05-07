@@ -1,4 +1,4 @@
-"""DeepSeek-OCR-2 OpenAI-compatible client."""
+"""Hosted VLM/OCR OpenAI-compatible client."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import threading
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
-from ..pdf_ocr_contracts import DEEPSEEK_OCR2_DEFAULT_API_KEY
+from ..pdf_ocr_contracts import HOSTED_VLM_OCR_DEFAULT_API_KEY
 from ..pdf_ocr_results import failed_pdf_ocr_shard_result
 from . import http as ocr2_http
 from .config import Ocr2ClientConfig, ocr2_client_config_from_env
@@ -33,12 +33,12 @@ from .trace import write_trace_record
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-_DEEPSEEK_OCR2_PAGE_WINDOW_PROBE_LOCK = threading.Lock()
-_DEEPSEEK_OCR2_PAGE_WINDOW_COMPATIBILITY: dict[tuple[str, int], bool] = {}
-_DEEPSEEK_OCR2_GROUP_RETRY_DELAYS_SECONDS = (8.0, 16.0)
+_HOSTED_VLM_OCR_PAGE_WINDOW_PROBE_LOCK = threading.Lock()
+_HOSTED_VLM_OCR_PAGE_WINDOW_COMPATIBILITY: dict[tuple[str, int], bool] = {}
+_HOSTED_VLM_OCR_GROUP_RETRY_DELAYS_SECONDS = (8.0, 16.0)
 
 
-def recognize_deepseek_ocr2_many(
+def recognize_hosted_vlm_ocr_many(
     input_rows: Sequence[Mapping[str, Any]],
     *,
     request_concurrency: int | str | None = None,
@@ -47,7 +47,7 @@ def recognize_deepseek_ocr2_many(
         config = ocr2_client_config_from_env(request_concurrency=request_concurrency)
     except ValueError as exc:
         return [
-            failed_pdf_ocr_shard_result(input_row, f"DeepSeek-OCR-2 OCR failed: {exc}")
+            failed_pdf_ocr_shard_result(input_row, f"Hosted VLM/OCR failed: {exc}")
             for input_row in input_rows
         ]
     return _DeepSeekOcr2OpenAiClient(config).recognize_many(input_rows)
@@ -217,8 +217,8 @@ class _DeepSeekOcr2OpenAiClient:
         input_rows: Sequence[Mapping[str, Any]],
     ) -> list[Mapping[str, Any]] | None:
         compatibility_key = (self._model, self._page_window_size)
-        with _DEEPSEEK_OCR2_PAGE_WINDOW_PROBE_LOCK:
-            is_compatible = _DEEPSEEK_OCR2_PAGE_WINDOW_COMPATIBILITY.get(
+        with _HOSTED_VLM_OCR_PAGE_WINDOW_PROBE_LOCK:
+            is_compatible = _HOSTED_VLM_OCR_PAGE_WINDOW_COMPATIBILITY.get(
                 compatibility_key
             )
             if is_compatible is False:
@@ -226,7 +226,7 @@ class _DeepSeekOcr2OpenAiClient:
             if is_compatible is True:
                 return try_recognize_page_window(self, input_rows)
             probe_result = try_recognize_page_window(self, input_rows)
-            _DEEPSEEK_OCR2_PAGE_WINDOW_COMPATIBILITY[compatibility_key] = (
+            _HOSTED_VLM_OCR_PAGE_WINDOW_COMPATIBILITY[compatibility_key] = (
                 probe_result is not None
             )
             return probe_result
@@ -239,7 +239,7 @@ class _DeepSeekOcr2OpenAiClient:
         output = list(results)
         if len(output) != len(rows):
             return output
-        for delay_seconds in _DEEPSEEK_OCR2_GROUP_RETRY_DELAYS_SECONDS:
+        for delay_seconds in _HOSTED_VLM_OCR_GROUP_RETRY_DELAYS_SECONDS:
             retry_indexes = [
                 index
                 for index, result in enumerate(output)
@@ -277,7 +277,7 @@ class _DeepSeekOcr2OpenAiClient:
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json", **self._extra_headers}
-        if self._api_key and self._api_key != DEEPSEEK_OCR2_DEFAULT_API_KEY:
+        if self._api_key and self._api_key != HOSTED_VLM_OCR_DEFAULT_API_KEY:
             headers["Authorization"] = f"Bearer {self._api_key}"
         return headers
 

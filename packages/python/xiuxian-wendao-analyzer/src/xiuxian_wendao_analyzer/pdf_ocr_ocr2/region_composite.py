@@ -1,4 +1,4 @@
-"""OCR2 region-composite recognition path."""
+"""Hosted VLM/OCR region-composite recognition path."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 from ..pdf_ocr_contracts import (
-    DEEPSEEK_OCR2_REGION_ATLAS_SAME_PAGE_JSON_MODE,
-    DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE,
+    HOSTED_VLM_OCR_REGION_ATLAS_SAME_PAGE_JSON_MODE,
+    HOSTED_VLM_OCR_REGION_TABLE_JSON_SCAFFOLD_MODE,
 )
 from .http import extract_openai_message_content
 from .markers import extract_ocr2_region_composite_markdown
@@ -92,9 +92,9 @@ def recognize_region_composite(
     rows = list(input_rows)
     if len(rows) <= 1:
         return [client.recognize(row) for row in rows]
-    if client._scaffold_mode == DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE:
+    if client._scaffold_mode == HOSTED_VLM_OCR_REGION_TABLE_JSON_SCAFFOLD_MODE:
         return recognize_region_composite_scaffold(client, rows)
-    if client._region_atlas_mode == DEEPSEEK_OCR2_REGION_ATLAS_SAME_PAGE_JSON_MODE:
+    if client._region_atlas_mode == HOSTED_VLM_OCR_REGION_ATLAS_SAME_PAGE_JSON_MODE:
         if client._claim_region_canary("region-atlas"):
             atlas_result = try_recognize_region_atlas(client, rows)
             if atlas_result is not None:

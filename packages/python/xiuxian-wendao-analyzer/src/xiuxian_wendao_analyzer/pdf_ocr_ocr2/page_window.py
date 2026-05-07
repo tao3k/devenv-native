@@ -1,4 +1,4 @@
-"""OCR2 page-window recognition path."""
+"""Hosted VLM/OCR page-window recognition path."""
 
 from __future__ import annotations
 

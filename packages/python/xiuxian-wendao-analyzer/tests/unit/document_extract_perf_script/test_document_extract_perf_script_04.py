@@ -109,7 +109,7 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         pdf_ocr_workers="auto",
         python_uv_package="xiuxian-wendao-analyzer",
         python_uv_extras=[],
-        deepseek_ocr2_env={"WENDAO_DEEPSEEK_OCR2_MODEL": "community/ocr2-awq"},
+        hosted_vlm_ocr_env={"WENDAO_HOSTED_VLM_OCR_MODEL": "community/hosted-vlm-awq"},
         log_dir=tmp_path / "logs",
     )
 
@@ -130,92 +130,92 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "python-worker-2.txt",
     ]
     assert [
-        call[2]["deepseek_ocr2_env"]["WENDAO_DEEPSEEK_OCR2_MODEL"] for call in calls
+        call[2]["hosted_vlm_ocr_env"]["WENDAO_HOSTED_VLM_OCR_MODEL"] for call in calls
     ] == [
-        "community/ocr2-awq",
-        "community/ocr2-awq",
-        "community/ocr2-awq",
+        "community/hosted-vlm-awq",
+        "community/hosted-vlm-awq",
+        "community/hosted-vlm-awq",
     ]
     assert [
-        Path(call[2]["deepseek_ocr2_env"]["WENDAO_DEEPSEEK_OCR2_TRACE_PATH"]).name
+        Path(call[2]["hosted_vlm_ocr_env"]["WENDAO_HOSTED_VLM_OCR_TRACE_PATH"]).name
         for call in calls
     ] == [
-        "python-worker-0.ocr2.jsonl",
-        "python-worker-1.ocr2.jsonl",
-        "python-worker-2.ocr2.jsonl",
+        "python-worker-0.hosted-vlm-ocr.jsonl",
+        "python-worker-1.hosted-vlm-ocr.jsonl",
+        "python-worker-2.hosted-vlm-ocr.jsonl",
     ]
 
 
-def test_deepseek_ocr2_process_env_maps_cli_args() -> None:
+def test_hosted_vlm_ocr_process_env_maps_cli_args() -> None:
     benchmark = _load_benchmark_module()
     args = benchmark.argparse.Namespace(
-        deepseek_ocr2_provider="openrouter",
-        deepseek_ocr2_base_url="http://127.0.0.1:8000/v1",
-        deepseek_ocr2_model="community/deepseek-ocr2-awq",
-        deepseek_ocr2_prompt="<image>\nmarkdown",
-        deepseek_ocr2_max_tokens=4096,
-        deepseek_ocr2_region_max_tokens=2048,
-        deepseek_ocr2_region_composite_size=2,
-        deepseek_ocr2_region_atlas_mode="same-page-json",
-        deepseek_ocr2_scaffold_mode="region-table-json",
-        deepseek_ocr2_timeout_seconds=120.0,
-        deepseek_ocr2_request_concurrency=4,
-        deepseek_ocr2_page_window_size=3,
+        hosted_vlm_ocr_provider="openrouter",
+        hosted_vlm_ocr_base_url="http://127.0.0.1:8000/v1",
+        hosted_vlm_ocr_model="community/hosted-vlm-awq",
+        hosted_vlm_ocr_prompt="<image>\nmarkdown",
+        hosted_vlm_ocr_max_tokens=4096,
+        hosted_vlm_ocr_region_max_tokens=2048,
+        hosted_vlm_ocr_region_composite_size=2,
+        hosted_vlm_ocr_region_atlas_mode="same-page-json",
+        hosted_vlm_ocr_scaffold_mode="region-table-json",
+        hosted_vlm_ocr_timeout_seconds=120.0,
+        hosted_vlm_ocr_request_concurrency=4,
+        hosted_vlm_ocr_page_window_size=3,
         openrouter_model="openrouter/vision-ocr",
         openrouter_http_referer="https://wendao.local",
         openrouter_title="Wendao OCR Benchmark",
     )
 
-    assert benchmark.deepseek_ocr2_process_env(args) == {
-        "WENDAO_DEEPSEEK_OCR2_PROVIDER": "openrouter",
-        "WENDAO_DEEPSEEK_OCR2_BASE_URL": "http://127.0.0.1:8000/v1",
-        "WENDAO_DEEPSEEK_OCR2_MODEL": "community/deepseek-ocr2-awq",
-        "WENDAO_DEEPSEEK_OCR2_PROMPT": "<image>\nmarkdown",
-        "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS": "4096",
-        "WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS": "2048",
-        "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE": "2",
-        "WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE": "same-page-json",
-        "WENDAO_DEEPSEEK_OCR2_SCAFFOLD_MODE": "region-table-json",
-        "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS": "120.0",
-        "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY": "4",
-        "WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE": "3",
+    assert benchmark.hosted_vlm_ocr_process_env(args) == {
+        "WENDAO_HOSTED_VLM_OCR_PROVIDER": "openrouter",
+        "WENDAO_HOSTED_VLM_OCR_BASE_URL": "http://127.0.0.1:8000/v1",
+        "WENDAO_HOSTED_VLM_OCR_MODEL": "community/hosted-vlm-awq",
+        "WENDAO_HOSTED_VLM_OCR_PROMPT": "<image>\nmarkdown",
+        "WENDAO_HOSTED_VLM_OCR_MAX_TOKENS": "4096",
+        "WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS": "2048",
+        "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE": "2",
+        "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE": "same-page-json",
+        "WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE": "region-table-json",
+        "WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS": "120.0",
+        "WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY": "4",
+        "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE": "3",
         "WENDAO_OPENROUTER_MODEL": "openrouter/vision-ocr",
         "WENDAO_OPENROUTER_HTTP_REFERER": "https://wendao.local",
         "WENDAO_OPENROUTER_TITLE": "Wendao OCR Benchmark",
     }
 
 
-def test_deepseek_ocr2_process_env_defaults_openrouter_smoke_model() -> None:
+def test_hosted_vlm_ocr_process_env_defaults_openrouter_smoke_model() -> None:
     benchmark = _load_benchmark_module()
     args = benchmark.argparse.Namespace(
-        deepseek_ocr2_provider="openrouter",
-        deepseek_ocr2_base_url=None,
-        deepseek_ocr2_model=None,
-        deepseek_ocr2_prompt=None,
-        deepseek_ocr2_max_tokens=None,
-        deepseek_ocr2_region_max_tokens=None,
-        deepseek_ocr2_region_composite_size=None,
-        deepseek_ocr2_region_atlas_mode=None,
-        deepseek_ocr2_scaffold_mode=None,
-        deepseek_ocr2_timeout_seconds=None,
-        deepseek_ocr2_request_concurrency=None,
-        deepseek_ocr2_page_window_size=None,
+        hosted_vlm_ocr_provider="openrouter",
+        hosted_vlm_ocr_base_url=None,
+        hosted_vlm_ocr_model=None,
+        hosted_vlm_ocr_prompt=None,
+        hosted_vlm_ocr_max_tokens=None,
+        hosted_vlm_ocr_region_max_tokens=None,
+        hosted_vlm_ocr_region_composite_size=None,
+        hosted_vlm_ocr_region_atlas_mode=None,
+        hosted_vlm_ocr_scaffold_mode=None,
+        hosted_vlm_ocr_timeout_seconds=None,
+        hosted_vlm_ocr_request_concurrency=None,
+        hosted_vlm_ocr_page_window_size=None,
         openrouter_model=None,
         openrouter_http_referer=None,
         openrouter_title=None,
     )
 
-    assert benchmark.deepseek_ocr2_process_env(args) == {
-        "WENDAO_DEEPSEEK_OCR2_PROVIDER": "openrouter",
+    assert benchmark.hosted_vlm_ocr_process_env(args) == {
+        "WENDAO_HOSTED_VLM_OCR_PROVIDER": "openrouter",
         "WENDAO_OPENROUTER_MODEL": "baidu/qianfan-ocr-fast:free",
     }
 
 
-def test_summarize_deepseek_ocr2_request_traces(tmp_path: Path) -> None:
+def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
-    (log_dir / "python-worker.ocr2.jsonl").write_text(
+    (log_dir / "python-worker.hosted-vlm-ocr.jsonl").write_text(
         "\n".join(
             [
                 json.dumps(
@@ -269,7 +269,7 @@ def test_summarize_deepseek_ocr2_request_traces(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    summary = benchmark.summarize_deepseek_ocr2_request_traces(log_dir)
+    summary = benchmark.summarize_hosted_vlm_ocr_request_traces(log_dir)
 
     assert summary["traceFileCount"] == 1
     assert summary["requestCount"] == 2
@@ -315,8 +315,7 @@ def test_openrouter_key_configured_reads_environment(monkeypatch) -> None:
     for key in (
         "WENDAO_OPENROUTER_API_KEY",
         "OPENROUTER_API_KEY",
-        "OPENROUTE_API_KEY",
-        "WENDAO_DEEPSEEK_OCR2_API_KEY",
+        "WENDAO_HOSTED_VLM_OCR_API_KEY",
     ):
         monkeypatch.delenv(key, raising=False)
 

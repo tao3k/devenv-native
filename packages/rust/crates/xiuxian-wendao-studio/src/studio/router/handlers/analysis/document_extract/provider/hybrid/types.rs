@@ -11,18 +11,18 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION";
 pub(crate) const DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON";
-pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI";
+pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI";
 pub(crate) const DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO";
-pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER";
+pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
-pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE";
+pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
-pub(crate) const DOCUMENT_EXTRACT_PDF_OCR2_REGION_PIPELINE_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PIPELINE";
+pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE";
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE: &str = "region-table-json";
@@ -57,7 +57,7 @@ impl HybridPdfOcr2RegionPipelineMode {
 pub(crate) fn hybrid_page_ocr2_scaffold_mode_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> HybridPdfOcr2ScaffoldMode {
-    match lookup(DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV)
+    match lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV)
         .unwrap_or_default()
         .trim()
         .replace('_', "-")
@@ -73,7 +73,7 @@ pub(crate) fn hybrid_page_ocr2_scaffold_mode_with_lookup(
 pub(crate) fn hybrid_page_ocr2_region_pipeline_mode_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> HybridPdfOcr2RegionPipelineMode {
-    match lookup(DOCUMENT_EXTRACT_PDF_OCR2_REGION_PIPELINE_ENV)
+    match lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE_ENV)
         .unwrap_or_default()
         .trim()
         .replace('_', "-")

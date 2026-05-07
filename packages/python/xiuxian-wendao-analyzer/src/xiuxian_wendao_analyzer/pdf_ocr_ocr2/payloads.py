@@ -1,4 +1,4 @@
-"""OpenAI-compatible OCR2 request payload builders."""
+"""OpenAI-compatible Hosted VLM/OCR request payload builders."""
 
 from __future__ import annotations
 

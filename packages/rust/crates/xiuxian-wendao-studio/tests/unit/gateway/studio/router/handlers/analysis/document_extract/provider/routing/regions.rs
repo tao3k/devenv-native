@@ -3,8 +3,9 @@ use std::path::Path;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 use super::{
-    DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
-    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, HybridPdfOcr2RegionPlanner, assert_close,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
+    HybridPdfOcr2RegionPlanner, assert_close,
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
     automatic_ocr2_recovery_region_requests_with_lookup, has_ocr2_recovery_page_candidates,
     hybrid_page_ocr_region_context_ratio_with_lookup,
@@ -98,21 +99,21 @@ fn hybrid_page_ocr_region_context_ratio_accepts_zero_override() -> Result<(), St
 fn hybrid_page_ocr2_region_planner_accepts_profile_risk_window() {
     assert_eq!(
         hybrid_page_ocr2_region_planner_with_lookup(&|key| {
-            (key == DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV)
+            (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV)
                 .then(|| "profile_risk_window".to_string())
         }),
         HybridPdfOcr2RegionPlanner::ProfileRiskWindow
     );
     assert_eq!(
         hybrid_page_ocr2_region_planner_with_lookup(&|key| {
-            (key == DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV)
+            (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV)
                 .then(|| "profile-risk-window-slices".to_string())
         }),
         HybridPdfOcr2RegionPlanner::ProfileRiskWindowSlices
     );
     assert_eq!(
         hybrid_page_ocr2_region_planner_with_lookup(&|key| {
-            (key == DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV)
+            (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV)
                 .then(|| "profile-risk-window-adaptive".to_string())
         }),
         HybridPdfOcr2RegionPlanner::ProfileRiskWindowAdaptive
@@ -127,13 +128,13 @@ fn hybrid_page_ocr2_region_planner_accepts_profile_risk_window() {
 #[test]
 fn ocr2_region_candidate_detection_requires_direct_page_profile() {
     let mut region = sample_ocr_input(1, "region");
-    region.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
+    region.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
     assert!(!has_ocr2_recovery_page_candidates(&[region]));
 
     let mut fast_page = sample_ocr_input(1, "page");
     fast_page.ocr_profile = "docling-fast-text-ocr".to_string();
     assert!(!has_ocr2_recovery_page_candidates(&[fast_page.clone()]));
 
-    fast_page.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
+    fast_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
     assert!(has_ocr2_recovery_page_candidates(&[fast_page]));
 }

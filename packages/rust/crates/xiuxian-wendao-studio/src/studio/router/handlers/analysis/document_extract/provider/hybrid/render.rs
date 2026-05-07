@@ -15,9 +15,10 @@ use xiuxian_wendao_server::transport::DocumentExtractFlightRequest;
 
 use super::profile::hybrid_page_ocr_profile_planner;
 use super::types::{
-    DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV,
-    DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
-    DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridPdfRegionInput,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
+    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
+    HybridPdfRegionInput,
 };
 use crate::studio::router::handlers::analysis::document_extract::registry::default_output_dir;
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, is_hosted_vlm_direct_profile};
@@ -95,7 +96,7 @@ pub(crate) fn hybrid_page_ocr_render_profile_with_lookup(
     if !ocr2_rendered_page_images {
         return profile;
     }
-    let Some(dpi) = lookup(DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI_ENV)
+    let Some(dpi) = lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV)
         .and_then(|value| value.trim().parse::<u32>().ok())
         .filter(|value| *value >= profile.dpi)
     else {
@@ -176,7 +177,7 @@ pub(crate) fn automatic_ocr2_recovery_region_requests_for_source_with_lookup(
     let profiles = match source_pdf_page_profiles_cached(source) {
         Ok(profiles) => profiles,
         Err(error) => {
-            log::debug!("hybrid PDF OCR2 region planner skipped source profile: {error}");
+            log::debug!("hybrid PDF hosted VLM/OCR region planner skipped source profile: {error}");
             Vec::new()
         }
     };
@@ -227,7 +228,7 @@ pub(crate) fn automatic_ocr2_recovery_region_requests_for_profiles_with_lookup(
 pub(crate) fn hybrid_page_ocr2_region_planner_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> HybridPdfOcr2RegionPlanner {
-    match lookup(DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV)
+    match lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV)
         .unwrap_or_default()
         .trim()
         .replace('_', "-")

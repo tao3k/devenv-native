@@ -1,5 +1,5 @@
-"""DeepSeek-OCR-2 direct VLM worker internals."""
+"""Hosted VLM/OCR direct VLM worker internals."""
 
-from .client import recognize_deepseek_ocr2_many
+from .client import recognize_hosted_vlm_ocr_many
 
-__all__ = ["recognize_deepseek_ocr2_many"]
+__all__ = ["recognize_hosted_vlm_ocr_many"]

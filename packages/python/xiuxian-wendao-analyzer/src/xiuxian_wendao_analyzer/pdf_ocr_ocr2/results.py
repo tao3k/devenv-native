@@ -1,4 +1,4 @@
-"""OCR2 result-row constructors."""
+"""Hosted VLM/OCR result-row constructors."""
 
 from __future__ import annotations
 
@@ -29,6 +29,6 @@ def failed_results(
     error: BaseException,
 ) -> list[Mapping[str, Any]]:
     return [
-        failed_pdf_ocr_shard_result(input_row, f"DeepSeek-OCR-2 OCR failed: {error}")
+        failed_pdf_ocr_shard_result(input_row, f"Hosted VLM/OCR failed: {error}")
         for input_row in input_rows
     ]

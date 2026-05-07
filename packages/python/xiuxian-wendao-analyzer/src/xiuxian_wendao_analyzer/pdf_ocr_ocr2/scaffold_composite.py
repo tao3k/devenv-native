@@ -1,4 +1,4 @@
-"""OCR2 scaffolded region-composite recognition path."""
+"""Hosted VLM/OCR scaffolded region-composite recognition path."""
 
 from __future__ import annotations
 
@@ -147,7 +147,7 @@ def _missing_image_failure(
     max_tokens: int,
     started: float,
 ) -> list[Mapping[str, Any]]:
-    error = ValueError(f"DeepSeek-OCR-2 shard image does not exist: {missing_path}")
+    error = ValueError(f"Hosted VLM/OCR shard image does not exist: {missing_path}")
     client._write_trace(
         input_rows[0],
         status="failed",
@@ -249,7 +249,7 @@ def _scaffold_applied_count(
     input_rows: Sequence[Mapping[str, Any]],
     error: OSError | ValueError | urllib.error.URLError,
 ) -> int:
-    if str(error).startswith("missing OCR2 region scaffold sidecar"):
+    if str(error).startswith("missing Hosted VLM/OCR region scaffold sidecar"):
         return 0
     return len(input_rows)
 

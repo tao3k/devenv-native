@@ -23,9 +23,9 @@ from .fixtures import (
     select_fixtures,
 )
 from .http_status import normalize_rest_endpoint, pick_free_port, wait_for_http_endpoint
-from .ocr2_trace import summarize_deepseek_ocr2_request_traces
+from .ocr2_trace import summarize_hosted_vlm_ocr_request_traces
 from .pdf_render import run_pdf_render_shard_audit
-from .precision_speed import ocr2_promotion_gate
+from .precision_speed import hosted_vlm_promotion_gate
 from .probes import (
     resolve_structure_baseline_root,
     run_distinct_miss_probe,
@@ -41,7 +41,7 @@ from .providers import (
 from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
 from .runtime import wait_for_port
 from .workers import (
-    deepseek_ocr2_process_env,
+    hosted_vlm_ocr_process_env,
     resolve_local_python_ocr_endpoint_count,
     start_server_pool,
 )
@@ -92,7 +92,7 @@ def main() -> int:
         fixture_dir = temp_root / "fixtures"
         output_dir = temp_root / "outputs"
         process_log_dir = report_dir / "process-logs"
-        args.deepseek_ocr2_request_trace_log_dir = process_log_dir
+        args.hosted_vlm_ocr_request_trace_log_dir = process_log_dir
         fixture_dir.mkdir()
         output_dir.mkdir()
         args.ocr_shard_cache_root = benchmark_ocr_shard_cache_root(args, temp_root)
@@ -140,7 +140,7 @@ def main() -> int:
                 pdf_ocr_workers=args.pdf_ocr_workers,
                 python_uv_package=args.python_uv_package,
                 python_uv_extras=args.python_uv_extra,
-                deepseek_ocr2_env=deepseek_ocr2_process_env(args),
+                hosted_vlm_ocr_env=hosted_vlm_ocr_process_env(args),
                 log_dir=process_log_dir,
             )
             if args.local_python_ocr_endpoint_count > 1:
@@ -292,40 +292,44 @@ def build_report_payload(
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
         "rustPdfOcrProfilePlanner": getattr(args, "rust_pdf_ocr_profile_planner", None),
-        "rustPdfOcr2RenderDpi": getattr(args, "rust_pdf_ocr2_render_dpi", None),
-        "rustPdfOcr2RegionPlanner": getattr(args, "rust_pdf_ocr2_region_planner", None),
+        "rustPdfHostedVlmRenderDpi": getattr(
+            args, "rust_pdf_hosted_vlm_render_dpi", None
+        ),
+        "rustPdfHostedVlmRegionPlanner": getattr(
+            args, "rust_pdf_hosted_vlm_region_planner", None
+        ),
         "rustDocumentExtractEndpoints": args.rust_document_extract_endpoint,
         "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,
         "structureBaselineRoot": (
             str(args.structure_baseline_root) if args.structure_baseline_root else None
         ),
         "pdfOcrProfile": pdf_ocr_profile_label(args),
-        "deepseekOcr2": {
+        "hostedVlmOcr": {
             "backend": "vllm-openai-compatible",
-            "provider": getattr(args, "deepseek_ocr2_provider", None),
-            "baseUrl": getattr(args, "deepseek_ocr2_base_url", None),
-            "model": getattr(args, "deepseek_ocr2_model", None),
+            "provider": getattr(args, "hosted_vlm_ocr_provider", None),
+            "baseUrl": getattr(args, "hosted_vlm_ocr_base_url", None),
+            "model": getattr(args, "hosted_vlm_ocr_model", None),
             "openRouterModel": getattr(args, "openrouter_model", None),
             "openRouterHttpReferer": getattr(args, "openrouter_http_referer", None),
             "openRouterTitle": getattr(args, "openrouter_title", None),
             "openRouterApiKeyConfigured": _openrouter_key_configured(),
-            "prompt": getattr(args, "deepseek_ocr2_prompt", None),
-            "maxTokens": getattr(args, "deepseek_ocr2_max_tokens", None),
-            "regionMaxTokens": getattr(args, "deepseek_ocr2_region_max_tokens", None),
+            "prompt": getattr(args, "hosted_vlm_ocr_prompt", None),
+            "maxTokens": getattr(args, "hosted_vlm_ocr_max_tokens", None),
+            "regionMaxTokens": getattr(args, "hosted_vlm_ocr_region_max_tokens", None),
             "regionCompositeSize": getattr(
-                args, "deepseek_ocr2_region_composite_size", None
+                args, "hosted_vlm_ocr_region_composite_size", None
             ),
             "regionAtlasMode": getattr(
-                args, "deepseek_ocr2_region_atlas_mode", "disabled"
+                args, "hosted_vlm_ocr_region_atlas_mode", "disabled"
             ),
-            "scaffoldMode": getattr(args, "deepseek_ocr2_scaffold_mode", "disabled"),
-            "timeoutSeconds": getattr(args, "deepseek_ocr2_timeout_seconds", None),
+            "scaffoldMode": getattr(args, "hosted_vlm_ocr_scaffold_mode", "disabled"),
+            "timeoutSeconds": getattr(args, "hosted_vlm_ocr_timeout_seconds", None),
             "requestConcurrency": getattr(
-                args, "deepseek_ocr2_request_concurrency", None
+                args, "hosted_vlm_ocr_request_concurrency", None
             ),
-            "pageWindowSize": getattr(args, "deepseek_ocr2_page_window_size", None),
-            "requestSummary": summarize_deepseek_ocr2_request_traces(
-                getattr(args, "deepseek_ocr2_request_trace_log_dir", None)
+            "pageWindowSize": getattr(args, "hosted_vlm_ocr_page_window_size", None),
+            "requestSummary": summarize_hosted_vlm_ocr_request_traces(
+                getattr(args, "hosted_vlm_ocr_request_trace_log_dir", None)
             ),
         },
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
@@ -339,7 +343,7 @@ def build_report_payload(
         "summary": summary,
         "precisionSpeedSummary": summary.get("precisionSpeedSummary"),
     }
-    payload["ocr2PromotionGate"] = ocr2_promotion_gate(payload)
+    payload["hostedVlmPromotionGate"] = hosted_vlm_promotion_gate(payload)
     return payload
 
 
@@ -355,7 +359,6 @@ def _openrouter_key_configured() -> bool:
         for key in (
             "WENDAO_OPENROUTER_API_KEY",
             "OPENROUTER_API_KEY",
-            "OPENROUTE_API_KEY",
-            "WENDAO_DEEPSEEK_OCR2_API_KEY",
+            "WENDAO_HOSTED_VLM_OCR_API_KEY",
         )
     )

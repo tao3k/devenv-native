@@ -1,4 +1,4 @@
-"""DeepSeek-OCR-2 request trace aggregation for benchmark reports."""
+"""Hosted VLM/OCR request trace aggregation for benchmark reports."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import math
 
 from .common import Any, Path, json
 
-TRACE_FILE_GLOB = "*.ocr2.jsonl"
+TRACE_FILE_GLOB = "*.hosted-vlm-ocr.jsonl"
 
 
-def summarize_deepseek_ocr2_request_traces(log_dir: Path | None) -> dict[str, Any]:
+def summarize_hosted_vlm_ocr_request_traces(log_dir: Path | None) -> dict[str, Any]:
     if log_dir is None or not log_dir.exists():
         return _empty_trace_summary()
 

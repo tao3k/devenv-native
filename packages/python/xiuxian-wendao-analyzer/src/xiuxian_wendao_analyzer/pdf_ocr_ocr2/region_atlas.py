@@ -1,4 +1,4 @@
-"""OCR2 same-page region atlas recognition path."""
+"""Hosted VLM/OCR same-page region atlas recognition path."""
 
 from __future__ import annotations
 
@@ -132,7 +132,7 @@ def build_region_atlas_png(
     from PIL import Image, ImageDraw, ImageFont
 
     if len(image_paths) != len(input_rows):
-        raise ValueError("OCR2 region atlas image and row count mismatch")
+        raise ValueError("Hosted VLM/OCR region atlas image and row count mismatch")
     panels = [Image.open(image_path).convert("RGB") for image_path in image_paths]
     try:
         label_height = 96

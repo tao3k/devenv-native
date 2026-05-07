@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use xiuxian_wendao_attachments::pdf::ocr::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_FAST_TEXT_PROFILE,
+    PDF_OCR_FAST_TEXT_PROFILE, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
     PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult,
 };
 use xiuxian_wendao_attachments::pdf::render::{
@@ -14,7 +14,7 @@ use super::{
     ocr2_region_render_cache_key, ocr2_region_scaffold_payload,
     write_ocr2_region_scaffold_sidecar_with_lookup,
 };
-use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV;
+use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV;
 
 #[test]
 fn ocr2_region_scaffold_payload_is_disabled_by_default() -> Result<(), String> {
@@ -91,7 +91,7 @@ fn ocr2_region_candidate_detection_requires_direct_page_profile() {
     input.ocr_profile = PDF_OCR_FAST_TEXT_PROFILE.to_string();
     assert!(!has_ocr2_recovery_page_candidates(&[input.clone()]));
 
-    input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
+    input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
     assert!(has_ocr2_recovery_page_candidates(&[input]));
 }
 
@@ -189,7 +189,8 @@ fn hybrid_page_ocr_resource_batch_orders_split_pipeline_results() -> Result<(), 
 }
 
 fn scaffold_enabled_lookup(key: &str) -> Option<String> {
-    (key == DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE_ENV).then(|| "region-table-json".to_string())
+    (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV)
+        .then(|| "region-table-json".to_string())
 }
 
 fn sample_region_request(region_index: u32) -> PdfPageRegionRenderRequest {
@@ -236,8 +237,8 @@ fn sample_region_input() -> PdfOcrShardInput {
         image_mime_type: "image/png".to_string(),
         raster_sha256: "raster-1".to_string(),
         render_profile: "pdfium-render-page-shards-v1".to_string(),
-        ocr_profile: PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string(),
-        ocr_engine: "deepseek-ocr2-direct-vlm".to_string(),
+        ocr_profile: PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string(),
+        ocr_engine: "hosted-vlm-direct-ocr".to_string(),
         preferred_languages: vec!["auto".to_string()],
         min_confidence: 0.0,
         preserve_layout: true,

@@ -1,4 +1,4 @@
-"""OCR2 page-window and region-composite task grouping."""
+"""Hosted VLM/OCR page-window and region-composite task grouping."""
 
 from __future__ import annotations
 

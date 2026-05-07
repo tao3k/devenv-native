@@ -101,24 +101,22 @@ def parse_args() -> argparse.Namespace:
             "disabled",
             "fast-all",
             "fast-risk-window",
-            "ocr2-all",
-            "ocr2-risk-window",
             "hosted-vlm-all",
             "hosted-vlm-risk-window",
         ),
         help=(
             "Optional Rust provider override for "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER. Use "
-            "`fast-*`, `hosted-vlm-*`, or legacy `ocr2-*` modes only when profiling mixed "
+            "`fast-*` or `hosted-vlm-*` modes only when profiling mixed "
             "candidate/accurate source-range OCR."
         ),
     )
     parser.add_argument(
-        "--rust-pdf-ocr2-render-dpi",
+        "--rust-pdf-hosted-vlm-render-dpi",
         type=int,
         help=(
-            "OCR2 rendered-page DPI forwarded to "
-            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI for Rust provider "
+            "Hosted VLM/OCR rendered-page DPI forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI for Rust provider "
             "page-image payload experiments. Values below the default OCR DPI "
             "are ignored by the Rust provider."
         ),
@@ -129,11 +127,11 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Semantic padding ratio forwarded to "
             "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO for hybrid "
-            "region-shard OCR2 recovery. Use 0 to disable padding."
+            "region-shard Hosted VLM/OCR recovery. Use 0 to disable padding."
         ),
     )
     parser.add_argument(
-        "--rust-pdf-ocr2-region-planner",
+        "--rust-pdf-hosted-vlm-region-planner",
         choices=(
             "disabled",
             "profile-risk-window",
@@ -142,110 +140,110 @@ def parse_args() -> argparse.Namespace:
         ),
         help=(
             "Optional Rust provider override for "
-            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER. "
-            "`profile-risk-window` builds conservative OCR2 content-band "
-            "regions for pages already selected by the OCR2 risk-window "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER. "
+            "`profile-risk-window` builds conservative Hosted VLM/OCR content-band "
+            "regions for pages already selected by the Hosted VLM/OCR risk-window "
             "profile planner when no explicit region JSON is configured. "
             "`profile-risk-window-slices` splits that content band into "
-            "top/middle/bottom regions for same-page OCR2 composite tests. "
+            "top/middle/bottom regions for same-page Hosted VLM/OCR composite tests. "
             "`profile-risk-window-adaptive` chooses one, two, or three slices "
             "from the estimated region pixel area."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-base-url",
+        "--hosted-vlm-ocr-base-url",
         help=(
-            "OpenAI-compatible DeepSeek-OCR-2 base URL forwarded to "
-            "WENDAO_DEEPSEEK_OCR2_BASE_URL for local Python OCR workers."
+            "OpenAI-compatible Hosted VLM/OCR base URL forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_BASE_URL for local Python OCR workers."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-provider",
+        "--hosted-vlm-ocr-provider",
         choices=("openai-compatible", "openrouter"),
         help=(
-            "Direct OCR2 provider preset forwarded to "
-            "WENDAO_DEEPSEEK_OCR2_PROVIDER. Use `openrouter` to call a "
+            "Direct Hosted VLM/OCR provider preset forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_PROVIDER. Use `openrouter` to call a "
             "hosted OpenRouter chat/completions endpoint instead of a local "
             "model server."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-model",
+        "--hosted-vlm-ocr-model",
         help=(
-            "DeepSeek-OCR-2 model id forwarded to WENDAO_DEEPSEEK_OCR2_MODEL. "
+            "Hosted VLM/OCR model id forwarded to WENDAO_HOSTED_VLM_OCR_MODEL. "
             "Use the served vLLM model id or community AWQ/GPTQ artifact id."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-prompt",
-        help="Prompt forwarded to WENDAO_DEEPSEEK_OCR2_PROMPT.",
+        "--hosted-vlm-ocr-prompt",
+        help="Prompt forwarded to WENDAO_HOSTED_VLM_OCR_PROMPT.",
     )
     parser.add_argument(
-        "--deepseek-ocr2-max-tokens",
+        "--hosted-vlm-ocr-max-tokens",
         type=int,
-        help="Max tokens forwarded to WENDAO_DEEPSEEK_OCR2_MAX_TOKENS.",
+        help="Max tokens forwarded to WENDAO_HOSTED_VLM_OCR_MAX_TOKENS.",
     )
     parser.add_argument(
-        "--deepseek-ocr2-region-max-tokens",
+        "--hosted-vlm-ocr-region-max-tokens",
         type=int,
         help=(
             "Region-shard max tokens forwarded to "
-            "WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS. The analyzer clamps this "
-            "by WENDAO_DEEPSEEK_OCR2_MAX_TOKENS and applies it only to OCR2 "
+            "WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS. The analyzer clamps this "
+            "by WENDAO_HOSTED_VLM_OCR_MAX_TOKENS and applies it only to Hosted VLM/OCR "
             "region rows."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-region-composite-size",
+        "--hosted-vlm-ocr-region-composite-size",
         type=int,
         help=(
-            "Direct OCR2 same-page region composite size forwarded to "
-            "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE. Values above 1 batch "
+            "Direct Hosted VLM/OCR same-page region composite size forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE. Values above 1 batch "
             "same-page, same-parent region images in one request and fall back "
             "to individual region requests when the response cannot be split "
             "back into rows."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-region-atlas-mode",
+        "--hosted-vlm-ocr-region-atlas-mode",
         choices=("disabled", "same-page-json"),
         default="disabled",
         help=(
-            "Opt-in direct OCR2 same-page region atlas mode forwarded to "
-            "WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE. same-page-json packs "
+            "Opt-in direct Hosted VLM/OCR same-page region atlas mode forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE. same-page-json packs "
             "same-page region crops into one labeled PNG atlas and requires "
             "JSON output keyed by exact shard markers."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-scaffold-mode",
+        "--hosted-vlm-ocr-scaffold-mode",
         choices=("disabled", "region-table-json"),
         default="disabled",
         help=(
             "Opt-in structural scaffold mode forwarded to both Rust and Python "
-            "OCR2 region recovery. `region-table-json` writes Rust region "
-            "scaffold sidecars and asks the OCR2 worker for strict JSON that "
+            "Hosted VLM/OCR region recovery. `region-table-json` writes Rust region "
+            "scaffold sidecars and asks the Hosted VLM/OCR worker for strict JSON that "
             "is canonicalized back into Markdown."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-timeout-seconds",
+        "--hosted-vlm-ocr-timeout-seconds",
         type=float,
-        help="Request timeout forwarded to WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS.",
+        help="Request timeout forwarded to WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS.",
     )
     parser.add_argument(
-        "--deepseek-ocr2-request-concurrency",
+        "--hosted-vlm-ocr-request-concurrency",
         type=int,
         help=(
-            "Direct OCR2 request concurrency forwarded to WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY."
+            "Direct Hosted VLM/OCR request concurrency forwarded to WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY."
         ),
     )
     parser.add_argument(
-        "--deepseek-ocr2-page-window-size",
+        "--hosted-vlm-ocr-page-window-size",
         type=int,
         help=(
-            "Direct OCR2 contiguous page-window size forwarded to "
-            "WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE. Values above 1 batch "
+            "Direct Hosted VLM/OCR contiguous page-window size forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE. Values above 1 batch "
             "adjacent page images in one request and fall back to page-level "
             "requests when the response cannot be split back into rows."
         ),
@@ -254,7 +252,7 @@ def parse_args() -> argparse.Namespace:
         "--openrouter-model",
         help=(
             "OpenRouter model id forwarded to WENDAO_OPENROUTER_MODEL when "
-            "WENDAO_DEEPSEEK_OCR2_MODEL is not set."
+            "WENDAO_HOSTED_VLM_OCR_MODEL is not set."
         ),
     )
     parser.add_argument(

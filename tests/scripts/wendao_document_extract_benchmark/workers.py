@@ -14,7 +14,7 @@ from .processes import start_logged_process
 from .server_code import fixture_server_code, real_docling_server_code
 
 OPENROUTER_OCR_SMOKE_MODEL = "baidu/qianfan-ocr-fast:free"
-DEEPSEEK_OCR2_TRACE_PATH_ENV = "WENDAO_DEEPSEEK_OCR2_TRACE_PATH"
+HOSTED_VLM_OCR_TRACE_PATH_ENV = "WENDAO_HOSTED_VLM_OCR_TRACE_PATH"
 
 
 @dataclass(frozen=True)
@@ -82,7 +82,7 @@ def start_server_pool(
     pdf_ocr_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
-    deepseek_ocr2_env: dict[str, str] | None = None,
+    hosted_vlm_ocr_env: dict[str, str] | None = None,
     log_dir: Path | None = None,
 ) -> list[PythonWorkerServer]:
     endpoint_count = validate_endpoint_count(endpoint_count)
@@ -114,8 +114,8 @@ def start_server_pool(
             pdf_ocr_workers=pdf_ocr_workers,
             python_uv_package=python_uv_package,
             python_uv_extras=python_uv_extras,
-            deepseek_ocr2_env=deepseek_ocr2_trace_env(
-                deepseek_ocr2_env,
+            hosted_vlm_ocr_env=hosted_vlm_ocr_trace_env(
+                hosted_vlm_ocr_env,
                 log_dir=log_dir,
                 process_name=name,
             ),
@@ -145,7 +145,7 @@ def start_server(
     pdf_ocr_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
-    deepseek_ocr2_env: dict[str, str] | None = None,
+    hosted_vlm_ocr_env: dict[str, str] | None = None,
     log_dir: Path | None = None,
     process_name: str = "python-worker",
 ) -> subprocess.Popen[str]:
@@ -181,15 +181,15 @@ def start_server(
         Path(os.environ.get("PRJ_RUNTIME_DIR", ".run"))
         / "document-extract-perf-process-logs"
     )
-    worker_ocr2_env = deepseek_ocr2_trace_env(
-        deepseek_ocr2_env,
+    worker_hosted_vlm_ocr_env = hosted_vlm_ocr_trace_env(
+        hosted_vlm_ocr_env,
         log_dir=effective_log_dir,
         process_name=process_name,
     )
     process_env = None
-    if worker_ocr2_env:
+    if worker_hosted_vlm_ocr_env:
         process_env = os.environ.copy()
-        process_env.update(worker_ocr2_env)
+        process_env.update(worker_hosted_vlm_ocr_env)
     return start_logged_process(
         command,
         log_dir=effective_log_dir,
@@ -198,40 +198,40 @@ def start_server(
     )
 
 
-def deepseek_ocr2_trace_env(
-    deepseek_ocr2_env: dict[str, str] | None,
+def hosted_vlm_ocr_trace_env(
+    hosted_vlm_ocr_env: dict[str, str] | None,
     *,
     log_dir: Path | None,
     process_name: str,
 ) -> dict[str, str]:
-    env = dict(deepseek_ocr2_env or {})
+    env = dict(hosted_vlm_ocr_env or {})
     if log_dir is not None:
         env.setdefault(
-            DEEPSEEK_OCR2_TRACE_PATH_ENV,
-            str(log_dir / f"{process_name}.ocr2.jsonl"),
+            HOSTED_VLM_OCR_TRACE_PATH_ENV,
+            str(log_dir / f"{process_name}.hosted-vlm-ocr.jsonl"),
         )
     return env
 
 
-def deepseek_ocr2_process_env(args: object) -> dict[str, str]:
+def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
     env = {}
     mappings = {
-        "deepseek_ocr2_provider": "WENDAO_DEEPSEEK_OCR2_PROVIDER",
-        "deepseek_ocr2_base_url": "WENDAO_DEEPSEEK_OCR2_BASE_URL",
-        "deepseek_ocr2_model": "WENDAO_DEEPSEEK_OCR2_MODEL",
-        "deepseek_ocr2_prompt": "WENDAO_DEEPSEEK_OCR2_PROMPT",
-        "deepseek_ocr2_max_tokens": "WENDAO_DEEPSEEK_OCR2_MAX_TOKENS",
-        "deepseek_ocr2_region_max_tokens": ("WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS"),
-        "deepseek_ocr2_region_composite_size": (
-            "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE"
+        "hosted_vlm_ocr_provider": "WENDAO_HOSTED_VLM_OCR_PROVIDER",
+        "hosted_vlm_ocr_base_url": "WENDAO_HOSTED_VLM_OCR_BASE_URL",
+        "hosted_vlm_ocr_model": "WENDAO_HOSTED_VLM_OCR_MODEL",
+        "hosted_vlm_ocr_prompt": "WENDAO_HOSTED_VLM_OCR_PROMPT",
+        "hosted_vlm_ocr_max_tokens": "WENDAO_HOSTED_VLM_OCR_MAX_TOKENS",
+        "hosted_vlm_ocr_region_max_tokens": ("WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS"),
+        "hosted_vlm_ocr_region_composite_size": (
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"
         ),
-        "deepseek_ocr2_region_atlas_mode": "WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE",
-        "deepseek_ocr2_scaffold_mode": "WENDAO_DEEPSEEK_OCR2_SCAFFOLD_MODE",
-        "deepseek_ocr2_timeout_seconds": "WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS",
-        "deepseek_ocr2_request_concurrency": (
-            "WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY"
+        "hosted_vlm_ocr_region_atlas_mode": "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE",
+        "hosted_vlm_ocr_scaffold_mode": "WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE",
+        "hosted_vlm_ocr_timeout_seconds": "WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS",
+        "hosted_vlm_ocr_request_concurrency": (
+            "WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY"
         ),
-        "deepseek_ocr2_page_window_size": "WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE",
+        "hosted_vlm_ocr_page_window_size": "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE",
         "openrouter_model": "WENDAO_OPENROUTER_MODEL",
         "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
         "openrouter_title": "WENDAO_OPENROUTER_TITLE",
@@ -241,8 +241,8 @@ def deepseek_ocr2_process_env(args: object) -> dict[str, str]:
         if value is not None:
             env[key] = str(value)
     if (
-        env.get("WENDAO_DEEPSEEK_OCR2_PROVIDER") == "openrouter"
-        and "WENDAO_DEEPSEEK_OCR2_MODEL" not in env
+        env.get("WENDAO_HOSTED_VLM_OCR_PROVIDER") == "openrouter"
+        and "WENDAO_HOSTED_VLM_OCR_MODEL" not in env
         and "WENDAO_OPENROUTER_MODEL" not in env
     ):
         env["WENDAO_OPENROUTER_MODEL"] = OPENROUTER_OCR_SMOKE_MODEL

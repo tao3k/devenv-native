@@ -9,7 +9,7 @@ use super::types::{
 
 /// Downgrade hosted VLM page shards that are covered by recovery regions to
 /// the fast text profile so the page remains the deterministic parent surface.
-pub fn downgrade_ocr2_region_parent_page_inputs(
+pub fn downgrade_hosted_vlm_region_parent_page_inputs(
     inputs: &mut [PdfOcrShardInput],
     region_pages: &BTreeSet<u32>,
 ) {
@@ -26,7 +26,7 @@ pub fn downgrade_ocr2_region_parent_page_inputs(
 
 /// Return parent page shard ids keyed by page index.
 #[must_use]
-pub fn ocr2_region_parent_page_shards(inputs: &[PdfOcrShardInput]) -> BTreeMap<u32, String> {
+pub fn hosted_vlm_region_parent_page_shards(inputs: &[PdfOcrShardInput]) -> BTreeMap<u32, String> {
     inputs
         .iter()
         .filter(|input| input.shard_type == "page")
@@ -41,7 +41,7 @@ pub fn ocr2_region_parent_page_shards(inputs: &[PdfOcrShardInput]) -> BTreeMap<u
 ///
 /// Returns an error when the rendered input is not a region shard or no parent
 /// page shard exists for the region page.
-pub fn prepare_ocr2_recovery_region_inputs(
+pub fn prepare_hosted_vlm_recovery_region_inputs(
     parent_page_shards: &BTreeMap<u32, String>,
     rendered_inputs: Vec<PdfOcrShardInput>,
 ) -> Result<Vec<PdfOcrShardInput>, String> {
@@ -77,14 +77,14 @@ pub fn prepare_ocr2_recovery_region_inputs(
 ///
 /// Returns an error when rendered region inputs cannot be bound to parent page
 /// shards.
-pub fn merge_ocr2_recovery_region_inputs(
+pub fn merge_hosted_vlm_recovery_region_inputs(
     mut inputs: Vec<PdfOcrShardInput>,
     rendered_inputs: Vec<PdfOcrShardInput>,
     region_pages: &BTreeSet<u32>,
 ) -> Result<Vec<PdfOcrShardInput>, String> {
-    downgrade_ocr2_region_parent_page_inputs(&mut inputs, region_pages);
-    let parent_page_shards = ocr2_region_parent_page_shards(inputs.as_slice());
-    inputs.extend(prepare_ocr2_recovery_region_inputs(
+    downgrade_hosted_vlm_region_parent_page_inputs(&mut inputs, region_pages);
+    let parent_page_shards = hosted_vlm_region_parent_page_shards(inputs.as_slice());
+    inputs.extend(prepare_hosted_vlm_recovery_region_inputs(
         &parent_page_shards,
         rendered_inputs,
     )?);

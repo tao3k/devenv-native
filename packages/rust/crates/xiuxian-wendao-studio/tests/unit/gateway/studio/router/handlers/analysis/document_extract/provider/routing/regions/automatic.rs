@@ -1,6 +1,7 @@
 use super::{
-    DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
-    assert_close, automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, assert_close,
+    automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
     automatic_ocr2_recovery_region_requests_with_lookup, sample_ocr_input,
 };
 
@@ -9,7 +10,7 @@ fn automatic_ocr2_recovery_region_requests_build_content_band() {
     let mut fast_page = sample_ocr_input(0, "page");
     fast_page.ocr_profile = "docling-fast-text-ocr".to_string();
     let mut ocr2_page = sample_ocr_input(1, "page");
-    ocr2_page.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
+    ocr2_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
 
     let disabled = automatic_ocr2_recovery_region_requests_with_lookup(
         &[fast_page.clone(), ocr2_page.clone()],
@@ -19,7 +20,7 @@ fn automatic_ocr2_recovery_region_requests_build_content_band() {
 
     let regions =
         automatic_ocr2_recovery_region_requests_with_lookup(&[fast_page, ocr2_page], &|key| {
-            if key == DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV {
+            if key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV {
                 Some("profile-risk-window".to_string())
             } else {
                 (key == DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV).then(|| "0".to_string())
@@ -42,10 +43,10 @@ fn automatic_ocr2_recovery_region_requests_build_content_band() {
 #[test]
 fn automatic_ocr2_recovery_region_requests_can_slice_content_band() {
     let mut ocr2_page = sample_ocr_input(1, "page");
-    ocr2_page.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
+    ocr2_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
 
     let regions = automatic_ocr2_recovery_region_requests_with_lookup(&[ocr2_page], &|key| {
-        if key == DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV {
+        if key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV {
             Some("profile-risk-window-slices".to_string())
         } else {
             (key == DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV).then(|| "0".to_string())
@@ -84,12 +85,12 @@ fn automatic_ocr2_recovery_region_requests_can_slice_content_band() {
 #[test]
 fn automatic_ocr2_recovery_region_requests_adaptively_splits_large_band() {
     let mut ocr2_page = sample_ocr_input(1, "page");
-    ocr2_page.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
+    ocr2_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
     ocr2_page.point_to_pixel_scale_x = 4.2;
     ocr2_page.point_to_pixel_scale_y = 4.2;
 
     let regions = automatic_ocr2_recovery_region_requests_with_lookup(&[ocr2_page], &|key| {
-        if key == DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV {
+        if key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV {
             Some("profile-risk-window-adaptive".to_string())
         } else {
             (key == DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV).then(|| "0".to_string())
@@ -122,11 +123,11 @@ fn automatic_ocr2_recovery_region_requests_adaptively_splits_large_band() {
 #[test]
 fn automatic_ocr2_recovery_region_requests_uses_structural_risk_for_adaptive_slices() {
     let mut low_complexity_neighbor = sample_ocr_input(1, "page");
-    low_complexity_neighbor.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
+    low_complexity_neighbor.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
     low_complexity_neighbor.point_to_pixel_scale_x = 4.2;
     low_complexity_neighbor.point_to_pixel_scale_y = 4.2;
     let mut structural_risk = sample_ocr_input(2, "page");
-    structural_risk.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
+    structural_risk.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
     structural_risk.point_to_pixel_scale_x = 3.0;
     structural_risk.point_to_pixel_scale_y = 3.0;
     let profiles = vec![
@@ -138,7 +139,7 @@ fn automatic_ocr2_recovery_region_requests_uses_structural_risk_for_adaptive_sli
         &[low_complexity_neighbor, structural_risk],
         profiles.as_slice(),
         &|key| {
-            if key == DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER_ENV {
+            if key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV {
                 Some("profile-risk-window-adaptive".to_string())
             } else {
                 (key == DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV).then(|| "0".to_string())

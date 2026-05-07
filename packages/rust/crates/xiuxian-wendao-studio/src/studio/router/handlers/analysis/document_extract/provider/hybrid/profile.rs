@@ -15,8 +15,6 @@ const PDF_OCR_FAST_TEXT_ENGINE: &str = "docling-fast-text-ocr";
 const PDF_OCR_HOSTED_VLM_DIRECT_ENGINE: &str = "hosted-vlm-direct-ocr";
 const FAST_ALL_MODE: &str = "fast-all";
 const FAST_RISK_WINDOW_MODE: &str = "fast-risk-window";
-const OCR2_ALL_MODE: &str = "ocr2-all";
-const OCR2_RISK_WINDOW_MODE: &str = "ocr2-risk-window";
 const HOSTED_VLM_ALL_MODE: &str = "hosted-vlm-all";
 const HOSTED_VLM_RISK_WINDOW_MODE: &str = "hosted-vlm-risk-window";
 
@@ -109,10 +107,8 @@ pub(crate) fn hybrid_page_ocr_profile_planner_with_lookup(
     {
         FAST_ALL_MODE => HybridPdfOcrProfilePlanner::FastAll,
         FAST_RISK_WINDOW_MODE => HybridPdfOcrProfilePlanner::FastRiskWindow,
-        OCR2_ALL_MODE | HOSTED_VLM_ALL_MODE => HybridPdfOcrProfilePlanner::HostedVlmAll,
-        OCR2_RISK_WINDOW_MODE | HOSTED_VLM_RISK_WINDOW_MODE => {
-            HybridPdfOcrProfilePlanner::HostedVlmRiskWindow
-        }
+        HOSTED_VLM_ALL_MODE => HybridPdfOcrProfilePlanner::HostedVlmAll,
+        HOSTED_VLM_RISK_WINDOW_MODE => HybridPdfOcrProfilePlanner::HostedVlmRiskWindow,
         _ => HybridPdfOcrProfilePlanner::Disabled,
     }
 }
@@ -172,14 +168,6 @@ pub(crate) fn apply_hybrid_page_hosted_vlm_profile_plan_for_profiles(
         PDF_OCR_FAST_TEXT_PROFILE,
         PDF_OCR_FAST_TEXT_ENGINE,
     )
-}
-
-#[cfg(test)]
-pub(crate) fn apply_hybrid_page_ocr2_profile_plan_for_profiles(
-    inputs: Vec<PdfOcrShardInput>,
-    profiles: &[PdfSourcePageProfile],
-) -> Vec<PdfOcrShardInput> {
-    apply_hybrid_page_hosted_vlm_profile_plan_for_profiles(inputs, profiles)
 }
 
 fn apply_candidate_profile_plan(

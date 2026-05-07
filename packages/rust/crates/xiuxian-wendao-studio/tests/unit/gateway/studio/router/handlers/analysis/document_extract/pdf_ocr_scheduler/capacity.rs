@@ -4,7 +4,7 @@ use super::{
     scheduled_ocr_worker_budget, scheduled_region_worker_budget,
 };
 use xiuxian_wendao_attachments::pdf::ocr::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
+    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
 };
 
 #[test]
@@ -160,7 +160,7 @@ fn source_pdf_page_range_batch_rejects_mixed_sources() {
 #[test]
 fn source_pdf_page_range_batch_rejects_direct_ocr2_pages() {
     let mut inputs = vec![sample_ocr_input("/tmp/source.pdf", 0, "page")];
-    inputs[0].ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
+    inputs[0].ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
 
     assert!(!is_source_pdf_page_range_batch(inputs.as_slice()));
     assert_eq!(

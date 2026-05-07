@@ -324,10 +324,10 @@ extraction into a fresh output directory after the first force run and reports
 `ocrShardCache` summary with the shard cache root, Arrow file count, total
 bytes, and configured limits. Hybrid OCR reports also summarize the internal
 `_metrics.arrow` sidecar: shard metric row count, OCR result characters, bbox
-coverage count, and Rust scheduler elapsed time. OCR2 benchmark reports also
-include the compatibility field `ocr2PromotionGate`, which checks precision,
-row/order stability, character floor, hosted request success, hosted key
-presence, force-refresh latency, and shard-cache reuse against the locked
+coverage count, and Rust scheduler elapsed time. Hosted VLM/OCR benchmark
+reports include `hostedVlmPromotionGate`, which checks precision, row/order
+stability, character floor, hosted request success, hosted key presence,
+force-refresh latency, and shard-cache reuse against the locked
 `fast-risk-window` promotion baseline. This is a reporting gate only; it does
 not change runtime routing.
 The Rust provider defaults the OCR shard cache limit to 10 GiB and supports
@@ -386,28 +386,25 @@ latency, 92.084 ms shard-cache reuse latency, 2.309 ms cache p95, zero error
 rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,985 OCR result
 characters, and stable structure order.
 Python recognizes `hosted-vlm-direct-ocr-v1` as the model-agnostic direct VLM
-OCR profile over the same shard rows. `deepseek-ocr2-direct-vlm` remains a
-compatibility alias for existing benchmark evidence. That path calls an
-externally managed OpenAI-compatible backend, with vLLM as the preferred
-runtime, using
-`WENDAO_DEEPSEEK_OCR2_BASE_URL`, `WENDAO_DEEPSEEK_OCR2_MODEL`,
-`WENDAO_DEEPSEEK_OCR2_API_KEY`, `WENDAO_DEEPSEEK_OCR2_PROMPT`,
-`WENDAO_DEEPSEEK_OCR2_MAX_TOKENS`,
-`WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS`, and
-`WENDAO_DEEPSEEK_OCR2_TIMEOUT_SECONDS`. Set
-`WENDAO_DEEPSEEK_OCR2_REQUEST_CONCURRENCY` to tune direct remote request
+OCR profile over the same shard rows. That path calls an externally managed
+OpenAI-compatible backend, with vLLM as the preferred runtime, using
+`WENDAO_HOSTED_VLM_OCR_BASE_URL`, `WENDAO_HOSTED_VLM_OCR_MODEL`,
+`WENDAO_HOSTED_VLM_OCR_API_KEY`, `WENDAO_HOSTED_VLM_OCR_PROMPT`,
+`WENDAO_HOSTED_VLM_OCR_MAX_TOKENS`,
+`WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS`, and
+`WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS`. Set
+`WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY` to tune direct remote request
 fan-out; keep it provider-gated by benchmark evidence because some hosted
 models lose stability when concurrency is too high. The direct client retries
 transient hosted HTTP failures such as `429`, `500`, `502`, `503`, and `504`
 with a short bounded backoff before returning a failed row, so Rust precision
 and fallback gates still own the final decision. Set
-`WENDAO_DEEPSEEK_OCR2_PAGE_WINDOW_SIZE` above `1` to let the direct worker
+`WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE` above `1` to let the direct worker
 combine contiguous page images into one request as a provider capability
 canary. Current hosted optimization keeps this disabled by default. The
 `hosted-vlm-risk-window` planner sends only the source-profile risk window to
 the hosted VLM/OCR backend while leaving ordinary pages on the fast profile.
-The legacy `ocr2-risk-window` spelling remains accepted by the Rust planner for
-existing reports. Explicit `region-shards` benchmarks are the narrower
+Explicit `region-shards` benchmarks are the narrower
 recovery-surface proof before automatic region discovery is promoted. Narrow
 exact-risk-only page routing is not the promotion path because the real
 milestone run lost the frozen character floor. In the current mixed-render
@@ -419,9 +416,9 @@ region rows as supplemental recovery inputs. Rust binds each hosted recovery
 region row to the retained fast parent page and records a `sentinel-sidecar-v1`
 structure provenance marker so region recovery remains a validated sidecar
 patch rather than an implicit string splice. When no explicit region JSON is configured,
-`--rust-pdf-ocr2-region-planner profile-risk-window` lets Rust derive a
+`--rust-pdf-hosted-vlm-region-planner profile-risk-window` lets Rust derive a
 conservative content-band region for pages already selected by
-`ocr2-risk-window`; this remains benchmark-only until region precision and
+`hosted-vlm-risk-window`; this remains benchmark-only until region precision and
 stitching pass the promotion gate. The adjacent benchmark-only
 `profile-risk-window-slices` planner splits that same content band into
 top/middle/bottom same-page regions so hosted VLM/OCR tests can exercise
@@ -433,37 +430,37 @@ more slices, while low-complexity risk-window neighbor pages can stay as one
 region. It is the preferred next hosted benchmark profile because it targets
 the measured trade-off between single-band provider tail latency and blanket
 three-slice request overhead without lowering DPI. Region rows use
-`WENDAO_DEEPSEEK_OCR2_REGION_MAX_TOKENS`,
-defaulting to 2048 and clamped by `WENDAO_DEEPSEEK_OCR2_MAX_TOKENS`, so a
+`WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS`,
+defaulting to 2048 and clamped by `WENDAO_HOSTED_VLM_OCR_MAX_TOKENS`, so a
 single hosted region response cannot silently consume the full page-token
 budget unless the benchmark explicitly raises the region cap through
-`--deepseek-ocr2-region-max-tokens`. Set
-`WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE` above `1`, or pass
-`--deepseek-ocr2-region-composite-size`, to let the direct worker combine
+`--hosted-vlm-ocr-region-max-tokens`. Set
+`WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE` above `1`, or pass
+`--hosted-vlm-ocr-region-composite-size`, to let the direct worker combine
 same-page, same-parent hosted recovery region rows into one multi-image request. Region
 composite output must split back into one non-empty Markdown result per region
 sentinel marker; otherwise the worker falls back to individual region requests
 so the existing row/order contract is preserved. Batched page-window responses
 follow the same marker-split rule for page markers. The benchmark can also set
-`WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE=same-page-json`, or pass
-`--deepseek-ocr2-region-atlas-mode same-page-json`, to pack a same-page region
+`WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE=same-page-json`, or pass
+`--hosted-vlm-ocr-region-atlas-mode same-page-json`, to pack a same-page region
 composite group into one labeled PNG atlas and request strict JSON keyed by
 exact shard markers. Atlas mode is an opt-in request-surface canary: valid JSON
 is canonicalized back into Markdown rows, while invalid JSON, row-count
 mismatches, empty text, and HTTP failures fall back to individual region
 requests so the existing Arrow shard result contract and precision fallback
 remain unchanged. Set
-`WENDAO_DEEPSEEK_OCR2_SCAFFOLD_MODE=region-table-json`, or pass
-`--deepseek-ocr2-scaffold-mode region-table-json` in the benchmark harness, to
+`WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE=region-table-json`, or pass
+`--hosted-vlm-ocr-scaffold-mode region-table-json` in the benchmark harness, to
 enable structural scaffold recovery for hosted recovery region rows. In that mode the
-worker loads Studio's `_ocr2_region_scaffolds.json` sidecar beside the rendered
+worker loads Studio's `_hosted_vlm_region_scaffolds.json` sidecar beside the rendered
 region images, validates the shard id, parent shard id, source content hash,
-and raster hash, asks OCR2 for JSON-only output keyed by exact region markers,
+and raster hash, asks the hosted VLM/OCR provider for JSON-only output keyed by exact region markers,
 and canonicalizes valid table/text JSON back into Markdown result rows. Missing
 sidecars, fingerprint mismatches, malformed JSON, marker or row-count
 mismatches, empty canonical text, and invalid table cell shapes return failed
 rows so the existing Rust precision fallback protects correctness. Set
-`WENDAO_DEEPSEEK_OCR2_TRACE_PATH` to a JSONL file when a benchmark needs
+`WENDAO_HOSTED_VLM_OCR_TRACE_PATH` to a JSONL file when a benchmark needs
 request-level latency, HTTP status, image-byte, Markdown character,
 shard-type, region-count, render-DPI, source-pixel-area, scaffold mode,
 scaffold applied count, scaffold validation failure count, JSON character
@@ -471,12 +468,12 @@ count, and canonical Markdown character telemetry. Trace records intentionally
 omit API keys and image payloads. Hosted VLM/OCR recovery
 benchmarks must not lower render DPI to gain speed; region shrinkage and
 provider capability gates are the accepted optimization levers. Set
-`WENDAO_DEEPSEEK_OCR2_PROVIDER=openrouter` to use OpenRouter's
+`WENDAO_HOSTED_VLM_OCR_PROVIDER=openrouter` to use OpenRouter's
 OpenAI-compatible `/chat/completions` API instead of a local model server. The
 OpenRouter preset defaults the base URL to `https://openrouter.ai/api/v1`,
-reads `WENDAO_OPENROUTER_API_KEY` or `OPENROUTER_API_KEY`, tolerates the
-legacy local alias `OPENROUTE_API_KEY`, accepts `WENDAO_OPENROUTER_MODEL` when
-`WENDAO_DEEPSEEK_OCR2_MODEL` is not set, and forwards optional
+reads `WENDAO_OPENROUTER_API_KEY` or `OPENROUTER_API_KEY`, accepts
+`WENDAO_OPENROUTER_MODEL` when `WENDAO_HOSTED_VLM_OCR_MODEL` is not set, and
+forwards optional
 `WENDAO_OPENROUTER_HTTP_REFERER` and
 `WENDAO_OPENROUTER_TITLE` attribution headers. The selected OpenRouter model
 must support image URL chat content. When no OpenRouter model is configured,
@@ -486,7 +483,7 @@ to validate the cloud OCR path. Use the
 the hosted provider:
 
 ```bash
-export WENDAO_DEEPSEEK_OCR2_PROVIDER=openrouter
+export WENDAO_HOSTED_VLM_OCR_PROVIDER=openrouter
 export WENDAO_OPENROUTER_API_KEY=...
 export WENDAO_OPENROUTER_MODEL=baidu/qianfan-ocr-fast:free
 ```

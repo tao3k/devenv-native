@@ -1,4 +1,4 @@
-"""OCR2 single-shard recognition path."""
+"""Hosted VLM/OCR single-shard recognition path."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import urllib.error
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from ..pdf_ocr_contracts import DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE
+from ..pdf_ocr_contracts import HOSTED_VLM_OCR_REGION_TABLE_JSON_SCAFFOLD_MODE
 from ..pdf_ocr_results import failed_pdf_ocr_shard_result
 from .http import extract_openai_message_content
 from .payloads import region_scaffold_request_payload, request_payload
@@ -58,14 +58,14 @@ def recognize_single(
     if not image_path.is_file():
         return failed_pdf_ocr_shard_result(
             input_row,
-            f"DeepSeek-OCR-2 shard image does not exist: {image_path}",
+            f"Hosted VLM/OCR shard image does not exist: {image_path}",
         )
     image_bytes = image_path.stat().st_size
     started = time.perf_counter()
     http_status = None
     max_tokens = client._max_tokens_for_row(input_row)
     if (
-        client._scaffold_mode == DEEPSEEK_OCR2_REGION_TABLE_JSON_SCAFFOLD_MODE
+        client._scaffold_mode == HOSTED_VLM_OCR_REGION_TABLE_JSON_SCAFFOLD_MODE
         and str(input_row.get("shardType") or "") == "region"
     ):
         return recognize_region_scaffold(
@@ -92,9 +92,7 @@ def recognize_single(
             error=exc,
             max_tokens=max_tokens,
         )
-        return failed_pdf_ocr_shard_result(
-            input_row, f"DeepSeek-OCR-2 OCR failed: {exc}"
-        )
+        return failed_pdf_ocr_shard_result(input_row, f"Hosted VLM/OCR failed: {exc}")
     except (OSError, ValueError, urllib.error.URLError) as exc:
         client._write_trace(
             input_row,
@@ -106,9 +104,7 @@ def recognize_single(
             error=exc,
             max_tokens=max_tokens,
         )
-        return failed_pdf_ocr_shard_result(
-            input_row, f"DeepSeek-OCR-2 OCR failed: {exc}"
-        )
+        return failed_pdf_ocr_shard_result(input_row, f"Hosted VLM/OCR failed: {exc}")
     if not markdown.strip():
         error = ValueError("empty OCR text")
         client._write_trace(
@@ -122,7 +118,7 @@ def recognize_single(
             max_tokens=max_tokens,
         )
         return failed_pdf_ocr_shard_result(
-            input_row, "DeepSeek-OCR-2 OCR returned empty text"
+            input_row, "Hosted VLM/OCR returned empty text"
         )
     client._write_trace(
         input_row,
@@ -174,9 +170,7 @@ def recognize_region_scaffold(
             request_kind="region-scaffold",
             scaffold_applied_count=1,
         )
-        return failed_pdf_ocr_shard_result(
-            input_row, f"DeepSeek-OCR-2 OCR failed: {exc}"
-        )
+        return failed_pdf_ocr_shard_result(input_row, f"Hosted VLM/OCR failed: {exc}")
     except (OSError, ValueError, urllib.error.URLError) as exc:
         client._write_trace(
             input_row,
@@ -189,14 +183,14 @@ def recognize_region_scaffold(
             max_tokens=max_tokens,
             request_kind="region-scaffold",
             scaffold_applied_count=(
-                0 if str(exc).startswith("missing OCR2 region scaffold sidecar") else 1
+                0
+                if str(exc).startswith("missing Hosted VLM/OCR region scaffold sidecar")
+                else 1
             ),
             scaffold_validation_failure_count=1,
             scaffold_json_chars=len(response_text),
         )
-        return failed_pdf_ocr_shard_result(
-            input_row, f"DeepSeek-OCR-2 OCR failed: {exc}"
-        )
+        return failed_pdf_ocr_shard_result(input_row, f"Hosted VLM/OCR failed: {exc}")
     client._write_trace(
         input_row,
         status="succeeded",

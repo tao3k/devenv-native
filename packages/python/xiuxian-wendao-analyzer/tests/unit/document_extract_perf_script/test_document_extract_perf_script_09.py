@@ -37,11 +37,11 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
         rust_pdf_ocr_profile_planner="fast-risk-window",
-        rust_pdf_ocr2_render_dpi=360,
+        rust_pdf_hosted_vlm_render_dpi=360,
         rust_pdf_ocr_region_context_ratio=0.2,
-        rust_pdf_ocr2_region_planner="profile-risk-window",
-        deepseek_ocr2_region_composite_size=3,
-        deepseek_ocr2_scaffold_mode="region-table-json",
+        rust_pdf_hosted_vlm_region_planner="profile-risk-window",
+        hosted_vlm_ocr_region_composite_size=3,
+        hosted_vlm_ocr_scaffold_mode="region-table-json",
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
         rust_document_extract_endpoint=["http://127.0.0.1:53051"],
     )
@@ -71,13 +71,17 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] == "fast-risk-window"
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI"] == "360"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI"] == "360"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO"] == "0.2"
     assert (
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER"] == "profile-risk-window"
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER"]
+        == "profile-risk-window"
     )
-    assert env["WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE"] == "3"
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE"] == "region-table-json"
+    assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] == "3"
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE"]
+        == "region-table-json"
+    )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
         "http://127.0.0.1:52051"
     )
@@ -121,9 +125,9 @@ def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_ocr_profile_planner="disabled",
-        rust_pdf_ocr2_render_dpi=None,
+        rust_pdf_hosted_vlm_render_dpi=None,
         rust_pdf_ocr_region_context_ratio=None,
-        rust_pdf_ocr2_region_planner=None,
+        rust_pdf_hosted_vlm_region_planner=None,
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )
@@ -141,7 +145,7 @@ def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
     assert env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] == "http://127.0.0.1:51051"
 
 
-def test_start_rust_provider_does_not_forward_ocr2_dpi_downgrade(
+def test_start_rust_provider_does_not_forward_hosted_vlm_dpi_downgrade(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -169,9 +173,9 @@ def test_start_rust_provider_does_not_forward_ocr2_dpi_downgrade(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_ocr_profile_planner="hosted-vlm-risk-window",
-        rust_pdf_ocr2_render_dpi=180,
+        rust_pdf_hosted_vlm_render_dpi=180,
         rust_pdf_ocr_region_context_ratio=None,
-        rust_pdf_ocr2_region_planner=None,
+        rust_pdf_hosted_vlm_region_planner=None,
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )
@@ -186,7 +190,7 @@ def test_start_rust_provider_does_not_forward_ocr2_dpi_downgrade(
     )
 
     env = calls[0][1]["env"]
-    assert "WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI" not in env
+    assert "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI" not in env
 
 
 def test_start_rust_provider_hosted_vlm_planner_enables_pdf_render_feature(
@@ -217,9 +221,9 @@ def test_start_rust_provider_hosted_vlm_planner_enables_pdf_render_feature(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_ocr_profile_planner="hosted-vlm-risk-window",
-        rust_pdf_ocr2_render_dpi=None,
+        rust_pdf_hosted_vlm_render_dpi=None,
         rust_pdf_ocr_region_context_ratio=None,
-        rust_pdf_ocr2_region_planner=None,
+        rust_pdf_hosted_vlm_region_planner=None,
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )
@@ -270,9 +274,9 @@ def test_start_rust_provider_can_use_prebuilt_binary(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_ocr_profile_planner="disabled",
-        rust_pdf_ocr2_render_dpi=None,
+        rust_pdf_hosted_vlm_render_dpi=None,
         rust_pdf_ocr_region_context_ratio=None,
-        rust_pdf_ocr2_region_planner=None,
+        rust_pdf_hosted_vlm_region_planner=None,
         rust_pdf_ocr_endpoint=[],
         rust_document_extract_endpoint=[],
     )

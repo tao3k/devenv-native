@@ -6,29 +6,28 @@ import json
 import urllib.error
 
 from xiuxian_wendao_analyzer.pdf_ocr import (
-    DEEPSEEK_OCR2_API_KEY_ENV,
-    DEEPSEEK_OCR2_BASE_URL_ENV,
-    DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
-    DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS,
-    DEEPSEEK_OCR2_MAX_TOKENS_ENV,
-    DEEPSEEK_OCR2_MODEL_ENV,
-    DEEPSEEK_OCR2_OPENROUTE_COMPAT_API_KEY_ENV,
-    DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV,
-    DEEPSEEK_OCR2_OPENROUTER_BASE_URL,
-    DEEPSEEK_OCR2_OPENROUTER_HTTP_REFERER_ENV,
-    DEEPSEEK_OCR2_OPENROUTER_MODEL_ENV,
-    DEEPSEEK_OCR2_OPENROUTER_PROVIDER,
-    DEEPSEEK_OCR2_OPENROUTER_TEST_MODEL,
-    DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV,
-    DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV,
-    DEEPSEEK_OCR2_PROVIDER_ENV,
-    DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV,
-    DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV,
-    DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV,
-    DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV,
-    DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV,
-    DEEPSEEK_OCR2_TRACE_PATH_ENV,
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+    HOSTED_VLM_OCR_API_KEY_ENV,
+    HOSTED_VLM_OCR_BASE_URL_ENV,
+    HOSTED_VLM_OCR_DEFAULT_MAX_TOKENS,
+    HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS,
+    HOSTED_VLM_OCR_MAX_TOKENS_ENV,
+    HOSTED_VLM_OCR_MODEL_ENV,
+    HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV,
+    HOSTED_VLM_OCR_OPENROUTER_BASE_URL,
+    HOSTED_VLM_OCR_OPENROUTER_HTTP_REFERER_ENV,
+    HOSTED_VLM_OCR_OPENROUTER_MODEL_ENV,
+    HOSTED_VLM_OCR_OPENROUTER_PROVIDER,
+    HOSTED_VLM_OCR_OPENROUTER_PUBLIC_API_KEY_ENV,
+    HOSTED_VLM_OCR_OPENROUTER_TEST_MODEL,
+    HOSTED_VLM_OCR_OPENROUTER_TITLE_ENV,
+    HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV,
+    HOSTED_VLM_OCR_PROVIDER_ENV,
+    HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV,
+    HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV,
+    HOSTED_VLM_OCR_REQUEST_CONCURRENCY_ENV,
+    HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV,
+    HOSTED_VLM_OCR_TRACE_PATH_ENV,
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
@@ -50,7 +49,7 @@ from .support import (
 
 def _ocr2_region_marker(row: dict[str, object]) -> str:
     return (
-        "<!-- xiuxian-wendao-ocr2-region:"
+        "<!-- xiuxian-wendao-hosted-vlm-region:"
         f"{row['pageIndex']}:{row['regionIndex']}:{row['shardElementId']}"
         " -->"
     )
@@ -93,10 +92,10 @@ def _write_ocr2_region_scaffold_sidecar(
                 "sourcePageProfile": None,
             }
         )
-    (directory / "_ocr2_region_scaffolds.json").write_text(
+    (directory / "_hosted_vlm_region_scaffolds.json").write_text(
         json.dumps(
             {
-                "schema": "xiuxian_wendao.ocr2_region_scaffold.v1",
+                "schema": "xiuxian_wendao.hosted_vlm_region_scaffold.v1",
                 "mode": "region-table-json",
                 "items": items,
             }
@@ -218,7 +217,7 @@ def test_docling_pdf_ocr_worker_uses_fast_converter_for_fast_profile(
     assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
 
 
-def test_docling_pdf_ocr_worker_uses_deepseek_ocr2_openai_endpoint(
+def test_docling_pdf_ocr_worker_uses_hosted_vlm_ocr_openai_endpoint(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -245,8 +244,8 @@ def test_docling_pdf_ocr_worker_uses_deepseek_ocr2_openai_endpoint(
         requests.append(request)
         return FakeResponse()
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "community/deepseek-ocr2-awq")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_MODEL_ENV, "community/hosted-vlm-awq")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -265,13 +264,13 @@ def test_docling_pdf_ocr_worker_uses_deepseek_ocr2_openai_endpoint(
     request = requests[0]
     assert request.full_url == "http://127.0.0.1:8999/v1/chat/completions"
     payload = json.loads(request.data.decode("utf-8"))
-    assert payload["model"] == "community/deepseek-ocr2-awq"
+    assert payload["model"] == "community/hosted-vlm-awq"
     assert payload["messages"][0]["content"][1]["image_url"]["url"].startswith(
         "data:image/png;base64,"
     )
 
 
-def test_docling_pdf_ocr_worker_retries_transient_deepseek_ocr2_http_error(
+def test_docling_pdf_ocr_worker_retries_transient_hosted_vlm_ocr_http_error(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -319,7 +318,7 @@ def test_docling_pdf_ocr_worker_retries_transient_deepseek_ocr2_http_error(
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
@@ -379,7 +378,7 @@ def test_docling_pdf_ocr_worker_honors_ocr2_retry_after(
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
@@ -446,13 +445,13 @@ def test_docling_pdf_ocr_worker_retries_transient_failed_group_rows(
                 _sample_pdf_ocr_input_table(
                     image_path=str(images[0]),
                     page_index=0,
-                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                    ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
                 ),
                 _sample_pdf_ocr_input_table(
                     image_path=str(images[1]),
                     page_index=1,
                     shard_element_id="shard-1",
-                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                    ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
                 ),
             ]
         ),
@@ -466,13 +465,13 @@ def test_docling_pdf_ocr_worker_retries_transient_failed_group_rows(
     assert sleeps == [0.25, 0.5, 1.0, 8.0]
 
 
-def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
+def test_docling_pdf_ocr_worker_writes_hosted_vlm_ocr_request_trace(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     image = tmp_path / "page-00000.png"
     image.write_bytes(b"png fixture")
-    trace_path = tmp_path / "ocr2.jsonl"
+    trace_path = tmp_path / "hosted-vlm-ocr.jsonl"
 
     class FakeResponse:
         status = 200
@@ -488,10 +487,10 @@ def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
                 {"choices": [{"message": {"content": "# traced\n"}}]}
             ).encode("utf-8")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "community/deepseek-ocr2-awq")
-    monkeypatch.setenv(DEEPSEEK_OCR2_API_KEY_ENV, "secret-key")
-    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_MODEL_ENV, "community/hosted-vlm-awq")
+    monkeypatch.setenv(HOSTED_VLM_OCR_API_KEY_ENV, "secret-key")
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(trace_path))
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: FakeResponse(),
@@ -501,8 +500,8 @@ def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
             page_index=7,
-            shard_element_id="ocr2-trace-shard",
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            shard_element_id="hosted-vlm-trace-shard",
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
@@ -522,8 +521,8 @@ def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
             "latencyMs": records[0]["latencyMs"],
             "markdownChars": len("# traced\n"),
             "maxTokens": 8192,
-            "model": "community/deepseek-ocr2-awq",
-            "ocrProfile": PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            "model": "community/hosted-vlm-awq",
+            "ocrProfile": PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             "parentShardElementId": "",
             "pageCount": 1,
             "pageIndex": 7,
@@ -533,14 +532,14 @@ def test_docling_pdf_ocr_worker_writes_deepseek_ocr2_request_trace(
             "regionIndex": 0,
             "renderDpi": 300,
             "requestKind": "page",
-            "schema": "xiuxian_wendao.deepseek_ocr2_request_trace.v1",
+            "schema": "xiuxian_wendao.hosted_vlm_ocr_request_trace.v1",
             "canonicalMarkdownChars": 0,
             "scaffoldAppliedCount": 0,
             "scaffoldJsonChars": 0,
             "scaffoldMode": "disabled",
             "scaffoldValidationFailureCount": 0,
             "shardCount": 1,
-            "shardElementId": "ocr2-trace-shard",
+            "shardElementId": "hosted-vlm-trace-shard",
             "shardType": "page",
             "shardTypeCounts": {"page": 1},
             "sourcePagePixelBottom": 3100,
@@ -590,9 +589,9 @@ def test_docling_pdf_ocr_worker_caps_region_ocr2_tokens(
         payloads.append(json.loads(request.data.decode("utf-8")))
         return FakeResponse()
 
-    monkeypatch.delenv(DEEPSEEK_OCR2_MAX_TOKENS_ENV, raising=False)
-    monkeypatch.delenv(DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV, raising=False)
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.delenv(HOSTED_VLM_OCR_MAX_TOKENS_ENV, raising=False)
+    monkeypatch.delenv(HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV, raising=False)
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -605,18 +604,18 @@ def test_docling_pdf_ocr_worker_caps_region_ocr2_tokens(
                     source_path=str(source),
                     image_path=str(page_image),
                     page_index=0,
-                    shard_element_id="ocr2-page",
-                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                    shard_element_id="hosted-vlm-page",
+                    ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
                 ),
                 _sample_pdf_ocr_input_table(
                     source_path=str(source),
                     image_path=str(region_image),
                     page_index=0,
-                    shard_element_id="ocr2-region",
+                    shard_element_id="hosted-vlm-region",
                     shard_type="region",
                     region_index=1,
-                    parent_shard_element_id="ocr2-page",
-                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                    parent_shard_element_id="hosted-vlm-page",
+                    ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
                 ),
             ]
         ),
@@ -625,8 +624,8 @@ def test_docling_pdf_ocr_worker_caps_region_ocr2_tokens(
 
     assert [row["status"] for row in table.to_pylist()] == ["succeeded", "succeeded"]
     assert [payload["max_tokens"] for payload in payloads] == [
-        DEEPSEEK_OCR2_DEFAULT_MAX_TOKENS,
-        DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS,
+        HOSTED_VLM_OCR_DEFAULT_MAX_TOKENS,
+        HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS,
     ]
 
 
@@ -652,9 +651,9 @@ def test_docling_pdf_ocr_worker_uses_lower_global_region_ocr2_token_limit(
                 {"choices": [{"message": {"content": "# OCR2\n"}}]}
             ).encode("utf-8")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_MAX_TOKENS_ENV, "1024")
-    monkeypatch.delenv(DEEPSEEK_OCR2_REGION_MAX_TOKENS_ENV, raising=False)
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_MAX_TOKENS_ENV, "1024")
+    monkeypatch.delenv(HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV, raising=False)
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: payloads.append(
@@ -668,8 +667,8 @@ def test_docling_pdf_ocr_worker_uses_lower_global_region_ocr2_token_limit(
             image_path=str(image),
             shard_type="region",
             region_index=1,
-            parent_shard_element_id="ocr2-page",
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            parent_shard_element_id="hosted-vlm-page",
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
@@ -687,7 +686,7 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
     region_images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
     for index, image in enumerate(region_images):
         image.write_bytes(f"region png fixture {index}".encode())
-    trace_path = tmp_path / "ocr2-region-composite.jsonl"
+    trace_path = tmp_path / "hosted-vlm-region-composite.jsonl"
     requests: list[object] = []
 
     class FakeResponse:
@@ -706,9 +705,9 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
                         {
                             "message": {
                                 "content": (
-                                    "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->\n"
+                                    "<!-- xiuxian-wendao-hosted-vlm-region:0:1:region-a -->\n"
                                     "| A | B |\n"
-                                    "<!-- xiuxian-wendao-ocr2-region:0:2:region-b -->\n"
+                                    "<!-- xiuxian-wendao-hosted-vlm-region:0:2:region-b -->\n"
                                     "$x^2$\n"
                                 )
                             }
@@ -722,9 +721,9 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
         requests.append(request)
         return FakeResponse()
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
-    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(trace_path))
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -740,7 +739,7 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
                 region_index=1,
                 parent_shard_element_id="parent-page",
                 reading_order_key="000000.010000",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             ),
             _sample_pdf_ocr_input_table(
                 source_path=str(source),
@@ -751,7 +750,7 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
                 region_index=2,
                 parent_shard_element_id="parent-page",
                 reading_order_key="000000.020000",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             ),
         ]
     )
@@ -765,10 +764,14 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
     assert len(requests) == 1
     payload = json.loads(requests[0].data.decode("utf-8"))
     content = payload["messages"][0]["content"]
-    assert payload["max_tokens"] == DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS * 2
+    assert payload["max_tokens"] == HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS * 2
     assert sum(1 for part in content if part["type"] == "image_url") == 2
-    assert "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->" in content[0]["text"]
-    assert "<!-- xiuxian-wendao-ocr2-region:0:2:region-b -->" in content[0]["text"]
+    assert (
+        "<!-- xiuxian-wendao-hosted-vlm-region:0:1:region-a -->" in content[0]["text"]
+    )
+    assert (
+        "<!-- xiuxian-wendao-hosted-vlm-region:0:2:region-b -->" in content[0]["text"]
+    )
     records = [
         json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
     ]
@@ -776,7 +779,7 @@ def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
     assert records[0]["shardCount"] == 2
     assert records[0]["shardTypeCounts"] == {"region": 2}
     assert records[0]["sourcePixelArea"] == 14_880_000
-    assert records[0]["maxTokens"] == DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS * 2
+    assert records[0]["maxTokens"] == HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS * 2
 
 
 def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
@@ -820,8 +823,8 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
             return FakeResponse("missing region markers")
         return FakeResponse(f"# fallback region {len(request_image_counts)}")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -837,7 +840,7 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
                 region_index=index + 1,
                 parent_shard_element_id="parent-page",
                 reading_order_key=f"000000.0{index + 1}0000",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for index in range(2)
         ]
@@ -897,8 +900,8 @@ def test_docling_pdf_ocr_worker_disables_invalid_region_composite_canary(
             return FakeResponse("missing region markers")
         return FakeResponse(f"# fallback region {len(request_image_counts)}")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -914,7 +917,7 @@ def test_docling_pdf_ocr_worker_disables_invalid_region_composite_canary(
                 region_index=(index % 2) + 1,
                 parent_shard_element_id=f"parent-page-{index // 2}",
                 reading_order_key=f"00000{index // 2}.0{index + 1}0000",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for index in range(4)
         ]
@@ -938,7 +941,7 @@ def test_docling_pdf_ocr_worker_uses_region_atlas_json(
     region_images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
     _write_ppm_image(region_images[0], b"\xff\x00\x00")
     _write_ppm_image(region_images[1], b"\x00\x00\xff")
-    trace_path = tmp_path / "ocr2-region-atlas.jsonl"
+    trace_path = tmp_path / "hosted-vlm-region-atlas.jsonl"
     requests: list[object] = []
 
     input_table = pa.concat_tables(
@@ -952,7 +955,7 @@ def test_docling_pdf_ocr_worker_uses_region_atlas_json(
                 region_index=index + 1,
                 parent_shard_element_id="parent-page",
                 reading_order_key=f"000000.0{index + 1}0000",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for index in range(2)
         ]
@@ -999,10 +1002,10 @@ def test_docling_pdf_ocr_worker_uses_region_atlas_json(
         requests.append(request)
         return FakeResponse()
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
-    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(trace_path))
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1070,9 +1073,9 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_atlas_json_is_invalid(
         request_kinds.append("single")
         return FakeResponse(f"# fallback atlas region {len(request_kinds)}")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV, "same-page-json")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1088,7 +1091,7 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_atlas_json_is_invalid(
                 region_index=index + 1,
                 parent_shard_element_id="parent-page",
                 reading_order_key=f"000000.0{index + 1}0000",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for index in range(2)
         ]
@@ -1145,9 +1148,9 @@ def test_docling_pdf_ocr_worker_disables_invalid_region_atlas_canary(
         request_kinds.append("single")
         return FakeResponse(f"# fallback atlas region {len(request_kinds)}")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV, "same-page-json")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1163,7 +1166,7 @@ def test_docling_pdf_ocr_worker_disables_invalid_region_atlas_canary(
                 region_index=(index % 2) + 1,
                 parent_shard_element_id=f"parent-page-{index // 2}",
                 reading_order_key=f"00000{index // 2}.0{index + 1}0000",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for index in range(4)
         ]
@@ -1228,15 +1231,15 @@ def test_docling_pdf_ocr_worker_shares_invalid_region_atlas_canary_state(
                     region_index=index + 1,
                     parent_shard_element_id=f"parent-page-{page_index}",
                     reading_order_key=f"00000{page_index}.0{index + 1}0000",
-                    ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                    ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
                 )
                 for index in range(2)
             ]
         )
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV, "same-page-json")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1244,12 +1247,12 @@ def test_docling_pdf_ocr_worker_shares_invalid_region_atlas_canary_state(
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(log_dir / "worker-0.jsonl"))
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(log_dir / "worker-0.jsonl"))
     first = build_pdf_ocr_shard_result_table(
         input_table_for_page(0, 0),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
-    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(log_dir / "worker-1.jsonl"))
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(log_dir / "worker-1.jsonl"))
     second = build_pdf_ocr_shard_result_table(
         input_table_for_page(1, 2),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
@@ -1274,7 +1277,7 @@ def test_docling_pdf_ocr_worker_uses_region_scaffold_json(
         shard_type="region",
         region_index=1,
         parent_shard_element_id="parent-page",
-        ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+        ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
     )
     input_row = input_table.to_pylist()[0]
     _write_ocr2_region_scaffold_sidecar(tmp_path, [input_row])
@@ -1321,8 +1324,8 @@ def test_docling_pdf_ocr_worker_uses_region_scaffold_json(
                 }
             ).encode("utf-8")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV, "region-table-json")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV, "region-table-json")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: requests.append(request) or FakeResponse(),
@@ -1342,7 +1345,7 @@ def test_docling_pdf_ocr_worker_uses_region_scaffold_json(
     assert "Every region must contain non-empty recognized content" in prompt_text
     assert '"scaffoldKind": "table_candidate"' in prompt_text
     assert _ocr2_region_marker(input_row) in prompt_text
-    assert payload["max_tokens"] == DEEPSEEK_OCR2_DEFAULT_REGION_MAX_TOKENS
+    assert payload["max_tokens"] == HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS
 
 
 def test_docling_pdf_ocr_worker_uses_composite_region_scaffold_json(
@@ -1360,7 +1363,7 @@ def test_docling_pdf_ocr_worker_uses_composite_region_scaffold_json(
                 shard_type="region",
                 region_index=index + 1,
                 parent_shard_element_id="parent-page",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for index in range(2)
         ]
@@ -1403,9 +1406,9 @@ def test_docling_pdf_ocr_worker_uses_composite_region_scaffold_json(
                 }
             ).encode("utf-8")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV, "2")
-    monkeypatch.setenv(DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV, "region-table-json")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV, "region-table-json")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: requests.append(request) or FakeResponse(),
@@ -1463,7 +1466,7 @@ def test_docling_pdf_ocr_worker_fails_invalid_region_scaffolds(
                 {
                     "regions": [
                         {
-                            "marker": "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->",
+                            "marker": "<!-- xiuxian-wendao-hosted-vlm-region:0:1:region-a -->",
                             "shardElementId": "region-a",
                             "text": "",
                             "tables": [],
@@ -1479,7 +1482,7 @@ def test_docling_pdf_ocr_worker_fails_invalid_region_scaffolds(
                 {
                     "regions": [
                         {
-                            "marker": "<!-- xiuxian-wendao-ocr2-region:0:1:region-a -->",
+                            "marker": "<!-- xiuxian-wendao-hosted-vlm-region:0:1:region-a -->",
                             "shardElementId": "region-a",
                             "tables": [{"rows": [["A", "B"], ["1"]]}],
                         }
@@ -1515,9 +1518,9 @@ def test_docling_pdf_ocr_worker_fails_invalid_region_scaffolds(
         requests.append(request)
         return FakeResponse(responses.pop(0))
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_SCAFFOLD_MODE_ENV, "region-table-json")
-    monkeypatch.setenv(DEEPSEEK_OCR2_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV, "region-table-json")
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(trace_path))
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1534,7 +1537,7 @@ def test_docling_pdf_ocr_worker_fails_invalid_region_scaffolds(
             shard_type="region",
             region_index=1,
             parent_shard_element_id="parent-page",
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         )
         input_row = input_table.to_pylist()[0]
         if raster_sha256 is not None:
@@ -1553,7 +1556,7 @@ def test_docling_pdf_ocr_worker_fails_invalid_region_scaffolds(
 
         row = table.to_pylist()[0]
         assert row["status"] == "failed"
-        assert "DeepSeek-OCR-2 OCR failed" in row["errorMessage"]
+        assert "Hosted VLM/OCR failed" in row["errorMessage"]
 
     trace_records = [
         json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
@@ -1596,9 +1599,9 @@ def test_docling_pdf_ocr_worker_batches_direct_ocr2_page_window(
                         {
                             "message": {
                                 "content": (
-                                    "<!-- xiuxian-wendao-ocr2-page:0 -->\n"
+                                    "<!-- xiuxian-wendao-hosted-vlm-page:0 -->\n"
                                     "# Page zero\n"
-                                    "<!-- xiuxian-wendao-ocr2-page:1 -->\n"
+                                    "<!-- xiuxian-wendao-hosted-vlm-page:1 -->\n"
                                     "# Page one\n"
                                 )
                             }
@@ -1612,9 +1615,9 @@ def test_docling_pdf_ocr_worker_batches_direct_ocr2_page_window(
         requests.append(request)
         return FakeResponse()
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "unit/window-success")
-    monkeypatch.setenv(DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_MODEL_ENV, "unit/window-success")
+    monkeypatch.setenv(HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV, "2")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1625,8 +1628,8 @@ def test_docling_pdf_ocr_worker_batches_direct_ocr2_page_window(
                 source_path=str(source),
                 image_path=str(image_path),
                 page_index=page_index,
-                shard_element_id=f"ocr2-shard-{page_index}",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                shard_element_id=f"hosted-vlm-shard-{page_index}",
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for page_index, image_path in enumerate(image_paths)
         ]
@@ -1645,8 +1648,8 @@ def test_docling_pdf_ocr_worker_batches_direct_ocr2_page_window(
     payload = json.loads(requests[0].data.decode("utf-8"))
     content = payload["messages"][0]["content"]
     assert sum(1 for part in content if part["type"] == "image_url") == 2
-    assert "<!-- xiuxian-wendao-ocr2-page:0 -->" in content[0]["text"]
-    assert "<!-- xiuxian-wendao-ocr2-page:1 -->" in content[0]["text"]
+    assert "<!-- xiuxian-wendao-hosted-vlm-page:0 -->" in content[0]["text"]
+    assert "<!-- xiuxian-wendao-hosted-vlm-page:1 -->" in content[0]["text"]
 
 
 def test_docling_pdf_ocr_worker_falls_back_when_ocr2_page_window_is_invalid(
@@ -1690,9 +1693,9 @@ def test_docling_pdf_ocr_worker_falls_back_when_ocr2_page_window_is_invalid(
             return FakeResponse("missing page markers")
         return FakeResponse(f"# fallback {len(request_image_counts)}")
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_MODEL_ENV, "unit/window-fallback")
-    monkeypatch.setenv(DEEPSEEK_OCR2_PAGE_WINDOW_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_MODEL_ENV, "unit/window-fallback")
+    monkeypatch.setenv(HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV, "2")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1703,8 +1706,8 @@ def test_docling_pdf_ocr_worker_falls_back_when_ocr2_page_window_is_invalid(
                 source_path=str(source),
                 image_path=str(image_path),
                 page_index=page_index,
-                shard_element_id=f"ocr2-shard-{page_index}",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                shard_element_id=f"hosted-vlm-shard-{page_index}",
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for page_index, image_path in enumerate(image_paths)
         ]
@@ -1755,13 +1758,13 @@ def test_docling_pdf_ocr_worker_uses_openrouter_provider_preset(
         requests.append(request)
         return FakeResponse()
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_PROVIDER_ENV, DEEPSEEK_OCR2_OPENROUTER_PROVIDER)
-    monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV, "or-key")
-    monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTER_MODEL_ENV, "openrouter/vision-ocr")
+    monkeypatch.setenv(HOSTED_VLM_OCR_PROVIDER_ENV, HOSTED_VLM_OCR_OPENROUTER_PROVIDER)
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV, "or-key")
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_MODEL_ENV, "openrouter/vision-ocr")
     monkeypatch.setenv(
-        DEEPSEEK_OCR2_OPENROUTER_HTTP_REFERER_ENV, "https://wendao.local"
+        HOSTED_VLM_OCR_OPENROUTER_HTTP_REFERER_ENV, "https://wendao.local"
     )
-    monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTER_TITLE_ENV, "Wendao OCR Benchmark")
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_TITLE_ENV, "Wendao OCR Benchmark")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1770,14 +1773,14 @@ def test_docling_pdf_ocr_worker_uses_openrouter_provider_preset(
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
 
     assert table.to_pylist()[0]["text"] == "# OpenRouter OCR\n"
     request = requests[0]
-    assert request.full_url == f"{DEEPSEEK_OCR2_OPENROUTER_BASE_URL}/chat/completions"
+    assert request.full_url == f"{HOSTED_VLM_OCR_OPENROUTER_BASE_URL}/chat/completions"
     headers = {key.lower(): value for key, value in request.header_items()}
     assert headers["authorization"] == "Bearer or-key"
     assert headers["http-referer"] == "https://wendao.local"
@@ -1806,8 +1809,8 @@ def test_docling_pdf_ocr_worker_uses_openrouter_smoke_model_by_default(
                 "utf-8"
             )
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_PROVIDER_ENV, DEEPSEEK_OCR2_OPENROUTER_PROVIDER)
-    monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTER_API_KEY_ENV, "or-key")
+    monkeypatch.setenv(HOSTED_VLM_OCR_PROVIDER_ENV, HOSTED_VLM_OCR_OPENROUTER_PROVIDER)
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV, "or-key")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: requests.append(request) or FakeResponse(),
@@ -1816,14 +1819,14 @@ def test_docling_pdf_ocr_worker_uses_openrouter_smoke_model_by_default(
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
 
     assert table.to_pylist()[0]["text"] == "OCR"
     payload = json.loads(requests[0].data.decode("utf-8"))
-    assert payload["model"] == DEEPSEEK_OCR2_OPENROUTER_TEST_MODEL
+    assert payload["model"] == HOSTED_VLM_OCR_OPENROUTER_TEST_MODEL
 
 
 def test_docling_pdf_ocr_worker_parallelizes_direct_ocr2_requests(
@@ -1867,8 +1870,8 @@ def test_docling_pdf_ocr_worker_parallelizes_direct_ocr2_requests(
             with lock:
                 active -= 1
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.setenv(DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REQUEST_CONCURRENCY_ENV, "2")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1879,8 +1882,8 @@ def test_docling_pdf_ocr_worker_parallelizes_direct_ocr2_requests(
                 source_path=str(source),
                 image_path=str(image_path),
                 page_index=page_index,
-                shard_element_id=f"ocr2-shard-{page_index}",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                shard_element_id=f"hosted-vlm-shard-{page_index}",
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             )
             for page_index, image_path in enumerate(image_paths)
         ]
@@ -1933,8 +1936,8 @@ def test_docling_pdf_ocr_worker_coalesces_noncontiguous_direct_ocr2_requests(
             with lock:
                 active -= 1
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
-    monkeypatch.delenv(DEEPSEEK_OCR2_REQUEST_CONCURRENCY_ENV, raising=False)
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.delenv(HOSTED_VLM_OCR_REQUEST_CONCURRENCY_ENV, raising=False)
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         fake_urlopen,
@@ -1945,8 +1948,8 @@ def test_docling_pdf_ocr_worker_coalesces_noncontiguous_direct_ocr2_requests(
                 source_path=str(source),
                 image_path=str(image_paths[0]),
                 page_index=0,
-                shard_element_id="ocr2-shard-0",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                shard_element_id="hosted-vlm-shard-0",
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             ),
             _sample_pdf_ocr_input_table(
                 source_path=str(source),
@@ -1959,8 +1962,8 @@ def test_docling_pdf_ocr_worker_coalesces_noncontiguous_direct_ocr2_requests(
                 source_path=str(source),
                 image_path=str(image_paths[2]),
                 page_index=2,
-                shard_element_id="ocr2-shard-2",
-                ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+                shard_element_id="hosted-vlm-shard-2",
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
             ),
         ]
     )
@@ -1988,12 +1991,12 @@ def test_docling_pdf_ocr_worker_reports_missing_openrouter_key(
 ) -> None:
     image = tmp_path / "page-00000.png"
     image.write_bytes(b"png fixture")
-    monkeypatch.setenv(DEEPSEEK_OCR2_PROVIDER_ENV, DEEPSEEK_OCR2_OPENROUTER_PROVIDER)
+    monkeypatch.setenv(HOSTED_VLM_OCR_PROVIDER_ENV, HOSTED_VLM_OCR_OPENROUTER_PROVIDER)
 
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
@@ -2003,7 +2006,7 @@ def test_docling_pdf_ocr_worker_reports_missing_openrouter_key(
     assert "OpenRouter OCR provider requires" in row["errorMessage"]
 
 
-def test_docling_pdf_ocr_worker_accepts_openroute_key_compat_alias(
+def test_docling_pdf_ocr_worker_accepts_public_openrouter_key(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -2023,8 +2026,8 @@ def test_docling_pdf_ocr_worker_accepts_openroute_key_compat_alias(
                 "utf-8"
             )
 
-    monkeypatch.setenv(DEEPSEEK_OCR2_PROVIDER_ENV, DEEPSEEK_OCR2_OPENROUTER_PROVIDER)
-    monkeypatch.setenv(DEEPSEEK_OCR2_OPENROUTE_COMPAT_API_KEY_ENV, "or-compat-key")
+    monkeypatch.setenv(HOSTED_VLM_OCR_PROVIDER_ENV, HOSTED_VLM_OCR_OPENROUTER_PROVIDER)
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_PUBLIC_API_KEY_ENV, "or-public-key")
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
         lambda request, *, timeout: requests.append(request) or FakeResponse(),
@@ -2033,17 +2036,17 @@ def test_docling_pdf_ocr_worker_accepts_openroute_key_compat_alias(
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
 
     assert table.to_pylist()[0]["text"] == "OCR"
     headers = {key.lower(): value for key, value in requests[0].header_items()}
-    assert headers["authorization"] == "Bearer or-compat-key"
+    assert headers["authorization"] == "Bearer or-public-key"
 
 
-def test_docling_pdf_ocr_worker_reports_empty_deepseek_ocr2_response(
+def test_docling_pdf_ocr_worker_reports_empty_hosted_vlm_ocr_response(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -2070,7 +2073,7 @@ def test_docling_pdf_ocr_worker_reports_empty_deepseek_ocr2_response(
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(image),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )
@@ -2080,13 +2083,13 @@ def test_docling_pdf_ocr_worker_reports_empty_deepseek_ocr2_response(
     assert "returned empty text" in row["errorMessage"]
 
 
-def test_docling_pdf_ocr_worker_reports_missing_deepseek_ocr2_image(
+def test_docling_pdf_ocr_worker_reports_missing_hosted_vlm_ocr_image(
     tmp_path: Path,
 ) -> None:
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             image_path=str(tmp_path / "missing.png"),
-            ocr_profile=PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE,
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),
     )

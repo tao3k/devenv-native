@@ -7,7 +7,8 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS";
-const DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV: &str = "WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE";
+const HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV: &str =
+    "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE";
 
 pub(super) fn pdf_ocr_worker_limit() -> usize {
     pdf_ocr_worker_limit_with_lookup(
@@ -78,7 +79,7 @@ pub(crate) fn rendered_region_shard_chunks_with_composite_size(
 }
 
 fn rendered_region_composite_size_from_environment() -> usize {
-    std::env::var(DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE_ENV)
+    std::env::var(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV)
         .ok()
         .and_then(|value| value.trim().parse::<usize>().ok())
         .filter(|value| *value > 1)

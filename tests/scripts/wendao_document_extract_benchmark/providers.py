@@ -56,10 +56,12 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] = str(
             rust_pdf_ocr_profile_planner
         )
-    rust_pdf_ocr2_render_dpi = getattr(args, "rust_pdf_ocr2_render_dpi", None)
-    if rust_pdf_ocr2_render_dpi and rust_pdf_ocr2_render_dpi >= 300:
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_RENDER_DPI"] = str(
-            rust_pdf_ocr2_render_dpi
+    rust_pdf_hosted_vlm_render_dpi = getattr(
+        args, "rust_pdf_hosted_vlm_render_dpi", None
+    )
+    if rust_pdf_hosted_vlm_render_dpi and rust_pdf_hosted_vlm_render_dpi >= 300:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI"] = str(
+            rust_pdf_hosted_vlm_render_dpi
         )
     rust_pdf_ocr_region_context_ratio = getattr(
         args,
@@ -70,24 +72,32 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO"] = str(
             rust_pdf_ocr_region_context_ratio
         )
-    rust_pdf_ocr2_region_planner = getattr(args, "rust_pdf_ocr2_region_planner", None)
-    if rust_pdf_ocr2_region_planner and rust_pdf_ocr2_region_planner != "disabled":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER"] = str(
-            rust_pdf_ocr2_region_planner
+    rust_pdf_hosted_vlm_region_planner = getattr(
+        args, "rust_pdf_hosted_vlm_region_planner", None
+    )
+    if (
+        rust_pdf_hosted_vlm_region_planner
+        and rust_pdf_hosted_vlm_region_planner != "disabled"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER"] = str(
+            rust_pdf_hosted_vlm_region_planner
         )
-    deepseek_ocr2_scaffold_mode = getattr(args, "deepseek_ocr2_scaffold_mode", None)
-    if deepseek_ocr2_scaffold_mode and deepseek_ocr2_scaffold_mode != "disabled":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE"] = str(
-            deepseek_ocr2_scaffold_mode
+    hosted_vlm_ocr_scaffold_mode = getattr(args, "hosted_vlm_ocr_scaffold_mode", None)
+    if hosted_vlm_ocr_scaffold_mode and hosted_vlm_ocr_scaffold_mode != "disabled":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE"] = str(
+            hosted_vlm_ocr_scaffold_mode
         )
-    deepseek_ocr2_region_composite_size = getattr(
+    hosted_vlm_ocr_region_composite_size = getattr(
         args,
-        "deepseek_ocr2_region_composite_size",
+        "hosted_vlm_ocr_region_composite_size",
         None,
     )
-    if deepseek_ocr2_region_composite_size and deepseek_ocr2_region_composite_size > 1:
-        env["WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE"] = str(
-            deepseek_ocr2_region_composite_size
+    if (
+        hosted_vlm_ocr_region_composite_size
+        and hosted_vlm_ocr_region_composite_size > 1
+    ):
+        env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] = str(
+            hosted_vlm_ocr_region_composite_size
         )
     ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
     if ocr_endpoint_pool:

@@ -8,7 +8,7 @@ use super::{
 };
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_cache::PdfOcrShardCache;
 use xiuxian_wendao_attachments::pdf::ocr::{
-    PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
+    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
 };
 
 mod chunks;
@@ -116,8 +116,8 @@ fn pdf_ocr_scheduler_partitions_source_range_pages_from_direct_ocr2_regions() {
         sample_ocr_input("/tmp/source.pdf", 12, "region"),
     ];
     for input in &mut inputs[2..] {
-        input.ocr_profile = PDF_OCR_DEEPSEEK_OCR2_DIRECT_VLM_PROFILE.to_string();
-        input.ocr_engine = "deepseek-ocr2-direct-vlm".to_string();
+        input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
+        input.ocr_engine = "hosted-vlm-direct-ocr".to_string();
     }
 
     let groups = scheduler_shard_groups(inputs.as_slice());

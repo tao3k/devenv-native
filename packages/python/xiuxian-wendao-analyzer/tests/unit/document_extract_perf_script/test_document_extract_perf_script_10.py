@@ -368,32 +368,32 @@ def test_pdf_ocr_milestone_guard_ignores_non_milestone_fixture() -> None:
     assert guard["reason"] == "no OCR-positive 21-page PDF milestone fixture observed"
 
 
-def test_ocr2_promotion_gate_ignores_non_ocr2_candidate() -> None:
+def test_hosted_vlm_promotion_gate_ignores_non_hosted_candidate() -> None:
     benchmark = _load_benchmark_module()
-    payload = _ocr2_promotion_payload(
+    payload = _hosted_vlm_promotion_payload(
         benchmark,
         rust_pdf_ocr_profile_planner="fast-risk-window",
-        rust_pdf_ocr2_region_planner="disabled",
+        rust_pdf_hosted_vlm_region_planner="disabled",
         request_count=0,
         ocr_region_blocks=0,
     )
 
-    gate = benchmark.ocr2_promotion_gate(payload)
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     assert gate["checked"] is False
     assert gate["passed"] is False
-    assert gate["reasons"] == ["not an OCR2 promotion candidate"]
+    assert gate["reasons"] == ["not a hosted VLM/OCR promotion candidate"]
 
 
-def test_ocr2_promotion_gate_passes_precise_fast_candidate() -> None:
+def test_hosted_vlm_promotion_gate_passes_precise_fast_candidate() -> None:
     benchmark = _load_benchmark_module()
-    payload = _ocr2_promotion_payload(
+    payload = _hosted_vlm_promotion_payload(
         benchmark,
         force_ms=10_000.0,
         shard_cache_reuse_ms=144.232,
     )
 
-    gate = benchmark.ocr2_promotion_gate(payload)
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     assert gate["checked"] is True
     assert gate["passed"] is True
@@ -402,16 +402,16 @@ def test_ocr2_promotion_gate_passes_precise_fast_candidate() -> None:
     assert gate["observed"]["ocrRegionBlocks"] == 3
 
 
-def test_ocr2_promotion_gate_rejects_current_auto_region_latency() -> None:
+def test_hosted_vlm_promotion_gate_rejects_current_auto_region_latency() -> None:
     benchmark = _load_benchmark_module()
-    payload = _ocr2_promotion_payload(
+    payload = _hosted_vlm_promotion_payload(
         benchmark,
         force_ms=39_276.940291,
         shard_cache_reuse_ms=3268.908833,
         shard_cache_reuse_scheduler_ms=3.6,
     )
 
-    gate = benchmark.ocr2_promotion_gate(payload)
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     assert gate["checked"] is True
     assert gate["passed"] is False
@@ -424,77 +424,79 @@ def test_ocr2_promotion_gate_rejects_current_auto_region_latency() -> None:
     )
 
 
-def test_ocr2_promotion_gate_treats_adaptive_region_planner_as_candidate() -> None:
+def test_hosted_vlm_promotion_gate_treats_adaptive_region_planner_as_candidate() -> (
+    None
+):
     benchmark = _load_benchmark_module()
-    payload = _ocr2_promotion_payload(
+    payload = _hosted_vlm_promotion_payload(
         benchmark,
         rust_pdf_ocr_profile_planner="fast-risk-window",
-        rust_pdf_ocr2_region_planner="profile-risk-window-adaptive",
+        rust_pdf_hosted_vlm_region_planner="profile-risk-window-adaptive",
         request_count=0,
         ocr_region_blocks=0,
     )
 
-    gate = benchmark.ocr2_promotion_gate(payload)
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     assert gate["checked"] is True
     assert gate["passed"] is False
-    assert "no OCR2 requests observed" in gate["reasons"]
+    assert "no Hosted VLM/OCR requests observed" in gate["reasons"]
     assert (
-        "automatic OCR2 region planner produced no OCR2 region requests"
+        "automatic hosted VLM/OCR region planner produced no hosted VLM/OCR region requests"
         in gate["reasons"]
     )
 
 
-def test_ocr2_promotion_gate_requires_clean_scaffold_validation() -> None:
+def test_hosted_vlm_promotion_gate_requires_clean_scaffold_validation() -> None:
     benchmark = _load_benchmark_module()
-    payload = _ocr2_promotion_payload(
+    payload = _hosted_vlm_promotion_payload(
         benchmark,
         scaffold_mode="region-table-json",
         scaffold_applied_count=3,
         scaffold_validation_failure_count=1,
     )
 
-    gate = benchmark.ocr2_promotion_gate(payload)
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     assert gate["checked"] is True
     assert gate["passed"] is False
-    assert "OCR2 scaffold validation failure count was 1" in gate["reasons"]
+    assert "Hosted VLM/OCR scaffold validation failure count was 1" in gate["reasons"]
     assert gate["observed"]["scaffoldMode"] == "region-table-json"
     assert gate["observed"]["scaffoldValidationFailureCount"] == 1
 
 
-def test_ocr2_promotion_gate_requires_clean_atlas_validation() -> None:
+def test_hosted_vlm_promotion_gate_requires_clean_atlas_validation() -> None:
     benchmark = _load_benchmark_module()
-    payload = _ocr2_promotion_payload(
+    payload = _hosted_vlm_promotion_payload(
         benchmark,
         region_atlas_mode="same-page-json",
         scaffold_validation_failure_count=1,
     )
 
-    gate = benchmark.ocr2_promotion_gate(payload)
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     assert gate["checked"] is True
     assert gate["passed"] is False
-    assert "OCR2 atlas validation failure count was 1" in gate["reasons"]
+    assert "Hosted VLM/OCR atlas validation failure count was 1" in gate["reasons"]
     assert gate["observed"]["regionAtlasMode"] == "same-page-json"
     assert gate["observed"]["scaffoldValidationFailureCount"] == 1
 
 
-def test_ocr2_promotion_gate_requires_scaffold_count_coverage() -> None:
+def test_hosted_vlm_promotion_gate_requires_scaffold_count_coverage() -> None:
     benchmark = _load_benchmark_module()
-    payload = _ocr2_promotion_payload(
+    payload = _hosted_vlm_promotion_payload(
         benchmark,
         scaffold_mode="region-table-json",
         scaffold_applied_count=2,
         scaffold_validation_failure_count=0,
     )
 
-    gate = benchmark.ocr2_promotion_gate(payload)
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     assert gate["checked"] is True
     assert gate["passed"] is False
     assert (
-        "OCR2 scaffold applied count 2 did not match region shard count 3"
+        "Hosted VLM/OCR scaffold applied count 2 did not match region shard count 3"
         in gate["reasons"]
     )
 
@@ -557,11 +559,11 @@ def _pdf_ocr_milestone_result(
     }
 
 
-def _ocr2_promotion_payload(
+def _hosted_vlm_promotion_payload(
     benchmark: object,
     *,
-    rust_pdf_ocr_profile_planner: str = "ocr2-risk-window",
-    rust_pdf_ocr2_region_planner: str = "profile-risk-window",
+    rust_pdf_ocr_profile_planner: str = "hosted-vlm-risk-window",
+    rust_pdf_hosted_vlm_region_planner: str = "profile-risk-window",
     force_ms: float = 10_000.0,
     shard_cache_reuse_ms: float = 144.232,
     shard_cache_reuse_scheduler_ms: float | None = 144.232,
@@ -591,9 +593,9 @@ def _ocr2_promotion_payload(
     summary = benchmark.summarize_results([result])
     return {
         "rustPdfOcrProfilePlanner": rust_pdf_ocr_profile_planner,
-        "rustPdfOcr2RegionPlanner": rust_pdf_ocr2_region_planner,
+        "rustPdfHostedVlmRegionPlanner": rust_pdf_hosted_vlm_region_planner,
         "summary": summary,
-        "deepseekOcr2": {
+        "hostedVlmOcr": {
             "provider": "openrouter",
             "openRouterModel": "baidu/qianfan-ocr-fast:free",
             "openRouterApiKeyConfigured": True,

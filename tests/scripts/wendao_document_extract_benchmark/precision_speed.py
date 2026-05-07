@@ -30,7 +30,7 @@ PDF_OCR_MILESTONE_BASELINE = {
     "minMetricsResultChars": 103_984,
 }
 
-OCR2_PROMOTION_BASELINE = {
+HOSTED_VLM_PROMOTION_BASELINE = {
     "id": "arxiv-2604.17337-fast-risk-window-r9",
     "forceRefreshMs": 12_856.546292,
     "maxShardCacheReuseForceMs": PDF_OCR_MILESTONE_BASELINE[
@@ -41,7 +41,7 @@ OCR2_PROMOTION_BASELINE = {
     "minMetricsRows": PDF_OCR_MILESTONE_BASELINE["metricsRows"],
 }
 
-OCR2_AUTOMATIC_REGION_PLANNERS = {
+HOSTED_VLM_AUTOMATIC_REGION_PLANNERS = {
     "profile-risk-window",
     "profile-risk-window-slices",
     "profile-risk-window-adaptive",
@@ -120,21 +120,21 @@ def pdf_ocr_milestone_guard(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def ocr2_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
+def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
     summary = payload.get("summary", {})
     precision_speed = summary.get("precisionSpeedSummary", {})
-    deepseek_ocr2 = payload.get("deepseekOcr2") or {}
-    request_summary = deepseek_ocr2.get("requestSummary") or {}
+    hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
+    request_summary = hosted_vlm_ocr.get("requestSummary") or {}
     reasons: list[str] = []
-    checked = ocr2_promotion_candidate(payload, precision_speed, request_summary)
+    checked = hosted_vlm_promotion_candidate(payload, precision_speed, request_summary)
 
     if not checked:
         return {
             "checked": False,
             "passed": False,
-            "baseline": OCR2_PROMOTION_BASELINE,
-            "reasons": ["not an OCR2 promotion candidate"],
-            "observed": ocr2_promotion_observed(
+            "baseline": HOSTED_VLM_PROMOTION_BASELINE,
+            "reasons": ["not a hosted VLM/OCR promotion candidate"],
+            "observed": hosted_vlm_promotion_observed(
                 payload, precision_speed, request_summary
             ),
         }
@@ -156,39 +156,39 @@ def ocr2_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
         )
     if (
         precision_speed.get("ocrPageBlocks")
-        != OCR2_PROMOTION_BASELINE["expectedOcrPageBlocks"]
+        != HOSTED_VLM_PROMOTION_BASELINE["expectedOcrPageBlocks"]
     ):
         reasons.append(
             "expected "
-            f"{OCR2_PROMOTION_BASELINE['expectedOcrPageBlocks']} OCR page blocks, "
+            f"{HOSTED_VLM_PROMOTION_BASELINE['expectedOcrPageBlocks']} OCR page blocks, "
             f"observed {precision_speed.get('ocrPageBlocks')}"
         )
     if (
         precision_speed.get("metricsRows", 0)
-        < OCR2_PROMOTION_BASELINE["minMetricsRows"]
+        < HOSTED_VLM_PROMOTION_BASELINE["minMetricsRows"]
     ):
         reasons.append(
             "metricsRows "
             f"{precision_speed.get('metricsRows')} below promotion floor "
-            f"{OCR2_PROMOTION_BASELINE['minMetricsRows']}"
+            f"{HOSTED_VLM_PROMOTION_BASELINE['minMetricsRows']}"
         )
     if (
         precision_speed.get("metricsResultChars", 0)
-        < OCR2_PROMOTION_BASELINE["minMetricsResultChars"]
+        < HOSTED_VLM_PROMOTION_BASELINE["minMetricsResultChars"]
     ):
         reasons.append(
             "metricsResultChars "
             f"{precision_speed.get('metricsResultChars')} below promotion floor "
-            f"{OCR2_PROMOTION_BASELINE['minMetricsResultChars']}"
+            f"{HOSTED_VLM_PROMOTION_BASELINE['minMetricsResultChars']}"
         )
     force_ms = numeric_or_none(precision_speed.get("maxForceRefreshMs"))
     if force_ms is None:
         reasons.append("missing maxForceRefreshMs")
-    elif force_ms > OCR2_PROMOTION_BASELINE["forceRefreshMs"]:
+    elif force_ms > HOSTED_VLM_PROMOTION_BASELINE["forceRefreshMs"]:
         reasons.append(
             "maxForceRefreshMs "
             f"{force_ms:.3f} exceeded promotion baseline "
-            f"{OCR2_PROMOTION_BASELINE['forceRefreshMs']:.3f}"
+            f"{HOSTED_VLM_PROMOTION_BASELINE['forceRefreshMs']:.3f}"
         )
     shard_cache_reuse_ms = numeric_or_none(
         precision_speed.get("maxShardCacheReuseForceMs")
@@ -196,114 +196,127 @@ def ocr2_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
     shard_cache_reuse_scheduler_ms = numeric_or_none(
         precision_speed.get("maxShardCacheReuseSchedulerElapsedMs")
     )
-    has_ocr2_region_sidecars = precision_speed.get("ocrRegionBlocks", 0) > 0
+    has_hosted_vlm_region_sidecars = precision_speed.get("ocrRegionBlocks", 0) > 0
     if shard_cache_reuse_ms is None:
         reasons.append("missing maxShardCacheReuseForceMs")
-    elif has_ocr2_region_sidecars:
+    elif has_hosted_vlm_region_sidecars:
         if shard_cache_reuse_scheduler_ms is None:
             reasons.append("missing maxShardCacheReuseSchedulerElapsedMs")
         elif (
             shard_cache_reuse_scheduler_ms
-            > OCR2_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]
+            > HOSTED_VLM_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]
         ):
             reasons.append(
                 "maxShardCacheReuseSchedulerElapsedMs "
                 f"{shard_cache_reuse_scheduler_ms:.3f} exceeded promotion baseline "
-                f"{OCR2_PROMOTION_BASELINE['maxShardCacheReuseForceMs']:.3f}"
+                f"{HOSTED_VLM_PROMOTION_BASELINE['maxShardCacheReuseForceMs']:.3f}"
             )
-    elif shard_cache_reuse_ms > OCR2_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]:
+    elif (
+        shard_cache_reuse_ms
+        > HOSTED_VLM_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]
+    ):
         reasons.append(
             "maxShardCacheReuseForceMs "
             f"{shard_cache_reuse_ms:.3f} exceeded promotion baseline "
-            f"{OCR2_PROMOTION_BASELINE['maxShardCacheReuseForceMs']:.3f}"
+            f"{HOSTED_VLM_PROMOTION_BASELINE['maxShardCacheReuseForceMs']:.3f}"
         )
     if request_summary.get("requestCount", 0) <= 0:
-        reasons.append("no OCR2 requests observed")
+        reasons.append("no Hosted VLM/OCR requests observed")
     if request_summary.get("successCount", 0) != request_summary.get("requestCount", 0):
         reasons.append(
-            "OCR2 success count "
+            "Hosted VLM/OCR success count "
             f"{request_summary.get('successCount')} did not match request count "
             f"{request_summary.get('requestCount')}"
         )
     if request_summary.get("failureCount", 0) != 0:
-        reasons.append(f"OCR2 failure count was {request_summary.get('failureCount')}")
+        reasons.append(
+            f"Hosted VLM/OCR failure count was {request_summary.get('failureCount')}"
+        )
     if request_summary.get("parseErrorCount", 0) != 0:
         reasons.append(
-            f"OCR2 parse error count was {request_summary.get('parseErrorCount')}"
+            f"Hosted VLM/OCR parse error count was {request_summary.get('parseErrorCount')}"
         )
-    scaffold_mode = deepseek_ocr2.get("scaffoldMode") or "disabled"
+    scaffold_mode = hosted_vlm_ocr.get("scaffoldMode") or "disabled"
     if scaffold_mode != "disabled":
         scaffold_failures = request_summary.get("scaffoldValidationFailureCount", 0)
         if scaffold_failures != 0:
             reasons.append(
-                f"OCR2 scaffold validation failure count was {scaffold_failures}"
+                f"Hosted VLM/OCR scaffold validation failure count was {scaffold_failures}"
             )
         region_shards = request_summary.get("regionShardCount", 0)
         scaffold_applied = request_summary.get("scaffoldAppliedCount", 0)
         if region_shards > 0 and scaffold_applied != region_shards:
             reasons.append(
-                "OCR2 scaffold applied count "
+                "Hosted VLM/OCR scaffold applied count "
                 f"{scaffold_applied} did not match region shard count "
                 f"{region_shards}"
             )
-    atlas_mode = deepseek_ocr2.get("regionAtlasMode") or "disabled"
+    atlas_mode = hosted_vlm_ocr.get("regionAtlasMode") or "disabled"
     if atlas_mode != "disabled":
         atlas_failures = request_summary.get("scaffoldValidationFailureCount", 0)
         if atlas_failures != 0:
-            reasons.append(f"OCR2 atlas validation failure count was {atlas_failures}")
-    if deepseek_ocr2.get("provider") == "openrouter" and not deepseek_ocr2.get(
+            reasons.append(
+                f"Hosted VLM/OCR atlas validation failure count was {atlas_failures}"
+            )
+    if hosted_vlm_ocr.get("provider") == "openrouter" and not hosted_vlm_ocr.get(
         "openRouterApiKeyConfigured"
     ):
         reasons.append("OpenRouter key was not configured")
     if (
-        payload.get("rustPdfOcr2RegionPlanner") in OCR2_AUTOMATIC_REGION_PLANNERS
+        payload.get("rustPdfHostedVlmRegionPlanner")
+        in HOSTED_VLM_AUTOMATIC_REGION_PLANNERS
         and request_summary.get("regionShardCount", 0) <= 0
     ):
-        reasons.append("automatic OCR2 region planner produced no OCR2 region requests")
+        reasons.append(
+            "automatic hosted VLM/OCR region planner produced no hosted VLM/OCR region requests"
+        )
 
     return {
         "checked": True,
         "passed": not reasons,
-        "baseline": OCR2_PROMOTION_BASELINE,
+        "baseline": HOSTED_VLM_PROMOTION_BASELINE,
         "reasons": reasons,
-        "observed": ocr2_promotion_observed(payload, precision_speed, request_summary),
+        "observed": hosted_vlm_promotion_observed(
+            payload, precision_speed, request_summary
+        ),
     }
 
 
-def ocr2_promotion_candidate(
+def hosted_vlm_promotion_candidate(
     payload: dict[str, Any],
     precision_speed: dict[str, Any],
     request_summary: dict[str, Any],
 ) -> bool:
     planner = payload.get("rustPdfOcrProfilePlanner")
     if planner in {
-        "ocr2-all",
-        "ocr2-risk-window",
         "hosted-vlm-all",
         "hosted-vlm-risk-window",
     }:
         return True
-    if payload.get("rustPdfOcr2RegionPlanner") in OCR2_AUTOMATIC_REGION_PLANNERS:
+    if (
+        payload.get("rustPdfHostedVlmRegionPlanner")
+        in HOSTED_VLM_AUTOMATIC_REGION_PLANNERS
+    ):
         return True
     if precision_speed.get("ocrRegionBlocks", 0) > 0:
         return True
     return request_summary.get("requestCount", 0) > 0
 
 
-def ocr2_promotion_observed(
+def hosted_vlm_promotion_observed(
     payload: dict[str, Any],
     precision_speed: dict[str, Any],
     request_summary: dict[str, Any],
 ) -> dict[str, Any]:
-    deepseek_ocr2 = payload.get("deepseekOcr2") or {}
+    hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
     return {
         "rustPdfOcrProfilePlanner": payload.get("rustPdfOcrProfilePlanner"),
-        "rustPdfOcr2RegionPlanner": payload.get("rustPdfOcr2RegionPlanner"),
-        "provider": deepseek_ocr2.get("provider"),
-        "openRouterModel": deepseek_ocr2.get("openRouterModel"),
-        "openRouterApiKeyConfigured": deepseek_ocr2.get("openRouterApiKeyConfigured"),
-        "regionAtlasMode": deepseek_ocr2.get("regionAtlasMode"),
-        "scaffoldMode": deepseek_ocr2.get("scaffoldMode"),
+        "rustPdfHostedVlmRegionPlanner": payload.get("rustPdfHostedVlmRegionPlanner"),
+        "provider": hosted_vlm_ocr.get("provider"),
+        "openRouterModel": hosted_vlm_ocr.get("openRouterModel"),
+        "openRouterApiKeyConfigured": hosted_vlm_ocr.get("openRouterApiKeyConfigured"),
+        "regionAtlasMode": hosted_vlm_ocr.get("regionAtlasMode"),
+        "scaffoldMode": hosted_vlm_ocr.get("scaffoldMode"),
         "precisionGatePassed": precision_speed.get("precisionGatePassed"),
         "errorRows": precision_speed.get("errorRows"),
         "structureReadingOrderSorted": precision_speed.get(
@@ -413,7 +426,7 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
         if ocr_region_blocks > 0:
             if shard_cache_reuse_scheduler_ms is None:
                 regressions.append(
-                    "missing shardCacheReuseMetricsRustSchedulerElapsedMs for OCR2 region sidecars"
+                    "missing shardCacheReuseMetricsRustSchedulerElapsedMs for Hosted VLM/OCR region sidecars"
                 )
             elif (
                 shard_cache_reuse_scheduler_ms

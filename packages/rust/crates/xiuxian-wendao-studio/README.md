@@ -100,10 +100,8 @@ only to non-risk source-page ranges. The same planner now exposes
 `hosted-vlm-all` for full hosted VLM/OCR probes and
 `hosted-vlm-risk-window` for surgical recovery: ordinary pages stay on
 `docling-fast-text-ocr`, while the source-profile risk window uses the
-model-agnostic `hosted-vlm-direct-ocr-v1` profile. The legacy `ocr2-all` and
-`ocr2-risk-window` spellings remain accepted aliases for existing benchmark
-evidence, but the optimization pipeline is provider/model agnostic. The hosted
-VLM risk-window route keeps the primary manifest on source-range rows and
+model-agnostic `hosted-vlm-direct-ocr-v1` profile. The hosted VLM
+risk-window route keeps the primary manifest on source-range rows and
 materializes rendered page images only for recovery pages, so ordinary fast
 pages do not pay page-raster cost. Narrow exact-risk-only routing is not the
 promotion path because the real milestone run lost the frozen character floor.
@@ -115,8 +113,8 @@ rendered region's parent shard id to the retained fast parent page and records
 `sentinel-sidecar-v1` in structure provenance; this is a safe sidecar patch
 protocol, not default in-place Markdown replacement.
 When no explicit region JSON is configured, the benchmark can opt into
-`WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_REGION_PLANNER=profile-risk-window` through
-`--rust-pdf-ocr2-region-planner profile-risk-window`. That first automatic
+`WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER=profile-risk-window`
+through `--rust-pdf-hosted-vlm-region-planner profile-risk-window`. That first automatic
 planner only acts on pages already selected by the hosted VLM risk-window planner and builds a
 conservative content-band region from the page crop box; it is a recovery
 surface probe, not a claimed table-detector or default routing policy.
@@ -133,23 +131,23 @@ low-complexity neighbor pages can stay as one region. The goal is to avoid
 both a broad single-region provider tail and blanket three-slice request
 overhead while keeping 300 DPI, semantic padding, parent binding, and the
 stable shard schema.
-The analyzer-side direct OCR2 worker can additionally opt into a same-page,
+The analyzer-side direct hosted VLM/OCR worker can additionally opt into a same-page,
 same-parent region composite canary through
-`WENDAO_DEEPSEEK_OCR2_REGION_COMPOSITE_SIZE` or the benchmark flag
-`--deepseek-ocr2-region-composite-size`. Composite responses are accepted only
+`WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE` or the benchmark flag
+`--hosted-vlm-ocr-region-composite-size`. Composite responses are accepted only
 when sentinel markers split back into one non-empty Markdown result per region;
 otherwise the worker falls back to individual region requests and the Rust
 row/order gate still sees the unchanged OCR shard result schema. The benchmark
-can additionally set `WENDAO_DEEPSEEK_OCR2_REGION_ATLAS_MODE=same-page-json`
-or `--deepseek-ocr2-region-atlas-mode same-page-json` to pack each same-page
+can additionally set `WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE=same-page-json`
+or `--hosted-vlm-ocr-region-atlas-mode same-page-json` to pack each same-page
 region composite group into one labeled PNG atlas and require strict JSON keyed
 by exact shard markers. Atlas mode remains a request-surface canary: validation
 failure falls back to individual region requests, and promotion still depends
 on the unchanged Rust row/order, character-floor, and force-refresh gates.
 For table and complex-layout region recovery, the benchmark can also opt into
-`--deepseek-ocr2-scaffold-mode region-table-json`. Studio forwards that as
-`WENDAO_DOCUMENT_EXTRACT_PDF_OCR2_SCAFFOLD_MODE=region-table-json` and writes
-`_ocr2_region_scaffolds.json` beside the rendered hosted recovery region images. The
+`--hosted-vlm-ocr-scaffold-mode region-table-json`. Studio forwards that as
+`WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE=region-table-json` and writes
+`_hosted_vlm_region_scaffolds.json` beside the rendered hosted recovery region images. The
 sidecar records shard ids, parent shard ids, source and raster fingerprints,
 render DPI, crop boxes, source pixel boxes, source-page profile signals, and a
 conservative scaffold kind such as `table_candidate`,
@@ -160,8 +158,8 @@ which must return failed rows on scaffold validation errors so the Rust
 precision fallback remains authoritative.
 All hosted VLM/OCR modes stay opt-in until the real benchmark gate proves the
 current precision envelope and beats the 12,856.546 ms `fast-risk-window`
-force-refresh evidence. Benchmark reports still expose that decision through
-the compatibility field `ocr2PromotionGate`, which keeps hosted profile
+force-refresh evidence. Benchmark reports expose that decision through
+`hostedVlmPromotionGate`, which keeps hosted profile
 promotion tied to the frozen precision, row/order, character-floor,
 hosted-request, force-refresh, shard-cache reuse, and zero
 scaffold-validation-failure gates.

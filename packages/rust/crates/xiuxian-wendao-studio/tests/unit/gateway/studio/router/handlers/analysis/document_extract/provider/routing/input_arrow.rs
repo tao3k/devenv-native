@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
-use xiuxian_wendao_attachments::pdf::ocr::merge_ocr2_recovery_region_inputs;
+use xiuxian_wendao_attachments::pdf::ocr::merge_hosted_vlm_recovery_region_inputs;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 use super::{
@@ -70,8 +70,8 @@ fn ocr2_recovery_merge_keeps_profile_and_uses_rendered_image() -> Result<(), Str
     let fast_input = sample_ocr_input(0, "page");
     let mut ocr2_input = sample_ocr_input(1, "page");
     ocr2_input.image_path = "/tmp/out/source-range-placeholder".to_string();
-    ocr2_input.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
-    ocr2_input.ocr_engine = "deepseek-ocr2-direct-vlm".to_string();
+    ocr2_input.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
+    ocr2_input.ocr_engine = "hosted-vlm-direct-ocr".to_string();
 
     let mut rendered_input = sample_ocr_input(1, "page");
     rendered_input.image_path = "/tmp/out/_ocr2-page-renders/page-00001.png".to_string();
@@ -85,8 +85,8 @@ fn ocr2_recovery_merge_keeps_profile_and_uses_rendered_image() -> Result<(), Str
     )?;
 
     assert_eq!(merged[0].image_path, fast_input.image_path);
-    assert_eq!(merged[1].ocr_profile, "deepseek-ocr2-direct-vlm");
-    assert_eq!(merged[1].ocr_engine, "deepseek-ocr2-direct-vlm");
+    assert_eq!(merged[1].ocr_profile, "hosted-vlm-direct-ocr-v1");
+    assert_eq!(merged[1].ocr_engine, "hosted-vlm-direct-ocr");
     assert_eq!(
         merged[1].image_path,
         "/tmp/out/_ocr2-page-renders/page-00001.png"
@@ -100,15 +100,15 @@ fn ocr2_recovery_merge_keeps_profile_and_uses_rendered_image() -> Result<(), Str
 #[test]
 fn ocr2_region_merge_deescalates_parent_page_and_appends_region() -> Result<(), String> {
     let mut ocr2_page = sample_ocr_input(1, "page");
-    ocr2_page.ocr_profile = "deepseek-ocr2-direct-vlm".to_string();
-    ocr2_page.ocr_engine = "deepseek-ocr2-direct-vlm".to_string();
+    ocr2_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
+    ocr2_page.ocr_engine = "hosted-vlm-direct-ocr".to_string();
 
     let mut rendered_region = sample_ocr_input(1, "region");
     rendered_region.image_path =
         "/tmp/out/_ocr2-region-renders/page-00001-region-00001.png".to_string();
     rendered_region.parent_shard_element_id = "render-profile-parent-page".to_string();
 
-    let merged = merge_ocr2_recovery_region_inputs(
+    let merged = merge_hosted_vlm_recovery_region_inputs(
         vec![sample_ocr_input(0, "page"), ocr2_page],
         vec![rendered_region],
         &BTreeSet::from([1]),
@@ -118,8 +118,8 @@ fn ocr2_region_merge_deescalates_parent_page_and_appends_region() -> Result<(), 
     assert_eq!(merged[1].ocr_profile, "docling-fast-text-ocr");
     assert_eq!(merged[1].ocr_engine, "docling-fast-text-ocr");
     assert_eq!(merged[2].shard_type, "region");
-    assert_eq!(merged[2].ocr_profile, "deepseek-ocr2-direct-vlm");
-    assert_eq!(merged[2].ocr_engine, "deepseek-ocr2-direct-vlm");
+    assert_eq!(merged[2].ocr_profile, "hosted-vlm-direct-ocr-v1");
+    assert_eq!(merged[2].ocr_engine, "hosted-vlm-direct-ocr");
     assert_eq!(
         merged[2].parent_shard_element_id,
         merged[1].shard_element_id

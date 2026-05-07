@@ -32,8 +32,6 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
         "_", "-"
     )
     if profile_planner in {
-        "ocr2-all",
-        "ocr2-risk-window",
         "hosted-vlm-all",
         "hosted-vlm-risk-window",
     }:

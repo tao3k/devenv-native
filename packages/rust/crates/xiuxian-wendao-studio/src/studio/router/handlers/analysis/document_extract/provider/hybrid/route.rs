@@ -15,9 +15,9 @@ use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use xiuxian_wendao_attachments::pdf::ocr::{
     PdfOcrShardInput, PdfOcrShardResult, build_ocr_result_resource_batch,
-    decode_ocr_shard_input_batches, downgrade_ocr2_region_parent_page_inputs,
-    is_hosted_vlm_direct_profile, merge_ocr2_recovery_region_inputs,
-    ocr2_region_parent_page_shards, prepare_ocr2_recovery_region_inputs,
+    decode_ocr_shard_input_batches, downgrade_hosted_vlm_region_parent_page_inputs,
+    hosted_vlm_region_parent_page_shards, is_hosted_vlm_direct_profile,
+    merge_hosted_vlm_recovery_region_inputs, prepare_hosted_vlm_recovery_region_inputs,
 };
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use xiuxian_wendao_attachments::pdf::profile::{
@@ -75,7 +75,7 @@ const HYBRID_PAGE_OCR_TIMING_REPORT_NAME: &str = "_hybrid_page_ocr_timing.json";
 const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
-const OCR2_REGION_RENDER_CACHE_DIR_NAME: &str = "ocr2-region-renders";
+const OCR2_REGION_RENDER_CACHE_DIR_NAME: &str = "hosted-vlm-region-renders";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
@@ -83,7 +83,7 @@ const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
-const OCR2_REGION_SCAFFOLD_FILE_NAME: &str = "_ocr2_region_scaffolds.json";
+const OCR2_REGION_SCAFFOLD_FILE_NAME: &str = "_hosted_vlm_region_scaffolds.json";
 
 impl StudioDocumentExtractFlightRouteProvider {
     pub(crate) async fn hybrid_page_ocr_document_extract_batch(
@@ -189,7 +189,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                         .fallback_python_document_extract(
                             request,
                             output.as_path(),
-                            "OCR2 region pipeline requires the `document-extract-pdf-render` feature",
+                            "hosted VLM/OCR region pipeline requires the `document-extract-pdf-render` feature",
                         )
                         .await;
                 }
@@ -476,7 +476,7 @@ async fn materialize_ocr2_recovery_page_images(
             )
         })
         .await
-        .map_err(|error| format!("join OCR2 recovery page render task: {error}"))??;
+        .map_err(|error| format!("join hosted VLM/OCR recovery page render task: {error}"))??;
         let ocr_input_path = hybrid_page_ocr_input_arrow_path(&page_render_report)?;
         let input_batches = read_arrow_file(ocr_input_path.as_path())?;
         let rendered_inputs = decode_ocr_shard_input_batches(&input_batches)?;
@@ -486,7 +486,10 @@ async fn materialize_ocr2_recovery_page_images(
     #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         let _ = render_report;
-        Err("OCR2 recovery pages require the `document-extract-pdf-render` feature".to_string())
+        Err(
+            "hosted VLM/OCR recovery pages require the `document-extract-pdf-render` feature"
+                .to_string(),
+        )
     }
 }
 
@@ -545,7 +548,9 @@ async fn materialize_ocr2_recovery_region_images(
                 )
             })
             .await
-            .map_err(|error| format!("join OCR2 recovery region render task: {error}"))??
+            .map_err(|error| {
+                format!("join hosted VLM/OCR recovery region render task: {error}")
+            })??
         };
         materialization.record_phase_elapsed("regionMaterializeRender", phase_started);
         materialization.stats.render_reported_elapsed_ms = region_render_report.elapsed_ms;
@@ -561,8 +566,11 @@ async fn materialize_ocr2_recovery_region_images(
             materialization.stats.render_cache_miss_count = rendered_inputs.len();
         }
         let existing_inputs = std::mem::take(&mut materialization.inputs);
-        let merged_inputs =
-            merge_ocr2_recovery_region_inputs(existing_inputs, rendered_inputs, &region_pages)?;
+        let merged_inputs = merge_hosted_vlm_recovery_region_inputs(
+            existing_inputs,
+            rendered_inputs,
+            &region_pages,
+        )?;
         materialization.record_phase_elapsed("regionMaterializeMerge", phase_started);
 
         let phase_started = Instant::now();
@@ -581,7 +589,10 @@ async fn materialize_ocr2_recovery_region_images(
     #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         let _ = render_report;
-        Err("OCR2 recovery regions require the `document-extract-pdf-render` feature".to_string())
+        Err(
+            "hosted VLM/OCR recovery regions require the `document-extract-pdf-render` feature"
+                .to_string(),
+        )
     }
 }
 
@@ -649,7 +660,7 @@ fn ocr2_region_render_cache_key(
         "renderProfile": profile,
         "regions": regions,
     }))
-    .map_err(|error| format!("serialize OCR2 region render cache key: {error}"))?;
+    .map_err(|error| format!("serialize hosted VLM/OCR region render cache key: {error}"))?;
     Ok(sha256_hex(payload.as_slice()))
 }
 
@@ -725,18 +736,18 @@ fn write_ocr2_region_scaffold_sidecar_with_lookup(
         return Ok(());
     };
     std::fs::create_dir_all(output_dir)
-        .map_err(|error| format!("create OCR2 scaffold output directory: {error}"))?;
+        .map_err(|error| format!("create hosted VLM/OCR scaffold output directory: {error}"))?;
     let bytes = serde_json::to_vec_pretty(&payload)
-        .map_err(|error| format!("serialize OCR2 region scaffold sidecar: {error}"))?;
+        .map_err(|error| format!("serialize hosted VLM/OCR region scaffold sidecar: {error}"))?;
     std::fs::write(output_dir.join(OCR2_REGION_SCAFFOLD_FILE_NAME), bytes)
-        .map_err(|error| format!("write OCR2 region scaffold sidecar: {error}"))
+        .map_err(|error| format!("write hosted VLM/OCR region scaffold sidecar: {error}"))
 }
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 fn sha256_file_hex(path: &Path) -> Result<String, String> {
     let bytes = std::fs::read(path).map_err(|error| {
         format!(
-            "read OCR2 region render cache source `{}`: {error}",
+            "read hosted VLM/OCR region render cache source `{}`: {error}",
             path.display()
         )
     })?;
@@ -809,7 +820,7 @@ fn ocr2_region_scaffold_payload(
         })
         .collect::<Vec<_>>();
     Some(json!({
-        "schema": "xiuxian_wendao.ocr2_region_scaffold.v1",
+        "schema": "xiuxian_wendao.hosted_vlm_region_scaffold.v1",
         "mode": "region-table-json",
         "sourcePath": source.to_string_lossy(),
         "items": items,
@@ -889,7 +900,7 @@ pub(crate) fn merge_ocr2_recovery_page_inputs(
         }
         let Some(rendered) = rendered_by_page.get(&input.page_index) else {
             return Err(format!(
-                "OCR2 recovery render did not produce page {}",
+                "hosted VLM/OCR recovery render did not produce page {}",
                 input.page_index
             ));
         };
@@ -944,8 +955,8 @@ async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipeline(
         .map(|region| region.page_index)
         .collect::<BTreeSet<_>>();
     let mut base_inputs = inputs;
-    downgrade_ocr2_region_parent_page_inputs(&mut base_inputs, &region_pages);
-    let parent_page_shards = ocr2_region_parent_page_shards(base_inputs.as_slice());
+    downgrade_hosted_vlm_region_parent_page_inputs(&mut base_inputs, &region_pages);
+    let parent_page_shards = hosted_vlm_region_parent_page_shards(base_inputs.as_slice());
 
     let phase_started = Instant::now();
     let base_inputs = materialize_ocr2_recovery_page_images(render_report, base_inputs).await?;
@@ -978,7 +989,7 @@ async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipeline(
             tokio::select! {
                 render_join = render_handle => {
                     let render_chunk = render_join
-                        .map_err(|error| format!("join OCR2 region pipeline render task: {error}"))??;
+                        .map_err(|error| format!("join hosted VLM/OCR region pipeline render task: {error}"))??;
                     let region_inputs = decode_ocr2_region_render_chunk(
                         source_path.as_path(),
                         &render_chunk,
@@ -1006,7 +1017,7 @@ async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipeline(
                     {
                         let base_inputs = base_inputs_pending
                             .take()
-                            .ok_or_else(|| "OCR2 region pipeline base inputs were already scheduled".to_string())?;
+                            .ok_or_else(|| "hosted VLM/OCR region pipeline base inputs were already scheduled".to_string())?;
                         pending_ocr.push(schedule_ocr_input_batch(
                             pdf_ocr_scheduler,
                             endpoint_urls.as_slice(),
@@ -1016,13 +1027,13 @@ async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipeline(
                 }
                 scheduled = pending_ocr.next(), if !pending_ocr.is_empty() => {
                     let scheduled = scheduled
-                        .ok_or_else(|| "OCR2 region pipeline request queue ended unexpectedly".to_string())??;
+                        .ok_or_else(|| "hosted VLM/OCR region pipeline request queue ended unexpectedly".to_string())??;
                     collect_scheduled_ocr_batch(&mut all_results, scheduled)?;
                 }
             }
         } else {
             let scheduled = pending_ocr.next().await.ok_or_else(|| {
-                "OCR2 region pipeline request queue ended unexpectedly".to_string()
+                "hosted VLM/OCR region pipeline request queue ended unexpectedly".to_string()
             })??;
             collect_scheduled_ocr_batch(&mut all_results, scheduled)?;
         }
@@ -1115,7 +1126,9 @@ fn spawn_next_ocr2_region_render_chunk(
             )
         })
         .await
-        .map_err(|error| format!("join OCR2 region pipeline blocking render task: {error}"))??;
+        .map_err(|error| {
+            format!("join hosted VLM/OCR region pipeline blocking render task: {error}")
+        })??;
         Ok(Ocr2RegionRenderChunk {
             output_dir,
             render_cache_hit: false,
@@ -1148,7 +1161,8 @@ fn decode_ocr2_region_render_chunk(
             .render_cache_miss_count
             .saturating_add(rendered_inputs.len());
     }
-    let region_inputs = prepare_ocr2_recovery_region_inputs(parent_page_shards, rendered_inputs)?;
+    let region_inputs =
+        prepare_hosted_vlm_recovery_region_inputs(parent_page_shards, rendered_inputs)?;
     write_ocr2_region_scaffold_sidecar_with_lookup(
         source_path,
         render_chunk.output_dir.as_path(),
