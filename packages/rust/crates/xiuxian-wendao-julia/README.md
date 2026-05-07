@@ -196,6 +196,13 @@ needs a feature-gated second plugin bundle for these languages.
   scheduling to Rust. The approved `xiuxian-polyglot-orchestrator` crate may
   define shared lane, admission, readiness, and snapshot contracts, but it must
   reference Julia profile and readiness facts through this package boundary.
+- `xiuxian-wendao-julia` also owns the Julia profile schedule-plan projection
+  for WendaoGraph link evidence, WendaoSearch graph-structural routes, legacy
+  WendaoSearch rerank, and memory-family compute profiles. These helpers only
+  convert owner-supplied runtime stats, admission counters, fallback
+  availability, task shape, and latency constraints into inert
+  `JuliaSchedulePlan` values; they do not call Julia, mutate queues, or execute
+  Rust fallback algorithms.
 - the active `rust-lang-project-harness` profile marks `src/polyglot.rs` as the
   Julia polyglot bridge for readiness evidence projection. That profile records
   Julia profile/schema/manifest/readiness ownership without moving live Julia

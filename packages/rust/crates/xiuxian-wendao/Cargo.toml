@@ -30,6 +30,7 @@ zhenfa-router = [
   "search-runtime",
 ]
 julia = [
+  "dep:xiuxian-polyglot-orchestrator",
   "dep:xiuxian-wendao-julia",
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
@@ -134,6 +135,7 @@ xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features 
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
+xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }

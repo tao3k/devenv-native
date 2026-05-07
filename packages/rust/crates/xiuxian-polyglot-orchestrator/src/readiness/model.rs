@@ -125,6 +125,18 @@ impl JuliaReadinessEvidence {
         Self::new(LaneCapability::MemoryProfileCompute, profile_id)
     }
 
+    /// Creates graph-evidence Julia readiness evidence.
+    #[must_use]
+    pub fn graph_evidence_profile(profile_id: impl Into<String>) -> Self {
+        Self::new(LaneCapability::GraphEvidenceCompute, profile_id)
+    }
+
+    /// Creates graph-search Julia readiness evidence.
+    #[must_use]
+    pub fn graph_search_profile(profile_id: impl Into<String>) -> Self {
+        Self::new(LaneCapability::GraphSearchCompute, profile_id)
+    }
+
     /// Returns this evidence with an optional schema version.
     #[must_use]
     pub fn with_schema_version(mut self, schema_version: impl Into<String>) -> Self {

@@ -70,6 +70,10 @@ pub mod link_graph;
 #[cfg(feature = "julia")]
 pub mod memory;
 pub mod parsers;
+/// Feature-gated host projection that combines Wendao runtime and Julia
+/// compute contracts for the polyglot scheduler.
+#[cfg(feature = "julia")]
+pub mod polyglot;
 /// Optional Python binding namespace.
 #[cfg(feature = "pybindings")]
 pub mod pybindings;

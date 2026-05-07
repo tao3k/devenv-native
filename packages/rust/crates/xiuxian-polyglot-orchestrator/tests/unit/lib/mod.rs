@@ -1,6 +1,7 @@
 mod admission;
 mod docling_schedule;
 mod evidence;
+mod julia_schedule;
 mod lanes;
 mod pressure;
 mod readiness;

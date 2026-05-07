@@ -1,18 +1,95 @@
 //! Read-only projections from Julia-owned facts into polyglot contracts.
 
 use xiuxian_polyglot_orchestrator::{
-    BenchmarkState, ContractValidationState, FallbackEvidence, HealthState, JuliaReadinessEvidence,
-    LaneEvidence, ManifestReadinessState, PolyglotControlSnapshot, PolyglotLane, PressureLevel,
-    ReadinessState, RouteProfileRef, SnapshotInvariantError, WarmupState,
+    BenchmarkState, ContractValidationState, FallbackEvidence, HealthState, JuliaComputeTaskShape,
+    JuliaReadinessEvidence, JuliaRuntimeStats, JuliaSchedulePlan, JuliaSchedulingInput,
+    LaneCapability, LaneEvidence, ManifestReadinessState, PolyglotControlSnapshot, PolyglotLane,
+    PressureLevel, ReadinessState, RouteProfileRef, SnapshotInvariantError, WarmupState,
 };
 use xiuxian_wendao_runtime::config::{
     MemoryJuliaComputeFallbackMode, MemoryJuliaComputeRuntimeConfig,
 };
 
+use crate::compatibility::link_graph::{
+    DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, LinkGraphJuliaRerankRuntimeConfig,
+};
 use crate::memory::{
     MemoryJuliaComputeManifestRow, MemoryJuliaComputeProfile,
     build_memory_julia_compute_manifest_rows,
 };
+use crate::{
+    GraphStructuralRouteKind, JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION,
+    WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION, WENDAO_GRAPH_LINK_EVIDENCE_ROUTE,
+};
+
+/// Stable profile id for the `WendaoGraph.jl` link-evidence contract.
+pub const WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID: &str = "wendao_graph_link_evidence";
+/// Stable profile id for the legacy `WendaoSearch.jl` rerank route.
+pub const WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID: &str = "wendaosearch_legacy_rerank";
+/// Stable profile id for the `WendaoSearch.jl` structural-rerank route.
+pub const WENDAOSEARCH_STRUCTURAL_RERANK_PROFILE_ID: &str = "wendaosearch_structural_rerank";
+/// Stable profile id for the `WendaoSearch.jl` constraint-filter route.
+pub const WENDAOSEARCH_CONSTRAINT_FILTER_PROFILE_ID: &str = "wendaosearch_constraint_filter";
+
+/// Owner-supplied scheduling facts for one Julia profile planning attempt.
+///
+/// These facts are inert. They do not start Julia, probe a worker, mutate a
+/// queue, or execute Rust fallback code.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct JuliaProfileSchedulingFacts {
+    /// Optional maximum number of in-flight Julia requests for this profile.
+    pub max_in_flight: Option<u32>,
+    /// Runtime stats supplied by the owner package or host.
+    pub runtime_stats: JuliaRuntimeStats,
+    /// Whether an owner-defined Rust fallback is safe for this task.
+    pub fallback_available: bool,
+    /// Optional hard deadline in milliseconds.
+    pub deadline_ms: Option<u32>,
+    /// Optional target latency in milliseconds.
+    pub target_latency_ms: Option<u32>,
+}
+
+impl JuliaProfileSchedulingFacts {
+    /// Creates scheduling facts from observed or inferred runtime stats.
+    #[must_use]
+    pub const fn new(runtime_stats: JuliaRuntimeStats) -> Self {
+        Self {
+            max_in_flight: None,
+            runtime_stats,
+            fallback_available: false,
+            deadline_ms: None,
+            target_latency_ms: None,
+        }
+    }
+
+    /// Returns these facts with an admission capacity override.
+    #[must_use]
+    pub const fn with_max_in_flight(mut self, max_in_flight: Option<u32>) -> Self {
+        self.max_in_flight = max_in_flight;
+        self
+    }
+
+    /// Returns these facts with fallback availability.
+    #[must_use]
+    pub const fn with_fallback_available(mut self, fallback_available: bool) -> Self {
+        self.fallback_available = fallback_available;
+        self
+    }
+
+    /// Returns these facts with a hard deadline in milliseconds.
+    #[must_use]
+    pub const fn with_deadline_ms(mut self, deadline_ms: Option<u32>) -> Self {
+        self.deadline_ms = deadline_ms;
+        self
+    }
+
+    /// Returns these facts with a target latency in milliseconds.
+    #[must_use]
+    pub const fn with_target_latency_ms(mut self, target_latency_ms: Option<u32>) -> Self {
+        self.target_latency_ms = target_latency_ms;
+        self
+    }
+}
 
 /// Returns typed refs for every staged memory-family Julia compute profile.
 #[must_use]
@@ -49,6 +126,228 @@ pub fn memory_julia_compute_manifest_row_ref(
         row.profile_id.as_str(),
         row.schema_version.as_str(),
     )
+}
+
+/// Returns the typed ref for the `WendaoGraph.jl` link-evidence contract.
+#[must_use]
+pub fn wendao_graph_link_evidence_profile_ref() -> RouteProfileRef {
+    RouteProfileRef::julia_profile(
+        WENDAO_GRAPH_LINK_EVIDENCE_ROUTE,
+        WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+        WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION,
+    )
+}
+
+/// Returns a typed ref for one `WendaoSearch.jl` graph-structural route.
+#[must_use]
+pub fn wendaosearch_graph_structural_profile_ref(
+    route_kind: GraphStructuralRouteKind,
+) -> RouteProfileRef {
+    RouteProfileRef::julia_profile(
+        route_kind.route(),
+        wendaosearch_graph_structural_profile_id(route_kind),
+        route_kind.schema_version(),
+    )
+}
+
+/// Returns typed refs for the staged `WendaoSearch.jl` graph-structural routes.
+#[must_use]
+pub fn wendaosearch_graph_structural_profile_refs() -> Vec<RouteProfileRef> {
+    [
+        GraphStructuralRouteKind::StructuralRerank,
+        GraphStructuralRouteKind::ConstraintFilter,
+    ]
+    .into_iter()
+    .map(wendaosearch_graph_structural_profile_ref)
+    .collect()
+}
+
+/// Returns the typed ref for the legacy `WendaoSearch.jl` rerank route.
+#[must_use]
+pub fn wendaosearch_legacy_rerank_profile_ref(
+    runtime: &LinkGraphJuliaRerankRuntimeConfig,
+) -> RouteProfileRef {
+    RouteProfileRef::julia_profile(
+        runtime
+            .route
+            .as_deref()
+            .unwrap_or(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE),
+        WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID,
+        runtime.schema_version.as_deref().unwrap_or("v1"),
+    )
+}
+
+/// Returns graph-family Julia route refs currently known to the Rust scheduler.
+#[must_use]
+pub fn julia_graph_compute_profile_refs(
+    runtime: &LinkGraphJuliaRerankRuntimeConfig,
+) -> Vec<RouteProfileRef> {
+    let mut refs = Vec::with_capacity(4);
+    refs.push(wendao_graph_link_evidence_profile_ref());
+    refs.push(wendaosearch_legacy_rerank_profile_ref(runtime));
+    refs.extend(wendaosearch_graph_structural_profile_refs());
+    refs
+}
+
+/// Builds a read-only graph-family Julia contract snapshot.
+///
+/// # Errors
+///
+/// Returns [`SnapshotInvariantError`] if the generated snapshot violates the
+/// neutral orchestrator invariants.
+pub fn julia_graph_compute_snapshot(
+    runtime: &LinkGraphJuliaRerankRuntimeConfig,
+) -> Result<PolyglotControlSnapshot, SnapshotInvariantError> {
+    PolyglotControlSnapshot::from_parts(
+        julia_graph_compute_profile_refs(runtime),
+        Vec::new(),
+        Vec::new(),
+    )
+}
+
+/// Returns readiness evidence for the `WendaoGraph.jl` link-evidence profile.
+#[must_use]
+pub fn wendao_graph_link_evidence_readiness_evidence(
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> JuliaReadinessEvidence {
+    julia_static_contract_readiness_evidence(
+        JuliaStaticContractReadinessProfile {
+            capability: LaneCapability::GraphEvidenceCompute,
+            profile_id: WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+            schema_version: WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION,
+        },
+        warmup,
+        benchmark,
+        JuliaReadinessWindow {
+            max_in_flight,
+            active_in_flight,
+            queue_depth,
+        },
+    )
+}
+
+/// Returns a schedule plan for the `WendaoGraph.jl` link-evidence profile.
+#[must_use]
+pub fn wendao_graph_link_evidence_schedule_plan(
+    shape: JuliaComputeTaskShape,
+    facts: JuliaProfileSchedulingFacts,
+) -> JuliaSchedulePlan {
+    let readiness = wendao_graph_link_evidence_readiness_evidence(
+        facts.runtime_stats.warmup,
+        facts.runtime_stats.benchmark,
+        facts.max_in_flight,
+        facts.runtime_stats.active_in_flight,
+        facts.runtime_stats.queue_depth,
+    )
+    .with_fallback_available(facts.fallback_available);
+    julia_schedule_plan_from_readiness(readiness, shape, facts)
+}
+
+/// Returns readiness evidence for one `WendaoSearch.jl` graph-structural profile.
+#[must_use]
+pub fn wendaosearch_graph_structural_readiness_evidence(
+    route_kind: GraphStructuralRouteKind,
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> JuliaReadinessEvidence {
+    julia_static_contract_readiness_evidence(
+        JuliaStaticContractReadinessProfile {
+            capability: LaneCapability::GraphSearchCompute,
+            profile_id: wendaosearch_graph_structural_profile_id(route_kind),
+            schema_version: JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION,
+        },
+        warmup,
+        benchmark,
+        JuliaReadinessWindow {
+            max_in_flight,
+            active_in_flight,
+            queue_depth,
+        },
+    )
+}
+
+/// Returns a schedule plan for one `WendaoSearch.jl` graph-structural profile.
+#[must_use]
+pub fn wendaosearch_graph_structural_schedule_plan(
+    route_kind: GraphStructuralRouteKind,
+    shape: JuliaComputeTaskShape,
+    facts: JuliaProfileSchedulingFacts,
+) -> JuliaSchedulePlan {
+    let readiness = wendaosearch_graph_structural_readiness_evidence(
+        route_kind,
+        facts.runtime_stats.warmup,
+        facts.runtime_stats.benchmark,
+        facts.max_in_flight,
+        facts.runtime_stats.active_in_flight,
+        facts.runtime_stats.queue_depth,
+    )
+    .with_fallback_available(facts.fallback_available);
+    julia_schedule_plan_from_readiness(readiness, shape, facts)
+}
+
+/// Returns readiness evidence for the legacy `WendaoSearch.jl` rerank profile.
+#[must_use]
+pub fn wendaosearch_legacy_rerank_readiness_evidence(
+    runtime: &LinkGraphJuliaRerankRuntimeConfig,
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> JuliaReadinessEvidence {
+    let route_validation = if runtime
+        .route
+        .as_deref()
+        .unwrap_or(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE)
+        .is_empty()
+    {
+        ContractValidationState::Invalid
+    } else {
+        ContractValidationState::Valid
+    };
+    let schema_validation = match runtime.schema_version.as_deref() {
+        Some("") => ContractValidationState::Invalid,
+        _ => ContractValidationState::Valid,
+    };
+
+    JuliaReadinessEvidence::graph_search_profile(WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID)
+        .with_schema_version(runtime.schema_version.as_deref().unwrap_or("v1"))
+        .with_route_validation(route_validation)
+        .with_schema_validation(schema_validation)
+        .with_manifest_readiness(ManifestReadinessState::Ready)
+        .with_warmup(warmup)
+        .with_benchmark(benchmark)
+        .with_admission_window(None, active_in_flight, queue_depth)
+        .with_fallback_available(false)
+}
+
+/// Returns a schedule plan for the legacy `WendaoSearch.jl` rerank profile.
+#[must_use]
+pub fn wendaosearch_legacy_rerank_schedule_plan(
+    runtime: &LinkGraphJuliaRerankRuntimeConfig,
+    shape: JuliaComputeTaskShape,
+    facts: JuliaProfileSchedulingFacts,
+) -> JuliaSchedulePlan {
+    let readiness = wendaosearch_legacy_rerank_readiness_evidence(
+        runtime,
+        facts.runtime_stats.warmup,
+        facts.runtime_stats.benchmark,
+        facts.runtime_stats.active_in_flight,
+        facts.runtime_stats.queue_depth,
+    )
+    .with_admission_window(
+        facts.max_in_flight,
+        facts.runtime_stats.active_in_flight,
+        facts.runtime_stats.queue_depth,
+    )
+    .with_fallback_available(facts.fallback_available);
+    julia_schedule_plan_from_readiness(readiness, shape, facts)
 }
 
 /// Builds a read-only snapshot for memory-family Julia compute contracts.
@@ -110,6 +409,29 @@ pub fn memory_julia_compute_readiness_evidence(
             runtime.fallback_mode,
             MemoryJuliaComputeFallbackMode::Rust
         ))
+}
+
+/// Returns a schedule plan for one memory-family Julia compute profile.
+#[must_use]
+pub fn memory_julia_compute_schedule_plan(
+    runtime: &MemoryJuliaComputeRuntimeConfig,
+    profile: MemoryJuliaComputeProfile,
+    shape: JuliaComputeTaskShape,
+    facts: JuliaProfileSchedulingFacts,
+) -> JuliaSchedulePlan {
+    let fallback_available = facts.fallback_available
+        || matches!(runtime.fallback_mode, MemoryJuliaComputeFallbackMode::Rust);
+    let facts = facts.with_fallback_available(fallback_available);
+    let readiness = memory_julia_compute_readiness_evidence(
+        runtime,
+        profile,
+        facts.runtime_stats.warmup,
+        facts.runtime_stats.benchmark,
+        facts.runtime_stats.active_in_flight,
+        facts.runtime_stats.queue_depth,
+    )
+    .with_fallback_available(fallback_available);
+    julia_schedule_plan_from_readiness(readiness, shape, facts)
 }
 
 /// Builds a read-only snapshot for one memory-family Julia readiness profile.
@@ -187,6 +509,62 @@ fn route_for_profile(
         MemoryJuliaComputeProfile::MemoryPlanTuning => runtime.routes.memory_plan_tuning.as_str(),
         MemoryJuliaComputeProfile::MemoryCalibration => runtime.routes.memory_calibration.as_str(),
     }
+}
+
+const fn wendaosearch_graph_structural_profile_id(
+    route_kind: GraphStructuralRouteKind,
+) -> &'static str {
+    match route_kind {
+        GraphStructuralRouteKind::StructuralRerank => WENDAOSEARCH_STRUCTURAL_RERANK_PROFILE_ID,
+        GraphStructuralRouteKind::ConstraintFilter => WENDAOSEARCH_CONSTRAINT_FILTER_PROFILE_ID,
+    }
+}
+
+fn julia_static_contract_readiness_evidence(
+    profile: JuliaStaticContractReadinessProfile,
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    window: JuliaReadinessWindow,
+) -> JuliaReadinessEvidence {
+    JuliaReadinessEvidence::new(profile.capability, profile.profile_id)
+        .with_schema_version(profile.schema_version)
+        .with_route_validation(ContractValidationState::Valid)
+        .with_schema_validation(ContractValidationState::Valid)
+        .with_manifest_readiness(ManifestReadinessState::Ready)
+        .with_warmup(warmup)
+        .with_benchmark(benchmark)
+        .with_admission_window(
+            window.max_in_flight,
+            window.active_in_flight,
+            window.queue_depth,
+        )
+        .with_fallback_available(false)
+}
+
+fn julia_schedule_plan_from_readiness(
+    readiness: JuliaReadinessEvidence,
+    shape: JuliaComputeTaskShape,
+    facts: JuliaProfileSchedulingFacts,
+) -> JuliaSchedulePlan {
+    JuliaSchedulingInput::new(readiness, shape, facts.runtime_stats)
+        .with_fallback_available(facts.fallback_available)
+        .with_deadline_ms(facts.deadline_ms)
+        .with_target_latency_ms(facts.target_latency_ms)
+        .plan()
+}
+
+#[derive(Clone, Copy)]
+struct JuliaStaticContractReadinessProfile {
+    capability: LaneCapability,
+    profile_id: &'static str,
+    schema_version: &'static str,
+}
+
+#[derive(Clone, Copy)]
+struct JuliaReadinessWindow {
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queue_depth: u32,
 }
 
 fn max_in_flight_as_u32(max_in_flight_requests: u64) -> u32 {

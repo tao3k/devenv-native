@@ -11713,6 +11713,7 @@ dependencies = [
  "xiuxian-llm",
  "xiuxian-logging",
  "xiuxian-macros",
+ "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-attachments",
  "xiuxian-wendao-builtin",
  "xiuxian-wendao-client",

@@ -27,6 +27,16 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                     "Docling scheduling plans are the reusable policy contract for owner crates",
                 ),
             )
+            .with_verification_profile_hint(
+                rust_lang_project_harness::RustVerificationProfileHint::new(
+                    "src/julia_schedule/model.rs",
+                    [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+                )
+                .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
+                .with_rationale(
+                    "Julia scheduling plans are the reusable profile-aware policy contract for owner crates",
+                ),
+            )
     }
 );
 
@@ -40,6 +50,8 @@ pub mod admission;
 pub mod docling_schedule;
 /// Health, readiness, pressure, and fallback evidence contracts.
 pub mod evidence;
+/// Pure scheduling contracts for Julia compute profiles.
+pub mod julia_schedule;
 /// Lane identity and capability classification.
 pub mod lanes;
 /// Worker pressure evidence contracts.
@@ -59,6 +71,10 @@ pub use docling_schedule::{
     DoclingWorkerPolicy,
 };
 pub use evidence::{FallbackEvidence, HealthState, LaneEvidence, PressureLevel, ReadinessState};
+pub use julia_schedule::{
+    JuliaComputeTaskShape, JuliaRuntimeStats, JuliaScheduleAction, JuliaSchedulePlan,
+    JuliaScheduleReason, JuliaSchedulingInput, JuliaTaskComplexityClass,
+};
 pub use lanes::{LaneCapability, PolyglotLane};
 pub use pressure::WorkerPressureEvidence;
 pub use readiness::{

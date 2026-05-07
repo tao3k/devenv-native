@@ -17,6 +17,14 @@ fn capabilities_map_to_existing_lane_owners() {
         PolyglotLane::PythonDocling
     );
     assert_eq!(
+        LaneCapability::GraphEvidenceCompute.owning_lane(),
+        PolyglotLane::JuliaCompute
+    );
+    assert_eq!(
+        LaneCapability::GraphSearchCompute.owning_lane(),
+        PolyglotLane::JuliaCompute
+    );
+    assert_eq!(
         LaneCapability::ScientificCompute.owning_lane(),
         PolyglotLane::JuliaCompute
     );

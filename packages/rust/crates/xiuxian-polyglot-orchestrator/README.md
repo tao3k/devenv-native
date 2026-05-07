@@ -42,6 +42,9 @@ and its
    observations
 8. pure Docling scheduling plans derived from owner-supplied pressure evidence
    and caller-local worker or shard bounds
+9. pure Julia profile scheduling plans derived from owner-supplied readiness,
+   runtime statistics, task shape evidence, fallback availability, and latency
+   constraints
 
 It does not own Python Docling execution, OCR shard ordering, document cache
 policy, Julia profile schemas, Julia thread scheduling, Arrow Flight transport
@@ -79,19 +82,22 @@ values remain diagnostic overrides, not production defaults.
 4. `pressure`: worker budget, queue, failure, and ordering pressure evidence.
 5. `docling_schedule`: inert document-extraction and OCR-shard scheduling
    plans derived from supplied pressure facts.
-6. `readiness`: Julia profile, route, schema, manifest, warmup, and benchmark
+6. `julia_schedule`: inert Julia dispatch, queue, fallback, and reject plans
+   derived from supplied profile evidence and task shape facts.
+7. `readiness`: Julia profile, route, schema, manifest, warmup, and benchmark
    readiness evidence.
-7. `schema_benchmark`: advisory schema-strategy benchmark evidence and report
+8. `schema_benchmark`: advisory schema-strategy benchmark evidence and report
    contracts.
-8. `refs`: typed references to external owner contracts.
-9. `snapshot`: inert read-only aggregation of refs, admission budgets, and
-   evidence.
+9. `refs`: typed references to external owner contracts.
+10. `snapshot`: inert read-only aggregation of refs, admission budgets, and
+    evidence.
 
 ## Project Policy Gate
 
 This crate self-applies `rust-lang-project-harness` from `src/lib.rs`. The
 active profile marks the crate root as the shared control-plane public API and
-the Docling scheduler implementation as the owner-facing scheduling contract.
+the Docling and Julia scheduler implementations as owner-facing scheduling
+contracts.
 Module `mod.rs` files stay interface-only and re-export leaf `model.rs`
 implementation files. Unit tests live under `tests/unit/lib` and are mounted
 from the crate root so `cargo test --lib` runs both behavior tests and the
