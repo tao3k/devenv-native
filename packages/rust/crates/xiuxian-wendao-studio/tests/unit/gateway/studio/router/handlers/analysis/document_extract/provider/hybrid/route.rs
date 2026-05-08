@@ -9,9 +9,10 @@ use xiuxian_wendao_attachments::pdf::render::{
 };
 
 use super::{
-    OCR2_REGION_SCAFFOLD_FILE_NAME, cached_ocr2_region_render_report,
-    has_ocr2_recovery_page_candidates, materialize_hybrid_page_ocr_resource_batch_from_results,
-    ocr2_region_render_cache_key, ocr2_region_scaffold_payload,
+    OCR2_REGION_SCAFFOLD_FILE_NAME, Ocr2RegionMaterializationStats, Ocr2RegionPipelineBatchKind,
+    cached_ocr2_region_render_report, has_ocr2_recovery_page_candidates,
+    materialize_hybrid_page_ocr_resource_batch_from_results, ocr2_region_render_cache_key,
+    ocr2_region_scaffold_payload, record_ocr2_region_pipeline_batch_result,
     write_ocr2_region_scaffold_sidecar_with_lookup,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV;
@@ -186,6 +187,43 @@ fn hybrid_page_ocr_resource_batch_orders_split_pipeline_results() -> Result<(), 
     assert_eq!(batch.ocr_metrics.len(), 2);
     assert_eq!(batch.page_count, 1);
     Ok(())
+}
+
+#[test]
+fn ocr2_region_pipeline_batch_result_telemetry_splits_base_and_region() {
+    let mut phases = std::collections::BTreeMap::new();
+    let mut stats = Ocr2RegionMaterializationStats::default();
+
+    record_ocr2_region_pipeline_batch_result(
+        &mut phases,
+        &mut stats,
+        Ocr2RegionPipelineBatchKind::Base,
+        21,
+        1_250.0,
+    );
+    record_ocr2_region_pipeline_batch_result(
+        &mut phases,
+        &mut stats,
+        Ocr2RegionPipelineBatchKind::Region,
+        3,
+        2_500.0,
+    );
+    record_ocr2_region_pipeline_batch_result(
+        &mut phases,
+        &mut stats,
+        Ocr2RegionPipelineBatchKind::Region,
+        2,
+        3_000.0,
+    );
+
+    assert_eq!(stats.pipeline_base_result_count, 1);
+    assert_eq!(stats.pipeline_base_result_shard_count, 21);
+    assert_eq!(stats.pipeline_region_result_count, 2);
+    assert_eq!(stats.pipeline_region_result_shard_count, 5);
+    assert_eq!(phases["regionPipelineFirstBaseResult"], 1_250.0);
+    assert_eq!(phases["regionPipelineLastBaseResult"], 1_250.0);
+    assert_eq!(phases["regionPipelineFirstRegionResult"], 2_500.0);
+    assert_eq!(phases["regionPipelineLastRegionResult"], 3_000.0);
 }
 
 fn scaffold_enabled_lookup(key: &str) -> Option<String> {

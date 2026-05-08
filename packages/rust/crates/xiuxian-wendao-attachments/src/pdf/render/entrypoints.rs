@@ -2,6 +2,8 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(feature = "pdf-render")]
+use std::time::Duration;
 
 use serde::Deserialize;
 
@@ -15,8 +17,11 @@ use super::report::{RenderShardContext, ReportParts};
 use super::selection::resolve_page_selection;
 use super::selection::{RenderPageSelection, resolve_source_page_range_selection};
 #[cfg(feature = "pdf-render")]
-use super::types::{PdfPageRegionRenderRequest, PdfRenderRoutingDecision};
+use super::types::{PdfPageRegionRenderRequest, PdfPageShardManifest, PdfRenderRoutingDecision};
 use super::types::{PdfPageRenderProfile, PdfPageRenderSelection, PdfPageRenderShardReport};
+
+#[cfg(feature = "pdf-render")]
+const PDFIUM_RENDER_TRANSIENT_RETRY_COUNT: usize = 3;
 
 /// # Errors
 ///
@@ -79,31 +84,20 @@ pub fn render_pdf_page_shards_with_selection(
     let source_bytes =
         fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
     let source_hash = sha256_hex(&source_bytes);
-    let pdfium = match bind_pdfium() {
-        Ok(pdfium) => pdfium,
-        Err(error) => return Ok(context.report(ReportParts::fallback(0, 0, error))),
-    };
-
-    let document = match pdfium.load_pdf_from_file(path, None) {
-        Ok(document) => document,
-        Err(error) => {
-            return Ok(context.report(ReportParts::preflight_failed(format!(
-                "load PDF `{}`: {error}",
-                path.display()
-            ))));
-        }
-    };
-
-    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
-    let manifests = match render_document_manifests(
-        &document,
-        &context,
-        &source_hash,
-        page_selection.selected_page_indices(),
-    ) {
-        Ok(manifests) => manifests,
-        Err(fallback) => return Ok(context.report(fallback)),
-    };
+    let (page_count, manifests) =
+        match render_pdfium_manifests_with_retry(path, &source_hash, |document, source_hash| {
+            let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+            render_document_manifests(
+                document,
+                &context,
+                source_hash,
+                page_selection.selected_page_indices(),
+            )
+            .map(|manifests| (page_count, manifests))
+        })? {
+            Ok(rendered) => rendered,
+            Err(fallback) => return Ok(context.report(fallback)),
+        };
 
     let manifest_batch = build_shard_manifest_batch(&manifests)?;
     let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
@@ -153,30 +147,20 @@ pub fn render_pdf_page_shards_for_page_indices(
     let source_bytes =
         fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
     let source_hash = sha256_hex(&source_bytes);
-    let pdfium = match bind_pdfium() {
-        Ok(pdfium) => pdfium,
-        Err(error) => return Ok(context.report(ReportParts::fallback(0, 0, error))),
-    };
-
-    let document = match pdfium.load_pdf_from_file(path, None) {
-        Ok(document) => document,
-        Err(error) => {
-            return Ok(context.report(ReportParts::preflight_failed(format!(
-                "load PDF `{}`: {error}",
-                path.display()
-            ))));
-        }
-    };
-    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
-    let manifests = match render_document_manifests(
-        &document,
-        &context,
-        &source_hash,
-        Some(selected_page_indices.as_slice()),
-    ) {
-        Ok(manifests) => manifests,
-        Err(fallback) => return Ok(context.report(fallback)),
-    };
+    let (page_count, manifests) =
+        match render_pdfium_manifests_with_retry(path, &source_hash, |document, source_hash| {
+            let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+            render_document_manifests(
+                document,
+                &context,
+                source_hash,
+                Some(selected_page_indices.as_slice()),
+            )
+            .map(|manifests| (page_count, manifests))
+        })? {
+            Ok(rendered) => rendered,
+            Err(fallback) => return Ok(context.report(fallback)),
+        };
 
     let manifest_batch = build_shard_manifest_batch(&manifests)?;
     let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
@@ -287,24 +271,13 @@ pub fn render_pdf_region_shards(
     let source_bytes =
         fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
     let source_hash = sha256_hex(&source_bytes);
-    let pdfium = match bind_pdfium() {
-        Ok(pdfium) => pdfium,
-        Err(error) => return Ok(context.report(ReportParts::fallback(0, 0, error))),
-    };
-    let document = match pdfium.load_pdf_from_file(path, None) {
-        Ok(document) => document,
-        Err(error) => {
-            return Ok(context.report(ReportParts::preflight_failed(format!(
-                "load PDF `{}`: {error}",
-                path.display()
-            ))));
-        }
-    };
-
-    let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
-    let manifests =
-        match render_document_region_manifests(&document, &context, &source_hash, regions) {
-            Ok(manifests) => manifests,
+    let (page_count, manifests) =
+        match render_pdfium_manifests_with_retry(path, &source_hash, |document, source_hash| {
+            let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
+            render_document_region_manifests(document, &context, source_hash, regions)
+                .map(|manifests| (page_count, manifests))
+        })? {
+            Ok(rendered) => rendered,
             Err(fallback) => return Ok(context.report(fallback)),
         };
     let manifest_batch = build_shard_manifest_batch(&manifests)?;
@@ -320,6 +293,68 @@ pub fn render_pdf_region_shards(
     )))
 }
 
+#[cfg(feature = "pdf-render")]
+fn render_pdfium_manifests_with_retry(
+    path: &Path,
+    source_hash: &str,
+    mut render: impl FnMut(
+        &pdfium_render::prelude::PdfDocument<'_>,
+        &str,
+    ) -> Result<(u32, Vec<PdfPageShardManifest>), ReportParts>,
+) -> Result<Result<(u32, Vec<PdfPageShardManifest>), ReportParts>, String> {
+    let mut attempts = 0usize;
+    loop {
+        let pdfium = match bind_pdfium() {
+            Ok(pdfium) => pdfium,
+            Err(error) => return Ok(Err(ReportParts::fallback(0, 0, error))),
+        };
+        let document = match pdfium.load_pdf_from_file(path, None) {
+            Ok(document) => document,
+            Err(error) => {
+                let fallback = ReportParts::preflight_failed(format!(
+                    "load PDF `{}`: {error}",
+                    path.display()
+                ));
+                if should_retry_pdfium_report(&fallback, attempts) {
+                    attempts = attempts.saturating_add(1);
+                    wait_before_pdfium_retry(attempts);
+                    continue;
+                }
+                return Ok(Err(fallback));
+            }
+        };
+        match render(&document, source_hash) {
+            Ok(rendered) => return Ok(Ok(rendered)),
+            Err(fallback) if should_retry_pdfium_report(&fallback, attempts) => {
+                attempts = attempts.saturating_add(1);
+                wait_before_pdfium_retry(attempts);
+            }
+            Err(fallback) => return Ok(Err(fallback)),
+        }
+    }
+}
+
+#[cfg(feature = "pdf-render")]
+fn should_retry_pdfium_report(fallback: &ReportParts, attempts: usize) -> bool {
+    attempts < PDFIUM_RENDER_TRANSIENT_RETRY_COUNT
+        && fallback
+            .error_message()
+            .is_some_and(should_retry_pdfium_render_message)
+}
+
+#[cfg(any(feature = "pdf-render", test))]
+fn should_retry_pdfium_render_message(message: &str) -> bool {
+    message
+        .to_ascii_lowercase()
+        .contains("pdfiumlibraryinternalerror")
+}
+
+#[cfg(feature = "pdf-render")]
+fn wait_before_pdfium_retry(attempts: usize) {
+    let delay_ms = u64::try_from(attempts).unwrap_or(1).saturating_mul(25);
+    std::thread::sleep(Duration::from_millis(delay_ms));
+}
+
 /// # Errors
 ///
 /// Returns an error if the input JSON does not decode to audit paths.
@@ -332,4 +367,25 @@ pub fn read_render_paths_from_json(json: &str) -> Result<Vec<PathBuf>, String> {
     serde_json::from_str::<Vec<Input>>(json)
         .map_err(|error| format!("parse PDF render shard input JSON: {error}"))
         .map(|inputs| inputs.into_iter().map(|input| input.source).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_retry_pdfium_render_message;
+
+    #[test]
+    fn pdfium_render_retry_matches_internal_errors_only() {
+        assert!(should_retry_pdfium_render_message(
+            "load page 13: PdfiumLibraryInternalError(Unknown)"
+        ));
+        assert!(should_retry_pdfium_render_message(
+            "load PDF `/tmp/source.pdf`: PdfiumLibraryInternalError(FormatError)"
+        ));
+        assert!(!should_retry_pdfium_render_message(
+            "load PDF with lopdf: trailer not found"
+        ));
+        assert!(!should_retry_pdfium_render_message(
+            "unsupported non-PDF input"
+        ));
+    }
 }

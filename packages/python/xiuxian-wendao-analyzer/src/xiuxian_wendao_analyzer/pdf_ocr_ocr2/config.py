@@ -17,6 +17,7 @@ from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_SIZE,
     HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS,
     HOSTED_VLM_OCR_DEFAULT_REQUEST_CONCURRENCY,
+    HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_DELAY_SECONDS,
     HOSTED_VLM_OCR_DEFAULT_TIMEOUT_SECONDS,
     HOSTED_VLM_OCR_MAX_TOKENS_ENV,
     HOSTED_VLM_OCR_MODEL_ENV,
@@ -30,11 +31,13 @@ from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV,
     HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV,
     HOSTED_VLM_OCR_REQUEST_CONCURRENCY_ENV,
+    HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
     HOSTED_VLM_OCR_TIMEOUT_SECONDS_ENV,
     HOSTED_VLM_OCR_TRACE_PATH_ENV,
 )
 from .env import (
     env_value,
+    image_optimization_mode_env,
     openrouter_headers,
     optional_path_env,
     positive_float_env,
@@ -62,8 +65,10 @@ class Ocr2ClientConfig:
     region_atlas_mode: str
     timeout_seconds: float
     request_concurrency: int
+    speculative_retry_delay_seconds: float
     page_window_size: int
     scaffold_mode: str
+    image_optimization_mode: str
     trace_path: Path | None = None
     extra_headers: Mapping[str, str] | None = None
 
@@ -107,11 +112,16 @@ def ocr2_client_config_from_env(
                 HOSTED_VLM_OCR_DEFAULT_TIMEOUT_SECONDS,
             ),
             request_concurrency=_request_concurrency(resolved_request_concurrency),
+            speculative_retry_delay_seconds=positive_float_env(
+                HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
+                HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_DELAY_SECONDS,
+            ),
             page_window_size=positive_int_env(
                 HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV,
                 HOSTED_VLM_OCR_DEFAULT_PAGE_WINDOW_SIZE,
             ),
             scaffold_mode=scaffold_mode_env(),
+            image_optimization_mode=image_optimization_mode_env(),
             trace_path=optional_path_env(HOSTED_VLM_OCR_TRACE_PATH_ENV),
             extra_headers=openrouter_headers(),
         )
@@ -145,11 +155,16 @@ def ocr2_client_config_from_env(
             HOSTED_VLM_OCR_DEFAULT_TIMEOUT_SECONDS,
         ),
         request_concurrency=_request_concurrency(resolved_request_concurrency),
+        speculative_retry_delay_seconds=positive_float_env(
+            HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
+            HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_DELAY_SECONDS,
+        ),
         page_window_size=positive_int_env(
             HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV,
             HOSTED_VLM_OCR_DEFAULT_PAGE_WINDOW_SIZE,
         ),
         scaffold_mode=scaffold_mode_env(),
+        image_optimization_mode=image_optimization_mode_env(),
         trace_path=optional_path_env(HOSTED_VLM_OCR_TRACE_PATH_ENV),
     )
 

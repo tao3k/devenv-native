@@ -1,4 +1,6 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use arrow::array::{
     BooleanArray, Float64Array, ListArray, ListBuilder, StringArray, StringBuilder,
@@ -15,6 +17,10 @@ use crate::{
     build_graph_structural_keyword_overlap_query_inputs,
     build_graph_structural_keyword_overlap_raw_candidate_inputs,
     graph_structural_pair_candidate_id,
+    integration_support::{
+        WendaoSearchGraphStructuralStabilizationLimits,
+        stabilize_wendaosearch_solver_demo_graph_structural_routes,
+    },
     julia_plugin_test_support::common::ResultTestExt,
     julia_plugin_test_support::official_examples::{
         LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS,
@@ -25,6 +31,7 @@ use crate::{
         solver_demo_multi_route_base_url_for_port,
         spawn_real_wendaosearch_demo_multi_route_service,
         spawn_real_wendaosearch_solver_demo_multi_route_service,
+        spawn_real_wendaosearch_solver_demo_multi_route_service_with_options,
         wait_for_service_ready_with_attempts,
     },
 };
@@ -44,6 +51,36 @@ use super::{
     fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates,
     fetch_graph_structural_rerank_rows_for_repository,
 };
+
+const RUN_WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_TEST_ENV: &str =
+    "RUN_WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_TEST";
+const WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_RUNS_ENV: &str = "WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_RUNS";
+const WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_WARM_SAMPLES_ENV: &str =
+    "WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_WARM_SAMPLES";
+
+#[derive(Clone, Debug)]
+struct LivePerfMeasurement {
+    profile: &'static str,
+    label: &'static str,
+    logical_request_count: usize,
+    run_index: usize,
+    sample_index: usize,
+    elapsed: Duration,
+}
+
+impl LivePerfMeasurement {
+    fn elapsed_ms(&self) -> f64 {
+        self.elapsed.as_secs_f64() * 1000.0
+    }
+
+    fn average_request_ms(&self) -> f64 {
+        if self.logical_request_count == 0 {
+            0.0
+        } else {
+            self.elapsed_ms() / self.logical_request_count as f64
+        }
+    }
+}
 
 #[test]
 fn build_graph_structural_rerank_request_batch_uses_contract_columns() {
@@ -646,6 +683,91 @@ async fn assert_solver_demo_multi_route_filter_rows(repository: &RegisteredRepos
     assert_eq!(row.rejection_reason, "");
 }
 
+fn print_live_perf_metric(measurement: &LivePerfMeasurement) {
+    let elapsed_ms = measurement.elapsed_ms();
+    assert!(
+        elapsed_ms.is_finite(),
+        "live graph perf metric `{}` elapsed time is not finite",
+        measurement.label
+    );
+    println!(
+        "wendaosearch_graph_structural_live_perf profile={} metric={} run={} sample={} logical_requests={} elapsed_ms={:.3} average_request_ms={:.3}",
+        measurement.profile,
+        measurement.label,
+        measurement.run_index,
+        measurement.sample_index,
+        measurement.logical_request_count,
+        elapsed_ms,
+        measurement.average_request_ms(),
+    );
+}
+
+async fn measure_live_perf_step<F>(
+    profile: &'static str,
+    label: &'static str,
+    logical_request_count: usize,
+    run_index: usize,
+    sample_index: usize,
+    future: F,
+) -> LivePerfMeasurement
+where
+    F: std::future::Future<Output = ()>,
+{
+    let started_at = Instant::now();
+    future.await;
+    let measurement = LivePerfMeasurement {
+        profile,
+        label,
+        logical_request_count,
+        run_index,
+        sample_index,
+        elapsed: started_at.elapsed(),
+    };
+    print_live_perf_metric(&measurement);
+    measurement
+}
+
+fn print_live_perf_summary(measurements: &[LivePerfMeasurement]) {
+    let mut grouped: BTreeMap<(&str, &str), Vec<f64>> = BTreeMap::new();
+    for measurement in measurements {
+        grouped
+            .entry((measurement.profile, measurement.label))
+            .or_default()
+            .push(measurement.elapsed_ms());
+    }
+
+    for ((profile, label), mut elapsed_values) in grouped {
+        elapsed_values.sort_by(f64::total_cmp);
+        let min_ms = elapsed_values[0];
+        let median_ms = percentile_from_sorted_values(&elapsed_values, 500);
+        let p95_ms = percentile_from_sorted_values(&elapsed_values, 950);
+        let max_ms = elapsed_values[elapsed_values.len() - 1];
+        let spread_ratio = if min_ms <= f64::EPSILON {
+            0.0
+        } else {
+            max_ms / min_ms
+        };
+        println!(
+            "wendaosearch_graph_structural_live_perf_summary profile={profile} metric={label} samples={} min_ms={min_ms:.3} median_ms={median_ms:.3} p95_ms={p95_ms:.3} max_ms={max_ms:.3} spread_ratio={spread_ratio:.3}",
+            elapsed_values.len(),
+        );
+    }
+}
+
+fn percentile_from_sorted_values(sorted_values: &[f64], percentile_per_mille: usize) -> f64 {
+    let last_index = sorted_values.len() - 1;
+    let index = (last_index * percentile_per_mille).div_ceil(1000);
+    sorted_values[index]
+}
+
+fn live_perf_env_usize(name: &str, default_value: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(default_value)
+}
+
 #[tokio::test]
 #[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_solver_demo_rows_for_repository_via_manifest_discovery_against_real_wendaosearch_multi_route_service()
@@ -672,6 +794,207 @@ async fn fetch_graph_structural_solver_demo_rows_for_repository_via_manifest_dis
     assert_solver_demo_multi_route_rerank_rows(&manifest_repository).await;
     assert_solver_demo_multi_route_filter_rows(&manifest_repository).await;
     service.kill();
+}
+
+#[tokio::test]
+#[serial_test::serial(wendaosearch_solver_demo_live)]
+async fn graph_structural_live_perf_against_real_wendaosearch_solver_demo_multi_route_service() {
+    if std::env::var_os(RUN_WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_TEST_ENV).is_none() {
+        eprintln!(
+            "skipping WendaoSearch graph-structural live perf profile; set {RUN_WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_TEST_ENV}=1"
+        );
+        return;
+    }
+
+    let run_count = live_perf_env_usize(WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_RUNS_ENV, 1);
+    let warm_sample_count =
+        live_perf_env_usize(WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_WARM_SAMPLES_ENV, 3);
+    let mut measurements = Vec::new();
+    for run_index in 0..run_count {
+        measurements.extend(
+            measure_solver_demo_live_perf_profile(
+                "cold",
+                false,
+                None,
+                false,
+                run_index,
+                warm_sample_count,
+            )
+            .await,
+        );
+        measurements.extend(
+            measure_solver_demo_live_perf_profile(
+                "prewarmed",
+                true,
+                Some("none"),
+                false,
+                run_index,
+                warm_sample_count,
+            )
+            .await,
+        );
+        measurements.extend(
+            measure_solver_demo_live_perf_profile(
+                "prewarmed-flight-probe",
+                true,
+                Some("none"),
+                true,
+                run_index,
+                warm_sample_count,
+            )
+            .await,
+        );
+    }
+    print_live_perf_summary(&measurements);
+}
+
+async fn measure_solver_demo_live_perf_profile(
+    profile: &'static str,
+    warmup_on_start: bool,
+    thread_pinning_policy: Option<&str>,
+    prewarm_flight_routes: bool,
+    run_index: usize,
+    warm_sample_count: usize,
+) -> Vec<LivePerfMeasurement> {
+    let mut measurements = Vec::new();
+    let port = reserve_real_service_port();
+    let base_url = solver_demo_multi_route_base_url_for_port(port);
+    let mut service = spawn_real_wendaosearch_solver_demo_multi_route_service_with_options(
+        port,
+        warmup_on_start,
+        thread_pinning_policy,
+    );
+    let explicit_rerank_repository = graph_structural_explicit_rerank_repository(&base_url);
+    let explicit_filter_repository = graph_structural_explicit_filter_repository(&base_url);
+    let manifest_repository = graph_structural_manifest_repository(&base_url);
+
+    let startup_started_at = Instant::now();
+    await_live_step(
+        wait_for_service_ready_with_attempts(&base_url, 600),
+        LIVE_SERVICE_STARTUP_TIMEOUT_SECS,
+        "wait for real WendaoSearch solver-demo live perf Flight service",
+    )
+    .await
+    .unwrap_or_else(|error| {
+        panic!("wait for real WendaoSearch solver-demo live perf Flight service: {error}")
+    });
+    let startup_measurement = LivePerfMeasurement {
+        profile,
+        label: "startup-wait",
+        logical_request_count: 0,
+        run_index,
+        sample_index: 0,
+        elapsed: startup_started_at.elapsed(),
+    };
+    print_live_perf_metric(&startup_measurement);
+    measurements.push(startup_measurement);
+
+    if prewarm_flight_routes {
+        measurements.push(
+            measure_live_perf_step(
+                profile,
+                "flight-release-gate",
+                4 + warm_sample_count * 8,
+                run_index,
+                0,
+                async {
+                    prewarm_solver_demo_live_routes(&base_url, warm_sample_count).await;
+                },
+            )
+            .await,
+        );
+    }
+
+    measurements.push(
+        measure_live_perf_step(profile, "first-explicit-rerank", 1, run_index, 0, async {
+            assert_solver_demo_explicit_rerank_rows(&explicit_rerank_repository).await;
+        })
+        .await,
+    );
+    measurements.push(
+        measure_live_perf_step(profile, "first-explicit-filter", 1, run_index, 0, async {
+            assert_solver_demo_explicit_filter_rows(&explicit_filter_repository).await;
+        })
+        .await,
+    );
+    measurements.push(
+        measure_live_perf_step(profile, "first-manifest-rerank", 1, run_index, 0, async {
+            assert_solver_demo_multi_route_rerank_rows(&manifest_repository).await;
+        })
+        .await,
+    );
+    measurements.push(
+        measure_live_perf_step(profile, "first-manifest-filter", 1, run_index, 0, async {
+            assert_solver_demo_multi_route_filter_rows(&manifest_repository).await;
+        })
+        .await,
+    );
+
+    for sample_index in 0..warm_sample_count {
+        measurements.push(
+            measure_live_perf_step(
+                profile,
+                "sequential-all-routes",
+                4,
+                run_index,
+                sample_index,
+                async {
+                    assert_solver_demo_explicit_rerank_rows(&explicit_rerank_repository).await;
+                    assert_solver_demo_explicit_filter_rows(&explicit_filter_repository).await;
+                    assert_solver_demo_multi_route_rerank_rows(&manifest_repository).await;
+                    assert_solver_demo_multi_route_filter_rows(&manifest_repository).await;
+                },
+            )
+            .await,
+        );
+    }
+
+    for sample_index in 0..warm_sample_count {
+        measurements.push(
+            measure_live_perf_step(
+                profile,
+                "concurrent-all-routes",
+                4,
+                run_index,
+                sample_index,
+                async {
+                    tokio::join!(
+                        assert_solver_demo_explicit_rerank_rows(&explicit_rerank_repository),
+                        assert_solver_demo_explicit_filter_rows(&explicit_filter_repository),
+                        assert_solver_demo_multi_route_rerank_rows(&manifest_repository),
+                        assert_solver_demo_multi_route_filter_rows(&manifest_repository),
+                    );
+                },
+            )
+            .await,
+        );
+    }
+
+    service.kill();
+    measurements
+}
+
+async fn prewarm_solver_demo_live_routes(base_url: &str, stabilization_sample_count: usize) {
+    let report = stabilize_wendaosearch_solver_demo_graph_structural_routes(
+        base_url,
+        WendaoSearchGraphStructuralStabilizationLimits::default()
+            .with_sample_count(stabilization_sample_count),
+    )
+    .await
+    .unwrap_or_else(|error| panic!("stabilize WendaoSearch solver-demo routes: {error}"));
+    assert_eq!(report.prewarm.route_count, 4);
+    println!(
+        "wendaosearch_graph_structural_release_gate stable={} reason={:?} recommended_max_in_flight={} sequential_p95_ms={:.3} sequential_max_ms={:.3} sequential_spread_ratio={:.3} concurrent_p95_ms={:.3} concurrent_max_ms={:.3} concurrent_spread_ratio={:.3}",
+        report.stable,
+        report.stability_reason,
+        report.recommended_max_in_flight,
+        report.sequential.p95_ms,
+        report.sequential.max_ms,
+        report.sequential.spread_ratio,
+        report.concurrent.p95_ms,
+        report.concurrent.max_ms,
+        report.concurrent.spread_ratio,
+    );
 }
 
 #[tokio::test]
@@ -703,6 +1026,8 @@ async fn fetch_graph_structural_solver_demo_rows_for_repository_against_process_
     .unwrap_or_else(|error| {
         panic!("wait for process-managed WendaoSearch solver-demo Flight service: {error}")
     });
+
+    prewarm_solver_demo_live_routes(&base_url, 2).await;
 
     assert_solver_demo_explicit_rerank_rows(&explicit_rerank_repository).await;
     assert_solver_demo_explicit_filter_rows(&explicit_filter_repository).await;

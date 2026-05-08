@@ -36,10 +36,18 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         prepare_pdfium_runtime=False,
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
+        rust_pdf_local_backend_text="rust-lopdf",
+        rust_pdf_local_fast_text="rust-lopdf",
+        rust_pdf_fast_text_source_range_split="single-page",
+        rust_pdf_fast_text_endpoint_affinity="single-page-first",
+        rust_pdf_backend_text_topup="hosted-vlm",
         rust_pdf_ocr_profile_planner="fast-risk-window",
         rust_pdf_hosted_vlm_render_dpi=360,
         rust_pdf_ocr_region_context_ratio=0.2,
         rust_pdf_hosted_vlm_region_planner="profile-risk-window",
+        rust_pdf_hosted_vlm_region_pipeline="render-dispatch",
+        rust_pdf_hosted_vlm_region_render_ahead=3,
+        rust_pdf_hosted_vlm_region_render_chunk="all",
         hosted_vlm_ocr_region_composite_size=3,
         hosted_vlm_ocr_scaffold_mode="region-table-json",
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
@@ -70,6 +78,16 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT"] == "rust-lopdf"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT"] == "rust-lopdf"
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_SOURCE_RANGE_SPLIT"] == "single-page"
+    )
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY"]
+        == "single-page-first"
+    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP"] == "hosted-vlm"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] == "fast-risk-window"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI"] == "360"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO"] == "0.2"
@@ -77,6 +95,12 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER"]
         == "profile-risk-window"
     )
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE"]
+        == "render-dispatch"
+    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD"] == "3"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK"] == "all"
     assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] == "3"
     assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE"]

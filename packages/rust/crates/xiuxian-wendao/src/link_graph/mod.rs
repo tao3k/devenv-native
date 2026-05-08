@@ -130,6 +130,12 @@ pub use stats_cache::{
 pub use wendao_graph_evidence::{
     LinkGraphWendaoGraphEvidenceError, WendaoGraphEvidenceRequestBundle,
     WendaoGraphEvidenceRequestOptions, WendaoGraphEvidenceSeed,
+    WendaoGraphPageIndexReasoningRequestBundle, WendaoGraphPageIndexReasoningRequestOptions,
+    WendaoGraphPageIndexReasoningSeed, build_semantic_scope_page_index_reasoning_request_bundle,
+    build_semantic_scope_page_index_reasoning_request_bundle_with_options,
     build_wendao_graph_evidence_request_bundle,
     build_wendao_graph_evidence_request_bundle_with_options,
+    build_wendao_graph_page_index_reasoning_request_bundle,
+    build_wendao_graph_page_index_reasoning_request_bundle_with_options,
+    semantic_scope_page_index_reasoning_default_options,
 };

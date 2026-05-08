@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
 
 use tokio::sync::Semaphore;
 
@@ -18,6 +21,7 @@ pub(crate) struct PdfOcrWorkerScheduler {
     pub(super) cache: PdfOcrShardCache,
     pub(super) inflight: InFlightShardRegistry,
     pub(super) metrics: PdfOcrSchedulerMetrics,
+    endpoint_request_cursor: AtomicUsize,
 }
 
 impl PdfOcrWorkerScheduler {
@@ -38,6 +42,7 @@ impl PdfOcrWorkerScheduler {
             cache,
             inflight: InFlightShardRegistry::default(),
             metrics: PdfOcrSchedulerMetrics::default(),
+            endpoint_request_cursor: AtomicUsize::new(0),
         }
     }
 
@@ -49,6 +54,14 @@ impl PdfOcrWorkerScheduler {
         let capacity = self.capacity.snapshot();
         self.metrics
             .snapshot(&capacity, self.available_permits(), self.inflight.len())
+    }
+
+    pub(super) fn endpoint_index_for_next_request(
+        &self,
+        endpoint_count: usize,
+    ) -> Result<usize, String> {
+        let request_index = self.endpoint_request_cursor.fetch_add(1, Ordering::Relaxed);
+        super::dispatch::endpoint_index_for_request(request_index, endpoint_count)
     }
 
     #[cfg(test)]

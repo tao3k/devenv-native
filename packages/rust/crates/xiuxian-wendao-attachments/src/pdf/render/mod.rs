@@ -25,7 +25,12 @@ pub use manifest::{
     build_region_shard_manifest, build_shard_manifest, region_pixel_box_for_crop,
     render_dimensions_for_box,
 };
-pub use regions::page_region_render_request_chunks_by_page;
+pub use regions::{
+    page_region_render_request_chunks_all, page_region_render_request_chunks_by_page,
+    page_region_render_request_chunks_by_page_area_desc,
+    page_region_render_request_chunks_by_page_max_area_desc,
+    page_region_render_request_chunks_by_region,
+};
 pub use report::write_page_render_shard_reports;
 pub use types::{
     PdfOcrShardType, PdfPageBox, PdfPagePixelBox, PdfPageRegion, PdfPageRegionRenderRequest,

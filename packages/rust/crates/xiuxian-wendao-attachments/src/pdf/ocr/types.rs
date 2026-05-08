@@ -11,6 +11,8 @@ pub const PDF_OCR_SHARD_RESULT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_sh
 pub const PDF_OCR_DEFAULT_PROFILE: &str = "docling-compatible-page-ocr-v1";
 /// Fast Docling OCR worker profile identifier for low-risk source-range OCR.
 pub const PDF_OCR_FAST_TEXT_PROFILE: &str = "docling-fast-text-ocr";
+/// Backend-text-only Docling profile identifier for source-range OCR canaries.
+pub const PDF_OCR_BACKEND_TEXT_PROFILE: &str = "docling-backend-text-ocr-v1";
 /// Hosted OpenAI-compatible VLM/OCR worker profile identifier.
 pub const PDF_OCR_HOSTED_VLM_DIRECT_PROFILE: &str = "hosted-vlm-direct-ocr-v1";
 /// Docling VLM adapter profile identifier for `DeepSeek` OCR comparator runs.

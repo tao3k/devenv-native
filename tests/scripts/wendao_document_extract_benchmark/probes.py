@@ -498,6 +498,9 @@ def run_fixture_probe(
         "forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount": force_artifact_summary[
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
         ],
+        "forceHybridPageOcrTimingSchedulerTraceSummary": force_artifact_summary[
+            "hybridPageOcrTimingSchedulerTraceSummary"
+        ],
         "shardCacheReuseMetricsRustSchedulerElapsedMs": (
             shard_cache_reuse_artifact_summary["metricsRustSchedulerElapsedMs"]
             if shard_cache_reuse_artifact_summary
@@ -547,6 +550,13 @@ def run_fixture_probe(
             ]
             if shard_cache_reuse_artifact_summary
             else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingSchedulerTraceSummary": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingSchedulerTraceSummary"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else {}
         ),
         "documentTimingArrowExists": artifact_summary["documentTimingArrowExists"],
         "documentTimingRows": artifact_summary["documentTimingRows"],

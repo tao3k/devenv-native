@@ -51,6 +51,45 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
             rust_pdf_ocr_source_range_workers
         )
+    rust_pdf_local_backend_text = getattr(args, "rust_pdf_local_backend_text", None)
+    if rust_pdf_local_backend_text and rust_pdf_local_backend_text != "disabled":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT"] = str(
+            rust_pdf_local_backend_text
+        )
+    rust_pdf_local_fast_text = getattr(args, "rust_pdf_local_fast_text", None)
+    if rust_pdf_local_fast_text and rust_pdf_local_fast_text != "disabled":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT"] = str(
+            rust_pdf_local_fast_text
+        )
+    rust_pdf_fast_text_source_range_split = getattr(
+        args,
+        "rust_pdf_fast_text_source_range_split",
+        None,
+    )
+    if (
+        rust_pdf_fast_text_source_range_split
+        and rust_pdf_fast_text_source_range_split != "disabled"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_SOURCE_RANGE_SPLIT"] = str(
+            rust_pdf_fast_text_source_range_split
+        )
+    rust_pdf_fast_text_endpoint_affinity = getattr(
+        args,
+        "rust_pdf_fast_text_endpoint_affinity",
+        None,
+    )
+    if (
+        rust_pdf_fast_text_endpoint_affinity
+        and rust_pdf_fast_text_endpoint_affinity != "disabled"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY"] = str(
+            rust_pdf_fast_text_endpoint_affinity
+        )
+    rust_pdf_backend_text_topup = getattr(args, "rust_pdf_backend_text_topup", None)
+    if rust_pdf_backend_text_topup and rust_pdf_backend_text_topup != "profile":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP"] = str(
+            rust_pdf_backend_text_topup
+        )
     rust_pdf_ocr_profile_planner = getattr(args, "rust_pdf_ocr_profile_planner", None)
     if rust_pdf_ocr_profile_planner and rust_pdf_ocr_profile_planner != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] = str(
@@ -81,6 +120,42 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
     ):
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER"] = str(
             rust_pdf_hosted_vlm_region_planner
+        )
+    rust_pdf_hosted_vlm_region_pipeline = getattr(
+        args,
+        "rust_pdf_hosted_vlm_region_pipeline",
+        None,
+    )
+    if (
+        rust_pdf_hosted_vlm_region_pipeline
+        and rust_pdf_hosted_vlm_region_pipeline != "disabled"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE"] = str(
+            rust_pdf_hosted_vlm_region_pipeline
+        )
+    rust_pdf_hosted_vlm_region_render_ahead = getattr(
+        args,
+        "rust_pdf_hosted_vlm_region_render_ahead",
+        None,
+    )
+    if (
+        rust_pdf_hosted_vlm_region_render_ahead
+        and rust_pdf_hosted_vlm_region_render_ahead > 1
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD"] = str(
+            rust_pdf_hosted_vlm_region_render_ahead
+        )
+    rust_pdf_hosted_vlm_region_render_chunk = getattr(
+        args,
+        "rust_pdf_hosted_vlm_region_render_chunk",
+        None,
+    )
+    if (
+        rust_pdf_hosted_vlm_region_render_chunk
+        and rust_pdf_hosted_vlm_region_render_chunk != "page"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK"] = str(
+            rust_pdf_hosted_vlm_region_render_chunk
         )
     hosted_vlm_ocr_scaffold_mode = getattr(args, "hosted_vlm_ocr_scaffold_mode", None)
     if hosted_vlm_ocr_scaffold_mode and hosted_vlm_ocr_scaffold_mode != "disabled":

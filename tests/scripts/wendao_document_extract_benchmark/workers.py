@@ -15,6 +15,14 @@ from .server_code import fixture_server_code, real_docling_server_code
 
 OPENROUTER_OCR_SMOKE_MODEL = "baidu/qianfan-ocr-fast:free"
 HOSTED_VLM_OCR_TRACE_PATH_ENV = "WENDAO_HOSTED_VLM_OCR_TRACE_PATH"
+PDF_OCR_PREWARM_ENV_KEYS = frozenset(
+    {
+        "WENDAO_PDF_OCR_PREWARM_PROFILES",
+        "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH",
+        "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES",
+        "WENDAO_PDF_OCR_PREWARM_PAGE_INDEX",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -83,9 +91,15 @@ def start_server_pool(
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
     hosted_vlm_ocr_env: dict[str, str] | None = None,
+    pdf_ocr_prewarm_endpoint_count: int | None = None,
     log_dir: Path | None = None,
 ) -> list[PythonWorkerServer]:
     endpoint_count = validate_endpoint_count(endpoint_count)
+    if (
+        pdf_ocr_prewarm_endpoint_count is not None
+        and pdf_ocr_prewarm_endpoint_count < 1
+    ):
+        raise SystemExit("--pdf-ocr-prewarm-endpoint-count must be at least 1")
     ports = [port]
     while len(ports) < endpoint_count:
         candidate = pick_free_port(host)
@@ -114,8 +128,10 @@ def start_server_pool(
             pdf_ocr_workers=pdf_ocr_workers,
             python_uv_package=python_uv_package,
             python_uv_extras=python_uv_extras,
-            hosted_vlm_ocr_env=hosted_vlm_ocr_trace_env(
+            hosted_vlm_ocr_env=hosted_vlm_ocr_env_for_worker(
                 hosted_vlm_ocr_env,
+                worker_index=index,
+                prewarm_endpoint_count=pdf_ocr_prewarm_endpoint_count,
                 log_dir=log_dir,
                 process_name=name,
             ),
@@ -131,6 +147,21 @@ def start_server_pool(
             )
         )
     return workers
+
+
+def hosted_vlm_ocr_env_for_worker(
+    hosted_vlm_ocr_env: dict[str, str] | None,
+    *,
+    worker_index: int,
+    prewarm_endpoint_count: int | None,
+    log_dir: Path | None,
+    process_name: str,
+) -> dict[str, str]:
+    env = dict(hosted_vlm_ocr_env or {})
+    if prewarm_endpoint_count is not None and worker_index >= prewarm_endpoint_count:
+        for key in PDF_OCR_PREWARM_ENV_KEYS:
+            env.pop(key, None)
+    return hosted_vlm_ocr_trace_env(env, log_dir=log_dir, process_name=process_name)
 
 
 def start_server(
@@ -227,9 +258,15 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         ),
         "hosted_vlm_ocr_region_atlas_mode": "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE",
         "hosted_vlm_ocr_scaffold_mode": "WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE",
+        "hosted_vlm_ocr_image_optimization": (
+            "WENDAO_HOSTED_VLM_OCR_IMAGE_OPTIMIZATION"
+        ),
         "hosted_vlm_ocr_timeout_seconds": "WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS",
         "hosted_vlm_ocr_request_concurrency": (
             "WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY"
+        ),
+        "hosted_vlm_ocr_speculative_retry_delay_seconds": (
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS"
         ),
         "hosted_vlm_ocr_page_window_size": "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE",
         "openrouter_model": "WENDAO_OPENROUTER_MODEL",
@@ -240,6 +277,20 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         value = getattr(args, attr, None)
         if value is not None:
             env[key] = str(value)
+    prewarm_profiles = getattr(args, "pdf_ocr_prewarm_profile", [])
+    if prewarm_profiles:
+        env["WENDAO_PDF_OCR_PREWARM_PROFILES"] = ",".join(
+            dict.fromkeys(str(profile) for profile in prewarm_profiles)
+        )
+    prewarm_source_path = getattr(args, "pdf_ocr_prewarm_source_path", None)
+    if prewarm_source_path:
+        env["WENDAO_PDF_OCR_PREWARM_SOURCE_PATH"] = str(prewarm_source_path)
+    prewarm_page_indices = getattr(args, "pdf_ocr_prewarm_page_indices", None)
+    if prewarm_page_indices:
+        env["WENDAO_PDF_OCR_PREWARM_PAGE_INDICES"] = str(prewarm_page_indices)
+    prewarm_page_index = getattr(args, "pdf_ocr_prewarm_page_index", None)
+    if prewarm_page_indices is None and prewarm_page_index is not None:
+        env["WENDAO_PDF_OCR_PREWARM_PAGE_INDEX"] = str(prewarm_page_index)
     if (
         env.get("WENDAO_HOSTED_VLM_OCR_PROVIDER") == "openrouter"
         and "WENDAO_HOSTED_VLM_OCR_MODEL" not in env

@@ -13,7 +13,7 @@ use xiuxian_wendao_attachments::pdf::render::{
 };
 use xiuxian_wendao_server::transport::DocumentExtractFlightRequest;
 
-use super::profile::hybrid_page_ocr_profile_planner;
+use super::profile::{hybrid_page_ocr_profile_planner, is_hosted_vlm_topup_page};
 use super::types::{
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
@@ -250,6 +250,9 @@ fn ocr2_recovery_content_band_region(
     input: &PdfOcrShardInput,
 ) -> Option<PdfPageRegionRenderRequest> {
     if input.shard_type != "page" || !is_hosted_vlm_direct_profile(input.ocr_profile.as_str()) {
+        return None;
+    }
+    if is_hosted_vlm_topup_page(input) {
         return None;
     }
     let width = input.crop_right - input.crop_left;

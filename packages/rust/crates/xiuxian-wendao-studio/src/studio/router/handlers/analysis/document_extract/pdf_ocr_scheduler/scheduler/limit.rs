@@ -1,6 +1,9 @@
+use std::collections::BTreeMap;
 use std::time::Duration;
 
-use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
+use xiuxian_wendao_attachments::pdf::ocr::{
+    PDF_OCR_BACKEND_TEXT_PROFILE, PDF_OCR_FAST_TEXT_PROFILE, PdfOcrShardInput,
+};
 use xiuxian_wendao_attachments::pdf::profile::source_pdf_page_profiles_cached;
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
@@ -9,6 +12,12 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS";
 const HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV: &str =
     "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE";
+const HOSTED_VLM_REGION_PIPELINE_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE";
+const HOSTED_VLM_REGION_PIPELINE_RENDER_DISPATCH: &str = "render-dispatch";
+const FAST_TEXT_SOURCE_RANGE_SPLIT_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_SOURCE_RANGE_SPLIT";
+const FAST_TEXT_SOURCE_RANGE_SPLIT_SINGLE_PAGE: &str = "single-page";
 
 pub(super) fn pdf_ocr_worker_limit() -> usize {
     pdf_ocr_worker_limit_with_lookup(
@@ -39,13 +48,139 @@ pub(crate) fn source_pdf_page_range_chunks(
     inputs: &[PdfOcrShardInput],
     chunk_count: usize,
 ) -> Vec<&[PdfOcrShardInput]> {
+    source_pdf_page_range_chunks_with_fast_text_split(
+        inputs,
+        chunk_count,
+        fast_text_source_range_single_page_split_enabled(),
+    )
+}
+
+pub(crate) fn source_pdf_page_range_chunks_with_fast_text_split(
+    inputs: &[PdfOcrShardInput],
+    chunk_count: usize,
+    split_fast_text_single_pages: bool,
+) -> Vec<&[PdfOcrShardInput]> {
     if inputs.is_empty() {
         return Vec::new();
+    }
+    if split_fast_text_single_pages && all_fast_text_source_pdf_pages(inputs) {
+        return inputs.chunks(1).collect();
     }
     if let Some(weights) = source_pdf_page_range_weights(inputs) {
         return source_pdf_page_range_chunks_with_weights(inputs, chunk_count, weights.as_slice());
     }
     source_pdf_page_range_chunks_without_weights(inputs, chunk_count)
+}
+
+pub(crate) fn source_pdf_page_range_dispatch_chunks(
+    inputs: &[PdfOcrShardInput],
+    chunk_count: usize,
+) -> Vec<&[PdfOcrShardInput]> {
+    let mut chunks = source_pdf_page_range_chunks(inputs, chunk_count);
+    if !inputs
+        .iter()
+        .any(|input| input.ocr_profile == PDF_OCR_BACKEND_TEXT_PROFILE)
+    {
+        return chunks;
+    }
+    chunks.sort_by(|left, right| {
+        source_pdf_page_range_dispatch_priority(right)
+            .cmp(&source_pdf_page_range_dispatch_priority(left))
+            .then_with(|| {
+                source_pdf_page_range_chunk_weight(right)
+                    .cmp(&source_pdf_page_range_chunk_weight(left))
+            })
+            .then_with(|| {
+                left.first()
+                    .map(|input| input.page_index)
+                    .cmp(&right.first().map(|input| input.page_index))
+            })
+    });
+    chunks
+}
+
+pub(crate) fn source_pdf_page_range_dispatch_budget(
+    inputs: &[PdfOcrShardInput],
+    requested: usize,
+) -> usize {
+    source_pdf_page_range_dispatch_budget_with_region_pipeline(
+        inputs,
+        requested,
+        hosted_vlm_region_render_dispatch_enabled(),
+    )
+}
+
+pub(crate) fn source_pdf_page_range_dispatch_budget_with_region_pipeline(
+    inputs: &[PdfOcrShardInput],
+    requested: usize,
+    hosted_region_render_dispatch: bool,
+) -> usize {
+    source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fast_text_split(
+        inputs,
+        requested,
+        hosted_region_render_dispatch,
+        fast_text_source_range_single_page_split_enabled(),
+    )
+}
+
+pub(crate) fn source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fast_text_split(
+    inputs: &[PdfOcrShardInput],
+    requested: usize,
+    hosted_region_render_dispatch: bool,
+    _split_fast_text_single_pages: bool,
+) -> usize {
+    if inputs.is_empty() {
+        return requested.max(1);
+    }
+    if hosted_region_render_dispatch {
+        return requested
+            .max(source_pdf_page_range_runs(inputs).len())
+            .min(inputs.len())
+            .max(1);
+    }
+    if !inputs
+        .iter()
+        .any(|input| input.ocr_profile == PDF_OCR_BACKEND_TEXT_PROFILE)
+    {
+        return requested.max(1);
+    }
+
+    requested
+        .max(source_pdf_page_range_runs(inputs).len())
+        .min(inputs.len())
+        .max(1)
+}
+
+fn hosted_vlm_region_render_dispatch_enabled() -> bool {
+    std::env::var(HOSTED_VLM_REGION_PIPELINE_ENV)
+        .ok()
+        .map(|value| {
+            value.trim().replace('_', "-").to_ascii_lowercase()
+                == HOSTED_VLM_REGION_PIPELINE_RENDER_DISPATCH
+        })
+        .unwrap_or(false)
+}
+
+fn fast_text_source_range_single_page_split_enabled() -> bool {
+    std::env::var(FAST_TEXT_SOURCE_RANGE_SPLIT_ENV)
+        .ok()
+        .map(|value| {
+            value.trim().replace('_', "-").to_ascii_lowercase()
+                == FAST_TEXT_SOURCE_RANGE_SPLIT_SINGLE_PAGE
+        })
+        .unwrap_or(false)
+}
+
+fn all_fast_text_source_pdf_pages(inputs: &[PdfOcrShardInput]) -> bool {
+    let Some(first) = inputs.first() else {
+        return false;
+    };
+    inputs.iter().all(|input| {
+        input.source_path == first.source_path
+            && input.ocr_profile == PDF_OCR_FAST_TEXT_PROFILE
+            && input.shard_type == "page"
+            && input.source_path.to_ascii_lowercase().ends_with(".pdf")
+    })
 }
 
 pub(crate) fn rendered_region_shard_chunks(
@@ -68,9 +203,13 @@ pub(crate) fn rendered_region_shard_chunks_with_composite_size(
         return rendered_region_composite_chunks(inputs, composite_size);
     }
     let mut chunks = inputs.chunks(1).collect::<Vec<_>>();
+    let page_counts = rendered_region_page_counts(inputs);
     chunks.sort_by(|left, right| {
-        rendered_region_shard_weight(&right[0])
-            .cmp(&rendered_region_shard_weight(&left[0]))
+        rendered_region_chunk_page_density(right, &page_counts)
+            .cmp(&rendered_region_chunk_page_density(left, &page_counts))
+            .then_with(|| {
+                rendered_region_chunk_weight(right).cmp(&rendered_region_chunk_weight(left))
+            })
             .then_with(|| left[0].page_index.cmp(&right[0].page_index))
             .then_with(|| left[0].region_index.cmp(&right[0].region_index))
             .then_with(|| left[0].reading_order_key.cmp(&right[0].reading_order_key))
@@ -104,9 +243,13 @@ fn rendered_region_composite_chunks(
         }
     }
     chunks.push(&inputs[start..]);
+    let page_counts = rendered_region_page_counts(inputs);
     chunks.sort_by(|left, right| {
-        rendered_region_chunk_weight(right)
-            .cmp(&rendered_region_chunk_weight(left))
+        rendered_region_chunk_page_density(right, &page_counts)
+            .cmp(&rendered_region_chunk_page_density(left, &page_counts))
+            .then_with(|| {
+                rendered_region_chunk_weight(right).cmp(&rendered_region_chunk_weight(left))
+            })
             .then_with(|| left[0].page_index.cmp(&right[0].page_index))
             .then_with(|| left[0].region_index.cmp(&right[0].region_index))
             .then_with(|| left[0].reading_order_key.cmp(&right[0].reading_order_key))
@@ -300,11 +443,76 @@ fn rendered_region_shard_weight(input: &PdfOcrShardInput) -> u64 {
     u64::from(input.raster_width_px).saturating_mul(u64::from(input.raster_height_px))
 }
 
+fn source_pdf_page_range_dispatch_priority(inputs: &[PdfOcrShardInput]) -> u8 {
+    if inputs
+        .iter()
+        .any(|input| input.ocr_profile != PDF_OCR_BACKEND_TEXT_PROFILE)
+    {
+        return 2;
+    }
+    1
+}
+
+fn source_pdf_page_range_chunk_weight(inputs: &[PdfOcrShardInput]) -> u64 {
+    inputs
+        .iter()
+        .map(|input| {
+            u64::from(input.raster_width_px)
+                .saturating_mul(u64::from(input.raster_height_px))
+                .max(1)
+        })
+        .fold(0_u64, u64::saturating_add)
+}
+
 fn rendered_region_chunk_weight(inputs: &[PdfOcrShardInput]) -> u64 {
     inputs
         .iter()
         .map(rendered_region_shard_weight)
         .fold(0_u64, u64::saturating_add)
+}
+
+fn rendered_region_chunk_page_density(
+    inputs: &[PdfOcrShardInput],
+    page_counts: &BTreeMap<RenderedRegionPageKey, usize>,
+) -> usize {
+    inputs
+        .iter()
+        .map(|input| {
+            page_counts
+                .get(&RenderedRegionPageKey::from(input))
+                .copied()
+                .unwrap_or(1)
+        })
+        .max()
+        .unwrap_or(1)
+}
+
+fn rendered_region_page_counts(
+    inputs: &[PdfOcrShardInput],
+) -> BTreeMap<RenderedRegionPageKey, usize> {
+    let mut counts: BTreeMap<RenderedRegionPageKey, usize> = BTreeMap::new();
+    for input in inputs {
+        counts
+            .entry(RenderedRegionPageKey::from(input))
+            .and_modify(|count| *count = count.saturating_add(1))
+            .or_insert(1);
+    }
+    counts
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct RenderedRegionPageKey {
+    source_path: String,
+    page_index: u32,
+}
+
+impl From<&PdfOcrShardInput> for RenderedRegionPageKey {
+    fn from(input: &PdfOcrShardInput) -> Self {
+        Self {
+            source_path: input.source_path.clone(),
+            page_index: input.page_index,
+        }
+    }
 }
 
 fn source_pdf_page_range_weights(inputs: &[PdfOcrShardInput]) -> Option<Vec<u32>> {

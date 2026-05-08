@@ -1,7 +1,13 @@
 use super::{
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, endpoint_index_for_request, rendered_region_shard_chunks,
     rendered_region_shard_chunks_with_composite_size, sample_ocr_input,
-    source_pdf_page_range_chunks, source_pdf_page_range_chunks_with_weights,
+    source_pdf_page_range_chunk_endpoint_index_with_lookup,
+    source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup, source_pdf_page_range_chunks,
+    source_pdf_page_range_chunks_with_fast_text_split, source_pdf_page_range_chunks_with_weights,
+    source_pdf_page_range_dispatch_budget,
+    source_pdf_page_range_dispatch_budget_with_region_pipeline,
+    source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fast_text_split,
+    source_pdf_page_range_dispatch_chunks,
 };
 
 #[test]
@@ -142,7 +148,163 @@ fn source_pdf_page_range_chunks_do_not_cross_ocr_profile_boundaries() {
 }
 
 #[test]
-fn rendered_region_shard_chunks_start_largest_regions_first_for_tail_control() {
+fn source_pdf_page_range_dispatch_chunks_prioritize_topup_profiles_for_backend_text_mode() {
+    let mut inputs = (0..8)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    for input in &mut inputs {
+        input.ocr_profile = "docling-backend-text-ocr-v1".to_string();
+        input.raster_width_px = 10;
+        input.raster_height_px = 10;
+    }
+    inputs[2].ocr_profile = "docling-fast-text-ocr".to_string();
+    inputs[2].raster_width_px = 100;
+    inputs[2].raster_height_px = 100;
+    inputs[5].ocr_profile = "docling-fast-text-ocr".to_string();
+    inputs[5].raster_width_px = 80;
+    inputs[5].raster_height_px = 80;
+
+    let chunks = source_pdf_page_range_dispatch_chunks(inputs.as_slice(), 3);
+    let page_runs = chunks
+        .iter()
+        .map(|chunk| {
+            chunk
+                .iter()
+                .map(|input| input.page_index)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(page_runs[0], vec![2]);
+    assert_eq!(page_runs[1], vec![5]);
+}
+
+#[test]
+fn source_pdf_page_range_dispatch_budget_expands_to_backend_text_profile_runs() {
+    let mut inputs = (0..8)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    for input in &mut inputs {
+        input.ocr_profile = "docling-backend-text-ocr-v1".to_string();
+    }
+    inputs[2].ocr_profile = "docling-fast-text-ocr".to_string();
+    inputs[5].ocr_profile = "docling-fast-text-ocr".to_string();
+
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget(inputs.as_slice(), 3),
+        5
+    );
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget(inputs.as_slice(), 9),
+        8
+    );
+
+    for input in &mut inputs {
+        input.ocr_profile = "docling-fast-text-ocr".to_string();
+    }
+
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget(inputs.as_slice(), 3),
+        3
+    );
+}
+
+#[test]
+fn source_pdf_page_range_dispatch_budget_expands_to_runs_during_region_pipeline() {
+    let mut inputs = (0..8)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    for input in &mut inputs {
+        input.ocr_profile = "docling-backend-text-ocr-v1".to_string();
+    }
+    inputs[2].ocr_profile = "docling-fast-text-ocr".to_string();
+    inputs[5].ocr_profile = "docling-fast-text-ocr".to_string();
+
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget_with_region_pipeline(inputs.as_slice(), 3, true),
+        5
+    );
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget_with_region_pipeline(inputs.as_slice(), 9, true),
+        8
+    );
+
+    for input in &mut inputs {
+        input.ocr_profile = "docling-fast-text-ocr".to_string();
+    }
+    inputs[0].page_index = 5;
+    inputs[1].page_index = 11;
+    inputs[2].page_index = 12;
+    inputs[3].page_index = 13;
+    inputs.truncate(4);
+
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget_with_region_pipeline(inputs.as_slice(), 1, true),
+        2
+    );
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget_with_region_pipeline(inputs.as_slice(), 1, false),
+        1
+    );
+}
+
+#[test]
+fn source_pdf_page_range_fast_text_split_uses_single_page_chunks_when_enabled() {
+    let mut inputs = (0..4)
+        .map(|page_index| sample_ocr_input("/tmp/source.pdf", page_index, "page"))
+        .collect::<Vec<_>>();
+    for input in &mut inputs {
+        input.ocr_profile = "docling-fast-text-ocr".to_string();
+    }
+    inputs[0].page_index = 5;
+    inputs[1].page_index = 11;
+    inputs[2].page_index = 12;
+    inputs[3].page_index = 13;
+
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fast_text_split(
+            inputs.as_slice(),
+            1,
+            true,
+            false,
+        ),
+        2
+    );
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fast_text_split(
+            inputs.as_slice(),
+            1,
+            true,
+            true,
+        ),
+        2
+    );
+    assert_eq!(
+        source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fast_text_split(
+            inputs.as_slice(),
+            1,
+            false,
+            true,
+        ),
+        1
+    );
+
+    let chunks = source_pdf_page_range_chunks_with_fast_text_split(inputs.as_slice(), 1, true);
+    let page_runs = chunks
+        .iter()
+        .map(|chunk| {
+            chunk
+                .iter()
+                .map(|input| input.page_index)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(page_runs, vec![vec![5], vec![11], vec![12], vec![13]]);
+}
+
+#[test]
+fn rendered_region_shard_chunks_start_dense_risk_pages_before_largest_single_region() {
     let mut inputs = (0..6)
         .map(|region_index| {
             let mut input = sample_ocr_input("/tmp/source.pdf", 12, "region");
@@ -174,7 +336,7 @@ fn rendered_region_shard_chunks_start_largest_regions_first_for_tail_control() {
 
     assert_eq!(
         chunk_regions,
-        vec![(13, 4), (12, 1), (12, 3), (13, 5), (12, 2), (12, 0)]
+        vec![(12, 1), (12, 3), (12, 2), (12, 0), (13, 4), (13, 5)]
     );
 }
 
@@ -231,4 +393,104 @@ fn endpoint_index_for_request_round_robins_endpoint_pool() -> Result<(), String>
     assert_eq!(endpoint_index_for_request(3, 3)?, 0);
     assert!(endpoint_index_for_request(0, 0).is_err());
     Ok(())
+}
+
+#[test]
+fn source_pdf_page_range_endpoint_affinity_targets_single_fast_text_pdf_page() {
+    let mut input = sample_ocr_input("/tmp/source.pdf", 5, "page");
+    input.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    let enabled = |key: &str| {
+        (key == "WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY")
+            .then(|| "single-page-first".to_string())
+    };
+
+    assert!(
+        source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup(
+            std::slice::from_ref(&input),
+            &enabled,
+        )
+    );
+
+    let disabled = |_: &str| None;
+    assert!(
+        !source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup(
+            std::slice::from_ref(&input),
+            &disabled,
+        )
+    );
+}
+
+#[test]
+fn source_pdf_page_range_endpoint_affinity_routes_single_fast_text_chunk_to_first_endpoint() {
+    let mut input = sample_ocr_input("/tmp/source.pdf", 5, "page");
+    input.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    let enabled = |key: &str| {
+        (key == "WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY")
+            .then(|| "single-page-first".to_string())
+    };
+
+    let endpoint_index = source_pdf_page_range_chunk_endpoint_index_with_lookup(
+        4,
+        std::slice::from_ref(&input),
+        &enabled,
+        || Err("affinity should not advance the round-robin cursor".to_string()),
+    )
+    .expect("single fast-text source chunk should resolve");
+
+    assert_eq!(endpoint_index, 0);
+    assert!(
+        source_pdf_page_range_chunk_endpoint_index_with_lookup(0, &[input], &enabled, || Err(
+            "affinity should not advance the round-robin cursor".to_string()
+        ),)
+        .is_err()
+    );
+}
+
+#[test]
+fn source_pdf_page_range_endpoint_affinity_uses_round_robin_for_other_chunks() {
+    let mut first = sample_ocr_input("/tmp/source.pdf", 11, "page");
+    let mut second = sample_ocr_input("/tmp/source.pdf", 12, "page");
+    first.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    second.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    let enabled = |key: &str| {
+        (key == "WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY")
+            .then(|| "single-page-first".to_string())
+    };
+
+    let endpoint_index = source_pdf_page_range_chunk_endpoint_index_with_lookup(
+        4,
+        &[first, second],
+        &enabled,
+        || Ok(2),
+    )
+    .expect("multi-page fast-text source chunk should use round-robin");
+
+    assert_eq!(endpoint_index, 2);
+}
+
+#[test]
+fn source_pdf_page_range_endpoint_affinity_rejects_non_single_fast_text_pdf_chunks() {
+    let mut fast_page = sample_ocr_input("/tmp/source.pdf", 5, "page");
+    fast_page.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    let mut second_fast_page = sample_ocr_input("/tmp/source.pdf", 6, "page");
+    second_fast_page.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    let mut region = sample_ocr_input("/tmp/source.pdf", 5, "region");
+    region.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    let mut png_source = sample_ocr_input("/tmp/source.png", 5, "page");
+    png_source.ocr_profile = super::PDF_OCR_FAST_TEXT_PROFILE.to_string();
+    let enabled = |key: &str| {
+        (key == "WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY")
+            .then(|| "single-page-first".to_string())
+    };
+
+    assert!(
+        !source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup(
+            &[fast_page, second_fast_page],
+            &enabled,
+        )
+    );
+    assert!(!source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup(&[region], &enabled,));
+    assert!(
+        !source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup(&[png_source], &enabled,)
+    );
 }

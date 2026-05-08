@@ -47,15 +47,21 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         wait_ms=0,
         pdf_ocr_worker="skip",
         pdf_ocr_workers="auto",
+        pdf_ocr_prewarm_profile=["docling-fast-text-ocr"],
         local_python_ocr_endpoint_count=1,
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_local_backend_text="rust-lopdf",
+        rust_pdf_local_fast_text="rust-lopdf",
+        rust_pdf_fast_text_source_range_split="single-page",
+        rust_pdf_backend_text_topup="disabled",
         rust_document_extract_endpoint=[],
         rust_pdf_ocr_endpoint=[],
         structure_baseline_root=None,
         shard_cache_reuse_probe=False,
         artifact_registry_reuse_probe=True,
         ocr_shard_cache_root=tmp_path / "ocr-shards",
+        hosted_vlm_ocr_image_optimization="region-whitespace-trim",
     )
     result = {
         "fixture": "markdown",
@@ -95,6 +101,17 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         payload["precisionSpeedSummary"] == payload["summary"]["precisionSpeedSummary"]
     )
     assert payload["precisionSpeedSummary"]["maxArtifactRegistryReuseForceMs"] == 4.0
+    assert payload["hostedVlmOcr"]["imageOptimizationMode"] == "region-whitespace-trim"
+    assert payload["pdfOcrPrewarmProfiles"] == ["docling-fast-text-ocr"]
+    assert payload["pdfOcrPrewarmSourcePath"] is None
+    assert payload["pdfOcrPrewarmPageIndex"] is None
+    assert payload["pdfOcrPrewarmPageIndices"] is None
+    assert payload["pdfOcrPrewarmEndpointCount"] is None
+    assert payload["rustPdfLocalBackendText"] == "rust-lopdf"
+    assert payload["rustPdfLocalFastText"] == "rust-lopdf"
+    assert payload["rustPdfFastTextSourceRangeSplit"] == "single-page"
+    assert payload["rustPdfFastTextEndpointAffinity"] == "disabled"
+    assert payload["rustPdfBackendTextTopup"] == "disabled"
 
 
 def test_run_structure_baseline_probe_generates_sync_fixture_baselines(
@@ -190,7 +207,9 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
     benchmark = _load_benchmark_module()
     args = benchmark.argparse.Namespace(
         cargo="cargo",
-        cargo_features="performance,studio,zhenfa-router,duckdb",
+        cargo_features=(
+            "performance,studio,zhenfa-router,duckdb,document-extract-attachment-audit"
+        ),
         pdfium_library_path=None,
         prepare_pdfium_runtime=False,
         require_pdfium=False,
@@ -204,8 +223,8 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
         tmp_path / "reports",
     )
 
-    assert command[:4] == ["cargo", "test", "-p", "xiuxian-wendao"]
-    assert command[command.index("--test") + 1] == "wendao-validation-gate"
+    assert command[:4] == ["cargo", "test", "-p", "xiuxian-wendao-studio"]
+    assert command[command.index("--test") + 1] == "performance_test"
     assert command[command.index("--features") + 1] == (
         "performance,studio,zhenfa-router,duckdb,document-extract-pdf-render"
     )

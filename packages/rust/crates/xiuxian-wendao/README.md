@@ -576,6 +576,111 @@ readable repo aliases and inject a synthetic `repo_id` column, so SQL clients
 can query across partitions or repos without first discovering every physical
 source table.
 
+The real-repository search precision harness now lives under
+`src/search/real_repo_precision/`. It keeps a source-maintained repository
+catalog and gold-query expectations, uses the existing
+`xiuxian-git-repo`-backed repository materialization bridge, builds the
+existing `LinkGraphIndex` over managed checkouts for `link_graph` gold
+queries, and routes `repo_ast` gold queries through the existing repo AST
+structural-analysis search path, including Rust async function symbols. Opt-in
+precision receipts stay outside canonical docs and report materialization,
+LinkGraph cache status, preparation/index timing, and per-query timing as
+separate evidence. They also report indexed LinkGraph corpus volume, including
+document count, Markdown/Org counts, total word count, and path-prefix counts
+so real precision runs can be judged against the size of the tested knowledge
+surface. The knowledge-search path uses the existing local
+LinkGraph cache fast-path for warm real-repo runs; repo AST symbol lookup keeps
+using a prepared symbol index. Large LinkGraph indexes evaluate document rows
+in parallel before the existing deterministic final sort, reducing warm
+knowledge-query latency while preserving ranking semantics. The local
+LinkGraph cache also decodes independent Arrow snapshot groups in parallel on
+cache hits, reducing warm preparation cost without changing the cache schema.
+Long-lived in-process knowledge runners can use the resident LinkGraph
+fast-path, which keeps fingerprint validation but returns an already loaded
+`LinkGraphIndex` from memory when the cache slot is unchanged. Owner-managed
+runners can prewarm the resident slot through the validating path, use a
+prewarmed-only resident lookup on request paths, and invalidate the resident
+slot after repository sync or catalog changes.
+The opt-in harness can also filter receipts to `link_graph` or `repo_ast`
+query kinds so knowledge-search latency is not masked by code-symbol
+preparation. The harness does not commit repository checkouts, does not add a
+runtime route, and does not change the repo search wire contracts.
+The LinkGraph gold-query set now covers docs-family knowledge across vision,
+core architecture, developer standards, feature notes, chronicles, LLM
+guidance, RFCs, semantic SSOT, and package docs. The docs-corpus proof remains
+opt-in and records the concrete query pass/fail rows alongside corpus volume.
+The harness now also evaluates an agent-facing knowledge scenario matrix over
+those query receipts. Scenarios group related query ids and assert required
+paths, semantic objects, relation paths, authority-ordering expectations, and
+negative-evidence guards. The first matrix covers known-item lookup, natural
+language intent, multi-hop semantic relations, authority ordering, negative
+evidence, ambiguous aliases, and agent task evidence packs. Scenario receipts
+report pass/fail status, required query variants, path recall,
+object/relation coverage, authority rank evidence, negative-guard matches,
+and failure reasons, so precision is measured as evidence-pack quality rather
+than isolated query hits. Query variants label canonical, paraphrase, alias,
+and task-style phrasings, and every required variant must pass for the
+scenario to pass. The same receipt surface is now rank-aware: query,
+variant, and scenario evidence records required path ranks, recall@1/3/5/10,
+best required-evidence rank, and reciprocal-rank quality. This lets the gate
+separate strong top-ranked evidence from late-window hits while preserving the
+existing hard correctness rule that required evidence must still be present.
+The current docs-corpus proof passes `23/23` queries, `7/7` knowledge
+scenarios, and `15/15` query variants over `472` Markdown documents and
+`263701` indexed words, with full scenario recall@10 and explicit late-query
+counts for broader exploratory docs prompts.
+The root [wendao.toml](../../../../wendao.toml) now explicitly includes
+`packages/rust/crates/xiuxian-wendao/src/link_graph` in the LinkGraph index
+scope so source-owned search surfaces can be tested alongside docs and semantic
+knowledge. Rust source lookup is still validated through `repo_ast` receipts,
+not by treating `.rs` files as Markdown knowledge. The current source probe
+passes `4/4` repo-AST queries and top-hits the `build_with_filters` owner in
+`src/link_graph/index/build/assemble/api.rs`.
+The same scenario receipt now records a graph-first reasoning tree for agent
+search. The tree starts from small query anchors, expands through semantic
+relation hops when the scenario requires them, records PageIndex seed evidence
+for semantic objects, and ends at the minimal source paths needed for the
+answer. This is the intended Wendao search strategy: progressive disclosure
+over parsed PageIndex, link, and relation facts, not sending a flat top-k
+document window to the model. The docs-corpus proof now validates `31`
+reasoning-tree disclosure steps across the seven knowledge scenarios while
+keeping all query, variant, and recall gates intact.
+A Python-owned black-box benchmark now lives in
+[wendao-knowledge-retrieval-benchmark](../../../../packages/python/wendao-knowledge-retrieval-benchmark/README.md).
+It reads the existing real-repo precision receipt and compares retrieval
+profiles without changing Rust routes, Julia services, Arrow schemas, or search
+ranking behavior. The first report compares `flat-topk` with
+`graph-first-reasoning-tree` and recommends the graph-first profile because it
+preserves `7/7` scenario pass status, full recall@10, and the same reciprocal
+rank while reducing exposed path-character cost from `13777` to `4101`.
+Later benchmark profiles may add Julia-backed PPR, community frontier, HNSW
+semantic fanout, or relationship-traversal strategies only after they are wired
+as measured inputs.
+Those docs-family query hits can also be materialized as temporary PageIndex
+fixtures and sent through the real WendaoGraph.jl host-request facade in an
+opt-in Julia live proof. The proof validates that docs-corpus knowledge hits
+become reasoning seeds without adding a runtime route, changing the Arrow
+tables, or making Julia the SSOT for repository documentation.
+The real Markdown knowledge gate now also includes checked-in semantic SSOT
+Markdown under `semantic/`. It records a semantic gate receipt proving that
+linked knowledge gold queries are covered by semantic object provenance or
+object source paths, then projects that SSOT scope into existing WendaoGraph
+PageIndex request tables. The gate covers multiple agent-relevant governance
+intents, including the Wendao query substrate, repo-native semantic authority,
+projection/read-model authority, and the LLM-output authority boundary. Julia
+remains optional and derived: the live proof can send those Rust-built
+PageIndex tables to WendaoGraph, but semantic SSOT authority stays in
+repository Markdown. Semantic object frontmatter relations are indexed as
+search text too, so exact relation-path queries can top-hit the source
+semantic object file while the semantic gate records required and covered
+relation paths before Julia sees the derived PageIndex rows. The same receipt
+also groups query ids, semantic objects, and relation paths into compact
+scenario evidence for agent audit, so a knowledge answer can prove which SSOT
+objects and relations supported it before using Julia-derived graph rows. Real
+harness receipts now enrich each scenario with the linked query pass status,
+top hit, missing paths, observed path count, and query latency that made the
+scenario pass.
+
 The SQL lane now also keeps snapshot-level regression coverage through
 `src/search/queries/sql/tests/snapshots.rs`, with canonical baselines under
 `tests/snapshots/search/queries/`. That namespace now belongs to the shared
@@ -697,13 +802,53 @@ defaults, host staging, transport, and composed downcalls belong in
 `xiuxian-wendao-julia`. `xiuxian-wendao` now keeps only the thin
 `memory::julia` bridge that points at those plugin-owned surfaces.
 
-For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` now provides the local
-`link_graph::wendao_graph_evidence` adapter. It maps `LinkGraphIndex` document
-links, PageIndex parent-child topology, and optional seed rows into validated
-WendaoGraph request `RecordBatch` bundles by reusing the
-`xiuxian-wendao-julia` contract mirror. This is still transport-neutral: the
-adapter does not call Julia, does not add a Flight route, and does not change
-search ranking behavior.
+For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` provides the local
+`link_graph::wendao_graph_evidence` adapter. The link-evidence bundle maps
+`LinkGraphIndex` document links plus optional diffusion seeds and
+either `semantic_neighbors` rows or host-precomputed `semantic_overlay` rows
+into the existing `/graph/link/evidence` request tables by reusing the
+`xiuxian-wendao-julia` contract mirror. The semantic paths validate node
+identity, one-based vertex indices, rank, distance, overlay weight, and edge
+kind before Arrow batch construction so Julia can derive `semantic_overlay`,
+`diffusion_scores`, and `link_frontier` deterministically. The two semantic
+input variants are mutually exclusive, matching the WendaoGraph.jl request
+contract.
+This is still transport-neutral: the adapter does not call Julia, does not add
+a Flight route, and does not change search ranking behavior.
+
+The WendaoGraph PageIndex reasoning path is separate. The same adapter module
+also exposes a PageIndex sidecar builder that materializes `page_index_nodes`,
+`page_index_edges`, and schema-stable `page_index_seeds` from `LinkGraphIndex`
+for future WendaoGraph service integration. These PageIndex reasoning tables
+are not mixed into `/graph/link/evidence`.
+
+The same adapter now also exposes a semantic SSOT projection path for agent
+reasoning-tree work. `xiuxian-wendao` projects parser-owned
+`SemanticScopeBundle` facts into the existing PageIndex request tables so
+WendaoGraph.jl can compute derived `reasoning_frontier`, `disclosure_trace`,
+and planner-action evidence. The projection preserves semantic object ids,
+relation kinds, source paths, status, confidence, owner, provenance, and
+validation hints inside the PageIndex request rows. Julia does not own or
+mutate SSOT authority; Rust validates the projection before any Julia dispatch.
+An opt-in live proof materializes the semantic projection as temporary
+PageIndex TSV fixture files and runs the real WendaoGraph.jl host entrypoint,
+so this path is validated beyond schema-only tests while remaining
+transport-neutral.
+The stable design reference is
+[`docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md`](../../../../docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md).
+
+That boundary is backed by the git-stable host fixture under
+`packages/rust/crates/xiuxian-wendao/tests/fixtures/wendaograph_page_index_reasoning_host`.
+Rust tests compare the fixture against the PageIndex sidecar builder, and
+WendaoGraph.jl can read the same fixture through its native PageIndex contract
+and reasoning tests. The fixture is interop evidence only; it does not add a
+Flight route or change runtime fallback behavior.
+
+WendaoGraph.jl now also exposes `page_index_reasoning_from_request(...)` as a
+host-request facade for those sidecar-shaped tables. Host callers can pass a
+request object containing `page_index_nodes`, `page_index_edges`, and optional
+`page_index_seeds`; table payloads supplied through keywords are rejected so
+the transport boundary stays explicit.
 
 For link-graph semantic retrieval, `VectorStoreSemanticIgnition` now also
 provides `build_julia_rerank_request_batch(...)`, which reuses anchor ids as

@@ -78,8 +78,9 @@ pub use julia_schedule::{
 pub use lanes::{LaneCapability, PolyglotLane};
 pub use pressure::WorkerPressureEvidence;
 pub use readiness::{
-    BenchmarkState, ContractValidationState, JuliaReadinessEvidence, ManifestReadinessState,
-    WarmupState,
+    BenchmarkState, ContractValidationState, JuliaAcceleratorDiagnostics, JuliaReadinessEvidence,
+    JuliaThreadPinningDiagnostics, JuliaThreadPinningState, JuliaThreadTopology,
+    ManifestReadinessState, WarmupState,
 };
 pub use refs::{ContractOwner, RouteProfileRef};
 pub use schema_benchmark::{

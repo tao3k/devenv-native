@@ -79,7 +79,10 @@ pub use plugin::{
     JuliaRepoIntelligencePlugin, JuliaSourceId, WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_CONTRACTS,
     WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_NAMES, WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_CONTRACTS,
     WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_NAMES, WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION,
-    WENDAO_GRAPH_LINK_EVIDENCE_ROUTE, WendaoGraphEvidenceColumnContract,
+    WENDAO_GRAPH_LINK_EVIDENCE_ROUTE, WENDAO_GRAPH_PAGE_INDEX_REASONING_REQUEST_TABLE_CONTRACTS,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_REQUEST_TABLE_NAMES,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_RESPONSE_TABLE_CONTRACTS,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_RESPONSE_TABLE_NAMES, WendaoGraphEvidenceColumnContract,
     WendaoGraphEvidenceColumnType, WendaoGraphEvidenceTableContract, WendaoGraphEvidenceTableKind,
     build_graph_structural_filter_request_batch, build_graph_structural_filter_request_row,
     build_graph_structural_flight_transport_client,
@@ -154,8 +157,13 @@ pub use plugin::{
     validate_julia_plugin_capability_manifest_request_batches,
     validate_julia_plugin_capability_manifest_response_batches,
     validate_wendao_graph_evidence_request_schema, validate_wendao_graph_evidence_response_schema,
+    validate_wendao_graph_page_index_reasoning_request_schema,
+    validate_wendao_graph_page_index_reasoning_response_schema,
     wendao_graph_evidence_request_table_contract, wendao_graph_evidence_response_table_contract,
     wendao_graph_evidence_table_schema, wendao_graph_link_evidence_route,
+    wendao_graph_page_index_reasoning_request_table_contract,
+    wendao_graph_page_index_reasoning_response_table_contract,
+    wendao_graph_page_index_reasoning_table_schema,
 };
 
 #[cfg(test)]

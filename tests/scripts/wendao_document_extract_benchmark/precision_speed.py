@@ -291,6 +291,7 @@ def hosted_vlm_promotion_candidate(
     if planner in {
         "hosted-vlm-all",
         "hosted-vlm-risk-window",
+        "hosted-vlm-risk-window-backend-text",
     }:
         return True
     if (
@@ -309,9 +310,67 @@ def hosted_vlm_promotion_observed(
     request_summary: dict[str, Any],
 ) -> dict[str, Any]:
     hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
+    force_ms = numeric_or_none(precision_speed.get("maxForceRefreshMs"))
+    request_wall_ms = numeric_or_none(request_summary.get("requestWallSpanMs"))
+    force_phases = payload.get("summary", {}).get(
+        "forceHybridPageOcrTimingPhaseElapsedMs",
+        {},
+    )
+    force_region_materialize_ms = nested_mapping_numeric(
+        force_phases,
+        "regionMaterialize",
+    )
+    force_region_pipeline_ms = nested_mapping_numeric(force_phases, "regionPipeline")
+    force_region_pipeline_first_ready_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineFirstRegionReady",
+    )
+    force_region_pipeline_last_ready_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineLastRegionReady",
+    )
+    force_region_pipeline_first_dispatch_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineFirstRegionDispatch",
+    )
+    force_region_pipeline_last_dispatch_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineLastRegionDispatch",
+    )
+    force_region_pipeline_first_base_result_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineFirstBaseResult",
+    )
+    force_region_pipeline_last_base_result_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineLastBaseResult",
+    )
+    force_region_pipeline_first_region_result_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineFirstRegionResult",
+    )
+    force_region_pipeline_last_region_result_ms = nested_mapping_numeric(
+        force_phases,
+        "regionPipelineLastRegionResult",
+    )
+    force_region_render_ms = nested_mapping_numeric(
+        force_phases,
+        "regionMaterializeRender",
+    )
+    force_scheduler_ms = nested_mapping_numeric(force_phases, "ocrScheduler")
     return {
         "rustPdfOcrProfilePlanner": payload.get("rustPdfOcrProfilePlanner"),
         "rustPdfHostedVlmRegionPlanner": payload.get("rustPdfHostedVlmRegionPlanner"),
+        "rustPdfHostedVlmRegionPipeline": payload.get("rustPdfHostedVlmRegionPipeline"),
+        "rustPdfHostedVlmRegionRenderAhead": payload.get(
+            "rustPdfHostedVlmRegionRenderAhead"
+        ),
+        "rustPdfHostedVlmRegionRenderChunk": payload.get(
+            "rustPdfHostedVlmRegionRenderChunk"
+        ),
+        "rustPdfFastTextEndpointAffinity": payload.get(
+            "rustPdfFastTextEndpointAffinity"
+        ),
         "provider": hosted_vlm_ocr.get("provider"),
         "openRouterModel": hosted_vlm_ocr.get("openRouterModel"),
         "openRouterApiKeyConfigured": hosted_vlm_ocr.get("openRouterApiKeyConfigured"),
@@ -355,6 +414,54 @@ def hosted_vlm_promotion_observed(
         "requestWallSpanMs": request_summary.get("requestWallSpanMs"),
         "requestLatencyOverlapRatio": request_summary.get("requestLatencyOverlapRatio"),
         "sourcePixelAreaTotal": request_summary.get("sourcePixelAreaTotal"),
+        "forceHostedVlmLocalOverheadMs": subtract_numeric(force_ms, request_wall_ms),
+        "forceHostedVlmRegionMaterializeMs": force_region_materialize_ms,
+        "forceHostedVlmRegionPipelineMs": force_region_pipeline_ms,
+        "forceHostedVlmRegionPipelineFirstReadyMs": (
+            force_region_pipeline_first_ready_ms
+        ),
+        "forceHostedVlmRegionPipelineLastReadyMs": (
+            force_region_pipeline_last_ready_ms
+        ),
+        "forceHostedVlmRegionPipelineFirstDispatchMs": (
+            force_region_pipeline_first_dispatch_ms
+        ),
+        "forceHostedVlmRegionPipelineLastDispatchMs": (
+            force_region_pipeline_last_dispatch_ms
+        ),
+        "forceHostedVlmRegionPipelineFirstBaseResultMs": (
+            force_region_pipeline_first_base_result_ms
+        ),
+        "forceHostedVlmRegionPipelineLastBaseResultMs": (
+            force_region_pipeline_last_base_result_ms
+        ),
+        "forceHostedVlmRegionPipelineFirstRegionResultMs": (
+            force_region_pipeline_first_region_result_ms
+        ),
+        "forceHostedVlmRegionPipelineLastRegionResultMs": (
+            force_region_pipeline_last_region_result_ms
+        ),
+        "forceHostedVlmRegionRenderMs": force_region_render_ms,
+        "forceHostedVlmSchedulerMs": force_scheduler_ms,
+        "forceHostedVlmSourceRangeChunkMaxMs": precision_speed.get(
+            "maxForceHybridPageOcrSourceRangeChunkMs"
+        ),
+        "forceHostedVlmSourceRangeChunkPageStart": precision_speed.get(
+            "maxForceHybridPageOcrSourceRangeChunkPageStart"
+        ),
+        "forceHostedVlmSourceRangeChunkPageEnd": precision_speed.get(
+            "maxForceHybridPageOcrSourceRangeChunkPageEnd"
+        ),
+        "forceHostedVlmSourceRangeChunkCount": precision_speed.get(
+            "totalForceHybridPageOcrSourceRangeChunkCount"
+        ),
+        "forceHostedVlmSourceRangeTraceChars": precision_speed.get(
+            "totalForceHybridPageOcrSourceRangeTraceChars"
+        ),
+        "forceHostedVlmSchedulerNonRequestMs": subtract_numeric(
+            force_scheduler_ms,
+            request_wall_ms,
+        ),
     }
 
 
@@ -530,6 +637,31 @@ def speed_observation_summary(
             "forceHybridPageOcrTimingPhaseElapsedMs",
             "regionMaterialize",
         ),
+        "maxForceHybridPageOcrSourceRangeChunkMs": max_nested_numeric(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeLatencyMsMax",
+        ),
+        "maxForceHybridPageOcrSourceRangeChunkPageStart": max_nested_numeric(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeLongestPageStart",
+        ),
+        "maxForceHybridPageOcrSourceRangeChunkPageEnd": max_nested_numeric(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeLongestPageEnd",
+        ),
+        "totalForceHybridPageOcrSourceRangeChunkCount": sum_nested_numeric(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeChunkCount",
+        ),
+        "totalForceHybridPageOcrSourceRangeTraceChars": sum_nested_numeric(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeTextCharCount",
+        ),
         "maxArtifactRegistryReuseForceMs": max_numeric(
             results,
             "artifactRegistryReuseForceMs",
@@ -619,6 +751,18 @@ def numeric_values(results: list[dict[str, Any]], key: str) -> list[float]:
 
 def numeric_or_none(value: Any) -> float | None:
     return float(value) if isinstance(value, int | float) else None
+
+
+def nested_mapping_numeric(mapping: Any, value_key: str) -> float | None:
+    if not isinstance(mapping, dict):
+        return None
+    return numeric_or_none(mapping.get(value_key))
+
+
+def subtract_numeric(left: float | None, right: float | None) -> float | None:
+    if left is None or right is None:
+        return None
+    return max(left - right, 0.0)
 
 
 def nested_numeric_values(

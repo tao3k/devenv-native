@@ -80,6 +80,7 @@ pub(crate) struct ArtifactReport {
     pub(crate) hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: usize,
+    pub(crate) hybrid_page_ocr_timing_scheduler_trace: Vec<Value>,
     #[cfg(feature = "document-extract-attachment-audit")]
     pub(crate) image_attachment_audit: Option<AttachmentAudit>,
     #[cfg(feature = "document-extract-attachment-audit")]
@@ -164,6 +165,7 @@ fn inspect_artifact_dir(
         hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: 0,
         hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: 0,
         hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: 0,
+        hybrid_page_ocr_timing_scheduler_trace: Vec::new(),
         #[cfg(feature = "document-extract-attachment-audit")]
         image_attachment_audit: None,
         #[cfg(feature = "document-extract-attachment-audit")]
@@ -339,6 +341,11 @@ fn populate_hybrid_page_ocr_timing_report(
         .get("ocr2RegionRenderCacheMissCount")
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_scheduler_trace = value
+        .get("ocrSchedulerTrace")
+        .and_then(Value::as_array)
+        .cloned()
         .unwrap_or_default();
     if let Some(phases) = value.get("phaseElapsedMs").and_then(Value::as_object) {
         report.hybrid_page_ocr_timing_phase_elapsed_ms = phases
@@ -863,6 +870,16 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
             "ocr2RegionRenderedShardCount": 6,
             "ocr2RegionRenderCacheHitCount": 6,
             "ocr2RegionRenderCacheMissCount": 0,
+            "ocrSchedulerTrace": [
+                {
+                    "lane": "source-pdf-page-range",
+                    "shardCount": 7,
+                    "pageStart": 0,
+                    "pageEnd": 6,
+                    "latencyMs": 19327.0,
+                    "textCharCount": 48879,
+                },
+            ],
             "totalElapsedMs": 5600.0,
             "phaseElapsedMs": {
                 "regionMaterialize": 5550.0,
@@ -892,6 +909,15 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
     assert_eq!(
         report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count,
         0
+    );
+    assert_eq!(report.hybrid_page_ocr_timing_scheduler_trace.len(), 1);
+    assert_eq!(
+        report.hybrid_page_ocr_timing_scheduler_trace[0]["lane"],
+        "source-pdf-page-range"
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_scheduler_trace[0]["textCharCount"],
+        48879
     );
     assert_float_eq(Some(report.hybrid_page_ocr_timing_total_elapsed_ms), 5600.0)?;
     assert_float_eq(

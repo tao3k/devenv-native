@@ -22,3 +22,7 @@ mod source_range;
 #[cfg(feature = "pdf-source-range")]
 #[doc(hidden)]
 pub mod structure;
+
+#[cfg(feature = "pdf-source-range")]
+#[doc(hidden)]
+pub mod text;

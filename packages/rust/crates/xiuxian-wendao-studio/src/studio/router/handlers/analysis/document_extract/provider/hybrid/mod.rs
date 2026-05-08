@@ -23,9 +23,13 @@ pub(super) use precision_gate::{
 };
 #[cfg(test)]
 pub(super) use profile::{
-    DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV, HybridPdfOcrProfilePlanner,
+    DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP_ENV, DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV,
+    HybridPdfBackendTextTopup, HybridPdfOcrProfilePlanner,
+    apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profiles,
+    apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profiles_with_lookup,
     apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,
     apply_hybrid_page_ocr_profile_plan_for_profiles, hybrid_page_ocr_profile_planner_with_lookup,
+    hybrid_pdf_backend_text_topup_with_lookup,
 };
 #[cfg(test)]
 pub(super) use render::{

@@ -24,11 +24,13 @@ def real_docling_server_code(
     return textwrap.dedent(
         f"""
         from pathlib import Path
+        import os
         from threading import Lock
 
         from docling.datamodel.backend_options import XBRLBackendOptions
         from docling.datamodel.base_models import InputFormat
         from docling.datamodel.pipeline_options import (
+            AcceleratorOptions,
             PdfPipelineOptions,
             TableFormerMode,
             VlmConvertOptions,
@@ -39,6 +41,7 @@ def real_docling_server_code(
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
         from xiuxian_wendao_analyzer.pdf_ocr import (
             DoclingPdfOcrShardWorker,
+            PDF_OCR_BACKEND_TEXT_PROFILE,
             PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
             PDF_OCR_FAST_TEXT_PROFILE,
         )
@@ -73,8 +76,14 @@ def real_docling_server_code(
                     )
                 )
 
+        def fast_text_threads():
+            try:
+                value = int(os.environ.get("WENDAO_PDF_OCR_FAST_TEXT_THREADS", ""))
+            except ValueError:
+                value = 1
+            return value if value > 0 else 1
+
         if {include_audio!r}:
-            import os
             import shutil
             import tempfile
 
@@ -113,7 +122,24 @@ def real_docling_server_code(
             effective_format_options = dict(format_options)
             if ocr_profile == PDF_OCR_FAST_TEXT_PROFILE:
                 pdf_options = PdfPipelineOptions()
+                pdf_options.accelerator_options = AcceleratorOptions(
+                    num_threads=fast_text_threads()
+                )
                 pdf_options.table_structure_options.mode = TableFormerMode.FAST
+                effective_format_options[InputFormat.PDF] = PdfFormatOption(
+                    pipeline_options=pdf_options
+                )
+            elif ocr_profile == PDF_OCR_BACKEND_TEXT_PROFILE:
+                pdf_options = PdfPipelineOptions()
+                pdf_options.accelerator_options = AcceleratorOptions(
+                    num_threads=fast_text_threads()
+                )
+                pdf_options.do_ocr = False
+                pdf_options.do_table_structure = False
+                pdf_options.force_backend_text = True
+                pdf_options.ocr_batch_size = 1
+                pdf_options.layout_batch_size = 1
+                pdf_options.table_batch_size = 1
                 effective_format_options[InputFormat.PDF] = PdfFormatOption(
                     pipeline_options=pdf_options
                 )

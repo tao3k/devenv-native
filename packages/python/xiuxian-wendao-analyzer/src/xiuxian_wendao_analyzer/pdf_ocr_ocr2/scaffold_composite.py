@@ -49,6 +49,7 @@ class ScaffoldCompositeClient(Protocol):
         input_rows: Sequence[Mapping[str, Any]] | None = None,
         max_tokens: int | None = None,
         request_kind: str | None = None,
+        http_attempt_count: int = 1,
         scaffold_applied_count: int = 0,
         scaffold_validation_failure_count: int = 0,
         scaffold_json_chars: int = 0,

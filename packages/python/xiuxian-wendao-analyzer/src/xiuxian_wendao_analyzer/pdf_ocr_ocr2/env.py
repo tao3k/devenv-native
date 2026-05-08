@@ -8,8 +8,10 @@ from pathlib import Path
 from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_API_KEY_ENV,
     HOSTED_VLM_OCR_DEFAULT_API_KEY,
+    HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
     HOSTED_VLM_OCR_DEFAULT_REGION_ATLAS_MODE,
     HOSTED_VLM_OCR_DEFAULT_SCAFFOLD_MODE,
+    HOSTED_VLM_OCR_IMAGE_OPTIMIZATION_ENV,
     HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV,
     HOSTED_VLM_OCR_OPENROUTER_HTTP_REFERER_ENV,
     HOSTED_VLM_OCR_OPENROUTER_PUBLIC_API_KEY_ENV,
@@ -17,6 +19,7 @@ from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV,
     HOSTED_VLM_OCR_REGION_ATLAS_SAME_PAGE_JSON_MODE,
     HOSTED_VLM_OCR_REGION_TABLE_JSON_SCAFFOLD_MODE,
+    HOSTED_VLM_OCR_REGION_WHITESPACE_TRIM_OPTIMIZATION,
     HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV,
 )
 
@@ -119,6 +122,29 @@ def region_atlas_mode_env() -> str:
     raise ValueError(
         f"unsupported {HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV}={value}; "
         "supported values: disabled, same-page-json"
+    )
+
+
+def image_optimization_mode_env() -> str:
+    value = (
+        os.environ.get(
+            HOSTED_VLM_OCR_IMAGE_OPTIMIZATION_ENV,
+            HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
+        )
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if not value:
+        return HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION
+    if value in {
+        HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
+        HOSTED_VLM_OCR_REGION_WHITESPACE_TRIM_OPTIMIZATION,
+    }:
+        return value
+    raise ValueError(
+        f"unsupported {HOSTED_VLM_OCR_IMAGE_OPTIMIZATION_ENV}={value}; "
+        "supported values: disabled, region-whitespace-trim"
     )
 
 

@@ -83,7 +83,10 @@ pub use python::{
 pub use security::{SecurityConfig, SecurityScanner, SecurityViolation};
 
 // Code extraction utilities
-pub use extract::{ExtractResult, extract_items, extract_skeleton, get_skeleton_patterns};
+pub use extract::{
+    ExtractResult, extract_items, extract_items_for_patterns, extract_skeleton,
+    get_skeleton_patterns,
+};
 pub use fingerprint::{semantic_fingerprint, supports_semantic_fingerprint};
 
 // Code chunking utilities

@@ -6,6 +6,8 @@ import base64
 import json
 from typing import TYPE_CHECKING, Any
 
+from ..pdf_ocr_contracts import HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION
+from .image_payload import hosted_vlm_image_payload
 from .markers import ocr2_page_marker, ocr2_region_marker
 
 if TYPE_CHECKING:
@@ -20,6 +22,8 @@ def request_payload(
     input_row: Mapping[str, Any],
     image_path: Path,
     max_tokens: int,
+    image_data_url_value: str | None = None,
+    image_optimization_mode: str = HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
 ) -> dict[str, Any]:
     return {
         "model": model,
@@ -30,7 +34,14 @@ def request_payload(
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
-                        "image_url": {"url": image_data_url(input_row, image_path)},
+                        "image_url": {
+                            "url": image_data_url_value
+                            or image_data_url(
+                                input_row,
+                                image_path,
+                                image_optimization_mode=image_optimization_mode,
+                            )
+                        },
                     },
                 ],
             }
@@ -187,10 +198,21 @@ def region_scaffold_request_payload(
     }
 
 
-def image_data_url(input_row: Mapping[str, Any], image_path: Path) -> str:
-    image_bytes = image_path.read_bytes()
-    image_mime_type = str(input_row.get("imageMimeType") or "image/png")
-    return image_bytes_data_url(image_bytes, image_mime_type)
+def image_data_url(
+    input_row: Mapping[str, Any],
+    image_path: Path,
+    *,
+    image_optimization_mode: str = HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
+) -> str:
+    image_payload = hosted_vlm_image_payload(
+        input_row,
+        image_path,
+        image_optimization_mode=image_optimization_mode,
+    )
+    return image_bytes_data_url(
+        image_payload.image_bytes,
+        image_payload.image_mime_type,
+    )
 
 
 def image_bytes_data_url(image_bytes: bytes, image_mime_type: str) -> str:

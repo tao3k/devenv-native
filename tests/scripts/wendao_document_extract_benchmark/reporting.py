@@ -285,12 +285,27 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Wait ms: `{payload['waitMs']}`",
         f"- PDF OCR worker: `{payload['pdfOcrWorker']}`",
         f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
+        f"- PDF OCR prewarm profiles: `{payload.get('pdfOcrPrewarmProfiles')}`",
+        f"- PDF OCR prewarm source path: `{payload.get('pdfOcrPrewarmSourcePath')}`",
+        f"- PDF OCR prewarm page index: `{payload.get('pdfOcrPrewarmPageIndex')}`",
+        f"- PDF OCR prewarm page indices: `{payload.get('pdfOcrPrewarmPageIndices')}`",
+        f"- PDF OCR prewarm endpoint count: `{payload.get('pdfOcrPrewarmEndpointCount')}`",
         f"- Local Python OCR endpoints: `{payload.get('localPythonOcrEndpointCount', 1)}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
+        f"- Rust PDF local backend text: `{payload.get('rustPdfLocalBackendText')}`",
+        f"- Rust PDF local fast text: `{payload.get('rustPdfLocalFastText')}`",
+        "- Rust PDF fast-text source-range split: "
+        f"`{payload.get('rustPdfFastTextSourceRangeSplit')}`",
+        "- Rust PDF fast-text endpoint affinity: "
+        f"`{payload.get('rustPdfFastTextEndpointAffinity')}`",
+        f"- Rust PDF backend-text top-up: `{payload.get('rustPdfBackendTextTopup')}`",
         f"- Rust PDF OCR profile planner: `{payload.get('rustPdfOcrProfilePlanner')}`",
         f"- Rust PDF Hosted VLM/OCR render DPI: `{payload.get('rustPdfHostedVlmRenderDpi')}`",
         f"- Rust PDF Hosted VLM/OCR region planner: `{payload.get('rustPdfHostedVlmRegionPlanner')}`",
+        f"- Rust PDF Hosted VLM/OCR region pipeline: `{payload.get('rustPdfHostedVlmRegionPipeline')}`",
+        f"- Rust PDF Hosted VLM/OCR region render ahead: `{payload.get('rustPdfHostedVlmRegionRenderAhead')}`",
+        f"- Rust PDF Hosted VLM/OCR region render chunk: `{payload.get('rustPdfHostedVlmRegionRenderChunk')}`",
         f"- Hosted VLM/OCR backend: `{hosted_vlm_ocr.get('backend')}`",
         f"- Hosted VLM/OCR provider: `{hosted_vlm_ocr.get('provider')}`",
         f"- Hosted VLM/OCR base URL: `{hosted_vlm_ocr.get('baseUrl')}`",
@@ -301,11 +316,16 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Hosted VLM/OCR region max tokens: `{hosted_vlm_ocr.get('regionMaxTokens')}`",
         f"- Hosted VLM/OCR region composite size: `{hosted_vlm_ocr.get('regionCompositeSize')}`",
         f"- Hosted VLM/OCR region atlas mode: `{hosted_vlm_ocr.get('regionAtlasMode')}`",
+        "- Hosted VLM/OCR image optimization mode: "
+        f"`{hosted_vlm_ocr.get('imageOptimizationMode')}`",
         f"- Hosted VLM/OCR timeout seconds: `{hosted_vlm_ocr.get('timeoutSeconds')}`",
         f"- Hosted VLM/OCR request concurrency: `{hosted_vlm_ocr.get('requestConcurrency')}`",
+        "- Hosted VLM/OCR speculative retry delay seconds: "
+        f"`{hosted_vlm_ocr.get('speculativeRetryDelaySeconds')}`",
         f"- Hosted VLM/OCR page window size: `{hosted_vlm_ocr.get('pageWindowSize')}`",
         "- Hosted VLM/OCR requests: "
         f"`count={hosted_vlm_ocr_requests.get('requestCount')}, "
+        f"httpAttempts={hosted_vlm_ocr_requests.get('httpAttemptCountTotal')}, "
         f"pages={hosted_vlm_ocr_requests.get('pageCountTotal')}, "
         f"shards={hosted_vlm_ocr_requests.get('shardCountTotal')}, "
         f"regions={hosted_vlm_ocr_requests.get('regionShardCount')}, "
@@ -319,6 +339,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"overlapRatio={_format_optional_float(hosted_vlm_ocr_requests.get('requestLatencyOverlapRatio'))}, "
         f"chars={hosted_vlm_ocr_requests.get('charCountTotal')}, "
         f"kinds={_format_counts(hosted_vlm_ocr_requests.get('requestKindCounts'))}, "
+        f"imageModes={_format_counts(hosted_vlm_ocr_requests.get('imageOptimizationModeCounts'))}, "
         f"http={_format_counts(hosted_vlm_ocr_requests.get('httpStatusCounts'))}`",
         f"- Rust document extract endpoints: `{payload.get('rustDocumentExtractEndpoints', [])}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
@@ -360,6 +381,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"latencyP95Ms={rust_status.get('maxPdfOcrLatencyP95Ms')}, "
         f"budgetUp={rust_status.get('maxPdfOcrBudgetIncreaseEvents')}, "
         f"budgetDown={rust_status.get('maxPdfOcrBudgetDecreaseEvents')}`",
+        "- Rust OCR source-range trace: "
+        f"`chunks={precision_speed.get('totalForceHybridPageOcrSourceRangeChunkCount')}, "
+        f"maxChunkMs={_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkMs'))}, "
+        f"longestPages={_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkPageStart'))}-"
+        f"{_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkPageEnd'))}, "
+        f"chars={precision_speed.get('totalForceHybridPageOcrSourceRangeTraceChars')}`",
         f"- Structure sidecar rows: `{payload['summary']['totalStructureRows']}`",
         "- Structure OCR blocks: "
         f"`page={payload['summary']['totalStructureOcrPageBlocks']}, "
@@ -399,7 +426,15 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "shardReusePhases="
         f"`{_format_float_counts(payload['summary'].get('shardCacheReuseHybridPageOcrTimingPhaseElapsedMs'))}`, "
         "shardReuseSchedulerMs="
-        f"`{_format_optional_float(payload['summary'].get('maxShardCacheReuseMetricsRustSchedulerElapsedMs'))}`",
+        f"`{_format_optional_float(payload['summary'].get('maxShardCacheReuseMetricsRustSchedulerElapsedMs'))}`, "
+        "hostedLocalGapMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmLocalOverheadMs'))}`, "
+        "schedulerNonHostedMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmSchedulerNonRequestMs'))}`, "
+        "baseResultMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmRegionPipelineLastBaseResultMs'))}`, "
+        "regionResultMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmRegionPipelineLastRegionResultMs'))}`",
         "- Image audit summary: "
         f"`audits={payload['summary'].get('imageAttachmentAuditCount')}, "
         f"knownDims={payload['summary'].get('imageKnownDimensionCount')}, "

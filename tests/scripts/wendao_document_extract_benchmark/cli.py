@@ -141,6 +141,7 @@ def main() -> int:
                 python_uv_package=args.python_uv_package,
                 python_uv_extras=args.python_uv_extra,
                 hosted_vlm_ocr_env=hosted_vlm_ocr_process_env(args),
+                pdf_ocr_prewarm_endpoint_count=args.pdf_ocr_prewarm_endpoint_count,
                 log_dir=process_log_dir,
             )
             if args.local_python_ocr_endpoint_count > 1:
@@ -288,15 +289,48 @@ def build_report_payload(
         "waitMs": args.wait_ms,
         "pdfOcrWorker": args.pdf_ocr_worker,
         "pdfOcrWorkers": args.pdf_ocr_workers,
+        "pdfOcrPrewarmProfiles": list(getattr(args, "pdf_ocr_prewarm_profile", [])),
+        "pdfOcrPrewarmSourcePath": getattr(args, "pdf_ocr_prewarm_source_path", None),
+        "pdfOcrPrewarmPageIndex": getattr(args, "pdf_ocr_prewarm_page_index", None),
+        "pdfOcrPrewarmPageIndices": getattr(args, "pdf_ocr_prewarm_page_indices", None),
+        "pdfOcrPrewarmEndpointCount": getattr(
+            args, "pdf_ocr_prewarm_endpoint_count", None
+        ),
         "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "rustPdfLocalBackendText": getattr(
+            args, "rust_pdf_local_backend_text", "disabled"
+        ),
+        "rustPdfLocalFastText": getattr(args, "rust_pdf_local_fast_text", "disabled"),
+        "rustPdfFastTextSourceRangeSplit": getattr(
+            args,
+            "rust_pdf_fast_text_source_range_split",
+            "disabled",
+        ),
+        "rustPdfFastTextEndpointAffinity": getattr(
+            args,
+            "rust_pdf_fast_text_endpoint_affinity",
+            "disabled",
+        ),
+        "rustPdfBackendTextTopup": getattr(
+            args, "rust_pdf_backend_text_topup", "profile"
+        ),
         "rustPdfOcrProfilePlanner": getattr(args, "rust_pdf_ocr_profile_planner", None),
         "rustPdfHostedVlmRenderDpi": getattr(
             args, "rust_pdf_hosted_vlm_render_dpi", None
         ),
         "rustPdfHostedVlmRegionPlanner": getattr(
             args, "rust_pdf_hosted_vlm_region_planner", None
+        ),
+        "rustPdfHostedVlmRegionPipeline": getattr(
+            args, "rust_pdf_hosted_vlm_region_pipeline", "disabled"
+        ),
+        "rustPdfHostedVlmRegionRenderAhead": getattr(
+            args, "rust_pdf_hosted_vlm_region_render_ahead", None
+        ),
+        "rustPdfHostedVlmRegionRenderChunk": getattr(
+            args, "rust_pdf_hosted_vlm_region_render_chunk", "page"
         ),
         "rustDocumentExtractEndpoints": args.rust_document_extract_endpoint,
         "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,
@@ -323,9 +357,15 @@ def build_report_payload(
                 args, "hosted_vlm_ocr_region_atlas_mode", "disabled"
             ),
             "scaffoldMode": getattr(args, "hosted_vlm_ocr_scaffold_mode", "disabled"),
+            "imageOptimizationMode": getattr(
+                args, "hosted_vlm_ocr_image_optimization", "disabled"
+            ),
             "timeoutSeconds": getattr(args, "hosted_vlm_ocr_timeout_seconds", None),
             "requestConcurrency": getattr(
                 args, "hosted_vlm_ocr_request_concurrency", None
+            ),
+            "speculativeRetryDelaySeconds": getattr(
+                args, "hosted_vlm_ocr_speculative_retry_delay_seconds", None
             ),
             "pageWindowSize": getattr(args, "hosted_vlm_ocr_page_window_size", None),
             "requestSummary": summarize_hosted_vlm_ocr_request_traces(

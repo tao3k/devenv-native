@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import os
 import threading
-from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from inspect import signature
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .pdf_ocr_contracts import (
+    PDF_OCR_BACKEND_TEXT_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
@@ -29,7 +30,16 @@ from .pdf_ocr_results import failed_pdf_ocr_shard_result, skipped_pdf_ocr_shard_
 from .pdf_ocr_tables import resolve_pdf_ocr_worker_count
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping, Sequence
+
     from .documents import DocumentConverterProtocol
+
+PDF_OCR_FAST_TEXT_THREADS_ENV = "WENDAO_PDF_OCR_FAST_TEXT_THREADS"
+PDF_OCR_FAST_TEXT_DEFAULT_THREADS = 1
+PDF_OCR_PREWARM_PROFILES_ENV = "WENDAO_PDF_OCR_PREWARM_PROFILES"
+PDF_OCR_PREWARM_SOURCE_PATH_ENV = "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH"
+PDF_OCR_PREWARM_PAGE_INDICES_ENV = "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES"
+PDF_OCR_PREWARM_PAGE_INDEX_ENV = "WENDAO_PDF_OCR_PREWARM_PAGE_INDEX"
 
 
 class SkippingPdfOcrShardWorker:
@@ -73,6 +83,11 @@ class DoclingPdfOcrShardWorker:
         )
         self._max_workers = max_workers
         self._thread_local = threading.local()
+        self._shared_converters: dict[str, DocumentConverterProtocol] = {}
+        for profile in _prewarm_profiles_from_env():
+            converter = self._build_converter(profile)
+            _prewarm_converter_from_env(converter)
+            self._shared_converters[profile] = converter
 
     def recognize(
         self,
@@ -99,6 +114,7 @@ class DoclingPdfOcrShardWorker:
                         indexes,
                         rows,
                         max_workers,
+                        True,
                     )
                     for indexes, rows in recognition_groups
                 ],
@@ -110,6 +126,7 @@ class DoclingPdfOcrShardWorker:
                     indexes,
                     rows,
                     max_workers,
+                    False,
                 )
                 for indexes, rows in recognition_groups
             ]
@@ -123,6 +140,7 @@ class DoclingPdfOcrShardWorker:
         indexes: Sequence[int],
         input_rows: Sequence[Mapping[str, Any]],
         max_workers: int | str | None,
+        allow_shared_converter: bool,
     ) -> list[tuple[int, Mapping[str, Any]]]:
         ocr_profile = _ocr_profile(input_rows[0])
         if is_hosted_vlm_direct_profile(ocr_profile):
@@ -137,7 +155,10 @@ class DoclingPdfOcrShardWorker:
                 )
             ]
         try:
-            converter = self._converter_for_thread(ocr_profile)
+            converter = self._converter_for_thread(
+                ocr_profile,
+                allow_shared=allow_shared_converter,
+            )
         except Exception as exc:
             return [
                 (
@@ -169,6 +190,7 @@ class DoclingPdfOcrShardWorker:
                 converter,
                 input_rows,
                 source_path,
+                _ocr_profile(input_rows[0]),
             )
             if result is not None:
                 return result
@@ -179,9 +201,16 @@ class DoclingPdfOcrShardWorker:
         converter: DocumentConverterProtocol,
         input_row: Mapping[str, Any],
     ) -> Mapping[str, Any]:
+        ocr_profile = _ocr_profile(input_row)
         if _should_try_source_pdf_page_range(input_row):
             source_path = Path(str(input_row["sourcePath"]))
             result = self._try_convert_source_page(converter, input_row, source_path)
+            if result is None and ocr_profile == PDF_OCR_BACKEND_TEXT_PROFILE:
+                result = self._try_convert_source_page(
+                    self._converter_for_thread(PDF_OCR_FAST_TEXT_PROFILE),
+                    input_row,
+                    source_path,
+                )
             if result is not None:
                 return result
 
@@ -238,6 +267,7 @@ class DoclingPdfOcrShardWorker:
         converter: DocumentConverterProtocol,
         input_rows: Sequence[Mapping[str, Any]],
         source_path: Path,
+        ocr_profile: str,
     ) -> list[Mapping[str, Any]] | None:
         try:
             start_page = int(input_rows[0]["pageIndex"]) + 1
@@ -246,6 +276,7 @@ class DoclingPdfOcrShardWorker:
             page_markdowns = _try_export_source_page_batch_markdown(
                 result.document,
                 input_rows,
+                allow_empty=ocr_profile == PDF_OCR_BACKEND_TEXT_PROFILE,
             )
             if page_markdowns is None:
                 page_markdowns = [
@@ -255,9 +286,24 @@ class DoclingPdfOcrShardWorker:
                     for input_row in input_rows
                 ]
             rows = []
-            for markdown in page_markdowns:
+            fallback_converter = None
+            for input_row, markdown in zip(input_rows, page_markdowns, strict=True):
                 if not markdown.strip():
-                    return None
+                    if ocr_profile != PDF_OCR_BACKEND_TEXT_PROFILE:
+                        return None
+                    if fallback_converter is None:
+                        fallback_converter = self._converter_for_thread(
+                            PDF_OCR_FAST_TEXT_PROFILE
+                        )
+                    fallback = self._try_convert_source_page(
+                        fallback_converter,
+                        input_row,
+                        source_path,
+                    )
+                    if fallback is None:
+                        return None
+                    rows.append(fallback)
+                    continue
                 rows.append(
                     {
                         "status": "succeeded",
@@ -271,29 +317,39 @@ class DoclingPdfOcrShardWorker:
             return None
         return rows
 
-    def _converter_for_thread(self, ocr_profile: str) -> DocumentConverterProtocol:
+    def _converter_for_thread(
+        self,
+        ocr_profile: str,
+        *,
+        allow_shared: bool = False,
+    ) -> DocumentConverterProtocol:
         if self._converter is not None:
             return self._converter
+        if allow_shared and ocr_profile in self._shared_converters:
+            return self._shared_converters[ocr_profile]
         converters = getattr(self._thread_local, "converters", None)
         if converters is None:
             converters = {}
             self._thread_local.converters = converters
         converter = converters.get(ocr_profile)
         if converter is None:
-            if self._converter_factory is not None:
-                if self._converter_factory_accepts_profile:
-                    converter = self._converter_factory(ocr_profile)
-                else:
-                    converter = self._converter_factory()
-            else:
-                converter = _new_docling_converter(ocr_profile)
+            converter = self._build_converter(ocr_profile)
             converters[ocr_profile] = converter
         return converter
+
+    def _build_converter(self, ocr_profile: str) -> DocumentConverterProtocol:
+        if self._converter_factory is not None:
+            if self._converter_factory_accepts_profile:
+                return self._converter_factory(ocr_profile)
+            return self._converter_factory()
+        return _new_docling_converter(ocr_profile)
 
 
 def _try_export_source_page_batch_markdown(
     document: Any,
     input_rows: Sequence[Mapping[str, Any]],
+    *,
+    allow_empty: bool = False,
 ) -> list[str] | None:
     try:
         markdown = document.export_to_markdown(
@@ -306,7 +362,7 @@ def _try_export_source_page_batch_markdown(
     parts = [part.strip() for part in markdown.split(PDF_OCR_PAGE_BREAK_SENTINEL)]
     if len(parts) != len(input_rows):
         return None
-    if any(not part for part in parts):
+    if not allow_empty and any(not part for part in parts):
         return None
     return parts
 
@@ -332,6 +388,7 @@ def _new_docling_converter(
     try:
         from docling.datamodel.base_models import InputFormat
         from docling.datamodel.pipeline_options import (
+            AcceleratorOptions,
             PdfPipelineOptions,
             TableFormerMode,
         )
@@ -343,7 +400,26 @@ def _new_docling_converter(
         ) from exc
     if ocr_profile == PDF_OCR_FAST_TEXT_PROFILE:
         options = PdfPipelineOptions()
+        options.accelerator_options = AcceleratorOptions(
+            num_threads=_fast_text_accelerator_threads()
+        )
         options.table_structure_options.mode = TableFormerMode.FAST
+        return DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=options),
+            }
+        )
+    if ocr_profile == PDF_OCR_BACKEND_TEXT_PROFILE:
+        options = PdfPipelineOptions()
+        options.accelerator_options = AcceleratorOptions(
+            num_threads=_fast_text_accelerator_threads()
+        )
+        options.do_ocr = False
+        options.do_table_structure = False
+        options.force_backend_text = True
+        options.ocr_batch_size = 1
+        options.layout_batch_size = 1
+        options.table_batch_size = 1
         return DocumentConverter(
             format_options={
                 InputFormat.PDF: PdfFormatOption(pipeline_options=options),
@@ -377,3 +453,91 @@ def _new_docling_converter(
             }
         )
     return DocumentConverter()
+
+
+def _fast_text_accelerator_threads() -> int:
+    return _fast_text_accelerator_threads_with_lookup(os.environ.get)
+
+
+def _fast_text_accelerator_threads_with_lookup(
+    lookup: Callable[[str], str | None],
+) -> int:
+    try:
+        value = int(lookup(PDF_OCR_FAST_TEXT_THREADS_ENV) or "")
+    except (TypeError, ValueError):
+        value = PDF_OCR_FAST_TEXT_DEFAULT_THREADS
+    return value if value > 0 else PDF_OCR_FAST_TEXT_DEFAULT_THREADS
+
+
+def _prewarm_profiles_from_env() -> list[str]:
+    raw = os.environ.get(PDF_OCR_PREWARM_PROFILES_ENV, "")
+    profiles = []
+    seen = set()
+    for part in raw.replace(";", ",").split(","):
+        profile = part.strip()
+        if not profile or profile in seen:
+            continue
+        seen.add(profile)
+        profiles.append(profile)
+    return profiles
+
+
+def _prewarm_converter_from_env(converter: DocumentConverterProtocol) -> None:
+    source_path = os.environ.get(PDF_OCR_PREWARM_SOURCE_PATH_ENV)
+    if not source_path:
+        return
+    for page_index in _prewarm_page_indices_from_env(os.environ.get):
+        page_number = page_index + 1
+        result = converter.convert(
+            Path(source_path),
+            page_range=(page_number, page_number),
+        )
+        markdown = result.document.export_to_markdown()
+        if not markdown.strip():
+            raise RuntimeError(
+                f"Docling OCR prewarm returned empty text for page index {page_index}"
+            )
+
+
+def _prewarm_page_indices_from_env(lookup: Callable[[str], str | None]) -> list[int]:
+    raw_indices = lookup(PDF_OCR_PREWARM_PAGE_INDICES_ENV)
+    if raw_indices is None or not raw_indices.strip():
+        return [_prewarm_page_index_from_env(lookup)]
+
+    indices = []
+    seen = set()
+    for part in raw_indices.replace(";", ",").split(","):
+        raw_index = part.strip()
+        if not raw_index:
+            continue
+        page_index = _parse_prewarm_page_index(
+            raw_index, PDF_OCR_PREWARM_PAGE_INDICES_ENV
+        )
+        if page_index in seen:
+            continue
+        seen.add(page_index)
+        indices.append(page_index)
+    if not indices:
+        raise RuntimeError(
+            f"{PDF_OCR_PREWARM_PAGE_INDICES_ENV} must include a page index"
+        )
+    return indices
+
+
+def _prewarm_page_index_from_env(lookup: Callable[[str], str | None]) -> int:
+    raw = lookup(PDF_OCR_PREWARM_PAGE_INDEX_ENV)
+    if raw is None or not raw.strip():
+        return 0
+    return _parse_prewarm_page_index(raw.strip(), PDF_OCR_PREWARM_PAGE_INDEX_ENV)
+
+
+def _parse_prewarm_page_index(raw: str, env_name: str) -> int:
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"{env_name} must contain non-negative integer page indices"
+        ) from exc
+    if value < 0:
+        raise RuntimeError(f"{env_name} must contain non-negative integer page indices")
+    return value

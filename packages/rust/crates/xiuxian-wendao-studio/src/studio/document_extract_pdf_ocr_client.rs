@@ -4,6 +4,7 @@ use arrow_flight::client::FlightClient;
 use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServiceClient;
 use futures::{TryStreamExt, stream};
+use serde::Serialize;
 use tonic::transport::{Channel, Endpoint};
 use xiuxian_wendao_attachments::pdf::ocr::{
     PdfOcrShardInput, PdfOcrShardResult, build_ocr_result_resource_batch,
@@ -29,6 +30,30 @@ pub struct PdfOcrShardFlightResponse {
     pub results: Vec<PdfOcrShardResult>,
     /// Stable document resource batch materialized from OCR result rows.
     pub resource_batch: EngineRecordBatch,
+    /// Internal Rust scheduler diagnostics for live shard batches.
+    pub scheduler_trace: Vec<PdfOcrShardSchedulerTrace>,
+}
+
+/// Internal scheduler trace for one live OCR shard request chunk.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfOcrShardSchedulerTrace {
+    /// Scheduler lane used for the live OCR request.
+    pub lane: &'static str,
+    /// Number of shard rows sent in this request chunk.
+    pub shard_count: usize,
+    /// Lowest source page index in the chunk.
+    pub page_start: Option<u32>,
+    /// Highest source page index in the chunk.
+    pub page_end: Option<u32>,
+    /// Shard type for the chunk when it is homogeneous.
+    pub shard_type: Option<String>,
+    /// OCR profile for the chunk when it is homogeneous.
+    pub ocr_profile: Option<String>,
+    /// Wall-clock request latency for this chunk.
+    pub latency_ms: f64,
+    /// Character count returned by successful rows in this chunk.
+    pub text_char_count: usize,
 }
 
 impl PdfOcrShardFlightClient {
@@ -136,6 +161,7 @@ async fn request_pdf_ocr_shards_on_channel(
     Ok(PdfOcrShardFlightResponse {
         results,
         resource_batch,
+        scheduler_trace: Vec::new(),
     })
 }
 

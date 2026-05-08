@@ -127,7 +127,7 @@ expression: value
         ]
       ],
       "display_label": "Declaration Rail · edition",
-      "excerpt": "edition = \"2021\"",
+      "excerpt": "edition = \"2024\"",
       "line_end": 4,
       "line_start": 4,
       "owner_id": "repo:lance:generic_ast:Cargo.toml:4:4:edition",

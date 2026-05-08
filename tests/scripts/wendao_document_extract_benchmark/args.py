@@ -53,6 +53,59 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--pdf-ocr-prewarm-profile",
+        action="append",
+        default=[],
+        choices=(
+            "docling-compatible-page-ocr-v1",
+            "docling-fast-text-ocr",
+            "docling-backend-text-ocr-v1",
+        ),
+        help=(
+            "Pre-initialize a local Python Docling OCR converter before the worker "
+            "listens. This shifts daemon readiness cost out of force-refresh timing "
+            "without changing OCR output."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-source-path",
+        default=None,
+        help=(
+            "Optional PDF path converted once during Docling OCR worker startup "
+            "for each --pdf-ocr-prewarm-profile. This triggers lazy model warmup "
+            "before force-refresh timing."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-page-index",
+        type=int,
+        default=None,
+        help=(
+            "Zero-based page index used with --pdf-ocr-prewarm-source-path. "
+            "Defaults to page 0 when a source path is supplied."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-page-indices",
+        default=None,
+        help=(
+            "Comma-separated zero-based page indices used with "
+            "--pdf-ocr-prewarm-source-path. This supersedes "
+            "--pdf-ocr-prewarm-page-index and lets benchmark readiness warm "
+            "multiple known slow Docling OCR pages before force-refresh timing."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-endpoint-count",
+        type=int,
+        default=None,
+        help=(
+            "Optional number of local Python OCR endpoints that receive the Docling "
+            "OCR prewarm environment. When omitted, all local OCR endpoints keep the "
+            "existing prewarm behavior."
+        ),
+    )
+    parser.add_argument(
         "--local-python-ocr-endpoint-count",
         default="auto",
         help=(
@@ -96,6 +149,58 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-local-backend-text",
+        choices=("disabled", "rust-lopdf"),
+        default="disabled",
+        help=(
+            "Opt-in Rust source-PDF text extraction for backend-text OCR shards. "
+            "`rust-lopdf` forwards WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT "
+            "and bypasses Python Docling only for docling-backend-text-ocr-v1 page shards."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-local-fast-text",
+        choices=("disabled", "rust-lopdf"),
+        default="disabled",
+        help=(
+            "Opt-in Rust source-PDF text extraction for fast-text OCR parent/top-up shards. "
+            "`rust-lopdf` forwards WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT and remains "
+            "bench-gated because it replaces Python Docling fast-text rows."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-fast-text-source-range-split",
+        choices=("disabled", "single-page"),
+        default="disabled",
+        help=(
+            "Opt-in scheduler canary for Docling fast-text source-PDF rows. "
+            "`single-page` splits fast-text source ranges into one page per request "
+            "while preserving Docling as the OCR authority."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-fast-text-endpoint-affinity",
+        choices=("disabled", "single-page-first"),
+        default="disabled",
+        help=(
+            "Opt-in scheduler canary for Docling fast-text source-PDF rows. "
+            "`single-page-first` routes single-page fast-text chunks to the first "
+            "configured OCR endpoint so benchmark prewarm can target that lane."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-backend-text-topup",
+        choices=("profile", "disabled", "hosted-vlm"),
+        default="profile",
+        help=(
+            "Controls extra fast-text top-up pages inside the hosted-vlm-risk-window-backend-text "
+            "Rust profile planner. `profile` preserves the existing dense-page top-up heuristic; "
+            "`disabled` routes non-recovery top-up pages to backend-text while region parent pages "
+            "can still be protected by the region recovery flow; `hosted-vlm` routes dense "
+            "top-up pages to hosted VLM full-page OCR."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-ocr-profile-planner",
         choices=(
             "disabled",
@@ -103,6 +208,7 @@ def parse_args() -> argparse.Namespace:
             "fast-risk-window",
             "hosted-vlm-all",
             "hosted-vlm-risk-window",
+            "hosted-vlm-risk-window-backend-text",
         ),
         help=(
             "Optional Rust provider override for "
@@ -148,6 +254,45 @@ def parse_args() -> argparse.Namespace:
             "top/middle/bottom regions for same-page Hosted VLM/OCR composite tests. "
             "`profile-risk-window-adaptive` chooses one, two, or three slices "
             "from the estimated region pixel area."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-pipeline",
+        choices=("disabled", "render-dispatch"),
+        default="disabled",
+        help=(
+            "Opt-in Rust Hosted VLM/OCR region pipeline forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE. "
+            "`render-dispatch` overlaps source-range OCR scheduling with "
+            "region rendering and dispatches region OCR as each render chunk "
+            "becomes available."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-render-ahead",
+        type=int,
+        help=(
+            "Opt-in Rust Hosted VLM/OCR region render-ahead limit forwarded "
+            "to WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD. "
+            "Values above 1 let the render-dispatch pipeline pre-render "
+            "multiple page-region chunks while preserving deterministic result "
+            "ordering."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-render-chunk",
+        choices=("page", "all", "region", "page-area-desc", "page-max-area-desc"),
+        default="page",
+        help=(
+            "Opt-in Rust Hosted VLM/OCR region render chunking forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK. "
+            "`page` preserves the existing page-grouped render chunks; "
+            "`all` renders every recovery region in one PDF pass before dispatch; "
+            "`region` renders each recovery region as an independent chunk "
+            "so OpenRouter dispatch can start as soon as the first region is ready; "
+            "`page-area-desc` keeps page chunks but renders pages with the "
+            "largest total recovery-region area first; `page-max-area-desc` keeps "
+            "page chunks but renders pages with the largest single recovery region first."
         ),
     )
     parser.add_argument(
@@ -227,6 +372,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--hosted-vlm-ocr-image-optimization",
+        choices=("disabled", "region-whitespace-trim"),
+        default="disabled",
+        help=(
+            "Opt-in Hosted VLM/OCR request-image payload optimization forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_IMAGE_OPTIMIZATION. `region-whitespace-trim` "
+            "trims near-white margins from region PNG request payloads only; "
+            "it does not change OCR shard rows, DPI, or result schema."
+        ),
+    )
+    parser.add_argument(
         "--hosted-vlm-ocr-timeout-seconds",
         type=float,
         help="Request timeout forwarded to WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS.",
@@ -236,6 +392,16 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help=(
             "Direct Hosted VLM/OCR request concurrency forwarded to WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-speculative-retry-delay-seconds",
+        type=float,
+        help=(
+            "Opt-in Hosted VLM/OCR region hedge delay forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS. Values above "
+            "0 start a second request for a direct region shard when the first "
+            "request has not produced a valid result by this delay."
         ),
     )
     parser.add_argument(

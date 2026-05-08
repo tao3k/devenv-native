@@ -16,6 +16,7 @@ dev = [
   "qianji-workflow-contracts",
   "wendao-core-lib",
   "wendao-arrow-interface",
+  "wendao-knowledge-retrieval-benchmark",
   "xiuxian-wendao-analyzer",
   "xiuxian-foundation",
   "xiuxian-core",
@@ -48,10 +49,11 @@ source = "vcs"
 
 
 [tool.uv.sources]
-python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "bb884a931d0b4595ffbaf1b47d8159a9d5d34086" }
+python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "77954cbc065aa621c1b08d23028dbf3757894fe2" }
 qianji-workflow-contracts = { workspace = true }
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
+wendao-knowledge-retrieval-benchmark = { workspace = true }
 xiuxian-wendao-analyzer = { workspace = true }
 xiuxian-foundation = { workspace = true }
 xiuxian-core = { workspace = true }
@@ -64,6 +66,7 @@ members = [
   "packages/python/qianji-workflow-contracts",
   "packages/python/wendao-arrow-interface",
   "packages/python/wendao-core-lib",
+  "packages/python/wendao-knowledge-retrieval-benchmark",
   "packages/python/xiuxian-wendao-analyzer",
 ]
 
@@ -81,6 +84,7 @@ src = [
   "packages/python/qianji-workflow-contracts/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
+  "packages/python/wendao-knowledge-retrieval-benchmark/src",
   "packages/python/xiuxian-wendao-analyzer/src",
 ]
 
@@ -109,6 +113,7 @@ known-first-party = [
   "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",
+  "wendao_knowledge_retrieval_benchmark",
   "xiuxian_wendao_analyzer",
 ]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
@@ -131,6 +136,7 @@ mypy_path = [
   "packages/python/qianji-workflow-contracts/src",
   "packages/python/wendao-arrow-interface/src",
   "packages/python/wendao-core-lib/src",
+  "packages/python/wendao-knowledge-retrieval-benchmark/src",
   "packages/python/xiuxian-wendao-analyzer/src",
 ]
 
@@ -155,6 +161,7 @@ testpaths = [
   "packages/python/qianji-workflow-contracts/tests",
   "packages/python/wendao-arrow-interface/tests",
   "packages/python/wendao-core-lib/tests",
+  "packages/python/wendao-knowledge-retrieval-benchmark/tests",
   "packages/python/xiuxian-wendao-analyzer/tests",
   "scripts/channel",
   "scripts/tests",
@@ -194,6 +201,7 @@ source = [
   "qianji_workflow_contracts",
   "wendao_arrow_interface",
   "wendao_core_lib",
+  "wendao_knowledge_retrieval_benchmark",
   "xiuxian_wendao_analyzer",
 ]
 omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/venv/*", "*/site-packages/*"]

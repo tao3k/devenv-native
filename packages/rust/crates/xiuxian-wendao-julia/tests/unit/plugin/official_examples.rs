@@ -31,28 +31,62 @@ pub(crate) fn spawn_real_wendaosearch_demo_multi_route_service(port: u16) -> Chi
 }
 
 pub(crate) fn spawn_real_wendaosearch_solver_demo_multi_route_service(port: u16) -> ChildGuard {
+    spawn_real_wendaosearch_solver_demo_multi_route_service_with_options(port, true, None)
+}
+
+pub(crate) fn spawn_real_wendaosearch_solver_demo_multi_route_service_with_options(
+    port: u16,
+    warmup_on_start: bool,
+    thread_pinning_policy: Option<&str>,
+) -> ChildGuard {
     if configured_solver_demo_base_url().is_some() {
         return ChildGuard::external();
     }
-    spawn_real_wendaosearch_multi_route_service("solver_demo", port)
+    spawn_real_wendaosearch_multi_route_service_with_options(
+        "solver_demo",
+        port,
+        warmup_on_start,
+        thread_pinning_policy,
+    )
 }
 
 fn spawn_real_wendaosearch_multi_route_service(mode: &str, port: u16) -> ChildGuard {
+    spawn_real_wendaosearch_multi_route_service_with_options(mode, port, true, None)
+}
+
+fn spawn_real_wendaosearch_multi_route_service_with_options(
+    mode: &str,
+    port: u16,
+    warmup_on_start: bool,
+    thread_pinning_policy: Option<&str>,
+) -> ChildGuard {
     let script = wendaosearch_script("run_search_service.jl");
-    let child = Command::new("julia")
+    let mut command = Command::new("julia");
+    command
         .arg(format!(
             "--project={}",
             wendaosearch_julia_project().display()
         ))
         .arg(script)
-        .arg("--route-names")
-        .arg("capability_manifest,structural_rerank,constraint_filter")
-        .arg("--mode")
-        .arg(mode)
-        .arg("--host")
-        .arg("127.0.0.1")
-        .arg("--port")
-        .arg(port.to_string())
+        .args([
+            "--route-names",
+            "capability_manifest,structural_rerank,constraint_filter",
+            "--mode",
+            mode,
+            "--host",
+            "127.0.0.1",
+            "--port",
+        ])
+        .arg(port.to_string());
+    if warmup_on_start {
+        command.arg("--warmup-on-start");
+    } else {
+        command.arg("--no-warmup-on-start");
+    }
+    if let Some(policy) = thread_pinning_policy {
+        command.args(["--thread-pinning-policy", policy]);
+    }
+    let child = command
         .current_dir(repo_root())
         .env("JULIA_LOAD_PATH", "@:@stdlib")
         .env("WENDAO_SEARCH_USE_ACTIVE_PROJECT", "1")

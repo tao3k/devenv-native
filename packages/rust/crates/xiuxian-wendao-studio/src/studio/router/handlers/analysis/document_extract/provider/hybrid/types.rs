@@ -23,11 +23,22 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV: &str =
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK";
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE: &str = "region-table-json";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_PIPELINE_RENDER_DISPATCH_MODE: &str = "render-dispatch";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_REGION_RENDER_CHUNK_ALL_MODE: &str = "all";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_REGION_RENDER_CHUNK_REGION_MODE: &str = "region";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_REGION_RENDER_CHUNK_PAGE_AREA_DESC_MODE: &str = "page-area-desc";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_REGION_RENDER_CHUNK_PAGE_MAX_AREA_DESC_MODE: &str = "page-max-area-desc";
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,11 +55,34 @@ pub(crate) enum HybridPdfOcr2RegionPipelineMode {
 }
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HybridPdfOcr2RegionRenderChunkMode {
+    Page,
+    All,
+    PageAreaDesc,
+    PageMaxAreaDesc,
+    Region,
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
 impl HybridPdfOcr2RegionPipelineMode {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Disabled => "disabled",
             Self::RenderDispatch => OCR2_REGION_PIPELINE_RENDER_DISPATCH_MODE,
+        }
+    }
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+impl HybridPdfOcr2RegionRenderChunkMode {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Page => "page",
+            Self::All => OCR2_REGION_RENDER_CHUNK_ALL_MODE,
+            Self::PageAreaDesc => OCR2_REGION_RENDER_CHUNK_PAGE_AREA_DESC_MODE,
+            Self::PageMaxAreaDesc => OCR2_REGION_RENDER_CHUNK_PAGE_MAX_AREA_DESC_MODE,
+            Self::Region => OCR2_REGION_RENDER_CHUNK_REGION_MODE,
         }
     }
 }
@@ -66,6 +100,29 @@ pub(crate) fn hybrid_page_ocr2_scaffold_mode_with_lookup(
     {
         OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE => HybridPdfOcr2ScaffoldMode::RegionTableJson,
         _ => HybridPdfOcr2ScaffoldMode::Disabled,
+    }
+}
+
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+pub(crate) fn hybrid_page_ocr2_region_render_chunk_mode_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> HybridPdfOcr2RegionRenderChunkMode {
+    match lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK_ENV)
+        .unwrap_or_default()
+        .trim()
+        .replace('_', "-")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        OCR2_REGION_RENDER_CHUNK_ALL_MODE => HybridPdfOcr2RegionRenderChunkMode::All,
+        OCR2_REGION_RENDER_CHUNK_REGION_MODE => HybridPdfOcr2RegionRenderChunkMode::Region,
+        OCR2_REGION_RENDER_CHUNK_PAGE_AREA_DESC_MODE => {
+            HybridPdfOcr2RegionRenderChunkMode::PageAreaDesc
+        }
+        OCR2_REGION_RENDER_CHUNK_PAGE_MAX_AREA_DESC_MODE => {
+            HybridPdfOcr2RegionRenderChunkMode::PageMaxAreaDesc
+        }
+        _ => HybridPdfOcr2RegionRenderChunkMode::Page,
     }
 }
 

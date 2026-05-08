@@ -90,11 +90,16 @@ provider process can reuse page facts across force-refresh, shard-cache reuse,
 and cache-hit probes without persisting transient profile state in Python.
 The stable OCR shard schema carries `ocrProfile` as the profile-selection
 surface. Current profile identifiers include `docling-compatible-page-ocr-v1`,
-`docling-fast-text-ocr`, `hosted-vlm-direct-ocr-v1`,
-and `docling-vlm-deepseek-ocr`. The hosted VLM identifier is the
-model-agnostic direct recovery profile; the Docling VLM DeepSeek identifier is
-only a comparator profile. Adding those profile IDs does not change the Arrow
-input or result column set.
+`docling-fast-text-ocr`, `docling-backend-text-ocr-v1`,
+`hosted-vlm-direct-ocr-v1`, and `docling-vlm-deepseek-ocr`. The backend-text
+identifier is a source-range canary for PDF-native text extraction. The hosted
+VLM identifier is the model-agnostic direct recovery profile; the Docling VLM
+DeepSeek identifier is only a comparator profile. Adding those profile IDs
+does not change the Arrow input or result column set.
+The crate also exposes a small `lopdf` source-text helper for owner-side
+backend-text canaries. Studio may use that helper for
+`docling-backend-text-ocr-v1` rows, but the helper does not replace Docling's
+fast-text top-up path or loosen the frozen benchmark character floor.
 
 `PdfPageRenderSelection::ShardFallbackPages` is intentionally high-recall in
 the current source-range path. When no narrower safe region signal exists, it
@@ -150,6 +155,14 @@ or run the benchmark script with `--prepare-pdfium-runtime` to fetch the pinned
 `bblanchon/pdfium-binaries` runtime for the current platform into the project
 cache before invoking the ignored cargo-test proof. Add `--require-pdfium` when
 the proof must fail instead of recording a Docling fallback.
+The native PDFium binding is process-global in `pdfium-render`, so this package
+serializes the binding step before any PDFium-backed page or region render
+work. Render callers may still schedule independent region chunks concurrently;
+the one-time library binding itself remains guarded to avoid concurrent
+initialization panics. Page and region render entrypoints retry up to three
+transient `PdfiumLibraryInternalError` attempts with a short backoff by
+reopening the document before reporting a fallback; parse failures and
+unsupported inputs still fail fast into the existing Docling fallback path.
 
 ## OCR Contract
 
@@ -252,6 +265,55 @@ clamping that recommendation to live owner facts. Within that requested chunk
 budget, Rust can profile the source PDF's decoded page content streams and
 balance contiguous subranges by lightweight page complexity while preserving
 reading order and cache-miss gaps.
+When an opt-in profile planner creates mixed source-range profiles, such as
+backend-text ordinary pages plus fast-text top-up pages, contiguous profile
+runs remain hard chunk boundaries. Studio may expand the requested dispatch
+budget to the run count, but the final worker admission still belongs to the
+live Rust scheduler permits. During the hosted region `render-dispatch`
+pipeline, Studio keeps that run-count floor for source top-up ranges even after
+backend-text rows are satisfied locally, so non-contiguous precision top-up
+ranges do not serialize behind hosted region recovery. Attachments supplies the
+profile/run facts; Studio owns the final admission decision.
+Attachments also owns deterministic hosted recovery region chunk ordering.
+The default page-grouped chunking preserves page locality and stable reading
+order. A benchmark-only region-grouped helper lets Studio test whether
+single-region render chunks improve first-request latency, but Studio must
+still normalize final rows through the same OCR shard order and precision
+gates before accepting any result.
+Two additional benchmark-only helpers sort page chunks by total recovery-region
+area or by the largest single recovery region. They are diagnostic controls
+only: the milestone r73/r74 probes preserved precision but failed to beat the
+accepted OpenRouter force-refresh evidence, and r74 showed large-region render
+completion, not page sort order, gating the hosted tail.
+Studio also has an opt-in fast-text single-page split diagnostic, but it is not
+promoted for the milestone fixture: precision stayed intact, while page `5`
+single-page Docling fast-text conversion regressed force refresh to
+`23629.474667 ms`.
+Studio also owns endpoint-locality canaries for Docling fast-text top-up. The
+attachments-owned shard facts still only describe source profile runs and page
+identity; Studio decides whether benchmark prewarm should be limited to the
+first `N` OCR endpoints and whether a single-page fast-text source-PDF chunk
+should be sent to the first endpoint. The r70 canary preserved precision and
+finished at `9636.47725 ms`, but this does not change the attachments schema
+or make endpoint selection an attachments responsibility.
+The analyzer benchmark can prewarm multiple source pages before workers listen,
+but this is also a Studio/analyzer readiness canary rather than an attachment
+contract. The r75 page `5,11` endpoint `0-3` probe preserved precision but
+regressed force refresh to `18784.875625 ms`, so broad multi-page prewarm is
+not promoted for the milestone fixture.
+Attachments also hardens PDFium page geometry for the live region path. If
+PDFium reports `UnknownBitmapRotation` while reading page rotation metadata,
+the package treats that single anomaly as rotation `0` so hybrid OCR can keep
+its region-render contract; other rotation read errors still fail. This
+hardening was added after r77b fell back before OCR metrics and was validated
+by r78, which stayed on the hybrid path with zero error rows.
+Studio can also route dense source-range top-up pages to full-page hosted
+VLM/OCR with `WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP=hosted-vlm`, but
+that diagnostic is not promoted for the milestone fixture: force refresh
+regressed to `35374.309 ms` and `metricsResultChars=91265` fell below the
+frozen floor. The attachments-owned page facts therefore still mark those
+top-up pages as requiring the Docling fast-text source-range path for this
+fixture.
 Those same page structure facts may be consumed by Studio's opt-in OCR profile
 planner to choose fast versus accurate Docling source-page ranges, but
 attachments remains the fact/shard contract owner only. Live worker dispatch,

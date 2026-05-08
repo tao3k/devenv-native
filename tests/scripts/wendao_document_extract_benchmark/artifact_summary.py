@@ -111,6 +111,14 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount",
         ),
+        "hybridPageOcrTimingSchedulerTrace": _hybrid_page_ocr_scheduler_trace(
+            reports,
+        ),
+        "hybridPageOcrTimingSchedulerTraceSummary": (
+            _hybrid_page_ocr_scheduler_trace_summary(
+                _hybrid_page_ocr_scheduler_trace(reports),
+            )
+        ),
         "imageAttachmentAuditCount": _image_attachment_audit_count(reports),
         "imageKnownDimensionCount": _image_known_dimension_count(reports),
         "imageFormatCounts": _image_format_counts(reports),
@@ -212,6 +220,63 @@ def _hybrid_page_ocr_timing_report_exists(report: dict[str, Any]) -> bool:
         isinstance(total_elapsed_ms, int | float) and total_elapsed_ms > 0
     )
     return has_report_bytes or has_total_elapsed
+
+
+def _hybrid_page_ocr_scheduler_trace(
+    reports: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    trace: list[dict[str, Any]] = []
+    for report in reports:
+        rows = report.get("hybridPageOcrTimingSchedulerTrace")
+        if not isinstance(rows, list):
+            continue
+        trace.extend(row for row in rows if isinstance(row, dict))
+    return trace
+
+
+def _hybrid_page_ocr_scheduler_trace_summary(
+    trace: list[dict[str, Any]],
+) -> dict[str, Any]:
+    source_range = [row for row in trace if row.get("lane") == "source-pdf-page-range"]
+    longest = max(
+        source_range,
+        key=lambda row: float(row.get("latencyMs") or 0.0),
+        default={},
+    )
+    return {
+        "sourceRangeChunkCount": len(source_range),
+        "sourceRangeShardCount": _sum_numeric_trace_values(
+            source_range,
+            "shardCount",
+        ),
+        "sourceRangeTextCharCount": _sum_numeric_trace_values(
+            source_range,
+            "textCharCount",
+        ),
+        "sourceRangeLatencyMsMax": _float_or_none(longest.get("latencyMs")),
+        "sourceRangeLongestPageStart": _int_or_none(longest.get("pageStart")),
+        "sourceRangeLongestPageEnd": _int_or_none(longest.get("pageEnd")),
+        "sourceRangeLongestShardCount": _int_or_none(longest.get("shardCount")),
+        "sourceRangeLongestTextCharCount": _int_or_none(
+            longest.get("textCharCount"),
+        ),
+    }
+
+
+def _sum_numeric_trace_values(rows: list[dict[str, Any]], key: str) -> int:
+    return sum(value for row in rows if isinstance((value := row.get(key)), int))
+
+
+def _float_or_none(value: Any) -> float | None:
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, int):
+        return value
+    return None
 
 
 def _image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:

@@ -99,11 +99,29 @@ pub fn extract_items(
     lang: Lang,
     capture_names: Option<Vec<&str>>,
 ) -> Vec<ExtractResult> {
+    extract_items_for_patterns(content, &[pattern], lang, capture_names)
+}
+
+/// Extract code elements from content using multiple ast-grep patterns.
+///
+/// This parses the source once and applies all valid patterns to the parsed
+/// tree. Use it when a caller needs to evaluate a language's full skeleton
+/// pattern set over the same file.
+#[must_use]
+pub fn extract_items_for_patterns(
+    content: &str,
+    patterns: &[&str],
+    lang: Lang,
+    capture_names: Option<Vec<&str>>,
+) -> Vec<ExtractResult> {
     let capture_names: Option<HashSet<String>> =
         capture_names.map(|v| v.into_iter().map(str::to_string).collect());
 
     if lang == Lang::Toml {
-        return extract_toml_items(content, pattern, capture_names.as_ref());
+        return patterns
+            .iter()
+            .flat_map(|pattern| extract_toml_items(content, pattern, capture_names.as_ref()))
+            .collect();
     }
 
     let lang_str = lang.as_str();
@@ -115,9 +133,13 @@ pub fn extract_items(
     let grep_result = support_lang.ast_grep(content);
     let root_node = grep_result.root();
 
-    let Ok(search_pattern) = Pattern::try_new(pattern, support_lang) else {
+    let search_patterns = patterns
+        .iter()
+        .filter_map(|pattern| Pattern::try_new(pattern, support_lang).ok())
+        .collect::<Vec<_>>();
+    if search_patterns.is_empty() {
         return Vec::new();
-    };
+    }
 
     // Pre-compute line index for fast line number lookup
     let line_offsets: Vec<usize> = content
@@ -130,44 +152,46 @@ pub fn extract_items(
     let mut results = Vec::new();
 
     for node in root_node.dfs() {
-        if let Some(m) = search_pattern.match_node(node.clone()) {
-            let env = m.get_env();
+        for search_pattern in &search_patterns {
+            if let Some(m) = search_pattern.match_node(node.clone()) {
+                let env = m.get_env();
 
-            // Extract captures based on filter
-            let mut captures = HashMap::new();
-            for mv in env.get_matched_variables() {
-                let name = match &mv {
-                    MetaVariable::Capture(name, _) | MetaVariable::MultiCapture(name) => {
-                        name.as_str()
+                // Extract captures based on filter
+                let mut captures = HashMap::new();
+                for mv in env.get_matched_variables() {
+                    let name = match &mv {
+                        MetaVariable::Capture(name, _) | MetaVariable::MultiCapture(name) => {
+                            name.as_str()
+                        }
+                        _ => continue,
+                    };
+
+                    // Apply capture name filter if provided
+                    if let Some(ref filter) = capture_names
+                        && !filter.contains(name)
+                    {
+                        continue;
                     }
-                    _ => continue,
-                };
 
-                // Apply capture name filter if provided
-                if let Some(ref filter) = capture_names
-                    && !filter.contains(name)
-                {
-                    continue;
+                    if let Some(captured) = env.get_match(name) {
+                        captures.insert(name.to_string(), captured.text().to_string());
+                    }
                 }
 
-                if let Some(captured) = env.get_match(name) {
-                    captures.insert(name.to_string(), captured.text().to_string());
-                }
+                // Calculate line numbers from byte offsets
+                let start = m.range().start;
+                let end = m.range().end;
+                let (line_start, line_end) = byte_to_line(start, end, &line_offsets);
+
+                results.push(ExtractResult {
+                    text: m.text().to_string(),
+                    start,
+                    end,
+                    line_start,
+                    line_end,
+                    captures,
+                });
             }
-
-            // Calculate line numbers from byte offsets
-            let start = m.range().start;
-            let end = m.range().end;
-            let (line_start, line_end) = byte_to_line(start, end, &line_offsets);
-
-            results.push(ExtractResult {
-                text: m.text().to_string(),
-                start,
-                end,
-                line_start,
-                line_end,
-                captures,
-            });
         }
     }
 
@@ -316,6 +340,8 @@ pub fn get_skeleton_patterns(lang: Lang) -> &'static [&'static str] {
         Lang::Rust => &[
             "fn $NAME",
             "pub fn $NAME",
+            "async fn $NAME",
+            "pub async fn $NAME",
             "struct $NAME",
             "pub struct $NAME",
             "impl $NAME",

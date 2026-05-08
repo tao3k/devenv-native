@@ -61,6 +61,7 @@ def _empty_trace_summary() -> dict[str, Any]:
     return {
         "traceFileCount": 0,
         "requestCount": 0,
+        "httpAttemptCountTotal": 0,
         "successCount": 0,
         "failureCount": 0,
         "parseErrorCount": 0,
@@ -69,6 +70,7 @@ def _empty_trace_summary() -> dict[str, Any]:
         "modelCounts": {},
         "requestKindCounts": {},
         "scaffoldModeCounts": {},
+        "imageOptimizationModeCounts": {},
         "shardTypeCounts": {},
         "renderDpiCounts": {},
         "pageCountTotal": 0,
@@ -101,6 +103,10 @@ def _accumulate_trace_record(
     ended_unix_ms_values: list[int],
 ) -> None:
     summary["requestCount"] += 1
+    http_attempt_count = record.get("httpAttemptCount")
+    summary["httpAttemptCountTotal"] += (
+        http_attempt_count if isinstance(http_attempt_count, int) else 1
+    )
     status = _string_value(record.get("status"), "unknown")
     _increment(summary["statusCounts"], status)
     if status == "succeeded":
@@ -123,6 +129,13 @@ def _accumulate_trace_record(
     scaffold_mode = record.get("scaffoldMode")
     if isinstance(scaffold_mode, str) and scaffold_mode:
         _increment(summary["scaffoldModeCounts"], scaffold_mode)
+
+    image_optimization_mode = record.get("imageOptimizationMode")
+    if isinstance(image_optimization_mode, str) and image_optimization_mode:
+        _increment(
+            summary["imageOptimizationModeCounts"],
+            image_optimization_mode,
+        )
 
     render_dpi = record.get("renderDpi")
     if isinstance(render_dpi, int):

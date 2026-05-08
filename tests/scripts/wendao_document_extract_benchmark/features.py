@@ -12,6 +12,16 @@ def cargo_features_with_pdf_render(features: str) -> str:
     return cargo_features_with_pdf_feature(features, "document-extract-pdf-render")
 
 
+def cargo_features_for_studio_pdf_render_audit(features: str) -> str:
+    return cargo_features_with_pdf_feature(
+        cargo_features_without_package_foreign_entries(
+            features,
+            {"document-extract-attachment-audit"},
+        ),
+        "document-extract-pdf-render",
+    )
+
+
 def cargo_features_with_pdf_source_range(features: str) -> str:
     return cargo_features_with_pdf_feature(
         features, "document-extract-pdf-source-range"
@@ -34,6 +44,7 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
     if profile_planner in {
         "hosted-vlm-all",
         "hosted-vlm-risk-window",
+        "hosted-vlm-risk-window-backend-text",
     }:
         return cargo_features_with_pdf_render(features)
     selection = normalize_render_selection(
@@ -56,6 +67,19 @@ def cargo_features_with_pdf_feature(features: str, feature: str) -> str:
     if "performance" not in parts:
         parts.insert(0, "performance")
     return ",".join(parts)
+
+
+def cargo_features_without_package_foreign_entries(
+    features: str,
+    package_foreign_features: set[str],
+) -> str:
+    parts = [
+        part.strip()
+        for chunk in features.split(",")
+        for part in chunk.split()
+        if part.strip()
+    ]
+    return ",".join(part for part in parts if part not in package_foreign_features)
 
 
 def normalize_render_selection(selection: str) -> str:

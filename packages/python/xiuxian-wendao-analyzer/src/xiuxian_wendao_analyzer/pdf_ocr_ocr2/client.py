@@ -67,8 +67,10 @@ class _DeepSeekOcr2OpenAiClient:
         self._region_atlas_mode = config.region_atlas_mode
         self._timeout_seconds = config.timeout_seconds
         self._request_concurrency = config.request_concurrency
+        self._speculative_retry_delay_seconds = config.speculative_retry_delay_seconds
         self._page_window_size = config.page_window_size
         self._scaffold_mode = config.scaffold_mode
+        self._image_optimization_mode = config.image_optimization_mode
         self._trace_path = config.trace_path
         self._extra_headers = dict(config.extra_headers or {})
         self._disabled_region_canaries: set[str] = set()
@@ -295,6 +297,7 @@ class _DeepSeekOcr2OpenAiClient:
         input_rows: Sequence[Mapping[str, Any]] | None = None,
         max_tokens: int | None = None,
         request_kind: str | None = None,
+        http_attempt_count: int = 1,
         scaffold_applied_count: int = 0,
         scaffold_validation_failure_count: int = 0,
         scaffold_json_chars: int = 0,
@@ -306,6 +309,7 @@ class _DeepSeekOcr2OpenAiClient:
             model=self._model,
             completion_url=self._completion_url,
             scaffold_mode=self._scaffold_mode,
+            image_optimization_mode=self._image_optimization_mode,
             default_max_tokens=self._max_tokens,
             status=status,
             started=started,
@@ -317,6 +321,7 @@ class _DeepSeekOcr2OpenAiClient:
             input_rows=input_rows,
             max_tokens=max_tokens,
             request_kind=request_kind,
+            http_attempt_count=http_attempt_count,
             scaffold_applied_count=scaffold_applied_count,
             scaffold_validation_failure_count=scaffold_validation_failure_count,
             scaffold_json_chars=scaffold_json_chars,

@@ -7,6 +7,7 @@ use std::sync::OnceLock;
 
 use crate::link_graph::index::LinkGraphIndex;
 use crate::link_graph::models::{LinkGraphAttachment, LinkGraphPassage};
+use rayon::join;
 
 use super::decode::{decode_aliases, decode_docs, decode_edges, decode_sections};
 use super::encode::{
@@ -26,7 +27,8 @@ docs(id,stem,path,title,lead,doc_type,tags,word_count,search_text,saliency_base,
 sections(doc_id,heading_title,heading_path,heading_path_lower,heading_level,line_start,line_end,byte_start,byte_end,section_text,section_text_lower,entities,attributes_json,logbook_json,observations_json);\
 edges(source_id,target_id);\
 aliases(alias,doc_id);\
-residuals(passages_json,attachments_json,page_index_json)";
+residuals(passages_json,attachments_json,page_index_json);\
+indexing(semantic_frontmatter_relation_search_v2)";
 
 static LINK_GRAPH_DUCKDB_ARROW_CACHE_SCHEMA_FINGERPRINT: OnceLock<String> = OnceLock::new();
 
@@ -88,18 +90,36 @@ pub(in crate::link_graph::index::build::cache) fn decode_arrow_cached_index_payl
     include_dirs: Vec<String>,
     excluded_dirs: Vec<String>,
 ) -> Result<LinkGraphIndex, String> {
-    let docs_by_id = decode_docs(payload.docs_ipc.as_slice())?;
-    let sections_by_doc = decode_sections(payload.sections_ipc.as_slice())?;
-    let (outgoing, incoming, edge_count) = decode_edges(payload.edges_ipc.as_slice())?;
-    let alias_to_doc_id = decode_aliases(payload.aliases_ipc.as_slice())?;
-    let passages_by_id =
-        serde_json::from_str::<HashMap<String, LinkGraphPassage>>(&payload.passages_json)
-            .map_err(|error| format!("decode link-graph passage residuals: {error}"))?;
-    let attachments_by_doc = serde_json::from_str::<HashMap<String, Vec<LinkGraphAttachment>>>(
-        &payload.attachments_json,
-    )
-    .map_err(|error| format!("decode link-graph attachment residuals: {error}"))?;
-    let trees_by_doc = decode_cached_page_indices(&payload.page_index_json)?;
+    let (doc_section_result, edge_alias_result) = join(
+        || {
+            let docs_by_id = decode_docs(payload.docs_ipc.as_slice())?;
+            let sections_by_doc = decode_sections(payload.sections_ipc.as_slice())?;
+            Ok::<_, String>((docs_by_id, sections_by_doc))
+        },
+        || {
+            let edges = decode_edges(payload.edges_ipc.as_slice())?;
+            let alias_to_doc_id = decode_aliases(payload.aliases_ipc.as_slice())?;
+            Ok::<_, String>((edges, alias_to_doc_id))
+        },
+    );
+    let (docs_by_id, sections_by_doc) = doc_section_result?;
+    let ((outgoing, incoming, edge_count), alias_to_doc_id) = edge_alias_result?;
+
+    let (residual_result, trees_result) = join(
+        || {
+            let passages_by_id =
+                serde_json::from_str::<HashMap<String, LinkGraphPassage>>(&payload.passages_json)
+                    .map_err(|error| format!("decode link-graph passage residuals: {error}"))?;
+            let attachments_by_doc = serde_json::from_str::<
+                HashMap<String, Vec<LinkGraphAttachment>>,
+            >(&payload.attachments_json)
+            .map_err(|error| format!("decode link-graph attachment residuals: {error}"))?;
+            Ok::<_, String>((passages_by_id, attachments_by_doc))
+        },
+        || decode_cached_page_indices(&payload.page_index_json),
+    );
+    let (passages_by_id, attachments_by_doc) = residual_result?;
+    let trees_by_doc = trees_result?;
     let rank_by_id = LinkGraphIndex::compute_rank_by_id(&docs_by_id, &incoming, &outgoing);
     let mut index = LinkGraphIndex {
         root,

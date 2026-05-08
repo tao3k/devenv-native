@@ -123,6 +123,16 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
                     "hybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
                         0 if report_path.name == "shard-cache-reuse.json" else 6
                     ),
+                    "hybridPageOcrTimingSchedulerTrace": [
+                        {
+                            "lane": "source-pdf-page-range",
+                            "shardCount": 7,
+                            "pageStart": 0,
+                            "pageEnd": 6,
+                            "latencyMs": 19_327.0,
+                            "textCharCount": 48_879,
+                        },
+                    ],
                 }
             ],
         }
@@ -402,6 +412,53 @@ def test_hosted_vlm_promotion_gate_passes_precise_fast_candidate() -> None:
     assert gate["observed"]["ocrRegionBlocks"] == 3
 
 
+def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(
+        benchmark,
+        force_ms=24_362.710,
+        shard_cache_reuse_ms=144.232,
+    )
+    payload["rustPdfHostedVlmRegionPipeline"] = "render-dispatch"
+    payload["rustPdfHostedVlmRegionRenderAhead"] = 3
+    payload["rustPdfHostedVlmRegionRenderChunk"] = "region"
+    payload["hostedVlmOcr"]["requestSummary"]["requestWallSpanMs"] = 12_261.0
+    payload["summary"]["forceHybridPageOcrTimingPhaseElapsedMs"] = {
+        "ocrScheduler": 16_738.118,
+        "regionMaterialize": 7_256.222,
+        "regionMaterializeRender": 7_255.609,
+        "regionPipelineFirstRegionReady": 5_500.0,
+        "regionPipelineLastRegionReady": 7_200.0,
+        "regionPipelineFirstRegionDispatch": 5_520.0,
+        "regionPipelineLastRegionDispatch": 7_220.0,
+        "regionPipelineFirstBaseResult": 11_000.0,
+        "regionPipelineLastBaseResult": 11_000.0,
+        "regionPipelineFirstRegionResult": 12_000.0,
+        "regionPipelineLastRegionResult": 16_700.0,
+        "total": 24_350.906,
+    }
+
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
+
+    observed = gate["observed"]
+    assert observed["rustPdfHostedVlmRegionPipeline"] == "render-dispatch"
+    assert observed["rustPdfHostedVlmRegionRenderAhead"] == 3
+    assert observed["rustPdfHostedVlmRegionRenderChunk"] == "region"
+    assert observed["forceHostedVlmLocalOverheadMs"] == pytest.approx(12_101.71)
+    assert observed["forceHostedVlmSchedulerNonRequestMs"] == pytest.approx(4_477.118)
+    assert observed["forceHostedVlmRegionRenderMs"] == pytest.approx(7_255.609)
+    assert observed["forceHostedVlmRegionPipelineFirstReadyMs"] == 5_500.0
+    assert observed["forceHostedVlmRegionPipelineLastDispatchMs"] == 7_220.0
+    assert observed["forceHostedVlmRegionPipelineLastBaseResultMs"] == 11_000.0
+    assert observed["forceHostedVlmRegionPipelineFirstRegionResultMs"] == 12_000.0
+    assert observed["forceHostedVlmRegionPipelineLastRegionResultMs"] == 16_700.0
+    assert observed["forceHostedVlmSourceRangeChunkMaxMs"] == 19_327.0
+    assert observed["forceHostedVlmSourceRangeChunkPageStart"] == 0
+    assert observed["forceHostedVlmSourceRangeChunkPageEnd"] == 6
+    assert observed["forceHostedVlmSourceRangeChunkCount"] == 3
+    assert observed["forceHostedVlmSourceRangeTraceChars"] == 109_412
+
+
 def test_hosted_vlm_promotion_gate_rejects_current_auto_region_latency() -> None:
     benchmark = _load_benchmark_module()
     payload = _hosted_vlm_promotion_payload(
@@ -529,6 +586,16 @@ def _pdf_ocr_milestone_result(
             "regionMaterialize": max(shard_cache_reuse_ms - 10.0, 0.0),
             "ocrScheduler": shard_cache_reuse_scheduler_ms,
             "total": shard_cache_reuse_ms,
+        },
+        "forceHybridPageOcrTimingSchedulerTraceSummary": {
+            "sourceRangeChunkCount": 3,
+            "sourceRangeShardCount": 21,
+            "sourceRangeTextCharCount": metrics_result_chars,
+            "sourceRangeLatencyMsMax": 19_327.0,
+            "sourceRangeLongestPageStart": 0,
+            "sourceRangeLongestPageEnd": 6,
+            "sourceRangeLongestShardCount": 7,
+            "sourceRangeLongestTextCharCount": 48_879,
         },
         "artifactRegistryReuseErrorRows": 0,
         "cacheHitP95Ms": 11.921,
@@ -818,6 +885,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "distinct-01" in markdown
     assert "Shard reuse force ms" in markdown
     assert "Artifact-registry reuse probe" in markdown
+    assert "Rust OCR source-range trace" in markdown
     assert "Artifact reuse ms" in markdown
     assert "9.000" in markdown
     assert "42.000" in markdown

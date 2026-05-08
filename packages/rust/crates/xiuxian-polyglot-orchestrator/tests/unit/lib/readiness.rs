@@ -1,7 +1,8 @@
 use crate::{
-    AdmissionDecision, BenchmarkState, ContractValidationState, JuliaReadinessEvidence,
-    LaneCapability, ManifestReadinessState, PolyglotLane, PressureLevel, ReadinessState,
-    RejectionReason, WarmupState,
+    AdmissionDecision, BenchmarkState, ContractValidationState, JuliaAcceleratorDiagnostics,
+    JuliaReadinessEvidence, JuliaThreadPinningDiagnostics, JuliaThreadPinningState,
+    JuliaThreadTopology, LaneCapability, ManifestReadinessState, PolyglotLane, PressureLevel,
+    ReadinessState, RejectionReason, WarmupState,
 };
 
 #[test]
@@ -84,5 +85,57 @@ fn readiness_evidence_serializes_profile_and_states() -> Result<(), serde_json::
         evidence.to_lane_evidence().readiness,
         ReadinessState::Degraded
     );
+    Ok(())
+}
+
+#[test]
+fn thread_pinning_diagnostics_serialize_without_blocking_readiness() -> Result<(), serde_json::Error>
+{
+    let diagnostics = JuliaThreadPinningDiagnostics::new(
+        JuliaThreadPinningState::Unavailable,
+        JuliaThreadTopology::new(8, 12).with_physical_core_count(Some(6)),
+    )
+    .with_requested_policy("cores")
+    .with_applied_policy("none")
+    .with_platform("Darwin-arm64")
+    .with_notes(["ThreadPinning.jl unavailable on this worker"]);
+    let evidence = JuliaReadinessEvidence::graph_search_profile("wendaosearch")
+        .with_route_validation(ContractValidationState::Valid)
+        .with_schema_validation(ContractValidationState::Valid)
+        .with_manifest_readiness(ManifestReadinessState::Ready)
+        .with_warmup(WarmupState::Ready)
+        .with_benchmark(BenchmarkState::WithinThreshold)
+        .with_thread_pinning_diagnostics(diagnostics);
+
+    let serialized = serde_json::to_string(&evidence)?;
+
+    assert_eq!(evidence.readiness_state(), ReadinessState::Ready);
+    assert!(serialized.contains("thread_pinning_diagnostics"));
+    assert!(serialized.contains("unavailable"));
+    assert!(serialized.contains("ThreadPinning.jl unavailable"));
+    Ok(())
+}
+
+#[test]
+fn accelerator_diagnostics_serialize_without_blocking_readiness() -> Result<(), serde_json::Error> {
+    let diagnostics = vec![
+        JuliaAcceleratorDiagnostics::new("metal", true, true).with_observed_output_count(Some(4)),
+        JuliaAcceleratorDiagnostics::new("cuda", false, false)
+            .with_notes(["CUDA.jl was not loaded by this worker"]),
+    ];
+    let evidence = JuliaReadinessEvidence::graph_evidence_profile("wendaograph_gnn")
+        .with_route_validation(ContractValidationState::Valid)
+        .with_schema_validation(ContractValidationState::Valid)
+        .with_manifest_readiness(ManifestReadinessState::Ready)
+        .with_warmup(WarmupState::Ready)
+        .with_benchmark(BenchmarkState::WithinThreshold)
+        .with_accelerator_diagnostics(diagnostics);
+
+    let serialized = serde_json::to_string(&evidence)?;
+
+    assert_eq!(evidence.readiness_state(), ReadinessState::Ready);
+    assert!(serialized.contains("accelerator_diagnostics"));
+    assert!(serialized.contains("metal"));
+    assert!(serialized.contains("CUDA.jl was not loaded"));
     Ok(())
 }

@@ -2,7 +2,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Expr};
+use syn::{Expr, parse_macro_input};
 
 pub(crate) fn expand_crate_dir(input: TokenStream) -> TokenStream {
     if input.into_iter().next().is_some() {

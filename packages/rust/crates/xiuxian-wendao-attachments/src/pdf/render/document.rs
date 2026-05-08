@@ -7,7 +7,7 @@ use pdfium_render::prelude::{
     PdfBitmapFormat, PdfDocument, PdfPage, PdfRenderConfig, Pdfium, PdfiumError,
 };
 #[cfg(feature = "pdf-render")]
-use std::{fs, path::Path};
+use std::{fs, path::Path, sync::Mutex};
 
 use crate::pdf::source_range::{
     source_page_range_all_page_indices, source_page_range_validate_page_index,
@@ -36,9 +36,14 @@ pub const PDFIUM_LIBRARY_PATH_ENV: &str = "WENDAO_PDFIUM_LIBRARY_PATH";
 const PDF_REGION_RENDER_MODE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE";
 #[cfg(feature = "pdf-render")]
 const PDF_REGION_RENDER_MODE_DIRECT_CROP: &str = "direct-crop";
+#[cfg(feature = "pdf-render")]
+static PDFIUM_BIND_LOCK: Mutex<()> = Mutex::new(());
 
 #[cfg(feature = "pdf-render")]
 pub(super) fn bind_pdfium() -> Result<Pdfium, String> {
+    let _guard = PDFIUM_BIND_LOCK
+        .lock()
+        .map_err(|_| "bind Pdfium library lock poisoned".to_string())?;
     let bindings = match std::env::var(PDFIUM_LIBRARY_PATH_ENV) {
         Ok(path) if !path.trim().is_empty() => Pdfium::bind_to_library(path.as_str()),
         _ => Pdfium::bind_to_system_library(),
@@ -492,10 +497,7 @@ fn page_geometry(
     let crop_box = page.boundaries().crop().map_or(media_box, |boundary| {
         PdfPageBox::from_pdfium_rect(boundary.bounds)
     });
-    let rotation_degrees = rotation_to_degrees(
-        page.rotation()
-            .map_err(|error| format!("read page {page_index} rotation: {error}"))?,
-    );
+    let rotation_degrees = pdf_rotation_degrees_from_result(page.rotation(), page_index)?;
     let (target_width, target_height) =
         render_dimensions_for_box(crop_box, rotation_degrees, profile);
     Ok(PageGeometry {
@@ -506,6 +508,19 @@ fn page_geometry(
         raster_height_px: target_height,
     })
 }
+
+#[cfg(feature = "pdf-render")]
+fn pdf_rotation_degrees_from_result(
+    rotation: Result<pdfium_render::prelude::PdfPageRenderRotation, PdfiumError>,
+    page_index: i32,
+) -> Result<u16, String> {
+    match rotation {
+        Ok(rotation) => Ok(rotation_to_degrees(rotation)),
+        Err(PdfiumError::UnknownBitmapRotation) => Ok(0),
+        Err(error) => Err(format!("read page {page_index} rotation: {error}")),
+    }
+}
+
 #[cfg(feature = "pdf-render")]
 fn save_image_identity(
     image: &DynamicImage,

@@ -41,6 +41,24 @@ fn automatic_ocr2_recovery_region_requests_build_content_band() {
 }
 
 #[test]
+fn automatic_ocr2_recovery_region_requests_skip_hosted_topup_pages() {
+    let mut hosted_topup_page = sample_ocr_input(1, "page");
+    hosted_topup_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
+    hosted_topup_page.ocr_engine = "hosted-vlm-topup-ocr".to_string();
+
+    let regions =
+        automatic_ocr2_recovery_region_requests_with_lookup(&[hosted_topup_page], &|key| {
+            if key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV {
+                Some("profile-risk-window".to_string())
+            } else {
+                (key == DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV).then(|| "0".to_string())
+            }
+        });
+
+    assert!(regions.is_empty());
+}
+
+#[test]
 fn automatic_ocr2_recovery_region_requests_can_slice_content_band() {
     let mut ocr2_page = sample_ocr_input(1, "page");
     ocr2_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();

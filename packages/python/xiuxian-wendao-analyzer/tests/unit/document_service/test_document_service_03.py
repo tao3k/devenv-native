@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import urllib.error
+from io import BytesIO
 
 from xiuxian_wendao_analyzer.pdf_ocr import (
     HOSTED_VLM_OCR_API_KEY_ENV,
     HOSTED_VLM_OCR_BASE_URL_ENV,
     HOSTED_VLM_OCR_DEFAULT_MAX_TOKENS,
     HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS,
+    HOSTED_VLM_OCR_IMAGE_OPTIMIZATION_ENV,
     HOSTED_VLM_OCR_MAX_TOKENS_ENV,
     HOSTED_VLM_OCR_MODEL_ENV,
     HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV,
@@ -27,10 +30,20 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV,
     HOSTED_VLM_OCR_REQUEST_CONCURRENCY_ENV,
     HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV,
+    HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
     HOSTED_VLM_OCR_TRACE_PATH_ENV,
+    PDF_OCR_BACKEND_TEXT_PROFILE,
     PDF_OCR_DEFAULT_PROFILE,
     PDF_OCR_FAST_TEXT_PROFILE,
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+)
+from xiuxian_wendao_analyzer.pdf_ocr_workers import (
+    PDF_OCR_FAST_TEXT_DEFAULT_THREADS,
+    PDF_OCR_FAST_TEXT_THREADS_ENV,
+    PDF_OCR_PREWARM_PAGE_INDEX_ENV,
+    PDF_OCR_PREWARM_PROFILES_ENV,
+    PDF_OCR_PREWARM_SOURCE_PATH_ENV,
+    _fast_text_accelerator_threads_with_lookup,
 )
 
 from .support import (
@@ -217,6 +230,119 @@ def test_docling_pdf_ocr_worker_uses_fast_converter_for_fast_profile(
     assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
 
 
+def test_docling_pdf_ocr_worker_uses_backend_text_converter_for_backend_profile(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        requested_profiles.append(profile)
+        return FakeDoclingConverter(f"OCR {profile}\n")
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers._new_docling_converter",
+        fake_converter_factory,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            ocr_profile=PDF_OCR_BACKEND_TEXT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert requested_profiles == [PDF_OCR_BACKEND_TEXT_PROFILE]
+    assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_BACKEND_TEXT_PROFILE}\n"
+
+
+def test_backend_text_source_range_topups_empty_pages_with_fast_text(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    class BackendDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            if "page_break_placeholder" in kwargs:
+                separator = str(kwargs["page_break_placeholder"])
+                return separator.join(["backend page 1", ""])
+            return ""
+
+    class FastDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            _ = kwargs
+            return "fast page 2"
+
+    class Result:
+        def __init__(self, document: object) -> None:
+            self.document = document
+
+    class Converter:
+        def __init__(self, profile: str) -> None:
+            self.profile = profile
+
+        def convert(self, source: str | Path, **kwargs: object) -> Result:
+            _ = source, kwargs
+            if self.profile == PDF_OCR_BACKEND_TEXT_PROFILE:
+                return Result(BackendDocument())
+            return Result(FastDocument())
+
+    def converter_factory(profile: str) -> Converter:
+        requested_profiles.append(profile)
+        return Converter(profile)
+
+    input_tables = [
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            page_index=page_index,
+            shard_element_id=f"shard-{page_index}",
+            ocr_profile=PDF_OCR_BACKEND_TEXT_PROFILE,
+        )
+        for page_index in range(2)
+    ]
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(input_tables),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=converter_factory,
+            max_workers=1,
+        ),
+    )
+
+    assert requested_profiles == [
+        PDF_OCR_BACKEND_TEXT_PROFILE,
+        PDF_OCR_FAST_TEXT_PROFILE,
+    ]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "backend page 1",
+        "fast page 2",
+    ]
+
+
+def test_fast_text_docling_threads_default_to_rust_scheduler_friendly_single_thread() -> (
+    None
+):
+    assert _fast_text_accelerator_threads_with_lookup(lambda _key: None) == 1
+    assert PDF_OCR_FAST_TEXT_DEFAULT_THREADS == 1
+    assert (
+        _fast_text_accelerator_threads_with_lookup(
+            lambda key: "3" if key == PDF_OCR_FAST_TEXT_THREADS_ENV else None
+        )
+        == 3
+    )
+    assert (
+        _fast_text_accelerator_threads_with_lookup(
+            lambda key: "0" if key == PDF_OCR_FAST_TEXT_THREADS_ENV else None
+        )
+        == 1
+    )
+
+
 def test_docling_pdf_ocr_worker_uses_hosted_vlm_ocr_openai_endpoint(
     tmp_path: Path,
     monkeypatch,
@@ -268,6 +394,71 @@ def test_docling_pdf_ocr_worker_uses_hosted_vlm_ocr_openai_endpoint(
     assert payload["messages"][0]["content"][1]["image_url"]["url"].startswith(
         "data:image/png;base64,"
     )
+
+
+def test_docling_pdf_ocr_worker_trims_region_whitespace_payload(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from PIL import Image
+
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    image_path = tmp_path / "region-00000.png"
+    image = Image.new("RGB", (80, 80), (255, 255, 255))
+    image.paste((0, 0, 0), (30, 30, 50, 50))
+    image.save(image_path, format="PNG")
+    requests: list[object] = []
+
+    class FakeResponse:
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "# Region\n"}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        requests.append(request)
+        return FakeResponse()
+
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_MODEL_ENV, "community/hosted-vlm-awq")
+    monkeypatch.setenv(
+        HOSTED_VLM_OCR_IMAGE_OPTIMIZATION_ENV,
+        "region-whitespace-trim",
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            image_path=str(image_path),
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+            shard_type="region",
+            parent_shard_element_id="page-shard-0",
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert table.to_pylist()[0]["text"] == "# Region\n"
+    payload = json.loads(requests[0].data.decode("utf-8"))
+    image_url = payload["messages"][0]["content"][1]["image_url"]["url"]
+    assert image_url.startswith("data:image/png;base64,")
+    sent_png = base64.b64decode(image_url.removeprefix("data:image/png;base64,"))
+    with Image.open(BytesIO(sent_png)) as sent_image:
+        assert sent_image.size[0] < 80
+        assert sent_image.size[1] < 80
+        assert sent_image.size[0] >= 32
+        assert sent_image.size[1] >= 32
 
 
 def test_docling_pdf_ocr_worker_retries_transient_hosted_vlm_ocr_http_error(
@@ -516,8 +707,10 @@ def test_docling_pdf_ocr_worker_writes_hosted_vlm_ocr_request_trace(
             "endedUnixMs": records[0]["endedUnixMs"],
             "errorMessage": None,
             "errorType": None,
+            "httpAttemptCount": 1,
             "httpStatus": 200,
             "imageBytes": len(b"png fixture"),
+            "imageOptimizationMode": "disabled",
             "latencyMs": records[0]["latencyMs"],
             "markdownChars": len("# traced\n"),
             "maxTokens": 8192,
@@ -675,6 +868,71 @@ def test_docling_pdf_ocr_worker_uses_lower_global_region_ocr2_token_limit(
 
     assert table.to_pylist()[0]["status"] == "succeeded"
     assert payloads[0]["max_tokens"] == 1024
+
+
+def test_docling_pdf_ocr_worker_hedges_slow_region_ocr2_request(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "region-00000.png"
+    image.write_bytes(b"region png fixture")
+    trace_path = tmp_path / "hosted-vlm-hedged.jsonl"
+    requests: list[str] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, markdown: str) -> None:
+            self._markdown = markdown
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._markdown}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = request
+        _ = timeout
+        requests.append("request")
+        if len(requests) == 1:
+            time.sleep(0.08)
+            return FakeResponse("# slow primary\n")
+        return FakeResponse("# fast hedge\n")
+
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setenv(HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV, "0.01")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            shard_type="region",
+            region_index=1,
+            parent_shard_element_id="hosted-vlm-page",
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    rows = table.to_pylist()
+    assert rows[0]["status"] == "succeeded"
+    assert rows[0]["text"] == "# fast hedge\n"
+    assert len(requests) == 2
+    records = [
+        json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert records[0]["requestKind"] == "region-hedged"
+    assert records[0]["httpAttemptCount"] == 2
 
 
 def test_docling_pdf_ocr_worker_composites_same_page_ocr2_regions(
@@ -2122,6 +2380,109 @@ def test_docling_pdf_ocr_worker_passes_profile_to_converter_factory(
     )
 
     assert requested_profiles == [PDF_OCR_FAST_TEXT_PROFILE]
+    assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
+
+
+def test_docling_pdf_ocr_worker_prewarms_shared_single_worker_converter(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        requested_profiles.append(profile)
+        return FakeDoclingConverter(f"OCR {profile}\n")
+
+    monkeypatch.setenv(PDF_OCR_PREWARM_PROFILES_ENV, PDF_OCR_FAST_TEXT_PROFILE)
+    worker = DoclingPdfOcrShardWorker(
+        converter_factory=fake_converter_factory,
+        max_workers=1,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+        ),
+        worker=worker,
+    )
+
+    assert requested_profiles == [PDF_OCR_FAST_TEXT_PROFILE]
+    assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
+
+
+def test_docling_pdf_ocr_worker_prewarms_source_page(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    converters: list[FakeDoclingConverter] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        converter = FakeDoclingConverter(f"OCR {profile}\n")
+        converters.append(converter)
+        return converter
+
+    monkeypatch.setenv(PDF_OCR_PREWARM_PROFILES_ENV, PDF_OCR_FAST_TEXT_PROFILE)
+    monkeypatch.setenv(PDF_OCR_PREWARM_SOURCE_PATH_ENV, str(source))
+    monkeypatch.setenv(PDF_OCR_PREWARM_PAGE_INDEX_ENV, "2")
+    worker = DoclingPdfOcrShardWorker(
+        converter_factory=fake_converter_factory,
+        max_workers=1,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+        ),
+        worker=worker,
+    )
+
+    assert len(converters) == 1
+    assert converters[0].calls == [source, source]
+    assert converters[0].kwargs_calls[0] == {"page_range": (3, 3)}
+    assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
+
+
+def test_docling_pdf_ocr_worker_prewarms_multiple_source_pages(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    converters: list[FakeDoclingConverter] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        converter = FakeDoclingConverter(f"OCR {profile}\n")
+        converters.append(converter)
+        return converter
+
+    monkeypatch.setenv(PDF_OCR_PREWARM_PROFILES_ENV, PDF_OCR_FAST_TEXT_PROFILE)
+    monkeypatch.setenv(PDF_OCR_PREWARM_SOURCE_PATH_ENV, str(source))
+    monkeypatch.setenv("WENDAO_PDF_OCR_PREWARM_PAGE_INDICES", "5,11,5")
+    worker = DoclingPdfOcrShardWorker(
+        converter_factory=fake_converter_factory,
+        max_workers=1,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+        ),
+        worker=worker,
+    )
+
+    assert len(converters) == 1
+    assert converters[0].calls == [source, source, source]
+    assert converters[0].kwargs_calls[:2] == [
+        {"page_range": (6, 6)},
+        {"page_range": (12, 12)},
+    ]
     assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
 
 

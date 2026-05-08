@@ -42,6 +42,8 @@ def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> 
     assert "return CountingConverter(converter)" in code
     assert "def make_converter(ocr_profile=None)" in code
     assert "PDF_OCR_FAST_TEXT_PROFILE" in code
+    assert "AcceleratorOptions" in code
+    assert "WENDAO_PDF_OCR_FAST_TEXT_THREADS" in code
     assert "TableFormerMode.FAST" in code
     assert "PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE" in code
     assert 'VlmConvertOptions.from_preset("deepseek_ocr")' in code
@@ -109,7 +111,14 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         pdf_ocr_workers="auto",
         python_uv_package="xiuxian-wendao-analyzer",
         python_uv_extras=[],
-        hosted_vlm_ocr_env={"WENDAO_HOSTED_VLM_OCR_MODEL": "community/hosted-vlm-awq"},
+        hosted_vlm_ocr_env={
+            "WENDAO_HOSTED_VLM_OCR_MODEL": "community/hosted-vlm-awq",
+            "WENDAO_PDF_OCR_PREWARM_PROFILES": "docling-fast-text-ocr",
+            "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH": "tests/fixtures/document.pdf",
+            "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES": "5,11",
+            "WENDAO_PDF_OCR_PREWARM_PAGE_INDEX": "5",
+        },
+        pdf_ocr_prewarm_endpoint_count=1,
         log_dir=tmp_path / "logs",
     )
 
@@ -137,6 +146,22 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "community/hosted-vlm-awq",
     ]
     assert [
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PROFILES")
+        for call in calls
+    ] == ["docling-fast-text-ocr", None, None]
+    assert [
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_SOURCE_PATH")
+        for call in calls
+    ] == ["tests/fixtures/document.pdf", None, None]
+    assert [
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PAGE_INDEX")
+        for call in calls
+    ] == ["5", None, None]
+    assert [
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PAGE_INDICES")
+        for call in calls
+    ] == ["5,11", None, None]
+    assert [
         Path(call[2]["hosted_vlm_ocr_env"]["WENDAO_HOSTED_VLM_OCR_TRACE_PATH"]).name
         for call in calls
     ] == [
@@ -158,9 +183,15 @@ def test_hosted_vlm_ocr_process_env_maps_cli_args() -> None:
         hosted_vlm_ocr_region_composite_size=2,
         hosted_vlm_ocr_region_atlas_mode="same-page-json",
         hosted_vlm_ocr_scaffold_mode="region-table-json",
+        hosted_vlm_ocr_image_optimization="region-whitespace-trim",
         hosted_vlm_ocr_timeout_seconds=120.0,
         hosted_vlm_ocr_request_concurrency=4,
+        hosted_vlm_ocr_speculative_retry_delay_seconds=1.5,
         hosted_vlm_ocr_page_window_size=3,
+        pdf_ocr_prewarm_profile=["docling-fast-text-ocr"],
+        pdf_ocr_prewarm_source_path="tests/fixtures/document.pdf",
+        pdf_ocr_prewarm_page_index=5,
+        pdf_ocr_prewarm_page_indices="5,11",
         openrouter_model="openrouter/vision-ocr",
         openrouter_http_referer="https://wendao.local",
         openrouter_title="Wendao OCR Benchmark",
@@ -176,9 +207,14 @@ def test_hosted_vlm_ocr_process_env_maps_cli_args() -> None:
         "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE": "2",
         "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE": "same-page-json",
         "WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE": "region-table-json",
+        "WENDAO_HOSTED_VLM_OCR_IMAGE_OPTIMIZATION": "region-whitespace-trim",
         "WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS": "120.0",
         "WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY": "4",
+        "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS": "1.5",
         "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE": "3",
+        "WENDAO_PDF_OCR_PREWARM_PROFILES": "docling-fast-text-ocr",
+        "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH": "tests/fixtures/document.pdf",
+        "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES": "5,11",
         "WENDAO_OPENROUTER_MODEL": "openrouter/vision-ocr",
         "WENDAO_OPENROUTER_HTTP_REFERER": "https://wendao.local",
         "WENDAO_OPENROUTER_TITLE": "Wendao OCR Benchmark",
@@ -197,8 +233,10 @@ def test_hosted_vlm_ocr_process_env_defaults_openrouter_smoke_model() -> None:
         hosted_vlm_ocr_region_composite_size=None,
         hosted_vlm_ocr_region_atlas_mode=None,
         hosted_vlm_ocr_scaffold_mode=None,
+        hosted_vlm_ocr_image_optimization=None,
         hosted_vlm_ocr_timeout_seconds=None,
         hosted_vlm_ocr_request_concurrency=None,
+        hosted_vlm_ocr_speculative_retry_delay_seconds=None,
         hosted_vlm_ocr_page_window_size=None,
         openrouter_model=None,
         openrouter_http_referer=None,
@@ -230,11 +268,13 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
                         "imageBytes": 2048,
                         "pageCount": 2,
                         "requestKind": "page-window-canary",
+                        "httpAttemptCount": 1,
                         "shardCount": 2,
                         "shardTypeCounts": {"page": 2},
                         "sourcePixelArea": 2000,
                         "renderDpi": 300,
                         "scaffoldMode": "disabled",
+                        "imageOptimizationMode": "disabled",
                         "scaffoldAppliedCount": 0,
                         "scaffoldValidationFailureCount": 0,
                         "scaffoldJsonChars": 0,
@@ -252,11 +292,13 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
                         "markdownChars": 0,
                         "imageBytes": 1024,
                         "requestKind": "region",
+                        "httpAttemptCount": 2,
                         "shardCount": 1,
                         "shardTypeCounts": {"region": 1},
                         "sourcePixelArea": 400,
                         "renderDpi": 300,
                         "scaffoldMode": "region-table-json",
+                        "imageOptimizationMode": "region-whitespace-trim",
                         "scaffoldAppliedCount": 1,
                         "scaffoldValidationFailureCount": 1,
                         "scaffoldJsonChars": 17,
@@ -273,6 +315,7 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
 
     assert summary["traceFileCount"] == 1
     assert summary["requestCount"] == 2
+    assert summary["httpAttemptCountTotal"] == 3
     assert summary["successCount"] == 1
     assert summary["failureCount"] == 1
     assert summary["parseErrorCount"] == 1
@@ -286,6 +329,10 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
     assert summary["scaffoldModeCounts"] == {
         "disabled": 1,
         "region-table-json": 1,
+    }
+    assert summary["imageOptimizationModeCounts"] == {
+        "disabled": 1,
+        "region-whitespace-trim": 1,
     }
     assert summary["shardTypeCounts"] == {"page": 2, "region": 1}
     assert summary["renderDpiCounts"] == {"300": 2}

@@ -1,7 +1,13 @@
+#[cfg(any(test, feature = "test-support"))]
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
+#[cfg(any(test, feature = "test-support"))]
+use std::path::PathBuf;
 
 use walkdir::{DirEntry, WalkDir};
+#[cfg(any(test, feature = "test-support"))]
+use xiuxian_ast::extract_items_for_patterns;
 use xiuxian_ast::{Lang, extract_items, get_skeleton_patterns};
 use xiuxian_git_repo::SyncMode;
 
@@ -37,6 +43,103 @@ struct GenericAstAnalysisMatch<'a> {
     line_start: usize,
     line_end: usize,
     score: f64,
+}
+
+#[derive(Debug, Clone)]
+#[cfg(any(test, feature = "test-support"))]
+pub(crate) struct RepoAstAnalysisIndex {
+    records: Vec<RepoAstAnalysisRecord>,
+    exact_name_index: HashMap<String, Vec<usize>>,
+    file_count: usize,
+}
+
+#[derive(Debug, Clone)]
+#[cfg(any(test, feature = "test-support"))]
+struct RepoAstAnalysisRecord {
+    repo_id: String,
+    relative_path: String,
+    lang: Lang,
+    name: String,
+    signature: String,
+    line_start: usize,
+    line_end: usize,
+}
+
+#[cfg(any(test, feature = "test-support"))]
+impl RepoAstAnalysisIndex {
+    pub(crate) fn file_count(&self) -> usize {
+        self.file_count
+    }
+
+    pub(crate) fn symbol_count(&self) -> usize {
+        self.records.len()
+    }
+
+    pub(crate) fn search(&self, search_term: Option<&str>, limit: usize) -> Vec<SearchHit> {
+        if limit == 0 {
+            return Vec::new();
+        }
+        if let Some(search_term) = normalized_exact_search_term(search_term)
+            && let Some(record_indexes) = self.exact_name_index.get(search_term.as_str())
+        {
+            return record_indexes
+                .iter()
+                .take(limit)
+                .map(|index| {
+                    let record = &self.records[*index];
+                    build_generic_ast_analysis_hit(&GenericAstAnalysisMatch {
+                        repo_id: record.repo_id.as_str(),
+                        relative_path: record.relative_path.as_str(),
+                        lang: record.lang,
+                        name: record.name.as_str(),
+                        signature: record.signature.as_str(),
+                        line_start: record.line_start,
+                        line_end: record.line_end,
+                        score: 1.0,
+                    })
+                })
+                .collect();
+        }
+
+        let mut matches = self
+            .records
+            .iter()
+            .filter_map(|record| {
+                let score = generic_ast_analysis_score(
+                    search_term,
+                    record.relative_path.as_str(),
+                    record.name.as_str(),
+                    record.signature.as_str(),
+                )?;
+                Some((score, record))
+            })
+            .collect::<Vec<_>>();
+        matches.sort_by(|left, right| {
+            right
+                .0
+                .partial_cmp(&left.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| left.1.relative_path.cmp(&right.1.relative_path))
+                .then_with(|| left.1.line_start.cmp(&right.1.line_start))
+        });
+
+        matches
+            .into_iter()
+            .take(limit)
+            .map(|(score, record)| {
+                build_generic_ast_analysis_hit(&GenericAstAnalysisMatch {
+                    repo_id: record.repo_id.as_str(),
+                    relative_path: record.relative_path.as_str(),
+                    lang: record.lang,
+                    name: record.name.as_str(),
+                    signature: record.signature.as_str(),
+                    line_start: record.line_start,
+                    line_end: record.line_end,
+                    score,
+                })
+            })
+            .collect()
+    }
 }
 
 pub(crate) async fn search_repo_ast_pattern_hits(
@@ -91,6 +194,67 @@ pub(crate) async fn search_repo_ast_analysis_hits(
     })
     .await
     .map_err(|error| format!("ast-grep repo search task failed: {error}"))?
+}
+
+#[cfg(any(test, feature = "test-support"))]
+pub(crate) fn build_repo_ast_analysis_index_from_checkout(
+    checkout_root: &Path,
+    repository: &RegisteredRepository,
+    language_filters: &[String],
+    include_dirs: &[String],
+    excluded_dirs: &[String],
+) -> RepoAstAnalysisIndex {
+    let excluded_languages = excluded_ast_languages_for_repository(repository);
+    let normalized_filters = normalized_language_filters(language_filters);
+    let mut records = Vec::new();
+    let mut seen = HashSet::new();
+    let mut file_count = 0;
+
+    for root in repo_ast_index_roots(checkout_root, include_dirs) {
+        if !root.is_dir() {
+            continue;
+        }
+        for entry in WalkDir::new(root.as_path())
+            .into_iter()
+            .filter_entry(|entry| {
+                should_descend_into_entry(entry)
+                    && should_descend_into_catalog_entry(checkout_root, entry, excluded_dirs)
+            })
+        {
+            let Ok(entry) = entry else { continue };
+            if !entry.file_type().is_file() {
+                continue;
+            }
+
+            let Some(lang) = supported_ast_lang(entry.path(), &excluded_languages) else {
+                continue;
+            };
+            if !normalized_filters.is_empty() && !normalized_filters.contains(lang.as_str()) {
+                continue;
+            }
+
+            let Ok(content) = std::fs::read_to_string(entry.path()) else {
+                continue;
+            };
+            file_count += 1;
+            let relative_path = normalize_repo_relative_path(checkout_root, entry.path());
+            push_analysis_records(
+                &mut records,
+                &mut seen,
+                repository.id.as_str(),
+                relative_path.as_str(),
+                lang,
+                content.as_str(),
+            );
+        }
+    }
+
+    let exact_name_index = build_exact_name_index(records.as_slice());
+    RepoAstAnalysisIndex {
+        records,
+        exact_name_index,
+        file_count,
+    }
 }
 
 fn normalize_analysis_search_term(repo_id: &str, search_term: Option<&str>) -> Option<String> {
@@ -431,6 +595,38 @@ fn push_normalized_ast_language(languages: &mut Vec<String>, language: &str) {
     languages.push(normalized);
 }
 
+#[cfg(any(test, feature = "test-support"))]
+fn repo_ast_index_roots(checkout_root: &Path, include_dirs: &[String]) -> Vec<PathBuf> {
+    if include_dirs.is_empty() {
+        return vec![checkout_root.to_path_buf()];
+    }
+
+    include_dirs
+        .iter()
+        .map(|path| path.trim())
+        .filter(|path| !path.is_empty())
+        .map(|path| checkout_root.join(path))
+        .collect()
+}
+
+#[cfg(any(test, feature = "test-support"))]
+fn should_descend_into_catalog_entry(
+    checkout_root: &Path,
+    entry: &DirEntry,
+    excluded_dirs: &[String],
+) -> bool {
+    if entry.depth() == 0 || excluded_dirs.is_empty() {
+        return true;
+    }
+
+    let relative_path = normalize_repo_relative_path(checkout_root, entry.path());
+    !excluded_dirs.iter().any(|excluded| {
+        let excluded = excluded.trim().trim_matches('/');
+        !excluded.is_empty()
+            && (relative_path == excluded || relative_path.starts_with(&format!("{excluded}/")))
+    })
+}
+
 fn first_signature_line(text: &str) -> &str {
     text.lines().next().map(str::trim).unwrap_or_default()
 }
@@ -466,6 +662,26 @@ fn generic_ast_analysis_score(
     }
 
     None
+}
+
+#[cfg(any(test, feature = "test-support"))]
+fn normalized_exact_search_term(search_term: Option<&str>) -> Option<String> {
+    search_term
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_ascii_lowercase)
+}
+
+#[cfg(any(test, feature = "test-support"))]
+fn build_exact_name_index(records: &[RepoAstAnalysisRecord]) -> HashMap<String, Vec<usize>> {
+    let mut index: HashMap<String, Vec<usize>> = HashMap::new();
+    for (record_index, record) in records.iter().enumerate() {
+        index
+            .entry(record.name.to_ascii_lowercase())
+            .or_default()
+            .push(record_index);
+    }
+    index
 }
 
 fn build_generic_ast_analysis_hit(result: &GenericAstAnalysisMatch<'_>) -> SearchHit {
@@ -507,6 +723,50 @@ fn build_generic_ast_analysis_hit(result: &GenericAstAnalysisMatch<'_>) -> Searc
             line_end: Some(result.line_end),
             column: None,
         }),
+    }
+}
+
+#[cfg(any(test, feature = "test-support"))]
+fn push_analysis_records(
+    records: &mut Vec<RepoAstAnalysisRecord>,
+    seen: &mut HashSet<String>,
+    repo_id: &str,
+    relative_path: &str,
+    lang: Lang,
+    content: &str,
+) {
+    for result in extract_items_for_patterns(
+        content,
+        get_skeleton_patterns(lang),
+        lang,
+        Some(vec!["NAME"]),
+    ) {
+        let signature = first_signature_line(result.text.as_str()).to_string();
+        if signature.is_empty() {
+            continue;
+        }
+        let name = result
+            .captures
+            .get("NAME")
+            .cloned()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| signature.clone());
+        let dedupe_key = format!(
+            "{relative_path}:{}:{}:{name}",
+            result.line_start, result.line_end
+        );
+        if !seen.insert(dedupe_key) {
+            continue;
+        }
+        records.push(RepoAstAnalysisRecord {
+            repo_id: repo_id.to_string(),
+            relative_path: relative_path.to_string(),
+            lang,
+            name,
+            signature,
+            line_start: result.line_start,
+            line_end: result.line_end,
+        });
     }
 }
 

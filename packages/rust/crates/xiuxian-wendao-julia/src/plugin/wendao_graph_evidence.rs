@@ -39,6 +39,20 @@ pub const WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_NAMES: [&str; 17] = [
     "link_frontier",
 ];
 
+/// Canonical `WendaoGraph` `PageIndex` reasoning request table names.
+pub const WENDAO_GRAPH_PAGE_INDEX_REASONING_REQUEST_TABLE_NAMES: [&str; 3] =
+    ["page_index_nodes", "page_index_edges", "page_index_seeds"];
+
+/// Canonical `WendaoGraph` `PageIndex` reasoning response table names.
+pub const WENDAO_GRAPH_PAGE_INDEX_REASONING_RESPONSE_TABLE_NAMES: [&str; 6] = [
+    "page_index_nodes",
+    "page_index_edges",
+    "page_index_seeds",
+    "reasoning_frontier",
+    "disclosure_trace",
+    "page_index_planner_actions",
+];
+
 /// Scalar Arrow type used by a `WendaoGraph` evidence table column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WendaoGraphEvidenceColumnType {
@@ -363,6 +377,61 @@ const LINK_FRONTIER_COLUMNS: [WendaoGraphEvidenceColumnContract; 10] = [
     column("evidence_kind", WendaoGraphEvidenceColumnType::Utf8),
     column("disclosure_budget", WendaoGraphEvidenceColumnType::Int64),
 ];
+const PAGE_INDEX_REASONING_NODE_COLUMNS: [WendaoGraphEvidenceColumnContract; 10] = [
+    column("node_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("page_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("parent_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("depth", WendaoGraphEvidenceColumnType::Int64),
+    column("rank", WendaoGraphEvidenceColumnType::Int64),
+    column("title", WendaoGraphEvidenceColumnType::Utf8),
+    column("summary", WendaoGraphEvidenceColumnType::Utf8),
+    column("line_start", WendaoGraphEvidenceColumnType::Int64),
+    column("line_end", WendaoGraphEvidenceColumnType::Int64),
+    column("token_count", WendaoGraphEvidenceColumnType::Int64),
+];
+const PAGE_INDEX_REASONING_EDGE_COLUMNS: [WendaoGraphEvidenceColumnContract; 4] = [
+    column("source_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("target_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("edge_kind", WendaoGraphEvidenceColumnType::Utf8),
+    column("weight", WendaoGraphEvidenceColumnType::Float64),
+];
+const PAGE_INDEX_REASONING_SEED_COLUMNS: [WendaoGraphEvidenceColumnContract; 3] = [
+    column("node_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("weight", WendaoGraphEvidenceColumnType::Float64),
+    column("seed_kind", WendaoGraphEvidenceColumnType::Utf8),
+];
+const PAGE_INDEX_REASONING_FRONTIER_COLUMNS: [WendaoGraphEvidenceColumnContract; 10] = [
+    column("tree_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("parent_step_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("step_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("node_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("page_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("depth", WendaoGraphEvidenceColumnType::Int64),
+    column("rank", WendaoGraphEvidenceColumnType::Int64),
+    column("score", WendaoGraphEvidenceColumnType::Float64),
+    column("decision_kind", WendaoGraphEvidenceColumnType::Utf8),
+    column("disclosure_budget", WendaoGraphEvidenceColumnType::Int64),
+];
+const PAGE_INDEX_DISCLOSURE_TRACE_COLUMNS: [WendaoGraphEvidenceColumnContract; 8] = [
+    column("tree_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("step_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("node_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("page_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("line_start", WendaoGraphEvidenceColumnType::Int64),
+    column("line_end", WendaoGraphEvidenceColumnType::Int64),
+    column("evidence_kind", WendaoGraphEvidenceColumnType::Utf8),
+    column("reason", WendaoGraphEvidenceColumnType::Utf8),
+];
+const PAGE_INDEX_PLANNER_ACTION_COLUMNS: [WendaoGraphEvidenceColumnContract; 8] = [
+    column("tree_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("action_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("source_step_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("action_kind", WendaoGraphEvidenceColumnType::Utf8),
+    column("target_step_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("target_node_id", WendaoGraphEvidenceColumnType::Utf8),
+    column("score", WendaoGraphEvidenceColumnType::Float64),
+    column("reason", WendaoGraphEvidenceColumnType::Utf8),
+];
 
 /// Canonical `WendaoGraph` request table contracts.
 pub const WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_CONTRACTS: [WendaoGraphEvidenceTableContract; 5] = [
@@ -398,6 +467,32 @@ pub const WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_CONTRACTS: [WendaoGraphEvidenceTa
     response_table("semantic_overlay", &SEMANTIC_OVERLAY_COLUMNS),
     response_table("diffusion_scores", &DIFFUSION_SCORE_COLUMNS),
     response_table("link_frontier", &LINK_FRONTIER_COLUMNS),
+];
+
+/// Canonical `WendaoGraph` `PageIndex` reasoning request table contracts.
+pub const WENDAO_GRAPH_PAGE_INDEX_REASONING_REQUEST_TABLE_CONTRACTS:
+    [WendaoGraphEvidenceTableContract; 3] = [
+    request_table("page_index_nodes", true, &PAGE_INDEX_REASONING_NODE_COLUMNS),
+    request_table("page_index_edges", true, &PAGE_INDEX_REASONING_EDGE_COLUMNS),
+    request_table(
+        "page_index_seeds",
+        false,
+        &PAGE_INDEX_REASONING_SEED_COLUMNS,
+    ),
+];
+
+/// Canonical `WendaoGraph` `PageIndex` reasoning response table contracts.
+pub const WENDAO_GRAPH_PAGE_INDEX_REASONING_RESPONSE_TABLE_CONTRACTS:
+    [WendaoGraphEvidenceTableContract; 6] = [
+    response_table("page_index_nodes", &PAGE_INDEX_REASONING_NODE_COLUMNS),
+    response_table("page_index_edges", &PAGE_INDEX_REASONING_EDGE_COLUMNS),
+    response_table("page_index_seeds", &PAGE_INDEX_REASONING_SEED_COLUMNS),
+    response_table("reasoning_frontier", &PAGE_INDEX_REASONING_FRONTIER_COLUMNS),
+    response_table("disclosure_trace", &PAGE_INDEX_DISCLOSURE_TRACE_COLUMNS),
+    response_table(
+        "page_index_planner_actions",
+        &PAGE_INDEX_PLANNER_ACTION_COLUMNS,
+    ),
 ];
 
 const fn column(
@@ -487,6 +582,38 @@ pub fn wendao_graph_evidence_response_table_contract(
     )
 }
 
+/// Resolve one `PageIndex` reasoning request table contract by table name.
+///
+/// # Errors
+///
+/// Returns an error when the table name is not part of the canonical
+/// `WendaoGraph` `PageIndex` reasoning request contract.
+pub fn wendao_graph_page_index_reasoning_request_table_contract(
+    table_name: impl AsRef<str>,
+) -> Result<&'static WendaoGraphEvidenceTableContract, String> {
+    find_contract(
+        table_name.as_ref(),
+        &WENDAO_GRAPH_PAGE_INDEX_REASONING_REQUEST_TABLE_CONTRACTS,
+        "PageIndex reasoning request",
+    )
+}
+
+/// Resolve one `PageIndex` reasoning response table contract by table name.
+///
+/// # Errors
+///
+/// Returns an error when the table name is not part of the canonical
+/// `WendaoGraph` `PageIndex` reasoning response contract.
+pub fn wendao_graph_page_index_reasoning_response_table_contract(
+    table_name: impl AsRef<str>,
+) -> Result<&'static WendaoGraphEvidenceTableContract, String> {
+    find_contract(
+        table_name.as_ref(),
+        &WENDAO_GRAPH_PAGE_INDEX_REASONING_RESPONSE_TABLE_CONTRACTS,
+        "PageIndex reasoning response",
+    )
+}
+
 /// Materialize the Arrow schema for one `WendaoGraph` evidence table.
 ///
 /// # Errors
@@ -502,6 +629,26 @@ pub fn wendao_graph_evidence_table_schema(
         }
         WendaoGraphEvidenceTableKind::Response => {
             wendao_graph_evidence_response_table_contract(table_name)?
+        }
+    };
+    Ok(contract.schema())
+}
+
+/// Materialize the Arrow schema for one `WendaoGraph` `PageIndex` reasoning table.
+///
+/// # Errors
+///
+/// Returns an error when the table is unknown for the selected side.
+pub fn wendao_graph_page_index_reasoning_table_schema(
+    kind: WendaoGraphEvidenceTableKind,
+    table_name: impl AsRef<str>,
+) -> Result<Arc<Schema>, String> {
+    let contract = match kind {
+        WendaoGraphEvidenceTableKind::Request => {
+            wendao_graph_page_index_reasoning_request_table_contract(table_name)?
+        }
+        WendaoGraphEvidenceTableKind::Response => {
+            wendao_graph_page_index_reasoning_response_table_contract(table_name)?
         }
     };
     Ok(contract.schema())
@@ -532,6 +679,34 @@ pub fn validate_wendao_graph_evidence_response_schema(
     schema: &Schema,
 ) -> Result<(), String> {
     let contract = wendao_graph_evidence_response_table_contract(table_name)?;
+    validate_contract_schema(contract, schema)
+}
+
+/// Validate a `PageIndex` reasoning request table Arrow schema.
+///
+/// # Errors
+///
+/// Returns an error when the table name is unknown or the schema order, column
+/// type, or nullability does not match the canonical request contract.
+pub fn validate_wendao_graph_page_index_reasoning_request_schema(
+    table_name: impl AsRef<str>,
+    schema: &Schema,
+) -> Result<(), String> {
+    let contract = wendao_graph_page_index_reasoning_request_table_contract(table_name)?;
+    validate_contract_schema(contract, schema)
+}
+
+/// Validate a `PageIndex` reasoning response table Arrow schema.
+///
+/// # Errors
+///
+/// Returns an error when the table name is unknown or the schema order, column
+/// type, or nullability does not match the canonical response contract.
+pub fn validate_wendao_graph_page_index_reasoning_response_schema(
+    table_name: impl AsRef<str>,
+    schema: &Schema,
+) -> Result<(), String> {
+    let contract = wendao_graph_page_index_reasoning_response_table_contract(table_name)?;
     validate_contract_schema(contract, schema)
 }
 

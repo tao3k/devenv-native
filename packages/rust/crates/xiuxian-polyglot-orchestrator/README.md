@@ -45,17 +45,26 @@ and its
 9. pure Julia profile scheduling plans derived from owner-supplied readiness,
    runtime statistics, task shape evidence, fallback availability, and latency
    constraints
+10. Julia thread topology and thread-pinning diagnostics as evidence-only
+    readiness facts supplied by Julia owner packages
+11. Julia accelerator/backend diagnostics as evidence-only readiness facts
+    supplied by Julia owner packages
 
 It does not own Python Docling execution, OCR shard ordering, document cache
-policy, Julia profile schemas, Julia thread scheduling, Arrow Flight transport
+policy, Julia profile schemas, Julia JIT warmup execution, Julia thread
+scheduling, `ThreadPinning.jl` policy application, accelerator selection or
+device execution, Arrow Flight transport
 construction, schema default selection, shared-memory transport, or semantic
 routing. Scheduling plans are advisory contracts; owner packages still execute
 or decline work through their existing routes, headers, queues, caches, and
-fallback policy. The Studio OCR scheduler supplies live pressure and system
-facts, then consumes these plans for source-range auto worker sizing and the
-common worker/shard clamp. The Studio full-document provider also consumes the
-runtime-owned plan before existing Docling endpoint selection while retaining
-endpoint-pool, cache/job registry, and Python worker lifecycle authority.
+fallback policy. Rust may select a Julia pod and trigger owner-exposed prewarm
+routes before release, but Julia remains responsible for internal warmup,
+thread pinning, queues, and numerical execution. The Studio OCR scheduler
+supplies live pressure and system facts, then consumes these plans for
+source-range auto worker sizing and the common worker/shard clamp. The Studio
+full-document provider also consumes the runtime-owned plan before existing
+Docling endpoint selection while retaining endpoint-pool, cache/job registry,
+and Python worker lifecycle authority.
 The source-range auto policy sizes PDF page-range OCR waves from the supplied
 adaptive budget, machine-derived cap, remaining permits, shard count, and a
 conservative target of seven source pages per worker; fixed source-range worker
@@ -70,7 +79,7 @@ values remain diagnostic overrides, not production defaults.
    reuse, ordering validation, Docling fallback policy, and translation of OCR
    shard plans into attachment-local batches.
 3. `xiuxian-wendao-julia` owns Julia profile, schema, manifest, route
-   validation, and readiness contracts.
+   validation, warmup, benchmark, thread diagnostics, and readiness contracts.
 4. `xiuxian-wendao-analyzer` owns Python document conversion and OCR execution
    behind the existing analyzer Flight service.
 
@@ -84,8 +93,8 @@ values remain diagnostic overrides, not production defaults.
    plans derived from supplied pressure facts.
 6. `julia_schedule`: inert Julia dispatch, queue, fallback, and reject plans
    derived from supplied profile evidence and task shape facts.
-7. `readiness`: Julia profile, route, schema, manifest, warmup, and benchmark
-   readiness evidence.
+7. `readiness`: Julia profile, route, schema, manifest, warmup, benchmark,
+   thread-diagnostic, and accelerator-diagnostic readiness evidence.
 8. `schema_benchmark`: advisory schema-strategy benchmark evidence and report
    contracts.
 9. `refs`: typed references to external owner contracts.

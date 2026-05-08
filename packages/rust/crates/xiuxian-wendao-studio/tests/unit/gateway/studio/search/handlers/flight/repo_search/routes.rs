@@ -202,7 +202,7 @@ async fn build_studio_flight_service_for_roots_accepts_code_ast_analysis_routes(
     );
     write_file_or_panic(
         project_root.join("repo/Cargo.toml"),
-        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
         "Cargo.toml should write",
     );
     write_file_or_panic(
