@@ -274,12 +274,17 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
             "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS"
         ),
         "hosted_vlm_ocr_page_window_size": "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE",
+        "pdf_ocr_backend_text_page_fallback": (
+            "WENDAO_PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK"
+        ),
         "openrouter_model": "WENDAO_OPENROUTER_MODEL",
         "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
         "openrouter_title": "WENDAO_OPENROUTER_TITLE",
     }
     for attr, key in mappings.items():
         value = getattr(args, attr, None)
+        if attr == "pdf_ocr_backend_text_page_fallback" and value == "disabled":
+            continue
         if value is not None:
             env[key] = str(value)
     prewarm_profiles = getattr(args, "pdf_ocr_prewarm_profile", [])

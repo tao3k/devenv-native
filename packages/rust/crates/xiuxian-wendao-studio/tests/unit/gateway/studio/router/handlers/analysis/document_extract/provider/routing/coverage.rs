@@ -13,6 +13,8 @@ fn hybrid_page_ocr_validation_rejects_skipped_ocr_rows() {
     };
 
     assert!(error.contains("non-success status"));
+    assert!(error.contains("shard-1"));
+    assert!(error.contains("worker skipped"));
 }
 
 #[cfg(feature = "document-extract-pdf-source-range")]

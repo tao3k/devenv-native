@@ -23,10 +23,18 @@ pub(crate) fn validate_successful_ocr_results(
             ));
         }
         if result.status != PdfOcrShardResultStatus::Succeeded {
+            let detail = result
+                .error_message
+                .as_deref()
+                .map(str::trim)
+                .filter(|message| !message.is_empty())
+                .map_or_else(String::new, |message| format!(": {message}"));
             return Err(format!(
-                "OCR worker returned non-success status `{}` for page {}",
+                "OCR worker returned non-success status `{}` for shard `{}` on page {}{}",
                 result.status.as_str(),
-                result.page_index
+                result.shard_element_id,
+                result.page_index,
+                detail
             ));
         }
         if result

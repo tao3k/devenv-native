@@ -106,6 +106,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--pdf-ocr-backend-text-page-fallback",
+        choices=("disabled", "compatible-page"),
+        default="disabled",
+        help=(
+            "Opt-in Python OCR worker canary for backend-text page failures. "
+            "`compatible-page` retries only failed or empty backend-text source pages "
+            "through docling-compatible-page-ocr-v1 before Rust full-document fallback "
+            "is allowed to run."
+        ),
+    )
+    parser.add_argument(
         "--local-python-ocr-endpoint-count",
         default="auto",
         help=(

@@ -38,6 +38,8 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
 )
 from xiuxian_wendao_analyzer.pdf_ocr_workers import (
+    PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE,
+    PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_ENV,
     PDF_OCR_FAST_TEXT_DEFAULT_THREADS,
     PDF_OCR_FAST_TEXT_THREADS_ENV,
     PDF_OCR_PREWARM_PAGE_INDEX_ENV,
@@ -321,6 +323,84 @@ def test_backend_text_source_range_topups_empty_pages_with_fast_text(
     assert [row["text"] for row in table.to_pylist()] == [
         "backend page 1",
         "fast page 2",
+    ]
+
+
+def test_backend_text_source_range_canary_topups_empty_pages_with_compatible_page(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    class BackendDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            if "page_break_placeholder" in kwargs:
+                separator = str(kwargs["page_break_placeholder"])
+                return separator.join(["backend page 1", ""])
+            return ""
+
+    class EmptyDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            _ = kwargs
+            return ""
+
+    class CompatibleDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            _ = kwargs
+            return "compatible page 2"
+
+    class Result:
+        def __init__(self, document: object) -> None:
+            self.document = document
+
+    class Converter:
+        def __init__(self, profile: str) -> None:
+            self.profile = profile
+
+        def convert(self, source: str | Path, **kwargs: object) -> Result:
+            _ = source, kwargs
+            if self.profile == PDF_OCR_BACKEND_TEXT_PROFILE:
+                return Result(BackendDocument())
+            if self.profile == PDF_OCR_DEFAULT_PROFILE:
+                return Result(CompatibleDocument())
+            return Result(EmptyDocument())
+
+    def converter_factory(profile: str) -> Converter:
+        requested_profiles.append(profile)
+        return Converter(profile)
+
+    monkeypatch.setenv(
+        PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_ENV,
+        PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE,
+    )
+    input_tables = [
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            page_index=page_index,
+            shard_element_id=f"shard-{page_index}",
+            ocr_profile=PDF_OCR_BACKEND_TEXT_PROFILE,
+        )
+        for page_index in range(2)
+    ]
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(input_tables),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=converter_factory,
+            max_workers=1,
+        ),
+    )
+
+    assert requested_profiles == [
+        PDF_OCR_BACKEND_TEXT_PROFILE,
+        PDF_OCR_FAST_TEXT_PROFILE,
+        PDF_OCR_DEFAULT_PROFILE,
+    ]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "backend page 1",
+        "compatible page 2",
     ]
 
 

@@ -303,6 +303,11 @@ def build_report_payload(
         "pdfOcrPrewarmEndpointCount": getattr(
             args, "pdf_ocr_prewarm_endpoint_count", None
         ),
+        "pdfOcrBackendTextPageFallback": getattr(
+            args,
+            "pdf_ocr_backend_text_page_fallback",
+            "disabled",
+        ),
         "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,

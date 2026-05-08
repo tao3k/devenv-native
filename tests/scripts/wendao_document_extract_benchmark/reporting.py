@@ -335,6 +335,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- PDF OCR prewarm page index: `{payload.get('pdfOcrPrewarmPageIndex')}`",
         f"- PDF OCR prewarm page indices: `{payload.get('pdfOcrPrewarmPageIndices')}`",
         f"- PDF OCR prewarm endpoint count: `{payload.get('pdfOcrPrewarmEndpointCount')}`",
+        f"- PDF OCR backend-text page fallback: `{payload.get('pdfOcrBackendTextPageFallback')}`",
         f"- Local Python OCR endpoints: `{payload.get('localPythonOcrEndpointCount', 1)}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",

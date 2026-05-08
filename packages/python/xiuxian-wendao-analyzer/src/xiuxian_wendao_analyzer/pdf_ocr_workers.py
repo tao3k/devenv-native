@@ -40,6 +40,8 @@ PDF_OCR_PREWARM_PROFILES_ENV = "WENDAO_PDF_OCR_PREWARM_PROFILES"
 PDF_OCR_PREWARM_SOURCE_PATH_ENV = "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH"
 PDF_OCR_PREWARM_PAGE_INDICES_ENV = "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES"
 PDF_OCR_PREWARM_PAGE_INDEX_ENV = "WENDAO_PDF_OCR_PREWARM_PAGE_INDEX"
+PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_ENV = "WENDAO_PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK"
+PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE = "compatible-page"
 
 
 class SkippingPdfOcrShardWorker:
@@ -211,6 +213,14 @@ class DoclingPdfOcrShardWorker:
                     input_row,
                     source_path,
                 )
+                if result is None and backend_text_page_fallback_mode() == (
+                    PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE
+                ):
+                    result = self._try_convert_source_page(
+                        self._converter_for_thread(PDF_OCR_DEFAULT_PROFILE),
+                        input_row,
+                        source_path,
+                    )
             if result is not None:
                 return result
 
@@ -300,6 +310,14 @@ class DoclingPdfOcrShardWorker:
                         input_row,
                         source_path,
                     )
+                    if fallback is None and backend_text_page_fallback_mode() == (
+                        PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE
+                    ):
+                        fallback = self._try_convert_source_page(
+                            self._converter_for_thread(PDF_OCR_DEFAULT_PROFILE),
+                            input_row,
+                            source_path,
+                        )
                     if fallback is None:
                         return None
                     rows.append(fallback)
@@ -370,6 +388,20 @@ def _try_export_source_page_batch_markdown(
 def _ocr_profile(input_row: Mapping[str, Any]) -> str:
     profile = str(input_row.get("ocrProfile", "")).strip()
     return profile or PDF_OCR_DEFAULT_PROFILE
+
+
+def backend_text_page_fallback_mode() -> str:
+    return backend_text_page_fallback_mode_with_lookup(os.environ.get)
+
+
+def backend_text_page_fallback_mode_with_lookup(
+    lookup: Callable[[str], str | None],
+) -> str:
+    mode = (lookup(PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_ENV) or "").strip()
+    mode = mode.replace("_", "-").lower()
+    if mode == PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE:
+        return PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE
+    return "disabled"
 
 
 def _factory_accepts_ocr_profile(factory: Callable[..., Any] | None) -> bool:

@@ -429,6 +429,12 @@ refresh `8201.568417 ms`, shard-cache reuse `123.758583 ms`, artifact reuse
 sample below the locked `12856.546292 ms` baseline. The older 2026-05-07
 OpenRouter r59/r60 evidence remains historical at best `9363.09725 ms` and
 promoted repeat `12130.139833 ms`.
+`--pdf-ocr-backend-text-page-fallback compatible-page` is a separate Python
+worker canary for backend-text page failures. It retries only failed or empty
+backend-text source pages through `docling-compatible-page-ocr-v1` before the
+Rust provider escalates to full-document fallback. The default remains
+`disabled`; promotion requires structure parity and Docling groundtruth gates
+because compatible page Markdown may not preserve full-document structure.
 `--rust-pdf-backend-text-topup disabled` is a separate character-floor
 diagnostic. It is rejected for the current milestone fixture because disabling
 top-up drops `metricsResultChars` below the frozen floor; the default remains
