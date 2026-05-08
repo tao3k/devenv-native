@@ -117,6 +117,18 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--pdf-ocr-backend-text-empty-page",
+        choices=("disabled", "verified-empty"),
+        default="disabled",
+        help=(
+            "Opt-in backend-text source-page-range canary. `verified-empty` lets "
+            "the Python OCR worker report an empty backend-text page as a successful "
+            "empty Markdown row after backend, fast-text, and configured compatible "
+            "page attempts all return no text. Rust precision gating accepts those "
+            "rows only for matching backend-text source-page-range inputs."
+        ),
+    )
+    parser.add_argument(
         "--local-python-ocr-endpoint-count",
         default="auto",
         help=(
@@ -829,6 +841,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Fail when force, shard-cache rebuild, and cache-hit runs produce "
             "different structure order signatures."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-structure-parity-mismatch",
+        action="store_true",
+        help=(
+            "Fail when no structure parity baseline is checked, or when any "
+            "candidate structure parity check reports an error."
         ),
     )
     parser.add_argument(

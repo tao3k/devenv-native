@@ -68,6 +68,18 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_EMPTY"] = str(
             rust_pdf_local_backend_text_empty
         )
+    pdf_ocr_backend_text_empty_page = getattr(
+        args,
+        "pdf_ocr_backend_text_empty_page",
+        None,
+    )
+    if (
+        pdf_ocr_backend_text_empty_page
+        and pdf_ocr_backend_text_empty_page != "disabled"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_EMPTY_PAGE"] = str(
+            pdf_ocr_backend_text_empty_page
+        )
     rust_pdf_local_fast_text = getattr(args, "rust_pdf_local_fast_text", None)
     if rust_pdf_local_fast_text and rust_pdf_local_fast_text != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT"] = str(

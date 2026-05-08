@@ -21,6 +21,7 @@ pub(super) use local_text::{
     local_backend_text_error_fail_fast_results_for_tests, local_backend_text_results_for_tests,
     local_empty_backend_text_dispatch_python_results_for_tests,
     local_empty_backend_text_fail_fast_results_for_tests,
+    local_partial_backend_text_error_fail_fast_results_for_tests,
 };
 
 #[cfg(test)]

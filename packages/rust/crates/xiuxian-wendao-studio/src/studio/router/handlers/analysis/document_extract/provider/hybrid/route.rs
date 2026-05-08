@@ -49,7 +49,7 @@ use xiuxian_wendao_server::transport::{
 
 use super::precision_gate::{
     validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
-    validate_ocr_results_match_inputs, validate_successful_ocr_results,
+    validate_ocr_results_match_inputs, validate_successful_ocr_results_for_inputs,
 };
 use super::profile::apply_hybrid_page_ocr_profile_plan;
 #[cfg(feature = "document-extract-pdf-render")]
@@ -1551,10 +1551,11 @@ fn materialize_hybrid_page_ocr_resource_batch_from_results(
     scheduler_elapsed_ms: f64,
 ) -> Result<HybridDocumentResourceBatch, String> {
     let results = order_ocr_results_by_inputs(inputs.as_slice(), results)?;
-    validate_successful_ocr_results(
+    validate_successful_ocr_results_for_inputs(
         results.as_slice(),
         render_report.page_count,
         u32::try_from(inputs.len()).unwrap_or(u32::MAX),
+        inputs.as_slice(),
     )?;
     validate_ocr_results_match_inputs(inputs.as_slice(), results.as_slice())?;
     let has_region_shards = inputs.iter().any(|input| input.shard_type == "region");

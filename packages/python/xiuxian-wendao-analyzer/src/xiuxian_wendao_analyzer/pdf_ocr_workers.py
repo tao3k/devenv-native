@@ -42,6 +42,8 @@ PDF_OCR_PREWARM_PAGE_INDICES_ENV = "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES"
 PDF_OCR_PREWARM_PAGE_INDEX_ENV = "WENDAO_PDF_OCR_PREWARM_PAGE_INDEX"
 PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_ENV = "WENDAO_PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK"
 PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE = "compatible-page"
+PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_ENV = "WENDAO_PDF_OCR_BACKEND_TEXT_EMPTY_PAGE"
+PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED = "verified-empty"
 
 
 class SkippingPdfOcrShardWorker:
@@ -221,6 +223,10 @@ class DoclingPdfOcrShardWorker:
                         input_row,
                         source_path,
                     )
+                if result is None and backend_text_empty_page_mode() == (
+                    PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED
+                ):
+                    result = _verified_empty_backend_text_result()
             if result is not None:
                 return result
 
@@ -318,6 +324,10 @@ class DoclingPdfOcrShardWorker:
                             input_row,
                             source_path,
                         )
+                    if fallback is None and backend_text_empty_page_mode() == (
+                        PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED
+                    ):
+                        fallback = _verified_empty_backend_text_result()
                     if fallback is None:
                         return None
                     rows.append(fallback)
@@ -402,6 +412,30 @@ def backend_text_page_fallback_mode_with_lookup(
     if mode == PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE:
         return PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE
     return "disabled"
+
+
+def backend_text_empty_page_mode() -> str:
+    return backend_text_empty_page_mode_with_lookup(os.environ.get)
+
+
+def backend_text_empty_page_mode_with_lookup(
+    lookup: Callable[[str], str | None],
+) -> str:
+    mode = (lookup(PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_ENV) or "").strip()
+    mode = mode.replace("_", "-").lower()
+    if mode == PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED:
+        return PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED
+    return "disabled"
+
+
+def _verified_empty_backend_text_result() -> Mapping[str, Any]:
+    return {
+        "status": "succeeded",
+        "text": "",
+        "textMimeType": "text/markdown",
+        "confidence": None,
+        "errorMessage": None,
+    }
 
 
 def _factory_accepts_ocr_profile(factory: Callable[..., Any] | None) -> bool:

@@ -17,6 +17,8 @@ pub(super) use types::{
 };
 
 #[cfg(test)]
+pub(super) use precision_gate::validate_successful_ocr_results_for_inputs_with_lookup;
+#[cfg(test)]
 pub(super) use precision_gate::{
     validate_hybrid_page_coverage, validate_hybrid_precision_gate, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results,

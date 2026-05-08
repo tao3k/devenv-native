@@ -48,6 +48,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         pdf_ocr_worker="skip",
         pdf_ocr_workers="auto",
         pdf_ocr_prewarm_profile=["docling-fast-text-ocr"],
+        pdf_ocr_backend_text_empty_page="verified-empty",
         local_python_ocr_endpoint_count=1,
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
@@ -108,12 +109,55 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
     assert payload["pdfOcrPrewarmPageIndex"] is None
     assert payload["pdfOcrPrewarmPageIndices"] is None
     assert payload["pdfOcrPrewarmEndpointCount"] is None
+    assert payload["pdfOcrBackendTextEmptyPage"] == "verified-empty"
     assert payload["rustPdfLocalBackendText"] == "rust-lopdf"
     assert payload["rustPdfLocalBackendTextEmpty"] == "fail-fast"
     assert payload["rustPdfLocalFastText"] == "rust-lopdf"
     assert payload["rustPdfFastTextSourceRangeSplit"] == "single-page"
     assert payload["rustPdfFastTextEndpointAffinity"] == "disabled"
     assert payload["rustPdfBackendTextTopup"] == "disabled"
+
+
+def test_report_gate_rejects_structure_parity_failures() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        fail_on_structure_parity_mismatch=True,
+        fail_on_pdf_milestone_regression=False,
+    )
+    payload = {
+        "summary": {
+            "structureParityCheckedFixtures": 1,
+            "allStructureParityPassed": False,
+            "totalStructureParityErrors": 1,
+            "precisionSpeedSummary": {
+                "pdfOcrMilestoneGuard": {"passed": True},
+            },
+        }
+    }
+
+    with pytest.raises(SystemExit, match="structure parity gate failed"):
+        benchmark.enforce_report_gates(args, payload)
+
+
+def test_report_gate_requires_structure_parity_checks() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        fail_on_structure_parity_mismatch=True,
+        fail_on_pdf_milestone_regression=False,
+    )
+    payload = {
+        "summary": {
+            "structureParityCheckedFixtures": 0,
+            "allStructureParityPassed": None,
+            "totalStructureParityErrors": 0,
+            "precisionSpeedSummary": {
+                "pdfOcrMilestoneGuard": {"passed": True},
+            },
+        }
+    }
+
+    with pytest.raises(SystemExit, match="no fixtures checked"):
+        benchmark.enforce_report_gates(args, payload)
 
 
 def test_run_structure_baseline_probe_generates_sync_fixture_baselines(

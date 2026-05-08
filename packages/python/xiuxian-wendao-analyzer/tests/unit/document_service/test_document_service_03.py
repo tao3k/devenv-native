@@ -38,6 +38,8 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
 )
 from xiuxian_wendao_analyzer.pdf_ocr_workers import (
+    PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_ENV,
+    PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED,
     PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_COMPATIBLE,
     PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK_ENV,
     PDF_OCR_FAST_TEXT_DEFAULT_THREADS,
@@ -401,6 +403,149 @@ def test_backend_text_source_range_canary_topups_empty_pages_with_compatible_pag
     assert [row["text"] for row in table.to_pylist()] == [
         "backend page 1",
         "compatible page 2",
+    ]
+
+
+def test_backend_text_source_range_keeps_empty_pages_failed_by_default(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+
+    def converter_factory(profile: str) -> FakeDoclingConverter:
+        _ = profile
+        return FakeDoclingConverter(" \n")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            image_path=str(tmp_path / "source-page-range-00016.source-page-range"),
+            page_index=16,
+            shard_element_id="shard-16",
+            ocr_profile=PDF_OCR_BACKEND_TEXT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=converter_factory,
+            max_workers=1,
+        ),
+    )
+
+    row = table.to_pylist()[0]
+    assert row["status"] == "failed"
+    assert row["text"] is None
+    assert "OCR shard image does not exist" in row["errorMessage"]
+
+
+def test_backend_text_source_range_canary_returns_verified_empty_pages(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    def converter_factory(profile: str) -> FakeDoclingConverter:
+        requested_profiles.append(profile)
+        return FakeDoclingConverter(" \n")
+
+    monkeypatch.setenv(
+        PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_ENV,
+        PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED,
+    )
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            image_path=str(tmp_path / "source-page-range-00016.source-page-range"),
+            page_index=16,
+            shard_element_id="shard-16",
+            ocr_profile=PDF_OCR_BACKEND_TEXT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=converter_factory,
+            max_workers=1,
+        ),
+    )
+
+    assert requested_profiles == [
+        PDF_OCR_BACKEND_TEXT_PROFILE,
+        PDF_OCR_FAST_TEXT_PROFILE,
+    ]
+    row = table.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == ""
+    assert row["textMimeType"] == "text/markdown"
+
+
+def test_backend_text_source_range_canary_verifies_empty_batch_pages(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    class BackendDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            if "page_break_placeholder" in kwargs:
+                separator = str(kwargs["page_break_placeholder"])
+                return separator.join(["backend page 1", ""])
+            return ""
+
+    class EmptyDocument:
+        def export_to_markdown(self, **kwargs: object) -> str:
+            _ = kwargs
+            return ""
+
+    class Result:
+        def __init__(self, document: object) -> None:
+            self.document = document
+
+    class Converter:
+        def __init__(self, profile: str) -> None:
+            self.profile = profile
+
+        def convert(self, source: str | Path, **kwargs: object) -> Result:
+            _ = source, kwargs
+            if self.profile == PDF_OCR_BACKEND_TEXT_PROFILE:
+                return Result(BackendDocument())
+            return Result(EmptyDocument())
+
+    def converter_factory(profile: str) -> Converter:
+        requested_profiles.append(profile)
+        return Converter(profile)
+
+    monkeypatch.setenv(
+        PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_ENV,
+        PDF_OCR_BACKEND_TEXT_EMPTY_PAGE_VERIFIED,
+    )
+    input_tables = [
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            image_path=str(
+                tmp_path / f"source-page-range-{page_index:05}.source-page-range"
+            ),
+            page_index=page_index,
+            shard_element_id=f"shard-{page_index}",
+            ocr_profile=PDF_OCR_BACKEND_TEXT_PROFILE,
+        )
+        for page_index in range(2)
+    ]
+
+    table = build_pdf_ocr_shard_result_table(
+        pa.concat_tables(input_tables),
+        worker=DoclingPdfOcrShardWorker(
+            converter_factory=converter_factory,
+            max_workers=1,
+        ),
+    )
+
+    assert requested_profiles == [
+        PDF_OCR_BACKEND_TEXT_PROFILE,
+        PDF_OCR_FAST_TEXT_PROFILE,
+    ]
+    assert [(row["status"], row["text"]) for row in table.to_pylist()] == [
+        ("succeeded", "backend page 1"),
+        ("succeeded", ""),
     ]
 
 

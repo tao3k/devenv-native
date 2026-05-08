@@ -212,6 +212,17 @@ OCR. The default remains `dispatch-python`. Local fast-text replacement is
 diagnostic-only and is
 rejected for the milestone fixture because it drops `metricsResultChars` below
 the frozen floor. Set
+`WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_EMPTY_PAGE=verified-empty`, or pass
+`--pdf-ocr-backend-text-empty-page verified-empty`, only when the matching
+Python worker canary is enabled. This lets the Rust precision gate accept an
+empty successful OCR result for a `docling-backend-text-ocr-v1` page shard only
+when the input row is a source-page-range placeholder. It does not accept empty
+hosted VLM, raster, region, or compatible-page OCR output, and it does not
+change the Arrow OCR shard input/result schemas. The default remains
+`disabled`. The 2026-05-08 r108c real Docling canary is rejected as a
+promotion candidate because it improved force latency while failing structure
+parity on all three skipped-page/redp fixtures; keep full fallback active until
+a narrower merge path preserves baseline coverage. Set
 `WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_SOURCE_RANGE_SPLIT=single-page`, or pass
 `--rust-pdf-fast-text-source-range-split single-page`, only as a source-range
 chunk-shape diagnostic. It keeps Rust scheduler permits as the final admission

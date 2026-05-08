@@ -21,6 +21,7 @@ use super::{
     merge_ocr2_recovery_page_inputs, sample_hybrid_page_ocr_report, sample_ocr_input,
     sample_ocr_result, validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results,
+    validate_successful_ocr_results_for_inputs_with_lookup,
 };
 
 mod coverage;

@@ -37,6 +37,8 @@ use super::arrow_cache::{read_arrow_file, write_arrow_file};
 #[cfg(test)]
 use super::registry::DocumentExtractJobRegistry;
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
+use hybrid::validate_successful_ocr_results_for_inputs_with_lookup;
+#[cfg(all(test, feature = "document-extract-pdf-source-range"))]
 use hybrid::{
     DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,

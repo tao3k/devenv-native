@@ -2,7 +2,7 @@
 use super::{
     sample_ocr_input, sample_ocr_result, validate_hybrid_page_coverage,
     validate_hybrid_shard_coverage, validate_ocr_results_match_inputs,
-    validate_successful_ocr_results,
+    validate_successful_ocr_results, validate_successful_ocr_results_for_inputs_with_lookup,
 };
 
 #[cfg(feature = "document-extract-pdf-source-range")]
@@ -15,6 +15,36 @@ fn hybrid_page_ocr_validation_rejects_skipped_ocr_rows() {
     assert!(error.contains("non-success status"));
     assert!(error.contains("shard-1"));
     assert!(error.contains("worker skipped"));
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn hybrid_page_ocr_validation_allows_verified_empty_backend_text_source_pages() -> Result<(), String>
+{
+    let mut input = sample_ocr_input(16, "page");
+    input.ocr_profile =
+        xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_BACKEND_TEXT_PROFILE.to_string();
+    input.image_path = "/tmp/source-page-range-00016.source-page-range".to_string();
+    input.image_mime_type = "application/x-wendao-source-pdf-page".to_string();
+    let mut result = sample_ocr_result(16, true);
+    result.ocr_profile = input.ocr_profile.clone();
+    result.text = Some(String::new());
+
+    let Err(error) = validate_successful_ocr_results_for_inputs_with_lookup(
+        &[result.clone()],
+        21,
+        1,
+        &[input.clone()],
+        &|_| None,
+    ) else {
+        panic!("empty backend-text source-page rows should fail by default");
+    };
+    assert!(error.contains("empty text"));
+
+    validate_successful_ocr_results_for_inputs_with_lookup(&[result], 21, 1, &[input], &|key| {
+        (key == "WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_EMPTY_PAGE")
+            .then(|| "verified-empty".to_string())
+    })
 }
 
 #[cfg(feature = "document-extract-pdf-source-range")]

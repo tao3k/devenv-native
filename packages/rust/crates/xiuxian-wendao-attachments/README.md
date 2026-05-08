@@ -102,7 +102,10 @@ backend-text canaries. Studio may use that helper for
 fast-text top-up path or loosen the frozen benchmark character floor. When
 Studio enables its local empty backend-text fail-fast diagnostic, the failure
 decision remains Studio-owned; attachments only supplies the source-page text
-read.
+read. The helper also exposes a per-page result form so one unextractable page
+does not poison successful pages in the same source-range run; Studio remains
+responsible for deciding whether a page-local failure becomes a failed OCR row,
+a Python dispatch, or a precision-preserving full-document fallback.
 
 `PdfPageRenderSelection::ShardFallbackPages` is intentionally high-recall in
 the current source-range path. When no narrower safe region signal exists, it

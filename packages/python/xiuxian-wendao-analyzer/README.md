@@ -296,6 +296,9 @@ fail the benchmark run.
 Use `--fail-on-structure-order-mismatch` when a real OCR benchmark must fail
 if force, shard-cache rebuild, and cache-hit artifacts produce different
 structure order signatures.
+Use `--fail-on-structure-parity-mismatch` when a real OCR benchmark has a
+Docling baseline and must fail if the candidate loses baseline text coverage,
+protected block counts, or any other structure parity guard.
 Each report also includes a `precisionSpeedSummary` section that keeps the
 quality and latency signals together: error rows, artifact errors, structure
 order, force/cache/shard-reuse order stability, parity status, OCR/bbox block
@@ -436,6 +439,22 @@ produce the requested source-page text vector, the provider returns a failed
 OCR row immediately so the precision-preserving
 full-document fallback can run without sending the non-image placeholder
 through the Python raster OCR path. The default remains `dispatch-python`.
+`--pdf-ocr-backend-text-empty-page verified-empty` is a narrower recovery
+canary for true empty source-page-range rows. The benchmark forwards it to the
+Python worker as `WENDAO_PDF_OCR_BACKEND_TEXT_EMPTY_PAGE=verified-empty` and
+to the Rust provider as
+`WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_EMPTY_PAGE=verified-empty`. When a
+`docling-backend-text-ocr-v1` source-page placeholder has no image path and
+backend-text plus the optional compatible-page retry both produce no text, the
+worker may return a successful empty Markdown row. Rust accepts that empty text
+only for backend-text page shards backed by source-page-range placeholders, so
+ordinary empty OCR output still triggers the existing precision fallback.
+The 2026-05-08 r108c real Docling canary rejected this mode as a promotion
+candidate for the `pdf-redp5110-sampled`, `pdf-skipped-1page`, and
+`pdf-skipped-2pages` fixtures: force refresh improved, but all three structure
+parity checks failed because backend-text rows did not preserve baseline text
+coverage. Use the structure parity gate for any future run that enables this
+canary.
 `--pdf-ocr-backend-text-page-fallback compatible-page` is a separate Python
 worker canary for backend-text page failures. It retries only failed or empty
 backend-text source pages through `docling-compatible-page-ocr-v1` before the

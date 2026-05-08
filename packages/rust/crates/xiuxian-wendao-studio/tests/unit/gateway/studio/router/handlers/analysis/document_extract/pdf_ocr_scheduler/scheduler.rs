@@ -6,7 +6,8 @@ use super::{
     endpoint_index_for_request, local_backend_and_fast_text_results_for_tests,
     local_backend_text_error_fail_fast_results_for_tests, local_backend_text_results_for_tests,
     local_empty_backend_text_dispatch_python_results_for_tests,
-    local_empty_backend_text_fail_fast_results_for_tests, pdf_ocr_worker_limit_with_lookup,
+    local_empty_backend_text_fail_fast_results_for_tests,
+    local_partial_backend_text_error_fail_fast_results_for_tests, pdf_ocr_worker_limit_with_lookup,
     rendered_region_shard_chunks, rendered_region_shard_chunks_with_composite_size,
     scheduler_shard_groups, scheduler_trace_for_chunk,
     source_pdf_page_range_chunk_endpoint_index_with_lookup,
@@ -297,6 +298,44 @@ fn pdf_ocr_scheduler_can_fail_fast_source_range_backend_text_errors() {
     assert!(message.contains("local backend-text source extraction failed"));
     assert!(message.contains("synthetic lopdf failure"));
     assert!(message.contains("source-page-range placeholder"));
+}
+
+#[test]
+fn pdf_ocr_scheduler_keeps_successful_pages_when_one_local_backend_page_fails() {
+    let source = autosearch_fixture();
+    let inputs = (0..3)
+        .map(|page_index| {
+            let mut input =
+                sample_source_page_range_input(source.to_string_lossy().as_ref(), page_index);
+            input.ocr_profile = PDF_OCR_BACKEND_TEXT_PROFILE.to_string();
+            input.ocr_engine = "docling-backend-text-ocr".to_string();
+            input
+        })
+        .collect::<Vec<_>>();
+
+    let results = local_partial_backend_text_error_fail_fast_results_for_tests(inputs.as_slice());
+
+    assert_eq!(
+        results[0]
+            .as_ref()
+            .and_then(|result| result.text.as_deref()),
+        Some("local page 0")
+    );
+    assert_eq!(
+        results[1].as_ref().map(|result| result.status.clone()),
+        Some(PdfOcrShardResultStatus::Failed)
+    );
+    assert_eq!(
+        results[2]
+            .as_ref()
+            .and_then(|result| result.text.as_deref()),
+        Some("local page 2")
+    );
+    let message = results[1]
+        .as_ref()
+        .and_then(|result| result.error_message.as_deref())
+        .unwrap_or_default();
+    assert!(message.contains("synthetic page failure"));
 }
 
 fn sample_ocr_input(source_path: &str, page_index: u32, shard_type: &str) -> PdfOcrShardInput {

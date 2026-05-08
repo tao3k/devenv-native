@@ -2,6 +2,8 @@ use std::fs;
 
 use tokio::time::{Duration, sleep};
 
+#[cfg(feature = "document-extract-pdf-source-range")]
+use super::validate_successful_ocr_results_for_inputs_with_lookup;
 use super::{
     Arc, DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV,
     DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV, DocumentExtractJobRegistry, EngineRecordBatch,

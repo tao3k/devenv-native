@@ -277,13 +277,21 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         "pdf_ocr_backend_text_page_fallback": (
             "WENDAO_PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK"
         ),
+        "pdf_ocr_backend_text_empty_page": "WENDAO_PDF_OCR_BACKEND_TEXT_EMPTY_PAGE",
         "openrouter_model": "WENDAO_OPENROUTER_MODEL",
         "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
         "openrouter_title": "WENDAO_OPENROUTER_TITLE",
     }
     for attr, key in mappings.items():
         value = getattr(args, attr, None)
-        if attr == "pdf_ocr_backend_text_page_fallback" and value == "disabled":
+        if (
+            attr
+            in {
+                "pdf_ocr_backend_text_page_fallback",
+                "pdf_ocr_backend_text_empty_page",
+            }
+            and value == "disabled"
+        ):
             continue
         if value is not None:
             env[key] = str(value)

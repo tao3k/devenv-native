@@ -267,12 +267,25 @@ def main() -> int:
     sys.stdout.write(
         f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n"
     )
+    enforce_report_gates(args, payload)
+    return 0
+
+
+def enforce_report_gates(args, payload: dict[str, Any]) -> None:
+    if getattr(args, "fail_on_structure_parity_mismatch", False):
+        summary = payload["summary"]
+        checked = int(summary.get("structureParityCheckedFixtures") or 0)
+        errors = int(summary.get("totalStructureParityErrors") or 0)
+        passed = summary.get("allStructureParityPassed")
+        if checked == 0:
+            raise SystemExit("structure parity gate failed: no fixtures checked")
+        if errors > 0 or passed is False:
+            raise SystemExit(f"structure parity gate failed: {errors} parity error(s)")
     if args.fail_on_pdf_milestone_regression:
         guard = payload["summary"]["precisionSpeedSummary"]["pdfOcrMilestoneGuard"]
         if not guard["passed"]:
             reason = guard["reason"] or "; ".join(guard["regressions"])
             raise SystemExit(f"PDF OCR milestone regression guard failed: {reason}")
-    return 0
 
 
 def build_report_payload(
@@ -306,6 +319,11 @@ def build_report_payload(
         "pdfOcrBackendTextPageFallback": getattr(
             args,
             "pdf_ocr_backend_text_page_fallback",
+            "disabled",
+        ),
+        "pdfOcrBackendTextEmptyPage": getattr(
+            args,
+            "pdf_ocr_backend_text_empty_page",
             "disabled",
         ),
         "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,

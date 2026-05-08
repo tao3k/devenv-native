@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::source_pdf_page_texts;
+use super::{source_pdf_page_text_results, source_pdf_page_texts};
 
 #[test]
 fn source_pdf_page_texts_extracts_fixture_page_text() {
@@ -9,6 +9,19 @@ fn source_pdf_page_texts_extracts_fixture_page_text() {
 
     assert_eq!(texts.len(), 1);
     assert!(texts[0].len() > 1_000);
+}
+
+#[test]
+fn source_pdf_page_text_results_preserve_successful_pages_with_page_errors() {
+    let results = source_pdf_page_text_results(autosearch_fixture().as_path(), &[0, u32::MAX])
+        .expect("fixture PDF should load");
+
+    assert_eq!(results.len(), 2);
+    assert!(results[0].as_ref().is_ok_and(|text| text.len() > 1_000));
+    let error = results[1]
+        .as_ref()
+        .expect_err("overflow page index should remain row-local");
+    assert!(error.contains("overflowed page number"));
 }
 
 #[test]

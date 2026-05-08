@@ -11,13 +11,30 @@ use lopdf::Document as LopdfDocument;
 /// Returns an error when the PDF cannot be loaded, a page index cannot be
 /// converted to a PDF page number, or lopdf fails to extract text for a page.
 pub fn source_pdf_page_texts(path: &Path, page_indexes: &[u32]) -> Result<Vec<String>, String> {
+    source_pdf_page_text_results(path, page_indexes)?
+        .into_iter()
+        .collect()
+}
+
+/// Extract text for the requested zero-based page indexes from a source PDF,
+/// preserving per-page extraction failures.
+///
+/// # Errors
+///
+/// Returns an error when the PDF cannot be loaded. Individual page extraction
+/// failures are returned in the output vector so callers can recover only the
+/// affected pages.
+pub fn source_pdf_page_text_results(
+    path: &Path,
+    page_indexes: &[u32],
+) -> Result<Vec<Result<String, String>>, String> {
     let document =
         LopdfDocument::load(path).map_err(|error| format!("load PDF with lopdf: {error}"))?;
-    page_indexes
+    Ok(page_indexes
         .iter()
         .copied()
         .map(|page_index| source_pdf_page_text(&document, page_index))
-        .collect()
+        .collect())
 }
 
 fn source_pdf_page_text(document: &LopdfDocument, page_index: u32) -> Result<String, String> {

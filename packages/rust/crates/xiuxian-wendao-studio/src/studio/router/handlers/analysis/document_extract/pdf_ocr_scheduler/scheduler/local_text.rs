@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use xiuxian_wendao_attachments::pdf::ocr::{
     PDF_OCR_BACKEND_TEXT_PROFILE, PDF_OCR_FAST_TEXT_PROFILE, PdfOcrShardInput, PdfOcrShardResult,
 };
-use xiuxian_wendao_attachments::pdf::text::source_pdf_page_texts;
+use xiuxian_wendao_attachments::pdf::text::source_pdf_page_text_results;
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT";
@@ -128,6 +128,17 @@ pub(crate) fn local_backend_text_error_fail_fast_results_for_tests(
     )
 }
 
+#[cfg(test)]
+pub(crate) fn local_partial_backend_text_error_fail_fast_results_for_tests(
+    inputs: &[PdfOcrShardInput],
+) -> Vec<Option<PdfOcrShardResult>> {
+    local_text_results_enabled_with_extractor(
+        inputs,
+        LocalTextModes::backend_text_empty_fail_fast(),
+        partial_error_text_extractor,
+    )
+}
+
 fn local_text_env_enabled(key: &str) -> bool {
     std::env::var(key)
         .ok()
@@ -157,13 +168,13 @@ fn local_text_results_enabled(
     inputs: &[PdfOcrShardInput],
     modes: LocalTextModes,
 ) -> Vec<Option<PdfOcrShardResult>> {
-    local_text_results_enabled_with_extractor(inputs, modes, source_pdf_page_texts)
+    local_text_results_enabled_with_extractor(inputs, modes, source_pdf_page_text_results)
 }
 
 fn local_text_results_enabled_with_extractor(
     inputs: &[PdfOcrShardInput],
     modes: LocalTextModes,
-    extractor: impl Fn(&Path, &[u32]) -> Result<Vec<String>, String>,
+    extractor: impl Fn(&Path, &[u32]) -> Result<Vec<Result<String, String>>, String>,
 ) -> Vec<Option<PdfOcrShardResult>> {
     let mut results = vec![None; inputs.len()];
     let mut groups: BTreeMap<PathBuf, Vec<(usize, u32)>> = BTreeMap::new();
@@ -183,7 +194,7 @@ fn local_text_results_enabled_with_extractor(
             .iter()
             .map(|(_, page_index)| *page_index)
             .collect::<Vec<_>>();
-        let texts = match extractor(source_path.as_path(), page_indexes.as_slice()) {
+        let text_results = match extractor(source_path.as_path(), page_indexes.as_slice()) {
             Ok(texts) => texts,
             Err(error) => {
                 fail_fast_local_backend_text_group(
@@ -196,7 +207,7 @@ fn local_text_results_enabled_with_extractor(
                 continue;
             }
         };
-        if texts.len() != page_requests.len() {
+        if text_results.len() != page_requests.len() {
             fail_fast_local_backend_text_group(
                 &mut results,
                 inputs,
@@ -204,13 +215,27 @@ fn local_text_results_enabled_with_extractor(
                 modes,
                 format!(
                     "local backend-text source extraction returned {} rows for {} requests",
-                    texts.len(),
+                    text_results.len(),
                     page_requests.len()
                 ),
             );
             continue;
         }
-        for ((position, _), text) in page_requests.into_iter().zip(texts) {
+        for ((position, _), text_result) in page_requests.into_iter().zip(text_results) {
+            let text = match text_result {
+                Ok(text) => text,
+                Err(error) => {
+                    let reason = format!("local backend-text source extraction failed: {error}");
+                    if let Some(result) = local_backend_text_fail_fast_result(
+                        &inputs[position],
+                        modes,
+                        reason.as_str(),
+                    ) {
+                        results[position] = Some(result);
+                    }
+                    continue;
+                }
+            };
             if text.trim().is_empty() {
                 if let Some(result) = local_backend_text_fail_fast_result(
                     &inputs[position],
@@ -281,11 +306,37 @@ fn is_local_text_candidate(input: &PdfOcrShardInput, modes: LocalTextModes) -> b
 }
 
 #[cfg(test)]
-fn empty_text_extractor(_path: &Path, page_indexes: &[u32]) -> Result<Vec<String>, String> {
-    Ok(page_indexes.iter().map(|_| String::new()).collect())
+fn empty_text_extractor(
+    _path: &Path,
+    page_indexes: &[u32],
+) -> Result<Vec<Result<String, String>>, String> {
+    Ok(page_indexes.iter().map(|_| Ok(String::new())).collect())
 }
 
 #[cfg(test)]
-fn error_text_extractor(_path: &Path, _page_indexes: &[u32]) -> Result<Vec<String>, String> {
-    Err("synthetic lopdf failure".to_string())
+fn error_text_extractor(
+    _path: &Path,
+    page_indexes: &[u32],
+) -> Result<Vec<Result<String, String>>, String> {
+    Ok(page_indexes
+        .iter()
+        .map(|_| Err("synthetic lopdf failure".to_string()))
+        .collect())
+}
+
+#[cfg(test)]
+fn partial_error_text_extractor(
+    _path: &Path,
+    page_indexes: &[u32],
+) -> Result<Vec<Result<String, String>>, String> {
+    Ok(page_indexes
+        .iter()
+        .map(|page_index| {
+            if *page_index == 1 {
+                Err("synthetic page failure".to_string())
+            } else {
+                Ok(format!("local page {page_index}"))
+            }
+        })
+        .collect())
 }
