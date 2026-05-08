@@ -14,7 +14,6 @@ pub struct NamedScalarValue {
 
 impl NamedScalarValue {
     /// Build a named scalar value from a source name and value.
-    #[must_use]
     pub fn new(source_name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             source_name: source_name.into(),
