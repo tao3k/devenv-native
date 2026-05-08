@@ -323,17 +323,7 @@ def start_gateway_server(
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     apply_rust_pdf_ocr_env(args, env)
-    command = [
-        args.cargo,
-        "run",
-        "-p",
-        "xiuxian-wendao-studio",
-        "--no-default-features",
-        "--features",
-        cargo_features_for_provider_mode(args.gateway_features, args),
-        "--bin",
-        "wendao",
-        "--",
+    gateway_args = [
         "--conf",
         str(config_path),
         "--root",
@@ -343,6 +333,23 @@ def start_gateway_server(
         "--port",
         str(gateway_port),
     ]
+    rust_provider_bin = getattr(args, "rust_provider_bin", None)
+    if rust_provider_bin is not None:
+        command = [str(rust_provider_bin), *gateway_args]
+    else:
+        command = [
+            args.cargo,
+            "run",
+            "-p",
+            "xiuxian-wendao-studio",
+            "--no-default-features",
+            "--features",
+            cargo_features_for_provider_mode(args.gateway_features, args),
+            "--bin",
+            "wendao",
+            "--",
+            *gateway_args,
+        ]
     return start_logged_process(
         command,
         log_dir=log_dir or temp_root / "process-logs",

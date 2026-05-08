@@ -676,8 +676,10 @@ def parse_args() -> argparse.Namespace:
         "--rust-provider-bin",
         type=Path,
         help=(
-            "Run a prebuilt wendao_search_flight_server binary instead of "
-            "starting the Rust provider through cargo run."
+            "Run a prebuilt Rust provider binary instead of starting the "
+            "selected Rust provider through cargo run. Use the "
+            "wendao_search_flight_server binary with --rust-provider-mode "
+            "flight and the wendao binary with --rust-provider-mode gateway."
         ),
     )
     parser.add_argument("--real-docling", action="store_true")

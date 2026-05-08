@@ -629,6 +629,11 @@ The current docs-corpus proof passes `23/23` queries, `7/7` knowledge
 scenarios, and `15/15` query variants over `472` Markdown documents and
 `263701` indexed words, with full scenario recall@10 and explicit late-query
 counts for broader exploratory docs prompts.
+The same proof now records query wall-clock and summed query timing separately
+from LinkGraph cache restore time. A redundant per-section word-count pass was
+removed from default DocOnly search, reducing warm DuckDB-cache docs-corpus
+proof time from the previous `1330 ms` evidence to repeated `863 ms` and
+`818 ms` runs while preserving all query and scenario gates.
 The root [wendao.toml](../../../../wendao.toml) now explicitly includes
 `packages/rust/crates/xiuxian-wendao/src/link_graph` in the LinkGraph index
 scope so source-owned search surfaces can be tested alongside docs and semantic

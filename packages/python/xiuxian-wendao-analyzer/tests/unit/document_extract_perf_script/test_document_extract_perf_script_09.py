@@ -121,6 +121,67 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     assert regions[0]["regions"][0]["regionIndex"] == 1
 
 
+def test_start_gateway_uses_prebuilt_wendao_binary(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            calls.append((command, kwargs))
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", FakePopen)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
+    binary = tmp_path / "bin" / "wendao"
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        rust_provider_bin=binary,
+        gateway_features="cli-bin-support,zhenfa-router,duckdb",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=[],
+        benchmark_fixtures={},
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        rust_pdf_ocr_workers=None,
+        rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_local_backend_text="disabled",
+        rust_pdf_local_fast_text="disabled",
+        rust_pdf_fast_text_source_range_split="disabled",
+        rust_pdf_fast_text_endpoint_affinity="disabled",
+        rust_pdf_backend_text_topup="profile",
+        rust_pdf_ocr_profile_planner="disabled",
+        rust_pdf_hosted_vlm_render_dpi=None,
+        rust_pdf_ocr_region_context_ratio=None,
+        rust_pdf_hosted_vlm_region_planner="disabled",
+        rust_pdf_hosted_vlm_region_pipeline="disabled",
+        rust_pdf_hosted_vlm_region_render_ahead=None,
+        rust_pdf_hosted_vlm_region_render_chunk="page",
+        hosted_vlm_ocr_region_composite_size=None,
+        hosted_vlm_ocr_scaffold_mode="disabled",
+        rust_pdf_ocr_endpoint=[],
+        rust_document_extract_endpoint=[],
+    )
+
+    benchmark.start_gateway_server(
+        args,
+        gateway_port=55001,
+        python_host="127.0.0.1",
+        python_port=50051,
+        valkey_url="redis://127.0.0.1:6379",
+        temp_root=tmp_path,
+    )
+
+    command, kwargs = calls[0]
+    assert command[:2] == [str(binary), "--conf"]
+    assert "cargo" not in command
+    assert command[-3:] == ["start", "--port", "55001"]
+    assert kwargs["env"]["WENDAO_DOCUMENT_EXTRACT_ENDPOINT"] == "http://127.0.0.1:50051"
+
+
 def test_start_rust_provider_defaults_document_extract_pool_to_local_worker(
     monkeypatch,
     tmp_path: Path,

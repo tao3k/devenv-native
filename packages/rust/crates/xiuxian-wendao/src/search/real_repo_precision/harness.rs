@@ -87,6 +87,8 @@ fn run_repository(
                 repo_ast_index_ms: None,
                 repo_ast_index_file_count: 0,
                 repo_ast_index_symbol_count: 0,
+                query_wall_ms: 0,
+                query_sum_ms: 0,
                 total_ms: elapsed_ms(repository_started_at.elapsed()),
                 skip_reason: Some(format!("materialization failed: {error}")),
                 query_receipts: Vec::new(),
@@ -113,6 +115,8 @@ fn run_repository(
             repo_ast_index_ms: None,
             repo_ast_index_file_count: 0,
             repo_ast_index_symbol_count: 0,
+            query_wall_ms: 0,
+            query_sum_ms: 0,
             total_ms: elapsed_ms(repository_started_at.elapsed()),
             skip_reason: Some(format!(
                 "checkout is missing; rerun with {}=ensure or refresh",
@@ -194,6 +198,7 @@ fn run_repository(
         .as_ref()
         .map_or(0, RepoAstAnalysisIndex::symbol_count);
 
+    let query_started_at = Instant::now();
     let query_receipts = entry
         .gold_queries
         .iter()
@@ -205,6 +210,11 @@ fn run_repository(
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
+    let query_wall_ms = elapsed_ms(query_started_at.elapsed());
+    let query_sum_ms = query_receipts
+        .iter()
+        .map(|receipt| receipt.query_ms)
+        .sum::<u128>();
     if let Some(gate) = markdown_knowledge_semantic_gate.as_mut() {
         attach_markdown_knowledge_semantic_query_evidence(gate, &query_receipts);
     }
@@ -230,6 +240,8 @@ fn run_repository(
         repo_ast_index_ms,
         repo_ast_index_file_count,
         repo_ast_index_symbol_count,
+        query_wall_ms,
+        query_sum_ms,
         total_ms: elapsed_ms(repository_started_at.elapsed()),
         skip_reason: None,
         query_receipts,

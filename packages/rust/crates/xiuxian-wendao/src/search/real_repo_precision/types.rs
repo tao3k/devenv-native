@@ -255,6 +255,8 @@ pub(crate) struct RealRepoPrecisionRepositoryReceipt {
     pub(crate) repo_ast_index_ms: Option<u128>,
     pub(crate) repo_ast_index_file_count: usize,
     pub(crate) repo_ast_index_symbol_count: usize,
+    pub(crate) query_wall_ms: u128,
+    pub(crate) query_sum_ms: u128,
     pub(crate) total_ms: u128,
     pub(crate) skip_reason: Option<String>,
     pub(crate) query_receipts: Vec<RealRepoPrecisionQueryReceipt>,

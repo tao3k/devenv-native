@@ -24,8 +24,10 @@ impl LinkGraphIndex {
                 continue;
             }
 
-            let section_word_count = section.section_text.split_whitespace().count();
-            if section_word_count < runtime_policy.min_section_words {
+            if runtime_policy.min_section_words > 0
+                && section.section_text.split_whitespace().count()
+                    < runtime_policy.min_section_words
+            {
                 continue;
             }
 

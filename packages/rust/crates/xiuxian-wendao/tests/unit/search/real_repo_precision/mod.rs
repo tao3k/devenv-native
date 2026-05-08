@@ -563,6 +563,15 @@ fn docs_corpus_real_repo_harness_records_document_volume_and_precision() -> Resu
     let Some(repository) = receipt.repositories.first() else {
         panic!("docs corpus proof should emit one repository receipt");
     };
+    assert_eq!(
+        repository.query_sum_ms,
+        repository
+            .query_receipts
+            .iter()
+            .map(|query| query.query_ms)
+            .sum::<u128>()
+    );
+    assert!(repository.query_wall_ms <= repository.total_ms);
     assert!(repository.knowledge_scenarios.len() >= 7);
     assert!(
         repository
@@ -678,7 +687,7 @@ fn docs_corpus_real_repo_harness_records_document_volume_and_precision() -> Resu
         .map(|scenario| scenario.reasoning_tree.disclosure_step_count)
         .sum::<usize>();
     eprintln!(
-        "docs_corpus_real_repo_summary queries={} docs_queries={} knowledge_scenarios={} query_variants={} reasoning_tree_steps={} documents={} markdown_documents={} org_documents={} words={} min_scenario_recall_at_10_bps={} late_docs_query_count={} cache_backend={:?} cache_status={:?} total_ms={}",
+        "docs_corpus_real_repo_summary queries={} docs_queries={} knowledge_scenarios={} query_variants={} reasoning_tree_steps={} documents={} markdown_documents={} org_documents={} words={} min_scenario_recall_at_10_bps={} late_docs_query_count={} cache_backend={:?} cache_status={:?} query_wall_ms={} query_sum_ms={} total_ms={}",
         receipt.summary.query_count,
         docs_query_count,
         receipt.summary.knowledge_scenario_count,
@@ -697,6 +706,8 @@ fn docs_corpus_real_repo_harness_records_document_volume_and_precision() -> Resu
         late_docs_query_count,
         repository.link_graph_cache_backend,
         repository.link_graph_cache_status,
+        repository.query_wall_ms,
+        repository.query_sum_ms,
         repository.total_ms
     );
     Ok(())
