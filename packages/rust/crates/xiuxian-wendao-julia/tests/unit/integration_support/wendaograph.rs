@@ -9,6 +9,7 @@ use super::{
     probe_wendaograph_link_graph_full_structural_host_request,
     probe_wendaograph_page_index_host_request,
     probe_wendaograph_page_index_planner_action_host_request,
+    run_wendaograph_search_strategy_flow_json,
 };
 
 #[path = "wendaograph/relationship_search.rs"]
@@ -181,6 +182,14 @@ fn link_graph_full_structural_probe_report_parser_accepts_compact_metric_line() 
             topology_community_frontier_rows: 1,
         }
     );
+}
+
+#[test]
+fn search_strategy_flow_rust_bridge_rejects_blank_intent_before_launch() {
+    let error = run_wendaograph_search_strategy_flow_json("   ", ".")
+        .expect_err("blank intent should fail before launching Julia");
+
+    assert_eq!(error, "SearchStrategyFlow intent must not be blank");
 }
 
 #[test]
