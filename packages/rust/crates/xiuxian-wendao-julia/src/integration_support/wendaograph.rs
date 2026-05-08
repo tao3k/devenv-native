@@ -61,28 +61,78 @@ function json_pair(name, raw_value)
     "$(json_escape(name)):$(raw_value)"
 end
 
+function split_candidate_id(candidate_id)
+    parts = split(candidate_id, Char(0x23); limit=2)
+    relative_path = String(parts[1])
+    heading_anchor = length(parts) == 2 ? String(parts[2]) : ""
+    relative_path, heading_anchor
+end
+
 function real_doc_path(relative_path)
     joinpath(search_root, split(relative_path, '/')...)
 end
 
-function doc_context_cost(relative_path)
-    path = real_doc_path(relative_path)
-    isfile(path) || return 512
-    max(1, ceil(Int, filesize(path) / 20))
+function markdown_anchor(title)
+    text = lowercase(strip(replace(title, Char(0x60) => "")))
+    text = replace(text, r"[^a-z0-9]+" => "-")
+    text = replace(text, r"^-+" => "")
+    text = replace(text, r"-+$" => "")
+    isempty(text) ? "section" : text
 end
 
-function doc_candidate(relative_path; evidence_coverage, graph_score, authority_score, structural_score, uncertainty, blocked=false, edge_kinds=("anchor", "linkography", "authority"))
+function markdown_section_text(candidate_id)
+    relative_path, heading_anchor = split_candidate_id(candidate_id)
+    path = real_doc_path(relative_path)
+    isfile(path) || return ""
+    text = read(path, String)
+    isempty(heading_anchor) && return text
+
+    lines = split(text, '\n'; keepempty=true)
+    heading_pattern = r"^(#{1,6})\s+(.+?)\s*$"
+    selected = String[]
+    in_section = false
+    section_level = 0
+
+    for line in lines
+        matched = match(heading_pattern, line)
+        if matched !== nothing
+            level = length(matched.captures[1])
+            title = strip(matched.captures[2])
+            if in_section && level <= section_level
+                break
+            end
+            if !in_section && markdown_anchor(title) == heading_anchor
+                in_section = true
+                section_level = level
+                push!(selected, line)
+                continue
+            end
+        end
+        in_section && push!(selected, line)
+    end
+
+    join(selected, "\n")
+end
+
+function doc_context_cost(candidate_id)
+    text = markdown_section_text(candidate_id)
+    isempty(text) && return 512
+    max(1, ceil(Int, sizeof(text) / 20))
+end
+
+function doc_candidate(relative_path, heading_anchor; evidence_coverage, graph_score, authority_score, structural_score, uncertainty, blocked=false, edge_kinds=("anchor", "linkography", "authority"))
+    candidate_id = "$(relative_path)#$(heading_anchor)"
     (
-        candidate_id = relative_path,
-        candidate_kind = "real_doc_subgraph",
-        node_ids = ["intent", relative_path, "package-docs"],
+        candidate_id = candidate_id,
+        candidate_kind = "markdown_heading_section",
+        node_ids = ["intent", relative_path, candidate_id, "markdown-section", "package-docs"],
         edge_kinds = collect(edge_kinds),
         evidence_coverage = evidence_coverage,
         graph_score = graph_score,
         authority_score = authority_score,
         semantic_score = 0.0,
         structural_score = structural_score,
-        context_cost = doc_context_cost(relative_path),
+        context_cost = doc_context_cost(candidate_id),
         uncertainty = uncertainty,
         blocked = blocked,
     )
@@ -103,7 +153,8 @@ page_index_weight = occursin("page", normalized_intent) || occursin("index", nor
 
 candidates = [
     doc_candidate(
-        "docs/30_search_strategy/30.01_search_strategy_flow.md";
+        "docs/30_search_strategy/30.01_search_strategy_flow.md",
+        "stage-1-query-understanding";
         evidence_coverage = min(1.0, 0.94 + strategy_weight),
         graph_score = min(1.0, 0.91 + strategy_weight),
         authority_score = 0.93,
@@ -112,7 +163,8 @@ candidates = [
         edge_kinds = ("anchor", "search-strategy", "authority", "page-index"),
     ),
     doc_candidate(
-        "docs/20_page_index/20.01_reasoning_tree_contracts.md";
+        "docs/20_page_index/20.01_reasoning_tree_contracts.md",
+        "relationship-to-search-strategy";
         evidence_coverage = min(1.0, 0.76 + page_index_weight),
         graph_score = min(1.0, 0.80 + page_index_weight),
         authority_score = 0.84,
@@ -121,7 +173,8 @@ candidates = [
         edge_kinds = ("anchor", "page-index", "evidence-plane"),
     ),
     doc_candidate(
-        "docs/10_graph_compute/10.01_link_graph_compute.md";
+        "docs/10_graph_compute/10.01_link_graph_compute.md",
+        "how-this-helps-linkgraph-search";
         evidence_coverage = 0.63,
         graph_score = 0.79,
         authority_score = 0.70,
@@ -130,7 +183,8 @@ candidates = [
         edge_kinds = ("linkography", "graph-compute", "supporting-evidence"),
     ),
     doc_candidate(
-        "docs/90_validation/90.01_validation.md";
+        "docs/90_validation/90.01_validation.md",
+        "promotion-boundary";
         evidence_coverage = 0.74,
         graph_score = 0.65,
         authority_score = 0.82,
@@ -322,8 +376,8 @@ summary = json_object((
 ))
 validation = json_object((
     "noVectorMode" => all(row.semantic_score == 0.0 for row in rows),
-    "materializedTopCandidate" => any(row.action_kind == "materialize" && row.candidate_id == "docs/30_search_strategy/30.01_search_strategy_flow.md" for row in actions),
-    "blockedEvidencePruned" => any(row.candidate_id == "docs/90_validation/90.01_validation.md" && !row.selected for row in frontier),
+    "materializedTopCandidate" => any(row.action_kind == "materialize" && row.candidate_id == "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding" for row in actions),
+    "blockedEvidencePruned" => any(row.candidate_id == "docs/90_validation/90.01_validation.md#promotion-boundary" && !row.selected for row in frontier),
     "selectedContextReduced" => selected_context < total_context,
 ))
 
