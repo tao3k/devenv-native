@@ -20,7 +20,7 @@ mod turn_slot;
 mod window;
 
 pub use turn_slot::TurnSlot;
-pub use window::SessionWindow;
+pub use window::{SessionWindow, SessionWindowCheckpointId, SessionWindowId, SessionWindowStats};
 
 #[cfg(feature = "pybindings")]
 mod pymodule_impl;

@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::SessionWindowCheckpointId;
+
 /// One turn (user or assistant) with optional checkpoint ref.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[must_use]
@@ -28,8 +30,8 @@ impl TurnSlot {
     }
 
     /// Attach a checkpoint ID to this turn.
-    pub fn with_checkpoint(mut self, checkpoint_id: String) -> Self {
-        self.checkpoint_id = Some(checkpoint_id);
+    pub fn with_checkpoint(mut self, checkpoint_id: impl Into<SessionWindowCheckpointId>) -> Self {
+        self.checkpoint_id = Some(checkpoint_id.into().into_string());
         self
     }
 }

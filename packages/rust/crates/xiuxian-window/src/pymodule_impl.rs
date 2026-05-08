@@ -3,7 +3,7 @@
 use pyo3::types::{PyDict, PyDictMethods, PyList, PyListMethods};
 use pyo3::{Py, PyAny, PyResult, Python, pyclass, pymethods};
 
-use crate::SessionWindow;
+use crate::{SessionWindow, SessionWindowCheckpointId};
 
 /// Python-exposed session window (Rust-only backend for `run_entry`).
 #[pyclass]
@@ -29,8 +29,12 @@ impl PySessionWindow {
         tool_count: u32,
         checkpoint_id: Option<&str>,
     ) {
-        self.inner
-            .append_turn(role, content, tool_count, checkpoint_id);
+        self.inner.append_turn(
+            role,
+            content,
+            tool_count,
+            checkpoint_id.map(SessionWindowCheckpointId::from),
+        );
     }
 
     fn get_recent_turns(&self, max_turns: usize, py: Python<'_>) -> PyResult<Py<PyAny>> {
@@ -50,11 +54,11 @@ impl PySessionWindow {
     }
 
     fn get_stats(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        let (total_turns, total_tool_calls, window_used) = self.inner.get_stats();
+        let stats = self.inner.get_stats();
         let dict = PyDict::new(py);
-        dict.set_item("total_turns", total_turns)?;
-        dict.set_item("total_tool_calls", total_tool_calls)?;
-        dict.set_item("window_used", window_used)?;
+        dict.set_item("total_turns", stats.total_turns)?;
+        dict.set_item("total_tool_calls", stats.total_tool_calls)?;
+        dict.set_item("window_used", stats.window_used)?;
         Ok(dict.into())
     }
 

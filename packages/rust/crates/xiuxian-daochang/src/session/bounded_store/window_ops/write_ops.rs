@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use xiuxian_window::{SessionWindow, TurnSlot};
+use xiuxian_window::{SessionWindow, SessionWindowCheckpointId, TurnSlot};
 
 use crate::observability::SessionEvent;
 use crate::session::BoundedSessionStore;
@@ -79,7 +79,7 @@ impl BoundedSessionStore {
                 return Ok(Vec::new());
             };
             let drained = window.drain_oldest_turns(slot_limit);
-            if window.get_stats().2 == 0 {
+            if window.get_stats().window_used == 0 {
                 guard.remove(session_id);
             }
             drained
@@ -126,7 +126,9 @@ impl BoundedSessionStore {
                     &slot.role,
                     &slot.content,
                     slot.tool_count,
-                    slot.checkpoint_id.as_deref(),
+                    slot.checkpoint_id
+                        .as_deref()
+                        .map(SessionWindowCheckpointId::from),
                 );
             }
             guard.insert(session_id.to_string(), window);

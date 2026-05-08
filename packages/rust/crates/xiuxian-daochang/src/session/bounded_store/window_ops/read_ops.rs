@@ -143,9 +143,9 @@ impl BoundedSessionStore {
 
         let guard = self.inner.read().await;
         let mapped = guard.get(session_id).map(|window| {
-            let (slots, tool_calls, ring_len) = window.get_stats();
-            let turn_count = slots / 2;
-            (turn_count, tool_calls, ring_len)
+            let stats = window.get_stats();
+            let turn_count = stats.total_turns / 2;
+            (turn_count, stats.total_tool_calls, stats.window_used)
         });
         if let Some((turn_count, tool_calls, ring_len)) = mapped {
             tracing::debug!(
