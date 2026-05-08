@@ -82,7 +82,6 @@ in
   # devenv.warnOnNewVersion = false;
   # https://devenv.sh/packages/
   packages = [
-    packages.secretspec
     pkgs.ollama
     pkgs.valkey
     pkgs.ngrok
@@ -90,6 +89,7 @@ in
     pkgs.tree
     pkgs.duckdb
     pkgs.asciinema
+    nixpkgs-latest.jujutsu
   ];
 
   dotenv.enable = true;

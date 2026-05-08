@@ -576,115 +576,16 @@ readable repo aliases and inject a synthetic `repo_id` column, so SQL clients
 can query across partitions or repos without first discovering every physical
 source table.
 
-The real-repository search precision harness now lives under
-`src/search/real_repo_precision/`. It keeps a source-maintained repository
-catalog and gold-query expectations, uses the existing
-`xiuxian-git-repo`-backed repository materialization bridge, builds the
-existing `LinkGraphIndex` over managed checkouts for `link_graph` gold
-queries, and routes `repo_ast` gold queries through the existing repo AST
-structural-analysis search path, including Rust async function symbols. Opt-in
-precision receipts stay outside canonical docs and report materialization,
-LinkGraph cache status, preparation/index timing, and per-query timing as
-separate evidence. They also report indexed LinkGraph corpus volume, including
-document count, Markdown/Org counts, total word count, and path-prefix counts
-so real precision runs can be judged against the size of the tested knowledge
-surface. The knowledge-search path uses the existing local
-LinkGraph cache fast-path for warm real-repo runs; repo AST symbol lookup keeps
-using a prepared symbol index. Large LinkGraph indexes evaluate document rows
-in parallel before the existing deterministic final sort, reducing warm
-knowledge-query latency while preserving ranking semantics. The local
-LinkGraph cache also decodes independent Arrow snapshot groups in parallel on
-cache hits, reducing warm preparation cost without changing the cache schema.
-Long-lived in-process knowledge runners can use the resident LinkGraph
-fast-path, which keeps fingerprint validation but returns an already loaded
-`LinkGraphIndex` from memory when the cache slot is unchanged. Owner-managed
-runners can prewarm the resident slot through the validating path, use a
-prewarmed-only resident lookup on request paths, and invalidate the resident
-slot after repository sync or catalog changes.
-The opt-in harness can also filter receipts to `link_graph` or `repo_ast`
-query kinds so knowledge-search latency is not masked by code-symbol
-preparation. The harness does not commit repository checkouts, does not add a
-runtime route, and does not change the repo search wire contracts.
-The LinkGraph gold-query set now covers docs-family knowledge across vision,
-core architecture, developer standards, feature notes, chronicles, LLM
-guidance, RFCs, semantic SSOT, and package docs. The docs-corpus proof remains
-opt-in and records the concrete query pass/fail rows alongside corpus volume.
-The harness now also evaluates an agent-facing knowledge scenario matrix over
-those query receipts. Scenarios group related query ids and assert required
-paths, semantic objects, relation paths, authority-ordering expectations, and
-negative-evidence guards. The first matrix covers known-item lookup, natural
-language intent, multi-hop semantic relations, authority ordering, negative
-evidence, ambiguous aliases, and agent task evidence packs. Scenario receipts
-report pass/fail status, required query variants, path recall,
-object/relation coverage, authority rank evidence, negative-guard matches,
-and failure reasons, so precision is measured as evidence-pack quality rather
-than isolated query hits. Query variants label canonical, paraphrase, alias,
-and task-style phrasings, and every required variant must pass for the
-scenario to pass. The same receipt surface is now rank-aware: query,
-variant, and scenario evidence records required path ranks, recall@1/3/5/10,
-best required-evidence rank, and reciprocal-rank quality. This lets the gate
-separate strong top-ranked evidence from late-window hits while preserving the
-existing hard correctness rule that required evidence must still be present.
-The current docs-corpus proof passes `23/23` queries, `7/7` knowledge
-scenarios, and `15/15` query variants over `472` Markdown documents and
-`263701` indexed words, with full scenario recall@10 and explicit late-query
-counts for broader exploratory docs prompts.
-The same proof now records query wall-clock and summed query timing separately
-from LinkGraph cache restore time. A redundant per-section word-count pass was
-removed from default DocOnly search, reducing warm DuckDB-cache docs-corpus
-proof time from the previous `1330 ms` evidence to repeated `863 ms` and
-`818 ms` runs while preserving all query and scenario gates.
-The root [wendao.toml](../../../../wendao.toml) now explicitly includes
-`packages/rust/crates/xiuxian-wendao/src/link_graph` in the LinkGraph index
-scope so source-owned search surfaces can be tested alongside docs and semantic
-knowledge. Rust source lookup is still validated through `repo_ast` receipts,
-not by treating `.rs` files as Markdown knowledge. The current source probe
-passes `4/4` repo-AST queries and top-hits the `build_with_filters` owner in
-`src/link_graph/index/build/assemble/api.rs`.
-The same scenario receipt now records a graph-first reasoning tree for agent
-search. The tree starts from small query anchors, expands through semantic
-relation hops when the scenario requires them, records PageIndex seed evidence
-for semantic objects, and ends at the minimal source paths needed for the
-answer. This is the intended Wendao search strategy: progressive disclosure
-over parsed PageIndex, link, and relation facts, not sending a flat top-k
-document window to the model. The docs-corpus proof now validates `31`
-reasoning-tree disclosure steps across the seven knowledge scenarios while
-keeping all query, variant, and recall gates intact.
-A Python-owned black-box benchmark now lives in
-[wendao-knowledge-retrieval-benchmark](../../../../packages/python/wendao-knowledge-retrieval-benchmark/README.md).
-It reads the existing real-repo precision receipt and compares retrieval
-profiles without changing Rust routes, Julia services, Arrow schemas, or search
-ranking behavior. The first report compares `flat-topk` with
-`graph-first-reasoning-tree` and recommends the graph-first profile because it
-preserves `7/7` scenario pass status, full recall@10, and the same reciprocal
-rank while reducing exposed path-character cost from `13777` to `4101`.
-Later benchmark profiles may add Julia-backed PPR, community frontier, HNSW
-semantic fanout, or relationship-traversal strategies only after they are wired
-as measured inputs.
-Those docs-family query hits can also be materialized as temporary PageIndex
-fixtures and sent through the real WendaoGraph.jl host-request facade in an
-opt-in Julia live proof. The proof validates that docs-corpus knowledge hits
-become reasoning seeds without adding a runtime route, changing the Arrow
-tables, or making Julia the SSOT for repository documentation.
-The real Markdown knowledge gate now also includes checked-in semantic SSOT
-Markdown under `semantic/`. It records a semantic gate receipt proving that
-linked knowledge gold queries are covered by semantic object provenance or
-object source paths, then projects that SSOT scope into existing WendaoGraph
-PageIndex request tables. The gate covers multiple agent-relevant governance
-intents, including the Wendao query substrate, repo-native semantic authority,
-projection/read-model authority, and the LLM-output authority boundary. Julia
-remains optional and derived: the live proof can send those Rust-built
-PageIndex tables to WendaoGraph, but semantic SSOT authority stays in
-repository Markdown. Semantic object frontmatter relations are indexed as
-search text too, so exact relation-path queries can top-hit the source
-semantic object file while the semantic gate records required and covered
-relation paths before Julia sees the derived PageIndex rows. The same receipt
-also groups query ids, semantic objects, and relation paths into compact
-scenario evidence for agent audit, so a knowledge answer can prove which SSOT
-objects and relations supported it before using Julia-derived graph rows. Real
-harness receipts now enrich each scenario with the linked query pass status,
-top hit, missing paths, observed path count, and query latency that made the
-scenario pass.
+The real-repository search precision harness is documented in
+[`docs/03_features/216_real_repo_search_precision.md`](docs/03_features/216_real_repo_search_precision.md).
+The README keeps only the crate-level map: the harness stays opt-in, reuses
+the existing LinkGraph and repo-AST search contracts, writes cache-local
+receipts, and validates both this repository and optional external
+orchestration sources such as [`pi-wendao`](https://github.com/tao3k/pi-wendao)
+without committing runtime checkouts. The feature note records the latest
+real-validation reflection: graph-first reasoning-tree search is strongest for
+evidence-rich knowledge tasks, while simple known-item or small-repository
+queries should remain eligible for cheaper profile routing.
 
 The SQL lane now also keeps snapshot-level regression coverage through
 `src/search/queries/sql/tests/snapshots.rs`, with canonical baselines under

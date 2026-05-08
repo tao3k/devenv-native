@@ -185,6 +185,9 @@ fn pdf_ocr_scheduler_trace_records_source_range_chunk_shape() {
         trace.ocr_profile.as_deref(),
         Some("docling-compatible-page-ocr-v1")
     );
+    assert_eq!(trace.queue_wait_ms, None);
+    assert_eq!(trace.dispatch_start_ms, None);
+    assert_eq!(trace.dispatch_end_ms, None);
     assert_eq!(trace.latency_ms, 1234.0);
     assert_eq!(trace.text_char_count, 15);
 }

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from xiuxian_wendao_analyzer.docling_groundtruth import resolve_docling_groundtruth_root
+
 from .args import parse_args
 from .cache import benchmark_ocr_shard_cache_root, summarize_ocr_shard_cache
 from .common import (
@@ -12,7 +14,7 @@ from .common import (
     sys,
     tempfile,
 )
-from .constants import REPORT_SCHEMA
+from .constants import OPENROUTER_API_KEY_ENVS, REPORT_SCHEMA
 from .fake_fixtures import prepare_distinct_miss_fixtures
 from .fixtures import (
     docling_real_fixtures,
@@ -97,6 +99,11 @@ def main() -> int:
         output_dir.mkdir()
         args.ocr_shard_cache_root = benchmark_ocr_shard_cache_root(args, temp_root)
         fixtures, real_fixture_root = resolve_fixtures(args, fixture_dir)
+        args.docling_groundtruth_root = resolve_docling_groundtruth_root(
+            explicit_root=args.docling_groundtruth_root,
+            compare_enabled=args.compare_docling_groundtruth,
+            real_fixture_root=real_fixture_root,
+        )
         fixtures = select_fixtures(fixtures, args.only_fixture)
         args.benchmark_fixtures = fixtures
         distinct_miss_fixtures = prepare_distinct_miss_fixtures(
@@ -316,6 +323,11 @@ def build_report_payload(
         "rustPdfBackendTextTopup": getattr(
             args, "rust_pdf_backend_text_topup", "profile"
         ),
+        "rustPdfFailedPageRecovery": getattr(
+            args,
+            "rust_pdf_failed_page_recovery",
+            "disabled",
+        ),
         "rustPdfOcrProfilePlanner": getattr(args, "rust_pdf_ocr_profile_planner", None),
         "rustPdfHostedVlmRenderDpi": getattr(
             args, "rust_pdf_hosted_vlm_render_dpi", None
@@ -336,6 +348,28 @@ def build_report_payload(
         "rustPdfOcrEndpoints": args.rust_pdf_ocr_endpoint,
         "structureBaselineRoot": (
             str(args.structure_baseline_root) if args.structure_baseline_root else None
+        ),
+        "doclingGroundtruthRoot": (
+            str(docling_groundtruth_root)
+            if (
+                docling_groundtruth_root := getattr(
+                    args, "docling_groundtruth_root", None
+                )
+            )
+            else None
+        ),
+        "compareDoclingGroundtruth": getattr(
+            args, "compare_docling_groundtruth", False
+        ),
+        "doclingGroundtruthMinCharCoverage": getattr(
+            args,
+            "docling_groundtruth_min_char_coverage",
+            None,
+        ),
+        "doclingGroundtruthMinSimilarity": getattr(
+            args,
+            "docling_groundtruth_min_similarity",
+            None,
         ),
         "pdfOcrProfile": pdf_ocr_profile_label(args),
         "hostedVlmOcr": {
@@ -394,11 +428,4 @@ def should_start_local_rust_provider(args) -> bool:
 
 
 def _openrouter_key_configured() -> bool:
-    return any(
-        bool(os.environ.get(key))
-        for key in (
-            "WENDAO_OPENROUTER_API_KEY",
-            "OPENROUTER_API_KEY",
-            "WENDAO_HOSTED_VLM_OCR_API_KEY",
-        )
-    )
+    return any(bool(os.environ.get(key)) for key in OPENROUTER_API_KEY_ENVS)

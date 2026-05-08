@@ -50,6 +50,15 @@ pub struct PdfOcrShardSchedulerTrace {
     pub shard_type: Option<String>,
     /// OCR profile for the chunk when it is homogeneous.
     pub ocr_profile: Option<String>,
+    /// Queue wait before this scheduler lane acquired worker permits.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queue_wait_ms: Option<f64>,
+    /// Milliseconds from lane dispatch start to this chunk request start.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dispatch_start_ms: Option<f64>,
+    /// Milliseconds from lane dispatch start to this chunk request completion.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dispatch_end_ms: Option<f64>,
     /// Wall-clock request latency for this chunk.
     pub latency_ms: f64,
     /// Character count returned by successful rows in this chunk.

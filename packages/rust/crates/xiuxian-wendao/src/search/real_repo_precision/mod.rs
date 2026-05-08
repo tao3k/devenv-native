@@ -4,8 +4,12 @@
 mod catalog;
 #[path = "evaluate.rs"]
 mod evaluate;
+#[path = "frontier.rs"]
+mod frontier;
 #[path = "harness.rs"]
 mod harness;
+#[path = "intent_frame.rs"]
+mod intent_frame;
 #[path = "receipt.rs"]
 mod receipt;
 #[path = "scenario_matrix.rs"]

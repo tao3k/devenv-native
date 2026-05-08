@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from xiuxian_wendao_analyzer.docling_groundtruth import (
+    compare_report_artifacts_to_docling_groundtruth,
+    summarize_docling_groundtruth_reports,
+)
+
 from .artifact_summary import (
     max_rss_kb,
     percentile,
@@ -150,6 +155,7 @@ def run_structure_baseline_probe(
                 f"structure baseline `{fixture_name}` produced error rows: {error_rows}"
             )
         artifact_summary = summarize_artifact_reports(report.get("artifactReports", []))
+        docling_groundtruth_reports = _compare_docling_groundtruth(args, report)
         fixture_reports.append(
             {
                 "fixture": fixture_name,
@@ -162,6 +168,10 @@ def run_structure_baseline_probe(
                 "structureReadingOrderSorted": artifact_summary[
                     "structureReadingOrderSorted"
                 ],
+                "doclingGroundtruth": summarize_docling_groundtruth_reports(
+                    docling_groundtruth_reports,
+                ),
+                "doclingGroundtruthReports": docling_groundtruth_reports,
             }
         )
 
@@ -233,6 +243,10 @@ def run_fixture_probe(
         iterations=1,
         concurrency=1,
         report_path=output_dir / "force.json",
+    )
+    force_docling_groundtruth_reports = _compare_docling_groundtruth(args, force_report)
+    force_docling_groundtruth = summarize_docling_groundtruth_reports(
+        force_docling_groundtruth_reports,
     )
     shard_cache_reuse_report = None
     if args.shard_cache_reuse_probe:
@@ -360,6 +374,14 @@ def run_fixture_probe(
             f"fixture `{fixture_name}` produced unstable structure order across runs: "
             f"mismatches={structure_order_consistency['structureOrderMismatchCount']}"
         )
+    if (
+        getattr(args, "fail_on_docling_groundtruth_mismatch", False)
+        and force_docling_groundtruth["passed"] is False
+    ):
+        raise SystemExit(
+            f"fixture `{fixture_name}` did not match upstream Docling groundtruth: "
+            f"{force_docling_groundtruth['failures']}"
+        )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
             (
@@ -405,6 +427,18 @@ def run_fixture_probe(
         "forceErrorRows": force_error_rows,
         "forceStatusCounts": force_report.get("statusCounts", {}),
         "forceMaxRssKb": force_report.get("maxRssKb"),
+        "doclingGroundtruth": force_docling_groundtruth,
+        "doclingGroundtruthReports": force_docling_groundtruth_reports,
+        "doclingGroundtruthChecked": force_docling_groundtruth["checked"],
+        "doclingGroundtruthPassed": force_docling_groundtruth["passed"],
+        "doclingGroundtruthMissingCount": force_docling_groundtruth["missingCount"],
+        "doclingGroundtruthFailureCount": force_docling_groundtruth["failureCount"],
+        "doclingGroundtruthMinMarkdownSimilarity": force_docling_groundtruth[
+            "minMarkdownSimilarity"
+        ],
+        "doclingGroundtruthMinCharCoverageRatio": force_docling_groundtruth[
+            "minCharCoverageRatio"
+        ],
         "shardCacheReuseEnabled": args.shard_cache_reuse_probe,
         "shardCacheReuseForceMs": (
             shard_cache_reuse_report["latenciesMs"][0]
@@ -632,6 +666,23 @@ def document_timing_overhead(
     if not isinstance(timing_ms, int | float):
         return None
     return max(float(force_refresh_ms) - float(timing_ms), 0.0)
+
+
+def _compare_docling_groundtruth(
+    args: argparse.Namespace,
+    report: dict[str, Any],
+) -> list[dict[str, Any]]:
+    return compare_report_artifacts_to_docling_groundtruth(
+        enabled=getattr(args, "compare_docling_groundtruth", False),
+        groundtruth_root=getattr(args, "docling_groundtruth_root", None),
+        report=report,
+        min_char_coverage=getattr(
+            args,
+            "docling_groundtruth_min_char_coverage",
+            0.98,
+        ),
+        min_similarity=getattr(args, "docling_groundtruth_min_similarity", 0.98),
+    )
 
 
 def run_cargo_perf_test(

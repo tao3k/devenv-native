@@ -24,14 +24,16 @@ use super::{
     wendao_graph_page_index_reasoning_schedule_plan, wendaograph_algorithm_ref,
     wendaograph_algorithm_refs, wendaograph_algorithm_refs_for_profile,
     wendaograph_algorithm_schedule_plan, wendaograph_algorithm_task_shape,
-    wendaograph_gnn_algorithm_refs, wendaograph_link_graph_algorithm_refs,
-    wendaograph_page_index_algorithm_refs, wendaograph_relationship_search_algorithm_refs,
+    wendaograph_frontier_algorithm_ref, wendaograph_frontier_schedule_plan,
+    wendaograph_frontier_task_shape, wendaograph_gnn_algorithm_refs,
+    wendaograph_link_graph_algorithm_refs, wendaograph_page_index_algorithm_refs,
+    wendaograph_relationship_search_algorithm_refs,
     wendaograph_relationship_search_evidence_for_algorithm_from_full_structural_host_probe,
     wendaograph_relationship_search_evidence_from_full_structural_host_probe,
-    wendaosearch_graph_structural_profile_ref, wendaosearch_graph_structural_readiness_evidence,
-    wendaosearch_graph_structural_schedule_plan, wendaosearch_legacy_rerank_profile_ref,
-    wendaosearch_legacy_rerank_readiness_evidence, wendaosearch_legacy_rerank_schedule_plan,
-    with_julia_thread_pinning_diagnostics,
+    wendaograph_search_strategy_flow_algorithm_refs, wendaosearch_graph_structural_profile_ref,
+    wendaosearch_graph_structural_readiness_evidence, wendaosearch_graph_structural_schedule_plan,
+    wendaosearch_legacy_rerank_profile_ref, wendaosearch_legacy_rerank_readiness_evidence,
+    wendaosearch_legacy_rerank_schedule_plan, with_julia_thread_pinning_diagnostics,
 };
 use crate::compatibility::link_graph::{
     DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, LinkGraphJuliaRerankRuntimeConfig,
@@ -290,8 +292,9 @@ fn wendaograph_algorithm_catalog_covers_staged_algorithm_families() {
     assert_eq!(wendaograph_link_graph_algorithm_refs().len(), 17);
     assert_eq!(wendaograph_relationship_search_algorithm_refs().len(), 10);
     assert_eq!(wendaograph_page_index_algorithm_refs().len(), 3);
+    assert_eq!(wendaograph_search_strategy_flow_algorithm_refs().len(), 4);
     assert_eq!(wendaograph_gnn_algorithm_refs().len(), 4);
-    assert_eq!(references.len(), 34);
+    assert_eq!(references.len(), 38);
     assert!(
         references
             .iter()
@@ -315,6 +318,11 @@ fn wendaograph_algorithm_catalog_covers_staged_algorithm_families() {
     assert!(
         references
             .iter()
+            .any(|reference| reference.algorithm_id == "search_strategy_flow.frontier_rows")
+    );
+    assert!(
+        references
+            .iter()
             .any(|reference| reference.algorithm_id == "gnn.node_scores")
     );
 }
@@ -327,14 +335,49 @@ fn wendaograph_algorithm_catalog_groups_by_profile() {
     let gnn = wendaograph_algorithm_refs_for_profile(WENDAO_GRAPH_GNN_REASONING_PROFILE_ID);
 
     assert_eq!(link_graph.len(), 27);
-    assert_eq!(page_index.len(), 3);
+    assert_eq!(page_index.len(), 7);
     assert_eq!(gnn.len(), 4);
     assert!(wendaograph_algorithm_refs_for_profile("missing").is_empty());
     assert!(
         page_index
             .iter()
-            .all(|reference| reference.family == "page_index")
+            .all(|reference| matches!(reference.family, "page_index" | "search_strategy_flow"))
     );
+}
+
+#[test]
+fn wendaograph_search_strategy_flow_catalog_aligns_graph_owned_contract() {
+    let references = wendaograph_search_strategy_flow_algorithm_refs();
+
+    let candidates = wendaograph_algorithm_ref("search_strategy_flow.candidate_rows").unwrap();
+    let transitions = wendaograph_algorithm_ref("search_strategy_flow.transition_rows").unwrap();
+    let frontier = wendaograph_algorithm_ref("search_strategy_flow.frontier_rows").unwrap();
+    let tables = wendaograph_algorithm_ref("search_strategy_flow.tables").unwrap();
+
+    assert_eq!(references.len(), 4);
+    assert!(references.iter().all(|reference| {
+        reference.family == "search_strategy_flow"
+            && reference.profile_id == WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID
+            && reference.capability == LaneCapability::GraphEvidenceCompute
+    }));
+    assert_eq!(
+        candidates.julia_entrypoint,
+        "WendaoGraph.strategy_flow_candidate_rows"
+    );
+    assert_eq!(candidates.output_table, Some("strategy_candidates"));
+    assert_eq!(
+        transitions.julia_entrypoint,
+        "WendaoGraph.strategy_flow_transition_rows"
+    );
+    assert_eq!(transitions.output_table, Some("strategy_transitions"));
+    assert_eq!(transitions.complexity, JuliaTaskComplexityClass::Simple);
+    assert_eq!(
+        frontier.julia_entrypoint,
+        "WendaoGraph.strategy_flow_frontier_rows"
+    );
+    assert_eq!(frontier.output_table, Some("strategy_frontier"));
+    assert_eq!(tables.julia_entrypoint, "WendaoGraph.strategy_flow_tables");
+    assert_eq!(tables.output_table, None);
 }
 
 #[test]
@@ -379,6 +422,7 @@ fn wendaograph_algorithm_catalog_marks_heavy_julia_helpers() {
     let diffusion = wendaograph_algorithm_ref("link_graph.diffusion_scores").unwrap();
     let gnn = wendaograph_algorithm_ref("gnn.node_scores").unwrap();
     let trace = wendaograph_algorithm_ref("page_index.disclosure_trace").unwrap();
+    let transition = wendaograph_algorithm_ref("search_strategy_flow.transition_rows").unwrap();
 
     assert!(core.is_heavy());
     assert_eq!(core.output_table, Some("topology_core"));
@@ -391,6 +435,7 @@ fn wendaograph_algorithm_catalog_marks_heavy_julia_helpers() {
     assert!(gnn.is_heavy());
     assert_eq!(gnn.profile_id, WENDAO_GRAPH_GNN_REASONING_PROFILE_ID);
     assert_eq!(trace.complexity, JuliaTaskComplexityClass::Simple);
+    assert_eq!(transition.complexity, JuliaTaskComplexityClass::Simple);
 }
 
 #[test]
@@ -410,6 +455,67 @@ fn wendaograph_algorithm_task_shape_preserves_catalog_complexity_and_workload() 
         Some("wendaograph:wendao_graph_link_evidence:link_graph.topology_core")
     );
     assert!(wendaograph_algorithm_task_shape("missing", graph_algorithm_workload()).is_none());
+}
+
+#[test]
+fn wendaograph_frontier_mapping_routes_evidence_kinds_to_graph_algorithms() {
+    let anchor = wendaograph_frontier_algorithm_ref("anchor_query").unwrap();
+    let relation = wendaograph_frontier_algorithm_ref("relation_path").unwrap();
+    let page_index = wendaograph_frontier_algorithm_ref("page_index_seed").unwrap();
+    let source = wendaograph_frontier_algorithm_ref("source_path").unwrap();
+
+    assert_eq!(
+        anchor.algorithm_id,
+        "relationship_search.hnsw_semantic_fanout"
+    );
+    assert_eq!(
+        relation.algorithm_id,
+        "relationship_search.ppr_like_relatedness"
+    );
+    assert_eq!(page_index.algorithm_id, "page_index.reasoning_frontier");
+    assert_eq!(
+        source.algorithm_id,
+        "relationship_search.graph_search_ranking"
+    );
+    assert_eq!(
+        page_index.profile_id,
+        WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID
+    );
+    assert_eq!(source.profile_id, WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID);
+    assert!(wendaograph_frontier_algorithm_ref("authority_order").is_none());
+    assert!(wendaograph_frontier_algorithm_ref("negative_guard").is_none());
+}
+
+#[test]
+fn wendaograph_frontier_schedule_plan_dispatches_warm_batchable_work() {
+    let facts = scheduling_facts(WarmupState::Ready, BenchmarkState::WithinThreshold)
+        .with_max_in_flight(Some(4))
+        .with_target_latency_ms(Some(250));
+
+    let relation_shape =
+        wendaograph_frontier_task_shape("relation_path", graph_algorithm_workload()).unwrap();
+    let relation_plan =
+        wendaograph_frontier_schedule_plan("relation_path", graph_algorithm_workload(), facts)
+            .unwrap();
+    let page_index_plan =
+        wendaograph_frontier_schedule_plan("page_index_seed", graph_algorithm_workload(), facts)
+            .unwrap();
+
+    assert_eq!(relation_shape.complexity, JuliaTaskComplexityClass::Heavy);
+    assert_eq!(relation_plan.action, JuliaScheduleAction::Dispatch);
+    assert_eq!(
+        relation_plan.profile_id,
+        WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID
+    );
+    assert_eq!(page_index_plan.action, JuliaScheduleAction::Dispatch);
+    assert_eq!(
+        page_index_plan.profile_id,
+        WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID
+    );
+    assert!(
+        wendaograph_frontier_schedule_plan("negative_guard", graph_algorithm_workload(), facts)
+            .is_none()
+    );
 }
 
 #[test]
@@ -433,6 +539,12 @@ fn wendaograph_algorithm_schedule_plan_routes_by_algorithm_profile() {
     let gnn =
         wendaograph_algorithm_schedule_plan("gnn.node_scores", graph_algorithm_workload(), facts)
             .unwrap();
+    let strategy_flow = wendaograph_algorithm_schedule_plan(
+        "search_strategy_flow.frontier_rows",
+        graph_algorithm_workload(),
+        facts,
+    )
+    .unwrap();
     let relationship_search = wendaograph_algorithm_schedule_plan(
         "relationship_search.ppr_like_relatedness",
         graph_algorithm_workload(),
@@ -450,6 +562,11 @@ fn wendaograph_algorithm_schedule_plan_routes_by_algorithm_profile() {
     assert_eq!(page_index.action, JuliaScheduleAction::Dispatch);
     assert_eq!(
         page_index.profile_id,
+        WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID
+    );
+    assert_eq!(strategy_flow.action, JuliaScheduleAction::Dispatch);
+    assert_eq!(
+        strategy_flow.profile_id,
         WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID
     );
     assert_eq!(gnn.action, JuliaScheduleAction::Dispatch);

@@ -1117,6 +1117,91 @@ def test_docling_pdf_ocr_worker_falls_back_when_region_composite_is_invalid(
     assert request_image_counts == [2, 1, 1]
 
 
+def test_docling_pdf_ocr_worker_falls_back_when_region_composite_errors(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(2)]
+    for image in region_images:
+        image.write_bytes(b"region png fixture")
+    trace_path = tmp_path / "hosted-vlm-region-composite-error.jsonl"
+    request_image_counts: list[int] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, markdown: str) -> None:
+            self._markdown = markdown
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._markdown}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        image_count = sum(
+            1
+            for part in payload["messages"][0]["content"]
+            if part["type"] == "image_url"
+        )
+        request_image_counts.append(image_count)
+        if image_count > 1:
+            raise RuntimeError("composite transport closed")
+        return FakeResponse(f"# fallback region {len(request_image_counts)}")
+
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    input_table = pa.concat_tables(
+        [
+            _sample_pdf_ocr_input_table(
+                source_path=str(source),
+                image_path=str(region_images[index]),
+                page_index=0,
+                shard_element_id=f"region-{index}",
+                shard_type="region",
+                region_index=index + 1,
+                parent_shard_element_id="parent-page",
+                reading_order_key=f"000000.0{index + 1}0000",
+                ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+            )
+            for index in range(2)
+        ]
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        input_table,
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in table.to_pylist()] == ["succeeded", "succeeded"]
+    assert [row["text"] for row in table.to_pylist()] == [
+        "# fallback region 2",
+        "# fallback region 3",
+    ]
+    assert request_image_counts == [2, 1, 1]
+    records = [
+        json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert records[0]["requestKind"] == "region-composite"
+    assert records[0]["status"] == "failed"
+    assert records[0]["errorType"] == "RuntimeError"
+
+
 def test_docling_pdf_ocr_worker_disables_invalid_region_composite_canary(
     tmp_path: Path,
     monkeypatch,
@@ -2017,7 +2102,7 @@ def test_docling_pdf_ocr_worker_uses_openrouter_provider_preset(
         return FakeResponse()
 
     monkeypatch.setenv(HOSTED_VLM_OCR_PROVIDER_ENV, HOSTED_VLM_OCR_OPENROUTER_PROVIDER)
-    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV, "or-key")
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV, '"or-key"')
     monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_MODEL_ENV, "openrouter/vision-ocr")
     monkeypatch.setenv(
         HOSTED_VLM_OCR_OPENROUTER_HTTP_REFERER_ENV, "https://wendao.local"

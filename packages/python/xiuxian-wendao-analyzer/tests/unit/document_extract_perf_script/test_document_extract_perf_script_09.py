@@ -41,6 +41,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_fast_text_source_range_split="single-page",
         rust_pdf_fast_text_endpoint_affinity="single-page-first",
         rust_pdf_backend_text_topup="hosted-vlm",
+        rust_pdf_failed_page_recovery="hosted-vlm-page",
         rust_pdf_ocr_profile_planner="fast-risk-window",
         rust_pdf_hosted_vlm_render_dpi=360,
         rust_pdf_ocr_region_context_ratio=0.2,
@@ -88,6 +89,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         == "single-page-first"
     )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP"] == "hosted-vlm"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY"] == "hosted-vlm-page"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] == "fast-risk-window"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI"] == "360"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO"] == "0.2"
@@ -153,6 +155,7 @@ def test_start_gateway_uses_prebuilt_wendao_binary(
         rust_pdf_fast_text_source_range_split="disabled",
         rust_pdf_fast_text_endpoint_affinity="disabled",
         rust_pdf_backend_text_topup="profile",
+        rust_pdf_failed_page_recovery="disabled",
         rust_pdf_ocr_profile_planner="disabled",
         rust_pdf_hosted_vlm_render_dpi=None,
         rust_pdf_ocr_region_context_ratio=None,
@@ -327,6 +330,60 @@ def test_start_rust_provider_hosted_vlm_planner_enables_pdf_render_feature(
     assert (
         calls[0][1]["env"]["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"]
         == "hosted-vlm-risk-window"
+    )
+
+
+def test_start_rust_provider_failed_page_recovery_enables_pdf_render_feature(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            calls.append((command, kwargs))
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", FakePopen)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        rust_provider_bin=None,
+        rust_provider_features="cli-bin-support,zhenfa-router,duckdb",
+        flight_mode="hybrid-page-ocr",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=[],
+        benchmark_fixtures={},
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        rust_pdf_ocr_workers=None,
+        rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_backend_text_topup="profile",
+        rust_pdf_failed_page_recovery="hosted-vlm-page",
+        rust_pdf_ocr_profile_planner="fast-risk-window",
+        rust_pdf_hosted_vlm_render_dpi=None,
+        rust_pdf_ocr_region_context_ratio=None,
+        rust_pdf_hosted_vlm_region_planner=None,
+        rust_pdf_ocr_endpoint=[],
+        rust_document_extract_endpoint=[],
+    )
+
+    benchmark.start_rust_provider_server(
+        args,
+        rust_host="127.0.0.1",
+        rust_port=51052,
+        python_host="127.0.0.1",
+        python_port=51051,
+        temp_root=tmp_path,
+    )
+
+    command, kwargs = calls[0]
+    assert "document-extract-pdf-render" in command[6].split(",")
+    assert (
+        kwargs["env"]["WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY"]
+        == "hosted-vlm-page"
     )
 
 

@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::search::real_repo_precision::frontier::build_backend_frontier;
+use crate::search::real_repo_precision::intent_frame::build_intent_frame;
 use crate::search::real_repo_precision::types::{
     RealRepoKnowledgeScenario, RealRepoKnowledgeScenarioAuthorityExpectation,
     RealRepoKnowledgeScenarioAuthorityReceipt, RealRepoKnowledgeScenarioNegativeGuardReceipt,
@@ -181,6 +183,12 @@ fn evaluate_knowledge_scenario(
     if !reasoning_tree.passed {
         failure_reasons.push("reasoning_tree_failed".to_string());
     }
+    let backend_frontier = build_backend_frontier(
+        scenario,
+        &reasoning_tree,
+        authority.as_ref(),
+        negative_guard.as_ref(),
+    );
     let passed = failure_reasons.is_empty();
     let query_variant_count = query_variants.len();
     let passed_query_variant_count = query_variants
@@ -193,9 +201,11 @@ fn evaluate_knowledge_scenario(
         scenario_id: scenario.id.clone(),
         scenario_kind: scenario.kind.as_str().to_string(),
         intent: scenario.intent.clone(),
+        intent_frame: build_intent_frame(scenario),
         linked_query_ids: scenario.linked_query_ids.clone(),
         query_evidence,
         reasoning_tree,
+        backend_frontier,
         query_variant_count,
         passed_query_variant_count,
         failed_query_variant_count,

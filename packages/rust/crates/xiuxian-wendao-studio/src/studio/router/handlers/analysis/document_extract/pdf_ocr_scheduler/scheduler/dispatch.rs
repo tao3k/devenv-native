@@ -334,11 +334,14 @@ impl PdfOcrWorkerScheduler {
                 }
             };
             let ordered = order_ocr_results_by_inputs(&inputs[offset..end], response.results)?;
-            trace.push(scheduler_trace_for_chunk(
+            trace.push(scheduler_trace_for_chunk_with_timing(
                 lane,
                 &inputs[offset..end],
                 ordered.as_slice(),
                 latency,
+                Some(duration_to_trace_ms(queue_wait)),
+                Some(0.0),
+                Some(duration_to_trace_ms(latency)),
             ));
             results.extend(ordered);
             offset = end;
@@ -373,16 +376,22 @@ impl PdfOcrWorkerScheduler {
                 let client = self.endpoint_client_for_next_request(clients).cloned();
                 wave_requests.push(async move {
                     let client = client?;
+                    let dispatch_start_ms = duration_to_trace_ms(latency_start.elapsed());
                     let chunk_started = Instant::now();
                     let response = client.request_with_worker_budget(chunk, Some(1)).await?;
+                    let latency = chunk_started.elapsed();
                     let ordered = order_ocr_results_by_inputs(chunk, response.results)?;
+                    let dispatch_end_ms = dispatch_start_ms + duration_to_trace_ms(latency);
                     Ok::<_, String>((
                         ordered.clone(),
-                        scheduler_trace_for_chunk(
+                        scheduler_trace_for_chunk_with_timing(
                             lane,
                             chunk,
                             ordered.as_slice(),
-                            chunk_started.elapsed(),
+                            latency,
+                            Some(duration_to_trace_ms(queue_wait)),
+                            Some(dispatch_start_ms),
+                            Some(dispatch_end_ms),
                         ),
                     ))
                 });
@@ -449,16 +458,22 @@ impl PdfOcrWorkerScheduler {
                     .cloned();
                 wave_requests.push(async move {
                     let client = client?;
+                    let dispatch_start_ms = duration_to_trace_ms(latency_start.elapsed());
                     let chunk_started = Instant::now();
                     let response = client.request_with_worker_budget(chunk, Some(1)).await?;
+                    let latency = chunk_started.elapsed();
                     let ordered = order_ocr_results_by_inputs(chunk, response.results)?;
+                    let dispatch_end_ms = dispatch_start_ms + duration_to_trace_ms(latency);
                     Ok::<_, String>((
                         ordered.clone(),
-                        scheduler_trace_for_chunk(
+                        scheduler_trace_for_chunk_with_timing(
                             lane,
                             chunk,
                             ordered.as_slice(),
-                            chunk_started.elapsed(),
+                            latency,
+                            Some(duration_to_trace_ms(queue_wait)),
+                            Some(dispatch_start_ms),
+                            Some(dispatch_end_ms),
                         ),
                     ))
                 });
@@ -685,6 +700,18 @@ pub(super) fn scheduler_trace_for_chunk(
     results: &[PdfOcrShardResult],
     latency: Duration,
 ) -> PdfOcrShardSchedulerTrace {
+    scheduler_trace_for_chunk_with_timing(lane, inputs, results, latency, None, None, None)
+}
+
+fn scheduler_trace_for_chunk_with_timing(
+    lane: OcrSchedulerLane,
+    inputs: &[PdfOcrShardInput],
+    results: &[PdfOcrShardResult],
+    latency: Duration,
+    queue_wait_ms: Option<f64>,
+    dispatch_start_ms: Option<f64>,
+    dispatch_end_ms: Option<f64>,
+) -> PdfOcrShardSchedulerTrace {
     PdfOcrShardSchedulerTrace {
         lane: scheduler_lane_label(lane),
         shard_count: inputs.len(),
@@ -692,6 +719,9 @@ pub(super) fn scheduler_trace_for_chunk(
         page_end: inputs.iter().map(|input| input.page_index).max(),
         shard_type: inputs.first().map(|input| input.shard_type.clone()),
         ocr_profile: inputs.first().map(|input| input.ocr_profile.clone()),
+        queue_wait_ms,
+        dispatch_start_ms,
+        dispatch_end_ms,
         latency_ms: latency.as_secs_f64() * 1000.0,
         text_char_count: results
             .iter()
@@ -699,6 +729,10 @@ pub(super) fn scheduler_trace_for_chunk(
             .map(|text| text.chars().count())
             .sum(),
     }
+}
+
+fn duration_to_trace_ms(duration: Duration) -> f64 {
+    duration.as_secs_f64() * 1000.0
 }
 
 fn scheduler_lane_label(lane: OcrSchedulerLane) -> &'static str {

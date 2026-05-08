@@ -201,6 +201,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-failed-page-recovery",
+        choices=("disabled", "hosted-vlm-page"),
+        default="disabled",
+        help=(
+            "Opt-in Rust precision-preserving failed-page recovery forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY. "
+            "`hosted-vlm-page` retries failed or empty non-hosted page shards through "
+            "Hosted VLM/OCR before the existing full-document Docling fallback is used."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-ocr-profile-planner",
         choices=(
             "disabled",
@@ -474,6 +485,43 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Generate sync/full-Docling baseline artifacts before candidate "
             "probes, then reuse that baseline root for strict structure parity."
+        ),
+    )
+    parser.add_argument(
+        "--compare-docling-groundtruth",
+        action="store_true",
+        help=(
+            "Compare force-run artifacts with upstream Docling "
+            "tests/data/groundtruth/docling_v2 files when available."
+        ),
+    )
+    parser.add_argument(
+        "--docling-groundtruth-root",
+        type=Path,
+        help=(
+            "Explicit upstream Docling groundtruth root. Defaults to "
+            "<docling-source-root>/tests/data/groundtruth/docling_v2 when "
+            "--compare-docling-groundtruth is enabled."
+        ),
+    )
+    parser.add_argument(
+        "--docling-groundtruth-min-char-coverage",
+        type=float,
+        default=0.98,
+        help="Minimum candidate/groundtruth Markdown character coverage.",
+    )
+    parser.add_argument(
+        "--docling-groundtruth-min-similarity",
+        type=float,
+        default=0.98,
+        help="Minimum normalized candidate/groundtruth Markdown similarity.",
+    )
+    parser.add_argument(
+        "--fail-on-docling-groundtruth-mismatch",
+        action="store_true",
+        help=(
+            "Fail when an available upstream Docling groundtruth comparison "
+            "does not pass the configured coverage and similarity thresholds."
         ),
     )
     parser.add_argument(

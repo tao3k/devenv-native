@@ -69,6 +69,10 @@ def summarize_results(
     structure_order_stable = all_structure_order_stable(results)
     structure_order_mismatches = structure_order_mismatch_count(results)
     structure_parity_passed = all_structure_parity_passed(results)
+    docling_groundtruth_passed = all_docling_groundtruth_passed(results)
+    docling_groundtruth_failure_count = sum(
+        result.get("doclingGroundtruthFailureCount", 0) for result in results
+    )
     return {
         "fixtureCount": len(results),
         "attachmentClassSummary": attachment_class_summaries(results),
@@ -94,6 +98,36 @@ def summarize_results(
         ),
         "allStructureParityPassed": structure_parity_passed,
         "totalStructureParityErrors": structure_parity_error_count,
+        "doclingGroundtruthCheckedFixtures": sum(
+            1 for result in results if result.get("doclingGroundtruthChecked")
+        ),
+        "allDoclingGroundtruthPassed": docling_groundtruth_passed,
+        "totalDoclingGroundtruthMissing": sum(
+            result.get("doclingGroundtruthMissingCount", 0) for result in results
+        ),
+        "totalDoclingGroundtruthFailures": docling_groundtruth_failure_count,
+        "minDoclingGroundtruthMarkdownSimilarity": min(
+            (
+                value
+                for result in results
+                if isinstance(
+                    (value := result.get("doclingGroundtruthMinMarkdownSimilarity")),
+                    int | float,
+                )
+            ),
+            default=None,
+        ),
+        "minDoclingGroundtruthCharCoverageRatio": min(
+            (
+                value
+                for result in results
+                if isinstance(
+                    (value := result.get("doclingGroundtruthMinCharCoverageRatio")),
+                    int | float,
+                )
+            ),
+            default=None,
+        ),
         "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
         "totalMetricsResultChars": sum(
             result.get("metricsResultChars", 0) for result in results
@@ -207,6 +241,8 @@ def summarize_results(
             structure_order_stable=structure_order_stable,
             structure_order_mismatch_count=structure_order_mismatches,
             structure_parity_passed=structure_parity_passed,
+            docling_groundtruth_passed=docling_groundtruth_passed,
+            docling_groundtruth_failure_count=docling_groundtruth_failure_count,
         ),
     }
 
@@ -219,6 +255,15 @@ def pdf_ocr_profile_label(args: argparse.Namespace) -> str:
     if args.flight_mode != "hybrid-page-ocr":
         return "docling-full-document"
     return "source-page-range-or-parallel-image"
+
+
+def all_docling_groundtruth_passed(results: list[dict[str, Any]]) -> bool | None:
+    values = [
+        result.get("doclingGroundtruthPassed")
+        for result in results
+        if result.get("doclingGroundtruthPassed") is not None
+    ]
+    return all(bool(value) for value in values) if values else None
 
 
 def _format_optional_float(value: Any) -> str:
@@ -300,6 +345,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "- Rust PDF fast-text endpoint affinity: "
         f"`{payload.get('rustPdfFastTextEndpointAffinity')}`",
         f"- Rust PDF backend-text top-up: `{payload.get('rustPdfBackendTextTopup')}`",
+        f"- Rust PDF failed-page recovery: `{payload.get('rustPdfFailedPageRecovery')}`",
         f"- Rust PDF OCR profile planner: `{payload.get('rustPdfOcrProfilePlanner')}`",
         f"- Rust PDF Hosted VLM/OCR render DPI: `{payload.get('rustPdfHostedVlmRenderDpi')}`",
         f"- Rust PDF Hosted VLM/OCR region planner: `{payload.get('rustPdfHostedVlmRegionPlanner')}`",
@@ -404,6 +450,16 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`enabled={bool(structure_baseline.get('enabled'))}, "
         f"fixtures={structure_baseline.get('fixtureCount')}, "
         f"errors={structure_baseline.get('totalErrorRows')}`",
+        "- Docling upstream groundtruth: "
+        f"`root={payload.get('doclingGroundtruthRoot')}, "
+        f"checked={payload['summary'].get('doclingGroundtruthCheckedFixtures')}, "
+        f"passed={payload['summary'].get('allDoclingGroundtruthPassed')}, "
+        f"missing={payload['summary'].get('totalDoclingGroundtruthMissing')}, "
+        f"failures={payload['summary'].get('totalDoclingGroundtruthFailures')}, "
+        "minCoverage="
+        f"{_format_optional_percent(payload['summary'].get('minDoclingGroundtruthCharCoverageRatio'))}, "
+        "minSimilarity="
+        f"{_format_optional_percent(payload['summary'].get('minDoclingGroundtruthMarkdownSimilarity'))}`",
         "- Metrics sidecar: "
         f"`rows={payload['summary'].get('totalMetricsRows')}, "
         f"chars={payload['summary'].get('totalMetricsResultChars')}, "
@@ -461,6 +517,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"orderSorted={precision_speed.get('structureReadingOrderSorted')}, "
         f"orderStable={precision_speed.get('structureOrderStable')}, "
         f"parityPassed={precision_speed.get('structureParityPassed')}, "
+        f"doclingGroundtruthPassed={precision_speed.get('doclingGroundtruthPassed')}, "
         f"maxForceMs={_format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
         "maxDoclingConvertMs="
         f"{_format_optional_float(precision_speed.get('maxDoclingConvertMs'))}, "

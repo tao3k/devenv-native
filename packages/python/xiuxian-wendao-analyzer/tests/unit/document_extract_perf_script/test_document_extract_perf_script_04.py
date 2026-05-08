@@ -171,8 +171,9 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
     ]
 
 
-def test_hosted_vlm_ocr_process_env_maps_cli_args() -> None:
+def test_hosted_vlm_ocr_process_env_maps_cli_args(monkeypatch) -> None:
     benchmark = _load_benchmark_module()
+    monkeypatch.delenv("OPENROUTE_API_KEY", raising=False)
     args = benchmark.argparse.Namespace(
         hosted_vlm_ocr_provider="openrouter",
         hosted_vlm_ocr_base_url="http://127.0.0.1:8000/v1",
@@ -221,8 +222,11 @@ def test_hosted_vlm_ocr_process_env_maps_cli_args() -> None:
     }
 
 
-def test_hosted_vlm_ocr_process_env_defaults_openrouter_smoke_model() -> None:
+def test_hosted_vlm_ocr_process_env_defaults_openrouter_smoke_model(
+    monkeypatch,
+) -> None:
     benchmark = _load_benchmark_module()
+    monkeypatch.delenv("OPENROUTE_API_KEY", raising=False)
     args = benchmark.argparse.Namespace(
         hosted_vlm_ocr_provider="openrouter",
         hosted_vlm_ocr_base_url=None,
@@ -247,6 +251,41 @@ def test_hosted_vlm_ocr_process_env_defaults_openrouter_smoke_model() -> None:
         "WENDAO_HOSTED_VLM_OCR_PROVIDER": "openrouter",
         "WENDAO_OPENROUTER_MODEL": "baidu/qianfan-ocr-fast:free",
     }
+
+
+def test_hosted_vlm_ocr_process_env_forwards_legacy_openroute_key(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    for key in (
+        "WENDAO_OPENROUTER_API_KEY",
+        "OPENROUTER_API_KEY",
+        "WENDAO_HOSTED_VLM_OCR_API_KEY",
+        "OPENROUTE_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("OPENROUTE_API_KEY", '"or-legacy-key"')
+    args = benchmark.argparse.Namespace(
+        hosted_vlm_ocr_provider="openrouter",
+        hosted_vlm_ocr_base_url=None,
+        hosted_vlm_ocr_model=None,
+        hosted_vlm_ocr_prompt=None,
+        hosted_vlm_ocr_max_tokens=None,
+        hosted_vlm_ocr_region_max_tokens=None,
+        hosted_vlm_ocr_region_composite_size=None,
+        hosted_vlm_ocr_region_atlas_mode=None,
+        hosted_vlm_ocr_scaffold_mode=None,
+        hosted_vlm_ocr_image_optimization=None,
+        hosted_vlm_ocr_timeout_seconds=None,
+        hosted_vlm_ocr_request_concurrency=None,
+        hosted_vlm_ocr_speculative_retry_delay_seconds=None,
+        hosted_vlm_ocr_page_window_size=None,
+        openrouter_model=None,
+        openrouter_http_referer=None,
+        openrouter_title=None,
+    )
+
+    env = benchmark.hosted_vlm_ocr_process_env(args)
+
+    assert env["OPENROUTER_API_KEY"] == "or-legacy-key"
 
 
 def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
@@ -363,12 +402,18 @@ def test_openrouter_key_configured_reads_environment(monkeypatch) -> None:
         "WENDAO_OPENROUTER_API_KEY",
         "OPENROUTER_API_KEY",
         "WENDAO_HOSTED_VLM_OCR_API_KEY",
+        "OPENROUTE_API_KEY",
     ):
         monkeypatch.delenv(key, raising=False)
 
     assert benchmark._openrouter_key_configured() is False
 
     monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+
+    assert benchmark._openrouter_key_configured() is True
+
+    monkeypatch.delenv("OPENROUTER_API_KEY")
+    monkeypatch.setenv("OPENROUTE_API_KEY", "or-legacy-key")
 
     assert benchmark._openrouter_key_configured() is True
 

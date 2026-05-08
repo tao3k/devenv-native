@@ -254,9 +254,28 @@ def _hybrid_page_ocr_scheduler_trace_summary(
             "textCharCount",
         ),
         "sourceRangeLatencyMsMax": _float_or_none(longest.get("latencyMs")),
+        "sourceRangeQueueWaitMsMax": _max_float_trace_value(
+            source_range,
+            "queueWaitMs",
+        ),
+        "sourceRangeDispatchStartMsMin": _min_float_trace_value(
+            source_range,
+            "dispatchStartMs",
+        ),
+        "sourceRangeDispatchEndMsMax": _max_float_trace_value(
+            source_range,
+            "dispatchEndMs",
+        ),
         "sourceRangeLongestPageStart": _int_or_none(longest.get("pageStart")),
         "sourceRangeLongestPageEnd": _int_or_none(longest.get("pageEnd")),
         "sourceRangeLongestShardCount": _int_or_none(longest.get("shardCount")),
+        "sourceRangeLongestQueueWaitMs": _float_or_none(longest.get("queueWaitMs")),
+        "sourceRangeLongestDispatchStartMs": _float_or_none(
+            longest.get("dispatchStartMs"),
+        ),
+        "sourceRangeLongestDispatchEndMs": _float_or_none(
+            longest.get("dispatchEndMs"),
+        ),
         "sourceRangeLongestTextCharCount": _int_or_none(
             longest.get("textCharCount"),
         ),
@@ -265,6 +284,20 @@ def _hybrid_page_ocr_scheduler_trace_summary(
 
 def _sum_numeric_trace_values(rows: list[dict[str, Any]], key: str) -> int:
     return sum(value for row in rows if isinstance((value := row.get(key)), int))
+
+
+def _max_float_trace_value(rows: list[dict[str, Any]], key: str) -> float | None:
+    values = [
+        float(value) for row in rows if isinstance((value := row.get(key)), int | float)
+    ]
+    return max(values, default=None)
+
+
+def _min_float_trace_value(rows: list[dict[str, Any]], key: str) -> float | None:
+    values = [
+        float(value) for row in rows if isinstance((value := row.get(key)), int | float)
+    ]
+    return min(values, default=None)
 
 
 def _float_or_none(value: Any) -> float | None:

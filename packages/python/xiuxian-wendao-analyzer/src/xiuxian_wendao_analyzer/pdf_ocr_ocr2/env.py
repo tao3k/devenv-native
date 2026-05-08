@@ -83,7 +83,8 @@ def positive_float_env(key: str, default: float) -> float:
 def scaffold_mode_env() -> str:
     value = (
         os.environ.get(
-            HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV, HOSTED_VLM_OCR_DEFAULT_SCAFFOLD_MODE
+            HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV,
+            HOSTED_VLM_OCR_DEFAULT_SCAFFOLD_MODE,
         )
         .strip()
         .replace("_", "-")
@@ -152,6 +153,12 @@ def env_value(key: str, default: str) -> str:
     value = os.environ.get(key)
     if value is None or not value.strip():
         return default
+    return _strip_wrapping_quotes(value.strip())
+
+
+def _strip_wrapping_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
     return value
 
 

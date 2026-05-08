@@ -9,6 +9,11 @@ from .common import (
     os,
     subprocess,
 )
+from .constants import (
+    OPENROUTER_LEGACY_PUBLIC_API_KEY_ENV,
+    OPENROUTER_PUBLIC_API_KEY_ENV,
+    OPENROUTER_STANDARD_API_KEY_ENVS,
+)
 from .http_status import pick_free_port
 from .processes import start_logged_process
 from .server_code import fixture_server_code, real_docling_server_code
@@ -297,7 +302,28 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         and "WENDAO_OPENROUTER_MODEL" not in env
     ):
         env["WENDAO_OPENROUTER_MODEL"] = OPENROUTER_OCR_SMOKE_MODEL
+    if env.get("WENDAO_HOSTED_VLM_OCR_PROVIDER") == "openrouter":
+        forward_legacy_openrouter_api_key(env)
     return env
+
+
+def forward_legacy_openrouter_api_key(env: dict[str, str]) -> None:
+    has_standard_key = any(
+        (env.get(key) or os.environ.get(key) or "").strip()
+        for key in OPENROUTER_STANDARD_API_KEY_ENVS
+    )
+    if has_standard_key:
+        return
+    legacy_key = os.environ.get(OPENROUTER_LEGACY_PUBLIC_API_KEY_ENV, "")
+    if not legacy_key.strip():
+        return
+    env[OPENROUTER_PUBLIC_API_KEY_ENV] = strip_wrapping_quotes(legacy_key.strip())
+
+
+def strip_wrapping_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
 
 
 def python_worker_command(

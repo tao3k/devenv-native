@@ -170,6 +170,14 @@ ranges, region shards, and explicit raster tests.
 Result rows are still returned in input shard order. The Rust provider also
 validates and restores result order against the original shard input rows before
 merge, so document order is not coupled to Python worker completion order.
+For benchmark canaries, Rust can also retry failed or empty non-hosted,
+non-backend-text page OCR rows through the existing Hosted VLM/OCR page profile
+before allowing the full-document Docling fallback to run. Enable this with
+`--rust-pdf-failed-page-recovery hosted-vlm-page` in the benchmark harness or
+`WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY=hosted-vlm-page` in the Rust
+provider environment. The default remains disabled. Backend-text page failures
+and invalid hosted recovery rows still fall through to the existing precision
+fallback.
 For benchmark readiness only, the worker can pre-initialize selected Docling OCR
 profiles and optionally convert one or more real source pages before the worker
 listens. `WENDAO_PDF_OCR_PREWARM_PAGE_INDICES` accepts comma-separated
@@ -412,10 +420,15 @@ The benchmark can additionally pass
 `docling-backend-text-ocr-v1` rows with the attachment-owned `lopdf`
 source-text helper. The current promoted OpenRouter canary combines that helper
 with `mistralai/ministral-3b-2512`, source-run-parallel top-up dispatch,
-region trim, and the hosted risk-window planner: zero error rows, stable `27`
-rows, `21/6` page/region OCR blocks, force refresh best `9363.09725 ms`, and a
-promoted repeat at `12130.139833 ms`; both preserve the frozen character floor
-and remain below the locked `12856.546292 ms` baseline.
+endpoint-`0` Docling fast-text prewarm, `single-page-first` fast-text
+affinity, region trim, and a `4s` hosted hedge: zero error rows, stable `27`
+rows, `21/6` page/region OCR blocks, `metricsResultChars=107562`, force
+refresh `8201.568417 ms`, shard-cache reuse `123.758583 ms`, artifact reuse
+`157.076542 ms`, hosted request wall span `5598 ms`, and hosted request p95
+`5225.923 ms`. It preserves the frozen character floor and is the current best
+sample below the locked `12856.546292 ms` baseline. The older 2026-05-07
+OpenRouter r59/r60 evidence remains historical at best `9363.09725 ms` and
+promoted repeat `12130.139833 ms`.
 `--rust-pdf-backend-text-topup disabled` is a separate character-floor
 diagnostic. It is rejected for the current milestone fixture because disabling
 top-up drops `metricsResultChars` below the frozen floor; the default remains
@@ -436,8 +449,8 @@ listening, which triggers Docling's lazy table-structure warmup outside the
 force-refresh request path. On the milestone fixture, source page `0` warmup
 reduced page `5` fast-text top-up to about `7.2-7.4s` and passed repeat
 promotion at `11990.357708 ms` and `11537.015125 ms`, but it is accepted as a
-stability diagnostic rather than new best evidence because r59 remains the
-best force-refresh sample.
+stability diagnostic rather than the current best evidence because it is slower
+than the promoted `8201.568417 ms` OpenRouter sample.
 Use `--pdf-ocr-prewarm-endpoint-count N` when only the first `N` local OCR
 endpoints should receive that source-page prewarm. This avoids the invalid
 full-pool page `5` prewarm failure while still allowing Rust endpoint affinity
@@ -446,18 +459,36 @@ experiments. The paired
 single-page fast-text source-PDF chunks to the first endpoint. On the milestone
 fixture, r70 preserved precision and completed force refresh at
 `9636.47725 ms`, with page `5` fast-text reduced to `5274.754916 ms`. It is
-accepted as sub-10s canary evidence, but r59 remains the best sample. r71
-prewarmed endpoints `0-3` and reduced the page `11-13` fast-text chunk to
-`5972.05625 ms`, but force refresh regressed to `10336.721667 ms` because the
-hosted region tail dominated.
+accepted as endpoint-locality evidence. A 2026-05-08 control without
+endpoint-local prewarm and affinity regressed to `22329.780375 ms`, with page
+`5` fast-text source-range work tailing at `20193.906625 ms`; restoring the r70
+shape brought the canary back to `10164.795292 ms` with a `5s` hosted hedge,
+and tightening only the hosted hedge to `4s` produced the current promoted
+`8201.568417 ms` sample. r71 prewarmed endpoints `0-3` and reduced the page
+`11-13` fast-text chunk to `5972.05625 ms`, but force refresh regressed to
+`10336.721667 ms` because the hosted region tail dominated.
 The later Ministral same-page region composite size `3` diagnostic preserved
 precision but is rejected: the page `12` three-region composite request tailed
 at `14430.981 ms`, and force refresh regressed to `17806.492208 ms`.
+The r83 composite repeat with source split and endpoint affinity failed before
+OCR metrics with a Flight `BrokenPipe`, so region composite remains a
+provider-stability canary rather than a promoted OpenRouter optimization. The
+worker now traces unexpected composite exceptions as failed canary attempts
+and falls back to individual region requests, preserving the existing row
+contract. The r84 fallback-guard rerun completed with valid OCR metrics and
+passed the locked baseline at `12658.151 ms`, with `metricsResultChars=106410`,
+zero error rows, stable `27` rows, and `21/6` page/region OCR blocks. It
+remains diagnostic only because it is slower than the promoted `8201.568417 ms`
+OpenRouter envelope.
 `--rust-pdf-fast-text-source-range-split single-page` is a source-range
 chunk-shape diagnostic. It keeps Rust scheduler permits as the admission
-owner and preserves precision on the milestone fixture, but it is rejected
-because page `5` single-page Docling fast-text conversion regressed force
-refresh to `23629.474667 ms`.
+owner and preserves precision on the milestone fixture. The older r64b run is
+rejected because page `5` single-page Docling fast-text conversion regressed
+force refresh to `23629.474667 ms`. The later r82b run, paired with
+endpoint-local fast-text affinity, passed the locked promotion gate at
+`12133.964875 ms` with `metricsResultChars=108788`, but it remains
+diagnostic-only because it did not beat the current promoted OpenRouter sample
+and page `5` still dominated the source-range tail.
 The fast
 profile is still not the global default because broader corpus promotion needs
 separate evidence, but the arXiv `2604.17337` guard proves this opt-in
@@ -530,8 +561,10 @@ diagnostic. It asks Rust to render each recovery region as an independent
 chunk rather than grouping regions by page, so the first hosted request can be
 dispatched as soon as the first region is ready. The milestone canary preserved
 zero errors, stable order, `27` rows, `21/6` page/region blocks, and the frozen
-character floor, but force refresh regressed to `14515.64975 ms`; therefore the
-default remains page-grouped chunks.
+character floor, but force refresh regressed to `14942.6205 ms`; therefore the
+default remains page-grouped chunks. The all-region render chunk diagnostic is
+also rejected because it delayed first hosted dispatch to `12528.588583 ms` and
+regressed force refresh to `21670.3075 ms`.
 Region rows use
 `WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS`,
 defaulting to 2048 and clamped by `WENDAO_HOSTED_VLM_OCR_MAX_TOKENS`, so a
@@ -574,7 +607,9 @@ not produced a valid result by that delay, the worker starts a second request
 and returns the first valid Markdown response. This is a tail-latency guard for
 cloud OCR providers; it does not change the Arrow schema or validation gates,
 and benchmark traces report both logical requests and HTTP attempt counts so
-request-cost evidence stays visible. Set
+request-cost evidence stays visible. The current promoted OpenRouter region
+canary pins this delay at `4s`; this is benchmark evidence, not a global
+default change. Set
 `WENDAO_HOSTED_VLM_OCR_TRACE_PATH` to a JSONL file when a benchmark needs
 request-level latency, HTTP status, image-byte, Markdown character,
 shard-type, region-count, render-DPI, source-pixel-area, scaffold mode,
@@ -593,6 +628,28 @@ validation gates. Benchmark trace summaries report
 the selected mode. Analyzer declares `Pillow` as a runtime dependency because
 region trimming and same-page atlas packing both need deterministic image
 decoding outside Docling's optional dependency set.
+Scheduler trace summaries also expose source-range queue wait and dispatch
+start/end timing when the Rust scheduler provides those fields. These are
+diagnostic-only report fields used to separate request latency from scheduler
+admission and wave ordering; they do not change the Arrow OCR shard input or
+result schemas.
+A May 8, 2026 real-fixture diagnostic separated fixture coverage from hosted
+OCR evidence. The Docling `2305.03393` page and full-paper probes validated
+the real fixture path but routed only to backend-text source-page shards under
+the risk-window planner. A forced DocLayNet region through
+`baidu/qianfan-ocr-fast:free` preserved zero errors and stable order, but the
+single hosted region request tailed at about `16.7s` while scheduler queue wait
+was effectively zero. For that provider, the next latency lever is model or
+provider choice, region payload shape, or scaffolded output constraints rather
+than Rust queue admission.
+The analyzer normalizes wrapping quotes from Hosted VLM/OCR environment values
+before building OpenRouter headers. This protects local `.env` loaders that
+materialize a value such as `"sk-or-v1-..."` with literal quotes. With that
+normalization in place, the same real DocLayNet region completed through
+`mistralai/ministral-3b-2512` with zero errors, stable order, one hosted
+region request at about `7.4s`, and a force-refresh time around `9.3s`.
+`qwen/qwen3-vl-8b-instruct` also preserved correctness on the same probe but
+tailed around `27.3s`, so it remains a rejected candidate for this region.
 Set
 `WENDAO_HOSTED_VLM_OCR_PROVIDER=openrouter` to use OpenRouter's
 OpenAI-compatible `/chat/completions` API instead of a local model server. The

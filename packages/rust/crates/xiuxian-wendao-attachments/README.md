@@ -280,22 +280,32 @@ order. A benchmark-only region-grouped helper lets Studio test whether
 single-region render chunks improve first-request latency, but Studio must
 still normalize final rows through the same OCR shard order and precision
 gates before accepting any result.
+The benchmark-only all-region chunk helper is also rejected for the milestone
+fixture: r80e preserved precision but delayed first hosted region dispatch to
+`12528.588583 ms` and regressed force refresh to `21670.3075 ms`. Page-grouped
+chunks remain the accepted default because they can dispatch each page's
+regions without waiting for every recovery region in the document to render.
 Two additional benchmark-only helpers sort page chunks by total recovery-region
 area or by the largest single recovery region. They are diagnostic controls
 only: the milestone r73/r74 probes preserved precision but failed to beat the
 accepted OpenRouter force-refresh evidence, and r74 showed large-region render
 completion, not page sort order, gating the hosted tail.
 Studio also has an opt-in fast-text single-page split diagnostic, but it is not
-promoted for the milestone fixture: precision stayed intact, while page `5`
-single-page Docling fast-text conversion regressed force refresh to
-`23629.474667 ms`.
+promoted for the milestone fixture. The older r64b split probe preserved
+precision but regressed force refresh to `23629.474667 ms`; the later r82b
+split plus endpoint-affinity probe passed the locked promotion gate at
+`12133.964875 ms` with `metricsResultChars=108788`, but it did not beat the
+current `8201.568417 ms` OpenRouter evidence and page `5` still tailed at
+`6817.215834 ms`.
 Studio also owns endpoint-locality canaries for Docling fast-text top-up. The
 attachments-owned shard facts still only describe source profile runs and page
 identity; Studio decides whether benchmark prewarm should be limited to the
 first `N` OCR endpoints and whether a single-page fast-text source-PDF chunk
 should be sent to the first endpoint. The r70 canary preserved precision and
-finished at `9636.47725 ms`, but this does not change the attachments schema
-or make endpoint selection an attachments responsibility.
+finished at `9636.47725 ms`; the later r96 canary reused the same
+endpoint-local shape with a `4s` hosted hedge and finished at
+`8201.568417 ms`. This does not change the attachments schema or make endpoint
+selection an attachments responsibility.
 The analyzer benchmark can prewarm multiple source pages before workers listen,
 but this is also a Studio/analyzer readiness canary rather than an attachment
 contract. The r75 page `5,11` endpoint `0-3` probe preserved precision but

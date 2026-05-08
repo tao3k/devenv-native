@@ -22,6 +22,9 @@ _attachment_classes = importlib.import_module(
 )
 _cache = importlib.import_module("wendao_document_extract_benchmark.cache")
 _constants = importlib.import_module("wendao_document_extract_benchmark.constants")
+_docling_groundtruth = importlib.import_module(
+    "xiuxian_wendao_analyzer.docling_groundtruth"
+)
 _fake_fixtures = importlib.import_module(
     "wendao_document_extract_benchmark.fake_fixtures"
 )
@@ -49,6 +52,7 @@ run_cargo_perf_test = _probes.run_cargo_perf_test
 
 _EXPORTED_MODULES: tuple[Any, ...] = (
     _constants,
+    _docling_groundtruth,
     _args,
     _fixtures,
     _fake_fixtures,

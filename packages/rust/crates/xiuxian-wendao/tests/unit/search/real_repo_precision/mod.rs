@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::PathBuf;
 
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryRefreshPolicy};
 
@@ -21,8 +22,11 @@ mod semantic_gate;
 #[test]
 fn default_catalog_uses_managed_repo_contracts() {
     let catalog = default_real_repo_precision_catalog();
-    assert_eq!(catalog.len(), 1);
-    let entry = &catalog[0];
+    assert_eq!(catalog.len(), 2);
+    let entry = catalog
+        .iter()
+        .find(|entry| entry.repository.id == "xiuxian-artisan-workshop")
+        .unwrap_or_else(|| panic!("missing xiuxian-artisan-workshop catalog entry"));
 
     assert_eq!(entry.repository.id, "xiuxian-artisan-workshop");
     assert!(entry.repository.path.is_none());
@@ -208,6 +212,77 @@ fn default_catalog_uses_managed_repo_contracts() {
                     .to_string()
             ]
         && query.language_filters == vec!["rust".to_string()]));
+
+    let pi_wendao = catalog
+        .iter()
+        .find(|entry| entry.repository.id == "pi-wendao")
+        .unwrap_or_else(|| panic!("missing pi-wendao catalog entry"));
+    assert_eq!(
+        pi_wendao
+            .repository
+            .path
+            .as_ref()
+            .map(|path| path.as_path()),
+        Some(std::path::Path::new(".data/pi-wendao"))
+    );
+    assert_eq!(
+        pi_wendao.repository.url.as_deref(),
+        Some("https://github.com/tao3k/pi-wendao.git")
+    );
+    assert_eq!(
+        pi_wendao.repository.refresh,
+        RepositoryRefreshPolicy::Manual
+    );
+    assert_eq!(pi_wendao.include_dirs, vec![".".to_string()]);
+    assert!(
+        pi_wendao
+            .excluded_dirs
+            .iter()
+            .any(|path| path == "node_modules")
+    );
+    assert_docs_gold_query(
+        &pi_wendao.gold_queries,
+        "pi-wendao-readme-subagents-host",
+        "README.md",
+    );
+    assert_docs_gold_query(
+        &pi_wendao.gold_queries,
+        "pi-wendao-named-workflows-brainstorm-cache",
+        "docs/named-workflows.md",
+    );
+    assert_docs_gold_query(
+        &pi_wendao.gold_queries,
+        "pi-wendao-bpmn-format-runtime-ownership",
+        "docs/bpmn-format.md",
+    );
+    assert!(pi_wendao.gold_queries.iter().any(|query| matches!(
+        query.kind,
+        RealRepoGoldQueryKind::RepoAst
+    ) && query.id
+        == "pi-wendao-subagents-extension-source"
+        && query.query == "createCliPiSubagentsHost"
+        && query.must_hit_paths == vec!["src/cli/pi-subagents.ts".to_string()]
+        && query.language_filters == vec!["typescript".to_string()]));
+    assert!(pi_wendao.gold_queries.iter().any(|query| matches!(
+        query.kind,
+        RealRepoGoldQueryKind::RepoAst
+    ) && query.id
+        == "pi-wendao-agent-host-interface-source"
+        && query.query == "buildPiWendaoAgentPrompt"
+        && query.must_hit_paths == vec!["src/executor/agent-host.ts".to_string()]
+        && query.language_filters == vec!["typescript".to_string()]));
+    assert!(
+        pi_wendao
+            .knowledge_scenarios
+            .iter()
+            .any(|scenario| scenario.id == "pi-wendao-agent-workflow-boundary")
+    );
+    assert!(
+        pi_wendao
+            .knowledge_scenarios
+            .iter()
+            .any(|scenario| scenario.id == "pi-wendao-named-workflow-entrypoint")
+    );
 }
 
 fn assert_docs_gold_query(gold_queries: &[RealRepoGoldQuery], query_id: &str, expected_path: &str) {
@@ -392,6 +467,94 @@ fn status_mode_records_missing_remote_checkout_as_skipped_repository()
     assert!(receipt_path.exists());
     let payload = fs::read_to_string(receipt_path)?;
     assert!(payload.contains("missing-real-repo"));
+    Ok(())
+}
+
+#[test]
+fn pi_wendao_local_checkout_real_repo_harness_records_external_orchestration_evidence()
+-> Result<(), Box<dyn std::error::Error>> {
+    let project_root = test_project_root();
+    if !project_root.join(".data/pi-wendao").is_dir() {
+        return Ok(());
+    }
+
+    let temp = tempfile::tempdir()?;
+    let options = RealRepoPrecisionRunOptions {
+        enabled: true,
+        sync_mode: RealRepoPrecisionSyncMode::Status,
+        query_kind_filter: None,
+        prewarmed_resident_only: false,
+        project_root,
+        receipt_path: temp.path().join("pi_wendao_receipt.json"),
+        link_graph_cache_path: temp.path().join("pi_wendao_link_graph_cache.duckdb"),
+    };
+    let catalog = default_real_repo_precision_catalog()
+        .into_iter()
+        .filter(|entry| entry.repository.id == "pi-wendao")
+        .collect::<Vec<_>>();
+
+    let status = run_real_repo_precision_harness_with_options(options, catalog)?;
+
+    let RealRepoPrecisionRunStatus::Completed(receipt) = status else {
+        panic!("pi-wendao local checkout proof should complete");
+    };
+    if receipt.summary.failed_query_count > 0 {
+        for repository in &receipt.repositories {
+            for query in &repository.query_receipts {
+                if !query.passed {
+                    eprintln!(
+                        "pi_wendao_failed_query id={} kind={} missing={:?} top={:?} observed={:?}",
+                        query.query_id,
+                        query.query_kind,
+                        query.missing_paths,
+                        query.observed_top_path,
+                        query.observed_paths
+                    );
+                }
+            }
+        }
+    }
+    assert_eq!(receipt.summary.repository_count, 1);
+    assert_eq!(receipt.summary.failed_query_count, 0);
+    assert_eq!(receipt.summary.failed_knowledge_scenario_count, 0);
+    assert_eq!(receipt.summary.query_count, 6);
+    assert_eq!(receipt.summary.knowledge_scenario_count, 2);
+
+    let Some(repository) = receipt.repositories.first() else {
+        panic!("pi-wendao proof should emit a repository receipt");
+    };
+    assert_eq!(repository.repo_id, "pi-wendao");
+    assert!(repository.indexed);
+    assert!(repository.repo_ast_index_file_count > 0);
+    assert!(repository.repo_ast_index_symbol_count > 0);
+    assert_eq!(repository.knowledge_scenarios.len(), 2);
+    assert!(
+        repository
+            .knowledge_scenarios
+            .iter()
+            .all(|scenario| scenario.passed)
+    );
+    let corpus = repository
+        .link_graph_corpus
+        .as_ref()
+        .unwrap_or_else(|| panic!("pi-wendao proof should emit LinkGraph corpus stats"));
+    assert!(corpus.markdown_document_count >= 3);
+    for query_id in [
+        "pi-wendao-readme-subagents-host",
+        "pi-wendao-named-workflows-brainstorm-cache",
+        "pi-wendao-bpmn-format-runtime-ownership",
+        "pi-wendao-subagents-extension-source",
+        "pi-wendao-agent-host-interface-source",
+        "pi-wendao-model-resolver-source",
+    ] {
+        assert!(
+            repository
+                .query_receipts
+                .iter()
+                .any(|query| query.query_id == query_id && query.passed),
+            "missing passed pi-wendao query `{query_id}`"
+        );
+    }
     Ok(())
 }
 
@@ -798,4 +961,19 @@ fn gold_query(required_top_path: Option<&str>) -> RealRepoGoldQuery {
         required_top_path: required_top_path.map(str::to_string),
         language_filters: Vec::new(),
     }
+}
+
+fn test_project_root() -> PathBuf {
+    std::env::var_os("PRJ_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            let mut root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            for _ in 0..4 {
+                root = root
+                    .parent()
+                    .unwrap_or_else(|| panic!("crate path should be under the repository root"))
+                    .to_path_buf();
+            }
+            root
+        })
 }

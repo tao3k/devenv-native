@@ -90,6 +90,11 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP"] = str(
             rust_pdf_backend_text_topup
         )
+    rust_pdf_failed_page_recovery = getattr(args, "rust_pdf_failed_page_recovery", None)
+    if rust_pdf_failed_page_recovery and rust_pdf_failed_page_recovery != "disabled":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY"] = str(
+            rust_pdf_failed_page_recovery
+        )
     rust_pdf_ocr_profile_planner = getattr(args, "rust_pdf_ocr_profile_planner", None)
     if rust_pdf_ocr_profile_planner and rust_pdf_ocr_profile_planner != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] = str(

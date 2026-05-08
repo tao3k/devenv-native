@@ -63,6 +63,12 @@ def summarize_attachment_class(
     structure_parity_passed = aggregate_optional_bool(
         result.get("structureParityPassed") for result in results
     )
+    docling_groundtruth_passed = aggregate_optional_bool(
+        result.get("doclingGroundtruthPassed") for result in results
+    )
+    docling_groundtruth_failure_count = sum(
+        result.get("doclingGroundtruthFailureCount", 0) for result in results
+    )
     return {
         "attachmentClass": attachment_class,
         "fixtureCount": len(results),
@@ -153,5 +159,7 @@ def summarize_attachment_class(
             structure_order_stable=structure_order_stable,
             structure_order_mismatch_count=structure_order_mismatch_count,
             structure_parity_passed=structure_parity_passed,
+            docling_groundtruth_passed=docling_groundtruth_passed,
+            docling_groundtruth_failure_count=docling_groundtruth_failure_count,
         ),
     }

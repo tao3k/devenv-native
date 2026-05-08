@@ -151,7 +151,7 @@ def try_recognize_region_composite(
             request_kind="region-composite",
         )
         return None
-    except (OSError, ValueError, urllib.error.URLError) as exc:
+    except Exception as exc:
         client._write_trace(
             input_rows[0],
             status="failed",

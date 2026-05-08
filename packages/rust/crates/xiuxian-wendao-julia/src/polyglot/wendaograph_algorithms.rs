@@ -329,6 +329,33 @@ const WENDAO_GRAPH_PAGE_INDEX_ALGORITHMS: &[WendaoGraphAlgorithmRef] = &[
     ),
 ];
 
+const WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ALGORITHMS: &[WendaoGraphAlgorithmRef] = &[
+    search_strategy_flow_algorithm(
+        "search_strategy_flow.candidate_rows",
+        "WendaoGraph.strategy_flow_candidate_rows",
+        Some("strategy_candidates"),
+        JuliaTaskComplexityClass::Balanced,
+    ),
+    search_strategy_flow_algorithm(
+        "search_strategy_flow.transition_rows",
+        "WendaoGraph.strategy_flow_transition_rows",
+        Some("strategy_transitions"),
+        JuliaTaskComplexityClass::Simple,
+    ),
+    search_strategy_flow_algorithm(
+        "search_strategy_flow.frontier_rows",
+        "WendaoGraph.strategy_flow_frontier_rows",
+        Some("strategy_frontier"),
+        JuliaTaskComplexityClass::Balanced,
+    ),
+    search_strategy_flow_algorithm(
+        "search_strategy_flow.tables",
+        "WendaoGraph.strategy_flow_tables",
+        None,
+        JuliaTaskComplexityClass::Balanced,
+    ),
+];
+
 const WENDAO_GRAPH_GNN_ALGORITHMS: &[WendaoGraphAlgorithmRef] = &[
     gnn_algorithm(
         "gnn.node_features",
@@ -375,6 +402,13 @@ pub const fn wendaograph_page_index_algorithm_refs() -> &'static [WendaoGraphAlg
     WENDAO_GRAPH_PAGE_INDEX_ALGORITHMS
 }
 
+/// Returns the `WendaoGraph.jl` `SearchStrategyFlow` algorithm catalog.
+#[must_use]
+pub const fn wendaograph_search_strategy_flow_algorithm_refs() -> &'static [WendaoGraphAlgorithmRef]
+{
+    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ALGORITHMS
+}
+
 /// Returns the `WendaoGraph.jl` GNN algorithm catalog.
 #[must_use]
 pub const fn wendaograph_gnn_algorithm_refs() -> &'static [WendaoGraphAlgorithmRef] {
@@ -388,11 +422,13 @@ pub fn wendaograph_algorithm_refs() -> Vec<WendaoGraphAlgorithmRef> {
         WENDAO_GRAPH_LINK_GRAPH_ALGORITHMS.len()
             + WENDAO_GRAPH_RELATIONSHIP_SEARCH_ALGORITHMS.len()
             + WENDAO_GRAPH_PAGE_INDEX_ALGORITHMS.len()
+            + WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ALGORITHMS.len()
             + WENDAO_GRAPH_GNN_ALGORITHMS.len(),
     );
     refs.extend_from_slice(WENDAO_GRAPH_LINK_GRAPH_ALGORITHMS);
     refs.extend_from_slice(WENDAO_GRAPH_RELATIONSHIP_SEARCH_ALGORITHMS);
     refs.extend_from_slice(WENDAO_GRAPH_PAGE_INDEX_ALGORITHMS);
+    refs.extend_from_slice(WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ALGORITHMS);
     refs.extend_from_slice(WENDAO_GRAPH_GNN_ALGORITHMS);
     refs
 }
@@ -413,6 +449,31 @@ pub fn wendaograph_algorithm_task_shape(
     workload: WendaoGraphAlgorithmWorkload,
 ) -> Option<JuliaComputeTaskShape> {
     wendaograph_algorithm_ref(algorithm_id).map(|reference| reference.task_shape(workload))
+}
+
+/// Returns the staged `WendaoGraph.jl` algorithm that owns one reasoning-tree
+/// backend frontier evidence kind.
+#[must_use]
+pub fn wendaograph_frontier_algorithm_ref(evidence_kind: &str) -> Option<WendaoGraphAlgorithmRef> {
+    let algorithm_id = match evidence_kind {
+        "anchor_query" => "relationship_search.hnsw_semantic_fanout",
+        "relation_path" => "relationship_search.ppr_like_relatedness",
+        "page_index_seed" => "page_index.reasoning_frontier",
+        "source_path" => "relationship_search.graph_search_ranking",
+        _ => return None,
+    };
+    wendaograph_algorithm_ref(algorithm_id)
+}
+
+/// Returns the scheduler task shape for one reasoning-tree backend frontier
+/// evidence kind and workload.
+#[must_use]
+pub fn wendaograph_frontier_task_shape(
+    evidence_kind: &str,
+    workload: WendaoGraphAlgorithmWorkload,
+) -> Option<JuliaComputeTaskShape> {
+    wendaograph_frontier_algorithm_ref(evidence_kind)
+        .map(|reference| reference.task_shape(workload))
 }
 
 /// Returns staged `WendaoGraph.jl` algorithm entries for one Julia profile id.
@@ -468,6 +529,23 @@ const fn relationship_search_algorithm(
         algorithm_id,
         "relationship_search",
         WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+        julia_entrypoint,
+        output_table,
+        LaneCapability::GraphEvidenceCompute,
+        complexity,
+    )
+}
+
+const fn search_strategy_flow_algorithm(
+    algorithm_id: &'static str,
+    julia_entrypoint: &'static str,
+    output_table: Option<&'static str>,
+    complexity: JuliaTaskComplexityClass,
+) -> WendaoGraphAlgorithmRef {
+    WendaoGraphAlgorithmRef::new(
+        algorithm_id,
+        "search_strategy_flow",
+        WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID,
         julia_entrypoint,
         output_table,
         LaneCapability::GraphEvidenceCompute,

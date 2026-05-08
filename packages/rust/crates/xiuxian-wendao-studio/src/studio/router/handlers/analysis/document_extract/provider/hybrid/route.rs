@@ -16,7 +16,8 @@ use std::path::PathBuf;
 use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 #[cfg(any(feature = "document-extract-pdf-source-range", test))]
 use xiuxian_wendao_attachments::pdf::ocr::{
-    PdfOcrShardInput, PdfOcrShardResult, build_ocr_result_resource_batch,
+    PDF_OCR_BACKEND_TEXT_PROFILE, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, PdfOcrShardInput,
+    PdfOcrShardResult, PdfOcrShardResultStatus, build_ocr_result_resource_batch,
     decode_ocr_shard_input_batches, is_hosted_vlm_direct_profile,
 };
 #[cfg(any(feature = "document-extract-pdf-render", test))]
@@ -102,6 +103,25 @@ const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
 const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_SCAFFOLD_FILE_NAME: &str = "_hosted_vlm_region_scaffolds.json";
+const DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY";
+const FAILED_PAGE_RECOVERY_HOSTED_VLM_PAGE_MODE: &str = "hosted-vlm-page";
+const HOSTED_VLM_DIRECT_OCR_ENGINE: &str = "hosted-vlm-direct-ocr";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HybridPdfFailedPageRecoveryMode {
+    Disabled,
+    HostedVlmPage,
+}
+
+impl HybridPdfFailedPageRecoveryMode {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Disabled => "disabled",
+            Self::HostedVlmPage => FAILED_PAGE_RECOVERY_HOSTED_VLM_PAGE_MODE,
+        }
+    }
+}
 
 impl StudioDocumentExtractFlightRouteProvider {
     pub(crate) async fn hybrid_page_ocr_document_extract_batch(
@@ -372,6 +392,29 @@ fn ocr2_region_render_chunk_mode_label() -> &'static str {
     }
 }
 
+fn failed_page_recovery_mode_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> HybridPdfFailedPageRecoveryMode {
+    match lookup(DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY_ENV)
+        .unwrap_or_default()
+        .trim()
+        .replace('_', "-")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        FAILED_PAGE_RECOVERY_HOSTED_VLM_PAGE_MODE => HybridPdfFailedPageRecoveryMode::HostedVlmPage,
+        _ => HybridPdfFailedPageRecoveryMode::Disabled,
+    }
+}
+
+fn failed_page_recovery_mode() -> HybridPdfFailedPageRecoveryMode {
+    failed_page_recovery_mode_with_lookup(&|key| std::env::var(key).ok())
+}
+
+fn failed_page_recovery_mode_label() -> &'static str {
+    failed_page_recovery_mode().as_str()
+}
+
 #[cfg(feature = "document-extract-pdf-render")]
 fn ocr2_region_render_request_chunks_with_lookup(
     regions: &[PdfPageRegionRenderRequest],
@@ -503,6 +546,13 @@ async fn write_hybrid_page_ocr_timing_report(
         "ocr2RegionPipelineRegionResultShardCount": region_materialization_stats.pipeline_region_result_shard_count,
         "ocr2RegionPipelineMode": ocr2_region_pipeline_mode_label(),
         "ocr2RegionRenderChunkMode": ocr2_region_render_chunk_mode_label(),
+        "failedPageRecoveryMode": failed_page_recovery_mode_label(),
+        "failedPageRecoveryHostedVlmPageShardCount": resource_batch
+            .ocr_inputs
+            .iter()
+            .filter(|input| input.shard_type == "page"
+                && is_hosted_vlm_direct_profile(input.ocr_profile.as_str()))
+            .count(),
         "ocrSchedulerTrace": scheduler_trace,
         "totalElapsedMs": total_elapsed_ms,
         "phaseElapsedMs": phase_elapsed_ms,
@@ -1007,6 +1057,77 @@ pub(crate) fn merge_ocr2_recovery_page_inputs(
     Ok(inputs)
 }
 
+fn failed_page_recovery_input(input: &PdfOcrShardInput) -> PdfOcrShardInput {
+    let mut recovery_input = input.clone();
+    recovery_input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
+    recovery_input.ocr_engine = HOSTED_VLM_DIRECT_OCR_ENGINE.to_string();
+    recovery_input
+}
+
+fn failed_page_recovery_candidates(
+    inputs: &[PdfOcrShardInput],
+    results: &[PdfOcrShardResult],
+) -> Vec<(usize, PdfOcrShardInput)> {
+    inputs
+        .iter()
+        .zip(results.iter())
+        .enumerate()
+        .filter(|(_, (input, result))| is_failed_page_recovery_candidate(input, result))
+        .map(|(index, (input, _result))| (index, failed_page_recovery_input(input)))
+        .collect()
+}
+
+fn is_failed_page_recovery_candidate(input: &PdfOcrShardInput, result: &PdfOcrShardResult) -> bool {
+    input.shard_type == "page"
+        && !is_hosted_vlm_direct_profile(input.ocr_profile.as_str())
+        && input.ocr_profile != PDF_OCR_BACKEND_TEXT_PROFILE
+        && (result.status != PdfOcrShardResultStatus::Succeeded
+            || result
+                .text
+                .as_deref()
+                .is_none_or(|text| text.trim().is_empty()))
+}
+
+async fn recover_failed_page_ocr_results(
+    render_report: &PdfPageRenderShardReport,
+    endpoint_urls: &[String],
+    pdf_ocr_scheduler: &PdfOcrWorkerScheduler,
+    inputs: &mut [PdfOcrShardInput],
+    results: &mut [PdfOcrShardResult],
+) -> Result<(), String> {
+    if failed_page_recovery_mode() != HybridPdfFailedPageRecoveryMode::HostedVlmPage {
+        return Ok(());
+    }
+    let candidates = failed_page_recovery_candidates(inputs, results);
+    if candidates.is_empty() {
+        return Ok(());
+    }
+    let positions = candidates
+        .iter()
+        .map(|(position, _input)| *position)
+        .collect::<Vec<_>>();
+    let recovery_inputs = candidates
+        .into_iter()
+        .map(|(_position, input)| input)
+        .collect::<Vec<_>>();
+    let recovery_inputs =
+        materialize_ocr2_recovery_page_images(render_report, recovery_inputs).await?;
+    let response = pdf_ocr_scheduler
+        .request_shards_with_endpoints(endpoint_urls, recovery_inputs.as_slice())
+        .await?;
+    let recovery_results =
+        order_ocr_results_by_inputs(recovery_inputs.as_slice(), response.results)?;
+    for ((position, recovery_input), recovery_result) in positions
+        .into_iter()
+        .zip(recovery_inputs.into_iter())
+        .zip(recovery_results.into_iter())
+    {
+        inputs[position] = recovery_input;
+        results[position] = recovery_result;
+    }
+    Ok(())
+}
+
 #[cfg(feature = "document-extract-pdf-render")]
 async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipeline(
     render_report: &PdfPageRenderShardReport,
@@ -1404,11 +1525,21 @@ async fn materialize_hybrid_page_ocr_resource_batch(
     let response = pdf_ocr_scheduler
         .request_shards_with_endpoints(endpoint_urls.as_slice(), inputs.as_slice())
         .await?;
+    let mut inputs = inputs;
+    let mut results = order_ocr_results_by_inputs(inputs.as_slice(), response.results)?;
+    recover_failed_page_ocr_results(
+        render_report,
+        endpoint_urls.as_slice(),
+        pdf_ocr_scheduler,
+        inputs.as_mut_slice(),
+        results.as_mut_slice(),
+    )
+    .await?;
     let scheduler_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
     materialize_hybrid_page_ocr_resource_batch_from_results(
         render_report,
         inputs,
-        response.results,
+        results,
         scheduler_elapsed_ms,
     )
 }

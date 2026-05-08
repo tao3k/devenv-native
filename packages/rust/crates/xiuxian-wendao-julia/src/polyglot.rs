@@ -53,9 +53,11 @@ mod wendaograph_algorithms;
 pub use wendaograph_algorithms::{
     WendaoGraphAlgorithmRef, WendaoGraphAlgorithmWorkload, wendaograph_algorithm_ref,
     wendaograph_algorithm_refs, wendaograph_algorithm_refs_for_profile,
-    wendaograph_algorithm_task_shape, wendaograph_gnn_algorithm_refs,
+    wendaograph_algorithm_task_shape, wendaograph_frontier_algorithm_ref,
+    wendaograph_frontier_task_shape, wendaograph_gnn_algorithm_refs,
     wendaograph_link_graph_algorithm_refs, wendaograph_page_index_algorithm_refs,
     wendaograph_relationship_search_algorithm_refs,
+    wendaograph_search_strategy_flow_algorithm_refs,
 };
 
 /// Owner-supplied scheduling facts for one Julia profile planning attempt.
@@ -571,6 +573,21 @@ pub fn wendaograph_algorithm_schedule_plan(
         }
         _ => None,
     }
+}
+
+/// Returns a schedule plan for one reasoning-tree backend frontier evidence
+/// kind.
+///
+/// Evidence kinds that remain Rust-owned, such as authority and negative-guard
+/// checks, return `None`.
+#[must_use]
+pub fn wendaograph_frontier_schedule_plan(
+    evidence_kind: &str,
+    workload: WendaoGraphAlgorithmWorkload,
+    facts: JuliaProfileSchedulingFacts,
+) -> Option<JuliaSchedulePlan> {
+    let reference = wendaograph_frontier_algorithm_ref(evidence_kind)?;
+    wendaograph_algorithm_schedule_plan(reference.algorithm_id, workload, facts)
 }
 
 /// Projects every relationship-search algorithm into host-probe-backed

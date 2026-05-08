@@ -290,11 +290,19 @@ needs a feature-gated second plugin bundle for these languages.
 - the owner bridge also exposes an inert `WendaoGraph.jl` algorithm catalog.
   The catalog maps LinkGraph structural, semantic-overlay, diffusion, and
   frontier helpers; PageIndex frontier, disclosure-trace, and planner-action
+  helpers; SearchStrategyFlow candidate, transition, frontier, and table
   helpers; and GNN feature, graph, score, and frontier helpers to their owning
   Julia profile, Julia entrypoint, output table when applicable, and scheduler
   complexity hint. Rust can use this as capability evidence for later
   algorithm-aware planning, but the catalog does not call Julia, add a route,
   widen a schema, or gate admission by itself.
+- the SearchStrategyFlow catalog entries mirror the graph-owned pure contract
+  in WendaoGraph.jl: `WendaoGraph.strategy_flow_candidate_rows`,
+  `WendaoGraph.strategy_flow_transition_rows`,
+  `WendaoGraph.strategy_flow_frontier_rows`, and
+  `WendaoGraph.strategy_flow_tables`. They intentionally reuse the existing
+  `wendao_graph_page_index_reasoning` profile until a live SearchStrategyFlow
+  route is proven; this is static owner evidence, not live Julia execution.
 - the algorithm catalog now also exposes a relationship-search subset for
   HNSW semantic fanout, MOC-style community grouping, PPR-like relatedness,
   graph search ranking, and large object-graph traversal. These entries map to
@@ -365,9 +373,9 @@ needs a feature-gated second plugin bundle for these languages.
   `WendaoGraphAlgorithmWorkload` for a specific algorithm id and receive a
   `JuliaComputeTaskShape` with the catalog complexity hint and a stable
   profile/algorithm batchability key. A thin algorithm schedule-plan helper
-  routes known LinkGraph, PageIndex, and GNN algorithm ids through the existing
-  profile-specific schedule helpers; unknown algorithm ids return `None`
-  rather than creating an admission rejection.
+  routes known LinkGraph, PageIndex, SearchStrategyFlow, and GNN algorithm ids
+  through the existing profile-specific schedule helpers; unknown algorithm ids
+  return `None` rather than creating an admission rejection.
 - the WendaoGraph LinkGraph host-request entrypoint now has an opt-in real
   Julia process probe:
   `RUN_WENDAOGRAPH_LINK_GRAPH_HOST_PROBE_TEST=1 WENDAOGRAPH_PACKAGE_DIR=<WendaoGraph.jl checkout> cargo test -p xiuxian-wendao-julia --lib wendaograph_link_graph_host_probe -- --nocapture`.

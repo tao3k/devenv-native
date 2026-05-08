@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::analyzers::{
     RegisteredRepository, RepositoryPluginConfig, RepositoryRef, RepositoryRefreshPolicy,
 };
@@ -9,7 +11,11 @@ use crate::search::real_repo_precision::types::{
 };
 
 pub(crate) fn default_real_repo_precision_catalog() -> Vec<RealRepoPrecisionCatalogEntry> {
-    vec![RealRepoPrecisionCatalogEntry {
+    vec![artisan_workshop_catalog_entry(), pi_wendao_catalog_entry()]
+}
+
+fn artisan_workshop_catalog_entry() -> RealRepoPrecisionCatalogEntry {
+    RealRepoPrecisionCatalogEntry {
         repository: RegisteredRepository {
             id: "xiuxian-artisan-workshop".to_string(),
             path: None,
@@ -368,7 +374,132 @@ pub(crate) fn default_real_repo_precision_catalog() -> Vec<RealRepoPrecisionCata
             },
         ],
         knowledge_scenarios: default_knowledge_scenarios(),
-    }]
+    }
+}
+
+fn pi_wendao_catalog_entry() -> RealRepoPrecisionCatalogEntry {
+    RealRepoPrecisionCatalogEntry {
+        repository: RegisteredRepository {
+            id: "pi-wendao".to_string(),
+            path: Some(PathBuf::from(".data/pi-wendao")),
+            url: Some("https://github.com/tao3k/pi-wendao.git".to_string()),
+            git_ref: None,
+            refresh: RepositoryRefreshPolicy::Manual,
+            plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+        },
+        include_dirs: vec![".".to_string()],
+        excluded_dirs: vec![
+            ".git".to_string(),
+            "dist".to_string(),
+            "node_modules".to_string(),
+            "coverage".to_string(),
+        ],
+        gold_queries: vec![
+            RealRepoGoldQuery {
+                id: "pi-wendao-readme-subagents-host".to_string(),
+                kind: RealRepoGoldQueryKind::LinkGraph,
+                query:
+                    "pi-subagents host execution qianji checkpoint parallel scheduling graph trace"
+                        .to_string(),
+                limit: 20,
+                must_hit_paths: vec!["README.md".to_string()],
+                required_top_path: None,
+                language_filters: Vec::new(),
+            },
+            RealRepoGoldQuery {
+                id: "pi-wendao-named-workflows-brainstorm-cache".to_string(),
+                kind: RealRepoGoldQueryKind::LinkGraph,
+                query: "named workflows brainstorm PRJ_CACHE_HOME canonical seed qianji scheduling"
+                    .to_string(),
+                limit: 20,
+                must_hit_paths: vec!["docs/named-workflows.md".to_string()],
+                required_top_path: None,
+                language_filters: Vec::new(),
+            },
+            RealRepoGoldQuery {
+                id: "pi-wendao-bpmn-format-runtime-ownership".to_string(),
+                kind: RealRepoGoldQueryKind::LinkGraph,
+                query: "BPMN qianji owns scheduling checkpoints pi-wendao renders human prompts"
+                    .to_string(),
+                limit: 20,
+                must_hit_paths: vec!["docs/bpmn-format.md".to_string()],
+                required_top_path: None,
+                language_filters: Vec::new(),
+            },
+            RealRepoGoldQuery {
+                id: "pi-wendao-subagents-extension-source".to_string(),
+                kind: RealRepoGoldQueryKind::RepoAst,
+                query: "createCliPiSubagentsHost".to_string(),
+                limit: 10,
+                must_hit_paths: vec!["src/cli/pi-subagents.ts".to_string()],
+                required_top_path: Some("src/cli/pi-subagents.ts".to_string()),
+                language_filters: vec!["typescript".to_string()],
+            },
+            RealRepoGoldQuery {
+                id: "pi-wendao-agent-host-interface-source".to_string(),
+                kind: RealRepoGoldQueryKind::RepoAst,
+                query: "buildPiWendaoAgentPrompt".to_string(),
+                limit: 10,
+                must_hit_paths: vec!["src/executor/agent-host.ts".to_string()],
+                required_top_path: Some("src/executor/agent-host.ts".to_string()),
+                language_filters: vec!["typescript".to_string()],
+            },
+            RealRepoGoldQuery {
+                id: "pi-wendao-model-resolver-source".to_string(),
+                kind: RealRepoGoldQueryKind::RepoAst,
+                query: "resolveModel".to_string(),
+                limit: 10,
+                must_hit_paths: vec!["src/cli/model-resolver.ts".to_string()],
+                required_top_path: Some("src/cli/model-resolver.ts".to_string()),
+                language_filters: vec!["typescript".to_string()],
+            },
+        ],
+        knowledge_scenarios: pi_wendao_knowledge_scenarios(),
+    }
+}
+
+fn pi_wendao_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
+    vec![
+        RealRepoKnowledgeScenario {
+            id: "pi-wendao-agent-workflow-boundary".to_string(),
+            kind: RealRepoKnowledgeScenarioKind::AgentTask,
+            intent: "Gather evidence for how pi-wendao owns subagent/workflow orchestration while qianji owns BPMN scheduling.".to_string(),
+            linked_query_ids: vec![
+                "pi-wendao-readme-subagents-host".to_string(),
+                "pi-wendao-bpmn-format-runtime-ownership".to_string(),
+            ],
+            query_variants: query_variants(&[
+                (
+                    "pi-wendao-readme-subagents-host",
+                    RealRepoKnowledgeScenarioQueryVariantKind::Canonical,
+                ),
+                (
+                    "pi-wendao-bpmn-format-runtime-ownership",
+                    RealRepoKnowledgeScenarioQueryVariantKind::Task,
+                ),
+            ]),
+            required_paths: vec!["README.md".to_string(), "docs/bpmn-format.md".to_string()],
+            required_semantic_object_ids: Vec::new(),
+            required_relation_paths: Vec::new(),
+            authority: None,
+            forbidden_paths: Vec::new(),
+        },
+        RealRepoKnowledgeScenario {
+            id: "pi-wendao-named-workflow-entrypoint".to_string(),
+            kind: RealRepoKnowledgeScenarioKind::KnownItem,
+            intent: "Find the named workflow documentation for the native brainstorm entrypoint.".to_string(),
+            linked_query_ids: vec!["pi-wendao-named-workflows-brainstorm-cache".to_string()],
+            query_variants: query_variants(&[(
+                "pi-wendao-named-workflows-brainstorm-cache",
+                RealRepoKnowledgeScenarioQueryVariantKind::Canonical,
+            )]),
+            required_paths: vec!["docs/named-workflows.md".to_string()],
+            required_semantic_object_ids: Vec::new(),
+            required_relation_paths: Vec::new(),
+            authority: None,
+            forbidden_paths: Vec::new(),
+        },
+    ]
 }
 
 fn default_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {

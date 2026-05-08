@@ -59,15 +59,19 @@ def precision_speed_summary(
     structure_order_stable: bool | None,
     structure_order_mismatch_count: int,
     structure_parity_passed: bool | None,
+    docling_groundtruth_passed: bool | None,
+    docling_groundtruth_failure_count: int,
 ) -> dict[str, Any]:
     precision_gate_passed = (
         total_error_rows == 0
         and artifact_error_count == 0
         and structure_parity_error_count == 0
+        and docling_groundtruth_failure_count == 0
         and structure_reading_order_sorted is not False
         and structure_order_stable is not False
         and structure_order_mismatch_count == 0
         and structure_parity_passed is not False
+        and docling_groundtruth_passed is not False
     )
     return {
         "precisionGatePassed": precision_gate_passed,
@@ -78,6 +82,8 @@ def precision_speed_summary(
         "structureOrderMismatches": structure_order_mismatch_count,
         "structureParityPassed": structure_parity_passed,
         "structureParityErrors": structure_parity_error_count,
+        "doclingGroundtruthPassed": docling_groundtruth_passed,
+        "doclingGroundtruthFailures": docling_groundtruth_failure_count,
         "structureRows": sum(result.get("structureRows", 0) for result in results),
         "ocrPageBlocks": sum(
             result.get("structureOcrPageBlocks", 0) for result in results

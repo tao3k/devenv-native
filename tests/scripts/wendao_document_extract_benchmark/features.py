@@ -47,6 +47,11 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
         "hosted-vlm-risk-window-backend-text",
     }:
         return cargo_features_with_pdf_render(features)
+    failed_page_recovery = str(
+        getattr(args, "rust_pdf_failed_page_recovery", "")
+    ).replace("_", "-")
+    if failed_page_recovery == "hosted-vlm-page":
+        return cargo_features_with_pdf_render(features)
     selection = normalize_render_selection(
         getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
     )
