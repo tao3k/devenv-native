@@ -852,6 +852,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--fail-on-precision-gate-failure",
+        action="store_true",
+        help=(
+            "Fail when precisionSpeedSummary.precisionGatePassed is false. "
+            "This combines error rows, artifact errors, structure order, "
+            "structure parity, and Docling groundtruth guards."
+        ),
+    )
+    parser.add_argument(
         "--fail-on-missing-ocr-metrics",
         action="store_true",
         help=(

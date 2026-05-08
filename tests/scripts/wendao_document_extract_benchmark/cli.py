@@ -272,6 +272,10 @@ def main() -> int:
 
 
 def enforce_report_gates(args, payload: dict[str, Any]) -> None:
+    if getattr(args, "fail_on_precision_gate_failure", False):
+        precision_speed = payload["summary"]["precisionSpeedSummary"]
+        if precision_speed.get("precisionGatePassed") is not True:
+            raise SystemExit("precision gate failed")
     if getattr(args, "fail_on_structure_parity_mismatch", False):
         summary = payload["summary"]
         checked = int(summary.get("structureParityCheckedFixtures") or 0)

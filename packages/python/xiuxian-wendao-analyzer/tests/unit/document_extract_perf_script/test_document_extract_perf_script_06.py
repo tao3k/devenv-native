@@ -121,6 +121,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
 def test_report_gate_rejects_structure_parity_failures() -> None:
     benchmark = _load_benchmark_module()
     args = benchmark.argparse.Namespace(
+        fail_on_precision_gate_failure=False,
         fail_on_structure_parity_mismatch=True,
         fail_on_pdf_milestone_regression=False,
     )
@@ -139,9 +140,33 @@ def test_report_gate_rejects_structure_parity_failures() -> None:
         benchmark.enforce_report_gates(args, payload)
 
 
+def test_report_gate_rejects_precision_gate_failures() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        fail_on_precision_gate_failure=True,
+        fail_on_structure_parity_mismatch=False,
+        fail_on_pdf_milestone_regression=False,
+    )
+    payload = {
+        "summary": {
+            "structureParityCheckedFixtures": 1,
+            "allStructureParityPassed": False,
+            "totalStructureParityErrors": 1,
+            "precisionSpeedSummary": {
+                "precisionGatePassed": False,
+                "pdfOcrMilestoneGuard": {"passed": True},
+            },
+        }
+    }
+
+    with pytest.raises(SystemExit, match="precision gate failed"):
+        benchmark.enforce_report_gates(args, payload)
+
+
 def test_report_gate_requires_structure_parity_checks() -> None:
     benchmark = _load_benchmark_module()
     args = benchmark.argparse.Namespace(
+        fail_on_precision_gate_failure=False,
         fail_on_structure_parity_mismatch=True,
         fail_on_pdf_milestone_regression=False,
     )

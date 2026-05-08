@@ -299,6 +299,10 @@ structure order signatures.
 Use `--fail-on-structure-parity-mismatch` when a real OCR benchmark has a
 Docling baseline and must fail if the candidate loses baseline text coverage,
 protected block counts, or any other structure parity guard.
+Use `--fail-on-precision-gate-failure` when a benchmark candidate should fail
+on the aggregate precision gate instead of only recording the failure in the
+report. This combines error rows, artifact errors, structure order, structure
+parity, and Docling groundtruth status from `precisionSpeedSummary`.
 Each report also includes a `precisionSpeedSummary` section that keeps the
 quality and latency signals together: error rows, artifact errors, structure
 order, force/cache/shard-reuse order stability, parity status, OCR/bbox block
