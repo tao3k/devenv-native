@@ -192,7 +192,7 @@ fn resolve_knowledge_valkey_url_with_settings_and_lookup(
             lookup,
             &[KNOWLEDGE_VALKEY_URL_ENV, "VALKEY_URL", "REDIS_URL"],
         )
-        .map(|(_, url)| url),
+        .map(|candidate| candidate.value),
     )
 }
 

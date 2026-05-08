@@ -2,6 +2,27 @@
 
 use std::str::FromStr;
 
+/// Named scalar value selected from a precedence chain.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[must_use]
+pub struct NamedScalarValue {
+    /// Name of the TOML setting or env-style lookup key that produced `value`.
+    pub source_name: String,
+    /// Trimmed scalar value selected from the source.
+    pub value: String,
+}
+
+impl NamedScalarValue {
+    /// Build a named scalar value from a source name and value.
+    #[must_use]
+    pub fn new(source_name: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            source_name: source_name.into(),
+            value: value.into(),
+        }
+    }
+}
+
 /// Return a trimmed non-empty string candidate.
 #[must_use]
 pub fn trimmed_non_empty(candidate: Option<String>) -> Option<String> {
@@ -55,10 +76,10 @@ pub fn first_non_empty_lookup(
 pub fn first_non_empty_named_lookup(
     names: &[&str],
     lookup: &dyn Fn(&str) -> Option<String>,
-) -> Option<(String, String)> {
-    names
-        .iter()
-        .find_map(|name| trimmed_non_empty(lookup(name)).map(|value| ((*name).to_string(), value)))
+) -> Option<NamedScalarValue> {
+    names.iter().find_map(|name| {
+        trimmed_non_empty(lookup(name)).map(|value| NamedScalarValue::new(*name, value))
+    })
 }
 
 /// Resolve a TOML-owned string first and otherwise return the first named
@@ -69,9 +90,9 @@ pub fn toml_first_named_string(
     setting_value: Option<String>,
     lookup: &dyn Fn(&str) -> Option<String>,
     env_names: &[&str],
-) -> Option<(String, String)> {
+) -> Option<NamedScalarValue> {
     trimmed_non_empty(setting_value)
-        .map(|value| (setting_name.to_string(), value))
+        .map(|value| NamedScalarValue::new(setting_name, value))
         .or_else(|| first_non_empty_named_lookup(env_names, lookup))
 }
 

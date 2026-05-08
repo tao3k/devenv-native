@@ -1,3 +1,5 @@
+//! CLI argument splitter for shared `xiuxian-logging` flags.
+
 use crate::types::{LogColor, LogFormat, LogLevel, LogSettings};
 
 fn parse_verbose_flag(arg: &str) -> Option<u8> {

@@ -96,7 +96,7 @@ fn resolve_search_plane_cache_connection_target_with_lookup(
         });
     }
 
-    let Some((env_name, env_url)) = first_non_empty_named_lookup(
+    let Some(candidate) = first_non_empty_named_lookup(
         &[
             SEARCH_PLANE_VALKEY_URL_ENV,
             KNOWLEDGE_VALKEY_URL_ENV,
@@ -109,10 +109,14 @@ fn resolve_search_plane_cache_connection_target_with_lookup(
             "missing search cache valkey url; set search.cache.valkey_url or one of XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL, XIUXIAN_WENDAO_KNOWLEDGE_VALKEY_URL, VALKEY_URL, REDIS_URL".to_string(),
         );
     };
-    open_client(env_url.as_str())
-        .map_err(|error| format!("invalid search cache valkey url from {env_name}: {error}"))?;
+    open_client(candidate.value.as_str()).map_err(|error| {
+        format!(
+            "invalid search cache valkey url from {}: {error}",
+            candidate.source_name
+        )
+    })?;
     Ok(SearchPlaneCacheConnectionTarget {
-        valkey_url: env_url,
+        valkey_url: candidate.value,
         config,
     })
 }

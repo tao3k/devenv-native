@@ -1,3 +1,5 @@
+//! `clap` argument definitions for shared `xiuxian-logging` settings.
+
 use clap::{ArgAction, Args};
 
 use crate::types::{LogColor, LogFormat, LogLevel, LogSettings};

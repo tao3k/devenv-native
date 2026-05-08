@@ -36,7 +36,7 @@ fn resolve_link_graph_cache_runtime_with_settings_and_lookup(
         lookup,
         &[LINK_GRAPH_CACHE_VALKEY_URL_ENV],
     )
-    .map(|(_, value)| value)
+    .map(|candidate| candidate.value)
     .ok_or_else(|| {
         format!(
             "link_graph cache valkey url is required (set {LINK_GRAPH_CACHE_VALKEY_URL_SETTING} or {LINK_GRAPH_CACHE_VALKEY_URL_ENV})"

@@ -40,7 +40,7 @@ pub(crate) async fn fetch_crate() -> String {
 
 #[test]
 fn test_extract_rust_items_for_patterns_parses_once_and_matches_all_patterns() {
-    let content = r#"
+    let content = r"
 pub struct RepoCodeSearchOutcome {
     count: usize,
 }
@@ -48,7 +48,7 @@ pub struct RepoCodeSearchOutcome {
 pub async fn search_repo_code_outcome_for_query() -> RepoCodeSearchOutcome {
     RepoCodeSearchOutcome { count: 1 }
 }
-"#;
+";
 
     let patterns = get_skeleton_patterns(Lang::Rust);
     let results = extract_items_for_patterns(content, patterns, Lang::Rust, Some(vec!["NAME"]));
@@ -63,13 +63,13 @@ pub async fn search_repo_code_outcome_for_query() -> RepoCodeSearchOutcome {
 
 #[test]
 fn test_extract_skeleton_rust_async_functions() {
-    let content = r#"
+    let content = r"
 pub async fn search_repo_code_outcome_for_query(
     search_plane: &SearchPlaneService,
 ) -> Result<(), String> {
     search_plane.flush().await
 }
-"#;
+";
 
     let skeleton = extract_skeleton(content, Lang::Rust);
 

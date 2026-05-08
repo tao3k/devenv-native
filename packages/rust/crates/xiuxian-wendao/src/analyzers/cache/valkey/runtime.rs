@@ -59,7 +59,7 @@ fn resolve_valkey_analysis_cache_runtime_with_settings_and_lookup(
     settings: &Value,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Result<Option<ValkeyAnalysisCacheRuntime>, RepoIntelligenceError> {
-    let Some((source_name, url)) = toml_first_named_string(
+    let Some(candidate) = toml_first_named_string(
         ANALYZER_VALKEY_URL_SETTING,
         get_setting_string(settings, ANALYZER_VALKEY_URL_SETTING),
         lookup,
@@ -67,10 +67,14 @@ fn resolve_valkey_analysis_cache_runtime_with_settings_and_lookup(
     ) else {
         return Ok(None);
     };
-    let client =
-        open_client(url.as_str()).map_err(|error| RepoIntelligenceError::AnalysisFailed {
-            message: format!("invalid analyzer valkey url from {source_name}: {error}"),
-        })?;
+    let client = open_client(candidate.value.as_str()).map_err(|error| {
+        RepoIntelligenceError::AnalysisFailed {
+            message: format!(
+                "invalid analyzer valkey url from {}: {error}",
+                candidate.source_name
+            ),
+        }
+    })?;
     let key_prefix = normalize_key_prefix(
         toml_first_env!(
             settings,

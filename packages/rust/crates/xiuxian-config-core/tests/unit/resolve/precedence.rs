@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    first_non_empty_lookup, first_non_empty_named_lookup, lookup_bool_flag, lookup_positive_parsed,
-    parse_bool_flag, parse_positive, parse_trimmed, toml_first_env_parsed, toml_first_env_string,
-    toml_first_named_string, trimmed_non_empty,
+    NamedScalarValue, first_non_empty_lookup, first_non_empty_named_lookup, lookup_bool_flag,
+    lookup_positive_parsed, parse_bool_flag, parse_positive, parse_trimmed, toml_first_env_parsed,
+    toml_first_env_string, toml_first_named_string, trimmed_non_empty,
 };
 
 #[test]
@@ -40,7 +40,7 @@ fn first_non_empty_named_lookup_returns_source_name_and_trimmed_candidate() {
 
     assert_eq!(
         value,
-        Some(("B".to_string(), "redis://127.0.0.1/1".to_string()))
+        Some(NamedScalarValue::new("B", "redis://127.0.0.1/1"))
     );
 }
 
@@ -55,9 +55,9 @@ fn toml_first_named_string_prefers_toml_and_preserves_setting_name() {
 
     assert_eq!(
         value,
-        Some((
-            "search.cache.valkey_url".to_string(),
-            "redis://127.0.0.1/3".to_string()
+        Some(NamedScalarValue::new(
+            "search.cache.valkey_url",
+            "redis://127.0.0.1/3"
         ))
     );
 }
