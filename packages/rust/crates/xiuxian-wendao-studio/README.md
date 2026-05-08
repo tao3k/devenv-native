@@ -202,7 +202,14 @@ Studio also exposes two opt-in source-range diagnostics for this canary. Set
 `--rust-pdf-local-backend-text rust-lopdf`, to let Rust satisfy
 `docling-backend-text-ocr-v1` source-PDF rows through the attachment-owned
 `lopdf` text helper. This is promoted only as part of the hosted OpenRouter
-risk-window canary above. Local fast-text replacement is diagnostic-only and is
+risk-window canary above. Set
+`WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_EMPTY=fail-fast`, or pass
+`--rust-pdf-local-backend-text-empty fail-fast`, only as a source-page-range
+placeholder diagnostic. It turns empty or locally unextractable backend-text
+source pages into failed OCR rows immediately, so the existing precision
+fallback can run without retrying a non-image placeholder through Python raster
+OCR. The default remains `dispatch-python`. Local fast-text replacement is
+diagnostic-only and is
 rejected for the milestone fixture because it drops `metricsResultChars` below
 the frozen floor. Set
 `WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_SOURCE_RANGE_SPLIT=single-page`, or pass

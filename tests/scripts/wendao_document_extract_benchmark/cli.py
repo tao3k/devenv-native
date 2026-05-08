@@ -314,6 +314,11 @@ def build_report_payload(
         "rustPdfLocalBackendText": getattr(
             args, "rust_pdf_local_backend_text", "disabled"
         ),
+        "rustPdfLocalBackendTextEmpty": getattr(
+            args,
+            "rust_pdf_local_backend_text_empty",
+            "dispatch-python",
+        ),
         "rustPdfLocalFastText": getattr(args, "rust_pdf_local_fast_text", "disabled"),
         "rustPdfFastTextSourceRangeSplit": getattr(
             args,

@@ -99,7 +99,10 @@ does not change the Arrow input or result column set.
 The crate also exposes a small `lopdf` source-text helper for owner-side
 backend-text canaries. Studio may use that helper for
 `docling-backend-text-ocr-v1` rows, but the helper does not replace Docling's
-fast-text top-up path or loosen the frozen benchmark character floor.
+fast-text top-up path or loosen the frozen benchmark character floor. When
+Studio enables its local empty backend-text fail-fast diagnostic, the failure
+decision remains Studio-owned; attachments only supplies the source-page text
+read.
 
 `PdfPageRenderSelection::ShardFallbackPages` is intentionally high-recall in
 the current source-range path. When no narrower safe region signal exists, it

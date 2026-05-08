@@ -37,6 +37,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
         rust_pdf_local_backend_text="rust-lopdf",
+        rust_pdf_local_backend_text_empty="fail-fast",
         rust_pdf_local_fast_text="rust-lopdf",
         rust_pdf_fast_text_source_range_split="single-page",
         rust_pdf_fast_text_endpoint_affinity="single-page-first",
@@ -80,6 +81,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT"] == "rust-lopdf"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_EMPTY"] == "fail-fast"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT"] == "rust-lopdf"
     assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_SOURCE_RANGE_SPLIT"] == "single-page"
@@ -151,6 +153,7 @@ def test_start_gateway_uses_prebuilt_wendao_binary(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_local_backend_text="disabled",
+        rust_pdf_local_backend_text_empty="dispatch-python",
         rust_pdf_local_fast_text="disabled",
         rust_pdf_fast_text_source_range_split="disabled",
         rust_pdf_fast_text_endpoint_affinity="disabled",

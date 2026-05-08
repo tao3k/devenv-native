@@ -340,6 +340,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
         f"- Rust PDF local backend text: `{payload.get('rustPdfLocalBackendText')}`",
+        "- Rust PDF local backend-text empty mode: "
+        f"`{payload.get('rustPdfLocalBackendTextEmpty')}`",
         f"- Rust PDF local fast text: `{payload.get('rustPdfLocalFastText')}`",
         "- Rust PDF fast-text source-range split: "
         f"`{payload.get('rustPdfFastTextSourceRangeSplit')}`",

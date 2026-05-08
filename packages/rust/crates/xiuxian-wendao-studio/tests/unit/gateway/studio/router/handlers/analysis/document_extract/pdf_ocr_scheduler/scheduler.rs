@@ -4,7 +4,9 @@ use std::time::Duration;
 use super::{
     DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, OcrSchedulerLane, PdfOcrWorkerScheduler,
     endpoint_index_for_request, local_backend_and_fast_text_results_for_tests,
-    local_backend_text_results_for_tests, pdf_ocr_worker_limit_with_lookup,
+    local_backend_text_error_fail_fast_results_for_tests, local_backend_text_results_for_tests,
+    local_empty_backend_text_dispatch_python_results_for_tests,
+    local_empty_backend_text_fail_fast_results_for_tests, pdf_ocr_worker_limit_with_lookup,
     rendered_region_shard_chunks, rendered_region_shard_chunks_with_composite_size,
     scheduler_shard_groups, scheduler_trace_for_chunk,
     source_pdf_page_range_chunk_endpoint_index_with_lookup,
@@ -18,7 +20,7 @@ use super::{
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_cache::PdfOcrShardCache;
 use xiuxian_wendao_attachments::pdf::ocr::{
     PDF_OCR_BACKEND_TEXT_PROFILE, PDF_OCR_FAST_TEXT_PROFILE, PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
-    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput,
+    PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResultStatus,
 };
 
 mod chunks;
@@ -238,6 +240,65 @@ fn pdf_ocr_scheduler_can_extract_fast_text_locally_for_parent_pages() {
     assert!(result.text.as_deref().unwrap_or_default().len() > 1_000);
 }
 
+#[test]
+fn pdf_ocr_scheduler_keeps_empty_local_backend_text_dispatching_by_default() {
+    let mut inputs = vec![sample_source_page_range_input(
+        autosearch_fixture().to_string_lossy().as_ref(),
+        0,
+    )];
+    inputs[0].ocr_profile = PDF_OCR_BACKEND_TEXT_PROFILE.to_string();
+    inputs[0].ocr_engine = "docling-backend-text-ocr".to_string();
+
+    let results = local_empty_backend_text_dispatch_python_results_for_tests(inputs.as_slice());
+
+    assert!(
+        results[0].is_none(),
+        "empty local backend-text should still dispatch to Python unless fail-fast is enabled"
+    );
+}
+
+#[test]
+fn pdf_ocr_scheduler_can_fail_fast_empty_source_range_backend_text() {
+    let mut inputs = vec![sample_source_page_range_input(
+        autosearch_fixture().to_string_lossy().as_ref(),
+        1,
+    )];
+    inputs[0].ocr_profile = PDF_OCR_BACKEND_TEXT_PROFILE.to_string();
+    inputs[0].ocr_engine = "docling-backend-text-ocr".to_string();
+
+    let results = local_empty_backend_text_fail_fast_results_for_tests(inputs.as_slice());
+
+    let result = results[0]
+        .as_ref()
+        .expect("empty source-page-range backend-text should become a local failed row");
+    assert_eq!(result.status, PdfOcrShardResultStatus::Failed);
+    let message = result.error_message.as_deref().unwrap_or_default();
+    assert!(message.contains("local backend-text returned empty text"));
+    assert!(message.contains("source-page-range placeholder"));
+    assert!(message.contains("full-document fallback"));
+}
+
+#[test]
+fn pdf_ocr_scheduler_can_fail_fast_source_range_backend_text_errors() {
+    let mut inputs = vec![sample_source_page_range_input(
+        autosearch_fixture().to_string_lossy().as_ref(),
+        2,
+    )];
+    inputs[0].ocr_profile = PDF_OCR_BACKEND_TEXT_PROFILE.to_string();
+    inputs[0].ocr_engine = "docling-backend-text-ocr".to_string();
+
+    let results = local_backend_text_error_fail_fast_results_for_tests(inputs.as_slice());
+
+    let result = results[0]
+        .as_ref()
+        .expect("source-page-range backend-text extraction errors should become local failed rows");
+    assert_eq!(result.status, PdfOcrShardResultStatus::Failed);
+    let message = result.error_message.as_deref().unwrap_or_default();
+    assert!(message.contains("local backend-text source extraction failed"));
+    assert!(message.contains("synthetic lopdf failure"));
+    assert!(message.contains("source-page-range placeholder"));
+}
+
 fn sample_ocr_input(source_path: &str, page_index: u32, shard_type: &str) -> PdfOcrShardInput {
     PdfOcrShardInput {
         contract_version: PDF_OCR_SHARD_INPUT_SCHEMA_VERSION.to_string(),
@@ -273,6 +334,14 @@ fn sample_ocr_input(source_path: &str, page_index: u32, shard_type: &str) -> Pdf
         source_page_pixel_right: 2400,
         source_page_pixel_bottom: 3100,
     }
+}
+
+fn sample_source_page_range_input(source_path: &str, page_index: u32) -> PdfOcrShardInput {
+    let mut input = sample_ocr_input(source_path, page_index, "page");
+    input.image_path = format!("/tmp/source-page-range-{page_index:05}.source-page-range");
+    input.image_mime_type = "application/x-wendao-source-pdf-page".to_string();
+    input.render_profile = "source-pdf-page-range-shards-v1".to_string();
+    input
 }
 
 fn autosearch_fixture() -> std::path::PathBuf {

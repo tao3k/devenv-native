@@ -429,6 +429,13 @@ refresh `8201.568417 ms`, shard-cache reuse `123.758583 ms`, artifact reuse
 sample below the locked `12856.546292 ms` baseline. The older 2026-05-07
 OpenRouter r59/r60 evidence remains historical at best `9363.09725 ms` and
 promoted repeat `12130.139833 ms`.
+`--rust-pdf-local-backend-text-empty fail-fast` is a diagnostic scheduler
+canary for source-page-range placeholder rows. When Rust `lopdf` proves a
+`docling-backend-text-ocr-v1` source page has empty backend text, or cannot
+produce the requested source-page text vector, the provider returns a failed
+OCR row immediately so the precision-preserving
+full-document fallback can run without sending the non-image placeholder
+through the Python raster OCR path. The default remains `dispatch-python`.
 `--pdf-ocr-backend-text-page-fallback compatible-page` is a separate Python
 worker canary for backend-text page failures. It retries only failed or empty
 backend-text source pages through `docling-compatible-page-ocr-v1` before the

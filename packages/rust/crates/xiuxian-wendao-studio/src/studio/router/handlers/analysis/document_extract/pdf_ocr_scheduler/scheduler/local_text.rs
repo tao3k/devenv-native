@@ -10,12 +10,24 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT";
 pub(crate) const DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT";
+pub(crate) const DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_EMPTY_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_EMPTY";
 const LOCAL_TEXT_RUST_LOPDF_MODE: &str = "rust-lopdf";
+const LOCAL_BACKEND_TEXT_EMPTY_DISPATCH_PYTHON_MODE: &str = "dispatch-python";
+const LOCAL_BACKEND_TEXT_EMPTY_FAIL_FAST_MODE: &str = "fail-fast";
+const SOURCE_PDF_PAGE_IMAGE_MIME_TYPE: &str = "application/x-wendao-source-pdf-page";
 
 #[derive(Debug, Clone, Copy)]
 struct LocalTextModes {
     backend_text: bool,
     fast_text: bool,
+    backend_text_empty: LocalBackendTextEmptyMode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LocalBackendTextEmptyMode {
+    DispatchPython,
+    FailFast,
 }
 
 impl LocalTextModes {
@@ -23,6 +35,7 @@ impl LocalTextModes {
         Self {
             backend_text: local_text_env_enabled(DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_ENV),
             fast_text: local_text_env_enabled(DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT_ENV),
+            backend_text_empty: local_backend_text_empty_mode(),
         }
     }
 
@@ -31,6 +44,7 @@ impl LocalTextModes {
         Self {
             backend_text: true,
             fast_text: false,
+            backend_text_empty: LocalBackendTextEmptyMode::DispatchPython,
         }
     }
 
@@ -39,6 +53,16 @@ impl LocalTextModes {
         Self {
             backend_text: true,
             fast_text: true,
+            backend_text_empty: LocalBackendTextEmptyMode::DispatchPython,
+        }
+    }
+
+    #[cfg(test)]
+    fn backend_text_empty_fail_fast() -> Self {
+        Self {
+            backend_text: true,
+            fast_text: false,
+            backend_text_empty: LocalBackendTextEmptyMode::FailFast,
         }
     }
 
@@ -71,6 +95,39 @@ pub(crate) fn local_backend_and_fast_text_results_for_tests(
     local_text_results_enabled(inputs, LocalTextModes::backend_and_fast_text())
 }
 
+#[cfg(test)]
+pub(crate) fn local_empty_backend_text_dispatch_python_results_for_tests(
+    inputs: &[PdfOcrShardInput],
+) -> Vec<Option<PdfOcrShardResult>> {
+    local_text_results_enabled_with_extractor(
+        inputs,
+        LocalTextModes::backend_text_only(),
+        empty_text_extractor,
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn local_empty_backend_text_fail_fast_results_for_tests(
+    inputs: &[PdfOcrShardInput],
+) -> Vec<Option<PdfOcrShardResult>> {
+    local_text_results_enabled_with_extractor(
+        inputs,
+        LocalTextModes::backend_text_empty_fail_fast(),
+        empty_text_extractor,
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn local_backend_text_error_fail_fast_results_for_tests(
+    inputs: &[PdfOcrShardInput],
+) -> Vec<Option<PdfOcrShardResult>> {
+    local_text_results_enabled_with_extractor(
+        inputs,
+        LocalTextModes::backend_text_empty_fail_fast(),
+        error_text_extractor,
+    )
+}
+
 fn local_text_env_enabled(key: &str) -> bool {
     std::env::var(key)
         .ok()
@@ -80,9 +137,33 @@ fn local_text_env_enabled(key: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn local_backend_text_empty_mode() -> LocalBackendTextEmptyMode {
+    local_backend_text_empty_mode_with_lookup(&|key| std::env::var(key))
+}
+
+fn local_backend_text_empty_mode_with_lookup(
+    lookup: &dyn Fn(&str) -> Result<String, std::env::VarError>,
+) -> LocalBackendTextEmptyMode {
+    let value = lookup(DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_EMPTY_ENV)
+        .ok()
+        .unwrap_or_else(|| LOCAL_BACKEND_TEXT_EMPTY_DISPATCH_PYTHON_MODE.to_string());
+    match value.trim().replace('_', "-").to_ascii_lowercase().as_str() {
+        LOCAL_BACKEND_TEXT_EMPTY_FAIL_FAST_MODE => LocalBackendTextEmptyMode::FailFast,
+        _ => LocalBackendTextEmptyMode::DispatchPython,
+    }
+}
+
 fn local_text_results_enabled(
     inputs: &[PdfOcrShardInput],
     modes: LocalTextModes,
+) -> Vec<Option<PdfOcrShardResult>> {
+    local_text_results_enabled_with_extractor(inputs, modes, source_pdf_page_texts)
+}
+
+fn local_text_results_enabled_with_extractor(
+    inputs: &[PdfOcrShardInput],
+    modes: LocalTextModes,
+    extractor: impl Fn(&Path, &[u32]) -> Result<Vec<String>, String>,
 ) -> Vec<Option<PdfOcrShardResult>> {
     let mut results = vec![None; inputs.len()];
     let mut groups: BTreeMap<PathBuf, Vec<(usize, u32)>> = BTreeMap::new();
@@ -102,15 +183,42 @@ fn local_text_results_enabled(
             .iter()
             .map(|(_, page_index)| *page_index)
             .collect::<Vec<_>>();
-        let Ok(texts) = source_pdf_page_texts(source_path.as_path(), page_indexes.as_slice())
-        else {
-            continue;
+        let texts = match extractor(source_path.as_path(), page_indexes.as_slice()) {
+            Ok(texts) => texts,
+            Err(error) => {
+                fail_fast_local_backend_text_group(
+                    &mut results,
+                    inputs,
+                    page_requests.as_slice(),
+                    modes,
+                    format!("local backend-text source extraction failed: {error}"),
+                );
+                continue;
+            }
         };
         if texts.len() != page_requests.len() {
+            fail_fast_local_backend_text_group(
+                &mut results,
+                inputs,
+                page_requests.as_slice(),
+                modes,
+                format!(
+                    "local backend-text source extraction returned {} rows for {} requests",
+                    texts.len(),
+                    page_requests.len()
+                ),
+            );
             continue;
         }
         for ((position, _), text) in page_requests.into_iter().zip(texts) {
             if text.trim().is_empty() {
+                if let Some(result) = local_backend_text_fail_fast_result(
+                    &inputs[position],
+                    modes,
+                    "local backend-text returned empty text",
+                ) {
+                    results[position] = Some(result);
+                }
                 continue;
             }
             let mut result = PdfOcrShardResult::succeeded(&inputs[position], text, 1.0);
@@ -122,6 +230,47 @@ fn local_text_results_enabled(
     results
 }
 
+fn fail_fast_local_backend_text_group(
+    results: &mut [Option<PdfOcrShardResult>],
+    inputs: &[PdfOcrShardInput],
+    page_requests: &[(usize, u32)],
+    modes: LocalTextModes,
+    reason: String,
+) {
+    for (position, _) in page_requests {
+        if let Some(result) =
+            local_backend_text_fail_fast_result(&inputs[*position], modes, &reason)
+        {
+            results[*position] = Some(result);
+        }
+    }
+}
+
+fn local_backend_text_fail_fast_result(
+    input: &PdfOcrShardInput,
+    modes: LocalTextModes,
+    reason: &str,
+) -> Option<PdfOcrShardResult> {
+    if modes.backend_text_empty != LocalBackendTextEmptyMode::FailFast {
+        return None;
+    }
+    if input.ocr_profile != PDF_OCR_BACKEND_TEXT_PROFILE || !is_source_page_range_input(input) {
+        return None;
+    }
+    Some(PdfOcrShardResult::failed(
+        input,
+        format!(
+            "{reason} for source PDF page {}; source-page-range placeholder `{}` requires full-document fallback",
+            input.page_index, input.image_path
+        ),
+    ))
+}
+
+fn is_source_page_range_input(input: &PdfOcrShardInput) -> bool {
+    input.image_mime_type == SOURCE_PDF_PAGE_IMAGE_MIME_TYPE
+        || input.image_path.ends_with(".source-page-range")
+}
+
 fn is_local_text_candidate(input: &PdfOcrShardInput, modes: LocalTextModes) -> bool {
     let profile_enabled = (modes.backend_text && input.ocr_profile == PDF_OCR_BACKEND_TEXT_PROFILE)
         || (modes.fast_text && input.ocr_profile == PDF_OCR_FAST_TEXT_PROFILE);
@@ -129,4 +278,14 @@ fn is_local_text_candidate(input: &PdfOcrShardInput, modes: LocalTextModes) -> b
         && input.shard_type == "page"
         && !input.source_path.trim().is_empty()
         && Path::new(input.source_path.as_str()).is_file()
+}
+
+#[cfg(test)]
+fn empty_text_extractor(_path: &Path, page_indexes: &[u32]) -> Result<Vec<String>, String> {
+    Ok(page_indexes.iter().map(|_| String::new()).collect())
+}
+
+#[cfg(test)]
+fn error_text_extractor(_path: &Path, _page_indexes: &[u32]) -> Result<Vec<String>, String> {
+    Err("synthetic lopdf failure".to_string())
 }

@@ -52,6 +52,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         rust_pdf_ocr_workers=None,
         rust_pdf_ocr_source_range_workers=None,
         rust_pdf_local_backend_text="rust-lopdf",
+        rust_pdf_local_backend_text_empty="fail-fast",
         rust_pdf_local_fast_text="rust-lopdf",
         rust_pdf_fast_text_source_range_split="single-page",
         rust_pdf_backend_text_topup="disabled",
@@ -108,6 +109,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
     assert payload["pdfOcrPrewarmPageIndices"] is None
     assert payload["pdfOcrPrewarmEndpointCount"] is None
     assert payload["rustPdfLocalBackendText"] == "rust-lopdf"
+    assert payload["rustPdfLocalBackendTextEmpty"] == "fail-fast"
     assert payload["rustPdfLocalFastText"] == "rust-lopdf"
     assert payload["rustPdfFastTextSourceRangeSplit"] == "single-page"
     assert payload["rustPdfFastTextEndpointAffinity"] == "disabled"

@@ -170,6 +170,18 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-local-backend-text-empty",
+        choices=("dispatch-python", "fail-fast"),
+        default="dispatch-python",
+        help=(
+            "Controls empty local Rust backend-text rows for source-page-range "
+            "placeholders. `dispatch-python` preserves the existing Python "
+            "Docling retry path; `fail-fast` returns a failed OCR row immediately "
+            "so Rust can trigger the precision-preserving full-document fallback "
+            "without retrying the non-image placeholder as raster OCR."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-local-fast-text",
         choices=("disabled", "rust-lopdf"),
         default="disabled",
