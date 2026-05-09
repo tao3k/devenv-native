@@ -18,6 +18,8 @@ pub const WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER: &str = "x-wendao-document-extrac
 pub const WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER: &str = "x-wendao-document-extract-error-row";
 /// Canonical document extraction profile header for Python analyzer workers.
 pub const WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: &str = "x-wendao-document-extract-profile";
+/// Internal 1-based inclusive page-range header for Python analyzer workers.
+pub const WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER: &str = "x-wendao-document-extract-page-range";
 /// Canonical document extraction mode header for Rust-owned queueing.
 pub const WENDAO_DOCUMENT_EXTRACT_MODE_HEADER: &str = "x-wendao-document-extract-mode";
 /// Canonical async wait budget header in milliseconds.

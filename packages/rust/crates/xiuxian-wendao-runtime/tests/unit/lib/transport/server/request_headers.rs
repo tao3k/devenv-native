@@ -12,6 +12,10 @@ use crate::transport::{
     WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER, WENDAO_GRAPH_NODE_ID_HEADER,
     WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER, WENDAO_REPO_DOC_COVERAGE_REPO_HEADER,
     WENDAO_REPO_INDEX_STATUS_REPO_HEADER, WENDAO_REPO_OVERVIEW_REPO_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER,
     WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER, WENDAO_REPO_SEARCH_LIMIT_HEADER,
     WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER, WENDAO_REPO_SEARCH_QUERY_HEADER,
     WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_REPO_SYNC_MODE_HEADER, WENDAO_REPO_SYNC_REPO_HEADER,
@@ -89,6 +93,23 @@ pub(super) fn build_repo_doc_coverage_metadata(
 ) -> MetadataMap {
     let mut metadata = MetadataMap::new();
     populate_schema_and_repo_doc_coverage_headers(&mut metadata, repo_id, module_id);
+    metadata
+}
+
+pub(super) fn build_repo_projected_retrieval_context_metadata(
+    repo_id: &str,
+    page_id: &str,
+    node_id: Option<&str>,
+    related_limit: Option<&str>,
+) -> MetadataMap {
+    let mut metadata = MetadataMap::new();
+    populate_schema_and_repo_projected_retrieval_context_headers(
+        &mut metadata,
+        repo_id,
+        page_id,
+        node_id,
+        related_limit,
+    );
     metadata
 }
 
@@ -286,6 +307,51 @@ pub(super) fn populate_schema_and_repo_doc_coverage_headers(
         metadata.insert(
             WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER,
             metadata_value(module_id, "repo doc coverage module metadata should parse"),
+        );
+    }
+}
+
+pub(super) fn populate_schema_and_repo_projected_retrieval_context_headers(
+    metadata: &mut MetadataMap,
+    repo_id: &str,
+    page_id: &str,
+    node_id: Option<&str>,
+    related_limit: Option<&str>,
+) {
+    metadata.insert(
+        WENDAO_SCHEMA_VERSION_HEADER,
+        metadata_value("v2", "schema version metadata should parse"),
+    );
+    metadata.insert(
+        WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER,
+        metadata_value(
+            repo_id,
+            "repo projected retrieval-context repo metadata should parse",
+        ),
+    );
+    metadata.insert(
+        WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
+        metadata_value(
+            page_id,
+            "repo projected retrieval-context page id metadata should parse",
+        ),
+    );
+    if let Some(node_id) = node_id {
+        metadata.insert(
+            WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER,
+            metadata_value(
+                node_id,
+                "repo projected retrieval-context node id metadata should parse",
+            ),
+        );
+    }
+    if let Some(related_limit) = related_limit {
+        metadata.insert(
+            WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER,
+            metadata_value(
+                related_limit,
+                "repo projected retrieval-context related-limit metadata should parse",
+            ),
         );
     }
 }

@@ -20,7 +20,7 @@ pub(super) struct CountingJuliaPlugin {
 
 impl RepoIntelligencePlugin for CountingJuliaPlugin {
     fn id(&self) -> &'static str {
-        "julia"
+        "julia-code-parser"
     }
 
     fn supports_repository(&self, _repository: &RegisteredRepository) -> bool {
@@ -255,7 +255,7 @@ pub(super) struct CachedTargetFilePlugin {
 
 impl RepoIntelligencePlugin for CachedTargetFilePlugin {
     fn id(&self) -> &'static str {
-        "julia"
+        "julia-code-parser"
     }
 
     fn supports_repository(&self, _repository: &RegisteredRepository) -> bool {

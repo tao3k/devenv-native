@@ -163,7 +163,7 @@ pub(super) async fn publish_repo_entity_search_plane(
     if repository
         .plugins
         .iter()
-        .any(|plugin| plugin.id() == "julia")
+        .any(|plugin| plugin.id() == "julia-code-parser")
     {
         relative_paths.extend(collect_relative_files_under(
             repository_root.as_path(),
@@ -336,7 +336,7 @@ pub(super) fn write_default_repo_config_without_priming(
         format!(
             r#"[link_graph.projects.{repo_id}]
 root = "{}"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 "#,
             repo_dir.display()
         ),
@@ -344,7 +344,7 @@ plugins = ["julia"]
     Ok(())
 }
 
-pub(super) fn prime_local_julia_fixture_analysis_cache(
+pub(crate) fn prime_local_julia_fixture_analysis_cache(
     project_root: &Path,
     repo_id: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {

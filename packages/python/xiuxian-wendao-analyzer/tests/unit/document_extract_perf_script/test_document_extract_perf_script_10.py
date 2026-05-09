@@ -123,6 +123,59 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
                     "hybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
                         0 if report_path.name == "shard-cache-reuse.json" else 6
                     ),
+                    "structureAuthorityPages": 2,
+                    "textShortcutPages": 4,
+                    "ocrPatchRegions": 3,
+                    "pageRangeDoclingFallbackPages": 1,
+                    "pageRangeDoclingFallbackChunkCount": 1,
+                    "pageRangeDoclingFallbackPlan": {
+                        "strategy": "source-profile-weighted",
+                        "targetChunkCount": 4,
+                        "fallbackPageCount": 7,
+                        "rangeCount": 1,
+                        "chunkSize": None,
+                        "sourceProfileUsed": True,
+                        "ranges": [
+                            {
+                                "pageStart": 0,
+                                "pageEnd": 6,
+                                "oneBasedStart": 1,
+                                "oneBasedEnd": 7,
+                            },
+                        ],
+                    },
+                    "pageRangeDoclingFallbackChunks": [
+                        {
+                            "pageStart": 0,
+                            "pageEnd": 6,
+                            "oneBasedStart": 1,
+                            "oneBasedEnd": 7,
+                            "documentExtractProfile": "structure-text",
+                            "elapsedMs": 19_327.0,
+                            "resourceRows": 21,
+                            "documentTimingTotalElapsedMs": 19_100.0,
+                            "documentTimingPhaseElapsedMs": {
+                                "doclingConvert": 18_700.0,
+                                "doclingMarkdownExport": 250.0,
+                                "total": 19_100.0,
+                            },
+                            "sourceProfile": {
+                                "pageCount": 7,
+                                "estimatedWeightTotal": 420,
+                                "estimatedWeightMax": 90,
+                                "contentBytesTotal": 4096,
+                                "operationCountTotal": 1200,
+                                "textShowOpsTotal": 700,
+                                "pathOpsTotal": 180,
+                                "rectangleOpsTotal": 8,
+                                "drawObjectOpsTotal": 3,
+                                "structureAuthorityRequiredCount": 4,
+                                "fastProfileRiskCount": 2,
+                                "backendTextTopupCount": 1,
+                            },
+                        },
+                    ],
+                    "fullDoclingFallbackCount": 0,
                     "hybridPageOcrTimingSchedulerTrace": [
                         {
                             "lane": "source-pdf-page-range",
@@ -191,9 +244,151 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
     assert result["metricsRows"] == 21
     assert result["metricsResultChars"] == 2048
     assert result["metricsBboxCount"] == 21
+    assert result["structureAuthorityPages"] == 2
+    assert result["textShortcutPages"] == 4
+    assert result["ocrPatchRegions"] == 3
+    assert result["pageRangeDoclingFallbackPages"] == 1
+    assert result["pageRangeDoclingFallbackChunkCount"] == 1
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"]["strategy"]
+        == "source-profile-weighted"
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"][
+            "targetChunkCount"
+        ]
+        == 4
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "elapsedMsMax"
+        ]
+        == 19_327.0
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "elapsedMsMin"
+        ]
+        == 19_327.0
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "elapsedMsMean"
+        ]
+        == 19_327.0
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "elapsedMsSpread"
+        ]
+        == 0.0
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "elapsedMsMaxToMeanRatio"
+        ]
+        == 1.0
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "longestPageEnd"
+        ]
+        == 6
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "sourceProfileEstimatedWeightTotal"
+        ]
+        == 420
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "sourceProfileStructureAuthorityRequiredCount"
+        ]
+        == 4
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "sourceProfileFastProfileRiskCount"
+        ]
+        == 2
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "sourceProfileBackendTextTopupCount"
+        ]
+        == 1
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "documentTimingTotalElapsedMs"
+        ]
+        == 19_100.0
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "documentTimingPhaseElapsedMs"
+        ]["doclingConvert"]
+        == 18_700.0
+    )
+    assert result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+        "documentExtractProfileCounts"
+    ] == {"structure-text": 1}
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "longestDocumentTimingTotalElapsedMs"
+        ]
+        == 19_100.0
+    )
+    assert (
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
+            "longestSourceProfile"
+        ]["fastProfileRiskCount"]
+        == 2
+    )
+    assert result["fullDoclingFallbackCount"] == 0
     assert result["structureOrderStable"] is True
     assert result["structureOrderComparedRuns"] == 4
     assert result["structureOrderMismatchCount"] == 0
+
+
+def test_precision_summary_reads_docling_page_range_chunk_convert_timing() -> None:
+    benchmark = _load_benchmark_module()
+    result = {
+        "fixture": "pdf",
+        "attachmentClass": "pdf",
+        "totalRows": 13,
+        "forceErrorRows": 0,
+        "cacheErrorRows": 0,
+        "requestCount": 1,
+        "arrowIpcBytes": 1024,
+        "forceRefreshMs": 100.0,
+        "wallTimeMs": 1.0,
+        "cacheHitP95Ms": 1.0,
+        "cacheSpeedup": 100.0,
+        "duplicateMissConverterCalls": None,
+        "artifactReports": [],
+        "forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary": {
+            "documentTimingPhaseElapsedMs": {
+                "doclingConvert": 90.0,
+                "total": 100.0,
+            },
+            "documentTimingTotalElapsedMs": 100.0,
+            "longestDocumentTimingPhaseElapsedMs": {
+                "doclingConvert": 50.0,
+                "total": 60.0,
+            },
+            "longestDocumentTimingTotalElapsedMs": 60.0,
+        },
+    }
+
+    summary = benchmark.summarize_results([result])
+
+    assert summary["precisionSpeedSummary"]["totalDoclingConvertMs"] == 90.0
+    assert summary["precisionSpeedSummary"]["maxDoclingConvertMs"] == 50.0
+    assert summary["precisionSpeedSummary"]["maxDoclingConvertShare"] == pytest.approx(
+        50.0 / 60.0
+    )
 
 
 def test_run_fixture_probe_can_fail_on_structure_order_mismatch(
@@ -415,6 +610,21 @@ def test_hosted_vlm_promotion_gate_passes_precise_fast_candidate() -> None:
     assert gate["observed"]["ocrRegionBlocks"] == 3
 
 
+def test_candidate_taxonomy_marks_structure_loss_rejection() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(benchmark, force_ms=9_000.0)
+    payload["summary"]["precisionSpeedSummary"]["structureParityPassed"] = False
+    payload["summary"]["precisionSpeedSummary"]["structureParityErrors"] = 1
+    payload["hostedVlmPromotionGate"] = benchmark.hosted_vlm_promotion_gate(payload)
+
+    taxonomy = benchmark.candidate_taxonomy(payload)
+
+    assert taxonomy["precisionCandidate"] is False
+    assert taxonomy["speedCandidate"] is False
+    assert taxonomy["promotionCandidate"] is False
+    assert taxonomy["rejectedStructureLoss"] is True
+
+
 def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
     benchmark = _load_benchmark_module()
     payload = _hosted_vlm_promotion_payload(
@@ -505,6 +715,21 @@ def test_hosted_vlm_promotion_gate_treats_adaptive_region_planner_as_candidate()
         "automatic hosted VLM/OCR region planner produced no hosted VLM/OCR region requests"
         in gate["reasons"]
     )
+
+
+def test_hosted_vlm_promotion_gate_treats_docling_structure_recovery_as_candidate() -> (
+    None
+):
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(
+        benchmark,
+        rust_pdf_ocr_profile_planner="docling-structure-recovery",
+        rust_pdf_hosted_vlm_region_planner="disabled",
+    )
+
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
+
+    assert gate["checked"] is True
 
 
 def test_hosted_vlm_promotion_gate_requires_clean_scaffold_validation() -> None:
@@ -732,6 +957,13 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "doclingConvert": 20.0,
             "total": 30.0,
         },
+        "forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary": {
+            "chunkCount": 1,
+            "elapsedMsTotal": 19_327.0,
+            "elapsedMsMax": 19_327.0,
+            "elapsedMsMin": 19_327.0,
+            "documentExtractProfileCounts": {"structure-text": 1},
+        },
         "structureParityChecked": True,
         "structureParityPassed": True,
         "structureParityErrorCount": 0,
@@ -844,6 +1076,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     ] == pytest.approx(0.8)
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert summary["precisionSpeedSummary"]["structureOrderStable"] is True
+    assert summary["pageRangeDoclingFallbackChunkSummary"][
+        "documentExtractProfileCounts"
+    ] == {"structure-text": 1}
     assert summary["attachmentClassSummary"][0]["attachmentClass"] == "unknown"
     assert summary["attachmentClassSummary"][0]["archiveAttachmentAuditCount"] == 1
     assert summary["attachmentClassSummary"][0]["archiveMemberCount"] == 10
@@ -864,6 +1099,10 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "waitMs": 0,
             "pdfOcrWorker": "skip",
             "pdfOcrWorkers": "auto",
+            "documentExtractPrewarmPageRanges": "rust-page-range-chunk-plan",
+            "documentExtractPrewarmPageRangesResolved": "1:3,4:4,5:6,7:9",
+            "rustPdfDoclingPageRangeHedgeDelayMs": 7000,
+            "rustPdfDoclingTextShortcutPromotion": "disabled",
             "rustPdfOcrWorkers": None,
             "rustPdfOcrSourceRangeWorkers": "2",
             "structureBaselineRoot": "/tmp/baselines",
@@ -895,6 +1134,12 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Shard reuse force ms" in markdown
     assert "Artifact-registry reuse probe" in markdown
     assert "Rust OCR source-range trace" in markdown
+    assert "Document extract prewarm page ranges resolved" in markdown
+    assert "1:3,4:4,5:6,7:9" in markdown
+    assert "Rust PDF Docling page-range hedge delay ms" in markdown
+    assert "7000" in markdown
+    assert "Rust PDF Docling text-shortcut promotion" in markdown
+    assert "disabled" in markdown
     assert "Artifact reuse ms" in markdown
     assert "9.000" in markdown
     assert "42.000" in markdown
@@ -916,6 +1161,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "maxDoclingShare=66.7%" in markdown
     assert "maxTimingOverheadMs=8.000" in markdown
     assert "maxBoundaryOverheadShare=80.0%" in markdown
+    assert "doclingChunkProfiles=`structure-text=1`" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
     assert "Structure parity" in markdown
     assert "Structure order stable across runs" in markdown

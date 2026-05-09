@@ -385,6 +385,26 @@ gates should leave `--rust-pdf-ocr-source-range-workers` unset so the Rust
 scheduler's system-aware auto policy is exercised. Use `--rust-pdf-ocr-workers`
 only for the global Rust OCR budget ceiling and
 `--rust-pdf-ocr-source-range-workers` only for diagnostic profile sweeps.
+For `docling-structure-recovery`, the benchmark auto profile caps Docling
+full-profile PDF accelerator threads to one per Python document worker through
+`WENDAO_DOCUMENT_EXTRACT_FULL_THREADS=1`. Rust keeps outer parallelism and
+endpoint-pool scheduling authority, while each Python worker avoids nested
+Docling thread contention. Use `--document-extract-full-threads` only for
+diagnostic sweeps or platform-specific validation. The May 8, 2026 DocLayNet
+fixture run with this auto policy preserved zero errors, stable order, and
+Docling structure parity while reducing cold force refresh to `10127.429667 ms`
+against the locked `12856.546292 ms` baseline.
+For explicit benchmark readiness, use `--document-extract-prewarm-source-path`
+with `--document-extract-prewarm-page-ranges` to run selected Docling page-range
+conversions before the worker advertises readiness. This warms the converter
+and Docling lazy state only; it does not publish candidate output artifacts or
+replace the force-refresh precision gate. The default is disabled. On May 8,
+2026, prewarming page range `1:1` for the same DocLayNet PDF fixture preserved
+zero errors, stable order, Docling structure parity, `13` resource rows, and
+`12` structure blocks while reducing force refresh to a best sample of
+`8715.070334 ms`. A repeat of the same shape preserved the same correctness
+gates but measured `11627.203583 ms`, so treat prewarm as an explicit readiness
+control with visible variance rather than a stable sub-10s default.
 The current auto policy targets seven source PDF pages per worker before
 clamping to the adaptive Rust budget, machine cap, remaining permits, and shard
 count. Within that bounded chunk budget, Rust reads a lightweight source-PDF
@@ -555,6 +575,43 @@ the hosted VLM/OCR backend while leaving ordinary pages on the fast profile.
 optimization canary that keeps hosted recovery semantics but routes ordinary
 low-risk pages to `docling-backend-text-ocr-v1` and dense text top-up pages to
 `docling-fast-text-ocr`.
+The Docling-centered recovery lane makes this package the structure execution
+owner, not just a full-document fallback. The internal Flight metadata header
+`x-wendao-document-extract-page-range` requests a 1-based inclusive Docling
+conversion range and writes uniquely prefixed page-range resource rows plus a
+matching `_structure.arrow` sidecar. Studio may merge those rows back by
+`pageIndex` to replace failed or empty page OCR rows while preserving Docling
+reading order. Hosted OpenRouter, local OCR2, backend text, and fast text are
+therefore text patch or acceleration paths over Docling structure, not
+replacement structure pipelines.
+Rust may request multiple contiguous page ranges for one document when a
+benchmark enables page-range chunking. The analyzer treats each range as an
+independent Docling conversion request with stable page-range element ids;
+Studio is responsible for wrapper-row normalization, structure parity checks,
+and escalation to full-document fallback when any range is incomplete. The
+benchmark report now keeps per-range Docling fallback timing and the slowest
+chunk summary visible so analyzer conversion cost can be separated from Rust
+scheduler and Flight overhead.
+For tail-latency diagnostics, `--rust-pdf-docling-page-range-chunk-plan`
+forwards an exact 1-based fallback chunk plan such as `1:3,4:4,5:6,7:9` to the
+Rust provider. The Rust side rejects plans that omit, duplicate, or include
+pages outside the Docling fallback set, so this remains a precision-preserving
+benchmark control rather than a new routing default. The first May 8, 2026
+tail-splitting canary with that plan preserved Docling structure parity but
+regressed to `18912.534209 ms`, so the accepted default remains three-page
+chunks.
+Set `WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE=profile` only for explicit
+page-range benchmark probes that need to test whether reusing a Docling
+converter across Flight document-extract calls reduces conversion setup cost.
+The benchmark flag is `--document-extract-converter-cache profile`. The default
+remains disabled so ordinary document extraction keeps the existing converter
+lifecycle.
+Set `WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH` and
+`WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES` only through benchmark-controlled
+readiness probes. These controls are intentionally separate from converter
+reuse: prewarm validates daemon readiness and Docling lazy initialization,
+while converter-cache probes isolate repeated page-range setup cost after the
+worker is already serving requests.
 Explicit `region-shards` benchmarks are the narrower
 recovery-surface proof before automatic region discovery is promoted. Narrow
 exact-risk-only page routing is not the promotion path because the real

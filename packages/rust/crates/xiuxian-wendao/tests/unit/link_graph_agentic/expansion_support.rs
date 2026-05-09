@@ -372,7 +372,7 @@ pub(super) async fn fetch_generic_topology_rows_via_manifest_discovery(
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": base_url.into(),

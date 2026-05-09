@@ -26,4 +26,4 @@ mod planner;
 mod repo_endpoints;
 mod repo_projected_context;
 mod repo_projected_lookup;
-mod support;
+pub(crate) mod support;

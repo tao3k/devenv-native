@@ -12,7 +12,7 @@ use xiuxian_wendao_runtime::transport::{
 
 use super::contract::parse_transport_kind;
 
-pub(crate) const JULIA_PLUGIN_CONFIG_ID: &str = "julia";
+pub(crate) const JULIA_PLUGIN_CONFIG_ID: &str = "julia-code-parser";
 pub(crate) const CAPABILITY_MANIFEST_TRANSPORT_KEY: &str = "capability_manifest_transport";
 pub(crate) const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
 pub(crate) const ARROW_FLIGHT_TRANSPORT_KIND: &str = "arrow_flight";

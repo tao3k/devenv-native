@@ -25,7 +25,7 @@ use super::project::{load_project_metadata, locate_root_module_file};
 use super::sources::{JuliaAnalyzedFile, collect_julia_sources};
 use super::transport::build_julia_flight_transport_client;
 
-const JULIA_PLUGIN_ID: &str = "julia";
+const JULIA_PLUGIN_ID: &str = "julia-code-parser";
 
 /// External Julia analyzer for Repo Intelligence.
 #[derive(Debug, Default, Clone, Copy)]
@@ -36,7 +36,7 @@ pub struct JuliaRepoIntelligencePlugin;
 /// # Errors
 ///
 /// Returns [`RepoIntelligenceError`] when the registry already contains a
-/// plugin with the `julia` identifier.
+/// plugin with the `julia-code-parser` identifier.
 pub fn register_into(
     registry: &mut xiuxian_wendao_core::repo_intelligence::PluginRegistry,
 ) -> Result<(), RepoIntelligenceError> {

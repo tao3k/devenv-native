@@ -56,7 +56,7 @@ fn analyze_target_file_reuses_existing_managed_checkout_without_remote_probe() {
         url: Some(remote_dir.display().to_string()),
         refresh: RepositoryRefreshPolicy::Fetch,
         git_ref: None,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
 
     let materialized =
@@ -119,7 +119,7 @@ fn analyze_target_file_reuses_ready_cached_analysis_before_file_probe() {
         url: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         git_ref: None,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let repository_calls = Arc::new(AtomicUsize::new(0));
     let file_calls = Arc::new(AtomicUsize::new(0));

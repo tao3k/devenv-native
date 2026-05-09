@@ -17,6 +17,6 @@ pub(crate) fn repo_project(id: &str) -> UiRepoProjectConfig {
         url: None,
         git_ref: None,
         refresh: None,
-        plugins: vec!["julia".to_string()],
+        plugins: vec!["julia-code-parser".to_string()],
     }
 }

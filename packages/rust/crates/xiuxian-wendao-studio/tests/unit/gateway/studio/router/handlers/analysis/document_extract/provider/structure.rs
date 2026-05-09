@@ -34,6 +34,25 @@ fn hybrid_page_ocr_writes_structure_sidecar() -> Result<(), String> {
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 #[test]
+fn hybrid_page_ocr_structure_ignores_docling_json_wrapper_rows() -> Result<(), String> {
+    let resource_batch = HybridDocumentResourceBatch::native(test_resource_batch(&[
+        ("document", 0, "doc-main"),
+        ("docling_json", 0, "doc-json"),
+        ("table", 0, "table-1"),
+    ])?);
+
+    let blocks = hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
+    let block_types = blocks
+        .iter()
+        .map(|block| block.block_type.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(block_types, vec!["document", "table"]);
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
 fn hybrid_page_ocr_structure_sidecar_preserves_region_provenance() -> Result<(), String> {
     let mut input = sample_ocr_input(0, "region");
     input.crop_left = 72.0;

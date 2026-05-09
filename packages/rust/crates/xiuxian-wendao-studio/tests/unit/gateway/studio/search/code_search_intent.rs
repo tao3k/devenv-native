@@ -35,7 +35,7 @@ async fn search_intent_routes_code_search_to_plain_julia_plugin_repository()
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let registry = bootstrap_builtin_registry()?;
     let analysis = analyze_registered_repository_with_registry(
@@ -55,7 +55,7 @@ async fn search_intent_routes_code_search_to_plain_julia_plugin_repository()
                 url: None,
                 git_ref: None,
                 refresh: None,
-                plugins: vec!["julia".to_string()],
+                plugins: vec!["julia-code-parser".to_string()],
             }],
         });
     publish_repository_snapshot(

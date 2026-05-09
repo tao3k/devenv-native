@@ -46,7 +46,7 @@ pub mod queries;
 #[cfg(feature = "search-runtime")]
 #[path = "ranking.rs"]
 mod ranking;
-#[cfg(all(any(test, feature = "test-support"), feature = "search-runtime"))]
+#[cfg(all(test, feature = "search-runtime"))]
 #[path = "real_repo_precision/mod.rs"]
 pub(crate) mod real_repo_precision;
 #[cfg(feature = "search-runtime")]

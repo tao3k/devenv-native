@@ -20,8 +20,8 @@ fn load_repo_intelligence_config_parses_inline_plugin_config() -> TestResult {
 root = "repos/sample"
 refresh = "manual"
 plugins = [
-  "julia",
-  { id = "julia", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", timeout_secs = 15 } }
+  "ast-grep",
+  { id = "julia-code-parser", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", timeout_secs = 15 } }
 ]
 "#,
     )?;
@@ -34,19 +34,16 @@ plugins = [
     assert_eq!(repository.path.as_deref(), Some(repo_dir.as_path()));
     assert_eq!(
         repository.plugins,
-        vec![
-            RepositoryPluginConfig::Id("julia".to_string()),
-            RepositoryPluginConfig::Config {
-                id: "julia".to_string(),
-                options: json!({
-                    "flight_transport": {
-                        "base_url": "http://127.0.0.1:8815",
-                        "route": "/rerank",
-                        "timeout_secs": 15,
-                    }
-                }),
-            },
-        ]
+        vec![RepositoryPluginConfig::Config {
+            id: "julia-code-parser".to_string(),
+            options: json!({
+                "flight_transport": {
+                    "base_url": "http://127.0.0.1:8815",
+                    "route": "/rerank",
+                    "timeout_secs": 15,
+                }
+            }),
+        }]
     );
     Ok(())
 }
@@ -91,12 +88,12 @@ fn load_repo_intelligence_config_parses_prefixed_repository_refs() -> TestResult
         r#"[link_graph.projects.commit-sample]
 root = "repos/commit-sample"
 ref = "commit:abc123"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 
 [link_graph.projects.tag-sample]
 root = "repos/tag-sample"
 ref = "tag:v1.2.3"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 "#,
     )?;
 
@@ -124,7 +121,7 @@ fn load_repo_intelligence_config_reads_overlay_importing_base() -> TestResult {
         &config_path,
         r#"[link_graph.projects.sample]
 root = "repos/sample"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 "#,
     )?;
     fs::write(
@@ -155,7 +152,7 @@ fn load_repo_intelligence_config_filters_search_only_plugins_and_repositories() 
         &config_path,
         r#"[link_graph.projects.mixed]
 root = "repos/mixed"
-plugins = ["ast-grep", "julia"]
+plugins = ["ast-grep", "julia-code-parser"]
 
 [link_graph.projects.search-only]
 root = "repos/search-only"
@@ -169,7 +166,7 @@ plugins = ["ast-grep"]
     assert_eq!(config.repos[0].id, "mixed");
     assert_eq!(
         config.repos[0].plugins,
-        vec![RepositoryPluginConfig::Id("julia".to_string())]
+        vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())]
     );
     Ok(())
 }

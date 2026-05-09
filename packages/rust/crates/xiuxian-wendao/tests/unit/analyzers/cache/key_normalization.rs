@@ -57,7 +57,7 @@ fn build_repository_analysis_cache_key_normalizes_mixed_plugin_declarations() {
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![
             RepositoryPluginConfig::Id("ast-grep".to_string()),
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Config {
                 id: "modelica".to_string(),
                 options: serde_json::json!({
@@ -74,7 +74,7 @@ fn build_repository_analysis_cache_key_normalizes_mixed_plugin_declarations() {
                     "mode": "doc-surface"
                 }),
             },
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Id("ast-grep".to_string()),
             RepositoryPluginConfig::Id("ast-grep".to_string()),
         ],
@@ -105,7 +105,7 @@ fn build_repository_analysis_cache_key_normalizes_mixed_plugin_declarations() {
         first_key.plugin_ids,
         vec![
             "ast-grep".to_string(),
-            "julia".to_string(),
+            "julia-code-parser".to_string(),
             "modelica".to_string()
         ]
     );

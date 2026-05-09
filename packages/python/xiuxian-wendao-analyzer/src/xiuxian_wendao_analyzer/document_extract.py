@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -42,6 +43,7 @@ def extract_document_table(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
+    page_range: tuple[int, int] | None = None,
 ) -> pa.Table:
     """Extract one document and return Arrow resource rows.
 
@@ -53,7 +55,7 @@ def extract_document_table(
     """
 
     source = Path(source_path)
-    if source.exists() and not force:
+    if source.exists() and not force and page_range is None:
         out = (
             Path(output_dir)
             if output_dir is not None
@@ -71,6 +73,7 @@ def extract_document_table(
             profile=profile,
             force=force,
             error_row=error_row,
+            page_range=page_range,
         )
     )
 
@@ -83,6 +86,7 @@ def extract_document_resources(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
+    page_range: tuple[int, int] | None = None,
 ) -> list[DocumentResourceRow]:
     """Extract one local document into Arrow-friendly resource rows.
 
@@ -111,12 +115,14 @@ def extract_document_resources(
     )
     out.mkdir(parents=True, exist_ok=True)
 
-    if not force:
+    if not force and page_range is None:
         cached = _read_cached_resources(source, out)
         if cached is not None:
             return cached
 
-    if _should_isolate_document_extract(converter=converter, profile=profile):
+    if page_range is None and _should_isolate_document_extract(
+        converter=converter, profile=profile
+    ):
         try:
             from .document_isolation import run_isolated_document_extract
 
@@ -144,6 +150,7 @@ def extract_document_resources(
         converter=converter,
         profile=profile,
         error_row=error_row,
+        page_range=page_range,
     )
 
 
@@ -154,6 +161,7 @@ def _extract_document_resources_inline(
     converter: DocumentConverterProtocol | None = None,
     profile: str | None = None,
     error_row: bool = False,
+    page_range: tuple[int, int] | None = None,
 ) -> list[DocumentResourceRow]:
     output_dir.mkdir(parents=True, exist_ok=True)
     timing = DocumentTimingRecorder(source)
@@ -164,37 +172,53 @@ def _extract_document_resources_inline(
             with timing.phase("doclingConverterInit"):
                 resolved_converter = _new_docling_converter(profile)
         with timing.phase("doclingConvert"):
-            document = resolved_converter.convert(source).document
+            convert_kwargs = {"page_range": page_range} if page_range else {}
+            document = resolved_converter.convert(source, **convert_kwargs).document
         with timing.phase("doclingMarkdownExport"):
             markdown_text = document.export_to_markdown()
-        markdown_path = output_dir / f"{source.stem}.md"
+        page_range_slug = _page_range_slug(page_range)
+        markdown_path = output_dir / f"{source.stem}{page_range_slug}.md"
         with timing.phase("writeMarkdown"):
             markdown_path.write_text(markdown_text, encoding="utf-8")
         with timing.phase("sourceHash"):
             source_content_hash = _file_sha256(source)
+        element_id_prefix = _page_range_element_id_prefix(page_range)
+        page_index = page_range[0] - 1 if page_range is not None else 0
         resources = [
             DocumentResourceRow(
                 sourcePath=str(source),
                 resourceType="document",
                 resourcePath=str(markdown_path),
-                pageIndex=0,
+                pageIndex=page_index,
                 caption="",
                 content=markdown_text,
                 mimeType="text/markdown",
                 status="ok",
-                elementId="_main",
+                elementId=f"{element_id_prefix}_main",
             )
         ]
         with timing.phase("resourceRowsBuild"):
             resources.extend(
-                _structured_document_resources(source, output_dir, document)
+                _structured_document_resources(
+                    source,
+                    output_dir,
+                    document,
+                    element_id_prefix=element_id_prefix,
+                    resource_file_prefix=_page_range_resource_file_prefix(page_range),
+                )
             )
+        if page_range is not None:
+            resources = [
+                _normalize_page_range_resource_page_index(row, page_range)
+                for row in resources
+            ]
         with timing.phase("structureRowsBuild"):
             structure = _document_structure_blocks(
                 source,
                 document,
                 resources,
                 source_content_hash=source_content_hash,
+                element_id_prefix=element_id_prefix,
             )
         with timing.phase("writeStructureArrow"):
             _write_cached_structure(output_dir, structure)
@@ -259,6 +283,37 @@ def _document_extract_error_row(source: Path, content: str) -> DocumentResourceR
         status="error",
         elementId="",
     )
+
+
+def _page_range_slug(page_range: tuple[int, int] | None) -> str:
+    if page_range is None:
+        return ""
+    start, end = page_range
+    return f".pages-{start:05}-{end:05}"
+
+
+def _page_range_element_id_prefix(page_range: tuple[int, int] | None) -> str:
+    if page_range is None:
+        return ""
+    start, end = page_range
+    return f"page-range-{start:05}-{end:05}:"
+
+
+def _page_range_resource_file_prefix(page_range: tuple[int, int] | None) -> str:
+    if page_range is None:
+        return ""
+    start, end = page_range
+    return f"pages-{start:05}-{end:05}-"
+
+
+def _normalize_page_range_resource_page_index(
+    row: DocumentResourceRow,
+    page_range: tuple[int, int],
+) -> DocumentResourceRow:
+    start, end = page_range
+    if start - 1 <= row.pageIndex <= end - 1:
+        return row
+    return replace(row, pageIndex=start - 1)
 
 
 def extract_pdf_resources(

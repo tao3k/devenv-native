@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -23,12 +24,15 @@ def _docling_json_resource(
     source: Path,
     output_dir: Path,
     document: DoclingDocumentProtocol,
+    *,
+    element_id_prefix: str = "",
+    resource_file_prefix: str = "",
 ) -> list[DocumentResourceRow]:
     if not isinstance(document, DoclingDocumentDictExportProtocol):
         return []
 
     content = json.dumps(document.export_to_dict(), ensure_ascii=False, sort_keys=True)
-    resource_path = output_dir / f"{source.stem}.docling.json"
+    resource_path = output_dir / f"{source.stem}.{resource_file_prefix}docling.json"
     resource_path.write_text(content, encoding="utf-8")
     return [
         DocumentResourceRow(
@@ -40,7 +44,7 @@ def _docling_json_resource(
             content="",
             mimeType="application/json",
             status="ok",
-            elementId="_docling_json",
+            elementId=f"{element_id_prefix}_docling_json",
         )
     ]
 
@@ -79,18 +83,23 @@ def _resource_from_element(
     resource_type: str,
     element: Any,
     index: int,
+    *,
+    element_id_prefix: str = "",
+    resource_file_prefix: str = "",
 ) -> DocumentResourceRow | None:
     content = _element_content(element)
     resource_path = _element_resource_path(element)
     if content and not resource_path:
         suffix = _resource_file_suffix(resource_type)
-        resource_file = output_dir / f"{resource_type}-{index}{suffix}"
+        resource_file = (
+            output_dir / f"{resource_file_prefix}{resource_type}-{index}{suffix}"
+        )
         resource_file.write_text(content, encoding="utf-8")
         resource_path = str(resource_file)
     if not content and not resource_path:
         return None
 
-    return DocumentResourceRow(
+    row = DocumentResourceRow(
         sourcePath=str(source),
         resourceType=resource_type,
         resourcePath=resource_path,
@@ -101,6 +110,9 @@ def _resource_from_element(
         status="ok",
         elementId=_element_id(element, resource_type, index),
     )
+    if not element_id_prefix:
+        return row
+    return replace(row, elementId=f"{element_id_prefix}{row.elementId}")
 
 
 def _element_id(element: Any, resource_type: str, index: int) -> str:

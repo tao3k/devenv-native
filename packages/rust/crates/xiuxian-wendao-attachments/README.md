@@ -88,6 +88,15 @@ Studio's source-range scheduler and profile planner. The cached profile helper
 keys entries by canonical path, file length, and modification timestamp so one
 provider process can reuse page facts across force-refresh, shard-cache reuse,
 and cache-hit probes without persisting transient profile state in Python.
+The same profile now exposes conservative page classification facts for the
+Docling-centered recovery lane. A page is marked as requiring Docling structure
+authority when it has draw-object operations, rectangle operations, or at least
+64 path operations. Current fast-profile structural-risk pages are marked as
+OCR/VLM patch candidates only when region rendering can supply a patch surface.
+Pages without structure authority and with backend text signals are marked as
+text-shortcut eligible. Attachments does not schedule work or choose fallback;
+it supplies stable PDF facts for Studio's scheduler and analyzer-side Docling
+execution.
 The stable OCR shard schema carries `ocrProfile` as the profile-selection
 surface. Current profile identifiers include `docling-compatible-page-ocr-v1`,
 `docling-fast-text-ocr`, `docling-backend-text-ocr-v1`,
@@ -335,6 +344,15 @@ planner to choose fast versus accurate Docling source-page ranges, but
 attachments remains the fact/shard contract owner only. Live worker dispatch,
 cache reuse, and precision fallback decisions stay in Studio and the Python
 Docling worker.
+Structure parity treats `docling_json` and document wrapper rows as transport
+metadata for text-coverage purposes, while still enforcing protected table,
+formula, image, and code block counts. This lets full-document and page-range
+Docling structure rows compare on real document structure instead of wrapper
+payload placement.
+Attachments also exposes the source-PDF page count helper used by Studio's
+direct Docling structure recovery path. The helper is a source-page fact only:
+Studio still owns page-range fallback chunking, dispatch timing, merge, cache,
+and full-fallback promotion decisions.
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` remains an explicit
 benchmark override for source-range chunk count experiments, not a production
 default.

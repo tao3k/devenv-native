@@ -422,7 +422,7 @@ fn probe_wendaosearch_julia_parser_summary_route_for_tests(base_url: &str) -> Re
     let repository = RegisteredRepository {
         id: "linked-julia-ready".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "parser_summary_transport": {
                     "base_url": base_url,

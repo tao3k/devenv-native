@@ -42,5 +42,5 @@ pub(super) use limit::{
 };
 
 #[cfg(test)]
-#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/pdf_ocr_scheduler/scheduler.rs"]
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/pdf_ocr_scheduler/scheduler/mod.rs"]
 mod tests;

@@ -1,4 +1,6 @@
+#[cfg(feature = "document-extract-pdf-source-range")]
 use std::fs;
+#[cfg(feature = "document-extract-pdf-source-range")]
 use std::path::Path;
 
 #[cfg(feature = "document-extract-pdf-source-range")]

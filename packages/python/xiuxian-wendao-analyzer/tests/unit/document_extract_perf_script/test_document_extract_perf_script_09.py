@@ -36,6 +36,10 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         prepare_pdfium_runtime=False,
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
+        rust_pdf_docling_page_range_chunk_plan="1:3,4:4,5:6,7:9",
+        rust_pdf_docling_page_range_profile="structure-text",
+        rust_pdf_docling_page_range_hedge_delay_ms=7000,
+        rust_pdf_docling_text_shortcut_promotion="disabled",
         pdf_ocr_backend_text_empty_page="verified-empty",
         rust_pdf_local_backend_text="rust-lopdf",
         rust_pdf_local_backend_text_empty="fail-fast",
@@ -81,6 +85,19 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_PLAN"] == (
+        "1:3,4:4,5:6,7:9"
+    )
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE"]
+        == "structure-text"
+    )
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS"] == "7000"
+    )
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_TEXT_SHORTCUT_PROMOTION"] == "disabled"
+    )
     assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_EMPTY_PAGE"] == "verified-empty"
     )
@@ -127,6 +144,92 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     )
     assert regions[0]["source"] == str(tmp_path / "sample.pdf")
     assert regions[0]["regions"][0]["regionIndex"] == 1
+
+
+def test_python_worker_env_forwards_document_converter_cache() -> None:
+    benchmark = _load_benchmark_module()
+
+    disabled_env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(document_extract_converter_cache="disabled")
+    )
+    profile_env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(document_extract_converter_cache="profile")
+    )
+
+    assert "WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE" not in disabled_env
+    assert profile_env["WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE"] == "profile"
+
+
+def test_python_worker_env_sets_auto_docling_structure_threads() -> None:
+    benchmark = _load_benchmark_module()
+
+    env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(
+            document_extract_full_threads="auto",
+            real_docling=True,
+            flight_mode="hybrid-page-ocr",
+            rust_pdf_ocr_profile_planner="docling-structure-recovery",
+        )
+    )
+
+    assert env["WENDAO_DOCUMENT_EXTRACT_FULL_THREADS"] == "1"
+
+
+def test_python_worker_env_forwards_explicit_docling_threads() -> None:
+    benchmark = _load_benchmark_module()
+
+    env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(document_extract_full_threads="3")
+    )
+
+    assert env["WENDAO_DOCUMENT_EXTRACT_FULL_THREADS"] == "3"
+
+
+def test_python_worker_env_forwards_document_extract_prewarm() -> None:
+    benchmark = _load_benchmark_module()
+
+    env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(
+            document_extract_prewarm_source_path="tests/fixtures/document.pdf",
+            document_extract_prewarm_page_ranges="1:1,4:6",
+        )
+    )
+
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH"]
+        == "tests/fixtures/document.pdf"
+    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES"] == "1:1,4:6"
+
+
+def test_python_worker_env_can_reuse_rust_page_range_chunk_plan() -> None:
+    benchmark = _load_benchmark_module()
+
+    env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(
+            document_extract_prewarm_source_path="tests/fixtures/document.pdf",
+            document_extract_prewarm_page_ranges="rust-page-range-chunk-plan",
+            rust_pdf_docling_page_range_chunk_plan="1:3,4:4,5:6,7:9",
+        )
+    )
+
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH"]
+        == "tests/fixtures/document.pdf"
+    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES"] == "1:3,4:4,5:6,7:9"
+
+
+def test_python_worker_env_requires_rust_page_range_chunk_plan_for_reuse() -> None:
+    benchmark = _load_benchmark_module()
+
+    with pytest.raises(SystemExit, match="rust-page-range-chunk-plan requires"):
+        benchmark.hosted_vlm_ocr_process_env(
+            benchmark.argparse.Namespace(
+                document_extract_prewarm_page_ranges="rust-page-range-chunk-plan",
+                rust_pdf_docling_page_range_chunk_plan=None,
+            )
+        )
 
 
 def test_start_gateway_uses_prebuilt_wendao_binary(

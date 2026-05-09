@@ -46,6 +46,7 @@ use hybrid::{
     DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridDocumentResourceBatch,
     HybridPdfBackendTextTopup, HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner,
+    apply_hybrid_page_docling_structure_recovery_profile_plan_for_profiles,
     apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profiles,
     apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profiles_with_lookup,
     apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,

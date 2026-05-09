@@ -103,6 +103,11 @@ or shard bounds to the orchestrator scheduler through
 `document_extract_schedule_plan`. The returned plan is inert. Runtime still owns
 route admission, timeout behavior, request-header translation, and any live
 Flight dispatch decisions.
+The page-range Docling structure fallback uses the runtime/server transport
+header `x-wendao-document-extract-page-range` as an internal 1-based inclusive
+range contract. Runtime only exposes the stable header name; Studio decides
+when to request page-range structure and analyzer performs the Docling
+conversion.
 
 Studio now consumes that runtime-owned plan for full-document Docling dispatch
 before selecting from the existing endpoint pool. The owner budget is still

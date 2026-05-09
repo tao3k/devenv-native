@@ -27,6 +27,7 @@ def real_docling_server_code(
         import os
         from threading import Lock
 
+        from docling.datamodel.accelerator_options import AcceleratorDevice
         from docling.datamodel.backend_options import XBRLBackendOptions
         from docling.datamodel.base_models import InputFormat
         from docling.datamodel.pipeline_options import (
@@ -38,6 +39,11 @@ def real_docling_server_code(
         )
         from docling.document_converter import DocumentConverter, PdfFormatOption, XBRLFormatOption
         from docling.pipeline.vlm_pipeline import VlmPipeline
+        from xiuxian_wendao_analyzer.document_profiles import (
+            DOCUMENT_EXTRACT_FULL_PROFILE,
+            DOCUMENT_EXTRACT_STRUCTURE_TEXT_PROFILE,
+            document_extract_full_threads_from_env,
+        )
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
         from xiuxian_wendao_analyzer.pdf_ocr import (
             DoclingPdfOcrShardWorker,
@@ -83,6 +89,51 @@ def real_docling_server_code(
                 value = 1
             return value if value > 0 else 1
 
+        def document_extract_prewarm_page_ranges():
+            raw = os.environ.get("WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES", "").strip()
+            if not raw:
+                return [(1, 1)]
+            ranges = []
+            for part in raw.split(","):
+                part = part.strip()
+                if not part:
+                    continue
+                if ":" in part:
+                    start_text, end_text = part.split(":", 1)
+                else:
+                    start_text = end_text = part
+                start = int(start_text)
+                end = int(end_text)
+                if start < 1 or end < start:
+                    raise ValueError(
+                        "WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES must use "
+                        "1-based inclusive ranges"
+                    )
+                ranges.append((start, end))
+            if not ranges:
+                raise ValueError(
+                    "WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES must include a range"
+                )
+            return ranges
+
+        def prewarm_document_extract_converter(converter):
+            source_path = os.environ.get("WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH")
+            if not source_path:
+                return
+            source = Path(source_path)
+            if not source.exists():
+                raise FileNotFoundError(
+                    "document extract prewarm source path does not exist: " + str(source)
+                )
+            for page_range in document_extract_prewarm_page_ranges():
+                document = converter.convert(source, page_range=page_range).document
+                markdown = document.export_to_markdown()
+                if not markdown:
+                    raise RuntimeError(
+                        "document extract prewarm returned empty markdown for "
+                        + str(page_range)
+                    )
+
         if {include_audio!r}:
             import shutil
             import tempfile
@@ -120,7 +171,28 @@ def real_docling_server_code(
 
         def make_converter(ocr_profile=None):
             effective_format_options = dict(format_options)
-            if ocr_profile == PDF_OCR_FAST_TEXT_PROFILE:
+            if ocr_profile in (None, DOCUMENT_EXTRACT_FULL_PROFILE):
+                full_thread_count = document_extract_full_threads_from_env()
+                if full_thread_count is not None:
+                    pdf_options = PdfPipelineOptions()
+                    pdf_options.accelerator_options = AcceleratorOptions(
+                        num_threads=full_thread_count
+                    )
+                    effective_format_options[InputFormat.PDF] = PdfFormatOption(
+                        pipeline_options=pdf_options
+                    )
+            elif ocr_profile == DOCUMENT_EXTRACT_STRUCTURE_TEXT_PROFILE:
+                pdf_options = PdfPipelineOptions()
+                pdf_options.accelerator_options = AcceleratorOptions(
+                    num_threads=1,
+                    device=AcceleratorDevice.CPU,
+                )
+                pdf_options.do_ocr = False
+                pdf_options.do_table_structure = True
+                effective_format_options[InputFormat.PDF] = PdfFormatOption(
+                    pipeline_options=pdf_options
+                )
+            elif ocr_profile == PDF_OCR_FAST_TEXT_PROFILE:
                 pdf_options = PdfPipelineOptions()
                 pdf_options.accelerator_options = AcceleratorOptions(
                     num_threads=fast_text_threads()
@@ -158,6 +230,7 @@ def real_docling_server_code(
             return converter
 
         converter = make_converter()
+        prewarm_document_extract_converter(converter)
         ocr_worker = None
         if {pdf_ocr_worker!r} == "docling":
             ocr_worker = DoclingPdfOcrShardWorker(
@@ -168,6 +241,7 @@ def real_docling_server_code(
             "grpc://{host}:{port}",
             converter=converter,
             ocr_worker=ocr_worker,
+            converter_factory=make_converter,
         )
         server.serve()
         """

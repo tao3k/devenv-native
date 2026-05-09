@@ -19,10 +19,11 @@ use crate::transport::{
     DocumentExtractFlightRouteResponse, GraphNeighborsFlightRouteProvider,
     GraphNeighborsFlightRouteResponse, MarkdownAnalysisFlightRouteProvider,
     RepoDocCoverageFlightRouteProvider, RepoIndexStatusFlightRouteProvider,
-    RepoOverviewFlightRouteProvider, RepoSearchFlightRequest, RepoSearchFlightRouteProvider,
-    RepoSyncFlightRouteProvider, SearchFlightRouteProvider, SearchFlightRouteResponse,
-    SqlFlightRouteProvider, SqlFlightRouteResponse, VfsContentFlightRouteProvider,
-    VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
+    RepoOverviewFlightRouteProvider, RepoProjectedRetrievalContextFlightRouteProvider,
+    RepoSearchFlightRequest, RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider,
+    SearchFlightRouteProvider, SearchFlightRouteResponse, SqlFlightRouteProvider,
+    SqlFlightRouteResponse, VfsContentFlightRouteProvider, VfsContentFlightRouteResponse,
+    VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
 };
 
 type SearchRequestRecord = (String, String, usize, Option<String>, Option<String>);
@@ -36,6 +37,7 @@ type RepoOverviewRequestRecord = String;
 type RepoIndexStatusRequestRecord = Option<String>;
 type RepoSyncRequestRecord = (String, String);
 type RepoDocCoverageRequestRecord = (String, Option<String>);
+type RepoProjectedRetrievalContextRequestRecord = (String, String, Option<String>, usize);
 type DocumentExtractRequestRecord = (String, String, bool, bool, String);
 type VfsContentRequestRecord = String;
 
@@ -1085,6 +1087,107 @@ impl RepoDocCoverageFlightRouteProvider for RecordingRepoDocCoverageProvider {
                 "uncoveredSymbols": 1,
                 "hierarchicalUri": format!("repo://{repo_id}/docs"),
                 "hierarchy": ["repo", repo_id],
+            })
+            .to_string()
+            .into_bytes(),
+        ))
+    }
+}
+
+#[derive(Debug, Default)]
+pub(super) struct RecordingRepoProjectedRetrievalContextProvider {
+    request: Mutex<Option<RepoProjectedRetrievalContextRequestRecord>>,
+    call_count: Mutex<usize>,
+}
+
+impl RecordingRepoProjectedRetrievalContextProvider {
+    pub(super) fn recorded_request(&self) -> Option<RepoProjectedRetrievalContextRequestRecord> {
+        lock_or_panic(
+            &self.request,
+            "repo projected retrieval-context provider record should lock",
+        )
+        .clone()
+    }
+
+    pub(super) fn call_count(&self) -> usize {
+        *lock_or_panic(
+            &self.call_count,
+            "repo projected retrieval-context provider call count should lock",
+        )
+    }
+}
+
+#[async_trait]
+impl RepoProjectedRetrievalContextFlightRouteProvider
+    for RecordingRepoProjectedRetrievalContextProvider
+{
+    async fn repo_projected_retrieval_context_batch(
+        &self,
+        repo_id: &str,
+        page_id: &str,
+        node_id: Option<&str>,
+        related_limit: usize,
+    ) -> Result<AnalysisFlightRouteResponse, tonic::Status> {
+        let node_id = node_id.map(ToString::to_string);
+        *lock_or_panic(
+            &self.request,
+            "repo projected retrieval-context provider record should lock",
+        ) = Some((
+            repo_id.to_string(),
+            page_id.to_string(),
+            node_id.clone(),
+            related_limit,
+        ));
+        *lock_or_panic(
+            &self.call_count,
+            "repo projected retrieval-context provider call count should lock",
+        ) += 1;
+        let related_count = i32::try_from(related_limit).unwrap_or(i32::MAX);
+        let node_context_json = node_id
+            .as_ref()
+            .map(|node_id| serde_json::json!({ "nodeId": node_id }).to_string());
+        let batch = LanceRecordBatch::try_new(
+            Arc::new(LanceSchema::new(vec![
+                LanceField::new("repoId", LanceDataType::Utf8, false),
+                LanceField::new("pageId", LanceDataType::Utf8, false),
+                LanceField::new("nodeId", LanceDataType::Utf8, true),
+                LanceField::new("centerJson", LanceDataType::Utf8, false),
+                LanceField::new("relatedCount", LanceDataType::Int32, false),
+                LanceField::new("relatedPagesJson", LanceDataType::Utf8, false),
+                LanceField::new("nodeContextJson", LanceDataType::Utf8, true),
+            ])),
+            vec![
+                Arc::new(StringArray::from(vec![repo_id.to_string()])),
+                Arc::new(StringArray::from(vec![page_id.to_string()])),
+                Arc::new(StringArray::from(vec![node_id.clone()])),
+                Arc::new(StringArray::from(vec![
+                    serde_json::json!({
+                        "kind": "Page",
+                        "pageId": page_id,
+                    })
+                    .to_string(),
+                ])),
+                Arc::new(LanceInt32Array::from(vec![related_count])),
+                Arc::new(StringArray::from(vec![
+                    serde_json::json!([
+                        {
+                            "pageId": format!("{page_id}::related"),
+                            "rank": 1,
+                        }
+                    ])
+                    .to_string(),
+                ])),
+                Arc::new(StringArray::from(vec![node_context_json])),
+            ],
+        )
+        .map_err(|error| tonic::Status::internal(error.to_string()))?;
+        Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(
+            serde_json::json!({
+                "repoId": repo_id,
+                "pageId": page_id,
+                "nodeId": node_id,
+                "relatedCount": related_limit,
+                "hasNodeContext": node_id.is_some(),
             })
             .to_string()
             .into_bytes(),

@@ -1,12 +1,12 @@
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 use std::path::PathBuf;
 
 use walkdir::{DirEntry, WalkDir};
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 use xiuxian_ast::extract_items_for_patterns;
 use xiuxian_ast::{Lang, extract_items, get_skeleton_patterns};
 use xiuxian_git_repo::SyncMode;
@@ -46,7 +46,7 @@ struct GenericAstAnalysisMatch<'a> {
 }
 
 #[derive(Debug, Clone)]
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 pub(crate) struct RepoAstAnalysisIndex {
     records: Vec<RepoAstAnalysisRecord>,
     exact_name_index: HashMap<String, Vec<usize>>,
@@ -54,7 +54,7 @@ pub(crate) struct RepoAstAnalysisIndex {
 }
 
 #[derive(Debug, Clone)]
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 struct RepoAstAnalysisRecord {
     repo_id: String,
     relative_path: String,
@@ -65,7 +65,7 @@ struct RepoAstAnalysisRecord {
     line_end: usize,
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 impl RepoAstAnalysisIndex {
     pub(crate) fn file_count(&self) -> usize {
         self.file_count
@@ -196,7 +196,7 @@ pub(crate) async fn search_repo_ast_analysis_hits(
     .map_err(|error| format!("ast-grep repo search task failed: {error}"))?
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 pub(crate) fn build_repo_ast_analysis_index_from_checkout(
     checkout_root: &Path,
     repository: &RegisteredRepository,
@@ -595,7 +595,7 @@ fn push_normalized_ast_language(languages: &mut Vec<String>, language: &str) {
     languages.push(normalized);
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 fn repo_ast_index_roots(checkout_root: &Path, include_dirs: &[String]) -> Vec<PathBuf> {
     if include_dirs.is_empty() {
         return vec![checkout_root.to_path_buf()];
@@ -609,7 +609,7 @@ fn repo_ast_index_roots(checkout_root: &Path, include_dirs: &[String]) -> Vec<Pa
         .collect()
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 fn should_descend_into_catalog_entry(
     checkout_root: &Path,
     entry: &DirEntry,
@@ -664,7 +664,7 @@ fn generic_ast_analysis_score(
     None
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 fn normalized_exact_search_term(search_term: Option<&str>) -> Option<String> {
     search_term
         .map(str::trim)
@@ -672,7 +672,7 @@ fn normalized_exact_search_term(search_term: Option<&str>) -> Option<String> {
         .map(str::to_ascii_lowercase)
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 fn build_exact_name_index(records: &[RepoAstAnalysisRecord]) -> HashMap<String, Vec<usize>> {
     let mut index: HashMap<String, Vec<usize>> = HashMap::new();
     for (record_index, record) in records.iter().enumerate() {
@@ -726,7 +726,7 @@ fn build_generic_ast_analysis_hit(result: &GenericAstAnalysisMatch<'_>) -> Searc
     }
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 fn push_analysis_records(
     records: &mut Vec<RepoAstAnalysisRecord>,
     seen: &mut HashSet<String>,

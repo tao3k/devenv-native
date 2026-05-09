@@ -12,8 +12,8 @@ use tonic::transport::{Channel, Endpoint};
 use xiuxian_wendao_server::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-    WENDAO_SCHEMA_VERSION_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
 };
 
 use super::{
@@ -90,6 +90,10 @@ impl StudioDocumentExtractFlightRouteProvider {
             .clone())
     }
 
+    async fn remove_document_extract_endpoint_channel(&self, endpoint_url: &str) {
+        self.runtime.channels.lock().await.remove(endpoint_url);
+    }
+
     pub(super) async fn request_python_document_extract(
         &self,
         source_path: &str,
@@ -98,9 +102,72 @@ impl StudioDocumentExtractFlightRouteProvider {
         error_row: bool,
         profile: &str,
     ) -> Result<Vec<EngineRecordBatch>, String> {
-        let endpoint_url = self.document_extract_endpoint_url()?;
+        self.request_python_document_extract_with_page_range(
+            source_path,
+            output_dir,
+            force,
+            error_row,
+            profile,
+            None,
+        )
+        .await
+    }
 
-        let channel = self.channel_for_endpoint(endpoint_url.as_str()).await?;
+    pub(super) async fn request_python_document_extract_with_page_range(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        force: bool,
+        error_row: bool,
+        profile: &str,
+        page_range: Option<(u32, u32)>,
+    ) -> Result<Vec<EngineRecordBatch>, String> {
+        let endpoint_urls = self.document_extract_endpoint_attempt_order()?;
+        let mut last_retryable_error = None;
+        for (attempt_index, endpoint_url) in endpoint_urls.iter().enumerate() {
+            match self
+                .request_python_document_extract_with_page_range_at_endpoint(
+                    endpoint_url,
+                    source_path,
+                    output_dir,
+                    force,
+                    error_row,
+                    profile,
+                    page_range,
+                )
+                .await
+            {
+                Ok(batches) => return Ok(batches),
+                Err(error)
+                    if attempt_index + 1 < endpoint_urls.len()
+                        && is_retryable_document_extract_endpoint_error(error.as_str()) =>
+                {
+                    self.remove_document_extract_endpoint_channel(endpoint_url.as_str())
+                        .await;
+                    log::warn!(
+                        "document extract endpoint `{endpoint_url}` failed with a retryable transport error; trying another endpoint: {error}"
+                    );
+                    last_retryable_error = Some(error);
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        Err(last_retryable_error.unwrap_or_else(|| {
+            "document extract endpoint pool did not produce a request attempt".to_string()
+        }))
+    }
+
+    async fn request_python_document_extract_with_page_range_at_endpoint(
+        &self,
+        endpoint_url: &str,
+        source_path: &str,
+        output_dir: &str,
+        force: bool,
+        error_row: bool,
+        profile: &str,
+        page_range: Option<(u32, u32)>,
+    ) -> Result<Vec<EngineRecordBatch>, String> {
+        let channel = self.channel_for_endpoint(endpoint_url).await?;
 
         let inner_client = TonicFlightServiceClient::new(channel)
             .max_encoding_message_size(DOCUMENT_EXTRACT_FLIGHT_MESSAGE_SIZE_BYTES)
@@ -130,6 +197,12 @@ impl StudioDocumentExtractFlightRouteProvider {
         client
             .add_header(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, profile)
             .map_err(|error| format!("invalid profile header: {error}"))?;
+        if let Some((start, end)) = page_range {
+            let value = format!("{start}:{end}");
+            client
+                .add_header(WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, value.as_str())
+                .map_err(|error| format!("invalid page range header: {error}"))?;
+        }
 
         let descriptor = FlightDescriptor::new_path(
             ANALYSIS_DOCUMENT_EXTRACT_ROUTE
@@ -165,7 +238,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         Ok(engine_batches)
     }
 
-    fn document_extract_endpoint_url(&self) -> Result<String, String> {
+    fn document_extract_endpoint_attempt_order(&self) -> Result<Vec<String>, String> {
         let default_endpoint = document_extract_default_endpoint_with_lookup(
             self.configured_default_endpoint.as_deref(),
             &|key| std::env::var(key).ok(),
@@ -175,8 +248,7 @@ impl StudioDocumentExtractFlightRouteProvider {
             .runtime
             .endpoint_round_robin
             .fetch_add(1, Ordering::Relaxed);
-        let endpoint_index = endpoint_index_for_request(request_index, endpoint_urls.len())?;
-        Ok(endpoint_urls[endpoint_index].clone())
+        document_extract_endpoint_attempt_order_for_request(request_index, endpoint_urls.as_slice())
     }
 }
 
@@ -225,6 +297,26 @@ pub(super) fn endpoint_index_for_request(
         return Err("document extract endpoint pool cannot be empty".to_string());
     }
     Ok(request_index % endpoint_count)
+}
+
+pub(super) fn document_extract_endpoint_attempt_order_for_request(
+    request_index: usize,
+    endpoint_urls: &[String],
+) -> Result<Vec<String>, String> {
+    let start_index = endpoint_index_for_request(request_index, endpoint_urls.len())?;
+    let mut ordered = Vec::with_capacity(endpoint_urls.len());
+    for offset in 0..endpoint_urls.len() {
+        let endpoint_index = (start_index + offset) % endpoint_urls.len();
+        ordered.push(endpoint_urls[endpoint_index].clone());
+    }
+    Ok(ordered)
+}
+
+pub(super) fn is_retryable_document_extract_endpoint_error(error: &str) -> bool {
+    error.contains("failed to connect to document extract endpoint")
+        || error.contains("The service is currently unavailable")
+        || error.contains("tcp connect error")
+        || error.contains("Connection refused")
 }
 
 fn normalize_endpoint(endpoint: &str) -> Option<String> {

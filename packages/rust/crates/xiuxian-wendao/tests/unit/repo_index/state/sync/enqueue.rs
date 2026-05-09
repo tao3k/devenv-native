@@ -44,7 +44,7 @@ fn sync_repositories_reenqueues_repositories_when_configured_plugin_set_changes(
     let repository = repo("sciml", "./sciml");
     let repository_with_ast_grep = RegisteredRepository {
         plugins: vec![
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Id("ast-grep".to_string()),
         ],
         ..repository.clone()
@@ -66,7 +66,7 @@ fn sync_repositories_does_not_reenqueue_repositories_when_configured_plugin_orde
     let coordinator = new_coordinator(SearchPlaneService::new(PathBuf::from(".")));
     let repository = RegisteredRepository {
         plugins: vec![
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Id("ast-grep".to_string()),
             RepositoryPluginConfig::Config {
                 id: "modelica".to_string(),
@@ -85,7 +85,7 @@ fn sync_repositories_does_not_reenqueue_repositories_when_configured_plugin_orde
                     "mode": "doc-surface"
                 }),
             },
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Id("ast-grep".to_string()),
             RepositoryPluginConfig::Id("ast-grep".to_string()),
         ],

@@ -193,7 +193,7 @@ impl RepoIndexCoordinator {
         }
 
         let plugins = self.plugin_registry.resolve_for_repository(repository)?;
-        if plugins.len() != 1 || plugins[0].id() != "julia" {
+        if plugins.len() != 1 || plugins[0].id() != "julia-code-parser" {
             return Ok(None);
         }
 

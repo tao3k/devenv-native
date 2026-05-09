@@ -15,7 +15,7 @@ use crate::plugin::parser_summary::types::{
 fn parser_summary_repository() -> RegisteredRepository {
     RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     }
 }

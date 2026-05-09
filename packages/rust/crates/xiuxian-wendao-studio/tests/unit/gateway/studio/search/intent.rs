@@ -207,7 +207,7 @@ async fn search_intent_includes_repo_content_hits_for_code_biased_intent() {
                 url: None,
                 git_ref: None,
                 refresh: None,
-                plugins: vec!["julia".to_string()],
+                plugins: vec!["julia-code-parser".to_string()],
             }],
         });
     let snapshot = Arc::new(RepoIndexSnapshot {

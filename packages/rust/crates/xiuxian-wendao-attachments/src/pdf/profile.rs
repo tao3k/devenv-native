@@ -28,6 +28,65 @@ pub struct PdfSourcePageProfile {
     pub estimated_weight: u32,
 }
 
+/// Conservative planner facts derived from one source PDF page profile.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PdfSourcePageClassification {
+    /// Zero-based page index.
+    pub page_index: u32,
+    /// Whether Docling must remain the structure authority for this page.
+    pub structure_authority_required: bool,
+    /// Whether the page is eligible for a high-precision OCR/VLM patch.
+    pub ocr_patch_candidate: bool,
+    /// Whether backend-text may be used as a text shortcut for this page.
+    pub text_shortcut_eligible: bool,
+}
+
+/// Return conservative planner facts for one source PDF page.
+#[must_use]
+pub fn classify_pdf_source_page(profile: &PdfSourcePageProfile) -> PdfSourcePageClassification {
+    let structure_authority_required = pdf_source_page_requires_structure_authority(profile);
+    PdfSourcePageClassification {
+        page_index: profile.page_index,
+        structure_authority_required,
+        ocr_patch_candidate: pdf_source_page_is_fast_profile_risk(profile),
+        text_shortcut_eligible: !structure_authority_required && profile.text_show_ops > 0,
+    }
+}
+
+/// Return conservative planner facts for all source PDF pages.
+#[must_use]
+pub fn classify_pdf_source_pages(
+    profiles: &[PdfSourcePageProfile],
+) -> Vec<PdfSourcePageClassification> {
+    profiles.iter().map(classify_pdf_source_page).collect()
+}
+
+/// Return whether a page must keep Docling as its structure authority.
+#[must_use]
+pub fn pdf_source_page_requires_structure_authority(profile: &PdfSourcePageProfile) -> bool {
+    profile.draw_object_ops > 0 || profile.rectangle_ops > 0 || profile.path_ops >= 64
+}
+
+/// Return whether a page matches the existing fast-profile structural risk.
+#[must_use]
+pub fn pdf_source_page_is_fast_profile_risk(profile: &PdfSourcePageProfile) -> bool {
+    let compact_table_grid = (1..=8).contains(&profile.rectangle_ops)
+        && profile.operation_count >= 640
+        && profile.text_show_ops >= 120;
+    let dense_table_path_band = (64..=120).contains(&profile.path_ops)
+        && profile.operation_count >= 640
+        && profile.text_show_ops >= 150;
+    compact_table_grid || dense_table_path_band
+}
+
+/// Return whether a page matches the existing dense backend-text top-up signal.
+#[must_use]
+pub fn pdf_source_page_is_backend_text_topup_profile(profile: &PdfSourcePageProfile) -> bool {
+    let dense_text_page = profile.text_show_ops >= 320 && profile.operation_count >= 640;
+    let large_content_stream = profile.content_bytes >= 65_536 && profile.text_show_ops >= 180;
+    dense_text_page || large_content_stream
+}
+
 /// Return page-level source PDF complexity profiles.
 ///
 /// # Errors

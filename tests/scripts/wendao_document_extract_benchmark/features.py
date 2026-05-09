@@ -45,6 +45,7 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
         "hosted-vlm-all",
         "hosted-vlm-risk-window",
         "hosted-vlm-risk-window-backend-text",
+        "docling-structure-recovery",
     }:
         return cargo_features_with_pdf_render(features)
     failed_page_recovery = str(

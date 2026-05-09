@@ -672,7 +672,7 @@ fn graph_structural_explicit_rerank_repository(base_url: &str) -> RegisteredRepo
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: json!({
                 "graph_structural_transport": {
                     "base_url": base_url,
@@ -695,7 +695,7 @@ fn graph_structural_explicit_filter_repository(base_url: &str) -> RegisteredRepo
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: json!({
                 "graph_structural_transport": {
                     "base_url": base_url,
@@ -718,7 +718,7 @@ fn graph_structural_manifest_repository(base_url: &str) -> RegisteredRepository 
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: json!({
                 "capability_manifest_transport": {
                     "base_url": base_url,

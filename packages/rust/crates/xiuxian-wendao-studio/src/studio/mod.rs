@@ -77,6 +77,10 @@ pub use startup_health::{
     describe_gateway_startup_health, probe_gateway_startup_health,
 };
 
+/// SearchStrategyFlow proof surfaces owned by Studio.
+#[cfg(all(feature = "zhenfa-router", feature = "test-support", feature = "julia"))]
+pub mod search_strategy_flow;
+
 #[cfg(test)]
 #[path = "../../tests/unit/gateway/studio/support.rs"]
 pub(crate) mod test_support;
@@ -87,4 +91,4 @@ mod studio_vfs_performance_tests;
 
 #[cfg(all(test, feature = "zhenfa-router"))]
 #[path = "../../tests/unit/studio_repo_sync_api/mod.rs"]
-mod studio_repo_sync_api_tests;
+pub(crate) mod studio_repo_sync_api_tests;

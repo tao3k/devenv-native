@@ -9,8 +9,9 @@ use crate::transport::query_contract::{
     ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE,
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
-    ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE,
-    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
+    ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE, ANALYSIS_REPO_SYNC_ROUTE,
+    GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE, SEARCH_AST_ROUTE,
+    SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
     TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
 };
 
@@ -23,6 +24,7 @@ use crate::transport::server::{
     validate_repo_doc_coverage_request_metadata, validate_repo_index_request_metadata,
     validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
     validate_repo_projected_page_index_tree_request_metadata,
+    validate_repo_projected_retrieval_context_request_metadata,
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
     validate_search_request_metadata, validate_sql_request_metadata,
     validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
@@ -138,6 +140,12 @@ impl WendaoFlightService {
             let (repo_id, page_id) =
                 validate_repo_projected_page_index_tree_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{page_id:?}"))
+        } else if route == ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE {
+            let (repo_id, page_id, node_id, related_limit) =
+                validate_repo_projected_retrieval_context_request_metadata(metadata)?;
+            Ok(format!(
+                "{route}|{repo_id:?}|{page_id:?}|{node_id:?}|{related_limit}"
+            ))
         } else if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
             document_extract_cache_key(route, metadata)
         } else if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
@@ -201,6 +209,9 @@ impl WendaoFlightService {
             self.read_repo_doc_coverage_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE {
             self.read_repo_projected_page_index_tree_payload(route, metadata)
+                .await
+        } else if route == ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE {
+            self.read_repo_projected_retrieval_context_payload(route, metadata)
                 .await
         } else if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
             self.read_document_extract_payload(route, metadata).await
@@ -574,6 +585,34 @@ impl WendaoFlightService {
             })?;
         provider
             .repo_projected_page_index_tree_batch(repo_id.as_str(), page_id.as_str())
+            .await
+            .and_then(|response| {
+                FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)
+            })
+    }
+
+    async fn read_repo_projected_retrieval_context_payload(
+        &self,
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<FlightRoutePayload, Status> {
+        let (repo_id, page_id, node_id, related_limit) =
+            validate_repo_projected_retrieval_context_request_metadata(metadata)?;
+        let provider = self
+            .repo_projected_retrieval_context_provider
+            .as_ref()
+            .ok_or_else(|| {
+                Status::unimplemented(format!(
+                    "repo projected retrieval-context Flight route `{route}` is not configured for this runtime host"
+                ))
+            })?;
+        provider
+            .repo_projected_retrieval_context_batch(
+                repo_id.as_str(),
+                page_id.as_str(),
+                node_id.as_deref(),
+                related_limit,
+            )
             .await
             .and_then(|response| {
                 FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)

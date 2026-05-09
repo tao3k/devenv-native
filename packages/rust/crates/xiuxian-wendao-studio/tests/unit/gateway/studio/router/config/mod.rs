@@ -15,8 +15,8 @@ fn load_ui_config_from_wendao_toml_accepts_inline_repo_plugin_config() -> TestRe
         r#"[link_graph.projects.sample]
 root = "."
 plugins = [
-  "julia",
-  { id = "julia", flight_transport = { base_url = "http://127.0.0.1:8815" } }
+  "ast-grep",
+  { id = "julia-code-parser", flight_transport = { base_url = "http://127.0.0.1:8815" } }
 ]
 "#,
     )?;
@@ -26,7 +26,10 @@ plugins = [
     };
     assert_eq!(config.repo_projects.len(), 1);
     assert_eq!(config.repo_projects[0].id, "sample");
-    assert_eq!(config.repo_projects[0].plugins, vec!["julia".to_string()]);
+    assert_eq!(
+        config.repo_projects[0].plugins,
+        vec!["ast-grep".to_string(), "julia-code-parser".to_string()]
+    );
     Ok(())
 }
 

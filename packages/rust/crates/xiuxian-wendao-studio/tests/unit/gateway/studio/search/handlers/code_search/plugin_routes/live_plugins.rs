@@ -19,7 +19,7 @@ async fn build_code_search_response_returns_hits_for_plain_julia_plugin_reposito
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let registry = bootstrap_builtin_registry()?;
     let analysis =
@@ -34,7 +34,7 @@ async fn build_code_search_response_returns_hits_for_plain_julia_plugin_reposito
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     publish_repository_snapshot(

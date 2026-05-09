@@ -23,6 +23,7 @@ from .common import (
 from .fake_fixtures import distinct_miss_wait_ms
 from .features import cargo_features_for_flight_mode
 from .http_status import run_command_with_status_sampling
+from .providers import apply_rust_pdf_ocr_env
 from .runtime import rust_process_env
 from .rust_status import (
     combine_rust_jobs_status_summaries,
@@ -532,6 +533,22 @@ def run_fixture_probe(
         "forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount": force_artifact_summary[
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
         ],
+        "structureAuthorityPages": force_artifact_summary["structureAuthorityPages"],
+        "textShortcutPages": force_artifact_summary["textShortcutPages"],
+        "ocrPatchRegions": force_artifact_summary["ocrPatchRegions"],
+        "pageRangeDoclingFallbackPages": force_artifact_summary[
+            "pageRangeDoclingFallbackPages"
+        ],
+        "pageRangeDoclingFallbackChunkCount": force_artifact_summary[
+            "pageRangeDoclingFallbackChunkCount"
+        ],
+        "forceHybridPageOcrTimingPageRangeDoclingFallbackPlan": force_artifact_summary[
+            "pageRangeDoclingFallbackPlan"
+        ],
+        "forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary": (
+            force_artifact_summary["pageRangeDoclingFallbackChunkSummary"]
+        ),
+        "fullDoclingFallbackCount": force_artifact_summary["fullDoclingFallbackCount"],
         "forceHybridPageOcrTimingSchedulerTraceSummary": force_artifact_summary[
             "hybridPageOcrTimingSchedulerTraceSummary"
         ],
@@ -718,6 +735,7 @@ def run_cargo_perf_test(
             "WENDAO_DOCUMENT_EXTRACT_PERF_REPORT": str(report_path),
         }
     )
+    apply_rust_pdf_ocr_env(args, env)
     if inputs is not None:
         env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"] = json.dumps(
             [

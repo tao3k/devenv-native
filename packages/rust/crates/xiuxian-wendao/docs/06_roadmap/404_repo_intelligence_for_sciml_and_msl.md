@@ -332,7 +332,7 @@ The repository registry should live in `wendao.toml`. Example:
 url = "https://github.com/SciML/DifferentialEquations.jl.git"
 ref = "main"
 refresh = "fetch"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 dirs = ["docs"]
 
 [link_graph.projects.msl]

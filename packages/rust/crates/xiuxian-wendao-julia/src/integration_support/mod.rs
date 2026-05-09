@@ -3,6 +3,7 @@
 mod gateway_artifact;
 mod official_examples;
 mod planned_search;
+mod search_strategy_flow_flight;
 mod service_runtime;
 mod wendaograph;
 mod wendaograph_gnn;
@@ -33,15 +34,22 @@ pub use planned_search::{
     julia_planned_search_openai_runtime_config_toml,
     julia_planned_search_vector_store_runtime_config_toml,
 };
+pub use search_strategy_flow_flight::{
+    SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
+};
 pub use service_runtime::JuliaExampleServiceGuard;
 pub use wendaograph::{
     WendaoGraphLinkGraphFullStructuralHostProbeReport, WendaoGraphLinkGraphHostProbeReport,
     WendaoGraphPageIndexHostProbeReport, WendaoGraphPageIndexPlannerActionHostProbeReport,
+    enrich_wendaograph_search_strategy_flow_retrieval_routes,
+    enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     probe_wendaograph_link_graph_full_structural_host_request,
     probe_wendaograph_link_graph_host_request, probe_wendaograph_page_index_host_request,
     probe_wendaograph_page_index_host_request_with_fixture,
     probe_wendaograph_page_index_planner_action_host_request,
     probe_wendaograph_page_index_planner_action_host_request_with_fixture,
+    run_wendaograph_search_strategy_flow_json,
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization,
 };
 pub use wendaograph_gnn::{
     WendaoGraphGnnBackendLoadDiagnostics, WendaoGraphGnnHostProbeReport,

@@ -79,7 +79,7 @@ async fn run_repo_overview_returns_index_not_ready_without_repo_entity_publicati
             url: Some("https://github.com/example/PendingRepo".to_string()),
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let state = Arc::new(GatewayState {
@@ -123,7 +123,7 @@ async fn run_repo_overview_prefers_repo_entity_publication_summary_before_live_a
             url: Some("https://github.com/example/PublishedRepo".to_string()),
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let analysis = RepositoryAnalysisOutput {

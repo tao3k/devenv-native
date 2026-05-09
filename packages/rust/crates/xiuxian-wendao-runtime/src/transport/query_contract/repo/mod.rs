@@ -5,6 +5,7 @@ mod index;
 mod index_status;
 mod overview;
 mod projected_page_index_tree;
+mod projected_retrieval_context;
 mod refine_doc;
 mod sync;
 
@@ -28,6 +29,15 @@ pub use projected_page_index_tree::{
     WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER,
     WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER,
     validate_repo_projected_page_index_tree_request,
+};
+pub use projected_retrieval_context::{
+    ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
+    REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER,
+    validate_repo_projected_retrieval_context_request,
 };
 pub use refine_doc::{
     ANALYSIS_REFINE_DOC_ROUTE, WENDAO_REFINE_DOC_ENTITY_ID_HEADER, WENDAO_REFINE_DOC_REPO_HEADER,

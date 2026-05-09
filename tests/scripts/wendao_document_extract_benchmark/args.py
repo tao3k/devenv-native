@@ -106,6 +106,46 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--document-extract-converter-cache",
+        choices=("disabled", "profile"),
+        default="disabled",
+        help=(
+            "Opt-in Python document-extract worker converter cache. `profile` "
+            "reuses one Docling converter per document profile for page-range "
+            "benchmark probes; the default keeps the existing converter lifecycle."
+        ),
+    )
+    parser.add_argument(
+        "--document-extract-full-threads",
+        default="auto",
+        help=(
+            "Docling full-profile PDF accelerator thread count for local Python "
+            "document workers. `auto` keeps the setting unset except for "
+            "docling-structure-recovery, where the benchmark uses one Docling "
+            "thread per worker and leaves outer parallelism to Rust."
+        ),
+    )
+    parser.add_argument(
+        "--document-extract-prewarm-source-path",
+        default=None,
+        help=(
+            "Optional PDF path converted during local Python document-worker "
+            "startup to warm the Docling full-profile converter before "
+            "force-refresh timing."
+        ),
+    )
+    parser.add_argument(
+        "--document-extract-prewarm-page-ranges",
+        default=None,
+        help=(
+            "Comma-separated 1-based inclusive page ranges used with "
+            "--document-extract-prewarm-source-path, for example `1:1,4:6`. "
+            "When omitted with a source path, workers warm page `1:1`. Use "
+            "`rust-page-range-chunk-plan` to reuse "
+            "--rust-pdf-docling-page-range-chunk-plan for benchmark readiness."
+        ),
+    )
+    parser.add_argument(
         "--pdf-ocr-backend-text-page-fallback",
         choices=("disabled", "compatible-page"),
         default="disabled",
@@ -169,6 +209,51 @@ def parse_args() -> argparse.Namespace:
             "Optional Rust provider override for "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS. Use this "
             "only for source-PDF page-range benchmark profiling."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-page-range-chunk-plan",
+        help=(
+            "Optional benchmark-only Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_PLAN. Use "
+            "1-based inclusive ranges such as `1:3,4:4,5:6,7:9`; the Rust "
+            "provider requires the plan to exactly cover Docling fallback pages."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-page-range-profile",
+        choices=(
+            "full",
+            "structure-text",
+            "docling-structure-text",
+        ),
+        default="full",
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE. "
+            "`structure-text` keeps Docling layout/table structure authority but "
+            "disables OCR for born-digital page-range canaries."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-page-range-hedge-delay-ms",
+        type=int,
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS. "
+            "When set, slow Docling page-range chunks are duplicated after the "
+            "delay and the first successful response is used."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-text-shortcut-promotion",
+        choices=("range-fill", "disabled"),
+        default="range-fill",
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_TEXT_SHORTCUT_PROMOTION. "
+            "`range-fill` preserves the current behavior; `disabled` keeps "
+            "source-profile text shortcuts out of Docling page-range fallback."
         ),
     )
     parser.add_argument(
@@ -255,12 +340,13 @@ def parse_args() -> argparse.Namespace:
             "hosted-vlm-all",
             "hosted-vlm-risk-window",
             "hosted-vlm-risk-window-backend-text",
+            "docling-structure-recovery",
         ),
         help=(
             "Optional Rust provider override for "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER. Use "
-            "`fast-*` or `hosted-vlm-*` modes only when profiling mixed "
-            "candidate/accurate source-range OCR."
+            "`fast-*`, `hosted-vlm-*`, or `docling-structure-recovery` modes "
+            "only when profiling mixed candidate/accurate source-range OCR."
         ),
     )
     parser.add_argument(

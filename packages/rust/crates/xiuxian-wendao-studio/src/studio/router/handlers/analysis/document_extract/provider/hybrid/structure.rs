@@ -65,6 +65,7 @@ pub(crate) fn hybrid_document_structure_blocks(
         source_content_hash,
         engine,
     )?;
+    blocks.retain(|block| block.block_type != "docling_json");
     if resource_batch.ocr_inputs.is_empty() {
         return Ok(blocks);
     }

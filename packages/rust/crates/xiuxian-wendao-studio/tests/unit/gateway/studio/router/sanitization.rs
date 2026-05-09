@@ -60,7 +60,7 @@ fn sanitize_repo_projects_requires_source() {
         url: None,
         git_ref: None,
         refresh: None,
-        plugins: vec!["julia".to_string()],
+        plugins: vec!["julia-code-parser".to_string()],
     }];
     let result = sanitize_repo_projects(input);
     assert!(result.is_empty());

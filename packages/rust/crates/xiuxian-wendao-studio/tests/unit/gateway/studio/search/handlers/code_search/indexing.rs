@@ -119,7 +119,7 @@ fn repo_project_config(repo_id: &str, root: &Path) -> crate::contracts::UiRepoPr
         url: None,
         git_ref: None,
         refresh: None,
-        plugins: vec!["julia".to_string()],
+        plugins: vec!["julia-code-parser".to_string()],
     }
 }
 
@@ -206,7 +206,7 @@ async fn build_code_search_response_returns_pending_payload_for_explicit_repo_wi
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     studio.repo_index.set_status_for_test(RepoIndexEntryStatus {
@@ -250,7 +250,7 @@ async fn build_code_search_response_infers_repo_seed_for_exact_repo_name_query()
                 url: None,
                 git_ref: None,
                 refresh: None,
-                plugins: vec!["julia".to_string()],
+                plugins: vec!["julia-code-parser".to_string()],
             },
             crate::contracts::UiRepoProjectConfig {
                 id: "QueuedRepo.jl".to_string(),
@@ -258,7 +258,7 @@ async fn build_code_search_response_infers_repo_seed_for_exact_repo_name_query()
                 url: None,
                 git_ref: None,
                 refresh: None,
-                plugins: vec!["julia".to_string()],
+                plugins: vec!["julia-code-parser".to_string()],
             },
         ],
     });
@@ -329,7 +329,7 @@ async fn build_code_search_response_uses_published_repo_tables_while_repo_refres
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     publish_repo_entity_index(&studio, "valid", &sample_repo_analysis("valid")).await;
@@ -390,7 +390,7 @@ async fn build_code_search_response_falls_back_to_repo_content_when_repo_entity_
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     publish_repo_content_chunk_index(

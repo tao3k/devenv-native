@@ -68,7 +68,7 @@ pub fn write_repo_config(base: &Path, repo_dir: &Path, repo_id: &str) -> TestRes
             r#"[link_graph.projects.{repo_id}]
 root = "{}"
 plugins = [
-  {{ id = "julia", parser_summary_transport = {{ base_url = "{parser_summary_base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}
+  {{ id = "julia-code-parser", parser_summary_transport = {{ base_url = "{parser_summary_base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}
 ]
 "#,
             repo_dir.display(),

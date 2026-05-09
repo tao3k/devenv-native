@@ -111,6 +111,39 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount",
         ),
+        "structureAuthorityPages": _sum_int_report_values(
+            reports,
+            "structureAuthorityPages",
+        ),
+        "textShortcutPages": _sum_int_report_values(
+            reports,
+            "textShortcutPages",
+        ),
+        "ocrPatchRegions": _sum_int_report_values(
+            reports,
+            "ocrPatchRegions",
+        ),
+        "pageRangeDoclingFallbackPages": _sum_int_report_values(
+            reports,
+            "pageRangeDoclingFallbackPages",
+        ),
+        "pageRangeDoclingFallbackChunkCount": _sum_int_report_values(
+            reports,
+            "pageRangeDoclingFallbackChunkCount",
+        ),
+        "pageRangeDoclingFallbackPlan": _page_range_docling_fallback_plan(reports),
+        "pageRangeDoclingFallbackChunks": _page_range_docling_fallback_chunks(
+            reports,
+        ),
+        "pageRangeDoclingFallbackChunkSummary": (
+            _page_range_docling_fallback_chunk_summary(
+                _page_range_docling_fallback_chunks(reports),
+            )
+        ),
+        "fullDoclingFallbackCount": _sum_int_report_values(
+            reports,
+            "fullDoclingFallbackCount",
+        ),
         "hybridPageOcrTimingSchedulerTrace": _hybrid_page_ocr_scheduler_trace(
             reports,
         ),
@@ -282,8 +315,144 @@ def _hybrid_page_ocr_scheduler_trace_summary(
     }
 
 
+def _page_range_docling_fallback_chunks(
+    reports: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    chunks: list[dict[str, Any]] = []
+    for report in reports:
+        rows = report.get("pageRangeDoclingFallbackChunks")
+        if not isinstance(rows, list):
+            continue
+        chunks.extend(row for row in rows if isinstance(row, dict))
+    return chunks
+
+
+def _page_range_docling_fallback_plan(
+    reports: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    for report in reports:
+        plan = report.get("pageRangeDoclingFallbackPlan")
+        if isinstance(plan, dict):
+            return plan
+    return None
+
+
+def _page_range_docling_fallback_chunk_summary(
+    chunks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    longest = max(
+        chunks,
+        key=lambda row: float(row.get("elapsedMs") or 0.0),
+        default={},
+    )
+    elapsed_values = [
+        float(value)
+        for row in chunks
+        if isinstance((value := row.get("elapsedMs")), int | float)
+    ]
+    elapsed_total = sum(elapsed_values)
+    elapsed_max = max(elapsed_values, default=None)
+    elapsed_min = min(elapsed_values, default=None)
+    elapsed_mean = elapsed_total / len(elapsed_values) if elapsed_values else None
+    document_timing_total = sum(
+        float(value)
+        for row in chunks
+        if isinstance((value := row.get("documentTimingTotalElapsedMs")), int | float)
+    )
+    return {
+        "chunkCount": len(chunks),
+        "elapsedMsMax": elapsed_max,
+        "elapsedMsMin": elapsed_min,
+        "elapsedMsMean": elapsed_mean,
+        "elapsedMsSpread": (
+            elapsed_max - elapsed_min
+            if elapsed_max is not None and elapsed_min is not None
+            else None
+        ),
+        "elapsedMsMaxToMeanRatio": (
+            elapsed_max / elapsed_mean
+            if elapsed_max is not None and elapsed_mean is not None and elapsed_mean > 0
+            else None
+        ),
+        "elapsedMsTotal": elapsed_total,
+        "documentTimingTotalElapsedMs": document_timing_total,
+        "documentTimingPhaseElapsedMs": _aggregate_float_report_maps(
+            chunks,
+            "documentTimingPhaseElapsedMs",
+        ),
+        "documentExtractProfileCounts": _string_counts_from_rows(
+            chunks,
+            "documentExtractProfile",
+        ),
+        "resourceRows": _sum_numeric_trace_values(chunks, "resourceRows"),
+        "sourceProfilePageCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "pageCount",
+        ),
+        "sourceProfileEstimatedWeightTotal": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "estimatedWeightTotal",
+        ),
+        "sourceProfileStructureAuthorityRequiredCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "structureAuthorityRequiredCount",
+        ),
+        "sourceProfileFastProfileRiskCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "fastProfileRiskCount",
+        ),
+        "sourceProfileBackendTextTopupCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "backendTextTopupCount",
+        ),
+        "longestPageStart": _int_or_none(longest.get("pageStart")),
+        "longestPageEnd": _int_or_none(longest.get("pageEnd")),
+        "longestOneBasedStart": _int_or_none(longest.get("oneBasedStart")),
+        "longestOneBasedEnd": _int_or_none(longest.get("oneBasedEnd")),
+        "longestResourceRows": _int_or_none(longest.get("resourceRows")),
+        "longestDocumentTimingTotalElapsedMs": _float_or_none(
+            longest.get("documentTimingTotalElapsedMs"),
+        ),
+        "longestDocumentTimingPhaseElapsedMs": (
+            phases
+            if isinstance((phases := longest.get("documentTimingPhaseElapsedMs")), dict)
+            else None
+        ),
+        "longestSourceProfile": (
+            source_profile
+            if isinstance((source_profile := longest.get("sourceProfile")), dict)
+            else None
+        ),
+    }
+
+
 def _sum_numeric_trace_values(rows: list[dict[str, Any]], key: str) -> int:
     return sum(value for row in rows if isinstance((value := row.get(key)), int))
+
+
+def _string_counts_from_rows(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        value = row.get(key)
+        if isinstance(value, str) and value:
+            counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _sum_nested_int_values(
+    rows: list[dict[str, Any]], parent_key: str, key: str
+) -> int:
+    return sum(
+        value
+        for row in rows
+        if isinstance((parent := row.get(parent_key)), dict)
+        and isinstance((value := parent.get(key)), int)
+    )
 
 
 def _max_float_trace_value(rows: list[dict[str, Any]], key: str) -> float | None:

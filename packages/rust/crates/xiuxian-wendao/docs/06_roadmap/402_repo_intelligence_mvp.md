@@ -21,7 +21,7 @@ The MVP surface is limited to five query families:
 - `example.search`
 - `doc.coverage`
 
-The common core owns repository mirroring, incremental discovery, normalized record storage, graph persistence, and shared query contracts. Language-specific or ecosystem-specific semantics are delegated to Rust plugins selected in `wendao.toml`, for example `plugins = ["julia"]` or `plugins = ["modelica"]`.
+The common core owns repository mirroring, incremental discovery, normalized record storage, graph persistence, and shared query contracts. Language-specific or ecosystem-specific semantics are delegated to Rust plugins selected in `wendao.toml`, for example `plugins = ["julia-code-parser"]` or `plugins = ["modelica"]`.
 
 ## Repository Findings
 
@@ -82,7 +82,7 @@ Plugins should return normalized records and relations, not mutate Wendao storag
 - All five Repo Intelligence query slices are now wired end to end:
   - `wendao.toml` now derives repo-intelligence registrations from `link_graph.projects.<id>` instead of maintaining a parallel `[[repo_intelligence.repos]]` registry
   - legacy `[[repo_intelligence.repos]]` entries are now ignored by the runtime loader instead of being merged with project-derived registrations
-  - project-scoped repo sources use `root = "..."` for local checkouts and `url = "..."` with optional `ref = "..."` for managed git materialization, while `plugins = ["julia" | "modelica"]` acts as the repo-intelligence opt-in on that same project entry
+  - project-scoped repo sources use `root = "..."` for local checkouts and `url = "..."` with optional `ref = "..."` for managed git materialization, while `plugins = ["julia-code-parser" | "modelica"]` acts as the repo-intelligence opt-in on that same project entry
   - relative project roots resolve against the active `wendao.toml` directory
   - the common core now validates that configured local paths point at git checkout roots instead of arbitrary directories
   - repository records now derive `revision` and fallback `url` metadata from the local git checkout when configuration does not provide them

@@ -221,5 +221,8 @@ insta = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [lints]
 workspace = true

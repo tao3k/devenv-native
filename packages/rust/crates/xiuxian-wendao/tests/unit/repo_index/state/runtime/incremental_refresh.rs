@@ -42,7 +42,7 @@ async fn prepare_incremental_analysis_returns_refresh_only_for_non_code_revision
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let registry = Arc::new(
         bootstrap_builtin_registry().unwrap_or_else(|error| panic!("bootstrap registry: {error}")),

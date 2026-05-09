@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -155,6 +156,65 @@ pub(super) struct HybridPdfRegionInput {
     pub(super) regions: Vec<PdfPageRegionRenderRequest>,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageRangeDoclingFallbackSourceProfileSummary {
+    pub(crate) page_count: usize,
+    pub(crate) estimated_weight_total: u64,
+    pub(crate) estimated_weight_max: u32,
+    pub(crate) content_bytes_total: u64,
+    pub(crate) operation_count_total: u64,
+    pub(crate) text_show_ops_total: u64,
+    pub(crate) path_ops_total: u64,
+    pub(crate) rectangle_ops_total: u64,
+    pub(crate) draw_object_ops_total: u64,
+    pub(crate) structure_authority_required_count: usize,
+    pub(crate) fast_profile_risk_count: usize,
+    pub(crate) backend_text_topup_count: usize,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageRangeDoclingFallbackChunkTiming {
+    pub(crate) page_start: u32,
+    pub(crate) page_end: u32,
+    pub(crate) one_based_start: u32,
+    pub(crate) one_based_end: u32,
+    pub(crate) elapsed_ms: f64,
+    pub(crate) resource_rows: usize,
+    pub(crate) document_extract_profile: String,
+    pub(crate) hedged: bool,
+    pub(crate) attempt_count: usize,
+    pub(crate) hedge_delay_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) document_timing_total_elapsed_ms: Option<f64>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub(crate) document_timing_phase_elapsed_ms: BTreeMap<String, f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) source_profile: Option<PageRangeDoclingFallbackSourceProfileSummary>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageRangeDoclingFallbackPlanRange {
+    pub(crate) page_start: u32,
+    pub(crate) page_end: u32,
+    pub(crate) one_based_start: u32,
+    pub(crate) one_based_end: u32,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageRangeDoclingFallbackPlanSummary {
+    pub(crate) strategy: &'static str,
+    pub(crate) target_chunk_count: usize,
+    pub(crate) fallback_page_count: usize,
+    pub(crate) range_count: usize,
+    pub(crate) chunk_size: Option<u32>,
+    pub(crate) source_profile_used: bool,
+    pub(crate) ranges: Vec<PageRangeDoclingFallbackPlanRange>,
+}
+
 pub(crate) struct HybridDocumentResourceBatch {
     pub(crate) batch: EngineRecordBatch,
     pub(crate) ocr_inputs: Vec<PdfOcrShardInput>,
@@ -162,6 +222,9 @@ pub(crate) struct HybridDocumentResourceBatch {
     pub(crate) ocr_metrics: Vec<PdfOcrShardMetric>,
     pub(crate) page_count: u32,
     pub(crate) text_page_indices: Vec<u32>,
+    pub(crate) page_range_docling_fallback_pages: Vec<u32>,
+    pub(crate) page_range_docling_fallback_chunks: Vec<PageRangeDoclingFallbackChunkTiming>,
+    pub(crate) page_range_docling_fallback_plan: Option<PageRangeDoclingFallbackPlanSummary>,
 }
 
 impl HybridDocumentResourceBatch {
@@ -180,7 +243,31 @@ impl HybridDocumentResourceBatch {
             ocr_metrics,
             page_count,
             text_page_indices,
+            page_range_docling_fallback_pages: Vec::new(),
+            page_range_docling_fallback_chunks: Vec::new(),
+            page_range_docling_fallback_plan: None,
         }
+    }
+
+    pub(crate) fn with_page_range_docling_fallback_pages(mut self, pages: Vec<u32>) -> Self {
+        self.page_range_docling_fallback_pages = pages;
+        self
+    }
+
+    pub(crate) fn with_page_range_docling_fallback_chunks(
+        mut self,
+        chunks: Vec<PageRangeDoclingFallbackChunkTiming>,
+    ) -> Self {
+        self.page_range_docling_fallback_chunks = chunks;
+        self
+    }
+
+    pub(crate) fn with_page_range_docling_fallback_plan(
+        mut self,
+        plan: PageRangeDoclingFallbackPlanSummary,
+    ) -> Self {
+        self.page_range_docling_fallback_plan = Some(plan);
+        self
     }
 
     #[cfg(test)]
@@ -194,6 +281,9 @@ impl HybridDocumentResourceBatch {
             ocr_metrics: Vec::new(),
             page_count,
             text_page_indices,
+            page_range_docling_fallback_pages: Vec::new(),
+            page_range_docling_fallback_chunks: Vec::new(),
+            page_range_docling_fallback_plan: None,
         }
     }
 
@@ -216,6 +306,9 @@ impl HybridDocumentResourceBatch {
             ocr_metrics: Vec::new(),
             page_count,
             text_page_indices: Vec::new(),
+            page_range_docling_fallback_pages: Vec::new(),
+            page_range_docling_fallback_chunks: Vec::new(),
+            page_range_docling_fallback_plan: None,
         }
     }
 }

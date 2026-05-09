@@ -73,6 +73,50 @@ def should_auto_fanout_local_ocr_endpoints(args: object) -> bool:
     )
 
 
+def resolve_document_extract_full_threads(args: object) -> int | None:
+    raw_count = getattr(args, "document_extract_full_threads", "auto")
+    raw_text = str(raw_count).strip().lower()
+    if raw_text == "auto":
+        if (
+            bool(getattr(args, "real_docling", False))
+            and getattr(args, "flight_mode", "") == "hybrid-page-ocr"
+            and getattr(args, "rust_pdf_ocr_profile_planner", "")
+            == "docling-structure-recovery"
+        ):
+            return 1
+        return None
+    try:
+        count = int(raw_text)
+    except ValueError as exc:
+        raise SystemExit(
+            "--document-extract-full-threads must be a positive integer or `auto`"
+        ) from exc
+    if count < 1:
+        raise SystemExit("--document-extract-full-threads must be at least 1")
+    return count
+
+
+def resolve_document_extract_prewarm_page_ranges(args: object) -> str | None:
+    raw_ranges = getattr(args, "document_extract_prewarm_page_ranges", None)
+    if raw_ranges is None:
+        return None
+    raw_text = str(raw_ranges).strip()
+    if not raw_text:
+        return None
+    if raw_text.replace("_", "-").lower() != "rust-page-range-chunk-plan":
+        return raw_text
+
+    chunk_plan = str(
+        getattr(args, "rust_pdf_docling_page_range_chunk_plan", "") or ""
+    ).strip()
+    if not chunk_plan:
+        raise SystemExit(
+            "--document-extract-prewarm-page-ranges rust-page-range-chunk-plan "
+            "requires --rust-pdf-docling-page-range-chunk-plan"
+        )
+    return chunk_plan
+
+
 def ceil_sqrt(value: int) -> int:
     if value <= 1:
         return value
@@ -252,6 +296,10 @@ def hosted_vlm_ocr_trace_env(
 def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
     env = {}
     mappings = {
+        "document_extract_converter_cache": "WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE",
+        "document_extract_prewarm_source_path": (
+            "WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH"
+        ),
         "hosted_vlm_ocr_provider": "WENDAO_HOSTED_VLM_OCR_PROVIDER",
         "hosted_vlm_ocr_base_url": "WENDAO_HOSTED_VLM_OCR_BASE_URL",
         "hosted_vlm_ocr_model": "WENDAO_HOSTED_VLM_OCR_MODEL",
@@ -287,6 +335,7 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         if (
             attr
             in {
+                "document_extract_converter_cache",
                 "pdf_ocr_backend_text_page_fallback",
                 "pdf_ocr_backend_text_empty_page",
             }
@@ -295,6 +344,16 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
             continue
         if value is not None:
             env[key] = str(value)
+    document_extract_prewarm_page_ranges = resolve_document_extract_prewarm_page_ranges(
+        args
+    )
+    if document_extract_prewarm_page_ranges is not None:
+        env["WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES"] = (
+            document_extract_prewarm_page_ranges
+        )
+    document_extract_full_threads = resolve_document_extract_full_threads(args)
+    if document_extract_full_threads is not None:
+        env["WENDAO_DOCUMENT_EXTRACT_FULL_THREADS"] = str(document_extract_full_threads)
     prewarm_profiles = getattr(args, "pdf_ocr_prewarm_profile", [])
     if prewarm_profiles:
         env["WENDAO_PDF_OCR_PREWARM_PROFILES"] = ",".join(

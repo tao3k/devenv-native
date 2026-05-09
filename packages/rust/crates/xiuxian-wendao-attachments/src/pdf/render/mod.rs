@@ -32,6 +32,7 @@ pub use regions::{
     page_region_render_request_chunks_by_region,
 };
 pub use report::write_page_render_shard_reports;
+pub use selection::source_pdf_page_count;
 pub use types::{
     PdfOcrShardType, PdfPageBox, PdfPagePixelBox, PdfPageRegion, PdfPageRegionRenderRequest,
     PdfPageRegionShardManifestInput, PdfPageRenderProfile, PdfPageRenderSelection,

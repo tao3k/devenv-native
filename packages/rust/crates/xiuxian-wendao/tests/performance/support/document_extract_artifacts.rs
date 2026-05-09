@@ -80,6 +80,15 @@ pub(crate) struct ArtifactReport {
     pub(crate) hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: usize,
+    pub(crate) structure_authority_pages: usize,
+    pub(crate) text_shortcut_pages: usize,
+    pub(crate) ocr_patch_regions: usize,
+    pub(crate) page_range_docling_fallback_pages: usize,
+    pub(crate) page_range_docling_fallback_chunk_count: usize,
+    pub(crate) page_range_docling_fallback_plan: Option<Value>,
+    pub(crate) page_range_docling_fallback_chunks: Vec<Value>,
+    pub(crate) page_range_docling_fallback_chunk_summary: Option<Value>,
+    pub(crate) full_docling_fallback_count: usize,
     pub(crate) hybrid_page_ocr_timing_scheduler_trace: Vec<Value>,
     #[cfg(feature = "document-extract-attachment-audit")]
     pub(crate) image_attachment_audit: Option<AttachmentAudit>,
@@ -165,6 +174,15 @@ fn inspect_artifact_dir(
         hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: 0,
         hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: 0,
         hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: 0,
+        structure_authority_pages: 0,
+        text_shortcut_pages: 0,
+        ocr_patch_regions: 0,
+        page_range_docling_fallback_pages: 0,
+        page_range_docling_fallback_chunk_count: 0,
+        page_range_docling_fallback_plan: None,
+        page_range_docling_fallback_chunks: Vec::new(),
+        page_range_docling_fallback_chunk_summary: None,
+        full_docling_fallback_count: 0,
         hybrid_page_ocr_timing_scheduler_trace: Vec::new(),
         #[cfg(feature = "document-extract-attachment-audit")]
         image_attachment_audit: None,
@@ -342,6 +360,22 @@ fn populate_hybrid_page_ocr_timing_report(
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or_default();
+    report.structure_authority_pages = timing_report_usize(&value, "structureAuthorityPages");
+    report.text_shortcut_pages = timing_report_usize(&value, "textShortcutPages");
+    report.ocr_patch_regions = timing_report_usize(&value, "ocrPatchRegions");
+    report.page_range_docling_fallback_pages =
+        timing_report_usize(&value, "pageRangeDoclingFallbackPages");
+    report.page_range_docling_fallback_chunk_count =
+        timing_report_usize(&value, "pageRangeDoclingFallbackChunkCount");
+    report.page_range_docling_fallback_plan = value.get("pageRangeDoclingFallbackPlan").cloned();
+    report.page_range_docling_fallback_chunks = value
+        .get("pageRangeDoclingFallbackChunks")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    report.page_range_docling_fallback_chunk_summary =
+        value.get("pageRangeDoclingFallbackChunkSummary").cloned();
+    report.full_docling_fallback_count = timing_report_usize(&value, "fullDoclingFallbackCount");
     report.hybrid_page_ocr_timing_scheduler_trace = value
         .get("ocrSchedulerTrace")
         .and_then(Value::as_array)
@@ -358,6 +392,14 @@ fn populate_hybrid_page_ocr_timing_report(
             .collect();
     }
     Ok(())
+}
+
+fn timing_report_usize(value: &Value, key: &str) -> usize {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default()
 }
 
 #[cfg(feature = "document-extract-attachment-audit")]
@@ -870,6 +912,63 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
             "ocr2RegionRenderedShardCount": 6,
             "ocr2RegionRenderCacheHitCount": 6,
             "ocr2RegionRenderCacheMissCount": 0,
+            "structureAuthorityPages": 4,
+            "textShortcutPages": 2,
+            "ocrPatchRegions": 3,
+            "pageRangeDoclingFallbackPages": 5,
+            "pageRangeDoclingFallbackChunkCount": 2,
+            "pageRangeDoclingFallbackPlan": {
+                "strategy": "source-profile-weighted",
+                "targetChunkCount": 4,
+                "fallbackPageCount": 5,
+                "rangeCount": 2,
+                "chunkSize": null,
+                "sourceProfileUsed": true,
+                "ranges": [
+                    {
+                        "pageStart": 0,
+                        "pageEnd": 2,
+                        "oneBasedStart": 1,
+                        "oneBasedEnd": 3,
+                    },
+                    {
+                        "pageStart": 3,
+                        "pageEnd": 4,
+                        "oneBasedStart": 4,
+                        "oneBasedEnd": 5,
+                    },
+                ],
+            },
+            "pageRangeDoclingFallbackChunks": [
+                {
+                    "pageStart": 0,
+                    "pageEnd": 2,
+                    "oneBasedStart": 1,
+                    "oneBasedEnd": 3,
+                    "elapsedMs": 1200.0,
+                    "resourceRows": 9,
+                },
+                {
+                    "pageStart": 3,
+                    "pageEnd": 4,
+                    "oneBasedStart": 4,
+                    "oneBasedEnd": 5,
+                    "elapsedMs": 4400.0,
+                    "resourceRows": 12,
+                },
+            ],
+            "pageRangeDoclingFallbackChunkSummary": {
+                "chunkCount": 2,
+                "elapsedMsMax": 4400.0,
+                "elapsedMsTotal": 5600.0,
+                "resourceRows": 21,
+                "longestPageStart": 3,
+                "longestPageEnd": 4,
+                "longestOneBasedStart": 4,
+                "longestOneBasedEnd": 5,
+                "longestResourceRows": 12,
+            },
+            "fullDoclingFallbackCount": 0,
             "ocrSchedulerTrace": [
                 {
                     "lane": "source-pdf-page-range",
@@ -910,6 +1009,33 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
         report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count,
         0
     );
+    assert_eq!(report.structure_authority_pages, 4);
+    assert_eq!(report.text_shortcut_pages, 2);
+    assert_eq!(report.ocr_patch_regions, 3);
+    assert_eq!(report.page_range_docling_fallback_pages, 5);
+    assert_eq!(report.page_range_docling_fallback_chunk_count, 2);
+    assert_eq!(
+        report
+            .page_range_docling_fallback_plan
+            .as_ref()
+            .and_then(|plan| plan.get("strategy"))
+            .and_then(Value::as_str),
+        Some("source-profile-weighted")
+    );
+    assert_eq!(report.page_range_docling_fallback_chunks.len(), 2);
+    assert_eq!(
+        report.page_range_docling_fallback_chunks[1]["resourceRows"],
+        12
+    );
+    assert_eq!(
+        report
+            .page_range_docling_fallback_chunk_summary
+            .as_ref()
+            .and_then(|summary| summary.get("longestPageStart"))
+            .and_then(Value::as_u64),
+        Some(3)
+    );
+    assert_eq!(report.full_docling_fallback_count, 0);
     assert_eq!(report.hybrid_page_ocr_timing_scheduler_trace.len(), 1);
     assert_eq!(
         report.hybrid_page_ocr_timing_scheduler_trace[0]["lane"],

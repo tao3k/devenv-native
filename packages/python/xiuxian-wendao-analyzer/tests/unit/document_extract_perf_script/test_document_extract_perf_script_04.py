@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
 
 from .support import (
     Path,
@@ -41,14 +43,22 @@ def test_real_docling_server_code_can_record_converter_count(tmp_path: Path) -> 
     assert "class CountingConverter" in code
     assert "return CountingConverter(converter)" in code
     assert "def make_converter(ocr_profile=None)" in code
+    assert "document_extract_full_threads_from_env" in code
+    assert "DOCUMENT_EXTRACT_FULL_PROFILE" in code
+    assert "DOCUMENT_EXTRACT_STRUCTURE_TEXT_PROFILE" in code
+    assert "prewarm_document_extract_converter(converter)" in code
+    assert "WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH" in code
+    assert "WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES" in code
     assert "PDF_OCR_FAST_TEXT_PROFILE" in code
     assert "AcceleratorOptions" in code
     assert "WENDAO_PDF_OCR_FAST_TEXT_THREADS" in code
+    assert "AcceleratorDevice.CPU" in code
     assert "TableFormerMode.FAST" in code
     assert "PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE" in code
     assert 'VlmConvertOptions.from_preset("deepseek_ocr")' in code
     assert "DoclingPdfOcrShardWorker(" in code
     assert "converter_factory=make_converter" in code
+    assert code.count("converter_factory=make_converter") == 2
     assert "max_workers='auto'" in code
     assert "write_text(str(self.calls)" in code
 
@@ -168,6 +178,51 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "python-worker-0.hosted-vlm-ocr.jsonl",
         "python-worker-1.hosted-vlm-ocr.jsonl",
         "python-worker-2.hosted-vlm-ocr.jsonl",
+    ]
+
+
+def test_wait_for_document_extract_flight_endpoint_uses_flight_info(
+    monkeypatch,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakeProcess:
+        def poll(self):
+            return None
+
+    class FakeFlightClient:
+        def __init__(self, location: str):
+            calls.append(("client", location))
+
+        def get_flight_info(self, descriptor):
+            calls.append(("get_flight_info", descriptor))
+
+    class FakeFlightDescriptor:
+        @staticmethod
+        def for_path(*parts: str):
+            calls.append(("descriptor", parts))
+            return ("descriptor", parts)
+
+    fake_pyarrow = types.ModuleType("pyarrow")
+    fake_flight = types.ModuleType("pyarrow.flight")
+    fake_flight.FlightClient = FakeFlightClient
+    fake_flight.FlightDescriptor = FakeFlightDescriptor
+    fake_pyarrow.flight = fake_flight
+    monkeypatch.setitem(sys.modules, "pyarrow", fake_pyarrow)
+    monkeypatch.setitem(sys.modules, "pyarrow.flight", fake_flight)
+
+    benchmark.wait_for_document_extract_flight_endpoint(
+        "127.0.0.1",
+        50051,
+        FakeProcess(),
+        timeout_seconds=1,
+    )
+
+    assert calls == [
+        ("client", "grpc://127.0.0.1:50051"),
+        ("descriptor", ("analysis", "document-extract")),
+        ("get_flight_info", ("descriptor", ("analysis", "document-extract"))),
     ]
 
 

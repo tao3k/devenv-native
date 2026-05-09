@@ -51,6 +51,51 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] = str(
             rust_pdf_ocr_source_range_workers
         )
+    rust_pdf_docling_page_range_chunk_plan = getattr(
+        args,
+        "rust_pdf_docling_page_range_chunk_plan",
+        None,
+    )
+    if rust_pdf_docling_page_range_chunk_plan:
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_PLAN"] = str(
+            rust_pdf_docling_page_range_chunk_plan
+        )
+    rust_pdf_docling_page_range_profile = getattr(
+        args,
+        "rust_pdf_docling_page_range_profile",
+        None,
+    )
+    if (
+        rust_pdf_docling_page_range_profile
+        and rust_pdf_docling_page_range_profile != "full"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE"] = str(
+            rust_pdf_docling_page_range_profile
+        )
+    rust_pdf_docling_page_range_hedge_delay_ms = getattr(
+        args,
+        "rust_pdf_docling_page_range_hedge_delay_ms",
+        None,
+    )
+    if (
+        rust_pdf_docling_page_range_hedge_delay_ms
+        and rust_pdf_docling_page_range_hedge_delay_ms > 0
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS"] = str(
+            rust_pdf_docling_page_range_hedge_delay_ms
+        )
+    rust_pdf_docling_text_shortcut_promotion = getattr(
+        args,
+        "rust_pdf_docling_text_shortcut_promotion",
+        None,
+    )
+    if (
+        rust_pdf_docling_text_shortcut_promotion
+        and rust_pdf_docling_text_shortcut_promotion != "range-fill"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_TEXT_SHORTCUT_PROMOTION"] = str(
+            rust_pdf_docling_text_shortcut_promotion
+        )
     rust_pdf_local_backend_text = getattr(args, "rust_pdf_local_backend_text", None)
     if rust_pdf_local_backend_text and rust_pdf_local_backend_text != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT"] = str(

@@ -3,8 +3,10 @@ use super::{
     StudioDocumentExtractFlightRouteProvider,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::transport::{
-    document_extract_default_endpoint_with_lookup, document_extract_endpoint_urls_with_lookup,
-    endpoint_index_for_request,
+    document_extract_default_endpoint_with_lookup,
+    document_extract_endpoint_attempt_order_for_request,
+    document_extract_endpoint_urls_with_lookup, endpoint_index_for_request,
+    is_retryable_document_extract_endpoint_error,
 };
 
 #[test]
@@ -51,6 +53,42 @@ fn document_extract_endpoint_index_round_robins_endpoint_pool() -> Result<(), St
     assert_eq!(endpoint_index_for_request(3, 3)?, 0);
     assert!(endpoint_index_for_request(0, 0).is_err());
     Ok(())
+}
+
+#[test]
+fn document_extract_endpoint_attempt_order_rotates_from_round_robin_start() -> Result<(), String> {
+    let endpoints = vec![
+        "http://one:50051".to_string(),
+        "http://two:50051".to_string(),
+        "http://three:50051".to_string(),
+    ];
+
+    assert_eq!(
+        document_extract_endpoint_attempt_order_for_request(1, endpoints.as_slice())?,
+        vec![
+            "http://two:50051".to_string(),
+            "http://three:50051".to_string(),
+            "http://one:50051".to_string(),
+        ]
+    );
+    assert!(document_extract_endpoint_attempt_order_for_request(0, &[]).is_err());
+    Ok(())
+}
+
+#[test]
+fn document_extract_endpoint_retry_filter_only_matches_transport_failures() {
+    assert!(is_retryable_document_extract_endpoint_error(
+        "failed to connect to document extract endpoint `http://localhost`: tcp connect error",
+    ));
+    assert!(is_retryable_document_extract_endpoint_error(
+        "document extract get_flight_info failed: Tonic error: code: 'The service is currently unavailable'",
+    ));
+    assert!(!is_retryable_document_extract_endpoint_error(
+        "document extract returned no record batches",
+    ));
+    assert!(!is_retryable_document_extract_endpoint_error(
+        "converter failed to parse page range",
+    ));
 }
 
 #[test]

@@ -2,7 +2,7 @@
 fn capability_manifest_build_client_returns_none_without_config() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     };
 

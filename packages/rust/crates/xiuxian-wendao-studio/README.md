@@ -75,6 +75,22 @@ The HTTP gateway/client features remain opt-in through `zhenfa-router` or
 `cli-bin-support`, so Studio's local runtime does not inherit Zhenfa HTTP
 composition by accident.
 
+## SearchStrategyFlow Flight Materialization
+
+Studio owns the native Arrow Flight materialization layer for
+SearchStrategyFlow retrieval routes. `xiuxian-wendao-julia` may emit the
+graph-owned strategy trace and Rust bridge route receipts, but decoded payload
+proof remains here because Studio owns the service-backed `/search/repos/main`,
+`/analysis/repo-projected-page-index-tree`,
+`/analysis/repo-projected-retrieval-context`, and `/graph/neighbors`
+providers. The current execution proof decodes all four routes, records
+route-level row counts, records decoded payload anchors, and keeps direct file
+reads outside the SearchStrategyFlow path.
+This proof is an in-process Studio test helper only. The production
+materialization path must stay Arrow Flight-native: external agent surfaces
+talk to the Rust bridge, and the Rust bridge talks to the Studio/Wendao Flight
+service endpoint.
+
 ## Polyglot Docling Scheduling
 
 The Polyglot Compute Orchestrator boundary is tracked in
@@ -120,6 +136,81 @@ as a single dense page and a later multi-page risk window, from serializing
 behind hosted region requests while still respecting the live Rust worker
 permit cap. Promotion still requires the same character floor, row/order
 stability, zero error rows, and force-refresh gate.
+The canonical precision-first planner for the next slice is
+`docling-structure-recovery`. In that mode Studio treats Docling as the
+structure authority rather than a final full-document fallback. Attachment
+page facts classify structure-heavy pages, text-shortcut pages, and OCR/VLM
+patch regions. Studio keeps structure-heavy pages on Docling-compatible rows,
+routes text-only pages through backend text only when the page is not
+structure-heavy, and sends OCR/VLM work only as a patch over Docling structure
+blocks or rendered recovery regions. Failed or empty backend-text page rows
+may be replaced by page-range Docling output through
+`x-wendao-document-extract-page-range`; missing structure, empty rows, or
+resource/structure mismatches still escalate to the existing full Docling
+fallback. This planner is opt-in and does not change the OCR shard Arrow
+input/result schema.
+`WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_SIZE` is a benchmark
+override for splitting contiguous page-range fallback into smaller Docling
+conversion ranges. In `docling-structure-recovery`, Studio defaults the
+direct page-range path to three-page chunks because the current DocLayNet
+fixture evidence shows full-range page conversion regresses while preserving
+the same Docling structure parity. `WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_CONCURRENCY`
+can cap how many of those ranges run at once, separating chunk-size evidence
+from Python/Docling executor contention. The analyzer benchmark pairs this
+with `WENDAO_DOCUMENT_EXTRACT_FULL_THREADS=1` in auto mode so Rust owns outer
+parallelism and each Python Docling worker avoids nested thread contention.
+The May 8, 2026 DocLayNet fixture evidence for that shape is
+`10127.429667 ms` cold force refresh with zero error rows, stable order, and
+Docling structure parity, below the locked `12856.546292 ms` baseline.
+When the analyzer benchmark explicitly prewarms Docling document extraction
+before worker readiness, the same shape crossed the `<10s` stretch target:
+prewarming page range `1:1` preserved zero errors, stable order, Docling
+structure parity, `13` resource rows, and `12` structure blocks while reducing
+force refresh to a best sample of `8715.070334 ms`. A repeat of the same shape
+preserved correctness but measured `11627.203583 ms`, so this is a benchmark
+readiness control with visible variance, not a Studio default and not an output
+cache bypass.
+Studio normalizes duplicate chunk wrapper rows, keeps `docling_json` as
+transport metadata rather than a structure block, and reports pure page-range
+conversion cost as
+`doclingPageRangeFallback` instead of OCR scheduler time. The timing sidecar
+also records page-range chunk counts, per-chunk elapsed time, row counts, and
+the slowest chunk so benchmark reports can isolate Docling conversion tail
+latency from Rust scheduler or Flight overhead. When the planner has
+no hosted/local region controls, Studio can use a direct page-range recovery
+path that skips render/profile setup while leaving the same Docling structure
+parity and full-fallback guards active.
+For benchmark-only tail splitting, Studio accepts
+`WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_PLAN` as an exact
+1-based inclusive range list such as `1:3,4:4,5:6,7:9`. The plan must cover the
+Docling fallback page set exactly; missing, duplicate, or out-of-set pages fail
+the run instead of falling through to a lossy merge. This lets benchmarks split
+known slow page ranges without changing the default three-page evidence shape.
+Studio now applies the same tail-preserving shape automatically for large
+`docling-structure-recovery` fallback runs when source-page profiles are
+available: it keeps the final three-page context together and spends the extra
+chunk on the highest-complexity non-tail page group. The current DocLayNet
+fixture evidence preserves zero error rows, stable order, and Docling structure
+parity with the default `1:3,4:4,5:6,7:9` plan. Force refresh remains variance
+bound: plan-aligned readiness-control samples using the benchmark prewarm token
+`rust-page-range-chunk-plan` measured `10222.013209 ms` and `10525.865292 ms`,
+the comparable default sample is `13054.962625 ms`, and a default repeat
+regressed to `18782.907959 ms` due to Docling worker tail latency. Therefore
+this planner repair is accepted for structure-preserving routing, but speed
+promotion still requires a separate worker warm-path or tail-hedging fix. The
+targeted explicit canary `1:2,3:3,4:4,5:6,7:9` also preserved structure parity
+but measured `10459.849834 ms`; it reduced the front chunk cost while leaving
+the `7:9` Docling convert tail near `9670.715584012214 ms`, so additional
+front splitting is not an accepted default. The tail-split canary
+`1:3,4:4,5:6,7:8,9:9` also preserved structure parity but measured
+`10570.345 ms`; its single-page `9:9` convert still reached
+`9849.450749985408 ms`, so further page-count splitting is not an accepted
+default. The
+`docling-structure-text` page-range profile is rejected for this fixture because
+it preserved structure parity but regressed to `17290.500583 ms`. A naive
+8-endpoint, `7000 ms` hedge canary also preserved structure parity but
+regressed to `20073.933416 ms`, so duplicating all slow page-range requests is
+not an accepted default.
 The current OpenRouter benchmark canary also enables analyzer-side
 `region-whitespace-trim` request-image optimization. It preserves render DPI,
 Arrow OCR shard rows, and Rust row/order validation while cutting hosted region

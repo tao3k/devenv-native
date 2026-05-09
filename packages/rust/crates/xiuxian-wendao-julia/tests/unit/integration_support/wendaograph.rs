@@ -1,9 +1,11 @@
 use std::env;
 
 use super::{
-    WENDAOGRAPH_PACKAGE_DIR_ENV, WendaoGraphLinkGraphFullStructuralHostProbeReport,
-    WendaoGraphLinkGraphHostProbeReport, WendaoGraphPageIndexHostProbeReport,
-    WendaoGraphPageIndexPlannerActionHostProbeReport,
+    SearchStrategyFlowFlightMaterializationConfig, WENDAOGRAPH_PACKAGE_DIR_ENV,
+    WendaoGraphLinkGraphFullStructuralHostProbeReport, WendaoGraphLinkGraphHostProbeReport,
+    WendaoGraphPageIndexHostProbeReport, WendaoGraphPageIndexPlannerActionHostProbeReport,
+    enrich_wendaograph_search_strategy_flow_retrieval_routes,
+    enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     parse_link_graph_full_structural_probe_report_line, parse_link_graph_probe_report_line,
     parse_page_index_planner_action_probe_report_line, parse_page_index_probe_report_line,
     probe_wendaograph_link_graph_full_structural_host_request,
@@ -190,6 +192,190 @@ fn search_strategy_flow_rust_bridge_rejects_blank_intent_before_launch() {
         .expect_err("blank intent should fail before launching Julia");
 
     assert_eq!(error, "SearchStrategyFlow intent must not be blank");
+}
+
+#[test]
+fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
+    let trace = serde_json::json!({
+        "intent": "find query understanding",
+        "backend": "rust-wendao-julia",
+        "controlPlane": "rust",
+        "graphProject": "/tmp/WendaoGraph.jl",
+        "searchRoot": "/tmp/WendaoGraph.jl",
+        "stageReceipts": [],
+        "candidates": [
+            {
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "action": "keep",
+                "reason": "score",
+                "finalScore": 0.91,
+                "evidenceCoverage": 0.98,
+                "graphScore": 0.95,
+                "authorityScore": 0.93,
+                "semanticScore": 0.0,
+                "structuralScore": 0.9,
+                "contextCost": 1000,
+                "blocked": false
+            },
+            {
+                "candidateId": "docs/90_validation/90.01_validation.md#promotion-boundary",
+                "action": "prune",
+                "reason": "blocked",
+                "finalScore": 0.2,
+                "evidenceCoverage": 0.1,
+                "graphScore": 0.1,
+                "authorityScore": 0.1,
+                "semanticScore": 0.0,
+                "structuralScore": 0.1,
+                "contextCost": 100,
+                "blocked": true
+            }
+        ],
+        "frontier": [
+            {
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "rank": 1,
+                "selected": true,
+                "finalScore": 0.91,
+                "action": "keep",
+                "contextBudget": 1000,
+                "judgementKind": "graph_verified_candidate"
+            }
+        ],
+        "plannerActions": [
+            {
+                "actionKind": "materialize",
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "targetCandidateId": "",
+                "cycleAllowed": false,
+                "requiresLlmJudgement": false,
+                "score": 0.91,
+                "contextBudget": 1000,
+                "reason": "graph_materialize_candidate"
+            }
+        ],
+        "summary": {},
+        "validation": {}
+    });
+
+    let enriched = enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace.to_string())
+        .unwrap_or_else(|error| panic!("enrich SearchStrategyFlow bridge trace: {error}"));
+    let enriched: serde_json::Value = serde_json::from_str(&enriched)
+        .unwrap_or_else(|error| panic!("parse enriched SearchStrategyFlow bridge trace: {error}"));
+    let routes = enriched
+        .get("retrievalRoutes")
+        .and_then(serde_json::Value::as_array)
+        .expect("retrievalRoutes must be an array");
+
+    assert_eq!(routes.len(), 1);
+    let route = &routes[0];
+    assert_eq!(
+        route.get("materializationStatus"),
+        Some(&serde_json::json!("planned"))
+    );
+    assert_eq!(
+        route.get("receiptSource"),
+        Some(&serde_json::json!("rust-bridge"))
+    );
+    assert_eq!(
+        route.get("sourcePath"),
+        Some(&serde_json::json!(
+            "docs/30_search_strategy/30.01_search_strategy_flow.md"
+        ))
+    );
+    assert_eq!(
+        route.get("headingAnchor"),
+        Some(&serde_json::json!("stage-1-query-understanding"))
+    );
+    assert!(route.get("materializedRows").is_none());
+    assert!(route.get("routeReceipts").is_none());
+    assert_eq!(
+        route
+            .get("flightSteps")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::len),
+        Some(4)
+    );
+    let graph_step = route
+        .get("flightSteps")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|steps| steps.last())
+        .expect("graph flight step");
+    assert_eq!(
+        graph_step
+            .get("requiresResolvedGraphNodeId")
+            .and_then(serde_json::Value::as_bool),
+        Some(true)
+    );
+    assert!(
+        serde_json::to_string(graph_step)
+            .expect("graph flight step should serialize")
+            .contains("<resolved-graph-node-id>")
+    );
+}
+
+#[tokio::test]
+async fn search_strategy_flow_rust_bridge_rejects_invalid_flight_endpoint_before_execution() {
+    let trace = serde_json::json!({
+        "intent": "find query understanding",
+        "backend": "rust-wendao-julia",
+        "controlPlane": "rust",
+        "graphProject": "/tmp/WendaoGraph.jl",
+        "searchRoot": "/tmp/WendaoGraph.jl",
+        "stageReceipts": [],
+        "candidates": [
+            {
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "action": "keep",
+                "reason": "score",
+                "finalScore": 0.91,
+                "evidenceCoverage": 0.98,
+                "graphScore": 0.95,
+                "authorityScore": 0.93,
+                "semanticScore": 0.0,
+                "structuralScore": 0.9,
+                "contextCost": 1000,
+                "blocked": false
+            }
+        ],
+        "frontier": [
+            {
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "rank": 1,
+                "selected": true,
+                "finalScore": 0.91,
+                "action": "keep",
+                "contextBudget": 1000,
+                "judgementKind": "graph_verified_candidate"
+            }
+        ],
+        "plannerActions": [
+            {
+                "actionKind": "materialize",
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "targetCandidateId": "",
+                "cycleAllowed": false,
+                "requiresLlmJudgement": false,
+                "score": 0.91,
+                "contextBudget": 1000,
+                "reason": "graph_materialize_candidate"
+            }
+        ],
+        "summary": {},
+        "validation": {}
+    });
+    let config = SearchStrategyFlowFlightMaterializationConfig::new("not a url", "docs")
+        .unwrap_or_else(|error| panic!("create Flight materialization config: {error}"));
+
+    let error =
+        enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
+            &trace.to_string(),
+            &config,
+        )
+        .await
+        .expect_err("invalid endpoint should reject before executed receipts are fabricated");
+
+    assert!(error.contains("create SearchStrategyFlow Flight endpoint"));
 }
 
 #[test]

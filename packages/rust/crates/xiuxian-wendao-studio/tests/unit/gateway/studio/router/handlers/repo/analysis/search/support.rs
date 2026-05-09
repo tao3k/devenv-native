@@ -57,7 +57,7 @@ pub(super) fn normalized_gateway_analysis_keys() -> (
             refresh: RepositoryRefreshPolicy::Fetch,
             plugins: vec![
                 RepositoryPluginConfig::Id("ast-grep".to_string()),
-                RepositoryPluginConfig::Id("julia".to_string()),
+                RepositoryPluginConfig::Id("julia-code-parser".to_string()),
                 RepositoryPluginConfig::Config {
                     id: "modelica".to_string(),
                     options: serde_json::json!({
@@ -84,7 +84,7 @@ pub(super) fn normalized_gateway_analysis_keys() -> (
                     }),
                 },
                 RepositoryPluginConfig::Id("ast-grep".to_string()),
-                RepositoryPluginConfig::Id("julia".to_string()),
+                RepositoryPluginConfig::Id("julia-code-parser".to_string()),
                 RepositoryPluginConfig::Id("ast-grep".to_string()),
             ],
         },
@@ -275,7 +275,7 @@ end
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     prime_import_analysis_cache(&studio);

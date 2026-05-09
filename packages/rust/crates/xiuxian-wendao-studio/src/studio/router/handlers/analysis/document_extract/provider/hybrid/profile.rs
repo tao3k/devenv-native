@@ -6,7 +6,9 @@ use xiuxian_wendao_attachments::pdf::ocr::{
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE, PdfOcrShardInput,
 };
 use xiuxian_wendao_attachments::pdf::profile::{
-    PdfSourcePageProfile, source_pdf_page_profiles_cached,
+    PdfSourcePageClassification, PdfSourcePageProfile, classify_pdf_source_pages,
+    pdf_source_page_is_backend_text_topup_profile, pdf_source_page_is_fast_profile_risk,
+    source_pdf_page_profiles_cached,
 };
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV: &str =
@@ -22,6 +24,8 @@ const FAST_RISK_WINDOW_MODE: &str = "fast-risk-window";
 const HOSTED_VLM_ALL_MODE: &str = "hosted-vlm-all";
 const HOSTED_VLM_RISK_WINDOW_MODE: &str = "hosted-vlm-risk-window";
 const HOSTED_VLM_RISK_WINDOW_BACKEND_TEXT_MODE: &str = "hosted-vlm-risk-window-backend-text";
+const DOCLING_STRUCTURE_RECOVERY_MODE: &str = "docling-structure-recovery";
+const PDF_OCR_DEFAULT_ENGINE: &str = "docling-compatible-ocr";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum HybridPdfOcrProfilePlanner {
@@ -31,6 +35,7 @@ pub(crate) enum HybridPdfOcrProfilePlanner {
     HostedVlmAll,
     HostedVlmRiskWindow,
     HostedVlmRiskWindowBackendText,
+    DoclingStructureRecovery,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,6 +116,22 @@ pub(crate) fn apply_hybrid_page_ocr_profile_plan(
                 profiles.as_slice(),
             )
         }
+        HybridPdfOcrProfilePlanner::DoclingStructureRecovery => {
+            let Some(source_path) = eligible_source_path(inputs.as_slice()) else {
+                return inputs;
+            };
+            let profiles = match source_pdf_page_profiles_cached(Path::new(source_path.as_str())) {
+                Ok(profiles) => profiles,
+                Err(error) => {
+                    log::debug!("hybrid PDF OCR profile planner skipped source profile: {error}");
+                    return inputs;
+                }
+            };
+            apply_hybrid_page_docling_structure_recovery_profile_plan_for_profiles(
+                inputs,
+                profiles.as_slice(),
+            )
+        }
     }
 }
 
@@ -157,6 +178,7 @@ pub(crate) fn hybrid_page_ocr_profile_planner_with_lookup(
         HOSTED_VLM_RISK_WINDOW_BACKEND_TEXT_MODE => {
             HybridPdfOcrProfilePlanner::HostedVlmRiskWindowBackendText
         }
+        DOCLING_STRUCTURE_RECOVERY_MODE => HybridPdfOcrProfilePlanner::DoclingStructureRecovery,
         _ => HybridPdfOcrProfilePlanner::Disabled,
     }
 }
@@ -227,6 +249,72 @@ pub(crate) fn apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profile
         profiles,
         &|key| std::env::var(key).ok(),
     )
+}
+
+pub(crate) fn apply_hybrid_page_docling_structure_recovery_profile_plan_for_profiles(
+    mut inputs: Vec<PdfOcrShardInput>,
+    profiles: &[PdfSourcePageProfile],
+) -> Vec<PdfOcrShardInput> {
+    if eligible_source_path(inputs.as_slice()).is_none() {
+        return inputs;
+    }
+    let classifications = classify_pdf_source_pages(profiles);
+    let profile_pages = classifications
+        .iter()
+        .map(|classification| classification.page_index)
+        .collect::<BTreeSet<_>>();
+    if inputs
+        .iter()
+        .any(|input| !profile_pages.contains(&input.page_index))
+    {
+        return inputs;
+    }
+
+    let mut structure_count = 0usize;
+    let mut patch_count = 0usize;
+    let mut fast_text_count = 0usize;
+    let mut backend_text_count = 0usize;
+    let mut default_count = 0usize;
+
+    for input in &mut inputs {
+        let Some(classification) = classification_for_page(&classifications, input.page_index)
+        else {
+            continue;
+        };
+        let Some(profile) = profiles
+            .iter()
+            .find(|profile| profile.page_index == input.page_index)
+        else {
+            continue;
+        };
+        if classification.ocr_patch_candidate {
+            input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
+            input.ocr_engine = PDF_OCR_HOSTED_VLM_DIRECT_ENGINE.to_string();
+            patch_count = patch_count.saturating_add(1);
+        } else if classification.structure_authority_required {
+            input.ocr_profile = PDF_OCR_DEFAULT_PROFILE.to_string();
+            input.ocr_engine = PDF_OCR_DEFAULT_ENGINE.to_string();
+            structure_count = structure_count.saturating_add(1);
+        } else if classification.text_shortcut_eligible {
+            if pdf_source_page_is_backend_text_topup_profile(profile) {
+                input.ocr_profile = PDF_OCR_FAST_TEXT_PROFILE.to_string();
+                input.ocr_engine = PDF_OCR_FAST_TEXT_ENGINE.to_string();
+                fast_text_count = fast_text_count.saturating_add(1);
+            } else {
+                input.ocr_profile = PDF_OCR_BACKEND_TEXT_PROFILE.to_string();
+                input.ocr_engine = PDF_OCR_BACKEND_TEXT_ENGINE.to_string();
+                backend_text_count = backend_text_count.saturating_add(1);
+            }
+        } else {
+            input.ocr_profile = PDF_OCR_DEFAULT_PROFILE.to_string();
+            input.ocr_engine = PDF_OCR_DEFAULT_ENGINE.to_string();
+            default_count = default_count.saturating_add(1);
+        }
+    }
+    log::info!(
+        "hybrid PDF OCR Docling structure recovery planner selected {structure_count} structure-authority pages, {patch_count} hosted patch pages, {fast_text_count} fast-text pages, {backend_text_count} backend-text pages, and {default_count} default Docling pages"
+    );
+    inputs
 }
 
 pub(crate) fn apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profiles_with_lookup(
@@ -385,13 +473,7 @@ fn accurate_recovery_pages(profiles: &[PdfSourcePageProfile]) -> BTreeSet<u32> {
 }
 
 fn is_fast_profile_risk(profile: &PdfSourcePageProfile) -> bool {
-    let compact_table_grid = (1..=8).contains(&profile.rectangle_ops)
-        && profile.operation_count >= 640
-        && profile.text_show_ops >= 120;
-    let dense_table_path_band = (64..=120).contains(&profile.path_ops)
-        && profile.operation_count >= 640
-        && profile.text_show_ops >= 150;
-    compact_table_grid || dense_table_path_band
+    pdf_source_page_is_fast_profile_risk(profile)
 }
 
 fn backend_text_topup_pages(profiles: &[PdfSourcePageProfile]) -> BTreeSet<u32> {
@@ -403,7 +485,18 @@ fn backend_text_topup_pages(profiles: &[PdfSourcePageProfile]) -> BTreeSet<u32> 
 }
 
 fn is_backend_text_topup_profile(profile: &PdfSourcePageProfile) -> bool {
-    let dense_text_page = profile.text_show_ops >= 320 && profile.operation_count >= 640;
-    let large_content_stream = profile.content_bytes >= 65_536 && profile.text_show_ops >= 180;
-    dense_text_page || large_content_stream
+    pdf_source_page_is_backend_text_topup_profile(profile)
 }
+
+fn classification_for_page(
+    classifications: &[PdfSourcePageClassification],
+    page_index: u32,
+) -> Option<&PdfSourcePageClassification> {
+    classifications
+        .iter()
+        .find(|classification| classification.page_index == page_index)
+}
+
+#[cfg(test)]
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/hybrid/profile.rs"]
+mod tests;

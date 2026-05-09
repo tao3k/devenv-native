@@ -27,7 +27,7 @@ from .fixtures import (
 from .http_status import normalize_rest_endpoint, pick_free_port, wait_for_http_endpoint
 from .ocr2_trace import summarize_hosted_vlm_ocr_request_traces
 from .pdf_render import run_pdf_render_shard_audit
-from .precision_speed import hosted_vlm_promotion_gate
+from .precision_speed import candidate_taxonomy, hosted_vlm_promotion_gate
 from .probes import (
     resolve_structure_baseline_root,
     run_distinct_miss_probe,
@@ -41,9 +41,11 @@ from .providers import (
     start_valkey_server,
 )
 from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
-from .runtime import wait_for_port
+from .runtime import wait_for_document_extract_flight_endpoint, wait_for_port
 from .workers import (
     hosted_vlm_ocr_process_env,
+    resolve_document_extract_full_threads,
+    resolve_document_extract_prewarm_page_ranges,
     resolve_local_python_ocr_endpoint_count,
     start_server_pool,
 )
@@ -52,6 +54,9 @@ from .workers import (
 def main() -> int:
     args = parse_args()
     args.local_python_ocr_endpoint_count = resolve_local_python_ocr_endpoint_count(args)
+    args.document_extract_prewarm_page_ranges_resolved = (
+        resolve_document_extract_prewarm_page_ranges(args)
+    )
     if args.external_endpoint and args.local_python_ocr_endpoint_count != 1:
         raise SystemExit(
             "--local-python-ocr-endpoint-count cannot start workers in --external-endpoint mode"
@@ -160,7 +165,7 @@ def main() -> int:
                 )
         try:
             for worker in python_workers:
-                wait_for_port(
+                wait_for_document_extract_flight_endpoint(
                     worker.host,
                     worker.port,
                     worker.process,
@@ -168,7 +173,7 @@ def main() -> int:
                 )
             if args.rust_provider_mode == "gateway" and not args.external_endpoint:
                 gateway_host = args.rust_provider_host or args.host
-                gateway_port = args.rust_provider_port or (args.port + 1)
+                gateway_port = resolve_local_rust_provider_port(args)
                 valkey_port = args.gateway_valkey_port or pick_free_port(args.host)
                 valkey_server = start_valkey_server(
                     host=args.host,
@@ -202,7 +207,7 @@ def main() -> int:
                 )
             elif should_start_local_rust_provider(args) and not args.external_endpoint:
                 rust_host = args.rust_provider_host or args.host
-                rust_port = args.rust_provider_port or (args.port + 1)
+                rust_port = resolve_local_rust_provider_port(args)
                 args.benchmark_host = rust_host
                 args.benchmark_port = rust_port
                 rust_server = start_rust_provider_server(
@@ -320,6 +325,24 @@ def build_report_payload(
         "pdfOcrPrewarmEndpointCount": getattr(
             args, "pdf_ocr_prewarm_endpoint_count", None
         ),
+        "documentExtractConverterCache": getattr(
+            args, "document_extract_converter_cache", "disabled"
+        ),
+        "documentExtractFullThreads": getattr(
+            args, "document_extract_full_threads", "auto"
+        ),
+        "documentExtractFullThreadsResolved": resolve_document_extract_full_threads(
+            args
+        ),
+        "documentExtractPrewarmSourcePath": getattr(
+            args, "document_extract_prewarm_source_path", None
+        ),
+        "documentExtractPrewarmPageRanges": getattr(
+            args, "document_extract_prewarm_page_ranges", None
+        ),
+        "documentExtractPrewarmPageRangesResolved": getattr(
+            args, "document_extract_prewarm_page_ranges_resolved", None
+        ),
         "pdfOcrBackendTextPageFallback": getattr(
             args,
             "pdf_ocr_backend_text_page_fallback",
@@ -333,6 +356,26 @@ def build_report_payload(
         "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "rustPdfDoclingPageRangeChunkPlan": getattr(
+            args,
+            "rust_pdf_docling_page_range_chunk_plan",
+            None,
+        ),
+        "rustPdfDoclingPageRangeProfile": getattr(
+            args,
+            "rust_pdf_docling_page_range_profile",
+            "full",
+        ),
+        "rustPdfDoclingPageRangeHedgeDelayMs": getattr(
+            args,
+            "rust_pdf_docling_page_range_hedge_delay_ms",
+            None,
+        ),
+        "rustPdfDoclingTextShortcutPromotion": getattr(
+            args,
+            "rust_pdf_docling_text_shortcut_promotion",
+            "range-fill",
+        ),
         "rustPdfLocalBackendText": getattr(
             args, "rust_pdf_local_backend_text", "disabled"
         ),
@@ -450,6 +493,7 @@ def build_report_payload(
         "precisionSpeedSummary": summary.get("precisionSpeedSummary"),
     }
     payload["hostedVlmPromotionGate"] = hosted_vlm_promotion_gate(payload)
+    payload["candidateTaxonomy"] = candidate_taxonomy(payload)
     return payload
 
 
@@ -457,6 +501,13 @@ def should_start_local_rust_provider(args) -> bool:
     return args.flight_mode in {"async", "hybrid-page-ocr"} or bool(
         args.artifact_registry_reuse_probe
     )
+
+
+def resolve_local_rust_provider_port(args: object) -> int:
+    explicit_port = getattr(args, "rust_provider_port", None)
+    if explicit_port is not None:
+        return explicit_port
+    return pick_free_port(getattr(args, "host", "127.0.0.1"))
 
 
 def _openrouter_key_configured() -> bool:

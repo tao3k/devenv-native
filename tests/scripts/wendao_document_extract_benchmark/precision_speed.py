@@ -160,6 +160,20 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
             "expected zero structure order mismatches, observed "
             f"{precision_speed.get('structureOrderMismatches')}"
         )
+    if precision_speed.get("structureParityPassed") is False:
+        reasons.append("structure parity did not pass")
+    if precision_speed.get("structureParityErrors", 0) != 0:
+        reasons.append(
+            "expected zero structure parity errors, observed "
+            f"{precision_speed.get('structureParityErrors')}"
+        )
+    if precision_speed.get("doclingGroundtruthPassed") is False:
+        reasons.append("Docling groundtruth comparison did not pass")
+    if precision_speed.get("doclingGroundtruthFailures", 0) != 0:
+        reasons.append(
+            "expected zero Docling groundtruth failures, observed "
+            f"{precision_speed.get('doclingGroundtruthFailures')}"
+        )
     if (
         precision_speed.get("ocrPageBlocks")
         != HOSTED_VLM_PROMOTION_BASELINE["expectedOcrPageBlocks"]
@@ -288,6 +302,73 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def candidate_taxonomy(payload: dict[str, Any]) -> dict[str, Any]:
+    summary = payload.get("summary", {})
+    precision_speed = summary.get("precisionSpeedSummary", {})
+    promotion_gate = payload.get("hostedVlmPromotionGate") or {}
+    max_force_ms = numeric_or_none(precision_speed.get("maxForceRefreshMs"))
+    precision_candidate = _precision_candidate(precision_speed)
+    rejected_structure_loss = _rejected_structure_loss(precision_speed, summary)
+    speed_candidate = (
+        precision_candidate
+        and not rejected_structure_loss
+        and max_force_ms is not None
+        and max_force_ms < HOSTED_VLM_PROMOTION_BASELINE["forceRefreshMs"]
+    )
+    return {
+        "precisionCandidate": precision_candidate,
+        "speedCandidate": speed_candidate,
+        "promotionCandidate": promotion_gate.get("passed") is True,
+        "rejectedStructureLoss": rejected_structure_loss,
+        "structureAuthorityPages": summary.get("structureAuthorityPages", 0),
+        "textShortcutPages": summary.get("textShortcutPages", 0),
+        "ocrPatchRegions": summary.get("ocrPatchRegions", 0),
+        "pageRangeDoclingFallbackPages": summary.get(
+            "pageRangeDoclingFallbackPages",
+            0,
+        ),
+        "fullDoclingFallbackCount": summary.get("fullDoclingFallbackCount", 0),
+        "maxForceRefreshMs": precision_speed.get("maxForceRefreshMs"),
+        "promotionBaselineForceRefreshMs": HOSTED_VLM_PROMOTION_BASELINE[
+            "forceRefreshMs"
+        ],
+    }
+
+
+def _precision_candidate(precision_speed: dict[str, Any]) -> bool:
+    return (
+        precision_speed.get("precisionGatePassed") is True
+        and precision_speed.get("errorRows") == 0
+        and precision_speed.get("structureReadingOrderSorted") is True
+        and precision_speed.get("structureOrderStable") is True
+        and precision_speed.get("structureOrderMismatches") == 0
+        and precision_speed.get("structureParityPassed") is not False
+        and precision_speed.get("structureParityErrors", 0) == 0
+        and precision_speed.get("doclingGroundtruthPassed") is not False
+        and precision_speed.get("doclingGroundtruthFailures", 0) == 0
+        and precision_speed.get("metricsRows", 0)
+        >= HOSTED_VLM_PROMOTION_BASELINE["minMetricsRows"]
+        and precision_speed.get("metricsResultChars", 0)
+        >= HOSTED_VLM_PROMOTION_BASELINE["minMetricsResultChars"]
+    )
+
+
+def _rejected_structure_loss(
+    precision_speed: dict[str, Any],
+    summary: dict[str, Any],
+) -> bool:
+    return (
+        precision_speed.get("structureReadingOrderSorted") is False
+        or precision_speed.get("structureOrderStable") is False
+        or precision_speed.get("structureOrderMismatches", 0) != 0
+        or precision_speed.get("structureParityPassed") is False
+        or precision_speed.get("structureParityErrors", 0) != 0
+        or precision_speed.get("doclingGroundtruthPassed") is False
+        or precision_speed.get("doclingGroundtruthFailures", 0) != 0
+        or summary.get("totalStructureRows", 0) == 0
+    )
+
+
 def hosted_vlm_promotion_candidate(
     payload: dict[str, Any],
     precision_speed: dict[str, Any],
@@ -298,6 +379,7 @@ def hosted_vlm_promotion_candidate(
         "hosted-vlm-all",
         "hosted-vlm-risk-window",
         "hosted-vlm-risk-window-backend-text",
+        "docling-structure-recovery",
     }:
         return True
     if (
@@ -382,6 +464,17 @@ def hosted_vlm_promotion_observed(
         "openRouterApiKeyConfigured": hosted_vlm_ocr.get("openRouterApiKeyConfigured"),
         "regionAtlasMode": hosted_vlm_ocr.get("regionAtlasMode"),
         "scaffoldMode": hosted_vlm_ocr.get("scaffoldMode"),
+        "structureAuthorityPages": payload.get("summary", {}).get(
+            "structureAuthorityPages"
+        ),
+        "textShortcutPages": payload.get("summary", {}).get("textShortcutPages"),
+        "ocrPatchRegions": payload.get("summary", {}).get("ocrPatchRegions"),
+        "pageRangeDoclingFallbackPages": payload.get("summary", {}).get(
+            "pageRangeDoclingFallbackPages"
+        ),
+        "fullDoclingFallbackCount": payload.get("summary", {}).get(
+            "fullDoclingFallbackCount"
+        ),
         "precisionGatePassed": precision_speed.get("precisionGatePassed"),
         "errorRows": precision_speed.get("errorRows"),
         "structureReadingOrderSorted": precision_speed.get(
@@ -682,21 +775,9 @@ def speed_observation_summary(
             results,
             "documentTimingTotalElapsedMs",
         ),
-        "totalDoclingConvertMs": sum_nested_numeric(
-            results,
-            "documentTimingPhaseElapsedMs",
-            "doclingConvert",
-        ),
-        "maxDoclingConvertMs": max_nested_numeric(
-            results,
-            "documentTimingPhaseElapsedMs",
-            "doclingConvert",
-        ),
-        "maxDoclingConvertShare": max_ratio(
-            results,
-            nested_numeric_value("documentTimingPhaseElapsedMs", "doclingConvert"),
-            numeric_value("documentTimingTotalElapsedMs"),
-        ),
+        "totalDoclingConvertMs": total_docling_convert_ms(results),
+        "maxDoclingConvertMs": max_docling_convert_ms(results),
+        "maxDoclingConvertShare": max_docling_convert_share(results),
         "maxDocumentTimingOverheadMs": max_numeric(
             results,
             "documentTimingOverheadMs",
@@ -724,6 +805,97 @@ def max_numeric(results: list[dict[str, Any]], key: str) -> float | None:
 def min_numeric(results: list[dict[str, Any]], key: str) -> float | None:
     values = numeric_values(results, key)
     return min(values) if values else None
+
+
+def total_docling_convert_ms(results: list[dict[str, Any]]) -> float:
+    return sum(docling_convert_total_value(result) for result in results)
+
+
+def docling_convert_total_value(result: dict[str, Any]) -> float:
+    top_level = (
+        nested_mapping_numeric(
+            result.get("documentTimingPhaseElapsedMs"),
+            "doclingConvert",
+        )
+        or 0.0
+    )
+    chunk_summary = page_range_docling_chunk_summary(result)
+    chunk_total = (
+        nested_mapping_numeric(
+            chunk_summary.get("documentTimingPhaseElapsedMs"),
+            "doclingConvert",
+        )
+        or 0.0
+    )
+    return top_level + chunk_total
+
+
+def max_docling_convert_ms(results: list[dict[str, Any]]) -> float | None:
+    values = [
+        value
+        for result in results
+        for value in docling_convert_max_values(result)
+        if value is not None
+    ]
+    return max(values) if values else None
+
+
+def docling_convert_max_values(result: dict[str, Any]) -> list[float | None]:
+    chunk_summary = page_range_docling_chunk_summary(result)
+    return [
+        nested_mapping_numeric(
+            result.get("documentTimingPhaseElapsedMs"),
+            "doclingConvert",
+        ),
+        nested_mapping_numeric(
+            chunk_summary.get("longestDocumentTimingPhaseElapsedMs"),
+            "doclingConvert",
+        )
+        or nested_mapping_numeric(
+            chunk_summary.get("documentTimingPhaseElapsedMs"),
+            "doclingConvert",
+        ),
+    ]
+
+
+def max_docling_convert_share(results: list[dict[str, Any]]) -> float | None:
+    values = [
+        value
+        for result in results
+        for value in docling_convert_share_values(result)
+        if value is not None
+    ]
+    return max(values) if values else None
+
+
+def docling_convert_share_values(result: dict[str, Any]) -> list[float | None]:
+    chunk_summary = page_range_docling_chunk_summary(result)
+    return [
+        ratio_or_none(
+            nested_mapping_numeric(
+                result.get("documentTimingPhaseElapsedMs"),
+                "doclingConvert",
+            ),
+            numeric_or_none(result.get("documentTimingTotalElapsedMs")),
+        ),
+        ratio_or_none(
+            nested_mapping_numeric(
+                chunk_summary.get("longestDocumentTimingPhaseElapsedMs"),
+                "doclingConvert",
+            )
+            or nested_mapping_numeric(
+                chunk_summary.get("documentTimingPhaseElapsedMs"),
+                "doclingConvert",
+            ),
+            numeric_or_none(chunk_summary.get("longestDocumentTimingTotalElapsedMs"))
+            or numeric_or_none(chunk_summary.get("documentTimingTotalElapsedMs")),
+        ),
+    ]
+
+
+def page_range_docling_chunk_summary(result: dict[str, Any]) -> dict[str, Any]:
+    summary = result.get("forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary")
+    return summary if isinstance(summary, dict) else {}
 
 
 def sum_numeric(results: list[dict[str, Any]], key: str) -> float:
@@ -769,6 +941,12 @@ def subtract_numeric(left: float | None, right: float | None) -> float | None:
     if left is None or right is None:
         return None
     return max(left - right, 0.0)
+
+
+def ratio_or_none(numerator: float | None, denominator: float | None) -> float | None:
+    if numerator is None or denominator is None or denominator <= 0.0:
+        return None
+    return numerator / denominator
 
 
 def nested_numeric_values(

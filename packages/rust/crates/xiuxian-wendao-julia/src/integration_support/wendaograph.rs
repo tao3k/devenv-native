@@ -1,10 +1,15 @@
 //! Host-process probes for local `WendaoGraph.jl` contracts.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use serde_json::{Value, json};
+
+use super::search_strategy_flow_flight::{
+    SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
+};
 use super::service_runtime::repo_root;
 
 const WENDAOGRAPH_PACKAGE_DIR_ENV: &str = "WENDAOGRAPH_PACKAGE_DIR";
@@ -868,6 +873,47 @@ pub struct WendaoGraphLinkGraphFullStructuralHostProbeReport {
     pub topology_community_frontier_rows: usize,
 }
 
+/// Adds Rust-owned SearchStrategyFlow retrieval-route plans to a
+/// `WendaoGraph.jl` trace.
+///
+/// The Julia side remains the owner of query understanding, graph scoring,
+/// frontier pruning, and planner actions. This helper derives the Studio
+/// Flight route contract from selected/planned candidates so downstream
+/// `pi-wendao` execution can consume a single bridge trace without treating a
+/// local fixture or static row count as executed materialization.
+///
+/// # Errors
+///
+/// Returns an error when the supplied trace is not valid JSON, the JSON root is
+/// not an object, or the enriched trace cannot be serialized.
+pub fn enrich_wendaograph_search_strategy_flow_retrieval_routes(
+    trace: &str,
+) -> Result<String, String> {
+    let mut value = serde_json::from_str::<Value>(trace)
+        .map_err(|error| format!("parse WendaoGraph SearchStrategyFlow JSON trace: {error}"))?;
+    add_search_strategy_flow_retrieval_routes(&mut value)?;
+    serialize_search_strategy_flow_trace(&value)
+}
+
+/// Adds Rust-owned SearchStrategyFlow retrieval-route plans to a trace, then
+/// executes them through a real Arrow Flight endpoint.
+///
+/// # Errors
+///
+/// Returns an error when the supplied trace is invalid JSON, route enrichment
+/// fails, the endpoint cannot be reached, or a route cannot be decoded into
+/// evidence receipts.
+pub async fn enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
+    trace: &str,
+    config: &SearchStrategyFlowFlightMaterializationConfig,
+) -> Result<String, String> {
+    let mut value = serde_json::from_str::<Value>(trace)
+        .map_err(|error| format!("parse WendaoGraph SearchStrategyFlow JSON trace: {error}"))?;
+    add_search_strategy_flow_retrieval_routes(&mut value)?;
+    materialize_search_strategy_flow_routes(&mut value, config).await?;
+    serialize_search_strategy_flow_trace(&value)
+}
+
 /// Runs local `WendaoGraph.jl` `SearchStrategyFlow` through the Rust owner
 /// bridge and returns the JSON trace emitted by Julia.
 ///
@@ -877,6 +923,39 @@ pub struct WendaoGraphLinkGraphFullStructuralHostProbeReport {
 /// project or search root cannot be resolved, the Julia process exits
 /// unsuccessfully, or the trace is not valid JSON.
 pub fn run_wendaograph_search_strategy_flow_json(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+) -> Result<String, String> {
+    let trace = run_wendaograph_search_strategy_flow_raw_json(intent, search_root)?;
+    enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace)
+}
+
+/// Runs local `WendaoGraph.jl` `SearchStrategyFlow` through the Rust owner
+/// bridge, optionally executes the planned native Flight route sequence, and
+/// returns the JSON trace emitted by Julia.
+///
+/// # Errors
+///
+/// Returns an error when the Julia host request fails, route enrichment fails,
+/// or configured Flight materialization cannot decode route evidence.
+pub async fn run_wendaograph_search_strategy_flow_json_with_flight_materialization(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+    config: Option<SearchStrategyFlowFlightMaterializationConfig>,
+) -> Result<String, String> {
+    let trace = run_wendaograph_search_strategy_flow_raw_json(intent, search_root)?;
+    match config {
+        Some(config) => {
+            enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
+                &trace, &config,
+            )
+            .await
+        }
+        None => enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace),
+    }
+}
+
+fn run_wendaograph_search_strategy_flow_raw_json(
     intent: &str,
     search_root: impl Into<PathBuf>,
 ) -> Result<String, String> {
@@ -911,9 +990,183 @@ pub fn run_wendaograph_search_strategy_flow_json(
     if trace.is_empty() {
         return Err("WendaoGraph SearchStrategyFlow host request returned empty output".to_owned());
     }
-    serde_json::from_str::<serde_json::Value>(trace)
-        .map_err(|error| format!("parse WendaoGraph SearchStrategyFlow JSON trace: {error}"))?;
-    Ok(format!("{trace}\n"))
+    Ok(trace.to_owned())
+}
+
+fn add_search_strategy_flow_retrieval_routes(value: &mut Value) -> Result<(), String> {
+    let routes = build_search_strategy_flow_retrieval_routes(value);
+    let object = value.as_object_mut().ok_or_else(|| {
+        "WendaoGraph SearchStrategyFlow JSON trace root must be an object".to_owned()
+    })?;
+    object.insert("retrievalRoutes".to_owned(), Value::Array(routes));
+    Ok(())
+}
+
+fn serialize_search_strategy_flow_trace(value: &Value) -> Result<String, String> {
+    serde_json::to_string(value)
+        .map(|trace| format!("{trace}\n"))
+        .map_err(|error| format!("serialize enriched SearchStrategyFlow JSON trace: {error}"))
+}
+
+fn build_search_strategy_flow_retrieval_routes(trace: &Value) -> Vec<Value> {
+    let selected_candidate_ids = trace
+        .get("frontier")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|row| json_bool(row, "selected"))
+        .filter_map(|row| json_string(row, "candidateId"))
+        .map(ToOwned::to_owned)
+        .collect::<HashSet<_>>();
+
+    let action_candidate_ids = trace
+        .get("plannerActions")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|row| json_string(row, "actionKind") != Some("stop"))
+        .flat_map(|row| {
+            [
+                json_string(row, "candidateId"),
+                json_string(row, "targetCandidateId"),
+            ]
+        })
+        .flatten()
+        .filter(|id| !id.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<HashSet<_>>();
+
+    trace
+        .get("candidates")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|candidate| !json_bool(candidate, "blocked"))
+        .filter_map(|candidate| {
+            let candidate_id = json_string(candidate, "candidateId")?;
+            (selected_candidate_ids.contains(candidate_id)
+                || action_candidate_ids.contains(candidate_id))
+            .then_some(candidate_id)
+        })
+        .map(search_strategy_flow_retrieval_route)
+        .collect()
+}
+
+fn search_strategy_flow_retrieval_route(candidate_id: &str) -> Value {
+    let section = parse_markdown_section_candidate_id(candidate_id);
+    let mut route = json!({
+        "candidateId": candidate_id,
+        "materializationOwner": "studio-rust",
+        "materializationStatus": "planned",
+        "receiptSource": "rust-bridge",
+        "primaryTransport": "arrow-flight",
+        "sourcePath": section.source_path,
+        "directFileReadAllowed": false,
+        "executeBeforeAnswer": true,
+        "flightSteps": search_strategy_flow_flight_steps(&section),
+    });
+    if let (Some(object), Some(heading_anchor)) = (route.as_object_mut(), section.heading_anchor) {
+        object.insert("headingAnchor".to_owned(), json!(heading_anchor));
+    }
+    route
+}
+
+struct MarkdownSectionCandidate<'a> {
+    source_path: &'a str,
+    heading_anchor: Option<&'a str>,
+}
+
+fn parse_markdown_section_candidate_id(candidate_id: &str) -> MarkdownSectionCandidate<'_> {
+    let (source_path, heading_anchor) = candidate_id.split_once('#').map_or(
+        (candidate_id, None),
+        |(source_path, heading_anchor)| {
+            (
+                source_path,
+                (!heading_anchor.is_empty()).then_some(heading_anchor),
+            )
+        },
+    );
+    MarkdownSectionCandidate {
+        source_path,
+        heading_anchor,
+    }
+}
+
+fn search_strategy_flow_flight_steps(section: &MarkdownSectionCandidate<'_>) -> Vec<Value> {
+    let query = match section.heading_anchor {
+        Some(heading_anchor) => format!("{}#{heading_anchor}", section.source_path),
+        None => section.source_path.to_owned(),
+    };
+    let mut page_index_metadata = vec![
+        "x-wendao-repo-projected-page-index-tree-repo=<repo>".to_owned(),
+        "x-wendao-repo-projected-page-index-tree-page-id=<resolved-page-id>".to_owned(),
+    ];
+    if let Some(heading_anchor) = section.heading_anchor {
+        page_index_metadata.push(format!("candidate-heading-anchor={heading_anchor}"));
+    }
+
+    vec![
+        json!({
+            "step": "flight_search_page",
+            "transport": "arrow-flight",
+            "route": "/search/repos/main",
+            "metadataTemplates": [
+                "x-wendao-repo-search-repo=<repo>",
+                format!("x-wendao-repo-search-query={query}"),
+                "x-wendao-repo-search-limit=5".to_owned(),
+                format!("x-wendao-repo-search-path-prefixes={}", section.source_path),
+            ],
+            "note": "Resolve the Markdown section candidate to a page hit through native repo search.",
+            "requiresResolvedPageId": false,
+            "requiresResolvedNodeId": false,
+        }),
+        json!({
+            "step": "flight_resolve_page_index_tree",
+            "transport": "arrow-flight",
+            "route": "/analysis/repo-projected-page-index-tree",
+            "metadataTemplates": page_index_metadata,
+            "note": "Select the concrete page-index node from the returned tree; do not treat the Markdown anchor as the node id.",
+            "requiresResolvedPageId": true,
+            "requiresResolvedNodeId": false,
+        }),
+        json!({
+            "step": "flight_open_retrieval_context",
+            "transport": "arrow-flight",
+            "route": "/analysis/repo-projected-retrieval-context",
+            "metadataTemplates": [
+                "x-wendao-repo-projected-retrieval-context-repo=<repo>",
+                "x-wendao-repo-projected-retrieval-context-page-id=<resolved-page-id>",
+                "x-wendao-repo-projected-retrieval-context-node-id=<resolved-node-id>",
+                "x-wendao-repo-projected-retrieval-context-related-limit=5",
+            ],
+            "note": "Open the section-level projected retrieval context through the native Flight route.",
+            "requiresResolvedPageId": true,
+            "requiresResolvedNodeId": true,
+        }),
+        json!({
+            "step": "flight_expand_graph_context",
+            "transport": "arrow-flight",
+            "route": "/graph/neighbors",
+            "metadataTemplates": [
+                "x-wendao-graph-node-id=<resolved-graph-node-id>",
+                "x-wendao-graph-direction=both",
+                "x-wendao-graph-hops=2",
+                "x-wendao-graph-limit=50",
+            ],
+            "note": "Expand document-level graph context through the graph relation layer before the next reasoning-tree branch.",
+            "requiresResolvedPageId": true,
+            "requiresResolvedNodeId": true,
+            "requiresResolvedGraphNodeId": true,
+        }),
+    ]
+}
+
+fn json_string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
+    value.get(key).and_then(Value::as_str)
+}
+
+fn json_bool(value: &Value, key: &str) -> bool {
+    value.get(key).and_then(Value::as_bool).unwrap_or(false)
 }
 
 /// Runs the local `WendaoGraph.jl` `PageIndex` host-request probe in a real

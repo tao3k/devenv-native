@@ -100,6 +100,57 @@ def test_invalid_local_ocr_endpoint_count_is_rejected() -> None:
         raise AssertionError("expected invalid endpoint count to exit")
 
 
+def test_local_rust_provider_port_uses_free_port_unless_explicit(
+    monkeypatch,
+) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark._cli, "pick_free_port", lambda host: 62052)
+
+    assert (
+        benchmark.resolve_local_rust_provider_port(
+            benchmark.argparse.Namespace(host="127.0.0.1", rust_provider_port=None)
+        )
+        == 62052
+    )
+    assert (
+        benchmark.resolve_local_rust_provider_port(
+            benchmark.argparse.Namespace(host="127.0.0.1", rust_provider_port=63052)
+        )
+        == 63052
+    )
+
+
+def test_auto_document_extract_full_threads_caps_docling_structure_recovery() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        document_extract_full_threads="auto",
+        real_docling=True,
+        flight_mode="hybrid-page-ocr",
+        rust_pdf_ocr_profile_planner="docling-structure-recovery",
+    )
+
+    assert benchmark.resolve_document_extract_full_threads(args) == 1
+
+
+def test_auto_document_extract_full_threads_leaves_other_modes_unset() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        document_extract_full_threads="auto",
+        real_docling=True,
+        flight_mode="hybrid-page-ocr",
+        rust_pdf_ocr_profile_planner="fast-risk-window",
+    )
+
+    assert benchmark.resolve_document_extract_full_threads(args) is None
+
+
+def test_explicit_document_extract_full_threads_overrides_auto() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(document_extract_full_threads="2")
+
+    assert benchmark.resolve_document_extract_full_threads(args) == 2
+
+
 def test_cargo_perf_probe_can_send_distinct_input_manifest(
     monkeypatch,
     tmp_path: Path,

@@ -26,7 +26,7 @@ impl SemanticFingerprintOwner {
 }
 
 fn plugin_id_supports_semantic_owner_dispatch(plugin_id: &str) -> bool {
-    matches!(plugin_id, "julia" | "modelica")
+    matches!(plugin_id, "julia-code-parser" | "modelica")
         || Lang::try_from(plugin_id)
             .ok()
             .is_some_and(supports_semantic_fingerprint)
@@ -61,7 +61,9 @@ pub(super) fn semantic_fingerprint_owner(
         return None;
     }
 
-    if plugin_ids.iter().any(|plugin_id| plugin_id == "julia")
+    if plugin_ids
+        .iter()
+        .any(|plugin_id| plugin_id == "julia-code-parser")
         && relative_path.starts_with("src/")
         && has_extension(relative_path, "jl")
     {

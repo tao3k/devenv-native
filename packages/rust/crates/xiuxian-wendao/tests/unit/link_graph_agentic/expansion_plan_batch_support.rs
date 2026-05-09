@@ -370,7 +370,7 @@ pub(super) async fn fetch_plan_aware_generic_topology_rows_via_manifest_discover
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": base_url.into(),
@@ -418,7 +418,7 @@ pub(super) async fn fetch_plan_aware_generic_topology_filter_rows_via_manifest_d
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": base_url.into(),

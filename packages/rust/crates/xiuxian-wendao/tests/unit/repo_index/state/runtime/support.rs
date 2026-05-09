@@ -58,7 +58,7 @@ pub(super) fn spawn_wendaosearch_modelica_parser_summary_service()
 
 pub(super) fn julia_parser_summary_plugin_config(base_url: &str) -> RepositoryPluginConfig {
     RepositoryPluginConfig::Config {
-        id: "julia".to_string(),
+        id: "julia-code-parser".to_string(),
         options: serde_json::json!({
             "parser_summary_transport": {
                 "base_url": base_url,

@@ -20,7 +20,21 @@ Polyglot boundary:
    `xiuxian-polyglot-orchestrator` readiness contracts.
 2. The active readiness coverage is mounted into the lib target from
    `tests/unit/polyglot.rs`.
-3. The bridge does not transfer Julia scheduling, route mutation, or schema
+3. `examples/wendaograph_search_strategy_flow.rs` is a CLI proof surface for
+   Rust-owned SearchStrategyFlow dispatch into `WendaoGraph.jl`; it preserves
+   Julia ownership of graph scoring, frontier pruning, and planner action
+   generation. The bridge enriches the returned trace with additive
+   `retrievalRoutes` plans for Studio-owned Arrow Flight materialization routes
+   so downstream agents can inspect the native route sequence without
+   rebuilding local fixture plans. It must not mark those routes as executed
+   until Rust has completed real Arrow Flight network materialization. When a
+   Flight endpoint is configured, Rust decodes Arrow batches with
+   `arrow-flight` and returns compact JSON receipts; TypeScript callers do not
+   own JS Arrow decoding in this path. The bridge keeps page-index section
+   nodes and link-graph document nodes in separate namespaces: retrieval
+   context uses the resolved section node, while graph-neighbor expansion uses
+   `resolvedGraphNodeId` from the Studio display path.
+4. The bridge does not transfer Julia scheduling, route mutation, or schema
    authority to Rust.
 
 Verification profile:
@@ -34,5 +48,5 @@ Verification profile:
 
 :FOOTER:
 :STANDARDS: v2.0
-:LAST_SYNC: 2026-05-05
+:LAST_SYNC: 2026-05-08
 :END:

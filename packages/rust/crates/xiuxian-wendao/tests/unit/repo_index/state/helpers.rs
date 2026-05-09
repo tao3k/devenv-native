@@ -14,7 +14,7 @@ pub(crate) fn repo(id: &str, path: &str) -> RegisteredRepository {
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     }
 }
 
@@ -25,7 +25,7 @@ pub(crate) fn remote_repo(id: &str, url: &str) -> RegisteredRepository {
         url: Some(url.to_string()),
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     }
 }
 

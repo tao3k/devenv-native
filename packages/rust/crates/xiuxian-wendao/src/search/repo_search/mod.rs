@@ -7,7 +7,7 @@ mod orchestration;
 mod search;
 
 pub use self::ast::repository_generic_ast_lang_for_path;
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 pub(crate) use self::ast::{RepoAstAnalysisIndex, build_repo_ast_analysis_index_from_checkout};
 pub use self::buffered::RepoSearchResultLimits;
 #[cfg(any(test, feature = "test-support"))]

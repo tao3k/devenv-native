@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import os
+import threading
 from typing import TYPE_CHECKING, Any
 
 import pyarrow.flight as flight
 
 from .document_profiles import (
     DOCUMENT_EXTRACT_DEFAULT_PROFILE,
+    DOCUMENT_EXTRACT_FULL_PROFILE,
     DOCUMENT_EXTRACT_PROFILE_ENV,
+    new_docling_converter_for_profile,
     normalize_document_extract_profile,
 )
 from .documents import (
@@ -37,8 +40,12 @@ WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER = "x-wendao-document-extract-output-di
 WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER = "x-wendao-document-extract-force"
 WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER = "x-wendao-document-extract-error-row"
 WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER = "x-wendao-document-extract-profile"
+WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER = "x-wendao-document-extract-page-range"
+WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE_ENV = "WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE"
 
 EXPECTED_SCHEMA_VERSION = "v2"
+DOCUMENT_EXTRACT_CONVERTER_CACHE_DISABLED = "disabled"
+DOCUMENT_EXTRACT_CONVERTER_CACHE_PROFILE = "profile"
 SUPPORTED_DOCUMENT_ROUTES = (
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_PDF_OCR_SHARDS_ROUTE,
@@ -71,6 +78,7 @@ def build_document_extract_table(
     force = _header_bool(headers, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, False)
     error_row = _header_bool(headers, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, True)
     profile = _document_extract_profile(headers)
+    page_range = _document_extract_page_range(headers)
 
     return extract_document_table(
         source_path,
@@ -79,6 +87,7 @@ def build_document_extract_table(
         profile=profile,
         force=force,
         error_row=error_row,
+        page_range=page_range,
     )
 
 
@@ -115,6 +124,7 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
         *,
         converter: DocumentConverterProtocol | None = None,
         ocr_worker: PdfOcrShardWorkerProtocol | None = None,
+        converter_factory: Any | None = None,
     ) -> None:
         super().__init__(
             location,
@@ -123,6 +133,9 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
         warm_document_arrow_runtime()
         self._converter = converter
         self._ocr_worker = ocr_worker
+        self._converter_factory = converter_factory or new_docling_converter_for_profile
+        self._converter_cache_lock = threading.Lock()
+        self._converter_cache: dict[str, DocumentConverterProtocol] = {}
 
     def _get_headers(self, context: flight.ServerCallContext) -> dict[str, str]:
         middleware = context.get_middleware("document-extract")
@@ -139,9 +152,10 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
         _validate_document_extract_route(route)
 
         try:
+            headers = self._get_headers(context)
             table = build_document_extract_table(
-                self._get_headers(context),
-                converter=self._converter,
+                headers,
+                converter=self._document_extract_converter(headers),
             )
         except ValueError as exc:
             raise flight.FlightServerError(
@@ -149,6 +163,34 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             ) from exc
 
         return flight.RecordBatchStream(table)
+
+    def _document_extract_converter(
+        self,
+        headers: Mapping[str, str],
+    ) -> DocumentConverterProtocol | None:
+        profile = _document_extract_profile(headers)
+        if self._converter is not None:
+            if profile == DOCUMENT_EXTRACT_FULL_PROFILE:
+                return self._converter
+            return self._document_extract_converter_for_profile(profile)
+        if (
+            _document_extract_converter_cache_mode()
+            != DOCUMENT_EXTRACT_CONVERTER_CACHE_PROFILE
+        ):
+            return None
+        return self._document_extract_converter_for_profile(profile)
+
+    def _document_extract_converter_for_profile(
+        self,
+        profile: str | None,
+    ) -> DocumentConverterProtocol:
+        normalized_profile = normalize_document_extract_profile(profile)
+        with self._converter_cache_lock:
+            converter = self._converter_cache.get(normalized_profile)
+            if converter is None:
+                converter = self._converter_factory(normalized_profile)
+                self._converter_cache[normalized_profile] = converter
+            return converter
 
     def do_exchange(
         self,
@@ -259,6 +301,45 @@ def _document_extract_profile(headers: Mapping[str, str]) -> str:
     return normalize_document_extract_profile(requested_profile or default_profile)
 
 
+def _document_extract_converter_cache_mode() -> str:
+    return _document_extract_converter_cache_mode_with_lookup(os.environ.get)
+
+
+def _document_extract_converter_cache_mode_with_lookup(
+    lookup: Any,
+) -> str:
+    value = str(lookup(WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE_ENV) or "").strip()
+    normalized = value.lower().replace("_", "-")
+    if normalized in {
+        "profile",
+        "profile-cache",
+        "shared-profile",
+        "shared-profile-cache",
+    }:
+        return DOCUMENT_EXTRACT_CONVERTER_CACHE_PROFILE
+    return DOCUMENT_EXTRACT_CONVERTER_CACHE_DISABLED
+
+
+def _document_extract_page_range(headers: Mapping[str, str]) -> tuple[int, int] | None:
+    value = headers.get(WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, "").strip()
+    if not value:
+        return None
+    parts = value.split(":")
+    if len(parts) != 2:
+        raise ValueError(
+            "document extract page range must use 1-based inclusive `start:end`"
+        )
+    try:
+        start, end = (int(part) for part in parts)
+    except ValueError as exc:
+        raise ValueError(
+            "document extract page range must use integer page numbers"
+        ) from exc
+    if start <= 0 or end <= 0 or start > end:
+        raise ValueError("document extract page range must satisfy 1 <= start <= end")
+    return (start, end)
+
+
 def _flatten_headers(headers: Mapping[str, Any]) -> dict[str, str]:
     flat: dict[str, str] = {}
     for key, value in headers.items():
@@ -280,9 +361,11 @@ __all__ = [
     "ANALYSIS_PDF_OCR_SHARDS_ROUTE",
     "EXPECTED_SCHEMA_VERSION",
     "SUPPORTED_DOCUMENT_ROUTES",
+    "WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE_ENV",
     "WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER",
+    "WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER",
     "WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER",
     "WENDAO_PDF_OCR_WORKERS_HEADER",

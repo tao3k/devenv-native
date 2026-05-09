@@ -1,4 +1,6 @@
+#[cfg(feature = "document-extract-pdf-source-range")]
 use std::collections::BTreeSet;
+#[cfg(feature = "document-extract-pdf-source-range")]
 use std::path::PathBuf;
 
 #[cfg(feature = "document-extract-pdf-source-range")]

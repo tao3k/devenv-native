@@ -86,6 +86,9 @@ pub struct WendaoFlightRouteProviders {
     /// Optional projected page-index tree analysis provider.
     pub repo_projected_page_index_tree:
         Option<Arc<dyn RepoProjectedPageIndexTreeFlightRouteProvider>>,
+    /// Optional projected retrieval-context analysis provider.
+    pub repo_projected_retrieval_context:
+        Option<Arc<dyn RepoProjectedRetrievalContextFlightRouteProvider>>,
     /// Optional refine-doc analysis provider.
     pub refine_doc: Option<Arc<dyn RefineDocFlightRouteProvider>>,
     /// Optional VFS-content provider.
@@ -124,6 +127,7 @@ impl WendaoFlightRouteProviders {
             repo_sync: None,
             repo_doc_coverage: None,
             repo_projected_page_index_tree: None,
+            repo_projected_retrieval_context: None,
             refine_doc: None,
             vfs_content: None,
             vfs_scan: None,
@@ -824,6 +828,26 @@ pub trait RepoProjectedPageIndexTreeFlightRouteProvider: std::fmt::Debug + Send 
         &self,
         repo_id: &str,
         page_id: &str,
+    ) -> Result<AnalysisFlightRouteResponse, Status>;
+}
+
+/// Transport-owned provider contract for stable projected retrieval-context
+/// Flight reads.
+#[async_trait]
+pub trait RepoProjectedRetrievalContextFlightRouteProvider: std::fmt::Debug + Send + Sync {
+    /// Resolve one stable projected retrieval-context response batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed Flight status when the requested projected
+    /// retrieval-context payload cannot be materialized for the current
+    /// transport host.
+    async fn repo_projected_retrieval_context_batch(
+        &self,
+        repo_id: &str,
+        page_id: &str,
+        node_id: Option<&str>,
+        related_limit: usize,
     ) -> Result<AnalysisFlightRouteResponse, Status>;
 }
 

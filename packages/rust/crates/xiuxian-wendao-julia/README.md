@@ -38,7 +38,7 @@ needs a feature-gated second plugin bundle for these languages.
   while preserving explicit transport, manifest-discovery, and grouped
   capability-manifest live coverage across the plugin lane
 - Julia and Modelica parser-summary transport discovery now also works with
-  plain repository plugin ids. `plugins = ["julia"]` and
+  plain repository plugin ids. `plugins = ["julia-code-parser"]` and
   `plugins = ["modelica"]` default to the standard
   `WendaoSearch.jl --config config/live/parser_summary.toml` base URL
   `http://127.0.0.1:41081` for parser-summary routes, while tests pin the same
@@ -73,6 +73,12 @@ needs a feature-gated second plugin bundle for these languages.
   self-spawning an in-process Julia service, so focused gateway search or
   code-AST proofs can exercise the same process-managed service shape that
   `process.nix` owns
+- SearchStrategyFlow Flight materialization now keeps route namespaces
+  explicit. Repo search resolves the candidate document, projected page-index
+  and retrieval-context routes use the resolved page and section node ids, and
+  graph-neighbor expansion uses a separate `resolvedGraphNodeId` based on the
+  Studio display path. This prevents page-index section ids from being sent as
+  link-graph node ids.
 - Julia test support now lives under `tests/unit/plugin/` plus
   `tests/unit/memory/mod.rs` instead of production `src/` files, while
   `src/lib.rs` owns the root harness target so `cargo test --lib` executes the
@@ -586,8 +592,7 @@ The transport builder consumes repository plugin entries that resolve to:
 [link_graph.projects.sample]
 root = "/path/to/repo"
 plugins = [
-  "julia",
-  { id = "julia", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", health_route = "/healthz", timeout_secs = 15, max_in_flight_requests = 32 } }
+  { id = "julia-code-parser", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", health_route = "/healthz", timeout_secs = 15, max_in_flight_requests = 32 } }
 ]
 ```
 
@@ -602,8 +607,7 @@ plugin option block so Search downcalls can stay Julia-plugin-owned as well:
 [link_graph.projects.sample]
 root = "/path/to/repo"
 plugins = [
-  "julia",
-  { id = "julia", graph_structural_transport = { base_url = "http://127.0.0.1:8815", max_in_flight_requests = 32, structural_rerank = { route = "/graph/structural/rerank", schema_version = "v0-draft" }, constraint_filter = { route = "/graph/structural/filter", timeout_secs = 20 } } }
+  { id = "julia-code-parser", graph_structural_transport = { base_url = "http://127.0.0.1:8815", max_in_flight_requests = 32, structural_rerank = { route = "/graph/structural/rerank", schema_version = "v0-draft" }, constraint_filter = { route = "/graph/structural/filter", timeout_secs = 20 } } }
 ]
 ```
 
@@ -630,8 +634,7 @@ the Arrow contract for a dedicated capability-manifest route:
 [link_graph.projects.sample]
 root = "/path/to/repo"
 plugins = [
-  "julia",
-  { id = "julia", capability_manifest_transport = { base_url = "http://127.0.0.1:8815", route = "/plugin/capabilities", health_route = "/healthz", schema_version = "v0-draft", timeout_secs = 15 } }
+  { id = "julia-code-parser", capability_manifest_transport = { base_url = "http://127.0.0.1:8815", route = "/plugin/capabilities", health_route = "/healthz", schema_version = "v0-draft", timeout_secs = 15 } }
 ]
 ```
 
@@ -642,8 +645,8 @@ When the block is configured, `JuliaRepoIntelligencePlugin::preflight_repository
 now also performs one plugin-owned live discovery roundtrip against
 `/plugin/capabilities` before repository layout analysis continues.
 
-The repository plugin config id remains `julia`, while the capability-manifest
-rows themselves advertise the canonical provider id
+The repository plugin config id is `julia-code-parser`, while the
+capability-manifest rows themselves advertise the canonical provider id
 `xiuxian-wendao-julia` so runtime provider selectors stay stable.
 
 The same ownership rule now applies to the typed Rust exchange helpers for

@@ -135,6 +135,40 @@ def summarize_results(
         "totalMetricsBboxCount": sum(
             result.get("metricsBboxCount", 0) for result in results
         ),
+        "structureAuthorityPages": sum(
+            result.get("structureAuthorityPages", 0) for result in results
+        ),
+        "textShortcutPages": sum(
+            result.get("textShortcutPages", 0) for result in results
+        ),
+        "ocrPatchRegions": sum(result.get("ocrPatchRegions", 0) for result in results),
+        "pageRangeDoclingFallbackPages": sum(
+            result.get("pageRangeDoclingFallbackPages", 0) for result in results
+        ),
+        "pageRangeDoclingFallbackChunkCount": sum(
+            result.get("pageRangeDoclingFallbackChunkCount", 0) for result in results
+        ),
+        "pageRangeDoclingFallbackPlanStrategies": _combine_string_counts(
+            (
+                plan.get("strategy")
+                if isinstance(
+                    (
+                        plan := result.get(
+                            "forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"
+                        )
+                    ),
+                    dict,
+                )
+                else None
+            )
+            for result in results
+        ),
+        "pageRangeDoclingFallbackChunkSummary": (
+            _combine_page_range_docling_fallback_chunk_summaries(results)
+        ),
+        "fullDoclingFallbackCount": sum(
+            result.get("fullDoclingFallbackCount", 0) for result in results
+        ),
         "totalMetricsRustSchedulerElapsedMs": sum(
             result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
         ),
@@ -315,8 +349,32 @@ def render_markdown(payload: dict[str, Any]) -> str:
     precision_speed = payload["summary"].get("precisionSpeedSummary", {})
     pdf_milestone = precision_speed.get("pdfOcrMilestoneGuard", {})
     hosted_vlm_promotion = payload.get("hostedVlmPromotionGate") or {}
+    candidate_taxonomy = payload.get("candidateTaxonomy") or {}
     hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
     hosted_vlm_ocr_requests = hosted_vlm_ocr.get("requestSummary") or {}
+    page_range_chunk_summary = (
+        payload["summary"].get("pageRangeDoclingFallbackChunkSummary") or {}
+    )
+    page_range_chunk_phases = (
+        phases
+        if isinstance(
+            (phases := page_range_chunk_summary.get("documentTimingPhaseElapsedMs")),
+            dict,
+        )
+        else {}
+    )
+    longest_page_range_chunk_phases = (
+        phases
+        if isinstance(
+            (
+                phases := page_range_chunk_summary.get(
+                    "longestDocumentTimingPhaseElapsedMs"
+                )
+            ),
+            dict,
+        )
+        else {}
+    )
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -335,10 +393,24 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- PDF OCR prewarm page index: `{payload.get('pdfOcrPrewarmPageIndex')}`",
         f"- PDF OCR prewarm page indices: `{payload.get('pdfOcrPrewarmPageIndices')}`",
         f"- PDF OCR prewarm endpoint count: `{payload.get('pdfOcrPrewarmEndpointCount')}`",
+        "- Document extract prewarm source path: "
+        f"`{payload.get('documentExtractPrewarmSourcePath')}`",
+        "- Document extract prewarm page ranges: "
+        f"`{payload.get('documentExtractPrewarmPageRanges')}`",
+        "- Document extract prewarm page ranges resolved: "
+        f"`{payload.get('documentExtractPrewarmPageRangesResolved')}`",
         f"- PDF OCR backend-text page fallback: `{payload.get('pdfOcrBackendTextPageFallback')}`",
         f"- Local Python OCR endpoints: `{payload.get('localPythonOcrEndpointCount', 1)}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
+        "- Rust PDF Docling page-range chunk plan: "
+        f"`{payload.get('rustPdfDoclingPageRangeChunkPlan')}`",
+        "- Rust PDF Docling page-range profile: "
+        f"`{payload.get('rustPdfDoclingPageRangeProfile', 'full')}`",
+        "- Rust PDF Docling page-range hedge delay ms: "
+        f"`{payload.get('rustPdfDoclingPageRangeHedgeDelayMs')}`",
+        "- Rust PDF Docling text-shortcut promotion: "
+        f"`{payload.get('rustPdfDoclingTextShortcutPromotion', 'range-fill')}`",
         f"- Rust PDF local backend text: `{payload.get('rustPdfLocalBackendText')}`",
         "- Rust PDF local backend-text empty mode: "
         f"`{payload.get('rustPdfLocalBackendTextEmpty')}`",
@@ -392,6 +464,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"http={_format_counts(hosted_vlm_ocr_requests.get('httpStatusCounts'))}`",
         f"- Rust document extract endpoints: `{payload.get('rustDocumentExtractEndpoints', [])}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
+        "- Docling full-profile threads: "
+        f"`{payload.get('documentExtractFullThreads', 'auto')}` "
+        f"(resolved `{payload.get('documentExtractFullThreadsResolved')}`)",
         f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Shard-cache reuse probe: "
@@ -469,6 +544,13 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"bbox={payload['summary'].get('totalMetricsBboxCount')}, "
         "rustSchedulerElapsedMs="
         f"{_format_optional_float(payload['summary'].get('totalMetricsRustSchedulerElapsedMs'))}`",
+        "- Docling-centered routing counts: "
+        f"`structureAuthorityPages={payload['summary'].get('structureAuthorityPages')}, "
+        f"textShortcutPages={payload['summary'].get('textShortcutPages')}, "
+        f"ocrPatchRegions={payload['summary'].get('ocrPatchRegions')}, "
+        f"pageRangeDoclingFallbackPages={payload['summary'].get('pageRangeDoclingFallbackPages')}, "
+        f"pageRangeDoclingFallbackChunks={payload['summary'].get('pageRangeDoclingFallbackChunkCount')}, "
+        f"fullDoclingFallbackCount={payload['summary'].get('fullDoclingFallbackCount')}`",
         "- Document timing sidecar: "
         f"`rows={payload['summary'].get('totalDocumentTimingRows')}, "
         "totalElapsedMs="
@@ -493,7 +575,17 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "baseResultMs="
         f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmRegionPipelineLastBaseResultMs'))}`, "
         "regionResultMs="
-        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmRegionPipelineLastRegionResultMs'))}`",
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmRegionPipelineLastRegionResultMs'))}`, "
+        "doclingChunkMaxMs="
+        f"`{_format_optional_float(page_range_chunk_summary.get('elapsedMsMax'))}`, "
+        "doclingChunkDoclingConvertMaxMs="
+        f"`{_format_optional_float(longest_page_range_chunk_phases.get('doclingConvert'))}`, "
+        "doclingChunkDoclingConvertTotalMs="
+        f"`{_format_optional_float(page_range_chunk_phases.get('doclingConvert'))}`, "
+        "doclingChunkProfiles="
+        f"`{_format_counts(page_range_chunk_summary.get('documentExtractProfileCounts'))}`, "
+        "doclingPlanStrategies="
+        f"`{_format_counts(payload['summary'].get('pageRangeDoclingFallbackPlanStrategies'))}`",
         "- Image audit summary: "
         f"`audits={payload['summary'].get('imageAttachmentAuditCount')}, "
         f"knownDims={payload['summary'].get('imageKnownDimensionCount')}, "
@@ -540,6 +632,11 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`checked={hosted_vlm_promotion.get('checked')}, "
         f"passed={hosted_vlm_promotion.get('passed')}, "
         f"reasons={len(hosted_vlm_promotion.get('reasons', []))}`",
+        "- Candidate taxonomy: "
+        f"`precisionCandidate={candidate_taxonomy.get('precisionCandidate')}, "
+        f"speedCandidate={candidate_taxonomy.get('speedCandidate')}, "
+        f"promotionCandidate={candidate_taxonomy.get('promotionCandidate')}, "
+        f"rejectedStructureLoss={candidate_taxonomy.get('rejectedStructureLoss')}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
         "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
@@ -692,3 +789,126 @@ def _combine_float_counts(values: Any) -> dict[str, float]:
             if isinstance(key, str) and isinstance(count, int | float):
                 totals[key] = totals.get(key, 0.0) + float(count)
     return dict(sorted(totals.items()))
+
+
+def _combine_string_counts(values: Any) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for value in values:
+        if isinstance(value, str) and value:
+            totals[value] = totals.get(value, 0) + 1
+    return dict(sorted(totals.items()))
+
+
+def _combine_int_counts(values: Any) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        for key, count in value.items():
+            if isinstance(key, str) and isinstance(count, int):
+                totals[key] = totals.get(key, 0) + count
+    return dict(sorted(totals.items()))
+
+
+def _combine_page_range_docling_fallback_chunk_summaries(
+    results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    summaries = [
+        summary
+        for result in results
+        if isinstance(
+            (
+                summary := result.get(
+                    "forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"
+                )
+            ),
+            dict,
+        )
+    ]
+    longest = max(
+        summaries,
+        key=lambda summary: float(summary.get("elapsedMsMax") or 0.0),
+        default={},
+    )
+    chunk_count = sum(
+        count
+        for summary in summaries
+        if isinstance((count := summary.get("chunkCount")), int)
+    )
+    elapsed_total = sum(
+        float(value)
+        for summary in summaries
+        if isinstance((value := summary.get("elapsedMsTotal")), int | float)
+    )
+    elapsed_max = (
+        float(longest["elapsedMsMax"])
+        if isinstance(longest.get("elapsedMsMax"), int | float)
+        else None
+    )
+    elapsed_min_values = [
+        float(value)
+        for summary in summaries
+        if isinstance((value := summary.get("elapsedMsMin")), int | float)
+    ]
+    elapsed_min = min(elapsed_min_values, default=None)
+    elapsed_mean = elapsed_total / chunk_count if chunk_count else None
+    document_timing_total = sum(
+        float(value)
+        for summary in summaries
+        if isinstance(
+            (value := summary.get("documentTimingTotalElapsedMs")), int | float
+        )
+    )
+    return {
+        "chunkCount": chunk_count,
+        "elapsedMsMax": elapsed_max,
+        "elapsedMsMin": elapsed_min,
+        "elapsedMsMean": elapsed_mean,
+        "elapsedMsSpread": (
+            elapsed_max - elapsed_min
+            if elapsed_max is not None and elapsed_min is not None
+            else None
+        ),
+        "elapsedMsMaxToMeanRatio": (
+            elapsed_max / elapsed_mean
+            if elapsed_max is not None and elapsed_mean is not None and elapsed_mean > 0
+            else None
+        ),
+        "elapsedMsTotal": elapsed_total,
+        "documentTimingTotalElapsedMs": document_timing_total,
+        "documentTimingPhaseElapsedMs": _combine_float_counts(
+            summary.get("documentTimingPhaseElapsedMs", {}) for summary in summaries
+        ),
+        "documentExtractProfileCounts": _combine_int_counts(
+            summary.get("documentExtractProfileCounts", {}) for summary in summaries
+        ),
+        "resourceRows": sum(
+            count
+            for summary in summaries
+            if isinstance((count := summary.get("resourceRows")), int)
+        ),
+        "sourceProfilePageCount": sum(
+            count
+            for summary in summaries
+            if isinstance((count := summary.get("sourceProfilePageCount")), int)
+        ),
+        "sourceProfileEstimatedWeightTotal": sum(
+            count
+            for summary in summaries
+            if isinstance(
+                (count := summary.get("sourceProfileEstimatedWeightTotal")), int
+            )
+        ),
+        "longestPageStart": longest.get("longestPageStart"),
+        "longestPageEnd": longest.get("longestPageEnd"),
+        "longestOneBasedStart": longest.get("longestOneBasedStart"),
+        "longestOneBasedEnd": longest.get("longestOneBasedEnd"),
+        "longestResourceRows": longest.get("longestResourceRows"),
+        "longestDocumentTimingTotalElapsedMs": longest.get(
+            "longestDocumentTimingTotalElapsedMs"
+        ),
+        "longestDocumentTimingPhaseElapsedMs": longest.get(
+            "longestDocumentTimingPhaseElapsedMs"
+        ),
+        "longestSourceProfile": longest.get("longestSourceProfile"),
+    }

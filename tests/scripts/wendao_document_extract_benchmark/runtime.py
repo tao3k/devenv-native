@@ -59,6 +59,38 @@ def wait_for_port(
     )
 
 
+def wait_for_document_extract_flight_endpoint(
+    host: str,
+    port: int,
+    server: subprocess.Popen[str],
+    *,
+    timeout_seconds: float,
+) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    location = f"grpc://{host}:{port}"
+    while time.monotonic() < deadline:
+        if server.poll() is not None:
+            raise RuntimeError(
+                "document extract service exited before Flight readiness:\n"
+                + process_log_tail(server)
+            )
+        try:
+            import pyarrow.flight as flight
+
+            client = flight.FlightClient(location)
+            descriptor = flight.FlightDescriptor.for_path(
+                "analysis", "document-extract"
+            )
+            client.get_flight_info(descriptor)
+            return
+        except Exception:
+            time.sleep(0.2)
+    raise TimeoutError(
+        f"document extract Flight endpoint did not become ready on {location} "
+        f"within {timeout_seconds:.1f}s\n{process_log_tail(server)}"
+    )
+
+
 def process_log_tail(server: subprocess.Popen[str]) -> str:
     stderr_log = getattr(server, "wendao_stderr_log", None)
     stdout_log = getattr(server, "wendao_stdout_log", None)

@@ -20,7 +20,7 @@ use crate::compatibility::link_graph::{
     DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, julia_rerank_provider_selector,
 };
 
-const JULIA_PLUGIN_ID: &str = "julia";
+const JULIA_PLUGIN_ID: &str = "julia-code-parser";
 const FLIGHT_TRANSPORT_KEY: &str = "flight_transport";
 const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
 /// Baseline `WendaoArrow` response contract version enforced by this crate.
@@ -29,8 +29,8 @@ pub const JULIA_ARROW_RESPONSE_SCHEMA_VERSION: &str = DEFAULT_FLIGHT_SCHEMA_VERS
 /// Build a Julia Flight transport client from repository plugin config.
 ///
 /// The function looks for a `RepositoryPluginConfig::Config` entry whose `id`
-/// is `julia`, and then reads either a nested `flight_transport` object or
-/// direct transport keys from that plugin's `options`.
+/// is `julia-code-parser`, and then reads either a nested `flight_transport`
+/// object or direct transport keys from that plugin's `options`.
 ///
 /// # Errors
 ///

@@ -18,7 +18,7 @@ expression: value
       "id": "sciml",
       "path": null,
       "plugins": [
-        "julia"
+        "julia-code-parser"
       ],
       "ref": "main",
       "refresh": "manual",

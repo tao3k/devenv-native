@@ -16,14 +16,14 @@ pub(crate) fn analysis_fingerprint_mode(
     if plugin_ids.is_empty()
         || plugin_ids
             .iter()
-            .any(|plugin_id| !matches!(plugin_id.as_str(), "julia" | "modelica"))
+            .any(|plugin_id| !matches!(plugin_id.as_str(), "julia-code-parser" | "modelica"))
     {
         return Some(FingerprintMode::Contents);
     }
 
     plugin_ids.iter().fold(None, |best, plugin_id| {
         let candidate = match plugin_id.as_str() {
-            "julia" => julia_fingerprint_mode(relative_path),
+            "julia-code-parser" => julia_fingerprint_mode(relative_path),
             "modelica" => modelica_fingerprint_mode(relative_path),
             _ => None,
         };

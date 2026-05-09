@@ -195,6 +195,9 @@ fn text_char_count(blocks: &[DocumentStructureBlock]) -> usize {
 }
 
 fn text_char_count_one(block: &DocumentStructureBlock) -> usize {
+    if matches!(block.block_type.as_str(), "docling_json" | "document") {
+        return 0;
+    }
     block
         .content
         .chars()

@@ -43,7 +43,7 @@ fn scan_all_roots_includes_repo_project_checkout_entries() {
             url: Some(source.path().display().to_string()),
             git_ref: None,
             refresh: Some("manual".to_string()),
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let repositories = configured_repositories(&state);
@@ -84,7 +84,7 @@ fn resolve_vfs_path_supports_repo_project_checkout_files() {
             url: Some(source.path().display().to_string()),
             git_ref: None,
             refresh: Some("manual".to_string()),
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let repositories = configured_repositories(&state);

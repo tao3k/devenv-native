@@ -16,7 +16,7 @@ fn build_parser_summary_client_uses_default_discovery_for_plain_plugin_id() {
     clear_julia_parser_summary_transport_cache_for_tests();
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     };
 
@@ -41,7 +41,7 @@ fn build_parser_summary_client_reads_nested_options() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "parser_summary_transport": {
                     "base_url": "http://127.0.0.1:9107",
@@ -84,7 +84,7 @@ fn build_parser_summary_client_rejects_disabled_transport() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "parser_summary_transport": {
                     "enabled": false,
@@ -116,7 +116,7 @@ fn build_parser_summary_client_rejects_invalid_field_types() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "parser_summary_transport": {
                     "root_summary": {
@@ -148,7 +148,7 @@ fn build_parser_summary_client_reuses_cached_client_for_identical_transport() {
     clear_julia_parser_summary_transport_cache_for_tests();
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     };
 
@@ -186,7 +186,7 @@ fn build_parser_summary_client_separates_cached_clients_by_route() {
     clear_julia_parser_summary_transport_cache_for_tests();
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     };
 
@@ -223,7 +223,7 @@ fn build_parser_summary_client_separates_cached_clients_by_in_flight_budget() {
     let repository_budget_three = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "parser_summary_transport": {
                     "base_url": "http://127.0.0.1:9107",
@@ -236,7 +236,7 @@ fn build_parser_summary_client_separates_cached_clients_by_in_flight_budget() {
     let repository_budget_five = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "parser_summary_transport": {
                     "base_url": "http://127.0.0.1:9107",

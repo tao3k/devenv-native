@@ -21,6 +21,7 @@ use super::{
     HybridPdfBackendTextTopup, HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner,
     PdfOcrShardInput, PdfOcrShardResult, PdfOcrShardResultStatus, PdfPageRenderSelection,
     PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
+    apply_hybrid_page_docling_structure_recovery_profile_plan_for_profiles,
     apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profiles,
     apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profiles_with_lookup,
     apply_hybrid_page_hosted_vlm_profile_plan_for_profiles,

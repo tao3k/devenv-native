@@ -45,7 +45,7 @@ async fn fetch_graph_structural_generic_topology_rerank_rows_for_repository_reje
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({}),
         }],
     };
@@ -97,7 +97,7 @@ fn graph_structural_generic_topology_explicit_rerank_repository(
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "graph_structural_transport": {
                     "base_url": base_url,
@@ -169,7 +169,7 @@ fn graph_structural_generic_topology_manifest_repository(base_url: &str) -> Regi
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": base_url,
@@ -307,7 +307,7 @@ async fn fetch_graph_structural_generic_topology_filter_rows_for_repository_reje
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({}),
         }],
     };

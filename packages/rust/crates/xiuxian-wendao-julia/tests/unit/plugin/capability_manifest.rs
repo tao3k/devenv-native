@@ -96,7 +96,7 @@ fn configured_repository(options: serde_json::Value) -> RegisteredRepository {
     RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options,
         }],
         ..RegisteredRepository::default()
@@ -111,7 +111,7 @@ fn live_capability_manifest_repository(base_url: &str) -> RegisteredRepository {
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": base_url,

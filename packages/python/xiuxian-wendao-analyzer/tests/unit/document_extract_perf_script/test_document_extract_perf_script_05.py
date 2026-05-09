@@ -255,6 +255,9 @@ def test_cargo_perf_probe_adds_pdf_source_range_for_hybrid_page_ocr(
         commands.append(command)
         assert check
         assert env["WENDAO_DOCUMENT_EXTRACT_PERF_MODE"] == "hybrid-page-ocr"
+        assert env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE"] == (
+            "structure-text"
+        )
         report_path.write_text(
             '{"latenciesMs":[1.0],"requestCount":1,"rowCount":1,'
             '"batchCount":1,"arrowIpcBytes":1,"errorRowCount":0,'
@@ -271,6 +274,7 @@ def test_cargo_perf_probe_adds_pdf_source_range_for_hybrid_page_ocr(
         cargo="cargo",
         cargo_features="performance,studio,zhenfa-router,duckdb",
         flight_mode="hybrid-page-ocr",
+        rust_pdf_docling_page_range_profile="structure-text",
         wait_ms=0,
     )
 

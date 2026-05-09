@@ -8102,7 +8102,7 @@ dependencies = [
 [[package]]
 name = "rust-lang-project-harness"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=a187e842f72c8506e5b93355ac405527ffb489cd#a187e842f72c8506e5b93355ac405527ffb489cd"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=e3f61e5aa0c430a8405630401a3e3c9729e9b508#e3f61e5aa0c430a8405630401a3e3c9729e9b508"
 dependencies = [
  "cargo_toml",
  "proc-macro2",
@@ -11808,6 +11808,7 @@ dependencies = [
  "async-trait",
  "blake3",
  "chrono",
+ "futures",
  "insta",
  "inventory",
  "regex",

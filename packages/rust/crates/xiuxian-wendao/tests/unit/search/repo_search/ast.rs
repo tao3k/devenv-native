@@ -32,7 +32,7 @@ fn excluded_ast_languages_for_repository_uses_plugin_ids_and_explicit_options() 
     let repository = RegisteredRepository {
         id: "alpha/repo".to_string(),
         plugins: vec![
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Id("TS".to_string()),
             RepositoryPluginConfig::Config {
                 id: "custom-parser".to_string(),

@@ -10,11 +10,15 @@ use crate::transport::query_contract::{
     WENDAO_REPO_INDEX_REPO_HEADER, WENDAO_REPO_INDEX_REQUEST_ID_HEADER,
     WENDAO_REPO_INDEX_STATUS_REPO_HEADER, WENDAO_REPO_OVERVIEW_REPO_HEADER,
     WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER,
-    WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER, WENDAO_REPO_SYNC_MODE_HEADER,
+    WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER, WENDAO_REPO_SYNC_MODE_HEADER,
     WENDAO_REPO_SYNC_REPO_HEADER, validate_refine_doc_request, validate_repo_doc_coverage_request,
     validate_repo_index_request, validate_repo_index_status_request,
     validate_repo_overview_request, validate_repo_projected_page_index_tree_request,
-    validate_repo_sync_request,
+    validate_repo_projected_retrieval_context_request, validate_repo_sync_request,
 };
 
 type RepoOverviewMetadata = String;
@@ -23,6 +27,7 @@ type RepoIndexStatusMetadata = Option<String>;
 type RepoSyncMetadata = (String, String);
 type RepoDocCoverageMetadata = (String, Option<String>);
 type RepoProjectedPageIndexTreeMetadata = (String, String);
+type RepoProjectedRetrievalContextMetadata = (String, String, Option<String>, usize);
 type RefineDocMetadata = (String, String, Option<String>);
 
 pub(crate) fn validate_repo_overview_request_metadata(
@@ -103,6 +108,44 @@ pub(crate) fn validate_repo_projected_page_index_tree_request_metadata(
         .to_string();
     validate_repo_projected_page_index_tree_request(repo_id.as_str(), page_id.as_str())
         .map_err(Status::invalid_argument)
+}
+
+pub(crate) fn validate_repo_projected_retrieval_context_request_metadata(
+    metadata: &MetadataMap,
+) -> Result<RepoProjectedRetrievalContextMetadata, Status> {
+    let repo_id = metadata
+        .get(WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_string();
+    let page_id = metadata
+        .get(WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_string();
+    let node_id = metadata
+        .get(WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER)
+        .and_then(|value| value.to_str().ok());
+    let related_limit = match metadata
+        .get(WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER)
+    {
+        Some(raw_value) => {
+            let raw_limit = raw_value.to_str().unwrap_or_default();
+            Some(raw_limit.parse::<usize>().map_err(|_| {
+                Status::invalid_argument(format!(
+                    "invalid repo projected retrieval-context related-limit header `{WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER}`: {raw_limit}"
+                ))
+            })?)
+        }
+        None => None,
+    };
+    validate_repo_projected_retrieval_context_request(
+        repo_id.as_str(),
+        page_id.as_str(),
+        node_id,
+        related_limit,
+    )
+    .map_err(Status::invalid_argument)
 }
 
 pub(crate) fn validate_refine_doc_request_metadata(

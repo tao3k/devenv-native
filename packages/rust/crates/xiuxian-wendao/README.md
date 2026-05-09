@@ -40,7 +40,7 @@ The same feature boundary now covers Modelica repo-intelligence too:
 the Rust implementation now lives on the Julia line in
 `xiuxian-wendao-julia` instead of a standalone `xiuxian-wendao-modelica`
 crate. The same Julia-owned line now also owns parser-summary transport
-discovery for both languages, so plain `plugins = ["julia"]` and
+discovery for both languages, so plain `plugins = ["julia-code-parser"]` and
 `plugins = ["modelica"]` repository config can resolve the standard
 `WendaoSearch.jl` parser-summary endpoint without repo-local Rust
 AST fallback or per-repository inline transport blocks.
@@ -56,7 +56,7 @@ Studio `code_search` now follows that same ownership rule end to end. The
 production handler lives under
 `src/gateway/studio/search/handlers/code_search/search/`, reuses the shared
 `src/search/repo_search/` seam, and consumes Julia-owned native parser
-publications for both `plugins = ["julia"]` and `plugins = ["modelica"]`
+publications for both `plugins = ["julia-code-parser"]` and `plugins = ["modelica"]`
 repositories. The gateway no longer path-mounts a test-only code-search
 implementation or keeps a second Rust-local Julia or Modelica AST route. The
 focused gateway `code_search` proofs for plain Julia and plain Modelica plugin
