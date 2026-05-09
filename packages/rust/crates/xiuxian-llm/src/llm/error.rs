@@ -6,6 +6,30 @@ use thiserror::Error;
 /// Unified result type for LLM module operations.
 pub type LlmResult<T> = Result<T, LlmError>;
 
+/// HTTP content type reported by an upstream provider.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HttpContentType(String);
+
+impl HttpContentType {
+    /// Creates a provider content-type label.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Returns the raw content-type label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for HttpContentType {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
 /// Structured errors produced by LLM runtime clients and utilities.
 #[derive(Debug, Error)]
 pub enum LlmError {
@@ -35,7 +59,7 @@ pub enum LlmError {
         /// HTTP status code from provider.
         status: StatusCode,
         /// Response content type.
-        content_type: String,
+        content_type: HttpContentType,
         /// Sanitized provider reason.
         reason: String,
     },
@@ -47,7 +71,7 @@ pub enum LlmError {
         /// HTTP status code from provider.
         status: StatusCode,
         /// Response content type.
-        content_type: String,
+        content_type: HttpContentType,
         /// Sanitized body preview.
         body_preview: String,
         /// JSON decode error.

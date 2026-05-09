@@ -15,7 +15,7 @@ use super::{
     materialize_hybrid_page_ocr_resource_batch_from_results, order_ocr_results_by_inputs,
     pdf_ocr_endpoint_urls, pdf_source_page_is_backend_text_topup_profile,
     pdf_source_page_is_fast_profile_risk, pdf_source_page_requires_structure_authority,
-    read_arrow_file, recover_failed_page_ocr_results,
+    pdf_source_page_structure_cost, read_arrow_file, recover_failed_page_ocr_results,
     scheduled_inputs_without_docling_page_range_fallback_pages, source_pdf_page_profiles_cached,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::transport::{
@@ -318,6 +318,7 @@ pub(super) async fn materialize_docling_page_range_resource_batch(
         hybrid_page_ocr_profile_planner(),
         Path::new(render_report.source_path.as_str()),
         target_chunk_count,
+        endpoint_count,
         &|key| std::env::var(key).ok(),
     )?;
     let source_profiles =
@@ -437,6 +438,15 @@ fn page_range_source_profile_summary(
         estimated_weight_max: page_profiles
             .iter()
             .map(|profile| profile.estimated_weight)
+            .max()
+            .unwrap_or(0),
+        estimated_structure_cost_total: page_profiles
+            .iter()
+            .map(|profile| u64::from(pdf_source_page_structure_cost(profile)))
+            .sum(),
+        estimated_structure_cost_max: page_profiles
+            .iter()
+            .map(|profile| pdf_source_page_structure_cost(profile))
             .max()
             .unwrap_or(0),
         content_bytes_total: page_profiles

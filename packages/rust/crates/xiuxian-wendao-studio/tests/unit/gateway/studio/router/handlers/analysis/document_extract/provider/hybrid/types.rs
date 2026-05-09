@@ -72,6 +72,21 @@ fn ocr2_region_render_chunk_mode_accepts_region() {
 }
 
 #[test]
+fn ocr2_region_render_chunk_mode_accepts_region_seed_page() {
+    assert_eq!(
+        hybrid_page_ocr2_region_render_chunk_mode_with_lookup(&|key| {
+            (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK_ENV)
+                .then(|| "region_seed_page".to_string())
+        }),
+        HybridPdfOcr2RegionRenderChunkMode::RegionSeedPage
+    );
+    assert_eq!(
+        HybridPdfOcr2RegionRenderChunkMode::RegionSeedPage.as_str(),
+        "region-seed-page"
+    );
+}
+
+#[test]
 fn ocr2_region_render_chunk_mode_accepts_all() {
     assert_eq!(
         hybrid_page_ocr2_region_render_chunk_mode_with_lookup(&|key| {

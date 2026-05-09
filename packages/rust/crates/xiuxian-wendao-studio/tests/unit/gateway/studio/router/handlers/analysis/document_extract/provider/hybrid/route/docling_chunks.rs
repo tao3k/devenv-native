@@ -209,6 +209,27 @@ fn docling_structure_recovery_preserves_tail_when_spending_extra_chunk() {
 }
 
 #[test]
+fn docling_structure_recovery_spends_extra_chunk_on_structure_cost() {
+    let pages = std::collections::BTreeSet::from([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    let profiles = vec![
+        sample_source_page_profile(0, 30),
+        sample_source_page_profile(1, 30),
+        sample_source_page_profile_with_path_ops(2, 30, 80),
+        sample_source_page_profile(3, 80),
+        sample_source_page_profile(4, 80),
+        sample_source_page_profile(5, 80),
+        sample_source_page_profile(6, 30),
+        sample_source_page_profile(7, 30),
+        sample_source_page_profile(8, 30),
+    ];
+
+    assert_eq!(
+        weighted_docling_page_range_fallback_ranges(&pages, profiles.as_slice(), 4),
+        Some(vec![(0, 1), (2, 2), (3, 5), (6, 8)])
+    );
+}
+
+#[test]
 fn docling_page_range_plan_records_decision_metadata() -> Result<(), String> {
     let pages = std::collections::BTreeSet::from([0, 1, 2, 3, 4, 5, 6, 7, 8]);
 
@@ -216,6 +237,7 @@ fn docling_page_range_plan_records_decision_metadata() -> Result<(), String> {
         &pages,
         HybridPdfOcrProfilePlanner::DoclingStructureRecovery,
         Path::new("missing.pdf"),
+        4,
         4,
         &|_key| Some("1:3,4:4,5:6,7:9".to_string()),
     )?;
@@ -227,6 +249,8 @@ fn docling_page_range_plan_records_decision_metadata() -> Result<(), String> {
     assert_eq!(plan.range_count, 4);
     assert_eq!(plan.chunk_size, None);
     assert!(!plan.source_profile_used);
+    assert_eq!(plan.estimated_structure_cost_total, 0);
+    assert_eq!(plan.structure_authority_required_count, 0);
     assert_eq!(plan.ranges[0].one_based_start, 1);
     assert_eq!(plan.ranges[3].one_based_end, 9);
 

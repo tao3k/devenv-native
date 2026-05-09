@@ -7,8 +7,12 @@ use std::process::Command;
 
 use serde_json::{Value, json};
 
+use super::search_strategy_flow_candidates::{
+    SearchStrategyFlowCandidateInputBatch, search_strategy_flow_candidate_input_batch_from_markdown,
+};
 use super::search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
+    search_strategy_flow_candidate_input_batch_from_repo_search,
 };
 use super::service_runtime::repo_root;
 
@@ -34,6 +38,8 @@ using WendaoGraph
 
 intent = ARGS[1]
 search_root = ARGS[2]
+candidate_input_tsv = length(ARGS) >= 3 ? ARGS[3] : ""
+candidate_input_source_hint = length(ARGS) >= 4 ? ARGS[4] : ""
 
 function json_escape(value)
     text = string(value)
@@ -125,8 +131,75 @@ function doc_context_cost(candidate_id)
     max(1, ceil(Int, sizeof(text) / 20))
 end
 
-function doc_candidate(relative_path, heading_anchor; evidence_coverage, graph_score, authority_score, structural_score, uncertainty, blocked=false, edge_kinds=("anchor", "linkography", "authority"))
+function unescape_candidate_field(value)
+    buffer = IOBuffer()
+    escaped = false
+    for char in value
+        if escaped
+            if char == 't'
+                print(buffer, '\t')
+            elseif char == 'n'
+                print(buffer, '\n')
+            elseif char == 'r'
+                print(buffer, '\r')
+            elseif char == '\\'
+                print(buffer, '\\')
+            else
+                print(buffer, char)
+            end
+            escaped = false
+        elseif char == '\\'
+            escaped = true
+        else
+            print(buffer, char)
+        end
+    end
+    escaped && print(buffer, '\\')
+    String(take!(buffer))
+end
+
+function parse_candidate_bool(value)
+    normalized = lowercase(strip(value))
+    normalized == "true" && return true
+    normalized == "false" && return false
+    error("invalid SearchStrategyFlow candidate bool: $value")
+end
+
+function parse_candidate_inputs(payload)
+    rows = NamedTuple[]
+    isempty(strip(payload)) && return rows
+
+    for (line_number, line) in enumerate(split(payload, '\n'; keepempty=false))
+        fields = split(line, '\t'; keepempty=true)
+        length(fields) == 13 || error("candidate input TSV row $line_number expected 13 fields, got $(length(fields))")
+        decoded = unescape_candidate_field.(fields)
+        edge_kinds = isempty(decoded[13]) ? String[] : String.(split(decoded[13], ','; keepempty=false))
+        push!(
+            rows,
+            (
+                relative_path = decoded[1],
+                heading_anchor = decoded[2],
+                title = decoded[3],
+                line_start = parse(Int, decoded[4]),
+                line_end = parse(Int, decoded[5]),
+                context_cost = parse(Int, decoded[6]),
+                evidence_coverage = parse(Float64, decoded[7]),
+                graph_score = parse(Float64, decoded[8]),
+                authority_score = parse(Float64, decoded[9]),
+                structural_score = parse(Float64, decoded[10]),
+                uncertainty = parse(Float64, decoded[11]),
+                blocked = parse_candidate_bool(decoded[12]),
+                edge_kinds = edge_kinds,
+            ),
+        )
+    end
+
+    rows
+end
+
+function doc_candidate(relative_path, heading_anchor; evidence_coverage, graph_score, authority_score, structural_score, uncertainty, blocked=false, edge_kinds=("anchor", "linkography", "authority"), context_cost_override=nothing)
     candidate_id = "$(relative_path)#$(heading_anchor)"
+    context_cost_value = context_cost_override === nothing ? doc_context_cost(candidate_id) : context_cost_override
     (
         candidate_id = candidate_id,
         candidate_kind = "markdown_heading_section",
@@ -137,9 +210,24 @@ function doc_candidate(relative_path, heading_anchor; evidence_coverage, graph_s
         authority_score = authority_score,
         semantic_score = 0.0,
         structural_score = structural_score,
-        context_cost = doc_context_cost(candidate_id),
+        context_cost = context_cost_value,
         uncertainty = uncertainty,
         blocked = blocked,
+    )
+end
+
+function doc_candidate_from_input(input)
+    doc_candidate(
+        input.relative_path,
+        input.heading_anchor;
+        evidence_coverage = input.evidence_coverage,
+        graph_score = input.graph_score,
+        authority_score = input.authority_score,
+        structural_score = input.structural_score,
+        uncertainty = input.uncertainty,
+        blocked = input.blocked,
+        edge_kinds = input.edge_kinds,
+        context_cost_override = input.context_cost,
     )
 end
 
@@ -156,49 +244,55 @@ normalized_intent = lowercase(intent)
 strategy_weight = occursin("strategy", normalized_intent) || occursin("search", normalized_intent) || occursin("flow", normalized_intent) ? 0.04 : 0.0
 page_index_weight = occursin("page", normalized_intent) || occursin("index", normalized_intent) ? 0.03 : 0.0
 
-candidates = [
-    doc_candidate(
-        "docs/30_search_strategy/30.01_search_strategy_flow.md",
-        "stage-1-query-understanding";
-        evidence_coverage = min(1.0, 0.94 + strategy_weight),
-        graph_score = min(1.0, 0.91 + strategy_weight),
-        authority_score = 0.93,
-        structural_score = 0.90,
-        uncertainty = 0.09,
-        edge_kinds = ("anchor", "search-strategy", "authority", "page-index"),
-    ),
-    doc_candidate(
-        "docs/20_page_index/20.01_reasoning_tree_contracts.md",
-        "relationship-to-search-strategy";
-        evidence_coverage = min(1.0, 0.76 + page_index_weight),
-        graph_score = min(1.0, 0.80 + page_index_weight),
-        authority_score = 0.84,
-        structural_score = 0.88,
-        uncertainty = 0.22,
-        edge_kinds = ("anchor", "page-index", "evidence-plane"),
-    ),
-    doc_candidate(
-        "docs/10_graph_compute/10.01_link_graph_compute.md",
-        "how-this-helps-linkgraph-search";
-        evidence_coverage = 0.63,
-        graph_score = 0.79,
-        authority_score = 0.70,
-        structural_score = 0.66,
-        uncertainty = 0.34,
-        edge_kinds = ("linkography", "graph-compute", "supporting-evidence"),
-    ),
-    doc_candidate(
-        "docs/90_validation/90.01_validation.md",
-        "promotion-boundary";
-        evidence_coverage = 0.74,
-        graph_score = 0.65,
-        authority_score = 0.82,
-        structural_score = 0.72,
-        uncertainty = 0.18,
-        blocked = true,
-        edge_kinds = ("validation", "negative-guard"),
-    ),
-]
+function fixed_proof_candidates()
+    [
+        doc_candidate(
+            "docs/30_search_strategy/30.01_search_strategy_flow.md",
+            "stage-1-query-understanding";
+            evidence_coverage = min(1.0, 0.94 + strategy_weight),
+            graph_score = min(1.0, 0.91 + strategy_weight),
+            authority_score = 0.93,
+            structural_score = 0.90,
+            uncertainty = 0.09,
+            edge_kinds = ("anchor", "search-strategy", "authority", "page-index"),
+        ),
+        doc_candidate(
+            "docs/20_page_index/20.01_reasoning_tree_contracts.md",
+            "relationship-to-search-strategy";
+            evidence_coverage = min(1.0, 0.76 + page_index_weight),
+            graph_score = min(1.0, 0.80 + page_index_weight),
+            authority_score = 0.84,
+            structural_score = 0.88,
+            uncertainty = 0.22,
+            edge_kinds = ("anchor", "page-index", "evidence-plane"),
+        ),
+        doc_candidate(
+            "docs/10_graph_compute/10.01_link_graph_compute.md",
+            "how-this-helps-linkgraph-search";
+            evidence_coverage = 0.63,
+            graph_score = 0.79,
+            authority_score = 0.70,
+            structural_score = 0.66,
+            uncertainty = 0.34,
+            edge_kinds = ("linkography", "graph-compute", "supporting-evidence"),
+        ),
+        doc_candidate(
+            "docs/90_validation/90.01_validation.md",
+            "promotion-boundary";
+            evidence_coverage = 0.74,
+            graph_score = 0.65,
+            authority_score = 0.82,
+            structural_score = 0.72,
+            uncertainty = 0.18,
+            blocked = true,
+            edge_kinds = ("validation", "negative-guard"),
+        ),
+    ]
+end
+
+candidate_inputs = parse_candidate_inputs(candidate_input_tsv)
+candidate_input_source = isempty(candidate_inputs) ? "fixed-proof-fallback" : (isempty(candidate_input_source_hint) ? "rust-markdown-headings" : candidate_input_source_hint)
+candidates = isempty(candidate_inputs) ? fixed_proof_candidates() : doc_candidate_from_input.(candidate_inputs)
 
 rows = strategy_flow_candidate_rows(
     candidates;
@@ -381,8 +475,8 @@ summary = json_object((
 ))
 validation = json_object((
     "noVectorMode" => all(row.semantic_score == 0.0 for row in rows),
-    "materializedTopCandidate" => any(row.action_kind == "materialize" && row.candidate_id == "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding" for row in actions),
-    "blockedEvidencePruned" => any(row.candidate_id == "docs/90_validation/90.01_validation.md#promotion-boundary" && !row.selected for row in frontier),
+    "materializedTopCandidate" => any(row.action_kind == "materialize" && row.candidate_id in selected_ids for row in actions),
+    "blockedEvidencePruned" => all(row -> !row.blocked || !(row.candidate_id in selected_ids), rows),
     "selectedContextReduced" => selected_context < total_context,
 ))
 
@@ -393,6 +487,8 @@ println("{" * join((
     json_pair("juliaProject", json_value(Base.active_project() === nothing ? "" : dirname(Base.active_project()))),
     json_pair("graphProject", json_value(Base.active_project() === nothing ? "" : dirname(Base.active_project()))),
     json_pair("searchRoot", json_value(search_root)),
+    json_pair("candidateInputSource", json_value(candidate_input_source)),
+    json_pair("candidateInputCount", json_value(length(candidate_inputs))),
     json_pair("queryUnderstanding", "[" * join(query_understanding_json.(query_understanding), ",") * "]"),
     json_pair("strategyBudget", strategy_budget_json(strategy_budget)),
     json_pair("stageReceipts", "[" * join(stage_receipt_json.(stage_receipts), ",") * "]"),
@@ -873,7 +969,7 @@ pub struct WendaoGraphLinkGraphFullStructuralHostProbeReport {
     pub topology_community_frontier_rows: usize,
 }
 
-/// Adds Rust-owned SearchStrategyFlow retrieval-route plans to a
+/// Adds Rust-owned `SearchStrategyFlow` retrieval-route plans to a
 /// `WendaoGraph.jl` trace.
 ///
 /// The Julia side remains the owner of query understanding, graph scoring,
@@ -895,7 +991,7 @@ pub fn enrich_wendaograph_search_strategy_flow_retrieval_routes(
     serialize_search_strategy_flow_trace(&value)
 }
 
-/// Adds Rust-owned SearchStrategyFlow retrieval-route plans to a trace, then
+/// Adds Rust-owned `SearchStrategyFlow` retrieval-route plans to a trace, then
 /// executes them through a real Arrow Flight endpoint.
 ///
 /// # Errors
@@ -943,7 +1039,20 @@ pub async fn run_wendaograph_search_strategy_flow_json_with_flight_materializati
     search_root: impl Into<PathBuf>,
     config: Option<SearchStrategyFlowFlightMaterializationConfig>,
 ) -> Result<String, String> {
-    let trace = run_wendaograph_search_strategy_flow_raw_json(intent, search_root)?;
+    validate_search_strategy_flow_intent(intent)?;
+    let search_root = search_root.into();
+    let trace = match config.as_ref() {
+        Some(config) => {
+            let candidate_batch =
+                search_strategy_flow_candidate_input_batch_from_repo_search(intent, config).await?;
+            run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
+                intent,
+                search_root.as_path(),
+                candidate_batch,
+            )?
+        }
+        None => run_wendaograph_search_strategy_flow_raw_json(intent, search_root.as_path())?,
+    };
     match config {
         Some(config) => {
             enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
@@ -959,13 +1068,37 @@ fn run_wendaograph_search_strategy_flow_raw_json(
     intent: &str,
     search_root: impl Into<PathBuf>,
 ) -> Result<String, String> {
-    if intent.trim().is_empty() {
-        return Err("SearchStrategyFlow intent must not be blank".to_owned());
-    }
+    validate_search_strategy_flow_intent(intent)?;
+    let search_root = search_root.into();
+    let search_root =
+        resolve_existing_path("WendaoGraph SearchStrategyFlow search root", search_root)?;
+    let candidate_batch =
+        search_strategy_flow_candidate_input_batch_from_markdown(intent, search_root.as_path())?;
+    run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
+        intent,
+        search_root.as_path(),
+        candidate_batch,
+    )
+}
+
+fn run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+    candidate_batch: SearchStrategyFlowCandidateInputBatch,
+) -> Result<String, String> {
+    validate_search_strategy_flow_intent(intent)?;
 
     let julia_project = wendaograph_julia_project()?;
     let search_root =
         resolve_existing_path("WendaoGraph SearchStrategyFlow search root", search_root)?;
+    debug_assert_eq!(
+        candidate_batch.row_count,
+        candidate_batch
+            .tsv
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .count()
+    );
     let julia_command = env::var("JULIA").unwrap_or_else(|_| "julia".to_owned());
     let output = Command::new(julia_command)
         .arg(format!("--project={}", julia_project.display()))
@@ -974,6 +1107,8 @@ fn run_wendaograph_search_strategy_flow_raw_json(
         .arg(SEARCH_STRATEGY_FLOW_JULIA)
         .arg(intent)
         .arg(search_root)
+        .arg(candidate_batch.tsv)
+        .arg(candidate_batch.source)
         .output()
         .map_err(|error| format!("spawn WendaoGraph SearchStrategyFlow host request: {error}"))?;
 
@@ -991,6 +1126,13 @@ fn run_wendaograph_search_strategy_flow_raw_json(
         return Err("WendaoGraph SearchStrategyFlow host request returned empty output".to_owned());
     }
     Ok(trace.to_owned())
+}
+
+fn validate_search_strategy_flow_intent(intent: &str) -> Result<(), String> {
+    if intent.trim().is_empty() {
+        return Err("SearchStrategyFlow intent must not be blank".to_owned());
+    }
+    Ok(())
 }
 
 fn add_search_strategy_flow_retrieval_routes(value: &mut Value) -> Result<(), String> {

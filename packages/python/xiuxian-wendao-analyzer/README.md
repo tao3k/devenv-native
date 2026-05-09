@@ -445,17 +445,34 @@ baseline.
 The benchmark can additionally pass
 `--rust-pdf-local-backend-text rust-lopdf` to let the Rust provider satisfy
 `docling-backend-text-ocr-v1` rows with the attachment-owned `lopdf`
-source-text helper. The current promoted OpenRouter canary combines that helper
-with `mistralai/ministral-3b-2512`, source-run-parallel top-up dispatch,
-endpoint-`0` Docling fast-text prewarm, `single-page-first` fast-text
-affinity, region trim, and a `4s` hosted hedge: zero error rows, stable `27`
-rows, `21/6` page/region OCR blocks, `metricsResultChars=107562`, force
-refresh `8201.568417 ms`, shard-cache reuse `123.758583 ms`, artifact reuse
-`157.076542 ms`, hosted request wall span `5598 ms`, and hosted request p95
-`5225.923 ms`. It preserves the frozen character floor and is the current best
-sample below the locked `12856.546292 ms` baseline. The older 2026-05-07
-OpenRouter r59/r60 evidence remains historical at best `9363.09725 ms` and
-promoted repeat `12130.139833 ms`.
+source-text helper. The current promoted OpenRouter canary does not require
+that helper: it uses `mistralai/ministral-3b-2512`, render-dispatch with
+render-ahead `3`, region trim, and an explicit `2s` hosted hedge. Two May 9,
+2026 milestone runs preserved zero error rows, stable `27` rows, `21/6`
+page/region OCR blocks, and the frozen character floor: best force refresh
+`7338.796584 ms` with `metricsResultChars=115735`, and repeat force refresh
+`8322.027792 ms` with `metricsResultChars=115925`. The hosted request wall
+span was `5166 ms` and `6140 ms`; both runs used `12` HTTP attempts for `6`
+logical hosted region requests, so this remains an explicit benchmark profile
+decision rather than a global default. The older endpoint-local `4s` hedge
+sample at `8201.568417 ms` and the 2026-05-07 r59/r60 evidence remain
+historical regression controls. A same-shape `1s` hedge canary stayed
+precision-valid at `8562.0245 ms` but did not beat the `2s` envelope.
+The latest follow-up canaries keep the same active envelope. Disabling
+fast-text top-up is rejected because it preserved row/order checks but dropped
+`metricsResultChars` to `100981`, below the frozen `103984` floor. Page `5`
+prewarm plus `single-page-first` affinity measured `8516.511291 ms` with the
+precision gate intact, but did not beat the `8322.027792 ms` repeat. Composite
+size `3` reduced hosted requests to `4`, but hosted p95 reached `8528.296 ms`
+and force refresh regressed to `10797.20775 ms`. Region render chunk mode
+`region` improved first region readiness to about `0.70-0.72s`, but the two
+precision-valid repeats measured `8202.969708 ms` and `8927.807167 ms`, so it
+remains diagnostic instead of replacing page-grouped region chunks.
+`region-seed-page` is the next opt-in chunk-shape canary: Rust renders the
+smallest recovery region first, then renders the remaining regions grouped by
+page. The analyzer sees the same OCR shard rows and request schema; promotion
+still depends on the normal row/order, character-floor, hosted-tail, and
+precision gates.
 `--rust-pdf-local-backend-text-empty fail-fast` is a diagnostic scheduler
 canary for source-page-range placeholder rows. When Rust `lopdf` proves a
 `docling-backend-text-ocr-v1` source page has empty backend text, or cannot
@@ -487,8 +504,9 @@ Rust provider escalates to full-document fallback. The default remains
 because compatible page Markdown may not preserve full-document structure.
 `--rust-pdf-backend-text-topup disabled` is a separate character-floor
 diagnostic. It is rejected for the current milestone fixture because disabling
-top-up drops `metricsResultChars` below the frozen floor; the default remains
-`profile`.
+top-up drops `metricsResultChars` below the frozen floor; the current-rev
+canary measured `100981` result characters at `9169.448167 ms`. The default
+remains `profile`.
 `--rust-pdf-backend-text-topup hosted-vlm` is a full-page hosted VLM/OCR
 top-up replacement canary. It is rejected for the milestone fixture because
 force refresh regressed to `35374.309 ms` and `metricsResultChars=91265` fell
@@ -519,13 +537,17 @@ accepted as endpoint-locality evidence. A 2026-05-08 control without
 endpoint-local prewarm and affinity regressed to `22329.780375 ms`, with page
 `5` fast-text source-range work tailing at `20193.906625 ms`; restoring the r70
 shape brought the canary back to `10164.795292 ms` with a `5s` hosted hedge,
-and tightening only the hosted hedge to `4s` produced the current promoted
-`8201.568417 ms` sample. r71 prewarmed endpoints `0-3` and reduced the page
+and tightening only the hosted hedge to `4s` produced the previous promoted
+`8201.568417 ms` sample. Current-rev `2s` hedge repeats now supersede it as
+the active OpenRouter region-recovery envelope. r71 prewarmed endpoints `0-3`
+and reduced the page
 `11-13` fast-text chunk to `5972.05625 ms`, but force refresh regressed to
 `10336.721667 ms` because the hosted region tail dominated.
-The later Ministral same-page region composite size `3` diagnostic preserved
-precision but is rejected: the page `12` three-region composite request tailed
-at `14430.981 ms`, and force refresh regressed to `17806.492208 ms`.
+The later Ministral same-page region composite size `3` diagnostics preserved
+precision but remain rejected. The older page `12` three-region composite
+request tailed at `14430.981 ms` and force refresh regressed to
+`17806.492208 ms`; the current-rev repeat reduced hosted requests to `4` but
+still measured `10797.20775 ms` force refresh with hosted p95 `8528.296 ms`.
 The r83 composite repeat with source split and endpoint affinity failed before
 OCR metrics with a Flight `BrokenPipe`, so region composite remains a
 provider-stability canary rather than a promoted OpenRouter optimization. The
@@ -600,6 +622,15 @@ benchmark control rather than a new routing default. The first May 8, 2026
 tail-splitting canary with that plan preserved Docling structure parity but
 regressed to `18912.534209 ms`, so the accepted default remains three-page
 chunks.
+For automatic high-cost diagnostics,
+`--rust-pdf-docling-page-range-structure-cost-budget` forwards
+`WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET` to Rust.
+When set, Rust may split automatic `docling-structure-recovery` fallback ranges
+whose source-profile structure cost exceeds the budget. The split may spend
+spare document-extract endpoint capacity, but it must remain a single Docling
+execution wave; without spare capacity Rust keeps the capped range shape. The
+flag is disabled by default and is only a benchmark-visible diagnostic control;
+structure parity, row order, and precision gates still decide promotion.
 Set `WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE=profile` only for explicit
 page-range benchmark probes that need to test whether reusing a Docling
 converter across Flight document-extract calls reduces conversion setup cost.
@@ -652,12 +683,24 @@ reading order before validating rows and writing result artifacts.
 Pass `--rust-pdf-hosted-vlm-region-render-chunk region` only as a chunk-shape
 diagnostic. It asks Rust to render each recovery region as an independent
 chunk rather than grouping regions by page, so the first hosted request can be
-dispatched as soon as the first region is ready. The milestone canary preserved
-zero errors, stable order, `27` rows, `21/6` page/region blocks, and the frozen
-character floor, but force refresh regressed to `14942.6205 ms`; therefore the
-default remains page-grouped chunks. The all-region render chunk diagnostic is
-also rejected because it delayed first hosted dispatch to `12528.588583 ms` and
-regressed force refresh to `21670.3075 ms`.
+dispatched as soon as the first region is ready. Current-rev milestone repeats
+preserved zero errors, stable order, `27` rows, `21/6` page/region blocks, and
+the frozen character floor while moving first region readiness to about
+`0.70-0.72s`; force refresh still measured `8202.969708 ms` and
+`8927.807167 ms`, so the default remains page-grouped chunks. The all-region
+render chunk diagnostic is also rejected because it delayed first hosted
+dispatch to `12528.588583 ms` and regressed force refresh to `21670.3075 ms`.
+Pass `--rust-pdf-hosted-vlm-region-render-chunk region-seed-page` for the
+middle-ground canary: one smallest-area region becomes an early seed request,
+and all remaining recovery regions stay page-grouped. This is intended to test
+whether early hosted dispatch can be recovered without the full tail cost of
+splitting every region. The first explicit PDFium OpenRouter gate passed the
+precision gate with zero error rows, stable `27` rows, `21/6` page/region OCR
+blocks, and the frozen character floor. The measured pair is
+`8250.492790999999 ms` with `metricsResultChars=116286`, then
+`8445.105417 ms` with `metricsResultChars=116270`. It remains a canary because
+it has not beaten the active `7338.796584/8322.027792 ms` envelope and cannot
+replace page-grouped chunks yet.
 Region rows use
 `WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS`,
 defaulting to 2048 and clamped by `WENDAO_HOSTED_VLM_OCR_MAX_TOKENS`, so a
@@ -701,7 +744,7 @@ and returns the first valid Markdown response. This is a tail-latency guard for
 cloud OCR providers; it does not change the Arrow schema or validation gates,
 and benchmark traces report both logical requests and HTTP attempt counts so
 request-cost evidence stays visible. The current promoted OpenRouter region
-canary pins this delay at `4s`; this is benchmark evidence, not a global
+canary pins this delay at `2s`; this is benchmark evidence, not a global
 default change. Set
 `WENDAO_HOSTED_VLM_OCR_TRACE_PATH` to a JSONL file when a benchmark needs
 request-level latency, HTTP status, image-byte, Markdown character,

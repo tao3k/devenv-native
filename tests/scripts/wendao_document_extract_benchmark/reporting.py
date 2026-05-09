@@ -409,6 +409,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`{payload.get('rustPdfDoclingPageRangeProfile', 'full')}`",
         "- Rust PDF Docling page-range hedge delay ms: "
         f"`{payload.get('rustPdfDoclingPageRangeHedgeDelayMs')}`",
+        "- Rust PDF Docling page-range structure-cost budget: "
+        f"`{payload.get('rustPdfDoclingPageRangeStructureCostBudget')}`",
         "- Rust PDF Docling text-shortcut promotion: "
         f"`{payload.get('rustPdfDoclingTextShortcutPromotion', 'range-fill')}`",
         f"- Rust PDF local backend text: `{payload.get('rustPdfLocalBackendText')}`",

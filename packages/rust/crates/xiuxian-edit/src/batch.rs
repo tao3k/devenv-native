@@ -7,7 +7,7 @@
 //! processes thousands of files concurrently.
 
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -62,6 +62,43 @@ pub struct BatchConfig {
     pub skip_dirs: Vec<String>,
 }
 
+struct BatchRunState {
+    files_scanned: AtomicUsize,
+    files_changed: AtomicUsize,
+    total_replacements: AtomicUsize,
+    modified_files: Mutex<Vec<String>>,
+    errors: Mutex<HashMap<String, String>>,
+}
+
+impl BatchRunState {
+    fn new() -> Self {
+        Self {
+            files_scanned: AtomicUsize::new(0),
+            files_changed: AtomicUsize::new(0),
+            total_replacements: AtomicUsize::new(0),
+            modified_files: Mutex::new(Vec::new()),
+            errors: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn into_stats(self) -> BatchRefactorStats {
+        let mut stats = BatchRefactorStats::new();
+        stats.files_scanned = self.files_scanned.load(Ordering::Relaxed);
+        stats.files_changed = self.files_changed.load(Ordering::Relaxed);
+        stats.replacements = self.total_replacements.load(Ordering::Relaxed);
+        stats.modified_files = self
+            .modified_files
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        stats.modified_files.sort();
+        stats.errors = self
+            .errors
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        stats
+    }
+}
+
 impl Default for BatchConfig {
     fn default() -> Self {
         Self {
@@ -97,109 +134,133 @@ impl StructuralEditor {
         rewrite_pattern: &str,
         config: &BatchConfig,
     ) -> BatchRefactorStats {
-        let files_scanned = AtomicUsize::new(0);
-        let files_changed = AtomicUsize::new(0);
-        let total_replacements = AtomicUsize::new(0);
-        let modified_files = Mutex::new(Vec::new());
-        let errors = Mutex::new(HashMap::new());
-
-        // Determine thread count
-        let num_workers = if config.workers > 0 {
-            config.workers
-        } else {
-            rayon::current_num_threads()
-        };
-
-        // Collect files first (simple approach)
-        let files: Vec<_> = ignore::WalkBuilder::new(root)
-            .threads(num_workers)
-            .build()
-            .filter_map(|result| {
-                let Ok(entry) = result else { return None };
-                let path = entry.path();
-                if !path.is_file() {
-                    return None;
-                }
-                // Check skip directories
-                for skip_dir in &config.skip_dirs {
-                    if let Some(parent) = path.parent() {
-                        for component in parent.components() {
-                            if let std::path::Component::Normal(os_str) = component
-                                && os_str.to_string_lossy() == *skip_dir
-                            {
-                                return None;
-                            }
-                        }
-                    }
-                }
-                // Check glob pattern
-                if !matches_glob(path, &config.file_pattern) {
-                    return None;
-                }
-                Some(path.to_path_buf())
-            })
-            .collect();
-
-        // Process files in parallel
-        files.into_par_iter().for_each(|path| {
-            files_scanned.fetch_add(1, Ordering::Relaxed);
-
-            let content = match std::fs::read_to_string(&path) {
-                Ok(c) => c,
-                Err(e) => {
-                    errors
-                        .lock()
-                        .unwrap_or_else(std::sync::PoisonError::into_inner)
-                        .insert(path.display().to_string(), format!("Read error: {e}"));
-                    return;
-                }
-            };
-
-            let lang = detect_language(&path);
-
-            match StructuralEditor::replace(&content, search_pattern, rewrite_pattern, &lang) {
-                Ok(result) => {
-                    if result.count > 0 {
-                        files_changed.fetch_add(1, Ordering::Relaxed);
-                        total_replacements.fetch_add(result.count, Ordering::Relaxed);
-                        modified_files
-                            .lock()
-                            .unwrap_or_else(std::sync::PoisonError::into_inner)
-                            .push(path.display().to_string());
-
-                        if !config.dry_run
-                            && let Err(e) = std::fs::write(&path, &result.modified)
-                        {
-                            errors
-                                .lock()
-                                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                                .insert(path.display().to_string(), format!("Write error: {e}"));
-                        }
-                    }
-                }
-                Err(e) => {
-                    errors
-                        .lock()
-                        .unwrap_or_else(std::sync::PoisonError::into_inner)
-                        .insert(path.display().to_string(), format!("Edit error: {e}"));
-                }
-            }
-        });
-
-        let mut stats = BatchRefactorStats::new();
-        stats.files_scanned = files_scanned.load(Ordering::Relaxed);
-        stats.files_changed = files_changed.load(Ordering::Relaxed);
-        stats.replacements = total_replacements.load(Ordering::Relaxed);
-        stats.modified_files = modified_files
-            .into_inner()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        stats.modified_files.sort();
-        stats.errors = errors
-            .into_inner()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-
-        stats
+        batch_replace_internal(root, search_pattern, rewrite_pattern, config)
     }
+}
+
+fn batch_replace_internal(
+    root: &Path,
+    search_pattern: &str,
+    rewrite_pattern: &str,
+    config: &BatchConfig,
+) -> BatchRefactorStats {
+    let files = collect_batch_files(root, config);
+    let state = BatchRunState::new();
+    process_batch_files(files, search_pattern, rewrite_pattern, config, &state);
+    state.into_stats()
+}
+
+fn collect_batch_files(root: &Path, config: &BatchConfig) -> Vec<PathBuf> {
+    ignore::WalkBuilder::new(root)
+        .threads(resolve_worker_count(config))
+        .build()
+        .filter_map(|entry| accepted_batch_file(entry.ok()?.path(), config))
+        .collect()
+}
+
+fn resolve_worker_count(config: &BatchConfig) -> usize {
+    if config.workers > 0 {
+        config.workers
+    } else {
+        rayon::current_num_threads()
+    }
+}
+
+fn accepted_batch_file(path: &Path, config: &BatchConfig) -> Option<PathBuf> {
+    if path.is_file()
+        && !is_skipped_path(path, &config.skip_dirs)
+        && matches_glob(path, &config.file_pattern)
+    {
+        Some(path.to_path_buf())
+    } else {
+        None
+    }
+}
+
+fn is_skipped_path(path: &Path, skip_dirs: &[String]) -> bool {
+    path.parent().is_some_and(|parent| {
+        parent.components().any(|component| {
+            let std::path::Component::Normal(os_str) = component else {
+                return false;
+            };
+            skip_dirs.iter().any(|skip_dir| os_str == skip_dir.as_str())
+        })
+    })
+}
+
+fn process_batch_files(
+    files: Vec<PathBuf>,
+    search_pattern: &str,
+    rewrite_pattern: &str,
+    config: &BatchConfig,
+    state: &BatchRunState,
+) {
+    files.into_par_iter().for_each(|path| {
+        process_batch_file(&path, search_pattern, rewrite_pattern, config, state);
+    });
+}
+
+fn process_batch_file(
+    path: &Path,
+    search_pattern: &str,
+    rewrite_pattern: &str,
+    config: &BatchConfig,
+    state: &BatchRunState,
+) {
+    state.files_scanned.fetch_add(1, Ordering::Relaxed);
+
+    let content = match std::fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(error) => {
+            record_error(state, path, format!("Read error: {error}"));
+            return;
+        }
+    };
+
+    match StructuralEditor::replace(
+        &content,
+        search_pattern,
+        rewrite_pattern,
+        &detect_language(path),
+    ) {
+        Ok(result) if result.count > 0 => {
+            record_changed_file(state, path, result.count, config, &result.modified);
+        }
+        Ok(_) => {}
+        Err(error) => record_error(state, path, format!("Edit error: {error}")),
+    }
+}
+
+fn record_changed_file(
+    state: &BatchRunState,
+    path: &Path,
+    replacement_count: usize,
+    config: &BatchConfig,
+    modified: &str,
+) {
+    state.files_changed.fetch_add(1, Ordering::Relaxed);
+    state
+        .total_replacements
+        .fetch_add(replacement_count, Ordering::Relaxed);
+    state
+        .modified_files
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .push(path.display().to_string());
+
+    if !config.dry_run
+        && let Err(error) = std::fs::write(path, modified)
+    {
+        record_error(state, path, format!("Write error: {error}"));
+    }
+}
+
+fn record_error(state: &BatchRunState, path: &Path, message: String) {
+    state
+        .errors
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(path.display().to_string(), message);
 }
 
 /// Check if a path matches a glob pattern (simplified implementation).

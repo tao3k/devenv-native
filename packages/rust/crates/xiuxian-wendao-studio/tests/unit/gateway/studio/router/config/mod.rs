@@ -28,7 +28,33 @@ plugins = [
     assert_eq!(config.repo_projects[0].id, "sample");
     assert_eq!(
         config.repo_projects[0].plugins,
-        vec!["ast-grep".to_string(), "julia-code-parser".to_string()]
+        vec![
+            "ast-grep".to_string(),
+            "julia-code-parser".to_string(),
+            "markdown-parser".to_string(),
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn load_ui_config_from_wendao_toml_defaults_markdown_parser_for_repo_projects() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        temp.path().join("wendao.toml"),
+        r#"[link_graph.projects.knowledge]
+root = "."
+"#,
+    )?;
+
+    let Some(config) = load_ui_config_from_wendao_toml(temp.path()) else {
+        panic!("ui config should load");
+    };
+    assert_eq!(config.repo_projects.len(), 1);
+    assert_eq!(config.repo_projects[0].id, "knowledge");
+    assert_eq!(
+        config.repo_projects[0].plugins,
+        vec!["markdown-parser".to_string()]
     );
     Ok(())
 }

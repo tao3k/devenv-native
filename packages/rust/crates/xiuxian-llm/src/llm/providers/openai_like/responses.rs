@@ -36,9 +36,39 @@ pub struct OpenAiResponsesToolCall {
     /// Stable call identifier.
     pub id: String,
     /// Tool type reported by provider (defaults to `function`).
-    pub tool_type: String,
+    pub tool_type: OpenAiResponsesToolType,
     /// Function invocation payload.
     pub function: OpenAiResponsesFunctionCall,
+}
+
+/// Tool type reported by the `OpenAI` Responses stream.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OpenAiResponsesToolType(String);
+
+impl OpenAiResponsesToolType {
+    /// Creates a response tool type label.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Returns the raw provider label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl PartialEq<&str> for OpenAiResponsesToolType {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+impl std::fmt::Display for OpenAiResponsesToolType {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
 }
 
 /// Parsed assistant output reconstructed from an `OpenAI` `/responses` stream body.
@@ -546,6 +576,13 @@ pub fn parse_openai_responses_stream(
     raw: &str,
     alias_to_original_tool_name: &HashMap<String, String, impl BuildHasher>,
 ) -> LlmResult<OpenAiResponsesAssistantOutput> {
+    parse_openai_responses_stream_impl(raw, alias_to_original_tool_name)
+}
+
+fn parse_openai_responses_stream_impl(
+    raw: &str,
+    alias_to_original_tool_name: &HashMap<String, String, impl BuildHasher>,
+) -> LlmResult<OpenAiResponsesAssistantOutput> {
     let mut text_deltas = String::new();
     let mut output_text_done = String::new();
     let mut item_message_text = String::new();
@@ -553,65 +590,17 @@ pub fn parse_openai_responses_stream(
     let mut seen_tool_ids = HashSet::new();
     let mut seen_message_keys = HashSet::new();
 
-    for line in raw.lines() {
-        let trimmed = line.trim();
-        if !trimmed.starts_with("data:") {
-            continue;
-        }
-        let payload = trimmed.trim_start_matches("data:").trim();
-        if payload.is_empty() || payload == "[DONE]" {
-            continue;
-        }
-        let event: serde_json::Value = match serde_json::from_str(payload) {
-            Ok(value) => value,
-            Err(_) => continue,
-        };
-        let event_type = event
-            .get("type")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or_default();
-        match event_type {
-            "response.output_text.delta" | "response.text.delta" => {
-                if let Some(delta) = event.get("delta").and_then(serde_json::Value::as_str) {
-                    text_deltas.push_str(delta);
-                }
-            }
-            "response.output_text.done" | "response.text.done" => {
-                if let Some(text) = event.get("text").and_then(serde_json::Value::as_str) {
-                    output_text_done.push_str(text);
-                }
-            }
-            "response.output_item.done" => {
-                if let Some(item) = event.get("item") {
-                    collect_parsed_responses_item(
-                        item,
-                        &mut item_message_text,
-                        &mut tool_calls,
-                        &mut seen_tool_ids,
-                        &mut seen_message_keys,
-                        alias_to_original_tool_name,
-                    );
-                }
-            }
-            "response.completed" => {
-                if let Some(response) = event.get("response")
-                    && let Some(output) =
-                        response.get("output").and_then(serde_json::Value::as_array)
-                {
-                    for item in output {
-                        collect_parsed_responses_item(
-                            item,
-                            &mut item_message_text,
-                            &mut tool_calls,
-                            &mut seen_tool_ids,
-                            &mut seen_message_keys,
-                            alias_to_original_tool_name,
-                        );
-                    }
-                }
-            }
-            _ => {}
-        }
+    let mut state = ResponsesStreamParseState {
+        text_deltas: &mut text_deltas,
+        output_text_done: &mut output_text_done,
+        item_message_text: &mut item_message_text,
+        tool_calls: &mut tool_calls,
+        seen_tool_ids: &mut seen_tool_ids,
+        seen_message_keys: &mut seen_message_keys,
+    };
+
+    for event in raw.lines().filter_map(parse_responses_sse_event) {
+        apply_responses_stream_event(&event, &mut state, alias_to_original_tool_name);
     }
 
     let content = if !item_message_text.trim().is_empty() {
@@ -634,6 +623,103 @@ pub fn parse_openai_responses_stream(
         content,
         tool_calls,
     })
+}
+
+struct ResponsesStreamParseState<'a> {
+    text_deltas: &'a mut String,
+    output_text_done: &'a mut String,
+    item_message_text: &'a mut String,
+    tool_calls: &'a mut Vec<OpenAiResponsesToolCall>,
+    seen_tool_ids: &'a mut HashSet<String>,
+    seen_message_keys: &'a mut HashSet<String>,
+}
+
+fn parse_responses_sse_event(line: &str) -> Option<serde_json::Value> {
+    let trimmed = line.trim();
+    if !trimmed.starts_with("data:") {
+        return None;
+    }
+    let payload = trimmed.trim_start_matches("data:").trim();
+    if payload.is_empty() || payload == "[DONE]" {
+        return None;
+    }
+    serde_json::from_str(payload).ok()
+}
+
+fn apply_responses_stream_event(
+    event: &serde_json::Value,
+    state: &mut ResponsesStreamParseState<'_>,
+    alias_to_original_tool_name: &HashMap<String, String, impl BuildHasher>,
+) {
+    match responses_event_type(event) {
+        "response.output_text.delta" | "response.text.delta" => {
+            append_event_text(event, "delta", state.text_deltas);
+        }
+        "response.output_text.done" | "response.text.done" => {
+            append_event_text(event, "text", state.output_text_done);
+        }
+        "response.output_item.done" => {
+            collect_event_item(event, state, alias_to_original_tool_name);
+        }
+        "response.completed" => {
+            collect_completed_response(event, state, alias_to_original_tool_name);
+        }
+        _ => {}
+    }
+}
+
+fn responses_event_type(event: &serde_json::Value) -> &str {
+    event
+        .get("type")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+}
+
+fn append_event_text(event: &serde_json::Value, field: &str, target: &mut String) {
+    if let Some(text) = event.get(field).and_then(serde_json::Value::as_str) {
+        target.push_str(text);
+    }
+}
+
+fn collect_event_item(
+    event: &serde_json::Value,
+    state: &mut ResponsesStreamParseState<'_>,
+    alias_to_original_tool_name: &HashMap<String, String, impl BuildHasher>,
+) {
+    if let Some(item) = event.get("item") {
+        collect_parsed_responses_item(
+            item,
+            state.item_message_text,
+            state.tool_calls,
+            state.seen_tool_ids,
+            state.seen_message_keys,
+            alias_to_original_tool_name,
+        );
+    }
+}
+
+fn collect_completed_response(
+    event: &serde_json::Value,
+    state: &mut ResponsesStreamParseState<'_>,
+    alias_to_original_tool_name: &HashMap<String, String, impl BuildHasher>,
+) {
+    let Some(output) = event
+        .get("response")
+        .and_then(|response| response.get("output"))
+        .and_then(serde_json::Value::as_array)
+    else {
+        return;
+    };
+    for item in output {
+        collect_parsed_responses_item(
+            item,
+            state.item_message_text,
+            state.tool_calls,
+            state.seen_tool_ids,
+            state.seen_message_keys,
+            alias_to_original_tool_name,
+        );
+    }
 }
 
 fn collect_parsed_responses_item(
@@ -706,7 +792,7 @@ fn collect_parsed_responses_item(
                 .to_string();
             tool_calls.push(OpenAiResponsesToolCall {
                 id: call_id.clone(),
-                tool_type: "function".to_string(),
+                tool_type: OpenAiResponsesToolType::new("function"),
                 function: OpenAiResponsesFunctionCall {
                     name: remap_openai_responses_tool_name(name, alias_to_original_tool_name),
                     arguments,

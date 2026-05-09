@@ -33,6 +33,8 @@ pub struct PdfSourcePageProfile {
 pub struct PdfSourcePageClassification {
     /// Zero-based page index.
     pub page_index: u32,
+    /// Conservative Docling-structure scheduling cost.
+    pub estimated_structure_cost: u32,
     /// Whether Docling must remain the structure authority for this page.
     pub structure_authority_required: bool,
     /// Whether the page is eligible for a high-precision OCR/VLM patch.
@@ -47,6 +49,7 @@ pub fn classify_pdf_source_page(profile: &PdfSourcePageProfile) -> PdfSourcePage
     let structure_authority_required = pdf_source_page_requires_structure_authority(profile);
     PdfSourcePageClassification {
         page_index: profile.page_index,
+        estimated_structure_cost: pdf_source_page_structure_cost(profile),
         structure_authority_required,
         ocr_patch_candidate: pdf_source_page_is_fast_profile_risk(profile),
         text_shortcut_eligible: !structure_authority_required && profile.text_show_ops > 0,
@@ -65,6 +68,31 @@ pub fn classify_pdf_source_pages(
 #[must_use]
 pub fn pdf_source_page_requires_structure_authority(profile: &PdfSourcePageProfile) -> bool {
     profile.draw_object_ops > 0 || profile.rectangle_ops > 0 || profile.path_ops >= 64
+}
+
+/// Return the conservative Docling-structure scheduling cost for one source page.
+#[must_use]
+pub fn pdf_source_page_structure_cost(profile: &PdfSourcePageProfile) -> u32 {
+    let authority_bonus = if pdf_source_page_requires_structure_authority(profile) {
+        256
+    } else {
+        0
+    };
+    let patch_bonus = if pdf_source_page_is_fast_profile_risk(profile) {
+        128
+    } else {
+        0
+    };
+
+    1_u32
+        .saturating_add(profile.estimated_weight.max(1))
+        .saturating_add(profile.operation_count.div_ceil(16))
+        .saturating_add(profile.content_bytes.div_ceil(2048))
+        .saturating_add(profile.path_ops.saturating_mul(3))
+        .saturating_add(profile.rectangle_ops.saturating_mul(12))
+        .saturating_add(profile.draw_object_ops.saturating_mul(96))
+        .saturating_add(authority_bonus)
+        .saturating_add(patch_bonus)
 }
 
 /// Return whether a page matches the existing fast-profile structural risk.

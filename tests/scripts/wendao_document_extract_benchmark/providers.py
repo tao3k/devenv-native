@@ -84,6 +84,18 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS"] = str(
             rust_pdf_docling_page_range_hedge_delay_ms
         )
+    rust_pdf_docling_page_range_structure_cost_budget = getattr(
+        args,
+        "rust_pdf_docling_page_range_structure_cost_budget",
+        None,
+    )
+    if (
+        rust_pdf_docling_page_range_structure_cost_budget
+        and rust_pdf_docling_page_range_structure_cost_budget > 0
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET"] = (
+            str(rust_pdf_docling_page_range_structure_cost_budget)
+        )
     rust_pdf_docling_text_shortcut_promotion = getattr(
         args,
         "rust_pdf_docling_text_shortcut_promotion",

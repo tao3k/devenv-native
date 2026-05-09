@@ -371,6 +371,11 @@ def build_report_payload(
             "rust_pdf_docling_page_range_hedge_delay_ms",
             None,
         ),
+        "rustPdfDoclingPageRangeStructureCostBudget": getattr(
+            args,
+            "rust_pdf_docling_page_range_structure_cost_budget",
+            None,
+        ),
         "rustPdfDoclingTextShortcutPromotion": getattr(
             args,
             "rust_pdf_docling_text_shortcut_promotion",

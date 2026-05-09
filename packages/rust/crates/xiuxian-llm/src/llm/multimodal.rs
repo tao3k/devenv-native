@@ -20,9 +20,39 @@ pub enum MultimodalContentPart {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Base64ImageSource {
     /// MIME type (for example `image/jpeg`).
-    pub media_type: String,
+    pub media_type: ImageMediaType,
     /// Base64-encoded image bytes.
     pub data: String,
+}
+
+/// Typed image MIME label used by multimodal provider adapters.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageMediaType(String);
+
+impl ImageMediaType {
+    /// Creates an image media type label.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Returns the raw MIME label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for ImageMediaType {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl PartialEq<&str> for ImageMediaType {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
 }
 
 fn parse_image_marker_url(marker: &str) -> Option<&str> {
@@ -103,7 +133,7 @@ pub fn parse_data_uri_image_source(uri: &str) -> Option<Base64ImageSource> {
     let (meta, data) = stripped.split_once(',')?;
     let media_type = meta.split(';').next().unwrap_or("image/jpeg");
     Some(Base64ImageSource {
-        media_type: media_type.to_string(),
+        media_type: ImageMediaType::new(media_type),
         data: data.to_string(),
     })
 }
@@ -161,7 +191,10 @@ pub async fn resolve_image_source_to_base64(
     }
 
     let data = base64::engine::general_purpose::STANDARD.encode(bytes.as_ref());
-    Ok(Base64ImageSource { media_type, data })
+    Ok(Base64ImageSource {
+        media_type: ImageMediaType::new(media_type),
+        data,
+    })
 }
 
 fn infer_media_type_from_url(image_url: &str) -> Option<&'static str> {

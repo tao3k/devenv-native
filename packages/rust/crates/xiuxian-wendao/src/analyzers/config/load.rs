@@ -7,7 +7,9 @@ use super::parse::{
     normalize_path, parse_refresh_policy, parse_repository_plugins, parse_repository_ref,
 };
 use super::toml::WendaoTomlConfig;
-use super::types::{RegisteredRepository, RepoIntelligenceConfig};
+use super::types::{RegisteredRepository, RepoIntelligenceConfig, RepositoryPluginConfig};
+
+const DEFAULT_MARKDOWN_PARSER_PLUGIN_ID: &str = "markdown-parser";
 
 /// Load the repo intelligence configuration from the project.
 ///
@@ -40,7 +42,11 @@ pub fn load_repo_intelligence_config(
         .projects
         .into_iter()
         .map(|(id, project)| {
-            let plugins = parse_repository_plugins(project.plugins, &id, &config_path)?;
+            let plugins = repo_intelligence_plugins_with_defaults(parse_repository_plugins(
+                project.plugins,
+                &id,
+                &config_path,
+            )?);
             let path = project
                 .root
                 .as_deref()
@@ -64,7 +70,7 @@ pub fn load_repo_intelligence_config(
                 return Ok(None);
             }
 
-            let mut repository = RegisteredRepository {
+            let repository = RegisteredRepository {
                 id,
                 path,
                 url,
@@ -72,10 +78,6 @@ pub fn load_repo_intelligence_config(
                 refresh: parse_refresh_policy(project.refresh.as_deref()),
                 plugins,
             };
-            if !repository.has_repo_intelligence_plugins() {
-                return Ok(None);
-            }
-            repository.plugins = repository.repo_intelligence_plugins().cloned().collect();
 
             Ok(Some(repository))
         })
@@ -85,4 +87,22 @@ pub fn load_repo_intelligence_config(
         .collect();
 
     Ok(RepoIntelligenceConfig { repos })
+}
+
+fn repo_intelligence_plugins_with_defaults(
+    plugins: Vec<RepositoryPluginConfig>,
+) -> Vec<RepositoryPluginConfig> {
+    let mut repo_plugins = plugins
+        .into_iter()
+        .filter(RepositoryPluginConfig::is_repo_intelligence_plugin)
+        .collect::<Vec<_>>();
+    if !repo_plugins
+        .iter()
+        .any(|plugin| plugin.id() == DEFAULT_MARKDOWN_PARSER_PLUGIN_ID)
+    {
+        repo_plugins.push(RepositoryPluginConfig::Id(
+            DEFAULT_MARKDOWN_PARSER_PLUGIN_ID.to_string(),
+        ));
+    }
+    repo_plugins
 }

@@ -37,6 +37,8 @@ const OCR2_REGION_RENDER_CHUNK_ALL_MODE: &str = "all";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_RENDER_CHUNK_REGION_MODE: &str = "region";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
+const OCR2_REGION_RENDER_CHUNK_REGION_SEED_PAGE_MODE: &str = "region-seed-page";
+#[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_RENDER_CHUNK_PAGE_AREA_DESC_MODE: &str = "page-area-desc";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_RENDER_CHUNK_PAGE_MAX_AREA_DESC_MODE: &str = "page-max-area-desc";
@@ -63,6 +65,7 @@ pub(crate) enum HybridPdfOcr2RegionRenderChunkMode {
     PageAreaDesc,
     PageMaxAreaDesc,
     Region,
+    RegionSeedPage,
 }
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
@@ -84,6 +87,7 @@ impl HybridPdfOcr2RegionRenderChunkMode {
             Self::PageAreaDesc => OCR2_REGION_RENDER_CHUNK_PAGE_AREA_DESC_MODE,
             Self::PageMaxAreaDesc => OCR2_REGION_RENDER_CHUNK_PAGE_MAX_AREA_DESC_MODE,
             Self::Region => OCR2_REGION_RENDER_CHUNK_REGION_MODE,
+            Self::RegionSeedPage => OCR2_REGION_RENDER_CHUNK_REGION_SEED_PAGE_MODE,
         }
     }
 }
@@ -117,6 +121,9 @@ pub(crate) fn hybrid_page_ocr2_region_render_chunk_mode_with_lookup(
     {
         OCR2_REGION_RENDER_CHUNK_ALL_MODE => HybridPdfOcr2RegionRenderChunkMode::All,
         OCR2_REGION_RENDER_CHUNK_REGION_MODE => HybridPdfOcr2RegionRenderChunkMode::Region,
+        OCR2_REGION_RENDER_CHUNK_REGION_SEED_PAGE_MODE => {
+            HybridPdfOcr2RegionRenderChunkMode::RegionSeedPage
+        }
         OCR2_REGION_RENDER_CHUNK_PAGE_AREA_DESC_MODE => {
             HybridPdfOcr2RegionRenderChunkMode::PageAreaDesc
         }
@@ -162,6 +169,8 @@ pub(crate) struct PageRangeDoclingFallbackSourceProfileSummary {
     pub(crate) page_count: usize,
     pub(crate) estimated_weight_total: u64,
     pub(crate) estimated_weight_max: u32,
+    pub(crate) estimated_structure_cost_total: u64,
+    pub(crate) estimated_structure_cost_max: u32,
     pub(crate) content_bytes_total: u64,
     pub(crate) operation_count_total: u64,
     pub(crate) text_show_ops_total: u64,
@@ -201,6 +210,9 @@ pub(crate) struct PageRangeDoclingFallbackPlanRange {
     pub(crate) page_end: u32,
     pub(crate) one_based_start: u32,
     pub(crate) one_based_end: u32,
+    pub(crate) estimated_structure_cost_total: u64,
+    pub(crate) estimated_structure_cost_max: u32,
+    pub(crate) structure_authority_required_count: usize,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -212,6 +224,9 @@ pub(crate) struct PageRangeDoclingFallbackPlanSummary {
     pub(crate) range_count: usize,
     pub(crate) chunk_size: Option<u32>,
     pub(crate) source_profile_used: bool,
+    pub(crate) estimated_structure_cost_total: u64,
+    pub(crate) estimated_structure_cost_max: u32,
+    pub(crate) structure_authority_required_count: usize,
     pub(crate) ranges: Vec<PageRangeDoclingFallbackPlanRange>,
 }
 

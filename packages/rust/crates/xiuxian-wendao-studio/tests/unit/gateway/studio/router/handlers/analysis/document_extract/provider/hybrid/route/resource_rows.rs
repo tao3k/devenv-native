@@ -113,6 +113,8 @@ fn docling_page_range_fallback_chunk_summary_tracks_longest_chunk() {
                 page_count: 3,
                 estimated_weight_total: 30,
                 estimated_weight_max: 12,
+                estimated_structure_cost_total: 130,
+                estimated_structure_cost_max: 70,
                 content_bytes_total: 300,
                 operation_count_total: 120,
                 text_show_ops_total: 90,
@@ -144,6 +146,8 @@ fn docling_page_range_fallback_chunk_summary_tracks_longest_chunk() {
                 page_count: 3,
                 estimated_weight_total: 60,
                 estimated_weight_max: 30,
+                estimated_structure_cost_total: 260,
+                estimated_structure_cost_max: 120,
                 content_bytes_total: 600,
                 operation_count_total: 240,
                 text_show_ops_total: 150,
@@ -189,10 +193,16 @@ fn docling_page_range_fallback_chunk_summary_tracks_longest_chunk() {
     );
     assert_eq!(summary["sourceProfilePageCount"], 6);
     assert_eq!(summary["sourceProfileEstimatedWeightTotal"], 90);
+    assert_eq!(summary["sourceProfileEstimatedStructureCostTotal"], 390);
+    assert_eq!(summary["sourceProfileEstimatedStructureCostMax"], 120);
     assert_eq!(summary["sourceProfileStructureAuthorityRequiredCount"], 3);
     assert_eq!(summary["sourceProfileFastProfileRiskCount"], 1);
     assert_eq!(summary["sourceProfileBackendTextTopupCount"], 1);
     assert_eq!(summary["longestSourceProfile"]["estimatedWeightTotal"], 60);
+    assert_eq!(
+        summary["longestSourceProfile"]["estimatedStructureCostTotal"],
+        260
+    );
     assert_eq!(summary["longestSourceProfile"]["fastProfileRiskCount"], 1);
 }
 
@@ -221,6 +231,8 @@ fn docling_centered_structure_count_includes_page_range_source_profiles() -> Res
             page_count: 3,
             estimated_weight_total: 42,
             estimated_weight_max: 20,
+            estimated_structure_cost_total: 142,
+            estimated_structure_cost_max: 72,
             content_bytes_total: 4096,
             operation_count_total: 200,
             text_show_ops_total: 100,

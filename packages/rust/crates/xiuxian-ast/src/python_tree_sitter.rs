@@ -277,38 +277,11 @@ impl TreeSitterPythonParser {
     }
 
     fn get_docstring(node: &Node, code: &str) -> String {
-        let mut cursor = node.walk();
-
-        if cursor.goto_first_child() {
-            loop {
-                let child = cursor.node();
-                if child.kind() == "block" {
-                    let mut block_cursor = child.walk();
-                    if block_cursor.goto_first_child() {
-                        loop {
-                            let stmt = block_cursor.node();
-                            if stmt.kind() == "expression_statement" {
-                                let mut string_cursor = stmt.walk();
-                                if string_cursor.goto_first_child() {
-                                    let first = string_cursor.node();
-                                    if first.kind() == "string" {
-                                        let s = first.utf8_text(code.as_bytes()).unwrap_or("");
-                                        return extract_string_content(s);
-                                    }
-                                }
-                            }
-                            if !block_cursor.goto_next_sibling() {
-                                break;
-                            }
-                        }
-                    }
-                }
-                if !cursor.goto_next_sibling() {
-                    break;
-                }
-            }
-        }
-        String::new()
+        function_block(node)
+            .and_then(|block| first_docstring_statement(&block))
+            .and_then(|string_node| string_node.utf8_text(code.as_bytes()).ok())
+            .map(extract_string_content)
+            .unwrap_or_default()
     }
 
     fn find_decorator(func_node: &Node, code: &str, decorator_name: &str) -> Option<DecoratorInfo> {
@@ -376,7 +349,7 @@ impl TreeSitterPythonParser {
                 arguments: DecoratorArguments {
                     name: args.get("name").cloned(),
                     description: args.get("description").cloned(),
-                    category: args.get("category").cloned(),
+                    category: args.get("category").cloned().map(DecoratorCategory::new),
                     destructive,
                     read_only,
                     resource_uri: args.get("resource_uri").cloned(),
@@ -389,6 +362,24 @@ impl TreeSitterPythonParser {
             arguments: DecoratorArguments::default(),
         }
     }
+}
+
+fn function_block<'tree>(node: &Node<'tree>) -> Option<Node<'tree>> {
+    node.children(&mut node.walk())
+        .find(|child| child.kind() == "block")
+}
+
+fn first_docstring_statement<'tree>(block: &Node<'tree>) -> Option<Node<'tree>> {
+    block.children(&mut block.walk()).find_map(|stmt| {
+        (stmt.kind() == "expression_statement")
+            .then(|| first_string_child(&stmt))
+            .flatten()
+    })
+}
+
+fn first_string_child<'tree>(stmt: &Node<'tree>) -> Option<Node<'tree>> {
+    stmt.children(&mut stmt.walk())
+        .find(|child| child.kind() == "string")
 }
 
 /// Parse decorator arguments string into a map
@@ -531,13 +522,37 @@ pub struct DecoratorArguments {
     /// Optional tool description.
     pub description: Option<String>,
     /// Optional category label.
-    pub category: Option<String>,
+    pub category: Option<DecoratorCategory>,
     /// Whether tool is destructive.
     pub destructive: Option<bool>,
     /// Whether tool is read-only.
     pub read_only: Option<bool>,
     /// Tool resource URI (e.g. `omni://skill/git/status`).
     pub resource_uri: Option<String>,
+}
+
+/// Public typed boundary for decorator category labels.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DecoratorCategory(String);
+
+impl DecoratorCategory {
+    /// Creates a decorator category label.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Returns the category label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl PartialEq<String> for DecoratorCategory {
+    fn eq(&self, other: &String) -> bool {
+        self.as_str() == other
+    }
 }
 
 /// Information about a function parameter

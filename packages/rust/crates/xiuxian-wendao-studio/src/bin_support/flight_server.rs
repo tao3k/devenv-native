@@ -22,12 +22,16 @@ use crate::studio::{
     bootstrap_sample_repo_search_content, build_studio_flight_service_for_roots_with_weights,
     resolve_studio_config_root,
 };
+use walkdir::WalkDir;
+use xiuxian_wendao::analyzers::load_repo_intelligence_config;
 use xiuxian_wendao::link_graph::resolve_link_graph_rerank_flight_runtime_settings;
+use xiuxian_wendao::repo_index::RepoCodeDocument;
 use xiuxian_wendao::search::SearchPlaneService;
 use xiuxian_wendao::set_link_graph_wendao_config_override;
 
 const SEARCH_FLIGHT_GRPC_WEB_ENABLED_ENV: &str = "XIUXIAN_WENDAO_SEARCH_FLIGHT_GRPC_WEB_ENABLED";
 const DEFAULT_SEARCH_FLIGHT_GRPC_WEB_ENABLED: bool = false;
+const BOOTSTRAP_CONFIGURED_REPO_CONTENT_ENV: &str = "WENDAO_BOOTSTRAP_CONFIGURED_REPO_CONTENT";
 
 /// Starts the Wendao repo-search Arrow Flight server from process arguments.
 ///
@@ -81,6 +85,8 @@ pub async fn run_search_flight_server() -> Result<()> {
             .await
             .map_err(|error| anyhow!(error))?;
     }
+    maybe_bootstrap_configured_repo_content(search_plane.as_ref(), repo_id.as_str(), &project_root)
+        .await?;
     let flight_service = build_studio_flight_service_for_roots_with_weights(
         search_plane,
         project_root.clone(),
@@ -165,6 +171,110 @@ fn search_flight_grpc_web_enabled() -> bool {
 fn search_flight_grpc_web_enabled_with_lookup(lookup: &dyn Fn(&str) -> Option<String>) -> bool {
     lookup_bool_flag(SEARCH_FLIGHT_GRPC_WEB_ENABLED_ENV, lookup)
         .unwrap_or(DEFAULT_SEARCH_FLIGHT_GRPC_WEB_ENABLED)
+}
+
+async fn maybe_bootstrap_configured_repo_content(
+    search_plane: &SearchPlaneService,
+    repo_id: &str,
+    project_root: &Path,
+) -> Result<()> {
+    if env::var_os(BOOTSTRAP_CONFIGURED_REPO_CONTENT_ENV).is_none() {
+        return Ok(());
+    }
+
+    let config_path = resolve_runtime_config_path(project_root)
+        .ok_or_else(|| anyhow!("configured repo-content bootstrap requires wendao.toml"))?;
+    let repo_config = load_repo_intelligence_config(Some(config_path.as_path()), project_root)
+        .map_err(|error| anyhow!("load configured repo-content bootstrap config: {error}"))?;
+    let repository = repo_config
+        .repos
+        .iter()
+        .find(|repository| repository.id == repo_id)
+        .ok_or_else(|| anyhow!("configured repo-content bootstrap repo `{repo_id}` not found"))?;
+    let checkout_root = repository
+        .path
+        .as_deref()
+        .ok_or_else(|| anyhow!("configured repo-content bootstrap repo `{repo_id}` has no path"))?;
+    let documents = collect_configured_repo_content_documents(checkout_root)?;
+    if documents.is_empty() {
+        return Err(anyhow!(
+            "configured repo-content bootstrap found no supported documents in `{}`",
+            checkout_root.display()
+        ));
+    }
+
+    search_plane
+        .publish_repo_content_chunks_with_revision(
+            repo_id,
+            &documents,
+            Some("configured-repo-content-bootstrap"),
+        )
+        .await
+        .map_err(|error| anyhow!("publish configured repo-content bootstrap: {error}"))?;
+    println!(
+        "BOOTSTRAPPED_REPO_CONTENT {repo_id} documents={}",
+        documents.len()
+    );
+    Ok(())
+}
+
+fn collect_configured_repo_content_documents(repo_root: &Path) -> Result<Vec<RepoCodeDocument>> {
+    let mut documents = Vec::new();
+    for entry in WalkDir::new(repo_root)
+        .into_iter()
+        .filter_entry(|entry| !is_ignored_repo_content_path(entry.path()))
+    {
+        let entry = entry.map_err(|error| anyhow!("walk configured repo content: {error}"))?;
+        let path = entry.path();
+        if !path.is_file() || !is_supported_repo_content_path(path) {
+            continue;
+        }
+        let relative_path = path
+            .strip_prefix(repo_root)
+            .map_err(|error| anyhow!("strip configured repo content path: {error}"))?
+            .to_string_lossy()
+            .replace('\\', "/");
+        let contents = std::fs::read_to_string(path).map_err(|error| {
+            anyhow!("read configured repo content `{}`: {error}", path.display())
+        })?;
+        let metadata = entry
+            .metadata()
+            .map_err(|error| anyhow!("read configured repo content metadata: {error}"))?;
+        documents.push(RepoCodeDocument {
+            path: relative_path,
+            language: language_for_repo_content_path(path).map(str::to_owned),
+            contents: Arc::<str>::from(contents),
+            size_bytes: metadata.len(),
+            modified_unix_ms: metadata
+                .modified()
+                .ok()
+                .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
+                .map_or(0, |duration| {
+                    u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
+                }),
+        });
+    }
+    documents.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(documents)
+}
+
+fn is_ignored_repo_content_path(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| matches!(name, ".git" | "target" | "node_modules"))
+}
+
+fn is_supported_repo_content_path(path: &Path) -> bool {
+    language_for_repo_content_path(path).is_some()
+}
+
+fn language_for_repo_content_path(path: &Path) -> Option<&'static str> {
+    match path.extension().and_then(|extension| extension.to_str()) {
+        Some("jl") => Some("julia"),
+        Some("md") => Some("markdown"),
+        Some("toml") => Some("toml"),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

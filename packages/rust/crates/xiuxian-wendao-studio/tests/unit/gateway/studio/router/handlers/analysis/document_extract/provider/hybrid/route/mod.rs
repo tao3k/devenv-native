@@ -42,6 +42,8 @@ use super::{
     ocr2_region_scaffold_payload, page_range_docling_fallback_chunk_summary,
     record_ocr_scheduler_or_docling_fallback_phase, record_ocr2_region_pipeline_batch_result,
     scheduled_inputs_without_docling_page_range_fallback_pages,
+    structure_cost_budgeted_docling_page_range_fallback_ranges,
+    structure_cost_budgeted_docling_page_range_fallback_ranges_with_limit,
     weighted_docling_page_range_fallback_ranges, write_ocr2_region_scaffold_sidecar_with_lookup,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::profile::HybridPdfOcrProfilePlanner;
@@ -56,6 +58,7 @@ include!("failed_page.rs");
 include!("docling_controls.rs");
 include!("docling_fallback.rs");
 include!("docling_chunks.rs");
+include!("docling_structure_budget.rs");
 include!("resource_rows.rs");
 include!("region_cache_pipeline.rs");
 

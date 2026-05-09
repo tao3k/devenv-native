@@ -3,7 +3,7 @@ use std::path::Path;
 use super::{
     PdfSourcePageProfile, classify_pdf_source_page, pdf_source_page_is_backend_text_topup_profile,
     pdf_source_page_is_fast_profile_risk, pdf_source_page_requires_structure_authority,
-    source_pdf_page_profiles, source_pdf_page_profiles_cached,
+    pdf_source_page_structure_cost, source_pdf_page_profiles, source_pdf_page_profiles_cached,
 };
 
 #[test]
@@ -31,6 +31,10 @@ fn classifies_plain_text_pages_as_text_shortcut_eligible() {
     assert!(!classification.structure_authority_required);
     assert!(!classification.ocr_patch_candidate);
     assert!(classification.text_shortcut_eligible);
+    assert_eq!(
+        classification.estimated_structure_cost,
+        pdf_source_page_structure_cost(&profile)
+    );
 }
 
 #[test]
@@ -42,6 +46,7 @@ fn classifies_draw_object_pages_as_structure_authority_required() {
     assert!(classification.structure_authority_required);
     assert!(!classification.text_shortcut_eligible);
     assert!(pdf_source_page_requires_structure_authority(&profile));
+    assert!(classification.estimated_structure_cost > profile.estimated_weight);
 }
 
 #[test]
@@ -54,6 +59,7 @@ fn classifies_table_path_band_as_structure_and_ocr_patch_candidate() {
     assert!(classification.ocr_patch_candidate);
     assert!(!classification.text_shortcut_eligible);
     assert!(pdf_source_page_is_fast_profile_risk(&profile));
+    assert!(classification.estimated_structure_cost >= 512);
 }
 
 #[test]
@@ -62,6 +68,17 @@ fn keeps_backend_text_topup_signal_available_for_consumers() {
 
     assert!(pdf_source_page_is_backend_text_topup_profile(&profile));
     assert!(!classify_pdf_source_page(&profile).structure_authority_required);
+}
+
+#[test]
+fn structure_cost_prioritizes_structural_pages_over_dense_text() {
+    let dense_text = sample_profile(4, 360, 0, 0, 0, 700);
+    let structure_risk = sample_profile(5, 180, 80, 0, 0, 720);
+
+    assert!(
+        pdf_source_page_structure_cost(&structure_risk)
+            > pdf_source_page_structure_cost(&dense_text)
+    );
 }
 
 fn sample_profile(

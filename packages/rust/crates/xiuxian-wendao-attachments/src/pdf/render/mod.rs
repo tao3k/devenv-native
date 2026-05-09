@@ -30,6 +30,7 @@ pub use regions::{
     page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
     page_region_render_request_chunks_by_region,
+    page_region_render_request_chunks_by_region_seed_page,
 };
 pub use report::write_page_render_shard_reports;
 pub use selection::source_pdf_page_count;

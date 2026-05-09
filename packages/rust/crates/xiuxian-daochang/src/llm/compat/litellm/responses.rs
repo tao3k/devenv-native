@@ -38,7 +38,7 @@ pub(super) fn assistant_from_parsed_openai_responses(
                 .into_iter()
                 .map(|tool_call| ToolCallOut {
                     id: tool_call.id,
-                    typ: tool_call.tool_type,
+                    typ: tool_call.tool_type.to_string(),
                     function: SessionFunctionCall {
                         name: tool_call.function.name,
                         arguments: tool_call.function.arguments,

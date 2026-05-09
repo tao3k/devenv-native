@@ -96,7 +96,9 @@ OCR/VLM patch candidates only when region rendering can supply a patch surface.
 Pages without structure authority and with backend text signals are marked as
 text-shortcut eligible. Attachments does not schedule work or choose fallback;
 it supplies stable PDF facts for Studio's scheduler and analyzer-side Docling
-execution.
+execution. The profile also exposes a conservative structure-cost estimate so
+Studio can budget Docling page-range work from structural pressure rather than
+fixed worker counts or page counts alone.
 The stable OCR shard schema carries `ocrProfile` as the profile-selection
 surface. Current profile identifiers include `docling-compatible-page-ocr-v1`,
 `docling-fast-text-ocr`, `docling-backend-text-ocr-v1`,

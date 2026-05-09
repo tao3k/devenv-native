@@ -309,6 +309,21 @@ needs a feature-gated second plugin bundle for these languages.
   `WendaoGraph.strategy_flow_tables`. They intentionally reuse the existing
   `wendao_graph_page_index_reasoning` profile until a live SearchStrategyFlow
   route is proven; this is static owner evidence, not live Julia execution.
+- the Rust bridge for SearchStrategyFlow now builds real candidate inputs from
+  Markdown heading sections under the configured search root before invoking
+  Julia. Rust scores only task-local discovery evidence such as intent-term
+  coverage, path/title matches, section context cost, and edge-kind hints.
+  `WendaoGraph.jl` remains the owner of SearchStrategyFlow scoring, frontier
+  pruning, transition inference, and planner actions. The returned trace
+  records `candidateInputSource="rust-markdown-headings"` when the bridge is
+  using real search-root candidates instead of the fixed proof fallback.
+- when a SearchStrategyFlow Flight materialization endpoint is configured, the
+  bridge first asks the Studio `/search/repos/main` Arrow Flight route for
+  repo-native candidate rows and passes those rows to Julia with
+  `candidateInputSource="rust-flight-repo-search"`. This keeps section
+  discovery on the indexed Rust/Studio side while Julia owns graph strategy
+  flow decisions. The local Markdown heading scan remains the no-endpoint
+  smoke path and is not a TypeScript or `pi-wendao` responsibility.
 - the algorithm catalog now also exposes a relationship-search subset for
   HNSW semantic fanout, MOC-style community grouping, PPR-like relatedness,
   graph search ranking, and large object-graph traversal. These entries map to

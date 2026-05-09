@@ -34,16 +34,19 @@ plugins = [
     assert_eq!(repository.path.as_deref(), Some(repo_dir.as_path()));
     assert_eq!(
         repository.plugins,
-        vec![RepositoryPluginConfig::Config {
-            id: "julia-code-parser".to_string(),
-            options: json!({
-                "flight_transport": {
-                    "base_url": "http://127.0.0.1:8815",
-                    "route": "/rerank",
-                    "timeout_secs": 15,
-                }
-            }),
-        }]
+        vec![
+            RepositoryPluginConfig::Config {
+                id: "julia-code-parser".to_string(),
+                options: json!({
+                    "flight_transport": {
+                        "base_url": "http://127.0.0.1:8815",
+                        "route": "/rerank",
+                        "timeout_secs": 15,
+                    }
+                }),
+            },
+            RepositoryPluginConfig::Id("markdown-parser".to_string()),
+        ]
     );
     Ok(())
 }
@@ -111,6 +114,31 @@ plugins = ["julia-code-parser"]
 }
 
 #[test]
+fn load_repo_intelligence_config_defaults_markdown_parser_for_source_repositories() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    let repo_dir = temp.path().join("repos").join("knowledge");
+    fs::create_dir_all(&repo_dir)?;
+    let config_path = temp.path().join("wendao.toml");
+    fs::write(
+        &config_path,
+        r#"[link_graph.projects.knowledge]
+root = "repos/knowledge"
+"#,
+    )?;
+
+    let config = load_repo_intelligence_config(Some(&config_path), temp.path())?;
+
+    assert_eq!(config.repos.len(), 1);
+    assert_eq!(config.repos[0].id, "knowledge");
+    assert_eq!(config.repos[0].path.as_deref(), Some(repo_dir.as_path()));
+    assert_eq!(
+        config.repos[0].plugins,
+        vec![RepositoryPluginConfig::Id("markdown-parser".to_string())]
+    );
+    Ok(())
+}
+
+#[test]
 fn load_repo_intelligence_config_reads_overlay_importing_base() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = temp.path().join("repos").join("sample");
@@ -141,7 +169,8 @@ refresh = "manual"
 }
 
 #[test]
-fn load_repo_intelligence_config_filters_search_only_plugins_and_repositories() -> TestResult {
+fn load_repo_intelligence_config_filters_search_only_plugins_and_adds_markdown_parser() -> TestResult
+{
     let temp = tempfile::tempdir()?;
     let mixed_repo_dir = temp.path().join("repos").join("mixed");
     let search_only_repo_dir = temp.path().join("repos").join("search-only");
@@ -162,11 +191,27 @@ plugins = ["ast-grep"]
 
     let config = load_repo_intelligence_config(Some(&config_path), temp.path())?;
 
-    assert_eq!(config.repos.len(), 1);
-    assert_eq!(config.repos[0].id, "mixed");
+    assert_eq!(config.repos.len(), 2);
+    let mixed = config
+        .repos
+        .iter()
+        .find(|repository| repository.id == "mixed")
+        .unwrap_or_else(|| panic!("mixed repo should be loaded"));
     assert_eq!(
-        config.repos[0].plugins,
-        vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())]
+        mixed.plugins,
+        vec![
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
+            RepositoryPluginConfig::Id("markdown-parser".to_string()),
+        ]
+    );
+    let search_only = config
+        .repos
+        .iter()
+        .find(|repository| repository.id == "search-only")
+        .unwrap_or_else(|| panic!("search-only repo should receive the markdown parser default"));
+    assert_eq!(
+        search_only.plugins,
+        vec![RepositoryPluginConfig::Id("markdown-parser".to_string())]
     );
     Ok(())
 }

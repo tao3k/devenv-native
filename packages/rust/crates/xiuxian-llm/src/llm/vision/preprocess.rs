@@ -129,12 +129,12 @@ pub fn preprocess_image_with_max_dimension(
 ) -> LlmResult<PreparedVisionImage> {
     let decoded = decode_image(image_bytes.as_ref())?;
     let (original_width, original_height) = decoded.dimensions();
-    let (width, height, scale) = fit_dimensions(original_width, original_height, max_dimension);
+    let dimensions = fit_dimensions(original_width, original_height, max_dimension);
 
-    let resized = if width == original_width && height == original_height {
+    let resized = if dimensions.width == original_width && dimensions.height == original_height {
         decoded
     } else {
-        decoded.resize_exact(width, height, FilterType::Lanczos3)
+        decoded.resize_exact(dimensions.width, dimensions.height, FilterType::Lanczos3)
     };
 
     let resized_png = encode_png(&resized)?;
@@ -147,32 +147,59 @@ pub fn preprocess_image_with_max_dimension(
         engine_input: Arc::clone(&resized_png),
         resized_png,
         grayscale_png,
-        width,
-        height,
-        scale,
+        width: dimensions.width,
+        height: dimensions.height,
+        scale: dimensions.scale,
     })
+}
+
+/// Resized image dimensions and scale factor.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FittedDimensions {
+    /// Target width.
+    pub width: u32,
+    /// Target height.
+    pub height: u32,
+    /// Applied scale factor.
+    pub scale: f64,
 }
 
 /// Computes resized dimensions that fit within `max_dimension` while preserving
 /// aspect ratio.
 #[must_use]
-pub fn fit_dimensions(width: u32, height: u32, max_dimension: u32) -> (u32, u32, f64) {
+pub fn fit_dimensions(width: u32, height: u32, max_dimension: u32) -> FittedDimensions {
     if width == 0 || height == 0 {
-        return (1, 1, 1.0);
+        return FittedDimensions {
+            width: 1,
+            height: 1,
+            scale: 1.0,
+        };
     }
     if max_dimension == 0 {
-        return (width, height, 1.0);
+        return FittedDimensions {
+            width,
+            height,
+            scale: 1.0,
+        };
     }
 
     let long_edge = width.max(height);
     if long_edge <= max_dimension {
-        return (width, height, 1.0);
+        return FittedDimensions {
+            width,
+            height,
+            scale: 1.0,
+        };
     }
 
     let scale = f64::from(max_dimension) / f64::from(long_edge);
     let target_width = fit_edge_with_rounding(width, long_edge, max_dimension);
     let target_height = fit_edge_with_rounding(height, long_edge, max_dimension);
-    (target_width, target_height, scale)
+    FittedDimensions {
+        width: target_width,
+        height: target_height,
+        scale,
+    }
 }
 
 #[inline]

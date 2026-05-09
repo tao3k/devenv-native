@@ -78,26 +78,56 @@ pub const fn anthropic_custom_base_transport_label(
 }
 
 /// Resolve transport-specific API key precedence for anthropic custom-base fallback.
+#[derive(Debug, Clone, Copy)]
+pub struct AnthropicTransportKeyResolution<'a> {
+    /// Selected custom-base transport.
+    pub transport: AnthropicCustomBaseTransport,
+    /// Explicit request API key.
+    pub explicit_api_key: Option<ProviderApiKeyRef<'a>>,
+    /// Configured custom-base key.
+    pub configured_key: Option<ProviderApiKeyRef<'a>>,
+    /// OpenAI-compatible fallback key.
+    pub openai_key: Option<ProviderApiKeyRef<'a>>,
+    /// Minimax fallback key.
+    pub minimax_key: Option<ProviderApiKeyRef<'a>>,
+    /// Anthropic fallback key.
+    pub anthropic_key: Option<ProviderApiKeyRef<'a>>,
+}
+
+/// Borrowed provider API key candidate.
+#[derive(Debug, Clone, Copy)]
+pub struct ProviderApiKeyRef<'a>(&'a str);
+
+impl<'a> ProviderApiKeyRef<'a> {
+    /// Creates a borrowed API key candidate.
+    #[must_use]
+    pub const fn new(value: &'a str) -> Self {
+        Self(value)
+    }
+
+    /// Returns the raw API key candidate.
+    #[must_use]
+    pub const fn as_str(self) -> &'a str {
+        self.0
+    }
+}
+
+/// Resolve transport-specific API key precedence for anthropic custom-base fallback.
 #[must_use]
 pub fn resolve_custom_base_transport_api_key_from_values(
-    transport: AnthropicCustomBaseTransport,
-    explicit_api_key: Option<&str>,
-    configured_key: Option<&str>,
-    openai_key: Option<&str>,
-    minimax_key: Option<&str>,
-    anthropic_key: Option<&str>,
+    request: AnthropicTransportKeyResolution<'_>,
 ) -> Option<String> {
-    let explicit = normalize_optional_key(explicit_api_key);
+    let explicit = normalize_optional_key_ref(request.explicit_api_key);
     if explicit.is_some() {
         return explicit;
     }
 
-    let configured = normalize_optional_key(configured_key);
-    let openai = normalize_optional_key(openai_key);
-    let minimax = normalize_optional_key(minimax_key);
-    let anthropic = normalize_optional_key(anthropic_key);
+    let configured = normalize_optional_key_ref(request.configured_key);
+    let openai = normalize_optional_key_ref(request.openai_key);
+    let minimax = normalize_optional_key_ref(request.minimax_key);
+    let anthropic = normalize_optional_key_ref(request.anthropic_key);
 
-    match transport {
+    match request.transport {
         AnthropicCustomBaseTransport::OpenAi => {
             first_present_key(&[openai, configured, minimax, anthropic])
         }
@@ -153,6 +183,10 @@ fn normalize_optional_key(raw: Option<&str>) -> Option<String> {
     raw.map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToString::to_string)
+}
+
+fn normalize_optional_key_ref(raw: Option<ProviderApiKeyRef<'_>>) -> Option<String> {
+    normalize_optional_key(raw.map(ProviderApiKeyRef::as_str))
 }
 
 fn first_present_key(candidates: &[Option<String>]) -> Option<String> {

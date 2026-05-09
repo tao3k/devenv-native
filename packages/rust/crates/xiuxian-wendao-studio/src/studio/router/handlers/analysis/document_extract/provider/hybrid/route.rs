@@ -32,7 +32,7 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 use xiuxian_wendao_attachments::pdf::profile::{
     PdfSourcePageProfile, pdf_source_page_is_backend_text_topup_profile,
     pdf_source_page_is_fast_profile_risk, pdf_source_page_requires_structure_authority,
-    source_pdf_page_profiles_cached,
+    pdf_source_page_structure_cost, source_pdf_page_profiles_cached,
 };
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use xiuxian_wendao_attachments::pdf::render::{PdfPageRegionRenderRequest, PdfPageRenderProfile};
@@ -44,7 +44,8 @@ use xiuxian_wendao_attachments::pdf::render::{
     page_region_render_request_chunks_all, page_region_render_request_chunks_by_page,
     page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
-    page_region_render_request_chunks_by_region, render_pdf_page_shards_for_page_indices,
+    page_region_render_request_chunks_by_region,
+    page_region_render_request_chunks_by_region_seed_page, render_pdf_page_shards_for_page_indices,
     render_pdf_region_shards,
 };
 use xiuxian_wendao_server::transport::{
@@ -100,6 +101,8 @@ use crate::studio::router::handlers::analysis::document_extract::provider::{
 mod batch;
 #[path = "route_parts/docling_range.rs"]
 mod docling_range;
+#[path = "route_parts/docling_structure_budget.rs"]
+mod docling_structure_budget;
 #[path = "route_parts/failed_page.rs"]
 mod failed_page;
 #[path = "route_parts/pipeline.rs"]
@@ -128,21 +131,26 @@ use batch::{
 };
 #[cfg(test)]
 use docling_range::{
-    contiguous_page_ranges, docling_page_range_chunk_plan_with_lookup,
-    docling_page_range_chunk_size_for_pages_with_lookup,
+    contiguous_page_ranges, docling_page_range_chunk_concurrency_with_lookup,
+    docling_page_range_chunk_plan_with_lookup, docling_page_range_chunk_size_for_pages_with_lookup,
     docling_page_range_chunk_size_for_planner_with_lookup,
     docling_page_range_chunk_size_with_lookup, docling_page_range_fallback_ranges,
     docling_page_range_fallback_ranges_with_lookup, weighted_docling_page_range_fallback_ranges,
 };
 use docling_range::{
     docling_page_range_chunk_concurrency_limit_with_lookup,
-    docling_page_range_chunk_concurrency_with_lookup, docling_page_range_fallback_page_indices,
+    docling_page_range_fallback_page_indices,
     docling_page_range_fallback_plan_for_source_with_lookup,
     docling_page_range_hedge_delay_ms_with_lookup, docling_page_range_target_chunk_count,
     docling_structure_recovery_page_range_fallback_pages, failed_backend_text_page_indices,
     has_region_shard_on_pages, has_unhandled_non_success_result,
     kept_results_without_docling_page_range_fallback_pages,
     scheduled_inputs_without_docling_page_range_fallback_pages,
+};
+#[cfg(test)]
+use docling_structure_budget::{
+    structure_cost_budgeted_docling_page_range_fallback_ranges,
+    structure_cost_budgeted_docling_page_range_fallback_ranges_with_limit,
 };
 use failed_page::recover_failed_page_ocr_results;
 #[cfg(test)]
@@ -221,6 +229,8 @@ const DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_PLAN_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_PLAN";
 const DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_CONCURRENCY_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_CONCURRENCY";
+const DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET";
 const DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS";
 const DOCLING_STRUCTURE_RECOVERY_SMALL_PAGE_RANGE_THRESHOLD: usize = 4;

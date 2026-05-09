@@ -16,6 +16,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 mod artifacts;
 mod bootstrap;
 mod link;
+mod markdown_parser;
 mod retrieval_policy;
 mod test_support;
 

@@ -246,6 +246,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-docling-page-range-structure-cost-budget",
+        type=int,
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET. "
+            "When set, automatic docling-structure-recovery page ranges whose "
+            "estimated structure cost exceeds the budget are split into smaller "
+            "contiguous ranges. This is an evidence-gated diagnostic control."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-docling-text-shortcut-promotion",
         choices=("range-fill", "disabled"),
         default="range-fill",
@@ -413,7 +424,14 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--rust-pdf-hosted-vlm-region-render-chunk",
-        choices=("page", "all", "region", "page-area-desc", "page-max-area-desc"),
+        choices=(
+            "page",
+            "all",
+            "region",
+            "region-seed-page",
+            "page-area-desc",
+            "page-max-area-desc",
+        ),
         default="page",
         help=(
             "Opt-in Rust Hosted VLM/OCR region render chunking forwarded to "
@@ -422,6 +440,8 @@ def parse_args() -> argparse.Namespace:
             "`all` renders every recovery region in one PDF pass before dispatch; "
             "`region` renders each recovery region as an independent chunk "
             "so OpenRouter dispatch can start as soon as the first region is ready; "
+            "`region-seed-page` renders the smallest region first, then keeps "
+            "remaining chunks page-grouped; "
             "`page-area-desc` keeps page chunks but renders pages with the "
             "largest total recovery-region area first; `page-max-area-desc` keeps "
             "page chunks but renders pages with the largest single recovery region first."

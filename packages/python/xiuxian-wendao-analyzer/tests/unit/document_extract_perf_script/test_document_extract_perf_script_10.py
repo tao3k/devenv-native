@@ -1102,6 +1102,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
             "documentExtractPrewarmPageRanges": "rust-page-range-chunk-plan",
             "documentExtractPrewarmPageRangesResolved": "1:3,4:4,5:6,7:9",
             "rustPdfDoclingPageRangeHedgeDelayMs": 7000,
+            "rustPdfDoclingPageRangeStructureCostBudget": 2400,
             "rustPdfDoclingTextShortcutPromotion": "disabled",
             "rustPdfOcrWorkers": None,
             "rustPdfOcrSourceRangeWorkers": "2",
@@ -1138,6 +1139,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "1:3,4:4,5:6,7:9" in markdown
     assert "Rust PDF Docling page-range hedge delay ms" in markdown
     assert "7000" in markdown
+    assert "Rust PDF Docling page-range structure-cost budget" in markdown
+    assert "2400" in markdown
     assert "Rust PDF Docling text-shortcut promotion" in markdown
     assert "disabled" in markdown
     assert "Artifact reuse ms" in markdown

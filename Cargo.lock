@@ -11749,6 +11749,7 @@ dependencies = [
 name = "xiuxian-wendao-builtin"
 version = "0.1.1"
 dependencies = [
+ "inventory",
  "rust-lang-project-harness",
  "serde_json",
  "serde_yaml",

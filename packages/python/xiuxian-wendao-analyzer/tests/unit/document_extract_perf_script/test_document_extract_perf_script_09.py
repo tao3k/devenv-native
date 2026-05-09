@@ -39,6 +39,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_docling_page_range_chunk_plan="1:3,4:4,5:6,7:9",
         rust_pdf_docling_page_range_profile="structure-text",
         rust_pdf_docling_page_range_hedge_delay_ms=7000,
+        rust_pdf_docling_page_range_structure_cost_budget=2400,
         rust_pdf_docling_text_shortcut_promotion="disabled",
         pdf_ocr_backend_text_empty_page="verified-empty",
         rust_pdf_local_backend_text="rust-lopdf",
@@ -54,7 +55,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_hosted_vlm_region_planner="profile-risk-window",
         rust_pdf_hosted_vlm_region_pipeline="render-dispatch",
         rust_pdf_hosted_vlm_region_render_ahead=3,
-        rust_pdf_hosted_vlm_region_render_chunk="all",
+        rust_pdf_hosted_vlm_region_render_chunk="region-seed-page",
         hosted_vlm_ocr_region_composite_size=3,
         hosted_vlm_ocr_scaffold_mode="region-table-json",
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
@@ -96,6 +97,10 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS"] == "7000"
     )
     assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET"]
+        == "2400"
+    )
+    assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_TEXT_SHORTCUT_PROMOTION"] == "disabled"
     )
     assert (
@@ -125,7 +130,10 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         == "render-dispatch"
     )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD"] == "3"
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK"] == "all"
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK"]
+        == "region-seed-page"
+    )
     assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] == "3"
     assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE"]

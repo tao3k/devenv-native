@@ -88,6 +88,17 @@ pub(super) fn page_range_docling_fallback_chunk_summary(
             .filter_map(|chunk| chunk.source_profile.as_ref())
             .map(|profile| profile.estimated_weight_total)
             .sum::<u64>(),
+        "sourceProfileEstimatedStructureCostTotal": chunks
+            .iter()
+            .filter_map(|chunk| chunk.source_profile.as_ref())
+            .map(|profile| profile.estimated_structure_cost_total)
+            .sum::<u64>(),
+        "sourceProfileEstimatedStructureCostMax": chunks
+            .iter()
+            .filter_map(|chunk| chunk.source_profile.as_ref())
+            .map(|profile| profile.estimated_structure_cost_max)
+            .max()
+            .unwrap_or(0),
         "sourceProfileStructureAuthorityRequiredCount": chunks
             .iter()
             .filter_map(|chunk| chunk.source_profile.as_ref())

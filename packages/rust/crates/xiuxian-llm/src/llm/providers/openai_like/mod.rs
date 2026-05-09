@@ -13,6 +13,6 @@ pub use facade::{
 #[cfg(feature = "provider-litellm")]
 pub use responses::{
     OpenAiResponsesAssistantOutput, OpenAiResponsesPayload, OpenAiResponsesToolCall,
-    build_openai_responses_payload, parse_openai_responses_stream,
+    OpenAiResponsesToolType, build_openai_responses_payload, parse_openai_responses_stream,
     remap_openai_responses_tool_name,
 };

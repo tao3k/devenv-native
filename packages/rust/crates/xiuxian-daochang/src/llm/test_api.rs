@@ -10,7 +10,9 @@ use litellm_rs::core::types::tools::ToolChoice as LiteToolChoice;
 #[cfg(feature = "agent-provider-litellm")]
 use std::collections::HashMap;
 #[cfg(feature = "agent-provider-litellm")]
-use xiuxian_llm::llm::providers::AnthropicCustomBaseTransport;
+use xiuxian_llm::llm::providers::{
+    AnthropicCustomBaseTransport, AnthropicTransportKeyResolution, ProviderApiKeyRef,
+};
 
 use crate::config::RuntimeSettings;
 use crate::session::ChatMessage;
@@ -385,12 +387,14 @@ pub fn resolve_custom_base_transport_api_key_from_values(
     anthropic_key: Option<&str>,
 ) -> Option<String> {
     xiuxian_llm::llm::providers::resolve_custom_base_transport_api_key_from_values(
-        map_custom_base_fallback_transport(transport),
-        explicit_api_key,
-        configured_key,
-        openai_key,
-        minimax_key,
-        anthropic_key,
+        AnthropicTransportKeyResolution {
+            transport: map_custom_base_fallback_transport(transport),
+            explicit_api_key: explicit_api_key.map(ProviderApiKeyRef::new),
+            configured_key: configured_key.map(ProviderApiKeyRef::new),
+            openai_key: openai_key.map(ProviderApiKeyRef::new),
+            minimax_key: minimax_key.map(ProviderApiKeyRef::new),
+            anthropic_key: anthropic_key.map(ProviderApiKeyRef::new),
+        },
     )
 }
 

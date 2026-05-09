@@ -42,6 +42,12 @@ use crate::transport::query_contract::{
 
 #[test]
 fn query_contract_exposes_stable_headers() {
+    query_contract_exposes_core_headers();
+    query_contract_exposes_graph_headers();
+    query_contract_exposes_repo_headers();
+}
+
+fn query_contract_exposes_core_headers() {
     assert_eq!(WENDAO_SCHEMA_VERSION_HEADER, "x-wendao-schema-version");
     assert_eq!(WENDAO_SEARCH_QUERY_HEADER, "x-wendao-search-query");
     assert_eq!(WENDAO_SEARCH_LIMIT_HEADER, "x-wendao-search-limit");
@@ -58,10 +64,6 @@ fn query_contract_exposes_stable_headers() {
         "x-wendao-autocomplete-limit"
     );
     assert_eq!(WENDAO_VFS_PATH_HEADER, "x-wendao-vfs-path");
-    assert_eq!(WENDAO_GRAPH_NODE_ID_HEADER, "x-wendao-graph-node-id");
-    assert_eq!(WENDAO_GRAPH_DIRECTION_HEADER, "x-wendao-graph-direction");
-    assert_eq!(WENDAO_GRAPH_HOPS_HEADER, "x-wendao-graph-hops");
-    assert_eq!(WENDAO_GRAPH_LIMIT_HEADER, "x-wendao-graph-limit");
     assert_eq!(WENDAO_ANALYSIS_PATH_HEADER, "x-wendao-analysis-path");
     assert_eq!(WENDAO_ANALYSIS_REPO_HEADER, "x-wendao-analysis-repo");
     assert_eq!(WENDAO_ANALYSIS_LINE_HEADER, "x-wendao-analysis-line");
@@ -77,6 +79,20 @@ fn query_contract_exposes_stable_headers() {
         WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER,
         "x-wendao-attachment-search-case-sensitive"
     );
+    assert_eq!(
+        WENDAO_RERANK_DIMENSION_HEADER,
+        "x-wendao-rerank-embedding-dimension"
+    );
+}
+
+fn query_contract_exposes_graph_headers() {
+    assert_eq!(WENDAO_GRAPH_NODE_ID_HEADER, "x-wendao-graph-node-id");
+    assert_eq!(WENDAO_GRAPH_DIRECTION_HEADER, "x-wendao-graph-direction");
+    assert_eq!(WENDAO_GRAPH_HOPS_HEADER, "x-wendao-graph-hops");
+    assert_eq!(WENDAO_GRAPH_LIMIT_HEADER, "x-wendao-graph-limit");
+}
+
+fn query_contract_exposes_repo_headers() {
     assert_eq!(
         WENDAO_REPO_DOC_COVERAGE_REPO_HEADER,
         "x-wendao-repo-doc-coverage-repo"
@@ -149,10 +165,6 @@ fn query_contract_exposes_stable_headers() {
     );
     assert_eq!(WENDAO_REPO_SYNC_REPO_HEADER, "x-wendao-repo-sync-repo");
     assert_eq!(WENDAO_REPO_SYNC_MODE_HEADER, "x-wendao-repo-sync-mode");
-    assert_eq!(
-        WENDAO_RERANK_DIMENSION_HEADER,
-        "x-wendao-rerank-embedding-dimension"
-    );
 }
 
 #[test]

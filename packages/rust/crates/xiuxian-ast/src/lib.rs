@@ -84,15 +84,16 @@ pub use security::{SecurityConfig, SecurityScanner, SecurityViolation};
 
 // Code extraction utilities
 pub use extract::{
-    ExtractResult, extract_items, extract_items_for_patterns, extract_skeleton,
+    ExtractResult, ExtractResultParts, extract_items, extract_items_for_patterns, extract_skeleton,
     get_skeleton_patterns,
 };
 pub use fingerprint::{semantic_fingerprint, supports_semantic_fingerprint};
 
 // Code chunking utilities
-pub use chunk::{CodeChunk, chunk_code};
+pub use chunk::{ChunkCodeRequest, ChunkType, CodeChunk, chunk_code};
 
 // Tree-sitter based Python parser for robust decorator extraction
 pub use python_tree_sitter::{
-    DecoratedFunction, DecoratorArguments, DecoratorInfo, ParameterInfo, TreeSitterPythonParser,
+    DecoratedFunction, DecoratorArguments, DecoratorCategory, DecoratorInfo, ParameterInfo,
+    TreeSitterPythonParser,
 };

@@ -3,6 +3,7 @@
 mod gateway_artifact;
 mod official_examples;
 mod planned_search;
+mod search_strategy_flow_candidates;
 mod search_strategy_flow_flight;
 mod service_runtime;
 mod wendaograph;

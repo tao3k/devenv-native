@@ -462,12 +462,23 @@ fn resolve_custom_base_transport_api_key(
     let anthropic = read_non_empty_env(DEFAULT_ANTHROPIC_KEY_ENV);
 
     xiuxian_llm::llm::providers::resolve_custom_base_transport_api_key_from_values(
-        transport,
-        explicit_api_key,
-        configured.as_deref(),
-        openai.as_deref(),
-        minimax.as_deref(),
-        anthropic.as_deref(),
+        xiuxian_llm::llm::providers::AnthropicTransportKeyResolution {
+            transport,
+            explicit_api_key: explicit_api_key
+                .map(xiuxian_llm::llm::providers::ProviderApiKeyRef::new),
+            configured_key: configured
+                .as_deref()
+                .map(xiuxian_llm::llm::providers::ProviderApiKeyRef::new),
+            openai_key: openai
+                .as_deref()
+                .map(xiuxian_llm::llm::providers::ProviderApiKeyRef::new),
+            minimax_key: minimax
+                .as_deref()
+                .map(xiuxian_llm::llm::providers::ProviderApiKeyRef::new),
+            anthropic_key: anthropic
+                .as_deref()
+                .map(xiuxian_llm::llm::providers::ProviderApiKeyRef::new),
+        },
     )
 }
 

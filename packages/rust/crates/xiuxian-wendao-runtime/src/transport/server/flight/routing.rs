@@ -57,38 +57,83 @@ fn document_extract_status_cache_key(
     Ok(format!("{route}|{job_id:?}"))
 }
 
+fn repo_search_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, Status> {
+    let request = validate_repo_search_request_metadata(metadata)?;
+    Ok(format!(
+        "{route}|{repo_id:?}|{query_text:?}|{limit}|{}|{}|{}|{}|{}",
+        join_sorted_set(&request.language_filters),
+        join_sorted_set(&request.path_prefixes),
+        join_sorted_set(&request.title_filters),
+        join_sorted_set(&request.tag_filters),
+        join_sorted_set(&request.filename_filters),
+        repo_id = request.repo_id,
+        query_text = request.query_text,
+        limit = request.limit,
+    ))
+}
+
+fn attachment_search_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, Status> {
+    let (query_text, limit, ext_filters, kind_filters, case_sensitive) =
+        validate_attachment_search_request_metadata(metadata)?;
+    Ok(format!(
+        "{route}|{query_text:?}|{limit}|{}|{}|{case_sensitive}",
+        join_sorted_set(&ext_filters),
+        join_sorted_set(&kind_filters),
+    ))
+}
+
+fn generic_search_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, Status> {
+    let (query_text, limit, intent, repo_hint) = validate_search_request_metadata(metadata)?;
+    Ok(format!(
+        "{route}|{query_text:?}|{limit}|{intent:?}|{repo_hint:?}"
+    ))
+}
+
+fn repo_projection_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, Status> {
+    match route {
+        ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE => {
+            let (repo_id, page_id) =
+                validate_repo_projected_page_index_tree_request_metadata(metadata)?;
+            Ok(format!("{route}|{repo_id:?}|{page_id:?}"))
+        }
+        ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE => {
+            let (repo_id, page_id, node_id, related_limit) =
+                validate_repo_projected_retrieval_context_request_metadata(metadata)?;
+            Ok(format!(
+                "{route}|{repo_id:?}|{page_id:?}|{node_id:?}|{related_limit}"
+            ))
+        }
+        _ => Err(unexpected_routed_request(route)),
+    }
+}
+
+fn unexpected_routed_request(route: &str) -> Status {
+    Status::invalid_argument(format!("unexpected routed Flight request: {route}"))
+}
+
 impl WendaoFlightService {
     pub(super) fn route_request_cache_key(
         route: &str,
         metadata: &tonic::metadata::MetadataMap,
     ) -> Result<String, Status> {
         if route == REPO_SEARCH_ROUTE {
-            let request = validate_repo_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{repo_id:?}|{query_text:?}|{limit}|{}|{}|{}|{}|{}",
-                join_sorted_set(&request.language_filters),
-                join_sorted_set(&request.path_prefixes),
-                join_sorted_set(&request.title_filters),
-                join_sorted_set(&request.tag_filters),
-                join_sorted_set(&request.filename_filters),
-                repo_id = request.repo_id,
-                query_text = request.query_text,
-                limit = request.limit,
-            ))
+            repo_search_cache_key(route, metadata)
         } else if route == SEARCH_ATTACHMENTS_ROUTE {
-            let (query_text, limit, ext_filters, kind_filters, case_sensitive) =
-                validate_attachment_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{query_text:?}|{limit}|{}|{}|{case_sensitive}",
-                join_sorted_set(&ext_filters),
-                join_sorted_set(&kind_filters),
-            ))
+            attachment_search_cache_key(route, metadata)
         } else if route == SEARCH_AST_ROUTE {
-            let (query_text, limit, intent, repo_hint) =
-                validate_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{query_text:?}|{limit}|{intent:?}|{repo_hint:?}"
-            ))
+            generic_search_cache_key(route, metadata)
         } else if route == SEARCH_DEFINITION_ROUTE {
             let (query_text, source_path, source_line) =
                 validate_definition_request_metadata(metadata)?;
@@ -136,16 +181,10 @@ impl WendaoFlightService {
         } else if route == ANALYSIS_REPO_DOC_COVERAGE_ROUTE {
             let (repo_id, module_id) = validate_repo_doc_coverage_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{module_id:?}"))
-        } else if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE {
-            let (repo_id, page_id) =
-                validate_repo_projected_page_index_tree_request_metadata(metadata)?;
-            Ok(format!("{route}|{repo_id:?}|{page_id:?}"))
-        } else if route == ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE {
-            let (repo_id, page_id, node_id, related_limit) =
-                validate_repo_projected_retrieval_context_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{repo_id:?}|{page_id:?}|{node_id:?}|{related_limit}"
-            ))
+        } else if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE
+            || route == ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE
+        {
+            repo_projection_cache_key(route, metadata)
         } else if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
             document_extract_cache_key(route, metadata)
         } else if route == ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE {
@@ -154,15 +193,9 @@ impl WendaoFlightService {
             let (repo_id, entity_id, user_hints) = validate_refine_doc_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{entity_id:?}|{user_hints:?}"))
         } else if is_search_family_route(route) {
-            let (query_text, limit, intent, repo_hint) =
-                validate_search_request_metadata(metadata)?;
-            Ok(format!(
-                "{route}|{query_text:?}|{limit}|{intent:?}|{repo_hint:?}"
-            ))
+            generic_search_cache_key(route, metadata)
         } else {
-            Err(Status::invalid_argument(format!(
-                "unexpected routed Flight request: {route}"
-            )))
+            Err(unexpected_routed_request(route))
         }
     }
 

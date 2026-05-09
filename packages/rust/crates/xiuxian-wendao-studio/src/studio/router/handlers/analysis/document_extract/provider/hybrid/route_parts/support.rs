@@ -16,6 +16,7 @@ use super::{
     page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
     page_region_render_request_chunks_by_region,
+    page_region_render_request_chunks_by_region_seed_page,
 };
 
 pub(super) fn record_phase_elapsed(
@@ -160,6 +161,9 @@ pub(super) fn ocr2_region_render_request_chunks_with_lookup(
         }
         HybridPdfOcr2RegionRenderChunkMode::Region => {
             page_region_render_request_chunks_by_region(regions)
+        }
+        HybridPdfOcr2RegionRenderChunkMode::RegionSeedPage => {
+            page_region_render_request_chunks_by_region_seed_page(regions)
         }
         HybridPdfOcr2RegionRenderChunkMode::Page => {
             page_region_render_request_chunks_by_page(regions)

@@ -43,14 +43,26 @@ pub struct ExecutorId(Arc<str>);
 impl ExecutorId {
     /// Creates a new executor ID.
     #[must_use]
-    pub fn new(id: &str) -> Self {
-        Self(Arc::from(id.to_string()))
+    pub fn new(id: impl Into<Self>) -> Self {
+        id.into()
     }
 
     /// Returns the ID as a string slice.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl From<&str> for ExecutorId {
+    fn from(id: &str) -> Self {
+        Self(Arc::from(id.to_string()))
+    }
+}
+
+impl From<String> for ExecutorId {
+    fn from(id: String) -> Self {
+        Self(Arc::from(id))
     }
 }
 
@@ -106,7 +118,7 @@ pub struct NoopExecutor {
 impl NoopExecutor {
     /// Creates a new no-op executor.
     #[must_use]
-    pub fn new(id: &str) -> Self {
+    pub fn new(id: impl Into<ExecutorId>) -> Self {
         Self {
             id: ExecutorId::new(id),
             name: "noop",

@@ -5,7 +5,8 @@ use crate::llm::providers::DEFAULT_ANTHROPIC_KEY_ENV;
 use crate::llm::types::AssistantMessage;
 use crate::session::{FunctionCall, ToolCallOut};
 use xiuxian_llm::llm::providers::{
-    AnthropicParsedResponse, anthropic_messages_endpoint_from_base,
+    AnthropicMessagesExecutionRequest, AnthropicParsedResponse,
+    anthropic_messages_endpoint_from_base,
     execute_anthropic_messages_from_litellm_request_with_image_hook, resolve_api_key_with_env,
     resolve_positive_usize_env,
 };
@@ -43,11 +44,13 @@ pub(super) async fn chat_anthropic_without_model_registry(
     let endpoint = anthropic_messages_endpoint_from_base(config.inference_api_base);
     let attempts = anthropic_custom_network_attempts();
     let parsed = execute_anthropic_messages_from_litellm_request_with_image_hook(
-        &client,
-        endpoint.as_str(),
-        api_key.as_str(),
-        &request,
-        attempts,
+        AnthropicMessagesExecutionRequest {
+            client: &client,
+            endpoint: endpoint.as_str(),
+            api_key: api_key.as_str(),
+            request: &request,
+            attempts,
+        },
         |_source| async move { None },
     )
     .await

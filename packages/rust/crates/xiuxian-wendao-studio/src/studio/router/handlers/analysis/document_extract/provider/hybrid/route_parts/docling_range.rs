@@ -1,3 +1,4 @@
+use super::docling_structure_budget::docling_page_range_structure_cost_budgeted_ranges_with_lookup;
 use super::{
     BTreeMap, BTreeSet, DOCLING_STRUCTURE_RECOVERY_DEFAULT_PAGE_RANGE_CHUNK_SIZE,
     DOCLING_STRUCTURE_RECOVERY_SMALL_PAGE_RANGE_CHUNK_SIZE,
@@ -9,6 +10,7 @@ use super::{
     PDF_OCR_BACKEND_TEXT_PROFILE, PDF_OCR_DEFAULT_PROFILE, PDF_OCR_FAST_TEXT_PROFILE,
     PageRangeDoclingFallbackPlanRange, PageRangeDoclingFallbackPlanSummary, Path, PdfOcrShardInput,
     PdfOcrShardResult, PdfOcrShardResultStatus, PdfSourcePageProfile,
+    pdf_source_page_requires_structure_authority, pdf_source_page_structure_cost,
     source_pdf_page_profiles_cached,
 };
 
@@ -60,9 +62,14 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
     planner: HybridPdfOcrProfilePlanner,
     source_path: &Path,
     target_chunk_count: usize,
+    max_budget_range_count: usize,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Result<(Vec<(u32, u32)>, PageRangeDoclingFallbackPlanSummary), String> {
     let fallback_page_count = pages.len();
+    let max_budget_range_count = max_budget_range_count
+        .max(target_chunk_count)
+        .min(fallback_page_count.max(1));
+    let source_profiles = source_pdf_page_profiles_cached(source_path).ok();
     if let Some(chunk_plan) = docling_page_range_chunk_plan_with_lookup(pages, lookup)? {
         let plan = page_range_plan_summary(
             "explicit-plan",
@@ -71,6 +78,7 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
             None,
             false,
             chunk_plan.as_slice(),
+            source_profiles.as_deref(),
         );
         return Ok((chunk_plan, plan));
     }
@@ -83,6 +91,7 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
             Some(explicit_chunk_size),
             false,
             ranges.as_slice(),
+            source_profiles.as_deref(),
         );
         return Ok((ranges, plan));
     }
@@ -91,7 +100,6 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
             .unwrap_or(1)
             .max(1);
     let fallback_chunk_floor = fallback_page_count.div_ceil(default_chunk_size).max(1);
-    let source_profiles = source_pdf_page_profiles_cached(source_path).ok();
     if planner == HybridPdfOcrProfilePlanner::DoclingStructureRecovery
         && pages.len() > DOCLING_STRUCTURE_RECOVERY_SMALL_PAGE_RANGE_THRESHOLD
         && target_chunk_count > 1
@@ -103,6 +111,12 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
             target_chunk_count,
         )
     {
+        let ranges = docling_page_range_structure_cost_budgeted_ranges_with_lookup(
+            ranges,
+            profiles.as_slice(),
+            max_budget_range_count,
+            lookup,
+        );
         let plan = page_range_plan_summary(
             "source-profile-weighted",
             target_chunk_count,
@@ -110,11 +124,12 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
             None,
             true,
             ranges.as_slice(),
+            Some(profiles.as_slice()),
         );
         return Ok((ranges, plan));
     }
     let chunk_size = docling_page_range_chunk_size_for_pages_with_lookup(pages, planner, lookup);
-    let ranges = docling_page_range_fallback_ranges(pages, chunk_size);
+    let mut ranges = docling_page_range_fallback_ranges(pages, chunk_size);
     let strategy = if planner == HybridPdfOcrProfilePlanner::DoclingStructureRecovery
         && pages.len() <= DOCLING_STRUCTURE_RECOVERY_SMALL_PAGE_RANGE_THRESHOLD
     {
@@ -124,6 +139,16 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
     } else {
         "contiguous"
     };
+    if planner == HybridPdfOcrProfilePlanner::DoclingStructureRecovery
+        && let Some(profiles) = source_profiles.as_ref()
+    {
+        ranges = docling_page_range_structure_cost_budgeted_ranges_with_lookup(
+            ranges,
+            profiles.as_slice(),
+            max_budget_range_count,
+            lookup,
+        );
+    }
     let plan = page_range_plan_summary(
         strategy,
         target_chunk_count,
@@ -131,6 +156,7 @@ pub(super) fn docling_page_range_fallback_plan_for_source_with_lookup(
         chunk_size,
         false,
         ranges.as_slice(),
+        source_profiles.as_deref(),
     );
     Ok((ranges, plan))
 }
@@ -166,7 +192,24 @@ fn page_range_plan_summary(
     chunk_size: Option<u32>,
     source_profile_used: bool,
     ranges: &[(u32, u32)],
+    profiles: Option<&[PdfSourcePageProfile]>,
 ) -> PageRangeDoclingFallbackPlanSummary {
+    let ranges = ranges
+        .iter()
+        .copied()
+        .map(|(page_start, page_end)| {
+            let range_structure = page_range_structure_cost_summary(page_start, page_end, profiles);
+            PageRangeDoclingFallbackPlanRange {
+                page_start,
+                page_end,
+                one_based_start: page_start.saturating_add(1),
+                one_based_end: page_end.saturating_add(1),
+                estimated_structure_cost_total: range_structure.total,
+                estimated_structure_cost_max: range_structure.max,
+                structure_authority_required_count: range_structure.authority_required_count,
+            }
+        })
+        .collect::<Vec<_>>();
     PageRangeDoclingFallbackPlanSummary {
         strategy,
         target_chunk_count,
@@ -174,17 +217,54 @@ fn page_range_plan_summary(
         range_count: ranges.len(),
         chunk_size,
         source_profile_used,
-        ranges: ranges
+        estimated_structure_cost_total: ranges
             .iter()
-            .copied()
-            .map(|(page_start, page_end)| PageRangeDoclingFallbackPlanRange {
-                page_start,
-                page_end,
-                one_based_start: page_start.saturating_add(1),
-                one_based_end: page_end.saturating_add(1),
-            })
-            .collect(),
+            .map(|range| range.estimated_structure_cost_total)
+            .sum(),
+        estimated_structure_cost_max: ranges
+            .iter()
+            .map(|range| range.estimated_structure_cost_max)
+            .max()
+            .unwrap_or(0),
+        structure_authority_required_count: ranges
+            .iter()
+            .map(|range| range.structure_authority_required_count)
+            .sum(),
+        ranges,
     }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct PageRangeStructureCostSummary {
+    total: u64,
+    max: u32,
+    authority_required_count: usize,
+}
+
+fn page_range_structure_cost_summary(
+    page_start: u32,
+    page_end: u32,
+    profiles: Option<&[PdfSourcePageProfile]>,
+) -> PageRangeStructureCostSummary {
+    let Some(profiles) = profiles else {
+        return PageRangeStructureCostSummary::default();
+    };
+    profiles
+        .iter()
+        .filter(|profile| profile.page_index >= page_start && profile.page_index <= page_end)
+        .fold(
+            PageRangeStructureCostSummary::default(),
+            |mut summary, profile| {
+                let cost = pdf_source_page_structure_cost(profile);
+                summary.total = summary.total.saturating_add(u64::from(cost));
+                summary.max = summary.max.max(cost);
+                if pdf_source_page_requires_structure_authority(profile) {
+                    summary.authority_required_count =
+                        summary.authority_required_count.saturating_add(1);
+                }
+                summary
+            },
+        )
 }
 
 pub(super) fn split_contiguous_page_range(
@@ -215,7 +295,12 @@ pub(super) fn weighted_docling_page_range_fallback_ranges(
     }
     let profile_weights = profiles
         .iter()
-        .map(|profile| (profile.page_index, profile.estimated_weight.max(1)))
+        .map(|profile| {
+            (
+                profile.page_index,
+                pdf_source_page_structure_cost(profile).max(1),
+            )
+        })
         .collect::<BTreeMap<_, _>>();
     if profile_weights.is_empty() {
         return None;
@@ -333,10 +418,7 @@ fn tail_preserving_source_profile_page_ranges(
 }
 
 fn source_profile_split_priority(profile: &PdfSourcePageProfile) -> u64 {
-    u64::from(profile.estimated_weight.max(1))
-        .saturating_add(u64::from(profile.path_ops).saturating_mul(2))
-        .saturating_add(u64::from(profile.rectangle_ops))
-        .saturating_add(u64::from(profile.draw_object_ops).saturating_mul(32))
+    u64::from(pdf_source_page_structure_cost(profile).max(1))
 }
 
 fn page_count_in_range(start: u32, end: u32) -> Option<usize> {

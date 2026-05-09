@@ -10,6 +10,8 @@ use super::sanitize::{
 };
 use super::types::WendaoTomlConfig;
 
+const DEFAULT_MARKDOWN_PARSER_PLUGIN_ID: &str = "markdown-parser";
+
 /// Loads one merged Wendao TOML config from the effective Studio config path.
 ///
 /// # Errors
@@ -90,9 +92,7 @@ fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
             .filter_map(|plugin| plugin.normalized_id())
             .filter(|plugin| plugin_seen.insert(plugin.clone()))
             .collect::<Vec<_>>();
-        if plugins.is_empty() {
-            continue;
-        }
+        let plugins = repo_project_plugins_with_defaults(plugins, &mut plugin_seen);
 
         let repo_root = project.root.as_deref().and_then(sanitize_path_like);
         let url = project
@@ -130,6 +130,16 @@ fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
         projects: sanitize_projects(projects),
         repo_projects: sanitize_repo_projects(repo_projects),
     }
+}
+
+fn repo_project_plugins_with_defaults(
+    mut plugins: Vec<String>,
+    plugin_seen: &mut HashSet<String>,
+) -> Vec<String> {
+    if plugin_seen.insert(DEFAULT_MARKDOWN_PARSER_PLUGIN_ID.to_string()) {
+        plugins.push(DEFAULT_MARKDOWN_PARSER_PLUGIN_ID.to_string());
+    }
+    plugins
 }
 
 fn normalize_endpoint(raw: Option<&str>) -> Option<String> {

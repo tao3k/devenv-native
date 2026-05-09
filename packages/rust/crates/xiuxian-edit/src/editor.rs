@@ -15,6 +15,13 @@ use crate::diff::generate_unified_diff;
 use crate::error::EditError;
 use crate::types::{EditConfig, EditLocation, EditResult};
 
+struct ReplacementMatch {
+    start: usize,
+    end: usize,
+    original_text: String,
+    new_text: String,
+}
+
 /// `StructuralEditor` - AST-based code modification engine.
 ///
 /// Uses ast-grep patterns for surgical precision in code refactoring.
@@ -35,6 +42,21 @@ use crate::types::{EditConfig, EditLocation, EditResult};
 /// assert!(result.modified.contains("async_connect"));
 /// ```
 pub struct StructuralEditor;
+
+/// Named request for structural replacement on a file.
+#[derive(Clone, Copy)]
+pub struct ReplaceInFileRequest<'a> {
+    /// Path to the source file.
+    pub path: &'a Path,
+    /// `ast-grep` pattern to match.
+    pub pattern: &'a str,
+    /// Replacement pattern.
+    pub replacement: &'a str,
+    /// Optional language hint. When omitted, the language is inferred from the path.
+    pub language: Option<&'a str>,
+    /// Edit configuration controlling preview and size limits.
+    pub config: &'a EditConfig,
+}
 
 impl StructuralEditor {
     /// Perform structural replace on content.
@@ -57,81 +79,29 @@ impl StructuralEditor {
         replacement: &str,
         language: &str,
     ) -> Result<EditResult, EditError> {
-        let lang = SupportLang::from_str(language)
-            .map_err(|_| EditError::UnsupportedLanguage(language.to_string()))?;
+        Self::replace_with_language(content, pattern, replacement, parse_language(language)?)
+    }
 
-        let root = lang.ast_grep(content);
-        let root_node = root.root();
-
-        let search_pattern =
-            Pattern::try_new(pattern, lang).map_err(|e| EditError::Pattern(e.to_string()))?;
-
-        // Collect matches in reverse order for safe replacement
-        let mut matches: Vec<(usize, usize, String, String)> = Vec::new();
-
-        for node in root_node.dfs() {
-            if let Some(m) = search_pattern.match_node(node.clone()) {
-                let start_byte = m.range().start;
-                let end_byte = m.range().end;
-                let original_text = m.text().to_string();
-
-                let new_text = substitute_captures(replacement, m.get_env(), &original_text);
-                matches.push((start_byte, end_byte, original_text, new_text));
-            }
-        }
+    fn replace_with_language(
+        content: &str,
+        pattern: &str,
+        replacement: &str,
+        lang: SupportLang,
+    ) -> Result<EditResult, EditError> {
+        let search_pattern = compile_search_pattern(pattern, lang)?;
+        let matches = collect_replacement_matches(content, lang, &search_pattern, replacement);
 
         if matches.is_empty() {
-            return Ok(EditResult {
-                original: content.to_string(),
-                modified: content.to_string(),
-                count: 0,
-                diff: String::new(),
-                edits: Vec::new(),
-            });
+            return Ok(unchanged_result(content));
         }
 
-        // Sort by position in reverse order
-        matches.sort_by_key(|entry| std::cmp::Reverse(entry.0));
-
-        // Apply replacements
-        let mut modified = content.to_string();
-        let mut edits = Vec::new();
-
-        for (start, end, original_text, new_text) in &matches {
-            let line = content[..*start].matches('\n').count() + 1;
-            let last_newline = content[..*start].rfind('\n').map_or(0, |i| i + 1);
-            let column = start - last_newline + 1;
-
-            modified = format!("{}{}{}", &modified[..*start], new_text, &modified[*end..]);
-
-            edits.push(EditLocation {
-                line,
-                column,
-                original_text: original_text.clone(),
-                new_text: new_text.clone(),
-            });
-        }
-
-        edits.reverse();
-        let diff = generate_unified_diff(content, &modified);
-
-        Ok(EditResult {
-            original: content.to_string(),
-            modified,
-            count: edits.len(),
-            diff,
-            edits,
-        })
+        Ok(apply_replacements(content, matches))
     }
 
     /// Perform structural replace on a file.
     ///
     /// # Arguments
-    /// * `path` - Path to the source file
-    /// * `pattern` - ast-grep pattern to match
-    /// * `replacement` - Replacement pattern
-    /// * `language` - Optional language hint (auto-detected if None)
-    /// * `config` - Edit configuration
+    /// * `request` - Named file replacement request.
     ///
     /// # Returns
     /// `EditResult` with changes (file is modified only if `config.preview_only` is false).
@@ -139,41 +109,57 @@ impl StructuralEditor {
     /// # Errors
     ///
     /// Returns [`EditError`] when the file cannot be read, written, or structurally rewritten.
-    pub fn replace_in_file<P: AsRef<Path>>(
+    pub fn replace_in_file(request: ReplaceInFileRequest<'_>) -> Result<EditResult, EditError> {
+        replace_in_file_internal(request)
+    }
+
+    fn replace_in_file_path<P: AsRef<Path>>(
         path: P,
         pattern: &str,
         replacement: &str,
         language: Option<&str>,
         config: &EditConfig,
     ) -> Result<EditResult, EditError> {
-        let path = path.as_ref();
-        let content = xiuxian_io::read_text_safe(path, config.max_file_size)?;
+        Self::replace_in_file(ReplaceInFileRequest {
+            path: path.as_ref(),
+            pattern,
+            replacement,
+            language,
+            config,
+        })
+    }
+}
 
-        let lang_str = match language {
-            Some(l) => l.to_string(),
-            None => {
-                if let Some(lang) = SupportLang::from_path(path) {
-                    format!("{lang:?}").to_lowercase()
-                } else {
-                    let ext = path.extension().map_or_else(
-                        || "unknown".to_string(),
-                        |e| e.to_string_lossy().to_string(),
-                    );
-                    return Err(EditError::UnsupportedLanguage(ext));
-                }
+fn replace_in_file_internal(request: ReplaceInFileRequest<'_>) -> Result<EditResult, EditError> {
+    let content = xiuxian_io::read_text_safe(request.path, request.config.max_file_size)?;
+
+    let lang_str = match request.language {
+        Some(l) => l.to_string(),
+        None => {
+            if let Some(lang) = SupportLang::from_path(request.path) {
+                format!("{lang:?}").to_lowercase()
+            } else {
+                let ext = request.path.extension().map_or_else(
+                    || "unknown".to_string(),
+                    |e| e.to_string_lossy().to_string(),
+                );
+                return Err(EditError::UnsupportedLanguage(ext));
             }
-        };
-
-        let result = Self::replace(&content, pattern, replacement, &lang_str)?;
-
-        if !config.preview_only && result.count > 0 {
-            std::fs::write(path, &result.modified)
-                .map_err(|e| EditError::Replacement(format!("Failed to write file: {e}")))?;
         }
+    };
 
-        Ok(result)
+    let result =
+        StructuralEditor::replace(&content, request.pattern, request.replacement, &lang_str)?;
+
+    if !request.config.preview_only && result.count > 0 {
+        std::fs::write(request.path, &result.modified)
+            .map_err(|e| EditError::Replacement(format!("Failed to write file: {e}")))?;
     }
 
+    Ok(result)
+}
+
+impl StructuralEditor {
     /// Preview structural replace (no file modification).
     ///
     /// Convenience method that always previews without modifying files.
@@ -187,7 +173,7 @@ impl StructuralEditor {
         replacement: &str,
         language: Option<&str>,
     ) -> Result<EditResult, EditError> {
-        Self::replace_in_file(
+        Self::replace_in_file_path(
             path,
             pattern,
             replacement,
@@ -212,7 +198,7 @@ impl StructuralEditor {
         replacement: &str,
         language: Option<&str>,
     ) -> Result<EditResult, EditError> {
-        Self::replace_in_file(
+        Self::replace_in_file_path(
             path,
             pattern,
             replacement,
@@ -254,6 +240,90 @@ impl StructuralEditor {
         output.push_str(&result.diff);
 
         output
+    }
+}
+
+fn parse_language(language: &str) -> Result<SupportLang, EditError> {
+    SupportLang::from_str(language)
+        .map_err(|_| EditError::UnsupportedLanguage(language.to_string()))
+}
+
+fn compile_search_pattern(pattern: &str, lang: SupportLang) -> Result<Pattern, EditError> {
+    Pattern::try_new(pattern, lang).map_err(|e| EditError::Pattern(e.to_string()))
+}
+
+fn collect_replacement_matches(
+    content: &str,
+    lang: SupportLang,
+    search_pattern: &Pattern,
+    replacement: &str,
+) -> Vec<ReplacementMatch> {
+    let root = lang.ast_grep(content);
+    root.root()
+        .dfs()
+        .filter_map(|node| {
+            let matched = search_pattern.match_node(node.clone())?;
+            let original_text = matched.text().to_string();
+            Some(ReplacementMatch {
+                start: matched.range().start,
+                end: matched.range().end,
+                new_text: substitute_captures(replacement, matched.get_env(), &original_text),
+                original_text,
+            })
+        })
+        .collect()
+}
+
+fn unchanged_result(content: &str) -> EditResult {
+    EditResult {
+        original: content.to_string(),
+        modified: content.to_string(),
+        count: 0,
+        diff: String::new(),
+        edits: Vec::new(),
+    }
+}
+
+fn apply_replacements(content: &str, mut matches: Vec<ReplacementMatch>) -> EditResult {
+    matches.sort_by_key(|entry| std::cmp::Reverse(entry.start));
+
+    let edits = matches
+        .iter()
+        .rev()
+        .map(|replacement| edit_location(content, replacement))
+        .collect();
+    let modified = matches
+        .iter()
+        .fold(content.to_string(), apply_single_replacement);
+
+    build_edit_result(content, modified, edits)
+}
+
+fn apply_single_replacement(mut modified: String, replacement: &ReplacementMatch) -> String {
+    modified.replace_range(replacement.start..replacement.end, &replacement.new_text);
+    modified
+}
+
+fn edit_location(content: &str, replacement: &ReplacementMatch) -> EditLocation {
+    let line = content[..replacement.start].matches('\n').count() + 1;
+    let last_newline = content[..replacement.start]
+        .rfind('\n')
+        .map_or(0, |idx| idx + 1);
+    EditLocation {
+        line,
+        column: replacement.start - last_newline + 1,
+        original_text: replacement.original_text.clone(),
+        new_text: replacement.new_text.clone(),
+    }
+}
+
+fn build_edit_result(content: &str, modified: String, edits: Vec<EditLocation>) -> EditResult {
+    EditResult {
+        original: content.to_string(),
+        diff: generate_unified_diff(content, &modified),
+        count: edits.len(),
+        modified,
+        edits,
     }
 }
 

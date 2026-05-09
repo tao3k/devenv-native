@@ -70,6 +70,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 
 mod batch;
 mod capture;
+/// Unified diff generation for structural edit previews.
 pub mod diff;
 mod editor;
 mod error;
@@ -79,7 +80,7 @@ mod types; // Heavy-duty batch refactoring
 // Public Re-exports
 // ============================================================================
 
-pub use editor::StructuralEditor;
+pub use editor::{ReplaceInFileRequest, StructuralEditor};
 pub use error::EditError;
 pub use types::{EditConfig, EditLocation, EditResult};
 

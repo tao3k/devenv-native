@@ -210,14 +210,7 @@ impl ModelBus {
             .cloned()
             .collect();
 
-        let mut count = 0;
-        for slot in slots {
-            if slot.state() == SlotState::Vacant {
-                let _ = slot.hibernate();
-                count += 1;
-            }
-        }
-        Ok(count)
+        Ok(slots.into_iter().filter(prewarm_vacant_slot).count())
     }
 
     /// Executes inference on an active slot.
@@ -279,6 +272,14 @@ impl ModelBus {
 
         Ok(())
     }
+}
+
+fn prewarm_vacant_slot(slot: &Arc<ModelSlot>) -> bool {
+    if slot.state() != SlotState::Vacant {
+        return false;
+    }
+    let _ = slot.hibernate();
+    true
 }
 
 impl Default for ModelBus {

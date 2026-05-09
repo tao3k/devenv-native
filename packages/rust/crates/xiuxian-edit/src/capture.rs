@@ -22,6 +22,14 @@ pub fn substitute_captures<D: Doc>(
     env: &xiuxian_ast::MetaVarEnv<D>,
     original_text: &str,
 ) -> String {
+    substitute_captures_internal(replacement, env, original_text)
+}
+
+fn substitute_captures_internal<D: Doc>(
+    replacement: &str,
+    env: &xiuxian_ast::MetaVarEnv<D>,
+    original_text: &str,
+) -> String {
     let mut new_text = replacement.to_string();
 
     // Extract and substitute all named captures

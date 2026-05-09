@@ -7,6 +7,21 @@ use super::anchor::TextAnchor;
 use super::cot::{VisualCotInput, VisualCotMode, build_visual_cot_prompt};
 use super::refiner::VisualRefinement;
 
+/// Request for building a grounded visual user message.
+#[derive(Debug, Clone, Copy)]
+pub struct VisualUserMessageRequest<'a> {
+    /// User prompt text.
+    pub user_message: &'a str,
+    /// Image URL or data URI.
+    pub image_url: &'a str,
+    /// Physical text anchors.
+    pub anchors: &'a [TextAnchor],
+    /// Visual chain-of-thought mode.
+    pub mode: VisualCotMode,
+    /// Optional OCR truth block.
+    pub ocr_truth_markdown: Option<&'a str>,
+}
+
 /// Builds a multimodal user message with visual `CoT` guidance and high-detail image payload.
 ///
 /// # Errors
@@ -19,7 +34,13 @@ pub fn build_visual_user_message(
     anchors: &[TextAnchor],
     mode: VisualCotMode,
 ) -> LlmResult<ChatMessage> {
-    build_visual_user_message_with_ocr_truth(user_message, image_url, anchors, mode, None)
+    build_visual_user_message_with_ocr_truth(VisualUserMessageRequest {
+        user_message,
+        image_url,
+        anchors,
+        mode,
+        ocr_truth_markdown: None,
+    })
 }
 
 /// Builds a multimodal user message with optional physical OCR truth injection.
@@ -29,19 +50,19 @@ pub fn build_visual_user_message(
 /// Returns an error when the provided image URL/reference is empty or contains
 /// newline characters.
 pub fn build_visual_user_message_with_ocr_truth(
-    user_message: &str,
-    image_url: &str,
-    anchors: &[TextAnchor],
-    mode: VisualCotMode,
-    ocr_truth_markdown: Option<&str>,
+    request: VisualUserMessageRequest<'_>,
 ) -> LlmResult<ChatMessage> {
-    let normalized_image_url = image_url.trim();
+    let normalized_image_url = request.image_url.trim();
     if normalized_image_url.is_empty() || normalized_image_url.contains('\n') {
         return Err(LlmError::InvalidImageReference);
     }
 
-    let grounded_user_message =
-        compose_grounded_user_text(user_message, anchors, mode, ocr_truth_markdown);
+    let grounded_user_message = compose_grounded_user_text(
+        request.user_message,
+        request.anchors,
+        request.mode,
+        request.ocr_truth_markdown,
+    );
 
     Ok(ChatMessage {
         role: MessageRole::User,
@@ -76,13 +97,13 @@ pub fn build_visual_user_message_from_refinement(
     refinement: &VisualRefinement,
     mode: VisualCotMode,
 ) -> LlmResult<ChatMessage> {
-    build_visual_user_message_with_ocr_truth(
+    build_visual_user_message_with_ocr_truth(VisualUserMessageRequest {
         user_message,
         image_url,
-        refinement.text_anchors.as_slice(),
+        anchors: refinement.text_anchors.as_slice(),
         mode,
-        refinement.ocr_truth_markdown.as_deref(),
-    )
+        ocr_truth_markdown: refinement.ocr_truth_markdown.as_deref(),
+    })
 }
 
 fn compose_grounded_user_text(

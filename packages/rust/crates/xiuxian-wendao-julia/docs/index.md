@@ -23,7 +23,14 @@ Polyglot boundary:
 3. `examples/wendaograph_search_strategy_flow.rs` is a CLI proof surface for
    Rust-owned SearchStrategyFlow dispatch into `WendaoGraph.jl`; it preserves
    Julia ownership of graph scoring, frontier pruning, and planner action
-   generation. The bridge enriches the returned trace with additive
+   generation. The bridge now has two Rust candidate sources before invoking
+   Julia: a no-endpoint Markdown heading scan for local smoke tests and a
+   Studio `/search/repos/main` Arrow Flight source when materialization config
+   is present. Both sources pass section-level candidates into
+   `WendaoGraph.jl` for deterministic SearchStrategyFlow scoring. Julia still
+   owns the graph algorithm; Rust owns evidence discovery, Flight route
+   planning, and materialization receipts. The bridge enriches the returned
+   trace with additive
    `retrievalRoutes` plans for Studio-owned Arrow Flight materialization routes
    so downstream agents can inspect the native route sequence without
    rebuilding local fixture plans. It must not mark those routes as executed
@@ -48,5 +55,5 @@ Verification profile:
 
 :FOOTER:
 :STANDARDS: v2.0
-:LAST_SYNC: 2026-05-08
+:LAST_SYNC: 2026-05-09
 :END:
