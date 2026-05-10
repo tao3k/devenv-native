@@ -26,4 +26,4 @@ pub use runtime::{
 };
 pub use runtime_config::TelegramRuntimeConfig;
 pub use session_gate::SessionGate;
-pub use session_partition::TelegramSessionPartition;
+pub use session_partition::{TelegramMessageThreadId, TelegramSessionPartition};

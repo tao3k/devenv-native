@@ -11,6 +11,7 @@ mod recipient_admin;
 mod state;
 mod trait_impl;
 
+pub use bot_identity::DiscordBotUserId;
 pub use policy::{DiscordCommandAdminRule, DiscordControlCommandPolicy, DiscordSlashCommandPolicy};
 pub use policy_builders::build_discord_command_admin_rule;
 pub use state::DiscordChannel;

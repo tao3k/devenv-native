@@ -37,10 +37,10 @@ fn validate_accepts_trimmed_values() {
         session_id: "  s1  ".to_string(),
         message: " hello ".to_string(),
     };
-    let (session_id, message) = match validate_message_request(&body) {
+    let validated = match validate_message_request(&body) {
         Ok(values) => values,
         Err(error) => panic!("ok: {error:?}"),
     };
-    assert_eq!(session_id, "s1");
-    assert_eq!(message, "hello");
+    assert_eq!(validated.session_id, "s1");
+    assert_eq!(validated.message, "hello");
 }

@@ -83,7 +83,12 @@ impl SessionStore {
     ///
     /// # Errors
     /// Returns an error when Valkey-backed persistence fails.
-    pub async fn append(&self, session_id: &str, messages: Vec<ChatMessage>) -> Result<()> {
+    pub async fn append(
+        &self,
+        session_id: impl AsRef<str>,
+        messages: Vec<ChatMessage>,
+    ) -> Result<()> {
+        let session_id = session_id.as_ref();
         if messages.is_empty() {
             return Ok(());
         }
@@ -102,7 +107,12 @@ impl SessionStore {
     ///
     /// # Errors
     /// Returns an error when Valkey-backed persistence fails.
-    pub async fn replace(&self, session_id: &str, messages: Vec<ChatMessage>) -> Result<()> {
+    pub async fn replace(
+        &self,
+        session_id: impl AsRef<str>,
+        messages: Vec<ChatMessage>,
+    ) -> Result<()> {
+        let session_id = session_id.as_ref();
         if let Some(redis) = &self.redis {
             let _ = redis.replace_messages(session_id, &messages).await?;
         }
@@ -119,7 +129,8 @@ impl SessionStore {
     ///
     /// # Errors
     /// Returns an error when Valkey-backed persistence fails.
-    pub async fn get(&self, session_id: &str) -> Result<Vec<ChatMessage>> {
+    pub async fn get(&self, session_id: impl AsRef<str>) -> Result<Vec<ChatMessage>> {
+        let session_id = session_id.as_ref();
         if let Some(redis) = &self.redis {
             let messages = redis.get_messages(session_id).await?;
             let mut inner = self.inner.write().await;
@@ -138,7 +149,7 @@ impl SessionStore {
     ///
     /// # Errors
     /// Returns an error when Valkey-backed persistence fails.
-    pub async fn len(&self, session_id: &str) -> Result<usize> {
+    pub async fn len(&self, session_id: impl AsRef<str>) -> Result<usize> {
         Ok(self.get(session_id).await?.len())
     }
 
@@ -146,7 +157,8 @@ impl SessionStore {
     ///
     /// # Errors
     /// Returns an error when Valkey-backed persistence fails.
-    pub async fn clear(&self, session_id: &str) -> Result<()> {
+    pub async fn clear(&self, session_id: impl AsRef<str>) -> Result<()> {
+        let session_id = session_id.as_ref();
         if let Some(redis) = &self.redis {
             redis.clear_messages(session_id).await?;
         }

@@ -15,13 +15,16 @@ pub struct DiscordForegroundInterruptController {
 impl DiscordForegroundInterruptController {
     #[must_use]
     /// Begin one foreground generation stream for a logical session.
-    pub fn begin_generation(&self, session_id: &str) -> tokio::sync::watch::Receiver<u64> {
-        self.inner.begin_generation(session_id)
+    pub fn begin_generation(
+        &self,
+        session_id: impl AsRef<str>,
+    ) -> tokio::sync::watch::Receiver<u64> {
+        self.inner.begin_generation(session_id.as_ref())
     }
 
     /// Mark one foreground generation as completed for a logical session.
-    pub fn end_generation(&self, session_id: &str) {
-        self.inner.end_generation(session_id);
+    pub fn end_generation(&self, session_id: impl AsRef<str>) {
+        self.inner.end_generation(session_id.as_ref());
     }
 }
 

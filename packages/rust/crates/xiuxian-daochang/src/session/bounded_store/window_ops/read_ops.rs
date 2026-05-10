@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use xiuxian_window::TurnSlot;
 
 use crate::observability::SessionEvent;
-use crate::session::{BoundedSessionStore, ChatMessage};
+use crate::session::{BoundedSessionStats, BoundedSessionStore, ChatMessage};
 
 use super::turn_slots_to_messages;
 
@@ -14,9 +14,10 @@ impl BoundedSessionStore {
     /// Returns an error when loading bounded window slots from Valkey fails.
     pub async fn get_recent_messages(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         limit: usize,
     ) -> Result<Vec<ChatMessage>> {
+        let session_id = session_id.as_ref();
         let limit_slots = limit.saturating_mul(2);
         if let Some(ref redis) = self.redis {
             let slots = redis
@@ -69,9 +70,10 @@ impl BoundedSessionStore {
     /// Returns an error when loading bounded window slots from Valkey fails.
     pub async fn get_recent_slots(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         limit_slots: usize,
     ) -> Result<Vec<TurnSlot>> {
+        let session_id = session_id.as_ref();
         if limit_slots == 0 {
             return Ok(Vec::new());
         }
@@ -114,26 +116,31 @@ impl BoundedSessionStore {
         Ok(slots)
     }
 
-    /// Session stats: (`turn_count`, `total_tool_calls`, `ring_len`).
+    /// Session stats for the bounded window.
     ///
     /// # Errors
     /// Returns an error when reading bounded-session stats from Valkey fails.
-    pub async fn get_stats(&self, session_id: &str) -> Result<Option<(u64, u64, usize)>> {
+    pub async fn get_stats(
+        &self,
+        session_id: impl AsRef<str>,
+    ) -> Result<Option<BoundedSessionStats>> {
+        let session_id = session_id.as_ref();
         if let Some(ref redis) = self.redis {
             let stats = redis.get_window_stats(session_id).await.with_context(|| {
                 format!("valkey bounded session stats failed for session_id={session_id}")
             })?;
-            let mapped = stats.map(|(slots, tool_calls, ring_len)| {
-                let turn_count = slots / 2;
-                (turn_count, tool_calls, ring_len)
+            let mapped = stats.map(|(slots, tool_calls, ring_len)| BoundedSessionStats {
+                turn_count: slots / 2,
+                total_tool_calls: tool_calls,
+                ring_len,
             });
-            if let Some((turn_count, tool_calls, ring_len)) = mapped {
+            if let Some(stats) = mapped {
                 tracing::debug!(
                     event = SessionEvent::BoundedStatsLoaded.as_str(),
                     session_id,
-                    turn_count,
-                    tool_calls,
-                    ring_len,
+                    turn_count = stats.turn_count,
+                    tool_calls = stats.total_tool_calls,
+                    ring_len = stats.ring_len,
                     backend = "valkey",
                     "bounded session stats loaded"
                 );
@@ -144,16 +151,19 @@ impl BoundedSessionStore {
         let guard = self.inner.read().await;
         let mapped = guard.get(session_id).map(|window| {
             let stats = window.get_stats();
-            let turn_count = stats.total_turns / 2;
-            (turn_count, stats.total_tool_calls, stats.window_used)
+            BoundedSessionStats {
+                turn_count: stats.total_turns / 2,
+                total_tool_calls: stats.total_tool_calls,
+                ring_len: stats.window_used,
+            }
         });
-        if let Some((turn_count, tool_calls, ring_len)) = mapped {
+        if let Some(stats) = mapped {
             tracing::debug!(
                 event = SessionEvent::BoundedStatsLoaded.as_str(),
                 session_id,
-                turn_count,
-                tool_calls,
-                ring_len,
+                turn_count = stats.turn_count,
+                tool_calls = stats.total_tool_calls,
+                ring_len = stats.ring_len,
                 backend = "memory",
                 "bounded session stats loaded"
             );

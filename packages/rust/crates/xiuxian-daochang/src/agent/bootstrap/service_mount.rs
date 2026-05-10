@@ -41,14 +41,51 @@ impl ServiceMountMeta {
     }
 }
 
+/// Service mount category used by runtime diagnostics.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ServiceMountCategory(String);
+
+impl ServiceMountCategory {
+    /// Build a service mount category.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Borrow the category string.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl From<&str> for ServiceMountCategory {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<String> for ServiceMountCategory {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
 /// Durable mount record exposed for runtime diagnostics.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServiceMountRecord {
+    /// Service name that was mounted, skipped, or failed.
     pub service: String,
-    pub category: String,
+    /// Service category used for runtime diagnostics.
+    pub category: ServiceMountCategory,
+    /// Final mount status.
     pub status: ServiceMountStatus,
+    /// Optional endpoint associated with the service.
     pub endpoint: Option<String>,
+    /// Optional storage backend associated with the service.
     pub storage: Option<String>,
+    /// Optional human-readable detail for diagnostics.
     pub detail: Option<String>,
 }
 
@@ -66,7 +103,7 @@ impl ServiceMountCatalog {
     pub(crate) fn mounted(
         &mut self,
         service: impl Into<String>,
-        category: impl Into<String>,
+        category: impl Into<ServiceMountCategory>,
         meta: ServiceMountMeta,
     ) {
         self.record(service, category, ServiceMountStatus::Mounted, meta);
@@ -75,7 +112,7 @@ impl ServiceMountCatalog {
     pub(crate) fn skipped(
         &mut self,
         service: impl Into<String>,
-        category: impl Into<String>,
+        category: impl Into<ServiceMountCategory>,
         meta: ServiceMountMeta,
     ) {
         self.record(service, category, ServiceMountStatus::Skipped, meta);
@@ -84,7 +121,7 @@ impl ServiceMountCatalog {
     pub(crate) fn failed(
         &mut self,
         service: impl Into<String>,
-        category: impl Into<String>,
+        category: impl Into<ServiceMountCategory>,
         meta: ServiceMountMeta,
     ) {
         self.record(service, category, ServiceMountStatus::Failed, meta);
@@ -93,7 +130,7 @@ impl ServiceMountCatalog {
     fn record(
         &mut self,
         service: impl Into<String>,
-        category: impl Into<String>,
+        category: impl Into<ServiceMountCategory>,
         status: ServiceMountStatus,
         meta: ServiceMountMeta,
     ) {
@@ -108,7 +145,7 @@ impl ServiceMountCatalog {
         tracing::info!(
             event = "agent.service.mount",
             service = %record.service,
-            category = %record.category,
+            category = %record.category.as_str(),
             status = record.status.as_str(),
             endpoint = %record.endpoint.as_deref().unwrap_or(""),
             storage = %record.storage.as_deref().unwrap_or(""),

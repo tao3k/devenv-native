@@ -141,19 +141,39 @@ pub(crate) mod agent {
         let _ = crate::agent::Agent::test_session_messages;
         let _ = crate::agent::Agent::test_bounded_recent_messages;
         let _ = crate::agent::Agent::test_bounded_recent_summary_segments;
-        let _ = crate::agent::Agent::append_turn_with_tool_count_for_session;
-        let _ = crate::agent::Agent::reset_context_window;
-        let _ = crate::agent::Agent::inspect_context_window;
-        let _ = crate::agent::Agent::peek_context_window_backup;
-        let _ = crate::agent::Agent::resume_context_window;
-        let _ = crate::agent::Agent::drop_context_window_backup;
-        let _ = crate::agent::Agent::append_turn_for_session;
         let _ = std::mem::size_of::<session_context::SessionContextMode>();
         let _ = std::mem::size_of::<session_context::SessionContextSnapshotInfo>();
         let _ = std::mem::size_of::<session_context::SessionContextWindowInfo>();
     }
 
     const _: fn() = session_context_lint_symbol_probe;
+
+    async fn session_context_api_exercise(agent: &Agent) -> Result<()> {
+        let _ = agent
+            .append_turn_to_session("session", "user", "assistant", 0)
+            .await;
+        let _ = agent
+            .append_turn_with_tool_count_for_session("session", "user", "assistant", 0)
+            .await;
+        let _ = agent
+            .append_turn_for_session("session", "user", "assistant")
+            .await;
+        let _ = agent.inspect_context_window("session").await;
+        let _ = agent.reset_context_window("session").await;
+        let _ = agent.peek_context_window_backup("session").await;
+        let _ = agent.resume_context_window("session").await;
+        let _ = agent.drop_context_window_backup("session").await;
+
+        let _ = session_context::SessionContextMode::Bounded;
+        let _ = session_context::SessionContextMode::Unbounded;
+        Ok(())
+    }
+
+    fn session_context_api_exercise_probe() {
+        let _ = session_context_api_exercise;
+    }
+
+    const _: fn() = session_context_api_exercise_probe;
 
     mod tests {
         include!(concat!(

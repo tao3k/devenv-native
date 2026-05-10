@@ -6,7 +6,7 @@ pub(crate) mod redis_backend;
 mod store;
 mod summary;
 
-pub use bounded_store::BoundedSessionStore;
+pub use bounded_store::{BoundedSessionSnapshotStats, BoundedSessionStats, BoundedSessionStore};
 pub use message::{ChatMessage, FunctionCall, ToolCallOut};
 pub(crate) use redis_backend::RedisSessionRuntimeSnapshot;
 pub use store::SessionStore;

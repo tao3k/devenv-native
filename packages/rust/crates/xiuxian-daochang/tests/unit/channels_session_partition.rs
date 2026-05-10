@@ -1,6 +1,6 @@
 //! Test coverage for xiuxian-daochang behavior.
 
-use xiuxian_daochang::TelegramSessionPartition;
+use xiuxian_daochang::{TelegramMessageThreadId, TelegramSessionPartition};
 
 #[test]
 fn session_partition_default_is_chat_only() {
@@ -45,7 +45,11 @@ fn session_partition_build_session_key() {
         "888"
     );
     assert_eq!(
-        TelegramSessionPartition::ChatThreadUser.build_session_key("-200", "888", Some(42)),
+        TelegramSessionPartition::ChatThreadUser.build_session_key(
+            "-200",
+            "888",
+            Some(TelegramMessageThreadId::new(42)),
+        ),
         "-200:42:888"
     );
 }

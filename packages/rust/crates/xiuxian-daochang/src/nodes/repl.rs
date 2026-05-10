@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{Agent, RuntimeSettings, run_stdio};
+use crate::{Agent, RuntimeSettings, StdioSessionId, run_stdio};
 
 use crate::agent_builder::build_agent;
 
@@ -16,6 +16,6 @@ pub(crate) async fn run_repl_mode(
         println!("{out}");
         Ok(())
     } else {
-        run_stdio(agent, session_id).await
+        run_stdio(agent, StdioSessionId::new(session_id)).await
     }
 }

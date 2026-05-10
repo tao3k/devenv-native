@@ -1,4 +1,5 @@
 use crate::channels::telegram::channel::TelegramChannel;
+use crate::channels::telegram::session_partition::TelegramMessageThreadId;
 use crate::channels::traits::ChannelMessage;
 
 use super::types::ParsedTelegramUpdate;
@@ -80,9 +81,11 @@ fn build_session_key(
     user_identity: &str,
     message_thread_id: Option<i64>,
 ) -> String {
-    channel
-        .session_partition()
-        .build_session_key(chat_id, user_identity, message_thread_id)
+    channel.session_partition().build_session_key(
+        chat_id,
+        user_identity,
+        message_thread_id.map(TelegramMessageThreadId::new),
+    )
 }
 
 pub(super) fn build_channel_message_from_parsed(

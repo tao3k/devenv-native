@@ -11,11 +11,12 @@ impl BoundedSessionStore {
     /// Returns an error when Valkey-backed persistence fails.
     pub async fn append_turn(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         user_msg: &str,
         assistant_msg: &str,
         tool_count: u32,
     ) -> Result<()> {
+        let session_id = session_id.as_ref();
         let slots = vec![
             TurnSlot::new("user", user_msg, 0),
             TurnSlot::new("assistant", assistant_msg, tool_count),
@@ -58,9 +59,10 @@ impl BoundedSessionStore {
     /// Returns an error when Valkey-backed persistence fails.
     pub async fn drain_oldest_turns(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         turns: usize,
     ) -> Result<Vec<(String, String, u32)>> {
+        let session_id = session_id.as_ref();
         if turns == 0 {
             return Ok(Vec::new());
         }
@@ -101,7 +103,12 @@ impl BoundedSessionStore {
     ///
     /// # Errors
     /// Returns an error when Valkey-backed persistence fails.
-    pub async fn replace_window_slots(&self, session_id: &str, slots: &[TurnSlot]) -> Result<()> {
+    pub async fn replace_window_slots(
+        &self,
+        session_id: impl AsRef<str>,
+        slots: &[TurnSlot],
+    ) -> Result<()> {
+        let session_id = session_id.as_ref();
         if let Some(redis) = &self.redis {
             redis.clear_window(session_id).await.with_context(|| {
                 format!("valkey bounded session clear failed for session_id={session_id}")
@@ -147,7 +154,8 @@ impl BoundedSessionStore {
     ///
     /// # Errors
     /// Returns an error when Valkey-backed persistence fails.
-    pub async fn clear(&self, session_id: &str) -> Result<()> {
+    pub async fn clear(&self, session_id: impl AsRef<str>) -> Result<()> {
+        let session_id = session_id.as_ref();
         if let Some(redis) = &self.redis {
             redis.clear_window(session_id).await.with_context(|| {
                 format!("valkey bounded session window clear failed for session_id={session_id}")

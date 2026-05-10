@@ -17,4 +17,4 @@ pub use self::types::{
     GatewayExternalToolHealthResponse, GatewayHealthResponse, GatewayState, MessageRequest,
     MessageResponse,
 };
-pub use handlers::validate_message_request;
+pub use handlers::{ValidatedMessageRequest, validate_message_request};

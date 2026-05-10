@@ -20,6 +20,22 @@ pub enum TelegramSessionPartition {
     ChatThreadUser,
 }
 
+/// Telegram message-thread identifier used in forum topic sessions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TelegramMessageThreadId(i64);
+
+impl TelegramMessageThreadId {
+    /// Build a Telegram message-thread id.
+    #[must_use]
+    pub fn new(value: i64) -> Self {
+        Self(value)
+    }
+
+    fn unwrap_or_default(value: Option<Self>) -> i64 {
+        value.map_or(0, |thread| thread.0)
+    }
+}
+
 impl TelegramSessionPartition {
     /// Resolve partition mode from environment.
     ///
@@ -77,16 +93,18 @@ impl TelegramSessionPartition {
     #[must_use]
     pub fn build_session_key(
         self,
-        chat_id: &str,
-        user_identity: &str,
-        message_thread_id: Option<i64>,
+        chat_id: impl AsRef<str>,
+        user_identity: impl AsRef<str>,
+        message_thread_id: Option<TelegramMessageThreadId>,
     ) -> String {
+        let chat_id = chat_id.as_ref();
+        let user_identity = user_identity.as_ref();
         match self {
             Self::ChatUser => format!("{chat_id}:{user_identity}"),
             Self::ChatOnly => chat_id.to_string(),
             Self::UserOnly => user_identity.to_string(),
             Self::ChatThreadUser => {
-                let thread = message_thread_id.unwrap_or_default();
+                let thread = TelegramMessageThreadId::unwrap_or_default(message_thread_id);
                 format!("{chat_id}:{thread}:{user_identity}")
             }
         }

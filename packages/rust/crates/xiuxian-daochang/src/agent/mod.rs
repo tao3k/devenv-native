@@ -34,7 +34,8 @@ mod turn_support;
 pub(crate) mod zhenfa;
 
 pub(crate) use admission::DownstreamAdmissionRuntimeSnapshot;
-pub use consolidation::summarise_drained_turns;
+pub use bootstrap::{ServiceMountCategory, ServiceMountRecord};
+pub use consolidation::{DrainedTurn, DrainedTurnSummary, summarise_drained_turns};
 pub(crate) use consolidation::{build_consolidated_summary_text, now_unix_ms};
 pub use context_budget::prune_messages_for_token_budget;
 pub use context_budget_state::{SessionContextBudgetClassSnapshot, SessionContextBudgetSnapshot};

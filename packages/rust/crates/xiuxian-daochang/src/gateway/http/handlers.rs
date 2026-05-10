@@ -47,12 +47,21 @@ fn fallback_hash_embed(input: &str, dimension: usize) -> Vec<f32> {
 }
 
 /// Validate request body; returns error for empty `session_id` or message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValidatedMessageRequest {
+    /// Trimmed session identifier.
+    pub session_id: String,
+    /// Trimmed user message.
+    pub message: String,
+}
+
+/// Validate request body; returns error for empty `session_id` or message.
 ///
 /// # Errors
 /// Returns an HTTP 400 tuple when request fields are empty after trimming.
 pub fn validate_message_request(
     body: &MessageRequest,
-) -> Result<(String, String), (StatusCode, String)> {
+) -> Result<ValidatedMessageRequest, (StatusCode, String)> {
     let session_id = body.session_id.trim().to_string();
     let message = body.message.trim().to_string();
     if session_id.is_empty() {
@@ -67,14 +76,20 @@ pub fn validate_message_request(
             "message must be non-empty".to_string(),
         ));
     }
-    Ok((session_id, message))
+    Ok(ValidatedMessageRequest {
+        session_id,
+        message,
+    })
 }
 
 pub(super) async fn handle_message(
     State(state): State<GatewayState>,
     Json(body): Json<MessageRequest>,
 ) -> GatewayJsonResult<MessageResponse> {
-    let (session_id, message) = validate_message_request(&body)?;
+    let ValidatedMessageRequest {
+        session_id,
+        message,
+    } = validate_message_request(&body)?;
     let _permit = if let Some(ref sem) = state.concurrency_semaphore {
         Some(sem.acquire().await.map_err(|_| {
             (

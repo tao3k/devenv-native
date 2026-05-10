@@ -1,7 +1,7 @@
 use super::Agent;
 use super::reflection::{
     PolicyHintDirective, ReflectiveRuntime, ReflectiveRuntimeError, ReflectiveRuntimeStage,
-    build_turn_reflection, derive_policy_hint,
+    TurnReflectionInput, build_turn_reflection, derive_policy_hint,
 };
 use crate::contracts::{OmegaFallbackPolicy, OmegaRoute};
 use crate::observability::SessionEvent;
@@ -41,13 +41,13 @@ impl Agent {
             record_reflection_transition(session_id, turn_id, stage);
         }
 
-        let reflection = build_turn_reflection(
-            route.as_str(),
+        let reflection = build_turn_reflection(TurnReflectionInput {
+            route: route.as_str(),
             user_message,
-            assistant_signal,
+            assistant_message: assistant_signal,
             outcome,
             tool_calls,
-        );
+        });
         let Some(policy_hint) = derive_policy_hint(&reflection, turn_id) else {
             return;
         };

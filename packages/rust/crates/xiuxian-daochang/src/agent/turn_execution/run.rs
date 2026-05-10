@@ -8,7 +8,12 @@ impl Agent {
     ///
     /// # Errors
     /// Returns an error when the `ReAct` loop execution fails.
-    pub async fn run_turn(&self, session_id: &str, user_message: &str) -> Result<String> {
+    pub async fn run_turn(
+        &self,
+        session_id: impl AsRef<str>,
+        user_message: &str,
+    ) -> Result<String> {
+        let session_id = session_id.as_ref();
         self.enforce_session_reset_policy(session_id).await?;
         let forced_react_message = parse_react_shortcut(user_message);
         let force_react = forced_react_message.is_some();

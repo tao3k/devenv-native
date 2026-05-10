@@ -18,25 +18,40 @@ pub struct TurnReflection {
     pub next_action: String,
 }
 
+/// Input used to build one turn reflection.
+#[derive(Debug, Clone, Copy)]
+pub struct TurnReflectionInput<'a> {
+    pub route: &'a str,
+    pub user_message: &'a str,
+    pub assistant_message: &'a str,
+    pub outcome: &'a str,
+    pub tool_calls: u32,
+}
+
 /// Build deterministic reflection from one completed turn.
-pub fn build_turn_reflection(
-    route: &str,
-    user_message: &str,
-    assistant_message: &str,
-    outcome: &str,
-    tool_calls: u32,
-) -> TurnReflection {
-    let normalized_outcome = normalize_outcome(outcome);
-    let confidence = infer_confidence(normalized_outcome, assistant_message, tool_calls);
-    let next_action = infer_next_action(normalized_outcome, assistant_message, tool_calls);
+pub fn build_turn_reflection(input: TurnReflectionInput<'_>) -> TurnReflection {
+    let normalized_outcome = normalize_outcome(input.outcome);
+    let confidence = infer_confidence(
+        normalized_outcome,
+        input.assistant_message,
+        input.tool_calls,
+    );
+    let next_action = infer_next_action(
+        normalized_outcome,
+        input.assistant_message,
+        input.tool_calls,
+    );
 
     TurnReflection {
         schema: "xiuxian.runtime.reflection.v1",
-        route: route.trim().to_lowercase(),
-        objective: truncate(user_message.trim(), OBJECTIVE_MAX_CHARS),
-        result_signal: truncate(&squash_whitespace(assistant_message), RESULT_MAX_CHARS),
+        route: input.route.trim().to_lowercase(),
+        objective: truncate(input.user_message.trim(), OBJECTIVE_MAX_CHARS),
+        result_signal: truncate(
+            &squash_whitespace(input.assistant_message),
+            RESULT_MAX_CHARS,
+        ),
         outcome: normalized_outcome.to_string(),
-        tool_calls,
+        tool_calls: input.tool_calls,
         confidence,
         next_action,
     }

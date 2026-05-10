@@ -84,8 +84,9 @@ impl Agent {
     /// be loaded/parsing fails.
     pub async fn inspect_memory_recall_snapshot(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
     ) -> Option<SessionMemoryRecallSnapshot> {
+        let session_id = session_id.as_ref();
         let storage_session_id = snapshot_session_id(session_id);
         let messages = match self.session.get(&storage_session_id).await {
             Ok(messages) => messages,

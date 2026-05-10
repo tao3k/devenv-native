@@ -36,8 +36,9 @@ pub mod warmup_options;
 pub mod webhook_dedup_probe;
 
 pub use agent::{
-    Agent, MemoryRecallLatencyBucketsSnapshot, MemoryRecallMetricsSnapshot, NativeToolRegistry,
-    NotificationDispatcher, NotificationProvider, SessionContextBudgetClassSnapshot,
+    Agent, DrainedTurn, DrainedTurnSummary, MemoryRecallLatencyBucketsSnapshot,
+    MemoryRecallMetricsSnapshot, NativeToolRegistry, NotificationDispatcher, NotificationProvider,
+    ServiceMountCategory, ServiceMountRecord, SessionContextBudgetClassSnapshot,
     SessionContextBudgetSnapshot, SessionContextMode, SessionContextSnapshotInfo,
     SessionContextStats, SessionContextWindowInfo, SessionMemoryRecallDecision,
     SessionMemoryRecallSnapshot,
@@ -52,12 +53,13 @@ pub use channel_runtime::{
 };
 pub use channels::{
     Channel, ChannelAttachment, ChannelMessage, DEFAULT_REDIS_KEY_PREFIX,
-    DISCORD_MAX_MESSAGE_LENGTH, DiscordAclOverrides, DiscordChannel, DiscordCommandAdminRule,
-    DiscordControlCommandPolicy, DiscordIngressApp, DiscordIngressBuildRequest,
-    DiscordIngressRunRequest, DiscordRuntimeConfig, DiscordSessionPartition,
-    DiscordSlashCommandPolicy, ForegroundQueueMode, RecipientCommandAdminUsersMutation,
-    RecipientMentionPolicyStatus, SessionGate, TELEGRAM_MAX_MESSAGE_LENGTH, TelegramAclOverrides,
-    TelegramChannel, TelegramCommandAdminRule, TelegramControlCommandPolicy, TelegramRuntimeConfig,
+    DISCORD_MAX_MESSAGE_LENGTH, DiscordAclOverrides, DiscordBotUserId, DiscordChannel,
+    DiscordCommandAdminRule, DiscordControlCommandPolicy, DiscordIngressApp,
+    DiscordIngressBuildRequest, DiscordIngressRunRequest, DiscordRuntimeConfig,
+    DiscordSessionPartition, DiscordSlashCommandPolicy, ForegroundQueueMode,
+    RecipientCommandAdminUsersMutation, RecipientMentionPolicyStatus, SessionGate,
+    TELEGRAM_MAX_MESSAGE_LENGTH, TelegramAclOverrides, TelegramChannel, TelegramCommandAdminRule,
+    TelegramControlCommandPolicy, TelegramMessageThreadId, TelegramRuntimeConfig,
     TelegramSessionPartition, TelegramSlashCommandPolicy, TelegramWebhookApp,
     TelegramWebhookControlPolicyBuildRequest, TelegramWebhookPartitionBuildRequest,
     TelegramWebhookPolicyRunRequest, TelegramWebhookRunRequest, WebhookDedupBackend,
@@ -91,8 +93,8 @@ pub use contracts::{
 pub use embedding::EmbeddingClient;
 pub use gateway::{
     DEFAULT_STDIO_SESSION_ID, GatewayExternalToolHealthResponse, GatewayHealthResponse,
-    GatewayState, MessageRequest, MessageResponse, router, run_http, run_stdio,
-    validate_message_request,
+    GatewayState, MessageRequest, MessageResponse, StdioSessionId, ValidatedMessageRequest, router,
+    run_http, run_stdio, validate_message_request,
 };
 pub use jobs::{
     HeartbeatProbeState, JobCompletion, JobCompletionKind, JobHealthState, JobManager,
@@ -104,8 +106,8 @@ pub use observability::session_event_ids;
 pub use resources::RESOURCES;
 pub use runtime_agent_factory::build_agent;
 pub use session::{
-    BoundedSessionStore, ChatMessage, FunctionCall, SessionStore, SessionSummarySegment,
-    ToolCallOut,
+    BoundedSessionSnapshotStats, BoundedSessionStats, BoundedSessionStore, ChatMessage,
+    FunctionCall, SessionStore, SessionSummarySegment, ToolCallOut,
 };
 pub use shortcuts::{WorkflowBridgeMode, parse_react_shortcut};
 pub use tool_runtime::{
@@ -113,10 +115,11 @@ pub use tool_runtime::{
     ToolPoolConnectConfig, ToolRuntimeCallResult, ToolRuntimeListRequestParams,
     ToolRuntimeListResult, ToolRuntimeToolDefinition, connect_tool_pool,
 };
-pub use tools::{parse_qualified_tool_name, qualify_tool_name};
+pub use tools::{QualifiedToolName, parse_qualified_tool_name, qualify_tool_name};
 
 #[cfg(test)]
 rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
+    advice = allow,
     config = {
         rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
             rust_lang_project_harness::RustVerificationProfileHint::new(

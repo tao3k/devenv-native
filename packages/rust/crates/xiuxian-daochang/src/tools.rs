@@ -6,13 +6,25 @@ pub fn qualify_tool_name(server: &str, tool: &str) -> String {
     format!("tool__{server}__{tool}")
 }
 
-/// Parse a qualified name; returns `Some((server, tool))` or `None` if invalid.
+/// Parsed qualified tool name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QualifiedToolName {
+    /// External tool server id.
+    pub server: String,
+    /// Tool name within the external server.
+    pub tool: String,
+}
+
+/// Parse a qualified name.
 #[must_use]
-pub fn parse_qualified_tool_name(qualified: &str) -> Option<(String, String)> {
+pub fn parse_qualified_tool_name(qualified: &str) -> Option<QualifiedToolName> {
     let rest = qualified.strip_prefix("tool__")?;
     let (server, tool) = rest.split_once("__")?;
     if server.is_empty() || tool.is_empty() {
         return None;
     }
-    Some((server.to_string(), tool.to_string()))
+    Some(QualifiedToolName {
+        server: server.to_string(),
+        tool: tool.to_string(),
+    })
 }

@@ -2,7 +2,7 @@
 
 //! Unit tests for multi-server tool name qualification and parsing (no network).
 
-use xiuxian_daochang::{parse_qualified_tool_name, qualify_tool_name};
+use xiuxian_daochang::{QualifiedToolName, parse_qualified_tool_name, qualify_tool_name};
 
 #[test]
 fn qualify_tool_name_format() {
@@ -17,11 +17,17 @@ fn qualify_tool_name_format() {
 fn parse_qualified_tool_name_valid() {
     assert_eq!(
         parse_qualified_tool_name("tool__omniAgent__run_terminal_cmd"),
-        Some(("omniAgent".to_string(), "run_terminal_cmd".to_string()))
+        Some(QualifiedToolName {
+            server: "omniAgent".to_string(),
+            tool: "run_terminal_cmd".to_string(),
+        })
     );
     assert_eq!(
         parse_qualified_tool_name("tool__s1__tool_a"),
-        Some(("s1".to_string(), "tool_a".to_string()))
+        Some(QualifiedToolName {
+            server: "s1".to_string(),
+            tool: "tool_a".to_string(),
+        })
     );
 }
 
@@ -41,6 +47,6 @@ fn qualify_and_parse_roundtrip() {
     let Some(parsed) = parse_qualified_tool_name(&qualified) else {
         panic!("qualified tool name should parse");
     };
-    assert_eq!(parsed.0, server);
-    assert_eq!(parsed.1, tool);
+    assert_eq!(parsed.server, server);
+    assert_eq!(parsed.tool, tool);
 }

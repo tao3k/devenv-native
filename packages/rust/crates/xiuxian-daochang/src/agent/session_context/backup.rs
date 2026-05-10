@@ -15,7 +15,11 @@ impl Agent {
     ///
     /// Returns an error when the current session cannot be loaded, the backup
     /// snapshot cannot be persisted, or the active session cannot be cleared.
-    pub async fn reset_context_window(&self, session_id: &str) -> Result<SessionContextStats> {
+    pub async fn reset_context_window(
+        &self,
+        session_id: impl AsRef<str>,
+    ) -> Result<SessionContextStats> {
+        let session_id = session_id.as_ref();
         let backup = self.capture_session_backup(session_id).await?;
         let stats = backup.stats();
         if backup.is_empty() {
@@ -39,8 +43,9 @@ impl Agent {
     /// cleaned up.
     pub async fn resume_context_window(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
     ) -> Result<Option<SessionContextStats>> {
+        let session_id = session_id.as_ref();
         let backup_session_id = super::backup_session_id(session_id);
         let backup = self.capture_session_backup(&backup_session_id).await?;
         if backup.is_empty() {
@@ -64,8 +69,9 @@ impl Agent {
     /// loaded.
     pub async fn peek_context_window_backup(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
     ) -> Result<Option<SessionContextSnapshotInfo>> {
+        let session_id = session_id.as_ref();
         let backup_session_id = super::backup_session_id(session_id);
         let backup = self.capture_session_backup(&backup_session_id).await?;
         let metadata = self.load_backup_metadata(session_id).await?;
@@ -99,7 +105,8 @@ impl Agent {
     ///
     /// Returns an error when the backup snapshot or its metadata cannot be
     /// loaded or cleared.
-    pub async fn drop_context_window_backup(&self, session_id: &str) -> Result<bool> {
+    pub async fn drop_context_window_backup(&self, session_id: impl AsRef<str>) -> Result<bool> {
+        let session_id = session_id.as_ref();
         let backup_session_id = super::backup_session_id(session_id);
         let backup = self.capture_session_backup(&backup_session_id).await?;
         let metadata = self.load_backup_metadata(session_id).await?;

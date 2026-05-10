@@ -41,9 +41,10 @@ impl Agent {
     /// Returns an error when XML is invalid or persistence fails.
     pub async fn upsert_session_system_prompt_injection_xml(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         raw_xml: &str,
     ) -> Result<SessionSystemPromptInjectionSnapshot> {
+        let session_id = session_id.as_ref();
         let snapshot = normalize_session_prompt_injection_snapshot(raw_xml)
             .context("invalid system prompt injection xml payload")?;
         let Some(message) = snapshot_to_message(&snapshot) else {
@@ -97,8 +98,9 @@ impl Agent {
     /// Returns `None` when no snapshot is available or parsing fails.
     pub async fn inspect_session_system_prompt_injection(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
     ) -> Option<SessionSystemPromptInjectionSnapshot> {
+        let session_id = session_id.as_ref();
         if let Some(snapshot) = self
             .system_prompt_injection
             .read()
@@ -144,7 +146,11 @@ impl Agent {
     ///
     /// # Errors
     /// Returns an error when storage clear fails.
-    pub async fn clear_session_system_prompt_injection(&self, session_id: &str) -> Result<bool> {
+    pub async fn clear_session_system_prompt_injection(
+        &self,
+        session_id: impl AsRef<str>,
+    ) -> Result<bool> {
+        let session_id = session_id.as_ref();
         let removed_cache = self
             .system_prompt_injection
             .write()

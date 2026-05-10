@@ -27,6 +27,35 @@ pub struct BoundedSessionStore {
     pub(crate) redis: Option<Arc<RedisSessionBackend>>,
 }
 
+/// Bounded session window counters.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BoundedSessionStats {
+    /// Number of complete user/assistant turns.
+    pub turn_count: u64,
+    /// Total tool calls recorded in the bounded window.
+    pub total_tool_calls: u64,
+    /// Number of occupied slots in the bounded ring.
+    pub ring_len: usize,
+}
+
+/// Bounded snapshot message and summary counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BoundedSessionSnapshotStats {
+    /// Number of message/window slots affected by the snapshot operation.
+    pub messages: usize,
+    /// Number of summary segments affected by the snapshot operation.
+    pub summary_segments: usize,
+}
+
+impl From<(usize, usize)> for BoundedSessionSnapshotStats {
+    fn from((messages, summary_segments): (usize, usize)) -> Self {
+        Self {
+            messages,
+            summary_segments,
+        }
+    }
+}
+
 impl BoundedSessionStore {
     pub(crate) fn from_redis_backend(
         max_turns: usize,

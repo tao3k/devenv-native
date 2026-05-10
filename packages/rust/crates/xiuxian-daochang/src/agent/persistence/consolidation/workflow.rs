@@ -8,7 +8,9 @@ use xiuxian_memory_engine::{Episode, EpisodeStore};
 
 use crate::agent::Agent;
 use crate::agent::persistence::memory_state::persist_memory_state;
-use crate::agent::{build_consolidated_summary_text, now_unix_ms, summarise_drained_turns};
+use crate::agent::{
+    DrainedTurn, build_consolidated_summary_text, now_unix_ms, summarise_drained_turns,
+};
 use crate::observability::SessionEvent;
 use crate::session::SessionSummarySegment;
 
@@ -42,10 +44,10 @@ impl Agent {
             return Ok(());
         };
         let started = Instant::now();
-        let Some((turn_count, _total_tool_calls, _len)) = w.get_stats(session_id).await? else {
+        let Some(stats) = w.get_stats(session_id).await? else {
             return Ok(());
         };
-        let turn_count = usize::try_from(turn_count).unwrap_or(usize::MAX);
+        let turn_count = usize::try_from(stats.turn_count).unwrap_or(usize::MAX);
         if turn_count < threshold {
             return Ok(());
         }
@@ -90,11 +92,16 @@ impl Agent {
         session_id: &str,
         drained: Vec<(String, String, u32)>,
     ) -> Result<ConsolidationSummaryPayload> {
-        let (intent, experience, outcome) = summarise_drained_turns(&drained);
-        let drained_tool_calls: u32 = drained.iter().map(|(_, _, tools)| *tools).sum();
+        let drained = drained
+            .into_iter()
+            .map(|(role, content, tool_calls)| DrainedTurn::new(role, content, tool_calls))
+            .collect::<Vec<_>>();
+        let summary = summarise_drained_turns(&drained);
+        let drained_tool_calls: u32 = drained.iter().map(|turn| turn.tool_calls).sum();
         let drained_slots = drained.len();
         let drained_turns = drained_slots / 2;
-        let summary_text = build_consolidated_summary_text(&intent, &experience, &outcome);
+        let summary_text =
+            build_consolidated_summary_text(&summary.intent, &summary.experience, &summary.outcome);
         let summary_segment = SessionSummarySegment::new(
             summary_text,
             drained_turns,
@@ -106,9 +113,9 @@ impl Agent {
             .await?;
 
         Ok(ConsolidationSummaryPayload {
-            intent,
-            experience,
-            outcome,
+            intent: summary.intent,
+            experience: summary.experience,
+            outcome: summary.outcome,
             drained_slots,
             drained_turns,
             drained_tool_calls,

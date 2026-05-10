@@ -15,7 +15,8 @@ impl Agent {
     /// # Errors
     ///
     /// Returns an error when bounded-session or session storage cleanup fails.
-    pub async fn clear_session(&self, session_id: &str) -> Result<()> {
+    pub async fn clear_session(&self, session_id: impl AsRef<str>) -> Result<()> {
+        let session_id = session_id.as_ref();
         if let Some(ref w) = self.bounded_session {
             w.clear(session_id).await?;
         }
@@ -34,9 +35,10 @@ impl Agent {
     /// Returns `None` when memory is disabled.
     pub async fn apply_session_recall_feedback(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         direction: SessionRecallFeedbackDirection,
     ) -> Option<SessionRecallFeedbackUpdate> {
+        let session_id = session_id.as_ref();
         self.memory_store.as_ref()?;
         let outcome = match direction {
             SessionRecallFeedbackDirection::Up => RecallOutcome::Success,

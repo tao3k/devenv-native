@@ -154,7 +154,8 @@ impl SessionGate {
     /// # Errors
     ///
     /// Returns an error when distributed lease acquisition fails.
-    pub async fn acquire(&self, session_id: &str) -> Result<SessionGuard> {
+    pub async fn acquire(&self, session_id: impl AsRef<str>) -> Result<SessionGuard> {
+        let session_id = session_id.as_ref();
         let distributed_lease = match &self.backend {
             SessionGateBackend::Memory => None,
             SessionGateBackend::Valkey(backend) => Some(backend.acquire_lease(session_id).await?),

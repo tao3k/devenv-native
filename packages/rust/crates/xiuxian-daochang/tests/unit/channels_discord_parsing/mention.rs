@@ -6,7 +6,7 @@ use super::support::{
 #[test]
 fn discord_parse_gateway_message_require_mention_blocks_plain_guild_text() {
     let channel = DiscordChannel::new("fake-token".to_string(), vec!["*".to_string()], vec![]);
-    channel.set_bot_user_id_for_tests(Some("9999".to_string()));
+    channel.set_bot_user_id_for_tests(Some("9999".into()));
     channel.configure_mention_policy_for_tests(true, std::collections::HashMap::new());
     let event = discord_event("1", "hello", "2001", Some("3001"), "1001", Some("alice"));
 
@@ -16,7 +16,7 @@ fn discord_parse_gateway_message_require_mention_blocks_plain_guild_text() {
 #[test]
 fn discord_parse_gateway_message_require_mention_accepts_bot_mention() {
     let channel = DiscordChannel::new("fake-token".to_string(), vec!["*".to_string()], vec![]);
-    channel.set_bot_user_id_for_tests(Some("9999".to_string()));
+    channel.set_bot_user_id_for_tests(Some("9999".into()));
     channel.configure_mention_policy_for_tests(true, std::collections::HashMap::new());
     let event = discord_event_with_mentions(
         "1",
@@ -35,7 +35,7 @@ fn discord_parse_gateway_message_require_mention_accepts_bot_mention() {
 #[test]
 fn discord_parse_gateway_message_require_mention_accepts_reply_to_bot() {
     let channel = DiscordChannel::new("fake-token".to_string(), vec!["*".to_string()], vec![]);
-    channel.set_bot_user_id_for_tests(Some("9999".to_string()));
+    channel.set_bot_user_id_for_tests(Some("9999".into()));
     channel.configure_mention_policy_for_tests(true, std::collections::HashMap::new());
     let event = discord_event_reply_to(
         "1",
@@ -54,7 +54,7 @@ fn discord_parse_gateway_message_require_mention_accepts_reply_to_bot() {
 #[test]
 fn discord_parse_gateway_message_require_mention_accepts_command_without_mention() {
     let channel = DiscordChannel::new("fake-token".to_string(), vec!["*".to_string()], vec![]);
-    channel.set_bot_user_id_for_tests(Some("9999".to_string()));
+    channel.set_bot_user_id_for_tests(Some("9999".into()));
     channel.configure_mention_policy_for_tests(true, std::collections::HashMap::new());
     let event = discord_event(
         "1",
@@ -72,7 +72,7 @@ fn discord_parse_gateway_message_require_mention_accepts_command_without_mention
 #[test]
 fn discord_parse_gateway_message_channel_override_can_disable_require_mention() {
     let channel = DiscordChannel::new("fake-token".to_string(), vec!["*".to_string()], vec![]);
-    channel.set_bot_user_id_for_tests(Some("9999".to_string()));
+    channel.set_bot_user_id_for_tests(Some("9999".into()));
     let mut overrides = std::collections::HashMap::new();
     overrides.insert("2001".to_string(), false);
     channel.configure_mention_policy_for_tests(true, overrides);

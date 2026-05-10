@@ -119,8 +119,9 @@ impl Agent {
     /// Return latest context-budget snapshot for a session, if available.
     pub async fn inspect_context_budget_snapshot(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
     ) -> Option<SessionContextBudgetSnapshot> {
+        let session_id = session_id.as_ref();
         let guard = self.context_budget_snapshots.read().await;
         guard.get(session_id).copied()
     }

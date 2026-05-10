@@ -3,6 +3,7 @@
 use std::fmt;
 
 use crate::agent::reflection;
+use crate::agent::reflection::TurnReflectionInput;
 use crate::{OmegaFallbackPolicy, OmegaRiskLevel, OmegaRoute, OmegaToolTrustClass};
 
 /// Reflection lifecycle stages.
@@ -111,13 +112,13 @@ pub fn test_build_turn_reflection(
     tool_calls: u32,
 ) -> TestTurnReflection {
     TestTurnReflection {
-        inner: reflection::build_turn_reflection(
+        inner: reflection::build_turn_reflection(TurnReflectionInput {
             route,
             user_message,
             assistant_message,
             outcome,
             tool_calls,
-        ),
+        }),
     }
 }
 

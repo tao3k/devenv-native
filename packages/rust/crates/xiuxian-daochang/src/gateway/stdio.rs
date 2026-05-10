@@ -9,7 +9,32 @@ use crate::agent::Agent;
 pub const DEFAULT_STDIO_SESSION_ID: &str = "default";
 
 /// Session identifier surface for the stdio gateway.
-pub type StdioSessionId = String;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StdioSessionId(String);
+
+impl StdioSessionId {
+    /// Build a stdio session id.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl From<String> for StdioSessionId {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&str> for StdioSessionId {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
 
 /// Run stdio loop: read lines, run turn, print output. Exits on EOF or Ctrl+C.
 ///
@@ -25,7 +50,7 @@ pub async fn run_stdio(agent: Agent, session_id: StdioSessionId) -> Result<()> {
         if line.is_empty() {
             continue;
         }
-        let out = agent.run_turn(&session_id, line).await?;
+        let out = agent.run_turn(session_id.as_str(), line).await?;
         println!("{out}");
     }
     Ok(())

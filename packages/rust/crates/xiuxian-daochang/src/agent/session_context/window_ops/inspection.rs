@@ -10,11 +10,14 @@ impl Agent {
     /// Returns an error when reading session counters from bounded/unbounded backends fails.
     pub async fn inspect_context_window(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
     ) -> Result<SessionContextWindowInfo> {
+        let session_id = session_id.as_ref();
         if let Some(ref w) = self.bounded_session {
-            let (turn_count, total_tool_calls, window_slots) =
-                w.get_stats(session_id).await?.unwrap_or((0, 0, 0));
+            let stats = w.get_stats(session_id).await?;
+            let turn_count = stats.map_or(0, |stats| stats.turn_count);
+            let total_tool_calls = stats.map_or(0, |stats| stats.total_tool_calls);
+            let window_slots = stats.map_or(0, |stats| stats.ring_len);
             let summary_segments = w.get_summary_segment_count(session_id).await?;
             let info = SessionContextWindowInfo {
                 mode: SessionContextMode::Bounded,

@@ -1,3 +1,5 @@
+//! Discord bot identity hydration and test identity helpers.
+
 use anyhow::Context;
 use serde::Deserialize;
 use std::sync::PoisonError;
@@ -7,6 +9,30 @@ use super::state::DiscordChannel;
 #[derive(Debug, Deserialize)]
 struct DiscordCurrentUserPayload {
     id: String,
+}
+
+/// Discord bot user identifier used by mention parsing tests.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiscordBotUserId(String);
+
+impl DiscordBotUserId {
+    /// Build a bot user identifier.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<String> for DiscordBotUserId {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&str> for DiscordBotUserId {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
 }
 
 impl DiscordChannel {
@@ -58,7 +84,7 @@ impl DiscordChannel {
     }
 
     #[doc(hidden)]
-    pub fn set_bot_user_id_for_tests(&self, bot_user_id: Option<String>) {
-        self.set_bot_user_id(bot_user_id);
+    pub fn set_bot_user_id_for_tests(&self, bot_user_id: Option<DiscordBotUserId>) {
+        self.set_bot_user_id(bot_user_id.map(|value| value.0));
     }
 }

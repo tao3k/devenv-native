@@ -13,7 +13,8 @@
 use std::path::PathBuf;
 
 use xiuxian_daochang::{
-    Agent, AgentConfig, DEFAULT_STDIO_SESSION_ID, load_tool_config, run_http, run_stdio,
+    Agent, AgentConfig, DEFAULT_STDIO_SESSION_ID, StdioSessionId, load_tool_config, run_http,
+    run_stdio,
 };
 
 #[tokio::main]
@@ -98,5 +99,5 @@ async fn run_stdio_mode(session_id: String, tool_config_path: PathBuf) -> anyhow
         ..AgentConfig::default()
     };
     let agent = Agent::from_config(config).await?;
-    Box::pin(run_stdio(agent, session_id)).await
+    Box::pin(run_stdio(agent, StdioSessionId::new(session_id))).await
 }

@@ -46,7 +46,15 @@ impl DiscordSessionPartition {
 
     /// Build a session key from Discord identifiers.
     #[must_use]
-    pub fn build_session_key(self, scope: &str, channel_id: &str, user_identity: &str) -> String {
+    pub fn build_session_key(
+        self,
+        scope: impl AsRef<str>,
+        channel_id: impl AsRef<str>,
+        user_identity: impl AsRef<str>,
+    ) -> String {
+        let scope = scope.as_ref();
+        let channel_id = channel_id.as_ref();
+        let user_identity = user_identity.as_ref();
         match self {
             Self::GuildChannelUser => format!("{scope}:{channel_id}:{user_identity}"),
             Self::ChannelOnly => format!("{scope}:{channel_id}"),

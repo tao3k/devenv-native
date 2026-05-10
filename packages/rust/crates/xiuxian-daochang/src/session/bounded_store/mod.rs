@@ -6,4 +6,4 @@ mod state;
 mod summary_ops;
 mod window_ops;
 
-pub use state::BoundedSessionStore;
+pub use state::{BoundedSessionSnapshotStats, BoundedSessionStats, BoundedSessionStore};

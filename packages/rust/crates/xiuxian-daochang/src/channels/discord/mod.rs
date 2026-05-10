@@ -12,7 +12,7 @@ mod session_partition;
 
 pub use acl_config::{DiscordAclOverrides, build_discord_acl_overrides};
 pub use channel::{
-    DiscordChannel, DiscordCommandAdminRule, DiscordControlCommandPolicy,
+    DiscordBotUserId, DiscordChannel, DiscordCommandAdminRule, DiscordControlCommandPolicy,
     DiscordSlashCommandPolicy, build_discord_command_admin_rule,
 };
 pub use constants::DISCORD_MAX_MESSAGE_LENGTH;

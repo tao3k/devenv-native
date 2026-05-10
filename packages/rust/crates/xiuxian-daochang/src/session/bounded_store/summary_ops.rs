@@ -14,9 +14,10 @@ impl BoundedSessionStore {
     /// Returns an error when appending summary segment to Valkey fails.
     pub async fn append_summary_segment(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         segment: SessionSummarySegment,
     ) -> Result<()> {
+        let session_id = session_id.as_ref();
         let mut segment = segment;
         segment.summary = truncate_to_chars(&segment.summary, self.summary_max_chars);
         if segment.summary.is_empty() {
@@ -66,9 +67,10 @@ impl BoundedSessionStore {
     /// Returns an error when loading summary segments from Valkey fails.
     pub async fn get_recent_summary_segments(
         &self,
-        session_id: &str,
+        session_id: impl AsRef<str>,
         limit: usize,
     ) -> Result<Vec<SessionSummarySegment>> {
+        let session_id = session_id.as_ref();
         if limit == 0 {
             return Ok(Vec::new());
         }
@@ -111,7 +113,8 @@ impl BoundedSessionStore {
     ///
     /// # Errors
     /// Returns an error when reading summary segment count from Valkey fails.
-    pub async fn get_summary_segment_count(&self, session_id: &str) -> Result<usize> {
+    pub async fn get_summary_segment_count(&self, session_id: impl AsRef<str>) -> Result<usize> {
+        let session_id = session_id.as_ref();
         if let Some(ref redis) = self.redis {
             let segment_count = redis.get_summary_len(session_id).await.with_context(|| {
                 format!("valkey bounded summary count failed for session_id={session_id}")

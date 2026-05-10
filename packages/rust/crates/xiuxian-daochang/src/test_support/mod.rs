@@ -47,8 +47,8 @@ pub use discord_runtime::{
 pub use embedding::{EmbeddingBackendMode, embed_http, parse_embedding_client_backend_mode};
 #[cfg(feature = "agent-provider-litellm")]
 pub use embedding::{
-    OLLAMA_PLACEHOLDER_API_KEY, normalize_litellm_embedding_target,
-    normalize_openai_compatible_base_url,
+    NormalizedLitellmEmbeddingTarget, OLLAMA_PLACEHOLDER_API_KEY,
+    normalize_litellm_embedding_target, normalize_openai_compatible_base_url,
 };
 pub use gateway_http::{
     GatewayEmbeddingRuntimeHandle, apply_gateway_embedding_memory_guard_for_tests,
