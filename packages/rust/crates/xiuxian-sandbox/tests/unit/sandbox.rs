@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use tempfile::TempDir;
 use xiuxian_sandbox::{
-    ExecutionResult, MountConfig, NsJailExecutor, SandboxConfig, SeatbeltExecutor, detect_platform,
-    is_nsjail_available, is_seatbelt_available,
+    ExecutionResult, MountConfig, NsJailExecutor, SandboxConfig, SandboxMode, SeatbeltExecutor,
+    detect_platform, is_nsjail_available, is_seatbelt_available,
 };
 
 #[test]
@@ -40,7 +40,7 @@ fn test_seatbelt_availability() {
 fn test_sandbox_config_creation() {
     let config = SandboxConfig {
         skill_id: "test-skill".to_string(),
-        mode: "EXEC".to_string(),
+        mode: SandboxMode::new("EXEC"),
         hostname: "test-container".to_string(),
         cmd: vec!["/bin/ls".to_string(), "/tmp".to_string()],
         env: vec!["PATH=/usr/bin".to_string()],
@@ -151,7 +151,7 @@ fn test_executor_names() {
 fn test_config_fields_accessible() {
     let config = SandboxConfig {
         skill_id: "field-test".to_string(),
-        mode: "EXEC".to_string(),
+        mode: SandboxMode::new("EXEC"),
         hostname: "test-host".to_string(),
         cmd: vec!["/bin/ls".to_string()],
         env: vec![],

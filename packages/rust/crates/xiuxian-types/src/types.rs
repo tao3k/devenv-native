@@ -43,7 +43,44 @@ pub struct Skill {
     /// Human-readable description
     pub description: String,
     /// Skill category
-    pub category: String,
+    pub category: SkillCategory,
+}
+
+/// Typed skill category identifier.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct SkillCategory(String);
+
+impl SkillCategory {
+    /// Create a category identifier from a string-like value.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Borrow the category as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SkillCategory {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&str> for SkillCategory {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl PartialEq<&str> for SkillCategory {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
 }
 
 /// Skill definition with generic metadata container.
@@ -80,17 +117,18 @@ fn default_metadata() -> serde_json::Value {
 }
 
 fn normalize_string_list(values: Vec<String>) -> Vec<String> {
-    let mut normalized = Vec::new();
-    for value in values {
-        let trimmed = value.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if !normalized.iter().any(|existing| existing == trimmed) {
-            normalized.push(trimmed.to_string());
-        }
-    }
-    normalized
+    values
+        .into_iter()
+        .filter_map(|value| {
+            let trimmed = value.trim();
+            (!trimmed.is_empty()).then(|| trimmed.to_string())
+        })
+        .fold(Vec::new(), |mut normalized, value| {
+            if !normalized.iter().any(|existing| existing == &value) {
+                normalized.push(value);
+            }
+            normalized
+        })
 }
 
 fn extract_string_list(value: &serde_json::Value) -> Vec<String> {

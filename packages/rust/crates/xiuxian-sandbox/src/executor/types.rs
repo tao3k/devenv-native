@@ -1,5 +1,6 @@
 //! Core sandbox types and shared execution helpers.
 
+use serde::Deserialize;
 use std::path::Path;
 use std::process::Stdio;
 use std::time::Instant;
@@ -45,7 +46,7 @@ pub struct SandboxConfig {
     /// Skill identifier for logging.
     pub skill_id: String,
     /// Execution mode string (e.g. "EXEC").
-    pub mode: String,
+    pub mode: SandboxMode,
     /// Sandbox hostname.
     pub hostname: String,
     /// Command to execute.
@@ -64,6 +65,43 @@ pub struct SandboxConfig {
     pub seccomp_mode: u32,
     /// Log level string for the backend.
     pub log_level: String,
+}
+
+/// Typed sandbox execution mode.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(transparent)]
+pub struct SandboxMode(String);
+
+impl SandboxMode {
+    /// Create a sandbox mode from a string-like value.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Borrow the mode as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SandboxMode {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&str> for SandboxMode {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl PartialEq<&str> for SandboxMode {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
 }
 
 /// Sandbox executor trait for backend implementations.

@@ -5,7 +5,7 @@
 
 use std::fmt;
 use std::fmt::Write as _;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use xiuxian_ast::{
@@ -31,6 +31,11 @@ fn append_fmt(buffer: &mut String, args: fmt::Arguments<'_>) {
 /// Extracts symbols (functions, classes, etc.) from source code using ast-grep
 /// patterns. Part of The Cartographer.
 pub struct TagExtractor;
+
+struct SearchInput {
+    path: PathBuf,
+    lang: SupportLang,
+}
 
 impl TagExtractor {
     /// Generate a symbolic outline for a file
@@ -190,8 +195,6 @@ impl TagExtractor {
         pattern: &str,
         config: SearchConfig,
     ) -> Result<String, SearchError> {
-        use walkdir::WalkDir;
-
         let dir = dir.as_ref();
         let SearchConfig {
             file_pattern: _file_pattern,
@@ -199,58 +202,10 @@ impl TagExtractor {
             max_matches_per_file,
             languages: _languages,
         } = config;
-        let mut all_matches: Vec<SearchMatch> = Vec::new();
-        let mut file_count = 0;
-
-        let walker = WalkDir::new(dir).follow_links(false).into_iter();
-
-        for entry in walker {
-            let Ok(entry) = entry else { continue };
-
-            if !entry.file_type().is_file() {
-                continue;
-            }
-
-            let path = entry.path();
-            let ext = path.extension().and_then(|e| e.to_str());
-
-            // Skip files without extensions or not matching language
-            let Some(lang_ext) = ext else {
-                continue;
-            };
-
-            // Map extension to language
-            let lang = match lang_ext {
-                "py" => Some(SupportLang::Python),
-                "rs" => Some(SupportLang::Rust),
-                "js" => Some(SupportLang::JavaScript),
-                "ts" => Some(SupportLang::TypeScript),
-                _ => None,
-            };
-
-            let Some(lang) = lang else { continue };
-
-            // Check file size
-            if let Ok(metadata) = entry.metadata()
-                && metadata.len() > max_file_size
-            {
-                continue;
-            }
-
-            file_count += 1;
-
-            let Ok(content) = std::fs::read_to_string(path) else {
-                continue;
-            };
-
-            let matches = Self::search_content(&content, pattern, lang, path)?;
-            all_matches.extend(matches);
-
-            if all_matches.len() >= max_matches_per_file * 10 {
-                // Stop if we have too many matches
-                break;
-            }
-        }
+        let search_inputs = Self::directory_search_inputs(dir, max_file_size);
+        let file_count = search_inputs.len();
+        let all_matches =
+            Self::collect_directory_matches(search_inputs, pattern, max_matches_per_file * 10)?;
 
         if all_matches.is_empty() {
             return Ok(format!(
@@ -305,49 +260,91 @@ impl TagExtractor {
             Err(e) => return Err(SearchError::Pattern(e.to_string())),
         };
 
-        let mut matches = Vec::new();
+        Ok(root_node
+            .dfs()
+            .filter_map(|node| pattern.match_node(node.clone()))
+            .take(100)
+            .map(|matched| Self::search_match_from_node(path, &matched))
+            .collect())
+    }
 
-        // DFS search through all nodes
-        for node in root_node.dfs() {
-            if let Some(m) = pattern.match_node(node.clone()) {
-                let start_pos = m.start_pos();
-                let line = start_pos.line();
-                // Column calculation requires node reference; use line for simplicity
-                let column = 0;
+    fn directory_search_inputs(dir: &Path, max_file_size: u64) -> Vec<SearchInput> {
+        use walkdir::WalkDir;
 
-                // Extract captures - get_env returns &MetaVarEnv directly
-                let mut captures = std::collections::HashMap::new();
-                let env = m.get_env();
-                let vars: Vec<String> = env
-                    .get_matched_variables()
-                    .filter_map(|mv| match mv {
-                        MetaVariable::Capture(name, _) | MetaVariable::MultiCapture(name) => {
-                            Some(name.clone())
-                        }
-                        MetaVariable::Dropped(_) | MetaVariable::Multiple => None,
-                    })
-                    .collect();
-                for key in &vars {
-                    if let Some(captured) = env.get_match(key) {
-                        captures.insert(key.clone(), captured.text().to_string());
-                    }
+        WalkDir::new(dir)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+            .filter(|entry| {
+                entry
+                    .metadata()
+                    .map_or(true, |metadata| metadata.len() <= max_file_size)
+            })
+            .filter_map(|entry| {
+                let lang = Self::language_from_path(entry.path())?;
+                Some(SearchInput {
+                    path: entry.path().to_path_buf(),
+                    lang,
+                })
+            })
+            .collect()
+    }
+
+    fn collect_directory_matches(
+        search_inputs: Vec<SearchInput>,
+        pattern: &str,
+        max_matches: usize,
+    ) -> Result<Vec<SearchMatch>, SearchError> {
+        search_inputs
+            .into_iter()
+            .filter_map(|input| {
+                let content = std::fs::read_to_string(&input.path).ok()?;
+                Some((input, content))
+            })
+            .try_fold(Vec::new(), |mut all_matches, (input, content)| {
+                if all_matches.len() >= max_matches {
+                    return Ok(all_matches);
                 }
+                all_matches.extend(Self::search_content(
+                    &content,
+                    pattern,
+                    input.lang,
+                    &input.path,
+                )?);
+                Ok(all_matches)
+            })
+    }
 
-                matches.push(SearchMatch {
-                    path: path.to_string_lossy().to_string(),
-                    line,
-                    column,
-                    content: m.text().to_string(),
-                    captures,
-                });
-
-                if matches.len() >= 100 {
-                    break; // Limit matches per file
-                }
-            }
+    fn language_from_path(path: &Path) -> Option<SupportLang> {
+        match path.extension().and_then(|extension| extension.to_str())? {
+            "py" => Some(SupportLang::Python),
+            "rs" => Some(SupportLang::Rust),
+            "js" => Some(SupportLang::JavaScript),
+            "ts" => Some(SupportLang::TypeScript),
+            _ => None,
         }
+    }
 
-        Ok(matches)
+    fn search_match_from_node<D: Doc>(path: &Path, matched: &NodeMatch<D>) -> SearchMatch {
+        let env = matched.get_env();
+        let captures = env
+            .get_matched_variables()
+            .filter_map(|meta_variable| match meta_variable {
+                MetaVariable::Capture(name, _) | MetaVariable::MultiCapture(name) => env
+                    .get_match(&name)
+                    .map(|captured| (name, captured.text().to_string())),
+                MetaVariable::Dropped(_) | MetaVariable::Multiple => None,
+            })
+            .collect();
+
+        SearchMatch {
+            path: path.to_string_lossy().to_string(),
+            line: matched.start_pos().line(),
+            column: 0,
+            content: matched.text().to_string(),
+            captures,
+        }
     }
 
     /// Extract symbols from Python source using AST patterns

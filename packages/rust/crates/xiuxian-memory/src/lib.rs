@@ -13,7 +13,8 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
     }
 );
 
+/// Core memory learner state and action modules.
 pub mod core;
 
 pub use core::learner::MemRLCortex;
-pub use core::types::{MemoryAction, MemoryState};
+pub use core::types::{MemoryAction, MemoryState, MemoryTaskKind};

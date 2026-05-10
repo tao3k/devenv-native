@@ -1,3 +1,5 @@
+//! Secret scanning primitives backed by compiled regex sets.
+
 use regex::RegexSet;
 use serde::Serialize;
 use std::sync::LazyLock;

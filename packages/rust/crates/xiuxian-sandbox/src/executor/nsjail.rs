@@ -9,6 +9,7 @@ use tokio::process::Command as AsyncCommand;
 
 use super::ExecutionResult;
 use super::SandboxExecutor;
+use super::SandboxMode;
 use super::execute_with_limits;
 
 /// Nsjail-specific configuration (from JSON export)
@@ -17,7 +18,7 @@ pub struct NsJailJsonConfig {
     /// Container name.
     pub name: String,
     /// `NsJail` mode string.
-    pub mode: String,
+    pub mode: SandboxMode,
     /// Hostname inside the jail.
     pub hostname: String,
     /// Command and arguments.
@@ -50,7 +51,7 @@ pub struct NsJailJsonConfig {
     pub rlimit_stack: u64,
     /// CPU limit type string.
     #[serde(default)]
-    pub rlimit_cpu_type: String,
+    pub rlimit_cpu_type: NsJailRlimitCpuType,
     /// Seccomp mode selector.
     #[serde(default)]
     pub seccomp_mode: u32,
@@ -74,6 +75,19 @@ pub struct NsJailJsonConfig {
     /// Whether to create a new mount namespace.
     #[serde(default)]
     pub clone_newns: BoolFlag,
+}
+
+/// Typed `NsJail` CPU limit kind exported in JSON configs.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct NsJailRlimitCpuType(String);
+
+impl NsJailRlimitCpuType {
+    /// Borrow the limit kind as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Default)]
@@ -155,7 +169,7 @@ impl SandboxExecutor for NsJailExecutor {
         let mut cmd = AsyncCommand::new(&self.nsjail_path);
 
         // Mode
-        cmd.arg("--mode").arg(&config.mode);
+        cmd.arg("--mode").arg(config.mode.as_str());
 
         // Hostname
         cmd.arg("--hostname").arg(&config.hostname);

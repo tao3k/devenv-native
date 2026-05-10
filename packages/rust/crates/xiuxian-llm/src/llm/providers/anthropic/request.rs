@@ -42,7 +42,7 @@ pub struct AnthropicMessagesExecutionRequest<'a> {
     pub endpoint: &'a str,
     /// Provider API key.
     pub api_key: &'a str,
-    /// LiteLLM chat request.
+    /// `LiteLLM` chat request.
     pub request: &'a LiteChatRequest,
     /// Maximum transport attempts.
     pub attempts: usize,

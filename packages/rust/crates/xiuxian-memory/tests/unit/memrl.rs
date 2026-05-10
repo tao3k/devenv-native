@@ -1,6 +1,6 @@
 //! Tests for the `MemRL` learner surface.
 
-use xiuxian_memory::{MemRLCortex, MemoryAction, MemoryState};
+use xiuxian_memory::{MemRLCortex, MemoryAction, MemoryState, MemoryTaskKind};
 
 #[test]
 fn test_q_learning_evolution() {
@@ -9,7 +9,7 @@ fn test_q_learning_evolution() {
     let s1 = MemoryState {
         context_entropy: 5,
         persona_hash: 123,
-        task_kind: "Research".to_string(),
+        task_kind: MemoryTaskKind::new("Research"),
     };
 
     let action = MemoryAction::Promote;
@@ -18,7 +18,7 @@ fn test_q_learning_evolution() {
     let s2 = MemoryState {
         context_entropy: 1,
         persona_hash: 123,
-        task_kind: "Research".to_string(),
+        task_kind: MemoryTaskKind::new("Research"),
     };
 
     let initial_q = *cortex.q_table.get(&(s1.clone(), action)).unwrap_or(&0.0);
