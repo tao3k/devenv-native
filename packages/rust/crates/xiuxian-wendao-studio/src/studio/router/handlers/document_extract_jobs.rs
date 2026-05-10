@@ -131,15 +131,15 @@ fn resolve_document_source_path(
 impl From<RegistryDocumentExtractJobStatus> for DocumentExtractJobStatus {
     fn from(status: RegistryDocumentExtractJobStatus) -> Self {
         Self {
-            job_id: status.job_id,
-            source_path: status.source_path,
+            job_id: status.job_id.into(),
+            source_path: status.source_path.into(),
             output_dir: status.output_dir,
             content_hash: status.content_hash,
-            status: status.status,
+            status: status.status.into(),
             attempt_count: status.attempt_count,
-            created_at_ms: status.created_at_ms,
-            started_at_ms: status.started_at_ms,
-            finished_at_ms: status.finished_at_ms,
+            created_at_ms: status.created_at_ms.into(),
+            started_at_ms: status.started_at_ms.into(),
+            finished_at_ms: status.finished_at_ms.into(),
             error_message: status.error_message,
         }
     }
@@ -219,10 +219,10 @@ impl From<DocumentExtractRuntimeSnapshot> for DocumentExtractJobsStatus {
             pdf_ocr_cache_hits,
             pdf_ocr_cache_misses,
             pdf_ocr_live_requests,
-            pdf_ocr_queue_wait_p50_ms,
-            pdf_ocr_queue_wait_p95_ms,
-            pdf_ocr_latency_p50_ms,
-            pdf_ocr_latency_p95_ms,
+            pdf_ocr_queue_wait_p50_ms: pdf_ocr_queue_wait_p50_ms.map(Into::into),
+            pdf_ocr_queue_wait_p95_ms: pdf_ocr_queue_wait_p95_ms.map(Into::into),
+            pdf_ocr_latency_p50_ms: pdf_ocr_latency_p50_ms.map(Into::into),
+            pdf_ocr_latency_p95_ms: pdf_ocr_latency_p95_ms.map(Into::into),
             pdf_ocr_source_pdf_page_range_shards,
             pdf_ocr_rendered_page_shards,
             pdf_ocr_rendered_region_shards,
@@ -234,10 +234,16 @@ impl From<DocumentExtractRuntimeSnapshot> for DocumentExtractJobsStatus {
             running_jobs: snapshot.registry.running_jobs,
             succeeded_jobs: snapshot.registry.succeeded_jobs,
             failed_jobs: snapshot.registry.failed_jobs,
-            last_finished_job_id: snapshot.registry.last_finished_job_id,
-            last_finished_status: snapshot.registry.last_finished_status,
-            last_conversion_duration_ms: snapshot.registry.last_conversion_duration_ms,
-            max_conversion_duration_ms: snapshot.registry.max_conversion_duration_ms,
+            last_finished_job_id: snapshot.registry.last_finished_job_id.map(Into::into),
+            last_finished_status: snapshot.registry.last_finished_status.map(Into::into),
+            last_conversion_duration_ms: snapshot
+                .registry
+                .last_conversion_duration_ms
+                .map(Into::into),
+            max_conversion_duration_ms: snapshot
+                .registry
+                .max_conversion_duration_ms
+                .map(Into::into),
         }
     }
 }

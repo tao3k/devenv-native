@@ -26,7 +26,7 @@ fn process_records(data: Vec<u8>) -> Result<(), Error> {
 
     // Try to find a pattern that was renamed (process_data -> process_records)
     let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("fn process_data($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     assert!(
         suggestion.is_some(),
@@ -57,7 +57,7 @@ struct Point {
     // Looking for a function that doesn't exist
     let suggestion = suggest_pattern_fix(
         "fn nonexistent_function($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source],
     );
 
@@ -77,11 +77,11 @@ fn test_fuzzy_suggestion_custom_threshold() {
     // With default threshold (0.65), this might not match
     // With very low threshold, it might match
     let suggestion_default =
-        suggest_pattern_fix("fn bar($$$)", xiuxian_ast::Lang::Rust, &[source.clone()]);
+        suggest_pattern_fix("fn bar($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source.clone()]);
 
     let suggestion_low = suggest_pattern_fix_with_threshold(
         "fn bar($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source],
         Some(0.1), // Very low threshold
     );
@@ -105,7 +105,7 @@ fn process_data_batch(batch: Vec<Item>) -> Result<()> { }
     };
 
     let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("fn process_data($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     // Should find a suggestion (best match among multiple candidates)
     if let Some(s) = suggestion {
@@ -129,7 +129,7 @@ pub struct ProcessedRecord {
     };
 
     let suggestion =
-        suggest_pattern_fix("struct RawRecord $$$", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("struct RawRecord $$$", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     // Should find a suggestion for renamed struct
     if let Some(s) = suggestion {
@@ -155,7 +155,7 @@ fn test_confidence_threshold_filtering() {
     // With high threshold, should not match
     let suggestion_high = suggest_pattern_fix_with_threshold(
         "fn process_data($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source.clone()],
         Some(0.9), // High threshold
     );
@@ -163,7 +163,7 @@ fn test_confidence_threshold_filtering() {
     // With very low threshold, might match (both are functions)
     let suggestion_low = suggest_pattern_fix_with_threshold(
         "fn process_data($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source],
         Some(0.1), // Low threshold
     );
@@ -190,7 +190,7 @@ fn test_replacement_drawer_format() {
     };
 
     let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("fn process_data($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     if let Some(s) = suggestion {
         // Replacement drawer should be properly formatted

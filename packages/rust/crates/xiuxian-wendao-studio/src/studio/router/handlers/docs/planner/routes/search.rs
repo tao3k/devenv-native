@@ -1,3 +1,5 @@
+//! Owns the Studio planner routes search surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -10,8 +12,8 @@ use crate::studio::router::handlers::docs::types::planner::DocsPlannerSearchApiQ
 use crate::studio::router::handlers::repo::parse::projection::{
     parse_projected_gap_kind, parse_projection_page_kind,
 };
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::{GatewayState, StudioApiError};
 use xiuxian_wendao::analyzers::DocsPlannerSearchQuery;
 

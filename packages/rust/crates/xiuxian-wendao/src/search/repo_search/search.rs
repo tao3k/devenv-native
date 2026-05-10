@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use walkdir::{DirEntry, WalkDir};
-use xiuxian_ast::Lang;
+use xiuxian_code_intelligence::code_language_id_from_path;
 use xiuxian_db_store::LanceRecordBatch;
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
@@ -246,9 +246,7 @@ fn normalize_filters(filters: &HashSet<String>) -> HashSet<String> {
 }
 
 fn infer_repo_source_language(path: &str) -> Option<String> {
-    Lang::from_path(Path::new(path))
-        .map(Lang::as_str)
-        .map(str::to_string)
+    code_language_id_from_path(Path::new(path)).map(str::to_string)
 }
 
 fn source_search_score(line: &str, query: &str, exact_match: bool) -> f64 {

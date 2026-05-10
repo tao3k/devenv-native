@@ -1,6 +1,6 @@
 //! HMAS command execution.
 
-use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{Cli, Command, HmasCommand};
 use anyhow::Result;
 use xiuxian_wendao::validate_blackboard_file;

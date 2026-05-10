@@ -107,10 +107,6 @@
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
           profiles.release.runTests = false;
         };
-        "xiuxian-daochang" = {
-          drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
-          profiles.release.runTests = false;
-        };
         "xiuxian-zhenfa" = {
           profiles.release.runTests = false;
           drvConfig.mkDerivation = {

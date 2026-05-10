@@ -15,10 +15,49 @@ pub struct GraphStructuralKeywordTagQueryInputs {
     pub(super) edge_constraint_kinds: Vec<String>,
 }
 
+/// Named input bundle for one keyword-or-tag graph-structural query.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphStructuralKeywordTagQueryInput {
+    /// Query id attached to the structural request.
+    pub query_id: String,
+    /// Retrieval layer used by the graph route.
+    pub retrieval_layer: i32,
+    /// Maximum layer depth accepted for the query.
+    pub query_max_layers: i32,
+    /// Keyword anchors for the request.
+    pub keyword_anchors: Vec<String>,
+    /// Tag anchors for the request.
+    pub tag_anchors: Vec<String>,
+    /// Edge-kind constraints for the request.
+    pub edge_constraint_kinds: Vec<String>,
+}
+
 impl GraphStructuralKeywordTagQueryInputs {
     /// Store one keyword-or-tag query input bundle for later normalization.
     #[must_use]
-    pub fn new(
+    pub fn from_input(input: GraphStructuralKeywordTagQueryInput) -> Self {
+        let GraphStructuralKeywordTagQueryInput {
+            query_id,
+            retrieval_layer,
+            query_max_layers,
+            keyword_anchors,
+            tag_anchors,
+            edge_constraint_kinds,
+        } = input;
+        Self {
+            query_id,
+            retrieval_layer,
+            query_max_layers,
+            keyword_anchors,
+            tag_anchors,
+            edge_constraint_kinds,
+        }
+    }
+
+    /// Store one keyword-or-tag query input bundle for tests.
+    #[cfg(test)]
+    #[must_use]
+    pub(crate) fn new(
         query_id: impl Into<String>,
         retrieval_layer: i32,
         query_max_layers: i32,
@@ -26,14 +65,14 @@ impl GraphStructuralKeywordTagQueryInputs {
         tag_anchors: Vec<String>,
         edge_constraint_kinds: Vec<String>,
     ) -> Self {
-        Self {
+        Self::from_input(GraphStructuralKeywordTagQueryInput {
             query_id: query_id.into(),
             retrieval_layer,
             query_max_layers,
             keyword_anchors,
             tag_anchors,
             edge_constraint_kinds,
-        }
+        })
     }
 }
 

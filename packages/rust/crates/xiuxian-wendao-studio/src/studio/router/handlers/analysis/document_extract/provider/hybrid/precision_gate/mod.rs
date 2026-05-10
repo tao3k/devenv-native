@@ -1,3 +1,5 @@
+//! Coordinates the Studio provider hybrid precision gate branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod coverage;
 mod gate;
 mod ocr;

@@ -324,7 +324,6 @@ pub(super) async fn materialize_docling_page_range_resource_batch(
     let source_profiles =
         source_pdf_page_profiles_cached(Path::new(render_report.source_path.as_str()))
             .unwrap_or_default();
-    let mut chunk_timings = Vec::with_capacity(page_ranges.len());
     let chunk_concurrency = docling_page_range_chunk_concurrency_limit_with_lookup(
         page_ranges.len(),
         endpoint_count,
@@ -381,7 +380,7 @@ async fn collect_docling_page_range_fallback_chunks(
     page_ranges: &[(u32, u32)],
     source_profiles: &[PdfSourcePageProfile],
     chunk_concurrency: usize,
-    hedge_delay_ms: u64,
+    hedge_delay_ms: Option<u64>,
     page_range_profile: String,
 ) -> Result<
     (
@@ -398,11 +397,8 @@ async fn collect_docling_page_range_fallback_chunks(
             .copied()
             .map(|(start_page, end_page)| {
                 let page_range_profile = page_range_profile.clone();
-                let source_profile = page_range_source_profile_summary(
-                    source_profiles.as_slice(),
-                    start_page,
-                    end_page,
-                );
+                let source_profile =
+                    page_range_source_profile_summary(source_profiles, start_page, end_page);
                 async move {
                     let one_based_start = start_page.saturating_add(1);
                     let one_based_end = end_page.saturating_add(1);

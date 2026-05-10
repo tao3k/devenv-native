@@ -41,7 +41,7 @@ pub(crate) fn collect_repository_analysis_identity(
     for file in relevant_files {
         hasher.update(file.relative_path.as_bytes());
         hasher.update(b"\0");
-        let mode_label = relevant_file_identity_mode_label(file.mode);
+        let mode_label = relevant_file_identity_mode_label(&file.mode);
         hasher.update(mode_label.as_bytes());
         hasher.update(b"\0");
         match file.mode {
@@ -57,7 +57,7 @@ pub(crate) fn collect_repository_analysis_identity(
                     repository,
                     &file.absolute_path,
                     file.relative_path.as_str(),
-                    owner,
+                    &owner,
                     &mut hasher,
                 )?;
             }
@@ -74,7 +74,7 @@ struct RelevantFile {
     mode: RelevantFileIdentityMode,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum RelevantFileIdentityMode {
     PathOnly,
     Contents,
@@ -132,7 +132,7 @@ fn relevant_file_identity_mode(
     })
 }
 
-fn relevant_file_identity_mode_label(mode: RelevantFileIdentityMode) -> String {
+fn relevant_file_identity_mode_label(mode: &RelevantFileIdentityMode) -> String {
     match mode {
         RelevantFileIdentityMode::PathOnly => "path".to_string(),
         RelevantFileIdentityMode::Contents => "contents".to_string(),
@@ -146,7 +146,7 @@ fn hash_semantic_identity(
     repository: &RegisteredRepository,
     absolute_path: &Path,
     relative_path: &str,
-    owner: SemanticFingerprintOwner,
+    owner: &SemanticFingerprintOwner,
     hasher: &mut blake3::Hasher,
 ) -> Option<()> {
     let contents = fs::read(absolute_path).ok()?;

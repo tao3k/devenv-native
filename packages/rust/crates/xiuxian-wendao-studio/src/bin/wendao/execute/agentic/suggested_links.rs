@@ -1,4 +1,4 @@
-use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::Cli;
 use anyhow::Result;
 use xiuxian_wendao::{

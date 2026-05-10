@@ -5,12 +5,12 @@ mod autocomplete;
 mod contracts;
 mod definition;
 mod fixtures;
+mod global_search;
 mod graph;
 mod headers;
 mod helpers;
 mod materialization;
 mod provider;
-mod search;
 mod vfs;
 
 use super::{

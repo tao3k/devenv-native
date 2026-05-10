@@ -9,6 +9,33 @@ use super::{
     WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID,
 };
 
+/// Stable Rust-facing `WendaoGraph.jl` algorithm identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WendaoGraphAlgorithmId(pub &'static str);
+
+/// Stable Rust-facing `WendaoGraph.jl` profile identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WendaoGraphProfileId(pub &'static str);
+
+/// Named input bundle for one static `WendaoGraph.jl` algorithm catalog entry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WendaoGraphAlgorithmRefInput {
+    /// Stable Rust-facing algorithm id.
+    pub algorithm_id: WendaoGraphAlgorithmId,
+    /// Coarse algorithm family.
+    pub family: &'static str,
+    /// Julia profile that owns this algorithm.
+    pub profile_id: WendaoGraphProfileId,
+    /// Julia function or host entrypoint that owns the implementation.
+    pub julia_entrypoint: &'static str,
+    /// Output table produced by the algorithm when it has a table surface.
+    pub output_table: Option<&'static str>,
+    /// Capability class used by the Rust scheduler.
+    pub capability: LaneCapability,
+    /// Owner-supplied scheduler complexity hint.
+    pub complexity: JuliaTaskComplexityClass,
+}
+
 /// Inert catalog entry for one `WendaoGraph.jl` algorithm visible to Rust.
 ///
 /// The catalog is descriptive owner evidence. It does not call Julia, validate
@@ -34,23 +61,15 @@ pub struct WendaoGraphAlgorithmRef {
 impl WendaoGraphAlgorithmRef {
     /// Creates an inert `WendaoGraph.jl` algorithm catalog entry.
     #[must_use]
-    pub const fn new(
-        algorithm_id: &'static str,
-        family: &'static str,
-        profile_id: &'static str,
-        julia_entrypoint: &'static str,
-        output_table: Option<&'static str>,
-        capability: LaneCapability,
-        complexity: JuliaTaskComplexityClass,
-    ) -> Self {
+    pub const fn from_input(input: WendaoGraphAlgorithmRefInput) -> Self {
         Self {
-            algorithm_id,
-            family,
-            profile_id,
-            julia_entrypoint,
-            output_table,
-            capability,
-            complexity,
+            algorithm_id: input.algorithm_id.0,
+            family: input.family,
+            profile_id: input.profile_id.0,
+            julia_entrypoint: input.julia_entrypoint,
+            output_table: input.output_table,
+            capability: input.capability,
+            complexity: input.complexity,
         }
     }
 
@@ -435,17 +454,19 @@ pub fn wendaograph_algorithm_refs() -> Vec<WendaoGraphAlgorithmRef> {
 
 /// Finds one staged `WendaoGraph.jl` algorithm catalog entry by id.
 #[must_use]
-pub fn wendaograph_algorithm_ref(algorithm_id: &str) -> Option<WendaoGraphAlgorithmRef> {
+pub fn wendaograph_algorithm_ref(
+    algorithm_id: WendaoGraphAlgorithmId,
+) -> Option<WendaoGraphAlgorithmRef> {
     wendaograph_algorithm_refs()
         .into_iter()
-        .find(|reference| reference.algorithm_id == algorithm_id)
+        .find(|reference| reference.algorithm_id == algorithm_id.0)
 }
 
 /// Returns the scheduler task shape for one staged `WendaoGraph.jl`
 /// algorithm id and workload.
 #[must_use]
 pub fn wendaograph_algorithm_task_shape(
-    algorithm_id: &str,
+    algorithm_id: WendaoGraphAlgorithmId,
     workload: WendaoGraphAlgorithmWorkload,
 ) -> Option<JuliaComputeTaskShape> {
     wendaograph_algorithm_ref(algorithm_id).map(|reference| reference.task_shape(workload))
@@ -462,7 +483,7 @@ pub fn wendaograph_frontier_algorithm_ref(evidence_kind: &str) -> Option<WendaoG
         "source_path" => "relationship_search.graph_search_ranking",
         _ => return None,
     };
-    wendaograph_algorithm_ref(algorithm_id)
+    wendaograph_algorithm_ref(WendaoGraphAlgorithmId(algorithm_id))
 }
 
 /// Returns the scheduler task shape for one reasoning-tree backend frontier
@@ -478,10 +499,12 @@ pub fn wendaograph_frontier_task_shape(
 
 /// Returns staged `WendaoGraph.jl` algorithm entries for one Julia profile id.
 #[must_use]
-pub fn wendaograph_algorithm_refs_for_profile(profile_id: &str) -> Vec<WendaoGraphAlgorithmRef> {
+pub fn wendaograph_algorithm_refs_for_profile(
+    profile_id: WendaoGraphProfileId,
+) -> Vec<WendaoGraphAlgorithmRef> {
     wendaograph_algorithm_refs()
         .into_iter()
-        .filter(|reference| reference.profile_id == profile_id)
+        .filter(|reference| reference.profile_id == profile_id.0)
         .collect()
 }
 
@@ -491,15 +514,15 @@ const fn link_graph_algorithm(
     output_table: Option<&'static str>,
     complexity: JuliaTaskComplexityClass,
 ) -> WendaoGraphAlgorithmRef {
-    WendaoGraphAlgorithmRef::new(
-        algorithm_id,
-        "link_graph",
-        WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+    WendaoGraphAlgorithmRef::from_input(WendaoGraphAlgorithmRefInput {
+        algorithm_id: WendaoGraphAlgorithmId(algorithm_id),
+        family: "link_graph",
+        profile_id: WendaoGraphProfileId(WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID),
         julia_entrypoint,
         output_table,
-        LaneCapability::GraphEvidenceCompute,
+        capability: LaneCapability::GraphEvidenceCompute,
         complexity,
-    )
+    })
 }
 
 const fn page_index_algorithm(
@@ -508,15 +531,15 @@ const fn page_index_algorithm(
     output_table: Option<&'static str>,
     complexity: JuliaTaskComplexityClass,
 ) -> WendaoGraphAlgorithmRef {
-    WendaoGraphAlgorithmRef::new(
-        algorithm_id,
-        "page_index",
-        WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID,
+    WendaoGraphAlgorithmRef::from_input(WendaoGraphAlgorithmRefInput {
+        algorithm_id: WendaoGraphAlgorithmId(algorithm_id),
+        family: "page_index",
+        profile_id: WendaoGraphProfileId(WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID),
         julia_entrypoint,
         output_table,
-        LaneCapability::GraphEvidenceCompute,
+        capability: LaneCapability::GraphEvidenceCompute,
         complexity,
-    )
+    })
 }
 
 const fn relationship_search_algorithm(
@@ -525,15 +548,15 @@ const fn relationship_search_algorithm(
     output_table: Option<&'static str>,
     complexity: JuliaTaskComplexityClass,
 ) -> WendaoGraphAlgorithmRef {
-    WendaoGraphAlgorithmRef::new(
-        algorithm_id,
-        "relationship_search",
-        WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+    WendaoGraphAlgorithmRef::from_input(WendaoGraphAlgorithmRefInput {
+        algorithm_id: WendaoGraphAlgorithmId(algorithm_id),
+        family: "relationship_search",
+        profile_id: WendaoGraphProfileId(WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID),
         julia_entrypoint,
         output_table,
-        LaneCapability::GraphEvidenceCompute,
+        capability: LaneCapability::GraphEvidenceCompute,
         complexity,
-    )
+    })
 }
 
 const fn search_strategy_flow_algorithm(
@@ -542,15 +565,15 @@ const fn search_strategy_flow_algorithm(
     output_table: Option<&'static str>,
     complexity: JuliaTaskComplexityClass,
 ) -> WendaoGraphAlgorithmRef {
-    WendaoGraphAlgorithmRef::new(
-        algorithm_id,
-        "search_strategy_flow",
-        WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID,
+    WendaoGraphAlgorithmRef::from_input(WendaoGraphAlgorithmRefInput {
+        algorithm_id: WendaoGraphAlgorithmId(algorithm_id),
+        family: "search_strategy_flow",
+        profile_id: WendaoGraphProfileId(WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID),
         julia_entrypoint,
         output_table,
-        LaneCapability::GraphEvidenceCompute,
+        capability: LaneCapability::GraphEvidenceCompute,
         complexity,
-    )
+    })
 }
 
 const fn gnn_algorithm(
@@ -559,13 +582,13 @@ const fn gnn_algorithm(
     output_table: Option<&'static str>,
     complexity: JuliaTaskComplexityClass,
 ) -> WendaoGraphAlgorithmRef {
-    WendaoGraphAlgorithmRef::new(
-        algorithm_id,
-        "gnn",
-        WENDAO_GRAPH_GNN_REASONING_PROFILE_ID,
+    WendaoGraphAlgorithmRef::from_input(WendaoGraphAlgorithmRefInput {
+        algorithm_id: WendaoGraphAlgorithmId(algorithm_id),
+        family: "gnn",
+        profile_id: WendaoGraphProfileId(WENDAO_GRAPH_GNN_REASONING_PROFILE_ID),
         julia_entrypoint,
         output_table,
-        LaneCapability::GraphEvidenceCompute,
+        capability: LaneCapability::GraphEvidenceCompute,
         complexity,
-    )
+    })
 }

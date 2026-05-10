@@ -1,3 +1,5 @@
+//! Owns the Studio repo analysis doc coverage surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -6,7 +8,7 @@ use axum::{
 };
 
 use crate::studio::router::handlers::repo::analysis::service::coverage::run_repo_doc_coverage;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::analysis::RepoDocCoverageApiQuery;
 use crate::studio::router::{GatewayState, StudioApiError};
 

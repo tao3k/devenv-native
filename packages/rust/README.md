@@ -35,29 +35,29 @@ testing crates.
 
 ## Crates
 
-| Crate                    | Purpose                                                                      | Type    |
-| ------------------------ | ---------------------------------------------------------------------------- | ------- |
-| **Core Types**           |
-| `xiuxian-types`          | Common type definitions, error types                                         | Library |
-| **Code Analysis**        |
-| `xiuxian-ast`            | AST parsing and analysis                                                     | Library |
-| `xiuxian-tags`           | Tag extraction and management                                                | Library |
-| **Editor & Tools**       |
-| `xiuxian-edit`           | Code editing and batch operations (The Surgeon)                              | Library |
-| `xiuxian-tokenizer`      | BPE tokenization                                                             | Library |
-| **Storage & Data**       |
-| `xiuxian-db-store`       | Storage facade for Arrow/Lance compatibility plus DuckDB/DuckLake primitives | Library |
-| `xiuxian-vector`         | Retiring Lance/Arrow storage shell; not a search or skill owner              | Library |
-| `xiuxian-lance`          | LanceDB integration                                                          | Library |
-| **Wendao**               |
-| `xiuxian-wendao`         | Knowledge graph, DuckDB-backed query/search, and DocOS runtime contracts     | Library |
-| `xiuxian-wendao-parsers` | Markdown, frontmatter, link, and skill document parser substrate             | Library |
-| `xiuxian-wendao-client`  | Client-side Wendao CLI surfaces such as linting                              | Library |
-| **Security & I/O**       |
-| `xiuxian-security`       | Security and sanitization (Hyper-Immune System)                              | Library |
-| `xiuxian-io`             | Safe file I/O operations, context assembly                                   | Library |
-| **Bindings**             |
-| `xiuxian-core-rs`        | Wendao Python bindings via PyO3                                              | cdylib  |
+| Crate                       | Purpose                                                                      | Type    |
+| --------------------------- | ---------------------------------------------------------------------------- | ------- |
+| **Core Types**              |
+| `xiuxian-types`             | Common type definitions, error types                                         | Library |
+| **Code Analysis**           |
+| `xiuxian-ast`               | AST parsing and analysis                                                     | Library |
+| `xiuxian-code-intelligence` | Code-structure signals for Agent and Wendao search                           | Library |
+| **Editor & Tools**          |
+| `xiuxian-edit`              | Code editing and batch operations (The Surgeon)                              | Library |
+| `xiuxian-tokenizer`         | BPE tokenization                                                             | Library |
+| **Storage & Data**          |
+| `xiuxian-db-store`          | Storage facade for Arrow/Lance compatibility plus DuckDB/DuckLake primitives | Library |
+| `xiuxian-vector`            | Retiring Lance/Arrow storage shell; not a search or skill owner              | Library |
+| `xiuxian-lance`             | LanceDB integration                                                          | Library |
+| **Wendao**                  |
+| `xiuxian-wendao`            | Knowledge graph, DuckDB-backed query/search, and DocOS runtime contracts     | Library |
+| `xiuxian-wendao-parsers`    | Markdown, frontmatter, link, and skill document parser substrate             | Library |
+| `xiuxian-wendao-client`     | Client-side Wendao CLI surfaces such as linting                              | Library |
+| **Security & I/O**          |
+| `xiuxian-security`          | Security and sanitization (Hyper-Immune System)                              | Library |
+| `xiuxian-io`                | Safe file I/O operations, context assembly                                   | Library |
+| **Bindings**                |
+| `xiuxian-core-rs`           | Wendao Python bindings via PyO3                                              | cdylib  |
 
 ## Directory Structure
 
@@ -70,7 +70,7 @@ packages/rust/
 │   ├── xiuxian-db-store/      # storage compatibility facade
 │   ├── xiuxian-lance/         # LanceDB integration
 │   ├── xiuxian-security/      # Security (Hyper-Immune)
-│   ├── xiuxian-tags/          # Tag extraction
+│   ├── xiuxian-code-intelligence/ # Code-structure signals
 │   ├── xiuxian-tokenizer/     # BPE tokenization
 │   ├── xiuxian-types/         # Type definitions
 │   ├── xiuxian-vector/        # retiring Lance/Arrow storage shell

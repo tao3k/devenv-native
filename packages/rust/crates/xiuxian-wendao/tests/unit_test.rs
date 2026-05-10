@@ -2,3 +2,6 @@
 
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
+
+#[path = "unit/repo_config_bridge_audit.rs"]
+mod repo_config_bridge_audit;

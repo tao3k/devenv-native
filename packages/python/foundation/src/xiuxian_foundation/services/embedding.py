@@ -85,7 +85,7 @@ def _xiuxian_toml_candidates() -> list[Path]:
         / "packages"
         / "rust"
         / "crates"
-        / "xiuxian-daochang"
+        / "xiuxian-wendao"
         / "resources"
         / "config"
         / "xiuxian.toml"
@@ -123,7 +123,9 @@ def _normalize_http_base_url(raw: object) -> str | None:
 
 
 def _resolve_embedding_candidates_from_xiuxian() -> list[str]:
-    host = os.environ.get("XIUXIAN_WENDAO_LOCAL_HOST", "localhost").strip() or "localhost"
+    host = (
+        os.environ.get("XIUXIAN_WENDAO_LOCAL_HOST", "localhost").strip() or "localhost"
+    )
     resolved: list[str] = []
 
     for path in _xiuxian_toml_candidates():
@@ -136,11 +138,15 @@ def _resolve_embedding_candidates_from_xiuxian() -> list[str]:
         if gateway_url:
             resolved.append(gateway_url)
 
-        memory_embed_url = _normalize_http_base_url(_dig(doc, "memory", "embedding_base_url"))
+        memory_embed_url = _normalize_http_base_url(
+            _dig(doc, "memory", "embedding_base_url")
+        )
         if memory_embed_url:
             resolved.append(memory_embed_url)
 
-        tool_runtime_base_url = _normalize_http_base_url(_dig(doc, "tool_runtime", "base_url"))
+        tool_runtime_base_url = _normalize_http_base_url(
+            _dig(doc, "tool_runtime", "base_url")
+        )
         if tool_runtime_base_url:
             resolved.append(tool_runtime_base_url)
 
@@ -151,7 +157,10 @@ def _resolve_embedding_candidates_from_xiuxian() -> list[str]:
             )
         except (TypeError, ValueError):
             tool_runtime_port_int = None
-        if isinstance(tool_runtime_port_int, int) and 1 <= tool_runtime_port_int <= 65535:
+        if (
+            isinstance(tool_runtime_port_int, int)
+            and 1 <= tool_runtime_port_int <= 65535
+        ):
             resolved.append(f"http://{host}:{tool_runtime_port_int}")
 
     return resolved
@@ -170,7 +179,9 @@ def _dedupe_preserve_order(urls: list[str]) -> list[str]:
 
 
 # Context override so skill execution can use runtime-first embedding.
-_embedding_override: ContextVar[Any | None] = ContextVar("embedding_override", default=None)
+_embedding_override: ContextVar[Any | None] = ContextVar(
+    "embedding_override", default=None
+)
 
 
 class EmbeddingOverrideProtocol(Protocol):
@@ -230,7 +241,11 @@ class EmbeddingService:
         candidates: list[str] = []
         # Prefer explicit non-default overrides first. Keep default fallback at the end
         # so xiuxian.toml gateway/memory candidates can win when available.
-        if configured_url and normalized_configured and normalized_configured != normalized_default:
+        if (
+            configured_url
+            and normalized_configured
+            and normalized_configured != normalized_default
+        ):
             candidates.append(configured_url)
 
         candidates.extend(_resolve_embedding_candidates_from_xiuxian())
@@ -281,7 +296,9 @@ class EmbeddingService:
         self._dimension = _int_setting("embedding.dimension", 1024)
         self._initialized = True
 
-    def _verify_embedding_service_works(self, url: str, timeout: float = 5.0) -> tuple[bool, bool]:
+    def _verify_embedding_service_works(
+        self, url: str, timeout: float = 5.0
+    ) -> tuple[bool, bool]:
         """Verify embedding service via /embed/single.
 
         Returns:
@@ -324,7 +341,9 @@ class EmbeddingService:
             return False
 
         probe_timeout = _float_setting("embedding.client_probe_timeout_seconds", 20.0)
-        verification = self._verify_embedding_service_works(client_url, timeout=probe_timeout)
+        verification = self._verify_embedding_service_works(
+            client_url, timeout=probe_timeout
+        )
         if isinstance(verification, tuple):
             verified, timed_out = verification
         else:
@@ -351,10 +370,19 @@ class EmbeddingService:
         if self._initialized:
             return
 
-        provider = self._normalize_provider(str(get_setting("embedding.provider") or ""))
+        provider = self._normalize_provider(
+            str(get_setting("embedding.provider") or "")
+        )
         self._dimension = _int_setting("embedding.dimension", 1024)
 
-        if provider not in {"", "client", "ollama", "litellm_rs", "mistral_sdk", "http"}:
+        if provider not in {
+            "",
+            "client",
+            "ollama",
+            "litellm_rs",
+            "mistral_sdk",
+            "http",
+        }:
             logger.warning(
                 "Unknown embedding.provider '%s'; forcing client mode.",
                 provider,

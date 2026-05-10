@@ -1,3 +1,5 @@
+//! Coordinates the Studio studio search source index branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod ast;
 mod filters;
 mod markdown;

@@ -1,3 +1,5 @@
+//! Coordinates the Studio repo analysis index status flight branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod diagnostics;
 mod encoding;
 mod provider;

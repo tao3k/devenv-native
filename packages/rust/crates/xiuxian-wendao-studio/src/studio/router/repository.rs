@@ -1,3 +1,5 @@
+//! Owns the Studio studio router repository surface.
+
 use crate::studio::pathing;
 use std::collections::HashSet;
 use xiuxian_wendao::analyzers::{
@@ -12,7 +14,7 @@ use super::state::StudioState;
 /// # Errors
 ///
 /// Returns an error when no configured repository matches `repo_id`.
-pub fn configured_repository(
+pub(crate) fn configured_repository(
     studio: &StudioState,
     repo_id: &str,
 ) -> Result<RegisteredRepository, RepoIntelligenceError> {

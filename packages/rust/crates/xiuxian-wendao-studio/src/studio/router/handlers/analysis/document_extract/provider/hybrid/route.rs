@@ -53,39 +53,32 @@ use xiuxian_wendao_server::transport::{
     DocumentExtractFlightRouteProvider, DocumentExtractFlightRouteResponse,
 };
 
-use super::precision_gate::{
+#[cfg(feature = "document-extract-pdf-render")]
+use super::hybrid_page_ocr_render_profile_with_lookup;
+use super::{
+    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, HybridDocumentResourceBatch,
+    HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner, PageRangeDoclingFallbackChunkTiming,
+    PageRangeDoclingFallbackPlanRange, PageRangeDoclingFallbackPlanSummary,
+    PageRangeDoclingFallbackSourceProfileSummary, apply_hybrid_page_ocr_profile_plan,
+    hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_profile_planner,
+    hybrid_page_ocr_profile_planner_with_lookup, hybrid_page_ocr_request_paths,
+    hybrid_page_ocr2_region_planner_with_lookup, render_hybrid_page_ocr_shards,
     validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results_for_inputs,
 };
-use super::profile::{
-    HybridPdfOcrProfilePlanner, apply_hybrid_page_ocr_profile_plan,
-    hybrid_page_ocr_profile_planner, hybrid_page_ocr_profile_planner_with_lookup,
-};
-#[cfg(feature = "document-extract-pdf-render")]
-use super::render::hybrid_page_ocr_render_profile_with_lookup;
-use super::render::{HybridPdfOcr2RegionPlanner, hybrid_page_ocr2_region_planner_with_lookup};
 #[cfg(any(feature = "document-extract-pdf-render", test))]
-use super::render::{
-    automatic_ocr2_recovery_region_requests_for_source_with_lookup,
-    hybrid_page_ocr_region_requests_for_source_with_lookup,
-};
-use super::render::{
-    hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_request_paths, render_hybrid_page_ocr_shards,
-};
-use super::structure::write_hybrid_document_resource_artifacts;
-use super::types::{
-    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, HybridDocumentResourceBatch,
-    PageRangeDoclingFallbackChunkTiming, PageRangeDoclingFallbackPlanRange,
-    PageRangeDoclingFallbackPlanSummary, PageRangeDoclingFallbackSourceProfileSummary,
-};
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-use super::types::{
+use super::{
     HybridPdfOcr2RegionPipelineMode, HybridPdfOcr2RegionRenderChunkMode, HybridPdfOcr2ScaffoldMode,
     hybrid_page_ocr2_region_pipeline_mode_with_lookup,
     hybrid_page_ocr2_region_render_chunk_mode_with_lookup,
     hybrid_page_ocr2_scaffold_mode_with_lookup,
 };
-use crate::studio::document_extract_pdf_ocr_client::PdfOcrShardSchedulerTrace;
+#[cfg(any(feature = "document-extract-pdf-render", test))]
+use super::{
+    automatic_ocr2_recovery_region_requests_for_source_with_lookup,
+    hybrid_page_ocr_region_requests_for_source_with_lookup,
+};
+use crate::studio::PdfOcrShardSchedulerTrace;
 #[cfg(test)]
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, write_arrow_file,
@@ -93,10 +86,11 @@ use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     read_arrow_file, read_cached_document_batches,
 };
-use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_order::order_ocr_results_by_inputs;
+use crate::studio::router::handlers::analysis::document_extract::order_ocr_results_by_inputs;
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::{
     PdfOcrWorkerScheduler, pdf_ocr_endpoint_urls,
 };
+use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::write_hybrid_document_resource_artifacts;
 use crate::studio::router::handlers::analysis::document_extract::provider::{
     DEFAULT_DOCUMENT_EXTRACT_ENDPOINT, StudioDocumentExtractFlightRouteProvider,
 };

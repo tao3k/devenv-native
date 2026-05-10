@@ -4,7 +4,7 @@ use std::env;
 
 use anyhow::Result;
 
-use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{Cli, Command, RepoCommand, RepoSyncModeArg};
 use xiuxian_wendao::{
     DocCoverageQuery, ExampleSearchQuery, ModuleSearchQuery, RepoOverviewQuery, RepoSyncMode,

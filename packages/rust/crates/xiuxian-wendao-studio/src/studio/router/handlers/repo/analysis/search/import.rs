@@ -1,3 +1,5 @@
+//! Owns the Studio analysis search import surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -6,8 +8,8 @@ use axum::{
 };
 
 use crate::studio::router::handlers::repo::analysis::search::service::imports::run_repo_import_search;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::search::required_import_search_filters;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::analysis::RepoImportSearchApiQuery;
 use crate::studio::router::{GatewayState, StudioApiError};
 

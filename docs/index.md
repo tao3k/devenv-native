@@ -18,7 +18,6 @@ This file is the top-level entry for major documentation tracks.
 ## Testing
 
 - [Testing Documentation](testing/README.md)
-- [修仙道场 Live Multi-Group Runbook](testing/xiuxian-daochang-live-multigroup-runbook.md)
 
 ## Xiuxian-Zhixing
 

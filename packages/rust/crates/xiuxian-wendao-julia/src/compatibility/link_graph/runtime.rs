@@ -14,24 +14,28 @@ use super::deployment::{
 use super::launch::{LinkGraphJuliaSearchLaunchManifest, LinkGraphJuliaSearchServiceDescriptor};
 use super::paths::{DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH};
 use super::selectors::{julia_deployment_artifact_selector, julia_rerank_provider_selector};
+use crate::{
+    JuliaContractMode, JuliaContractPath, JuliaContractRoute, JuliaContractSchemaVersion,
+    JuliaContractSecondsU64, JuliaContractUrl,
+};
 
 /// Runtime knobs for remote Julia rerank over Arrow Flight.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct LinkGraphJuliaRerankRuntimeConfig {
     /// Base URL for the WendaoArrow-compatible Julia service.
-    pub base_url: Option<String>,
+    pub base_url: Option<JuliaContractUrl>,
     /// Arrow Flight request route.
-    pub route: Option<String>,
+    pub route: Option<JuliaContractRoute>,
     /// Health-check route.
-    pub health_route: Option<String>,
+    pub health_route: Option<JuliaContractRoute>,
     /// `WendaoArrow` schema version expected by the runtime.
-    pub schema_version: Option<String>,
+    pub schema_version: Option<JuliaContractSchemaVersion>,
     /// Optional request timeout in seconds.
-    pub timeout_secs: Option<u64>,
+    pub timeout_secs: Option<JuliaContractSecondsU64>,
     /// Optional service mode for the `WendaoSearch` launcher.
-    pub service_mode: Option<String>,
+    pub service_mode: Option<JuliaContractMode>,
     /// Optional TOML path passed to the `WendaoSearch` service launcher.
-    pub search_config_path: Option<String>,
+    pub search_config_path: Option<JuliaContractPath>,
     /// Optional vector-side weight for Rust rerank score projection.
     pub vector_weight: Option<f64>,
     /// Optional semantic-side weight for Rust rerank score projection.
@@ -40,9 +44,10 @@ pub struct LinkGraphJuliaRerankRuntimeConfig {
 
 impl LinkGraphJuliaRerankRuntimeConfig {
     fn resolved_route(&self) -> String {
-        self.route
-            .clone()
-            .unwrap_or_else(|| DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string())
+        self.route.clone().map_or_else(
+            || DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string(),
+            |route| route.into_string(),
+        )
     }
 
     /// Return whether the legacy Julia rerank runtime carries any configured provider inputs.
@@ -88,13 +93,16 @@ impl LinkGraphJuliaRerankRuntimeConfig {
             ),
             generated_at: Utc::now().to_rfc3339(),
             endpoint: Some(PluginTransportEndpoint {
-                base_url: self.base_url.clone(),
+                base_url: self.base_url.clone().map(|value| value.into_string()),
                 route: Some(self.resolved_route()),
-                health_route: self.health_route.clone(),
-                timeout_secs: self.timeout_secs,
+                health_route: self.health_route.clone().map(|value| value.into_string()),
+                timeout_secs: self.timeout_secs.map(JuliaContractSecondsU64::value),
                 max_in_flight_requests: None,
             }),
-            schema_version: self.schema_version.clone(),
+            schema_version: self
+                .schema_version
+                .clone()
+                .map(JuliaContractSchemaVersion::into_string),
             launch: Some(self.plugin_launch_spec()),
             selected_transport: None,
             fallback_from: None,
@@ -142,10 +150,13 @@ pub fn build_rerank_provider_binding(
     PluginCapabilityBinding {
         selector: julia_rerank_provider_selector(),
         endpoint: PluginTransportEndpoint {
-            base_url: runtime.base_url.clone(),
+            base_url: runtime.base_url.clone().map(JuliaContractUrl::into_string),
             route: Some(runtime.resolved_route()),
-            health_route: runtime.health_route.clone(),
-            timeout_secs: runtime.timeout_secs,
+            health_route: runtime
+                .health_route
+                .clone()
+                .map(JuliaContractRoute::into_string),
+            timeout_secs: runtime.timeout_secs.map(JuliaContractSecondsU64::value),
             max_in_flight_requests: None,
         },
         launch: Some(runtime.plugin_launch_spec()),
@@ -154,7 +165,7 @@ pub fn build_rerank_provider_binding(
             runtime
                 .schema_version
                 .clone()
-                .unwrap_or_else(|| "v1".to_string()),
+                .map_or_else(|| "v1".to_string(), JuliaContractSchemaVersion::into_string),
         ),
     }
 }

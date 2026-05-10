@@ -5,7 +5,7 @@ use xiuxian_wendao::search::queries::{
     rest::{RestQueryRequest, query_rest_payload},
 };
 
-use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{Cli, RestQueryArgs};
 
 pub(super) async fn handle(cli: &Cli, args: &RestQueryArgs) -> Result<()> {

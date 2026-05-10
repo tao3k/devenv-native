@@ -85,14 +85,6 @@ let
 in
 {
   tasks = {
-    "ci:rust-xiuxian-daochang-embedding-role-perf-medium-gate" = mkRustTask ''
-      just rust-xiuxian-daochang-embedding-role-perf-medium-gate
-    '';
-
-    "ci:rust-xiuxian-daochang-embedding-role-perf-heavy-gate" = mkRustTask ''
-      just rust-xiuxian-daochang-embedding-role-perf-heavy-gate
-    '';
-
     "ci:rust-wendao-performance-quick" = mkRustTask ''
       just rust-wendao-performance-quick
     '';

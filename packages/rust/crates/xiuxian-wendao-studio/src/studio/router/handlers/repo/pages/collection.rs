@@ -1,3 +1,5 @@
+//! Owns the Studio repo pages collection surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -13,7 +15,7 @@ use xiuxian_wendao::analyzers::{
     RepoProjectedGapReportQuery, RepoProjectedPageIndexTreesQuery, RepoProjectedPagesQuery,
 };
 
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::pages::RepoApiQuery;
 
 /// Projected pages endpoint.
@@ -38,7 +40,7 @@ pub async fn projected_pages(
 ///
 /// Returns an error when `repo` is missing, repository lookup or analysis
 /// fails, or the background task panics.
-pub async fn projected_gap_report(
+pub async fn repo_projected_gap_report(
     Query(query): Query<RepoApiQuery>,
     State(state): State<Arc<GatewayState>>,
 ) -> Result<Json<xiuxian_wendao::analyzers::RepoProjectedGapReportResult>, StudioApiError> {

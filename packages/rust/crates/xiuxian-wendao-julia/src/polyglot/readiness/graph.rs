@@ -17,23 +17,44 @@ use crate::polyglot::state::{
     WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID, WendaoGraphRelationshipSearchEvidence,
 };
 use crate::polyglot::wendaograph_algorithms::{
-    WendaoGraphAlgorithmWorkload, wendaograph_algorithm_ref, wendaograph_frontier_algorithm_ref,
-    wendaograph_relationship_search_algorithm_refs,
+    WendaoGraphAlgorithmId, WendaoGraphAlgorithmWorkload, wendaograph_algorithm_ref,
+    wendaograph_frontier_algorithm_ref, wendaograph_relationship_search_algorithm_refs,
 };
 
-use super::common::{
+use super::evidence_support::{
     JuliaReadinessWindow, JuliaStaticContractReadinessProfile, julia_schedule_plan_from_readiness,
     julia_static_contract_readiness_evidence, latency_ms_as_u32, saturating_usize_to_u32,
 };
 
+/// Readiness facts shared by the `WendaoGraph.jl` graph profiles.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WendaoGraphReadinessInput {
+    /// Julia warmup state observed by the owner.
+    pub warmup: WarmupState,
+    /// Benchmark state observed by the owner.
+    pub benchmark: BenchmarkState,
+    /// Optional maximum concurrent request budget.
+    pub max_in_flight: Option<u32>,
+    /// Active in-flight request count.
+    pub active_in_flight: u32,
+    /// Queued request count.
+    pub queue_depth: u32,
+}
+
+impl WendaoGraphReadinessInput {
+    fn window(self) -> JuliaReadinessWindow {
+        JuliaReadinessWindow {
+            max_in_flight: self.max_in_flight,
+            active_in_flight: self.active_in_flight,
+            queue_depth: self.queue_depth,
+        }
+    }
+}
+
 /// Returns readiness evidence for the `WendaoGraph.jl` link-evidence profile.
 #[must_use]
 pub fn wendao_graph_link_evidence_readiness_evidence(
-    warmup: WarmupState,
-    benchmark: BenchmarkState,
-    max_in_flight: Option<u32>,
-    active_in_flight: u32,
-    queue_depth: u32,
+    input: WendaoGraphReadinessInput,
 ) -> JuliaReadinessEvidence {
     julia_static_contract_readiness_evidence(
         JuliaStaticContractReadinessProfile {
@@ -41,13 +62,9 @@ pub fn wendao_graph_link_evidence_readiness_evidence(
             profile_id: WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
             schema_version: WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION,
         },
-        warmup,
-        benchmark,
-        JuliaReadinessWindow {
-            max_in_flight,
-            active_in_flight,
-            queue_depth,
-        },
+        input.warmup,
+        input.benchmark,
+        input.window(),
     )
 }
 
@@ -57,13 +74,13 @@ pub fn wendao_graph_link_evidence_schedule_plan(
     shape: JuliaComputeTaskShape,
     facts: JuliaProfileSchedulingFacts,
 ) -> JuliaSchedulePlan {
-    let readiness = wendao_graph_link_evidence_readiness_evidence(
-        facts.runtime_stats.warmup,
-        facts.runtime_stats.benchmark,
-        facts.max_in_flight,
-        facts.runtime_stats.active_in_flight,
-        facts.runtime_stats.queue_depth,
-    )
+    let readiness = wendao_graph_link_evidence_readiness_evidence(WendaoGraphReadinessInput {
+        warmup: facts.runtime_stats.warmup,
+        benchmark: facts.runtime_stats.benchmark,
+        max_in_flight: facts.max_in_flight,
+        active_in_flight: facts.runtime_stats.active_in_flight,
+        queue_depth: facts.runtime_stats.queue_depth,
+    })
     .with_fallback_available(facts.fallback_available);
     julia_schedule_plan_from_readiness(readiness, shape, facts)
 }
@@ -106,24 +123,20 @@ pub fn wendao_graph_link_evidence_readiness_evidence_from_full_structural_host_p
     } else {
         BenchmarkState::Failed
     };
-    wendao_graph_link_evidence_readiness_evidence(
-        WarmupState::Ready,
+    wendao_graph_link_evidence_readiness_evidence(WendaoGraphReadinessInput {
+        warmup: WarmupState::Ready,
         benchmark,
         max_in_flight,
         active_in_flight,
         queue_depth,
-    )
+    })
 }
 
 /// Returns readiness evidence for the `WendaoGraph.jl` `PageIndex` reasoning
 /// profile.
 #[must_use]
 pub fn wendao_graph_page_index_reasoning_readiness_evidence(
-    warmup: WarmupState,
-    benchmark: BenchmarkState,
-    max_in_flight: Option<u32>,
-    active_in_flight: u32,
-    queue_depth: u32,
+    input: WendaoGraphReadinessInput,
 ) -> JuliaReadinessEvidence {
     julia_static_contract_readiness_evidence(
         JuliaStaticContractReadinessProfile {
@@ -131,13 +144,9 @@ pub fn wendao_graph_page_index_reasoning_readiness_evidence(
             profile_id: WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID,
             schema_version: WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION,
         },
-        warmup,
-        benchmark,
-        JuliaReadinessWindow {
-            max_in_flight,
-            active_in_flight,
-            queue_depth,
-        },
+        input.warmup,
+        input.benchmark,
+        input.window(),
     )
 }
 
@@ -148,14 +157,15 @@ pub fn wendao_graph_page_index_reasoning_schedule_plan(
     shape: JuliaComputeTaskShape,
     facts: JuliaProfileSchedulingFacts,
 ) -> JuliaSchedulePlan {
-    let readiness = wendao_graph_page_index_reasoning_readiness_evidence(
-        facts.runtime_stats.warmup,
-        facts.runtime_stats.benchmark,
-        facts.max_in_flight,
-        facts.runtime_stats.active_in_flight,
-        facts.runtime_stats.queue_depth,
-    )
-    .with_fallback_available(facts.fallback_available);
+    let readiness =
+        wendao_graph_page_index_reasoning_readiness_evidence(WendaoGraphReadinessInput {
+            warmup: facts.runtime_stats.warmup,
+            benchmark: facts.runtime_stats.benchmark,
+            max_in_flight: facts.max_in_flight,
+            active_in_flight: facts.runtime_stats.active_in_flight,
+            queue_depth: facts.runtime_stats.queue_depth,
+        })
+        .with_fallback_available(facts.fallback_available);
     julia_schedule_plan_from_readiness(readiness, shape, facts)
 }
 
@@ -197,23 +207,19 @@ pub fn wendao_graph_page_index_reasoning_readiness_evidence_from_host_probe(
     } else {
         BenchmarkState::Failed
     };
-    wendao_graph_page_index_reasoning_readiness_evidence(
-        WarmupState::Ready,
+    wendao_graph_page_index_reasoning_readiness_evidence(WendaoGraphReadinessInput {
+        warmup: WarmupState::Ready,
         benchmark,
         max_in_flight,
         active_in_flight,
         queue_depth,
-    )
+    })
 }
 
 /// Returns readiness evidence for the `WendaoGraph.jl` GNN reasoning profile.
 #[must_use]
 pub fn wendao_graph_gnn_reasoning_readiness_evidence(
-    warmup: WarmupState,
-    benchmark: BenchmarkState,
-    max_in_flight: Option<u32>,
-    active_in_flight: u32,
-    queue_depth: u32,
+    input: WendaoGraphReadinessInput,
 ) -> JuliaReadinessEvidence {
     julia_static_contract_readiness_evidence(
         JuliaStaticContractReadinessProfile {
@@ -221,13 +227,9 @@ pub fn wendao_graph_gnn_reasoning_readiness_evidence(
             profile_id: WENDAO_GRAPH_GNN_REASONING_PROFILE_ID,
             schema_version: WENDAO_GRAPH_GNN_REASONING_SCHEMA_VERSION,
         },
-        warmup,
-        benchmark,
-        JuliaReadinessWindow {
-            max_in_flight,
-            active_in_flight,
-            queue_depth,
-        },
+        input.warmup,
+        input.benchmark,
+        input.window(),
     )
 }
 
@@ -275,13 +277,13 @@ pub fn wendao_graph_gnn_readiness_evidence_from_host_probe(
     active_in_flight: u32,
     queue_depth: u32,
 ) -> JuliaReadinessEvidence {
-    wendao_graph_gnn_reasoning_readiness_evidence(
-        WarmupState::Ready,
-        BenchmarkState::NotRequired,
+    wendao_graph_gnn_reasoning_readiness_evidence(WendaoGraphReadinessInput {
+        warmup: WarmupState::Ready,
+        benchmark: BenchmarkState::NotRequired,
         max_in_flight,
         active_in_flight,
         queue_depth,
-    )
+    })
     .with_accelerator_diagnostics(wendao_graph_gnn_accelerator_diagnostics_from_host_probe(
         report,
     ))
@@ -293,13 +295,13 @@ pub fn wendao_graph_gnn_reasoning_schedule_plan(
     shape: JuliaComputeTaskShape,
     facts: JuliaProfileSchedulingFacts,
 ) -> JuliaSchedulePlan {
-    let readiness = wendao_graph_gnn_reasoning_readiness_evidence(
-        facts.runtime_stats.warmup,
-        facts.runtime_stats.benchmark,
-        facts.max_in_flight,
-        facts.runtime_stats.active_in_flight,
-        facts.runtime_stats.queue_depth,
-    )
+    let readiness = wendao_graph_gnn_reasoning_readiness_evidence(WendaoGraphReadinessInput {
+        warmup: facts.runtime_stats.warmup,
+        benchmark: facts.runtime_stats.benchmark,
+        max_in_flight: facts.max_in_flight,
+        active_in_flight: facts.runtime_stats.active_in_flight,
+        queue_depth: facts.runtime_stats.queue_depth,
+    })
     .with_fallback_available(facts.fallback_available);
     julia_schedule_plan_from_readiness(readiness, shape, facts)
 }
@@ -310,7 +312,7 @@ pub fn wendao_graph_gnn_reasoning_schedule_plan(
 /// owner-specific baseline or skip Julia for that request.
 #[must_use]
 pub fn wendaograph_algorithm_schedule_plan(
-    algorithm_id: &str,
+    algorithm_id: WendaoGraphAlgorithmId,
     workload: WendaoGraphAlgorithmWorkload,
     facts: JuliaProfileSchedulingFacts,
 ) -> Option<JuliaSchedulePlan> {
@@ -342,7 +344,11 @@ pub fn wendaograph_frontier_schedule_plan(
     facts: JuliaProfileSchedulingFacts,
 ) -> Option<JuliaSchedulePlan> {
     let reference = wendaograph_frontier_algorithm_ref(evidence_kind)?;
-    wendaograph_algorithm_schedule_plan(reference.algorithm_id, workload, facts)
+    wendaograph_algorithm_schedule_plan(
+        WendaoGraphAlgorithmId(reference.algorithm_id),
+        workload,
+        facts,
+    )
 }
 
 /// Projects every relationship-search algorithm into host-probe-backed
@@ -357,7 +363,7 @@ pub fn wendaograph_relationship_search_evidence_from_full_structural_host_probe(
         .iter()
         .filter_map(|reference| {
             wendaograph_relationship_search_evidence_for_algorithm_from_full_structural_host_probe(
-                reference.algorithm_id,
+                WendaoGraphAlgorithmId(reference.algorithm_id),
                 report,
                 workload,
                 facts,
@@ -373,7 +379,7 @@ pub fn wendaograph_relationship_search_evidence_from_full_structural_host_probe(
 /// the existing algorithm schedule helper return `None`.
 #[must_use]
 pub fn wendaograph_relationship_search_evidence_for_algorithm_from_full_structural_host_probe(
-    algorithm_id: &str,
+    algorithm_id: WendaoGraphAlgorithmId,
     report: &WendaoGraphLinkGraphFullStructuralHostProbeReport,
     workload: WendaoGraphAlgorithmWorkload,
     facts: JuliaProfileSchedulingFacts,
@@ -390,7 +396,7 @@ pub fn wendaograph_relationship_search_evidence_for_algorithm_from_full_structur
         ..facts
     };
     let schedule_plan = wendaograph_algorithm_schedule_plan(algorithm_id, workload, facts)?;
-    let (probe_table, probe_rows) = relationship_search_probe_rows(report, algorithm_id);
+    let (probe_table, probe_rows) = relationship_search_probe_rows(report, algorithm_id.0);
     Some(WendaoGraphRelationshipSearchEvidence {
         algorithm,
         probe_table,

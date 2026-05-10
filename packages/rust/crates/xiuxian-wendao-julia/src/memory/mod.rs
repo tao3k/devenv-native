@@ -134,7 +134,6 @@ pub use profile::{
     MEMORY_JULIA_COMPUTE_CALIBRATION_PROFILE_ID, MEMORY_JULIA_COMPUTE_EPISODIC_RECALL_PROFILE_ID,
     MEMORY_JULIA_COMPUTE_FAMILY_ID, MEMORY_JULIA_COMPUTE_GATE_SCORE_PROFILE_ID,
     MEMORY_JULIA_COMPUTE_PLAN_TUNING_PROFILE_ID, MemoryJuliaComputeProfile,
-    MemoryJuliaComputeProfileContract,
 };
 pub use runtime::{build_memory_julia_compute_binding, build_memory_julia_compute_bindings};
 pub use transport::{

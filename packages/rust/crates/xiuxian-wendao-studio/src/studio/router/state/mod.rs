@@ -1,7 +1,9 @@
+//! Coordinates the Studio studio router state branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod cold_start;
 mod graph;
-mod helpers;
 mod lifecycle;
+mod project_config;
 mod search;
 mod types;
 mod ui;
@@ -10,16 +12,16 @@ mod ui;
 #[path = "../../../../tests/unit/gateway/studio/router/state/mod.rs"]
 mod tests;
 
-#[cfg(any(test, feature = "performance"))]
-pub(crate) use cold_start::StudioSearchColdStartTelemetryState;
-pub use cold_start::{
-    StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartEvent,
-    StudioSearchColdStartTelemetry,
-};
+pub use cold_start::{StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartTelemetry};
 #[cfg(test)]
-pub(crate) use helpers::supported_code_kinds;
+pub(crate) use project_config::supported_code_kinds;
 #[cfg(feature = "performance")]
 pub(crate) use types::LocalCorpusScanCoalescingState;
-pub use types::{GatewayState, StudioBootstrapBackgroundIndexingTelemetry, StudioState};
+#[cfg(any(test, feature = "performance"))]
+pub(crate) use types::StudioSearchColdStartTelemetryState;
+pub use types::{
+    GatewayState, StudioBootstrapBackgroundIndexingTelemetry, StudioSearchColdStartEvent,
+    StudioState,
+};
 #[cfg(test)]
 pub(crate) use types::{GraphIndexCacheEntry, GraphSourceSignature};

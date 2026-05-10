@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use super::StudioContractMode;
+
 /// Configuration for a local project root.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -84,7 +86,7 @@ pub struct UiCapabilities {
     /// Whether bootstrap-time background indexing is enabled during gateway startup.
     pub studio_bootstrap_background_indexing_enabled: bool,
     /// Stable mode label for bootstrap-time background indexing during gateway startup.
-    pub studio_bootstrap_background_indexing_mode: String,
+    pub studio_bootstrap_background_indexing_mode: StudioContractMode,
     /// Whether deferred bootstrap indexing has been lazily activated since process boot.
     pub studio_bootstrap_background_indexing_deferred_activation_observed: bool,
 }

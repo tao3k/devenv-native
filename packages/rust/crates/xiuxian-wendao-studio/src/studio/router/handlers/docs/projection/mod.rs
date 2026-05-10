@@ -1,3 +1,5 @@
+//! Coordinates the Studio handlers docs projection branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "family/mod.rs"]
 pub(crate) mod family;
 #[path = "navigation/mod.rs"]

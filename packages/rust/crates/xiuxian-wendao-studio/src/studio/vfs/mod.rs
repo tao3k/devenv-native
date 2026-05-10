@@ -6,6 +6,7 @@ mod filters;
 mod flight;
 mod flight_content;
 mod flight_scan;
+mod metadata;
 mod navigation;
 mod roots;
 mod scan;

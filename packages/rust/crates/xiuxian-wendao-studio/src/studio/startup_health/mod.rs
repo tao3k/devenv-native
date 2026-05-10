@@ -1,3 +1,5 @@
+//! Coordinates the Studio studio startup health branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod probe;
 #[cfg(test)]
 #[path = "../../../tests/unit/gateway/studio/startup_health/mod.rs"]

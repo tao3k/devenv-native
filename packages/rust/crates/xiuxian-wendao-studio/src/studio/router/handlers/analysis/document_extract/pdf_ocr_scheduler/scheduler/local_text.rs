@@ -174,84 +174,114 @@ fn local_text_results_enabled_with_extractor(
     extractor: impl Fn(&Path, &[u32]) -> Result<Vec<Result<String, String>>, String>,
 ) -> Vec<Option<PdfOcrShardResult>> {
     let mut results = vec![None; inputs.len()];
-    let mut groups: BTreeMap<PathBuf, Vec<(usize, u32)>> = BTreeMap::new();
-
-    for (position, input) in inputs.iter().enumerate() {
-        if !is_local_text_candidate(input, modes) {
-            continue;
-        }
-        groups
-            .entry(PathBuf::from(input.source_path.as_str()))
-            .or_default()
-            .push((position, input.page_index));
+    for (source_path, page_requests) in local_text_candidate_groups(inputs, modes) {
+        apply_local_text_group(
+            &mut results,
+            inputs,
+            modes,
+            source_path.as_path(),
+            page_requests,
+            &extractor,
+        );
     }
 
-    for (source_path, page_requests) in groups {
-        let page_indexes = page_requests
-            .iter()
-            .map(|(_, page_index)| *page_index)
-            .collect::<Vec<_>>();
-        let text_results = match extractor(source_path.as_path(), page_indexes.as_slice()) {
-            Ok(texts) => texts,
-            Err(error) => {
-                let reason = format!("local backend-text source extraction failed: {error}");
-                fail_fast_local_backend_text_group(
-                    &mut results,
-                    inputs,
-                    page_requests.as_slice(),
-                    modes,
-                    reason.as_str(),
-                );
-                continue;
-            }
-        };
-        if text_results.len() != page_requests.len() {
-            let reason = format!(
-                "local backend-text source extraction returned {} rows for {} requests",
-                text_results.len(),
-                page_requests.len()
-            );
+    results
+}
+
+fn local_text_candidate_groups(
+    inputs: &[PdfOcrShardInput],
+    modes: LocalTextModes,
+) -> BTreeMap<PathBuf, Vec<(usize, u32)>> {
+    let mut groups: BTreeMap<PathBuf, Vec<(usize, u32)>> = BTreeMap::new();
+    for (position, input) in inputs.iter().enumerate() {
+        if is_local_text_candidate(input, modes) {
+            groups
+                .entry(PathBuf::from(input.source_path.as_str()))
+                .or_default()
+                .push((position, input.page_index));
+        }
+    }
+    groups
+}
+
+fn apply_local_text_group(
+    results: &mut [Option<PdfOcrShardResult>],
+    inputs: &[PdfOcrShardInput],
+    modes: LocalTextModes,
+    source_path: &Path,
+    page_requests: Vec<(usize, u32)>,
+    extractor: &impl Fn(&Path, &[u32]) -> Result<Vec<Result<String, String>>, String>,
+) {
+    let page_indexes = page_requests
+        .iter()
+        .map(|(_, page_index)| *page_index)
+        .collect::<Vec<_>>();
+    let text_results = match extractor(source_path, page_indexes.as_slice()) {
+        Ok(texts) => texts,
+        Err(error) => {
+            let reason = format!("local backend-text source extraction failed: {error}");
             fail_fast_local_backend_text_group(
-                &mut results,
+                results,
                 inputs,
                 page_requests.as_slice(),
                 modes,
                 reason.as_str(),
             );
-            continue;
+            return;
         }
-        for ((position, _), text_result) in page_requests.into_iter().zip(text_results) {
-            let text = match text_result {
-                Ok(text) => text,
-                Err(error) => {
-                    let reason = format!("local backend-text source extraction failed: {error}");
-                    if let Some(result) = local_backend_text_fail_fast_result(
-                        &inputs[position],
-                        modes,
-                        reason.as_str(),
-                    ) {
-                        results[position] = Some(result);
-                    }
-                    continue;
-                }
-            };
-            if text.trim().is_empty() {
-                if let Some(result) = local_backend_text_fail_fast_result(
-                    &inputs[position],
-                    modes,
-                    "local backend-text returned empty text",
-                ) {
-                    results[position] = Some(result);
-                }
-                continue;
-            }
-            let mut result = PdfOcrShardResult::succeeded(&inputs[position], text, 1.0);
-            result.text_mime_type = "text/markdown".to_string();
-            results[position] = Some(result);
-        }
+    };
+    if text_results.len() != page_requests.len() {
+        let reason = format!(
+            "local backend-text source extraction returned {} rows for {} requests",
+            text_results.len(),
+            page_requests.len()
+        );
+        fail_fast_local_backend_text_group(
+            results,
+            inputs,
+            page_requests.as_slice(),
+            modes,
+            reason.as_str(),
+        );
+        return;
     }
+    apply_local_text_page_results(results, inputs, modes, page_requests, text_results);
+}
 
-    results
+fn apply_local_text_page_results(
+    results: &mut [Option<PdfOcrShardResult>],
+    inputs: &[PdfOcrShardInput],
+    modes: LocalTextModes,
+    page_requests: Vec<(usize, u32)>,
+    text_results: Vec<Result<String, String>>,
+) {
+    for ((position, _), text_result) in page_requests.into_iter().zip(text_results) {
+        results[position] = local_text_page_result(&inputs[position], modes, text_result);
+    }
+}
+
+fn local_text_page_result(
+    input: &PdfOcrShardInput,
+    modes: LocalTextModes,
+    text_result: Result<String, String>,
+) -> Option<PdfOcrShardResult> {
+    let text = match text_result {
+        Ok(text) => text,
+        Err(error) => {
+            let reason = format!("local backend-text source extraction failed: {error}");
+            return local_backend_text_fail_fast_result(input, modes, reason.as_str());
+        }
+    };
+    if text.trim().is_empty() {
+        return local_backend_text_fail_fast_result(
+            input,
+            modes,
+            "local backend-text returned empty text",
+        );
+    }
+    let mut result = PdfOcrShardResult::succeeded(input, text, 1.0);
+    result.text_mime_type = "text/markdown".to_string();
+    Some(result)
 }
 
 fn fail_fast_local_backend_text_group(

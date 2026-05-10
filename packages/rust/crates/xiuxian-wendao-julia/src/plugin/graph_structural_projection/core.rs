@@ -54,6 +54,21 @@ pub struct GraphStructuralQueryContext {
     edge_constraint_kinds: Vec<String>,
 }
 
+/// Named inputs for one graph-structural query context.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphStructuralQueryContextInput {
+    /// Stable query id used to align graph-structural rows.
+    pub query_id: String,
+    /// Current retrieval layer.
+    pub retrieval_layer: i32,
+    /// Maximum retrieval layer depth.
+    pub query_max_layers: i32,
+    /// Query anchors emitted by the host planner.
+    pub anchors: Vec<GraphStructuralQueryAnchor>,
+    /// Optional edge-constraint kinds.
+    pub edge_constraint_kinds: Vec<String>,
+}
+
 impl GraphStructuralQueryContext {
     /// Create normalized query context for graph-structural request rows.
     ///
@@ -62,13 +77,16 @@ impl GraphStructuralQueryContext {
     /// Returns [`RepoIntelligenceError`] when the query id is blank, the layer
     /// bounds are invalid, the anchor list is empty, or any edge-constraint
     /// value is blank.
-    pub fn new(
-        query_id: impl Into<String>,
-        retrieval_layer: i32,
-        query_max_layers: i32,
-        anchors: Vec<GraphStructuralQueryAnchor>,
-        edge_constraint_kinds: Vec<String>,
+    pub fn from_input(
+        input: GraphStructuralQueryContextInput,
     ) -> Result<Self, RepoIntelligenceError> {
+        let GraphStructuralQueryContextInput {
+            query_id,
+            retrieval_layer,
+            query_max_layers,
+            anchors,
+            edge_constraint_kinds,
+        } = input;
         if retrieval_layer < 0 {
             return Err(graph_structural_projection_error(format!(
                 "retrieval layer must be non-negative; found {retrieval_layer}"
@@ -85,7 +103,7 @@ impl GraphStructuralQueryContext {
             ));
         }
         Ok(Self {
-            query_id: normalize_non_blank(query_id.into(), "query id")?,
+            query_id: normalize_non_blank(query_id, "query id")?,
             retrieval_layer,
             query_max_layers,
             anchors,
@@ -94,6 +112,23 @@ impl GraphStructuralQueryContext {
                 "edge constraint kinds",
                 true,
             )?,
+        })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new(
+        query_id: impl Into<String>,
+        retrieval_layer: i32,
+        query_max_layers: i32,
+        anchors: Vec<GraphStructuralQueryAnchor>,
+        edge_constraint_kinds: Vec<String>,
+    ) -> Result<Self, RepoIntelligenceError> {
+        Self::from_input(GraphStructuralQueryContextInput {
+            query_id: query_id.into(),
+            retrieval_layer,
+            query_max_layers,
+            anchors,
+            edge_constraint_kinds,
         })
     }
 
@@ -138,6 +173,21 @@ pub struct GraphStructuralCandidateSubgraph {
     edge_kinds: Vec<String>,
 }
 
+/// Named inputs for one bounded graph-structural candidate subgraph.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphStructuralCandidateSubgraphInput {
+    /// Stable candidate id used as the row join key.
+    pub candidate_id: String,
+    /// Candidate node ids.
+    pub node_ids: Vec<String>,
+    /// Candidate edge source ids.
+    pub edge_sources: Vec<String>,
+    /// Candidate edge destination ids.
+    pub edge_destinations: Vec<String>,
+    /// Candidate edge kinds aligned with source and destination ids.
+    pub edge_kinds: Vec<String>,
+}
+
 impl GraphStructuralCandidateSubgraph {
     /// Create one normalized graph-structural candidate subgraph.
     ///
@@ -145,13 +195,16 @@ impl GraphStructuralCandidateSubgraph {
     ///
     /// Returns [`RepoIntelligenceError`] when the candidate id is blank, the
     /// node list is empty, or any node or edge-kind value is blank.
-    pub fn new(
-        candidate_id: impl Into<String>,
-        node_ids: Vec<String>,
-        edge_sources: Vec<String>,
-        edge_destinations: Vec<String>,
-        edge_kinds: Vec<String>,
+    pub fn from_input(
+        input: GraphStructuralCandidateSubgraphInput,
     ) -> Result<Self, RepoIntelligenceError> {
+        let GraphStructuralCandidateSubgraphInput {
+            candidate_id,
+            node_ids,
+            edge_sources,
+            edge_destinations,
+            edge_kinds,
+        } = input;
         let node_ids = normalize_string_list(node_ids, "candidate node ids", false)?;
         let edge_sources = normalize_string_list(edge_sources, "candidate edge sources", true)?;
         let edge_destinations =
@@ -189,7 +242,24 @@ impl GraphStructuralCandidateSubgraph {
             }
         }
         Ok(Self {
-            candidate_id: normalize_non_blank(candidate_id.into(), "candidate id")?,
+            candidate_id: normalize_non_blank(candidate_id, "candidate id")?,
+            node_ids,
+            edge_sources,
+            edge_destinations,
+            edge_kinds,
+        })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new(
+        candidate_id: impl Into<String>,
+        node_ids: Vec<String>,
+        edge_sources: Vec<String>,
+        edge_destinations: Vec<String>,
+        edge_kinds: Vec<String>,
+    ) -> Result<Self, RepoIntelligenceError> {
+        Self::from_input(GraphStructuralCandidateSubgraphInput {
+            candidate_id: candidate_id.into(),
             node_ids,
             edge_sources,
             edge_destinations,

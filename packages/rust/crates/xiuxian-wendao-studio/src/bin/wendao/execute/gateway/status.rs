@@ -5,7 +5,7 @@ use std::sync::Arc;
 use axum::{Json, extract::State};
 use serde_json::json;
 
-use crate::bin_support::wendao::execute::gateway::shared::AppState;
+use crate::bin_support::wendao::execute::gateway::state::AppState;
 use xiuxian_wendao::LinkGraphIndex;
 
 /// Stats endpoint.

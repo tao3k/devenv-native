@@ -1,4 +1,8 @@
+//! Owns the Studio repo query family surface.
+
 use serde::Deserialize;
+
+use crate::contracts::StudioContractKind;
 
 /// Query parameters for projected page-family context lookup.
 #[derive(Debug, Deserialize)]
@@ -19,7 +23,7 @@ pub struct RepoProjectedPageFamilySearchApiQuery {
     /// The search query string.
     pub query: Option<String>,
     /// The projected page kind filter.
-    pub kind: Option<String>,
+    pub kind: Option<StudioContractKind>,
     /// Maximum number of hits to return.
     pub limit: Option<usize>,
     /// Maximum number of items per kind to return.
@@ -34,7 +38,7 @@ pub struct RepoProjectedPageFamilyClusterApiQuery {
     /// The projected page identifier.
     pub page_id: Option<String>,
     /// The projected page kind filter.
-    pub kind: Option<String>,
+    pub kind: Option<StudioContractKind>,
     /// Maximum number of hits to return.
     pub limit: Option<usize>,
 }
@@ -49,7 +53,7 @@ pub struct RepoProjectedPageNavigationApiQuery {
     /// The focus node identifier.
     pub node_id: Option<String>,
     /// The family kind filter.
-    pub family_kind: Option<String>,
+    pub family_kind: Option<StudioContractKind>,
     /// Maximum number of related hits to return.
     pub related_limit: Option<usize>,
     /// Maximum number of family items to return.
@@ -64,9 +68,9 @@ pub struct RepoProjectedPageNavigationSearchApiQuery {
     /// The search query string.
     pub query: Option<String>,
     /// The projected page kind filter.
-    pub kind: Option<String>,
+    pub kind: Option<StudioContractKind>,
     /// The family kind filter.
-    pub family_kind: Option<String>,
+    pub family_kind: Option<StudioContractKind>,
     /// Maximum number of hits to return.
     pub limit: Option<usize>,
     /// Maximum number of related hits to return.

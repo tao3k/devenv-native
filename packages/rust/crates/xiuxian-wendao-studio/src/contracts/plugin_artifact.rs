@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
+
+use super::{StudioContractId, StudioContractSecondsU64, StudioContractUrl};
 #[cfg(feature = "local-runtime")]
 use xiuxian_wendao_core::{
     artifacts::{PluginArtifactPayload, PluginLaunchSpec},
@@ -50,21 +52,21 @@ impl From<PluginTransportKind> for UiPluginTransportKind {
 #[serde(rename_all = "camelCase")]
 pub struct UiPluginArtifact {
     /// Owner plugin id.
-    pub plugin_id: String,
+    pub plugin_id: StudioContractId,
     /// Artifact kind id.
-    pub artifact_id: String,
+    pub artifact_id: StudioContractId,
     /// Artifact-level schema version for inspection surfaces.
     pub artifact_schema_version: String,
     /// RFC3339 timestamp recording when the artifact was rendered.
     pub generated_at: String,
     /// Resolved provider service base URL.
-    pub base_url: Option<String>,
+    pub base_url: Option<StudioContractUrl>,
     /// Request route expected by the provider.
     pub route: Option<String>,
     /// Health-check route expected by the provider.
     pub health_route: Option<String>,
     /// Optional request timeout in seconds.
-    pub timeout_secs: Option<u64>,
+    pub timeout_secs: Option<StudioContractSecondsU64>,
     /// Optional provider schema version.
     pub schema_version: Option<String>,
     /// Optional launch manifest for managed providers.
@@ -82,20 +84,24 @@ impl From<PluginArtifactPayload> for UiPluginArtifact {
     fn from(value: PluginArtifactPayload) -> Self {
         let endpoint = value.endpoint;
         Self {
-            plugin_id: value.plugin_id.0,
-            artifact_id: value.artifact_id.0,
+            plugin_id: value.plugin_id.0.into(),
+            artifact_id: value.artifact_id.0.into(),
             artifact_schema_version: value.artifact_schema_version.0,
             generated_at: value.generated_at,
             base_url: endpoint
                 .as_ref()
-                .and_then(|endpoint| endpoint.base_url.clone()),
+                .and_then(|endpoint| endpoint.base_url.clone())
+                .map(Into::into),
             route: endpoint
                 .as_ref()
                 .and_then(|endpoint| endpoint.route.clone()),
             health_route: endpoint
                 .as_ref()
                 .and_then(|endpoint| endpoint.health_route.clone()),
-            timeout_secs: endpoint.as_ref().and_then(|endpoint| endpoint.timeout_secs),
+            timeout_secs: endpoint
+                .as_ref()
+                .and_then(|endpoint| endpoint.timeout_secs)
+                .map(Into::into),
             schema_version: value.schema_version,
             launch: value.launch.map(Into::into),
             selected_transport: value.selected_transport.map(Into::into),

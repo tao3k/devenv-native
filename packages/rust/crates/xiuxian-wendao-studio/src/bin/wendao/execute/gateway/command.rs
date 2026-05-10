@@ -32,7 +32,7 @@ use crate::bin_support::wendao::execute::gateway::{
     health::health,
     query::{GATEWAY_QUERY_AXUM_PATH, GATEWAY_RESPONSES_AXUM_PATH, query, responses},
     registry::build_plugin_registry,
-    shared::AppState,
+    state::AppState,
     status::{notify_status, stats},
 };
 use crate::bin_support::wendao::types::{Cli, GatewayArgs, GatewayCommand, GatewayStartArgs};

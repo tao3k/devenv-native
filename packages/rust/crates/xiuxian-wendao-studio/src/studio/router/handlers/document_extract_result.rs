@@ -158,14 +158,18 @@ fn document_extract_resources_from_batch(
     let mut resources = Vec::with_capacity(batch.num_rows());
     for row in 0..batch.num_rows() {
         resources.push(DocumentExtractResource {
-            resource_type: string_value(resource_type, row, "document").to_string(),
-            resource_path: string_value(resource_path, row, "").to_string(),
+            resource_type: string_value(resource_type, row, "document")
+                .to_string()
+                .into(),
+            resource_path: string_value(resource_path, row, "").to_string().into(),
             page_index: usize::try_from(page_index_value(page_index, row)).unwrap_or_default(),
             caption: string_value(caption, row, "").to_string(),
             content: string_value(content, row, "").to_string(),
-            mime_type: string_value(mime_type, row, "text/plain").to_string(),
-            status: string_value(status, row, "ok").to_string(),
-            element_id: string_value(element_id, row, "").to_string(),
+            mime_type: string_value(mime_type, row, "text/plain")
+                .to_string()
+                .into(),
+            status: string_value(status, row, "ok").to_string().into(),
+            element_id: string_value(element_id, row, "").to_string().into(),
         });
     }
     Ok(resources)

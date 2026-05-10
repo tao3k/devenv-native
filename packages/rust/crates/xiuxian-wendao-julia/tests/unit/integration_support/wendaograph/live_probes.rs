@@ -76,7 +76,7 @@ fn wendaograph_link_graph_host_probe_runs_real_julia_when_enabled() {
     let report = probe_wendaograph_link_graph_full_structural_host_request(2)
         .unwrap_or_else(|error| panic!("run real WendaoGraph LinkGraph host probe: {error}"));
 
-    assert_eq!(report.base.mode, "semantic-neighbors");
+    assert_eq!(report.base.mode.as_str(), "semantic-neighbors");
     assert_eq!(report.base.node_count, 4);
     assert_eq!(report.base.edge_count, 2);
     assert_eq!(report.base.semantic_neighbor_count, 1);

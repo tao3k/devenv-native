@@ -1,5 +1,8 @@
+//! Owns the Studio handlers queries attachment surface.
+
 use serde::Deserialize;
 
+/// Query parameters for Studio attachment search.
 #[derive(Debug, Deserialize)]
 pub struct AttachmentSearchQuery {
     pub q: Option<String>,

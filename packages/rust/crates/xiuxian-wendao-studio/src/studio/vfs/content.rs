@@ -5,6 +5,7 @@ use crate::studio::StudioState;
 use crate::studio::types::{VfsContentResponse, VfsEntry};
 
 use super::filters::VfsError;
+use super::metadata::unix_timestamp_secs;
 use super::roots::resolve_all_vfs_roots;
 
 pub(crate) struct RawVfsContent {
@@ -18,7 +19,7 @@ pub(crate) fn get_entry(state: &StudioState, path: &str) -> Result<VfsEntry, Vfs
         .map_err(|error| VfsError::internal("IO_ERROR", error.to_string(), None))?;
 
     Ok(VfsEntry {
-        path: path.to_string(),
+        path: path.to_string().into(),
         name: resolved
             .full_path
             .file_name()
@@ -48,8 +49,8 @@ pub(crate) async fn read_content(
         .map_err(|error| VfsError::internal("IO_ERROR", error.to_string(), None))?;
 
     Ok(VfsContentResponse {
-        path: path.to_string(),
-        content_type: "text/plain".to_string(),
+        path: path.to_string().into(),
+        content_type: "text/plain".into(),
         content,
         modified: unix_timestamp_secs(&metadata),
     })
@@ -106,14 +107,6 @@ fn resolve_vfs_path_from_roots(state: &StudioState, path: &str) -> Option<Resolv
         }
     }
     None
-}
-
-pub(super) fn unix_timestamp_secs(metadata: &fs::Metadata) -> u64 {
-    metadata
-        .modified()
-        .ok()
-        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-        .map_or(0, |duration| duration.as_secs())
 }
 
 fn infer_vfs_content_type(path: &str) -> &'static str {

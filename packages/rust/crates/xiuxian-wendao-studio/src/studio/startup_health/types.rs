@@ -1,3 +1,5 @@
+//! Owns the Studio studio startup health types surface.
+
 /// One required startup dependency check for the Studio gateway.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GatewayStartupDependencyCheck {

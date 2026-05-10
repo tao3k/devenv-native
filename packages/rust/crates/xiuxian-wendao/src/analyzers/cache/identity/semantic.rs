@@ -1,35 +1,37 @@
 use std::path::Path;
 
-use xiuxian_ast::{
-    Lang, semantic_fingerprint as generic_ast_semantic_fingerprint, supports_semantic_fingerprint,
+use xiuxian_code_intelligence::{
+    CodeLanguageId, code_semantic_fingerprint,
+    code_semantic_fingerprint_language_id_from_identifier,
+    code_semantic_fingerprint_language_id_from_path,
 };
 #[cfg(feature = "julia")]
 use xiuxian_wendao_julia::modelica_parser_summary_file_semantic_fingerprint_for_repository;
 
 use crate::analyzers::RegisteredRepository;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum SemanticFingerprintOwner {
     JuliaParserSummary,
     ModelicaParserSummary,
-    GenericAst(Lang),
+    GenericCode(CodeLanguageId),
 }
 
 impl SemanticFingerprintOwner {
-    pub(super) fn mode_label(self) -> String {
+    pub(super) fn mode_label(&self) -> String {
         match self {
             Self::JuliaParserSummary => "semantic:julia_parser_summary".to_string(),
             Self::ModelicaParserSummary => "semantic:modelica_parser_summary".to_string(),
-            Self::GenericAst(lang) => format!("semantic:generic_ast:{}", lang.as_str()),
+            Self::GenericCode(language_id) => {
+                format!("semantic:generic_ast:{}", language_id.as_str())
+            }
         }
     }
 }
 
 fn plugin_id_supports_semantic_owner_dispatch(plugin_id: &str) -> bool {
     matches!(plugin_id, "julia-code-parser" | "modelica")
-        || Lang::try_from(plugin_id)
-            .ok()
-            .is_some_and(supports_semantic_fingerprint)
+        || code_semantic_fingerprint_language_id_from_identifier(plugin_id).is_some()
 }
 
 pub(crate) fn plugin_ids_allow_semantic_owner_dispatch(plugin_ids: &[String]) -> bool {
@@ -46,7 +48,7 @@ pub(crate) fn semantic_fingerprint_for_file(
     plugin_ids: &[String],
 ) -> Option<String> {
     let owner = semantic_fingerprint_owner(relative_path, plugin_ids)?;
-    compute_semantic_fingerprint(owner, repository, relative_path, source_text)
+    compute_semantic_fingerprint(&owner, repository, relative_path, source_text)
 }
 
 pub(crate) fn plugin_ids_support_semantic_owner_reuse(plugin_ids: &[String]) -> bool {
@@ -75,12 +77,12 @@ pub(super) fn semantic_fingerprint_owner(
         return Some(SemanticFingerprintOwner::ModelicaParserSummary);
     }
 
-    let lang = Lang::from_path(Path::new(relative_path))?;
-    supports_semantic_fingerprint(lang).then_some(SemanticFingerprintOwner::GenericAst(lang))
+    let language_id = code_semantic_fingerprint_language_id_from_path(Path::new(relative_path))?;
+    Some(SemanticFingerprintOwner::GenericCode(language_id))
 }
 
 pub(super) fn compute_semantic_fingerprint(
-    owner: SemanticFingerprintOwner,
+    owner: &SemanticFingerprintOwner,
     repository: &RegisteredRepository,
     relative_path: &str,
     source_text: &str,
@@ -92,8 +94,8 @@ pub(super) fn compute_semantic_fingerprint(
         SemanticFingerprintOwner::ModelicaParserSummary => {
             modelica_parser_summary_semantic_fingerprint(repository, relative_path, source_text)
         }
-        SemanticFingerprintOwner::GenericAst(lang) => {
-            generic_ast_semantic_fingerprint(source_text, lang)
+        SemanticFingerprintOwner::GenericCode(language_id) => {
+            code_semantic_fingerprint(source_text, language_id)
         }
     }
 }

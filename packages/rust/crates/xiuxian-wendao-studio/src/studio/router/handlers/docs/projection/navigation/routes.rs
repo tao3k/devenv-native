@@ -1,3 +1,5 @@
+//! Owns the Studio projection navigation routes surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -9,9 +11,9 @@ use crate::studio::router::handlers::docs::service::projection::navigation::{
     run_docs_navigation, run_docs_navigation_search,
 };
 use crate::studio::router::handlers::repo::parse::projection::parse_projection_page_kind;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::resource::required_page_id;
 use crate::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::family::{
     RepoProjectedPageNavigationApiQuery, RepoProjectedPageNavigationSearchApiQuery,
 };

@@ -1,3 +1,5 @@
+//! Rust mirror of `WendaoGraph.jl` evidence table contracts.
+
 use std::sync::Arc;
 
 use arrow::datatypes::{DataType, Field, Schema};

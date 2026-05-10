@@ -370,16 +370,12 @@ fn users_guide_hierarchy_module_names(relative_path: &str, root_package_name: &s
         return Vec::new();
     };
     let module_components = &components[..components.len().saturating_sub(1)];
-    let mut names = Vec::new();
-    for end in (users_guide_index + 1)..=module_components.len() {
-        let mut qualified = root_package_name.to_string();
-        for component in &module_components[..end] {
-            qualified.push('.');
-            qualified.push_str(component);
-        }
-        names.push(qualified);
-    }
-    names
+    ((users_guide_index + 1)..=module_components.len())
+        .map(|end| {
+            let suffix = module_components[..end].join(".");
+            format!("{root_package_name}.{suffix}")
+        })
+        .collect()
 }
 
 #[cfg(test)]

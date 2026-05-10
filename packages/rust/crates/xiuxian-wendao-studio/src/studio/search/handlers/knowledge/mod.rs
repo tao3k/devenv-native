@@ -1,8 +1,10 @@
-mod helpers;
+//! Coordinates the Studio search handlers knowledge branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "intent/mod.rs"]
 mod intent;
+mod intent_policy;
 mod merge;
-mod search;
+mod response;
 
 #[cfg(test)]
 pub(crate) use intent::build_intent_cache_key;
@@ -17,5 +19,5 @@ pub(crate) use intent::{
     IntentSearchTransportMetadata, search_hit_batch_from_hits, search_response_flight_app_metadata,
 };
 #[cfg(test)]
-pub(crate) use search::build_knowledge_search_response;
-pub(crate) use search::load_knowledge_search_flight_response;
+pub(crate) use response::build_knowledge_search_response;
+pub(crate) use response::load_knowledge_search_flight_response;

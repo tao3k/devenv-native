@@ -11,6 +11,8 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
 
+use crate::JuliaContractKind;
+
 use super::graph_structural::{
     GRAPH_STRUCTURAL_ACCEPTED_COLUMN, GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN,
     GRAPH_STRUCTURAL_ANCHOR_VALUES_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_EDGE_DESTINATIONS_COLUMN,
@@ -91,7 +93,7 @@ pub struct GraphStructuralFilterRequestRow {
     /// Maximum layered expansion depth allowed for the query.
     pub query_max_layers: i32,
     /// Constraint family that should be enforced against the candidate.
-    pub constraint_kind: String,
+    pub constraint_kind: JuliaContractKind,
     /// Boundary size required by the staged constraint contract.
     pub required_boundary_size: i32,
     /// Ordered anchor planes aligned with `anchor_values`.

@@ -54,7 +54,11 @@ impl LinkedBuiltinJuliaGatewayArtifactPath {
 /// Return the linked builtin Julia gateway artifact selector fixture.
 #[must_use]
 pub fn linked_builtin_julia_gateway_artifact_path() -> LinkedBuiltinJuliaGatewayArtifactPath {
-    LinkedBuiltinJuliaGatewayArtifactPath::from_tuple(julia_gateway_artifact_path())
+    let artifact_path = julia_gateway_artifact_path();
+    LinkedBuiltinJuliaGatewayArtifactPath {
+        plugin_id: artifact_path.plugin_id,
+        artifact_id: artifact_path.artifact_id,
+    }
 }
 
 /// Return the linked builtin Julia gateway artifact route fixture.

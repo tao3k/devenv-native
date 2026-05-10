@@ -11,7 +11,7 @@ use xiuxian_wendao_runtime::config::MemoryJuliaComputeRuntimeConfig;
 
 fn sample_runtime() -> MemoryJuliaComputeRuntimeConfig {
     MemoryJuliaComputeRuntimeConfig {
-        enabled: true,
+        enabled: true.into(),
         health_route: Some("/healthz".to_string()),
         scenario_pack: Some("searchinfra".to_string()),
         ..MemoryJuliaComputeRuntimeConfig::default()
@@ -39,7 +39,7 @@ fn build_memory_julia_compute_manifest_rows_materializes_all_profiles() {
     assert_eq!(rows[3].route, "/memory/calibration");
     assert_eq!(rows[0].health_route.as_deref(), Some("/healthz"));
     assert_eq!(rows[1].scenario_pack.as_deref(), Some("searchinfra"));
-    assert!(rows.iter().all(|row| row.enabled));
+    assert!(rows.iter().all(|row| row.enabled.value()));
 }
 
 #[test]
@@ -79,9 +79,11 @@ fn validate_memory_julia_compute_manifest_response_batch_rejects_contract_drift(
             Arc::new(StringArray::from(vec![row.route.as_str()])),
             Arc::new(StringArray::from(vec![row.health_route.as_deref()])),
             Arc::new(StringArray::from(vec![row.schema_version.as_str()])),
-            Arc::new(UInt64Array::from(vec![row.timeout_secs])),
+            Arc::new(UInt64Array::from(vec![
+                row.timeout_secs.map(|seconds| seconds.value()),
+            ])),
             Arc::new(StringArray::from(vec![row.scenario_pack.as_deref()])),
-            Arc::new(BooleanArray::from(vec![row.enabled])),
+            Arc::new(BooleanArray::from(vec![row.enabled.value()])),
         ],
     )
     .unwrap_or_else(|error| panic!("manifest batch should build: {error}"));
@@ -106,9 +108,11 @@ fn validate_memory_julia_compute_manifest_response_batch_rejects_invalid_route()
             Arc::new(StringArray::from(vec!["/"])),
             Arc::new(StringArray::from(vec![row.health_route.as_deref()])),
             Arc::new(StringArray::from(vec![row.schema_version.as_str()])),
-            Arc::new(UInt64Array::from(vec![row.timeout_secs])),
+            Arc::new(UInt64Array::from(vec![
+                row.timeout_secs.map(|seconds| seconds.value()),
+            ])),
             Arc::new(StringArray::from(vec![row.scenario_pack.as_deref()])),
-            Arc::new(BooleanArray::from(vec![row.enabled])),
+            Arc::new(BooleanArray::from(vec![row.enabled.value()])),
         ],
     )
     .unwrap_or_else(|error| panic!("manifest batch should build: {error}"));

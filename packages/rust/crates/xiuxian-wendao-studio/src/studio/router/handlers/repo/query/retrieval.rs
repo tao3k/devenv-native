@@ -1,4 +1,8 @@
+//! Owns the Studio repo query retrieval surface.
+
 use serde::Deserialize;
+
+use crate::contracts::StudioContractKind;
 
 /// Query parameters for projected retrieval hit lookup.
 #[derive(Debug, Deserialize)]
@@ -32,7 +36,7 @@ pub struct RepoProjectedPageSearchApiQuery {
     /// The search query string.
     pub query: Option<String>,
     /// The projected page kind filter.
-    pub kind: Option<String>,
+    pub kind: Option<StudioContractKind>,
     /// Maximum number of hits to return.
     pub limit: Option<usize>,
 }

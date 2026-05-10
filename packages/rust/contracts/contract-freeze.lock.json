@@ -3,20 +3,16 @@
   "algorithm": "sha256",
   "entries": [
     {
-      "path": "packages/rust/crates/xiuxian-daochang/resources/xiuxian.discover.match.v1.schema.json",
+      "path": "packages/rust/crates/xiuxian-wendao/resources/agent/xiuxian.discover.match.v1.schema.json",
       "sha256": "9596667fab2d5dc1a144b1884b90e77d81980342c3761496f3d52741e5a73544"
     },
     {
-      "path": "packages/rust/crates/xiuxian-daochang/resources/xiuxian.runtime.route_trace.v1.schema.json",
+      "path": "packages/rust/crates/xiuxian-wendao/resources/agent/xiuxian.runtime.route_trace.v1.schema.json",
       "sha256": "aaf2dfa32487e8e940123168ca5edbf15c06ab35ac35f80855abe4867f357315"
     },
     {
-      "path": "packages/rust/crates/xiuxian-daochang/src/contracts/memory_gate.rs",
-      "sha256": "d5c066e3a59a4a1bed4831495b601551cff8b2b276e2786724bb4ec81d438df9"
-    },
-    {
-      "path": "packages/rust/crates/xiuxian-daochang/src/contracts/omega.rs",
-      "sha256": "1e6dde57396ee386c12a3dfdee30b50afa9c4bb4f6a230bd6d42a05944cffa55"
+      "path": "packages/rust/crates/xiuxian-types/src/types.rs",
+      "sha256": "69b767d94920920499cf922529bc6c987a4b837a320e5837ac55f4decab7e702"
     },
     {
       "path": "packages/rust/crates/xiuxian-memory-engine/resources/xiuxian.memory.gate_event.v1.schema.json",

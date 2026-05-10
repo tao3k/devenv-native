@@ -45,7 +45,7 @@ pub(crate) async fn load_attachment_search_response_from_studio(
             hits: Vec::new(),
             selected_scope: "attachments".to_string(),
             partial: true,
-            indexing_state: Some(status.indexing_state.to_string()),
+            indexing_state: Some(status.indexing_state.into()),
             index_error: status.index_error,
         });
     }
@@ -85,7 +85,7 @@ pub(crate) async fn load_attachment_search_response_from_studio(
         hits,
         selected_scope: "attachments".to_string(),
         partial: false,
-        indexing_state: Some("ready".to_string()),
+        indexing_state: Some("ready".into()),
         index_error: None,
     };
     if let Some(cache_key) = cache_key.as_ref() {

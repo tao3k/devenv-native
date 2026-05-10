@@ -2,13 +2,13 @@
 fn julia_plugin_artifact_resolution_keeps_transport_diagnostics() {
     let selector = julia_deployment_artifact_selector();
     let runtime = LinkGraphJuliaRerankRuntimeConfig {
-        base_url: Some("http://127.0.0.1:8088".to_string()),
-        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string()),
-        health_route: Some("/healthz".to_string()),
-        schema_version: Some("v1".to_string()),
-        timeout_secs: Some(15),
-        service_mode: Some("stream".to_string()),
-        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
+        base_url: Some("http://127.0.0.1:8088".into()),
+        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.into()),
+        health_route: Some("/healthz".into()),
+        schema_version: Some("v1".into()),
+        timeout_secs: Some(15_u64.into()),
+        service_mode: Some("stream".into()),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.into()),
         vector_weight: Some(0.2),
         similarity_weight: Some(0.8),
     };
@@ -33,13 +33,13 @@ fn julia_plugin_artifact_rendering_serializes_resolved_payload()
 -> Result<(), Box<dyn std::error::Error>> {
     let selector = julia_deployment_artifact_selector();
     let runtime = LinkGraphJuliaRerankRuntimeConfig {
-        base_url: Some("http://127.0.0.1:8088".to_string()),
-        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string()),
-        health_route: Some("/healthz".to_string()),
-        schema_version: Some("v1".to_string()),
-        timeout_secs: Some(15),
-        service_mode: Some("stream".to_string()),
-        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
+        base_url: Some("http://127.0.0.1:8088".into()),
+        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.into()),
+        health_route: Some("/healthz".into()),
+        schema_version: Some("v1".into()),
+        timeout_secs: Some(15_u64.into()),
+        service_mode: Some("stream".into()),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.into()),
         vector_weight: Some(0.2),
         similarity_weight: Some(0.8),
     };

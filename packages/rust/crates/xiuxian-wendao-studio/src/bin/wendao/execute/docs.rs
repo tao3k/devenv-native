@@ -5,7 +5,7 @@ use xiuxian_wendao::analyzers::{
     DocsNavigationOptions, DocsRetrievalContextOptions, DocsToolService,
 };
 
-use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{Cli, Command, DocsCommand};
 
 pub(super) fn handle(cli: &Cli) -> Result<()> {

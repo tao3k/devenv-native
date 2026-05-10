@@ -1,6 +1,6 @@
 //! Search command execution handler.
 
-use crate::bin_support::wendao::helpers::{
+use crate::bin_support::wendao::cli_support::{
     build_optional_link_filter, build_optional_related_filter, build_optional_related_ppr_options,
     build_optional_tag_filter, emit, parse_sort_terms,
 };

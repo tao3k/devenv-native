@@ -185,7 +185,7 @@ python3Packages.buildPythonPackage {
     longDescription = ''
       High-performance Rust bindings providing core functionality for Omni DevEnv:
       - xiuxian-db-store / Lance vector-store facade: multimodal storage boundary
-      - xiuxian-tags: Tag extraction
+      - xiuxian-code-intelligence: Code-structure signals for Agent search
       - xiuxian-edit: Structural code editing
       - xiuxian-security: Security scanning
     '';

@@ -19,7 +19,7 @@ fn sample_request_row() -> MemoryJuliaGateScoreRequestRow {
         usage_count: 5,
         failure_rate: 0.10,
         ttl_score: 0.72,
-        current_state: "active".to_string(),
+        current_state: "active".into(),
     }
 }
 
@@ -59,7 +59,7 @@ fn build_memory_julia_gate_score_request_batch_accepts_valid_rows() {
 #[test]
 fn build_memory_julia_gate_score_request_batch_rejects_invalid_state() {
     let mut row = sample_request_row();
-    row.current_state = "unknown".to_string();
+    row.current_state = "unknown".into();
     let Err(error) = build_memory_julia_gate_score_request_batch(&[row]) else {
         panic!("unsupported lifecycle state should fail");
     };

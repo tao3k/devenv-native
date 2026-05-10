@@ -1,38 +1,34 @@
 use super::{
-    JuliaProfileSchedulingFacts, WENDAO_GRAPH_GNN_REASONING_HOST_ENTRYPOINT,
-    WENDAO_GRAPH_GNN_REASONING_PROFILE_ID, WENDAO_GRAPH_GNN_REASONING_SCHEMA_VERSION,
-    WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID, WENDAO_GRAPH_PAGE_INDEX_REASONING_HOST_ENTRYPOINT,
+    JuliaProfileSchedulingFacts, MemoryJuliaComputeReadinessInput,
+    WENDAO_GRAPH_GNN_REASONING_HOST_ENTRYPOINT, WENDAO_GRAPH_GNN_REASONING_PROFILE_ID,
+    WENDAO_GRAPH_GNN_REASONING_SCHEMA_VERSION, WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_HOST_ENTRYPOINT,
     WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID, WENDAOSEARCH_CONSTRAINT_FILTER_PROFILE_ID,
     WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID, WENDAOSEARCH_STRUCTURAL_RERANK_PROFILE_ID,
-    WendaoGraphAlgorithmWorkload, julia_graph_compute_profile_refs, julia_graph_compute_snapshot,
-    memory_julia_compute_config_readiness, memory_julia_compute_manifest_row_ref,
-    memory_julia_compute_profile_ref, memory_julia_compute_profile_refs,
-    memory_julia_compute_readiness_evidence, memory_julia_compute_readiness_snapshot,
-    memory_julia_compute_schedule_plan, memory_julia_compute_snapshot,
-    wendao_graph_gnn_accelerator_diagnostics_from_host_probe,
+    WendaoGraphAlgorithmId, WendaoGraphAlgorithmWorkload, WendaoGraphProfileId,
+    WendaoGraphReadinessInput, WendaoSearchGraphStructuralReadinessInput,
+    WendaoSearchLegacyRerankReadinessInput, julia_graph_compute_profile_refs,
+    julia_graph_compute_snapshot, memory_julia_compute_config_readiness,
+    memory_julia_compute_manifest_row_ref, memory_julia_compute_profile_ref,
+    memory_julia_compute_profile_refs, memory_julia_compute_schedule_plan,
+    memory_julia_compute_snapshot, wendao_graph_gnn_accelerator_diagnostics_from_host_probe,
     wendao_graph_gnn_readiness_evidence_from_host_probe, wendao_graph_gnn_reasoning_profile_ref,
-    wendao_graph_gnn_reasoning_readiness_evidence, wendao_graph_gnn_reasoning_schedule_plan,
-    wendao_graph_gnn_runtime_stats_from_host_probe, wendao_graph_link_evidence_profile_ref,
-    wendao_graph_link_evidence_readiness_evidence,
+    wendao_graph_gnn_reasoning_schedule_plan, wendao_graph_gnn_runtime_stats_from_host_probe,
+    wendao_graph_link_evidence_profile_ref,
     wendao_graph_link_evidence_readiness_evidence_from_full_structural_host_probe,
     wendao_graph_link_evidence_runtime_stats_from_full_structural_host_probe,
     wendao_graph_link_evidence_schedule_plan, wendao_graph_page_index_reasoning_profile_ref,
-    wendao_graph_page_index_reasoning_readiness_evidence,
     wendao_graph_page_index_reasoning_readiness_evidence_from_host_probe,
     wendao_graph_page_index_reasoning_runtime_stats_from_host_probe,
     wendao_graph_page_index_reasoning_runtime_stats_from_planner_action_host_probe,
-    wendao_graph_page_index_reasoning_schedule_plan, wendaograph_algorithm_ref,
-    wendaograph_algorithm_refs, wendaograph_algorithm_refs_for_profile,
-    wendaograph_algorithm_schedule_plan, wendaograph_algorithm_task_shape,
+    wendao_graph_page_index_reasoning_schedule_plan, wendaograph_algorithm_refs,
     wendaograph_frontier_algorithm_ref, wendaograph_frontier_schedule_plan,
     wendaograph_frontier_task_shape, wendaograph_gnn_algorithm_refs,
     wendaograph_link_graph_algorithm_refs, wendaograph_page_index_algorithm_refs,
     wendaograph_relationship_search_algorithm_refs,
-    wendaograph_relationship_search_evidence_for_algorithm_from_full_structural_host_probe,
     wendaograph_relationship_search_evidence_from_full_structural_host_probe,
     wendaograph_search_strategy_flow_algorithm_refs, wendaosearch_graph_structural_profile_ref,
-    wendaosearch_graph_structural_readiness_evidence, wendaosearch_graph_structural_schedule_plan,
-    wendaosearch_legacy_rerank_profile_ref, wendaosearch_legacy_rerank_readiness_evidence,
+    wendaosearch_graph_structural_schedule_plan, wendaosearch_legacy_rerank_profile_ref,
     wendaosearch_legacy_rerank_schedule_plan, with_julia_thread_pinning_diagnostics,
 };
 use crate::compatibility::link_graph::{
@@ -64,6 +60,169 @@ use xiuxian_wendao_runtime::config::{
 
 fn required<T>(value: Option<T>, label: &str) -> T {
     value.unwrap_or_else(|| panic!("missing required {label}"))
+}
+
+fn wendao_graph_link_evidence_readiness_evidence(
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> xiuxian_polyglot_orchestrator::JuliaReadinessEvidence {
+    super::wendao_graph_link_evidence_readiness_evidence(WendaoGraphReadinessInput {
+        warmup,
+        benchmark,
+        max_in_flight,
+        active_in_flight,
+        queue_depth,
+    })
+}
+
+fn wendao_graph_page_index_reasoning_readiness_evidence(
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> xiuxian_polyglot_orchestrator::JuliaReadinessEvidence {
+    super::wendao_graph_page_index_reasoning_readiness_evidence(WendaoGraphReadinessInput {
+        warmup,
+        benchmark,
+        max_in_flight,
+        active_in_flight,
+        queue_depth,
+    })
+}
+
+fn wendao_graph_gnn_reasoning_readiness_evidence(
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> xiuxian_polyglot_orchestrator::JuliaReadinessEvidence {
+    super::wendao_graph_gnn_reasoning_readiness_evidence(WendaoGraphReadinessInput {
+        warmup,
+        benchmark,
+        max_in_flight,
+        active_in_flight,
+        queue_depth,
+    })
+}
+
+fn wendaosearch_graph_structural_readiness_evidence(
+    route_kind: GraphStructuralRouteKind,
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> xiuxian_polyglot_orchestrator::JuliaReadinessEvidence {
+    super::wendaosearch_graph_structural_readiness_evidence(
+        WendaoSearchGraphStructuralReadinessInput {
+            route_kind,
+            warmup,
+            benchmark,
+            max_in_flight,
+            active_in_flight,
+            queue_depth,
+        },
+    )
+}
+
+fn wendaosearch_legacy_rerank_readiness_evidence(
+    runtime: &LinkGraphJuliaRerankRuntimeConfig,
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> xiuxian_polyglot_orchestrator::JuliaReadinessEvidence {
+    super::wendaosearch_legacy_rerank_readiness_evidence(WendaoSearchLegacyRerankReadinessInput {
+        runtime,
+        warmup,
+        benchmark,
+        active_in_flight,
+        queue_depth,
+    })
+}
+
+fn memory_julia_compute_readiness_evidence(
+    runtime: &MemoryJuliaComputeRuntimeConfig,
+    profile: MemoryJuliaComputeProfile,
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> xiuxian_polyglot_orchestrator::JuliaReadinessEvidence {
+    super::memory_julia_compute_readiness_evidence(MemoryJuliaComputeReadinessInput {
+        runtime,
+        profile,
+        warmup,
+        benchmark,
+        active_in_flight,
+        queue_depth,
+    })
+}
+
+fn memory_julia_compute_readiness_snapshot(
+    runtime: &MemoryJuliaComputeRuntimeConfig,
+    profile: MemoryJuliaComputeProfile,
+    warmup: WarmupState,
+    benchmark: BenchmarkState,
+    active_in_flight: u32,
+    queue_depth: u32,
+) -> Result<xiuxian_polyglot_orchestrator::PolyglotControlSnapshot, SnapshotInvariantError> {
+    super::memory_julia_compute_readiness_snapshot(MemoryJuliaComputeReadinessInput {
+        runtime,
+        profile,
+        warmup,
+        benchmark,
+        active_in_flight,
+        queue_depth,
+    })
+}
+
+fn wendaograph_algorithm_ref(algorithm_id: &'static str) -> Option<super::WendaoGraphAlgorithmRef> {
+    super::wendaograph_algorithm_ref(WendaoGraphAlgorithmId(algorithm_id))
+}
+
+fn wendaograph_algorithm_task_shape(
+    algorithm_id: &'static str,
+    workload: WendaoGraphAlgorithmWorkload,
+) -> Option<JuliaComputeTaskShape> {
+    super::wendaograph_algorithm_task_shape(WendaoGraphAlgorithmId(algorithm_id), workload)
+}
+
+fn wendaograph_algorithm_refs_for_profile(
+    profile_id: &'static str,
+) -> Vec<super::WendaoGraphAlgorithmRef> {
+    super::wendaograph_algorithm_refs_for_profile(WendaoGraphProfileId(profile_id))
+}
+
+fn wendaograph_algorithm_schedule_plan(
+    algorithm_id: &'static str,
+    workload: WendaoGraphAlgorithmWorkload,
+    facts: JuliaProfileSchedulingFacts,
+) -> Option<xiuxian_polyglot_orchestrator::JuliaSchedulePlan> {
+    super::wendaograph_algorithm_schedule_plan(
+        WendaoGraphAlgorithmId(algorithm_id),
+        workload,
+        facts,
+    )
+}
+
+fn wendaograph_relationship_search_evidence_for_algorithm_from_full_structural_host_probe(
+    algorithm_id: &'static str,
+    report: &WendaoGraphLinkGraphFullStructuralHostProbeReport,
+    workload: WendaoGraphAlgorithmWorkload,
+    facts: JuliaProfileSchedulingFacts,
+) -> Option<super::WendaoGraphRelationshipSearchEvidence> {
+    super::wendaograph_relationship_search_evidence_for_algorithm_from_full_structural_host_probe(
+        WendaoGraphAlgorithmId(algorithm_id),
+        report,
+        workload,
+        facts,
+    )
 }
 
 mod graph_catalog;
@@ -146,7 +305,7 @@ fn link_graph_full_structural_host_probe_report()
 -> WendaoGraphLinkGraphFullStructuralHostProbeReport {
     WendaoGraphLinkGraphFullStructuralHostProbeReport {
         base: WendaoGraphLinkGraphHostProbeReport {
-            mode: "semantic-neighbors".to_owned(),
+            mode: "semantic-neighbors".into(),
             node_count: 4,
             edge_count: 2,
             semantic_neighbor_count: 1,

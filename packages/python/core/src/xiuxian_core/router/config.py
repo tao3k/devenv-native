@@ -69,7 +69,9 @@ class RouterConfidenceProfile(BaseModel):
     @model_validator(mode="after")
     def _validate_profile(self) -> RouterConfidenceProfile:
         if self.high_threshold < self.medium_threshold:
-            raise ValueError("profile.high_threshold must be >= profile.medium_threshold")
+            raise ValueError(
+                "profile.high_threshold must be >= profile.medium_threshold"
+            )
         if self.high_cap < self.high_base:
             raise ValueError("profile.high_cap must be >= profile.high_base")
         if self.medium_cap < self.medium_base:
@@ -122,7 +124,9 @@ class RouterSearchConfig(BaseModel):
 
     active_profile: str = "balanced"
     auto_profile_select: bool = True
-    profiles: dict[str, RouterConfidenceProfile] = Field(default_factory=_default_profiles)
+    profiles: dict[str, RouterConfidenceProfile] = Field(
+        default_factory=_default_profiles
+    )
     default_limit: int = Field(10, ge=1)
     default_threshold: float = Field(0.2, ge=0.0, le=1.0)
     rerank: bool = True
@@ -160,8 +164,13 @@ def load_router_search_config(
     Explicit arguments override settings values.
     """
 
-    active_profile = str(get_setting("router.search.active_profile", "balanced") or "balanced")
-    profiles = get_setting("router.search.profiles", _default_profiles()) or _default_profiles()
+    active_profile = str(
+        get_setting("router.search.active_profile", "balanced") or "balanced"
+    )
+    profiles = (
+        get_setting("router.search.profiles", _default_profiles())
+        or _default_profiles()
+    )
 
     return RouterSearchConfig(
         active_profile=active_profile,
@@ -170,14 +179,18 @@ def load_router_search_config(
             default=True,
         ),
         profiles=profiles,
-        default_limit=_coerce_int(get_setting("router.search.default_limit", 10), default=10),
+        default_limit=_coerce_int(
+            get_setting("router.search.default_limit", 10), default=10
+        ),
         default_threshold=_coerce_float(
             get_setting("router.search.default_threshold", 0.2),
             default=0.2,
         ),
         rerank=_coerce_bool(get_setting("router.search.rerank", True), default=True),
         semantic_weight=(
-            _coerce_float(get_setting("router.search.semantic_weight", 0.7), default=0.7)
+            _coerce_float(
+                get_setting("router.search.semantic_weight", 0.7), default=0.7
+            )
             if semantic_weight is None
             else semantic_weight
         ),
@@ -187,12 +200,16 @@ def load_router_search_config(
             else keyword_weight
         ),
         adaptive_threshold_step=(
-            _coerce_float(get_setting("router.search.adaptive_threshold_step", 0.15), default=0.15)
+            _coerce_float(
+                get_setting("router.search.adaptive_threshold_step", 0.15), default=0.15
+            )
             if adaptive_threshold_step is None
             else adaptive_threshold_step
         ),
         adaptive_max_attempts=(
-            _coerce_int(get_setting("router.search.adaptive_max_attempts", 3), default=3)
+            _coerce_int(
+                get_setting("router.search.adaptive_max_attempts", 3), default=3
+            )
             if adaptive_max_attempts is None
             else adaptive_max_attempts
         ),
@@ -213,7 +230,7 @@ def resolve_router_schema_path(schema_path: str | Path | None = None) -> Path:
     Priority:
     1. Explicit `schema_path` argument
     2. `router.search.schema_file` from settings
-    3. Default: resolved schema in Rust crate resources (`xiuxian-daochang/resources`)
+    3. Default: resolved schema in Rust crate resources (`xiuxian-wendao/resources`)
 
     Paths starting with "packages/" are resolved relative to project root;
     other relative paths are resolved relative to conf_dir (--conf).
@@ -235,7 +252,7 @@ def resolve_router_schema_path(schema_path: str | Path | None = None) -> Path:
 
     resolved = resolve_schema_file_path(
         _ROUTER_SEARCH_SCHEMA_NAME,
-        preferred_crates=("xiuxian-daochang",),
+        preferred_crates=("xiuxian-wendao",),
     )
     if resolved.exists():
         return resolved

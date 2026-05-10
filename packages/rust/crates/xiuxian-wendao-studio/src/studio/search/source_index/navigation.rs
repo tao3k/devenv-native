@@ -9,8 +9,8 @@ pub(super) fn ast_navigation_target(
     line_end: usize,
 ) -> StudioNavigationTarget {
     StudioNavigationTarget {
-        path: path.to_string(),
-        category: "doc".to_string(),
+        path: path.to_string().into(),
+        category: "doc".into(),
         project_name: project_name
             .map(ToString::to_string)
             .or_else(|| Some(crate_name.to_string())),

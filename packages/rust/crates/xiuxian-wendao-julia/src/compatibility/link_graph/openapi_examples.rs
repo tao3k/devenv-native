@@ -42,7 +42,7 @@ pub fn julia_deployment_artifact_openapi_example() -> LinkGraphJuliaDeploymentAr
         artifact_schema_version: DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION.to_string(),
         generated_at: OPENAPI_EXAMPLE_GENERATED_AT.to_string(),
         base_url: Some(OPENAPI_EXAMPLE_BASE_URL.to_string()),
-        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string()),
+        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.into()),
         health_route: Some(OPENAPI_EXAMPLE_HEALTH_ROUTE.to_string()),
         schema_version: Some(OPENAPI_EXAMPLE_SCHEMA_VERSION.to_string()),
         timeout_secs: Some(OPENAPI_EXAMPLE_TIMEOUT_SECS),

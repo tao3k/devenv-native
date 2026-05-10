@@ -6,9 +6,11 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use walkdir::{DirEntry, WalkDir};
-#[cfg(test)]
-use xiuxian_ast::extract_items_for_patterns;
-use xiuxian_ast::{Lang, extract_items, get_skeleton_patterns};
+use xiuxian_ast::Lang;
+use xiuxian_code_intelligence::{
+    CodePatternMatch, code_language_from_path, extract_code_pattern_matches,
+    extract_code_structure_symbols, normalize_code_language_identifier, score_code_structure_query,
+};
 use xiuxian_git_repo::SyncMode;
 
 use crate::analyzers::resolve_registered_repository_source;
@@ -105,7 +107,7 @@ impl RepoAstAnalysisIndex {
             .records
             .iter()
             .filter_map(|record| {
-                let score = generic_ast_analysis_score(
+                let score = score_code_structure_query(
                     search_term,
                     record.relative_path.as_str(),
                     record.name.as_str(),
@@ -379,7 +381,7 @@ fn build_ast_search_hit(
     repo_id: &str,
     relative_path: &str,
     lang: Lang,
-    result: &xiuxian_ast::ExtractResult,
+    result: &CodePatternMatch,
 ) -> SearchHit {
     let name = result
         .captures
@@ -451,7 +453,7 @@ impl SearchAccumulator {
     }
 
     fn push_pattern_matches(&mut self, file: &RepoAstFile<'_>, pattern: &str) -> bool {
-        for result in extract_items(file.content, pattern, file.lang, None) {
+        for result in extract_code_pattern_matches(file.content, pattern, file.lang, None) {
             let dedupe_key = format!(
                 "{}:{}:{}:{}",
                 file.relative_path, result.line_start, result.line_end, result.text
@@ -475,49 +477,37 @@ impl SearchAccumulator {
     }
 
     fn push_analysis_matches(&mut self, file: &RepoAstFile<'_>, search_term: Option<&str>) -> bool {
-        for pattern in get_skeleton_patterns(file.lang) {
-            for result in extract_items(file.content, pattern, file.lang, Some(vec!["NAME"])) {
-                let signature = first_signature_line(result.text.as_str()).to_string();
-                if signature.is_empty() {
-                    continue;
-                }
-                let name = result
-                    .captures
-                    .get("NAME")
-                    .cloned()
-                    .filter(|value| !value.trim().is_empty())
-                    .unwrap_or_else(|| signature.clone());
-                let Some(score) = generic_ast_analysis_score(
-                    search_term,
-                    file.relative_path,
-                    name.as_str(),
-                    signature.as_str(),
-                ) else {
-                    continue;
-                };
-                let dedupe_key = format!(
-                    "{}:{}:{}:{}",
-                    file.relative_path, result.line_start, result.line_end, name
-                );
-                if !self.seen.insert(dedupe_key) {
-                    continue;
-                }
+        for symbol in extract_code_structure_symbols(file.content, file.lang) {
+            let Some(score) = score_code_structure_query(
+                search_term,
+                file.relative_path,
+                symbol.name.as_str(),
+                symbol.signature.as_str(),
+            ) else {
+                continue;
+            };
+            let dedupe_key = format!(
+                "{}:{}:{}:{}",
+                file.relative_path, symbol.line_start, symbol.line_end, symbol.name
+            );
+            if !self.seen.insert(dedupe_key) {
+                continue;
+            }
 
-                let analysis_match = GenericAstAnalysisMatch {
-                    repo_id: file.repo_id,
-                    relative_path: file.relative_path,
-                    lang: file.lang,
-                    name: name.as_str(),
-                    signature: signature.as_str(),
-                    line_start: result.line_start,
-                    line_end: result.line_end,
-                    score,
-                };
-                self.hits
-                    .push(build_generic_ast_analysis_hit(&analysis_match));
-                if self.hits.len() >= self.limit {
-                    return true;
-                }
+            let analysis_match = GenericAstAnalysisMatch {
+                repo_id: file.repo_id,
+                relative_path: file.relative_path,
+                lang: file.lang,
+                name: symbol.name.as_str(),
+                signature: symbol.signature.as_str(),
+                line_start: symbol.line_start,
+                line_end: symbol.line_end,
+                score,
+            };
+            self.hits
+                .push(build_generic_ast_analysis_hit(&analysis_match));
+            if self.hits.len() >= self.limit {
+                return true;
             }
         }
 
@@ -526,7 +516,7 @@ impl SearchAccumulator {
 }
 
 fn supported_ast_lang(path: &Path, excluded_languages: &HashSet<String>) -> Option<Lang> {
-    let lang = Lang::from_path(path)?;
+    let lang = code_language_from_path(path)?;
     (!excluded_languages.contains(lang.as_str())).then_some(lang)
 }
 
@@ -588,11 +578,7 @@ fn push_normalized_ast_language(languages: &mut Vec<String>, language: &str) {
         return;
     }
 
-    let normalized = match Lang::try_from(trimmed) {
-        Ok(lang) => lang.as_str().to_string(),
-        Err(_) => trimmed.to_ascii_lowercase(),
-    };
-    languages.push(normalized);
+    languages.push(normalize_code_language_identifier(trimmed));
 }
 
 #[cfg(test)]
@@ -625,43 +611,6 @@ fn should_descend_into_catalog_entry(
         !excluded.is_empty()
             && (relative_path == excluded || relative_path.starts_with(&format!("{excluded}/")))
     })
-}
-
-fn first_signature_line(text: &str) -> &str {
-    text.lines().next().map(str::trim).unwrap_or_default()
-}
-
-fn generic_ast_analysis_score(
-    search_term: Option<&str>,
-    relative_path: &str,
-    name: &str,
-    signature: &str,
-) -> Option<f64> {
-    let Some(search_term) = search_term
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(str::to_ascii_lowercase)
-    else {
-        return Some(0.72);
-    };
-    let normalized_name = name.to_ascii_lowercase();
-    let normalized_signature = signature.to_ascii_lowercase();
-    let normalized_path = relative_path.to_ascii_lowercase();
-
-    if normalized_name == search_term {
-        return Some(1.0);
-    }
-    if normalized_name.contains(search_term.as_str()) {
-        return Some(0.97);
-    }
-    if normalized_signature.contains(search_term.as_str()) {
-        return Some(0.91);
-    }
-    if normalized_path.contains(search_term.as_str()) {
-        return Some(0.84);
-    }
-
-    None
 }
 
 #[cfg(test)]
@@ -735,25 +684,12 @@ fn push_analysis_records(
     lang: Lang,
     content: &str,
 ) {
-    for result in extract_items_for_patterns(
-        content,
-        get_skeleton_patterns(lang),
-        lang,
-        Some(vec!["NAME"]),
-    ) {
-        let signature = first_signature_line(result.text.as_str()).to_string();
-        if signature.is_empty() {
-            continue;
-        }
-        let name = result
-            .captures
-            .get("NAME")
-            .cloned()
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| signature.clone());
+    for symbol in extract_code_structure_symbols(content, lang) {
         let dedupe_key = format!(
             "{relative_path}:{}:{}:{name}",
-            result.line_start, result.line_end
+            symbol.line_start,
+            symbol.line_end,
+            name = symbol.name.as_str()
         );
         if !seen.insert(dedupe_key) {
             continue;
@@ -762,10 +698,10 @@ fn push_analysis_records(
             repo_id: repo_id.to_string(),
             relative_path: relative_path.to_string(),
             lang,
-            name,
-            signature,
-            line_start: result.line_start,
-            line_end: result.line_end,
+            name: symbol.name,
+            signature: symbol.signature,
+            line_start: symbol.line_start,
+            line_end: symbol.line_end,
         });
     }
 }

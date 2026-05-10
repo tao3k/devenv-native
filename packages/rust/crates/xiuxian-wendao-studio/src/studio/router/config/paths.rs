@@ -1,3 +1,5 @@
+//! Owns the Studio router config paths surface.
+
 use std::path::{Path, PathBuf};
 
 use xiuxian_io::PrjDirs;

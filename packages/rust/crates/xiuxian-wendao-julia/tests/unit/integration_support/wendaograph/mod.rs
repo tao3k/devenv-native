@@ -1,7 +1,10 @@
 use super::{
-    SearchStrategyFlowFlightMaterializationConfig, WENDAOGRAPH_PACKAGE_DIR_ENV,
+    SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowFlightMaterializationConfig,
+    SearchStrategyFlowPersistentBatchHost, WENDAOGRAPH_PACKAGE_DIR_ENV,
     WendaoGraphLinkGraphFullStructuralHostProbeReport, WendaoGraphLinkGraphHostProbeReport,
     WendaoGraphPageIndexHostProbeReport, WendaoGraphPageIndexPlannerActionHostProbeReport,
+    configured_wendaograph_search_strategy_flow_markdown_replay_families,
+    configured_wendaograph_search_strategy_flow_markdown_replay_families_with_limit,
     enrich_wendaograph_search_strategy_flow_retrieval_routes,
     enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     parse_link_graph_full_structural_probe_report_line, parse_link_graph_probe_report_line,
@@ -10,7 +13,12 @@ use super::{
     probe_wendaograph_link_graph_full_structural_host_request,
     probe_wendaograph_page_index_host_request,
     probe_wendaograph_page_index_planner_action_host_request,
-    run_wendaograph_search_strategy_flow_json, search_strategy_flow_probe_action_route,
+    run_wendaograph_search_strategy_flow_json,
+    run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
+    run_wendaograph_search_strategy_flow_json_with_candidate_batch,
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization,
+    search_strategy_flow_candidate_input_batch_from_repo_search,
+    search_strategy_flow_probe_action_route,
 };
 
 const RUN_WENDAOGRAPH_PAGE_INDEX_HOST_PROBE_TEST_ENV: &str =

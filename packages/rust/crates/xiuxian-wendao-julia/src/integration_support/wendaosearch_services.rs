@@ -9,12 +9,14 @@ use xiuxian_wendao_core::repo_intelligence::{
     RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy,
 };
 
-use super::service_runtime::{
+use super::{
     JuliaServiceGuard, repo_root, reserve_service_port, wait_for_service_ready_with_attempts,
     wendaosearch_julia_project, wendaosearch_script,
 };
 use crate::{
-    GraphStructuralFilterRequestRow, build_graph_structural_filter_request_batch,
+    GraphStructuralFilterRequestRow, GraphStructuralKeywordOverlapCandidateMetadataInput,
+    GraphStructuralKeywordOverlapQueryInput, GraphStructuralKeywordOverlapRawCandidateInput,
+    build_graph_structural_filter_request_batch,
     build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
     build_graph_structural_keyword_overlap_query_inputs,
     build_graph_structural_keyword_overlap_raw_candidate_inputs,
@@ -171,87 +173,26 @@ pub async fn stabilize_wendaosearch_solver_demo_graph_structural_routes(
 ) -> Result<WendaoSearchGraphStructuralStabilizationReport, String> {
     let prewarm = prewarm_wendaosearch_solver_demo_graph_structural_routes(base_url).await?;
     let candidate_id = prewarm.candidate_id.clone();
-    let explicit_rerank_repository = graph_structural_explicit_rerank_repository(base_url);
-    let explicit_filter_repository = graph_structural_explicit_filter_repository(base_url);
-    let manifest_repository = graph_structural_manifest_repository(base_url);
+    let repositories = graph_structural_stabilization_repositories(base_url);
 
-    let mut sequential_samples = Vec::with_capacity(limits.sample_count);
-    for _ in 0..limits.sample_count {
-        let started_at = Instant::now();
-        prewarm_solver_demo_rerank_route(
-            &explicit_rerank_repository,
-            &candidate_id,
-            "sequential structural-rerank",
-        )
-        .await?;
-        prewarm_solver_demo_filter_route(
-            &explicit_filter_repository,
-            &candidate_id,
-            "sequential constraint-filter",
-        )
-        .await?;
-        prewarm_solver_demo_rerank_route(
-            &manifest_repository,
-            &candidate_id,
-            "sequential manifest structural-rerank",
-        )
-        .await?;
-        prewarm_solver_demo_filter_route(
-            &manifest_repository,
-            &candidate_id,
-            "sequential manifest constraint-filter",
-        )
-        .await?;
-        sequential_samples.push(started_at.elapsed());
-    }
-
-    let mut concurrent_samples = Vec::with_capacity(limits.sample_count);
-    for _ in 0..limits.sample_count {
-        let started_at = Instant::now();
-        tokio::try_join!(
-            prewarm_solver_demo_rerank_route(
-                &explicit_rerank_repository,
-                &candidate_id,
-                "concurrent structural-rerank",
-            ),
-            prewarm_solver_demo_filter_route(
-                &explicit_filter_repository,
-                &candidate_id,
-                "concurrent constraint-filter",
-            ),
-            prewarm_solver_demo_rerank_route(
-                &manifest_repository,
-                &candidate_id,
-                "concurrent manifest structural-rerank",
-            ),
-            prewarm_solver_demo_filter_route(
-                &manifest_repository,
-                &candidate_id,
-                "concurrent manifest constraint-filter",
-            ),
-        )?;
-        concurrent_samples.push(started_at.elapsed());
-    }
+    let sequential_samples = sample_sequential_graph_structural_routes(
+        &repositories,
+        &candidate_id,
+        limits.sample_count,
+    )
+    .await?;
+    let concurrent_samples = sample_concurrent_graph_structural_routes(
+        &repositories,
+        &candidate_id,
+        limits.sample_count,
+    )
+    .await?;
 
     let sequential = warm_path_stats_from_samples(&sequential_samples);
     let concurrent = warm_path_stats_from_samples(&concurrent_samples);
-    let sequential_passes = warm_path_passes_limits(&sequential, &limits);
-    let concurrent_passes = warm_path_passes_limits(&concurrent, &limits);
-    let stability_reason = match (sequential_passes, concurrent_passes) {
-        (true, true) => WendaoSearchGraphStructuralStabilizationReason::Stable,
-        (false, true) => WendaoSearchGraphStructuralStabilizationReason::SequentialExceeded,
-        (true, false) => WendaoSearchGraphStructuralStabilizationReason::ConcurrentExceeded,
-        (false, false) => WendaoSearchGraphStructuralStabilizationReason::BothExceeded,
-    };
+    let stability_reason = graph_structural_stability_reason(&sequential, &concurrent, &limits);
     let stable = stability_reason == WendaoSearchGraphStructuralStabilizationReason::Stable;
-    let recommended_max_in_flight = if stable {
-        limits.preferred_max_in_flight.max(1)
-    } else {
-        limits
-            .degraded_max_in_flight
-            .max(1)
-            .min(limits.preferred_max_in_flight.max(1))
-    };
+    let recommended_max_in_flight = recommended_graph_structural_max_in_flight(stable, &limits);
 
     Ok(WendaoSearchGraphStructuralStabilizationReport {
         prewarm,
@@ -261,6 +202,131 @@ pub async fn stabilize_wendaosearch_solver_demo_graph_structural_routes(
         stability_reason,
         recommended_max_in_flight,
     })
+}
+
+struct GraphStructuralStabilizationRepositories {
+    explicit_rerank: RegisteredRepository,
+    explicit_filter: RegisteredRepository,
+    manifest: RegisteredRepository,
+}
+
+fn graph_structural_stabilization_repositories(
+    base_url: &str,
+) -> GraphStructuralStabilizationRepositories {
+    GraphStructuralStabilizationRepositories {
+        explicit_rerank: graph_structural_explicit_rerank_repository(base_url),
+        explicit_filter: graph_structural_explicit_filter_repository(base_url),
+        manifest: graph_structural_manifest_repository(base_url),
+    }
+}
+
+async fn sample_sequential_graph_structural_routes(
+    repositories: &GraphStructuralStabilizationRepositories,
+    candidate_id: &str,
+    sample_count: usize,
+) -> Result<Vec<std::time::Duration>, String> {
+    let mut samples = Vec::with_capacity(sample_count);
+    for _ in 0..sample_count {
+        let started_at = Instant::now();
+        sample_graph_structural_routes_once(repositories, candidate_id, "sequential").await?;
+        samples.push(started_at.elapsed());
+    }
+    Ok(samples)
+}
+
+async fn sample_graph_structural_routes_once(
+    repositories: &GraphStructuralStabilizationRepositories,
+    candidate_id: &str,
+    label_prefix: &str,
+) -> Result<(), String> {
+    prewarm_solver_demo_rerank_route(
+        &repositories.explicit_rerank,
+        candidate_id,
+        &format!("{label_prefix} structural-rerank"),
+    )
+    .await?;
+    prewarm_solver_demo_filter_route(
+        &repositories.explicit_filter,
+        candidate_id,
+        &format!("{label_prefix} constraint-filter"),
+    )
+    .await?;
+    prewarm_solver_demo_rerank_route(
+        &repositories.manifest,
+        candidate_id,
+        &format!("{label_prefix} manifest structural-rerank"),
+    )
+    .await?;
+    prewarm_solver_demo_filter_route(
+        &repositories.manifest,
+        candidate_id,
+        &format!("{label_prefix} manifest constraint-filter"),
+    )
+    .await
+}
+
+async fn sample_concurrent_graph_structural_routes(
+    repositories: &GraphStructuralStabilizationRepositories,
+    candidate_id: &str,
+    sample_count: usize,
+) -> Result<Vec<std::time::Duration>, String> {
+    let mut samples = Vec::with_capacity(sample_count);
+    for _ in 0..sample_count {
+        let started_at = Instant::now();
+        tokio::try_join!(
+            prewarm_solver_demo_rerank_route(
+                &repositories.explicit_rerank,
+                candidate_id,
+                "concurrent structural-rerank",
+            ),
+            prewarm_solver_demo_filter_route(
+                &repositories.explicit_filter,
+                candidate_id,
+                "concurrent constraint-filter",
+            ),
+            prewarm_solver_demo_rerank_route(
+                &repositories.manifest,
+                candidate_id,
+                "concurrent manifest structural-rerank",
+            ),
+            prewarm_solver_demo_filter_route(
+                &repositories.manifest,
+                candidate_id,
+                "concurrent manifest constraint-filter",
+            ),
+        )?;
+        samples.push(started_at.elapsed());
+    }
+    Ok(samples)
+}
+
+fn graph_structural_stability_reason(
+    sequential: &WendaoSearchGraphStructuralWarmPathStats,
+    concurrent: &WendaoSearchGraphStructuralWarmPathStats,
+    limits: &WendaoSearchGraphStructuralStabilizationLimits,
+) -> WendaoSearchGraphStructuralStabilizationReason {
+    match (
+        warm_path_passes_limits(sequential, limits),
+        warm_path_passes_limits(concurrent, limits),
+    ) {
+        (true, true) => WendaoSearchGraphStructuralStabilizationReason::Stable,
+        (false, true) => WendaoSearchGraphStructuralStabilizationReason::SequentialExceeded,
+        (true, false) => WendaoSearchGraphStructuralStabilizationReason::ConcurrentExceeded,
+        (false, false) => WendaoSearchGraphStructuralStabilizationReason::BothExceeded,
+    }
+}
+
+fn recommended_graph_structural_max_in_flight(
+    stable: bool,
+    limits: &WendaoSearchGraphStructuralStabilizationLimits,
+) -> usize {
+    if stable {
+        return limits.preferred_max_in_flight.max(1);
+    }
+    limits
+        .degraded_max_in_flight
+        .max(1)
+        .min(limits.preferred_max_in_flight.max(1))
 }
 
 fn project_julia_command() -> Command {
@@ -306,23 +372,30 @@ async fn prewarm_solver_demo_rerank_route(
         fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates(
             repository,
             &build_graph_structural_keyword_overlap_query_inputs(
-                "query-live",
-                0,
-                2,
-                vec!["alpha".to_string()],
-                vec!["depends_on".to_string()],
+                GraphStructuralKeywordOverlapQueryInput {
+                    query_id: "query-live".to_string(),
+                    retrieval_layer: 0,
+                    query_max_layers: 2,
+                    keyword_anchors: vec!["alpha".to_string()],
+                    edge_constraint_kinds: vec!["depends_on".to_string()],
+                },
             ),
             &[build_graph_structural_keyword_overlap_raw_candidate_inputs(
-                build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs(
-                    "node-1",
-                    "node-2",
-                    vec!["depends_on".to_string()],
-                    vec!["alpha".to_string(), "core".to_string()],
-                    vec!["core".to_string()],
-                ),
-                0.7,
-                0.6,
-                true,
+                GraphStructuralKeywordOverlapRawCandidateInput {
+                    metadata_inputs:
+                        build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs(
+                            GraphStructuralKeywordOverlapCandidateMetadataInput {
+                                left_id: "node-1".to_string(),
+                                right_id: "node-2".to_string(),
+                                edge_kinds: vec!["depends_on".to_string()],
+                                left_tags: vec!["alpha".to_string(), "core".to_string()],
+                                right_tags: vec!["core".to_string()],
+                            },
+                        ),
+                    semantic_score: 0.7,
+                    dependency_score: 0.6,
+                    keyword_match: true,
+                },
             )],
         )
         .await
@@ -354,7 +427,7 @@ async fn prewarm_solver_demo_filter_route(
         candidate_id: candidate_id.to_string(),
         retrieval_layer: 0,
         query_max_layers: 2,
-        constraint_kind: "pin_assignment".to_string(),
+        constraint_kind: "pin_assignment".into(),
         required_boundary_size: 1,
         anchor_planes: vec!["semantic".to_string()],
         anchor_values: vec!["alpha".to_string()],

@@ -17,11 +17,11 @@ fn gateway_artifact_runtime_config_toml_renders_default_fixture() {
 
 #[test]
 fn gateway_artifact_helpers_keep_stable_selector_and_toml_fragments() {
-    let (plugin_id, artifact_id) = julia_gateway_artifact_path();
+    let artifact_path = julia_gateway_artifact_path();
     let fragments = julia_gateway_artifact_expected_toml_fragments();
 
-    assert_eq!(plugin_id, "xiuxian-wendao-julia");
-    assert_eq!(artifact_id, "deployment");
+    assert_eq!(artifact_path.plugin_id, "xiuxian-wendao-julia");
+    assert_eq!(artifact_path.artifact_id, "deployment");
     assert!(
         fragments
             .iter()

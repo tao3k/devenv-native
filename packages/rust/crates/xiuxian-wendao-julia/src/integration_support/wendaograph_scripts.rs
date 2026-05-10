@@ -3,10 +3,20 @@
 pub(crate) const SEARCH_STRATEGY_FLOW_JULIA: &str = r#"
 using WendaoGraph
 
-intent = ARGS[1]
-search_root = ARGS[2]
-candidate_input_tsv = length(ARGS) >= 3 ? ARGS[3] : ""
-candidate_input_source_hint = length(ARGS) >= 4 ? ARGS[4] : ""
+batch_mode = !isempty(ARGS) && ARGS[1] == "__WENDAO_SEARCH_STRATEGY_FLOW_BATCH__"
+persistent_batch_mode = !isempty(ARGS) && ARGS[1] == "__WENDAO_SEARCH_STRATEGY_FLOW_BATCH_STDIN__"
+if batch_mode
+    length(ARGS) >= 3 || error("SearchStrategyFlow batch mode requires search root and batch count")
+    search_root = ARGS[2]
+elseif persistent_batch_mode
+    length(ARGS) >= 2 || error("SearchStrategyFlow persistent batch mode requires search root")
+    search_root = ARGS[2]
+else
+    intent = ARGS[1]
+    search_root = ARGS[2]
+    candidate_input_tsv = length(ARGS) >= 3 ? ARGS[3] : ""
+    candidate_input_source_hint = length(ARGS) >= 4 ? ARGS[4] : ""
+end
 
 function json_escape(value)
     text = string(value)
@@ -198,20 +208,7 @@ function doc_candidate_from_input(input)
     )
 end
 
-flow_id = "pi-wendao-search-strategy-flow"
-query_understanding = query_understanding_evidence_rows(intent; flow_id = flow_id, intent_id = "cli-intent-1")
-strategy_budget = (
-    source = isempty(query_understanding) ? "default" : "query_understanding",
-    loop_budget = isempty(query_understanding) ? 1 : maximum(row.recommended_loop_budget for row in query_understanding),
-    judgement_budget = isempty(query_understanding) ? 1 : maximum(row.recommended_judgement_budget for row in query_understanding),
-    beam_width = isempty(query_understanding) ? 3 : maximum(row.recommended_beam_width for row in query_understanding),
-)
-
-normalized_intent = lowercase(intent)
-strategy_weight = occursin("strategy", normalized_intent) || occursin("search", normalized_intent) || occursin("flow", normalized_intent) ? 0.04 : 0.0
-page_index_weight = occursin("page", normalized_intent) || occursin("index", normalized_intent) ? 0.03 : 0.0
-
-function fixed_proof_candidates()
+function fixed_proof_candidates(strategy_weight, page_index_weight)
     [
         doc_candidate(
             "docs/30_search_strategy/30.01_search_strategy_flow.md",
@@ -256,36 +253,6 @@ function fixed_proof_candidates()
         ),
     ]
 end
-
-candidate_inputs = parse_candidate_inputs(candidate_input_tsv)
-candidate_input_source = isempty(candidate_inputs) ? "fixed-proof-fallback" : (isempty(candidate_input_source_hint) ? "rust-markdown-headings" : candidate_input_source_hint)
-candidates = isempty(candidate_inputs) ? fixed_proof_candidates() : doc_candidate_from_input.(candidate_inputs)
-
-rows = strategy_flow_candidate_rows(
-    candidates;
-    flow_id = flow_id,
-    revision_id = "query-graph-cli-1",
-    keep_threshold = 0.70,
-    expand_threshold = 0.45,
-    context_budget = 4096,
-    query_understanding = query_understanding,
-)
-transitions = strategy_flow_transition_rows(rows; flow_id = flow_id)
-frontier = strategy_flow_frontier_rows(
-    rows;
-    flow_id = flow_id,
-    beam_width = strategy_budget.beam_width,
-    context_budget = 1900,
-)
-actions = strategy_flow_planner_action_rows(
-    rows,
-    transitions,
-    frontier;
-    flow_id = flow_id,
-    loop_budget = strategy_budget.loop_budget,
-    judgement_budget = strategy_budget.judgement_budget,
-    compare_count = 1,
-)
 
 function query_understanding_json(row)
     json_object((
@@ -370,6 +337,50 @@ function stage_receipt_json(row)
     ))
 end
 
+function search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint)
+flow_id = "pi-wendao-search-strategy-flow"
+query_understanding = query_understanding_evidence_rows(intent; flow_id = flow_id, intent_id = "cli-intent-1")
+strategy_budget = (
+    source = isempty(query_understanding) ? "default" : "query_understanding",
+    loop_budget = isempty(query_understanding) ? 1 : maximum(row.recommended_loop_budget for row in query_understanding),
+    judgement_budget = isempty(query_understanding) ? 1 : maximum(row.recommended_judgement_budget for row in query_understanding),
+    beam_width = isempty(query_understanding) ? 3 : maximum(row.recommended_beam_width for row in query_understanding),
+)
+
+normalized_intent = lowercase(intent)
+strategy_weight = occursin("strategy", normalized_intent) || occursin("search", normalized_intent) || occursin("flow", normalized_intent) ? 0.04 : 0.0
+page_index_weight = occursin("page", normalized_intent) || occursin("index", normalized_intent) ? 0.03 : 0.0
+
+candidate_inputs = parse_candidate_inputs(candidate_input_tsv)
+candidate_input_source = isempty(candidate_inputs) ? "fixed-proof-fallback" : (isempty(candidate_input_source_hint) ? "rust-markdown-headings" : candidate_input_source_hint)
+candidates = isempty(candidate_inputs) ? fixed_proof_candidates(strategy_weight, page_index_weight) : doc_candidate_from_input.(candidate_inputs)
+
+rows = strategy_flow_candidate_rows(
+    candidates;
+    flow_id = flow_id,
+    revision_id = "query-graph-cli-1",
+    keep_threshold = 0.70,
+    expand_threshold = 0.45,
+    context_budget = 4096,
+    query_understanding = query_understanding,
+)
+transitions = strategy_flow_transition_rows(rows; flow_id = flow_id)
+frontier = strategy_flow_frontier_rows(
+    rows;
+    flow_id = flow_id,
+    beam_width = strategy_budget.beam_width,
+    context_budget = 1900,
+)
+actions = strategy_flow_planner_action_rows(
+    rows,
+    transitions,
+    frontier;
+    flow_id = flow_id,
+    loop_budget = strategy_budget.loop_budget,
+    judgement_budget = strategy_budget.judgement_budget,
+    compare_count = 1,
+)
+
 total_context = sum(row.context_cost for row in rows)
 selected_context = sum(row.context_budget for row in frontier)
 selected_ids = [row.candidate_id for row in frontier if row.selected]
@@ -447,7 +458,7 @@ validation = json_object((
     "selectedContextReduced" => selected_context < total_context,
 ))
 
-println("{" * join((
+return "{" * join((
     json_pair("intent", json_value(intent)),
     json_pair("backend", json_value("rust-wendao-julia")),
     json_pair("controlPlane", json_value("rust")),
@@ -464,7 +475,69 @@ println("{" * join((
     json_pair("plannerActions", "[" * join(action_json.(actions), ",") * "]"),
     json_pair("summary", summary),
     json_pair("validation", validation),
-), ",") * "}")
+), ",") * "}"
+end
+
+if batch_mode
+    batch_count = parse(Int, ARGS[3])
+    expected_arg_count = 3 + batch_count * 3
+    length(ARGS) == expected_arg_count || error("SearchStrategyFlow batch mode expected $expected_arg_count args, got $(length(ARGS))")
+
+    function search_strategy_flow_batch_json_lines(batch_count)
+        traces = String[]
+        arg_index = 4
+        for _ in 1:batch_count
+            batch_intent = ARGS[arg_index]
+            batch_candidate_input_tsv = ARGS[arg_index + 1]
+            batch_candidate_input_source_hint = ARGS[arg_index + 2]
+            push!(traces, search_strategy_flow_json(batch_intent, batch_candidate_input_tsv, batch_candidate_input_source_hint))
+            arg_index += 3
+        end
+        join(traces, "\n")
+    end
+
+    println(search_strategy_flow_batch_json_lines(batch_count))
+elseif persistent_batch_mode
+    function read_search_strategy_flow_payload()
+        length_line = try
+            readline(stdin)
+        catch error
+            error isa EOFError && return nothing
+            rethrow(error)
+        end
+        isempty(length_line) && eof(stdin) && return nothing
+        byte_count = parse(Int, length_line)
+        String(read(stdin, byte_count))
+    end
+
+    while true
+        batch_count_payload = read_search_strategy_flow_payload()
+        batch_count_payload === nothing && break
+        local batch_count = parse(Int, batch_count_payload)
+        local request_batches = NamedTuple[]
+        for _ in 1:batch_count
+            batch_intent = read_search_strategy_flow_payload()
+            batch_candidate_input_tsv = read_search_strategy_flow_payload()
+            batch_candidate_input_source_hint = read_search_strategy_flow_payload()
+            push!(
+                request_batches,
+                (
+                    intent = batch_intent,
+                    candidate_input_tsv = batch_candidate_input_tsv,
+                    candidate_input_source_hint = batch_candidate_input_source_hint,
+                ),
+            )
+        end
+        traces = [
+            search_strategy_flow_json(batch.intent, batch.candidate_input_tsv, batch.candidate_input_source_hint)
+            for batch in request_batches
+        ]
+        println(join(traces, "\n"))
+        flush(stdout)
+    end
+else
+    println(search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint))
+end
 "#;
 
 pub(crate) const PAGE_INDEX_HOST_PROBE_JULIA: &str = r#"

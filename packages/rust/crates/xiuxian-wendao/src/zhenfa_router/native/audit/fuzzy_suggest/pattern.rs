@@ -127,6 +127,7 @@ pub(crate) fn is_identifier_like(s: &str) -> bool {
 }
 
 /// Extract the primary capture name from a pattern.
+#[cfg(test)]
 pub(crate) fn extract_capture_name(pattern: &str) -> Option<String> {
     let mut chars = pattern.chars().peekable();
     let mut in_capture = false;

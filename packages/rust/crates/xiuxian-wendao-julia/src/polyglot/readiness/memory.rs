@@ -16,7 +16,24 @@ use crate::polyglot::state::{
     memory_julia_compute_profile_refs,
 };
 
-use super::common::{julia_schedule_plan_from_readiness, max_in_flight_as_u32};
+use super::evidence_support::{julia_schedule_plan_from_readiness, max_in_flight_as_u32};
+
+/// Named readiness input for one memory-family Julia compute profile.
+#[derive(Clone, Copy, Debug)]
+pub struct MemoryJuliaComputeReadinessInput<'a> {
+    /// Runtime config that owns route/schema/fallback facts.
+    pub runtime: &'a MemoryJuliaComputeRuntimeConfig,
+    /// Memory compute profile being described.
+    pub profile: MemoryJuliaComputeProfile,
+    /// Julia warmup state observed by the owner.
+    pub warmup: WarmupState,
+    /// Benchmark state observed by the owner.
+    pub benchmark: BenchmarkState,
+    /// Active in-flight request count.
+    pub active_in_flight: u32,
+    /// Queued request count.
+    pub queue_depth: u32,
+}
 
 /// Builds a read-only snapshot for memory-family Julia compute contracts.
 ///
@@ -47,13 +64,16 @@ pub fn memory_julia_compute_snapshot(
 /// not probe, warm up, or schedule a Julia worker.
 #[must_use]
 pub fn memory_julia_compute_readiness_evidence(
-    runtime: &MemoryJuliaComputeRuntimeConfig,
-    profile: MemoryJuliaComputeProfile,
-    warmup: WarmupState,
-    benchmark: BenchmarkState,
-    active_in_flight: u32,
-    queue_depth: u32,
+    input: MemoryJuliaComputeReadinessInput<'_>,
 ) -> JuliaReadinessEvidence {
+    let MemoryJuliaComputeReadinessInput {
+        runtime,
+        profile,
+        warmup,
+        benchmark,
+        active_in_flight,
+        queue_depth,
+    } = input;
     let contract = profile.contract();
     let schema_validation = if runtime.schema_version.is_empty() {
         ContractValidationState::Invalid
@@ -90,14 +110,14 @@ pub fn memory_julia_compute_schedule_plan(
     let fallback_available = facts.fallback_available
         || matches!(runtime.fallback_mode, MemoryJuliaComputeFallbackMode::Rust);
     let facts = facts.with_fallback_available(fallback_available);
-    let readiness = memory_julia_compute_readiness_evidence(
+    let readiness = memory_julia_compute_readiness_evidence(MemoryJuliaComputeReadinessInput {
         runtime,
         profile,
-        facts.runtime_stats.warmup,
-        facts.runtime_stats.benchmark,
-        facts.runtime_stats.active_in_flight,
-        facts.runtime_stats.queue_depth,
-    )
+        warmup: facts.runtime_stats.warmup,
+        benchmark: facts.runtime_stats.benchmark,
+        active_in_flight: facts.runtime_stats.active_in_flight,
+        queue_depth: facts.runtime_stats.queue_depth,
+    })
     .with_fallback_available(fallback_available);
     julia_schedule_plan_from_readiness(readiness, shape, facts)
 }
@@ -109,21 +129,11 @@ pub fn memory_julia_compute_schedule_plan(
 /// Returns [`SnapshotInvariantError`] if the generated snapshot violates the
 /// neutral orchestrator invariants.
 pub fn memory_julia_compute_readiness_snapshot(
-    runtime: &MemoryJuliaComputeRuntimeConfig,
-    profile: MemoryJuliaComputeProfile,
-    warmup: WarmupState,
-    benchmark: BenchmarkState,
-    active_in_flight: u32,
-    queue_depth: u32,
+    input: MemoryJuliaComputeReadinessInput<'_>,
 ) -> Result<PolyglotControlSnapshot, SnapshotInvariantError> {
-    let evidence = memory_julia_compute_readiness_evidence(
-        runtime,
-        profile,
-        warmup,
-        benchmark,
-        active_in_flight,
-        queue_depth,
-    );
+    let runtime = input.runtime;
+    let profile = input.profile;
+    let evidence = memory_julia_compute_readiness_evidence(input);
     PolyglotControlSnapshot::from_parts(
         vec![memory_julia_compute_profile_ref(runtime, profile)],
         vec![evidence.to_admission_budget()],

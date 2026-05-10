@@ -21,10 +21,15 @@ pub use planned_search::{
     julia_planned_search_openai_runtime_config_toml,
     julia_planned_search_vector_store_runtime_config_toml,
 };
+pub(crate) use search_strategy_flow_evidence::search_strategy_flow_evidence_edge_kinds;
 pub use search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
 };
 pub use service_runtime::JuliaServiceGuard;
+pub(crate) use service_runtime::{
+    repo_root, reserve_service_port, wait_for_service_ready_with_attempts,
+    wendaosearch_julia_project, wendaosearch_script,
+};
 pub use wendaograph::{
     SearchStrategyFlowProbeAction, WendaoGraphLinkGraphFullStructuralHostProbeReport,
     WendaoGraphLinkGraphHostProbeReport, WendaoGraphPageIndexHostProbeReport,
@@ -38,6 +43,7 @@ pub use wendaograph::{
     probe_wendaograph_page_index_planner_action_host_request,
     probe_wendaograph_page_index_planner_action_host_request_with_fixture,
     run_wendaograph_search_strategy_flow_json,
+    run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     search_strategy_flow_probe_action_route,
 };

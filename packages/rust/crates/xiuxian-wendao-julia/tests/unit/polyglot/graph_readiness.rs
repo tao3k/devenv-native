@@ -233,7 +233,7 @@ fn page_index_schedule_dispatches_from_host_probe_stats() {
 #[test]
 fn wendaosearch_legacy_readiness_invalidates_empty_schema_override() {
     let runtime = LinkGraphJuliaRerankRuntimeConfig {
-        schema_version: Some(String::new()),
+        schema_version: Some(String::new().into()),
         ..LinkGraphJuliaRerankRuntimeConfig::default()
     };
 

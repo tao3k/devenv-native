@@ -12,10 +12,9 @@ use xiuxian_wendao_core::repo_intelligence::{
 };
 
 use crate::{
+    GraphStructuralKeywordOverlapCandidateMetadataInput, GraphStructuralKeywordOverlapQueryInput,
+    GraphStructuralKeywordOverlapRawCandidateInput,
     build_graph_structural_keyword_overlap_pair_candidate_inputs_from_raw,
-    build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
-    build_graph_structural_keyword_overlap_query_inputs,
-    build_graph_structural_keyword_overlap_raw_candidate_inputs,
     graph_structural_pair_candidate_id,
     integration_support::{
         WendaoSearchGraphStructuralStabilizationLimits,
@@ -57,6 +56,58 @@ const RUN_WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_TEST_ENV: &str =
 const WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_RUNS_ENV: &str = "WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_RUNS";
 const WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_WARM_SAMPLES_ENV: &str =
     "WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_WARM_SAMPLES";
+
+fn build_graph_structural_keyword_overlap_query_inputs(
+    query_id: impl Into<String>,
+    retrieval_layer: i32,
+    query_max_layers: i32,
+    keyword_anchors: Vec<String>,
+    edge_constraint_kinds: Vec<String>,
+) -> crate::GraphStructuralKeywordOverlapQueryInputs {
+    crate::build_graph_structural_keyword_overlap_query_inputs(
+        GraphStructuralKeywordOverlapQueryInput {
+            query_id: query_id.into(),
+            retrieval_layer,
+            query_max_layers,
+            keyword_anchors,
+            edge_constraint_kinds,
+        },
+    )
+}
+
+fn build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs(
+    left_id: impl Into<String>,
+    right_id: impl Into<String>,
+    edge_kinds: Vec<String>,
+    left_tags: Vec<String>,
+    right_tags: Vec<String>,
+) -> crate::GraphStructuralKeywordOverlapCandidateMetadataInputs {
+    crate::build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs(
+        GraphStructuralKeywordOverlapCandidateMetadataInput {
+            left_id: left_id.into(),
+            right_id: right_id.into(),
+            edge_kinds,
+            left_tags,
+            right_tags,
+        },
+    )
+}
+
+fn build_graph_structural_keyword_overlap_raw_candidate_inputs(
+    metadata_inputs: crate::GraphStructuralKeywordOverlapCandidateMetadataInputs,
+    semantic_score: f64,
+    dependency_score: f64,
+    keyword_match: bool,
+) -> crate::GraphStructuralKeywordOverlapRawCandidateInputs {
+    crate::build_graph_structural_keyword_overlap_raw_candidate_inputs(
+        GraphStructuralKeywordOverlapRawCandidateInput {
+            metadata_inputs,
+            semantic_score,
+            dependency_score,
+            keyword_match,
+        },
+    )
+}
 
 #[derive(Clone, Debug)]
 struct LivePerfMeasurement {
@@ -130,7 +181,7 @@ fn build_graph_structural_filter_request_batch_rejects_misaligned_anchors() {
         candidate_id: "candidate-a".to_string(),
         retrieval_layer: 1,
         query_max_layers: 3,
-        constraint_kind: "boundary-match".to_string(),
+        constraint_kind: "boundary-match".into(),
         required_boundary_size: 2,
         anchor_planes: vec!["semantic".to_string()],
         anchor_values: vec!["symbol:entry".to_string(), "tag:core".to_string()],
@@ -341,7 +392,7 @@ async fn fetch_graph_structural_filter_rows_for_repository_rejects_missing_trans
         candidate_id: "candidate-a".to_string(),
         retrieval_layer: 1,
         query_max_layers: 3,
-        constraint_kind: "boundary-match".to_string(),
+        constraint_kind: "boundary-match".into(),
         required_boundary_size: 2,
         anchor_planes: vec!["semantic".to_string()],
         anchor_values: vec!["symbol:entry".to_string()],
@@ -620,7 +671,7 @@ async fn assert_solver_demo_explicit_filter_rows(repository: &RegisteredReposito
         candidate_id: candidate_id.clone(),
         retrieval_layer: 0,
         query_max_layers: 2,
-        constraint_kind: "pin_assignment".to_string(),
+        constraint_kind: "pin_assignment".into(),
         required_boundary_size: 1,
         anchor_planes: vec!["semantic".to_string()],
         anchor_values: vec!["alpha".to_string()],
@@ -660,7 +711,7 @@ async fn assert_solver_demo_multi_route_filter_rows(repository: &RegisteredRepos
         candidate_id: candidate_id.clone(),
         retrieval_layer: 0,
         query_max_layers: 2,
-        constraint_kind: "pin_assignment".to_string(),
+        constraint_kind: "pin_assignment".into(),
         required_boundary_size: 1,
         anchor_planes: vec!["semantic".to_string()],
         anchor_values: vec!["alpha".to_string()],

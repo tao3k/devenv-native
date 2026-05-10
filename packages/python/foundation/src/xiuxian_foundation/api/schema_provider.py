@@ -26,7 +26,7 @@ def _preferred_crates(name: str) -> tuple[str, ...]:
         or raw.startswith("xiuxian.router.")
         or raw.startswith("xiuxian.discover.")
     ):
-        return ("xiuxian-daochang", "xiuxian-wendao")
+        return ("xiuxian-wendao",)
     if raw.startswith("xiuxian.memory."):
         return ("xiuxian-memory-engine", "xiuxian-wendao")
     if raw.startswith("xiuxian.skill."):

@@ -1,3 +1,5 @@
+//! Owns the Studio handlers capabilities types surface.
+
 use serde::Deserialize;
 use xiuxian_wendao_core::{
     artifacts::PluginArtifactSelector,

@@ -25,7 +25,7 @@ pub struct LogCliArgs {
     #[arg(long = "log-color", value_enum, default_value_t = LogColor::Auto, global = true)]
     pub color: LogColor,
 
-    /// Explicit tracing filter directive (for example: `xiuxian_daochang=debug,hyper=warn`).
+    /// Explicit tracing filter directive (for example: `wendao=debug,hyper=warn`).
     #[arg(long = "log-filter", value_name = "DIRECTIVE", global = true)]
     pub filter: Option<String>,
 }

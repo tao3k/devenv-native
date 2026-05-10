@@ -2,7 +2,7 @@
 name = "xiuxian-llm"
 version.workspace = true
 edition.workspace = true
-description = "LLM/embedding runtime primitives shared across xiuxian and xiuxian-daochang"
+description = "LLM/embedding runtime primitives shared across Xiuxian services"
 authors = ["CyberXiuXian Artisan workshop"]
 license = "Apache-2.0"
 publish = false

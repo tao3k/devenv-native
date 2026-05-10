@@ -1,3 +1,5 @@
+//! Coordinates the Studio search handlers flight branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod provider;
 mod repo_search;
 mod service;
@@ -8,9 +10,11 @@ mod tests;
 #[cfg(test)]
 pub(crate) use self::provider::StudioSearchFlightRouteProvider;
 pub use self::repo_search::{
-    StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
+    StudioFlightRoots, StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
     build_repo_search_flight_service, build_repo_search_flight_service_with_weights,
     build_studio_flight_service, build_studio_flight_service_for_roots,
+};
+pub(crate) use self::repo_search::{
     build_studio_flight_service_for_roots_with_weights, build_studio_flight_service_with_weights,
 };
 #[cfg(test)]

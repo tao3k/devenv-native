@@ -1,3 +1,5 @@
+//! Owns the Studio repo query pages surface.
+
 use serde::Deserialize;
 
 /// Basic repository query parameters.

@@ -1,3 +1,5 @@
+//! Owns the Studio docs types projected gap surface.
+
 use serde::Deserialize;
 
 /// Query parameters for docs-facing projected gap lookup.

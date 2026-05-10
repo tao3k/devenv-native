@@ -54,11 +54,11 @@ pub fn linked_builtin_julia_rerank_provider_binding_with_endpoint(
     endpoint: &LinkedBuiltinJuliaRerankEndpoint,
 ) -> PluginCapabilityBinding {
     build_rerank_provider_binding(&LinkGraphJuliaRerankRuntimeConfig {
-        base_url: Some(endpoint.base_url.clone()),
-        route: Some(endpoint.route.clone()),
-        health_route: Some(endpoint.health_route.clone()),
-        schema_version: Some(endpoint.schema_version.clone()),
-        timeout_secs: Some(endpoint.timeout_secs),
+        base_url: Some(endpoint.base_url.clone().into()),
+        route: Some(endpoint.route.clone().into()),
+        health_route: Some(endpoint.health_route.clone().into()),
+        schema_version: Some(endpoint.schema_version.clone().into()),
+        timeout_secs: Some(endpoint.timeout_secs.into()),
         service_mode: None,
         search_config_path: None,
         vector_weight: None,

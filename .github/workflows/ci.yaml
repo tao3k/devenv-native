@@ -405,7 +405,7 @@ jobs:
       - name: Start WendaoCodeParser parser-summary service for Rust tests
         run: |
           set -euo pipefail
-          source scripts/channel/process-runtime.sh
+          source scripts/runtime/process-runtime.sh
           export WENDAO_CODE_PARSER_SERVICE_NAME=wendaocodeparser-parser-summary
           export WENDAO_CODE_PARSER_RUNTIME_DIR=.run/wendaocodeparser
           export WENDAO_CODE_PARSER_PORT=41081
@@ -474,7 +474,7 @@ jobs:
       - name: Start WendaoSearch solver-demo service for Rust tests
         run: |
           set -euo pipefail
-          source scripts/channel/process-runtime.sh
+          source scripts/runtime/process-runtime.sh
           export WENDAOSEARCH_SERVICE_NAME=wendaosearch-solver-demo
           export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
           export WENDAOSEARCH_PORT=41080
@@ -556,7 +556,7 @@ jobs:
         if: ${{ always() }}
         run: |
           set +e
-          source scripts/channel/process-runtime.sh
+          source scripts/runtime/process-runtime.sh
           managed_cleanup_pidfile_process \
             .run/wendaocodeparser/wendaocodeparser-parser-summary.pid \
             wendaocodeparser-parser-summary \

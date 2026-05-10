@@ -9,8 +9,8 @@ use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao::analyzers::RegisteredRepository;
 use xiuxian_wendao::analyzers::resolve_registered_repository_source;
 
-use super::content::unix_timestamp_secs;
 use super::filters::ProjectFileFilter;
+use super::metadata::unix_timestamp_secs;
 
 pub(crate) struct VfsRoot {
     pub request_root: String,
@@ -35,7 +35,7 @@ pub(crate) fn list_root_entries(state: &StudioState) -> Vec<VfsEntry> {
                 .collect::<Vec<_>>()
         });
         entries.push(VfsEntry {
-            path: root.request_root.clone(),
+            path: root.request_root.clone().into(),
             name: root
                 .root_label
                 .clone()
@@ -57,37 +57,32 @@ pub(crate) fn list_root_entries(state: &StudioState) -> Vec<VfsEntry> {
 }
 
 pub(super) fn resolve_all_vfs_roots(state: &StudioState) -> Vec<VfsRoot> {
-    let mut roots = Vec::new();
-    let projects = state.configured_projects();
+    state
+        .configured_projects()
+        .iter()
+        .filter_map(|project| resolve_project_vfs_root(state, project))
+        .chain(
+            configured_repositories(state)
+                .into_iter()
+                .filter_map(|repository| resolve_repo_vfs_root(state, &repository)),
+        )
+        .collect()
+}
 
-    for project in projects {
-        let project_name = Some(project.name.clone());
-        let Some(project_root) = resolve_path_like(&state.config_root, project.root.as_str())
-        else {
-            continue;
-        };
-
-        let file_filters = compile_project_filters(&project_root, &project.dirs);
-
-        roots.push(VfsRoot {
-            request_root: project.name.clone(),
-            full_path: project_root,
-            project_name,
-            root_label: None,
-            filter_prefix: String::new(),
-            file_filters,
-        });
-    }
-
-    let repositories = configured_repositories(state);
-    for repository in repositories {
-        let Some(root) = resolve_repo_vfs_root(state, &repository) else {
-            continue;
-        };
-        roots.push(root);
-    }
-
-    roots
+fn resolve_project_vfs_root(
+    state: &StudioState,
+    project: &crate::studio::types::UiProjectConfig,
+) -> Option<VfsRoot> {
+    let project_root = resolve_path_like(&state.config_root, project.root.as_str())?;
+    let file_filters = compile_project_filters(&project_root, &project.dirs);
+    Some(VfsRoot {
+        request_root: project.name.clone(),
+        full_path: project_root,
+        project_name: Some(project.name.clone()),
+        root_label: None,
+        filter_prefix: String::new(),
+        file_filters,
+    })
 }
 
 fn resolve_repo_vfs_root(

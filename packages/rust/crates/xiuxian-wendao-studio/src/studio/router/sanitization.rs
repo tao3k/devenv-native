@@ -40,16 +40,10 @@ pub fn sanitize_projects(raw: Vec<UiProjectConfig>) -> Vec<UiProjectConfig> {
 #[must_use]
 pub fn sanitize_path_list(raw: Vec<String>) -> Vec<String> {
     let mut seen = HashSet::<String>::new();
-    let mut out = Vec::new();
-    for path in raw {
-        let Some(normalized) = pathing::normalize_project_dir_root(path.as_str()) else {
-            continue;
-        };
-        if seen.insert(normalized.clone()) {
-            out.push(normalized);
-        }
-    }
-    out
+    raw.into_iter()
+        .filter_map(|path| pathing::normalize_project_dir_root(path.as_str()))
+        .filter(|normalized| seen.insert(normalized.clone()))
+        .collect()
 }
 
 /// Sanitizes a list of repo project configurations.

@@ -6,7 +6,6 @@ mod limit;
 mod local_text;
 
 pub(crate) use core::PdfOcrWorkerScheduler;
-pub(super) use limit::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
 
 #[cfg(test)]
 pub(super) use dispatch::{
@@ -28,7 +27,7 @@ pub(super) use local_text::{
 use dispatch::scheduler_trace_for_chunk;
 
 #[cfg(test)]
-use super::capacity::OcrSchedulerLane;
+use super::OcrSchedulerLane;
 
 #[cfg(test)]
 pub(super) use limit::{

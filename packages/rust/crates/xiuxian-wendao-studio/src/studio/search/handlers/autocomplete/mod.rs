@@ -1,3 +1,5 @@
+//! Coordinates the Studio search handlers autocomplete branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod batch;
 mod provider;
 mod response;

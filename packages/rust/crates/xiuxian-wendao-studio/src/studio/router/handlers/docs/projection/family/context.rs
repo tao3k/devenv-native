@@ -1,3 +1,5 @@
+//! Owns the Studio projection family context surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -9,9 +11,9 @@ use crate::studio::router::handlers::docs::service::projection::family::{
     run_docs_family_context, run_docs_family_search,
 };
 use crate::studio::router::handlers::repo::parse::projection::parse_projection_page_kind;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::resource::required_page_id;
 use crate::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::family::{
     RepoProjectedPageFamilyContextApiQuery, RepoProjectedPageFamilySearchApiQuery,
 };

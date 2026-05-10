@@ -11,8 +11,15 @@ mod modelica_plugin;
 mod plugin;
 /// Read-only projections from Julia-owned contracts into polyglot contracts.
 pub mod polyglot;
+mod semantic;
 /// Command-line adapters for Julia-owned Wendao bridges.
 pub mod wendaograph_search_strategy_flow_cli;
+
+pub use semantic::{
+    JuliaContractEnabled, JuliaContractId, JuliaContractKind, JuliaContractMode, JuliaContractPath,
+    JuliaContractReason, JuliaContractRoute, JuliaContractSchemaVersion, JuliaContractSecondsU64,
+    JuliaContractState, JuliaContractTimestampMsI64, JuliaContractTransport, JuliaContractUrl,
+};
 
 pub(crate) use modelica_plugin::fetch_modelica_parser_file_summary_blocking_for_repository;
 #[cfg(test)]
@@ -47,19 +54,32 @@ pub use plugin::{
     GRAPH_STRUCTURAL_RERANK_RESPONSE_COLUMNS, GRAPH_STRUCTURAL_RERANK_ROUTE,
     GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN, GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN,
     GRAPH_STRUCTURAL_STRUCTURAL_SCORE_COLUMN, GRAPH_STRUCTURAL_TAG_SCORE_COLUMN,
-    GraphStructuralCandidateSubgraph, GraphStructuralFilterConstraint,
-    GraphStructuralFilterRequestRow, GraphStructuralFilterScoreRow,
+    GraphStructuralCandidateSubgraph, GraphStructuralCandidateSubgraphInput,
+    GraphStructuralFilterConstraint, GraphStructuralFilterRequestRow,
+    GraphStructuralFilterScoreRow, GraphStructuralGenericTopologyCandidateInput,
     GraphStructuralGenericTopologyCandidateInputs,
+    GraphStructuralGenericTopologyCandidateMetadataInput,
     GraphStructuralGenericTopologyCandidateMetadataInputs,
-    GraphStructuralKeywordOverlapCandidateInputs, GraphStructuralKeywordOverlapPairInputs,
-    GraphStructuralKeywordOverlapPairRequestInputs, GraphStructuralKeywordOverlapPairRerankInputs,
-    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInputs,
-    GraphStructuralKeywordTagQueryInputs, GraphStructuralNodeMetadataInputs,
-    GraphStructuralPairCandidateInputs, GraphStructuralQueryAnchor, GraphStructuralQueryContext,
+    GraphStructuralGenericTopologyPairCollectionInput, GraphStructuralKeywordOverlapCandidateInput,
+    GraphStructuralKeywordOverlapCandidateInputs,
+    GraphStructuralKeywordOverlapCandidateMetadataInput,
+    GraphStructuralKeywordOverlapCandidateMetadataInputs, GraphStructuralKeywordOverlapPairInputs,
+    GraphStructuralKeywordOverlapPairRequestInput, GraphStructuralKeywordOverlapPairRequestInputs,
+    GraphStructuralKeywordOverlapPairRerankInput, GraphStructuralKeywordOverlapPairRerankInputs,
+    GraphStructuralKeywordOverlapPairRerankRowInput, GraphStructuralKeywordOverlapQueryInput,
+    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInput,
+    GraphStructuralKeywordOverlapRawCandidateInputs, GraphStructuralKeywordTagMatchFlags,
+    GraphStructuralKeywordTagPairRerankRequestInput, GraphStructuralKeywordTagQueryContextInput,
+    GraphStructuralKeywordTagQueryInput, GraphStructuralKeywordTagQueryInputs,
+    GraphStructuralKeywordTagRerankSignalInput, GraphStructuralNodeMetadataInputs,
+    GraphStructuralPairCandidateInputs, GraphStructuralPairFilterRequestInput,
+    GraphStructuralPairRerankRequestInput, GraphStructuralQueryAnchor, GraphStructuralQueryContext,
+    GraphStructuralQueryContextInput, GraphStructuralRawConnectedPairCandidateInput,
     GraphStructuralRawConnectedPairCollectionCandidateInputs,
-    GraphStructuralRawConnectedPairInputs, GraphStructuralRerankRequestRow,
-    GraphStructuralRerankScoreRow, GraphStructuralRerankSignals, GraphStructuralRouteKind,
-    GraphStructuralScoredPairCandidateInputs, JULIA_ARROW_RESPONSE_SCHEMA_VERSION,
+    GraphStructuralRawConnectedPairCollectionRawTupleInput, GraphStructuralRawConnectedPairInputs,
+    GraphStructuralRerankRequestRow, GraphStructuralRerankScoreRow, GraphStructuralRerankSignals,
+    GraphStructuralRouteKind, GraphStructuralScoredPairCandidateInputs,
+    GraphStructuralScoredPairCollectionCandidateInput, JULIA_ARROW_RESPONSE_SCHEMA_VERSION,
     JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION, JULIA_PLUGIN_CAPABILITY_MANIFEST_BASE_URL_COLUMN,
     JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN,
     JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN,

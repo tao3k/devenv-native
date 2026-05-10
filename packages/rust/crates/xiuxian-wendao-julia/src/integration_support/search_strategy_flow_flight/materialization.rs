@@ -11,7 +11,7 @@ use super::client::SearchStrategyFlowFlightClient;
 use super::config::SearchStrategyFlowFlightMaterializationConfig;
 use super::constants::{GRAPH_HOPS, GRAPH_LIMIT, RELATED_CONTEXT_LIMIT, REPO_SEARCH_LIMIT};
 use super::ids::{
-    find_node_id_by_anchor_or_title, first_node_id, graph_node_display_id,
+    find_node_id_by_anchor_or_title, first_node_id, graph_node_display_id_candidates,
     normalized_repo_search_doc_id, projected_page_id, repo_relative_source_path,
 };
 use super::metadata::{
@@ -140,7 +140,7 @@ async fn materialize_route(
         .and_then(|anchor| find_node_id_by_anchor_or_title(&roots, anchor))
         .or_else(|| first_node_id(&roots))
         .ok_or_else(|| "SearchStrategyFlow page-index tree did not expose a node id".to_owned())?;
-    let graph_node_id = graph_node_display_id(&config.repo_id, &repo_search_path);
+    let graph_node_ids = graph_node_display_id_candidates(&config.repo_id, &repo_search_path);
 
     let retrieval_context_batches = client
         .collect_route_batches(
@@ -158,21 +158,8 @@ async fn materialize_route(
         )
         .await?;
 
-    let graph_batches = client
-        .collect_route_batches(
-            GRAPH_NEIGHBORS_ROUTE,
-            "SearchStrategyFlow graph-neighbor materialization",
-            |metadata| {
-                populate_graph_neighbors_headers(
-                    metadata,
-                    graph_node_id.as_str(),
-                    "both",
-                    GRAPH_HOPS,
-                    GRAPH_LIMIT,
-                )
-            },
-        )
-        .await?;
+    let (graph_node_id, graph_batches) =
+        collect_first_available_graph_neighbors(client, &graph_node_ids).await?;
 
     let route_receipts = route_receipts(
         &repo_search_batches,
@@ -202,6 +189,48 @@ async fn materialize_route(
         route_receipts,
         decoded_payload_receipts,
     })
+}
+
+async fn collect_first_available_graph_neighbors(
+    client: &mut SearchStrategyFlowFlightClient,
+    graph_node_ids: &[String],
+) -> Result<(String, Vec<RecordBatch>), String> {
+    let mut attempted_errors = Vec::new();
+    for graph_node_id in graph_node_ids {
+        match client
+            .collect_route_batches(
+                GRAPH_NEIGHBORS_ROUTE,
+                "SearchStrategyFlow graph-neighbor materialization",
+                |metadata| {
+                    populate_graph_neighbors_headers(
+                        metadata,
+                        graph_node_id.as_str(),
+                        "both",
+                        GRAPH_HOPS,
+                        GRAPH_LIMIT,
+                    )
+                },
+            )
+            .await
+        {
+            Ok(batches) => return Ok((graph_node_id.clone(), batches)),
+            Err(error) if is_graph_node_not_found_error(error.as_str()) => {
+                attempted_errors.push(format!("{graph_node_id}: {error}"));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+
+    Err(format!(
+        "SearchStrategyFlow graph-neighbor materialization failed for {} graph node candidate(s): {}",
+        graph_node_ids.len(),
+        attempted_errors.join("; ")
+    ))
+}
+
+fn is_graph_node_not_found_error(error: &str) -> bool {
+    let normalized = error.to_ascii_lowercase();
+    normalized.contains("graph node") && normalized.contains("not found")
 }
 
 fn route_receipts(

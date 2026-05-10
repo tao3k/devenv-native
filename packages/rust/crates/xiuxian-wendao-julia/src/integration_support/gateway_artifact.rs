@@ -42,12 +42,21 @@ pub fn julia_gateway_artifact_selected_transport() -> &'static str {
 }
 
 /// Return the stable path identifiers for the Julia deployment artifact.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JuliaGatewayArtifactPath {
+    /// Owner plugin id.
+    pub plugin_id: String,
+    /// Deployment artifact id.
+    pub artifact_id: String,
+}
+
+/// Return the stable path identifiers for the Julia deployment artifact.
 #[must_use]
-pub fn julia_gateway_artifact_path() -> (String, String) {
-    (
-        JULIA_PLUGIN_ID.to_string(),
-        JULIA_DEPLOYMENT_ARTIFACT_ID.to_string(),
-    )
+pub fn julia_gateway_artifact_path() -> JuliaGatewayArtifactPath {
+    JuliaGatewayArtifactPath {
+        plugin_id: JULIA_PLUGIN_ID.to_string(),
+        artifact_id: JULIA_DEPLOYMENT_ARTIFACT_ID.to_string(),
+    }
 }
 
 /// Build the JSON-RPC params fixture used by generic Julia plugin-artifact
@@ -57,7 +66,10 @@ pub fn julia_gateway_artifact_rpc_params_fixture(
     output_format: Option<&str>,
     output_path: Option<&str>,
 ) -> Value {
-    let (plugin_id, artifact_id) = julia_gateway_artifact_path();
+    let JuliaGatewayArtifactPath {
+        plugin_id,
+        artifact_id,
+    } = julia_gateway_artifact_path();
     let mut request = json!({
         "plugin_id": plugin_id,
         "artifact_id": artifact_id,
@@ -112,7 +124,10 @@ pub fn julia_gateway_artifact_expected_json_fragments() -> Vec<String> {
 /// mapping tests.
 #[must_use]
 pub fn julia_ui_artifact_payload_fixture() -> PluginArtifactPayload {
-    let (plugin_id, artifact_id) = julia_gateway_artifact_path();
+    let JuliaGatewayArtifactPath {
+        plugin_id,
+        artifact_id,
+    } = julia_gateway_artifact_path();
 
     PluginArtifactPayload {
         plugin_id: PluginId(plugin_id),
@@ -121,7 +136,7 @@ pub fn julia_ui_artifact_payload_fixture() -> PluginArtifactPayload {
         generated_at: JULIA_UI_ARTIFACT_GENERATED_AT.to_string(),
         endpoint: Some(PluginTransportEndpoint {
             base_url: Some(JULIA_UI_ARTIFACT_BASE_URL.to_string()),
-            route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string()),
+            route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.into()),
             health_route: Some(JULIA_UI_ARTIFACT_HEALTH_ROUTE.to_string()),
             timeout_secs: Some(JULIA_UI_ARTIFACT_TIMEOUT_SECS),
             max_in_flight_requests: None,

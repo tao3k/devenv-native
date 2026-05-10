@@ -48,6 +48,7 @@ search-runtime = [
   "repo-lexical-index",
   "dep:graphql-parser",
   "dep:xiuxian-ast",
+  "dep:xiuxian-code-intelligence",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/engine",
   "runtime-transport",
@@ -139,6 +140,7 @@ xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", opt
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
+xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 # Macro utilities

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::studio::router::GatewayState;
 use crate::studio::router::StudioApiError;
-use crate::studio::router::handlers::repo::shared::execution::with_repo_cached_analysis_bundle;
+use crate::studio::router::handlers::repo::analysis_support::execution::with_repo_cached_analysis_bundle;
 use xiuxian_wendao::analyzers::{
     RepoIntelligenceError, RepoProjectedPageIndexTreeSearchQuery,
     RepoProjectedPageIndexTreeSearchResult, RepoProjectedPageSearchQuery,

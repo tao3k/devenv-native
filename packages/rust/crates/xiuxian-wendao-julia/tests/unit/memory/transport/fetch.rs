@@ -288,19 +288,19 @@ async fn fetch_memory_julia_episodic_recall_score_rows_roundtrips() {
     let rows = fetch_memory_julia_episodic_recall_score_rows(
         &runtime,
         &[MemoryJuliaEpisodicRecallRequestRow {
-            query_id: "query-1".to_string(),
+            query_id: "query-1".into(),
             scenario_pack: Some("searchinfra".to_string()),
             scope: "repo".to_string(),
             query_text: Some("fix memory lane".to_string()),
             query_embedding: vec![0.1, 0.2, 0.3],
-            candidate_id: "episode-1".to_string(),
+            candidate_id: "episode-1".into(),
             intent_embedding: vec![0.1, 0.2, 0.3],
             q_value: 0.7,
             success_count: 3,
             failure_count: 1,
             retrieval_count: 4,
-            created_at_ms: 100,
-            updated_at_ms: 200,
+            created_at_ms: 100.into(),
+            updated_at_ms: 200.into(),
             k1: 1.0,
             k2: 0.5,
             lambda: 0.6,
@@ -335,7 +335,7 @@ async fn fetch_memory_julia_gate_score_recommendation_rows_roundtrips() {
             usage_count: 4,
             failure_rate: 0.25,
             ttl_score: 0.7,
-            current_state: "active".to_string(),
+            current_state: "active".into(),
         }],
     )
     .await

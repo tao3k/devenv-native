@@ -36,7 +36,7 @@ pub(crate) async fn load_symbol_search_response(
             hit_count: 0,
             selected_scope: "project".to_string(),
             partial: true,
-            indexing_state: Some(status.indexing_state.to_string()),
+            indexing_state: Some(status.indexing_state.into()),
             index_error: status.index_error,
             hits: Vec::new(),
         });
@@ -79,7 +79,7 @@ pub(crate) async fn load_symbol_search_response(
         hit_count: hits.len(),
         selected_scope: "project".to_string(),
         partial: false,
-        indexing_state: Some("ready".to_string()),
+        indexing_state: Some("ready".into()),
         index_error: None,
         hits: {
             hits.truncate(limit);

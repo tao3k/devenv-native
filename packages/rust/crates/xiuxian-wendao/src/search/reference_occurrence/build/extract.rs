@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 use regex::Regex;
-use xiuxian_ast::Lang;
+use xiuxian_code_intelligence::supported_code_language_id_from_path;
 
 use crate::search::contracts::{ReferenceSearchHit, SearchProjectConfig, StudioNavigationTarget};
 use crate::search::contracts::{infer_crate_name, project_metadata_for_path};
@@ -86,24 +86,7 @@ pub(crate) fn build_reference_occurrences_for_file(
 }
 
 fn reference_scan_lang(path: &Path) -> Option<&'static str> {
-    match Lang::from_path(path)? {
-        Lang::Python => Some("python"),
-        Lang::Rust => Some("rust"),
-        Lang::JavaScript => Some("javascript"),
-        Lang::TypeScript => Some("typescript"),
-        Lang::Bash => Some("bash"),
-        Lang::Go => Some("go"),
-        Lang::Java => Some("java"),
-        Lang::C => Some("c"),
-        Lang::Cpp => Some("cpp"),
-        Lang::CSharp => Some("csharp"),
-        Lang::Ruby => Some("ruby"),
-        Lang::Swift => Some("swift"),
-        Lang::Kotlin => Some("kotlin"),
-        Lang::Lua => Some("lua"),
-        Lang::Php => Some("php"),
-        _ => None,
-    }
+    supported_code_language_id_from_path(path)
 }
 
 fn reference_navigation_target(

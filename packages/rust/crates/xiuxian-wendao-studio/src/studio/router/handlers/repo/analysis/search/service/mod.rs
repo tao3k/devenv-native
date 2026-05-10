@@ -1,3 +1,5 @@
+//! Coordinates the Studio analysis search service branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "execution.rs"]
 mod execution;
 #[path = "imports.rs"]

@@ -1,3 +1,5 @@
+//! Owns the Studio studio router routes surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -42,7 +44,7 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
         )
         .route(
             openapi_paths::API_DOCS_PROJECTED_GAP_REPORT_AXUM_PATH,
-            get(handlers::docs::projection::projected_gap::projected_gap_report),
+            get(handlers::docs::projection::projected_gap::docs_projected_gap_report),
         )
         .route(
             openapi_paths::API_DOCS_PLANNER_ITEM_AXUM_PATH,
@@ -179,7 +181,7 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_GAP_REPORT_AXUM_PATH,
-            get(handlers::repo::pages::collection::projected_gap_report),
+            get(handlers::repo::pages::collection::repo_projected_gap_report),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_AXUM_PATH,

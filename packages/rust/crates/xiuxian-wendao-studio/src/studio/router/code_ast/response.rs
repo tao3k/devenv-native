@@ -1,3 +1,5 @@
+//! Owns the Studio router code ast response surface.
+
 use crate::studio::types::{
     CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
     CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtomScope,
@@ -15,7 +17,7 @@ use super::{
 /// Build the code-AST response payload for one repository-relative source path.
 #[must_use]
 #[allow(clippy::too_many_lines)]
-pub fn build_code_ast_analysis_response(
+pub(crate) fn build_code_ast_analysis_response(
     repo_id: String,
     path: String,
     line_hint: Option<usize>,
@@ -33,10 +35,10 @@ pub fn build_code_ast_analysis_response(
     for module in &analysis.modules {
         let line = 1usize;
         nodes.push(CodeAstNode {
-            id: module.module_id.clone(),
+            id: module.module_id.clone().into(),
             label: module.qualified_name.clone(),
             kind: CodeAstNodeKind::Module,
-            path: Some(module.path.clone()),
+            path: Some(module.path.clone().into()),
             line_start: Some(line),
             line_end: Some(line),
         });
@@ -89,10 +91,10 @@ pub fn build_code_ast_analysis_response(
             CodeAstNodeKind::ExternalSymbol
         };
         nodes.push(CodeAstNode {
-            id: symbol.symbol_id.clone(),
+            id: symbol.symbol_id.clone().into(),
             label: symbol.name.clone(),
             kind,
-            path: Some(symbol.path.clone()),
+            path: Some(symbol.path.clone().into()),
             line_start: symbol.line_start,
             line_end: symbol.line_end.or(symbol.line_start),
         });
@@ -197,9 +199,10 @@ pub fn build_code_ast_analysis_response(
             id: format!(
                 "{}-{}-{}",
                 relation.source_id, relation.target_id, relation.kind as u8
-            ),
-            source_id: relation.source_id.clone(),
-            target_id: relation.target_id.clone(),
+            )
+            .into(),
+            source_id: relation.source_id.clone().into(),
+            target_id: relation.target_id.clone().into(),
             kind,
             label: None,
         });
@@ -251,8 +254,8 @@ pub fn build_code_ast_analysis_response(
     ];
 
     CodeAstAnalysisResponse {
-        repo_id,
-        path,
+        repo_id: repo_id.into(),
+        path: path.into(),
         language: language.to_string(),
         node_count: nodes.len(),
         edge_count: edges.len(),
@@ -260,7 +263,7 @@ pub fn build_code_ast_analysis_response(
         edges,
         projections,
         retrieval_atoms,
-        focus_node_id,
+        focus_node_id: focus_node_id.map(Into::into),
         diagnostics: Vec::new(),
     }
 }
@@ -314,17 +317,17 @@ fn build_import_code_ast_nodes(
             }
             (
                 CodeAstNode {
-                    id: import_id.clone(),
+                    id: import_id.clone().into(),
                     label: import.import_name.clone(),
                     kind: CodeAstNodeKind::ExternalSymbol,
-                    path: Some(path.to_string()),
+                    path: Some(path.to_string().into()),
                     line_start: import.line_start,
                     line_end: import.line_start,
                 },
                 CodeAstEdge {
-                    id: format!("{}-{}-imports", import.module_id, import_id),
-                    source_id: import.module_id.clone(),
-                    target_id: import_id,
+                    id: format!("{}-{}-imports", import.module_id, import_id).into(),
+                    source_id: import.module_id.clone().into(),
+                    target_id: import_id.into(),
                     kind: CodeAstEdgeKind::Imports,
                     label: None,
                 },

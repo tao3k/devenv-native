@@ -1,7 +1,7 @@
 use crate::contracts::{UiConfig, UiRepoProjectConfig};
 use crate::studio::router::StudioState;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::search::required_import_search_filters;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 
 #[test]
 fn import_search_filters_require_package_or_module() {

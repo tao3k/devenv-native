@@ -6,7 +6,7 @@ use xiuxian_wendao_attachments::polyglot::{
     pdf_ocr_source_range_shard_schedule_plan,
 };
 
-use super::scheduler::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
+use super::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
 
 const HEALTHY_STREAK_BEFORE_INCREASE: usize = 2;
 const PRESSURE_LATENCY_MS: u64 = 60_000;

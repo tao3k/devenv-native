@@ -10,8 +10,8 @@ use xiuxian_wendao_server::transport::{
     GraphNeighborsFlightRouteProvider, GraphNeighborsFlightRouteResponse,
 };
 
+use super::query_support::{normalize_hops, normalize_limit, parse_direction};
 use super::service::run_graph_neighbors;
-use super::shared::{normalize_hops, normalize_limit, parse_direction};
 use crate::studio::router::{GatewayState, StudioApiError};
 use crate::studio::types::{GraphLink, GraphNeighborsResponse, GraphNode};
 
@@ -215,20 +215,20 @@ impl FlightGraphRow {
     fn from_node(node: &GraphNode) -> Self {
         Self {
             row_type: "node",
-            node_id: Some(node.id.clone()),
+            node_id: Some(node.id.to_string()),
             node_label: Some(node.label.clone()),
-            node_path: Some(node.path.clone()),
-            node_type: Some(node.node_type.clone()),
-            node_is_center: Some(node.is_center),
+            node_path: Some(node.path.to_string()),
+            node_type: Some(node.node_type.to_string()),
+            node_is_center: Some(node.is_center.is_center()),
             node_distance: Some(node.distance),
             navigation_path: node
                 .navigation_target
                 .as_ref()
-                .map(|target| target.path.clone()),
+                .map(|target| target.path.to_string()),
             navigation_category: node
                 .navigation_target
                 .as_ref()
-                .map(|target| target.category.clone()),
+                .map(|target| target.category.to_string()),
             navigation_project_name: node
                 .navigation_target
                 .as_ref()

@@ -1,13 +1,13 @@
 #[test]
 fn runtime_config_builds_provider_binding_and_artifact_payload() {
     let runtime = LinkGraphJuliaRerankRuntimeConfig {
-        base_url: Some("http://127.0.0.1:8088".to_string()),
-        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string()),
-        health_route: Some("/healthz".to_string()),
-        schema_version: Some("v1".to_string()),
-        timeout_secs: Some(15),
-        service_mode: Some("stream".to_string()),
-        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
+        base_url: Some("http://127.0.0.1:8088".into()),
+        route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.into()),
+        health_route: Some("/healthz".into()),
+        schema_version: Some("v1".into()),
+        timeout_secs: Some(15_u64.into()),
+        service_mode: Some("stream".into()),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.into()),
         vector_weight: Some(0.2),
         similarity_weight: Some(0.8),
     };
@@ -112,7 +112,7 @@ link_graph:
     assert_eq!(runtime.route.as_deref(), Some("/rerank"));
     assert_eq!(runtime.health_route.as_deref(), Some("/healthz"));
     assert_eq!(runtime.schema_version.as_deref(), Some("v1"));
-    assert_eq!(runtime.timeout_secs, Some(15));
+    assert_eq!(runtime.timeout_secs.map(|seconds| seconds.value()), Some(15));
     assert_eq!(runtime.service_mode.as_deref(), Some("stream"));
     assert_eq!(
         runtime.search_config_path.as_deref(),
@@ -173,7 +173,7 @@ link_graph:
     assert_eq!(runtime.route.as_deref(), Some("/rerank"));
     assert_eq!(runtime.health_route.as_deref(), Some("/healthz"));
     assert_eq!(runtime.schema_version.as_deref(), Some("v1"));
-    assert_eq!(runtime.timeout_secs, Some(15));
+    assert_eq!(runtime.timeout_secs.map(|seconds| seconds.value()), Some(15));
     assert_eq!(runtime.service_mode.as_deref(), Some("stream"));
     assert_eq!(
         runtime.search_config_path.as_deref(),
@@ -188,13 +188,13 @@ link_graph:
 #[test]
 fn rerank_runtime_converts_into_generic_binding() {
     let binding = build_rerank_provider_binding(&LinkGraphJuliaRerankRuntimeConfig {
-        base_url: Some("http://127.0.0.1:8088".to_string()),
-        route: Some("/rerank".to_string()),
-        health_route: Some("/healthz".to_string()),
-        schema_version: Some("v2".to_string()),
-        timeout_secs: Some(15),
-        service_mode: Some("stream".to_string()),
-        search_config_path: Some("config/search.toml".to_string()),
+        base_url: Some("http://127.0.0.1:8088".into()),
+        route: Some("/rerank".into()),
+        health_route: Some("/healthz".into()),
+        schema_version: Some("v2".into()),
+        timeout_secs: Some(15_u64.into()),
+        service_mode: Some("stream".into()),
+        search_config_path: Some("config/search.toml".into()),
         vector_weight: Some(0.7),
         similarity_weight: Some(0.3),
     });

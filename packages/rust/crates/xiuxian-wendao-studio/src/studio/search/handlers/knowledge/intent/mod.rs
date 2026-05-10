@@ -1,3 +1,5 @@
+//! Coordinates the Studio handlers knowledge intent branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod cache;
 mod entry;
 mod flight;

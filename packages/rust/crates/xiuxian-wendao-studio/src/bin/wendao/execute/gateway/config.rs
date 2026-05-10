@@ -14,7 +14,7 @@ use xiuxian_config_core::{
 };
 use xiuxian_zhenfa::WebhookConfig;
 
-use crate::bin_support::wendao::execute::gateway::shared::{DEFAULT_BIND_ADDR, DEFAULT_PORT};
+use crate::bin_support::wendao::execute::gateway::state::{DEFAULT_BIND_ADDR, DEFAULT_PORT};
 
 /// Resolve the effective config file from CLI override, local project file, or
 /// `PRJ_ROOT`.

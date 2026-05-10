@@ -1,3 +1,5 @@
+//! Owns the Studio docs projection page index tree surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -6,8 +8,8 @@ use axum::{
 };
 
 use crate::studio::router::handlers::docs::service::projection::page::run_docs_page_index_tree;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::resource::required_page_id;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::pages::RepoProjectedPageApiQuery;
 use crate::studio::router::{GatewayState, StudioApiError};
 use xiuxian_wendao::analyzers::DocsPageIndexTreeQuery;

@@ -238,9 +238,8 @@ async fn collect_gateway_case_diagnostics_with_extra_merges_runtime_pressure() -
 async fn collect_gateway_case_diagnostics_with_repo_read_pressure_records_gate_state() -> Result<()>
 {
     let fixture = prepare_gateway_perf_fixture().await?;
-    fixture
-        .warm_repo_scope_query("gateway-sync", "solve")
-        .await?;
+    let repo_id = "gateway-sync".into();
+    fixture.warm_repo_scope_query(&repo_id, "solve").await?;
     let diagnostics = collect_gateway_case_diagnostics_with_repo_read_pressure(
         &fixture,
         REPO_SYMBOL_SEARCH_URI,
@@ -302,9 +301,8 @@ async fn repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_
 #[file_serial(wendao_perf_gate)]
 async fn search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate() -> Result<()> {
     let fixture = prepare_gateway_perf_fixture().await?;
-    fixture
-        .warm_repo_scope_query("gateway-sync", "solve")
-        .await?;
+    let repo_id = "gateway-sync".into();
+    fixture.warm_repo_scope_query(&repo_id, "solve").await?;
     let diagnostics = Arc::new(Mutex::new(
         "maintenance=none; repoRead=none; scopes=<missing>".to_string(),
     ));

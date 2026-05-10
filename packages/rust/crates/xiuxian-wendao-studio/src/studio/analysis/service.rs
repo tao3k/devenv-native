@@ -1,3 +1,5 @@
+//! Owns the Studio studio analysis service surface.
+
 use std::path::Path;
 
 use crate::studio::StudioState;
@@ -10,6 +12,7 @@ use crate::studio::types::AnalysisNode;
 use crate::studio::types::MarkdownAnalysisResponse;
 use crate::studio::vfs::resolve_vfs_file_path;
 
+/// Error raised while compiling Studio analysis responses.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AnalysisError {
     UnsupportedContentType(String),

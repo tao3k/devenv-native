@@ -112,14 +112,14 @@ pub fn run_audit_core(
     let source_files: Vec<SourceFile> = if let Some(ref paths) = args.source_paths {
         let path_refs: Vec<&std::path::Path> = paths.iter().map(std::path::Path::new).collect();
         let mut files = Vec::new();
-        for lang in [
-            xiuxian_ast::Lang::Rust,
-            xiuxian_ast::Lang::Python,
-            xiuxian_ast::Lang::TypeScript,
-            xiuxian_ast::Lang::JavaScript,
-            xiuxian_ast::Lang::Go,
+        for language_id in [
+            xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+            xiuxian_code_intelligence::CodeLanguageId::from("python"),
+            xiuxian_code_intelligence::CodeLanguageId::from("typescript"),
+            xiuxian_code_intelligence::CodeLanguageId::from("javascript"),
+            xiuxian_code_intelligence::CodeLanguageId::from("go"),
         ] {
-            files.extend(resolve_source_files(&path_refs, lang));
+            files.extend(resolve_source_files(&path_refs, &language_id));
         }
         files
     } else {

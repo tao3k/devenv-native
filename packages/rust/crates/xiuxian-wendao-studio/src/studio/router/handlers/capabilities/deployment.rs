@@ -1,3 +1,5 @@
+//! Owns the Studio handlers capabilities deployment surface.
+
 use std::sync::Arc;
 
 use axum::{

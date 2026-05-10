@@ -1,3 +1,5 @@
+//! Owns the Studio studio pathing surface.
+
 use crate::studio::types::UiProjectConfig;
 use crate::studio::{StudioState, configured_repositories};
 use std::env;
@@ -5,6 +7,7 @@ use std::path::{Path, PathBuf};
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao::analyzers::{RegisteredRepository, resolve_registered_repository_source};
 
+/// Resolves a user-provided path against a Studio base directory.
 pub fn resolve_path_like(base: &Path, input: &str) -> Option<PathBuf> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
@@ -21,10 +24,12 @@ pub fn resolve_path_like(base: &Path, input: &str) -> Option<PathBuf> {
     normalize_path_buf_like(joined.as_path())
 }
 
+/// Normalizes a configured project directory root for Studio path matching.
 pub fn normalize_project_dir_root(dir: &str) -> Option<String> {
     normalize_path_like(dir)
 }
 
+/// Normalizes a path-like string into Studio's slash-separated path form.
 pub fn normalize_path_like(raw: &str) -> Option<String> {
     let mut normalized = raw.trim().replace('\\', "/");
     if normalized.is_empty() {
@@ -49,6 +54,7 @@ pub fn normalize_path_like(raw: &str) -> Option<String> {
     }
 }
 
+/// Returns the project- or repository-scoped display path for Studio UI use.
 pub fn studio_display_path(state: &StudioState, internal_path: &str) -> String {
     let fallback = normalize_path_like(internal_path)
         .unwrap_or_else(|| internal_path.trim().trim_start_matches('/').to_string());

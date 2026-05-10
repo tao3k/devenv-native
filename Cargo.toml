@@ -25,7 +25,7 @@ members = [
   "packages/rust/crates/xiuxian-logging",
   "packages/rust/crates/xiuxian-security",
   "packages/rust/crates/xiuxian-sandbox",
-  "packages/rust/crates/xiuxian-tags",
+  "packages/rust/crates/xiuxian-code-intelligence",
   "packages/rust/crates/xiuxian-tokenizer",
   "packages/rust/crates/xiuxian-types",
   "packages/rust/crates/xiuxian-vector",
@@ -37,7 +37,6 @@ members = [
   "packages/rust/crates/xiuxian-wendao-client",
   "packages/rust/crates/xiuxian-wendao-julia",
   "packages/rust/crates/xiuxian-window",
-  "packages/rust/crates/xiuxian-daochang",
   "packages/rust/crates/xiuxian-qianji",
   "packages/rust/crates/xiuxian-memory",
   "packages/rust/crates/xiuxian-zhixing",
@@ -163,7 +162,7 @@ rayon = "1.11"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 litellm-rs = { git = "https://github.com/tao3k/litellm-rs", branch = "xiuxian", default-features = false }
 
-# CLI and HTTP (xiuxian-daochang gateway)
+# CLI and HTTP
 clap = { version = "4.5", features = ["derive"] }
 axum = "0.8"
 tonic = { version = "0.14.5", default-features = false, features = ["transport"] }

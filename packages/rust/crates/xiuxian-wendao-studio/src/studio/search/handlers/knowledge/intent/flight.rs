@@ -1,3 +1,5 @@
+//! Owns the Studio knowledge intent flight surface.
+
 use std::sync::Arc;
 
 use crate::studio::arrow_types::{

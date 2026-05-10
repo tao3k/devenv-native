@@ -42,7 +42,7 @@ overlay on merge.
 - repo-intelligence config loading is import-aware, so base config plus any
   legacy overlay repo registrations use the same merged TOML contract
 - `nix/modules/process.nix` now points at the root config and uses a bounded
-  TOML-aware helper under `scripts/channel/` for readiness-port discovery
+  TOML-aware helper under `scripts/runtime/` for readiness-port discovery
 
 ## Gateway Runtime Knobs
 

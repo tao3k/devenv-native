@@ -21,7 +21,7 @@ use xiuxian_wendao::search::queries::{
     rest::{RestQueryPayload, RestQueryRequest, query_rest_payload},
 };
 
-use crate::bin_support::wendao::execute::gateway::shared::AppState;
+use crate::bin_support::wendao::execute::gateway::state::AppState;
 
 /// Compatibility HTTP route used by bounded external query clients.
 pub(crate) const GATEWAY_QUERY_AXUM_PATH: &str = "/query";

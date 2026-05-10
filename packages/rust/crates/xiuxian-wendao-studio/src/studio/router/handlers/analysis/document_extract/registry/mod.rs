@@ -1,17 +1,17 @@
 //! DuckDB-backed document extraction job registry facade.
 
+mod artifacts;
 mod hash;
 mod jobs;
 mod lifecycle;
 mod queries;
 mod recovery;
 mod types;
-mod utils;
 
+pub(super) use artifacts::artifact_ready;
+pub(crate) use artifacts::default_output_dir;
 pub(super) use types::DocumentExtractJobRegistry;
 pub(crate) use types::{DocumentExtractJobRegistrySnapshot, DocumentExtractJobStatus};
-pub(super) use utils::artifact_ready;
-pub(crate) use utils::default_output_dir;
 
 #[cfg(test)]
 use std::fs;

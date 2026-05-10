@@ -16,7 +16,7 @@ use xiuxian_wendao::query_core::{
     query_graph_neighbors_projection,
 };
 
-use crate::studio::router::handlers::graph::shared::{
+use crate::studio::router::handlers::graph::query_support::{
     graph_node, layout_scalar, preferred_label, resolve_graph_node_id, topology_color,
     topology_position,
 };
@@ -92,9 +92,9 @@ pub(crate) async fn run_topology_3d(
         }
 
         nodes.push(TopologyNode {
-            id: display_path.clone(),
+            id: display_path.clone().into(),
             name: preferred_label(doc.title.as_str(), display_path.as_str()),
-            node_type: "doc".to_string(),
+            node_type: "doc".into(),
             position,
             cluster_id,
         });
@@ -215,7 +215,8 @@ fn graph_neighbors_response_from_projection(
     nodes.sort_by(|left, right| {
         right
             .is_center
-            .cmp(&left.is_center)
+            .is_center()
+            .cmp(&left.is_center.is_center())
             .then_with(|| left.distance.cmp(&right.distance))
             .then_with(|| left.id.cmp(&right.id))
     });

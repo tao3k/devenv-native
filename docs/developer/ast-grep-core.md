@@ -54,8 +54,8 @@ let root_node = root.root();
 ```rust
 use ast_grep_core::{matcher::MatcherExt, Pattern};
 
-const PYTHON_CLASS_PATTERN: &str = "class $NAME";
-let pattern = Pattern::new(PYTHON_CLASS_PATTERN, lang);
+const PYTHON_CLASS: &str = "class $NAME";
+let pattern = Pattern::new(PYTHON_CLASS, lang);
 ```
 
 ### 2.3 Match Nodes
@@ -382,7 +382,7 @@ impl<'tree, D: Doc> NodeMatch<'tree, D> {
 
 ## 8. Related Files
 
-- `packages/rust/crates/xiuxian-tags/src/lib.rs` - Implementation example
+- `packages/rust/crates/xiuxian-code-intelligence/src/lib.rs` - Implementation example
 - `packages/rust/crates/xiuxian-ast/src/scan.rs` - Pattern matching utilities
 - `packages/rust/crates/xiuxian-security/src/scanner.rs` - Scanner boundary example
-- `packages/rust/crates/xiuxian-tags/Cargo.toml` - Dependency configuration
+- `packages/rust/crates/xiuxian-code-intelligence/Cargo.toml` - Dependency configuration

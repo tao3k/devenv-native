@@ -74,7 +74,7 @@ local-runtime = [
   "dep:toml",
   "dep:uuid",
   "dep:walkdir",
-  "dep:xiuxian-ast",
+  "dep:xiuxian-code-intelligence",
   "dep:xiuxian-config-core",
   "dep:xiuxian-db-store",
   "dep:xiuxian-git-repo",
@@ -173,7 +173,7 @@ xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
-xiuxian-ast = { path = "../xiuxian-ast", optional = true }
+xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }

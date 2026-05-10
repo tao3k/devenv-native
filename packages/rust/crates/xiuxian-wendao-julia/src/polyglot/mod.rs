@@ -6,6 +6,8 @@ mod wendaograph_algorithms;
 
 pub use crate::JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION;
 pub use readiness::{
+    MemoryJuliaComputeReadinessInput, WendaoGraphReadinessInput,
+    WendaoSearchGraphStructuralReadinessInput, WendaoSearchLegacyRerankReadinessInput,
     memory_julia_compute_config_readiness, memory_julia_compute_readiness_evidence,
     memory_julia_compute_readiness_snapshot, memory_julia_compute_schedule_plan,
     memory_julia_compute_snapshot, wendao_graph_gnn_accelerator_diagnostics_from_host_probe,
@@ -41,7 +43,8 @@ pub use state::{
     wendaosearch_graph_structural_profile_refs, wendaosearch_legacy_rerank_profile_ref,
 };
 pub use wendaograph_algorithms::{
-    WendaoGraphAlgorithmRef, WendaoGraphAlgorithmWorkload, wendaograph_algorithm_ref,
+    WendaoGraphAlgorithmId, WendaoGraphAlgorithmRef, WendaoGraphAlgorithmRefInput,
+    WendaoGraphAlgorithmWorkload, WendaoGraphProfileId, wendaograph_algorithm_ref,
     wendaograph_algorithm_refs, wendaograph_algorithm_refs_for_profile,
     wendaograph_algorithm_task_shape, wendaograph_frontier_algorithm_ref,
     wendaograph_frontier_task_shape, wendaograph_gnn_algorithm_refs,

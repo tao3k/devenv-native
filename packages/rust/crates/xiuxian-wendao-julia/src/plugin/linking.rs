@@ -58,22 +58,7 @@ pub(crate) fn build_example_relations(
 
     for example in &context.examples {
         let evidence = ExampleLinkEvidence::load(&context.repository_root, example)?;
-        let mut target_ids = BTreeSet::new();
-
-        for symbol in &context.symbols {
-            if evidence.matches_symbol(symbol) {
-                target_ids.insert(symbol.symbol_id.clone());
-                if let Some(module_id) = &symbol.module_id {
-                    target_ids.insert(module_id.clone());
-                }
-            }
-        }
-
-        for module in &context.modules {
-            if evidence.matches_module(module) {
-                target_ids.insert(module.module_id.clone());
-            }
-        }
+        let target_ids = example_relation_target_ids(&evidence, &context.symbols, &context.modules);
 
         relations.extend(target_ids.into_iter().map(|target_id| RelationRecord {
             repo_id: example.repo_id.clone(),
@@ -84,6 +69,43 @@ pub(crate) fn build_example_relations(
     }
 
     Ok(relations)
+}
+
+fn example_relation_target_ids(
+    evidence: &ExampleLinkEvidence,
+    symbols: &[SymbolRecord],
+    modules: &[ModuleRecord],
+) -> BTreeSet<String> {
+    let mut target_ids = example_symbol_target_ids(evidence, symbols);
+    target_ids.extend(example_module_target_ids(evidence, modules));
+    target_ids
+}
+
+fn example_symbol_target_ids(
+    evidence: &ExampleLinkEvidence,
+    symbols: &[SymbolRecord],
+) -> BTreeSet<String> {
+    let mut target_ids = BTreeSet::new();
+    for symbol in symbols {
+        if evidence.matches_symbol(symbol) {
+            target_ids.insert(symbol.symbol_id.clone());
+            if let Some(module_id) = &symbol.module_id {
+                target_ids.insert(module_id.clone());
+            }
+        }
+    }
+    target_ids
+}
+
+fn example_module_target_ids(
+    evidence: &ExampleLinkEvidence,
+    modules: &[ModuleRecord],
+) -> BTreeSet<String> {
+    modules
+        .iter()
+        .filter(|module| evidence.matches_module(module))
+        .map(|module| module.module_id.clone())
+        .collect()
 }
 
 struct DocLinkEvidence {

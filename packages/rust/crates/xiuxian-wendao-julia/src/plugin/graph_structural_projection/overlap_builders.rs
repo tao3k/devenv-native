@@ -5,12 +5,19 @@ use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::overlap::{
     GraphStructuralKeywordOverlapCandidateInputs, GraphStructuralKeywordOverlapPairInputs,
-    GraphStructuralKeywordOverlapPairRequestInputs, GraphStructuralKeywordOverlapPairRerankInputs,
+    GraphStructuralKeywordOverlapPairRequestInput, GraphStructuralKeywordOverlapPairRequestInputs,
+    GraphStructuralKeywordOverlapPairRerankInput, GraphStructuralKeywordOverlapPairRerankInputs,
     GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInputs,
     build_graph_structural_keyword_overlap_pair_candidate_inputs_from_raw,
 };
-use super::pair::{GraphStructuralKeywordTagQueryInputs, GraphStructuralPairCandidateInputs};
-use super::pair_builders::build_graph_structural_keyword_tag_pair_rerank_request_row;
+use super::pair::{
+    GraphStructuralKeywordTagQueryInput, GraphStructuralKeywordTagQueryInputs,
+    GraphStructuralPairCandidateInputs,
+};
+use super::pair_builders::{
+    GraphStructuralKeywordTagPairRerankRequestInput,
+    build_graph_structural_keyword_tag_pair_rerank_request_row,
+};
 use super::support::normalize_string_list;
 use crate::{GraphStructuralRerankRequestRow, build_graph_structural_rerank_request_batch};
 
@@ -30,13 +37,10 @@ pub fn graph_structural_shared_tag_anchors(
     let right_tags = normalize_string_list(right_tags, "right tags", true)?;
     let right_set: std::collections::HashSet<String> = right_tags.into_iter().collect();
     let mut seen = std::collections::HashSet::new();
-    let mut shared = Vec::new();
-    for tag in left_tags {
-        if right_set.contains(&tag) && seen.insert(tag.clone()) {
-            shared.push(tag);
-        }
-    }
-    Ok(shared)
+    Ok(left_tags
+        .into_iter()
+        .filter(|tag| right_set.contains(tag) && seen.insert(tag.clone()))
+        .collect())
 }
 
 /// Build one staged structural-rerank request row from keyword anchors,
@@ -51,24 +55,48 @@ pub fn graph_structural_shared_tag_anchors(
 /// endpoint, edge-kind, or score input fails the underlying Julia-owned
 /// normalization rules.
 pub fn build_graph_structural_keyword_overlap_pair_rerank_request_row(
-    mut query_inputs: GraphStructuralKeywordTagQueryInputs,
-    left_tags: Vec<String>,
-    right_tags: Vec<String>,
-    pair_inputs: GraphStructuralPairCandidateInputs,
-    semantic_score: f64,
-    dependency_score: f64,
-    keyword_match: bool,
+    input: GraphStructuralKeywordOverlapPairRerankRowInput,
 ) -> Result<GraphStructuralRerankRequestRow, RepoIntelligenceError> {
-    query_inputs.tag_anchors = graph_structural_shared_tag_anchors(left_tags, right_tags)?;
-    let tag_match = !query_inputs.tag_anchors.is_empty();
-    build_graph_structural_keyword_tag_pair_rerank_request_row(
-        query_inputs,
-        pair_inputs,
+    let GraphStructuralKeywordOverlapPairRerankRowInput {
+        mut query,
+        left_tags,
+        right_tags,
+        pair,
         semantic_score,
         dependency_score,
         keyword_match,
-        tag_match,
+    } = input;
+    query.tag_anchors = graph_structural_shared_tag_anchors(left_tags, right_tags)?;
+    let tag_match = !query.tag_anchors.is_empty();
+    build_graph_structural_keyword_tag_pair_rerank_request_row(
+        GraphStructuralKeywordTagPairRerankRequestInput {
+            query,
+            pair,
+            semantic_score,
+            dependency_score,
+            keyword_match,
+            tag_match,
+        },
     )
+}
+
+/// Named inputs for one keyword-overlap pair rerank request row.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralKeywordOverlapPairRerankRowInput {
+    /// Query inputs before shared tag anchors are derived.
+    pub query: GraphStructuralKeywordTagQueryInputs,
+    /// Left node tags used for overlap anchors.
+    pub left_tags: Vec<String>,
+    /// Right node tags used for overlap anchors.
+    pub right_tags: Vec<String>,
+    /// Pair candidate data.
+    pub pair: GraphStructuralPairCandidateInputs,
+    /// Semantic score before Julia rerank.
+    pub semantic_score: f64,
+    /// Dependency score before Julia rerank.
+    pub dependency_score: f64,
+    /// Whether the pair matched a keyword anchor.
+    pub keyword_match: bool,
 }
 
 /// Build one staged structural-rerank request row from a plugin-owned
@@ -90,13 +118,15 @@ pub fn build_graph_structural_keyword_overlap_pair_rerank_request_row_from_metad
     keyword_match: bool,
 ) -> Result<GraphStructuralRerankRequestRow, RepoIntelligenceError> {
     build_graph_structural_keyword_overlap_pair_rerank_request_row(
-        inputs.query_inputs,
-        inputs.left_metadata.tags,
-        inputs.right_metadata.tags,
-        inputs.pair_inputs,
-        semantic_score,
-        dependency_score,
-        keyword_match,
+        GraphStructuralKeywordOverlapPairRerankRowInput {
+            query: inputs.query_inputs,
+            left_tags: inputs.left_metadata.tags,
+            right_tags: inputs.right_metadata.tags,
+            pair: inputs.pair_inputs,
+            semantic_score,
+            dependency_score,
+            keyword_match,
+        },
     )
 }
 
@@ -149,11 +179,13 @@ pub fn build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_inp
         .iter()
         .cloned()
         .map(|input| {
-            GraphStructuralKeywordOverlapPairRerankInputs::new(
-                input.metadata_inputs,
-                input.semantic_score,
-                input.dependency_score,
-                input.keyword_match,
+            GraphStructuralKeywordOverlapPairRerankInputs::from_input(
+                GraphStructuralKeywordOverlapPairRerankInput {
+                    metadata_inputs: input.metadata_inputs,
+                    semantic_score: input.semantic_score,
+                    dependency_score: input.dependency_score,
+                    keyword_match: input.keyword_match,
+                },
             )
         })
         .collect::<Vec<_>>();
@@ -167,23 +199,26 @@ pub fn build_graph_structural_keyword_overlap_pair_request_input(
     query: &GraphStructuralKeywordOverlapQueryInputs,
     candidate: GraphStructuralKeywordOverlapCandidateInputs,
 ) -> GraphStructuralKeywordOverlapPairRequestInputs {
-    let query_inputs = GraphStructuralKeywordTagQueryInputs::new(
-        query.query_id.clone(),
-        query.retrieval_layer,
-        query.query_max_layers,
-        query.keyword_anchors.clone(),
-        Vec::new(),
-        query.edge_constraint_kinds.clone(),
-    );
+    let query_inputs =
+        GraphStructuralKeywordTagQueryInputs::from_input(GraphStructuralKeywordTagQueryInput {
+            query_id: query.query_id.clone(),
+            retrieval_layer: query.retrieval_layer,
+            query_max_layers: query.query_max_layers,
+            keyword_anchors: query.keyword_anchors.clone(),
+            tag_anchors: Vec::new(),
+            edge_constraint_kinds: query.edge_constraint_kinds.clone(),
+        });
 
-    GraphStructuralKeywordOverlapPairRequestInputs::new(
-        query_inputs,
-        candidate.left_metadata,
-        candidate.right_metadata,
-        candidate.pair_inputs,
-        candidate.semantic_score,
-        candidate.dependency_score,
-        candidate.keyword_match,
+    GraphStructuralKeywordOverlapPairRequestInputs::from_input(
+        GraphStructuralKeywordOverlapPairRequestInput {
+            query_inputs,
+            left_metadata: candidate.left_metadata,
+            right_metadata: candidate.right_metadata,
+            pair_inputs: candidate.pair_inputs,
+            semantic_score: candidate.semantic_score,
+            dependency_score: candidate.dependency_score,
+            keyword_match: candidate.keyword_match,
+        },
     )
 }
 

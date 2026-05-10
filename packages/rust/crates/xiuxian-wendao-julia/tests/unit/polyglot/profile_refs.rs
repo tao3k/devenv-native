@@ -18,7 +18,7 @@ use super::{
 #[test]
 fn profile_ref_projects_runtime_route_and_schema() {
     let mut runtime = MemoryJuliaComputeRuntimeConfig {
-        enabled: true,
+        enabled: true.into(),
         schema_version: "v2".to_string(),
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
@@ -41,16 +41,16 @@ fn profile_ref_projects_runtime_route_and_schema() {
 fn manifest_row_ref_preserves_julia_owner() {
     let row = MemoryJuliaComputeManifestRow {
         family: "memory".to_string(),
-        capability_id: "memory_gate_score".to_string(),
-        profile_id: "memory_gate_score".to_string(),
-        request_schema_id: "memory.gate_score.request.v1".to_string(),
-        response_schema_id: "memory.gate_score.response.v1".to_string(),
+        capability_id: "memory_gate_score".into(),
+        profile_id: "memory_gate_score".into(),
+        request_schema_id: "memory.gate_score.request.v1".into(),
+        response_schema_id: "memory.gate_score.response.v1".into(),
         route: "/memory/gate_score".to_string(),
-        health_route: Some("/healthz".to_string()),
+        health_route: Some("/healthz".into()),
         schema_version: "v1".to_string(),
-        timeout_secs: Some(10),
+        timeout_secs: Some(10_u64.into()),
         scenario_pack: None,
-        enabled: true,
+        enabled: true.into(),
     };
 
     let reference = memory_julia_compute_manifest_row_ref(&row);
@@ -65,7 +65,7 @@ fn manifest_row_ref_preserves_julia_owner() {
 #[test]
 fn profile_refs_cover_staged_memory_profiles() {
     let runtime = MemoryJuliaComputeRuntimeConfig {
-        enabled: true,
+        enabled: true.into(),
         schema_version: "v1".to_string(),
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
@@ -160,8 +160,8 @@ fn wendaosearch_refs_project_structural_routes() {
 #[test]
 fn wendaosearch_legacy_ref_projects_runtime_override() {
     let runtime = LinkGraphJuliaRerankRuntimeConfig {
-        route: Some("/custom/rerank".to_string()),
-        schema_version: Some("v2".to_string()),
+        route: Some("/custom/rerank".into()),
+        schema_version: Some("v2".into()),
         ..LinkGraphJuliaRerankRuntimeConfig::default()
     };
 

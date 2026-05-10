@@ -1,3 +1,5 @@
+//! Owns the Studio router config load surface.
+
 use std::collections::HashSet;
 use std::path::Path;
 

@@ -1,5 +1,0 @@
-[discord]
-session_partition = "guild_channel_user"
-
-[telegram]
-session_partition = "chat"

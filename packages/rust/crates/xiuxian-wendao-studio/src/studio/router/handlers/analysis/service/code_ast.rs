@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
+use xiuxian_code_intelligence::CodeLanguageId;
 use xiuxian_git_repo::MaterializedRepo;
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao_core::repo_intelligence::RegisteredRepository;
@@ -148,9 +149,9 @@ fn maybe_build_generic_code_ast_response(
         repo_path.to_string(),
         line_hint,
         source_content,
-        lang,
+        CodeLanguageId::from(lang.as_str()),
     );
-    response.path = request_path.to_string();
+    response.path = request_path.to_string().into();
     Some(response)
 }
 
@@ -208,7 +209,7 @@ fn finish_code_ast_analysis_response(
         source_content,
         analysis,
     );
-    response.path = request_path.to_string();
+    response.path = request_path.to_string().into();
     response
 }
 

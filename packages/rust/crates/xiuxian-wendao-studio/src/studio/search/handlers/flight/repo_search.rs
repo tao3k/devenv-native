@@ -1,3 +1,5 @@
+//! Owns the Studio handlers flight repo search surface.
+
 use std::sync::Arc;
 
 use crate::studio::arrow_types::LanceRecordBatch;
@@ -87,6 +89,24 @@ impl RepoSearchFlightRouteProvider for StudioRepoSearchFlightRouteProvider {
     }
 }
 
+/// Project and config roots used to bootstrap a Studio Flight service.
+#[derive(Debug, Clone)]
+pub struct StudioFlightRoots {
+    project_root: std::path::PathBuf,
+    config_root: std::path::PathBuf,
+}
+
+impl StudioFlightRoots {
+    /// Create a root bundle for Studio Flight service bootstrap.
+    #[must_use]
+    pub fn new(project_root: std::path::PathBuf, config_root: std::path::PathBuf) -> Self {
+        Self {
+            project_root,
+            config_root,
+        }
+    }
+}
+
 fn runtime_repo_search_request(
     request: &RepoSearchFlightRequest,
 ) -> xiuxian_wendao_runtime::transport::RepoSearchFlightRequest {
@@ -172,7 +192,7 @@ pub fn build_studio_flight_service(
 ///
 /// Returns an error when the runtime Flight service cannot be constructed for
 /// the requested schema version, rerank dimension, and rerank score weights.
-pub fn build_studio_flight_service_with_weights(
+pub(crate) fn build_studio_flight_service_with_weights(
     search_plane: Arc<SearchPlaneService>,
     gateway_state: Arc<GatewayState>,
     expected_schema_version: impl Into<String>,
@@ -202,15 +222,13 @@ pub fn build_studio_flight_service_with_weights(
 /// version and rerank dimension.
 pub fn build_studio_flight_service_for_roots(
     search_plane: Arc<SearchPlaneService>,
-    project_root: std::path::PathBuf,
-    config_root: std::path::PathBuf,
+    roots: StudioFlightRoots,
     expected_schema_version: impl Into<String>,
     rerank_dimension: usize,
 ) -> Result<WendaoFlightService, String> {
     build_studio_flight_service_for_roots_with_weights(
         search_plane,
-        project_root,
-        config_root,
+        roots,
         expected_schema_version,
         rerank_dimension,
         RerankScoreWeights::default(),
@@ -226,10 +244,9 @@ pub fn build_studio_flight_service_for_roots(
 /// Returns an error when the plugin registry cannot be bootstrapped or when the
 /// runtime Flight service cannot be constructed for the requested schema
 /// version, rerank dimension, and rerank score weights.
-pub fn build_studio_flight_service_for_roots_with_weights(
+pub(crate) fn build_studio_flight_service_for_roots_with_weights(
     search_plane: Arc<SearchPlaneService>,
-    project_root: std::path::PathBuf,
-    config_root: std::path::PathBuf,
+    roots: StudioFlightRoots,
     expected_schema_version: impl Into<String>,
     rerank_dimension: usize,
     rerank_weights: RerankScoreWeights,
@@ -238,6 +255,10 @@ pub fn build_studio_flight_service_for_roots_with_weights(
         xiuxian_wendao::analyzers::bootstrap_builtin_registry()
             .map_err(|error| format!("bootstrap registry: {error}"))?,
     );
+    let StudioFlightRoots {
+        project_root,
+        config_root,
+    } = roots;
     let studio = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
         plugin_registry,
         project_root,

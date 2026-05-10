@@ -380,6 +380,11 @@ pub fn validate_memory_julia_plan_tuning_request_batch(batch: &RecordBatch) -> R
         return Err("plan tuning request batch must contain at least one row".to_string());
     }
 
+    validate_plan_tuning_request_required_columns(batch)?;
+    validate_plan_tuning_request_cross_field_rules(batch)
+}
+
+fn validate_plan_tuning_request_required_columns(batch: &RecordBatch) -> Result<(), String> {
     require_non_blank_utf8_column(batch, MEMORY_JULIA_PLAN_TUNING_SCOPE_COLUMN)?;
     require_non_blank_optional_utf8_column(batch, MEMORY_JULIA_PLAN_TUNING_SCENARIO_PACK_COLUMN)?;
     require_positive_u32_column(batch, MEMORY_JULIA_PLAN_TUNING_CURRENT_K1_COLUMN)?;
@@ -392,8 +397,10 @@ pub fn validate_memory_julia_plan_tuning_request_batch(batch: &RecordBatch) -> R
     )?;
     require_signed_unit_column(batch, MEMORY_JULIA_PLAN_TUNING_FEEDBACK_BIAS_COLUMN)?;
     require_probability_column(batch, MEMORY_JULIA_PLAN_TUNING_RECENT_SUCCESS_RATE_COLUMN)?;
-    require_probability_column(batch, MEMORY_JULIA_PLAN_TUNING_RECENT_FAILURE_RATE_COLUMN)?;
+    require_probability_column(batch, MEMORY_JULIA_PLAN_TUNING_RECENT_FAILURE_RATE_COLUMN)
+}
 
+fn validate_plan_tuning_request_cross_field_rules(batch: &RecordBatch) -> Result<(), String> {
     let current_k1 = u32_column(batch, MEMORY_JULIA_PLAN_TUNING_CURRENT_K1_COLUMN)
         .map_err(|error| error.to_string())?;
     let current_k2 = u32_column(batch, MEMORY_JULIA_PLAN_TUNING_CURRENT_K2_COLUMN)
@@ -503,6 +510,11 @@ pub fn validate_memory_julia_plan_tuning_response_batch(batch: &RecordBatch) -> 
         return Err("plan tuning response batch must contain at least one row".to_string());
     }
 
+    validate_plan_tuning_response_required_columns(batch)?;
+    validate_plan_tuning_response_cross_field_rules(batch)
+}
+
+fn validate_plan_tuning_response_required_columns(batch: &RecordBatch) -> Result<(), String> {
     require_non_blank_utf8_column(batch, MEMORY_JULIA_PLAN_TUNING_SCOPE_COLUMN)?;
     require_positive_u32_column(batch, MEMORY_JULIA_PLAN_TUNING_NEXT_K1_COLUMN)?;
     require_positive_u32_column(batch, MEMORY_JULIA_PLAN_TUNING_NEXT_K2_COLUMN)?;
@@ -514,8 +526,10 @@ pub fn validate_memory_julia_plan_tuning_response_batch(batch: &RecordBatch) -> 
     )?;
     require_non_blank_utf8_column(batch, MEMORY_JULIA_PLAN_TUNING_REASON_COLUMN)?;
     require_probability_column(batch, MEMORY_JULIA_PLAN_TUNING_CONFIDENCE_COLUMN)?;
-    require_non_blank_utf8_column(batch, MEMORY_JULIA_PLAN_TUNING_SCHEMA_VERSION_COLUMN)?;
+    require_non_blank_utf8_column(batch, MEMORY_JULIA_PLAN_TUNING_SCHEMA_VERSION_COLUMN)
+}
 
+fn validate_plan_tuning_response_cross_field_rules(batch: &RecordBatch) -> Result<(), String> {
     let next_k1 = u32_column(batch, MEMORY_JULIA_PLAN_TUNING_NEXT_K1_COLUMN)
         .map_err(|error| error.to_string())?;
     let next_k2 = u32_column(batch, MEMORY_JULIA_PLAN_TUNING_NEXT_K2_COLUMN)

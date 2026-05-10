@@ -6,6 +6,9 @@ use crate::zhenfa_router::native::audit::{SourceFile, suggest_pattern_fix_with_t
 use crate::zhenfa_router::native::semantic_check::types::{
     FuzzySuggestionData, IssueLocation, SemanticIssue,
 };
+use xiuxian_code_intelligence::{
+    CodeLanguageId, code_language_id_from_path, count_code_pattern_matches_for_language_id,
+};
 
 fn push_invalid_observation_language_issue(
     node: &PageIndexNode,
@@ -32,7 +35,7 @@ fn push_invalid_observation_language_issue(
 
 fn build_observation_fuzzy_suggestion(
     obs: &CodeObservation,
-    lang: xiuxian_ast::Lang,
+    language_id: &CodeLanguageId,
     source_files: &[SourceFile],
     fuzzy_threshold: Option<f32>,
 ) -> Option<FuzzySuggestionData> {
@@ -40,7 +43,7 @@ fn build_observation_fuzzy_suggestion(
         return None;
     }
 
-    suggest_pattern_fix_with_threshold(&obs.pattern, lang, source_files, fuzzy_threshold)
+    suggest_pattern_fix_with_threshold(&obs.pattern, language_id, source_files, fuzzy_threshold)
         .map(|suggestion| FuzzySuggestionData::from_suggestion(suggestion, obs.pattern.clone()))
 }
 
@@ -70,17 +73,23 @@ fn format_observation_suggestion(
 
 fn count_observation_matches(
     obs: &CodeObservation,
-    lang: xiuxian_ast::Lang,
+    language_id: &CodeLanguageId,
     source_files: &[SourceFile],
 ) -> usize {
     source_files
         .iter()
         .filter_map(|file| {
             let file_path = Path::new(&file.path);
-            xiuxian_ast::Lang::from_path(file_path)
-                .filter(|file_lang| *file_lang == lang)
-                .and_then(|_| xiuxian_ast::scan(&file.content, &obs.pattern, lang).ok())
-                .map(|matches| matches.len())
+            code_language_id_from_path(file_path)
+                .filter(|file_language_id| *file_language_id == language_id.as_str())
+                .and_then(|_| {
+                    count_code_pattern_matches_for_language_id(
+                        &file.content,
+                        &obs.pattern,
+                        language_id,
+                    )
+                    .ok()
+                })
         })
         .sum()
 }
@@ -98,10 +107,15 @@ pub(crate) fn check_code_observations(
             push_invalid_observation_language_issue(node, doc_id, obs, issues);
             continue;
         };
+        let language_id = CodeLanguageId::from(lang.as_str());
 
         if let Err(error) = obs.validate_pattern() {
-            let fuzzy_suggestion_data =
-                build_observation_fuzzy_suggestion(obs, lang, source_files, fuzzy_threshold);
+            let fuzzy_suggestion_data = build_observation_fuzzy_suggestion(
+                obs,
+                &language_id,
+                source_files,
+                fuzzy_threshold,
+            );
             let suggestion_text = format_observation_suggestion(
                 &obs.pattern,
                 "is invalid. Consider updating to:",
@@ -122,12 +136,13 @@ pub(crate) fn check_code_observations(
             continue;
         }
 
-        if source_files.is_empty() || count_observation_matches(obs, lang, source_files) > 0 {
+        if source_files.is_empty() || count_observation_matches(obs, &language_id, source_files) > 0
+        {
             continue;
         }
 
         let fuzzy_suggestion_data =
-            build_observation_fuzzy_suggestion(obs, lang, source_files, fuzzy_threshold);
+            build_observation_fuzzy_suggestion(obs, &language_id, source_files, fuzzy_threshold);
         let suggestion_text = format_observation_suggestion(
             &obs.pattern,
             "found no matches in the provided sources. Consider updating to:",

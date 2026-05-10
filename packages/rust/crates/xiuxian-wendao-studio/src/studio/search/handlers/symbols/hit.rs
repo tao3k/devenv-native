@@ -20,7 +20,7 @@ pub(super) fn symbol_search_hit(
 
     Some(SymbolSearchHit {
         name: hit.name.clone(),
-        kind,
+        kind: kind.into(),
         path: path.clone(),
         line,
         location: format!("{path}:{line}"),
@@ -30,8 +30,8 @@ pub(super) fn symbol_search_hit(
         project_name: metadata.project_name.clone(),
         root_label: metadata.root_label.clone(),
         navigation_target: StudioNavigationTarget {
-            path,
-            category: "doc".to_string(),
+            path: path.into(),
+            category: "doc".into(),
             project_name: metadata.project_name,
             root_label: metadata.root_label,
             line: Some(line),

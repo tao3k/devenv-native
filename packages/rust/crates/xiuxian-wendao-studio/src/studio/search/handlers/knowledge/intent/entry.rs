@@ -1,7 +1,6 @@
+//! Owns the Studio knowledge intent entry surface.
+
 use crate::studio::search::handlers::code_search::build_code_search_response;
-use crate::studio::search::handlers::knowledge::helpers::{
-    intent_candidate_limit, is_code_biased_intent,
-};
 use crate::studio::search::handlers::knowledge::intent::cache::build_intent_cache_key;
 use crate::studio::search::handlers::knowledge::intent::indices::ensure_intent_indices;
 use crate::studio::search::handlers::knowledge::intent::response::{
@@ -9,6 +8,9 @@ use crate::studio::search::handlers::knowledge::intent::response::{
 };
 use crate::studio::search::handlers::knowledge::intent::sources::search_intent_sources;
 use crate::studio::search::handlers::knowledge::intent::types::IntentSearchTransportMetadata;
+use crate::studio::search::handlers::knowledge::intent_policy::{
+    intent_candidate_limit, is_code_biased_intent,
+};
 #[cfg(test)]
 use crate::studio::search::handlers::queries::SearchQuery;
 use crate::studio::types::SearchResponse;
@@ -43,6 +45,7 @@ pub(crate) async fn load_intent_search_response_with_metadata(
     .await
 }
 
+/// Build a test-visible intent search response from explicit query fields.
 #[cfg(test)]
 pub async fn build_intent_search_response(
     studio: &StudioState,

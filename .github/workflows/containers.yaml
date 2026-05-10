@@ -19,8 +19,6 @@ jobs:
         image:
           - name: xiuxian-wendao
             flake-attr: container-wendao
-          - name: xiuxian-daochang
-            flake-attr: container-daochang
     steps:
       - uses: actions/checkout@v6
         with:

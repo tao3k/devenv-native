@@ -78,7 +78,7 @@ fn link_graph_host_probe_report_parser_accepts_compact_metric_line() {
     assert_eq!(
         report,
         WendaoGraphLinkGraphHostProbeReport {
-            mode: "semantic-neighbors".to_owned(),
+            mode: "semantic-neighbors".into(),
             node_count: 4,
             edge_count: 2,
             semantic_neighbor_count: 1,
@@ -107,7 +107,7 @@ fn link_graph_host_probe_report_parser_accepts_synthetic_metric_line() {
     assert_eq!(
         report,
         WendaoGraphLinkGraphHostProbeReport {
-            mode: "synthetic-large".to_owned(),
+            mode: "synthetic-large".into(),
             node_count: 128,
             edge_count: 512,
             semantic_neighbor_count: 64,
@@ -137,7 +137,7 @@ fn link_graph_full_structural_probe_report_parser_accepts_compact_metric_line() 
         report,
         WendaoGraphLinkGraphFullStructuralHostProbeReport {
             base: WendaoGraphLinkGraphHostProbeReport {
-                mode: "semantic-neighbors".to_owned(),
+                mode: "semantic-neighbors".into(),
                 node_count: 4,
                 edge_count: 2,
                 semantic_neighbor_count: 1,

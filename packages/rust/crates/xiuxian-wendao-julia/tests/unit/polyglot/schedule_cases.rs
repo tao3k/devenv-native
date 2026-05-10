@@ -90,7 +90,7 @@ fn memory_schedule_uses_runtime_rust_fallback_for_tight_cold_deadline() {
 #[test]
 fn legacy_rerank_schedule_rejects_invalid_schema_without_fallback() {
     let runtime = LinkGraphJuliaRerankRuntimeConfig {
-        schema_version: Some(String::new()),
+        schema_version: Some(String::new().into()),
         ..LinkGraphJuliaRerankRuntimeConfig::default()
     };
 

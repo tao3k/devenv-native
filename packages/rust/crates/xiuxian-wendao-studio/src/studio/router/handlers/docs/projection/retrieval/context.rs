@@ -1,3 +1,5 @@
+//! Owns the Studio projection retrieval context surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -8,8 +10,8 @@ use axum::{
 use crate::studio::router::handlers::docs::service::projection::retrieval::{
     run_docs_retrieval_context, run_docs_retrieval_hit,
 };
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::resource::required_page_id;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::retrieval::{
     RepoProjectedRetrievalContextApiQuery, RepoProjectedRetrievalHitApiQuery,
 };

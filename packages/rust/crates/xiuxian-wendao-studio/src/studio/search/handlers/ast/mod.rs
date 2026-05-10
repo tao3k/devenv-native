@@ -1,3 +1,5 @@
+//! Coordinates the Studio search handlers ast branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod batch;
 #[cfg(test)]
 #[path = "../../../../../tests/unit/gateway/studio/search/handlers/ast/http.rs"]

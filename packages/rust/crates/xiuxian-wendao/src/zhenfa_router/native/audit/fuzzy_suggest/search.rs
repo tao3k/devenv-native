@@ -1,16 +1,20 @@
 use super::cache::{
     CONFIDENCE_THRESHOLD, hash_content, lookup_cached_candidates, store_cached_candidates,
 };
-use super::pattern::{PatternSkeleton, extract_capture_name};
+use super::pattern::PatternSkeleton;
 use super::similarity::{calculate_skeleton_similarity, string_similarity};
 use super::types::{CandidateMatch, FuzzySuggestion, SourceFile};
+use xiuxian_code_intelligence::{
+    CodeLanguageId, code_pattern_signature_line_for_language_id,
+    extract_code_structure_symbols_for_language_id,
+};
 
 /// Search for similar patterns when validation fails.
 ///
 /// # Arguments
 ///
 /// * `original_pattern` - The pattern that failed validation
-/// * `lang` - Target language for the pattern
+/// * `language_id` - Target code-intelligence language id for the pattern
 /// * `source_files` - Source files to search for candidates
 /// * `threshold` - Optional confidence threshold (uses `CONFIDENCE_THRESHOLD` if None)
 ///
@@ -20,10 +24,10 @@ use super::types::{CandidateMatch, FuzzySuggestion, SourceFile};
 #[must_use]
 pub fn suggest_pattern_fix(
     original_pattern: &str,
-    lang: xiuxian_ast::Lang,
+    language_id: &CodeLanguageId,
     source_files: &[SourceFile],
 ) -> Option<FuzzySuggestion> {
-    suggest_pattern_fix_with_threshold(original_pattern, lang, source_files, None)
+    suggest_pattern_fix_with_threshold(original_pattern, language_id, source_files, None)
 }
 
 /// Search for similar patterns with a custom confidence threshold.
@@ -31,7 +35,7 @@ pub fn suggest_pattern_fix(
 /// # Arguments
 ///
 /// * `original_pattern` - The pattern that failed validation
-/// * `lang` - Target language for the pattern
+/// * `language_id` - Target code-intelligence language id for the pattern
 /// * `source_files` - Source files to search for candidates
 /// * `threshold` - Optional confidence threshold (uses `CONFIDENCE_THRESHOLD` if None)
 ///
@@ -41,7 +45,7 @@ pub fn suggest_pattern_fix(
 #[must_use]
 pub fn suggest_pattern_fix_with_threshold(
     original_pattern: &str,
-    lang: xiuxian_ast::Lang,
+    language_id: &CodeLanguageId,
     source_files: &[SourceFile],
     threshold: Option<f32>,
 ) -> Option<FuzzySuggestion> {
@@ -56,7 +60,7 @@ pub fn suggest_pattern_fix_with_threshold(
 
     // Scan source files for potential matches
     for source_file in source_files {
-        let matches = scan_for_candidates(&source_file.content, lang, &source_file.path);
+        let matches = scan_for_candidates(&source_file.content, language_id, &source_file.path);
         candidates.extend(matches);
     }
 
@@ -103,10 +107,11 @@ pub fn suggest_pattern_fix_with_threshold(
 
     // Return best match
     if let Some((confidence, best_match)) = scored_candidates.first() {
-        let suggested_pattern = generate_suggested_pattern(original_pattern, best_match, lang);
+        let suggested_pattern =
+            generate_suggested_pattern(original_pattern, best_match, language_id);
         let replacement_drawer = format!(
             ":OBSERVE: lang:{} \"{}\"",
-            lang.as_str(),
+            language_id.as_str(),
             suggested_pattern.replace('"', "\\\"")
         );
         let source_location = Some(format!(
@@ -129,7 +134,7 @@ pub fn suggest_pattern_fix_with_threshold(
 /// Uses caching to avoid re-scanning unchanged files.
 fn scan_for_candidates(
     content: &str,
-    lang: xiuxian_ast::Lang,
+    language_id: &CodeLanguageId,
     file_path: &str,
 ) -> Vec<CandidateMatch> {
     let content_hash = hash_content(content);
@@ -139,39 +144,27 @@ fn scan_for_candidates(
         return candidates;
     }
 
-    // Cache miss - scan the content
-    let patterns = xiuxian_ast::get_skeleton_patterns(lang);
-    let mut candidates = Vec::new();
-
-    for pattern in patterns {
-        let capture_name = extract_capture_name(pattern);
-        let capture_filters = capture_name.as_ref().map(|name| vec![name.as_str()]);
-        let results = xiuxian_ast::extract_items(content, pattern, lang, capture_filters);
-
-        for result in results {
-            // Extract identifier from captures
-            let identifier = capture_name
-                .as_ref()
-                .and_then(|name| result.captures.get(name))
+    let candidates = extract_code_structure_symbols_for_language_id(content, language_id)
+        .into_iter()
+        .map(|symbol| {
+            let signature =
+                code_pattern_signature_line_for_language_id(symbol.signature.as_str(), language_id);
+            let identifier = symbol
+                .captures
+                .get("NAME")
                 .cloned()
-                .or_else(|| result.captures.values().next().cloned());
-
-            // Extract just the signature line for skeleton comparison
-            // This ensures we compare similar structural complexity
-            let signature = extract_signature_line(&result.text, lang);
-
-            // Build skeleton from signature (not full matched text)
+                .or_else(|| symbol.captures.values().next().cloned());
             let skeleton = PatternSkeleton::extract(&signature);
 
-            candidates.push(CandidateMatch {
-                matched_text: result.text.clone(),
+            CandidateMatch {
+                matched_text: signature,
                 file_path: file_path.to_string(),
-                line_number: result.line_start,
+                line_number: symbol.line_start,
                 identifier,
                 skeleton,
-            });
-        }
-    }
+            }
+        })
+        .collect::<Vec<_>>();
 
     // Store in cache for future lookups
     store_cached_candidates(file_path, content_hash, candidates.clone());
@@ -183,59 +176,18 @@ fn scan_for_candidates(
 fn generate_suggested_pattern(
     _original_pattern: &str,
     best_match: &CandidateMatch,
-    lang: xiuxian_ast::Lang,
+    language_id: &CodeLanguageId,
 ) -> String {
     // Extract the signature line from the match
-    let signature = extract_signature_line(&best_match.matched_text, lang);
+    let signature =
+        code_pattern_signature_line_for_language_id(&best_match.matched_text, language_id);
 
     // Convert to a pattern by replacing identifiers with metavariables
-    patternize_signature(&signature, best_match.identifier.as_ref(), lang)
-}
-
-/// Extract just the signature line from matched code.
-fn extract_signature_line(code: &str, lang: xiuxian_ast::Lang) -> String {
-    let first_line = code.lines().next().unwrap_or(code);
-
-    match lang {
-        xiuxian_ast::Lang::Python
-        | xiuxian_ast::Lang::Ruby
-        | xiuxian_ast::Lang::Lua
-        | xiuxian_ast::Lang::Bash => {
-            // For Python-like, include everything up to the colon
-            if let Some(colon_pos) = first_line.find(':') {
-                format!("{}: $$$BODY", first_line[..=colon_pos].trim())
-            } else {
-                first_line.trim().to_string()
-            }
-        }
-        xiuxian_ast::Lang::Rust
-        | xiuxian_ast::Lang::C
-        | xiuxian_ast::Lang::Cpp
-        | xiuxian_ast::Lang::CSharp
-        | xiuxian_ast::Lang::Java
-        | xiuxian_ast::Lang::Go
-        | xiuxian_ast::Lang::Swift
-        | xiuxian_ast::Lang::Kotlin
-        | xiuxian_ast::Lang::Php
-        | xiuxian_ast::Lang::JavaScript
-        | xiuxian_ast::Lang::TypeScript => {
-            // For C-like, truncate at the first '{' and add ellipsis
-            if let Some(brace_pos) = first_line.find('{') {
-                format!("{} {{ $$$BODY }}", first_line[..brace_pos].trim())
-            } else {
-                first_line.trim().to_string()
-            }
-        }
-        _ => first_line.trim().to_string(),
-    }
+    patternize_signature(&signature, best_match.identifier.as_ref())
 }
 
 /// Convert a signature to a pattern by adding metavariables.
-fn patternize_signature(
-    signature: &str,
-    identifier: Option<&String>,
-    _lang: xiuxian_ast::Lang,
-) -> String {
+fn patternize_signature(signature: &str, identifier: Option<&String>) -> String {
     let mut pattern = signature.to_string();
 
     // If we have an identifier, keep it concrete but add wildcards for arguments

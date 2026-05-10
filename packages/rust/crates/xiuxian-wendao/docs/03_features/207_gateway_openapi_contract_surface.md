@@ -112,8 +112,8 @@ listener owns the lower-level HTTP server settings.
   `GetFlightInfo -> 400` side effect. A `503` response with the correct header
   still fails closed.
 - The Valkey launch contract is shared now: both `process-compose` and the
-  standalone `just valkey-*` path go through `scripts/channel/valkey-launch.sh`,
-  and health checks go through `scripts/channel/valkey-healthcheck.sh`, so the
+  standalone `just valkey-*` path go through `scripts/runtime/valkey-launch.sh`,
+  and health checks go through `scripts/runtime/valkey-healthcheck.sh`, so the
   ownership rule stays identical across launchers. The launcher is now fully
   environment-driven and no longer consumes `.config/xiuxian-artisan-workshop/valkey.conf`.
 - The gateway inventory now also includes `GET /api/repo/sync`,

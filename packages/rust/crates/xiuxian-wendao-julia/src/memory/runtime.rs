@@ -105,13 +105,10 @@ pub fn build_memory_julia_compute_binding(
 pub fn build_memory_julia_compute_bindings(
     runtime: &MemoryJuliaComputeRuntimeConfig,
 ) -> Result<Vec<PluginCapabilityBinding>, RepoIntelligenceError> {
-    let mut bindings = Vec::new();
-    for profile in MemoryJuliaComputeProfile::ALL {
-        if let Some(binding) = build_memory_julia_compute_binding(runtime, profile)? {
-            bindings.push(binding);
-        }
-    }
-    Ok(bindings)
+    MemoryJuliaComputeProfile::ALL
+        .into_iter()
+        .filter_map(|profile| build_memory_julia_compute_binding(runtime, profile).transpose())
+        .collect()
 }
 
 fn normalized_provider_id(

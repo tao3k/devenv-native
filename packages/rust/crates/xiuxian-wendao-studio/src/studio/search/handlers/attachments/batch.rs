@@ -10,10 +10,13 @@ pub(super) fn build_attachment_hits_flight_batch(
     hits: &[AttachmentSearchHit],
 ) -> Result<LanceRecordBatch, String> {
     let names = hits.iter().map(|hit| hit.name.clone()).collect::<Vec<_>>();
-    let paths = hits.iter().map(|hit| hit.path.clone()).collect::<Vec<_>>();
+    let paths = hits
+        .iter()
+        .map(|hit| hit.path.to_string())
+        .collect::<Vec<_>>();
     let source_ids = hits
         .iter()
-        .map(|hit| hit.source_id.clone())
+        .map(|hit| hit.source_id.to_string())
         .collect::<Vec<_>>();
     let source_stems = hits
         .iter()
@@ -29,15 +32,15 @@ pub(super) fn build_attachment_hits_flight_batch(
         .collect::<Result<Vec<_>, _>>()?;
     let source_paths = hits
         .iter()
-        .map(|hit| hit.source_path.clone())
+        .map(|hit| hit.source_path.to_string())
         .collect::<Vec<_>>();
     let attachment_ids = hits
         .iter()
-        .map(|hit| hit.attachment_id.clone())
+        .map(|hit| hit.attachment_id.to_string())
         .collect::<Vec<_>>();
     let attachment_paths = hits
         .iter()
-        .map(|hit| hit.attachment_path.clone())
+        .map(|hit| hit.attachment_path.to_string())
         .collect::<Vec<_>>();
     let attachment_names = hits
         .iter()
@@ -47,7 +50,10 @@ pub(super) fn build_attachment_hits_flight_batch(
         .iter()
         .map(|hit| hit.attachment_ext.clone())
         .collect::<Vec<_>>();
-    let kinds = hits.iter().map(|hit| hit.kind.clone()).collect::<Vec<_>>();
+    let kinds = hits
+        .iter()
+        .map(|hit| hit.kind.to_string())
+        .collect::<Vec<_>>();
     let scores = hits.iter().map(|hit| hit.score).collect::<Vec<_>>();
     let vision_snippets = hits
         .iter()

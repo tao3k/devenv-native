@@ -1,3 +1,5 @@
+//! Owns the Studio handlers repo index surface.
+
 use std::sync::Arc;
 
 use axum::{

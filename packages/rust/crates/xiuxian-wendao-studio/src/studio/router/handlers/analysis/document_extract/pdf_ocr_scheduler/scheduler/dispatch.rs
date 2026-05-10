@@ -100,6 +100,29 @@ impl PdfOcrWorkerScheduler {
         let mut slots = local_backend_text_results(inputs);
         let local_latency = local_started.elapsed();
         let mut trace = scheduler_trace_for_local_results(inputs, slots.as_slice(), local_latency);
+        self.store_local_backend_text_results(inputs, slots.as_slice());
+        let (owner_requests, waiters) = self.reserve_unresolved_shards(inputs, slots.as_slice());
+
+        if !owner_requests.is_empty() {
+            trace.extend(
+                self.handle_owned_shard_requests(endpoint_urls, &mut slots, owner_requests)
+                    .await?,
+            );
+            await_waiter_shards(&mut slots, waiters).await?;
+            let results = resolve_ocr_shard_slots(slots)?;
+            return Ok(SchedulerLiveShardResponse { results, trace });
+        }
+
+        await_waiter_shards(&mut slots, waiters).await?;
+        let results = resolve_ocr_shard_slots(slots)?;
+        Ok(SchedulerLiveShardResponse { results, trace })
+    }
+
+    fn store_local_backend_text_results(
+        &self,
+        inputs: &[PdfOcrShardInput],
+        slots: &[Option<PdfOcrShardResult>],
+    ) {
         for (position, result) in slots.iter().enumerate() {
             let Some(result) = result else {
                 continue;
@@ -108,15 +131,20 @@ impl PdfOcrWorkerScheduler {
                 log::warn!("failed to store local backend-text OCR shard cache row: {error}");
             }
         }
+    }
+
+    fn reserve_unresolved_shards(
+        &self,
+        inputs: &[PdfOcrShardInput],
+        slots: &[Option<PdfOcrShardResult>],
+    ) -> (
+        Vec<OwnedShardRequest>,
+        Vec<(usize, Arc<InFlightShardEntry>)>,
+    ) {
         let mut owner_requests = Vec::new();
         let mut waiters = Vec::new();
-
-        for (position, input) in inputs.iter().enumerate() {
-            if slots[position].is_some() {
-                continue;
-            }
-            let key = ocr_shard_cache_key(input);
-            match self.inflight.reserve(key) {
+        for (position, input) in unresolved_shard_inputs(inputs, slots) {
+            match self.inflight.reserve(ocr_shard_cache_key(input)) {
                 InFlightShardReservation::Owner { key, entry } => {
                     owner_requests.push(OwnedShardRequest {
                         position,
@@ -130,43 +158,7 @@ impl PdfOcrWorkerScheduler {
                 }
             }
         }
-
-        if !owner_requests.is_empty() {
-            trace.extend(
-                self.handle_owned_shard_requests(endpoint_urls, &mut slots, owner_requests)
-                    .await?,
-            );
-
-            for (position, entry) in waiters {
-                slots[position] = Some(entry.wait().await?);
-            }
-
-            let results = slots
-                .into_iter()
-                .enumerate()
-                .map(|(position, result)| {
-                    result.ok_or_else(|| {
-                        format!("PDF OCR in-flight merge left input position {position} unresolved")
-                    })
-                })
-                .collect::<Result<Vec<_>, _>>()?;
-            return Ok(SchedulerLiveShardResponse { results, trace });
-        }
-
-        for (position, entry) in waiters {
-            slots[position] = Some(entry.wait().await?);
-        }
-
-        let results = slots
-            .into_iter()
-            .enumerate()
-            .map(|(position, result)| {
-                result.ok_or_else(|| {
-                    format!("PDF OCR in-flight merge left input position {position} unresolved")
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(SchedulerLiveShardResponse { results, trace })
+        (owner_requests, waiters)
     }
 
     async fn handle_owned_shard_requests(
@@ -567,6 +559,40 @@ impl PdfOcrWorkerScheduler {
     }
 }
 
+fn unresolved_shard_inputs<'a>(
+    inputs: &'a [PdfOcrShardInput],
+    slots: &'a [Option<PdfOcrShardResult>],
+) -> impl Iterator<Item = (usize, &'a PdfOcrShardInput)> {
+    inputs
+        .iter()
+        .enumerate()
+        .filter(|(position, _)| slots[*position].is_none())
+}
+
+async fn await_waiter_shards(
+    slots: &mut [Option<PdfOcrShardResult>],
+    waiters: Vec<(usize, Arc<InFlightShardEntry>)>,
+) -> Result<(), String> {
+    for (position, entry) in waiters {
+        slots[position] = Some(entry.wait().await?);
+    }
+    Ok(())
+}
+
+fn resolve_ocr_shard_slots(
+    slots: Vec<Option<PdfOcrShardResult>>,
+) -> Result<Vec<PdfOcrShardResult>, String> {
+    slots
+        .into_iter()
+        .enumerate()
+        .map(|(position, result)| {
+            result.ok_or_else(|| {
+                format!("PDF OCR in-flight merge left input position {position} unresolved")
+            })
+        })
+        .collect()
+}
+
 pub(crate) fn source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup(
     chunk: &[PdfOcrShardInput],
     lookup: &dyn Fn(&str) -> Option<String>,
@@ -609,34 +635,19 @@ fn is_single_fast_text_source_pdf_page_range_chunk(chunk: &[PdfOcrShardInput]) -
 }
 
 pub(crate) fn scheduler_shard_groups(inputs: &[PdfOcrShardInput]) -> Vec<SchedulerShardGroup> {
-    let mut groups = Vec::new();
-    let mut current_lane = None;
-    let mut current_positions = Vec::new();
-    let mut current_inputs = Vec::new();
-    for (position, input) in inputs.iter().enumerate() {
-        let lane = classify_ocr_lane(std::slice::from_ref(input));
-        if current_lane == Some(lane) {
-            current_positions.push(position);
-            current_inputs.push(input.clone());
-            continue;
-        }
-        if !current_inputs.is_empty() {
-            groups.push(SchedulerShardGroup {
-                positions: current_positions,
-                inputs: current_inputs,
-            });
-        }
-        current_lane = Some(lane);
-        current_positions = vec![position];
-        current_inputs = vec![input.clone()];
-    }
-    if !current_inputs.is_empty() {
-        groups.push(SchedulerShardGroup {
-            positions: current_positions,
-            inputs: current_inputs,
-        });
-    }
-    groups
+    inputs
+        .iter()
+        .enumerate()
+        .collect::<Vec<_>>()
+        .chunk_by(|(_, previous), (_, current)| {
+            classify_ocr_lane(std::slice::from_ref(previous))
+                == classify_ocr_lane(std::slice::from_ref(current))
+        })
+        .map(|chunk| SchedulerShardGroup {
+            positions: chunk.iter().map(|(position, _)| *position).collect(),
+            inputs: chunk.iter().map(|(_, input)| (*input).clone()).collect(),
+        })
+        .collect()
 }
 
 fn scheduler_trace_for_local_results(
@@ -715,7 +726,7 @@ fn scheduler_trace_for_chunk_with_timing(
         shard_count: inputs.len(),
         page_start: inputs.iter().map(|input| input.page_index).min(),
         page_end: inputs.iter().map(|input| input.page_index).max(),
-        shard_type: inputs.first().map(|input| input.shard_type.clone()),
+        shard_type: inputs.first().map(|input| input.shard_type.clone().into()),
         ocr_profile: inputs.first().map(|input| input.ocr_profile.clone()),
         queue_wait_ms,
         dispatch_start_ms,

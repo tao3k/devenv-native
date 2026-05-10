@@ -35,7 +35,7 @@ pub(crate) async fn load_reference_search_response(
             hits: Vec::new(),
             selected_scope: "references".to_string(),
             partial: true,
-            indexing_state: Some(status.indexing_state.to_string()),
+            indexing_state: Some(status.indexing_state.into()),
             index_error: status.index_error,
         });
     }
@@ -54,7 +54,7 @@ pub(crate) async fn load_reference_search_response(
         hits,
         selected_scope: "references".to_string(),
         partial: false,
-        indexing_state: Some("ready".to_string()),
+        indexing_state: Some("ready".into()),
         index_error: None,
     })
 }

@@ -25,14 +25,13 @@ LOCK_PATH: Final[Path] = (
 )
 
 FROZEN_FILES: Final[tuple[str, ...]] = (
-    "packages/rust/crates/xiuxian-daochang/src/contracts/omega.rs",
-    "packages/rust/crates/xiuxian-daochang/src/contracts/memory_gate.rs",
+    "packages/rust/crates/xiuxian-types/src/types.rs",
     "packages/rust/crates/xiuxian-qianhuan/src/contracts/block.rs",
     "packages/rust/crates/xiuxian-qianhuan/src/contracts/policy.rs",
     "packages/rust/crates/xiuxian-qianhuan/src/contracts/snapshot.rs",
-    "packages/rust/crates/xiuxian-daochang/resources/xiuxian.discover.match.v1.schema.json",
+    "packages/rust/crates/xiuxian-wendao/resources/agent/xiuxian.discover.match.v1.schema.json",
     "packages/rust/crates/xiuxian-memory-engine/resources/xiuxian.memory.gate_event.v1.schema.json",
-    "packages/rust/crates/xiuxian-daochang/resources/xiuxian.runtime.route_trace.v1.schema.json",
+    "packages/rust/crates/xiuxian-wendao/resources/agent/xiuxian.runtime.route_trace.v1.schema.json",
 )
 
 
@@ -73,7 +72,9 @@ def _write_lock(entries: list[dict[str, str]]) -> None:
         "entries": entries,
     }
     LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
-    LOCK_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    LOCK_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
+    )
 
 
 def _verify_lock() -> int:
@@ -110,7 +111,9 @@ def _verify_lock() -> int:
         expected_entries[rel_path] = digest
 
     current_entries = _collect_entries()
-    current_by_path = {entry["path"]: entry[HASH_ALGORITHM] for entry in current_entries}
+    current_by_path = {
+        entry["path"]: entry[HASH_ALGORITHM] for entry in current_entries
+    }
 
     expected_paths = set(expected_entries)
     current_paths = set(current_by_path)
@@ -148,7 +151,9 @@ def _verify_lock() -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Verify/update A0 contract freeze lock")
+    parser = argparse.ArgumentParser(
+        description="Verify/update A0 contract freeze lock"
+    )
     parser.add_argument(
         "--update",
         action="store_true",
@@ -164,7 +169,9 @@ def main() -> int:
     if args.update:
         entries = _collect_entries()
         _write_lock(entries)
-        print(f"[contract-freeze] wrote lock with {len(entries)} entries -> {LOCK_PATH}")
+        print(
+            f"[contract-freeze] wrote lock with {len(entries)} entries -> {LOCK_PATH}"
+        )
         return 0
 
     return _verify_lock()

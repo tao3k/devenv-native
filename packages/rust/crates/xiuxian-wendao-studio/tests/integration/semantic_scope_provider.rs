@@ -13,7 +13,7 @@ use xiuxian_wendao_server::transport::{
     ANALYSIS_SEMANTIC_SCOPE_ROUTE, WENDAO_SCHEMA_VERSION_HEADER,
     WENDAO_SEMANTIC_SCOPE_TASK_ID_HEADER, flight_descriptor_path,
 };
-use xiuxian_wendao_studio::studio::build_studio_flight_service_for_roots;
+use xiuxian_wendao_studio::studio::{StudioFlightRoots, build_studio_flight_service_for_roots};
 
 const TEST_SCHEMA_VERSION: &str = "semantic-scope-studio-smoke";
 
@@ -32,8 +32,7 @@ async fn semantic_scope_provider_serves_repo_native_bundle_through_studio_flight
     ));
     let service = build_studio_flight_service_for_roots(
         search_plane,
-        project_root.clone(),
-        project_root,
+        StudioFlightRoots::new(project_root.clone(), project_root),
         TEST_SCHEMA_VERSION,
         3,
     )

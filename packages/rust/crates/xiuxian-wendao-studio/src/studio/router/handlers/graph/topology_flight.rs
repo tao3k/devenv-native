@@ -184,9 +184,9 @@ impl FlightTopologyRow {
     fn from_node(node: &TopologyNode) -> Self {
         Self {
             row_type: "node",
-            node_id: Some(node.id.clone()),
+            node_id: Some(node.id.to_string()),
             node_name: Some(node.name.clone()),
-            node_type: Some(node.node_type.clone()),
+            node_type: Some(node.node_type.to_string()),
             node_pos_x: Some(node.position[0]),
             node_pos_y: Some(node.position[1]),
             node_pos_z: Some(node.position[2]),

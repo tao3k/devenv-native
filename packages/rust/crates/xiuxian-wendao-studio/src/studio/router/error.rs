@@ -1,3 +1,5 @@
+//! Owns the Studio studio router error surface.
+
 use axum::{Json, http::StatusCode, response::IntoResponse};
 
 use crate::studio::types::ApiError;

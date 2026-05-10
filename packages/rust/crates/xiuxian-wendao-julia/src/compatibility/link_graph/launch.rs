@@ -3,13 +3,15 @@
 use serde::{Deserialize, Serialize};
 use xiuxian_wendao_core::artifacts::PluginLaunchSpec;
 
+use crate::{JuliaContractMode, JuliaContractPath};
+
 /// Additive Julia launch inputs resolved from Julia rerank runtime config.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct LinkGraphJuliaSearchServiceDescriptor {
     /// Generic search service mode, usually `stream` or `table`.
-    pub service_mode: Option<String>,
+    pub service_mode: Option<JuliaContractMode>,
     /// Optional path to Julia service TOML configuration.
-    pub search_config_path: Option<String>,
+    pub search_config_path: Option<JuliaContractPath>,
 }
 
 impl LinkGraphJuliaSearchServiceDescriptor {
@@ -21,11 +23,11 @@ impl LinkGraphJuliaSearchServiceDescriptor {
 
         if let Some(service_mode) = self.service_mode.clone() {
             args.push("--mode".to_string());
-            args.push(service_mode);
+            args.push(service_mode.into_string());
         }
         if let Some(config_path) = self.search_config_path.clone() {
             args.push("--config".to_string());
-            args.push(config_path);
+            args.push(config_path.into_string());
         }
 
         PluginLaunchSpec {

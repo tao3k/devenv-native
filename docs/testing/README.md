@@ -15,12 +15,6 @@ metadata:
 
 This folder holds testing-related docs: evaluation reports, decision records, and guides.
 
-## Canonical references
-
-| Document                                                                                            | Use                                                                                                           |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [修仙道场 (Xiuxian Daochang) Live Multi-Group Runbook](xiuxian-daochang-live-multigroup-runbook.md) | Canonical live validation flow for `Test1/Test2/Test3` session isolation + memory evolution + trace evidence. |
-
 ## Reports (historical or one-off)
 
 The following are evaluation reports, statistical evidence, or one-off comparisons. Kept for traceability when they still describe active surfaces; for current behavior use the canonical docs and [Testing Guide](../developer/testing.md).

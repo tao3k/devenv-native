@@ -2,6 +2,8 @@
 //!
 //! Provides HTTP endpoints for VFS operations, graph queries, and UI configuration.
 
+/// Studio public API surface.
+/// Studio public API surface.
 #[path = "types/mod.rs"]
 pub mod types;
 
@@ -20,6 +22,8 @@ pub use xiuxian_wendao_attachments::pdf::ocr as document_extract_pdf_ocr;
 #[doc(hidden)]
 #[path = "document_extract_pdf_ocr_client.rs"]
 pub mod document_extract_pdf_ocr_client;
+#[cfg(feature = "document-extract-pdf-source-range")]
+pub(crate) use document_extract_pdf_ocr_client::PdfOcrShardSchedulerTrace;
 
 #[cfg(feature = "zhenfa-router")]
 #[path = "analysis/mod.rs"]
@@ -55,20 +59,25 @@ mod vfs;
 pub use router::{
     GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,
     StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartEvent,
-    StudioSearchColdStartTelemetry, StudioState, configured_repositories, configured_repository,
+    StudioSearchColdStartTelemetry, StudioState, configured_repositories,
     load_ui_config_from_wendao_toml, map_repo_intelligence_error, resolve_studio_config_root,
     sanitize_path_like, sanitize_path_list, studio_effective_wendao_toml_path, studio_router,
     studio_routes, studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
 #[cfg(feature = "zhenfa-router")]
-pub(crate) use router::{registered_repository_search_seeds, resolve_registered_repository_id};
+pub(crate) use router::{
+    configured_repository, registered_repository_search_seeds, resolve_registered_repository_id,
+};
 #[cfg(feature = "zhenfa-router")]
 pub use search::build_ast_index;
 #[cfg(feature = "zhenfa-router")]
 pub use search::handlers::{
-    StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
+    StudioFlightRoots, StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
     build_repo_search_flight_service, build_repo_search_flight_service_with_weights,
     build_studio_flight_service, build_studio_flight_service_for_roots,
+};
+#[cfg(feature = "zhenfa-router")]
+pub(crate) use search::handlers::{
     build_studio_flight_service_for_roots_with_weights, build_studio_flight_service_with_weights,
 };
 #[cfg(feature = "zhenfa-router")]

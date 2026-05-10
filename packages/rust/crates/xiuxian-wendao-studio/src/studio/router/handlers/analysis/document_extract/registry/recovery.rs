@@ -1,8 +1,8 @@
 use duckdb::params;
 
+use super::artifacts::{artifact_ready, now_ms};
 use super::queries::fetch_status;
 use super::types::DocumentExtractJobRegistry;
-use super::utils::{artifact_ready, now_ms};
 
 impl DocumentExtractJobRegistry {
     pub(super) fn recover_stale_running_jobs(&self) -> Result<(), String> {

@@ -8,8 +8,6 @@ use xiuxian_wendao_attachments::pdf::profile::source_pdf_page_profiles_cached;
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
-pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS";
 const HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV: &str =
     "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE";
 const HOSTED_VLM_REGION_PIPELINE_ENV: &str =
@@ -228,19 +226,10 @@ fn rendered_region_composite_chunks(
     composite_size: usize,
 ) -> Vec<&[PdfOcrShardInput]> {
     let composite_size = composite_size.max(1);
-    let mut chunks = Vec::new();
-    let mut start = 0usize;
-    for index in 1..inputs.len() {
-        let previous = &inputs[index - 1];
-        let current = &inputs[index];
-        if index - start >= composite_size
-            || !can_extend_rendered_region_composite(previous, current)
-        {
-            chunks.push(&inputs[start..index]);
-            start = index;
-        }
-    }
-    chunks.push(&inputs[start..]);
+    let mut chunks = inputs
+        .chunk_by(can_extend_rendered_region_composite)
+        .flat_map(|run| run.chunks(composite_size))
+        .collect::<Vec<_>>();
     let page_counts = rendered_region_page_counts(inputs);
     chunks.sort_by(|left, right| {
         rendered_region_chunk_page_density(right, &page_counts)
@@ -545,20 +534,7 @@ fn source_pdf_page_range_weights(inputs: &[PdfOcrShardInput]) -> Option<Vec<u32>
 }
 
 fn source_pdf_page_range_runs(inputs: &[PdfOcrShardInput]) -> Vec<&[PdfOcrShardInput]> {
-    if inputs.is_empty() {
-        return Vec::new();
-    }
-
-    let mut runs = Vec::new();
-    let mut run_start = 0usize;
-    for index in 1..inputs.len() {
-        if !extends_source_pdf_page_range_run(&inputs[index - 1], &inputs[index]) {
-            runs.push(&inputs[run_start..index]);
-            run_start = index;
-        }
-    }
-    runs.push(&inputs[run_start..]);
-    runs
+    inputs.chunk_by(extends_source_pdf_page_range_run).collect()
 }
 
 fn extends_source_pdf_page_range_run(

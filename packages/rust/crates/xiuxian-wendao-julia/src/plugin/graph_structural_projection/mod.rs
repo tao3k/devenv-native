@@ -11,15 +11,22 @@ mod topology;
 mod topology_builders;
 
 pub use core::{
-    GraphStructuralCandidateSubgraph, GraphStructuralQueryAnchor, GraphStructuralQueryContext,
+    GraphStructuralCandidateSubgraph, GraphStructuralCandidateSubgraphInput,
+    GraphStructuralQueryAnchor, GraphStructuralQueryContext, GraphStructuralQueryContextInput,
     GraphStructuralRerankSignals,
 };
 pub use overlap::{
-    GraphStructuralFilterConstraint, GraphStructuralKeywordOverlapCandidateInputs,
-    GraphStructuralKeywordOverlapPairInputs, GraphStructuralKeywordOverlapPairRequestInputs,
-    GraphStructuralKeywordOverlapPairRerankInputs, GraphStructuralKeywordOverlapQueryInputs,
-    GraphStructuralKeywordOverlapRawCandidateInputs, GraphStructuralNodeMetadataInputs,
-    build_graph_structural_keyword_overlap_candidate_inputs,
+    GraphStructuralFilterConstraint, GraphStructuralKeywordOverlapCandidateInput,
+    GraphStructuralKeywordOverlapCandidateInputs,
+    GraphStructuralKeywordOverlapCandidateMetadataInput,
+    GraphStructuralKeywordOverlapCandidateMetadataInputs, GraphStructuralKeywordOverlapPairInputs,
+    GraphStructuralKeywordOverlapPairRequestInput, GraphStructuralKeywordOverlapPairRequestInputs,
+    GraphStructuralKeywordOverlapPairRerankInput, GraphStructuralKeywordOverlapPairRerankInputs,
+    GraphStructuralKeywordOverlapQueryInput, GraphStructuralKeywordOverlapQueryInputs,
+    GraphStructuralKeywordOverlapRawCandidateInput,
+    GraphStructuralKeywordOverlapRawCandidateInputs, GraphStructuralKeywordTagMatchFlags,
+    GraphStructuralKeywordTagQueryContextInput, GraphStructuralKeywordTagRerankSignalInput,
+    GraphStructuralNodeMetadataInputs, build_graph_structural_keyword_overlap_candidate_inputs,
     build_graph_structural_keyword_overlap_pair_candidate_inputs,
     build_graph_structural_keyword_overlap_pair_candidate_inputs_from_raw,
     build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
@@ -29,6 +36,7 @@ pub use overlap::{
     build_graph_structural_keyword_tag_rerank_signals,
 };
 pub use overlap_builders::{
+    GraphStructuralKeywordOverlapPairRerankRowInput,
     build_graph_structural_keyword_overlap_pair_request_input,
     build_graph_structural_keyword_overlap_pair_rerank_request_batch,
     build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_inputs,
@@ -39,12 +47,15 @@ pub use overlap_builders::{
     graph_structural_shared_tag_anchors,
 };
 pub use pair::{
-    GraphStructuralKeywordTagQueryInputs, GraphStructuralPairCandidateInputs,
-    GraphStructuralRawConnectedPairInputs, GraphStructuralScoredPairCandidateInputs,
-    build_graph_structural_pair_candidate_inputs, build_graph_structural_raw_connected_pair_inputs,
+    GraphStructuralKeywordTagQueryInput, GraphStructuralKeywordTagQueryInputs,
+    GraphStructuralPairCandidateInputs, GraphStructuralRawConnectedPairInputs,
+    GraphStructuralScoredPairCandidateInputs, build_graph_structural_pair_candidate_inputs,
+    build_graph_structural_raw_connected_pair_inputs,
     build_graph_structural_scored_pair_candidate_inputs,
 };
 pub use pair_builders::{
+    GraphStructuralKeywordTagPairRerankRequestInput, GraphStructuralPairFilterRequestInput,
+    GraphStructuralPairRerankRequestInput,
     build_graph_structural_keyword_tag_pair_rerank_request_row,
     build_graph_structural_pair_candidate_subgraph, build_graph_structural_pair_filter_request_row,
     build_graph_structural_pair_rerank_request_row, graph_structural_pair_candidate_id,
@@ -53,9 +64,14 @@ pub use rows::{
     build_graph_structural_filter_request_row, build_graph_structural_rerank_request_row,
 };
 pub use topology::{
-    GraphStructuralGenericTopologyCandidateInputs,
+    GraphStructuralGenericTopologyCandidateInput, GraphStructuralGenericTopologyCandidateInputs,
+    GraphStructuralGenericTopologyCandidateMetadataInput,
     GraphStructuralGenericTopologyCandidateMetadataInputs,
+    GraphStructuralGenericTopologyPairCollectionInput,
+    GraphStructuralRawConnectedPairCandidateInput,
     GraphStructuralRawConnectedPairCollectionCandidateInputs,
+    GraphStructuralRawConnectedPairCollectionRawTupleInput,
+    GraphStructuralScoredPairCollectionCandidateInput,
     build_graph_structural_generic_topology_candidate_inputs,
     build_graph_structural_generic_topology_candidate_inputs_from_pair_collection,
     build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs,

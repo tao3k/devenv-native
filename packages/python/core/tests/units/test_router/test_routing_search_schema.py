@@ -20,7 +20,7 @@ def _path_to_canonical() -> Path:
     """Path to routing search canonical snapshot, if present."""
     schema_path = resolve_schema_file_path(
         "xiuxian.router.routing_search.v1.schema.json",
-        preferred_crates=("xiuxian-daochang",),
+        preferred_crates=("xiuxian-wendao",),
     )
     candidates = [schema_path.parent / "snapshots" / "routing_search_canonical_v1.json"]
     for candidate in candidates:

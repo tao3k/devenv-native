@@ -1,7 +1,7 @@
 use comrak::{Arena, nodes::NodeValue, parse_document};
 
+use crate::studio::analysis::markdown::compile::syntax::markdown_options;
 use crate::studio::analysis::markdown::compile::types::{CompiledDocument, MarkdownCompiler};
-use crate::studio::analysis::markdown::compile::utils::markdown_options;
 
 pub(crate) fn compile_markdown_ir(path: &str, content: &str) -> CompiledDocument {
     MarkdownCompiler::new(path, content).compile()

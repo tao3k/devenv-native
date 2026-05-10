@@ -1,3 +1,5 @@
+//! Coordinates the Studio wendao types commands branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod agentic;
 mod attachments;
 mod audit;

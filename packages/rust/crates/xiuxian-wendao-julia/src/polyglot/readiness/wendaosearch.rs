@@ -15,34 +15,61 @@ use crate::polyglot::state::{
 };
 use crate::{GraphStructuralRouteKind, JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION};
 
-use super::common::{
+use super::evidence_support::{
     JuliaReadinessWindow, JuliaStaticContractReadinessProfile, julia_schedule_plan_from_readiness,
     julia_static_contract_readiness_evidence,
 };
+
+/// Readiness facts for one `WendaoSearch.jl` graph-structural route.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WendaoSearchGraphStructuralReadinessInput {
+    /// Graph-structural route kind being described.
+    pub route_kind: GraphStructuralRouteKind,
+    /// Julia warmup state observed by the owner.
+    pub warmup: WarmupState,
+    /// Benchmark state observed by the owner.
+    pub benchmark: BenchmarkState,
+    /// Optional maximum concurrent request budget.
+    pub max_in_flight: Option<u32>,
+    /// Active in-flight request count.
+    pub active_in_flight: u32,
+    /// Queued request count.
+    pub queue_depth: u32,
+}
+
+/// Readiness facts for the legacy `WendaoSearch.jl` rerank route.
+#[derive(Clone, Copy, Debug)]
+pub struct WendaoSearchLegacyRerankReadinessInput<'a> {
+    /// Runtime config that owns route/schema facts.
+    pub runtime: &'a LinkGraphJuliaRerankRuntimeConfig,
+    /// Julia warmup state observed by the owner.
+    pub warmup: WarmupState,
+    /// Benchmark state observed by the owner.
+    pub benchmark: BenchmarkState,
+    /// Active in-flight request count.
+    pub active_in_flight: u32,
+    /// Queued request count.
+    pub queue_depth: u32,
+}
 
 /// Returns readiness evidence for one `WendaoSearch.jl` graph-structural
 /// profile.
 #[must_use]
 pub fn wendaosearch_graph_structural_readiness_evidence(
-    route_kind: GraphStructuralRouteKind,
-    warmup: WarmupState,
-    benchmark: BenchmarkState,
-    max_in_flight: Option<u32>,
-    active_in_flight: u32,
-    queue_depth: u32,
+    input: WendaoSearchGraphStructuralReadinessInput,
 ) -> JuliaReadinessEvidence {
     julia_static_contract_readiness_evidence(
         JuliaStaticContractReadinessProfile {
             capability: LaneCapability::GraphSearchCompute,
-            profile_id: wendaosearch_graph_structural_profile_id(route_kind),
+            profile_id: wendaosearch_graph_structural_profile_id(input.route_kind),
             schema_version: JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION,
         },
-        warmup,
-        benchmark,
+        input.warmup,
+        input.benchmark,
         JuliaReadinessWindow {
-            max_in_flight,
-            active_in_flight,
-            queue_depth,
+            max_in_flight: input.max_in_flight,
+            active_in_flight: input.active_in_flight,
+            queue_depth: input.queue_depth,
         },
     )
 }
@@ -55,12 +82,14 @@ pub fn wendaosearch_graph_structural_schedule_plan(
     facts: JuliaProfileSchedulingFacts,
 ) -> JuliaSchedulePlan {
     let readiness = wendaosearch_graph_structural_readiness_evidence(
-        route_kind,
-        facts.runtime_stats.warmup,
-        facts.runtime_stats.benchmark,
-        facts.max_in_flight,
-        facts.runtime_stats.active_in_flight,
-        facts.runtime_stats.queue_depth,
+        WendaoSearchGraphStructuralReadinessInput {
+            route_kind,
+            warmup: facts.runtime_stats.warmup,
+            benchmark: facts.runtime_stats.benchmark,
+            max_in_flight: facts.max_in_flight,
+            active_in_flight: facts.runtime_stats.active_in_flight,
+            queue_depth: facts.runtime_stats.queue_depth,
+        },
     )
     .with_fallback_available(facts.fallback_available);
     julia_schedule_plan_from_readiness(readiness, shape, facts)
@@ -81,12 +110,15 @@ pub fn with_julia_thread_pinning_diagnostics(
 /// Returns readiness evidence for the legacy `WendaoSearch.jl` rerank profile.
 #[must_use]
 pub fn wendaosearch_legacy_rerank_readiness_evidence(
-    runtime: &LinkGraphJuliaRerankRuntimeConfig,
-    warmup: WarmupState,
-    benchmark: BenchmarkState,
-    active_in_flight: u32,
-    queue_depth: u32,
+    input: WendaoSearchLegacyRerankReadinessInput<'_>,
 ) -> JuliaReadinessEvidence {
+    let WendaoSearchLegacyRerankReadinessInput {
+        runtime,
+        warmup,
+        benchmark,
+        active_in_flight,
+        queue_depth,
+    } = input;
     let route_validation = if runtime
         .route
         .as_deref()
@@ -120,18 +152,19 @@ pub fn wendaosearch_legacy_rerank_schedule_plan(
     shape: JuliaComputeTaskShape,
     facts: JuliaProfileSchedulingFacts,
 ) -> JuliaSchedulePlan {
-    let readiness = wendaosearch_legacy_rerank_readiness_evidence(
-        runtime,
-        facts.runtime_stats.warmup,
-        facts.runtime_stats.benchmark,
-        facts.runtime_stats.active_in_flight,
-        facts.runtime_stats.queue_depth,
-    )
-    .with_admission_window(
-        facts.max_in_flight,
-        facts.runtime_stats.active_in_flight,
-        facts.runtime_stats.queue_depth,
-    )
-    .with_fallback_available(facts.fallback_available);
+    let readiness =
+        wendaosearch_legacy_rerank_readiness_evidence(WendaoSearchLegacyRerankReadinessInput {
+            runtime,
+            warmup: facts.runtime_stats.warmup,
+            benchmark: facts.runtime_stats.benchmark,
+            active_in_flight: facts.runtime_stats.active_in_flight,
+            queue_depth: facts.runtime_stats.queue_depth,
+        })
+        .with_admission_window(
+            facts.max_in_flight,
+            facts.runtime_stats.active_in_flight,
+            facts.runtime_stats.queue_depth,
+        )
+        .with_fallback_available(facts.fallback_available);
     julia_schedule_plan_from_readiness(readiness, shape, facts)
 }

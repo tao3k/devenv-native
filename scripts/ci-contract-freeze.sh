@@ -5,7 +5,7 @@ echo "contract freeze gate (schemas + canonical snapshots)"
 
 python3 scripts/contract_freeze_lock.py --verify
 
-scripts/rust/cargo_exec.sh test -p xiuxian-daochang --test contracts -q
+scripts/rust/cargo_exec.sh test -p xiuxian-types --test unit_test -q
 scripts/rust/cargo_exec.sh test -p xiuxian-qianhuan --test contracts -q
 
 uv run pytest \

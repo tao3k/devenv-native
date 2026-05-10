@@ -38,7 +38,7 @@ impl DependencyIndexer {
     pub fn build(&mut self, verbose: bool) -> DependencyIndexResult {
         // Load configuration
         let config_path = self.config_path.as_ref().map_or_else(
-            || "packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml".to_string(),
+            || "packages/rust/crates/xiuxian-wendao/resources/config/xiuxian.toml".to_string(),
             |path| path.to_string_lossy().to_string(),
         );
 

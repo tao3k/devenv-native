@@ -19,7 +19,18 @@ pub(super) fn projected_page_id(repo_id: &str, doc_id: &str, source_path: &str) 
     format!("repo:{repo_id}:projection:{projection_kind}:doc:{effective_doc_id}")
 }
 
-pub(super) fn graph_node_display_id(repo_id: &str, source_path: &str) -> String {
+pub(super) fn graph_node_display_id_candidates(repo_id: &str, source_path: &str) -> Vec<String> {
+    let mut candidates = vec![graph_node_display_id(repo_id, source_path)];
+    for surrogate in markdown_surrogate_source_paths(source_path) {
+        push_unique(
+            &mut candidates,
+            graph_node_display_id(repo_id, surrogate.as_str()),
+        );
+    }
+    candidates
+}
+
+fn graph_node_display_id(repo_id: &str, source_path: &str) -> String {
     let normalized = source_path.trim().trim_matches('/');
     if normalized.starts_with(format!("{repo_id}/").as_str()) {
         normalized.to_owned()
@@ -27,6 +38,26 @@ pub(super) fn graph_node_display_id(repo_id: &str, source_path: &str) -> String 
         repo_id.to_owned()
     } else {
         format!("{repo_id}/{normalized}")
+    }
+}
+
+fn markdown_surrogate_source_paths(source_path: &str) -> Vec<String> {
+    let normalized = source_path.trim().trim_matches('/');
+    if normalized.is_empty() || has_markdown_extension(normalized) {
+        return Vec::new();
+    }
+
+    let mut candidates = Vec::new();
+    push_unique(&mut candidates, format!("{normalized}.md"));
+    if let Some((stem, _extension)) = normalized.rsplit_once('.') {
+        push_unique(&mut candidates, format!("{stem}.md"));
+    }
+    candidates
+}
+
+fn push_unique(values: &mut Vec<String>, value: String) {
+    if !values.iter().any(|existing| existing == &value) {
+        values.push(value);
     }
 }
 
@@ -131,3 +162,7 @@ fn normalize_anchor(value: &str) -> String {
         .collect::<Vec<_>>()
         .join("-")
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/integration_support/search_strategy_flow_flight/ids.rs"]
+mod tests;

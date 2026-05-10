@@ -1,4 +1,8 @@
+//! Owns the Studio search strategy flow materialization receipt surface.
+
 use serde::Serialize;
+
+use crate::contracts::{StudioContractStatus, StudioContractToken};
 use thiserror::Error;
 
 /// Error raised while building a SearchStrategyFlow materialization receipt.
@@ -109,11 +113,11 @@ impl RouteDecodedPayloadReceipt {
 #[serde(rename_all = "camelCase")]
 pub struct SearchStrategyFlowMaterializationReceipt {
     /// Materialization status for the route sequence.
-    pub materialization_status: String,
+    pub materialization_status: StudioContractStatus,
     /// Component that produced the receipt.
-    pub receipt_source: String,
+    pub receipt_source: StudioContractToken,
     /// Primary transport used to execute retrieval routes.
-    pub primary_transport: String,
+    pub primary_transport: StudioContractToken,
     /// Whether direct file reads were allowed in the proof path.
     pub direct_file_read_allowed: bool,
     /// Whether routes must execute before external agents answer.
@@ -121,7 +125,7 @@ pub struct SearchStrategyFlowMaterializationReceipt {
     /// Sum of decoded rows across all materialized routes.
     pub materialized_rows: usize,
     /// Status of decoded payload validation.
-    pub decoded_payload_status: String,
+    pub decoded_payload_status: StudioContractStatus,
     /// Per-route materialization receipts.
     pub route_receipts: Vec<RouteMaterializationReceipt>,
     /// Per-route decoded payload receipts.
@@ -138,13 +142,13 @@ impl SearchStrategyFlowMaterializationReceipt {
     ) -> Self {
         let materialized_rows = route_receipts.iter().map(|route| route.row_count).sum();
         Self {
-            materialization_status: "executed".to_string(),
-            receipt_source: receipt_source.into(),
-            primary_transport: "arrow-flight".to_string(),
+            materialization_status: "executed".into(),
+            receipt_source: receipt_source.into().into(),
+            primary_transport: "arrow-flight".into(),
             direct_file_read_allowed: false,
             execute_before_answer: true,
             materialized_rows,
-            decoded_payload_status: "decoded".to_string(),
+            decoded_payload_status: "decoded".into(),
             route_receipts,
             decoded_payload_receipts,
         }

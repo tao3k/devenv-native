@@ -1,3 +1,5 @@
+//! Owns the Studio studio document extract pdf ocr client surface.
+
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
 use arrow_flight::FlightDescriptor;
 use arrow_flight::client::FlightClient;
@@ -13,6 +15,8 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 use xiuxian_wendao_server::transport::{
     ANALYSIS_PDF_OCR_SHARDS_ROUTE, WENDAO_PDF_OCR_WORKERS_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
 };
+
+use crate::contracts::StudioContractKind;
 
 const PDF_OCR_SHARD_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
 
@@ -47,7 +51,7 @@ pub struct PdfOcrShardSchedulerTrace {
     /// Highest source page index in the chunk.
     pub page_end: Option<u32>,
     /// Shard type for the chunk when it is homogeneous.
-    pub shard_type: Option<String>,
+    pub shard_type: Option<StudioContractKind>,
     /// OCR profile for the chunk when it is homogeneous.
     pub ocr_profile: Option<String>,
     /// Queue wait before this scheduler lane acquired worker permits.

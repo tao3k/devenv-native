@@ -22,9 +22,9 @@ mod sanitization;
 #[path = "state/mod.rs"]
 mod state;
 
-pub use code_ast::build_code_ast_analysis_response;
+pub(crate) use code_ast::build_code_ast_analysis_response;
 pub(crate) use code_ast::build_generic_code_ast_analysis_response;
-pub use code_ast::resolve_code_ast_repository_and_path;
+pub(crate) use code_ast::resolve_code_ast_repository_and_path;
 pub(crate) use config::load_document_extract_endpoint_from_wendao_toml;
 pub use config::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,
@@ -32,7 +32,8 @@ pub use config::{
     studio_wendao_toml_path,
 };
 pub use error::{StudioApiError, map_repo_intelligence_error};
-pub use repository::{configured_repositories, configured_repository};
+pub use repository::configured_repositories;
+pub(crate) use repository::configured_repository;
 pub(crate) use repository::{registered_repository_search_seeds, resolve_registered_repository_id};
 pub use routes::{studio_router, studio_routes};
 pub use sanitization::{

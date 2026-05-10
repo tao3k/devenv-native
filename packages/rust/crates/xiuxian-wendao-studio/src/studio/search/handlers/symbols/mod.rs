@@ -1,3 +1,5 @@
+//! Coordinates the Studio search handlers symbols branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod batch;
 mod hit;
 mod matcher;

@@ -72,8 +72,8 @@ fn test_dependency_config_load() {
     use crate::dependency_indexer::DependencyBuildConfig as ConfigType;
 
     // Test loading config from actual xiuxian.toml
-    let config_path = workspace_root()
-        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
+    let config_path =
+        workspace_root().join("packages/rust/crates/xiuxian-wendao/resources/config/xiuxian.toml");
     let config = ConfigType::load(config_path.to_string_lossy().as_ref());
 
     // Should have at least one external dependency configuration.

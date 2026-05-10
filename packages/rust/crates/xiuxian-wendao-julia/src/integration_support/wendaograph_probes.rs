@@ -15,6 +15,7 @@ use super::{
     WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_WARM_SAMPLES_ENV, WENDAOGRAPH_JULIA_PROJECT_ENV,
     WENDAOGRAPH_PACKAGE_DIR_ENV,
 };
+use crate::JuliaContractMode;
 use crate::integration_support::service_runtime::repo_root;
 
 /// Timing report from one local `WendaoGraph.jl` `PageIndex` host probe.
@@ -60,7 +61,7 @@ pub struct WendaoGraphPageIndexPlannerActionHostProbeReport {
 #[derive(Clone, Debug, PartialEq)]
 pub struct WendaoGraphLinkGraphHostProbeReport {
     /// Probe input mode selected for the host-process request.
-    pub mode: String,
+    pub mode: JuliaContractMode,
     /// Number of input graph nodes.
     pub node_count: usize,
     /// Number of input graph edges.
@@ -479,7 +480,7 @@ pub(crate) fn parse_link_graph_probe_report_line(
     let fields = parse_probe_fields(line)?;
 
     Ok(WendaoGraphLinkGraphHostProbeReport {
-        mode: parse_string_field_or(&fields, "mode", "semantic-neighbors").to_owned(),
+        mode: parse_string_field_or(&fields, "mode", "semantic-neighbors").into(),
         node_count: parse_usize_field_or(&fields, "node_count", 4)?,
         edge_count: parse_usize_field_or(&fields, "edge_count", 2)?,
         semantic_neighbor_count: parse_usize_field_or(&fields, "semantic_neighbor_count", 1)?,
@@ -504,7 +505,7 @@ pub(crate) fn parse_link_graph_full_structural_probe_report_line(
 
     Ok(WendaoGraphLinkGraphFullStructuralHostProbeReport {
         base: WendaoGraphLinkGraphHostProbeReport {
-            mode: parse_string_field_or(&fields, "mode", "semantic-neighbors").to_owned(),
+            mode: parse_string_field_or(&fields, "mode", "semantic-neighbors").into(),
             node_count: parse_usize_field_or(&fields, "node_count", 4)?,
             edge_count: parse_usize_field_or(&fields, "edge_count", 2)?,
             semantic_neighbor_count: parse_usize_field_or(&fields, "semantic_neighbor_count", 1)?,

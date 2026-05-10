@@ -31,8 +31,8 @@ fn launch_manifest_round_trips_plugin_launch_spec() {
 #[test]
 fn service_descriptor_builds_plugin_launch_spec() {
     let descriptor = LinkGraphJuliaSearchServiceDescriptor {
-        service_mode: Some("stream".to_string()),
-        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.to_string()),
+        service_mode: Some("stream".into()),
+        search_config_path: Some(DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH.into()),
     };
 
     let spec = descriptor.plugin_launch_spec(DEFAULT_JULIA_SEARCH_LAUNCHER_PATH);

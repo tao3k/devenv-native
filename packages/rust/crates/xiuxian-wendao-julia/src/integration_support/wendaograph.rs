@@ -10,6 +10,12 @@ use serde_json::{Value, json};
 use super::search_strategy_flow_candidates::{
     SearchStrategyFlowCandidateInputBatch, search_strategy_flow_candidate_input_batch_from_markdown,
 };
+#[cfg(test)]
+use super::search_strategy_flow_candidates::{
+    SearchStrategyFlowConfiguredMarkdownReplayFamily,
+    configured_search_strategy_flow_markdown_replay_families,
+    configured_search_strategy_flow_markdown_replay_families_with_limit,
+};
 use super::search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
     search_strategy_flow_candidate_input_batch_from_repo_search,
@@ -99,7 +105,14 @@ pub fn search_strategy_flow_probe_action_route(
 #[path = "wendaograph_scripts.rs"]
 mod scripts;
 
+#[path = "wendaograph_batch_replay.rs"]
+mod batch_replay;
+
 use scripts::SEARCH_STRATEGY_FLOW_JULIA;
+
+#[cfg(test)]
+pub(crate) use batch_replay::SearchStrategyFlowPersistentBatchHost;
+pub use batch_replay::run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches;
 
 #[path = "wendaograph_probes.rs"]
 mod probes;
@@ -175,6 +188,49 @@ pub fn run_wendaograph_search_strategy_flow_json(
 ) -> Result<String, String> {
     let trace = run_wendaograph_search_strategy_flow_raw_json(intent, search_root)?;
     enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace)
+}
+
+#[cfg(test)]
+pub(crate) fn run_wendaograph_search_strategy_flow_json_with_candidate_batch(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+    candidate_batch: SearchStrategyFlowCandidateInputBatch,
+) -> Result<String, String> {
+    let trace = run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
+        intent,
+        search_root,
+        candidate_batch,
+    )?;
+    enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace)
+}
+
+#[cfg(test)]
+pub(crate) fn configured_wendaograph_search_strategy_flow_markdown_replay_families(
+    search_root: impl Into<PathBuf>,
+    intent: &str,
+) -> Result<Vec<SearchStrategyFlowConfiguredMarkdownReplayFamily>, String> {
+    let search_root = resolve_existing_path(
+        "WendaoGraph SearchStrategyFlow configured Markdown replay root",
+        search_root,
+    )?;
+    configured_search_strategy_flow_markdown_replay_families(search_root.as_path(), intent)
+}
+
+#[cfg(test)]
+pub(crate) fn configured_wendaograph_search_strategy_flow_markdown_replay_families_with_limit(
+    search_root: impl Into<PathBuf>,
+    intent: &str,
+    max_candidates: usize,
+) -> Result<Vec<SearchStrategyFlowConfiguredMarkdownReplayFamily>, String> {
+    let search_root = resolve_existing_path(
+        "WendaoGraph SearchStrategyFlow configured Markdown replay root",
+        search_root,
+    )?;
+    configured_search_strategy_flow_markdown_replay_families_with_limit(
+        search_root.as_path(),
+        intent,
+        Some(max_candidates),
+    )
 }
 
 /// Runs local `WendaoGraph.jl` `SearchStrategyFlow` through the Rust owner
