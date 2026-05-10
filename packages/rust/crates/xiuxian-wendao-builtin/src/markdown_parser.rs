@@ -133,8 +133,12 @@ fn collect_markdown_paths(
 
 fn is_markdown_path(path: &str) -> bool {
     let normalized = path.replace('\\', "/");
-    let lower = normalized.to_ascii_lowercase();
-    lower.ends_with(".md") || lower.ends_with(".markdown")
+    std::path::Path::new(&normalized)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
+        })
 }
 
 fn doc_record(repo_id: &str, relative_path: &str, contents: &str) -> DocRecord {

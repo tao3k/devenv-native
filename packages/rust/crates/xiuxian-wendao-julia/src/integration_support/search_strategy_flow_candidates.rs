@@ -67,6 +67,23 @@ struct ScoredCandidate {
     ranking_score: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CandidateRoute {
+    SearchStrategy,
+    PageIndex,
+    LinkGraph,
+    Validation,
+}
+
+impl CandidateRoute {
+    const DIVERSE_FRONTIER_ORDER: [Self; 4] = [
+        Self::SearchStrategy,
+        Self::PageIndex,
+        Self::LinkGraph,
+        Self::Validation,
+    ];
+}
+
 pub(crate) fn search_strategy_flow_candidate_input_batch_from_markdown(
     intent: &str,
     search_root: &Path,
@@ -136,11 +153,7 @@ pub(crate) fn discover_search_strategy_flow_candidate_inputs(
     }
 
     scored.sort_by(compare_scored_candidates);
-    Ok(scored
-        .into_iter()
-        .take(MAX_CANDIDATES)
-        .map(|candidate| candidate.input)
-        .collect())
+    Ok(select_route_diverse_candidates(scored))
 }
 
 fn markdown_files(search_root: &Path) -> Vec<PathBuf> {
@@ -461,6 +474,202 @@ fn compare_scored_candidates(left: &ScoredCandidate, right: &ScoredCandidate) ->
     }
 }
 
+fn select_route_diverse_candidates(
+    scored: Vec<ScoredCandidate>,
+) -> Vec<SearchStrategyFlowCandidateInput> {
+    let mut selected = Vec::new();
+    let mut selected_keys = HashSet::new();
+
+    for route in CandidateRoute::DIVERSE_FRONTIER_ORDER {
+        if selected.len() >= MAX_CANDIDATES {
+            break;
+        }
+        if let Some(candidate) = scored
+            .iter()
+            .filter(|candidate| {
+                !selected_keys.contains(&candidate_input_key(&candidate.input))
+                    && candidate_matches_route(&candidate.input, route)
+            })
+            .max_by(|left, right| compare_route_seed_candidates(route, left, right))
+            .cloned()
+        {
+            push_selected_candidate(candidate, &mut selected, &mut selected_keys);
+        }
+    }
+
+    for candidate in scored {
+        if selected.len() >= MAX_CANDIDATES {
+            break;
+        }
+        push_selected_candidate(candidate, &mut selected, &mut selected_keys);
+    }
+
+    selected
+        .into_iter()
+        .map(|candidate| candidate.input)
+        .collect()
+}
+
+fn push_selected_candidate(
+    candidate: ScoredCandidate,
+    selected: &mut Vec<ScoredCandidate>,
+    selected_keys: &mut HashSet<String>,
+) {
+    if selected_keys.insert(candidate_input_key(&candidate.input)) {
+        selected.push(candidate);
+    }
+}
+
+fn candidate_input_key(candidate: &SearchStrategyFlowCandidateInput) -> String {
+    format!("{}#{}", candidate.relative_path, candidate.heading_anchor)
+}
+
+fn candidate_matches_route(
+    candidate: &SearchStrategyFlowCandidateInput,
+    route: CandidateRoute,
+) -> bool {
+    let path = candidate.relative_path.to_ascii_lowercase();
+    let title = candidate.title.to_ascii_lowercase();
+    let anchor = candidate.heading_anchor.to_ascii_lowercase();
+    let combined = format!("{path} {title} {anchor}");
+
+    match route {
+        CandidateRoute::SearchStrategy => {
+            path.contains("30_search_strategy")
+                || path.contains("search")
+                || title.contains("search")
+                || combined.contains("searchstrategyflow")
+                || combined.contains("search_strategy")
+                || combined.contains("search-strategy")
+                || combined.contains("strategy flow")
+        }
+        CandidateRoute::PageIndex => {
+            path.contains("20_page_index")
+                || combined.contains("pageindex")
+                || combined.contains("page_index")
+                || combined.contains("page-index")
+                || combined.contains("page index")
+                || combined.contains("reasoning tree")
+                || combined.contains("reasoning-tree")
+        }
+        CandidateRoute::LinkGraph => {
+            path.contains("10_graph_compute")
+                || combined.contains("linkgraph")
+                || combined.contains("link_graph")
+                || combined.contains("link-graph")
+                || combined.contains("link graph")
+                || combined.contains("graph compute")
+                || combined.contains("relation fanout")
+        }
+        CandidateRoute::Validation => {
+            path.contains("90_validation")
+                || combined.contains("validation")
+                || combined.contains("performance gate")
+        }
+    }
+}
+
+fn compare_route_seed_candidates(
+    route: CandidateRoute,
+    left: &ScoredCandidate,
+    right: &ScoredCandidate,
+) -> Ordering {
+    match candidate_route_quality(&left.input, route)
+        .partial_cmp(&candidate_route_quality(&right.input, route))
+    {
+        Some(ordering) if ordering != Ordering::Equal => ordering,
+        _ => match left.ranking_score.partial_cmp(&right.ranking_score) {
+            Some(ordering) if ordering != Ordering::Equal => ordering,
+            _ => right
+                .input
+                .context_cost
+                .cmp(&left.input.context_cost)
+                .then_with(|| right.input.relative_path.cmp(&left.input.relative_path))
+                .then_with(|| right.input.line_start.cmp(&left.input.line_start)),
+        },
+    }
+}
+
+fn candidate_route_quality(
+    candidate: &SearchStrategyFlowCandidateInput,
+    route: CandidateRoute,
+) -> f64 {
+    let candidate_text = format!(
+        "{} {}",
+        candidate.relative_path.to_ascii_lowercase(),
+        candidate.heading_anchor.to_ascii_lowercase()
+    );
+
+    match route {
+        CandidateRoute::SearchStrategy => {
+            contains_any(
+                &candidate_text,
+                &[
+                    "query-understanding",
+                    "query_understanding",
+                    "precision-pruning",
+                    "precision_pruning",
+                ],
+            ) * 1.4
+                + contains_any(
+                    &candidate_text,
+                    &[
+                        "search-strategy-flow",
+                        "search_strategy_flow",
+                        "searchstrategyflow",
+                    ],
+                )
+        }
+        CandidateRoute::PageIndex => {
+            contains_any(
+                &candidate_text,
+                &["reasoning-tree-contracts", "reasoning_tree_contracts"],
+            ) * 1.2
+                + contains_any(&candidate_text, &["reasoning-tree", "reasoning_tree"])
+                + contains_any(
+                    &candidate_text,
+                    &["request-tables", "response-tables", "planner-actions"],
+                ) * 0.5
+                - contains_any(
+                    &candidate_text,
+                    &["not-the-owner", "not-owner", "traces-it-is-not"],
+                ) * 1.2
+        }
+        CandidateRoute::LinkGraph => {
+            contains_any(
+                &candidate_text,
+                &[
+                    "pageindex-style-reasoning-tree",
+                    "page-index-style-reasoning-tree",
+                ],
+            ) * 1.4
+                + contains_any(
+                    &candidate_text,
+                    &[
+                        "how-this-helps-linkgraph-search",
+                        "relation",
+                        "semantic-fanout",
+                        "hnsw",
+                        "ppr",
+                        "community",
+                        "graph-search",
+                    ],
+                )
+        }
+        CandidateRoute::Validation => {
+            contains_any(&candidate_text, &["validation", "promotion", "gate"])
+        }
+    }
+}
+
+fn contains_any(haystack: &str, needles: &[&str]) -> f64 {
+    if needles.iter().any(|needle| haystack.contains(needle)) {
+        1.0
+    } else {
+        0.0
+    }
+}
+
 fn serialize_candidate_inputs_tsv(candidates: &[SearchStrategyFlowCandidateInput]) -> String {
     candidates
         .iter()
@@ -499,55 +708,112 @@ mod tests {
     use super::*;
 
     #[test]
-    fn discovers_heading_sections_from_real_markdown_shape() {
-        let temp_dir = tempfile::tempdir().expect("create temp dir");
+    fn discovers_heading_sections_from_real_markdown_shape()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = tempfile::tempdir()?;
         let docs_dir = temp_dir.path().join("docs");
-        fs::create_dir_all(&docs_dir).expect("create docs dir");
+        fs::create_dir_all(&docs_dir)?;
         fs::write(
             docs_dir.join("search.md"),
             "# Search Strategy Flow\n\nIntro.\n\n## Query Understanding\n\nReasoning tree page index links.\n\n## Other\n\nOther text.\n",
-        )
-        .expect("write search doc");
+        )?;
         fs::write(
             docs_dir.join("unrelated.md"),
             "# Unrelated\n\nDeployment notes only.\n",
-        )
-        .expect("write unrelated doc");
+        )?;
 
         let candidates = discover_search_strategy_flow_candidate_inputs(
             "query understanding reasoning tree",
             temp_dir.path(),
-        )
-        .expect("discover candidates");
+        )?;
 
-        let first = candidates.first().expect("first candidate");
+        let Some(first) = candidates.first() else {
+            panic!("expected first candidate");
+        };
         assert_eq!(first.relative_path, "docs/search.md");
         assert_eq!(first.heading_anchor, "query-understanding");
         assert!(first.evidence_coverage > 0.8);
         assert!(first.context_cost > 0);
         assert!(first.edge_kinds.contains(&"rust-discovered".to_owned()));
+        Ok(())
     }
 
     #[test]
-    fn serializes_tsv_without_losing_candidate_boundaries() {
-        let temp_dir = tempfile::tempdir().expect("create temp dir");
+    fn discovery_preserves_route_diverse_candidates_before_julia_pruning()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = tempfile::tempdir()?;
+        let search_dir = temp_dir.path().join("docs/30_search_strategy");
+        let page_index_dir = temp_dir.path().join("docs/20_page_index");
+        let graph_dir = temp_dir.path().join("docs/10_graph_compute");
+        fs::create_dir_all(&search_dir)?;
+        fs::create_dir_all(&page_index_dir)?;
+        fs::create_dir_all(&graph_dir)?;
+
+        for index in 0..16 {
+            fs::write(
+                search_dir.join(format!("search_{index:02}.md")),
+                format!(
+                    "# SearchStrategyFlow Query Understanding {index}\n\nSearchStrategyFlow intent strategy flow query understanding branch pruning.\n",
+                ),
+            )?;
+        }
+        fs::write(
+            page_index_dir.join("reasoning_tree.md"),
+            "# PageIndex Parent Child Evidence\n\nPageIndex reasoning tree parent child section spans and disclosure frontier.\n",
+        )?;
+        fs::write(
+            graph_dir.join("link_graph.md"),
+            "# LinkGraph Relation Fanout\n\nLinkGraph relation fanout connects section anchors and provenance edges.\n",
+        )?;
+        fs::write(
+            temp_dir.path().join("docs/index.md"),
+            "# Documentation Index\n\nSearchStrategyFlow PageIndex LinkGraph relation path index.\n",
+        )?;
+
+        let candidates = discover_search_strategy_flow_candidate_inputs(
+            "SearchStrategyFlow PageIndex LinkGraph relation path",
+            temp_dir.path(),
+        )?;
+
+        assert_eq!(candidates.len(), MAX_CANDIDATES);
+        assert!(candidates.iter().any(|candidate| {
+            candidate
+                .relative_path
+                .starts_with("docs/30_search_strategy/")
+        }));
+        assert!(
+            candidates
+                .iter()
+                .any(|candidate| candidate.relative_path.starts_with("docs/20_page_index/"))
+        );
+        assert!(candidates.iter().any(|candidate| {
+            candidate
+                .relative_path
+                .starts_with("docs/10_graph_compute/")
+        }));
+        Ok(())
+    }
+
+    #[test]
+    fn serializes_tsv_without_losing_candidate_boundaries() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let temp_dir = tempfile::tempdir()?;
         fs::write(
             temp_dir.path().join("doc.md"),
             "# Query\tUnderstanding\n\nLine one.\nLine two.\n",
-        )
-        .expect("write doc");
+        )?;
 
         let batch = search_strategy_flow_candidate_input_batch_from_markdown(
             "query understanding",
             temp_dir.path(),
-        )
-        .expect("serialize candidates");
+        )?;
 
         assert_eq!(batch.source, MARKDOWN_HEADING_CANDIDATE_SOURCE);
         assert_eq!(batch.row_count, 1);
         assert!(batch.tsv.contains("doc.md"));
         assert!(batch.tsv.contains("Query\\tUnderstanding"));
         assert_eq!(batch.tsv.lines().count(), 1);
+        Ok(())
     }
 
     #[test]

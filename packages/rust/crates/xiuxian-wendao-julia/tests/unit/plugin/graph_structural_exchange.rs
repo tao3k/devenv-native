@@ -77,7 +77,9 @@ impl LivePerfMeasurement {
         if self.logical_request_count == 0 {
             0.0
         } else {
-            self.elapsed_ms() / self.logical_request_count as f64
+            let request_count =
+                u32::try_from(self.logical_request_count).map_or(f64::INFINITY, f64::from);
+            self.elapsed_ms() / request_count
         }
     }
 }
@@ -798,6 +800,10 @@ async fn fetch_graph_structural_solver_demo_rows_for_repository_via_manifest_dis
 
 #[tokio::test]
 #[serial_test::serial(wendaosearch_solver_demo_live)]
+#[expect(
+    clippy::large_futures,
+    reason = "live perf proof is opt-in and route-complete"
+)]
 async fn graph_structural_live_perf_against_real_wendaosearch_solver_demo_multi_route_service() {
     if std::env::var_os(RUN_WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_TEST_ENV).is_none() {
         eprintln!(
@@ -848,6 +854,11 @@ async fn graph_structural_live_perf_against_real_wendaosearch_solver_demo_multi_
     print_live_perf_summary(&measurements);
 }
 
+#[expect(
+    clippy::large_futures,
+    clippy::too_many_lines,
+    reason = "live perf proof keeps route scenarios together"
+)]
 async fn measure_solver_demo_live_perf_profile(
     profile: &'static str,
     warmup_on_start: bool,
@@ -974,6 +985,10 @@ async fn measure_solver_demo_live_perf_profile(
     measurements
 }
 
+#[expect(
+    clippy::large_futures,
+    reason = "prewarm proof is opt-in live harness code"
+)]
 async fn prewarm_solver_demo_live_routes(base_url: &str, stabilization_sample_count: usize) {
     let report = stabilize_wendaosearch_solver_demo_graph_structural_routes(
         base_url,
@@ -999,6 +1014,7 @@ async fn prewarm_solver_demo_live_routes(base_url: &str, stabilization_sample_co
 
 #[tokio::test]
 #[serial_test::serial(wendaosearch_solver_demo_live)]
+#[expect(clippy::large_futures, reason = "process-managed live proof is opt-in")]
 async fn fetch_graph_structural_solver_demo_rows_for_repository_against_process_managed_wendaosearch_service()
  {
     if !process_managed_wendaosearch_test_enabled() {

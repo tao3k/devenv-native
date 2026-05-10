@@ -42,19 +42,24 @@ fn gnn_host_probe_report_parser_accepts_compact_metric_line() {
 
 #[test]
 fn gnn_host_probe_report_parser_rejects_missing_fields() {
-    let error =
-        parse_gnn_probe_report_line("wendaograph_gnn_host_probe sample_count=3 first_ms=12.5")
-            .expect_err("missing GNN shape fields must fail");
+    let error = match parse_gnn_probe_report_line(
+        "wendaograph_gnn_host_probe sample_count=3 first_ms=12.5",
+    ) {
+        Ok(report) => panic!("missing GNN shape fields must fail, got {report:?}"),
+        Err(error) => error,
+    };
 
     assert!(error.contains("warm_min_ms"));
 }
 
 #[test]
 fn gnn_host_probe_report_parser_rejects_invalid_bool() {
-    let error = parse_gnn_probe_report_line(
+    let error = match parse_gnn_probe_report_line(
         "wendaograph_gnn_host_probe sample_count=3 first_ms=12.5 warm_min_ms=2.1 warm_median_ms=2.2 warm_p95_ms=2.4 warm_max_ms=2.5 node_count=4 edge_count=4 feature_rows=7 feature_cols=4 score_count=4 frontier_rows=3 metal_loaded=yes cuda_loaded=false amdgpu_loaded=false metal_functional=false metal_score_count=0",
-    )
-    .expect_err("invalid bool fields must fail");
+    ) {
+        Ok(report) => panic!("invalid bool fields must fail, got {report:?}"),
+        Err(error) => error,
+    };
 
     assert!(error.contains("metal_loaded"));
 }

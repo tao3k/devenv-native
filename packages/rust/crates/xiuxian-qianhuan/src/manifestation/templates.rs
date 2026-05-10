@@ -139,26 +139,7 @@ struct TemplateFileStamp {
 }
 
 fn build_runtime_state(template_dirs: &[PathBuf]) -> Result<TemplateRuntimeState> {
-    let mut discovered: BTreeMap<String, PathBuf> = BTreeMap::new();
-    let mut scanned_dir_count = 0usize;
-
-    for dir in template_dirs {
-        if !dir.exists() {
-            continue;
-        }
-        if !dir.is_dir() {
-            return Err(anyhow!(
-                "template path is not a directory: {}",
-                dir.display()
-            ));
-        }
-        for template_file in collect_template_files(dir)? {
-            let template_name = template_name_from_path(dir, &template_file)?;
-            // Later directories override earlier ones.
-            discovered.insert(template_name, template_file);
-        }
-        scanned_dir_count += 1;
-    }
+    let (discovered, scanned_dir_count) = discover_runtime_templates(template_dirs)?;
 
     if scanned_dir_count == 0 {
         return Err(anyhow!(
@@ -206,6 +187,34 @@ fn build_runtime_state(template_dirs: &[PathBuf]) -> Result<TemplateRuntimeState
         tera,
         snapshot: capture_snapshot(template_dirs)?,
     })
+}
+
+fn discover_runtime_templates(
+    template_dirs: &[PathBuf],
+) -> Result<(BTreeMap<String, PathBuf>, usize)> {
+    template_dirs.iter().try_fold(
+        (BTreeMap::new(), 0usize),
+        |(mut discovered, scanned_dir_count), dir| {
+            if !dir.exists() {
+                return Ok((discovered, scanned_dir_count));
+            }
+            if !dir.is_dir() {
+                return Err(anyhow!(
+                    "template path is not a directory: {}",
+                    dir.display()
+                ));
+            }
+            collect_template_files(dir)?
+                .into_iter()
+                .try_for_each(|template_file| {
+                    let template_name = template_name_from_path(dir, &template_file)?;
+                    // Later directories override earlier ones.
+                    discovered.insert(template_name, template_file);
+                    Ok::<(), anyhow::Error>(())
+                })?;
+            Ok((discovered, scanned_dir_count + 1))
+        },
+    )
 }
 
 fn capture_snapshot(template_dirs: &[PathBuf]) -> Result<TemplateSnapshot> {
@@ -293,13 +302,12 @@ fn resolve_default_user_template_dir() -> Option<PathBuf> {
 }
 
 fn dedup_paths_preserve_order(paths: Vec<PathBuf>) -> Vec<PathBuf> {
-    let mut unique = Vec::new();
-    for path in paths {
+    paths.into_iter().fold(Vec::new(), |mut unique, path| {
         if !unique.contains(&path) {
             unique.push(path);
         }
-    }
-    unique
+        unique
+    })
 }
 
 fn collect_template_files(path: &Path) -> Result<Vec<PathBuf>> {

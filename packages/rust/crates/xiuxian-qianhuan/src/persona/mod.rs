@@ -5,4 +5,4 @@ mod profile;
 mod registry;
 
 pub use profile::PersonaProfile;
-pub use registry::{MemoryPersonaRecord, PersonaProvider, PersonaRegistry};
+pub use registry::{MemoryPersonaRecord, PersonaId, PersonaProvider, PersonaRegistry};

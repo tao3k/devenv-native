@@ -62,7 +62,7 @@ pub(super) fn advisory_labels(
     labels.insert("persona_name".to_string(), role_plan.persona_name.clone());
     labels.insert(
         "snapshot_id".to_string(),
-        role_plan.snapshot.snapshot_id.clone(),
+        role_plan.snapshot.snapshot_id.as_ref().to_string(),
     );
     labels.insert(
         "role_mix_profile_id".to_string(),

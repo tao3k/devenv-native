@@ -8,10 +8,15 @@ use super::{
     enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     parse_link_graph_full_structural_probe_report_line, parse_link_graph_probe_report_line,
     parse_page_index_planner_action_probe_report_line, parse_page_index_probe_report_line,
+    parse_search_strategy_flow_probe_action,
     probe_wendaograph_link_graph_full_structural_host_request,
     probe_wendaograph_page_index_host_request,
     probe_wendaograph_page_index_planner_action_host_request,
-    run_wendaograph_search_strategy_flow_json,
+    run_wendaograph_search_strategy_flow_json, search_strategy_flow_probe_action_route,
+};
+use xiuxian_wendao_runtime::transport::{
+    ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
+    GRAPH_NEIGHBORS_ROUTE, REPO_SEARCH_ROUTE,
 };
 
 #[path = "wendaograph/relationship_search.rs"]
@@ -48,10 +53,12 @@ fn page_index_host_probe_report_parser_accepts_compact_metric_line() {
 
 #[test]
 fn page_index_host_probe_report_parser_rejects_missing_fields() {
-    let error = parse_page_index_probe_report_line(
+    let error = match parse_page_index_probe_report_line(
         "wendaograph_page_index_host_probe sample_count=3 first_ms=10.5",
-    )
-    .expect_err("missing warm metric fields must fail");
+    ) {
+        Ok(report) => panic!("missing warm metric fields must fail, got {report:?}"),
+        Err(error) => error,
+    };
 
     assert!(error.contains("warm_min_ms"));
 }
@@ -188,13 +195,19 @@ fn link_graph_full_structural_probe_report_parser_accepts_compact_metric_line() 
 
 #[test]
 fn search_strategy_flow_rust_bridge_rejects_blank_intent_before_launch() {
-    let error = run_wendaograph_search_strategy_flow_json("   ", ".")
-        .expect_err("blank intent should fail before launching Julia");
+    let error = match run_wendaograph_search_strategy_flow_json("   ", ".") {
+        Ok(trace) => panic!("blank intent should fail before launching Julia, got {trace}"),
+        Err(error) => error,
+    };
 
     assert_eq!(error, "SearchStrategyFlow intent must not be blank");
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "JSON bridge fixture is intentionally explicit"
+)]
 fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     let trace = serde_json::json!({
         "intent": "find query understanding",
@@ -265,7 +278,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     let routes = enriched
         .get("retrievalRoutes")
         .and_then(serde_json::Value::as_array)
-        .expect("retrievalRoutes must be an array");
+        .unwrap_or_else(|| panic!("retrievalRoutes must be an array"));
 
     assert_eq!(routes.len(), 1);
     let route = &routes[0];
@@ -300,7 +313,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
         .get("flightSteps")
         .and_then(serde_json::Value::as_array)
         .and_then(|steps| steps.last())
-        .expect("graph flight step");
+        .unwrap_or_else(|| panic!("graph flight step"));
     assert_eq!(
         graph_step
             .get("requiresResolvedGraphNodeId")
@@ -309,9 +322,148 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     );
     assert!(
         serde_json::to_string(graph_step)
-            .expect("graph flight step should serialize")
+            .unwrap_or_else(|error| panic!("graph flight step should serialize: {error}"))
             .contains("<resolved-graph-node-id>")
     );
+}
+
+#[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "JSON bridge fixture is intentionally explicit"
+)]
+fn search_strategy_flow_rust_bridge_requires_section_granularity() {
+    let trace = serde_json::json!({
+        "intent": "find SearchStrategyFlow precision pruning",
+        "backend": "rust-wendao-julia",
+        "controlPlane": "rust",
+        "graphProject": "/tmp/WendaoGraph.jl",
+        "searchRoot": "/tmp/WendaoGraph.jl",
+        "stageReceipts": [],
+        "candidates": [
+            {
+                "candidateId": "docs/30_search_strategy/30.02_precision_pruning.md",
+                "action": "keep",
+                "reason": "file-level candidate should not materialize",
+                "finalScore": 0.93,
+                "evidenceCoverage": 0.98,
+                "graphScore": 0.95,
+                "authorityScore": 0.93,
+                "semanticScore": 0.0,
+                "structuralScore": 0.9,
+                "contextCost": 1000,
+                "blocked": false
+            },
+            {
+                "candidateId": "docs/30_search_strategy/30.02_precision_pruning.md#precision-score",
+                "action": "keep",
+                "reason": "section-level candidate should materialize",
+                "finalScore": 0.91,
+                "evidenceCoverage": 0.98,
+                "graphScore": 0.95,
+                "authorityScore": 0.93,
+                "semanticScore": 0.0,
+                "structuralScore": 0.9,
+                "contextCost": 800,
+                "blocked": false
+            }
+        ],
+        "frontier": [
+            {
+                "candidateId": "docs/30_search_strategy/30.02_precision_pruning.md",
+                "rank": 1,
+                "selected": true,
+                "finalScore": 0.93,
+                "action": "keep",
+                "contextBudget": 1000,
+                "judgementKind": "graph_verified_candidate"
+            },
+            {
+                "candidateId": "docs/30_search_strategy/30.02_precision_pruning.md#precision-score",
+                "rank": 2,
+                "selected": true,
+                "finalScore": 0.91,
+                "action": "keep",
+                "contextBudget": 800,
+                "judgementKind": "graph_verified_candidate"
+            }
+        ],
+        "plannerActions": [
+            {
+                "actionKind": "materialize",
+                "candidateId": "docs/30_search_strategy/30.02_precision_pruning.md",
+                "targetCandidateId": "",
+                "cycleAllowed": false,
+                "requiresLlmJudgement": false,
+                "score": 0.93,
+                "contextBudget": 1000,
+                "reason": "file_level"
+            },
+            {
+                "actionKind": "materialize",
+                "candidateId": "docs/30_search_strategy/30.02_precision_pruning.md#precision-score",
+                "targetCandidateId": "",
+                "cycleAllowed": false,
+                "requiresLlmJudgement": false,
+                "score": 0.91,
+                "contextBudget": 800,
+                "reason": "section_level"
+            }
+        ],
+        "summary": {},
+        "validation": {}
+    });
+
+    let enriched = enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace.to_string())
+        .unwrap_or_else(|error| panic!("enrich SearchStrategyFlow bridge trace: {error}"));
+    let enriched: serde_json::Value = serde_json::from_str(&enriched)
+        .unwrap_or_else(|error| panic!("parse enriched SearchStrategyFlow bridge trace: {error}"));
+    let routes = enriched
+        .get("retrievalRoutes")
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| panic!("retrievalRoutes must be an array"));
+
+    assert_eq!(routes.len(), 1);
+    assert_eq!(
+        routes[0].get("candidateId"),
+        Some(&serde_json::json!(
+            "docs/30_search_strategy/30.02_precision_pruning.md#precision-score"
+        ))
+    );
+    assert_eq!(
+        routes[0].get("headingAnchor"),
+        Some(&serde_json::json!("precision-score"))
+    );
+    assert_eq!(
+        routes[0].get("directFileReadAllowed"),
+        Some(&serde_json::json!(false))
+    );
+}
+
+#[test]
+fn search_strategy_flow_probe_actions_are_whitelisted() {
+    assert_eq!(
+        search_strategy_flow_probe_action_route("expand_neighbors"),
+        Ok(Some(GRAPH_NEIGHBORS_ROUTE))
+    );
+    assert_eq!(
+        search_strategy_flow_probe_action_route("expand_neighbors:docs-fixture/docs/search.md"),
+        Ok(Some(GRAPH_NEIGHBORS_ROUTE))
+    );
+    assert_eq!(
+        search_strategy_flow_probe_action_route("open_parent_child"),
+        Ok(Some(ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE))
+    );
+    assert_eq!(
+        search_strategy_flow_probe_action_route("compare_provenance"),
+        Ok(Some(REPO_SEARCH_ROUTE))
+    );
+    assert_eq!(
+        search_strategy_flow_probe_action_route("open_adjacent_sections"),
+        Ok(Some(ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE))
+    );
+    assert_eq!(search_strategy_flow_probe_action_route("stop"), Ok(None));
+    assert!(parse_search_strategy_flow_probe_action("open_full_file").is_err());
 }
 
 #[tokio::test]
@@ -368,12 +520,17 @@ async fn search_strategy_flow_rust_bridge_rejects_invalid_flight_endpoint_before
         .unwrap_or_else(|error| panic!("create Flight materialization config: {error}"));
 
     let error =
-        enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
+        match enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
             &trace.to_string(),
             &config,
         )
         .await
-        .expect_err("invalid endpoint should reject before executed receipts are fabricated");
+        {
+            Ok(trace) => panic!(
+                "invalid endpoint should reject before executed receipts are fabricated, got {trace}"
+            ),
+            Err(error) => error,
+        };
 
     assert!(error.contains("create SearchStrategyFlow Flight endpoint"));
 }

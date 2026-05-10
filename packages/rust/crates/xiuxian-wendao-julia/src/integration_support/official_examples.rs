@@ -524,6 +524,10 @@ fn warm_path_passes_limits(
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::items_after_test_module,
+    reason = "warm-path tests sit beside stabilization helpers they exercise"
+)]
 mod tests {
     use super::{
         WendaoSearchGraphStructuralStabilizationLimits, WendaoSearchGraphStructuralWarmPathStats,

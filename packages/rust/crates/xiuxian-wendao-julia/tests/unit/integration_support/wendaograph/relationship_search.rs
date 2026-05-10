@@ -483,8 +483,8 @@ fn relationship_search_stability_summary(
         queue_count,
         fallback_count,
         reject_count,
-        latency_p50_ms: percentile_u32(&mut p50_samples, 0.5),
-        latency_p95_ms: percentile_u32(&mut p95_samples, 0.95),
+        latency_p50_ms: percentile_u32(&mut p50_samples, 500),
+        latency_p95_ms: percentile_u32(&mut p95_samples, 950),
         warm_max_ms,
         warm_spread_ratio,
         max_selected_batch_size,
@@ -515,9 +515,8 @@ fn relationship_search_stability_receipt_path() -> PathBuf {
     if let Some(configured) = env::var_os(WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_STABILITY_RECEIPT_ENV) {
         return PathBuf::from(configured);
     }
-    let cache_home = env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".cache"));
+    let cache_home =
+        env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
     cache_home
         .join("wendaograph")
         .join("relationship_search_synthetic_stability_receipt.json")
@@ -715,12 +714,15 @@ fn json_f64(value: &serde_json::Value, key: &str) -> Result<f64, String> {
         .ok_or_else(|| format!("missing or invalid receipt f64 `{key}`"))
 }
 
-fn percentile_u32(values: &mut [u32], ratio: f64) -> u32 {
+fn percentile_u32(values: &mut [u32], percentile_per_mille: usize) -> u32 {
     if values.is_empty() {
         return 0;
     }
     values.sort_unstable();
-    let index = ((values.len() as f64 * ratio).ceil() as usize)
+    let index = values
+        .len()
+        .saturating_mul(percentile_per_mille)
+        .div_ceil(1000)
         .saturating_sub(1)
         .min(values.len() - 1);
     values[index]

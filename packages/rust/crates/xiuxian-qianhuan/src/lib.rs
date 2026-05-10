@@ -43,14 +43,16 @@ pub mod zhenfa_router;
 
 pub use config::InjectionWindowConfig;
 pub use contracts::{
-    InjectionMode, InjectionOrderStrategy, InjectionPolicy, InjectionSnapshot, PromptContextBlock,
-    PromptContextCategory, PromptContextSource, RoleMixProfile, RoleMixRole,
+    InjectionMode, InjectionOrderStrategy, InjectionPolicy, InjectionSessionId, InjectionSnapshot,
+    InjectionSnapshotId, InjectionSnapshotInput, InjectionTurnId, PromptContextBlock,
+    PromptContextBlockId, PromptContextBlockInput, PromptContextCategory, PromptContextSource,
+    PromptSessionScope, RoleMixProfile, RoleMixRole,
 };
 pub use entry::QaEntry;
 pub use error::InjectionError;
 pub use hot_reload::{
     HotReloadDriver, HotReloadOutcome, HotReloadRuntime, HotReloadStatus, HotReloadTarget,
-    HotReloadTrigger, HotReloadVersionBackend, InMemoryHotReloadVersionBackend,
+    HotReloadTargetId, HotReloadTrigger, HotReloadVersionBackend, InMemoryHotReloadVersionBackend,
     ValkeyHotReloadVersionBackend, resolve_hot_reload_watch_extensions,
     resolve_hot_reload_watch_patterns,
 };
@@ -60,7 +62,9 @@ pub use manifestation::{
     ManifestationRuntimeContext, ManifestationTemplateTarget, MemoryTemplateRecord,
 };
 pub use orchestrator::{InjectionLayer, ThousandFacesOrchestrator};
-pub use persona::{MemoryPersonaRecord, PersonaProfile, PersonaProvider, PersonaRegistry};
+pub use persona::{
+    MemoryPersonaRecord, PersonaId, PersonaProfile, PersonaProvider, PersonaRegistry,
+};
 pub use transmuter::{MockTransmuter, ToneTransmuter};
 pub use window::SystemPromptInjectionWindow;
 pub use xml::SYSTEM_PROMPT_INJECTION_TAG;

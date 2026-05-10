@@ -22,7 +22,7 @@ impl Agent {
             event = SessionEvent::InjectionSnapshotCreated.as_str(),
             session_id,
             snapshot_id = %snapshot.snapshot_id,
-            turn_id = snapshot.turn_id,
+            turn_id = snapshot.turn_id.value(),
             policy_max_blocks = snapshot.policy.max_blocks,
             policy_max_chars = snapshot.policy.max_chars,
             role_mix_profile = snapshot
@@ -42,7 +42,7 @@ impl Agent {
                 event = SessionEvent::InjectionBlockDropped.as_str(),
                 session_id,
                 snapshot_id = %snapshot.snapshot_id,
-                turn_id = snapshot.turn_id,
+                turn_id = snapshot.turn_id.value(),
                 block_id = %block_id,
                 "injection block dropped by policy"
             );
@@ -52,7 +52,7 @@ impl Agent {
                 event = SessionEvent::InjectionBlockTruncated.as_str(),
                 session_id,
                 snapshot_id = %snapshot.snapshot_id,
-                turn_id = snapshot.turn_id,
+                turn_id = snapshot.turn_id.value(),
                 block_id = %block_id,
                 "injection block truncated by policy"
             );

@@ -1,8 +1,10 @@
 use std::collections::HashSet;
 
 use xiuxian_qianhuan::{
-    InjectionMode, InjectionOrderStrategy, InjectionPolicy, InjectionSnapshot, PromptContextBlock,
-    PromptContextCategory, PromptContextSource, RoleMixProfile, RoleMixRole,
+    InjectionMode, InjectionOrderStrategy, InjectionPolicy, InjectionSessionId, InjectionSnapshot,
+    InjectionSnapshotId, InjectionSnapshotInput, InjectionTurnId, PromptContextBlock,
+    PromptContextBlockId, PromptContextBlockInput, PromptContextCategory, PromptContextSource,
+    PromptSessionScope, RoleMixProfile, RoleMixRole,
 };
 
 use super::builder::InjectionBlock;
@@ -16,15 +18,15 @@ pub(super) fn assemble_snapshot(
     let blocks: Vec<PromptContextBlock> = blocks
         .into_iter()
         .map(|block| {
-            PromptContextBlock::new(
-                block.block_id,
-                PromptContextSource::RuntimeHint,
-                PromptContextCategory::RuntimeHint,
-                0,
-                session_id,
-                block.content,
-                false,
-            )
+            PromptContextBlock::new(PromptContextBlockInput {
+                block_id: PromptContextBlockId::new(block.block_id),
+                source: PromptContextSource::RuntimeHint,
+                category: PromptContextCategory::RuntimeHint,
+                priority: 0,
+                session_scope: PromptSessionScope::new(session_id),
+                payload: block.content,
+                anchor: false,
+            })
         })
         .collect();
     let mut dropped_block_ids = Vec::new();
@@ -33,7 +35,7 @@ pub(super) fn assemble_snapshot(
         .into_iter()
         .filter_map(|mut block| {
             if !policy.enabled_categories.contains(&block.category) {
-                dropped_block_ids.push(block.block_id);
+                dropped_block_ids.push(block.block_id.to_string());
                 return None;
             }
             block.anchor = block.anchor || policy.anchor_categories.contains(&block.category);
@@ -55,25 +57,25 @@ pub(super) fn assemble_snapshot(
             && let Some(replace_index) = retained.iter().rposition(|existing| !existing.anchor)
         {
             let evicted = std::mem::replace(&mut retained[replace_index], block);
-            dropped_block_ids.push(evicted.block_id);
+            dropped_block_ids.push(evicted.block_id.to_string());
             continue;
         }
 
-        dropped_block_ids.push(block.block_id);
+        dropped_block_ids.push(block.block_id.to_string());
     }
 
     let (final_blocks, mut budget_dropped, truncated_block_ids) =
         apply_char_budget(prioritize_anchors(retained), policy.max_chars);
     dropped_block_ids.append(&mut budget_dropped);
 
-    let mut snapshot = InjectionSnapshot::from_blocks(
-        format!("injection:{session_id}:{turn_id}"),
-        session_id,
-        turn_id,
+    let mut snapshot = InjectionSnapshot::from_blocks(InjectionSnapshotInput {
+        snapshot_id: InjectionSnapshotId::new(format!("injection:{session_id}:{turn_id}")),
+        session_id: InjectionSessionId::new(session_id),
+        turn_id: InjectionTurnId::new(turn_id),
         policy,
         role_mix,
-        final_blocks,
-    );
+        blocks: final_blocks,
+    });
     snapshot.dropped_block_ids = dedup_preserve_order(dropped_block_ids);
     snapshot.truncated_block_ids = dedup_preserve_order(truncated_block_ids);
     snapshot
@@ -112,7 +114,10 @@ fn apply_char_budget(
     max_chars: usize,
 ) -> (Vec<PromptContextBlock>, Vec<String>, Vec<String>) {
     if max_chars == 0 {
-        let dropped = blocks.into_iter().map(|block| block.block_id).collect();
+        let dropped = blocks
+            .into_iter()
+            .map(|block| block.block_id.to_string())
+            .collect();
         return (Vec::new(), dropped, Vec::new());
     }
 
@@ -123,7 +128,7 @@ fn apply_char_budget(
 
     for mut block in blocks {
         if used_chars >= max_chars {
-            dropped_block_ids.push(block.block_id);
+            dropped_block_ids.push(block.block_id.to_string());
             continue;
         }
 
@@ -135,14 +140,14 @@ fn apply_char_budget(
         }
 
         if remaining == 0 {
-            dropped_block_ids.push(block.block_id);
+            dropped_block_ids.push(block.block_id.to_string());
             continue;
         }
 
         block.payload = truncate_chars(&block.payload, remaining);
         block.payload_chars = block.payload.chars().count();
         used_chars = used_chars.saturating_add(block.payload_chars);
-        truncated_block_ids.push(block.block_id.clone());
+        truncated_block_ids.push(block.block_id.to_string());
         kept.push(block);
     }
 

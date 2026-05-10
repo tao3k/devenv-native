@@ -10,7 +10,8 @@ mod runtime;
 mod target;
 
 pub use backend::{
-    HotReloadVersionBackend, InMemoryHotReloadVersionBackend, ValkeyHotReloadVersionBackend,
+    HotReloadTargetId, HotReloadVersionBackend, InMemoryHotReloadVersionBackend,
+    ValkeyHotReloadVersionBackend,
 };
 pub use driver::HotReloadDriver;
 pub use policy::{resolve_hot_reload_watch_extensions, resolve_hot_reload_watch_patterns};

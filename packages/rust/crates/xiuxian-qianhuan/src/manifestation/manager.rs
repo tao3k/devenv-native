@@ -156,10 +156,10 @@ impl ManifestationManager {
             .write()
             .map_err(|_| anyhow!("template renderer lock poisoned"))?;
 
-        let mut loaded_names = 0usize;
-        for record in records {
-            loaded_names += upsert_runtime_template_record(&mut state.runtime_templates, record);
-        }
+        let loaded_names = records
+            .into_iter()
+            .map(|record| upsert_runtime_template_record(&mut state.runtime_templates, record))
+            .sum();
 
         let tera = Self::load_tera(
             &self.embedded_templates,

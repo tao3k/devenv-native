@@ -1,4 +1,4 @@
-//! CLI proof surface for the Rust-owned `WendaoGraph.jl` SearchStrategyFlow bridge.
+//! CLI proof surface for the Rust-owned `WendaoGraph.jl` `SearchStrategyFlow` bridge.
 
 use std::env;
 use std::path::PathBuf;

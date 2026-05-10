@@ -56,24 +56,17 @@ impl AdversarialOrchestrator {
     /// Returns a drift score based on semantic overlap and anchor binding.
     #[must_use]
     pub fn evaluate_alignment(&self, _claim: &str, evidence: &[String]) -> AuditVerdict {
-        let mut matched_anchors = 0.0_f32;
-        let mut total_anchors = 0.0_f32;
-        let mut missing = Vec::new();
-
         // This simulates the 'Skeptic' checking for counter-evidence.
         // In full implementation, this could involve Rust-side regex or keyword indices.
         let anchors = &self.prospector.style_anchors;
-        for anchor in anchors {
-            total_anchors += 1.0;
-            if evidence
-                .iter()
-                .any(|e| e.to_lowercase().contains(&anchor.to_lowercase()))
-            {
-                matched_anchors += 1.0;
-            } else {
-                missing.push(anchor.clone());
-            }
-        }
+        let missing = anchors
+            .iter()
+            .filter(|anchor| !evidence_contains_anchor(evidence, anchor))
+            .cloned()
+            .collect::<Vec<_>>();
+        let total_anchors = u16::try_from(anchors.len()).map_or(f32::INFINITY, f32::from);
+        let missing_anchors = u16::try_from(missing.len()).map_or(f32::INFINITY, f32::from);
+        let matched_anchors = total_anchors - missing_anchors;
 
         let drift = if total_anchors == 0.0 {
             0.0
@@ -87,4 +80,11 @@ impl AdversarialOrchestrator {
             missing_anchors: missing,
         }
     }
+}
+
+fn evidence_contains_anchor(evidence: &[String], anchor: &str) -> bool {
+    let anchor = anchor.to_lowercase();
+    evidence
+        .iter()
+        .any(|entry| entry.to_lowercase().contains(&anchor))
 }

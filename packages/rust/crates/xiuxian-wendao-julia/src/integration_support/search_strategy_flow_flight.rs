@@ -1,6 +1,7 @@
 //! Arrow Flight materialization for Rust-owned `SearchStrategyFlow` routes.
 
 use std::collections::HashSet;
+use std::path::Path;
 use std::time::Duration;
 
 use super::search_strategy_flow_candidates::{
@@ -31,18 +32,20 @@ use xiuxian_wendao_runtime::transport::{
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER,
-    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER, WENDAO_REPO_SEARCH_LIMIT_HEADER,
+    WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER,
+    WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER, WENDAO_REPO_SEARCH_LIMIT_HEADER,
     WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER, WENDAO_REPO_SEARCH_QUERY_HEADER,
     WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_SCHEMA_VERSION_HEADER, flight_descriptor_path,
 };
 
 const DEFAULT_TIMEOUT_SECONDS: u64 = 30;
-const REPO_SEARCH_LIMIT: usize = 5;
+const REPO_SEARCH_LIMIT: usize = 10;
 const MAX_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS: usize = 32;
 const MAX_FLIGHT_DISCOVERY_CANDIDATES: usize = 8;
 const RELATED_CONTEXT_LIMIT: usize = 5;
 const GRAPH_HOPS: usize = 2;
 const GRAPH_LIMIT: usize = 50;
+const MARKDOWN_LANGUAGE_FILTER: &str = "markdown";
 
 /// Network endpoint settings for Rust-owned `SearchStrategyFlow` Flight
 /// materialization.
@@ -465,7 +468,7 @@ fn decoded_payload_receipts(
     graph_node_id: &str,
 ) -> Result<Vec<Value>, String> {
     let repo_search_evidence_anchor = format!("path:{repo_search_path}");
-    let page_index_evidence_anchor = format!("node:{node_id}");
+    let page_index_evidence_anchor = prefixed_evidence_anchor("node", node_id);
     let retrieval_context_evidence_anchor = format!(
         "node-context:{}",
         first_string(&retrieval_context_batches[0], "nodeId")?
@@ -498,6 +501,15 @@ fn decoded_payload_receipts(
             &graph_evidence_anchor,
         ),
     ])
+}
+
+fn prefixed_evidence_anchor(prefix: &str, value: &str) -> String {
+    let prefix = format!("{prefix}:");
+    if value.starts_with(prefix.as_str()) {
+        value.to_owned()
+    } else {
+        format!("{prefix}{value}")
+    }
 }
 
 fn apply_route_receipt(
@@ -544,6 +556,11 @@ fn populate_repo_search_headers(
         metadata,
         WENDAO_REPO_SEARCH_LIMIT_HEADER,
         &limit.to_string(),
+    )?;
+    insert_header(
+        metadata,
+        WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER,
+        MARKDOWN_LANGUAGE_FILTER,
     )?;
     if path_prefix.trim().is_empty() {
         return Ok(());
@@ -706,8 +723,7 @@ fn repo_relative_candidate_inputs(
 }
 
 fn is_page_index_candidate_path(path: &str) -> bool {
-    let lower = path.trim().to_ascii_lowercase();
-    lower.ends_with(".md") || lower.ends_with(".markdown")
+    has_markdown_extension(path)
 }
 
 fn first_page_index_repo_search_row(
@@ -835,8 +851,7 @@ fn graph_node_display_id(repo_id: &str, source_path: &str) -> String {
 }
 
 fn projection_kind_token_for_source_path(source_path: &str) -> &'static str {
-    let normalized = source_path.trim().to_ascii_lowercase();
-    if normalized.ends_with(".md") || normalized.ends_with(".markdown") {
+    if has_markdown_extension(source_path) {
         "explanation"
     } else {
         "reference"
@@ -857,7 +872,7 @@ fn repo_search_query(source_path: &str, heading_anchor: Option<&str>) -> String 
 }
 
 fn stage_stripped_terms(terms: &[String]) -> &[String] {
-    if !terms.first().is_some_and(|term| term == "stage") {
+    if terms.first().is_none_or(|term| term != "stage") {
         return terms;
     }
     match terms.get(1) {
@@ -994,22 +1009,30 @@ fn source_path_queries(source_path: &str) -> Vec<String> {
         .cloned()
         .collect::<Vec<_>>();
     let mut queries = Vec::new();
-    push_unique_query(&mut queries, terms.join(" "));
+    let joined_terms = terms.join(" ");
+    push_unique_query(&mut queries, &joined_terms);
     if !semantic_terms.is_empty() {
-        push_unique_query(&mut queries, semantic_terms.join(" "));
+        let joined_semantic_terms = semantic_terms.join(" ");
+        push_unique_query(&mut queries, &joined_semantic_terms);
         let compact = semantic_terms.join("");
         if compact.len() >= 4 {
-            push_unique_query(&mut queries, compact);
+            push_unique_query(&mut queries, &compact);
         }
     }
     queries
 }
 
-fn push_unique_query(queries: &mut Vec<String>, query: String) {
+fn push_unique_query(queries: &mut Vec<String>, query: &str) {
     let query = query.trim();
     if !query.is_empty() && !queries.iter().any(|existing| existing == query) {
         queries.push(query.to_owned());
     }
+}
+
+fn has_markdown_extension(path: &str) -> bool {
+    Path::new(path.trim()).extension().is_some_and(|extension| {
+        extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
+    })
 }
 
 fn repo_relative_source_path(repo_id: &str, source_path: &str) -> String {
@@ -1200,9 +1223,14 @@ mod page_id_tests {
 #[cfg(test)]
 mod query_tests {
     use super::{
-        candidate_discovery_queries, normalized_repo_search_doc_id, repo_relative_source_path,
-        repo_search_attempts_for_route, repo_search_query, search_terms, source_path_queries,
-        source_path_query,
+        candidate_discovery_queries, normalized_repo_search_doc_id, populate_repo_search_headers,
+        repo_relative_source_path, repo_search_attempts_for_route, repo_search_query, search_terms,
+        source_path_queries, source_path_query,
+    };
+    use tonic::metadata::MetadataMap;
+    use xiuxian_wendao_runtime::transport::{
+        WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER, WENDAO_REPO_SEARCH_LIMIT_HEADER,
+        WENDAO_REPO_SEARCH_QUERY_HEADER, WENDAO_REPO_SEARCH_REPO_HEADER,
     };
 
     #[test]
@@ -1263,6 +1291,46 @@ mod query_tests {
                 .iter()
                 .any(|attempt| attempt.query == "search strategy flow")
         );
+    }
+
+    #[test]
+    fn repo_search_headers_filter_candidate_discovery_to_markdown()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut metadata = MetadataMap::new();
+
+        populate_repo_search_headers(
+            &mut metadata,
+            "wendaograph",
+            "search strategy flow",
+            10,
+            "docs/30_search_strategy",
+        )?;
+
+        assert_eq!(
+            metadata
+                .get(WENDAO_REPO_SEARCH_REPO_HEADER)
+                .and_then(|value| value.to_str().ok()),
+            Some("wendaograph")
+        );
+        assert_eq!(
+            metadata
+                .get(WENDAO_REPO_SEARCH_QUERY_HEADER)
+                .and_then(|value| value.to_str().ok()),
+            Some("search strategy flow")
+        );
+        assert_eq!(
+            metadata
+                .get(WENDAO_REPO_SEARCH_LIMIT_HEADER)
+                .and_then(|value| value.to_str().ok()),
+            Some("10")
+        );
+        assert_eq!(
+            metadata
+                .get(WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER)
+                .and_then(|value| value.to_str().ok()),
+            Some("markdown")
+        );
+        Ok(())
     }
 
     #[test]
@@ -1368,6 +1436,7 @@ mod candidate_tests {
     use arrow::record_batch::RecordBatch;
 
     use super::{
+        SearchStrategyFlowRouteReceipt, apply_route_receipt, decoded_payload_receipts,
         first_page_index_repo_search_row, repo_relative_candidate_inputs,
         repo_search_batches_to_candidate_inputs,
     };
@@ -1377,14 +1446,16 @@ mod candidate_tests {
         search_strategy_flow_candidate_input_from_repo_search_hit,
     };
     use xiuxian_wendao_runtime::transport::{
+        ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
+        ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE, GRAPH_NEIGHBORS_ROUTE,
         REPO_SEARCH_BEST_SECTION_COLUMN, REPO_SEARCH_DOC_ID_COLUMN,
         REPO_SEARCH_NAVIGATION_LINE_COLUMN, REPO_SEARCH_NAVIGATION_LINE_END_COLUMN,
-        REPO_SEARCH_NAVIGATION_PATH_COLUMN, REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_SCORE_COLUMN,
-        REPO_SEARCH_TITLE_COLUMN,
+        REPO_SEARCH_NAVIGATION_PATH_COLUMN, REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_ROUTE,
+        REPO_SEARCH_SCORE_COLUMN, REPO_SEARCH_TITLE_COLUMN,
     };
 
     #[test]
-    fn repo_search_batches_map_to_section_candidates() {
+    fn repo_search_batches_map_to_section_candidates() -> Result<(), Box<dyn std::error::Error>> {
         let schema = Arc::new(Schema::new(vec![
             Field::new(REPO_SEARCH_PATH_COLUMN, DataType::Utf8, false),
             Field::new(REPO_SEARCH_NAVIGATION_PATH_COLUMN, DataType::Utf8, false),
@@ -1421,8 +1492,7 @@ mod candidate_tests {
                 Arc::new(Int32Array::from(vec![18, 40])),
                 Arc::new(Float64Array::from(vec![0.92, 0.99])),
             ],
-        )
-        .expect("repo search batch");
+        )?;
 
         let candidates = repo_search_batches_to_candidate_inputs(&[batch]);
 
@@ -1440,6 +1510,7 @@ mod candidate_tests {
         );
         assert_eq!(batch.source, FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE);
         assert_eq!(batch.row_count, 1);
+        Ok(())
     }
 
     #[test]
@@ -1463,7 +1534,8 @@ mod candidate_tests {
     }
 
     #[test]
-    fn first_page_index_repo_search_row_prefers_planned_source_path() {
+    fn first_page_index_repo_search_row_prefers_planned_source_path()
+    -> Result<(), Box<dyn std::error::Error>> {
         let schema = Arc::new(Schema::new(vec![
             Field::new(REPO_SEARCH_PATH_COLUMN, DataType::Utf8, false),
             Field::new(REPO_SEARCH_NAVIGATION_PATH_COLUMN, DataType::Utf8, false),
@@ -1485,15 +1557,14 @@ mod candidate_tests {
                     "repo:wendaograph:doc:docs/30_search_strategy/30.01_search_strategy_flow.md",
                 ])),
             ],
-        )
-        .expect("repo search batch");
+        )?;
 
         let row = first_page_index_repo_search_row(
             &[batch],
             "wendaograph",
             Some("docs/30_search_strategy/30.01_search_strategy_flow.md"),
         )
-        .expect("preferred row");
+        .unwrap_or_else(|| panic!("expected preferred row"));
 
         assert_eq!(
             row.0,
@@ -1503,10 +1574,12 @@ mod candidate_tests {
             row.1.as_deref(),
             Some("repo:wendaograph:doc:docs/30_search_strategy/30.01_search_strategy_flow.md")
         );
+        Ok(())
     }
 
     #[test]
-    fn first_page_index_repo_search_row_does_not_drift_from_planned_source_path() {
+    fn first_page_index_repo_search_row_does_not_drift_from_planned_source_path()
+    -> Result<(), Box<dyn std::error::Error>> {
         let schema = Arc::new(Schema::new(vec![
             Field::new(REPO_SEARCH_PATH_COLUMN, DataType::Utf8, false),
             Field::new(REPO_SEARCH_NAVIGATION_PATH_COLUMN, DataType::Utf8, false),
@@ -1519,8 +1592,7 @@ mod candidate_tests {
                 Arc::new(StringArray::from(vec!["README.md"])),
                 Arc::new(StringArray::from(vec!["repo:wendaograph:doc:README.md"])),
             ],
-        )
-        .expect("repo search batch");
+        )?;
 
         let row = first_page_index_repo_search_row(
             &[batch],
@@ -1529,5 +1601,179 @@ mod candidate_tests {
         );
 
         assert_eq!(row, None);
+        Ok(())
+    }
+
+    #[test]
+    fn decoded_payload_receipts_include_route_provenance_anchors() {
+        let repo_search_batch = string_batch(
+            &[REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_PATH_COLUMN],
+            &[
+                &["repo:wendaograph:doc:docs/30_search_strategy/30.02_precision_pruning.md"],
+                &["docs/30_search_strategy/30.02_precision_pruning.md"],
+            ],
+        );
+        let page_index_batch = string_batch(
+            &["pageId", "rootsJson"],
+            &[
+                &[
+                    "repo:wendaograph:projection:explanation:doc:repo:wendaograph:doc:docs/30_search_strategy/30.02_precision_pruning.md",
+                ],
+                &["{\"roots\":[]}"],
+            ],
+        );
+        let retrieval_context_batch = string_batch(
+            &["pageId", "nodeId", "centerJson", "nodeContextJson"],
+            &[
+                &[
+                    "repo:wendaograph:projection:explanation:doc:repo:wendaograph:doc:docs/30_search_strategy/30.02_precision_pruning.md",
+                ],
+                &["node:precision-pruning"],
+                &["{}"],
+                &["{}"],
+            ],
+        );
+        let graph_batch = string_batch(&["rowType"], &[&["neighbor"]]);
+
+        let receipts = decoded_payload_receipts(
+            "docs/30_search_strategy/30.02_precision_pruning.md",
+            &[repo_search_batch],
+            &[page_index_batch],
+            &[retrieval_context_batch],
+            &[graph_batch],
+            "node:precision-pruning",
+            "wendaograph/docs/30_search_strategy/30.02_precision_pruning.md",
+        )
+        .unwrap_or_else(|error| panic!("build decoded receipts: {error}"));
+
+        assert_eq!(receipts.len(), 4);
+        assert_eq!(
+            receipts[0].get("route"),
+            Some(&serde_json::json!(REPO_SEARCH_ROUTE))
+        );
+        assert_eq!(
+            receipts[0].get("evidenceAnchor"),
+            Some(&serde_json::json!(
+                "path:docs/30_search_strategy/30.02_precision_pruning.md"
+            ))
+        );
+        assert_eq!(
+            receipts[1].get("evidenceAnchor"),
+            Some(&serde_json::json!("node:precision-pruning"))
+        );
+        assert_eq!(
+            receipts[2].get("evidenceAnchor"),
+            Some(&serde_json::json!("node-context:node:precision-pruning"))
+        );
+        assert_eq!(
+            receipts[3].get("evidenceAnchor"),
+            Some(&serde_json::json!(
+                "graph-node:wendaograph/docs/30_search_strategy/30.02_precision_pruning.md"
+            ))
+        );
+    }
+
+    #[test]
+    fn executed_route_receipt_preserves_section_source_and_materialization_rows() {
+        let mut route = serde_json::json!({
+            "candidateId": "docs/30_search_strategy/30.02_precision_pruning.md#precision-score",
+            "materializationOwner": "studio-rust",
+            "materializationStatus": "planned",
+            "receiptSource": "rust-bridge",
+            "primaryTransport": "arrow-flight",
+            "sourcePath": "docs/30_search_strategy/30.02_precision_pruning.md",
+            "headingAnchor": "precision-score",
+            "directFileReadAllowed": false,
+            "executeBeforeAnswer": true
+        });
+        let receipt = SearchStrategyFlowRouteReceipt {
+            materialized_rows: 4,
+            resolved_page_id:
+                "repo:wendaograph:projection:explanation:doc:repo:wendaograph:doc:docs/30_search_strategy/30.02_precision_pruning.md"
+                    .to_owned(),
+            resolved_node_id: "node:precision-score".to_owned(),
+            resolved_graph_node_id:
+                "wendaograph/docs/30_search_strategy/30.02_precision_pruning.md".to_owned(),
+            route_receipts: vec![
+                serde_json::json!({"route": REPO_SEARCH_ROUTE, "rowCount": 1}),
+                serde_json::json!({"route": ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, "rowCount": 1}),
+                serde_json::json!({"route": ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE, "rowCount": 1}),
+                serde_json::json!({"route": GRAPH_NEIGHBORS_ROUTE, "rowCount": 1}),
+            ],
+            decoded_payload_receipts: vec![
+                serde_json::json!({
+                    "route": ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
+                    "rowCount": 1,
+                    "decodedColumns": ["pageId", "nodeId", "centerJson", "nodeContextJson"],
+                    "evidenceAnchor": "node-context:node:precision-score"
+                }),
+                serde_json::json!({
+                    "route": GRAPH_NEIGHBORS_ROUTE,
+                    "rowCount": 1,
+                    "decodedColumns": ["rowType"],
+                    "evidenceAnchor": "graph-node:wendaograph/docs/30_search_strategy/30.02_precision_pruning.md"
+                }),
+            ],
+        };
+
+        apply_route_receipt(&mut route, receipt)
+            .unwrap_or_else(|error| panic!("apply route receipt: {error}"));
+
+        assert_eq!(
+            route.get("sourcePath"),
+            Some(&serde_json::json!(
+                "docs/30_search_strategy/30.02_precision_pruning.md"
+            ))
+        );
+        assert_eq!(
+            route.get("headingAnchor"),
+            Some(&serde_json::json!("precision-score"))
+        );
+        assert_eq!(
+            route.get("directFileReadAllowed"),
+            Some(&serde_json::json!(false))
+        );
+        assert_eq!(
+            route.get("materializationStatus"),
+            Some(&serde_json::json!("executed"))
+        );
+        assert_eq!(route.get("materializedRows"), Some(&serde_json::json!(4)));
+        assert_eq!(
+            route.get("resolvedNodeId"),
+            Some(&serde_json::json!("node:precision-score"))
+        );
+        assert_eq!(
+            route.get("decodedPayloadStatus"),
+            Some(&serde_json::json!("decoded"))
+        );
+        assert_eq!(
+            route
+                .get("routeReceipts")
+                .and_then(serde_json::Value::as_array)
+                .map(Vec::len),
+            Some(4)
+        );
+        assert_eq!(
+            route
+                .get("decodedPayloadReceipts")
+                .and_then(serde_json::Value::as_array)
+                .map(Vec::len),
+            Some(2)
+        );
+    }
+
+    fn string_batch(columns: &[&str], values: &[&[&str]]) -> RecordBatch {
+        let schema = Arc::new(Schema::new(
+            columns
+                .iter()
+                .map(|column| Field::new(*column, DataType::Utf8, false))
+                .collect::<Vec<_>>(),
+        ));
+        let arrays = values
+            .iter()
+            .map(|column_values| Arc::new(StringArray::from(column_values.to_vec())) as _)
+            .collect::<Vec<_>>();
+        RecordBatch::try_new(schema, arrays)
+            .unwrap_or_else(|error| panic!("build string record batch: {error}"))
     }
 }

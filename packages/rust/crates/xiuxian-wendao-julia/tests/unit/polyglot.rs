@@ -62,6 +62,10 @@ use xiuxian_wendao_runtime::config::{
     MemoryJuliaComputeFallbackMode, MemoryJuliaComputeRuntimeConfig,
 };
 
+fn required<T>(value: Option<T>, label: &str) -> T {
+    value.unwrap_or_else(|| panic!("missing required {label}"))
+}
+
 #[test]
 fn profile_ref_projects_runtime_route_and_schema() {
     let mut runtime = MemoryJuliaComputeRuntimeConfig {
@@ -349,10 +353,22 @@ fn wendaograph_algorithm_catalog_groups_by_profile() {
 fn wendaograph_search_strategy_flow_catalog_aligns_graph_owned_contract() {
     let references = wendaograph_search_strategy_flow_algorithm_refs();
 
-    let candidates = wendaograph_algorithm_ref("search_strategy_flow.candidate_rows").unwrap();
-    let transitions = wendaograph_algorithm_ref("search_strategy_flow.transition_rows").unwrap();
-    let frontier = wendaograph_algorithm_ref("search_strategy_flow.frontier_rows").unwrap();
-    let tables = wendaograph_algorithm_ref("search_strategy_flow.tables").unwrap();
+    let candidates = required(
+        wendaograph_algorithm_ref("search_strategy_flow.candidate_rows"),
+        "search_strategy_flow.candidate_rows algorithm ref",
+    );
+    let transitions = required(
+        wendaograph_algorithm_ref("search_strategy_flow.transition_rows"),
+        "search_strategy_flow.transition_rows algorithm ref",
+    );
+    let frontier = required(
+        wendaograph_algorithm_ref("search_strategy_flow.frontier_rows"),
+        "search_strategy_flow.frontier_rows algorithm ref",
+    );
+    let tables = required(
+        wendaograph_algorithm_ref("search_strategy_flow.tables"),
+        "search_strategy_flow.tables algorithm ref",
+    );
 
     assert_eq!(references.len(), 4);
     assert!(references.iter().all(|reference| {
@@ -384,14 +400,30 @@ fn wendaograph_search_strategy_flow_catalog_aligns_graph_owned_contract() {
 fn wendaograph_relationship_search_catalog_aligns_graph_search_families() {
     let references = wendaograph_relationship_search_algorithm_refs();
 
-    let hnsw = wendaograph_algorithm_ref("relationship_search.hnsw_semantic_fanout").unwrap();
-    let moc = wendaograph_algorithm_ref("relationship_search.moc_community_grouping").unwrap();
-    let ppr = wendaograph_algorithm_ref("relationship_search.ppr_like_relatedness").unwrap();
-    let ranking = wendaograph_algorithm_ref("relationship_search.graph_search_ranking").unwrap();
-    let traversal =
-        wendaograph_algorithm_ref("relationship_search.large_object_graph_traversal").unwrap();
-    let snapshot =
-        wendaograph_algorithm_ref("relationship_search.graph_snapshot_traversal").unwrap();
+    let hnsw = required(
+        wendaograph_algorithm_ref("relationship_search.hnsw_semantic_fanout"),
+        "relationship_search.hnsw_semantic_fanout algorithm ref",
+    );
+    let moc = required(
+        wendaograph_algorithm_ref("relationship_search.moc_community_grouping"),
+        "relationship_search.moc_community_grouping algorithm ref",
+    );
+    let ppr = required(
+        wendaograph_algorithm_ref("relationship_search.ppr_like_relatedness"),
+        "relationship_search.ppr_like_relatedness algorithm ref",
+    );
+    let ranking = required(
+        wendaograph_algorithm_ref("relationship_search.graph_search_ranking"),
+        "relationship_search.graph_search_ranking algorithm ref",
+    );
+    let traversal = required(
+        wendaograph_algorithm_ref("relationship_search.large_object_graph_traversal"),
+        "relationship_search.large_object_graph_traversal algorithm ref",
+    );
+    let snapshot = required(
+        wendaograph_algorithm_ref("relationship_search.graph_snapshot_traversal"),
+        "relationship_search.graph_snapshot_traversal algorithm ref",
+    );
 
     assert_eq!(references.len(), 10);
     assert!(references.iter().all(|reference| {
@@ -418,11 +450,26 @@ fn wendaograph_relationship_search_catalog_aligns_graph_search_families() {
 
 #[test]
 fn wendaograph_algorithm_catalog_marks_heavy_julia_helpers() {
-    let core = wendaograph_algorithm_ref("link_graph.topology_core").unwrap();
-    let diffusion = wendaograph_algorithm_ref("link_graph.diffusion_scores").unwrap();
-    let gnn = wendaograph_algorithm_ref("gnn.node_scores").unwrap();
-    let trace = wendaograph_algorithm_ref("page_index.disclosure_trace").unwrap();
-    let transition = wendaograph_algorithm_ref("search_strategy_flow.transition_rows").unwrap();
+    let core = required(
+        wendaograph_algorithm_ref("link_graph.topology_core"),
+        "link_graph.topology_core algorithm ref",
+    );
+    let diffusion = required(
+        wendaograph_algorithm_ref("link_graph.diffusion_scores"),
+        "link_graph.diffusion_scores algorithm ref",
+    );
+    let gnn = required(
+        wendaograph_algorithm_ref("gnn.node_scores"),
+        "gnn.node_scores algorithm ref",
+    );
+    let trace = required(
+        wendaograph_algorithm_ref("page_index.disclosure_trace"),
+        "page_index.disclosure_trace algorithm ref",
+    );
+    let transition = required(
+        wendaograph_algorithm_ref("search_strategy_flow.transition_rows"),
+        "search_strategy_flow.transition_rows algorithm ref",
+    );
 
     assert!(core.is_heavy());
     assert_eq!(core.output_table, Some("topology_core"));
@@ -440,9 +487,10 @@ fn wendaograph_algorithm_catalog_marks_heavy_julia_helpers() {
 
 #[test]
 fn wendaograph_algorithm_task_shape_preserves_catalog_complexity_and_workload() {
-    let shape =
-        wendaograph_algorithm_task_shape("link_graph.topology_core", graph_algorithm_workload())
-            .unwrap();
+    let shape = required(
+        wendaograph_algorithm_task_shape("link_graph.topology_core", graph_algorithm_workload()),
+        "link_graph.topology_core task shape",
+    );
 
     assert_eq!(shape.rows, 24);
     assert_eq!(shape.nodes, 1_500);
@@ -459,10 +507,22 @@ fn wendaograph_algorithm_task_shape_preserves_catalog_complexity_and_workload() 
 
 #[test]
 fn wendaograph_frontier_mapping_routes_evidence_kinds_to_graph_algorithms() {
-    let anchor = wendaograph_frontier_algorithm_ref("anchor_query").unwrap();
-    let relation = wendaograph_frontier_algorithm_ref("relation_path").unwrap();
-    let page_index = wendaograph_frontier_algorithm_ref("page_index_seed").unwrap();
-    let source = wendaograph_frontier_algorithm_ref("source_path").unwrap();
+    let anchor = required(
+        wendaograph_frontier_algorithm_ref("anchor_query"),
+        "anchor_query frontier algorithm ref",
+    );
+    let relation = required(
+        wendaograph_frontier_algorithm_ref("relation_path"),
+        "relation_path frontier algorithm ref",
+    );
+    let page_index = required(
+        wendaograph_frontier_algorithm_ref("page_index_seed"),
+        "page_index_seed frontier algorithm ref",
+    );
+    let source = required(
+        wendaograph_frontier_algorithm_ref("source_path"),
+        "source_path frontier algorithm ref",
+    );
 
     assert_eq!(
         anchor.algorithm_id,
@@ -492,14 +552,18 @@ fn wendaograph_frontier_schedule_plan_dispatches_warm_batchable_work() {
         .with_max_in_flight(Some(4))
         .with_target_latency_ms(Some(250));
 
-    let relation_shape =
-        wendaograph_frontier_task_shape("relation_path", graph_algorithm_workload()).unwrap();
-    let relation_plan =
-        wendaograph_frontier_schedule_plan("relation_path", graph_algorithm_workload(), facts)
-            .unwrap();
-    let page_index_plan =
-        wendaograph_frontier_schedule_plan("page_index_seed", graph_algorithm_workload(), facts)
-            .unwrap();
+    let relation_shape = required(
+        wendaograph_frontier_task_shape("relation_path", graph_algorithm_workload()),
+        "relation_path task shape",
+    );
+    let relation_plan = required(
+        wendaograph_frontier_schedule_plan("relation_path", graph_algorithm_workload(), facts),
+        "relation_path schedule plan",
+    );
+    let page_index_plan = required(
+        wendaograph_frontier_schedule_plan("page_index_seed", graph_algorithm_workload(), facts),
+        "page_index_seed schedule plan",
+    );
 
     assert_eq!(relation_shape.complexity, JuliaTaskComplexityClass::Heavy);
     assert_eq!(relation_plan.action, JuliaScheduleAction::Dispatch);
@@ -524,33 +588,42 @@ fn wendaograph_algorithm_schedule_plan_routes_by_algorithm_profile() {
         .with_max_in_flight(Some(4))
         .with_target_latency_ms(Some(250));
 
-    let link_graph = wendaograph_algorithm_schedule_plan(
-        "link_graph.topology_core",
-        graph_algorithm_workload(),
-        facts,
-    )
-    .unwrap();
-    let page_index = wendaograph_algorithm_schedule_plan(
-        "page_index.planner_actions",
-        graph_algorithm_workload(),
-        facts,
-    )
-    .unwrap();
-    let gnn =
-        wendaograph_algorithm_schedule_plan("gnn.node_scores", graph_algorithm_workload(), facts)
-            .unwrap();
-    let strategy_flow = wendaograph_algorithm_schedule_plan(
-        "search_strategy_flow.frontier_rows",
-        graph_algorithm_workload(),
-        facts,
-    )
-    .unwrap();
-    let relationship_search = wendaograph_algorithm_schedule_plan(
-        "relationship_search.ppr_like_relatedness",
-        graph_algorithm_workload(),
-        facts,
-    )
-    .unwrap();
+    let link_graph = required(
+        wendaograph_algorithm_schedule_plan(
+            "link_graph.topology_core",
+            graph_algorithm_workload(),
+            facts,
+        ),
+        "link_graph.topology_core schedule plan",
+    );
+    let page_index = required(
+        wendaograph_algorithm_schedule_plan(
+            "page_index.planner_actions",
+            graph_algorithm_workload(),
+            facts,
+        ),
+        "page_index.planner_actions schedule plan",
+    );
+    let gnn = required(
+        wendaograph_algorithm_schedule_plan("gnn.node_scores", graph_algorithm_workload(), facts),
+        "gnn.node_scores schedule plan",
+    );
+    let strategy_flow = required(
+        wendaograph_algorithm_schedule_plan(
+            "search_strategy_flow.frontier_rows",
+            graph_algorithm_workload(),
+            facts,
+        ),
+        "search_strategy_flow.frontier_rows schedule plan",
+    );
+    let relationship_search = required(
+        wendaograph_algorithm_schedule_plan(
+            "relationship_search.ppr_like_relatedness",
+            graph_algorithm_workload(),
+            facts,
+        ),
+        "relationship_search.ppr_like_relatedness schedule plan",
+    );
 
     assert_eq!(link_graph.action, JuliaScheduleAction::Dispatch);
     assert_eq!(link_graph.profile_id, WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID);
@@ -1174,7 +1247,7 @@ fn relationship_search_evidence_row<'a>(
     evidence
         .iter()
         .find(|row| row.algorithm.algorithm_id == algorithm_id)
-        .unwrap()
+        .unwrap_or_else(|| panic!("missing relationship search evidence for {algorithm_id}"))
 }
 
 fn gnn_host_probe_report() -> WendaoGraphGnnHostProbeReport {
