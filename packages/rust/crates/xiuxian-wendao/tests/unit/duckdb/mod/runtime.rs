@@ -1,7 +1,11 @@
+#[cfg(feature = "duckdb")]
 use super::{
-    DEFAULT_SEARCH_DUCKDB_THREADS, DuckDbDatabasePath, Path, TestResult,
-    load_toml_settings_from_path, resolve_search_duckdb_runtime,
-    resolve_search_duckdb_runtime_with_settings, serial, write_search_duckdb_runtime_override,
+    DEFAULT_SEARCH_DUCKDB_THREADS, Path, load_toml_settings_from_path,
+    resolve_search_duckdb_runtime_with_settings,
+};
+use super::{
+    DuckDbDatabasePath, TestResult, resolve_search_duckdb_runtime, serial,
+    write_search_duckdb_runtime_override,
 };
 
 #[test]

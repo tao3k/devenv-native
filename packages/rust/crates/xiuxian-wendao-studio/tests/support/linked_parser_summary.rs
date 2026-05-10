@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use toml::Value;
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_all_parser_summary_service,
+    JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
 use xiuxian_wendao_julia::{
     clear_modelica_parser_summary_transport_cache_for_tests,
@@ -34,7 +34,7 @@ struct LinkedParserSummaryService {
 
 enum LinkedParserSummaryGuard {
     Real {
-        _guard: JuliaExampleServiceGuard,
+        _guard: JuliaServiceGuard,
     },
     Fake {
         _guard: FakeParserSummaryServiceGuard,
@@ -122,7 +122,7 @@ fn spawn_in_process_linked_parser_summary_service()
             .enable_all()
             .build()
             .map_err(|error| error.to_string())?;
-        Ok::<(String, JuliaExampleServiceGuard), String>(
+        Ok::<(String, JuliaServiceGuard), String>(
             runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
         )
     })

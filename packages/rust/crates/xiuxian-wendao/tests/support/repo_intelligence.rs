@@ -10,7 +10,7 @@ use xiuxian_wendao::analyzers::{
     RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord,
 };
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_all_parser_summary_service,
+    JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
 
 use super::repo_fixture;
@@ -26,7 +26,7 @@ struct RepoIntelligenceParserSummaryService {
 
 enum RepoIntelligenceParserSummaryGuard {
     Real {
-        _guard: JuliaExampleServiceGuard,
+        _guard: JuliaServiceGuard,
     },
     Fake {
         _guard: FakeParserSummaryServiceGuard,
@@ -128,13 +128,13 @@ fn real_repo_intelligence_parser_summary_service_is_available() -> bool {
 }
 
 fn spawn_real_repo_intelligence_parser_summary_service()
--> Result<(String, JuliaExampleServiceGuard), String> {
+-> Result<(String, JuliaServiceGuard), String> {
     std::thread::spawn(|| {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .map_err(|error| error.to_string())?;
-        Ok::<(String, JuliaExampleServiceGuard), String>(
+        Ok::<(String, JuliaServiceGuard), String>(
             runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
         )
     })

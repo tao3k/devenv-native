@@ -12,7 +12,7 @@ use serde_json::Value;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
 use crate::integration_support::{
-    JuliaExampleServiceGuard, probe_wendaosearch_modelica_parser_summary_route_for_tests,
+    JuliaServiceGuard, probe_wendaosearch_modelica_parser_summary_route_for_tests,
     spawn_wendaosearch_julia_parser_summary_service,
     spawn_wendaosearch_modelica_parser_summary_service,
 };
@@ -30,11 +30,11 @@ pub(crate) struct ChildGuard {
 }
 
 struct LinkedJuliaParserSummaryService {
-    _guard: Option<Mutex<JuliaExampleServiceGuard>>,
+    _guard: Option<Mutex<JuliaServiceGuard>>,
 }
 
 struct LinkedModelicaParserSummaryService {
-    _guard: Option<Mutex<JuliaExampleServiceGuard>>,
+    _guard: Option<Mutex<JuliaServiceGuard>>,
 }
 
 static LINKED_JULIA_PARSER_SUMMARY_SERVICE: OnceLock<
@@ -238,7 +238,7 @@ pub(crate) fn ensure_linked_julia_parser_summary_service() -> Result<(), Box<dyn
                         .enable_all()
                         .build()
                         .map_err(|error| error.to_string())?;
-                    Ok::<(String, JuliaExampleServiceGuard), String>(
+                    Ok::<(String, JuliaServiceGuard), String>(
                         runtime.block_on(spawn_wendaosearch_julia_parser_summary_service()),
                     )
                 })
@@ -249,7 +249,7 @@ pub(crate) fn ensure_linked_julia_parser_summary_service() -> Result<(), Box<dyn
                         "{process_error}; fallback direct Julia parser-summary spawn also failed: {spawn_error}"
                     )
                 })?;
-                Ok::<(String, Option<JuliaExampleServiceGuard>), String>((base_url, Some(guard)))
+                Ok::<(String, Option<JuliaServiceGuard>), String>((base_url, Some(guard)))
             })?;
         set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())?;
         Ok::<LinkedJuliaParserSummaryService, String>(LinkedJuliaParserSummaryService {
@@ -273,7 +273,7 @@ pub(crate) fn ensure_linked_modelica_parser_summary_service()
                         .enable_all()
                         .build()
                         .map_err(|error| error.to_string())?;
-                    Ok::<(String, JuliaExampleServiceGuard), String>(
+                    Ok::<(String, JuliaServiceGuard), String>(
                         runtime.block_on(spawn_wendaosearch_modelica_parser_summary_service()),
                     )
                 })
@@ -282,7 +282,7 @@ pub(crate) fn ensure_linked_modelica_parser_summary_service()
                 .map_err(|spawn_error| {
                     format!("{process_error}; fallback direct spawn also failed: {spawn_error}")
                 })?;
-                Ok::<(String, Option<JuliaExampleServiceGuard>), String>((base_url, Some(guard)))
+                Ok::<(String, Option<JuliaServiceGuard>), String>((base_url, Some(guard)))
             })?;
         set_linked_modelica_parser_summary_base_url_for_tests(base_url.as_str())?;
         Ok::<LinkedModelicaParserSummaryService, String>(LinkedModelicaParserSummaryService {

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
-use super::super::{
+use super::{
     WENDAOGRAPH_PACKAGE_DIR_ENV, WendaoGraphLinkGraphFullStructuralHostProbeReport,
     parse_link_graph_full_structural_probe_report_line,
     probe_wendaograph_link_graph_full_structural_host_request,

@@ -34,7 +34,7 @@ use xiuxian_wendao_builtin::{
     linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service as spawn_real_solver_demo_structural_rerank_service,
 };
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::JuliaExampleServiceGuard;
+use xiuxian_wendao_julia::integration_support::JuliaServiceGuard;
 
 #[cfg(feature = "julia")]
 pub(super) use crate::link_graph_agentic::expansion_support::{
@@ -101,7 +101,7 @@ pub(super) fn expansion_config(
 #[cfg(feature = "julia")]
 pub(super) enum GraphStructuralServiceGuard {
     Real {
-        guard: JuliaExampleServiceGuard,
+        guard: JuliaServiceGuard,
     },
     Fake {
         guard: FakeGraphStructuralServiceGuard,

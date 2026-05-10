@@ -1,6 +1,14 @@
-#[cfg(all(feature = "julia", feature = "builtin-plugins"))]
+#[cfg(all(
+    feature = "julia",
+    feature = "builtin-plugins",
+    any(feature = "studio", feature = "zhenfa-router")
+))]
 use crate::link_graph::runtime_config::settings::merged_wendao_settings;
-#[cfg(all(feature = "julia", feature = "builtin-plugins"))]
+#[cfg(all(
+    feature = "julia",
+    feature = "builtin-plugins",
+    any(feature = "studio", feature = "zhenfa-router")
+))]
 use xiuxian_wendao_builtin::resolve_builtin_plugin_artifact_for_selector_with_settings;
 #[cfg(any(feature = "studio", feature = "zhenfa-router"))]
 use xiuxian_wendao_core::artifacts::{PluginArtifactPayload, PluginArtifactSelector};

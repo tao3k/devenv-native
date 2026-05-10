@@ -765,5 +765,5 @@ fn validate_contract_schema(
 }
 
 #[cfg(test)]
-#[path = "../../tests/unit/plugin/wendao_graph_evidence.rs"]
+#[path = "../../tests/unit/plugin/wendao_graph_evidence/mod.rs"]
 mod tests;

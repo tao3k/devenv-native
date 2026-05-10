@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -156,6 +157,28 @@ pub(crate) fn solver_demo_multi_route_base_url_for_port(port: u16) -> String {
 
 pub(crate) fn process_managed_wendaosearch_test_enabled() -> bool {
     std::env::var_os(RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV).is_some()
+}
+
+pub(crate) fn local_wendaosearch_package_available() -> bool {
+    if let Some(configured) = std::env::var_os("WENDAOSEARCH_PACKAGE_DIR") {
+        return existing_path(configured).is_some();
+    }
+
+    repo_root().join(".data/WendaoSearch.jl").is_dir()
+}
+
+pub(crate) fn solver_demo_wendaosearch_service_available() -> bool {
+    configured_solver_demo_base_url().is_some() || local_wendaosearch_package_available()
+}
+
+fn existing_path(configured: impl Into<PathBuf>) -> Option<PathBuf> {
+    let candidate = configured.into();
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        repo_root().join(candidate)
+    };
+    candidate.canonicalize().ok()
 }
 
 impl Drop for ProcessManagedWendaoSearchGuard {

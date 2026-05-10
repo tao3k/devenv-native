@@ -9,9 +9,10 @@ use crate::{
     build_graph_structural_keyword_tag_query_context,
     build_graph_structural_raw_connected_pair_collection_candidate_inputs_from_raw_tuples,
     julia_plugin_test_support::common::ResultTestExt,
-    julia_plugin_test_support::official_examples::{
+    julia_plugin_test_support::wendaosearch_services::{
         LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS, await_live_step,
         reserve_real_service_port, solver_demo_multi_route_base_url_for_port,
+        solver_demo_wendaosearch_service_available,
         spawn_real_wendaosearch_solver_demo_multi_route_service,
         wait_for_service_ready_with_attempts,
     },
@@ -485,6 +486,13 @@ async fn assert_solver_demo_multi_route_generic_topology_multi_filter(
 #[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_generic_topology_rows_for_repository_via_manifest_discovery_against_real_wendaosearch_solver_demo_multi_route_service()
  {
+    if !solver_demo_wendaosearch_service_available() {
+        eprintln!(
+            "skipping real WendaoSearch solver-demo generic topology service test; set WENDAOSEARCH_SOLVER_DEMO_BASE_URL or WENDAOSEARCH_PACKAGE_DIR"
+        );
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = solver_demo_multi_route_base_url_for_port(port);
     let mut service = spawn_real_wendaosearch_solver_demo_multi_route_service(port);

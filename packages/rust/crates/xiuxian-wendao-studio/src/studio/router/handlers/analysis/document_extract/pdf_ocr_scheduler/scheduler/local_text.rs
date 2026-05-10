@@ -140,12 +140,9 @@ pub(crate) fn local_partial_backend_text_error_fail_fast_results_for_tests(
 }
 
 fn local_text_env_enabled(key: &str) -> bool {
-    std::env::var(key)
-        .ok()
-        .map(|value| {
-            value.trim().replace('_', "-").to_ascii_lowercase() == LOCAL_TEXT_RUST_LOPDF_MODE
-        })
-        .unwrap_or(false)
+    std::env::var(key).ok().is_some_and(|value| {
+        value.trim().replace('_', "-").to_ascii_lowercase() == LOCAL_TEXT_RUST_LOPDF_MODE
+    })
 }
 
 fn local_backend_text_empty_mode() -> LocalBackendTextEmptyMode {
@@ -197,27 +194,29 @@ fn local_text_results_enabled_with_extractor(
         let text_results = match extractor(source_path.as_path(), page_indexes.as_slice()) {
             Ok(texts) => texts,
             Err(error) => {
+                let reason = format!("local backend-text source extraction failed: {error}");
                 fail_fast_local_backend_text_group(
                     &mut results,
                     inputs,
                     page_requests.as_slice(),
                     modes,
-                    format!("local backend-text source extraction failed: {error}"),
+                    reason.as_str(),
                 );
                 continue;
             }
         };
         if text_results.len() != page_requests.len() {
+            let reason = format!(
+                "local backend-text source extraction returned {} rows for {} requests",
+                text_results.len(),
+                page_requests.len()
+            );
             fail_fast_local_backend_text_group(
                 &mut results,
                 inputs,
                 page_requests.as_slice(),
                 modes,
-                format!(
-                    "local backend-text source extraction returned {} rows for {} requests",
-                    text_results.len(),
-                    page_requests.len()
-                ),
+                reason.as_str(),
             );
             continue;
         }
@@ -260,11 +259,10 @@ fn fail_fast_local_backend_text_group(
     inputs: &[PdfOcrShardInput],
     page_requests: &[(usize, u32)],
     modes: LocalTextModes,
-    reason: String,
+    reason: &str,
 ) {
     for (position, _) in page_requests {
-        if let Some(result) =
-            local_backend_text_fail_fast_result(&inputs[*position], modes, &reason)
+        if let Some(result) = local_backend_text_fail_fast_result(&inputs[*position], modes, reason)
         {
             results[*position] = Some(result);
         }

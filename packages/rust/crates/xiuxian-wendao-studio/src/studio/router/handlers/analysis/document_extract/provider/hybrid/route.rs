@@ -86,6 +86,10 @@ use super::types::{
     hybrid_page_ocr2_scaffold_mode_with_lookup,
 };
 use crate::studio::document_extract_pdf_ocr_client::PdfOcrShardSchedulerTrace;
+#[cfg(test)]
+use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
+    DOCUMENT_RESOURCE_ARROW_CACHE_NAME, write_arrow_file,
+};
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     read_arrow_file, read_cached_document_batches,
 };
@@ -97,6 +101,8 @@ use crate::studio::router::handlers::analysis::document_extract::provider::{
     DEFAULT_DOCUMENT_EXTRACT_ENDPOINT, StudioDocumentExtractFlightRouteProvider,
 };
 
+#[path = "route_parts/artifact_cache.rs"]
+mod artifact_cache;
 #[path = "route_parts/batch.rs"]
 mod batch;
 #[path = "route_parts/docling_range.rs"]
@@ -118,6 +124,14 @@ mod source_inputs;
 #[path = "route_parts/support.rs"]
 mod support;
 
+#[cfg(test)]
+use artifact_cache::{
+    hybrid_page_ocr_artifact_cache_key_for_test, hybrid_page_ocr_artifact_cache_response_for_test,
+    store_hybrid_page_ocr_artifact_cache_for_test,
+};
+use artifact_cache::{
+    hybrid_page_ocr_artifact_cache_response, store_hybrid_page_ocr_artifact_cache,
+};
 #[cfg(test)]
 pub(crate) use batch::docling_page_range_document_extract_endpoint_count_with_lookup;
 #[cfg(test)]
@@ -267,6 +281,18 @@ impl StudioDocumentExtractFlightRouteProvider {
             && let Some(batches) = read_cached_document_batches(source.as_path(), output.as_path())?
         {
             return Ok(DocumentExtractFlightRouteResponse::from_batches(batches));
+        }
+        if source.exists() && request.force {
+            match hybrid_page_ocr_artifact_cache_response(source.as_path(), output.as_path()) {
+                Ok(Some(response)) => return Ok(response),
+                Ok(None) => {}
+                Err(reason) => {
+                    log::warn!(
+                        "hybrid PDF OCR full artifact cache lookup failed for `{}`: {reason}",
+                        source.display()
+                    );
+                }
+            }
         }
 
         tokio::fs::create_dir_all(output.as_path())
@@ -579,6 +605,15 @@ impl StudioDocumentExtractFlightRouteProvider {
         tokio::fs::File::create(output.join("_complete.marker"))
             .await
             .map_err(|error| format!("touch hybrid PDF OCR complete marker: {error}"))?;
+        if request.force
+            && source.exists()
+            && let Err(reason) = store_hybrid_page_ocr_artifact_cache(source, output)
+        {
+            log::warn!(
+                "hybrid PDF OCR full artifact cache store failed for `{}`: {reason}",
+                source.display()
+            );
+        }
 
         Ok(DocumentExtractFlightRouteResponse::new(
             resource_batch.batch,

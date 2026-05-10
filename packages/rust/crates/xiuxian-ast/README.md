@@ -10,6 +10,7 @@ ast-grep, plus the Python tree-sitter parser used by the active Rust lanes.
 ## Features
 
 - Multi-language ast-grep support
+- Parser registry for general AST baselines plus local/native/plugin overrides
 - Pattern-based code search
 - Syntax tree traversal
 - Code transformation support
@@ -34,6 +35,17 @@ let matches = scan("def hello(): pass", "def $NAME", Lang::Python)?;
 Julia and Modelica no longer live in this crate. The active Wendao lane owns
 those languages through `WendaoCodeParser.jl` native routes consumed by
 `xiuxian-wendao-julia` over Arrow Flight.
+
+## Parser Registry
+
+`AstParserRegistry` centralizes parser ownership resolution. `xiuxian-ast`
+provides the general ast-grep baseline for supported languages. Packages may
+register local/native/plugin parsers such as `rust-lang-parser`,
+`markdown-lang-parser`, `julia-lang-parser`, and `modelica-lang-parser` as
+effective overrides for owned surfaces. The resolver keeps both facts visible:
+`effective_parser` records the parser that owns the source, while
+`baseline_parser` records the comparable general AST baseline when ast-grep can
+parse the same path.
 
 ## Testing
 

@@ -22,13 +22,13 @@ use crate::{
         stabilize_wendaosearch_solver_demo_graph_structural_routes,
     },
     julia_plugin_test_support::common::ResultTestExt,
-    julia_plugin_test_support::official_examples::{
+    julia_plugin_test_support::wendaosearch_services::{
         LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS,
         RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV, await_live_step,
         ensure_process_managed_wendaosearch_solver_demo_service,
-        process_managed_wendaosearch_solver_demo_base_url,
+        local_wendaosearch_package_available, process_managed_wendaosearch_solver_demo_base_url,
         process_managed_wendaosearch_test_enabled, reserve_real_service_port,
-        solver_demo_multi_route_base_url_for_port,
+        solver_demo_multi_route_base_url_for_port, solver_demo_wendaosearch_service_available,
         spawn_real_wendaosearch_demo_multi_route_service,
         spawn_real_wendaosearch_solver_demo_multi_route_service,
         spawn_real_wendaosearch_solver_demo_multi_route_service_with_options,
@@ -461,6 +461,13 @@ fn graph_structural_manifest_repository(base_url: &str) -> RegisteredRepository 
 #[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_demo_rerank_rows_for_repository_against_real_wendaosearch_multi_route_service()
  {
+    if !local_wendaosearch_package_available() {
+        eprintln!(
+            "skipping real WendaoSearch demo multi-route service test; set WENDAOSEARCH_PACKAGE_DIR"
+        );
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let mut service = spawn_real_wendaosearch_demo_multi_route_service(port);
@@ -774,6 +781,13 @@ fn live_perf_env_usize(name: &str, default_value: usize) -> usize {
 #[serial_test::serial(wendaosearch_solver_demo_live)]
 async fn fetch_graph_structural_solver_demo_rows_for_repository_via_manifest_discovery_against_real_wendaosearch_multi_route_service()
  {
+    if !solver_demo_wendaosearch_service_available() {
+        eprintln!(
+            "skipping real WendaoSearch solver-demo multi-route service test; set WENDAOSEARCH_SOLVER_DEMO_BASE_URL or WENDAOSEARCH_PACKAGE_DIR"
+        );
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = solver_demo_multi_route_base_url_for_port(port);
     let mut service = spawn_real_wendaosearch_solver_demo_multi_route_service(port);

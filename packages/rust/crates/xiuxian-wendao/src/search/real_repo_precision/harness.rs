@@ -10,12 +10,14 @@ use crate::search::real_repo_precision::catalog::default_real_repo_precision_cat
 use crate::search::real_repo_precision::evaluate::evaluate_gold_query_paths_with_timing;
 use crate::search::real_repo_precision::receipt::{build_run_receipt, write_run_receipt};
 use crate::search::real_repo_precision::scenario_matrix::evaluate_knowledge_scenario_matrix;
+#[cfg(feature = "julia")]
 use crate::search::real_repo_precision::semantic_gate::{
     attach_markdown_knowledge_semantic_query_evidence, evaluate_markdown_knowledge_semantic_gate,
 };
 use crate::search::real_repo_precision::types::{
-    RealRepoGoldQuery, RealRepoGoldQueryKind, RealRepoPrecisionCatalogEntry,
-    RealRepoPrecisionCorpusPathPrefixReceipt, RealRepoPrecisionLinkGraphCorpusReceipt,
+    RealRepoGoldQuery, RealRepoGoldQueryKind, RealRepoMarkdownKnowledgeSemanticGateReceipt,
+    RealRepoPrecisionCatalogEntry, RealRepoPrecisionCorpusPathPrefixReceipt,
+    RealRepoPrecisionLinkGraphCorpusReceipt, RealRepoPrecisionQueryReceipt,
     RealRepoPrecisionRepositoryReceipt, RealRepoPrecisionRunOptions, RealRepoPrecisionRunStatus,
 };
 use crate::search::repo_search::{
@@ -91,16 +93,16 @@ fn run_repository(
     let repo_ast_language_filters = merged_repo_ast_language_filters(entry.gold_queries.as_slice());
     let repo_ast =
         build_repo_ast_index(entry, &checkout_root, repo_ast_language_filters.as_slice());
-    let mut markdown_knowledge_semantic_gate = evaluate_markdown_knowledge_semantic_gate(
-        &checkout_root.join("semantic"),
-        &entry.gold_queries,
-    )?
-    .map(|evaluation| evaluation.receipt);
+    let mut markdown_knowledge_semantic_gate =
+        evaluate_markdown_knowledge_semantic_gate_if_enabled(
+            &checkout_root.join("semantic"),
+            &entry.gold_queries,
+        )?;
     let query_result =
         run_repository_queries(entry, link_graph.index.as_ref(), repo_ast.index.as_ref())?;
 
     if let Some(gate) = markdown_knowledge_semantic_gate.as_mut() {
-        attach_markdown_knowledge_semantic_query_evidence(gate, &query_result.receipts);
+        attach_markdown_knowledge_semantic_query_evidence_if_enabled(gate, &query_result.receipts);
     }
     let knowledge_scenarios = evaluate_knowledge_scenario_matrix(
         entry.knowledge_scenarios.as_slice(),
@@ -130,6 +132,42 @@ fn run_repository(
         skip_reason: None,
         query_receipts: query_result.receipts,
     })
+}
+
+#[cfg(feature = "julia")]
+fn evaluate_markdown_knowledge_semantic_gate_if_enabled(
+    semantic_root: &Path,
+    gold_queries: &[RealRepoGoldQuery],
+) -> Result<Option<RealRepoMarkdownKnowledgeSemanticGateReceipt>, String> {
+    Ok(
+        evaluate_markdown_knowledge_semantic_gate(semantic_root, gold_queries)?
+            .map(|evaluation| evaluation.receipt),
+    )
+}
+
+#[cfg(not(feature = "julia"))]
+fn evaluate_markdown_knowledge_semantic_gate_if_enabled(
+    semantic_root: &Path,
+    gold_queries: &[RealRepoGoldQuery],
+) -> Result<Option<RealRepoMarkdownKnowledgeSemanticGateReceipt>, String> {
+    let _ = (semantic_root, gold_queries);
+    Ok(None)
+}
+
+#[cfg(feature = "julia")]
+fn attach_markdown_knowledge_semantic_query_evidence_if_enabled(
+    receipt: &mut RealRepoMarkdownKnowledgeSemanticGateReceipt,
+    query_receipts: &[RealRepoPrecisionQueryReceipt],
+) {
+    attach_markdown_knowledge_semantic_query_evidence(receipt, query_receipts);
+}
+
+#[cfg(not(feature = "julia"))]
+fn attach_markdown_knowledge_semantic_query_evidence_if_enabled(
+    receipt: &mut RealRepoMarkdownKnowledgeSemanticGateReceipt,
+    query_receipts: &[RealRepoPrecisionQueryReceipt],
+) {
+    let _ = (receipt, query_receipts);
 }
 
 struct RepositoryMaterialization {

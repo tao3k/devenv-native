@@ -17,10 +17,10 @@ use xiuxian_wendao_attachments::pdf::render::{
 
 use super::{
     DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE_ENV,
-    DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY_ENV, HybridPdfFailedPageRecoveryMode,
-    OCR2_REGION_SCAFFOLD_FILE_NAME, Ocr2RegionMaterializationStats, Ocr2RegionPipelineBatchKind,
-    cached_ocr2_region_render_report, contiguous_page_ranges,
-    direct_docling_structure_recovery_page_range_enabled_with_lookup,
+    DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY_ENV, DOCUMENT_RESOURCE_ARROW_CACHE_NAME,
+    HybridPdfFailedPageRecoveryMode, OCR2_REGION_SCAFFOLD_FILE_NAME,
+    Ocr2RegionMaterializationStats, Ocr2RegionPipelineBatchKind, cached_ocr2_region_render_report,
+    contiguous_page_ranges, direct_docling_structure_recovery_page_range_enabled_with_lookup,
     direct_docling_structure_recovery_source_inputs_for_profiles,
     direct_docling_structure_recovery_source_inputs_for_profiles_with_lookup,
     docling_centered_structure_authority_page_count,
@@ -37,14 +37,18 @@ use super::{
     docling_page_range_target_chunk_count, docling_structure_recovery_page_range_fallback_pages,
     failed_page_recovery_candidates, failed_page_recovery_input,
     failed_page_recovery_mode_with_lookup, has_ocr2_recovery_page_candidates,
-    has_unhandled_non_success_result, materialize_hybrid_page_ocr_resource_batch_from_results,
+    has_unhandled_non_success_result, hybrid_page_ocr_artifact_cache_key_for_test,
+    hybrid_page_ocr_artifact_cache_response_for_test,
+    materialize_hybrid_page_ocr_resource_batch_from_results,
     normalize_docling_page_range_wrapper_rows, ocr2_region_render_cache_key,
-    ocr2_region_scaffold_payload, page_range_docling_fallback_chunk_summary,
+    ocr2_region_scaffold_payload, page_range_docling_fallback_chunk_summary, read_arrow_file,
     record_ocr_scheduler_or_docling_fallback_phase, record_ocr2_region_pipeline_batch_result,
     scheduled_inputs_without_docling_page_range_fallback_pages,
+    store_hybrid_page_ocr_artifact_cache_for_test,
     structure_cost_budgeted_docling_page_range_fallback_ranges,
     structure_cost_budgeted_docling_page_range_fallback_ranges_with_limit,
-    weighted_docling_page_range_fallback_ranges, write_ocr2_region_scaffold_sidecar_with_lookup,
+    weighted_docling_page_range_fallback_ranges, write_arrow_file,
+    write_ocr2_region_scaffold_sidecar_with_lookup,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::profile::HybridPdfOcrProfilePlanner;
 use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV;
@@ -62,6 +66,7 @@ include!("docling_chunks.rs");
 include!("docling_structure_budget.rs");
 include!("resource_rows.rs");
 include!("region_cache_pipeline.rs");
+include!("artifact_cache.rs");
 
 fn scaffold_enabled_lookup(key: &str) -> Option<String> {
     (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV)

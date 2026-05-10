@@ -1,13 +1,14 @@
-//! Integration fixtures for Julia-backed WendaoSearch examples and gateway artifacts.
+//! Integration fixtures for Julia-backed `WendaoSearch` services and gateway artifacts.
 
 mod gateway_artifact;
-mod official_examples;
 mod planned_search;
 mod search_strategy_flow_candidates;
+mod search_strategy_flow_evidence;
 mod search_strategy_flow_flight;
 mod service_runtime;
 mod wendaograph;
 mod wendaograph_gnn;
+mod wendaosearch_services;
 
 pub use gateway_artifact::{
     julia_gateway_artifact_base_url, julia_gateway_artifact_expected_json_fragments,
@@ -16,21 +17,6 @@ pub use gateway_artifact::{
     julia_gateway_artifact_schema_version, julia_gateway_artifact_selected_transport,
     julia_ui_artifact_payload_fixture,
 };
-pub use official_examples::{
-    WendaoSearchGraphStructuralPrewarmReport, WendaoSearchGraphStructuralStabilizationLimits,
-    WendaoSearchGraphStructuralStabilizationReason, WendaoSearchGraphStructuralStabilizationReport,
-    WendaoSearchGraphStructuralWarmPathStats,
-    prewarm_wendaosearch_solver_demo_graph_structural_routes,
-    probe_wendaosearch_modelica_parser_summary_route_for_tests,
-    spawn_wendaosearch_all_parser_summary_service, spawn_wendaosearch_demo_multi_route_service,
-    spawn_wendaosearch_demo_structural_rerank_service,
-    spawn_wendaosearch_julia_parser_summary_service,
-    spawn_wendaosearch_julia_parser_summary_service_with_attempts,
-    spawn_wendaosearch_modelica_parser_summary_service,
-    spawn_wendaosearch_solver_demo_multi_route_service,
-    spawn_wendaosearch_solver_demo_structural_rerank_service,
-    stabilize_wendaosearch_solver_demo_graph_structural_routes,
-};
 pub use planned_search::{
     julia_planned_search_openai_runtime_config_toml,
     julia_planned_search_vector_store_runtime_config_toml,
@@ -38,7 +24,7 @@ pub use planned_search::{
 pub use search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
 };
-pub use service_runtime::JuliaExampleServiceGuard;
+pub use service_runtime::JuliaServiceGuard;
 pub use wendaograph::{
     SearchStrategyFlowProbeAction, WendaoGraphLinkGraphFullStructuralHostProbeReport,
     WendaoGraphLinkGraphHostProbeReport, WendaoGraphPageIndexHostProbeReport,
@@ -58,4 +44,19 @@ pub use wendaograph::{
 pub use wendaograph_gnn::{
     WendaoGraphGnnBackendLoadDiagnostics, WendaoGraphGnnHostProbeReport,
     probe_wendaograph_gnn_host_request,
+};
+pub use wendaosearch_services::{
+    WendaoSearchGraphStructuralPrewarmReport, WendaoSearchGraphStructuralStabilizationLimits,
+    WendaoSearchGraphStructuralStabilizationReason, WendaoSearchGraphStructuralStabilizationReport,
+    WendaoSearchGraphStructuralWarmPathStats,
+    prewarm_wendaosearch_solver_demo_graph_structural_routes,
+    probe_wendaosearch_modelica_parser_summary_route_for_tests,
+    spawn_wendaosearch_all_parser_summary_service, spawn_wendaosearch_demo_multi_route_service,
+    spawn_wendaosearch_demo_structural_rerank_service,
+    spawn_wendaosearch_julia_parser_summary_service,
+    spawn_wendaosearch_julia_parser_summary_service_with_attempts,
+    spawn_wendaosearch_modelica_parser_summary_service,
+    spawn_wendaosearch_solver_demo_multi_route_service,
+    spawn_wendaosearch_solver_demo_structural_rerank_service,
+    stabilize_wendaosearch_solver_demo_graph_structural_routes,
 };

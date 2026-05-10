@@ -1,2 +1,2 @@
 pub(crate) mod common;
-pub(crate) mod official_examples;
+pub(crate) mod wendaosearch_services;

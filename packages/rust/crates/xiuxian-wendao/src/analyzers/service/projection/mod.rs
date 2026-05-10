@@ -18,7 +18,7 @@ mod search;
 #[path = "../../../../tests/unit/analyzers/service/projection/mod.rs"]
 mod tests;
 
-#[cfg(all(feature = "zhenfa-router", test))]
+#[cfg(all(feature = "zhenfa-router", feature = "julia", test))]
 pub use docs_tool::DocsDocumentSegmentResult;
 pub use docs_tool::{
     DOCS_CONTRACT_IDS, DOCS_DOCUMENT_CONTRACT_ID, DOCS_NAVIGATION_CONTRACT_ID,

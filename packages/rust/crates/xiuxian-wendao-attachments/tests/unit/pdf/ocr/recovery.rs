@@ -48,8 +48,10 @@ fn recovery_region_prepare_rejects_missing_parent() -> Result<(), String> {
         &PdfOcrWorkerProfile::docling_compatible(),
     );
 
-    let error = prepare_hosted_vlm_recovery_region_inputs(&BTreeMap::new(), region_inputs)
-        .expect_err("missing parent page should fail");
+    let Err(error) = prepare_hosted_vlm_recovery_region_inputs(&BTreeMap::new(), region_inputs)
+    else {
+        panic!("missing parent page should fail")
+    };
 
     assert!(error.contains("has no parent page shard"));
     Ok(())

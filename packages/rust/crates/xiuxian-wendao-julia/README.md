@@ -28,7 +28,7 @@ needs a feature-gated second plugin bundle for these languages.
 - the graph-structural live proof surface has since been tightened again:
   the remaining `demo` and `solver_demo` pair or generic-topology live proofs
   now consolidate onto `multi_route` services, and the plugin test-support
-  launches the Julia example services through explicit `julia --project=...`
+  launches the managed Julia services through explicit `julia --project=...`
   commands rather than repo-level `direnv` wrappers
 - the remaining repeated `demo` capability-manifest live proofs are now also
   consolidated into one grouped test that covers manifest fetch, manifest
@@ -443,7 +443,7 @@ needs a feature-gated second plugin bundle for these languages.
   and returns typed route-count, elapsed-time, and candidate-id evidence;
   orchestration layers may consume that evidence but must not duplicate
   WendaoSearch-specific request construction.
-- the active `rust-lang-project-harness` profile marks `src/polyglot.rs` as the
+- the active `rust-lang-project-harness` profile marks `src/polyglot/` as the
   Julia polyglot bridge for readiness evidence projection. That profile records
   Julia profile/schema/manifest/readiness ownership without moving live Julia
   scheduling into Rust.
@@ -906,13 +906,13 @@ That means:
 - `direnv exec . cargo test -p xiuxian-wendao --test wendao-validation-gate test_agentic_expansion_pair_uses_julia_graph_structural_fetch_helper`
 - `direnv exec . cargo check -p xiuxian-wendao --features julia --test wendao-validation-gate`
 
-The real loopback tests now speak only to the Flight examples. They spawn
+The real loopback tests now speak only to the managed Flight services. They spawn
 `.data/WendaoArrow.jl/scripts/run_stream_scoring_flight_server.sh` and
 `.data/WendaoArrow.jl/scripts/run_stream_metadata_flight_server.sh`, wait for the
 Flight socket to accept connections, then send the canonical request batches
 through the runtime-owned negotiated Flight client. Those fixtures now use the
-shared `julia_arrow_request_schema(...)` builder as well, so the official
-example roundtrip receives the full WendaoArrow `v1` request shape instead of a
+shared `julia_arrow_request_schema(...)` builder as well, so the managed
+roundtrip receives the full WendaoArrow `v1` request shape instead of a
 test-local reduced schema.
 
 There is also a metadata-aware real loopback that targets
@@ -934,7 +934,7 @@ declared in
 `resources/integration_support/wendaoarrow_custom_service.toml` instead of
 being hard-coded into the helper itself. It no longer writes numbered scripts
 into the `WendaoArrow.jl` package git tree.
-That official-example layer now includes real `WendaoSearch.jl` structural
+That managed service layer now includes real `WendaoSearch.jl` structural
 launchers for both `demo` and `solver_demo`, so plugin-owned
 graph-structural fetch helpers can be proven against a live Search child
 service without moving route logic back into `xiuxian-wendao`.

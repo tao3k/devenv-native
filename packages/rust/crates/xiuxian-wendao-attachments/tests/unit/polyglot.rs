@@ -42,8 +42,10 @@ fn ocr_result_ref_preserves_attachment_schema_owner() {
 
 #[test]
 fn ocr_contract_snapshot_materializes_input_and_result_refs() {
-    let snapshot = pdf_ocr_shard_contract_snapshot("/analysis/pdf-ocr-shards")
-        .expect("OCR shard snapshot should validate");
+    let snapshot = match pdf_ocr_shard_contract_snapshot("/analysis/pdf-ocr-shards") {
+        Ok(snapshot) => snapshot,
+        Err(error) => panic!("OCR shard snapshot should validate: {error}"),
+    };
 
     assert_eq!(snapshot.route_refs().len(), 2);
     assert!(
@@ -72,8 +74,10 @@ fn ocr_contract_snapshot_materializes_input_and_result_refs() {
 fn ocr_pressure_snapshot_projects_queue_and_ordering_backlog() {
     let pressure = pdf_ocr_shard_pressure_evidence(Some(4), 4, 2, 0, 0, 8, true);
 
-    let snapshot = pdf_ocr_shard_pressure_snapshot("/analysis/pdf-ocr-shards", pressure)
-        .expect("OCR pressure snapshot should validate");
+    let snapshot = match pdf_ocr_shard_pressure_snapshot("/analysis/pdf-ocr-shards", pressure) {
+        Ok(snapshot) => snapshot,
+        Err(error) => panic!("OCR pressure snapshot should validate: {error}"),
+    };
 
     assert_eq!(pressure.pressure_level(), PressureLevel::Critical);
     assert_eq!(snapshot.route_refs().len(), 2);

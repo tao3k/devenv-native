@@ -15,19 +15,28 @@ profile semantics, and live worker behavior remain owned here.
 
 Polyglot boundary:
 
-1. `src/polyglot.rs` translates Julia-owned profile, manifest, route, schema,
+1. `src/polyglot/` translates Julia-owned profile, manifest, route, schema,
    warmup, benchmark, and admission-window facts into
    `xiuxian-polyglot-orchestrator` readiness contracts.
 2. The active readiness coverage is mounted into the lib target from
-   `tests/unit/polyglot.rs`.
-3. `examples/wendaograph_search_strategy_flow.rs` is a CLI proof surface for
+   `tests/unit/polyglot/`.
+3. `src/bin/wendaograph_search_strategy_flow.rs` is a formal CLI entry point for
    Rust-owned SearchStrategyFlow dispatch into `WendaoGraph.jl`; it preserves
    Julia ownership of graph scoring, frontier pruning, and planner action
    generation. The bridge now has two Rust candidate sources before invoking
    Julia: a no-endpoint Markdown heading scan for local smoke tests and a
    Studio `/search/repos/main` Arrow Flight source when materialization config
-   is present. Both sources pass section-level candidates into
-   `WendaoGraph.jl` for deterministic SearchStrategyFlow scoring. Julia still
+   is present. The local scan remains Markdown-only. The Flight source leaves
+   repo-search language filters empty by default and relies on query, path,
+   page-index, parser availability, and authority overlays to decide the
+   downstream evidence path. `xiuxian-ast`/ast-grep-backed search is the
+   general AST baseline for supported source languages. The bridge consumes
+   `AstParserRegistry` from `xiuxian-ast` and registers local overrides for
+   `rust-lang-parser`, `markdown-lang-parser`, `julia-lang-parser`, and
+   `modelica-lang-parser`. Those local/native/plugin parsers have priority
+   over the general baseline when they own richer domain facts and become the
+   effective parser for their surfaces, while the general AST baseline remains a
+   comparable supporting evidence plane when available. Both sources pass bounded candidates into `WendaoGraph.jl` for deterministic SearchStrategyFlow scoring. Julia still
    owns the graph algorithm; Rust owns evidence discovery, Flight route
    planning, and materialization receipts. The bridge enriches the returned
    trace with additive

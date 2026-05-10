@@ -1,8 +1,11 @@
 use super::{
-    Arc, DataFusionLocalRelationEngine, DataType, DuckDbLocalRelationEngine,
-    DuckDbRegistrationStrategy, Field, Int64Array, LocalRelationEngine, LocalRelationEngineKind,
-    LocalRelationRegistrationHint, RecordBatch, Schema, StringArray, TestResult,
-    in_memory_search_duckdb_runtime,
+    Arc, DataFusionLocalRelationEngine, DataType, Field, LocalRelationEngine,
+    LocalRelationEngineKind, RecordBatch, Schema, StringArray, TestResult,
+};
+#[cfg(feature = "duckdb")]
+use super::{
+    DuckDbLocalRelationEngine, DuckDbRegistrationStrategy, Int64Array,
+    LocalRelationRegistrationHint, in_memory_search_duckdb_runtime,
 };
 
 #[tokio::test]

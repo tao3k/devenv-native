@@ -6,11 +6,12 @@ pub(super) use std::time::Duration;
 
 pub(super) use crate::analyzers::PluginRegistry;
 pub(super) use crate::analyzers::RepoSourceFile;
+#[cfg(feature = "julia")]
+pub(super) use crate::analyzers::bootstrap_builtin_registry;
 pub(super) use crate::analyzers::{
     AnalysisContext, PluginAnalysisOutput, RegisteredRepository, RepoIntelligenceError,
     RepoIntelligencePlugin, RepositoryAnalysisOutput, RepositoryPluginConfig,
     RepositoryRefreshPolicy, analyze_registered_repository_with_registry,
-    bootstrap_builtin_registry,
 };
 pub(super) use crate::analyzers::{ModuleRecord, RepoSymbolKind, RepositoryRecord, SymbolRecord};
 pub(super) use crate::analyzers::{RepoSourceKind, RepoSyncResult};
@@ -23,21 +24,26 @@ pub(super) use crate::search::{
     SearchPlaneCache, SearchPlanePhase, SearchPlaneService, SearchPublicationStorageFormat,
     SearchRepoPublicationInput,
 };
+#[cfg(feature = "julia")]
 pub(super) use crate::test_support::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
+#[cfg(feature = "julia")]
 use crate::test_support::linked_parser_summary::linked_parser_summary_base_url;
 pub(super) use crate::test_support::{commit_all, init_git_repository};
 pub(super) use chrono::Utc;
 pub(super) use xiuxian_git_repo::discover_checkout_metadata;
+#[cfg(feature = "julia")]
 pub(super) struct LinkedParserSummaryTestGuard {
     killed: bool,
 }
 
+#[cfg(feature = "julia")]
 impl LinkedParserSummaryTestGuard {
     pub(super) fn kill(&mut self) {
         self.killed = true;
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn spawn_wendaosearch_julia_parser_summary_service()
 -> (String, LinkedParserSummaryTestGuard) {
     (
@@ -47,6 +53,7 @@ pub(super) fn spawn_wendaosearch_julia_parser_summary_service()
     )
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn spawn_wendaosearch_modelica_parser_summary_service()
 -> (String, LinkedParserSummaryTestGuard) {
     (
@@ -56,6 +63,7 @@ pub(super) fn spawn_wendaosearch_modelica_parser_summary_service()
     )
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn julia_parser_summary_plugin_config(base_url: &str) -> RepositoryPluginConfig {
     RepositoryPluginConfig::Config {
         id: "julia-code-parser".to_string(),
@@ -73,6 +81,7 @@ pub(super) fn julia_parser_summary_plugin_config(base_url: &str) -> RepositoryPl
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn modelica_parser_summary_plugin_config(base_url: &str) -> RepositoryPluginConfig {
     RepositoryPluginConfig::Config {
         id: "modelica".to_string(),
@@ -87,6 +96,7 @@ pub(super) fn modelica_parser_summary_plugin_config(base_url: &str) -> Repositor
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn mixed_julia_modelica_plugin_configs(
     julia_base_url: &str,
     modelica_base_url: &str,
@@ -97,6 +107,7 @@ pub(super) fn mixed_julia_modelica_plugin_configs(
     ]
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn mixed_modelica_rust_plugin_configs() -> Vec<RepositoryPluginConfig> {
     vec![
         RepositoryPluginConfig::Id("modelica".to_string()),
@@ -296,6 +307,7 @@ impl RepoIntelligencePlugin for RuntimeModelicaPlugin {
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn bootstrap_builtin_registry_with_runtime_rust_plugin() -> Arc<PluginRegistry> {
     let mut registry =
         bootstrap_builtin_registry().unwrap_or_else(|error| panic!("bootstrap registry: {error}"));

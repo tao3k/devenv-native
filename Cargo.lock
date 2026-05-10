@@ -8102,7 +8102,7 @@ dependencies = [
 [[package]]
 name = "rust-lang-project-harness"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=e3f61e5aa0c430a8405630401a3e3c9729e9b508#e3f61e5aa0c430a8405630401a3e3c9729e9b508"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=51ca03c55960c008d9280e6b290474645de0b813#51ca03c55960c008d9280e6b290474645de0b813"
 dependencies = [
  "cargo_toml",
  "proc-macro2",
@@ -11824,6 +11824,7 @@ dependencies = [
  "toml 0.8.23",
  "tonic",
  "walkdir",
+ "xiuxian-ast",
  "xiuxian-memory-engine",
  "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-core",

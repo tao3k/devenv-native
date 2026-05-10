@@ -593,12 +593,10 @@ pub(crate) fn source_pdf_page_range_chunk_endpoint_index_with_lookup(
 fn fast_text_endpoint_affinity_single_page_first_enabled(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> bool {
-    lookup(FAST_TEXT_ENDPOINT_AFFINITY_ENV)
-        .map(|value| {
-            value.trim().replace('_', "-").to_ascii_lowercase()
-                == FAST_TEXT_ENDPOINT_AFFINITY_SINGLE_PAGE_FIRST
-        })
-        .unwrap_or(false)
+    lookup(FAST_TEXT_ENDPOINT_AFFINITY_ENV).is_some_and(|value| {
+        value.trim().replace('_', "-").to_ascii_lowercase()
+            == FAST_TEXT_ENDPOINT_AFFINITY_SINGLE_PAGE_FIRST
+    })
 }
 
 fn is_single_fast_text_source_pdf_page_range_chunk(chunk: &[PdfOcrShardInput]) -> bool {

@@ -339,9 +339,10 @@ pub(crate) fn apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profile
     let recovery_pages = accurate_recovery_pages(profiles);
     let topup_mode = hybrid_pdf_backend_text_topup_with_lookup(lookup);
     let topup_pages = match topup_mode {
-        HybridPdfBackendTextTopup::Profile => backend_text_topup_pages(profiles),
         HybridPdfBackendTextTopup::Disabled => BTreeSet::new(),
-        HybridPdfBackendTextTopup::HostedVlm => backend_text_topup_pages(profiles),
+        HybridPdfBackendTextTopup::Profile | HybridPdfBackendTextTopup::HostedVlm => {
+            backend_text_topup_pages(profiles)
+        }
     };
     let mut hosted_count = 0usize;
     let mut fast_topup_count = 0usize;

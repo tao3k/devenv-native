@@ -154,21 +154,19 @@ pub(crate) fn source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fas
 fn hosted_vlm_region_render_dispatch_enabled() -> bool {
     std::env::var(HOSTED_VLM_REGION_PIPELINE_ENV)
         .ok()
-        .map(|value| {
+        .is_some_and(|value| {
             value.trim().replace('_', "-").to_ascii_lowercase()
                 == HOSTED_VLM_REGION_PIPELINE_RENDER_DISPATCH
         })
-        .unwrap_or(false)
 }
 
 fn fast_text_source_range_single_page_split_enabled() -> bool {
     std::env::var(FAST_TEXT_SOURCE_RANGE_SPLIT_ENV)
         .ok()
-        .map(|value| {
+        .is_some_and(|value| {
             value.trim().replace('_', "-").to_ascii_lowercase()
                 == FAST_TEXT_SOURCE_RANGE_SPLIT_SINGLE_PAGE
         })
-        .unwrap_or(false)
 }
 
 fn all_fast_text_source_pdf_pages(inputs: &[PdfOcrShardInput]) -> bool {

@@ -3,6 +3,8 @@
 #[cfg(feature = "pdf-render")]
 use image::DynamicImage;
 #[cfg(feature = "pdf-render")]
+use num_traits::ToPrimitive;
+#[cfg(feature = "pdf-render")]
 use pdfium_render::prelude::{
     PdfBitmapFormat, PdfDocument, PdfPage, PdfRenderConfig, Pdfium, PdfiumError,
 };
@@ -456,8 +458,10 @@ fn render_direct_region_crop_image(
     pixel_box: PdfPagePixelBox,
     image_path: &Path,
 ) -> Result<RenderedRasterIdentity, String> {
-    let scale_x = geometry.raster_width_px as f32 / page.width().value.max(1.0);
-    let scale_y = geometry.raster_height_px as f32 / page.height().value.max(1.0);
+    let scale_x = pdf_pixel_to_f32(geometry.raster_width_px)? / page.width().value.max(1.0);
+    let scale_y = pdf_pixel_to_f32(geometry.raster_height_px)? / page.height().value.max(1.0);
+    let crop_left = pdf_pixel_to_f32(pixel_box.left)?;
+    let crop_top = pdf_pixel_to_f32(pixel_box.top)?;
     let config = PdfRenderConfig::new()
         .set_fixed_size(
             checked_pixels_i32(pixel_box.width_px())?,
@@ -466,14 +470,7 @@ fn render_direct_region_crop_image(
         .set_format(PdfBitmapFormat::BGRA)
         .render_annotations(profile.render_annotations)
         .render_form_data(false)
-        .transform(
-            scale_x,
-            0.0,
-            0.0,
-            scale_y,
-            -(pixel_box.left as f32),
-            -(pixel_box.top as f32),
-        )
+        .transform(scale_x, 0.0, 0.0, scale_y, -crop_left, -crop_top)
         .map_err(|error| format!("configure direct region crop render: {error}"))?;
     let bitmap = page
         .render_with_config(&config)
@@ -482,6 +479,13 @@ fn render_direct_region_crop_image(
         format!("convert direct region crop page {page_index} bitmap to image: {error}")
     })?;
     save_image_identity(&image, image_path)
+}
+
+#[cfg(feature = "pdf-render")]
+fn pdf_pixel_to_f32(value: u32) -> Result<f32, String> {
+    value
+        .to_f32()
+        .ok_or_else(|| format!("convert PDF pixel value {value} to f32"))
 }
 
 #[cfg(feature = "pdf-render")]

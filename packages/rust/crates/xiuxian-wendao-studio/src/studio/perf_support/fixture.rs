@@ -6,7 +6,7 @@ use anyhow::{Result, anyhow};
 use axum::Router;
 #[cfg(feature = "julia")]
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_julia_parser_summary_service_with_attempts,
+    JuliaServiceGuard, spawn_wendaosearch_julia_parser_summary_service_with_attempts,
 };
 
 use crate::studio::perf_support::git::create_local_git_repo;
@@ -33,7 +33,7 @@ pub struct GatewayPerfFixture {
     root: GatewayPerfRoot,
     state: Arc<crate::studio::GatewayState>,
     #[cfg(feature = "julia")]
-    _julia_parser_summary_guard: Option<JuliaExampleServiceGuard>,
+    _julia_parser_summary_guard: Option<JuliaServiceGuard>,
 }
 
 /// One controller-side concurrency snapshot captured alongside repo-index

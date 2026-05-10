@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryRefreshPolicy};
 
+#[cfg(feature = "duckdb")]
 use crate::link_graph::LinkGraphIndex;
 use crate::search::real_repo_precision::{
     DOCS_CORPUS_PROOF_ENV, PREWARM_PROOF_ENV, RESIDENT_PROOF_ENV, RealRepoGoldQuery,
@@ -12,10 +13,12 @@ use crate::search::real_repo_precision::{
     run_real_repo_precision_harness_with_options,
 };
 
+#[cfg(feature = "julia")]
 #[path = "docs_page_index.rs"]
 mod docs_page_index;
 #[path = "scenario_matrix.rs"]
 mod scenario_matrix;
+#[cfg(feature = "julia")]
 #[path = "semantic_gate.rs"]
 mod semantic_gate;
 

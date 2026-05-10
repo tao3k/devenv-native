@@ -31,7 +31,7 @@ use crate::compatibility::link_graph::{
 use crate::plugin::entry::JuliaRepoIntelligencePlugin;
 use crate::plugin::graph_structural::GraphStructuralRouteKind;
 use crate::plugin::graph_structural_transport::build_graph_structural_flight_transport_client;
-use crate::plugin::test_support::official_examples::{
+use crate::plugin::test_support::wendaosearch_services::{
     LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS, await_live_step,
     reserve_real_service_port, spawn_real_wendaosearch_demo_capability_manifest_service,
     wait_for_service_ready_with_attempts,

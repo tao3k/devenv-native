@@ -27,7 +27,7 @@ impl ValkeyAnalysisCache {
         Ok(resolve_valkey_analysis_cache_runtime()?.map(Self::from_runtime))
     }
 
-    #[cfg(all(test, feature = "search-runtime"))]
+    #[cfg(all(test, feature = "zhenfa-router"))]
     pub(crate) fn for_tests(key_prefix: &str, ttl_seconds: Option<u64>) -> Self {
         Self::from_runtime(ValkeyAnalysisCacheRuntime::for_tests(
             key_prefix,

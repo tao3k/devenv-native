@@ -10,9 +10,9 @@ fn pdf_ocr_scheduler_extracts_backend_text_locally_for_source_pages() {
 
     let results = local_backend_text_results_for_tests(inputs.as_slice());
 
-    let result = results[0]
-        .as_ref()
-        .expect("backend text page should be extracted locally");
+    let Some(result) = results[0].as_ref() else {
+        panic!("backend text page should be extracted locally")
+    };
     assert_eq!(result.ocr_profile, PDF_OCR_BACKEND_TEXT_PROFILE);
     assert_eq!(result.text_mime_type, "text/markdown");
     assert!(result.text.as_deref().unwrap_or_default().len() > 1_000);
@@ -36,9 +36,9 @@ fn pdf_ocr_scheduler_can_extract_fast_text_locally_for_parent_pages() {
 
     let results = local_backend_and_fast_text_results_for_tests(inputs.as_slice());
 
-    let result = results[0]
-        .as_ref()
-        .expect("fast-text parent page should be extracted locally when enabled");
+    let Some(result) = results[0].as_ref() else {
+        panic!("fast-text parent page should be extracted locally when enabled")
+    };
     assert_eq!(result.ocr_profile, PDF_OCR_FAST_TEXT_PROFILE);
     assert_eq!(result.text_mime_type, "text/markdown");
     assert!(result.text.as_deref().unwrap_or_default().len() > 1_000);
@@ -72,9 +72,9 @@ fn pdf_ocr_scheduler_can_fail_fast_empty_source_range_backend_text() {
 
     let results = local_empty_backend_text_fail_fast_results_for_tests(inputs.as_slice());
 
-    let result = results[0]
-        .as_ref()
-        .expect("empty source-page-range backend-text should become a local failed row");
+    let Some(result) = results[0].as_ref() else {
+        panic!("empty source-page-range backend-text should become a local failed row")
+    };
     assert_eq!(result.status, PdfOcrShardResultStatus::Failed);
     let message = result.error_message.as_deref().unwrap_or_default();
     assert!(message.contains("local backend-text returned empty text"));
@@ -93,9 +93,9 @@ fn pdf_ocr_scheduler_can_fail_fast_source_range_backend_text_errors() {
 
     let results = local_backend_text_error_fail_fast_results_for_tests(inputs.as_slice());
 
-    let result = results[0]
-        .as_ref()
-        .expect("source-page-range backend-text extraction errors should become local failed rows");
+    let Some(result) = results[0].as_ref() else {
+        panic!("source-page-range backend-text extraction errors should become local failed rows")
+    };
     assert_eq!(result.status, PdfOcrShardResultStatus::Failed);
     let message = result.error_message.as_deref().unwrap_or_default();
     assert!(message.contains("local backend-text source extraction failed"));

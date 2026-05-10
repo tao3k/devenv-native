@@ -3,7 +3,7 @@
 mod arrow_metadata;
 /// Legacy compatibility surfaces exported by the standalone Julia plugin crate.
 pub mod compatibility;
-/// Bounded integration-test helpers for Julia-owned official example services.
+/// Bounded integration-test helpers for Julia-owned managed services.
 pub mod integration_support;
 /// Runtime-level memory-family thin compat surfaces for Julia compute.
 pub mod memory;
@@ -11,6 +11,8 @@ mod modelica_plugin;
 mod plugin;
 /// Read-only projections from Julia-owned contracts into polyglot contracts.
 pub mod polyglot;
+/// Command-line adapters for Julia-owned Wendao bridges.
+pub mod wendaograph_search_strategy_flow_cli;
 
 pub(crate) use modelica_plugin::fetch_modelica_parser_file_summary_blocking_for_repository;
 #[cfg(test)]
@@ -178,7 +180,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
         )
         .with_verification_profile_hint(
             rust_lang_project_harness::RustVerificationProfileHint::new(
-                "src/polyglot.rs",
+                "src/polyglot/",
                 [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
             )
             .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
@@ -194,7 +196,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                         ),
                         rust_lang_project_harness::RustVerificationRequirement::new(
                             "target",
-                            "lib unit tests mounted from tests/unit/polyglot.rs",
+                            "lib unit tests mounted from tests/unit/polyglot/",
                         ),
                         rust_lang_project_harness::RustVerificationRequirement::new(
                             "coverage",

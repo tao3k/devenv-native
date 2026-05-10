@@ -1,46 +1,54 @@
-//! CLI proof surface for the Rust-owned `WendaoGraph.jl` `SearchStrategyFlow` bridge.
+//! Command-line implementation for the `WendaoGraph.jl` `SearchStrategyFlow` bridge.
 
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
-use xiuxian_wendao_julia::integration_support::{
+use crate::integration_support::{
     SearchStrategyFlowFlightMaterializationConfig,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
 };
 
-#[tokio::main]
-async fn main() {
-    match parse_args(env::args().skip(1)) {
-        Ok(args) => {
-            let config = match args.flight_materialization_config() {
-                Ok(config) => config,
-                Err(error) => {
-                    eprintln!("{error}");
-                    std::process::exit(64);
-                }
-            };
-            match run_wendaograph_search_strategy_flow_json_with_flight_materialization(
-                &args.intent,
-                args.search_root,
-                config,
-            )
-            .await
-            {
-                Ok(trace) => print!("{trace}"),
-                Err(error) => {
-                    eprintln!("{error}");
-                    std::process::exit(1);
-                }
+const USAGE: &str = "usage: wendaograph_search_strategy_flow --intent <text> --search-root <path> [--flight-base-url <url> --flight-repo <repo>]";
+
+/// Runs the `wendaograph_search_strategy_flow` command with process arguments.
+///
+/// This function exits the process with the command status code when argument
+/// parsing or bridge execution fails.
+pub async fn run_from_env() {
+    let status = run_with_args(env::args().skip(1)).await;
+    if status != 0 {
+        std::process::exit(status);
+    }
+}
+
+/// Runs the `wendaograph_search_strategy_flow` command with explicit arguments.
+pub async fn run_with_args(args: impl Iterator<Item = String>) -> i32 {
+    match parse_args(args) {
+        Ok(args) => match run(args).await {
+            Ok(trace) => {
+                print!("{trace}");
+                0
             }
-        }
+            Err(error) => {
+                eprintln!("{error}");
+                1
+            }
+        },
         Err(error) => {
             eprintln!("{error}");
-            eprintln!(
-                "usage: wendaograph_search_strategy_flow --intent <text> --search-root <path> [--flight-base-url <url> --flight-repo <repo>]"
-            );
-            std::process::exit(64);
+            eprintln!("{USAGE}");
+            64
         }
     }
+}
+
+async fn run(args: Args) -> Result<String, String> {
+    let config = args.flight_materialization_config()?;
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization(
+        &args.intent,
+        args.search_root,
+        config,
+    )
+    .await
 }
 
 struct Args {

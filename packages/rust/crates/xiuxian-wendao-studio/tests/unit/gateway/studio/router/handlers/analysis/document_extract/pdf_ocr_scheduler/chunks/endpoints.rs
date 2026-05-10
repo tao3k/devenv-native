@@ -42,13 +42,14 @@ fn source_pdf_page_range_endpoint_affinity_routes_single_fast_text_chunk_to_firs
             .then(|| "single-page-first".to_string())
     };
 
-    let endpoint_index = source_pdf_page_range_chunk_endpoint_index_with_lookup(
+    let Ok(endpoint_index) = source_pdf_page_range_chunk_endpoint_index_with_lookup(
         4,
         std::slice::from_ref(&input),
         &enabled,
         || Err("affinity should not advance the round-robin cursor".to_string()),
-    )
-    .expect("single fast-text source chunk should resolve");
+    ) else {
+        panic!("single fast-text source chunk should resolve")
+    };
 
     assert_eq!(endpoint_index, 0);
     assert!(
@@ -70,13 +71,14 @@ fn source_pdf_page_range_endpoint_affinity_uses_round_robin_for_other_chunks() {
             .then(|| "single-page-first".to_string())
     };
 
-    let endpoint_index = source_pdf_page_range_chunk_endpoint_index_with_lookup(
+    let Ok(endpoint_index) = source_pdf_page_range_chunk_endpoint_index_with_lookup(
         4,
         &[first, second],
         &enabled,
         || Ok(2),
-    )
-    .expect("multi-page fast-text source chunk should use round-robin");
+    ) else {
+        panic!("multi-page fast-text source chunk should use round-robin")
+    };
 
     assert_eq!(endpoint_index, 2);
 }

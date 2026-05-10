@@ -10,6 +10,7 @@
 //! ├── lib.rs                # Re-exports (entry point)
 //! ├── re_exports.rs         # ast-grep re-exports
 //! ├── lang.rs               # Lang enum and language support
+//! ├── parser_registry.rs    # General AST baseline and parser override registry
 //! ├── match.rs              # Match struct
 //! ├── scan.rs               # Pattern utilities
 //! ├── python.rs             # Python-specific utilities
@@ -48,6 +49,7 @@ mod extract;
 mod fingerprint;
 mod item;
 mod lang;
+mod parser_registry;
 mod python;
 mod python_tree_sitter;
 mod re_exports;
@@ -65,6 +67,10 @@ pub use re_exports::{
 
 // Lang enum
 pub use lang::Lang;
+
+pub use parser_registry::{
+    AstParserPriority, AstParserRegistry, AstParserResolution, baseline_parser_name,
+};
 
 // Match struct
 pub use item::Match;

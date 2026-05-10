@@ -334,6 +334,64 @@ pub(super) async fn materialize_docling_page_range_resource_batch(
         docling_page_range_hedge_delay_ms_with_lookup(&|key| std::env::var(key).ok());
     let page_range_profile =
         docling_page_range_fallback_profile_with_lookup(&|key| std::env::var(key).ok());
+    let (mut page_range_batches, chunk_timings) = collect_docling_page_range_fallback_chunks(
+        provider,
+        output,
+        render_report,
+        page_ranges.as_slice(),
+        source_profiles.as_slice(),
+        chunk_concurrency,
+        hedge_delay_ms,
+        page_range_profile,
+    )
+    .await?;
+    resource_batches.append(&mut page_range_batches);
+
+    let metrics = kept_results
+        .iter()
+        .zip(kept_inputs.iter())
+        .map(|(result, input)| {
+            PdfOcrShardMetric::from_ocr_result(
+                input,
+                result,
+                render_report.page_count,
+                Some(scheduler_elapsed_ms),
+            )
+        })
+        .collect::<Vec<_>>();
+    let resource_batch = concat_document_resource_batches(resource_batches.as_slice())?;
+    let fallback_page_indices = fallback_pages.iter().copied().collect::<Vec<_>>();
+    Ok(HybridDocumentResourceBatch::new(
+        resource_batch,
+        kept_inputs,
+        kept_results,
+        metrics,
+        render_report.page_count,
+        fallback_page_indices.clone(),
+    )
+    .with_page_range_docling_fallback_pages(fallback_page_indices)
+    .with_page_range_docling_fallback_chunks(chunk_timings)
+    .with_page_range_docling_fallback_plan(page_range_plan))
+}
+
+async fn collect_docling_page_range_fallback_chunks(
+    provider: &StudioDocumentExtractFlightRouteProvider,
+    output: &Path,
+    render_report: &PdfPageRenderShardReport,
+    page_ranges: &[(u32, u32)],
+    source_profiles: &[PdfSourcePageProfile],
+    chunk_concurrency: usize,
+    hedge_delay_ms: u64,
+    page_range_profile: String,
+) -> Result<
+    (
+        Vec<EngineRecordBatch>,
+        Vec<PageRangeDoclingFallbackChunkTiming>,
+    ),
+    String,
+> {
+    let mut resource_batches = Vec::new();
+    let mut chunk_timings = Vec::with_capacity(page_ranges.len());
     for page_range_wave in page_ranges.chunks(chunk_concurrency) {
         let page_range_futures = page_range_wave
             .iter()
@@ -371,7 +429,7 @@ pub(super) async fn materialize_docling_page_range_resource_batch(
                         one_based_start,
                         one_based_end,
                         elapsed_ms: chunk_started.elapsed().as_secs_f64() * 1000.0,
-                        resource_rows: page_batches.iter().map(|batch| batch.num_rows()).sum(),
+                        resource_rows: page_batches.iter().map(EngineRecordBatch::num_rows).sum(),
                         document_extract_profile: page_range_profile,
                         hedged,
                         attempt_count,
@@ -389,31 +447,7 @@ pub(super) async fn materialize_docling_page_range_resource_batch(
         }
     }
 
-    let metrics = kept_results
-        .iter()
-        .zip(kept_inputs.iter())
-        .map(|(result, input)| {
-            PdfOcrShardMetric::from_ocr_result(
-                input,
-                result,
-                render_report.page_count,
-                Some(scheduler_elapsed_ms),
-            )
-        })
-        .collect::<Vec<_>>();
-    let resource_batch = concat_document_resource_batches(resource_batches.as_slice())?;
-    let fallback_page_indices = fallback_pages.iter().copied().collect::<Vec<_>>();
-    Ok(HybridDocumentResourceBatch::new(
-        resource_batch,
-        kept_inputs,
-        kept_results,
-        metrics,
-        render_report.page_count,
-        fallback_page_indices.clone(),
-    )
-    .with_page_range_docling_fallback_pages(fallback_page_indices)
-    .with_page_range_docling_fallback_chunks(chunk_timings)
-    .with_page_range_docling_fallback_plan(page_range_plan))
+    Ok((resource_batches, chunk_timings))
 }
 
 fn page_range_source_profile_summary(

@@ -23,9 +23,13 @@ chrono = { workspace = true, features = ["clock"] }
 inventory = { workspace = true }
 tonic = { workspace = true }
 xiuxian-memory-engine = { path = "../xiuxian-memory-engine" }
+xiuxian-ast = { path = "../xiuxian-ast" }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", features = ["transport"] }
+
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

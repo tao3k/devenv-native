@@ -93,6 +93,7 @@ impl DuckLakeDataPath {
         })
     }
 
+    #[cfg(feature = "duckdb")]
     pub(super) fn local_path(&self) -> Option<&std::path::Path> {
         match self {
             Self::LocalPath(path) => Some(path.as_path()),

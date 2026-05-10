@@ -922,19 +922,19 @@ The Julia deployment inspection surface now also carries its own controller for
 copy/download feedback state, further reducing the amount of local UI state
 owned by the top-level StatusBar shell.
 
-A second official-example integration now targets
+A second WendaoSearch service-fixture integration now targets
 `.data/WendaoArrow/scripts/run_stream_metadata_server.sh` to confirm additive
 response columns derived from request metadata do not break the planned-search
 Julia rerank path. The Julia response decoder now also surfaces optional
 additive `trace_id` columns into `julia_rerank.trace_ids`, and the planned
-search runtime writes a stable request-schema `trace_id` so the official
-metadata example can roundtrip that context without changing the core
+search runtime writes a stable request-schema `trace_id` so the metadata
+service fixture can roundtrip that context without changing the core
 `doc_id / analyzer_score / final_score` contract.
 
 The integration support layer now keeps those two concerns separate:
 
 - custom-score tests launch a private Julia processor with explicit score maps
-- official-example tests launch `.data/WendaoArrow/scripts/run_stream_scoring_server.sh`
+- WendaoSearch service-fixture tests launch `.data/WendaoArrow/scripts/run_stream_scoring_server.sh`
 
 At the request boundary, both `zhenfa_router::WendaoSearchRequest` and the
 planned HTTP request surface now accept an optional `query_vector`. When
