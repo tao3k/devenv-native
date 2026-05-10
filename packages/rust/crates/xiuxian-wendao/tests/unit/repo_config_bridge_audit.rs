@@ -3,10 +3,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 use std::thread;
 use std::time::Instant;
 
@@ -44,10 +43,10 @@ fn root_wendao_toml_repo_bridge_audit_when_enabled() -> TestResult {
     let mode = parse_mode()?;
     let limit = parse_limit()?;
     let repo_filter = parse_repo_filter();
-    let repos = Arc::new(select_repositories(&config.repos, &repo_filter, limit)?);
+    let repos = select_repositories(&config.repos, &repo_filter, limit)?;
     let workers = parse_workers()?.min(repos.len().max(1));
 
-    let rows = audit_registered_repositories(repos.clone(), mode, &project_root, workers)?;
+    let rows = audit_registered_repositories(&repos, mode, &project_root, workers);
 
     let mut summary = BridgeSummary {
         effective_project_count: surface.effective_project_count,
@@ -89,19 +88,18 @@ fn root_wendao_toml_repo_bridge_audit_when_enabled() -> TestResult {
 }
 
 fn audit_registered_repositories(
-    repositories: Arc<Vec<RegisteredRepository>>,
+    repositories: &[RegisteredRepository],
     mode: RepoSyncMode,
     project_root: &Path,
     workers: usize,
-) -> TestResult<Vec<BridgeRepoRow>> {
+) -> Vec<BridgeRepoRow> {
     let next_index = AtomicUsize::new(0);
-    let rows = Mutex::new(Vec::with_capacity(repositories.len()));
+    let (row_sender, row_receiver) = mpsc::channel();
 
     thread::scope(|scope| {
         for _worker_index in 0..workers {
             let next_index = &next_index;
-            let rows = &rows;
-            let repositories = Arc::clone(&repositories);
+            let row_sender = row_sender.clone();
             scope.spawn(move || {
                 loop {
                     let index = next_index.fetch_add(1, Ordering::Relaxed);
@@ -109,19 +107,18 @@ fn audit_registered_repositories(
                         break;
                     };
                     let row = audit_registered_repository(repository, mode, project_root);
-                    rows.lock()
-                        .expect("repo bridge audit row lock should not be poisoned")
-                        .push(row);
+                    if row_sender.send(row).is_err() {
+                        break;
+                    }
                 }
             });
         }
     });
+    drop(row_sender);
 
-    let mut rows = rows
-        .into_inner()
-        .map_err(|_error| io::Error::other("repo bridge audit row lock was poisoned"))?;
+    let mut rows = row_receiver.into_iter().collect::<Vec<_>>();
     rows.sort_by(|left, right| left.repo_id.cmp(&right.repo_id));
-    Ok(rows)
+    rows
 }
 
 fn audit_registered_repository(
@@ -138,9 +135,9 @@ fn audit_registered_repository(
     match repo_sync_for_registered_repository(&query, repository, project_root) {
         Ok(result) => BridgeRepoRow {
             repo_id: repository.id.clone(),
-            config_has_url: repository.url.is_some(),
-            config_has_root: repository.path.is_some(),
-            bridge_ok: true,
+            config_has_url: BridgeFlag::new(repository.url.is_some()),
+            config_has_root: BridgeFlag::new(repository.path.is_some()),
+            bridge_ok: BridgeFlag::new(true),
             source_kind: Some(result.source_kind),
             health_state: Some(result.health_state),
             mirror_state: Some(result.mirror_state),
@@ -149,12 +146,12 @@ fn audit_registered_repository(
             mirror_path: result.mirror_path,
             upstream_url: result.upstream_url,
             elapsed_ms: started_at.elapsed().as_millis(),
-            benchmark_eligible: benchmark_eligible_for(
+            benchmark_eligible: BridgeFlag::new(benchmark_eligible_for(
                 true,
                 Some(result.health_state),
                 Some(result.mirror_state),
                 Some(result.checkout_state),
-            ),
+            )),
             prewarm_action: prewarm_action_for(
                 true,
                 Some(result.health_state),
@@ -168,9 +165,9 @@ fn audit_registered_repository(
             let error = error.to_string();
             BridgeRepoRow {
                 repo_id: repository.id.clone(),
-                config_has_url: repository.url.is_some(),
-                config_has_root: repository.path.is_some(),
-                bridge_ok: false,
+                config_has_url: BridgeFlag::new(repository.url.is_some()),
+                config_has_root: BridgeFlag::new(repository.path.is_some()),
+                bridge_ok: BridgeFlag::new(false),
                 source_kind: None,
                 health_state: None,
                 mirror_state: None,
@@ -179,7 +176,9 @@ fn audit_registered_repository(
                 mirror_path: None,
                 upstream_url: repository.url.clone(),
                 elapsed_ms: started_at.elapsed().as_millis(),
-                benchmark_eligible: benchmark_eligible_for(false, None, None, None),
+                benchmark_eligible: BridgeFlag::new(benchmark_eligible_for(
+                    false, None, None, None,
+                )),
                 prewarm_action: prewarm_action_for(false, None, None, None, Some(error.as_str())),
                 error: Some(error),
             }
@@ -322,12 +321,11 @@ fn select_repositories(
 
 fn parse_workers() -> TestResult<usize> {
     let default_workers = thread::available_parallelism()
-        .map(usize::from)
-        .unwrap_or(4)
+        .map_or(4, usize::from)
         .clamp(1, 6);
     env::var(WORKERS_ENV)
         .ok()
-        .map(|value| {
+        .map_or(Ok(default_workers), |value| {
             let workers = value.parse::<usize>().map_err(|error| {
                 format!("failed to parse {WORKERS_ENV} value `{value}`: {error}")
             })?;
@@ -336,7 +334,6 @@ fn parse_workers() -> TestResult<usize> {
             }
             Ok(workers)
         })
-        .unwrap_or(Ok(default_workers))
         .map_err(Into::into)
 }
 
@@ -432,12 +429,12 @@ struct BridgeSummary {
 
 impl BridgeSummary {
     fn record(&mut self, row: &BridgeRepoRow) {
-        if row.bridge_ok {
+        if row.bridge_ok.get() {
             self.bridge_ok_count += 1;
         } else {
             self.bridge_error_count += 1;
         }
-        if row.benchmark_eligible {
+        if row.benchmark_eligible.get() {
             self.benchmark_eligible_count += 1;
         }
         if matches!(row.prewarm_action, PrewarmAction::PrewarmRequired) {
@@ -478,9 +475,9 @@ impl BridgeSummary {
 #[serde(rename_all = "camelCase")]
 struct BridgeRepoRow {
     repo_id: String,
-    config_has_url: bool,
-    config_has_root: bool,
-    bridge_ok: bool,
+    config_has_url: BridgeFlag,
+    config_has_root: BridgeFlag,
+    bridge_ok: BridgeFlag,
     source_kind: Option<RepoSourceKind>,
     health_state: Option<RepoSyncHealthState>,
     mirror_state: Option<RepoSyncState>,
@@ -489,9 +486,23 @@ struct BridgeRepoRow {
     mirror_path: Option<String>,
     upstream_url: Option<String>,
     elapsed_ms: u128,
-    benchmark_eligible: bool,
+    benchmark_eligible: BridgeFlag,
     prewarm_action: PrewarmAction,
     error: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(transparent)]
+struct BridgeFlag(bool);
+
+impl BridgeFlag {
+    const fn new(value: bool) -> Self {
+        Self(value)
+    }
+
+    const fn get(self) -> bool {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
