@@ -34,20 +34,31 @@ pub fn linked_builtin_julia_deployment_artifact_selector() -> PluginArtifactSele
 }
 
 /// Build a linked builtin Julia rerank binding from endpoint overrides.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinkedBuiltinJuliaRerankEndpoint {
+    /// Base URL for the Julia rerank service.
+    pub base_url: String,
+    /// Flight route used for rerank requests.
+    pub route: String,
+    /// Health route used for readiness checks.
+    pub health_route: String,
+    /// Expected schema version for rerank payloads.
+    pub schema_version: String,
+    /// Request timeout in seconds.
+    pub timeout_secs: u64,
+}
+
+/// Build a linked builtin Julia rerank binding from endpoint overrides.
 #[must_use]
 pub fn linked_builtin_julia_rerank_provider_binding_with_endpoint(
-    base_url: &str,
-    route: &str,
-    health_route: &str,
-    schema_version: &str,
-    timeout_secs: u64,
+    endpoint: &LinkedBuiltinJuliaRerankEndpoint,
 ) -> PluginCapabilityBinding {
     build_rerank_provider_binding(&LinkGraphJuliaRerankRuntimeConfig {
-        base_url: Some(base_url.to_string()),
-        route: Some(route.to_string()),
-        health_route: Some(health_route.to_string()),
-        schema_version: Some(schema_version.to_string()),
-        timeout_secs: Some(timeout_secs),
+        base_url: Some(endpoint.base_url.clone()),
+        route: Some(endpoint.route.clone()),
+        health_route: Some(endpoint.health_route.clone()),
+        schema_version: Some(endpoint.schema_version.clone()),
+        timeout_secs: Some(endpoint.timeout_secs),
         service_mode: None,
         search_config_path: None,
         vector_weight: None,

@@ -14,7 +14,7 @@ pub use dispatch::{
     resolve_builtin_plugin_artifact_for_selector_with_settings,
 };
 pub use gateway::{
-    linked_builtin_julia_gateway_artifact_base_url,
+    LinkedBuiltinJuliaGatewayArtifactPath, linked_builtin_julia_gateway_artifact_base_url,
     linked_builtin_julia_gateway_artifact_expected_json_fragments,
     linked_builtin_julia_gateway_artifact_expected_toml_fragments,
     linked_builtin_julia_gateway_artifact_path, linked_builtin_julia_gateway_artifact_route,

@@ -5,7 +5,7 @@ use xiuxian_wendao_julia::compatibility::link_graph::{
 };
 
 use crate::test_support::{
-    linked_builtin_julia_deployment_artifact_selector,
+    LinkedBuiltinJuliaRerankEndpoint, linked_builtin_julia_deployment_artifact_selector,
     linked_builtin_julia_rerank_provider_binding_with_endpoint,
     linked_builtin_julia_rerank_provider_selector, linked_builtin_julia_search_example_config_path,
     linked_builtin_julia_search_launcher_path,
@@ -31,11 +31,13 @@ fn linked_builtin_host_test_helpers_match_julia_compatibility_helpers() {
     );
     assert_eq!(
         linked_builtin_julia_rerank_provider_binding_with_endpoint(
-            "http://127.0.0.1:8090",
-            "/custom-rerank",
-            "/healthz",
-            "v1",
-            15,
+            &LinkedBuiltinJuliaRerankEndpoint {
+                base_url: "http://127.0.0.1:8090".to_string(),
+                route: "/custom-rerank".to_string(),
+                health_route: "/healthz".to_string(),
+                schema_version: "v1".to_string(),
+                timeout_secs: 15,
+            },
         ),
         build_rerank_provider_binding(
             &xiuxian_wendao_julia::compatibility::link_graph::LinkGraphJuliaRerankRuntimeConfig {

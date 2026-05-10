@@ -49,7 +49,9 @@ pub(super) fn plugin_artifact_state(
 ) {
     let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     let config_path = temp.path().join("wendao.toml");
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
     fs::write(&config_path, runtime_config_toml)
         .unwrap_or_else(|error| panic!("write config: {error}"));
     let config_path_string = config_path.to_string_lossy().to_string();

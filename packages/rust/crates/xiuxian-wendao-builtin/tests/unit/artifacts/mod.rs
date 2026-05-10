@@ -135,10 +135,10 @@ mod julia {
             linked_builtin_julia_gateway_artifact_selected_transport(),
             julia_gateway_artifact_selected_transport()
         );
-        assert_eq!(
-            linked_builtin_julia_gateway_artifact_path(),
-            julia_gateway_artifact_path()
-        );
+        let linked_artifact_path = linked_builtin_julia_gateway_artifact_path();
+        let julia_artifact_path = julia_gateway_artifact_path();
+        assert_eq!(linked_artifact_path.plugin_id, julia_artifact_path.0);
+        assert_eq!(linked_artifact_path.artifact_id, julia_artifact_path.1);
         assert_eq!(
             linked_builtin_julia_gateway_artifact_route(),
             DEFAULT_JULIA_RERANK_FLIGHT_ROUTE
