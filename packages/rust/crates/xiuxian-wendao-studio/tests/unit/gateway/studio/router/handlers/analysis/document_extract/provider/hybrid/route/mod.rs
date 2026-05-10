@@ -57,6 +57,7 @@ include!("scaffold.rs");
 include!("failed_page.rs");
 include!("docling_controls.rs");
 include!("docling_fallback.rs");
+include!("docling_source_inputs.rs");
 include!("docling_chunks.rs");
 include!("docling_structure_budget.rs");
 include!("resource_rows.rs");

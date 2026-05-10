@@ -177,92 +177,20 @@ pub(crate) fn evaluate_markdown_knowledge_semantic_gate(
         ));
     }
 
-    let repository = load_semantic_repository(semantic_root);
-    if !repository.report.is_success() {
-        let issues = repository
-            .report
-            .issues
-            .iter()
-            .map(|issue| {
-                issue.path.as_ref().map_or_else(
-                    || issue.message.clone(),
-                    |path| format!("{}: {}", path.display(), issue.message),
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("; ");
-        return Err(format!(
-            "semantic repository `{}` failed validation: {issues}",
-            semantic_root.display()
-        ));
-    }
-
-    let object_ids = linked_queries
-        .iter()
-        .map(|(_, link)| link.object_id.to_string())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>();
-    let scope = semantic_scope_bundle(
-        &repository,
-        &SemanticScopeRequest {
-            task_id: None,
-            object_ids,
-        },
-    );
-    if !scope.unresolved_ids.is_empty() {
-        return Err(format!(
-            "semantic scope unresolved ids: {}",
-            scope.unresolved_ids.join(",")
-        ));
-    }
-
-    let required_markdown_paths = linked_queries
-        .iter()
-        .flat_map(|(query, _)| query.must_hit_paths.iter().cloned())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let repository = load_valid_semantic_repository(semantic_root)?;
+    let scope = linked_query_semantic_scope(&repository, &linked_queries)?;
+    let required_markdown_paths = required_markdown_paths(&linked_queries);
     let covered_markdown_paths =
         covered_markdown_paths_for_linked_queries(&scope, &linked_queries)?;
-    let missing_markdown_paths = required_markdown_paths
-        .iter()
-        .filter(|path| !covered_markdown_paths.contains(path))
-        .cloned()
-        .collect::<Vec<_>>();
-    if !missing_markdown_paths.is_empty() {
-        return Err(format!(
-            "semantic gate missing Markdown path coverage: {}",
-            missing_markdown_paths.join(",")
-        ));
-    }
+    validate_markdown_path_coverage(&required_markdown_paths, &covered_markdown_paths)?;
     let required_relation_paths = required_semantic_relation_path_receipts();
     let covered_relation_paths = covered_semantic_relation_paths(&scope.relations);
-    let missing_relation_paths = required_relation_paths
-        .iter()
-        .filter(|path| !covered_relation_paths.contains(path))
-        .cloned()
-        .collect::<Vec<_>>();
-    if !missing_relation_paths.is_empty() {
-        let missing = missing_relation_paths
-            .iter()
-            .map(relation_path_label)
-            .collect::<Vec<_>>()
-            .join(",");
-        return Err(format!("semantic gate missing relation paths: {missing}"));
-    }
+    validate_relation_path_coverage(&required_relation_paths, &covered_relation_paths)?;
 
     let page_index = build_semantic_scope_page_index_reasoning_request_bundle(&scope)
         .map_err(|error| format!("build semantic PageIndex request bundle: {error}"))?;
-    let linked_query_ids = linked_queries
-        .iter()
-        .map(|(query, _)| query.id.clone())
-        .collect::<Vec<_>>();
-    let semantic_object_ids = scope
-        .objects
-        .iter()
-        .map(|object| object.id.clone())
-        .collect::<Vec<_>>();
+    let linked_query_ids = linked_query_ids(&linked_queries);
+    let semantic_object_ids = semantic_object_ids(&scope);
     let knowledge_scenarios = semantic_knowledge_scenarios(
         &linked_query_ids,
         &semantic_object_ids,
@@ -290,6 +218,123 @@ pub(crate) fn evaluate_markdown_knowledge_semantic_gate(
         receipt,
         page_index,
     }))
+}
+
+fn load_valid_semantic_repository(
+    semantic_root: &Path,
+) -> Result<xiuxian_wendao_parsers::semantic_ssot::SemanticRepository, String> {
+    let repository = load_semantic_repository(semantic_root);
+    if repository.report.is_success() {
+        return Ok(repository);
+    }
+    let issues = repository
+        .report
+        .issues
+        .iter()
+        .map(|issue| {
+            issue.path.as_ref().map_or_else(
+                || issue.message.clone(),
+                |path| format!("{}: {}", path.display(), issue.message),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    Err(format!(
+        "semantic repository `{}` failed validation: {issues}",
+        semantic_root.display()
+    ))
+}
+
+fn linked_query_semantic_scope(
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+    linked_queries: &[(&RealRepoGoldQuery, &'static LinkedSemanticGoldQuery)],
+) -> Result<SemanticScopeBundle, String> {
+    let object_ids = linked_queries
+        .iter()
+        .map(|(_, link)| link.object_id.to_string())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let scope = semantic_scope_bundle(
+        repository,
+        &SemanticScopeRequest {
+            task_id: None,
+            object_ids,
+        },
+    );
+    if scope.unresolved_ids.is_empty() {
+        return Ok(scope);
+    }
+    Err(format!(
+        "semantic scope unresolved ids: {}",
+        scope.unresolved_ids.join(",")
+    ))
+}
+
+fn required_markdown_paths(
+    linked_queries: &[(&RealRepoGoldQuery, &'static LinkedSemanticGoldQuery)],
+) -> Vec<String> {
+    linked_queries
+        .iter()
+        .flat_map(|(query, _)| query.must_hit_paths.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn validate_markdown_path_coverage(
+    required_markdown_paths: &[String],
+    covered_markdown_paths: &[String],
+) -> Result<(), String> {
+    let missing_markdown_paths = required_markdown_paths
+        .iter()
+        .filter(|path| !covered_markdown_paths.contains(path))
+        .cloned()
+        .collect::<Vec<_>>();
+    if missing_markdown_paths.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "semantic gate missing Markdown path coverage: {}",
+        missing_markdown_paths.join(",")
+    ))
+}
+
+fn validate_relation_path_coverage(
+    required_relation_paths: &[RealRepoMarkdownKnowledgeSemanticRelationPathReceipt],
+    covered_relation_paths: &[RealRepoMarkdownKnowledgeSemanticRelationPathReceipt],
+) -> Result<(), String> {
+    let missing_relation_paths = required_relation_paths
+        .iter()
+        .filter(|path| !covered_relation_paths.contains(path))
+        .cloned()
+        .collect::<Vec<_>>();
+    if missing_relation_paths.is_empty() {
+        return Ok(());
+    }
+    let missing = missing_relation_paths
+        .iter()
+        .map(relation_path_label)
+        .collect::<Vec<_>>()
+        .join(",");
+    Err(format!("semantic gate missing relation paths: {missing}"))
+}
+
+fn linked_query_ids(
+    linked_queries: &[(&RealRepoGoldQuery, &'static LinkedSemanticGoldQuery)],
+) -> Vec<String> {
+    linked_queries
+        .iter()
+        .map(|(query, _)| query.id.clone())
+        .collect()
+}
+
+fn semantic_object_ids(scope: &SemanticScopeBundle) -> Vec<String> {
+    scope
+        .objects
+        .iter()
+        .map(|object| object.id.clone())
+        .collect()
 }
 
 pub(crate) fn attach_markdown_knowledge_semantic_query_evidence(
@@ -352,9 +397,9 @@ fn missing_query_evidence(
     }
 }
 
-fn linked_semantic_gold_queries<'a>(
-    gold_queries: &'a [RealRepoGoldQuery],
-) -> Vec<(&'a RealRepoGoldQuery, &'static LinkedSemanticGoldQuery)> {
+fn linked_semantic_gold_queries(
+    gold_queries: &[RealRepoGoldQuery],
+) -> Vec<(&RealRepoGoldQuery, &'static LinkedSemanticGoldQuery)> {
     let links_by_query_id = LINKED_SEMANTIC_GOLD_QUERIES
         .iter()
         .map(|link| (link.query_id, link))

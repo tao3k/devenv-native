@@ -40,7 +40,15 @@ Polyglot boundary:
    own JS Arrow decoding in this path. The bridge keeps page-index section
    nodes and link-graph document nodes in separate namespaces: retrieval
    context uses the resolved section node, while graph-neighbor expansion uses
-   `resolvedGraphNodeId` from the Studio display path.
+   `resolvedGraphNodeId` from the Studio display path. Executed receipts keep
+   `sourcePath`, `headingAnchor`, `materializedRows`, route receipts, decoded
+   payload receipts, and evidence anchors stable so downstream agents can
+   consume section-level provenance without opening full Markdown files. The
+   bridge also adds `rustProjectedEvidenceRows` to the JSON trace as additive
+   research metadata over candidates, frontier selection, planner
+   materialization, and planned route counts. That projection is a bridge
+   receipt surface for SearchStrategyFlow research notebooks; it does not add
+   a public Arrow schema or a new Flight route.
 4. The bridge does not transfer Julia scheduling, route mutation, or schema
    authority to Rust.
 
@@ -55,5 +63,5 @@ Verification profile:
 
 :FOOTER:
 :STANDARDS: v2.0
-:LAST_SYNC: 2026-05-09
+:LAST_SYNC: 2026-05-10
 :END:

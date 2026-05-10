@@ -353,11 +353,7 @@ fn write_tsv_file(path: &Path, header: &[&str], rows: Vec<Vec<String>>) {
     for row in rows {
         let cells = row
             .iter()
-            .map(|cell| {
-                cell.replace('\t', " ")
-                    .replace('\n', " ")
-                    .replace('\r', " ")
-            })
+            .map(|cell| cell.replace(['\t', '\n', '\r'], " "))
             .collect::<Vec<_>>();
         content.push_str(&cells.join("\t"));
         content.push('\n');

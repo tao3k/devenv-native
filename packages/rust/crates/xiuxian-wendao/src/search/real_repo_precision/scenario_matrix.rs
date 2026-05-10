@@ -54,131 +54,51 @@ fn evaluate_knowledge_scenario(
     covered_relation_paths: &BTreeSet<&RealRepoMarkdownKnowledgeSemanticRelationPathReceipt>,
 ) -> RealRepoKnowledgeScenarioReceipt {
     let query_ids = scenario_query_ids(scenario);
-    let query_variants = scenario
-        .query_variants
-        .iter()
-        .map(|variant| {
-            let query_evidence = query_receipts_by_id
-                .get(variant.query_id.as_str())
-                .map_or_else(
-                    || missing_query_evidence(&variant.query_id),
-                    |query| query_evidence_from_receipt(query),
-                );
-            RealRepoKnowledgeScenarioQueryVariantReceipt {
-                query_id: variant.query_id.clone(),
-                variant_kind: variant.kind.as_str().to_string(),
-                passed: query_evidence.passed,
-                query_evidence,
-            }
-        })
-        .collect::<Vec<_>>();
-    let query_evidence = query_ids
-        .iter()
-        .map(|query_id| {
-            query_receipts_by_id.get(query_id.as_str()).map_or_else(
-                || missing_query_evidence(query_id),
-                |query| query_evidence_from_receipt(query),
-            )
-        })
-        .collect::<Vec<_>>();
+    let query_variants = scenario_query_variants(scenario, query_receipts_by_id);
+    let query_evidence = scenario_query_evidence(&query_ids, query_receipts_by_id);
     let linked_query_receipts = query_ids
         .iter()
         .filter_map(|query_id| query_receipts_by_id.get(query_id.as_str()).copied())
         .collect::<Vec<_>>();
-    let observed_paths = observed_paths_from_queries(&linked_query_receipts);
-
-    let covered_paths = scenario
-        .required_paths
-        .iter()
-        .filter(|path| observed_paths.contains(path.as_str()))
-        .cloned()
-        .collect::<Vec<_>>();
-    let missing_paths = scenario
-        .required_paths
-        .iter()
-        .filter(|path| !observed_paths.contains(path.as_str()))
-        .cloned()
-        .collect::<Vec<_>>();
-    let covered_semantic_object_ids = scenario
-        .required_semantic_object_ids
-        .iter()
-        .filter(|object_id| semantic_object_ids.contains(object_id.as_str()))
-        .cloned()
-        .collect::<Vec<_>>();
-    let missing_semantic_object_ids = scenario
-        .required_semantic_object_ids
-        .iter()
-        .filter(|object_id| !semantic_object_ids.contains(object_id.as_str()))
-        .cloned()
-        .collect::<Vec<_>>();
-    let covered_relation_paths_for_scenario = scenario
-        .required_relation_paths
-        .iter()
-        .filter(|path| covered_relation_paths.contains(*path))
-        .cloned()
-        .collect::<Vec<_>>();
-    let missing_relation_paths = scenario
-        .required_relation_paths
-        .iter()
-        .filter(|path| !covered_relation_paths.contains(*path))
-        .cloned()
-        .collect::<Vec<_>>();
+    let coverage = evaluate_scenario_coverage(
+        scenario,
+        &linked_query_receipts,
+        semantic_object_ids,
+        covered_relation_paths,
+    );
     let authority = scenario
         .authority
         .as_ref()
         .map(|expectation| evaluate_authority(expectation, &linked_query_receipts));
-    let negative_guard = (!scenario.forbidden_paths.is_empty())
-        .then(|| evaluate_negative_guard(scenario.forbidden_paths.as_slice(), &observed_paths));
+    let negative_guard = (!scenario.forbidden_paths.is_empty()).then(|| {
+        evaluate_negative_guard(
+            scenario.forbidden_paths.as_slice(),
+            &coverage.observed_paths,
+        )
+    });
 
-    let query_evidence_passed = query_evidence.iter().all(|evidence| evidence.passed);
-    let query_variants_passed = query_variants.iter().all(|variant| variant.passed);
-    let path_coverage_passed = missing_paths.is_empty();
-    let semantic_object_coverage_passed = missing_semantic_object_ids.is_empty();
-    let relation_coverage_passed = missing_relation_paths.is_empty();
-    let authority_passed = authority.as_ref().is_none_or(|authority| authority.passed);
-    let negative_guard_passed = negative_guard
-        .as_ref()
-        .is_none_or(|negative_guard| negative_guard.passed);
-    let mut failure_reasons = Vec::new();
-    if !query_evidence_passed {
-        failure_reasons.push("query_evidence_failed".to_string());
-    }
-    if !query_variants_passed {
-        failure_reasons.push("query_variants_failed".to_string());
-    }
-    if !path_coverage_passed {
-        failure_reasons.push("required_paths_missing".to_string());
-    }
-    if !semantic_object_coverage_passed {
-        failure_reasons.push("semantic_objects_missing".to_string());
-    }
-    if !relation_coverage_passed {
-        failure_reasons.push("relation_paths_missing".to_string());
-    }
-    if !authority_passed {
-        failure_reasons.push("authority_order_failed".to_string());
-    }
-    if !negative_guard_passed {
-        failure_reasons.push("negative_guard_failed".to_string());
-    }
+    let mut failure_reasons = scenario_failure_reasons(scenario_pass_checks(
+        &query_evidence,
+        &query_variants,
+        &coverage,
+        authority.as_ref(),
+        negative_guard.as_ref(),
+    ));
 
     let required_path_count = scenario.required_paths.len();
-    let covered_required_path_count = covered_paths.len();
+    let covered_required_path_count = coverage.covered_paths.len();
     let required_path_recall_bps = recall_bps(covered_required_path_count, required_path_count);
     let required_path_ranks =
         scenario_required_path_ranks(scenario.required_paths.as_slice(), &linked_query_receipts);
-    let required_path_recall_at_1_bps = recall_at_bps(&required_path_ranks, 1);
-    let required_path_recall_at_3_bps = recall_at_bps(&required_path_ranks, 3);
-    let required_path_recall_at_5_bps = recall_at_bps(&required_path_ranks, 5);
-    let required_path_recall_at_10_bps = recall_at_bps(&required_path_ranks, 10);
+    let [recall_one, recall_three, recall_five, recall_ten] = path_recall_bps(&required_path_ranks);
     let mean_required_path_reciprocal_rank_bps = mean_reciprocal_rank_bps(&required_path_ranks);
     let best_required_path_rank = best_required_path_rank(&required_path_ranks);
     let reasoning_tree = build_reasoning_tree(
         scenario,
         &query_evidence,
         &required_path_ranks,
-        &covered_relation_paths_for_scenario,
-        &covered_semantic_object_ids,
+        &coverage.covered_relation_paths,
+        &coverage.covered_semantic_object_ids,
     );
     if !reasoning_tree.passed {
         failure_reasons.push("reasoning_tree_failed".to_string());
@@ -213,27 +133,177 @@ fn evaluate_knowledge_scenario(
         required_path_count,
         covered_required_path_count,
         required_path_recall_bps,
-        required_path_recall_at_1_bps,
-        required_path_recall_at_3_bps,
-        required_path_recall_at_5_bps,
-        required_path_recall_at_10_bps,
+        required_path_recall_at_1_bps: recall_one,
+        required_path_recall_at_3_bps: recall_three,
+        required_path_recall_at_5_bps: recall_five,
+        required_path_recall_at_10_bps: recall_ten,
         mean_required_path_reciprocal_rank_bps,
         best_required_path_rank,
         required_path_ranks,
         required_paths: scenario.required_paths.clone(),
-        covered_paths,
-        missing_paths,
+        covered_paths: coverage.covered_paths,
+        missing_paths: coverage.missing_paths,
         required_semantic_object_ids: scenario.required_semantic_object_ids.clone(),
-        covered_semantic_object_ids,
-        missing_semantic_object_ids,
+        covered_semantic_object_ids: coverage.covered_semantic_object_ids,
+        missing_semantic_object_ids: coverage.missing_semantic_object_ids,
         required_relation_paths: scenario.required_relation_paths.clone(),
-        covered_relation_paths: covered_relation_paths_for_scenario,
-        missing_relation_paths,
+        covered_relation_paths: coverage.covered_relation_paths,
+        missing_relation_paths: coverage.missing_relation_paths,
         authority,
         negative_guard,
         failure_reasons,
         passed,
     }
+}
+
+struct ScenarioCoverage<'a> {
+    observed_paths: BTreeSet<&'a str>,
+    covered_paths: Vec<String>,
+    missing_paths: Vec<String>,
+    covered_semantic_object_ids: Vec<String>,
+    missing_semantic_object_ids: Vec<String>,
+    covered_relation_paths: Vec<RealRepoMarkdownKnowledgeSemanticRelationPathReceipt>,
+    missing_relation_paths: Vec<RealRepoMarkdownKnowledgeSemanticRelationPathReceipt>,
+}
+
+fn evaluate_scenario_coverage<'a>(
+    scenario: &RealRepoKnowledgeScenario,
+    linked_query_receipts: &'a [&'a RealRepoPrecisionQueryReceipt],
+    semantic_object_ids: &BTreeSet<&str>,
+    covered_relation_paths: &BTreeSet<&RealRepoMarkdownKnowledgeSemanticRelationPathReceipt>,
+) -> ScenarioCoverage<'a> {
+    let observed_paths = observed_paths_from_queries(linked_query_receipts);
+    ScenarioCoverage {
+        covered_paths: scenario
+            .required_paths
+            .iter()
+            .filter(|path| observed_paths.contains(path.as_str()))
+            .cloned()
+            .collect(),
+        missing_paths: scenario
+            .required_paths
+            .iter()
+            .filter(|path| !observed_paths.contains(path.as_str()))
+            .cloned()
+            .collect(),
+        covered_semantic_object_ids: scenario
+            .required_semantic_object_ids
+            .iter()
+            .filter(|object_id| semantic_object_ids.contains(object_id.as_str()))
+            .cloned()
+            .collect(),
+        missing_semantic_object_ids: scenario
+            .required_semantic_object_ids
+            .iter()
+            .filter(|object_id| !semantic_object_ids.contains(object_id.as_str()))
+            .cloned()
+            .collect(),
+        covered_relation_paths: scenario
+            .required_relation_paths
+            .iter()
+            .filter(|path| covered_relation_paths.contains(*path))
+            .cloned()
+            .collect(),
+        missing_relation_paths: scenario
+            .required_relation_paths
+            .iter()
+            .filter(|path| !covered_relation_paths.contains(*path))
+            .cloned()
+            .collect(),
+        observed_paths,
+    }
+}
+
+fn path_recall_bps(ranks: &[RealRepoPrecisionRequiredPathRankReceipt]) -> [u32; 4] {
+    [
+        recall_at_bps(ranks, 1),
+        recall_at_bps(ranks, 3),
+        recall_at_bps(ranks, 5),
+        recall_at_bps(ranks, 10),
+    ]
+}
+
+fn scenario_query_variants(
+    scenario: &RealRepoKnowledgeScenario,
+    query_receipts_by_id: &BTreeMap<&str, &RealRepoPrecisionQueryReceipt>,
+) -> Vec<RealRepoKnowledgeScenarioQueryVariantReceipt> {
+    scenario
+        .query_variants
+        .iter()
+        .map(|variant| {
+            let query_evidence = query_receipts_by_id
+                .get(variant.query_id.as_str())
+                .map_or_else(
+                    || missing_query_evidence(&variant.query_id),
+                    |query| query_evidence_from_receipt(query),
+                );
+            RealRepoKnowledgeScenarioQueryVariantReceipt {
+                query_id: variant.query_id.clone(),
+                variant_kind: variant.kind.as_str().to_string(),
+                passed: query_evidence.passed,
+                query_evidence,
+            }
+        })
+        .collect()
+}
+
+fn scenario_query_evidence(
+    query_ids: &[String],
+    query_receipts_by_id: &BTreeMap<&str, &RealRepoPrecisionQueryReceipt>,
+) -> Vec<RealRepoKnowledgeScenarioQueryEvidenceReceipt> {
+    query_ids
+        .iter()
+        .map(|query_id| {
+            query_receipts_by_id.get(query_id.as_str()).map_or_else(
+                || missing_query_evidence(query_id),
+                |query| query_evidence_from_receipt(query),
+            )
+        })
+        .collect()
+}
+
+fn scenario_failure_reasons(checks: [(&'static str, bool); 7]) -> Vec<String> {
+    checks
+        .into_iter()
+        .filter_map(|(reason, passed)| (!passed).then_some(reason))
+        .map(str::to_string)
+        .collect()
+}
+
+fn scenario_pass_checks(
+    query_evidence: &[RealRepoKnowledgeScenarioQueryEvidenceReceipt],
+    query_variants: &[RealRepoKnowledgeScenarioQueryVariantReceipt],
+    coverage: &ScenarioCoverage<'_>,
+    authority: Option<&RealRepoKnowledgeScenarioAuthorityReceipt>,
+    negative_guard: Option<&RealRepoKnowledgeScenarioNegativeGuardReceipt>,
+) -> [(&'static str, bool); 7] {
+    [
+        (
+            "query_evidence_failed",
+            query_evidence.iter().all(|evidence| evidence.passed),
+        ),
+        (
+            "query_variants_failed",
+            query_variants.iter().all(|variant| variant.passed),
+        ),
+        ("required_paths_missing", coverage.missing_paths.is_empty()),
+        (
+            "semantic_objects_missing",
+            coverage.missing_semantic_object_ids.is_empty(),
+        ),
+        (
+            "relation_paths_missing",
+            coverage.missing_relation_paths.is_empty(),
+        ),
+        (
+            "authority_order_failed",
+            authority.is_none_or(|authority| authority.passed),
+        ),
+        (
+            "negative_guard_failed",
+            negative_guard.is_none_or(|negative_guard| negative_guard.passed),
+        ),
+    ]
 }
 
 fn build_reasoning_tree(
@@ -251,13 +321,61 @@ fn build_reasoning_tree(
     let mut steps = Vec::new();
     let mut failure_reasons = Vec::new();
 
+    add_anchor_steps(&mut steps, query_evidence);
+    if steps.is_empty() {
+        failure_reasons.push("missing_anchor".to_string());
+    }
+
+    add_relation_steps(
+        &mut steps,
+        &mut failure_reasons,
+        &scenario.required_relation_paths,
+        &covered_relation_paths,
+    );
+    add_page_index_seed_steps(
+        &mut steps,
+        &mut failure_reasons,
+        &scenario.required_semantic_object_ids,
+        &covered_semantic_object_ids,
+    );
+    add_source_evidence_steps(&mut steps, &mut failure_reasons, required_path_ranks);
+
+    for (step_index, step) in steps.iter_mut().enumerate() {
+        step.step_index = step_index;
+    }
+    failure_reasons.sort();
+    failure_reasons.dedup();
+    let step_summary = reasoning_step_summary(&steps);
+    let max_disclosure_depth = steps
+        .iter()
+        .map(|step| step.disclosure_depth)
+        .max()
+        .unwrap_or_default();
+
+    RealRepoKnowledgeScenarioReasoningTreeReceipt {
+        strategy: "graph_first_progressive_disclosure_v1".to_string(),
+        passed: failure_reasons.is_empty(),
+        anchor_count: step_summary.anchors,
+        relation_step_count: step_summary.relations,
+        page_index_step_count: step_summary.page_index_seeds,
+        source_step_count: step_summary.sources,
+        disclosure_step_count: steps.len(),
+        max_disclosure_depth,
+        steps,
+        failure_reasons,
+    }
+}
+
+fn add_anchor_steps(
+    steps: &mut Vec<RealRepoKnowledgeScenarioReasoningTreeStepReceipt>,
+    query_evidence: &[RealRepoKnowledgeScenarioQueryEvidenceReceipt],
+) {
     for evidence in query_evidence.iter().filter(|evidence| evidence.passed) {
-        let path = evidence.observed_top_path.clone();
         steps.push(reasoning_step(ReasoningStepInput {
             step_kind: "anchor_query",
             evidence_id: format!("anchor:{}", evidence.query_id),
             query_id: Some(evidence.query_id.clone()),
-            path,
+            path: evidence.observed_top_path.clone(),
             relation: None,
             semantic_object_id: None,
             zero_based_rank: evidence.best_required_path_rank,
@@ -269,11 +387,15 @@ fn build_reasoning_tree(
                 .then(|| "anchor query did not return an observed top path".to_string()),
         }));
     }
-    if steps.is_empty() {
-        failure_reasons.push("missing_anchor".to_string());
-    }
+}
 
-    for relation in &scenario.required_relation_paths {
+fn add_relation_steps(
+    steps: &mut Vec<RealRepoKnowledgeScenarioReasoningTreeStepReceipt>,
+    failure_reasons: &mut Vec<String>,
+    required_relation_paths: &[RealRepoMarkdownKnowledgeSemanticRelationPathReceipt],
+    covered_relation_paths: &BTreeSet<&RealRepoMarkdownKnowledgeSemanticRelationPathReceipt>,
+) {
+    for relation in required_relation_paths {
         let passed = covered_relation_paths.contains(relation);
         steps.push(reasoning_step(ReasoningStepInput {
             step_kind: "semantic_relation",
@@ -295,8 +417,15 @@ fn build_reasoning_tree(
             failure_reasons.push("missing_relation_step".to_string());
         }
     }
+}
 
-    for object_id in &scenario.required_semantic_object_ids {
+fn add_page_index_seed_steps(
+    steps: &mut Vec<RealRepoKnowledgeScenarioReasoningTreeStepReceipt>,
+    failure_reasons: &mut Vec<String>,
+    required_semantic_object_ids: &[String],
+    covered_semantic_object_ids: &BTreeSet<&str>,
+) {
+    for object_id in required_semantic_object_ids {
         let passed = covered_semantic_object_ids.contains(object_id.as_str());
         steps.push(reasoning_step(ReasoningStepInput {
             step_kind: "page_index_seed",
@@ -316,7 +445,13 @@ fn build_reasoning_tree(
             failure_reasons.push("missing_page_index_seed".to_string());
         }
     }
+}
 
+fn add_source_evidence_steps(
+    steps: &mut Vec<RealRepoKnowledgeScenarioReasoningTreeStepReceipt>,
+    failure_reasons: &mut Vec<String>,
+    required_path_ranks: &[RealRepoPrecisionRequiredPathRankReceipt],
+) {
     for rank in required_path_ranks {
         let passed = rank.zero_based_rank.is_some();
         steps.push(reasoning_step(ReasoningStepInput {
@@ -335,46 +470,34 @@ fn build_reasoning_tree(
             failure_reasons.push("missing_source_evidence".to_string());
         }
     }
+}
 
-    for (step_index, step) in steps.iter_mut().enumerate() {
-        step.step_index = step_index;
-    }
-    failure_reasons.sort();
-    failure_reasons.dedup();
-    let anchor_count = steps
-        .iter()
-        .filter(|step| step.step_kind == "anchor_query" && step.passed)
-        .count();
-    let relation_step_count = steps
-        .iter()
-        .filter(|step| step.step_kind == "semantic_relation" && step.passed)
-        .count();
-    let page_index_step_count = steps
-        .iter()
-        .filter(|step| step.step_kind == "page_index_seed" && step.passed)
-        .count();
-    let source_step_count = steps
-        .iter()
-        .filter(|step| step.step_kind == "source_evidence" && step.passed)
-        .count();
-    let max_disclosure_depth = steps
-        .iter()
-        .map(|step| step.disclosure_depth)
-        .max()
-        .unwrap_or_default();
+struct ReasoningStepSummary {
+    anchors: usize,
+    relations: usize,
+    page_index_seeds: usize,
+    sources: usize,
+}
 
-    RealRepoKnowledgeScenarioReasoningTreeReceipt {
-        strategy: "graph_first_progressive_disclosure_v1".to_string(),
-        passed: failure_reasons.is_empty(),
-        anchor_count,
-        relation_step_count,
-        page_index_step_count,
-        source_step_count,
-        disclosure_step_count: steps.len(),
-        max_disclosure_depth,
-        steps,
-        failure_reasons,
+fn reasoning_step_summary(
+    steps: &[RealRepoKnowledgeScenarioReasoningTreeStepReceipt],
+) -> ReasoningStepSummary {
+    ReasoningStepSummary {
+        anchors: passed_step_count(steps, "anchor_query"),
+        relations: passed_step_count(steps, "semantic_relation"),
+        page_index_seeds: passed_step_count(steps, "page_index_seed"),
+        sources: passed_step_count(steps, "source_evidence"),
     }
+}
+
+fn passed_step_count(
+    steps: &[RealRepoKnowledgeScenarioReasoningTreeStepReceipt],
+    step_kind: &str,
+) -> usize {
+    steps
+        .iter()
+        .filter(|step| step.step_kind == step_kind && step.passed)
+        .count()
 }
 
 struct ReasoningStepInput {
@@ -559,7 +682,7 @@ fn recall_at_bps(ranks: &[RealRepoPrecisionRequiredPathRankReceipt], k: usize) -
         .iter()
         .filter(|rank| rank.zero_based_rank.is_some_and(|value| value < k))
         .count();
-    ((covered * 10_000) / ranks.len()) as u32
+    usize_to_u32_saturating((covered * 10_000) / ranks.len())
 }
 
 fn mean_reciprocal_rank_bps(ranks: &[RealRepoPrecisionRequiredPathRankReceipt]) -> u32 {
@@ -569,11 +692,12 @@ fn mean_reciprocal_rank_bps(ranks: &[RealRepoPrecisionRequiredPathRankReceipt]) 
     let total = ranks
         .iter()
         .map(|rank| {
-            rank.zero_based_rank
-                .map_or(0, |value| 10_000 / (value.saturating_add(1) as u32))
+            rank.zero_based_rank.map_or(0, |value| {
+                10_000 / usize_to_u32_saturating(value.saturating_add(1))
+            })
         })
         .sum::<u32>();
-    total / (ranks.len() as u32)
+    total / usize_to_u32_saturating(ranks.len())
 }
 
 fn best_required_path_rank(ranks: &[RealRepoPrecisionRequiredPathRankReceipt]) -> Option<usize> {
@@ -584,5 +708,9 @@ fn recall_bps(covered: usize, required: usize) -> u32 {
     if required == 0 {
         return 10_000;
     }
-    ((covered * 10_000) / required) as u32
+    usize_to_u32_saturating((covered * 10_000) / required)
+}
+
+fn usize_to_u32_saturating(value: usize) -> u32 {
+    value.try_into().unwrap_or(u32::MAX)
 }

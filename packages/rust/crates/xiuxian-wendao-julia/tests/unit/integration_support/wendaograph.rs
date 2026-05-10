@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, path::PathBuf};
 
 use super::{
     SearchStrategyFlowFlightMaterializationConfig, WENDAOGRAPH_PACKAGE_DIR_ENV,
@@ -26,6 +26,8 @@ const RUN_WENDAOGRAPH_PAGE_INDEX_HOST_PROBE_TEST_ENV: &str =
     "RUN_WENDAOGRAPH_PAGE_INDEX_HOST_PROBE_TEST";
 const RUN_WENDAOGRAPH_LINK_GRAPH_HOST_PROBE_TEST_ENV: &str =
     "RUN_WENDAOGRAPH_LINK_GRAPH_HOST_PROBE_TEST";
+const RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST_ENV: &str =
+    "RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST";
 const WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS_ENV: &str =
     "WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS";
 
@@ -204,6 +206,97 @@ fn search_strategy_flow_rust_bridge_rejects_blank_intent_before_launch() {
 }
 
 #[test]
+fn wendaograph_search_strategy_flow_live_replay_runs_local_markdown_families_when_enabled() {
+    if env::var_os(RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST_ENV).is_none() {
+        eprintln!(
+            "skipping WendaoGraph SearchStrategyFlow live replay; set {RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST_ENV}=1"
+        );
+        return;
+    }
+
+    let search_root = search_strategy_flow_live_replay_search_root();
+    assert_search_strategy_flow_live_replay_family(
+        "local-doc-authority-boundary",
+        "SearchStrategyFlow WorkingKnowledge memory layer promotion boundary",
+        "docs/",
+        search_root.as_path(),
+    );
+    assert_search_strategy_flow_live_replay_family(
+        "semantic-doc-working-knowledge",
+        "semantic graph execution graph authority invariant",
+        "semantic/",
+        search_root.as_path(),
+    );
+}
+
+fn search_strategy_flow_live_replay_search_root() -> PathBuf {
+    match env::var_os("PRJ_ROOT") {
+        Some(root) => PathBuf::from(root),
+        None => PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(4)
+            .unwrap_or_else(|| panic!("resolve repository root from Cargo manifest"))
+            .to_path_buf(),
+    }
+}
+
+fn assert_search_strategy_flow_live_replay_family(
+    family: &str,
+    intent: &str,
+    expected_source_prefix: &str,
+    search_root: &std::path::Path,
+) {
+    let trace = run_wendaograph_search_strategy_flow_json(intent, search_root)
+        .unwrap_or_else(|error| panic!("run live SearchStrategyFlow replay for {family}: {error}"));
+    let trace: serde_json::Value = serde_json::from_str(&trace).unwrap_or_else(|error| {
+        panic!("parse live SearchStrategyFlow replay for {family}: {error}")
+    });
+    assert_eq!(
+        trace.get("candidateInputSource"),
+        Some(&serde_json::json!("rust-markdown-headings")),
+        "{family} must use the current local Markdown bridge"
+    );
+    assert!(
+        trace
+            .get("candidateInputCount")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|count| count > 0),
+        "{family} must discover local Markdown candidates"
+    );
+
+    let routes = trace
+        .get("retrievalRoutes")
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| panic!("{family} retrievalRoutes must be an array"));
+    let projected_rows = trace
+        .get("rustProjectedEvidenceRows")
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| panic!("{family} rustProjectedEvidenceRows must be an array"));
+    assert!(!routes.is_empty(), "{family} must plan retrieval routes");
+    assert!(
+        !projected_rows.is_empty(),
+        "{family} must project Rust evidence rows"
+    );
+    assert!(
+        routes.iter().any(|route| {
+            route
+                .get("sourcePath")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|path| path.starts_with(expected_source_prefix))
+        }),
+        "{family} must route at least one {expected_source_prefix} candidate"
+    );
+    assert!(
+        projected_rows.iter().any(|row| {
+            row.get("sourcePath")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|path| path.starts_with(expected_source_prefix))
+        }),
+        "{family} must project at least one {expected_source_prefix} evidence row"
+    );
+}
+
+#[test]
 #[expect(
     clippy::too_many_lines,
     reason = "JSON bridge fixture is intentionally explicit"
@@ -279,8 +372,13 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
         .get("retrievalRoutes")
         .and_then(serde_json::Value::as_array)
         .unwrap_or_else(|| panic!("retrievalRoutes must be an array"));
+    let projected_rows = enriched
+        .get("rustProjectedEvidenceRows")
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| panic!("rustProjectedEvidenceRows must be an array"));
 
     assert_eq!(routes.len(), 1);
+    assert_eq!(projected_rows.len(), 2);
     let route = &routes[0];
     assert_eq!(
         route.get("materializationStatus"),
@@ -324,6 +422,79 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
         serde_json::to_string(graph_step)
             .unwrap_or_else(|error| panic!("graph flight step should serialize: {error}"))
             .contains("<resolved-graph-node-id>")
+    );
+
+    let selected_evidence = projected_rows
+        .iter()
+        .find(|row| {
+            row.get("candidateId")
+                == Some(&serde_json::json!(
+                    "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding"
+                ))
+        })
+        .unwrap_or_else(|| panic!("selected projected evidence row"));
+    assert_eq!(
+        selected_evidence.get("projectionSource"),
+        Some(&serde_json::json!("rust-bridge-search-strategy-flow-v1"))
+    );
+    assert_eq!(
+        selected_evidence.get("sourcePath"),
+        Some(&serde_json::json!(
+            "docs/30_search_strategy/30.01_search_strategy_flow.md"
+        ))
+    );
+    assert_eq!(
+        selected_evidence.get("headingAnchor"),
+        Some(&serde_json::json!("stage-1-query-understanding"))
+    );
+    assert_eq!(
+        selected_evidence.get("evidenceKind"),
+        Some(&serde_json::json!("search_strategy_flow_authority"))
+    );
+    assert_eq!(
+        selected_evidence.get("selected"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        selected_evidence.get("plannerMaterialized"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        selected_evidence.get("retrievalRouteCount"),
+        Some(&serde_json::json!(1))
+    );
+    assert_eq!(
+        selected_evidence.get("routePlanned"),
+        Some(&serde_json::json!(true))
+    );
+    assert!(
+        selected_evidence
+            .get("proofTags")
+            .and_then(serde_json::Value::as_array)
+            .unwrap_or_else(|| panic!("proofTags must be an array"))
+            .contains(&serde_json::json!("route_planned"))
+    );
+
+    let blocked_evidence = projected_rows
+        .iter()
+        .find(|row| {
+            row.get("candidateId")
+                == Some(&serde_json::json!(
+                    "docs/90_validation/90.01_validation.md#promotion-boundary"
+                ))
+        })
+        .unwrap_or_else(|| panic!("blocked projected evidence row"));
+    assert_eq!(
+        blocked_evidence.get("blocked"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        blocked_evidence.get("selected"),
+        Some(&serde_json::json!(false))
+    );
+    assert_eq!(
+        blocked_evidence.get("routePlanned"),
+        Some(&serde_json::json!(false))
     );
 }
 

@@ -52,67 +52,67 @@ pub(crate) fn write_run_receipt(
 fn summarize_repositories(
     repositories: &[RealRepoPrecisionRepositoryReceipt],
 ) -> RealRepoPrecisionSummary {
-    let repository_count = repositories.len();
-    let materialized_repository_count = repositories.iter().filter(|repo| repo.indexed).count();
-    let skipped_repository_count = repositories
+    let repositories_total = repositories.len();
+    let repositories_materialized = repositories.iter().filter(|repo| repo.indexed).count();
+    let repositories_skipped = repositories
         .iter()
         .filter(|repo| repo.skip_reason.is_some())
         .count();
-    let query_count = repositories
+    let queries_total = repositories
         .iter()
         .map(|repo| repo.query_receipts.len())
         .sum::<usize>();
-    let passed_query_count = repositories
+    let queries_passed = repositories
         .iter()
         .flat_map(|repo| repo.query_receipts.iter())
         .filter(|query| query.passed)
         .count();
-    let failed_query_count = query_count.saturating_sub(passed_query_count);
-    let knowledge_scenario_count = repositories
+    let queries_failed = queries_total.saturating_sub(queries_passed);
+    let knowledge_scenarios_total = repositories
         .iter()
         .map(|repo| repo.knowledge_scenarios.len())
         .sum::<usize>();
-    let passed_knowledge_scenario_count = repositories
+    let knowledge_scenarios_passed = repositories
         .iter()
         .flat_map(|repo| repo.knowledge_scenarios.iter())
         .filter(|scenario| scenario.passed)
         .count();
-    let failed_knowledge_scenario_count =
-        knowledge_scenario_count.saturating_sub(passed_knowledge_scenario_count);
-    let indexed_document_count = repositories
+    let knowledge_scenarios_failed =
+        knowledge_scenarios_total.saturating_sub(knowledge_scenarios_passed);
+    let indexed_documents = repositories
         .iter()
         .filter_map(|repo| repo.link_graph_corpus.as_ref())
         .map(|corpus| corpus.document_count)
         .sum::<usize>();
-    let indexed_markdown_document_count = repositories
+    let indexed_markdown_documents = repositories
         .iter()
         .filter_map(|repo| repo.link_graph_corpus.as_ref())
         .map(|corpus| corpus.markdown_document_count)
         .sum::<usize>();
-    let indexed_org_document_count = repositories
+    let indexed_org_documents = repositories
         .iter()
         .filter_map(|repo| repo.link_graph_corpus.as_ref())
         .map(|corpus| corpus.org_document_count)
         .sum::<usize>();
-    let indexed_total_word_count = repositories
+    let indexed_total_words = repositories
         .iter()
         .filter_map(|repo| repo.link_graph_corpus.as_ref())
         .map(|corpus| corpus.total_word_count)
         .sum::<usize>();
 
     RealRepoPrecisionSummary {
-        repository_count,
-        materialized_repository_count,
-        skipped_repository_count,
-        query_count,
-        passed_query_count,
-        failed_query_count,
-        knowledge_scenario_count,
-        passed_knowledge_scenario_count,
-        failed_knowledge_scenario_count,
-        indexed_document_count,
-        indexed_markdown_document_count,
-        indexed_org_document_count,
-        indexed_total_word_count,
+        repositories_total,
+        repositories_materialized,
+        repositories_skipped,
+        queries_total,
+        queries_passed,
+        queries_failed,
+        knowledge_scenarios_total,
+        knowledge_scenarios_passed,
+        knowledge_scenarios_failed,
+        indexed_documents,
+        indexed_markdown_documents,
+        indexed_org_documents,
+        indexed_total_words,
     }
 }

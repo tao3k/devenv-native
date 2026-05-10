@@ -44,81 +44,15 @@ pub(crate) fn build_backend_frontier(
     attach_julia_schedule_projection(&mut nodes);
     attach_search_strategy_flow_projection(&mut nodes);
 
-    let kept_node_count = nodes
-        .iter()
-        .filter(|node| node.backend_action == "keep")
-        .count();
-    let pruned_node_count = nodes
-        .iter()
-        .filter(|node| node.backend_action == "prune")
-        .count();
-    let expand_node_count = nodes
-        .iter()
-        .filter(|node| node.backend_action == "expand")
-        .count();
-    let subagent_judgement_node_count = nodes
-        .iter()
-        .filter(|node| node.requires_subagent_judgement)
-        .count();
-    let subagent_fanout_node_count = nodes
-        .iter()
-        .filter(|node| node.subagent_fanout_group_id.is_some())
-        .count();
-    let subagent_fanout_group_count = count_subagent_fanout_groups(&nodes);
-    let subagent_max_parallel_width = max_subagent_parallel_width(&nodes);
-    let subagent_context_budget_chars = nodes
-        .iter()
-        .filter_map(|node| node.subagent_context_budget_chars)
-        .sum();
-    let julia_candidate_node_count = nodes
-        .iter()
-        .filter(|node| node.julia_algorithm_id.is_some())
-        .count();
-    let julia_dispatch_node_count = nodes
-        .iter()
-        .filter(|node| node.julia_schedule_action.as_deref() == Some("dispatch"))
-        .count();
-    let julia_queue_node_count = nodes
-        .iter()
-        .filter(|node| node.julia_schedule_action.as_deref() == Some("queue"))
-        .count();
-    let julia_fallback_node_count = nodes
-        .iter()
-        .filter(|node| node.julia_schedule_action.as_deref() == Some("fallback"))
-        .count();
-    let julia_reject_node_count = nodes
-        .iter()
-        .filter(|node| node.julia_schedule_action.as_deref() == Some("reject"))
-        .count();
-    let strategy_flow_candidate_node_count = nodes
-        .iter()
-        .filter(|node| node.strategy_flow_candidate_id.is_some())
-        .count();
-    let strategy_flow_transition_node_count = nodes
-        .iter()
-        .filter(|node| node.strategy_flow_transition_id.is_some())
-        .count();
-    let strategy_flow_frontier_node_count = nodes
-        .iter()
-        .filter(|node| node.strategy_flow_frontier_rank.is_some())
-        .count();
-    let strategy_flow_context_budget_chars = nodes
-        .iter()
-        .filter_map(|node| node.strategy_flow_context_budget_chars)
-        .sum();
-    let strategy_flow_cycle_candidate_node_count = nodes
-        .iter()
-        .filter(|node| node.strategy_flow_loop_candidate)
-        .count();
-    let strategy_flow_llm_judgement_node_count = nodes
-        .iter()
-        .filter(|node| node.strategy_flow_requires_llm_judgement)
-        .count();
+    let backend = backend_action_counts(&nodes);
+    let subagent = subagent_frontier_counts(&nodes);
+    let julia = julia_frontier_counts(&nodes);
+    let strategy_flow = strategy_flow_counts(&nodes);
     let strategy_flow_loop_budget =
-        strategy_flow_loop_budget(scenario, strategy_flow_cycle_candidate_node_count);
+        strategy_flow_loop_budget(scenario, strategy_flow.cycle_candidate_node_count);
     let strategy_flow_refinement_topology = strategy_flow_refinement_topology(
-        strategy_flow_cycle_candidate_node_count,
-        strategy_flow_llm_judgement_node_count,
+        strategy_flow.cycle_candidate_node_count,
+        strategy_flow.llm_judgement_node_count,
     );
 
     RealRepoKnowledgeScenarioBackendFrontierReceipt {
@@ -128,34 +62,161 @@ pub(crate) fn build_backend_frontier(
         graph_backend_live: false,
         julia_schedule_basis: julia_schedule_basis().to_string(),
         node_count: nodes.len(),
-        kept_node_count,
-        pruned_node_count,
-        expand_node_count,
-        subagent_judgement_node_count,
-        subagent_fanout_group_count,
-        subagent_fanout_node_count,
-        subagent_max_parallel_width,
-        subagent_context_budget_chars,
-        julia_candidate_node_count,
-        julia_dispatch_node_count,
-        julia_queue_node_count,
-        julia_fallback_node_count,
-        julia_reject_node_count,
+        kept_node_count: backend.kept,
+        pruned_node_count: backend.pruned,
+        expand_node_count: backend.expand,
+        subagent_judgement_node_count: subagent.judgement_node_count,
+        subagent_fanout_group_count: subagent.fanout_group_count,
+        subagent_fanout_node_count: subagent.fanout_node_count,
+        subagent_max_parallel_width: subagent.max_parallel_width,
+        subagent_context_budget_chars: subagent.context_budget_chars,
+        julia_candidate_node_count: julia.candidates,
+        julia_dispatch_node_count: julia.dispatches,
+        julia_queue_node_count: julia.queued,
+        julia_fallback_node_count: julia.fallbacks,
+        julia_reject_node_count: julia.rejections,
         strategy_flow_projection_basis: "rust_receipt_projection_v1".to_string(),
-        strategy_flow_candidate_node_count,
-        strategy_flow_transition_node_count,
-        strategy_flow_frontier_node_count,
-        strategy_flow_context_budget_chars,
+        strategy_flow_candidate_node_count: strategy_flow.candidate_node_count,
+        strategy_flow_transition_node_count: strategy_flow.transition_node_count,
+        strategy_flow_frontier_node_count: strategy_flow.frontier_node_count,
+        strategy_flow_context_budget_chars: strategy_flow.context_budget_chars,
         strategy_flow_intent_complexity_class: strategy_flow_intent_complexity_class(scenario)
             .to_string(),
         strategy_flow_initial_topology: "acyclic_evidence_dag".to_string(),
         strategy_flow_refinement_topology: strategy_flow_refinement_topology.to_string(),
         strategy_flow_max_planned_depth: strategy_flow_max_planned_depth(scenario),
         strategy_flow_loop_budget,
-        strategy_flow_cycle_candidate_node_count,
-        strategy_flow_llm_judgement_node_count,
-        selected_beam_width: kept_node_count + expand_node_count,
+        strategy_flow_cycle_candidate_node_count: strategy_flow.cycle_candidate_node_count,
+        strategy_flow_llm_judgement_node_count: strategy_flow.llm_judgement_node_count,
+        selected_beam_width: backend.kept + backend.expand,
         nodes,
+    }
+}
+
+struct BackendActionCounts {
+    kept: usize,
+    pruned: usize,
+    expand: usize,
+}
+
+fn backend_action_counts(
+    nodes: &[RealRepoKnowledgeScenarioBackendFrontierNodeReceipt],
+) -> BackendActionCounts {
+    BackendActionCounts {
+        kept: nodes
+            .iter()
+            .filter(|node| node.backend_action == "keep")
+            .count(),
+        pruned: nodes
+            .iter()
+            .filter(|node| node.backend_action == "prune")
+            .count(),
+        expand: nodes
+            .iter()
+            .filter(|node| node.backend_action == "expand")
+            .count(),
+    }
+}
+
+struct SubagentFrontierCounts {
+    judgement_node_count: usize,
+    fanout_node_count: usize,
+    fanout_group_count: usize,
+    max_parallel_width: usize,
+    context_budget_chars: usize,
+}
+
+fn subagent_frontier_counts(
+    nodes: &[RealRepoKnowledgeScenarioBackendFrontierNodeReceipt],
+) -> SubagentFrontierCounts {
+    SubagentFrontierCounts {
+        judgement_node_count: nodes
+            .iter()
+            .filter(|node| node.requires_subagent_judgement)
+            .count(),
+        fanout_node_count: nodes
+            .iter()
+            .filter(|node| node.subagent_fanout_group_id.is_some())
+            .count(),
+        fanout_group_count: count_subagent_fanout_groups(nodes),
+        max_parallel_width: max_subagent_parallel_width(nodes),
+        context_budget_chars: nodes
+            .iter()
+            .filter_map(|node| node.subagent_context_budget_chars)
+            .sum(),
+    }
+}
+
+struct JuliaFrontierCounts {
+    candidates: usize,
+    dispatches: usize,
+    queued: usize,
+    fallbacks: usize,
+    rejections: usize,
+}
+
+fn julia_frontier_counts(
+    nodes: &[RealRepoKnowledgeScenarioBackendFrontierNodeReceipt],
+) -> JuliaFrontierCounts {
+    JuliaFrontierCounts {
+        candidates: nodes
+            .iter()
+            .filter(|node| node.julia_algorithm_id.is_some())
+            .count(),
+        dispatches: julia_action_count(nodes, "dispatch"),
+        queued: julia_action_count(nodes, "queue"),
+        fallbacks: julia_action_count(nodes, "fallback"),
+        rejections: julia_action_count(nodes, "reject"),
+    }
+}
+
+fn julia_action_count(
+    nodes: &[RealRepoKnowledgeScenarioBackendFrontierNodeReceipt],
+    action: &str,
+) -> usize {
+    nodes
+        .iter()
+        .filter(|node| node.julia_schedule_action.as_deref() == Some(action))
+        .count()
+}
+
+struct StrategyFlowCounts {
+    candidate_node_count: usize,
+    transition_node_count: usize,
+    frontier_node_count: usize,
+    context_budget_chars: usize,
+    cycle_candidate_node_count: usize,
+    llm_judgement_node_count: usize,
+}
+
+fn strategy_flow_counts(
+    nodes: &[RealRepoKnowledgeScenarioBackendFrontierNodeReceipt],
+) -> StrategyFlowCounts {
+    StrategyFlowCounts {
+        candidate_node_count: nodes
+            .iter()
+            .filter(|node| node.strategy_flow_candidate_id.is_some())
+            .count(),
+        transition_node_count: nodes
+            .iter()
+            .filter(|node| node.strategy_flow_transition_id.is_some())
+            .count(),
+        frontier_node_count: nodes
+            .iter()
+            .filter(|node| node.strategy_flow_frontier_rank.is_some())
+            .count(),
+        context_budget_chars: nodes
+            .iter()
+            .filter_map(|node| node.strategy_flow_context_budget_chars)
+            .sum(),
+        cycle_candidate_node_count: nodes
+            .iter()
+            .filter(|node| node.strategy_flow_loop_candidate)
+            .count(),
+        llm_judgement_node_count: nodes
+            .iter()
+            .filter(|node| node.strategy_flow_requires_llm_judgement)
+            .count(),
     }
 }
 
@@ -449,7 +510,7 @@ fn strategy_flow_score_bps(node: &RealRepoKnowledgeScenarioBackendFrontierNodeRe
         return 0;
     }
     let base = (node.graph_score_bps + node.authority_score_bps + node.coverage_score_bps) / 3;
-    base.saturating_sub((node.context_cost as u32).min(1_500))
+    base.saturating_sub(saturating_usize_to_u32(node.context_cost).min(1_500))
 }
 
 fn strategy_flow_intent_complexity_class(scenario: &RealRepoKnowledgeScenario) -> &'static str {
@@ -665,7 +726,6 @@ fn estimated_frontier_edge_count(
     saturating_usize_to_u32(parent_edge_count + nodes.len().saturating_sub(1))
 }
 
-#[cfg(feature = "julia")]
 fn saturating_usize_to_u32(value: usize) -> u32 {
     value.try_into().unwrap_or(u32::MAX)
 }
@@ -751,7 +811,7 @@ fn subagent_priority_score_bps(
     let graph_score = graph_score_for_step(step);
     let authority_score = authority_score_for_step(step, authority);
     let coverage_score = 10_000;
-    let context_penalty = (step_context_cost(step) as u32).min(1_500);
+    let context_penalty = saturating_usize_to_u32(step_context_cost(step)).min(1_500);
     ((graph_score + authority_score + coverage_score) / 3).saturating_sub(context_penalty)
 }
 
@@ -773,7 +833,8 @@ fn graph_score_for_step(step: &RealRepoKnowledgeScenarioReasoningTreeStepReceipt
         "source_evidence" => 9_000,
         _ => 5_000,
     };
-    let rank_penalty = step.zero_based_rank.unwrap_or_default().min(10) as u32 * 250;
+    let rank_penalty =
+        saturating_usize_to_u32(step.zero_based_rank.unwrap_or_default().min(10)) * 250;
     base.saturating_sub(rank_penalty)
 }
 

@@ -40,10 +40,12 @@ pub use search_strategy_flow_flight::{
 };
 pub use service_runtime::JuliaExampleServiceGuard;
 pub use wendaograph::{
-    WendaoGraphLinkGraphFullStructuralHostProbeReport, WendaoGraphLinkGraphHostProbeReport,
-    WendaoGraphPageIndexHostProbeReport, WendaoGraphPageIndexPlannerActionHostProbeReport,
+    SearchStrategyFlowProbeAction, WendaoGraphLinkGraphFullStructuralHostProbeReport,
+    WendaoGraphLinkGraphHostProbeReport, WendaoGraphPageIndexHostProbeReport,
+    WendaoGraphPageIndexPlannerActionHostProbeReport,
     enrich_wendaograph_search_strategy_flow_retrieval_routes,
     enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
+    parse_search_strategy_flow_probe_action,
     probe_wendaograph_link_graph_full_structural_host_request,
     probe_wendaograph_link_graph_host_request, probe_wendaograph_page_index_host_request,
     probe_wendaograph_page_index_host_request_with_fixture,
@@ -51,6 +53,7 @@ pub use wendaograph::{
     probe_wendaograph_page_index_planner_action_host_request_with_fixture,
     run_wendaograph_search_strategy_flow_json,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
+    search_strategy_flow_probe_action_route,
 };
 pub use wendaograph_gnn::{
     WendaoGraphGnnBackendLoadDiagnostics, WendaoGraphGnnHostProbeReport,

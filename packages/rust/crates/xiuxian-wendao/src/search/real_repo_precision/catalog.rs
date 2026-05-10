@@ -16,121 +16,154 @@ pub(crate) fn default_real_repo_precision_catalog() -> Vec<RealRepoPrecisionCata
 
 fn artisan_workshop_catalog_entry() -> RealRepoPrecisionCatalogEntry {
     RealRepoPrecisionCatalogEntry {
-        repository: RegisteredRepository {
-            id: "xiuxian-artisan-workshop".to_string(),
-            path: None,
-            url: Some("https://github.com/tao3k/xiuxian-artisan-workshop.git".to_string()),
-            git_ref: Some(RepositoryRef::Branch("main".to_string())),
-            refresh: RepositoryRefreshPolicy::Manual,
-            plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+        repository: artisan_workshop_repository(),
+        include_dirs: artisan_workshop_include_dirs(),
+        excluded_dirs: standard_excluded_dirs(),
+        gold_queries: artisan_workshop_gold_queries(),
+        knowledge_scenarios: default_knowledge_scenarios(),
+    }
+}
+
+fn artisan_workshop_repository() -> RegisteredRepository {
+    RegisteredRepository {
+        id: "xiuxian-artisan-workshop".to_string(),
+        path: None,
+        url: Some("https://github.com/tao3k/xiuxian-artisan-workshop.git".to_string()),
+        git_ref: Some(RepositoryRef::Branch("main".to_string())),
+        refresh: RepositoryRefreshPolicy::Manual,
+        plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+    }
+}
+
+fn artisan_workshop_include_dirs() -> Vec<String> {
+    vec![
+        "docs".to_string(),
+        "semantic".to_string(),
+        "packages/rust/crates/xiuxian-wendao".to_string(),
+        "packages/rust/crates/xiuxian-wendao/src/link_graph".to_string(),
+        "packages/rust/crates/xiuxian-wendao-julia".to_string(),
+    ]
+}
+
+fn standard_excluded_dirs() -> Vec<String> {
+    vec![
+        ".git".to_string(),
+        ".cache".to_string(),
+        ".data".to_string(),
+        ".direnv".to_string(),
+        ".run".to_string(),
+        "node_modules".to_string(),
+        "target".to_string(),
+    ]
+}
+
+fn artisan_workshop_gold_queries() -> Vec<RealRepoGoldQuery> {
+    let mut queries = semantic_gold_queries();
+    queries.extend(docs_gold_queries());
+    queries.extend(repo_ast_gold_queries());
+    queries
+}
+
+fn semantic_gold_queries() -> Vec<RealRepoGoldQuery> {
+    let mut queries = semantic_object_gold_queries();
+    queries.extend(semantic_relation_gold_queries());
+    queries
+}
+
+fn semantic_object_gold_queries() -> Vec<RealRepoGoldQuery> {
+    vec![
+        RealRepoGoldQuery {
+            id: "repo-native-semantic-ssot-rfc".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "repo-native semantic SSOT".to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md".to_string(),
+            ],
+            required_top_path: None,
+            language_filters: Vec::new(),
         },
-        include_dirs: vec![
-            "docs".to_string(),
-            "semantic".to_string(),
-            "packages/rust/crates/xiuxian-wendao".to_string(),
-            "packages/rust/crates/xiuxian-wendao/src/link_graph".to_string(),
-            "packages/rust/crates/xiuxian-wendao-julia".to_string(),
-        ],
-        excluded_dirs: vec![
-            ".git".to_string(),
-            ".cache".to_string(),
-            ".data".to_string(),
-            ".direnv".to_string(),
-            ".run".to_string(),
-            "node_modules".to_string(),
-            "target".to_string(),
-        ],
-        gold_queries: vec![
-            RealRepoGoldQuery {
-                id: "repo-native-semantic-ssot-rfc".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "repo-native semantic SSOT".to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md".to_string(),
-                ],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "wendao-page-index-reasoning".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "PageIndex reasoning tables".to_string(),
-                limit: 10,
-                must_hit_paths: vec!["packages/rust/crates/xiuxian-wendao/README.md".to_string()],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "link-graph-ppr-algorithm".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "LinkGraph PPR Algorithm Spec".to_string(),
-                limit: 10,
-                must_hit_paths: vec!["docs/01_core/wendao/ppr-algorithm.md".to_string()],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "semantic-object-wendao-query-substrate".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "component.wendao.query-substrate Wendao Query Substrate".to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "semantic/objects/component/wendao-query-substrate.md".to_string(),
-                ],
-                required_top_path: Some(
-                    "semantic/objects/component/wendao-query-substrate.md".to_string(),
-                ),
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "semantic-decision-repo-native-authority".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query:
-                    "decision.semantic-ssot.repo-native-first Repo-Native Semantic Authority First"
-                        .to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "semantic/objects/decision/semantic-ssot-repo-native-first.md".to_string(),
-                ],
-                required_top_path: Some(
-                    "semantic/objects/decision/semantic-ssot-repo-native-first.md".to_string(),
-                ),
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "semantic-decision-projections-read-models".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query:
-                    "decision.semantic-ssot.projections-are-read-models Projections Are Read Models"
-                        .to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "semantic/objects/decision/semantic-ssot-projections-are-read-models.md"
-                        .to_string(),
-                ],
-                required_top_path: Some(
-                    "semantic/objects/decision/semantic-ssot-projections-are-read-models.md"
-                        .to_string(),
-                ),
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "semantic-invariant-llm-output-not-authority".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "invariant.llm-output-is-not-authority LLM Output Is Not Authority"
+        RealRepoGoldQuery {
+            id: "wendao-page-index-reasoning".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "PageIndex reasoning tables".to_string(),
+            limit: 10,
+            must_hit_paths: vec!["packages/rust/crates/xiuxian-wendao/README.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "link-graph-ppr-algorithm".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "LinkGraph PPR Algorithm Spec".to_string(),
+            limit: 10,
+            must_hit_paths: vec!["docs/01_core/wendao/ppr-algorithm.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "semantic-object-wendao-query-substrate".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "component.wendao.query-substrate Wendao Query Substrate".to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "semantic/objects/component/wendao-query-substrate.md".to_string(),
+            ],
+            required_top_path: Some(
+                "semantic/objects/component/wendao-query-substrate.md".to_string(),
+            ),
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "semantic-decision-repo-native-authority".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "decision.semantic-ssot.repo-native-first Repo-Native Semantic Authority First"
+                .to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "semantic/objects/decision/semantic-ssot-repo-native-first.md".to_string(),
+            ],
+            required_top_path: Some(
+                "semantic/objects/decision/semantic-ssot-repo-native-first.md".to_string(),
+            ),
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "semantic-decision-projections-read-models".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "decision.semantic-ssot.projections-are-read-models Projections Are Read Models"
+                .to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "semantic/objects/decision/semantic-ssot-projections-are-read-models.md"
                     .to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "semantic/objects/invariant/llm-output-is-not-authority.md".to_string(),
-                ],
-                required_top_path: Some(
-                    "semantic/objects/invariant/llm-output-is-not-authority.md".to_string(),
-                ),
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "semantic-relation-repo-native-governs-query-substrate".to_string(),
+            ],
+            required_top_path: Some(
+                "semantic/objects/decision/semantic-ssot-projections-are-read-models.md"
+                    .to_string(),
+            ),
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "semantic-invariant-llm-output-not-authority".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "invariant.llm-output-is-not-authority LLM Output Is Not Authority".to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "semantic/objects/invariant/llm-output-is-not-authority.md".to_string(),
+            ],
+            required_top_path: Some(
+                "semantic/objects/invariant/llm-output-is-not-authority.md".to_string(),
+            ),
+            language_filters: Vec::new(),
+        },
+    ]
+}
+
+fn semantic_relation_gold_queries() -> Vec<RealRepoGoldQuery> {
+    vec![
+        RealRepoGoldQuery {
+            id: "semantic-relation-repo-native-governs-query-substrate".to_string(),
                 kind: RealRepoGoldQueryKind::LinkGraph,
                 query:
                     "decision.semantic-ssot.repo-native-first Repo-Native Semantic Authority First governs component.wendao.query-substrate"
@@ -176,71 +209,80 @@ fn artisan_workshop_catalog_entry() -> RealRepoPrecisionCatalogEntry {
                 ),
                 language_filters: Vec::new(),
             },
-            RealRepoGoldQuery {
-                id: "docs-documentation-hierarchy-standard".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "Filesystem-Based Documentation Hierarchy DFS-2026".to_string(),
-                limit: 20,
-                must_hit_paths: vec![
-                    "docs/02_dev/standards/DOCUMENTATION_HIERARCHY.md".to_string(),
-                ],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "docs-documentation-hierarchy-standard-paraphrase".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query:
-                    "Where is the canonical filesystem documentation hierarchy standard?"
-                        .to_string(),
-                limit: 20,
-                must_hit_paths: vec![
-                    "docs/02_dev/standards/DOCUMENTATION_HIERARCHY.md".to_string(),
-                ],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "docs-wendao-agentic-retrieval".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "Wendao Agentic Retrieval Autonomous Query Planning".to_string(),
-                limit: 20,
-                must_hit_paths: vec!["docs/03_features/wendao-agentic-retrieval.md".to_string()],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "docs-wendao-agentic-retrieval-paraphrase".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query:
-                    "How does Wendao help an agent plan and expand knowledge retrieval?"
-                        .to_string(),
-                limit: 20,
-                must_hit_paths: vec!["docs/03_features/wendao-agentic-retrieval.md".to_string()],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "docs-memory-architecture".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "Omni-Memory Self-Evolving Memory Engine Wendao Memory Layer Boundaries"
-                    .to_string(),
-                limit: 20,
-                must_hit_paths: vec!["docs/01_core/memory/architecture.md".to_string()],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "docs-llm-routing-guide".to_string(),
-                kind: RealRepoGoldQueryKind::LinkGraph,
-                query: "LLM Routing Guide routing confidence score".to_string(),
-                limit: 20,
-                must_hit_paths: vec!["docs/99_llm/routing-guide.md".to_string()],
-                required_top_path: None,
-                language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "docs-polyglot-compute-orchestrator-rfc".to_string(),
+    ]
+}
+
+fn docs_gold_queries() -> Vec<RealRepoGoldQuery> {
+    let mut queries = docs_primary_gold_queries();
+    queries.extend(docs_boundary_gold_queries());
+    queries
+}
+
+fn docs_primary_gold_queries() -> Vec<RealRepoGoldQuery> {
+    vec![
+        RealRepoGoldQuery {
+            id: "docs-documentation-hierarchy-standard".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "Filesystem-Based Documentation Hierarchy DFS-2026".to_string(),
+            limit: 20,
+            must_hit_paths: vec!["docs/02_dev/standards/DOCUMENTATION_HIERARCHY.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "docs-documentation-hierarchy-standard-paraphrase".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "Where is the canonical filesystem documentation hierarchy standard?"
+                .to_string(),
+            limit: 20,
+            must_hit_paths: vec!["docs/02_dev/standards/DOCUMENTATION_HIERARCHY.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "docs-wendao-agentic-retrieval".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "Wendao Agentic Retrieval Autonomous Query Planning".to_string(),
+            limit: 20,
+            must_hit_paths: vec!["docs/03_features/wendao-agentic-retrieval.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "docs-wendao-agentic-retrieval-paraphrase".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "How does Wendao help an agent plan and expand knowledge retrieval?".to_string(),
+            limit: 20,
+            must_hit_paths: vec!["docs/03_features/wendao-agentic-retrieval.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "docs-memory-architecture".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "Omni-Memory Self-Evolving Memory Engine Wendao Memory Layer Boundaries"
+                .to_string(),
+            limit: 20,
+            must_hit_paths: vec!["docs/01_core/memory/architecture.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+        RealRepoGoldQuery {
+            id: "docs-llm-routing-guide".to_string(),
+            kind: RealRepoGoldQueryKind::LinkGraph,
+            query: "LLM Routing Guide routing confidence score".to_string(),
+            limit: 20,
+            must_hit_paths: vec!["docs/99_llm/routing-guide.md".to_string()],
+            required_top_path: None,
+            language_filters: Vec::new(),
+        },
+    ]
+}
+
+fn docs_boundary_gold_queries() -> Vec<RealRepoGoldQuery> {
+    vec![
+        RealRepoGoldQuery {
+            id: "docs-polyglot-compute-orchestrator-rfc".to_string(),
                 kind: RealRepoGoldQueryKind::LinkGraph,
                 query: "Polyglot Compute Orchestrator Rust Python Julia boundary calibration"
                     .to_string(),
@@ -314,67 +356,70 @@ fn artisan_workshop_catalog_entry() -> RealRepoPrecisionCatalogEntry {
                 required_top_path: None,
                 language_filters: Vec::new(),
             },
-            RealRepoGoldQuery {
-                id: "repo-source-materialization-function".to_string(),
-                kind: RealRepoGoldQueryKind::RepoAst,
-                query: "resolve_registered_repository_source".to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "packages/rust/crates/xiuxian-wendao/src/analyzers/repo_source.rs".to_string(),
-                ],
-                required_top_path: Some(
-                    "packages/rust/crates/xiuxian-wendao/src/analyzers/repo_source.rs".to_string(),
-                ),
-                language_filters: vec!["rust".to_string()],
-            },
-            RealRepoGoldQuery {
-                id: "repo-code-search-outcome-struct".to_string(),
-                kind: RealRepoGoldQueryKind::RepoAst,
-                query: "RepoCodeSearchOutcome".to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                        .to_string(),
-                ],
-                required_top_path: Some(
-                    "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                        .to_string(),
-                ),
-                language_filters: vec!["rust".to_string()],
-            },
-            RealRepoGoldQuery {
-                id: "repo-code-search-query-async-function".to_string(),
-                kind: RealRepoGoldQueryKind::RepoAst,
-                query: "search_repo_code_outcome_for_query".to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                        .to_string(),
-                ],
-                required_top_path: Some(
-                    "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                        .to_string(),
-                ),
-                language_filters: vec!["rust".to_string()],
-            },
-            RealRepoGoldQuery {
-                id: "repo-link-graph-build-with-filters-source".to_string(),
-                kind: RealRepoGoldQueryKind::RepoAst,
-                query: "build_with_filters".to_string(),
-                limit: 10,
-                must_hit_paths: vec![
-                    "packages/rust/crates/xiuxian-wendao/src/link_graph/index/build/assemble/api.rs"
-                        .to_string(),
-                ],
-                required_top_path: Some(
-                    "packages/rust/crates/xiuxian-wendao/src/link_graph/index/build/assemble/api.rs"
-                        .to_string(),
-                ),
-                language_filters: vec!["rust".to_string()],
-            },
-        ],
-        knowledge_scenarios: default_knowledge_scenarios(),
-    }
+    ]
+}
+
+fn repo_ast_gold_queries() -> Vec<RealRepoGoldQuery> {
+    vec![
+        RealRepoGoldQuery {
+            id: "repo-source-materialization-function".to_string(),
+            kind: RealRepoGoldQueryKind::RepoAst,
+            query: "resolve_registered_repository_source".to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "packages/rust/crates/xiuxian-wendao/src/analyzers/repo_source.rs".to_string(),
+            ],
+            required_top_path: Some(
+                "packages/rust/crates/xiuxian-wendao/src/analyzers/repo_source.rs".to_string(),
+            ),
+            language_filters: vec!["rust".to_string()],
+        },
+        RealRepoGoldQuery {
+            id: "repo-code-search-outcome-struct".to_string(),
+            kind: RealRepoGoldQueryKind::RepoAst,
+            query: "RepoCodeSearchOutcome".to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
+                    .to_string(),
+            ],
+            required_top_path: Some(
+                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
+                    .to_string(),
+            ),
+            language_filters: vec!["rust".to_string()],
+        },
+        RealRepoGoldQuery {
+            id: "repo-code-search-query-async-function".to_string(),
+            kind: RealRepoGoldQueryKind::RepoAst,
+            query: "search_repo_code_outcome_for_query".to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
+                    .to_string(),
+            ],
+            required_top_path: Some(
+                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
+                    .to_string(),
+            ),
+            language_filters: vec!["rust".to_string()],
+        },
+        RealRepoGoldQuery {
+            id: "repo-link-graph-build-with-filters-source".to_string(),
+            kind: RealRepoGoldQueryKind::RepoAst,
+            query: "build_with_filters".to_string(),
+            limit: 10,
+            must_hit_paths: vec![
+                "packages/rust/crates/xiuxian-wendao/src/link_graph/index/build/assemble/api.rs"
+                    .to_string(),
+            ],
+            required_top_path: Some(
+                "packages/rust/crates/xiuxian-wendao/src/link_graph/index/build/assemble/api.rs"
+                    .to_string(),
+            ),
+            language_filters: vec!["rust".to_string()],
+        },
+    ]
 }
 
 fn pi_wendao_catalog_entry() -> RealRepoPrecisionCatalogEntry {
@@ -503,6 +548,13 @@ fn pi_wendao_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
 }
 
 fn default_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
+    let mut scenarios = core_knowledge_scenarios();
+    scenarios.extend(semantic_knowledge_scenarios());
+    scenarios.extend(boundary_knowledge_scenarios());
+    scenarios
+}
+
+fn core_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
     vec![
         RealRepoKnowledgeScenario {
             id: "known-item-documentation-hierarchy".to_string(),
@@ -543,6 +595,11 @@ fn default_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
             authority: None,
             forbidden_paths: Vec::new(),
         },
+    ]
+}
+
+fn semantic_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
+    vec![
         RealRepoKnowledgeScenario {
             id: "multi-hop-projection-authority-boundary".to_string(),
             kind: RealRepoKnowledgeScenarioKind::MultiHopRelation,
@@ -641,6 +698,11 @@ fn default_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
             authority: None,
             forbidden_paths: vec!["packages/rust/crates/xiuxian-wendao/README.md".to_string()],
         },
+    ]
+}
+
+fn boundary_knowledge_scenarios() -> Vec<RealRepoKnowledgeScenario> {
+    vec![
         RealRepoKnowledgeScenario {
             id: "ambiguous-alias-contextsnap".to_string(),
             kind: RealRepoKnowledgeScenarioKind::AmbiguousAlias,

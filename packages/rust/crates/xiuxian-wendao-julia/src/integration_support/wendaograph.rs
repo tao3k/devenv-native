@@ -15,6 +15,10 @@ use super::search_strategy_flow_flight::{
     search_strategy_flow_candidate_input_batch_from_repo_search,
 };
 use super::service_runtime::repo_root;
+use xiuxian_wendao_runtime::transport::{
+    ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
+    GRAPH_NEIGHBORS_ROUTE, REPO_SEARCH_ROUTE,
+};
 
 const WENDAOGRAPH_PACKAGE_DIR_ENV: &str = "WENDAOGRAPH_PACKAGE_DIR";
 const WENDAOGRAPH_JULIA_PROJECT_ENV: &str = "WENDAOGRAPH_JULIA_PROJECT";
@@ -32,6 +36,66 @@ const WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_SEMANTIC_NEIGHBORS_ENV: &str =
     "WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_SEMANTIC_NEIGHBORS";
 const PAGE_INDEX_HOST_PROBE_PREFIX: &str = "wendaograph_page_index_host_probe";
 const LINK_GRAPH_HOST_PROBE_PREFIX: &str = "wendaograph_link_graph_host_probe";
+
+/// Future `SearchStrategyFlow` probe action admitted by the Rust bridge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchStrategyFlowProbeAction {
+    /// Expand relation context through graph-neighbor materialization.
+    ExpandNeighbors,
+    /// Open `PageIndex` parent and child section context.
+    OpenParentChild,
+    /// Compare source provenance before exposing a branch to an Agent.
+    CompareProvenance,
+    /// Open adjacent sections around the selected section candidate.
+    OpenAdjacentSections,
+    /// Stop the branch without executing a materialization route.
+    Stop,
+}
+
+/// Parses one `SearchStrategyFlow` probe action accepted by Rust.
+///
+/// # Errors
+///
+/// Returns an error when the action is not in the explicit Rust whitelist.
+pub fn parse_search_strategy_flow_probe_action(
+    action: &str,
+) -> Result<SearchStrategyFlowProbeAction, String> {
+    let action_kind = action
+        .trim()
+        .split_once(':')
+        .map_or(action.trim(), |(kind, _)| kind);
+    match action_kind {
+        "expand_neighbors" => Ok(SearchStrategyFlowProbeAction::ExpandNeighbors),
+        "open_parent_child" => Ok(SearchStrategyFlowProbeAction::OpenParentChild),
+        "compare_provenance" => Ok(SearchStrategyFlowProbeAction::CompareProvenance),
+        "open_adjacent_sections" => Ok(SearchStrategyFlowProbeAction::OpenAdjacentSections),
+        "stop" => Ok(SearchStrategyFlowProbeAction::Stop),
+        other => Err(format!(
+            "SearchStrategyFlow probe action `{other}` is not whitelisted"
+        )),
+    }
+}
+
+/// Returns the native Flight route family for one whitelisted probe action.
+///
+/// # Errors
+///
+/// Returns an error when the action is not in the explicit Rust whitelist.
+pub fn search_strategy_flow_probe_action_route(
+    action: &str,
+) -> Result<Option<&'static str>, String> {
+    match parse_search_strategy_flow_probe_action(action)? {
+        SearchStrategyFlowProbeAction::ExpandNeighbors => Ok(Some(GRAPH_NEIGHBORS_ROUTE)),
+        SearchStrategyFlowProbeAction::OpenParentChild => {
+            Ok(Some(ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE))
+        }
+        SearchStrategyFlowProbeAction::CompareProvenance => Ok(Some(REPO_SEARCH_ROUTE)),
+        SearchStrategyFlowProbeAction::OpenAdjacentSections => {
+            Ok(Some(ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE))
+        }
+        SearchStrategyFlowProbeAction::Stop => Ok(None),
+    }
+}
 
 const SEARCH_STRATEGY_FLOW_JULIA: &str = r#"
 using WendaoGraph
@@ -1137,10 +1201,16 @@ fn validate_search_strategy_flow_intent(intent: &str) -> Result<(), String> {
 
 fn add_search_strategy_flow_retrieval_routes(value: &mut Value) -> Result<(), String> {
     let routes = build_search_strategy_flow_retrieval_routes(value);
+    let projected_evidence_rows =
+        build_search_strategy_flow_rust_projected_evidence_rows(value, &routes);
     let object = value.as_object_mut().ok_or_else(|| {
         "WendaoGraph SearchStrategyFlow JSON trace root must be an object".to_owned()
     })?;
     object.insert("retrievalRoutes".to_owned(), Value::Array(routes));
+    object.insert(
+        "rustProjectedEvidenceRows".to_owned(),
+        Value::Array(projected_evidence_rows),
+    );
     Ok(())
 }
 
@@ -1190,12 +1260,158 @@ fn build_search_strategy_flow_retrieval_routes(trace: &Value) -> Vec<Value> {
                 || action_candidate_ids.contains(candidate_id))
             .then_some(candidate_id)
         })
-        .map(search_strategy_flow_retrieval_route)
+        .filter_map(search_strategy_flow_retrieval_route)
         .collect()
 }
 
-fn search_strategy_flow_retrieval_route(candidate_id: &str) -> Value {
+fn build_search_strategy_flow_rust_projected_evidence_rows(
+    trace: &Value,
+    routes: &[Value],
+) -> Vec<Value> {
+    let selected_candidate_ids = trace
+        .get("frontier")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|row| json_bool(row, "selected"))
+        .filter_map(|row| json_string(row, "candidateId"))
+        .map(ToOwned::to_owned)
+        .collect::<HashSet<_>>();
+    let materialized_candidate_ids = trace
+        .get("plannerActions")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|row| json_string(row, "actionKind") == Some("materialize"))
+        .flat_map(|row| {
+            [
+                json_string(row, "candidateId"),
+                json_string(row, "targetCandidateId"),
+            ]
+        })
+        .flatten()
+        .filter(|id| !id.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<HashSet<_>>();
+    let route_counts = search_strategy_flow_route_counts(routes);
+
+    trace
+        .get("candidates")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|candidate| {
+            let candidate_id = json_string(candidate, "candidateId")?;
+            Some(search_strategy_flow_rust_projected_evidence_row(
+                candidate_id,
+                candidate,
+                &selected_candidate_ids,
+                &materialized_candidate_ids,
+                &route_counts,
+            ))
+        })
+        .collect()
+}
+
+fn search_strategy_flow_route_counts(routes: &[Value]) -> HashMap<String, usize> {
+    let mut counts = HashMap::new();
+    for route in routes {
+        if let Some(candidate_id) = json_string(route, "candidateId") {
+            *counts.entry(candidate_id.to_owned()).or_insert(0) += 1;
+        }
+    }
+    counts
+}
+
+fn search_strategy_flow_rust_projected_evidence_row(
+    candidate_id: &str,
+    candidate: &Value,
+    selected_candidate_ids: &HashSet<String>,
+    materialized_candidate_ids: &HashSet<String>,
+    route_counts: &HashMap<String, usize>,
+) -> Value {
     let section = parse_markdown_section_candidate_id(candidate_id);
+    let source_path = section.source_path;
+    let heading_anchor = section.heading_anchor.unwrap_or("");
+    let route_count = route_counts.get(candidate_id).copied().unwrap_or(0);
+    json!({
+        "projectionSource": "rust-bridge-search-strategy-flow-v1",
+        "candidateId": candidate_id,
+        "sourcePath": source_path,
+        "headingAnchor": heading_anchor,
+        "evidenceKind": search_strategy_flow_evidence_kind(source_path, heading_anchor),
+        "evidenceCoverage": json_number(candidate, "evidenceCoverage"),
+        "graphScore": json_number(candidate, "graphScore"),
+        "authorityScore": json_number(candidate, "authorityScore"),
+        "structuralScore": json_number(candidate, "structuralScore"),
+        "contextCost": json_usize(candidate, "contextCost"),
+        "blocked": json_bool(candidate, "blocked"),
+        "selected": selected_candidate_ids.contains(candidate_id),
+        "plannerMaterialized": materialized_candidate_ids.contains(candidate_id),
+        "retrievalRouteCount": route_count,
+        "routePlanned": route_count > 0,
+        "proofTags": search_strategy_flow_projection_tags(
+            source_path,
+            selected_candidate_ids.contains(candidate_id),
+            materialized_candidate_ids.contains(candidate_id),
+            route_count,
+        ),
+    })
+}
+
+fn search_strategy_flow_evidence_kind(source_path: &str, heading_anchor: &str) -> &'static str {
+    let combined = format!(
+        "{} {}",
+        source_path.to_ascii_lowercase(),
+        heading_anchor.to_ascii_lowercase()
+    );
+    if combined.contains("page_index") || combined.contains("page-index") {
+        return "page_index_reasoning_tree";
+    }
+    if combined.contains("graph_compute")
+        || combined.contains("link_graph")
+        || combined.contains("link-graph")
+    {
+        return "link_graph_dependency_path";
+    }
+    if combined.contains("validation") {
+        return "validation_guard";
+    }
+    if combined.contains("notebook") || combined.contains("pluto") {
+        return "notebook_validation_surface";
+    }
+    "search_strategy_flow_authority"
+}
+
+fn search_strategy_flow_projection_tags(
+    source_path: &str,
+    selected: bool,
+    materialized: bool,
+    route_count: usize,
+) -> Vec<&'static str> {
+    let mut tags = vec!["rust_projected", "real_document"];
+    match search_strategy_flow_evidence_kind(source_path, "") {
+        "page_index_reasoning_tree" => tags.push("page_index"),
+        "link_graph_dependency_path" => tags.push("link_graph"),
+        "validation_guard" => tags.push("negative_guard"),
+        "notebook_validation_surface" => tags.push("notebook"),
+        _ => tags.push("search_strategy"),
+    }
+    if selected {
+        tags.push("frontier_selected");
+    }
+    if materialized {
+        tags.push("planner_materialized");
+    }
+    if route_count > 0 {
+        tags.push("route_planned");
+    }
+    tags
+}
+
+fn search_strategy_flow_retrieval_route(candidate_id: &str) -> Option<Value> {
+    let section = parse_markdown_section_candidate_id(candidate_id);
+    section.heading_anchor?;
     let mut route = json!({
         "candidateId": candidate_id,
         "materializationOwner": "studio-rust",
@@ -1210,7 +1426,7 @@ fn search_strategy_flow_retrieval_route(candidate_id: &str) -> Value {
     if let (Some(object), Some(heading_anchor)) = (route.as_object_mut(), section.heading_anchor) {
         object.insert("headingAnchor".to_owned(), json!(heading_anchor));
     }
-    route
+    Some(route)
 }
 
 struct MarkdownSectionCandidate<'a> {
@@ -1309,6 +1525,18 @@ fn json_string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
 
 fn json_bool(value: &Value, key: &str) -> bool {
     value.get(key).and_then(Value::as_bool).unwrap_or(false)
+}
+
+fn json_number(value: &Value, key: &str) -> f64 {
+    value.get(key).and_then(Value::as_f64).unwrap_or(0.0)
+}
+
+fn json_usize(value: &Value, key: &str) -> usize {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(0)
 }
 
 /// Runs the local `WendaoGraph.jl` `PageIndex` host-request probe in a real

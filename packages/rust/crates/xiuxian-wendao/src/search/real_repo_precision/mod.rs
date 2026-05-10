@@ -26,6 +26,7 @@ pub(crate) use harness::{
 };
 pub(crate) use scenario_matrix::evaluate_knowledge_scenario_matrix;
 pub(crate) use semantic_gate::{
+    RealRepoMarkdownKnowledgeSemanticGateEvaluation,
     attach_markdown_knowledge_semantic_query_evidence, evaluate_markdown_knowledge_semantic_gate,
 };
 pub(crate) use types::{
@@ -33,7 +34,7 @@ pub(crate) use types::{
     RealRepoGoldQuery, RealRepoGoldQueryKind, RealRepoKnowledgeScenario,
     RealRepoKnowledgeScenarioAuthorityExpectation, RealRepoKnowledgeScenarioKind,
     RealRepoKnowledgeScenarioQueryVariant, RealRepoKnowledgeScenarioQueryVariantKind,
-    RealRepoMarkdownKnowledgeSemanticGateReceipt,
+    RealRepoKnowledgeScenarioReceipt, RealRepoMarkdownKnowledgeSemanticGateReceipt,
     RealRepoMarkdownKnowledgeSemanticRelationPathReceipt, RealRepoPrecisionCatalogEntry,
     RealRepoPrecisionQueryReceipt, RealRepoPrecisionRunOptions, RealRepoPrecisionRunStatus,
     RealRepoPrecisionSyncMode,

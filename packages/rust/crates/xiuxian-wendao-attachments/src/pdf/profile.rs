@@ -67,7 +67,10 @@ pub fn classify_pdf_source_pages(
 /// Return whether a page must keep Docling as its structure authority.
 #[must_use]
 pub fn pdf_source_page_requires_structure_authority(profile: &PdfSourcePageProfile) -> bool {
-    profile.draw_object_ops > 0 || profile.rectangle_ops > 0 || profile.path_ops >= 64
+    profile.draw_object_ops > 0
+        || profile.rectangle_ops > 0
+        || profile.path_ops >= 64
+        || pdf_source_page_is_text_table_candidate(profile)
 }
 
 /// Return the conservative Docling-structure scheduling cost for one source page.
@@ -105,6 +108,17 @@ pub fn pdf_source_page_is_fast_profile_risk(profile: &PdfSourcePageProfile) -> b
         && profile.operation_count >= 640
         && profile.text_show_ops >= 150;
     compact_table_grid || dense_table_path_band
+}
+
+/// Return whether a page has a dense text grid signal that may hide a table.
+#[must_use]
+pub fn pdf_source_page_is_text_table_candidate(profile: &PdfSourcePageProfile) -> bool {
+    profile.draw_object_ops == 0
+        && profile.rectangle_ops == 0
+        && profile.path_ops <= 8
+        && profile.text_show_ops >= 96
+        && profile.operation_count >= 280
+        && profile.content_bytes >= 10_000
 }
 
 /// Return whether a page matches the existing dense backend-text top-up signal.

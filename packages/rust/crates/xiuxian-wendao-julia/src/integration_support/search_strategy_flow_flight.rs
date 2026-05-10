@@ -41,7 +41,7 @@ use xiuxian_wendao_runtime::transport::{
 const DEFAULT_TIMEOUT_SECONDS: u64 = 30;
 const REPO_SEARCH_LIMIT: usize = 10;
 const MAX_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS: usize = 32;
-const MAX_FLIGHT_DISCOVERY_CANDIDATES: usize = 8;
+const MAX_FLIGHT_DISCOVERY_CANDIDATES: usize = 12;
 const RELATED_CONTEXT_LIMIT: usize = 5;
 const GRAPH_HOPS: usize = 2;
 const GRAPH_LIMIT: usize = 50;
@@ -893,6 +893,7 @@ fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt> {
     }
 
     push_repo_search_attempt(&mut attempts, terms.join(" ").as_str(), "");
+    push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
     push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
     for window_size in [4, 3, 2] {
         if terms.len() < window_size {
@@ -907,6 +908,21 @@ fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt> {
     }
     attempts.truncate(32);
     attempts
+}
+
+fn push_exact_anchor_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, terms: &[String]) {
+    if has_all_terms(terms, &["search", "strategy", "flow"]) {
+        push_repo_search_attempt(attempts, "SearchStrategyFlow", "docs/30_search_strategy");
+        push_repo_search_attempt(attempts, "SearchStrategyFlow", "");
+    }
+    if has_all_terms(terms, &["page", "index"]) {
+        push_repo_search_attempt(attempts, "PageIndex", "docs/20_page_index");
+        push_repo_search_attempt(attempts, "PageIndex", "");
+    }
+    if has_all_terms(terms, &["link", "graph"]) {
+        push_repo_search_attempt(attempts, "LinkGraph", "docs/10_graph_compute");
+        push_repo_search_attempt(attempts, "LinkGraph", "");
+    }
 }
 
 fn push_route_hint_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, terms: &[String]) {
@@ -1269,9 +1285,18 @@ mod query_tests {
         assert!(
             queries.contains(&"query understanding reasoning tree page index search strategy flow")
         );
+        assert!(queries.contains(&"SearchStrategyFlow"));
+        assert!(queries.contains(&"PageIndex"));
         assert!(queries.contains(&"search strategy flow"));
         assert!(queries.contains(&"query understanding"));
         assert!(queries.contains(&"reasoning tree"));
+        assert!(attempts.iter().any(|attempt| {
+            attempt.query == "SearchStrategyFlow"
+                && attempt.path_prefix == "docs/30_search_strategy"
+        }));
+        assert!(attempts.iter().any(|attempt| {
+            attempt.query == "PageIndex" && attempt.path_prefix == "docs/20_page_index"
+        }));
         assert!(attempts.iter().any(|attempt| {
             attempt.query == "page index reasoning tree"
                 && attempt.path_prefix == "docs/20_page_index"
@@ -1280,6 +1305,21 @@ mod query_tests {
             attempt.query == "search strategy flow"
                 && attempt.path_prefix == "docs/30_search_strategy"
         }));
+        let Some(search_strategy_prefixed_index) = attempts.iter().position(|attempt| {
+            attempt.query == "SearchStrategyFlow"
+                && attempt.path_prefix == "docs/30_search_strategy"
+        }) else {
+            panic!("SearchStrategyFlow prefixed anchor should be attempted");
+        };
+        let Some(search_strategy_broad_index) = attempts.iter().position(|attempt| {
+            attempt.query == "SearchStrategyFlow" && attempt.path_prefix.is_empty()
+        }) else {
+            panic!("SearchStrategyFlow broad anchor should be attempted");
+        };
+        assert!(
+            search_strategy_prefixed_index < search_strategy_broad_index,
+            "prefixed exact anchors should run before broad anchors for route diversity"
+        );
     }
 
     #[test]

@@ -69,7 +69,7 @@ fn intent_anchor_terms(intent: &str) -> Vec<String> {
         .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
         .map(str::trim)
         .filter(|term| term.len() >= 4)
-        .map(|term| term.to_ascii_lowercase())
+        .map(str::to_ascii_lowercase)
         .filter(|term| !stopwords.contains(term.as_str()))
         .collect::<BTreeSet<_>>();
     while terms.len() > 12 {

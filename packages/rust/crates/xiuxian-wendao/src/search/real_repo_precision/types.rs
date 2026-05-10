@@ -130,18 +130,13 @@ pub(crate) struct RealRepoKnowledgeScenarioAuthorityExpectation {
     pub(crate) competing_paths: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum RealRepoPrecisionSyncMode {
+    #[default]
     Status,
     Ensure,
     Refresh,
-}
-
-impl Default for RealRepoPrecisionSyncMode {
-    fn default() -> Self {
-        Self::Status
-    }
 }
 
 impl RealRepoPrecisionSyncMode {
@@ -222,19 +217,32 @@ pub(crate) struct RealRepoPrecisionRunReceipt {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub(crate) struct RealRepoPrecisionSummary {
-    pub(crate) repository_count: usize,
-    pub(crate) materialized_repository_count: usize,
-    pub(crate) skipped_repository_count: usize,
-    pub(crate) query_count: usize,
-    pub(crate) passed_query_count: usize,
-    pub(crate) failed_query_count: usize,
-    pub(crate) knowledge_scenario_count: usize,
-    pub(crate) passed_knowledge_scenario_count: usize,
-    pub(crate) failed_knowledge_scenario_count: usize,
-    pub(crate) indexed_document_count: usize,
-    pub(crate) indexed_markdown_document_count: usize,
-    pub(crate) indexed_org_document_count: usize,
-    pub(crate) indexed_total_word_count: usize,
+    #[serde(rename = "repository_count")]
+    pub(crate) repositories_total: usize,
+    #[serde(rename = "materialized_repository_count")]
+    pub(crate) repositories_materialized: usize,
+    #[serde(rename = "skipped_repository_count")]
+    pub(crate) repositories_skipped: usize,
+    #[serde(rename = "query_count")]
+    pub(crate) queries_total: usize,
+    #[serde(rename = "passed_query_count")]
+    pub(crate) queries_passed: usize,
+    #[serde(rename = "failed_query_count")]
+    pub(crate) queries_failed: usize,
+    #[serde(rename = "knowledge_scenario_count")]
+    pub(crate) knowledge_scenarios_total: usize,
+    #[serde(rename = "passed_knowledge_scenario_count")]
+    pub(crate) knowledge_scenarios_passed: usize,
+    #[serde(rename = "failed_knowledge_scenario_count")]
+    pub(crate) knowledge_scenarios_failed: usize,
+    #[serde(rename = "indexed_document_count")]
+    pub(crate) indexed_documents: usize,
+    #[serde(rename = "indexed_markdown_document_count")]
+    pub(crate) indexed_markdown_documents: usize,
+    #[serde(rename = "indexed_org_document_count")]
+    pub(crate) indexed_org_documents: usize,
+    #[serde(rename = "indexed_total_word_count")]
+    pub(crate) indexed_total_words: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -565,21 +573,20 @@ pub(crate) struct RealRepoPrecisionQueryReceipt {
 }
 
 fn project_root_from_env() -> PathBuf {
-    std::env::var_os("PRJ_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
+    std::env::var_os("PRJ_ROOT").map_or_else(
+        || {
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .ancestors()
                 .nth(4)
-                .map(PathBuf::from)
-                .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")))
-        })
+                .map_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")), PathBuf::from)
+        },
+        PathBuf::from,
+    )
 }
 
 fn receipt_path_from_env(project_root: &std::path::Path) -> PathBuf {
     let cache_home = std::env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| project_root.join(".cache"));
+        .map_or_else(|| project_root.join(".cache"), PathBuf::from);
     cache_home
         .join("wendao")
         .join("search_precision")

@@ -68,15 +68,15 @@ fn repo_ast_analysis_index_reuses_symbols_for_async_queries()
     std::fs::create_dir_all(source_dir.as_path())?;
     std::fs::write(
         source_dir.join("orchestration.rs"),
-        r#"
+        r"
 pub struct RepoCodeSearchOutcome {
     pub count: usize,
 }
 
 pub async fn search_repo_code_outcome_for_query() -> RepoCodeSearchOutcome {
-    RepoCodeSearchOutcome { count: 1 }
+RepoCodeSearchOutcome { count: 1 }
 }
-"#,
+",
     )?;
     std::fs::create_dir_all(temp.path().join("packages/rust/crates/other/src"))?;
     std::fs::write(

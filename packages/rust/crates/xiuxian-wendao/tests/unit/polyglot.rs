@@ -97,9 +97,9 @@ fn host_snapshot_uses_runtime_admission_fallback_state() -> Result<(), SnapshotI
         PressureLevel::Low,
     )?;
 
-    let budget = snapshot
-        .admission_budget_for_lane(PolyglotLane::JuliaCompute)
-        .expect("Julia admission budget");
+    let Some(budget) = snapshot.admission_budget_for_lane(PolyglotLane::JuliaCompute) else {
+        panic!("Julia admission budget");
+    };
     assert!(budget.fallback_available);
     assert_eq!(
         budget.decide(),

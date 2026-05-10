@@ -187,22 +187,12 @@ fn guard_direct_docling_structure_recovery_text_shortcuts(
     if page_count == 0 || page_count <= DOCLING_STRUCTURE_RECOVERY_SMALL_PAGE_RANGE_THRESHOLD {
         return;
     }
-    let target_range_count = page_count
-        .div_ceil(
-            usize::try_from(DOCLING_STRUCTURE_RECOVERY_DEFAULT_PAGE_RANGE_CHUNK_SIZE)
-                .unwrap_or(1)
-                .max(1),
-        )
-        .max(1);
     loop {
         let fallback_pages = direct_docling_structure_recovery_fallback_pages(inputs);
         let current_range_count = chunked_page_range_count(
             &fallback_pages,
             DOCLING_STRUCTURE_RECOVERY_DEFAULT_PAGE_RANGE_CHUNK_SIZE,
         );
-        if current_range_count <= target_range_count {
-            break;
-        }
         let Some(index_to_promote) =
             best_text_shortcut_to_promote(inputs, &fallback_pages, current_range_count)
         else {
@@ -250,10 +240,20 @@ fn best_text_shortcut_to_promote(
                 &candidate_pages,
                 DOCLING_STRUCTURE_RECOVERY_DEFAULT_PAGE_RANGE_CHUNK_SIZE,
             );
-            (candidate_range_count < current_range_count).then_some((index, candidate_range_count))
+            (candidate_range_count < current_range_count
+                || (candidate_range_count == current_range_count
+                    && text_shortcut_bridges_fallback_gap(input.page_index, fallback_pages)))
+            .then_some((index, candidate_range_count))
         })
         .min_by_key(|(_, candidate_range_count)| *candidate_range_count)
         .map(|(index, _)| index)
+}
+
+fn text_shortcut_bridges_fallback_gap(page_index: u32, fallback_pages: &BTreeSet<u32>) -> bool {
+    page_index
+        .checked_sub(1)
+        .is_some_and(|previous| fallback_pages.contains(&previous))
+        && fallback_pages.contains(&page_index.saturating_add(1))
 }
 
 fn direct_docling_structure_recovery_fallback_pages(inputs: &[PdfOcrShardInput]) -> BTreeSet<u32> {

@@ -2,8 +2,9 @@ use std::path::Path;
 
 use super::{
     PdfSourcePageProfile, classify_pdf_source_page, pdf_source_page_is_backend_text_topup_profile,
-    pdf_source_page_is_fast_profile_risk, pdf_source_page_requires_structure_authority,
-    pdf_source_page_structure_cost, source_pdf_page_profiles, source_pdf_page_profiles_cached,
+    pdf_source_page_is_fast_profile_risk, pdf_source_page_is_text_table_candidate,
+    pdf_source_page_requires_structure_authority, pdf_source_page_structure_cost,
+    source_pdf_page_profiles, source_pdf_page_profiles_cached,
 };
 
 #[test]
@@ -60,6 +61,47 @@ fn classifies_table_path_band_as_structure_and_ocr_patch_candidate() {
     assert!(!classification.text_shortcut_eligible);
     assert!(pdf_source_page_is_fast_profile_risk(&profile));
     assert!(classification.estimated_structure_cost >= 512);
+}
+
+#[test]
+fn classifies_dense_text_grid_as_structure_authority_required() {
+    let profile = PdfSourcePageProfile {
+        page_index: 3,
+        content_bytes: 12_000,
+        operation_count: 360,
+        text_show_ops: 100,
+        path_ops: 0,
+        rectangle_ops: 0,
+        draw_object_ops: 0,
+        estimated_weight: 1,
+    };
+
+    let classification = classify_pdf_source_page(&profile);
+
+    assert!(pdf_source_page_is_text_table_candidate(&profile));
+    assert!(classification.structure_authority_required);
+    assert!(!classification.text_shortcut_eligible);
+    assert!(classification.estimated_structure_cost > profile.estimated_weight);
+}
+
+#[test]
+fn keeps_short_dense_text_out_of_text_table_structure_guard() {
+    let profile = PdfSourcePageProfile {
+        page_index: 4,
+        content_bytes: 8_192,
+        operation_count: 360,
+        text_show_ops: 150,
+        path_ops: 0,
+        rectangle_ops: 0,
+        draw_object_ops: 0,
+        estimated_weight: 1,
+    };
+
+    let classification = classify_pdf_source_page(&profile);
+
+    assert!(!pdf_source_page_is_text_table_candidate(&profile));
+    assert!(!classification.structure_authority_required);
+    assert!(classification.text_shortcut_eligible);
 }
 
 #[test]

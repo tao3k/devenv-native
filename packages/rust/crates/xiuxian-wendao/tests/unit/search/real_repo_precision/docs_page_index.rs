@@ -6,7 +6,7 @@ use serial_test::serial;
 use xiuxian_wendao_julia::integration_support::probe_wendaograph_page_index_host_request_with_fixture;
 
 use crate::analyzers::resolve_registered_repository_source;
-use crate::link_graph::{LinkGraphIndex, PageIndexNode};
+use crate::link_graph::{LinkGraphIndex, LinkGraphSearchOptions, PageIndexNode};
 use crate::search::real_repo_precision::{
     RealRepoGoldQuery, RealRepoGoldQueryKind, RealRepoPrecisionCatalogEntry,
     RealRepoPrecisionRunOptions, default_real_repo_precision_catalog, evaluate_gold_query_paths,
@@ -17,11 +17,11 @@ const RUN_WENDAOGRAPH_DOCS_CORPUS_PAGE_INDEX_LIVE_PROOF_TEST_ENV: &str =
 
 #[derive(Debug)]
 struct DocsPageIndexFixtureReceipt {
-    query_count: usize,
-    selected_document_count: usize,
-    node_count: usize,
-    edge_count: usize,
-    seed_count: usize,
+    queries: usize,
+    selected_documents: usize,
+    nodes: usize,
+    edges: usize,
+    seeds: usize,
 }
 
 #[test]
@@ -49,10 +49,10 @@ fn docs_query_hits_seed_page_index_fixture() -> Result<(), Box<dyn std::error::E
         write_docs_page_index_fixture_from_queries(&index, queries.as_slice(), &fixture_dir)
             .map_err(|error| format!("write docs PageIndex fixture: {error}"))?;
 
-    assert_eq!(receipt.query_count, 1);
-    assert_eq!(receipt.selected_document_count, 1);
-    assert!(receipt.node_count >= 1);
-    assert!(receipt.seed_count >= 1);
+    assert_eq!(receipt.queries, 1);
+    assert_eq!(receipt.selected_documents, 1);
+    assert!(receipt.nodes >= 1);
+    assert!(receipt.seeds >= 1);
     assert!(fixture_dir.join("page_index_nodes.tsv").exists());
     assert!(fixture_dir.join("page_index_edges.tsv").exists());
     assert!(fixture_dir.join("page_index_seeds.tsv").exists());
@@ -92,9 +92,9 @@ fn docs_corpus_page_index_live_proof_runs_real_wendaograph_when_enabled() -> Res
         docs_queries.as_slice(),
         temp.path(),
     )?;
-    assert!(fixture.selected_document_count >= 9);
-    assert!(fixture.seed_count >= 9);
-    assert!(fixture.node_count >= fixture.seed_count);
+    assert!(fixture.selected_documents >= 9);
+    assert!(fixture.seeds >= 9);
+    assert!(fixture.nodes >= fixture.seeds);
 
     let report = probe_wendaograph_page_index_host_request_with_fixture(temp.path(), 2)
         .map_err(|error| format!("run docs-corpus PageIndex live proof: {error}"))?;
@@ -106,11 +106,11 @@ fn docs_corpus_page_index_live_proof_runs_real_wendaograph_when_enabled() -> Res
     assert!(report.warm_p95_ms >= report.warm_median_ms);
     eprintln!(
         "wendaograph_docs_corpus_page_index_live_proof_summary docs_queries={} selected_documents={} page_index_nodes={} page_index_edges={} page_index_seeds={} frontier_rows={} trace_rows={} first_ms={:.3} warm_median_ms={:.3} warm_p95_ms={:.3} warm_max_ms={:.3}",
-        fixture.query_count,
-        fixture.selected_document_count,
-        fixture.node_count,
-        fixture.edge_count,
-        fixture.seed_count,
+        fixture.queries,
+        fixture.selected_documents,
+        fixture.nodes,
+        fixture.edges,
+        fixture.seeds,
         report.frontier_rows,
         report.trace_rows,
         report.first_ms,
@@ -228,11 +228,11 @@ fn write_docs_page_index_fixture_from_queries(
     )?;
 
     Ok(DocsPageIndexFixtureReceipt {
-        query_count: queries.len(),
-        selected_document_count: selected_doc_ids.len(),
-        node_count: node_rows.len(),
-        edge_count: edge_rows.len(),
-        seed_count: seed_rows.len(),
+        queries: queries.len(),
+        selected_documents: selected_doc_ids.len(),
+        nodes: node_rows.len(),
+        edges: edge_rows.len(),
+        seeds: seed_rows.len(),
     })
 }
 
@@ -248,7 +248,8 @@ fn selected_doc_ids_from_queries(
     let mut selected = BTreeSet::new();
 
     for query in queries {
-        let hits = index.search_planned(&query.query, query.limit, Default::default());
+        let hits =
+            index.search_planned(&query.query, query.limit, LinkGraphSearchOptions::default());
         let observed_paths = hits.1.into_iter().map(|hit| hit.path).collect::<Vec<_>>();
         let receipt = evaluate_gold_query_paths(query, observed_paths);
         if !receipt.passed {
@@ -331,7 +332,5 @@ fn write_tsv_file(path: &Path, header: &[&str], rows: &[Vec<String>]) -> Result<
 }
 
 fn sanitize_tsv_cell(cell: &str) -> String {
-    cell.replace('\t', " ")
-        .replace('\n', " ")
-        .replace('\r', " ")
+    cell.replace(['\t', '\n', '\r'], " ")
 }
