@@ -104,7 +104,7 @@ pub fn build_memory_gate_score_request_batch_from_evidence(
 pub fn build_memory_gate_score_evidence_row_from_episode(
     episode: &Episode,
     scenario_pack: Option<String>,
-    signals: MemoryGateScoreEvidenceSignals,
+    signals: &MemoryGateScoreEvidenceSignals,
 ) -> MemoryGateScoreEvidenceRow {
     MemoryGateScoreEvidenceRow {
         memory_id: episode.id.clone(),
@@ -139,7 +139,7 @@ pub fn build_memory_gate_score_evidence_row_from_store(
     Ok(build_memory_gate_score_evidence_row_from_episode(
         &episode,
         input.scenario_pack,
-        input.signals,
+        &input.signals,
     ))
 }
 

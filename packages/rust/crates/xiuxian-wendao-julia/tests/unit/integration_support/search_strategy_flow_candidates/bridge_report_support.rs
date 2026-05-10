@@ -135,9 +135,9 @@ fn prefix_materialized_candidate_paths(
     repo_id: &str,
     candidates: &mut [SearchStrategyFlowCandidateInput],
 ) {
-    candidates.iter_mut().for_each(|candidate| {
+    for candidate in candidates {
         candidate.relative_path = format!("repos/{repo_id}/{}", candidate.relative_path);
-    });
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

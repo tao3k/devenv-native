@@ -257,9 +257,9 @@ fn prefix_candidate_paths(include_dir: &str, candidates: &mut [SearchStrategyFlo
         return;
     }
 
-    candidates.iter_mut().for_each(|candidate| {
+    for candidate in candidates {
         candidate.relative_path = format!("{prefix}/{}", candidate.relative_path);
-    });
+    }
 }
 
 fn configured_markdown_corpus_file(

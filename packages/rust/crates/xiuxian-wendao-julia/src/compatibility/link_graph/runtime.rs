@@ -46,7 +46,7 @@ impl LinkGraphJuliaRerankRuntimeConfig {
     fn resolved_route(&self) -> String {
         self.route.clone().map_or_else(
             || DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.to_string(),
-            |route| route.into_string(),
+            JuliaContractRoute::into_string,
         )
     }
 
@@ -93,9 +93,12 @@ impl LinkGraphJuliaRerankRuntimeConfig {
             ),
             generated_at: Utc::now().to_rfc3339(),
             endpoint: Some(PluginTransportEndpoint {
-                base_url: self.base_url.clone().map(|value| value.into_string()),
+                base_url: self.base_url.clone().map(JuliaContractUrl::into_string),
                 route: Some(self.resolved_route()),
-                health_route: self.health_route.clone().map(|value| value.into_string()),
+                health_route: self
+                    .health_route
+                    .clone()
+                    .map(JuliaContractRoute::into_string),
                 timeout_secs: self.timeout_secs.map(JuliaContractSecondsU64::value),
                 max_in_flight_requests: None,
             }),

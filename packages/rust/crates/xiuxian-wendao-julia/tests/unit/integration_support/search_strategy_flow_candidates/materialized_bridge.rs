@@ -80,12 +80,14 @@ fn real_bridge_report_materialized_repo_replay_when_enabled()
     }
 
     let report_path = env::var_os("WENDAOGRAPH_SEARCH_STRATEGY_FLOW_BRIDGE_AUDIT_REPORT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
+        .map_or_else(
+            || {
             PathBuf::from(env::var_os("PRJ_CACHE_HOME").unwrap_or_else(|| ".cache".into())).join(
                 "agent/reports/2026-05-10-wendaograph-real-scenario-rust-bridge-resource-audit.json",
             )
-        });
+            },
+            PathBuf::from,
+        );
     let intent = env::var("WENDAOGRAPH_SEARCH_STRATEGY_FLOW_REPLAY_INTENT")
         .unwrap_or_else(|_| "SearchStrategyFlow PageIndex LinkGraph evidence strategy".to_owned());
     let max_repos = env::var("WENDAOGRAPH_SEARCH_STRATEGY_FLOW_REPLAY_MAX_REPOS")

@@ -88,7 +88,7 @@ struct SearchStrategyFlowConfiguredMarkdownReplayInput {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct SearchStrategyFlowLiveReplayFamilyReport {
+pub(super) struct SearchStrategyFlowLiveReplayFamilyReport {
     family: &'static str,
     surface_markdown_file_count: usize,
     surface_heading_count: usize,
@@ -685,30 +685,47 @@ fn assert_search_strategy_flow_live_replay_trace(
     trace: &str,
 ) -> SearchStrategyFlowLiveReplayFamilyReport {
     assert_search_strategy_flow_live_replay_trace_with_candidate_source(
-        family,
-        "rust-markdown-headings",
-        true,
-        true,
-        expected_source_prefix,
-        surface_markdown_file_count,
-        surface_heading_count,
-        input_candidate_count,
+        &SearchStrategyFlowLiveReplayTraceAssertion {
+            family,
+            expected_candidate_source: "rust-markdown-headings",
+            require_selected_context_reduced: true,
+            require_stop_planner_action: true,
+            expected_source_prefix,
+            surface_markdown_file_count,
+            surface_heading_count,
+            input_candidate_count,
+        },
         trace,
     )
 }
 
-fn assert_search_strategy_flow_live_replay_trace_with_candidate_source(
+#[derive(Debug, Clone, Copy)]
+pub(super) struct SearchStrategyFlowLiveReplayTraceAssertion<'a> {
     family: &'static str,
-    expected_candidate_source: &str,
+    expected_candidate_source: &'a str,
     require_selected_context_reduced: bool,
     require_stop_planner_action: bool,
-    expected_source_prefix: &str,
+    expected_source_prefix: &'a str,
     surface_markdown_file_count: usize,
     surface_heading_count: usize,
     input_candidate_count: usize,
+}
+
+pub(super) fn assert_search_strategy_flow_live_replay_trace_with_candidate_source(
+    assertion: &SearchStrategyFlowLiveReplayTraceAssertion<'_>,
     trace: &str,
 ) -> SearchStrategyFlowLiveReplayFamilyReport {
-    let trace: serde_json::Value = serde_json::from_str(&trace).unwrap_or_else(|error| {
+    let &SearchStrategyFlowLiveReplayTraceAssertion {
+        family,
+        expected_candidate_source,
+        require_selected_context_reduced,
+        require_stop_planner_action,
+        expected_source_prefix,
+        surface_markdown_file_count,
+        surface_heading_count,
+        input_candidate_count,
+    } = assertion;
+    let trace: serde_json::Value = serde_json::from_str(trace).unwrap_or_else(|error| {
         panic!("parse live SearchStrategyFlow replay for {family}: {error}")
     });
     assert_eq!(

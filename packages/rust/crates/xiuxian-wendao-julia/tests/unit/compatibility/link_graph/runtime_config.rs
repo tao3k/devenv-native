@@ -112,7 +112,12 @@ link_graph:
     assert_eq!(runtime.route.as_deref(), Some("/rerank"));
     assert_eq!(runtime.health_route.as_deref(), Some("/healthz"));
     assert_eq!(runtime.schema_version.as_deref(), Some("v1"));
-    assert_eq!(runtime.timeout_secs.map(|seconds| seconds.value()), Some(15));
+    assert_eq!(
+        runtime
+            .timeout_secs
+            .map(crate::JuliaContractSecondsU64::value),
+        Some(15)
+    );
     assert_eq!(runtime.service_mode.as_deref(), Some("stream"));
     assert_eq!(
         runtime.search_config_path.as_deref(),
@@ -173,7 +178,12 @@ link_graph:
     assert_eq!(runtime.route.as_deref(), Some("/rerank"));
     assert_eq!(runtime.health_route.as_deref(), Some("/healthz"));
     assert_eq!(runtime.schema_version.as_deref(), Some("v1"));
-    assert_eq!(runtime.timeout_secs.map(|seconds| seconds.value()), Some(15));
+    assert_eq!(
+        runtime
+            .timeout_secs
+            .map(crate::JuliaContractSecondsU64::value),
+        Some(15)
+    );
     assert_eq!(runtime.service_mode.as_deref(), Some("stream"));
     assert_eq!(
         runtime.search_config_path.as_deref(),

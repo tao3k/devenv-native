@@ -6,7 +6,7 @@ use crate::integration_support::search_strategy_flow_candidates::{
 };
 
 use super::{
-    SearchStrategyFlowPersistentBatchHost,
+    SearchStrategyFlowLiveReplayTraceAssertion, SearchStrategyFlowPersistentBatchHost,
     assert_search_strategy_flow_live_replay_trace_with_candidate_source,
     run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
     search_strategy_flow_live_replay_search_root,
@@ -63,10 +63,10 @@ fn wendaograph_search_strategy_flow_materialized_batch_replay_runs_when_enabled(
     eprintln!(
         "SearchStrategyFlow materialized batch replay summary: repos={}, inputCandidates={}, selectedFrontier={}, routes={}, projectedRows={}, elapsedMs={}",
         families.len(),
-        report.input_candidate_count,
-        report.selected_frontier_count,
-        report.route_count,
-        report.projected_row_count,
+        report.input_candidates,
+        report.selected_frontiers,
+        report.routes,
+        report.projected_rows,
         elapsed_ms
     );
 }
@@ -131,11 +131,8 @@ fn wendaograph_search_strategy_flow_materialized_persistent_batch_replay_runs_wh
     host.finish().unwrap_or_else(|error| {
         panic!("finish persistent materialized SearchStrategyFlow host: {error}")
     });
-    assert_eq!(
-        cold_report.input_candidate_count,
-        warm_report.input_candidate_count
-    );
-    assert_eq!(cold_report.route_count, warm_report.route_count);
+    assert_eq!(cold_report.input_candidates, warm_report.input_candidates);
+    assert_eq!(cold_report.routes, warm_report.routes);
     assert!(
         warm_elapsed_ms < cold_elapsed_ms,
         "warm persistent submit should be faster than cold submit, cold={cold_elapsed_ms}ms warm={warm_elapsed_ms}ms"
@@ -143,10 +140,10 @@ fn wendaograph_search_strategy_flow_materialized_persistent_batch_replay_runs_wh
     eprintln!(
         "SearchStrategyFlow materialized persistent batch replay summary: repos={}, inputCandidates={}, selectedFrontier={}, routes={}, projectedRows={}, coldMs={}, warmMs={}",
         families.len(),
-        warm_report.input_candidate_count,
-        warm_report.selected_frontier_count,
-        warm_report.route_count,
-        warm_report.projected_row_count,
+        warm_report.input_candidates,
+        warm_report.selected_frontiers,
+        warm_report.routes,
+        warm_report.projected_rows,
         cold_elapsed_ms,
         warm_elapsed_ms
     );
@@ -154,20 +151,23 @@ fn wendaograph_search_strategy_flow_materialized_persistent_batch_replay_runs_wh
 
 fn materialized_bridge_audit_report_path() -> PathBuf {
     env::var_os("WENDAOGRAPH_SEARCH_STRATEGY_FLOW_BRIDGE_AUDIT_REPORT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            PathBuf::from(env::var_os("PRJ_CACHE_HOME").unwrap_or_else(|| ".cache".into())).join(
-                "agent/reports/2026-05-10-wendaograph-real-scenario-rust-bridge-resource-audit.json",
-            )
-        })
+        .map_or_else(
+            || {
+                PathBuf::from(env::var_os("PRJ_CACHE_HOME").unwrap_or_else(|| ".cache".into()))
+                    .join(
+                        "agent/reports/2026-05-10-wendaograph-real-scenario-rust-bridge-resource-audit.json",
+                    )
+            },
+            PathBuf::from,
+        )
 }
 
 #[derive(Debug, Clone, Copy)]
 struct MaterializedBatchReport {
-    input_candidate_count: usize,
-    selected_frontier_count: usize,
-    route_count: usize,
-    projected_row_count: usize,
+    input_candidates: usize,
+    selected_frontiers: usize,
+    routes: usize,
+    projected_rows: usize,
 }
 
 fn materialized_replay_intent() -> String {
@@ -199,33 +199,35 @@ fn assert_materialized_batch_traces(
         "materialized batch replay must return one trace per repo family"
     );
 
-    let mut input_candidate_count = 0;
-    let mut selected_frontier_count = 0;
-    let mut route_count = 0;
-    let mut projected_row_count = 0;
+    let mut input_candidates = 0;
+    let mut selected_frontiers = 0;
+    let mut routes = 0;
+    let mut projected_rows = 0;
     for (family, trace) in families.iter().zip(traces.iter()) {
         let expected_prefix = format!("repos/{}/", family.repo_id);
         let report = assert_search_strategy_flow_live_replay_trace_with_candidate_source(
-            "materialized-repo",
-            "rust-materialized-repo-markdown-headings",
-            false,
-            false,
-            &expected_prefix,
-            family.markdown_file_count,
-            family.heading_count,
-            family.batch.row_count,
+            &SearchStrategyFlowLiveReplayTraceAssertion {
+                family: "materialized-repo",
+                expected_candidate_source: "rust-materialized-repo-markdown-headings",
+                require_selected_context_reduced: false,
+                require_stop_planner_action: false,
+                expected_source_prefix: &expected_prefix,
+                surface_markdown_file_count: family.markdown_file_count,
+                surface_heading_count: family.heading_count,
+                input_candidate_count: family.batch.row_count,
+            },
             trace,
         );
-        input_candidate_count += report.input_candidate_count;
-        selected_frontier_count += report.selected_frontier_count;
-        route_count += report.route_count;
-        projected_row_count += report.projected_row_count;
+        input_candidates += report.input_candidate_count;
+        selected_frontiers += report.selected_frontier_count;
+        routes += report.route_count;
+        projected_rows += report.projected_row_count;
     }
 
     MaterializedBatchReport {
-        input_candidate_count,
-        selected_frontier_count,
-        route_count,
-        projected_row_count,
+        input_candidates,
+        selected_frontiers,
+        routes,
+        projected_rows,
     }
 }

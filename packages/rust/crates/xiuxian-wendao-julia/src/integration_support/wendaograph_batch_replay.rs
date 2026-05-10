@@ -1,6 +1,10 @@
 //! Batched `SearchStrategyFlow` host replay support.
 
-use std::{env, path::PathBuf, process::Command};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 #[cfg(test)]
 use std::{
@@ -15,7 +19,7 @@ use super::{
 };
 use crate::integration_support::search_strategy_flow_candidates::SearchStrategyFlowCandidateInputBatch;
 
-/// Run a batched WendaoGraph `SearchStrategyFlow` JSON host replay.
+/// Run a batched `WendaoGraph` `SearchStrategyFlow` JSON host replay.
 ///
 /// # Errors
 ///
@@ -47,7 +51,7 @@ impl SearchStrategyFlowPersistentBatchHost {
         let julia_project = wendaograph_julia_project()?;
         let search_root =
             resolve_existing_path("WendaoGraph SearchStrategyFlow search root", search_root)?;
-        let mut child = search_strategy_flow_persistent_batch_command(julia_project, search_root)
+        let mut child = search_strategy_flow_persistent_batch_command(&julia_project, &search_root)
             .spawn()
             .map_err(|error| {
                 format!("spawn persistent WendaoGraph SearchStrategyFlow batch host: {error}")
@@ -103,8 +107,7 @@ impl SearchStrategyFlowPersistentBatchHost {
         })?;
         if !status.success() {
             return Err(format!(
-                "persistent WendaoGraph SearchStrategyFlow batch host exited with status {}; stderr:\n{}",
-                status, stderr
+                "persistent WendaoGraph SearchStrategyFlow batch host exited with status {status}; stderr:\n{stderr}"
             ));
         }
         Ok(())
@@ -119,7 +122,7 @@ fn run_raw_json_batch_with_candidate_batches(
     let julia_project = wendaograph_julia_project()?;
     let search_root =
         resolve_existing_path("WendaoGraph SearchStrategyFlow search root", search_root)?;
-    let mut command = search_strategy_flow_batch_command(julia_project, search_root, batch_count);
+    let mut command = search_strategy_flow_batch_command(&julia_project, &search_root, batch_count);
     for (intent, candidate_batch) in candidate_batches {
         command
             .arg(intent)
@@ -131,10 +134,10 @@ fn run_raw_json_batch_with_candidate_batches(
         format!("spawn WendaoGraph SearchStrategyFlow batch host request: {error}")
     })?;
     if !output.status.success() {
+        let status = output.status;
+        let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!(
-            "WendaoGraph SearchStrategyFlow batch host request exited with status {}; stderr:\n{}",
-            output.status,
-            String::from_utf8_lossy(&output.stderr)
+            "WendaoGraph SearchStrategyFlow batch host request exited with status {status}; stderr:\n{stderr}"
         ));
     }
 
@@ -164,8 +167,8 @@ fn validate_batch_request(
 }
 
 fn search_strategy_flow_batch_command(
-    julia_project: PathBuf,
-    search_root: PathBuf,
+    julia_project: &Path,
+    search_root: &Path,
     batch_count: usize,
 ) -> Command {
     let julia_command = env::var("JULIA").unwrap_or_else(|_| "julia".to_owned());
@@ -183,8 +186,8 @@ fn search_strategy_flow_batch_command(
 
 #[cfg(test)]
 fn search_strategy_flow_persistent_batch_command(
-    julia_project: PathBuf,
-    search_root: PathBuf,
+    julia_project: &Path,
+    search_root: &Path,
 ) -> Command {
     let julia_command = env::var("JULIA").unwrap_or_else(|_| "julia".to_owned());
     let mut command = Command::new(julia_command);

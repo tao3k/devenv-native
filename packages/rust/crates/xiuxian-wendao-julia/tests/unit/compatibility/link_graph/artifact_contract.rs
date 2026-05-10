@@ -7,7 +7,7 @@ fn deployment_artifact_round_trips_plugin_artifact_payload() {
         route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.into()),
         health_route: Some("/health".into()),
         schema_version: Some("v1".into()),
-        timeout_secs: Some(15_u64.into()),
+        timeout_secs: Some(15_u64),
         launch: LinkGraphJuliaSearchLaunchManifest {
             launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
             args: vec!["--mode".to_string(), "stream".to_string()],
@@ -32,7 +32,7 @@ fn deployment_artifact_round_trips_plugin_artifact_payload() {
             base_url: Some("http://127.0.0.1:8080".into()),
             route: Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE.into()),
             health_route: Some("/health".into()),
-            timeout_secs: Some(15_u64.into()),
+            timeout_secs: Some(15_u64),
             max_in_flight_requests: None,
         }),
         schema_version: Some("v1".into()),
@@ -92,7 +92,7 @@ fn deployment_artifact_writes_toml_file() -> Result<(), Box<dyn std::error::Erro
         route: Some("/rerank".into()),
         health_route: Some("/health".into()),
         schema_version: Some("v1".into()),
-        timeout_secs: Some(15_u64.into()),
+        timeout_secs: Some(15_u64),
         launch: LinkGraphJuliaSearchLaunchManifest {
             launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
             args: vec!["--mode".to_string(), "stream".to_string()],
@@ -127,7 +127,7 @@ fn deployment_artifact_writes_json_file() -> Result<(), Box<dyn std::error::Erro
         route: Some("/rerank".into()),
         health_route: Some("/health".into()),
         schema_version: Some("v1".into()),
-        timeout_secs: Some(15_u64.into()),
+        timeout_secs: Some(15_u64),
         launch: LinkGraphJuliaSearchLaunchManifest {
             launcher_path: DEFAULT_JULIA_SEARCH_LAUNCHER_PATH.to_string(),
             args: vec!["--mode".to_string(), "stream".to_string()],

@@ -25,7 +25,7 @@ pub(crate) struct SearchStrategyFlowCandidateInput {
 }
 
 /// TSV candidate batch passed from Rust discovery into `SearchStrategyFlow`.
-/// Serialized candidate TSV batch passed to the WendaoGraph search-strategy replay host.
+/// Serialized candidate TSV batch passed to the `WendaoGraph` search-strategy replay host.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SearchStrategyFlowCandidateInputBatch {
     pub(crate) source: &'static str,

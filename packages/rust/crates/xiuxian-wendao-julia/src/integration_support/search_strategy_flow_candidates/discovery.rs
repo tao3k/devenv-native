@@ -409,7 +409,8 @@ pub(super) fn edge_kinds(relative_path: &str, title: &str) -> Vec<String> {
             ("validation", "validation"),
         ]
         .into_iter()
-        .filter_map(|(needle, kind)| combined.contains(needle).then(|| kind.to_owned())),
+        .filter(|(needle, _kind)| combined.contains(needle))
+        .map(|(_needle, kind)| kind.to_owned()),
     );
     kinds.extend(search_strategy_flow_evidence_edge_kinds(relative_path));
     kinds.sort();

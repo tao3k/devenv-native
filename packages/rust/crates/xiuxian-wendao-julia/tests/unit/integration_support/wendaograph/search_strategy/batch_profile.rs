@@ -52,7 +52,7 @@ fn wendaograph_search_strategy_flow_profiles_candidate_budgets_when_enabled() {
         .map(|limit| {
             candidate_budget_profile_report(
                 limit,
-                run_configured_markdown_live_replay_reports(search_root.as_path(), Some(limit)),
+                &run_configured_markdown_live_replay_reports(search_root.as_path(), Some(limit)),
             )
         })
         .collect::<Vec<_>>();
@@ -105,7 +105,7 @@ fn wendaograph_search_strategy_flow_batch_profiles_candidate_budgets_when_enable
 
 fn candidate_budget_profile_report(
     max_candidates_per_family: usize,
-    report: SearchStrategyFlowLiveReplayRunReport,
+    report: &SearchStrategyFlowLiveReplayRunReport,
 ) -> SearchStrategyFlowCandidateBudgetProfileReport {
     let reports = &report.family_reports;
     SearchStrategyFlowCandidateBudgetProfileReport {
@@ -297,13 +297,11 @@ fn run_configured_markdown_batch_candidate_budget_profile_reports(
                 &family_reports,
                 elapsed_ms,
             );
-            candidate_budget_profile_report(
-                *limit,
-                SearchStrategyFlowLiveReplayRunReport {
-                    family_reports,
-                    elapsed_ms,
-                },
-            )
+            let report = SearchStrategyFlowLiveReplayRunReport {
+                family_reports,
+                elapsed_ms,
+            };
+            candidate_budget_profile_report(*limit, &report)
         })
         .collect::<Vec<_>>();
 

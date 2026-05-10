@@ -190,63 +190,66 @@ pub fn build_graph_structural_generic_topology_candidate_metadata_inputs_from_pa
     }
     let fallback_edge_kind = normalize_non_blank(fallback_edge_kind.into(), "fallback edge kind")?;
 
-    let mut node_ids = Vec::new();
-    let mut seen_nodes = HashSet::new();
-    let mut edge_sources = Vec::new();
-    let mut edge_destinations = Vec::new();
-    let mut edge_kinds = Vec::new();
-    let mut seen_edges = HashSet::new();
+    let mut accumulator = PairCollectionTopologyAccumulator::default();
 
     for pair in pair_candidates {
-        push_pair_collection_topology_metadata(
-            pair,
-            &fallback_edge_kind,
-            &mut node_ids,
-            &mut seen_nodes,
-            &mut edge_sources,
-            &mut edge_destinations,
-            &mut edge_kinds,
-            &mut seen_edges,
-        )?;
+        accumulator.push_pair(pair, &fallback_edge_kind)?;
     }
 
-    Ok(
+    Ok(accumulator.into_metadata_inputs(candidate_id))
+}
+
+#[derive(Debug, Default)]
+struct PairCollectionTopologyAccumulator {
+    node_ids: Vec<String>,
+    seen_nodes: HashSet<String>,
+    edge_sources: Vec<String>,
+    edge_destinations: Vec<String>,
+    edge_kinds: Vec<String>,
+    seen_edges: HashSet<(String, String, String)>,
+}
+
+impl PairCollectionTopologyAccumulator {
+    fn push_pair(
+        &mut self,
+        pair: GraphStructuralPairCandidateInputs,
+        fallback_edge_kind: &str,
+    ) -> Result<(), RepoIntelligenceError> {
+        let (left_id, right_id) = normalize_pair_endpoint_ids(pair.left_id, pair.right_id)?;
+        push_unique_pair_nodes(
+            &left_id,
+            &right_id,
+            &mut self.node_ids,
+            &mut self.seen_nodes,
+        );
+        let normalized_edge_kinds =
+            normalize_pair_collection_edge_kinds(pair.edge_kinds, fallback_edge_kind)?;
+        push_unique_pair_edges(
+            &left_id,
+            &right_id,
+            normalized_edge_kinds,
+            &mut self.edge_sources,
+            &mut self.edge_destinations,
+            &mut self.edge_kinds,
+            &mut self.seen_edges,
+        );
+        Ok(())
+    }
+
+    fn into_metadata_inputs(
+        self,
+        candidate_id: String,
+    ) -> GraphStructuralGenericTopologyCandidateMetadataInputs {
         GraphStructuralGenericTopologyCandidateMetadataInputs::from_input(
             GraphStructuralGenericTopologyCandidateMetadataInput {
                 candidate_id,
-                node_ids,
-                edge_sources,
-                edge_destinations,
-                edge_kinds,
+                node_ids: self.node_ids,
+                edge_sources: self.edge_sources,
+                edge_destinations: self.edge_destinations,
+                edge_kinds: self.edge_kinds,
             },
-        ),
-    )
-}
-
-fn push_pair_collection_topology_metadata(
-    pair: GraphStructuralPairCandidateInputs,
-    fallback_edge_kind: &str,
-    node_ids: &mut Vec<String>,
-    seen_nodes: &mut HashSet<String>,
-    edge_sources: &mut Vec<String>,
-    edge_destinations: &mut Vec<String>,
-    edge_kinds: &mut Vec<String>,
-    seen_edges: &mut HashSet<(String, String, String)>,
-) -> Result<(), RepoIntelligenceError> {
-    let (left_id, right_id) = normalize_pair_endpoint_ids(pair.left_id, pair.right_id)?;
-    push_unique_pair_nodes(&left_id, &right_id, node_ids, seen_nodes);
-    let normalized_edge_kinds =
-        normalize_pair_collection_edge_kinds(pair.edge_kinds, fallback_edge_kind)?;
-    push_unique_pair_edges(
-        &left_id,
-        &right_id,
-        normalized_edge_kinds,
-        edge_sources,
-        edge_destinations,
-        edge_kinds,
-        seen_edges,
-    );
-    Ok(())
+        )
+    }
 }
 
 fn push_unique_pair_nodes(

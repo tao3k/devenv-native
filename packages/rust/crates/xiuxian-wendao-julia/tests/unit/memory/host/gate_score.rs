@@ -52,7 +52,7 @@ fn build_memory_gate_score_request_rows_from_evidence_maps_host_fields()
     let evidence = build_memory_gate_score_evidence_row_from_episode(
         &sample_episode("memory-alpha"),
         Some("searchinfra".to_string()),
-        gate_score_signals(MemoryLifecycleState::Active),
+        &gate_score_signals(MemoryLifecycleState::Active),
     );
 
     let rows = build_memory_gate_score_request_rows_from_evidence(&[evidence])?;
@@ -80,12 +80,12 @@ fn build_memory_gate_score_request_batch_from_evidence_materializes_staged_contr
         build_memory_gate_score_evidence_row_from_episode(
             &sample_episode("memory-alpha"),
             Some("searchinfra".to_string()),
-            gate_score_signals(MemoryLifecycleState::Active),
+            &gate_score_signals(MemoryLifecycleState::Active),
         ),
         build_memory_gate_score_evidence_row_from_episode(
             &sample_episode("memory-beta"),
             None,
-            MemoryGateScoreEvidenceSignals {
+            &MemoryGateScoreEvidenceSignals {
                 react_revalidation_score: 0.77,
                 graph_consistency_score: 0.74,
                 omega_alignment_score: 0.81,

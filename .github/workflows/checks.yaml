@@ -31,7 +31,7 @@ jobs:
           - xiuxian-qianji-release
           - xiuxian-sandbox-release
           - xiuxian-security-release
-          - xiuxian-tags-release
+          - xiuxian-code-intelligence-release
           - xiuxian-tokenizer-release
           - xiuxian-types-release
           - xiuxian-vector-release

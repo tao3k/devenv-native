@@ -11,7 +11,7 @@ use xiuxian_wendao_runtime::config::MemoryJuliaComputeRuntimeConfig;
 
 fn sample_runtime() -> MemoryJuliaComputeRuntimeConfig {
     MemoryJuliaComputeRuntimeConfig {
-        enabled: true.into(),
+        enabled: true,
         health_route: Some("/healthz".to_string()),
         scenario_pack: Some("searchinfra".to_string()),
         ..MemoryJuliaComputeRuntimeConfig::default()
@@ -80,7 +80,7 @@ fn validate_memory_julia_compute_manifest_response_batch_rejects_contract_drift(
             Arc::new(StringArray::from(vec![row.health_route.as_deref()])),
             Arc::new(StringArray::from(vec![row.schema_version.as_str()])),
             Arc::new(UInt64Array::from(vec![
-                row.timeout_secs.map(|seconds| seconds.value()),
+                row.timeout_secs.map(crate::JuliaContractSecondsU64::value),
             ])),
             Arc::new(StringArray::from(vec![row.scenario_pack.as_deref()])),
             Arc::new(BooleanArray::from(vec![row.enabled.value()])),
@@ -109,7 +109,7 @@ fn validate_memory_julia_compute_manifest_response_batch_rejects_invalid_route()
             Arc::new(StringArray::from(vec![row.health_route.as_deref()])),
             Arc::new(StringArray::from(vec![row.schema_version.as_str()])),
             Arc::new(UInt64Array::from(vec![
-                row.timeout_secs.map(|seconds| seconds.value()),
+                row.timeout_secs.map(crate::JuliaContractSecondsU64::value),
             ])),
             Arc::new(StringArray::from(vec![row.scenario_pack.as_deref()])),
             Arc::new(BooleanArray::from(vec![row.enabled.value()])),

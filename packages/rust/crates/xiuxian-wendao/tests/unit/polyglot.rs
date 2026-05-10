@@ -21,8 +21,8 @@ fn host_snapshot_combines_document_memory_and_graph_refs() -> Result<(), Snapsho
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
     let link_graph_julia_runtime = LinkGraphJuliaRerankRuntimeConfig {
-        route: Some("/custom/rerank".to_string()),
-        schema_version: Some("v2".to_string()),
+        route: Some("/custom/rerank".to_string().into()),
+        schema_version: Some("v2".to_string().into()),
         ..LinkGraphJuliaRerankRuntimeConfig::default()
     };
 

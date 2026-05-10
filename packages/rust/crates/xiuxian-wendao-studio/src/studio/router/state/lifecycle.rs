@@ -3,9 +3,9 @@ use std::sync::Arc;
 use log::info;
 use xiuxian_zhenfa::ZhenfaSignal;
 
-use crate::studio::router::StudioSearchColdStartTelemetryState;
 use crate::studio::router::state::types::{
-    GatewayState, LocalCorpusScanCoalescingState, StudioConfiguredOwners, StudioState,
+    GatewayState, LocalCorpusScanCoalescingState, StudioConfiguredOwners,
+    StudioSearchColdStartTelemetryState, StudioState,
 };
 use crate::studio::router::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,

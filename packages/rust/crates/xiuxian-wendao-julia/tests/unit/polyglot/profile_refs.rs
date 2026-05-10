@@ -18,7 +18,7 @@ use super::{
 #[test]
 fn profile_ref_projects_runtime_route_and_schema() {
     let mut runtime = MemoryJuliaComputeRuntimeConfig {
-        enabled: true.into(),
+        enabled: true,
         schema_version: "v2".to_string(),
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
@@ -65,7 +65,7 @@ fn manifest_row_ref_preserves_julia_owner() {
 #[test]
 fn profile_refs_cover_staged_memory_profiles() {
     let runtime = MemoryJuliaComputeRuntimeConfig {
-        enabled: true.into(),
+        enabled: true,
         schema_version: "v1".to_string(),
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
