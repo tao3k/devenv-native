@@ -1,3 +1,4 @@
+#[cfg(feature = "duckdb")]
 use super::duckdb;
 
 use crate::BpmnOrchestrationError;

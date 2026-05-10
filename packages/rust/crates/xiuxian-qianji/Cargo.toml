@@ -13,6 +13,8 @@ duckdb = ["dep:xiuxian-db-store", "xiuxian-db-store/qianji-bpmn-workflow-state"]
 llm = ["dep:xiuxian-llm"]
 performance = []
 qianji-full = [
+  "duckdb",
+  "llm",
   "dep:globset",
   "dep:include_dir",
   "dep:jsonschema",
@@ -30,6 +32,7 @@ qianji-full = [
   "dep:xiuxian-logging",
   "dep:xiuxian-qianhuan",
   "dep:xiuxian-wendao",
+  "xiuxian-wendao/search-runtime",
   "dep:xiuxian-wendao-sql",
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-runtime",

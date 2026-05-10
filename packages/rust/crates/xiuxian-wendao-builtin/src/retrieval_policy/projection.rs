@@ -36,7 +36,7 @@ fn project_julia_rerank_runtime(
             .schema_version
             .clone()
             .filter(|value| !value.trim().is_empty())
-            .map(|value| value.into_string()),
+            .map(xiuxian_wendao_julia::JuliaContractSchemaVersion::into_string),
         score_weights: build_score_weights(runtime),
     }
 }

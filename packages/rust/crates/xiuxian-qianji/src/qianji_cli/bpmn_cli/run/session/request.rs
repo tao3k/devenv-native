@@ -1,4 +1,6 @@
-use crate::qianji_cli::bpmn_cli::deps::{QianjiBpmnWorkflowCheckpointBackend, invalid_input, io};
+#[cfg(feature = "duckdb")]
+use crate::qianji_cli::bpmn_cli::deps::QianjiBpmnWorkflowCheckpointBackend;
+use crate::qianji_cli::bpmn_cli::deps::{invalid_input, io};
 use crate::qianji_cli::bpmn_cli::types::{
     BpmnHostSessionCliCommand, BpmnTaskCompleteCliCommand, BpmnTaskCompleteCliKind,
 };
