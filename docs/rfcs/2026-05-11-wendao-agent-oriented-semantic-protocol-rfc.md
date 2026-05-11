@@ -52,7 +52,27 @@ The cloud infrastructure performs **no LLM inference**. It is a pure, high-perfo
 2.  **Graph Recalculation**: The global Semantic Ontology Graph is updated via Julia matrix operations.
 3.  **Semantic Responding**: When the local Agent queries the cloud, the cloud returns a rich, structured **Semantic Subgraph Payload** (not just a file line number).
 
-## 4. The Agentic Self-Healing Loop via Native Harnesses
+## 4. Obsoleting `git diff`: The Structural Patch Protocol
+
+Current AI coding assistants (e.g., Codex, Cursor) rely on lexical text replacement or unified `git diffs` to mutate code. This introduces a fatal flaw: text replacement lacks semantic boundary awareness. LLMs frequently miscalculate line numbers or omit closing brackets, resulting in corrupted syntax requiring multiple human-in-the-loop correction cycles.
+
+AOSP explicitly obsoletes text-based diffing in favor of the **Structural Patch Protocol**, leveraging our Native Harnesses.
+
+### 4.1 AST-Targeted Mutation
+
+When querying the Cloud Oracle, the Agent receives a Semantic Subgraph Payload where every actionable code block is tagged with a deterministic `node_id` (e.g., `rust_ast::fn::verify_token_9x2a`).
+
+When the Agent decides to alter logic, it does not generate a diff with `@@ -40,3 +40,5 @@` context lines. Instead, it issues a Structural Patch targeting the specific `node_id` and providing the entirety of the new logic for that specific node.
+
+### 4.2 The Safety Validation Sandbox
+
+Before the Cloud Oracle applies the patch to physical storage, it executes a rigorous, native safety routine:
+
+1. **Isolated Parsing**: The Rust harness attempts to parse the LLM's `new_content` string in memory as an isolated AST node. If the LLM missed a bracket or wrote invalid syntax, the native compiler error is instantly caught and returned to the Agent, preventing disk corruption.
+2. **Drift Immunity**: Because the patch targets an immutable semantic `node_id` rather than fragile line numbers, the modification is 100% immune to context drift caused by other concurrent edits in the file.
+3. **Native Reformation**: Once parsed successfully, the native harness surgically replaces the old AST node with the new one and invokes native formatting tools (e.g., `rustfmt`), guaranteeing pristine, syntactically perfect physical output.
+
+## 5. The Agentic Self-Healing Loop via Native Harnesses
 
 A critical differentiator of AOSP is its native integration with specialized policy engines like `rust-lang-project-harness` (and future equivalents like `python-lang-project-harness`).
 
