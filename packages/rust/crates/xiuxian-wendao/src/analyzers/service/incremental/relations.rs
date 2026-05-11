@@ -40,29 +40,29 @@ fn build_generic_structural_relations(
     let mut relations = Vec::new();
 
     relations.extend(link_context.modules.iter().map(|module| RelationRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         source_id: repository_node_id.clone(),
-        target_id: module.module_id.clone(),
+        target_id: module.module_id.to_string(),
         kind: RelationKind::Contains,
     }));
     relations.extend(link_context.symbols.iter().filter_map(|symbol| {
         symbol.module_id.as_ref().map(|module_id| RelationRecord {
-            repo_id: repo_id.to_string(),
-            source_id: module_id.clone(),
-            target_id: symbol.symbol_id.clone(),
+            repo_id: repo_id.to_string().into(),
+            source_id: module_id.to_string(),
+            target_id: symbol.symbol_id.to_string(),
             kind: RelationKind::Declares,
         })
     }));
     relations.extend(link_context.examples.iter().map(|example| RelationRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         source_id: repository_node_id.clone(),
-        target_id: example.example_id.clone(),
+        target_id: example.example_id.to_string(),
         kind: RelationKind::Contains,
     }));
     relations.extend(link_context.docs.iter().map(|doc| RelationRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         source_id: repository_node_id.clone(),
-        target_id: doc.doc_id.clone(),
+        target_id: doc.doc_id.to_string(),
         kind: RelationKind::Contains,
     }));
 
@@ -77,7 +77,7 @@ fn build_docstring_relations(
     docs.iter()
         .filter(|doc| doc.format.as_deref() == Some("julia_docstring"))
         .flat_map(|doc| {
-            let mut target_ids = BTreeSet::new();
+            let mut target_ids: BTreeSet<String> = BTreeSet::new();
             if let Some(anchor) = doc.path.split('#').nth(1) {
                 if let Some(module_name) = anchor.strip_prefix("module:") {
                     target_ids.extend(
@@ -87,7 +87,7 @@ fn build_docstring_relations(
                             .filter(|module| {
                                 module.qualified_name == module_name || module.path == doc.path
                             })
-                            .map(|module| module.module_id.clone()),
+                            .map(|module| module.module_id.to_string()),
                     );
                 }
                 if let Some(symbol_name) = anchor.strip_prefix("symbol:") {
@@ -96,7 +96,7 @@ fn build_docstring_relations(
                             .symbols
                             .iter()
                             .filter(|symbol| symbol.name == symbol_name)
-                            .map(|symbol| symbol.symbol_id.clone()),
+                            .map(|symbol| symbol.symbol_id.to_string()),
                     );
                 }
             }
@@ -106,14 +106,14 @@ fn build_docstring_relations(
                         .symbols
                         .iter()
                         .filter(|symbol| symbol.name == doc.title)
-                        .map(|symbol| symbol.symbol_id.clone()),
+                        .map(|symbol| symbol.symbol_id.to_string()),
                 );
             }
             target_ids
                 .into_iter()
                 .map(|target_id| RelationRecord {
-                    repo_id: repo_id.to_string(),
-                    source_id: doc.doc_id.clone(),
+                    repo_id: repo_id.to_string().into(),
+                    source_id: doc.doc_id.to_string(),
                     target_id,
                     kind: RelationKind::Documents,
                 })

@@ -38,13 +38,19 @@ fn semantic_document_kind_equality() {
 fn cognitive_trace_record_new_creates_minimal_record() {
     let record = CognitiveTraceRecord::new(
         "trace-123".to_string(),
-        Some("session-456".to_string()),
+        Some("session-456".into()),
         "AuditNode".to_string(),
         "Critique the agenda".to_string(),
     );
 
     assert_eq!(record.trace_id, "trace-123");
-    assert_eq!(record.session_id, Some("session-456".to_string()));
+    assert_eq!(
+        record
+            .session_id
+            .as_ref()
+            .map(|session_id| session_id.as_str()),
+        Some("session-456")
+    );
     assert_eq!(record.node_id, "AuditNode");
     assert_eq!(record.intent, "Critique the agenda");
     assert_eq!(record.reasoning.as_ref(), "");
@@ -72,9 +78,9 @@ fn cognitive_trace_record_new_without_session() {
 #[test]
 fn cognitive_trace_record_to_semantic_document() {
     let record = CognitiveTraceRecord {
-        trace_id: "trace-abc".to_string(),
-        session_id: Some("session-def".to_string()),
-        node_id: "ExecutorNode".to_string(),
+        trace_id: "trace-abc".to_string().into(),
+        session_id: Some("session-def".into()),
+        node_id: "ExecutorNode".to_string().into(),
         intent: "Execute task".to_string(),
         reasoning: Arc::<str>::from("Step 1: Analyze\nStep 2: Execute"),
         outcome: Some(Arc::<str>::from("Task completed")),
@@ -113,9 +119,9 @@ fn cognitive_trace_record_with_early_halt() {
 #[test]
 fn cognitive_trace_record_clone_preserves_values() {
     let record = CognitiveTraceRecord {
-        trace_id: "trace-original".to_string(),
+        trace_id: "trace-original".to_string().into(),
         session_id: None,
-        node_id: "TestNode".to_string(),
+        node_id: "TestNode".to_string().into(),
         intent: "Test intent".to_string(),
         reasoning: Arc::<str>::from("Test reasoning"),
         outcome: Some(Arc::<str>::from("Test outcome")),
@@ -138,9 +144,9 @@ fn cognitive_trace_record_clone_preserves_values() {
 #[test]
 fn cognitive_trace_record_partial_eq() {
     let record1 = CognitiveTraceRecord {
-        trace_id: "trace-1".to_string(),
-        session_id: Some("session-1".to_string()),
-        node_id: "Node1".to_string(),
+        trace_id: "trace-1".to_string().into(),
+        session_id: Some("session-1".into()),
+        node_id: "Node1".to_string().into(),
         intent: "Intent".to_string(),
         reasoning: Arc::<str>::from("Reasoning"),
         outcome: None,
@@ -152,7 +158,7 @@ fn cognitive_trace_record_partial_eq() {
 
     let record2 = record1.clone();
     let record3 = CognitiveTraceRecord {
-        trace_id: "trace-2".to_string(),
+        trace_id: "trace-2".to_string().into(),
         ..record1.clone()
     };
 
@@ -178,9 +184,9 @@ fn cognitive_trace_record_debug_format() {
 #[test]
 fn semantic_document_with_cognitive_trace_kind() {
     let doc = LinkGraphSemanticDocument {
-        anchor_id: "trace:test-123".to_string(),
-        doc_id: "doc-456".to_string(),
-        path: "traces/test.md".to_string(),
+        anchor_id: "trace:test-123".to_string().into(),
+        doc_id: "doc-456".to_string().into(),
+        path: "traces/test.md".to_string().into(),
         kind: LinkGraphSemanticDocumentKind::CognitiveTrace,
         semantic_path: vec!["Cognitive Traces".to_string(), "TestNode".to_string()],
         content: Arc::<str>::from("Test reasoning content"),
@@ -194,9 +200,9 @@ fn semantic_document_with_cognitive_trace_kind() {
 #[test]
 fn semantic_document_equality() {
     let doc1 = LinkGraphSemanticDocument {
-        anchor_id: "anchor-1".to_string(),
-        doc_id: "doc-1".to_string(),
-        path: "path/1.md".to_string(),
+        anchor_id: "anchor-1".to_string().into(),
+        doc_id: "doc-1".to_string().into(),
+        path: "path/1.md".to_string().into(),
         kind: LinkGraphSemanticDocumentKind::Section,
         semantic_path: vec!["Path".to_string()],
         content: Arc::<str>::from("Content"),

@@ -4,9 +4,7 @@ use super::helpers::{
 };
 use crate::runtime::call_activity::TRANSACTION_PROCESS_ID;
 use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnInstanceInit, apply_pending_host_work_result, create_instance,
-};
+use qianji_bpmn_engine::{BpmnAdvanceOutcome, BpmnInstanceInit, create_instance};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -36,7 +34,7 @@ async fn runtime_transaction_async_throw_compensation_end_resumes_parent_before_
     )
     .await;
     assert_eq!(
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending[0].token_id,

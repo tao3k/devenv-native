@@ -6,7 +6,6 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnTaskIoSpec,
     BpmnTaskOutputBinding, PendingHostWorkResult, ServiceTaskOutcome,
-    apply_pending_host_work_result,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -24,7 +23,7 @@ async fn host_resume_requires_declared_output_mapping() {
         create_blocked_strict_instance(Arc::clone(&package), "missing_output_mapping").await;
     let token_id = instance.pending_host_work[0].token_id;
 
-    let error = apply_pending_host_work_result(
+    let error = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,
@@ -38,8 +37,8 @@ async fn host_resume_requires_declared_output_mapping() {
     assert_eq!(
         error,
         BpmnEngineError::MissingTaskOutputMapping {
-            process_id: "missing_output_mapping".to_string(),
-            activity_id: "task".to_string(),
+            process_id: ("missing_output_mapping".to_string()).into(),
+            activity_id: ("task".to_string()).into(),
         }
     );
 }
@@ -55,7 +54,7 @@ async fn host_resume_requires_declared_output_mapping_for_all_host_task_kinds() 
         let mut instance = create_blocked_strict_instance(Arc::clone(&package), &process_id).await;
         let token_id = instance.pending_host_work[0].token_id;
 
-        let error = apply_pending_host_work_result(
+        let error = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             token_id,
@@ -67,8 +66,8 @@ async fn host_resume_requires_declared_output_mapping_for_all_host_task_kinds() 
         assert_eq!(
             error,
             BpmnEngineError::MissingTaskOutputMapping {
-                process_id,
-                activity_id: "task".to_string(),
+                process_id: process_id.into(),
+                activity_id: ("task".to_string()).into(),
             }
         );
     }
@@ -90,7 +89,7 @@ async fn host_resume_rejects_missing_required_output() {
         create_blocked_strict_instance(Arc::clone(&package), "missing_required_output").await;
     let token_id = instance.pending_host_work[0].token_id;
 
-    let error = apply_pending_host_work_result(
+    let error = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,
@@ -102,8 +101,8 @@ async fn host_resume_rejects_missing_required_output() {
     assert_eq!(
         error,
         BpmnEngineError::MissingTaskCompletionField {
-            process_id: "missing_required_output".to_string(),
-            activity_id: "task".to_string(),
+            process_id: ("missing_required_output".to_string()).into(),
+            activity_id: ("task".to_string()).into(),
             field: "approved".to_string(),
         }
     );
@@ -127,7 +126,7 @@ async fn host_resume_rejects_non_object_completion_data_for_all_host_task_kinds(
         let mut instance = create_blocked_strict_instance(Arc::clone(&package), &process_id).await;
         let token_id = instance.pending_host_work[0].token_id;
 
-        let error = apply_pending_host_work_result(
+        let error = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             token_id,
@@ -139,8 +138,8 @@ async fn host_resume_rejects_non_object_completion_data_for_all_host_task_kinds(
         assert_eq!(
             error,
             BpmnEngineError::TaskCompletionDataNotObject {
-                process_id,
-                activity_id: "task".to_string(),
+                process_id: process_id.into(),
+                activity_id: ("task".to_string()).into(),
             }
         );
     }
@@ -162,7 +161,7 @@ async fn host_resume_rejects_undeclared_output() {
         create_blocked_strict_instance(Arc::clone(&package), "undeclared_output").await;
     let token_id = instance.pending_host_work[0].token_id;
 
-    let error = apply_pending_host_work_result(
+    let error = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,
@@ -176,8 +175,8 @@ async fn host_resume_rejects_undeclared_output() {
     assert_eq!(
         error,
         BpmnEngineError::UndeclaredTaskCompletionField {
-            process_id: "undeclared_output".to_string(),
-            activity_id: "task".to_string(),
+            process_id: ("undeclared_output".to_string()).into(),
+            activity_id: ("task".to_string()).into(),
             field: "extra".to_string(),
         }
     );
@@ -202,7 +201,7 @@ async fn host_resume_maps_declared_output_for_all_host_task_kinds() {
         let mut instance = create_blocked_strict_instance(Arc::clone(&package), &process_id).await;
         let token_id = instance.pending_host_work[0].token_id;
 
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             token_id,
@@ -231,7 +230,7 @@ async fn host_resume_maps_declared_output_to_target_variable() {
     let mut instance = create_blocked_strict_instance(Arc::clone(&package), "mapped_output").await;
     let token_id = instance.pending_host_work[0].token_id;
 
-    apply_pending_host_work_result(
+    crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

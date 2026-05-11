@@ -125,26 +125,12 @@ fn match_simple_glob(path: &str, pattern: &str) -> bool {
         let pattern_char = pattern_chars[pattern_index];
 
         if pattern_char == '*' {
-            while pattern_index + 1 < pattern_chars.len() && pattern_chars[pattern_index + 1] == '*'
-            {
-                pattern_index += 1;
-            }
-
-            let remaining_pattern = &pattern_chars[pattern_index + 1..];
-            let max_match_len = path_chars[path_index..]
-                .iter()
-                .take_while(|&&ch| ch != '/')
-                .count();
-
-            for try_len in 0..=max_match_len {
-                let remaining_path: String = path_chars[path_index + try_len..].iter().collect();
-                let remaining_pattern_str: String = remaining_pattern.iter().collect();
-
-                if match_simple_glob(&remaining_path, &remaining_pattern_str) {
-                    return true;
-                }
-            }
-            return false;
+            let next_pattern_index = next_non_star_pattern_index(&pattern_chars, pattern_index);
+            return glob_star_matches(
+                &path_chars,
+                path_index,
+                &pattern_chars[next_pattern_index..],
+            );
         }
 
         if pattern_char == '?' {
@@ -165,4 +151,29 @@ fn match_simple_glob(path: &str, pattern: &str) -> bool {
     }
 
     path_index == path_chars.len()
+}
+
+fn next_non_star_pattern_index(pattern_chars: &[char], pattern_index: usize) -> usize {
+    pattern_chars[pattern_index..]
+        .iter()
+        .take_while(|character| **character == '*')
+        .count()
+        + pattern_index
+}
+
+fn glob_star_matches(path_chars: &[char], path_index: usize, remaining_pattern: &[char]) -> bool {
+    let remaining_pattern_str = chars_to_string(remaining_pattern);
+    let max_match_len = path_chars[path_index..]
+        .iter()
+        .take_while(|&&ch| ch != '/')
+        .count();
+
+    (0..=max_match_len).any(|try_len| {
+        let remaining_path = chars_to_string(&path_chars[path_index + try_len..]);
+        match_simple_glob(&remaining_path, &remaining_pattern_str)
+    })
+}
+
+fn chars_to_string(chars: &[char]) -> String {
+    chars.iter().collect()
 }

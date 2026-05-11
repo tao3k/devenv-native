@@ -253,14 +253,20 @@ async fn queries_bounded_work_markdown_payload() -> TestResult {
         payload
             .metadata
             .registered_input_bytes
-            .is_some_and(|bytes| bytes > 0)
+            .is_some_and(|bytes| *bytes.get() > 0)
     );
-    assert!(payload.metadata.result_bytes.is_some_and(|bytes| bytes > 0));
+    assert!(
+        payload
+            .metadata
+            .result_bytes
+            .is_some_and(|bytes| *bytes.get() > 0)
+    );
     assert_eq!(
         payload
             .metadata
             .local_relation_materialization_state
-            .as_deref(),
+            .as_ref()
+            .map(|state| state.get().as_str()),
         Some("materialized")
     );
     assert_eq!(payload.metadata.local_temp_storage_peak_bytes, None);

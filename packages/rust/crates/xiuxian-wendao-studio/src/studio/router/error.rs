@@ -140,7 +140,7 @@ pub fn map_repo_intelligence_error(error: RepoIntelligenceError) -> StudioApiErr
         RepoIntelligenceError::PendingRepositoryIndex { repo_id } => StudioApiError::conflict(
             "REPO_INDEX_PENDING",
             format!("repo `{repo_id}` index is still warming"),
-            Some(repo_id),
+            Some(repo_id.to_string()),
         ),
         RepoIntelligenceError::UnknownProjectedPage { repo_id, page_id } => {
             StudioApiError::not_found(format!(

@@ -7,7 +7,7 @@ use xiuxian_wendao::analyzers::PluginRegistry;
 use xiuxian_zhenfa::ZhenfaSignal;
 
 use crate::bin_support::wendao::execute::gateway::registry::build_plugin_registry;
-use crate::bin_support::wendao::execute::gateway::shared::AppState;
+use crate::bin_support::wendao::execute::gateway::state::AppState;
 
 pub(crate) fn write_temp_gateway_config(contents: &str) -> PathBuf {
     let (mut file, path) = Builder::new()

@@ -96,7 +96,7 @@ pub fn analyze_registered_repository_target_file_with_registry(
 ) -> Result<RepositoryAnalysisOutput, RepoIntelligenceError> {
     if !repository.has_repo_intelligence_plugins() {
         return Err(RepoIntelligenceError::MissingRepoIntelligencePlugins {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
         });
     }
 
@@ -196,7 +196,7 @@ pub fn analyze_registered_repository_bundle_with_registry(
 ) -> Result<CachedRepositoryAnalysis, RepoIntelligenceError> {
     if !repository.has_repo_intelligence_plugins() {
         return Err(RepoIntelligenceError::MissingRepoIntelligencePlugins {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
         });
     }
 
@@ -264,8 +264,8 @@ pub fn analyze_registered_repository_bundle_with_registry(
 
     let audit_results = skeptic::audit_symbols(&output.symbols, &output.docs, &output.relations);
     for symbol in &mut output.symbols {
-        if let Some(state) = audit_results.get(&symbol.symbol_id) {
-            symbol.verification_state.clone_from(&Some(state.clone()));
+        if let Some(state) = audit_results.get(symbol.symbol_id.as_str()) {
+            symbol.verification_state = Some(state.clone().into());
         }
     }
 
@@ -355,7 +355,7 @@ fn filter_repository_analysis_to_target_path(
         .collect::<Vec<_>>();
     let module_ids = modules
         .iter()
-        .map(|module| module.module_id.clone())
+        .map(|module| module.module_id.to_string())
         .collect::<BTreeSet<_>>();
     let symbols = analysis
         .symbols
@@ -365,12 +365,12 @@ fn filter_repository_analysis_to_target_path(
                 || symbol
                     .module_id
                     .as_ref()
-                    .is_some_and(|module_id| module_ids.contains(module_id))
+                    .is_some_and(|module_id| module_ids.contains(module_id.as_str()))
         })
         .collect::<Vec<_>>();
     let symbol_ids = symbols
         .iter()
-        .map(|symbol| symbol.symbol_id.clone())
+        .map(|symbol| symbol.symbol_id.to_string())
         .collect::<BTreeSet<_>>();
     let imports = analysis
         .imports
@@ -384,7 +384,7 @@ fn filter_repository_analysis_to_target_path(
         .collect::<Vec<_>>();
     let example_ids = examples
         .iter()
-        .map(|example| example.example_id.clone())
+        .map(|example| example.example_id.to_string())
         .collect::<BTreeSet<_>>();
     let docs = analysis
         .docs
@@ -393,7 +393,7 @@ fn filter_repository_analysis_to_target_path(
         .collect::<Vec<_>>();
     let doc_ids = docs
         .iter()
-        .map(|doc| doc.doc_id.clone())
+        .map(|doc| doc.doc_id.to_string())
         .collect::<BTreeSet<_>>();
     let diagnostic_paths = [repo_relative_path, "package.mo"];
     let diagnostics = analysis
@@ -545,17 +545,17 @@ fn build_target_file_structural_relations(
         .modules
         .iter()
         .map(|module| RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             source_id: repository_node_id.clone(),
-            target_id: module.module_id.clone(),
+            target_id: module.module_id.to_string(),
             kind: RelationKind::Contains,
         })
         .collect::<Vec<_>>();
     relations.extend(link_context.symbols.iter().filter_map(|symbol| {
         symbol.module_id.as_ref().map(|module_id| RelationRecord {
-            repo_id: repo_id.to_string(),
-            source_id: module_id.clone(),
-            target_id: symbol.symbol_id.clone(),
+            repo_id: repo_id.to_string().into(),
+            source_id: module_id.to_string(),
+            target_id: symbol.symbol_id.to_string(),
             kind: RelationKind::Contains,
         })
     }));

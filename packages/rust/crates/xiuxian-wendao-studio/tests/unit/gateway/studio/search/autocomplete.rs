@@ -57,7 +57,7 @@ async fn autocomplete_includes_code_symbols() {
     let suggestions = response
         .suggestions
         .into_iter()
-        .map(|suggestion| (suggestion.text, suggestion.suggestion_type))
+        .map(|suggestion| (suggestion.text, suggestion.suggestion_type.to_string()))
         .collect::<Vec<_>>();
 
     assert_eq!(

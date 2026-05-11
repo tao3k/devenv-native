@@ -14,7 +14,7 @@ pub(super) fn non_boolean_interaction_choice_condition_issue(
     interaction_output: &StaticInteractionChoiceOutput,
 ) -> LintIssue {
     let choice_values = interaction_output.choice_values.join(", ");
-    let issue = LintIssue::new(
+    let issue = LintIssue::from_parts(
         "bpmn.non_boolean_interaction_choice_condition",
         "Gateway boolean condition consumes non-boolean interaction choices",
         format!(
@@ -121,7 +121,7 @@ pub(super) fn ambiguous_boolean_condition_issue(
             variable_path,
             kind,
         );
-    let issue = LintIssue::new(
+    let issue = LintIssue::from_parts(
         "bpmn.ambiguous_boolean_gateway_condition",
         title,
         summary,
@@ -169,7 +169,7 @@ pub(super) fn unsupported_gateway_condition_issue(
         .map(|condition| format!("`{condition}`"))
         .collect::<Vec<_>>()
         .join(", ");
-    let issue = LintIssue::new(
+    let issue = LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Conditional gateway condition exceeds the bounded subset",
         format!(

@@ -1,9 +1,35 @@
+//! Entity and relation records shared by Wendao knowledge graph APIs.
+
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use super::{EntityType, RelationType};
+use super::types::{EntityType, RelationType};
+
+/// Stable identifier for one extracted graph entity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphEntityId(String);
+
+impl GraphEntityId {
+    /// Consumes this id into its serialized representation.
+    #[must_use]
+    pub fn into_string(self) -> String {
+        self.0
+    }
+}
+
+impl From<String> for GraphEntityId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for GraphEntityId {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
 
 /// Represents an entity extracted from text.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -38,10 +64,15 @@ pub type Entity = GraphEntity;
 impl GraphEntity {
     /// Create a new entity.
     #[must_use]
-    pub fn new(id: String, name: String, entity_type: EntityType, description: String) -> Self {
+    pub fn new(
+        id: impl Into<GraphEntityId>,
+        name: String,
+        entity_type: EntityType,
+        description: String,
+    ) -> Self {
         let now = Utc::now();
         Self {
-            id,
+            id: id.into().into_string(),
             name,
             entity_type,
             description,

@@ -6,6 +6,7 @@ pub use compute::{
     DEFAULT_MEMORY_JULIA_COMPUTE_GATE_SCORE_ROUTE, DEFAULT_MEMORY_JULIA_COMPUTE_PLAN_TUNING_ROUTE,
     DEFAULT_MEMORY_JULIA_COMPUTE_PLUGIN_ID, DEFAULT_MEMORY_JULIA_COMPUTE_SCHEMA_VERSION,
     DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS, MemoryJuliaComputeFallbackMode,
-    MemoryJuliaComputeRoutesRuntimeConfig, MemoryJuliaComputeRuntimeConfig,
-    MemoryJuliaComputeServiceMode, resolve_memory_julia_compute_runtime_with_settings,
+    MemoryJuliaComputePluginId, MemoryJuliaComputeRoutesRuntimeConfig,
+    MemoryJuliaComputeRuntimeConfig, MemoryJuliaComputeServiceMode, MemoryJuliaComputeTimeoutSecs,
+    resolve_memory_julia_compute_runtime_with_settings,
 };

@@ -43,7 +43,7 @@ fn ready_repo_record(maintenance: SearchMaintenanceStatus) -> SearchRepoCorpusRe
         SearchCorpusKind::RepoEntity,
         "alpha/repo",
         Some(SearchRepoRuntimeRecord {
-            repo_id: "alpha/repo".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
             phase: RepoIndexPhase::Ready,
             last_revision: Some("rev-1".to_string()),
             last_error: None,
@@ -64,7 +64,7 @@ fn queued_prewarm(
     QueuedRepoMaintenanceTask {
         task: RepoMaintenanceTask::Prewarm(RepoPrewarmTask {
             corpus,
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             table_name: table_name.to_string(),
             projected_columns: projected_columns
                 .iter()
@@ -86,7 +86,7 @@ fn queued_compaction(
     QueuedRepoMaintenanceTask {
         task: RepoMaintenanceTask::Compaction(RepoCompactionTask {
             corpus,
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             publication_id: publication_id.to_string(),
             table_name: table_name.to_string(),
             row_count: 12,

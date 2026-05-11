@@ -23,7 +23,7 @@ async fn repo_search_publication_state_prefers_publications_over_runtime_phase()
         SearchMaintenancePolicy::default(),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -86,7 +86,7 @@ async fn repo_search_publication_states_batch_repo_record_reads_without_snapshot
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -231,7 +231,7 @@ async fn repo_search_publication_state_hydrates_from_repo_corpus_record_after_me
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -294,7 +294,7 @@ async fn repo_index_bootstrap_statuses_hydrate_from_repo_records_without_snapsho
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -348,7 +348,7 @@ async fn repo_search_publication_state_recovers_publication_after_runtime_only_r
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -409,7 +409,7 @@ async fn repo_search_publication_state_does_not_hydrate_from_manifest_without_re
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,

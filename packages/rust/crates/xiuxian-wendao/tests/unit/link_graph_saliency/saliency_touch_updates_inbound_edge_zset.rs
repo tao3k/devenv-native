@@ -30,7 +30,7 @@ fn test_saliency_touch_updates_inbound_edge_zset() -> Result<(), String> {
 
     let state = valkey_saliency_touch_with_valkey(
         LinkGraphSaliencyTouchRequest {
-            node_id: "note-b".to_string(),
+            node_id: "note-b".to_string().into(),
             activation_delta: 2,
             saliency_base: Some(7.0),
             decay_rate: Some(0.05),

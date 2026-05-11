@@ -23,6 +23,28 @@ pub const GRAPH_NEIGHBORS_DEFAULT_LIMIT: usize = 50;
 const GRAPH_NEIGHBORS_MAX_HOPS: usize = 8;
 const GRAPH_NEIGHBORS_MAX_LIMIT: usize = 300;
 
+/// Normalized graph-neighbors request metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphNeighborsRequest {
+    /// Normalized graph node identifier.
+    pub node_id: String,
+    /// Normalized edge direction token.
+    pub direction: String,
+    /// Normalized hop limit.
+    pub hops: usize,
+    /// Normalized result limit.
+    pub limit: usize,
+}
+
+impl PartialEq<(String, String, usize, usize)> for GraphNeighborsRequest {
+    fn eq(&self, other: &(String, String, usize, usize)) -> bool {
+        self.node_id == other.0
+            && self.direction == other.1
+            && self.hops == other.2
+            && self.limit == other.3
+    }
+}
+
 /// Validate and normalize the stable graph-neighbors request contract.
 ///
 /// # Errors
@@ -33,7 +55,7 @@ pub fn validate_graph_neighbors_request(
     direction: Option<&str>,
     hops: Option<usize>,
     limit: Option<usize>,
-) -> Result<(String, String, usize, usize), String> {
+) -> Result<GraphNeighborsRequest, String> {
     let normalized_node_id = node_id.trim();
     if normalized_node_id.is_empty() {
         return Err("graph neighbors requires a non-empty node id".to_string());
@@ -56,10 +78,10 @@ pub fn validate_graph_neighbors_request(
         .unwrap_or(GRAPH_NEIGHBORS_DEFAULT_LIMIT)
         .clamp(1, GRAPH_NEIGHBORS_MAX_LIMIT);
 
-    Ok((
-        normalized_node_id.to_string(),
-        normalized_direction.to_string(),
-        normalized_hops,
-        normalized_limit,
-    ))
+    Ok(GraphNeighborsRequest {
+        node_id: normalized_node_id.to_string(),
+        direction: normalized_direction.to_string(),
+        hops: normalized_hops,
+        limit: normalized_limit,
+    })
 }

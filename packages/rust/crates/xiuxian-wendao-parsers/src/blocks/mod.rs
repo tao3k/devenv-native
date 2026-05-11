@@ -8,5 +8,6 @@ mod types;
 pub use api::extract_blocks;
 pub use sourcepos::line_col_to_byte_range;
 pub use types::{
-    BlockCore, BlockKindIdentity, MarkdownBlock, MarkdownBlockKind, compute_block_hash,
+    BlockCore, BlockCoreRequest, BlockExplicitId, BlockKindIdentity, MarkdownBlock,
+    MarkdownBlockKind, compute_block_hash,
 };

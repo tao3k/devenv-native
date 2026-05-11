@@ -78,7 +78,7 @@ async fn typed_repo_entity_search_reconstructs_module_symbol_and_example_results
     let import_result = search_repo_entity_import_results(
         service,
         &crate::analyzers::ImportSearchQuery {
-            repo_id: "alpha/repo".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
             package: Some("SciMLBase".to_string()),
             module: Some("BaseModelica".to_string()),
             limit: 5,

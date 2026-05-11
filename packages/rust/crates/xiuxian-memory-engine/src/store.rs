@@ -4,7 +4,7 @@
 //! state persistence. Direct `LanceDB` persistence remains deferred.
 
 use crate::encoder::IntentEncoder;
-use crate::episode::Episode;
+use crate::episode::{Episode, EpisodeId};
 use crate::persistence::atomic_write_text;
 use crate::projection::{MemoryProjectionFilter, MemoryProjectionRow};
 use crate::q_table::QTable;
@@ -34,6 +34,36 @@ pub struct MemoryStateSnapshot {
     /// Persisted recall feedback bias by scope.
     #[serde(default)]
     pub recall_feedback_bias_by_scope: HashMap<String, f32>,
+}
+
+/// Scoped two-phase recall request using a text intent.
+#[derive(Debug, Clone)]
+pub struct ScopedTwoPhaseRecallRequest<'a> {
+    /// Logical scope for candidate filtering.
+    pub scope: &'a str,
+    /// Query intent.
+    pub intent: &'a str,
+    /// Number of first-stage candidates.
+    pub k1: usize,
+    /// Number of final reranked results.
+    pub k2: usize,
+    /// Q-value weight in reranking.
+    pub lambda: f32,
+}
+
+/// Scoped two-phase recall request using a precomputed embedding.
+#[derive(Debug, Clone)]
+pub struct ScopedTwoPhaseEmbeddingRecallRequest<'a> {
+    /// Logical scope for candidate filtering.
+    pub scope: &'a str,
+    /// Query embedding.
+    pub embedding: &'a [f32],
+    /// Number of first-stage candidates.
+    pub k1: usize,
+    /// Number of final reranked results.
+    pub k2: usize,
+    /// Q-value weight in reranking.
+    pub lambda: f32,
 }
 
 /// Episode store configuration.
@@ -255,9 +285,10 @@ impl EpisodeStore {
 
     /// Get an episode by ID.
     #[must_use]
-    pub fn get(&self, id: &str) -> Option<Episode> {
+    pub fn get(&self, id: impl Into<EpisodeId>) -> Option<Episode> {
+        let id = id.into();
         let episodes = self.read_episodes();
-        episodes.iter().find(|e| e.id == id).cloned()
+        episodes.iter().find(|e| e.id == id.as_str()).cloned()
     }
 
     /// Get all episodes.
@@ -293,13 +324,14 @@ impl EpisodeStore {
     /// Update Q-value for an episode.
     ///
     /// Returns the new Q-value.
-    pub fn update_q(&self, episode_id: &str, reward: f32) -> f32 {
-        let new_q = self.q_table.update(episode_id, reward);
+    pub fn update_q(&self, episode_id: impl Into<EpisodeId>, reward: f32) -> f32 {
+        let episode_id = episode_id.into();
+        let new_q = self.q_table.update(episode_id.as_str(), reward);
         // Also update the episode's q_value
         if let Some(ep) = self
             .write_episodes()
             .iter_mut()
-            .find(|e| e.id == episode_id)
+            .find(|e| e.id == episode_id.as_str())
         {
             ep.q_value = new_q;
         }
@@ -396,14 +428,10 @@ impl EpisodeStore {
     /// Recall episodes with Q-value reranking inside a logical scope.
     pub fn two_phase_recall_for_scope(
         &self,
-        scope: &str,
-        intent: &str,
-        k1: usize,
-        k2: usize,
-        lambda: f32,
+        request: ScopedTwoPhaseRecallRequest<'_>,
     ) -> Vec<(Episode, f32)> {
-        let candidates = self.recall_for_scope(scope, intent, k1);
-        self.rerank_candidates(candidates, k2, lambda)
+        let candidates = self.recall_for_scope(request.scope, request.intent, request.k1);
+        self.rerank_candidates(candidates, request.k2, request.lambda)
     }
 
     /// Two-phase recall with pre-computed embedding.
@@ -421,14 +449,11 @@ impl EpisodeStore {
     /// Two-phase recall with pre-computed embedding inside a logical scope.
     pub fn two_phase_recall_with_embedding_for_scope(
         &self,
-        scope: &str,
-        embedding: &[f32],
-        k1: usize,
-        k2: usize,
-        lambda: f32,
+        request: ScopedTwoPhaseEmbeddingRecallRequest<'_>,
     ) -> Vec<(Episode, f32)> {
-        let candidates = self.recall_with_embedding_for_scope(scope, embedding, k1);
-        self.rerank_candidates(candidates, k2, lambda)
+        let candidates =
+            self.recall_with_embedding_for_scope(request.scope, request.embedding, request.k1);
+        self.rerank_candidates(candidates, request.k2, request.lambda)
     }
 
     /// Multi-hop reasoning: chain multiple queries together.
@@ -559,9 +584,15 @@ impl EpisodeStore {
     /// Update an existing episode's experience.
     ///
     /// Returns true if episode was found and updated.
-    pub fn update_episode(&self, episode_id: &str, experience: &str, outcome: &str) -> bool {
+    pub fn update_episode(
+        &self,
+        episode_id: impl Into<EpisodeId>,
+        experience: &str,
+        outcome: &str,
+    ) -> bool {
+        let episode_id = episode_id.into();
         let mut episodes = self.write_episodes();
-        if let Some(ep) = episodes.iter_mut().find(|e| e.id == episode_id) {
+        if let Some(ep) = episodes.iter_mut().find(|e| e.id == episode_id.as_str()) {
             ep.experience = experience.to_string();
             ep.outcome = outcome.to_string();
             ep.updated_at = chrono::Utc::now().timestamp_millis();
@@ -573,15 +604,16 @@ impl EpisodeStore {
     /// Delete an episode by ID.
     ///
     /// Returns true if episode was found and deleted.
-    pub fn delete_episode(&self, episode_id: &str) -> bool {
+    pub fn delete_episode(&self, episode_id: impl Into<EpisodeId>) -> bool {
+        let episode_id = episode_id.into();
         let mut episodes = self.write_episodes();
         let initial_len = episodes.len();
-        episodes.retain(|e| e.id != episode_id);
+        episodes.retain(|e| e.id != episode_id.as_str());
         let deleted = episodes.len() < initial_len;
 
         if deleted {
             // Also remove from Q-table
-            self.q_table.remove(episode_id);
+            self.q_table.remove(episode_id.as_str());
         }
 
         deleted
@@ -591,9 +623,10 @@ impl EpisodeStore {
     ///
     /// When an episode is retrieved, it should be marked as accessed.
     /// This helps prioritize frequently used episodes.
-    pub fn mark_accessed(&self, episode_id: &str) {
+    pub fn mark_accessed(&self, episode_id: impl Into<EpisodeId>) {
+        let episode_id = episode_id.into();
         let mut episodes = self.write_episodes();
-        if let Some(ep) = episodes.iter_mut().find(|e| e.id == episode_id) {
+        if let Some(ep) = episodes.iter_mut().find(|e| e.id == episode_id.as_str()) {
             ep.mark_accessed();
         }
     }
@@ -604,9 +637,10 @@ impl EpisodeStore {
     /// - `success = false`: increments `failure_count`
     ///
     /// Returns `true` when the episode exists and is updated.
-    pub fn record_feedback(&self, episode_id: &str, success: bool) -> bool {
+    pub fn record_feedback(&self, episode_id: impl Into<EpisodeId>, success: bool) -> bool {
+        let episode_id = episode_id.into();
         let mut episodes = self.write_episodes();
-        if let Some(ep) = episodes.iter_mut().find(|e| e.id == episode_id) {
+        if let Some(ep) = episodes.iter_mut().find(|e| e.id == episode_id.as_str()) {
             if success {
                 ep.mark_success();
             } else {
@@ -657,19 +691,16 @@ impl EpisodeStore {
     pub fn stats(&self) -> MemoryStats {
         let episodes = self.read_episodes();
         let current_time = chrono::Utc::now().timestamp_millis();
-
-        let mut total_age_hours = 0.0;
-        let mut validated_count = 0;
-
-        for ep in episodes.iter() {
-            total_age_hours += ep.age_hours(current_time);
-            if ep.is_validated() {
-                validated_count += 1;
-            }
-        }
-
         let count = episodes.len();
         let count_f32 = episodes.iter().fold(0.0_f32, |acc, _| acc + 1.0);
+        let total_age_hours = episodes
+            .iter()
+            .map(|episode| episode.age_hours(current_time))
+            .sum::<f32>();
+        let validated_count = episodes
+            .iter()
+            .filter(|episode| episode.is_validated())
+            .count();
         MemoryStats {
             total_episodes: count,
             validated_episodes: validated_count,
@@ -805,7 +836,7 @@ impl EpisodeStore {
     ///
     /// Returns an error if the Q-table cannot be written to disk.
     pub fn save_q_table(&self, path: &str) -> Result<()> {
-        self.q_table.save(path)
+        Ok(self.q_table.save(path)?)
     }
 
     /// Load Q-table from disk.
@@ -814,7 +845,7 @@ impl EpisodeStore {
     ///
     /// Returns an error if the Q-table file cannot be read or parsed.
     pub fn load_q_table(&mut self, path: &str) -> Result<()> {
-        self.q_table.load(path)
+        Ok(self.q_table.load(path)?)
     }
 
     /// Get `LanceDB` dataset path for this store.

@@ -9,6 +9,7 @@ use crate::bpmn_model_api::{
     BpmnCorrelationKeySnapshot, BpmnCorrelationPropertyBindingSnapshot,
     BpmnCorrelationPropertySnapshot, BpmnCorrelationSubscriptionSnapshot, BpmnDocumentSnapshot,
     BpmnMessageFlowSnapshot, BpmnParticipantMultiplicitySnapshot, BpmnParticipantSnapshot,
+    BpmnSnapshotFlag,
 };
 use std::sync::Arc;
 
@@ -17,7 +18,7 @@ impl BpmnCollaborationHostEnvelope {
     #[must_use]
     pub(crate) fn from_document_snapshot(snapshot: &BpmnDocumentSnapshot) -> Self {
         let mut envelope = Self {
-            source_id: Some(Arc::<str>::from(snapshot.source_id.as_str())),
+            source_id: (Some(Arc::<str>::from(snapshot.source_id.as_str()))).into(),
             ..Self::default()
         };
 
@@ -73,7 +74,7 @@ fn collaboration_intent(collaboration: &BpmnCollaborationSnapshot) -> BpmnCollab
     BpmnCollaborationIntent {
         collaboration_id: optional_arc(collaboration.collaboration_id.as_deref()),
         name: optional_arc(collaboration.name.as_deref()),
-        is_closed: collaboration.is_closed,
+        is_closed: collaboration.is_closed.map(BpmnSnapshotFlag::get),
         initiating_participant_ref: optional_arc(
             collaboration.initiating_participant_ref.as_deref(),
         ),
@@ -212,7 +213,7 @@ fn process_correlation_subscription_intent(
     subscription: &BpmnCorrelationSubscriptionSnapshot,
 ) -> BpmnProcessCorrelationSubscriptionIntent {
     BpmnProcessCorrelationSubscriptionIntent {
-        process_id: Arc::<str>::from(process_id),
+        process_id: (Arc::<str>::from(process_id)).into(),
         subscription_id: optional_arc(subscription.subscription_id.as_deref()),
         correlation_key_ref: optional_arc(subscription.correlation_key_ref.as_deref()),
         bindings: subscription

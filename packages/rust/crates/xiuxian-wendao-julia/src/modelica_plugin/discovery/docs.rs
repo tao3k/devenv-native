@@ -199,10 +199,10 @@ pub(crate) fn collect_doc_records(
             );
             docs.push(CollectedDoc {
                 record: DocRecord {
-                    repo_id: repo_id.to_string(),
-                    doc_id: format!("repo:{repo_id}:doc:{relative}"),
+                    repo_id: (repo_id.to_string()).into(),
+                    doc_id: (format!("repo:{repo_id}:doc:{relative}")).into(),
                     title,
-                    path: relative.to_string(),
+                    path: (relative.to_string()).into(),
                     format,
                     doc_target: None,
                 },
@@ -234,10 +234,10 @@ pub(crate) fn collect_doc_records(
         }
         docs.push(CollectedDoc {
             record: DocRecord {
-                repo_id: repo_id.to_string(),
-                doc_id: format!("repo:{repo_id}:doc:{relative}#annotation.documentation"),
+                repo_id: (repo_id.to_string()).into(),
+                doc_id: (format!("repo:{repo_id}:doc:{relative}#annotation.documentation")).into(),
                 title: annotation_doc_title(relative, symbols),
-                path: format!("{relative}#annotation.documentation"),
+                path: (format!("{relative}#annotation.documentation")).into(),
                 format: doc_format_hint(relative, true),
                 doc_target: None,
             },
@@ -280,10 +280,11 @@ fn collect_nested_users_guide_section_docs(
         .into_iter()
         .map(|topic| CollectedDoc {
             record: DocRecord {
-                repo_id: repo_id.to_string(),
-                doc_id: format!("repo:{repo_id}:doc:{relative_path}#section.{}", topic.title),
+                repo_id: (repo_id.to_string()).into(),
+                doc_id: (format!("repo:{repo_id}:doc:{relative_path}#section.{}", topic.title))
+                    .into(),
                 title: synthetic_section_title(topic.title),
-                path: format!("{relative_path}#section.{}", topic.title),
+                path: (format!("{relative_path}#section.{}", topic.title)).into(),
                 format: Some(topic.format.to_string()),
                 doc_target: None,
             },

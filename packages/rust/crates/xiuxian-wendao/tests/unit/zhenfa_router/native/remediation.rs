@@ -11,7 +11,7 @@ fn remediation_config_default() {
 #[test]
 fn remediation_action_debug() {
     let action = RemediationAction::RefreshSymbolCache {
-        doc_id: "docs/api".to_string(),
+        doc_id: "docs/api".to_string().into(),
     };
     let debug_str = format!("{action:?}");
     assert!(debug_str.contains("RefreshSymbolCache"));

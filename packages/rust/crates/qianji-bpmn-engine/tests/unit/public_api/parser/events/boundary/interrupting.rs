@@ -113,8 +113,8 @@ fn parser_escalation_deferred_task_boundary_reports_supported_owner_detail() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: "review_with_task_escalation".to_string(),
-            node_id: "review_escalated".to_string(),
+            process_id: ("review_with_task_escalation".to_string()).into(),
+            node_id: ("review_escalated".to_string()).into(),
             detail: "escalation_boundary_requires_supported_subprocess_shell",
         }
     );

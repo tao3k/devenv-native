@@ -10,7 +10,7 @@ fn dmn_parser_rejects_invalid_root_element() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnRootElement {
-            source_id: "invalid-root-element-decision-root.dmn".to_string(),
+            source_id: ("invalid-root-element-decision-root.dmn".to_string()).into(),
             element: "decision".to_string(),
         }
     );
@@ -24,7 +24,7 @@ fn dmn_parser_rejects_missing_model_namespace() {
     assert_eq!(
         error,
         BpmnEngineError::MissingDmnModelNamespace {
-            source_id: "invalid-missing-model-namespace.dmn".to_string(),
+            source_id: ("invalid-missing-model-namespace.dmn".to_string()).into(),
         }
     );
 }
@@ -39,7 +39,7 @@ fn dmn_parser_rejects_unsupported_model_namespace() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnModelNamespace {
-            source_id: "invalid-unsupported-model-namespace-20211108.dmn".to_string(),
+            source_id: ("invalid-unsupported-model-namespace-20211108.dmn".to_string()).into(),
             model_namespace_uri: "https://www.omg.org/spec/DMN/20211108/MODEL/".to_string(),
         }
     );
@@ -55,7 +55,7 @@ fn dmn_parser_requires_definitions_namespace_attribute() {
     assert_eq!(
         error,
         BpmnEngineError::MissingDmnAttribute {
-            source_id: "invalid-missing-definitions-namespace-attribute.dmn".to_string(),
+            source_id: ("invalid-missing-definitions-namespace-attribute.dmn".to_string()).into(),
             element: "definitions".to_string(),
             attribute: "namespace".to_string(),
         }
@@ -70,7 +70,7 @@ fn dmn_parser_rejects_top_level_imports() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnImport {
-            source_id: "unsupported-top-level-import-20191111.dmn".to_string(),
+            source_id: ("unsupported-top-level-import-20191111.dmn".to_string()).into(),
         }
     );
 }

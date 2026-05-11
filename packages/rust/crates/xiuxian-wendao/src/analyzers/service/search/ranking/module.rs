@@ -56,7 +56,7 @@ pub(crate) fn ranked_module_matches(
     {
         let lookup = modules
             .iter()
-            .map(|module| (module.module_id.clone(), module.clone()))
+            .map(|module| (module.module_id.to_string(), module.clone()))
             .collect::<BTreeMap<_, _>>();
         let Some(index) = build_search_document_index(modules.iter().map(module_search_document))
         else {

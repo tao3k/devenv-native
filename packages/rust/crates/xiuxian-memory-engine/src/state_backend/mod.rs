@@ -5,8 +5,9 @@ mod facade;
 mod valkey;
 
 pub use facade::{
-    LocalMemoryStateStore, MemoryStateStore, default_valkey_recall_feedback_hash_key,
-    default_valkey_state_hash_keys, default_valkey_state_key,
+    LocalMemoryStateStore, MemoryStateStore, ValkeyStateHashKeys,
+    default_valkey_recall_feedback_hash_key, default_valkey_state_hash_keys,
+    default_valkey_state_key,
 };
 #[cfg(feature = "valkey")]
 pub use valkey::ValkeyMemoryStateStore;

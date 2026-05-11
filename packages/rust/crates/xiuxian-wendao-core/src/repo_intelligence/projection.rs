@@ -1,3 +1,5 @@
+//! Projection labels for deterministic repository page families.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

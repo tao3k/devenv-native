@@ -1,3 +1,5 @@
+//! Plugin traits and payloads for repository-intelligence analyzers.
+
 use std::path::Path;
 
 use schemars::JsonSchema;

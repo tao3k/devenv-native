@@ -1,3 +1,5 @@
+//! Artifact selection contracts used by command and search surfaces.
+
 use serde::{Deserialize, Serialize};
 
 use crate::ids::{ArtifactId, PluginId};

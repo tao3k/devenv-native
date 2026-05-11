@@ -90,8 +90,8 @@ fn evaluate_standard_loop_condition(
     };
     let value = resolve_boolean_variable_path(variables, path).ok_or_else(|| {
         BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (process.nodes[node_index as usize].bpmn_id.to_string()).into(),
             detail: "loop_condition_variable_unresolved",
         }
     })?;
@@ -112,15 +112,15 @@ pub(crate) fn multi_instance_completion_condition_reached(
         |error| match error {
             MultiInstanceCompletionConditionError::UnresolvedVariablePath(_) => {
                 BpmnEngineError::UnsupportedLoopConfiguration {
-                    process_id: process.key.process_id.to_string(),
-                    node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+                    process_id: (process.key.process_id.to_string()).into(),
+                    node_id: (process.nodes[node_index as usize].bpmn_id.to_string()).into(),
                     detail: "multi_instance_completion_condition_variable_unresolved",
                 }
             }
             MultiInstanceCompletionConditionError::UnsupportedExpression => {
                 BpmnEngineError::UnsupportedLoopConfiguration {
-                    process_id: process.key.process_id.to_string(),
-                    node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+                    process_id: (process.key.process_id.to_string()).into(),
+                    node_id: (process.nodes[node_index as usize].bpmn_id.to_string()).into(),
                     detail: "unsupported_multi_instance_completion_condition_expression",
                 }
             }

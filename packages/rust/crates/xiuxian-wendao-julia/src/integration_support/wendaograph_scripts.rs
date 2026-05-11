@@ -16,6 +16,7 @@ else
     search_root = ARGS[2]
     candidate_input_tsv = length(ARGS) >= 3 ? ARGS[3] : ""
     candidate_input_source_hint = length(ARGS) >= 4 ? ARGS[4] : ""
+    candidate_input_discovery_json = length(ARGS) >= 5 ? ARGS[5] : "null"
 end
 
 function json_escape(value)
@@ -47,6 +48,14 @@ end
 
 function json_pair(name, raw_value)
     "$(json_escape(name)):$(raw_value)"
+end
+
+function json_raw_or_null(value)
+    stripped = strip(String(value))
+    isempty(stripped) && return "null"
+    (startswith(stripped, "{") || startswith(stripped, "[")) && return stripped
+    stripped == "null" && return "null"
+    "null"
 end
 
 function split_candidate_id(candidate_id)
@@ -337,7 +346,7 @@ function stage_receipt_json(row)
     ))
 end
 
-function search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint)
+function search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint, candidate_input_discovery_json)
 flow_id = "pi-wendao-search-strategy-flow"
 query_understanding = query_understanding_evidence_rows(intent; flow_id = flow_id, intent_id = "cli-intent-1")
 strategy_budget = (
@@ -353,6 +362,7 @@ page_index_weight = occursin("page", normalized_intent) || occursin("index", nor
 
 candidate_inputs = parse_candidate_inputs(candidate_input_tsv)
 candidate_input_source = isempty(candidate_inputs) ? "fixed-proof-fallback" : (isempty(candidate_input_source_hint) ? "rust-markdown-headings" : candidate_input_source_hint)
+candidate_input_discovery = json_raw_or_null(candidate_input_discovery_json)
 candidates = isempty(candidate_inputs) ? fixed_proof_candidates(strategy_weight, page_index_weight) : doc_candidate_from_input.(candidate_inputs)
 
 rows = strategy_flow_candidate_rows(
@@ -467,6 +477,7 @@ return "{" * join((
     json_pair("searchRoot", json_value(search_root)),
     json_pair("candidateInputSource", json_value(candidate_input_source)),
     json_pair("candidateInputCount", json_value(length(candidate_inputs))),
+    json_pair("candidateInputDiscovery", candidate_input_discovery),
     json_pair("queryUnderstanding", "[" * join(query_understanding_json.(query_understanding), ",") * "]"),
     json_pair("strategyBudget", strategy_budget_json(strategy_budget)),
     json_pair("stageReceipts", "[" * join(stage_receipt_json.(stage_receipts), ",") * "]"),
@@ -480,7 +491,7 @@ end
 
 if batch_mode
     batch_count = parse(Int, ARGS[3])
-    expected_arg_count = 3 + batch_count * 3
+    expected_arg_count = 3 + batch_count * 4
     length(ARGS) == expected_arg_count || error("SearchStrategyFlow batch mode expected $expected_arg_count args, got $(length(ARGS))")
 
     function search_strategy_flow_batch_json_lines(batch_count)
@@ -490,8 +501,9 @@ if batch_mode
             batch_intent = ARGS[arg_index]
             batch_candidate_input_tsv = ARGS[arg_index + 1]
             batch_candidate_input_source_hint = ARGS[arg_index + 2]
-            push!(traces, search_strategy_flow_json(batch_intent, batch_candidate_input_tsv, batch_candidate_input_source_hint))
-            arg_index += 3
+            batch_candidate_input_discovery_json = ARGS[arg_index + 3]
+            push!(traces, search_strategy_flow_json(batch_intent, batch_candidate_input_tsv, batch_candidate_input_source_hint, batch_candidate_input_discovery_json))
+            arg_index += 4
         end
         join(traces, "\n")
     end
@@ -519,24 +531,26 @@ elseif persistent_batch_mode
             batch_intent = read_search_strategy_flow_payload()
             batch_candidate_input_tsv = read_search_strategy_flow_payload()
             batch_candidate_input_source_hint = read_search_strategy_flow_payload()
+            batch_candidate_input_discovery_json = read_search_strategy_flow_payload()
             push!(
                 request_batches,
                 (
                     intent = batch_intent,
                     candidate_input_tsv = batch_candidate_input_tsv,
                     candidate_input_source_hint = batch_candidate_input_source_hint,
+                    candidate_input_discovery_json = batch_candidate_input_discovery_json,
                 ),
             )
         end
         traces = [
-            search_strategy_flow_json(batch.intent, batch.candidate_input_tsv, batch.candidate_input_source_hint)
+            search_strategy_flow_json(batch.intent, batch.candidate_input_tsv, batch.candidate_input_source_hint, batch.candidate_input_discovery_json)
             for batch in request_batches
         ]
         println(join(traces, "\n"))
         flush(stdout)
     end
 else
-    println(search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint))
+    println(search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint, candidate_input_discovery_json))
 end
 "#;
 

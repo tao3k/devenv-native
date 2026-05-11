@@ -14,7 +14,7 @@ async fn managed_remote_reuses_revision_scoped_publications_after_latest_record_
         SearchMaintenancePolicy::default(),
     );
     let documents = vec![crate::repo_index::types::RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -22,10 +22,10 @@ async fn managed_remote_reuses_revision_scoped_publications_after_latest_record_
     }];
     let analysis = RepositoryAnalysisOutput {
         modules: vec![crate::analyzers::ModuleRecord {
-            repo_id: "alpha/repo".to_string(),
-            module_id: "module:alpha".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     };
@@ -53,7 +53,7 @@ async fn managed_remote_reuses_revision_scoped_publications_after_latest_record_
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()
@@ -104,7 +104,7 @@ async fn managed_remote_does_not_reuse_evicted_revision_scoped_publications() {
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()
@@ -117,7 +117,7 @@ async fn managed_remote_does_not_reuse_evicted_revision_scoped_publications() {
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-2".to_string()),
                     ..RepoSyncResult::default()
@@ -176,7 +176,7 @@ async fn managed_remote_requires_both_repo_corpora_to_be_current_parquet_publica
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()

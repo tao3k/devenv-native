@@ -34,7 +34,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_topology_issue(
         "snapshot": snapshot.as_ref().map(diagram_snapshot_summary),
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.invalid_di_plane_topology",
         "BPMN diagram interchange plane topology is invalid",
         format!(

@@ -24,7 +24,7 @@ pub(super) use xiuxian_git_repo::{
 
 pub(super) fn repo_documents() -> Vec<RepoCodeDocument> {
     vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: std::sync::Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -35,10 +35,10 @@ pub(super) fn repo_documents() -> Vec<RepoCodeDocument> {
 pub(super) fn repo_analysis_output(repo_id: &str) -> RepositoryAnalysisOutput {
     RepositoryAnalysisOutput {
         modules: vec![ModuleRecord {
-            repo_id: repo_id.to_string(),
-            module_id: "module:alpha".to_string(),
+            repo_id: repo_id.to_string().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     }

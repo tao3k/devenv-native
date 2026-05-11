@@ -29,7 +29,7 @@ pub(super) fn required_attribute(
     attribute: &str,
 ) -> Result<String> {
     attribute_value(reader, event, attribute)?.ok_or_else(|| BpmnEngineError::MissingAttribute {
-        source_id: source.source_id.clone(),
+        source_id: (source.source_id.clone()).into(),
         element: element.to_string(),
         attribute: attribute.to_string(),
     })
@@ -83,8 +83,8 @@ pub(super) fn parse_optional_u32_attribute(
             value
                 .parse::<u32>()
                 .map_err(|_| BpmnEngineError::UnsupportedLoopConfiguration {
-                    process_id: process_id.to_string(),
-                    node_id: node_id.to_string(),
+                    process_id: (process_id.to_string()).into(),
+                    node_id: (node_id.to_string()).into(),
                     detail,
                 })
         })

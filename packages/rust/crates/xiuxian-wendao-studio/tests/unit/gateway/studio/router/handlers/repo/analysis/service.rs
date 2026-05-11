@@ -128,19 +128,19 @@ async fn run_repo_overview_prefers_repo_entity_publication_summary_before_live_a
     });
     let analysis = RepositoryAnalysisOutput {
         modules: vec![ModuleRecord {
-            repo_id: "published/repo".to_string(),
-            module_id: "module:Published".to_string(),
+            repo_id: "published/repo".to_string().into(),
+            module_id: "module:Published".to_string().into(),
             qualified_name: "Published".to_string(),
-            path: "src/Published.jl".to_string(),
+            path: "src/Published.jl".to_string().into(),
         }],
         symbols: vec![SymbolRecord {
-            repo_id: "published/repo".to_string(),
-            symbol_id: "symbol:solve".to_string(),
-            module_id: Some("module:Published".to_string()),
+            repo_id: "published/repo".to_string().into(),
+            symbol_id: "symbol:solve".to_string().into(),
+            module_id: Some("module:Published".to_string().into()),
             name: "solve".to_string(),
             qualified_name: "Published.solve".to_string(),
             kind: RepoSymbolKind::Function,
-            path: "src/Published.jl".to_string(),
+            path: "src/Published.jl".to_string().into(),
             line_start: Some(3),
             line_end: Some(3),
             signature: Some("solve()".to_string()),
@@ -149,10 +149,10 @@ async fn run_repo_overview_prefers_repo_entity_publication_summary_before_live_a
             attributes: BTreeMap::new(),
         }],
         examples: vec![ExampleRecord {
-            repo_id: "published/repo".to_string(),
-            example_id: "example:solve".to_string(),
+            repo_id: "published/repo".to_string().into(),
+            example_id: "example:solve".to_string().into(),
             title: "Solve example".to_string(),
-            path: "examples/solve.jl".to_string(),
+            path: "examples/solve.jl".to_string().into(),
             summary: Some("Shows solve".to_string()),
         }],
         ..RepositoryAnalysisOutput::default()

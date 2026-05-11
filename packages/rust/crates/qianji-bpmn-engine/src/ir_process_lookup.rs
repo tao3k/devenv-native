@@ -81,22 +81,24 @@ pub(super) fn build_boundary_event_lookup(
     nodes: &[BpmnNodeSpec],
 ) -> (Vec<BpmnIndexRange>, Vec<u32>) {
     let mut counts = vec![0_u32; nodes.len()];
-    for node in nodes {
-        if let Some(attached_to) = node.attached_to {
-            counts[attached_to as usize] += 1;
-        }
-    }
+    nodes
+        .iter()
+        .filter_map(|node| node.attached_to)
+        .for_each(|attached_to| counts[attached_to as usize] += 1);
 
     let offsets = build_index_ranges(&counts);
     let mut order = vec![0_u32; counts.iter().copied().map(|count| count as usize).sum()];
     let mut cursors = offsets.iter().map(|range| range.start).collect::<Vec<_>>();
 
-    for node in nodes {
-        let Some(attached_to) = node.attached_to else {
-            continue;
-        };
-        write_index(&mut cursors, &mut order, attached_to as usize, node.index);
-    }
+    nodes
+        .iter()
+        .filter_map(|node| {
+            node.attached_to
+                .map(|attached_to| (attached_to, node.index))
+        })
+        .for_each(|(attached_to, node_index)| {
+            write_index(&mut cursors, &mut order, attached_to as usize, node_index);
+        });
 
     (offsets, order)
 }

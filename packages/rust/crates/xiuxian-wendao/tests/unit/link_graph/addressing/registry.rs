@@ -11,7 +11,7 @@ fn make_test_node(id: &str, title: &str) -> PageIndexNode {
         attrs.insert("ID".to_string(), id.to_string());
     }
     PageIndexNode {
-        node_id: format!("doc#{title}"),
+        node_id: format!("doc#{title}").into(),
         parent_id: None,
         title: title.to_string(),
         level: 1,
@@ -85,7 +85,7 @@ fn test_get_returns_correct_doc() {
 fn test_nested_nodes_indexed() {
     let child = make_test_node("child-id", "Child Section");
     let parent = PageIndexNode {
-        node_id: "doc#parent".to_string(),
+        node_id: "doc#parent".to_string().into(),
         parent_id: None,
         title: "Parent".to_string(),
         level: 1,

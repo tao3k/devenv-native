@@ -14,7 +14,7 @@ async fn managed_remote_skips_reindex_when_repo_publications_already_match_revis
         SearchMaintenancePolicy::default(),
     );
     let documents = vec![crate::repo_index::types::RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -25,10 +25,10 @@ async fn managed_remote_skips_reindex_when_repo_publications_already_match_revis
             "alpha/repo",
             &RepositoryAnalysisOutput {
                 modules: vec![crate::analyzers::ModuleRecord {
-                    repo_id: "alpha/repo".to_string(),
-                    module_id: "module:alpha".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
+                    module_id: "module:alpha".to_string().into(),
                     qualified_name: "Alpha".to_string(),
-                    path: "src/lib.rs".to_string(),
+                    path: "src/lib.rs".to_string().into(),
                 }],
                 ..RepositoryAnalysisOutput::default()
             },
@@ -48,7 +48,7 @@ async fn managed_remote_skips_reindex_when_repo_publications_already_match_revis
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()
@@ -104,7 +104,7 @@ async fn managed_remote_reuses_latest_persisted_publications_without_revision_ca
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()
@@ -124,7 +124,7 @@ async fn local_checkout_does_not_short_circuit_on_revision_match() {
         SearchMaintenancePolicy::default(),
     );
     let documents = vec![crate::repo_index::types::RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -135,10 +135,10 @@ async fn local_checkout_does_not_short_circuit_on_revision_match() {
             "alpha/repo",
             &RepositoryAnalysisOutput {
                 modules: vec![crate::analyzers::ModuleRecord {
-                    repo_id: "alpha/repo".to_string(),
-                    module_id: "module:alpha".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
+                    module_id: "module:alpha".to_string().into(),
                     qualified_name: "Alpha".to_string(),
-                    path: "src/lib.rs".to_string(),
+                    path: "src/lib.rs".to_string().into(),
                 }],
                 ..RepositoryAnalysisOutput::default()
             },
@@ -158,7 +158,7 @@ async fn local_checkout_does_not_short_circuit_on_revision_match() {
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     source_kind: RepoSourceKind::LocalCheckout,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()

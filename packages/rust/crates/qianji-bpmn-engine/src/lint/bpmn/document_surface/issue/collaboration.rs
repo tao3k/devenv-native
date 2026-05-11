@@ -4,7 +4,7 @@ use crate::lint_api::LintIssue;
 
 pub(super) fn collaboration_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
     let source_id = &source.source_id;
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_collaboration_surface",
         "Collaboration, choreography, and pool semantics are deferred",
         format!("Source '{source_id}' contains collaboration-level BPMN element '<{tag}>'."),

@@ -9,7 +9,7 @@ fn module_search_uses_shared_tantivy_fuzzy_index_for_typos() {
     let analysis = sample_search_analysis("module-fuzzy");
     let result = build_module_search(
         &ModuleSearchQuery {
-            repo_id: "module-fuzzy".to_string(),
+            repo_id: "module-fuzzy".to_string().into(),
             query: "ProjectonPkg".to_string(),
             limit: 10,
         },
@@ -31,7 +31,7 @@ fn symbol_search_uses_shared_tantivy_fuzzy_index_for_typos() {
     let analysis = sample_search_analysis("symbol-fuzzy");
     let result = build_symbol_search(
         &SymbolSearchQuery {
-            repo_id: "symbol-fuzzy".to_string(),
+            repo_id: "symbol-fuzzy".to_string().into(),
             query: "slove".to_string(),
             limit: 10,
         },
@@ -53,7 +53,7 @@ fn example_search_uses_shared_tantivy_fuzzy_index_for_related_symbol_typos() {
     let analysis = sample_search_analysis("example-fuzzy");
     let result = build_example_search(
         &ExampleSearchQuery {
-            repo_id: "example-fuzzy".to_string(),
+            repo_id: "example-fuzzy".to_string().into(),
             query: "slove".to_string(),
             limit: 10,
         },

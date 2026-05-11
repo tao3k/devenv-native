@@ -5,8 +5,8 @@ use qianji_bpmn_engine::{
     HostBridgeError, LintIssue, ManualTaskOutcome, ManualTaskRequest, PendingHostWorkRequest,
     PendingHostWorkResult, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest,
     ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance,
-    apply_pending_host_work_result, build_pending_host_work_request, create_instance,
-    lint_bpmn_source, parse_bpmn_package, snapshot_bpmn_source,
+    build_pending_host_work_request, create_instance, lint_bpmn_source, parse_bpmn_package,
+    snapshot_bpmn_source,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -128,7 +128,7 @@ async fn native_compatibility_fixture_runs_with_native_task_io() {
     assert_eq!(request.output_bindings[0].name.as_ref(), "decision");
     assert_eq!(request.output_bindings[0].target_ref.as_ref(), "OrderData");
 
-    apply_pending_host_work_result(
+    crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         request.token_id,

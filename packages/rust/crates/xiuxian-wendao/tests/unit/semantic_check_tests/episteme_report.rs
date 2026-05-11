@@ -23,7 +23,7 @@ fn format_result_as_xml_includes_loaded_episteme_summary() {
             policy_queries: vec![EpistemePolicyQueryReport {
                 id: "johnny-decimal.anchor-id-validation".to_string(),
                 framework: Some("johnny-decimal".to_string()),
-                path: "policies/johnny_decimal/validation.sql".to_string(),
+                path: "policies/johnny_decimal/validation.sql".to_string().into(),
                 statement_mode: "select_only".to_string(),
             }],
         }),

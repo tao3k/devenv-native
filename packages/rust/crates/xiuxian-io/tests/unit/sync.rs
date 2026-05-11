@@ -29,10 +29,7 @@ fn test_file_too_large() -> Result<(), Box<dyn std::error::Error>> {
     let dir = TempDir::new()?;
     let p = dir.path().join("large.txt");
     std::fs::write(&p, "12345678901234567890")?;
-    assert!(matches!(
-        read_text_safe(&p, 10),
-        Err(IoError::TooLarge(_, _))
-    ));
+    assert!(matches!(read_text_safe(&p, 10), Err(IoError::TooLarge(_))));
     Ok(())
 }
 

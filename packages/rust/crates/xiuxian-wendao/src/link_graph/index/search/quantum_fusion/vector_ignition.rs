@@ -10,7 +10,8 @@ use thiserror::Error;
 use xiuxian_db_store::{SearchOptions, VectorStore, VectorStoreError};
 #[cfg(feature = "julia")]
 use xiuxian_wendao_runtime::transport::{
-    PluginArrowVectorStoreRequestBuildError, build_plugin_arrow_request_batch_from_vector_store,
+    PluginArrowVectorStoreRequestBatchInput, PluginArrowVectorStoreRequestBuildError,
+    build_plugin_arrow_request_batch_from_vector_store,
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,
 };
 
@@ -112,15 +113,17 @@ impl VectorStoreSemanticIgnition {
         Self::validate_plugin_rerank_candidates(anchors)
             .map_err(|error| format!("failed to build plugin rerank request batch: {error}"))?;
         build_plugin_arrow_request_batch_from_vector_store_with_metadata(
-            &self.store,
-            self.table_name.as_str(),
-            anchors
-                .iter()
-                .map(|anchor| (anchor.anchor_id.clone(), anchor.vector_score)),
-            request.query_vector,
-            provider_id,
-            query_text,
-            schema_version,
+            PluginArrowVectorStoreRequestBatchInput {
+                store: &self.store,
+                table_name: self.table_name.as_str(),
+                rows: anchors
+                    .iter()
+                    .map(|anchor| (anchor.anchor_id.clone(), anchor.vector_score)),
+                query_vector: request.query_vector,
+                provider_id,
+                query_text,
+                schema_version,
+            },
         )
         .await
         .map_err(|error| format!("failed to build plugin rerank request batch: {error}"))

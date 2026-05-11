@@ -61,17 +61,17 @@ pub fn repository_search_artifacts(
             modules_by_id: analysis
                 .modules
                 .iter()
-                .map(|module| (module.module_id.clone(), module.clone()))
+                .map(|module| (module.module_id.to_string(), module.clone()))
                 .collect::<BTreeMap<_, _>>(),
             symbols_by_id: analysis
                 .symbols
                 .iter()
-                .map(|symbol| (symbol.symbol_id.clone(), symbol.clone()))
+                .map(|symbol| (symbol.symbol_id.to_string(), symbol.clone()))
                 .collect::<BTreeMap<_, _>>(),
             examples_by_id: analysis
                 .examples
                 .iter()
-                .map(|example| (example.example_id.clone(), example.clone()))
+                .map(|example| (example.example_id.to_string(), example.clone()))
                 .collect::<BTreeMap<_, _>>(),
             example_metadata,
             projected_pages_by_id,

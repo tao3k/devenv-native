@@ -1,3 +1,5 @@
+//! Capability contracts that describe supported Wendao runtime surfaces.
+
 mod binding;
 mod selector;
 mod version;

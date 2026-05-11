@@ -142,6 +142,12 @@ Use `xiuxian-wendao` for:
 - business handlers that materialize Wendao-specific responses
 - temporary compatibility seams that have not been extracted yet
 
+SearchStrategyFlow uses that same ownership split. The product crate owns the
+structured search backend, including DuckDB-backed candidate retrieval where
+configured. `xiuxian-wendao-julia` receives narrowed candidate batches for
+Julia strategy/frontier selection; Julia does not own DuckDB access or full
+candidate discovery.
+
 Do not place new code here when it is better classified as:
 
 - `xiuxian-wendao-core`: stable plugin/runtime contract records

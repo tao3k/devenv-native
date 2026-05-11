@@ -31,7 +31,7 @@ pub(super) fn start_decision_table(
         || peers.relation.is_some()
     {
         return Err(BpmnEngineError::UnsupportedDmnDecisionTableCount {
-            decision_id: decision.decision_id.clone(),
+            decision_id: (decision.decision_id.clone()).into(),
             count: 2,
         });
     }

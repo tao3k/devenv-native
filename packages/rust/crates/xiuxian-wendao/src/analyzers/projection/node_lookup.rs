@@ -27,8 +27,8 @@ pub fn build_repo_projected_page_index_node(
     let tree = tree_result
         .tree
         .ok_or_else(|| RepoIntelligenceError::UnknownProjectedPage {
-            repo_id: query.repo_id.clone(),
-            page_id: query.page_id.clone(),
+            repo_id: query.repo_id.clone().into(),
+            page_id: query.page_id.clone().into(),
         })?;
 
     let hit = find_node(tree.roots.as_slice(), query.node_id.as_str())
@@ -46,9 +46,9 @@ pub fn build_repo_projected_page_index_node(
             text: node.text.clone(),
         })
         .ok_or_else(|| RepoIntelligenceError::UnknownProjectedPageIndexNode {
-            repo_id: query.repo_id.clone(),
-            page_id: query.page_id.clone(),
-            node_id: query.node_id.clone(),
+            repo_id: query.repo_id.clone().into(),
+            page_id: query.page_id.clone().into(),
+            node_id: query.node_id.clone().into(),
         })?;
 
     Ok(RepoProjectedPageIndexNodeResult {

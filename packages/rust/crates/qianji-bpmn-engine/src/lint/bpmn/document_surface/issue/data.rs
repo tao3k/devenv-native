@@ -9,7 +9,7 @@ pub(super) fn data_artifact_issue(source: &BpmnSourceFile, tag: &str) -> LintIss
     if data_store_binding_count_from_evidence(&evidence) > 0 {
         return data_store_binding_issue(source, tag, evidence);
     }
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_data_surface",
         "BPMN data-store persistence semantics are deferred",
         format!("Source '{source_id}' contains BPMN data element '<{tag}>'."),
@@ -32,7 +32,7 @@ fn data_store_binding_issue(
     evidence: serde_json::Value,
 ) -> LintIssue {
     let source_id = &source.source_id;
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_data_store_binding",
         "BPMN data-store bindings are not executable",
         format!(

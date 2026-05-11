@@ -34,33 +34,33 @@ fn normalize_compensation_handler(
         .get(&association.source_ref)
         .copied()
         .ok_or_else(|| BpmnEngineError::UnknownSequenceFlowEndpoint {
-            process_id: raw.process_id.clone(),
-            flow_id: association.association_id.clone(),
+            process_id: (raw.process_id.clone()).into(),
+            flow_id: (association.association_id.clone()).into(),
             endpoint: "source",
-            node_id: association.source_ref.clone(),
+            node_id: (association.source_ref.clone()).into(),
         })?;
     let handler_node_index = index_by_id
         .get(&association.target_ref)
         .copied()
         .ok_or_else(|| BpmnEngineError::UnknownSequenceFlowEndpoint {
-            process_id: raw.process_id.clone(),
-            flow_id: association.association_id.clone(),
+            process_id: (raw.process_id.clone()).into(),
+            flow_id: (association.association_id.clone()).into(),
             endpoint: "target",
-            node_id: association.target_ref.clone(),
+            node_id: (association.target_ref.clone()).into(),
         })?;
     let attached_to_ref = raw.nodes[boundary_node_index as usize]
         .attached_to_ref
         .as_ref()
         .ok_or_else(|| BpmnEngineError::UnknownBoundaryAttachment {
-            process_id: raw.process_id.clone(),
-            node_id: raw.nodes[boundary_node_index as usize].bpmn_id.clone(),
-            attached_to_node_id: String::new(),
+            process_id: (raw.process_id.clone()).into(),
+            node_id: (raw.nodes[boundary_node_index as usize].bpmn_id.clone()).into(),
+            attached_to_node_id: (String::new()).into(),
         })?;
     let activity_node_index = index_by_id.get(attached_to_ref).copied().ok_or_else(|| {
         BpmnEngineError::UnknownBoundaryAttachment {
-            process_id: raw.process_id.clone(),
-            node_id: raw.nodes[boundary_node_index as usize].bpmn_id.clone(),
-            attached_to_node_id: attached_to_ref.clone(),
+            process_id: (raw.process_id.clone()).into(),
+            node_id: (raw.nodes[boundary_node_index as usize].bpmn_id.clone()).into(),
+            attached_to_node_id: (attached_to_ref.clone()).into(),
         }
     })?;
     Ok(BpmnCompensationHandlerSpec {

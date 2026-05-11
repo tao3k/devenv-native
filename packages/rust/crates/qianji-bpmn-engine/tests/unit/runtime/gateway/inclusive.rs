@@ -5,7 +5,7 @@ use crate::runtime::{
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnPackage, PendingHostWorkKind, PendingHostWorkResult,
-    ServiceTaskOutcome, advance_instance, apply_pending_host_work_result, create_instance,
+    ServiceTaskOutcome, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -122,7 +122,7 @@ async fn runtime_inclusive_gateway_waits_for_blocked_selected_branch_before_join
     assert_eq!(instance.joins[0].arrived, 1);
     assert_eq!(instance.joins[0].expected, 2);
 
-    let resume = apply_pending_host_work_result(
+    let resume = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[0].token_id,

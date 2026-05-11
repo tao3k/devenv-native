@@ -92,8 +92,8 @@ async fn runtime_exclusive_gateway_reports_unresolved_condition_variables() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: "exclusive_branch_missing_var".to_string(),
-            node_id: "decision".to_string(),
+            process_id: ("exclusive_branch_missing_var".to_string()).into(),
+            node_id: ("decision".to_string()).into(),
             detail: "unresolved_condition_variable",
         }
     );

@@ -100,7 +100,7 @@ pub fn build_memory_julia_compute_manifest_rows(
                 route: route_for_profile(runtime, *profile).to_string(),
                 health_route: runtime.health_route.clone(),
                 schema_version: runtime.schema_version.clone(),
-                timeout_secs: Some(runtime.timeout_secs.into()),
+                timeout_secs: Some(runtime.timeout_secs.value().into()),
                 scenario_pack: runtime.scenario_pack.clone(),
                 enabled: runtime.enabled.into(),
             }

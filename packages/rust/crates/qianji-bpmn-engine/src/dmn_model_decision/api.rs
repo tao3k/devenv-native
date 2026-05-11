@@ -9,4 +9,4 @@ pub use super::requirement::{
     DmnInformationRequirementReference, DmnKnowledgeRequirementReference,
 };
 pub use super::rule::DmnRule;
-pub use super::table::DmnDecisionTable;
+pub use super::table::{DmnDecisionTable, DmnDecisionTableInput};

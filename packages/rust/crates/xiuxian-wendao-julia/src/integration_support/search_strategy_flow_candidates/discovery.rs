@@ -12,6 +12,7 @@ use super::types::{
     MARKDOWN_HEADING_CANDIDATE_SOURCE, MAX_CANDIDATES, SearchStrategyFlowCandidateInput,
     SearchStrategyFlowCandidateInputBatch,
 };
+use serde_json::{Value, json};
 
 const STOP_WORDS: &[&str] = &[
     "a", "an", "and", "are", "as", "for", "from", "how", "in", "is", "it", "of", "on", "or", "the",
@@ -70,11 +71,36 @@ pub(crate) fn search_strategy_flow_candidate_input_batch(
     source: &'static str,
     candidates: &[SearchStrategyFlowCandidateInput],
 ) -> SearchStrategyFlowCandidateInputBatch {
+    search_strategy_flow_candidate_input_batch_with_discovery_receipt(
+        source,
+        candidates,
+        default_candidate_discovery_receipt(source, candidates.len()),
+    )
+}
+
+pub(crate) fn search_strategy_flow_candidate_input_batch_with_discovery_receipt(
+    source: &'static str,
+    candidates: &[SearchStrategyFlowCandidateInput],
+    discovery_receipt: Value,
+) -> SearchStrategyFlowCandidateInputBatch {
     SearchStrategyFlowCandidateInputBatch {
         source,
         row_count: candidates.len(),
         tsv: serialize_candidate_inputs_tsv(candidates),
+        discovery_receipt_json: discovery_receipt.to_string(),
     }
+}
+
+fn default_candidate_discovery_receipt(source: &'static str, row_count: usize) -> Value {
+    json!({
+        "receiptSource": source,
+        "candidateInputSource": source,
+        "candidateInputCount": row_count,
+        "transport": "local-markdown-scan",
+        "route": "local-markdown-heading-discovery",
+        "attemptCount": 1,
+        "mergedCandidateCount": row_count,
+    })
 }
 
 #[cfg(test)]

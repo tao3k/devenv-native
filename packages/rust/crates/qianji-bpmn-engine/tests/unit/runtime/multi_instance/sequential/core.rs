@@ -6,7 +6,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, PendingHostWork,
     PendingHostWorkKind, PendingHostWorkResult, ServiceTaskOutcome, advance_instance,
-    apply_pending_host_work_result, create_instance,
+    create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -45,10 +45,10 @@ async fn runtime_sequential_multi_instance_repeats_until_cardinality_is_reached(
         assert_eq!(
             pending,
             PendingHostWork {
-                token_id: instance.active_tokens[0].token_id,
-                process_id: Some("multi_instance_service".to_string()),
+                token_id: (instance.active_tokens[0].token_id).into(),
+                process_id: (Some("multi_instance_service".into())).into(),
                 node_index: 1,
-                activity_id: Some("review".to_string()),
+                activity_id: (Some("review".into())).into(),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
                 lane: None,
@@ -70,7 +70,7 @@ async fn runtime_sequential_multi_instance_repeats_until_cardinality_is_reached(
             completed
         );
 
-        let resumed = apply_pending_host_work_result(
+        let resumed = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending.token_id,
@@ -177,7 +177,7 @@ async fn runtime_sequential_multi_instance_completion_condition_stops_future_ite
             .cloned()
             .must("multi-instance completion-condition iteration should register work");
 
-        let resumed = apply_pending_host_work_result(
+        let resumed = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending.token_id,

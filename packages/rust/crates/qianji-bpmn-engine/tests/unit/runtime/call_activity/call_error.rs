@@ -2,7 +2,7 @@ use super::{StubHost, node_index, parsed_fixture_package};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, InstanceLifecycle, PendingHostWorkResult,
-    UserTaskOutcome, advance_instance, apply_pending_host_work_result, create_instance,
+    UserTaskOutcome, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -25,7 +25,7 @@ async fn runtime_call_activity_error_routes_specific_and_catch_all_boundaries() 
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
 
     assert_eq!(
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending[0].token_id,
@@ -103,7 +103,7 @@ async fn runtime_call_activity_success_cancels_error_boundaries() {
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
 
     assert_eq!(
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending[0].token_id,

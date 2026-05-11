@@ -651,7 +651,7 @@ fn apply_julia_schedule_projection(
     plan: JuliaSchedulePlan,
 ) {
     node.julia_algorithm_id = Some(algorithm_id.to_string());
-    node.julia_profile_id = Some(plan.profile_id);
+    node.julia_profile_id = Some(plan.profile_id.into_string());
     node.julia_capability = Some(lane_capability_id(plan.capability).to_string());
     node.julia_schedule_action = Some(schedule_action_id(plan.action).to_string());
     node.julia_schedule_reason = Some(schedule_reason_id(plan.reason).to_string());

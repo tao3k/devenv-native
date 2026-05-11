@@ -1,3 +1,5 @@
+//! Engine-neutral local relation traits and registration evidence.
+
 use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
 use async_trait::async_trait;

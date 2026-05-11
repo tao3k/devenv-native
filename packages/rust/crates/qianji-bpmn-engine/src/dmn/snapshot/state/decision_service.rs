@@ -19,7 +19,7 @@ pub(super) struct TempDecisionServiceSnapshot {
 impl From<TempDecisionServiceSnapshot> for DmnDecisionServiceSnapshot {
     fn from(value: TempDecisionServiceSnapshot) -> Self {
         Self {
-            decision_service_id: value.decision_service_id,
+            decision_service_id: (value.decision_service_id).into(),
             name: value.name,
             output_decisions: value.output_decisions.into_iter().map(Into::into).collect(),
             encapsulated_decisions: value
@@ -79,7 +79,7 @@ impl From<TempDecisionServiceReferenceSnapshot> for DmnDecisionServiceReferenceS
     fn from(value: TempDecisionServiceReferenceSnapshot) -> Self {
         Self {
             href: value.href,
-            reference_kind: value.reference_kind,
+            reference_kind: value.reference_kind.into(),
         }
     }
 }
@@ -93,7 +93,7 @@ impl TempDecisionServiceReferenceSnapshot {
     ) -> Result<Self> {
         Ok(Self {
             href: attribute_value(source, reader, event, "href")?,
-            reference_kind: reference_kind.to_string(),
+            reference_kind: reference_kind.to_string().into(),
         })
     }
 }

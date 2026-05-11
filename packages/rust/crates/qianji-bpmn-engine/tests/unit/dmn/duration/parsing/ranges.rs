@@ -12,15 +12,15 @@ fn dmn_parser_supports_duration_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("PT15M", true)),
-            Some(DmnDurationRangeBound::new("PT45M", false)),
+            Some(DmnDurationRangeBound::new("PT15M", true.into())),
+            Some(DmnDurationRangeBound::new("PT45M", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("P1DT1H", true)),
-            Some(DmnDurationRangeBound::new("P1DT2H", true)),
+            Some(DmnDurationRangeBound::new("P1DT1H", true.into())),
+            Some(DmnDurationRangeBound::new("P1DT2H", true.into())),
         ))
     );
 }
@@ -35,15 +35,15 @@ fn dmn_parser_supports_year_month_duration_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("P6M", true)),
-            Some(DmnDurationRangeBound::new("P1Y", false)),
+            Some(DmnDurationRangeBound::new("P6M", true.into())),
+            Some(DmnDurationRangeBound::new("P1Y", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("P1Y", true)),
-            Some(DmnDurationRangeBound::new("P2Y", true)),
+            Some(DmnDurationRangeBound::new("P1Y", true.into())),
+            Some(DmnDurationRangeBound::new("P2Y", true.into())),
         ))
     );
 }
@@ -58,15 +58,15 @@ fn dmn_parser_supports_fractional_second_duration_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("-PT0.5S", true)),
-            Some(DmnDurationRangeBound::new("PT0.5S", false)),
+            Some(DmnDurationRangeBound::new("-PT0.5S", true.into())),
+            Some(DmnDurationRangeBound::new("PT0.5S", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("PT1.25S", true)),
-            Some(DmnDurationRangeBound::new("PT2.75S", true)),
+            Some(DmnDurationRangeBound::new("PT1.25S", true.into())),
+            Some(DmnDurationRangeBound::new("PT2.75S", true.into())),
         ))
     );
 }
@@ -81,15 +81,15 @@ fn dmn_parser_supports_fractional_day_time_unit_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("PT1.5M", true)),
-            Some(DmnDurationRangeBound::new("PT2.75M", false)),
+            Some(DmnDurationRangeBound::new("PT1.5M", true.into())),
+            Some(DmnDurationRangeBound::new("PT2.75M", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("P1.25D", true)),
-            Some(DmnDurationRangeBound::new("P1.5D", true)),
+            Some(DmnDurationRangeBound::new("P1.25D", true.into())),
+            Some(DmnDurationRangeBound::new("P1.5D", true.into())),
         ))
     );
 }
@@ -104,15 +104,15 @@ fn dmn_parser_supports_comma_day_time_unit_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("PT1,5M", true)),
-            Some(DmnDurationRangeBound::new("PT2,75M", false)),
+            Some(DmnDurationRangeBound::new("PT1,5M", true.into())),
+            Some(DmnDurationRangeBound::new("PT2,75M", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("P1,25D", true)),
-            Some(DmnDurationRangeBound::new("P1,5D", true)),
+            Some(DmnDurationRangeBound::new("P1,25D", true.into())),
+            Some(DmnDurationRangeBound::new("P1,5D", true.into())),
         ))
     );
 }
@@ -127,15 +127,15 @@ fn dmn_parser_supports_negative_year_month_duration_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("-P1Y", true)),
-            Some(DmnDurationRangeBound::new("-P6M", false)),
+            Some(DmnDurationRangeBound::new("-P1Y", true.into())),
+            Some(DmnDurationRangeBound::new("-P6M", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DurationRange(DmnDurationRange::new(
-            Some(DmnDurationRangeBound::new("-P6M", true)),
-            Some(DmnDurationRangeBound::new("P0M", true)),
+            Some(DmnDurationRangeBound::new("-P6M", true.into())),
+            Some(DmnDurationRangeBound::new("P0M", true.into())),
         ))
     );
 }

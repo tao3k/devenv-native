@@ -25,7 +25,7 @@ fn batch_payload(batch: &RecordBatch) -> Result<SqlBatchPayload, String> {
         .iter()
         .map(|field| SqlColumnPayload {
             name: field.name().clone(),
-            data_type: field.data_type().to_string(),
+            data_type: field.data_type().to_string().into(),
             nullable: field.is_nullable(),
         })
         .collect::<Vec<_>>();

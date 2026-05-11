@@ -1,5 +1,77 @@
+//! JSON payload contracts for request-scoped SQL query responses.
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+
+macro_rules! sql_query_value_type {
+    ($name:ident, $inner:ty, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+        #[serde(transparent)]
+        pub struct $name($inner);
+
+        impl $name {
+            /// Returns the wrapped value.
+            #[must_use]
+            pub fn get(&self) -> &$inner {
+                &self.0
+            }
+        }
+
+        impl From<$inner> for $name {
+            fn from(value: $inner) -> Self {
+                Self(value)
+            }
+        }
+
+        impl std::ops::Deref for $name {
+            type Target = $inner;
+
+            fn deref(&self) -> &Self::Target {
+                self.get()
+            }
+        }
+
+        impl PartialEq<$inner> for $name {
+            fn eq(&self, other: &$inner) -> bool {
+                self.get() == other
+            }
+        }
+
+        impl PartialOrd<$inner> for $name {
+            fn partial_cmp(&self, other: &$inner) -> Option<std::cmp::Ordering> {
+                self.get().partial_cmp(other)
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.get().fmt(formatter)
+            }
+        }
+    };
+}
+
+sql_query_value_type!(
+    SqlByteCount,
+    u64,
+    "Byte count reported by SQL query execution."
+);
+sql_query_value_type!(
+    SqlDurationMs,
+    u64,
+    "Duration in milliseconds reported by SQL query execution."
+);
+sql_query_value_type!(
+    SqlMaterializationState,
+    String,
+    "Stable bounded local relation materialization-state label."
+);
+sql_query_value_type!(
+    SqlDataTypeLabel,
+    String,
+    "Stable SQL result data-type label."
+);
 
 /// Stable metadata returned for one request-scoped SQL query.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -30,19 +102,19 @@ pub struct SqlQueryMetadata {
     /// Count of array-backed bytes registered into the bounded local relation
     /// before query execution when the caller exposes that detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub registered_input_bytes: Option<u64>,
+    pub registered_input_bytes: Option<SqlByteCount>,
     /// Count of array-backed bytes returned across all result batches when the
     /// caller exposes that detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub result_bytes: Option<u64>,
+    pub result_bytes: Option<SqlByteCount>,
     /// Stable bounded local relation materialization-state label when the
     /// caller exposes that detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub local_relation_materialization_state: Option<String>,
+    pub local_relation_materialization_state: Option<SqlMaterializationState>,
     /// Peak temp-storage bytes observed for the last bounded local query when
     /// the caller exposes that detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub local_temp_storage_peak_bytes: Option<u64>,
+    pub local_temp_storage_peak_bytes: Option<SqlByteCount>,
     /// Stable local relation-engine label for bounded local analytics when the
     /// caller exposes that detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -62,11 +134,11 @@ pub struct SqlQueryMetadata {
     /// Milliseconds spent registering the bounded local relation before query
     /// execution when the caller exposes that detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub registration_time_ms: Option<u64>,
+    pub registration_time_ms: Option<SqlDurationMs>,
     /// Milliseconds spent executing the bounded local SQL statement when the
     /// caller exposes that detail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub local_query_execution_time_ms: Option<u64>,
+    pub local_query_execution_time_ms: Option<SqlDurationMs>,
 }
 
 /// Stable description of one SQL result column.
@@ -76,7 +148,7 @@ pub struct SqlColumnPayload {
     /// Column name as exposed to the caller.
     pub name: String,
     /// Stable `Arrow` or `DataFusion` data-type label.
-    pub data_type: String,
+    pub data_type: SqlDataTypeLabel,
     /// Whether the column accepts null values.
     pub nullable: bool,
 }

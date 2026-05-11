@@ -9,7 +9,7 @@ pub(super) fn issue_from_bpmn_topology_error(error: &BpmnEngineError) -> Option<
             process_id,
             node_id,
             attached_to_node_id,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "bpmn.unknown_boundary_attachment",
             "Boundary event attaches to an unknown node",
             format!(
@@ -38,7 +38,7 @@ pub(super) fn issue_from_bpmn_topology_error(error: &BpmnEngineError) -> Option<
             process_id,
             node_id,
             detail,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "bpmn.unsupported_event_based_gateway_configuration",
             "Event-based gateway configuration exceeds the bounded slice",
             format!(

@@ -256,15 +256,35 @@ pub fn wendao_graph_gnn_accelerator_diagnostics_from_host_probe(
     vec![
         JuliaAcceleratorDiagnostics::new(
             "metal",
-            report.backend_load.metal_loaded,
-            report.metal_functional,
+            xiuxian_polyglot_orchestrator::JuliaAcceleratorState::new(
+                xiuxian_polyglot_orchestrator::JuliaAcceleratorStateInput {
+                    loaded: report.backend_load.metal_loaded,
+                    functional: report.metal_functional,
+                },
+            ),
         )
         .with_observed_output_count(
             (report.metal_score_count > 0)
                 .then_some(saturating_usize_to_u32(report.metal_score_count)),
         ),
-        JuliaAcceleratorDiagnostics::new("cuda", report.backend_load.cuda_loaded, false),
-        JuliaAcceleratorDiagnostics::new("amdgpu", report.backend_load.amdgpu_loaded, false),
+        JuliaAcceleratorDiagnostics::new(
+            "cuda",
+            xiuxian_polyglot_orchestrator::JuliaAcceleratorState::new(
+                xiuxian_polyglot_orchestrator::JuliaAcceleratorStateInput {
+                    loaded: report.backend_load.cuda_loaded,
+                    functional: false,
+                },
+            ),
+        ),
+        JuliaAcceleratorDiagnostics::new(
+            "amdgpu",
+            xiuxian_polyglot_orchestrator::JuliaAcceleratorState::new(
+                xiuxian_polyglot_orchestrator::JuliaAcceleratorStateInput {
+                    loaded: report.backend_load.amdgpu_loaded,
+                    functional: false,
+                },
+            ),
+        ),
     ]
 }
 

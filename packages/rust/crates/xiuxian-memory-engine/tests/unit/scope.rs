@@ -1,7 +1,9 @@
 //! Scope isolation tests for `EpisodeStore`.
 
 use crate::common;
-use xiuxian_memory_engine::{Episode, EpisodeStore, StoreConfig};
+use xiuxian_memory_engine::{
+    Episode, EpisodeDraft, EpisodeStore, ScopedTwoPhaseEmbeddingRecallRequest, StoreConfig,
+};
 
 const SCOPE_A: &str = "telegram:-100:111";
 const SCOPE_B: &str = "telegram:-100:222";
@@ -23,24 +25,31 @@ fn scoped_recall_excludes_other_sessions() -> TestResult {
     let embedding_a = vec![1.0, 0.0, 0.0, 0.0];
     let embedding_b = vec![0.0, 1.0, 0.0, 0.0];
 
-    store.store(Episode::new_scoped(
-        "ep-a".to_string(),
-        "session a intent".to_string(),
-        embedding_a.clone(),
-        "session a response".to_string(),
-        "completed".to_string(),
-        SCOPE_A,
-    ))?;
-    store.store(Episode::new_scoped(
-        "ep-b".to_string(),
-        "session b intent".to_string(),
-        embedding_b,
-        "session b response".to_string(),
-        "completed".to_string(),
-        SCOPE_B,
-    ))?;
+    store.store(Episode::new(EpisodeDraft {
+        id: ("ep-a".to_string()).into(),
+        intent: "session a intent".to_string(),
+        intent_embedding: embedding_a.clone(),
+        experience: "session a response".to_string(),
+        outcome: "completed".to_string(),
+        scope: Some((SCOPE_A).to_string()),
+    }))?;
+    store.store(Episode::new(EpisodeDraft {
+        id: ("ep-b".to_string()).into(),
+        intent: "session b intent".to_string(),
+        intent_embedding: embedding_b,
+        experience: "session b response".to_string(),
+        outcome: "completed".to_string(),
+        scope: Some((SCOPE_B).to_string()),
+    }))?;
 
-    let scoped = store.two_phase_recall_with_embedding_for_scope(SCOPE_A, &embedding_a, 8, 8, 0.0);
+    let scoped =
+        store.two_phase_recall_with_embedding_for_scope(ScopedTwoPhaseEmbeddingRecallRequest {
+            scope: SCOPE_A,
+            embedding: &embedding_a,
+            k1: 8,
+            k2: 8,
+            lambda: 0.0,
+        });
     assert_eq!(
         scoped.len(),
         1,
@@ -61,14 +70,14 @@ fn store_for_scope_overrides_episode_scope() -> TestResult {
 
     store.store_for_scope(
         SCOPE_A,
-        Episode::new_scoped(
-            "ep-override".to_string(),
-            "intent".to_string(),
-            embedding,
-            "experience".to_string(),
-            "completed".to_string(),
-            WRONG_SCOPE,
-        ),
+        Episode::new(EpisodeDraft {
+            id: ("ep-override".to_string()).into(),
+            intent: "intent".to_string(),
+            intent_embedding: embedding,
+            experience: "experience".to_string(),
+            outcome: "completed".to_string(),
+            scope: Some((WRONG_SCOPE).to_string()),
+        }),
     )?;
 
     let stored = store
@@ -82,13 +91,14 @@ fn store_for_scope_overrides_episode_scope() -> TestResult {
 fn global_episodes_are_not_returned_by_scoped_recall() -> TestResult {
     let store = build_store("scope_global_exclusion");
 
-    store.store(Episode::new(
-        "ep-global".to_string(),
-        "same intent".to_string(),
-        vec![1.0, 0.0, 0.0, 0.0],
-        "global episode".to_string(),
-        "completed".to_string(),
-    ))?;
+    store.store(Episode::new(EpisodeDraft {
+        id: ("ep-global".to_string()).into(),
+        intent: "same intent".to_string(),
+        intent_embedding: vec![1.0, 0.0, 0.0, 0.0],
+        experience: "global episode".to_string(),
+        outcome: "completed".to_string(),
+        scope: None,
+    }))?;
 
     let scoped = store.recall_for_scope(SCOPE_A, "same intent", 8);
     assert!(
@@ -106,16 +116,23 @@ fn legacy_agent_episode_ids_are_auto_scoped() -> TestResult {
     let embedding = vec![1.0, 0.0, 0.0, 0.0];
 
     // Legacy payloads may not contain scope but keep scoped ids.
-    store.store(Episode::new(
-        legacy_id,
-        "legacy scoped intent".to_string(),
-        embedding.clone(),
-        "legacy response".to_string(),
-        "completed".to_string(),
-    ))?;
+    store.store(Episode::new(EpisodeDraft {
+        id: (legacy_id).into(),
+        intent: "legacy scoped intent".to_string(),
+        intent_embedding: embedding.clone(),
+        experience: "legacy response".to_string(),
+        outcome: "completed".to_string(),
+        scope: None,
+    }))?;
 
     let scoped =
-        store.two_phase_recall_with_embedding_for_scope(legacy_scope, &embedding, 8, 8, 0.0);
+        store.two_phase_recall_with_embedding_for_scope(ScopedTwoPhaseEmbeddingRecallRequest {
+            scope: legacy_scope,
+            embedding: &embedding,
+            k1: 8,
+            k2: 8,
+            lambda: 0.0,
+        });
     assert_eq!(scoped.len(), 1, "legacy id scope should be inferred");
     assert_eq!(scoped[0].0.scope_key(), legacy_scope);
     Ok(())

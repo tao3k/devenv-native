@@ -188,7 +188,7 @@ pub(super) fn handle_decision_requirement_reference_start_tag(
             decision
                 .information_requirements
                 .push(TempInformationRequirementReference {
-                    reference_kind: tag.to_string(),
+                    reference_kind: (tag.to_string()).into(),
                     href: attribute_value(source, reader, event, "href")?,
                 });
             Ok(true)
@@ -202,7 +202,7 @@ pub(super) fn handle_decision_requirement_reference_start_tag(
             decision
                 .knowledge_requirements
                 .push(TempKnowledgeRequirementReference {
-                    reference_kind: tag.to_string(),
+                    reference_kind: (tag.to_string()).into(),
                     href: attribute_value(source, reader, event, "href")?,
                 });
             Ok(true)

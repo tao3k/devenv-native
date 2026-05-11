@@ -1,3 +1,5 @@
+//! Typed payload envelopes for persisted Wendao artifacts.
+
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 

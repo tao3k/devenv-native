@@ -32,7 +32,7 @@ pub(crate) fn ranked_symbol_matches(
     {
         let lookup = symbols
             .iter()
-            .map(|symbol| (symbol.symbol_id.clone(), symbol.clone()))
+            .map(|symbol| (symbol.symbol_id.to_string(), symbol.clone()))
             .collect::<BTreeMap<_, _>>();
         let Some(index) = build_search_document_index(symbols.iter().map(symbol_search_document))
         else {

@@ -28,6 +28,20 @@ pub struct DmnImportSourceBinding {
     pub source_definition: Option<DmnSourceDefinition>,
 }
 
+/// Named construction payload for one DMN import definition.
+pub struct DmnImportDefinitionInput<'a> {
+    /// Source identifier of the DMN document declaring the import.
+    pub source_id: &'a str,
+    /// Optional import alias used by QName-style references.
+    pub name: Option<&'a str>,
+    /// Optional imported model namespace.
+    pub namespace: Option<&'a str>,
+    /// Optional import location URI.
+    pub location_uri: Option<&'a str>,
+    /// Optional imported model type URI.
+    pub import_type: Option<&'a str>,
+}
+
 impl DmnImportSourceBinding {
     /// Creates one metadata-only import binding report.
     #[must_use]
@@ -51,37 +65,32 @@ impl DmnImportSourceBinding {
 impl DmnImportDefinition {
     /// Creates one bounded import definition.
     #[must_use]
-    pub fn new(
-        source_id: impl AsRef<str>,
-        name: Option<impl AsRef<str>>,
-        namespace: Option<impl AsRef<str>>,
-        location_uri: Option<impl AsRef<str>>,
-        import_type: Option<impl AsRef<str>>,
-    ) -> Self {
+    pub fn new(input: DmnImportDefinitionInput<'_>) -> Self {
         Self {
-            source_id: Arc::<str>::from(source_id.as_ref()),
-            name: name.map(|value| Arc::<str>::from(value.as_ref())),
-            namespace: namespace.map(|value| Arc::<str>::from(value.as_ref())),
-            location_uri: location_uri.map(|value| Arc::<str>::from(value.as_ref())),
-            import_type: import_type.map(|value| Arc::<str>::from(value.as_ref())),
+            source_id: (Arc::<str>::from(input.source_id)).into(),
+            name: input.name.map(Arc::<str>::from),
+            namespace: input.namespace.map(Arc::<str>::from),
+            location_uri: input.location_uri.map(Arc::<str>::from),
+            import_type: input.import_type.map(Arc::<str>::from),
         }
     }
 
     /// Builds one bounded import definition from one snapshot entry.
     #[must_use]
     pub fn from_snapshot(source_id: impl AsRef<str>, snapshot: &DmnImportSnapshot) -> Self {
-        Self::new(
-            source_id,
-            snapshot.name.as_deref(),
-            snapshot.namespace.as_deref(),
-            snapshot.location_uri.as_deref(),
-            snapshot.import_type.as_deref(),
-        )
+        Self::new(DmnImportDefinitionInput {
+            source_id: (source_id.as_ref()).into(),
+            name: snapshot.name.as_deref(),
+            namespace: snapshot.namespace.as_deref(),
+            location_uri: snapshot.location_uri.as_deref(),
+            import_type: snapshot.import_type.as_deref(),
+        })
     }
 
     /// Returns whether this import was declared by the provided source.
     #[must_use]
-    pub fn is_declared_by(&self, source_id: &str) -> bool {
+    pub fn is_declared_by(&self, source_id: impl AsRef<str>) -> bool {
+        let source_id = source_id.as_ref();
         self.source_id.as_ref() == source_id
     }
 

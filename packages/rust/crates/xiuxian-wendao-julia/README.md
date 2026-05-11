@@ -79,6 +79,21 @@ needs a feature-gated second plugin bundle for these languages.
   graph-neighbor expansion uses a separate `resolvedGraphNodeId` based on the
   Studio display path. This prevents page-index section ids from being sent as
   link-graph node ids.
+- SearchStrategyFlow candidate ownership now distinguishes the full structured
+  inventory from the Markdown replay subset. The Rust bridge records the
+  `2818`-candidate denominator as `478` primary Markdown candidates, `2159`
+  Code-Intelligence downlink candidates, and `181` registry authority
+  candidates. Rust/DuckDB owns structured candidate retrieval; Julia receives a
+  narrowed candidate batch and owns strategy scoring, required-evidence
+  coverage, and frontier selection.
+- Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
+  reports can show both the narrowed Julia input count and the full `2818`
+  promotion denominator. This prevents a fast Markdown replay subset from being
+  mistaken for the total structured search surface. Flight-sourced batches also
+  embed a candidate-discovery receipt with the Rust route, transport, attempt
+  count, per-attempt row counts, request limit, and merged candidate count so
+  live traces can prove which Rust path narrowed the batch before Julia
+  strategy selection.
 - Julia test support now lives under `tests/unit/plugin/` plus
   `tests/unit/memory/mod.rs` instead of production `src/` files, while
   `src/lib.rs` owns the root harness target so `cargo test --lib` executes the
@@ -201,6 +216,11 @@ needs a feature-gated second plugin bundle for these languages.
   attribute preservation, and projection of those attributes into
   `SymbolRecord` so downstream Studio consumers can render parser-backed
   structured detail without regex inference.
+- `xiuxian-wendao-julia` also owns the Rust-to-Julia
+  SearchStrategyFlow candidate-batch ABI. Rust remains the structured-index
+  owner, including the DuckDB-backed candidate search path where configured;
+  Julia does not open DuckDB or discover the full candidate inventory directly.
+  The Julia-facing boundary is a narrowed, provenance-bearing candidate batch.
 - The parser-summary boundary is Flight-only for the touched Julia cutover
   surface. `xiuxian-wendao-julia` does not keep a Rust-local
   Julia or Modelica AST fallback for repo-intelligence or the incremental
@@ -323,7 +343,10 @@ needs a feature-gated second plugin bundle for these languages.
   `candidateInputSource="rust-flight-repo-search"`. This keeps section
   discovery on the indexed Rust/Studio side while Julia owns graph strategy
   flow decisions. The local Markdown heading scan remains the no-endpoint
-  smoke path and is not a TypeScript or `pi-wendao` responsibility.
+  smoke path and is not a TypeScript or `pi-wendao` responsibility. The same
+  trace includes `candidateInputDiscovery` and folds that receipt into
+  `candidateDiscoveryContract.discoveryReceipt` without changing the
+  candidate TSV ABI.
 - the algorithm catalog now also exposes a relationship-search subset for
   HNSW semantic fanout, MOC-style community grouping, PPR-like relatedness,
   graph search ranking, and large object-graph traversal. These entries map to

@@ -18,8 +18,8 @@ pub fn build_projected_page_index_tree(
         .into_iter()
         .find(|tree| tree.page_id == query.page_id)
         .ok_or_else(|| RepoIntelligenceError::UnknownProjectedPage {
-            repo_id: query.repo_id.clone(),
-            page_id: query.page_id.clone(),
+            repo_id: query.repo_id.clone().into(),
+            page_id: query.page_id.clone().into(),
         })?;
 
     Ok(RepoProjectedPageIndexTreeResult {

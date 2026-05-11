@@ -42,18 +42,18 @@ pub mod wikilinks;
 
 pub use addressed_target::AddressedTarget;
 pub use blocks::{
-    BlockCore, BlockKindIdentity, MarkdownBlock, MarkdownBlockKind, compute_block_hash,
-    extract_blocks,
+    BlockCore, BlockCoreRequest, BlockExplicitId, BlockKindIdentity, MarkdownBlock,
+    MarkdownBlockKind, compute_block_hash, extract_blocks,
 };
 pub use code_observation::{CodeObservation, extract_observations, path_matches_scope};
 pub use document::{
-    DocumentCore, DocumentEnvelope, DocumentFormat, MarkdownDocument, OrgDocument,
+    DocumentCore, DocumentEnvelope, DocumentFormat, DocumentType, MarkdownDocument, OrgDocument,
     OrgDocumentMetadata, parse_markdown_document,
 };
 pub use frontmatter::{
-    NoteFrontmatter, RawFrontmatter, SkillFrontmatterParseError, discover_skill_documents,
-    frontmatter_kind, is_skill_descriptor_path, parse_frontmatter, parse_skill_frontmatter,
-    split_frontmatter, split_frontmatter_raw, uses_skill_frontmatter,
+    NoteCategory, NoteFrontmatter, RawFrontmatter, SkillFrontmatterParseError,
+    discover_skill_documents, frontmatter_kind, is_skill_descriptor_path, parse_frontmatter,
+    parse_skill_frontmatter, split_frontmatter, split_frontmatter_raw, uses_skill_frontmatter,
 };
 pub use lint::{
     MarkdownLintKind, MarkdownSyntaxLintCode, MarkdownSyntaxLintIssue, MarkdownSyntaxLintReport,
@@ -74,8 +74,9 @@ pub use references::{
     MarkdownReference, MarkdownReferenceKind, extract_references, parse_reference_literal,
 };
 pub use section_create::{
-    BuildSectionOptions, InsertionInfo, SiblingInfo, build_new_sections_content_with_options,
-    compute_content_hash, find_insertion_point, generate_section_id, parse_heading_line,
+    BuildSectionOptions, InsertionInfo, ParsedHeadingLine, SiblingInfo,
+    build_new_sections_content_with_options, compute_content_hash, find_insertion_point,
+    generate_section_id, parse_heading_line,
 };
 pub use sections::{
     LogbookEntry, MarkdownSection, SectionCore, SectionMetadata, SectionScope, extract_sections,
@@ -83,21 +84,23 @@ pub use sections::{
 pub use semantic_ssot::{
     SEMANTIC_PROJECTION_FRESHNESS_POLICY_ID, SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY,
     SEMANTIC_SCOPE_BUNDLE_METADATA_KEY, SEMANTIC_SQL_GUARD_EVIDENCE_METADATA_KEY,
-    SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidence, SemanticConfidenceSource,
-    SemanticObject, SemanticObjectKind, SemanticOwner, SemanticProjection,
-    SemanticProjectionFreshnessPolicyEntry, SemanticProjectionFreshnessPolicyReport,
+    SemanticBundleProvenance, SemanticChangeIntent, SemanticChangeIntentType, SemanticConfidence,
+    SemanticConfidenceSource, SemanticObject, SemanticObjectKind, SemanticOwner,
+    SemanticProjection, SemanticProjectionFreshnessPolicyEntry,
+    SemanticProjectionFreshnessPolicyReport, SemanticProjectionPolicyStatus,
     SemanticProjectionRefreshPlanEntry, SemanticProjectionRefreshPlanReport,
-    SemanticProjectionStaleness, SemanticProvenance, SemanticRelation, SemanticRelationChange,
-    SemanticRelationChangeAction, SemanticRelationEdge, SemanticRelationKind, SemanticRepository,
-    SemanticScopeBundle, SemanticScopeMetadataEnvelope, SemanticScopeRequest, SemanticStatus,
-    SemanticStatusTransition, SemanticValidationIssue, SemanticValidationReport,
-    SemanticVerification, load_semantic_repository, parse_semantic_change_intent,
-    parse_semantic_object, parse_semantic_projection, parse_semantic_scope_metadata_envelope_json,
+    SemanticProjectionRefreshPlanStatus, SemanticProjectionStaleness, SemanticProjectionType,
+    SemanticProvenance, SemanticRelation, SemanticRelationChange, SemanticRelationChangeAction,
+    SemanticRelationEdge, SemanticRelationKind, SemanticRepository, SemanticScopeBundle,
+    SemanticScopeMetadataEnvelope, SemanticScopeRequest, SemanticStatus, SemanticStatusTransition,
+    SemanticValidationIssue, SemanticValidationReport, SemanticVerification,
+    load_semantic_repository, parse_semantic_change_intent, parse_semantic_object,
+    parse_semantic_projection, parse_semantic_scope_metadata_envelope_json,
     semantic_projection_freshness_policy_report, semantic_projection_refresh_plan_report,
     semantic_projection_source_revision, semantic_scope_bundle, semantic_scope_metadata_envelope,
     semantic_scope_metadata_envelope_to_vec,
 };
-pub use sourcepos::line_col_to_byte_range;
+pub use sourcepos::{LineColumnSpan, SourceByteRange, line_col_to_byte_range};
 pub use targets::{
     MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind, TargetOccurrenceCore, extract_targets,
 };

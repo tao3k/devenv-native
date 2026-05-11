@@ -83,6 +83,7 @@ impl SearchStrategyFlowPersistentBatchHost {
             write_payload(&mut self.stdin, intent)?;
             write_payload(&mut self.stdin, &candidate_batch.tsv)?;
             write_payload(&mut self.stdin, candidate_batch.source)?;
+            write_payload(&mut self.stdin, &candidate_batch.discovery_receipt_json)?;
         }
         self.stdin.flush().map_err(|error| {
             format!("flush persistent WendaoGraph SearchStrategyFlow batch host stdin: {error}")
@@ -127,7 +128,8 @@ fn run_raw_json_batch_with_candidate_batches(
         command
             .arg(intent)
             .arg(candidate_batch.tsv)
-            .arg(candidate_batch.source);
+            .arg(candidate_batch.source)
+            .arg(candidate_batch.discovery_receipt_json);
     }
 
     let output = command.output().map_err(|error| {

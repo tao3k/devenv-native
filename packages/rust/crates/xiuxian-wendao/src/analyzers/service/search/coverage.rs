@@ -32,7 +32,7 @@ pub fn build_doc_coverage(
     DocCoverageResult {
         repo_id: query.repo_id.clone(),
         module_id: scoped_module
-            .map(|module| module.module_id.clone())
+            .map(|module| module.module_id.to_string())
             .or_else(|| query.module_id.clone()),
         docs: scoped_docs,
         covered_symbols,

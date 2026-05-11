@@ -1,3 +1,5 @@
+//! Endpoint configuration for Wendao plugin transport providers.
+
 use serde::{Deserialize, Serialize};
 
 /// Generic runtime endpoint for a plugin capability or artifact provider.

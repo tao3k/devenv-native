@@ -25,11 +25,11 @@ pub(crate) fn create_instance_impl(
     let package = package.borrow();
     let (process_index, process) = package.find_process_position(process_id).ok_or_else(|| {
         BpmnEngineError::MissingProcess {
-            process_id: process_id.to_string(),
+            process_id: (process_id.to_string()).into(),
         }
     })?;
     Ok(BpmnInstanceState {
-        instance_id: init.instance_id,
+        instance_id: (init.instance_id).into(),
         process: process.key.clone(),
         process_index,
         call_stack: Vec::new(),

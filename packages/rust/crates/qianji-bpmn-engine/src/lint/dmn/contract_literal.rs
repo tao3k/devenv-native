@@ -46,7 +46,7 @@ fn unsupported_list_child_issue(snapshot: Option<&DmnDocumentSnapshot>) -> LintI
                 .find(|decision| decision.list_count > 0)
         })
         .map_or("<unknown>", |decision| decision.decision_id.as_str());
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_list_child",
         "DMN list contains a non-literal child",
         format!(
@@ -82,7 +82,7 @@ fn unsupported_context_child_issue(snapshot: Option<&DmnDocumentSnapshot>) -> Li
                 .find(|decision| decision.context_count > 0)
         })
         .map_or("<unknown>", |decision| decision.decision_id.as_str());
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_context_child",
         "DMN context contains an unsupported child",
         format!(
@@ -118,7 +118,7 @@ fn unsupported_relation_child_issue(snapshot: Option<&DmnDocumentSnapshot>) -> L
                 .find(|decision| decision.relation_count > 0)
         })
         .map_or("<unknown>", |decision| decision.decision_id.as_str());
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_relation_child",
         "DMN relation contains an unsupported child",
         format!(
@@ -486,7 +486,7 @@ fn unsupported_literal_expression_subset_issue(
     literal: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_literal_expression_subset",
         "DMN literal expression is outside the supported executable subset",
         format!(
@@ -523,7 +523,7 @@ fn unsupported_invocation_contract_issue(
     bounded_fix: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_invocation_contract",
         "DMN invocation is outside the supported local callable subset",
         format!(
@@ -566,7 +566,7 @@ fn unsupported_list_expression_subset_issue(
     literal: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_list_expression_subset",
         "DMN list item is outside the supported executable subset",
         format!(
@@ -603,7 +603,7 @@ fn unsupported_context_expression_subset_issue(
     literal: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_context_expression_subset",
         "DMN context entry is outside the supported executable subset",
         format!(
@@ -640,7 +640,7 @@ fn unsupported_relation_expression_subset_issue(
     literal: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_relation_expression_subset",
         "DMN relation cell is outside the supported executable subset",
         format!(

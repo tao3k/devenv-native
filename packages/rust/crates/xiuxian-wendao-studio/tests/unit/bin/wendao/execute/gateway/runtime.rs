@@ -9,7 +9,7 @@ use crate::bin_support::wendao::execute::gateway::command::{
 use crate::bin_support::wendao::execute::gateway::config::{
     GatewayRuntimeTomlConfig, get_gateway_runtime_from_config,
 };
-use crate::bin_support::wendao::execute::gateway::shared::DEFAULT_PORT;
+use crate::bin_support::wendao::execute::gateway::state::DEFAULT_PORT;
 
 use super::support::{
     bootstrap_builtin_registry, remove_temp_gateway_config, write_temp_gateway_config,

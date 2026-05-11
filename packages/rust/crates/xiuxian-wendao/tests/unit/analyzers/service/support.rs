@@ -35,19 +35,19 @@ impl RepoIntelligencePlugin for CountingJuliaPlugin {
         let module_id = format!("repo:{}:module:FixturePkg", context.repository.id);
         Ok(PluginAnalysisOutput {
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: module_id.clone(),
+                repo_id: context.repository.id.clone().into(),
+                module_id: module_id.clone().into(),
                 qualified_name: "FixturePkg".to_string(),
-                path: file.path.clone(),
+                path: file.path.clone().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:solve", context.repository.id),
-                module_id: Some(module_id),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:solve", context.repository.id).into(),
+                module_id: Some(module_id.into()),
                 name: "solve".to_string(),
                 qualified_name: "FixturePkg.solve".to_string(),
                 kind: RepoSymbolKind::Function,
-                path: file.path.clone(),
+                path: file.path.clone().into(),
                 line_start: Some(3),
                 line_end: Some(3),
                 signature: Some("solve(x)".to_string()),
@@ -70,9 +70,9 @@ impl RepoIntelligencePlugin for CountingJuliaPlugin {
         self.calls.fetch_add(1, Ordering::SeqCst);
         Ok(RepositoryAnalysisOutput {
             repository: Some(RepositoryRecord {
-                repo_id: context.repository.id.clone(),
+                repo_id: context.repository.id.clone().into(),
                 name: "FixturePkg".to_string(),
-                path: repository_root.display().to_string(),
+                path: repository_root.display().to_string().into(),
                 url: None,
                 revision: None,
                 version: None,
@@ -106,19 +106,19 @@ impl RepoIntelligencePlugin for CountingRustPlugin {
         let module_id = format!("repo:{}:module:fixture", context.repository.id);
         Ok(PluginAnalysisOutput {
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: module_id.clone(),
+                repo_id: context.repository.id.clone().into(),
+                module_id: module_id.clone().into(),
                 qualified_name: "fixture".to_string(),
-                path: file.path.clone(),
+                path: file.path.clone().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:solve", context.repository.id),
-                module_id: Some(module_id),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:solve", context.repository.id).into(),
+                module_id: Some(module_id.into()),
                 name: "solve".to_string(),
                 qualified_name: "fixture.solve".to_string(),
                 kind: RepoSymbolKind::Function,
-                path: file.path.clone(),
+                path: file.path.clone().into(),
                 line_start: Some(1),
                 line_end: Some(1),
                 signature: Some("solve(x)".to_string()),
@@ -141,9 +141,9 @@ impl RepoIntelligencePlugin for CountingRustPlugin {
         self.calls.fetch_add(1, Ordering::SeqCst);
         Ok(RepositoryAnalysisOutput {
             repository: Some(RepositoryRecord {
-                repo_id: context.repository.id.clone(),
+                repo_id: context.repository.id.clone().into(),
                 name: "fixture".to_string(),
-                path: repository_root.display().to_string(),
+                path: repository_root.display().to_string().into(),
                 url: None,
                 revision: None,
                 version: None,
@@ -177,19 +177,19 @@ impl RepoIntelligencePlugin for CountingModelicaPlugin {
         let module_id = format!("repo:{}:module:DemoLib", context.repository.id);
         Ok(PluginAnalysisOutput {
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: module_id.clone(),
+                repo_id: context.repository.id.clone().into(),
+                module_id: module_id.clone().into(),
                 qualified_name: "DemoLib".to_string(),
-                path: file.path.clone(),
+                path: file.path.clone().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:PI", context.repository.id),
-                module_id: Some(module_id),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:PI", context.repository.id).into(),
+                module_id: Some(module_id.into()),
                 name: "PI".to_string(),
                 qualified_name: "DemoLib.PI".to_string(),
                 kind: RepoSymbolKind::Type,
-                path: file.path.clone(),
+                path: file.path.clone().into(),
                 line_start: Some(1),
                 line_end: Some(1),
                 signature: Some("model PI".to_string()),
@@ -212,9 +212,9 @@ impl RepoIntelligencePlugin for CountingModelicaPlugin {
         self.calls.fetch_add(1, Ordering::SeqCst);
         Ok(RepositoryAnalysisOutput {
             repository: Some(RepositoryRecord {
-                repo_id: context.repository.id.clone(),
+                repo_id: context.repository.id.clone().into(),
                 name: "DemoLib".to_string(),
-                path: repository_root.display().to_string(),
+                path: repository_root.display().to_string().into(),
                 url: None,
                 revision: None,
                 version: None,
@@ -222,19 +222,19 @@ impl RepoIntelligencePlugin for CountingModelicaPlugin {
                 dependencies: Vec::new(),
             }),
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: format!("repo:{}:module:DemoLib", context.repository.id),
+                repo_id: context.repository.id.clone().into(),
+                module_id: format!("repo:{}:module:DemoLib", context.repository.id).into(),
                 qualified_name: "DemoLib".to_string(),
-                path: "PI.mo".to_string(),
+                path: "PI.mo".to_string().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:PI", context.repository.id),
-                module_id: Some(format!("repo:{}:module:DemoLib", context.repository.id)),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:PI", context.repository.id).into(),
+                module_id: Some(format!("repo:{}:module:DemoLib", context.repository.id).into()),
                 name: "PI".to_string(),
                 qualified_name: "DemoLib.PI".to_string(),
                 kind: RepoSymbolKind::Type,
-                path: "PI.mo".to_string(),
+                path: "PI.mo".to_string().into(),
                 line_start: Some(1),
                 line_end: Some(1),
                 signature: Some("model PI".to_string()),
@@ -281,9 +281,9 @@ impl RepoIntelligencePlugin for CachedTargetFilePlugin {
         self.repository_calls.fetch_add(1, Ordering::SeqCst);
         Ok(RepositoryAnalysisOutput {
             repository: Some(RepositoryRecord {
-                repo_id: context.repository.id.clone(),
+                repo_id: context.repository.id.clone().into(),
                 name: "FixturePkg".to_string(),
-                path: repository_root.display().to_string(),
+                path: repository_root.display().to_string().into(),
                 url: None,
                 revision: None,
                 version: None,
@@ -291,19 +291,19 @@ impl RepoIntelligencePlugin for CachedTargetFilePlugin {
                 dependencies: Vec::new(),
             }),
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: format!("repo:{}:module:FixturePkg", context.repository.id),
+                repo_id: context.repository.id.clone().into(),
+                module_id: format!("repo:{}:module:FixturePkg", context.repository.id).into(),
                 qualified_name: "FixturePkg".to_string(),
-                path: "src/FixturePkg.jl".to_string(),
+                path: "src/FixturePkg.jl".to_string().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:solve", context.repository.id),
-                module_id: Some(format!("repo:{}:module:FixturePkg", context.repository.id)),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:solve", context.repository.id).into(),
+                module_id: Some(format!("repo:{}:module:FixturePkg", context.repository.id).into()),
                 name: "solve".to_string(),
                 qualified_name: "FixturePkg.solve".to_string(),
                 kind: RepoSymbolKind::Function,
-                path: "src/FixturePkg.jl".to_string(),
+                path: "src/FixturePkg.jl".to_string().into(),
                 line_start: Some(3),
                 line_end: Some(3),
                 signature: Some("solve(x)".to_string()),
@@ -312,9 +312,9 @@ impl RepoIntelligencePlugin for CachedTargetFilePlugin {
                 attributes: BTreeMap::new(),
             }],
             imports: vec![ImportRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: format!("repo:{}:module:FixturePkg", context.repository.id),
-                path: "src/FixturePkg.jl".to_string(),
+                repo_id: context.repository.id.clone().into(),
+                module_id: format!("repo:{}:module:FixturePkg", context.repository.id).into(),
+                path: "src/FixturePkg.jl".to_string().into(),
                 import_name: "LinearAlgebra".to_string(),
                 target_package: "LinearAlgebra".to_string(),
                 source_module: "LinearAlgebra".to_string(),

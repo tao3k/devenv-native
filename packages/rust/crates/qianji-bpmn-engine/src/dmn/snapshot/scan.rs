@@ -19,7 +19,7 @@ pub(crate) fn snapshot_dmn_source_sync(source: &DmnSourceFile) -> Result<DmnDocu
             Ok(event) => event,
             Err(error) => {
                 return Err(BpmnEngineError::InvalidDmnXml {
-                    source_id: source.source_id.clone(),
+                    source_id: (source.source_id.clone()).into(),
                     message: error.to_string(),
                 });
             }
@@ -151,7 +151,7 @@ fn parent_tag(element_stack: &[String]) -> Option<&str> {
 fn ensure_root_seen(source: &DmnSourceFile, saw_root: bool) -> Result<()> {
     if !saw_root {
         return Err(BpmnEngineError::MissingDmnRootElement {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
         });
     }
     Ok(())
@@ -174,7 +174,7 @@ fn build_snapshot_document(
 ) -> DmnDocumentSnapshot {
     let (root, decisions) = state.into_parts();
     DmnDocumentSnapshot {
-        source_id: source.source_id.clone(),
+        source_id: (source.source_id.clone()).into(),
         root: root.unwrap_or_else(empty_root_snapshot),
         decisions,
     }

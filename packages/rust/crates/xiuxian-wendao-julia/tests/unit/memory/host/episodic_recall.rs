@@ -1,5 +1,7 @@
 use tempfile::TempDir;
-use xiuxian_memory_engine::{Episode, EpisodeStore, MemoryProjectionFilter, StoreConfig};
+use xiuxian_memory_engine::{
+    Episode, EpisodeDraft, EpisodeStore, MemoryProjectionFilter, StoreConfig,
+};
 
 use crate::memory::host::episodic_recall::{
     EpisodicRecallQueryInputs, build_episodic_recall_request_batch_from_projection,
@@ -29,11 +31,32 @@ fn make_store() -> Result<(TempDir, EpisodeStore), Box<dyn std::error::Error>> {
     Ok((temp, store))
 }
 
+fn scoped_episode(
+    id: impl Into<String>,
+    intent: impl Into<String>,
+    intent_embedding: Vec<f32>,
+    experience: impl Into<String>,
+    outcome: impl Into<String>,
+    scope: impl Into<String>,
+) -> Episode {
+    Episode::new_scoped(
+        EpisodeDraft {
+            id: id.into().into(),
+            intent: intent.into(),
+            intent_embedding,
+            experience: experience.into(),
+            outcome: outcome.into(),
+            scope: None,
+        }
+        .with_scope(scope),
+    )
+}
+
 #[test]
 fn build_episodic_recall_request_rows_from_projection_maps_host_fields()
 -> Result<(), Box<dyn std::error::Error>> {
     let (_temp, store) = make_store()?;
-    let mut episode = Episode::new_scoped(
+    let mut episode = scoped_episode(
         "episode-alpha".to_string(),
         "alpha intent".to_string(),
         vec![1.0, 0.0, 0.0],
@@ -77,7 +100,7 @@ fn build_episodic_recall_request_batch_from_projection_materializes_staged_contr
     let (_temp, store) = make_store()?;
 
     for episode_id in ["episode-alpha", "episode-beta"] {
-        let episode = Episode::new_scoped(
+        let episode = scoped_episode(
             episode_id.to_string(),
             format!("{episode_id} intent"),
             vec![0.1, 0.2, 0.3],
@@ -118,7 +141,7 @@ fn build_episodic_recall_request_batch_from_real_store_projection_respects_scope
     let (_temp, store) = make_store()?;
 
     for (episode_id, scope) in [("episode-alpha", "alpha"), ("episode-beta", "beta")] {
-        let episode = Episode::new_scoped(
+        let episode = scoped_episode(
             episode_id.to_string(),
             format!("{scope} intent"),
             vec![0.3, 0.2, 0.1],

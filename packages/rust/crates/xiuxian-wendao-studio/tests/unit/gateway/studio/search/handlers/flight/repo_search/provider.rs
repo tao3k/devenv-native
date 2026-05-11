@@ -120,6 +120,54 @@ async fn studio_repo_search_flight_provider_falls_back_to_search_only_checkout_c
 }
 
 #[tokio::test]
+async fn studio_repo_search_flight_provider_uses_published_hits_for_unregistered_repo() {
+    let temp_dir = tempdir_or_panic("temp dir should build");
+    let project_root = temp_dir.path().join("project");
+    let storage_root = temp_dir.path().join("storage");
+    create_dir_all_or_panic(&project_root, "project root should build");
+
+    let service = Arc::new(SearchPlaneService::with_paths(
+        PathBuf::from(&project_root),
+        PathBuf::from(&storage_root),
+        SearchManifestKeyspace::new("xiuxian:test:flight-repo-search-unregistered"),
+        SearchMaintenancePolicy::default(),
+    ));
+    let repo_id = "docs";
+    service
+        .publish_repo_content_chunks_with_revision(
+            repo_id,
+            &[repo_document(
+                "docs/search.md",
+                "markdown",
+                "# SearchStrategyFlow\n\nOwnership boundary validation path.\n",
+            )],
+            Some("rev-1"),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("repo content publication should succeed: {error}"));
+
+    let provider = StudioRepoSearchFlightRouteProvider::with_studio(
+        Arc::clone(&service),
+        Arc::new(StudioState::new()),
+    );
+    let batch = repo_search_batch_or_panic(
+        &provider,
+        &repo_search_request(
+            repo_id,
+            "SearchStrategyFlow",
+            5,
+            RepoSearchRequestFilters::default(),
+        ),
+        "provider should use published repo-content hits for unregistered repos",
+    )
+    .await;
+
+    let paths = string_column(&batch, "path");
+    assert_eq!(batch.num_rows(), 1);
+    assert_eq!(paths.value(0), "docs/search.md");
+}
+
+#[tokio::test]
 async fn studio_repo_search_flight_provider_rejects_blank_repo_id() {
     let temp_dir = tempdir_or_panic("temp dir should build");
     let project_root = temp_dir.path().join("project");

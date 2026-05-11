@@ -51,51 +51,77 @@ pub(crate) fn evaluate_dmn_decision_sync(
         });
     }
 
-    let mut matched_rule_ids = Vec::new();
     match decision.table.hit_policy {
-        DmnHitPolicy::Unique => {
-            for rule in &decision.table.rules {
-                if rule::rule_matches(decision, rule, &request.variables) {
-                    matched_rule_ids.push(Arc::clone(&rule.rule_id));
-                    return Ok(DmnEvaluationResult::new(
-                        decision.decision.decision_id.as_ref(),
-                        rule::unique_rule_output(decision, rule),
-                        matched_rule_ids,
-                    ));
-                }
-            }
-            Ok(DmnEvaluationResult::new(
-                decision.decision.decision_id.as_ref(),
-                Value::Object(Map::new()),
-                matched_rule_ids,
-            ))
-        }
-        DmnHitPolicy::Collect => {
-            let mut output = Map::new();
-            for rule in &decision.table.rules {
-                if !rule::rule_matches(decision, rule, &request.variables) {
-                    continue;
-                }
-                matched_rule_ids.push(Arc::clone(&rule.rule_id));
-                for (output_clause, output_entry) in
-                    decision.table.outputs.iter().zip(&rule.output_entries)
-                {
-                    let key = output_clause.output_key();
-                    let slot = output
-                        .entry(key.to_string())
-                        .or_insert_with(|| Value::Array(Vec::new()));
-                    if let Value::Array(values) = slot {
-                        values.push(output_entry.value.clone());
-                    }
-                }
-            }
-            Ok(DmnEvaluationResult::new(
-                decision.decision.decision_id.as_ref(),
-                Value::Object(output),
-                matched_rule_ids,
-            ))
-        }
+        DmnHitPolicy::Unique => evaluate_unique_hit_policy(decision, &request.variables),
+        DmnHitPolicy::Collect => evaluate_collect_hit_policy(decision, &request.variables),
     }
+}
+
+fn evaluate_unique_hit_policy(
+    decision: &DmnDecisionDefinition,
+    variables: &Value,
+) -> Result<DmnEvaluationResult> {
+    let Some(rule) = decision
+        .table
+        .rules
+        .iter()
+        .find(|rule| rule::rule_matches(decision, rule, variables))
+    else {
+        return Ok(DmnEvaluationResult::new(
+            decision.decision.decision_id.as_ref(),
+            Value::Object(Map::new()),
+            Vec::new(),
+        ));
+    };
+
+    Ok(DmnEvaluationResult::new(
+        decision.decision.decision_id.as_ref(),
+        rule::unique_rule_output(decision, rule),
+        vec![Arc::clone(&rule.rule_id)],
+    ))
+}
+
+fn evaluate_collect_hit_policy(
+    decision: &DmnDecisionDefinition,
+    variables: &Value,
+) -> Result<DmnEvaluationResult> {
+    let mut matched_rule_ids = Vec::new();
+    let mut output = Map::new();
+    decision
+        .table
+        .rules
+        .iter()
+        .filter(|rule| rule::rule_matches(decision, rule, variables))
+        .for_each(|rule| collect_rule_output(decision, rule, &mut output, &mut matched_rule_ids));
+
+    Ok(DmnEvaluationResult::new(
+        decision.decision.decision_id.as_ref(),
+        Value::Object(output),
+        matched_rule_ids,
+    ))
+}
+
+fn collect_rule_output(
+    decision: &DmnDecisionDefinition,
+    rule: &crate::dmn_model_api::DmnRule,
+    output: &mut Map<String, Value>,
+    matched_rule_ids: &mut Vec<Arc<str>>,
+) {
+    matched_rule_ids.push(Arc::clone(&rule.rule_id));
+    decision
+        .table
+        .outputs
+        .iter()
+        .zip(&rule.output_entries)
+        .for_each(|(output_clause, output_entry)| {
+            let key = output_clause.output_key();
+            let slot = output
+                .entry(key.to_string())
+                .or_insert_with(|| Value::Array(Vec::new()));
+            if let Value::Array(values) = slot {
+                values.push(output_entry.value.clone());
+            }
+        });
 }
 
 fn evaluate_dmn_package_decision_with_stack(
@@ -108,8 +134,8 @@ fn evaluate_dmn_package_decision_with_stack(
     let stack_key = decision_stack_key(decision);
     if stack.contains(&stack_key) {
         return Err(BpmnEngineError::CyclicDmnRequiredDecisionDependency {
-            source_id: decision.source_id.to_string(),
-            decision_id: decision.decision.decision_id.to_string(),
+            source_id: (decision.source_id.to_string()).into(),
+            decision_id: (decision.decision.decision_id.to_string()).into(),
         });
     }
 
@@ -191,8 +217,8 @@ fn bind_required_input_alias(
     let href = information_requirement_href(decision, requirement)?;
     let Some(input_data) = package.find_dmn_input_data(decision.source_id.as_ref(), &href) else {
         return Err(BpmnEngineError::MissingDmnRequiredInputTarget {
-            source_id: decision.source_id.to_string(),
-            decision_id: decision.decision.decision_id.to_string(),
+            source_id: (decision.source_id.to_string()).into(),
+            decision_id: (decision.decision.decision_id.to_string()).into(),
             href: requirement
                 .href
                 .as_deref()
@@ -228,8 +254,8 @@ fn resolve_required_decision_definition<'a>(
     let decision_ref = DmnDecisionRef::new(target_id).with_source_id(decision.source_id.as_ref());
     package.find_dmn_decision(&decision_ref)?.ok_or_else(|| {
         BpmnEngineError::MissingDmnRequiredDecisionTarget {
-            source_id: decision.source_id.to_string(),
-            decision_id: decision.decision.decision_id.to_string(),
+            source_id: (decision.source_id.to_string()).into(),
+            decision_id: (decision.decision.decision_id.to_string()).into(),
             href: requirement
                 .href
                 .as_deref()
@@ -249,8 +275,8 @@ fn information_requirement_href(
         .map(ToString::to_string)
         .ok_or_else(
             || BpmnEngineError::UnsupportedDmnInformationRequirementHref {
-                source_id: decision.source_id.to_string(),
-                decision_id: decision.decision.decision_id.to_string(),
+                source_id: (decision.source_id.to_string()).into(),
+                decision_id: (decision.decision.decision_id.to_string()).into(),
                 href: href.to_string(),
             },
         )

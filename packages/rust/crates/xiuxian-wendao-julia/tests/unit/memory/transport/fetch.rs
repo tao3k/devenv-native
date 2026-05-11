@@ -181,7 +181,7 @@ fn runtime_for_test(base_url: String, route: &str) -> MemoryJuliaComputeRuntimeC
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
     runtime.base_url = base_url;
-    runtime.plugin_id = "wendao.memory".to_string();
+    runtime.plugin_id = "wendao.memory".into();
     runtime.schema_version = "v1".to_string();
     runtime.routes.episodic_recall = route.to_string();
     runtime.routes.memory_gate_score = route.to_string();

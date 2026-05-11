@@ -32,19 +32,71 @@ pub struct BlockCore<Kind> {
     pub structural_path: Vec<String>,
 }
 
+/// Parser-owned construction request for one block.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlockCoreRequest<Kind> {
+    /// Format-local block kind variant.
+    pub kind: Kind,
+    /// Per-kind block index within the parent section.
+    pub index: usize,
+    /// Byte range within the parent section content.
+    pub byte_range: (usize, usize),
+    /// Line range within the parent document.
+    pub line_range: (usize, usize),
+    /// Raw block content including formatting markers.
+    pub content: String,
+    /// Structural heading path for the parent section.
+    pub structural_path: Vec<String>,
+}
+
+/// Explicit property-drawer ID for a parser-owned block.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlockExplicitId(String);
+
+impl BlockExplicitId {
+    /// Build an explicit block ID.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Borrow the explicit ID as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+
+    fn into_string(self) -> String {
+        self.0
+    }
+}
+
+impl From<String> for BlockExplicitId {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&str> for BlockExplicitId {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
 impl<Kind: BlockKindIdentity> BlockCore<Kind> {
     /// Create a new block with an auto-generated block ID.
     #[must_use]
-    pub fn new(
-        kind: Kind,
-        index: usize,
-        byte_range: (usize, usize),
-        line_range: (usize, usize),
-        content: &str,
-        structural_path: Vec<String>,
-    ) -> Self {
+    pub fn new(request: BlockCoreRequest<Kind>) -> Self {
+        let BlockCoreRequest {
+            kind,
+            index,
+            byte_range,
+            line_range,
+            content,
+            structural_path,
+        } = request;
         let block_id = format!("block-{}-{index}", kind.id_prefix());
-        let content_hash = compute_block_hash(content);
+        let content_hash = compute_block_hash(content.as_str());
 
         Self {
             block_id,
@@ -62,7 +114,8 @@ impl<Kind: BlockKindIdentity> BlockCore<Kind> {
 impl<Kind> BlockCore<Kind> {
     /// Replace the generated block ID with an explicit property-drawer ID.
     #[must_use]
-    pub fn with_explicit_id(mut self, id: String) -> Self {
+    pub fn with_explicit_id(mut self, id: BlockExplicitId) -> Self {
+        let id = id.into_string();
         self.id = Some(id.clone());
         self.block_id = id;
         self

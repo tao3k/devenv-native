@@ -35,10 +35,10 @@ pub(crate) fn build_code_ast_analysis_response(
     for module in &analysis.modules {
         let line = 1usize;
         nodes.push(CodeAstNode {
-            id: module.module_id.clone().into(),
+            id: module.module_id.to_string().into(),
             label: module.qualified_name.clone(),
             kind: CodeAstNodeKind::Module,
-            path: Some(module.path.clone().into()),
+            path: Some(module.path.to_string().into()),
             line_start: Some(line),
             line_end: Some(line),
         });
@@ -91,10 +91,10 @@ pub(crate) fn build_code_ast_analysis_response(
             CodeAstNodeKind::ExternalSymbol
         };
         nodes.push(CodeAstNode {
-            id: symbol.symbol_id.clone().into(),
+            id: symbol.symbol_id.to_string().into(),
             label: symbol.name.clone(),
             kind,
-            path: Some(symbol.path.clone().into()),
+            path: Some(symbol.path.to_string().into()),
             line_start: symbol.line_start,
             line_end: symbol.line_end.or(symbol.line_start),
         });
@@ -263,7 +263,7 @@ pub(crate) fn build_code_ast_analysis_response(
         edges,
         projections,
         retrieval_atoms,
-        focus_node_id: focus_node_id.map(Into::into),
+        focus_node_id: focus_node_id.map(|id| id.to_string().into()),
         diagnostics: Vec::new(),
     }
 }
@@ -326,7 +326,7 @@ fn build_import_code_ast_nodes(
                 },
                 CodeAstEdge {
                     id: format!("{}-{}-imports", import.module_id, import_id).into(),
-                    source_id: import.module_id.clone().into(),
+                    source_id: import.module_id.to_string().into(),
                     target_id: import_id.into(),
                     kind: CodeAstEdgeKind::Imports,
                     label: None,

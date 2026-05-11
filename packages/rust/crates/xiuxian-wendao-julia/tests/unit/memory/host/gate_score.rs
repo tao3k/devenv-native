@@ -1,6 +1,6 @@
 use tempfile::TempDir;
 use xiuxian_memory_engine::{
-    Episode, EpisodeStore, MemoryLifecycleState, MemoryUtilityLedger, StoreConfig,
+    Episode, EpisodeDraft, EpisodeStore, MemoryLifecycleState, MemoryUtilityLedger, StoreConfig,
 };
 
 use crate::memory::host::gate_score::{
@@ -23,12 +23,15 @@ fn make_store() -> Result<(TempDir, EpisodeStore), Box<dyn std::error::Error>> {
 
 fn sample_episode(memory_id: &str) -> Episode {
     let mut episode = Episode::new_scoped(
-        memory_id.to_string(),
-        "intent".to_string(),
-        vec![0.1, 0.2, 0.3],
-        "experience".to_string(),
-        "completed".to_string(),
-        "alpha",
+        EpisodeDraft {
+            id: memory_id.to_string().into(),
+            intent: "intent".to_string(),
+            intent_embedding: vec![0.1, 0.2, 0.3],
+            experience: "experience".to_string(),
+            outcome: "completed".to_string(),
+            scope: None,
+        }
+        .with_scope("alpha"),
     );
     episode.q_value = 0.84;
     episode.success_count = 5;

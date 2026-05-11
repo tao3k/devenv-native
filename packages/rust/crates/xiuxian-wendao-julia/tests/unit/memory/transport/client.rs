@@ -20,7 +20,7 @@ fn build_memory_julia_compute_flight_transport_client_reads_profile_route() {
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
     runtime.base_url = "http://127.0.0.1:18825".to_string();
-    runtime.plugin_id = "wendao.memory".to_string();
+    runtime.plugin_id = "wendao.memory".into();
     runtime.routes.memory_gate_score = "/memory/gate_score".to_string();
 
     let client = build_memory_julia_compute_flight_transport_client(

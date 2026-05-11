@@ -35,55 +35,67 @@ pub fn extract_org_sections(body: &str) -> Vec<OrgSection> {
         return vec![root_section(body)];
     }
 
-    let mut sections = Vec::new();
-    push_root_section(&mut sections, body, headlines.first());
-
     let mut heading_stack = Vec::<String>::new();
-    for (index, headline) in headlines.iter().enumerate() {
-        if heading_stack.len() >= headline.level {
-            heading_stack.truncate(headline.level.saturating_sub(1));
-        }
-        heading_stack.push(headline.title.clone());
-        let heading_path = heading_stack.join(" / ");
-        let byte_end = headlines
-            .get(index + 1)
-            .map_or(body.len(), |next| next.byte_start)
-            .max(headline.content_byte_start);
-        let section_text = body[headline.content_byte_start..byte_end]
-            .trim()
-            .to_string();
-        let line_end = if byte_end == 0 {
-            headline.line_start
-        } else {
-            line_number_for_byte(body, byte_end.saturating_sub(1)).max(headline.line_start)
-        };
-        let lines = section_text
-            .lines()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>();
-        let logbook = extract_logbook_entries(&lines, headline.line_start.saturating_add(1));
+    root_section_before_first_headline(body, headlines.first())
+        .into_iter()
+        .chain(headlines.iter().enumerate().map(|(index, headline)| {
+            section_for_headline(body, &headlines, &mut heading_stack, index, headline)
+        }))
+        .collect()
+}
 
-        sections.push(SectionCore {
-            scope: SectionScope {
-                heading_title: headline.title.clone(),
-                heading_path: heading_path.clone(),
-                heading_path_lower: heading_path.to_lowercase(),
-                heading_level: headline.level,
-                line_start: headline.line_start,
-                line_end,
-                byte_start: headline.byte_start,
-                byte_end,
-            },
-            section_text_lower: section_text.to_lowercase(),
-            section_text,
-            metadata: SectionMetadata {
-                attributes: headline.attributes.clone(),
-                logbook,
-            },
-        });
+fn section_for_headline(
+    body: &str,
+    headlines: &[OrgHeadline],
+    heading_stack: &mut Vec<String>,
+    index: usize,
+    headline: &OrgHeadline,
+) -> OrgSection {
+    if heading_stack.len() >= headline.level {
+        heading_stack.truncate(headline.level.saturating_sub(1));
     }
+    heading_stack.push(headline.title.clone());
+    let heading_path = heading_stack.join(" / ");
+    let byte_end = headlines
+        .get(index + 1)
+        .map_or(body.len(), |next| next.byte_start)
+        .max(headline.content_byte_start);
+    let section_text = body[headline.content_byte_start..byte_end]
+        .trim()
+        .to_string();
+    let line_end = headline_line_end(body, byte_end, headline.line_start);
+    let lines = section_text
+        .lines()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let logbook = extract_logbook_entries(&lines, headline.line_start.saturating_add(1));
 
-    sections
+    SectionCore {
+        scope: SectionScope {
+            heading_title: headline.title.clone(),
+            heading_path: heading_path.clone(),
+            heading_path_lower: heading_path.to_lowercase(),
+            heading_level: headline.level,
+            line_start: headline.line_start,
+            line_end,
+            byte_start: headline.byte_start,
+            byte_end,
+        },
+        section_text_lower: section_text.to_lowercase(),
+        section_text,
+        metadata: SectionMetadata {
+            attributes: headline.attributes.clone(),
+            logbook,
+        },
+    }
+}
+
+fn headline_line_end(body: &str, byte_end: usize, line_start: usize) -> usize {
+    if byte_end == 0 {
+        line_start
+    } else {
+        line_number_for_byte(body, byte_end.saturating_sub(1)).max(line_start)
+    }
 }
 
 fn org_headline(body: &str, headline: &Headline) -> OrgHeadline {
@@ -132,13 +144,16 @@ fn line_number_for_byte(body: &str, byte_offset: usize) -> usize {
         + 1
 }
 
-fn push_root_section(sections: &mut Vec<OrgSection>, body: &str, first: Option<&OrgHeadline>) {
+fn root_section_before_first_headline(
+    body: &str,
+    first: Option<&OrgHeadline>,
+) -> Option<OrgSection> {
     let byte_end = first.map_or(body.len(), |headline| headline.byte_start);
     let section_text = body[..byte_end].trim().to_string();
     if section_text.is_empty() {
-        return;
+        return None;
     }
-    sections.push(SectionCore {
+    Some(SectionCore {
         scope: SectionScope {
             heading_title: String::new(),
             heading_path: String::new(),
@@ -155,7 +170,7 @@ fn push_root_section(sections: &mut Vec<OrgSection>, body: &str, first: Option<&
             attributes: HashMap::new(),
             logbook: Vec::new(),
         },
-    });
+    })
 }
 
 fn root_section(body: &str) -> OrgSection {

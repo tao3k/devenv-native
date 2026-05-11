@@ -1,18 +1,20 @@
-use super::contract::diagnostic_contract;
-use super::diagnostic::DiagnosticContext;
-use super::discovery::{collect_markdown_files, display_path};
-use super::lifecycle::{
+//! Command runners that coordinate Markdown and semantic lint owners.
+
+use crate::lint::contract::diagnostic_contract;
+use crate::lint::diagnostic::{DiagnosticContext, DiagnosticFacts};
+use crate::lint::discovery::{collect_markdown_files, display_path};
+use crate::lint::lifecycle::{
     SemanticLifecyclePlanReport, apply_semantic_lifecycle_plan, semantic_lifecycle_plan_report,
 };
-use super::policy::{
+use crate::lint::policy::{
     collect_file_link_style_facts, lint_directory_link_style_policy, lint_local_target_existence,
     lint_local_target_fragments,
 };
-use super::projection_policy::{
+use crate::lint::projection_policy::{
     SemanticProjectionFreshnessPolicyReport, semantic_projection_freshness_policy_report,
 };
-use super::text_output::render_markdown_lint_text_report;
-use super::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport, SemanticLintArgs};
+use crate::lint::text_output::render_markdown_lint_text_report;
+use crate::lint::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport, SemanticLintArgs};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
 use anyhow::{Context, Result, bail};
 use std::collections::BTreeMap;
@@ -31,61 +33,61 @@ use xiuxian_wendao_sql::semantic_read_model::{
 };
 
 #[derive(serde::Serialize)]
-struct SemanticLintRootReport {
-    root: PathBuf,
-    object_count: usize,
-    projection_count: usize,
-    change_intent_count: usize,
-    refreshed_projection_count: usize,
-    applied_lifecycle_count: usize,
-    issues: Vec<SemanticValidationIssue>,
-    lifecycle_plan: Option<SemanticLifecyclePlanReport>,
-    projection_refresh_plan: Option<SemanticProjectionRefreshPlanReport>,
-    projection_policy: Option<SemanticProjectionFreshnessPolicyReport>,
-    read_model_summary: Option<SemanticReadModelSummaryReport>,
-    sql_guard: Option<SemanticLintSqlGuardReport>,
+pub(crate) struct SemanticLintRootReport {
+    pub(crate) root: PathBuf,
+    pub(crate) object_count: usize,
+    pub(crate) projection_count: usize,
+    pub(crate) change_intent_count: usize,
+    pub(crate) refreshed_projection_count: usize,
+    pub(crate) applied_lifecycle_count: usize,
+    pub(crate) issues: Vec<SemanticValidationIssue>,
+    pub(crate) lifecycle_plan: Option<SemanticLifecyclePlanReport>,
+    pub(crate) projection_refresh_plan: Option<SemanticProjectionRefreshPlanReport>,
+    pub(crate) projection_policy: Option<SemanticProjectionFreshnessPolicyReport>,
+    pub(crate) read_model_summary: Option<SemanticReadModelSummaryReport>,
+    pub(crate) sql_guard: Option<SemanticLintSqlGuardReport>,
 }
 
 #[derive(serde::Serialize)]
-struct SemanticLintReport {
-    checked_roots: usize,
-    object_count: usize,
-    projection_count: usize,
-    change_intent_count: usize,
-    refreshed_projection_count: usize,
-    applied_lifecycle_count: usize,
-    projection_refresh_plan_count: usize,
-    read_model_summary_count: usize,
-    issue_count: usize,
-    projection_policy_issue_count: usize,
-    sql_guard_issue_count: usize,
-    roots: Vec<SemanticLintRootReport>,
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct SemanticLintSqlGuardReport {
-    guard_id: String,
-    semantic_object_id: String,
-    status: String,
-    failing_row_count: usize,
-    message: String,
-    local_relation_engine: Option<String>,
+pub(crate) struct SemanticLintReport {
+    pub(crate) checked_roots: usize,
+    pub(crate) object_count: usize,
+    pub(crate) projection_count: usize,
+    pub(crate) change_intent_count: usize,
+    pub(crate) refreshed_projection_count: usize,
+    pub(crate) applied_lifecycle_count: usize,
+    pub(crate) projection_refresh_plan_count: usize,
+    pub(crate) read_model_summary_count: usize,
+    pub(crate) issue_count: usize,
+    pub(crate) projection_policy_issue_count: usize,
+    pub(crate) sql_guard_issue_count: usize,
+    pub(crate) roots: Vec<SemanticLintRootReport>,
 }
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-struct SemanticReadModelSummaryReport {
-    status: String,
-    advisory: bool,
-    authority: String,
-    object_row_count: usize,
-    relation_row_count: usize,
-    projection_state_row_count: usize,
-    stale_projection_count: usize,
-    registered_table_count: usize,
-    registered_tables: Vec<String>,
-    message: String,
+pub(crate) struct SemanticLintSqlGuardReport {
+    pub(crate) guard_id: String,
+    pub(crate) semantic_object_id: String,
+    pub(crate) status: String,
+    pub(crate) failing_row_count: usize,
+    pub(crate) message: String,
+    pub(crate) local_relation_engine: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SemanticReadModelSummaryReport {
+    pub(crate) status: String,
+    pub(crate) advisory: bool,
+    pub(crate) authority: String,
+    pub(crate) object_row_count: usize,
+    pub(crate) relation_row_count: usize,
+    pub(crate) projection_state_row_count: usize,
+    pub(crate) stale_projection_count: usize,
+    pub(crate) registered_table_count: usize,
+    pub(crate) registered_tables: Vec<String>,
+    pub(crate) message: String,
 }
 
 pub(crate) fn run_markdown_lint(
@@ -124,9 +126,10 @@ pub(crate) fn run_markdown_lint(
             Err(error) => MarkdownLintFileReport {
                 path: relative_path,
                 issue_count: 1,
-                issues: vec![diagnostic_contract().render_issue(
-                    &super::diagnostic::DiagnosticFacts::invalid_utf8(error.to_string()),
-                )],
+                issues: vec![
+                    diagnostic_contract()
+                        .render_issue(&DiagnosticFacts::invalid_utf8(error.to_string())),
+                ],
             },
         };
         if file_report.issue_count > 0 {
@@ -322,22 +325,33 @@ fn refresh_semantic_projection_sources(root: &Path) -> Result<usize> {
         )
     })?;
 
-    let mut refreshed_count = 0usize;
-    for projection in &repository.projections {
-        let Some(current_revision) = semantic_projection_source_revision(&repository, projection)
-        else {
-            continue;
-        };
-        if projection.source_revision.as_str() == current_revision.as_str()
-            && projection.staleness == SemanticProjectionStaleness::Fresh
-        {
-            continue;
-        }
-        let projection_path = root.join(&projection.source_path);
-        refresh_projection_file(projection_path.as_path(), current_revision.as_str())?;
-        refreshed_count += 1;
-    }
-    Ok(refreshed_count)
+    repository
+        .projections
+        .iter()
+        .filter_map(|projection| stale_projection_refresh(root, &repository, projection))
+        .try_fold(0usize, |refreshed_count, refresh| {
+            refresh_projection_file(refresh.path.as_path(), refresh.revision.as_str())
+                .map(|()| refreshed_count + 1)
+        })
+}
+
+struct ProjectionRefresh {
+    path: std::path::PathBuf,
+    revision: String,
+}
+
+fn stale_projection_refresh(
+    root: &Path,
+    repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
+    projection: &xiuxian_wendao_parsers::semantic_ssot::SemanticProjection,
+) -> Option<ProjectionRefresh> {
+    let current_revision = semantic_projection_source_revision(repository, projection)?;
+    let is_current = projection.source_revision.as_str() == current_revision.as_str()
+        && projection.staleness == SemanticProjectionStaleness::Fresh;
+    (!is_current).then(|| ProjectionRefresh {
+        path: root.join(&projection.source_path),
+        revision: current_revision,
+    })
 }
 
 fn ensure_projection_refreshable(issues: &[SemanticValidationIssue]) -> Result<()> {
@@ -597,250 +611,10 @@ fn display_semantic_root(root: &Path, context_root: &Path) -> PathBuf {
 
 fn emit_semantic_report(report: &SemanticLintReport, output: OutputFormat) -> Result<()> {
     let rendered = match output {
-        OutputFormat::Text => render_semantic_text_report(report),
-        OutputFormat::Json => render_semantic_json_report(report, false)?,
-        OutputFormat::Pretty => render_semantic_json_report(report, true)?,
+        OutputFormat::Text => super::semantic_render::render_semantic_text_report(report),
+        OutputFormat::Json => super::semantic_render::render_semantic_json_report(report, false)?,
+        OutputFormat::Pretty => super::semantic_render::render_semantic_json_report(report, true)?,
     };
     print!("{rendered}");
     Ok(())
-}
-
-fn render_semantic_text_report(report: &SemanticLintReport) -> String {
-    if report.issue_count == 0
-        && report.projection_policy_issue_count == 0
-        && report.sql_guard_issue_count == 0
-    {
-        let mut rendered = format!(
-            "Semantic lint passed: checked {} root(s), {} object(s), {} projection(s), {} change intent(s), 0 issue(s).\n",
-            report.checked_roots,
-            report.object_count,
-            report.projection_count,
-            report.change_intent_count
-        );
-        render_semantic_lifecycle_apply_text(report, &mut rendered);
-        render_semantic_refresh_text(report, &mut rendered);
-        render_semantic_lifecycle_plan_text(report, &mut rendered);
-        render_semantic_projection_refresh_plan_text(report, &mut rendered);
-        render_semantic_projection_policy_text(report, &mut rendered);
-        render_semantic_read_model_summary_text(report, &mut rendered);
-        render_semantic_sql_guard_text(report, &mut rendered);
-        return rendered;
-    }
-
-    let mut rendered = format!(
-        "Semantic lint found {} issue(s), {} projection policy issue(s), and {} SQL guard issue(s) across {} root(s), {} object(s), {} projection(s), and {} change intent(s).\n",
-        report.issue_count,
-        report.projection_policy_issue_count,
-        report.sql_guard_issue_count,
-        report.checked_roots,
-        report.object_count,
-        report.projection_count,
-        report.change_intent_count
-    );
-    render_semantic_lifecycle_apply_text(report, &mut rendered);
-    render_semantic_refresh_text(report, &mut rendered);
-    render_semantic_lifecycle_plan_text(report, &mut rendered);
-    render_semantic_projection_refresh_plan_text(report, &mut rendered);
-    render_semantic_projection_policy_text(report, &mut rendered);
-    render_semantic_read_model_summary_text(report, &mut rendered);
-    for root in &report.roots {
-        for issue in &root.issues {
-            let path = issue.path.as_ref().map_or_else(
-                || root.root.display().to_string(),
-                |path| root.root.join(path).display().to_string(),
-            );
-            rendered.push_str("- ");
-            rendered.push_str(path.as_str());
-            rendered.push_str(": ");
-            rendered.push_str(issue.message.as_str());
-            rendered.push('\n');
-        }
-    }
-    render_semantic_sql_guard_text(report, &mut rendered);
-    rendered
-}
-
-fn render_semantic_lifecycle_apply_text(report: &SemanticLintReport, rendered: &mut String) {
-    if report.applied_lifecycle_count == 0 {
-        return;
-    }
-    rendered.push_str("- Applied ");
-    rendered.push_str(report.applied_lifecycle_count.to_string().as_str());
-    rendered.push_str(" semantic lifecycle writeback(s).\n");
-}
-
-fn render_semantic_lifecycle_plan_text(report: &SemanticLintReport, rendered: &mut String) {
-    for root in &report.roots {
-        let Some(plan) = &root.lifecycle_plan else {
-            continue;
-        };
-        rendered.push_str("- ");
-        rendered.push_str(root.root.display().to_string().as_str());
-        rendered.push_str(": Lifecycle plan ");
-        rendered.push_str(plan.promotion_count.to_string().as_str());
-        rendered.push_str(" promotion(s), ");
-        rendered.push_str(plan.demotion_count.to_string().as_str());
-        rendered.push_str(" demotion(s), ");
-        rendered.push_str(plan.other_transition_count.to_string().as_str());
-        rendered.push_str(" other transition(s), ");
-        rendered.push_str(plan.pending_apply_count.to_string().as_str());
-        rendered.push_str(" pending apply target(s), ");
-        rendered.push_str(plan.already_applied_count.to_string().as_str());
-        rendered.push_str(" already-applied writeback target(s), ");
-        rendered.push_str(plan.blocked_count.to_string().as_str());
-        rendered.push_str(" blocked target(s).\n");
-        for entry in &plan.entries {
-            rendered.push_str("  - ");
-            rendered.push_str(entry.change_intent_id.as_str());
-            rendered.push_str(": ");
-            rendered.push_str(entry.object_id.as_str());
-            rendered.push(' ');
-            rendered.push_str(entry.from.as_str());
-            rendered.push_str(" -> ");
-            rendered.push_str(entry.to.as_str());
-            rendered.push_str(" (");
-            rendered.push_str(entry.outcome.as_str());
-            rendered.push_str(", ");
-            rendered.push_str(entry.writeback_action.as_str());
-            rendered.push_str(")\n");
-        }
-    }
-}
-
-fn render_semantic_refresh_text(report: &SemanticLintReport, rendered: &mut String) {
-    if report.refreshed_projection_count == 0 {
-        return;
-    }
-    rendered.push_str("- Refreshed ");
-    rendered.push_str(report.refreshed_projection_count.to_string().as_str());
-    rendered.push_str(" semantic projection source revision(s).\n");
-}
-
-fn render_semantic_projection_refresh_plan_text(
-    report: &SemanticLintReport,
-    rendered: &mut String,
-) {
-    for root in &report.roots {
-        let Some(plan) = &root.projection_refresh_plan else {
-            continue;
-        };
-        rendered.push_str("- ");
-        rendered.push_str(root.root.display().to_string().as_str());
-        rendered.push_str(": Projection refresh plan ");
-        rendered.push_str(plan.status.as_str());
-        rendered.push_str(" (");
-        rendered.push_str(plan.refreshable_projection_count.to_string().as_str());
-        rendered.push_str(" refreshable projection(s))");
-        if !plan.message.is_empty() {
-            rendered.push_str(": ");
-            rendered.push_str(plan.message.as_str());
-        }
-        rendered.push('\n');
-        for projection in &plan.projections {
-            rendered.push_str("  - ");
-            rendered.push_str(projection.projection.as_str());
-            rendered.push_str(" -> ");
-            rendered.push_str(projection.action.as_str());
-            rendered.push_str(" (");
-            rendered.push_str(projection.reason.as_str());
-            rendered.push_str(", ");
-            rendered.push_str(projection.staleness.as_str());
-            rendered.push_str(")\n");
-        }
-    }
-}
-
-fn render_semantic_projection_policy_text(report: &SemanticLintReport, rendered: &mut String) {
-    for root in &report.roots {
-        let Some(policy) = &root.projection_policy else {
-            continue;
-        };
-        rendered.push_str("- ");
-        rendered.push_str(root.root.display().to_string().as_str());
-        rendered.push_str(": Projection freshness policy ");
-        rendered.push_str(policy.policy_id.as_str());
-        rendered.push(' ');
-        rendered.push_str(policy.status.as_str());
-        rendered.push_str(" (");
-        rendered.push_str(policy.failing_projection_count.to_string().as_str());
-        rendered.push_str(" failing projection(s))");
-        if !policy.message.is_empty() {
-            rendered.push_str(": ");
-            rendered.push_str(policy.message.as_str());
-        }
-        rendered.push('\n');
-        for projection in &policy.projections {
-            rendered.push_str("  - ");
-            rendered.push_str(projection.projection.as_str());
-            rendered.push_str(" (");
-            rendered.push_str(projection.reason.as_str());
-            rendered.push_str(", ");
-            rendered.push_str(projection.staleness.as_str());
-            rendered.push_str(")\n");
-        }
-    }
-}
-
-fn render_semantic_sql_guard_text(report: &SemanticLintReport, rendered: &mut String) {
-    for root in &report.roots {
-        let Some(guard) = &root.sql_guard else {
-            continue;
-        };
-        rendered.push_str("- ");
-        rendered.push_str(root.root.display().to_string().as_str());
-        rendered.push_str(": SQL guard ");
-        rendered.push_str(guard.guard_id.as_str());
-        rendered.push(' ');
-        rendered.push_str(guard.status.as_str());
-        rendered.push_str(" (");
-        rendered.push_str(guard.failing_row_count.to_string().as_str());
-        rendered.push_str(" failing row(s))");
-        if !guard.message.is_empty() {
-            rendered.push_str(": ");
-            rendered.push_str(guard.message.as_str());
-        }
-        rendered.push('\n');
-    }
-}
-
-fn render_semantic_read_model_summary_text(report: &SemanticLintReport, rendered: &mut String) {
-    for root in &report.roots {
-        let Some(summary) = &root.read_model_summary else {
-            continue;
-        };
-        rendered.push_str("- ");
-        rendered.push_str(root.root.display().to_string().as_str());
-        rendered.push_str(": Read-model summary ");
-        rendered.push_str(summary.status.as_str());
-        rendered.push_str(" (");
-        rendered.push_str(SEMANTIC_OBJECTS_TABLE_NAME);
-        rendered.push(' ');
-        rendered.push_str(summary.object_row_count.to_string().as_str());
-        rendered.push_str(" row(s), ");
-        rendered.push_str(SEMANTIC_RELATIONS_TABLE_NAME);
-        rendered.push(' ');
-        rendered.push_str(summary.relation_row_count.to_string().as_str());
-        rendered.push_str(" row(s), ");
-        rendered.push_str(SEMANTIC_PROJECTION_STATE_TABLE_NAME);
-        rendered.push(' ');
-        rendered.push_str(summary.projection_state_row_count.to_string().as_str());
-        rendered.push_str(" row(s), ");
-        rendered.push_str(summary.stale_projection_count.to_string().as_str());
-        rendered.push_str(" stale projection row(s))");
-        if !summary.message.is_empty() {
-            rendered.push_str(": ");
-            rendered.push_str(summary.message.as_str());
-        }
-        rendered.push('\n');
-    }
-}
-
-fn render_semantic_json_report(report: &SemanticLintReport, pretty: bool) -> Result<String> {
-    let rendered = if pretty {
-        serde_json::to_string_pretty(report)
-    } else {
-        serde_json::to_string(report)
-    }
-    .context("failed to serialize semantic lint report")?;
-    Ok(format!("{rendered}\n"))
 }

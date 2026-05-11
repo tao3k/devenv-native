@@ -8,7 +8,7 @@ use tokio::fs as tokio_fs;
 use tokio::io::AsyncReadExt;
 
 use crate::detect::decode_buffer;
-use crate::error::IoError;
+use crate::error::{FileSizeLimit, IoError};
 
 /// Read text from a file with size and binary checks (asynchronous).
 ///
@@ -41,11 +41,15 @@ pub async fn read_text_safe_async<P: AsRef<Path>>(
         .map_err(|_| IoError::NotFound(path.to_string_lossy().to_string()))?;
 
     if metadata.len() > max_bytes {
-        return Err(IoError::TooLarge(metadata.len(), max_bytes));
+        return Err(IoError::TooLarge(FileSizeLimit::new(
+            metadata.len(),
+            max_bytes,
+        )));
     }
 
     let file_len = metadata.len();
-    let capacity = usize::try_from(file_len).map_err(|_| IoError::TooLarge(file_len, max_bytes))?;
+    let capacity = usize::try_from(file_len)
+        .map_err(|_| IoError::TooLarge(FileSizeLimit::new(file_len, max_bytes)))?;
     let mut file = tokio_fs::File::open(path).await?;
     let mut buffer = Vec::with_capacity(capacity);
     file.read_to_end(&mut buffer).await?;

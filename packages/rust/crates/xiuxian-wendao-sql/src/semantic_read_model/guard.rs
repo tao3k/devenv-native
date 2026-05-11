@@ -1,3 +1,5 @@
+//! SQL guard checks for semantic read-model projection freshness.
+
 use std::path::Path;
 
 use serde_json::{Map, Value};

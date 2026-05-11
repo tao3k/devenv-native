@@ -25,7 +25,7 @@ pub(super) fn parse_date_question_mark_range(
     };
     if right_raw.contains('?') {
         return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: raw.to_string(),
         });
     }
@@ -53,7 +53,7 @@ pub(super) fn parse_time_question_mark_range(
     };
     if right_raw.contains('?') {
         return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: raw.to_string(),
         });
     }
@@ -81,7 +81,7 @@ pub(super) fn parse_date_time_question_mark_range(
     };
     if right_raw.contains('?') {
         return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: raw.to_string(),
         });
     }
@@ -109,7 +109,7 @@ pub(super) fn parse_duration_question_mark_range(
     };
     if right_raw.contains('?') {
         return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: raw.to_string(),
         });
     }
@@ -138,7 +138,7 @@ pub(super) fn parse_numeric_question_mark_range(
     };
     if right_raw.contains('?') {
         return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: raw.to_string(),
         });
     }

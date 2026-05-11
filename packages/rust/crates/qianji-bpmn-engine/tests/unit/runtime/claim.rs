@@ -2,9 +2,8 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEngineError, BpmnHumanTaskLifecycleEventKind, BpmnInstanceInit,
     BpmnInstanceState, BpmnNodeKind, BpmnPackage, PendingHostWorkClaim, PendingHostWorkKind,
-    PendingHostWorkRequest, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseRequest,
-    advance_instance, build_pending_host_work_request, claim_pending_human_task, create_instance,
-    release_pending_human_task,
+    PendingHostWorkRequest, advance_instance, build_pending_host_work_request,
+    claim_pending_human_task, create_instance, release_pending_human_task,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -43,7 +42,7 @@ async fn human_task_claim_records_checkpointed_owner_metadata() {
 
     let outcome = claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(token_id, "claim_review", "task", "alice", 99),
+        crate::test_support::claim_request(token_id, "claim_review", "task", "alice", 99),
     )
     .must("human task claim should succeed");
 
@@ -106,7 +105,7 @@ async fn human_task_claim_is_idempotent_for_same_claimant() {
 
     claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(token_id, "claim_idempotent", "task", "alice", 99),
+        crate::test_support::claim_request(token_id, "claim_idempotent", "task", "alice", 99),
     )
     .must("first claim should succeed");
     let claimed_sequence = instance.sequence;
@@ -114,7 +113,7 @@ async fn human_task_claim_is_idempotent_for_same_claimant() {
 
     let outcome = claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(token_id, "claim_idempotent", "task", "alice", 120),
+        crate::test_support::claim_request(token_id, "claim_idempotent", "task", "alice", 120),
     )
     .must("same claimant should be idempotent");
 
@@ -131,13 +130,13 @@ async fn human_task_claim_is_idempotent_for_same_claimant() {
 
     let error = claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(token_id, "claim_idempotent", "task", "bob", 130),
+        crate::test_support::claim_request(token_id, "claim_idempotent", "task", "bob", 130),
     )
     .must_err("different claimant should be rejected");
     assert_eq!(
         error,
         BpmnEngineError::PendingHostWorkAlreadyClaimed {
-            token_id,
+            token_id: token_id.into(),
             claimed_by: "alice".to_string(),
         }
     );
@@ -166,16 +165,16 @@ async fn human_task_claim_rejects_non_human_pending_work() {
 
     let error = claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(pending.token_id, "claim_service", "task", "alice", 99),
+        crate::test_support::claim_request(pending.token_id, "claim_service", "task", "alice", 99),
     )
     .must_err("service work is not human claimable");
 
     assert_eq!(
         error,
         BpmnEngineError::PendingHostWorkNotHumanTask {
-            token_id: pending.token_id,
+            token_id: (pending.token_id).into(),
             node_index: pending.node_index,
-            kind: "service".to_string(),
+            kind: ("service".to_string()).into(),
         }
     );
     assert_eq!(pending.kind, PendingHostWorkKind::Service);
@@ -204,7 +203,7 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
 
     claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(token_id, "release_review", "task", "alice", 99),
+        crate::test_support::claim_request(token_id, "release_review", "task", "alice", 99),
     )
     .must("human task claim should succeed");
     let claimed_sequence = instance.sequence;
@@ -212,13 +211,13 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
 
     let mismatch = release_pending_human_task(
         &mut instance,
-        PendingHumanTaskReleaseRequest::new(token_id, "release_review", "task", "bob", 120),
+        crate::test_support::release_request(token_id, "release_review", "task", "bob", 120),
     )
     .must_err("different claimant should not release human task claim");
     assert_eq!(
         mismatch,
         BpmnEngineError::PendingHostWorkClaimReleaseMismatch {
-            token_id,
+            token_id: token_id.into(),
             claimed_by: "alice".to_string(),
             requested_by: "bob".to_string(),
         }
@@ -228,7 +227,7 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
 
     let outcome = release_pending_human_task(
         &mut instance,
-        PendingHumanTaskReleaseRequest::new(token_id, "release_review", "task", "alice", 130),
+        crate::test_support::release_request(token_id, "release_review", "task", "alice", 130),
     )
     .must("same claimant should release human task claim");
 
@@ -259,12 +258,14 @@ async fn human_task_release_clears_checkpointed_owner_metadata() {
 
     let unclaimed = release_pending_human_task(
         &mut instance,
-        PendingHumanTaskReleaseRequest::new(token_id, "release_review", "task", "alice", 140),
+        crate::test_support::release_request(token_id, "release_review", "task", "alice", 140),
     )
     .must_err("unclaimed human task release should fail explicitly");
     assert_eq!(
         unclaimed,
-        BpmnEngineError::PendingHostWorkNotClaimed { token_id }
+        BpmnEngineError::PendingHostWorkNotClaimed {
+            token_id: token_id.into()
+        }
     );
     assert_eq!(instance.human_task_events.len(), 3);
 }

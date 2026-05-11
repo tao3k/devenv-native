@@ -159,8 +159,8 @@ fn handle_sequence_flow_child_start(
         return Ok(true);
     }
     Err(BpmnEngineError::UnsupportedElement {
-        source_id: source.source_id.clone(),
-        process_id: process.process_id.clone(),
+        source_id: (source.source_id.clone()).into(),
+        process_id: (process.process_id.clone()).into(),
         element: tag.to_string(),
     })
 }
@@ -243,8 +243,8 @@ fn last_human_task_resource_role_kind(
         .nodes
         .last()
         .ok_or(BpmnEngineError::UnsupportedElement {
-            source_id: source.source_id.clone(),
-            process_id: process.process_id.clone(),
+            source_id: (source.source_id.clone()).into(),
+            process_id: (process.process_id.clone()).into(),
             element: "resourceAssignmentExpression".to_string(),
         })?;
     let assignment =
@@ -306,8 +306,8 @@ fn handle_loop_child_start(
             let process_id = process.process_id.clone();
             let node = last_process_node_mut(source, process)?;
             Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id,
-                node_id: node.bpmn_id.clone(),
+                process_id: process_id.into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unsupported_standard_loop_child",
             })
         }
@@ -359,8 +359,8 @@ fn handle_loop_child_start(
             let node = last_process_node_mut(source, process)?;
             let detail = "unsupported_multi_instance_child";
             Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id,
-                node_id: node.bpmn_id.clone(),
+                process_id: process_id.into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail,
             })
         }
@@ -420,8 +420,8 @@ fn handle_event_child_start(
         let process_id = process.process_id.clone();
         let node = last_process_node_mut(source, process)?;
         return Err(BpmnEngineError::UnsupportedEventConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail,
         });
     }
@@ -429,8 +429,8 @@ fn handle_event_child_start(
         let process_id = process.process_id.clone();
         let node = last_process_node_mut(source, process)?;
         return Err(BpmnEngineError::UnsupportedEventConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail,
         });
     }
@@ -487,8 +487,8 @@ fn handle_compensation_intermediate_event_definition(
         boolean_attribute_value(reader, event, "waitForCompletion")?.unwrap_or(true);
     if !inside_transaction_shell {
         return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "throw_compensation_intermediate_event",
         });
     }
@@ -527,8 +527,8 @@ fn handle_compensation_end_event_definition(
         boolean_attribute_value(reader, event, "waitForCompletion")?.unwrap_or(true);
     if !inside_transaction_shell {
         return Err(BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "throw_compensation_end_event",
         });
     }
@@ -568,8 +568,8 @@ fn handle_script_task_child_start(
     };
     if script_task.script_body.is_some() {
         return Err(BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "multiple_script_task_bodies",
         });
     }
@@ -596,8 +596,8 @@ fn handle_supported_node_child_start(
         let node = last_process_node_mut(source, process)?;
         if node.repeat.is_some() {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id,
-                node_id: node.bpmn_id.clone(),
+                process_id: process_id.into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "multiple_loop_characteristics",
             });
         }
@@ -620,8 +620,8 @@ fn handle_supported_node_child_start(
         let node = last_process_node_mut(source, process)?;
         if node.repeat.is_some() {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id,
-                node_id: node.bpmn_id.clone(),
+                process_id: process_id.into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "multiple_loop_characteristics",
             });
         }
@@ -658,8 +658,8 @@ fn handle_supported_node_child_start(
             return Ok(true);
         }
         return Err(BpmnEngineError::UnsupportedElement {
-            source_id: source.source_id.clone(),
-            process_id: process.process_id.clone(),
+            source_id: (source.source_id.clone()).into(),
+            process_id: (process.process_id.clone()).into(),
             element: tag.to_string(),
         });
     }
@@ -678,9 +678,9 @@ fn assign_event_definition(
     let node = last_process_node_mut(source, process)?;
     if node.event.is_some() {
         return Err(BpmnEngineError::UnsupportedMultipleEventDefinitions {
-            source_id: source.source_id.clone(),
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            source_id: (source.source_id.clone()).into(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
         });
     }
     let reference_id = if kind == BpmnEventKind::Timer {

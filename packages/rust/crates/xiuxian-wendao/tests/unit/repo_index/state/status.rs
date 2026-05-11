@@ -14,7 +14,7 @@ fn status_response_counts_each_phase() {
     let coordinator = new_coordinator(SearchPlaneService::new(PathBuf::from(".")));
     coordinator.set_concurrency_for_test(AdaptiveConcurrencyController::new_for_test(6));
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "queued".to_string(),
+        repo_id: "queued".to_string().into(),
         phase: RepoIndexPhase::Queued,
         queue_position: None,
         last_error: None,
@@ -23,7 +23,7 @@ fn status_response_counts_each_phase() {
         attempt_count: 1,
     });
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "ready".to_string(),
+        repo_id: "ready".to_string().into(),
         phase: RepoIndexPhase::Ready,
         queue_position: None,
         last_error: None,
@@ -48,7 +48,7 @@ fn status_response_counts_each_phase() {
 fn status_response_filters_case_insensitively_from_cached_snapshot() {
     let coordinator = new_coordinator(SearchPlaneService::new(PathBuf::from(".")));
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "DifferentialEquations.jl".to_string(),
+        repo_id: "DifferentialEquations.jl".to_string().into(),
         phase: RepoIndexPhase::Indexing,
         queue_position: None,
         last_error: None,
@@ -75,7 +75,7 @@ fn status_response_exposes_active_repos_and_concurrency_metadata() {
         crate::repo_index::state::task::AdaptiveConcurrencyController::new_for_test(8),
     );
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "ADTypes.jl".to_string(),
+        repo_id: "ADTypes.jl".to_string().into(),
         phase: RepoIndexPhase::Indexing,
         queue_position: None,
         last_error: None,

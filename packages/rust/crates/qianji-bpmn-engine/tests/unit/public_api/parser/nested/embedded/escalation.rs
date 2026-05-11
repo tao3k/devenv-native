@@ -58,8 +58,8 @@ fn parser_embedded_subprocess_escalation_path_requires_matching_parent_boundary(
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "inline_review".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("inline_review".to_string()).into(),
             detail: "embedded_subprocess_escalation_missing_boundary",
         }
     );
@@ -113,8 +113,8 @@ fn parser_embedded_subprocess_intermediate_escalation_requires_matching_parent_b
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "inline_review".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("inline_review".to_string()).into(),
             detail: "embedded_subprocess_escalation_missing_boundary",
         }
     );
@@ -131,8 +131,8 @@ fn parser_top_level_escalation_end_requires_supported_parent_boundary() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "escalation_end".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("escalation_end".to_string()).into(),
             detail: "escalation_end_requires_supported_parent_boundary",
         }
     );
@@ -149,8 +149,8 @@ fn parser_top_level_escalation_throw_requires_supported_parent_boundary() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "escalation_throw".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("escalation_throw".to_string()).into(),
             detail: "escalation_throw_requires_supported_parent_boundary",
         }
     );

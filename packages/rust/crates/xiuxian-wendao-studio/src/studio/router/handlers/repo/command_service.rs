@@ -99,7 +99,7 @@ pub(crate) async fn run_refine_entity_doc(
             let symbol = analysis
                 .symbols
                 .iter()
-                .find(|symbol| symbol.symbol_id == payload.entity_id)
+                .find(|symbol| symbol.symbol_id.as_str() == payload.entity_id)
                 .ok_or_else(|| xiuxian_wendao::RepoIntelligenceError::AnalysisFailed {
                     message: format!("Entity `{}` not found", payload.entity_id),
                 })?;

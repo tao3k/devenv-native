@@ -13,6 +13,23 @@ pub const WENDAO_REFINE_DOC_USER_HINTS_HEADER: &str = "x-wendao-refine-doc-user-
 /// Stable route for the refine-doc analysis contract.
 pub const ANALYSIS_REFINE_DOC_ROUTE: &str = "/analysis/refine-doc";
 
+/// Normalized refine-doc request metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RefineDocRequest {
+    /// Normalized repository identifier.
+    pub repo_id: String,
+    /// Normalized entity identifier.
+    pub entity_id: String,
+    /// Optional decoded user hints.
+    pub user_hints: Option<String>,
+}
+
+impl PartialEq<(String, String, Option<String>)> for RefineDocRequest {
+    fn eq(&self, other: &(String, String, Option<String>)) -> bool {
+        self.repo_id == other.0 && self.entity_id == other.1 && self.user_hints == other.2
+    }
+}
+
 /// Validate the stable refine-doc request contract.
 ///
 /// # Errors
@@ -24,7 +41,7 @@ pub fn validate_refine_doc_request(
     repo_id: RepoIdRef<'_>,
     entity_id: EntityIdRef<'_>,
     user_hints_base64: Option<&str>,
-) -> Result<(String, String, Option<String>), String> {
+) -> Result<RefineDocRequest, String> {
     let normalized_repo_id = repo_id.trim();
     if normalized_repo_id.is_empty() {
         return Err("refine doc repo must not be blank".to_string());
@@ -44,9 +61,9 @@ pub fn validate_refine_doc_request(
                 .map_err(|error| format!("refine doc user_hints must be valid UTF-8: {error}"))
         })
         .transpose()?;
-    Ok((
-        normalized_repo_id.to_string(),
-        normalized_entity_id.to_string(),
-        normalized_user_hints,
-    ))
+    Ok(RefineDocRequest {
+        repo_id: normalized_repo_id.to_string(),
+        entity_id: normalized_entity_id.to_string(),
+        user_hints: normalized_user_hints,
+    })
 }

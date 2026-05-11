@@ -46,7 +46,7 @@ impl DmnDecisionRef {
     #[must_use]
     pub fn new(decision_id: impl AsRef<str>) -> Self {
         Self {
-            decision_id: Arc::<str>::from(decision_id.as_ref()),
+            decision_id: (Arc::<str>::from(decision_id.as_ref())).into(),
             source_id: None,
             binding: DmnBindingKind::DecisionRef,
         }

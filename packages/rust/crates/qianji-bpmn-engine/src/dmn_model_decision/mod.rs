@@ -24,8 +24,8 @@ mod table;
 
 pub use api::{
     DmnContextEntry, DmnContextExpression, DmnDecisionDefinition, DmnDecisionTable,
-    DmnEvaluationRequest, DmnEvaluationResult, DmnInformationRequirementReference, DmnInvocation,
-    DmnInvocationBinding, DmnInvocationParameter, DmnKnowledgeRequirementReference,
-    DmnListExpression, DmnLiteralExpression, DmnRelationColumn, DmnRelationExpression,
-    DmnRelationRow, DmnRule,
+    DmnDecisionTableInput, DmnEvaluationRequest, DmnEvaluationResult,
+    DmnInformationRequirementReference, DmnInvocation, DmnInvocationBinding,
+    DmnInvocationParameter, DmnKnowledgeRequirementReference, DmnListExpression,
+    DmnLiteralExpression, DmnRelationColumn, DmnRelationExpression, DmnRelationRow, DmnRule,
 };

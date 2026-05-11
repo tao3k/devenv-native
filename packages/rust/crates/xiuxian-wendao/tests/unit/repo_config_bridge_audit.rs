@@ -128,13 +128,13 @@ fn audit_registered_repository(
 ) -> BridgeRepoRow {
     let started_at = Instant::now();
     let query = RepoSyncQuery {
-        repo_id: repository.id.clone(),
+        repo_id: repository.id.clone().into(),
         mode,
     };
 
     match repo_sync_for_registered_repository(&query, repository, project_root) {
         Ok(result) => BridgeRepoRow {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
             config_has_url: BridgeFlag::new(repository.url.is_some()),
             config_has_root: BridgeFlag::new(repository.path.is_some()),
             bridge_ok: BridgeFlag::new(true),
@@ -164,7 +164,7 @@ fn audit_registered_repository(
         Err(error) => {
             let error = error.to_string();
             BridgeRepoRow {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 config_has_url: BridgeFlag::new(repository.url.is_some()),
                 config_has_root: BridgeFlag::new(repository.path.is_some()),
                 bridge_ok: BridgeFlag::new(false),

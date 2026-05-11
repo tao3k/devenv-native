@@ -42,7 +42,7 @@ async fn host_dispatch_sequential_multi_instance_request_includes_repeat_context
         request,
         with_token_id(
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: "wf_dispatch_multi_instance".to_string(),
+                instance_id: ("wf_dispatch_multi_instance".to_string()).into(),
                 token_id: 0,
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
@@ -91,7 +91,7 @@ async fn host_dispatch_sequential_multi_instance_data_binding_overlays_input_ite
         request,
         with_token_id(
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: "wf_dispatch_multi_instance_data_binding".to_string(),
+                instance_id: ("wf_dispatch_multi_instance_data_binding".to_string()).into(),
                 token_id: 0,
                 node_index: 1,
                 variables: json!({
@@ -147,8 +147,8 @@ async fn host_dispatch_parallel_multi_instance_requests_include_repeat_context()
             .must("parallel multi-instance blocked instance should emit requests"),
         vec![
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: "wf_dispatch_parallel_multi_instance".to_string(),
-                token_id: pending[0].token_id,
+                instance_id: ("wf_dispatch_parallel_multi_instance".to_string()).into(),
+                token_id: (pending[0].token_id).into(),
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
                 inputs: json!({}),
@@ -161,8 +161,8 @@ async fn host_dispatch_parallel_multi_instance_requests_include_repeat_context()
                 )),
             }),
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: "wf_dispatch_parallel_multi_instance".to_string(),
-                token_id: pending[1].token_id,
+                instance_id: ("wf_dispatch_parallel_multi_instance".to_string()).into(),
+                token_id: (pending[1].token_id).into(),
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
                 inputs: json!({}),
@@ -175,8 +175,8 @@ async fn host_dispatch_parallel_multi_instance_requests_include_repeat_context()
                 )),
             }),
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: "wf_dispatch_parallel_multi_instance".to_string(),
-                token_id: pending[2].token_id,
+                instance_id: ("wf_dispatch_parallel_multi_instance".to_string()).into(),
+                token_id: (pending[2].token_id).into(),
                 node_index: 1,
                 variables: json!({ "amount": 7 }),
                 inputs: json!({}),
@@ -225,8 +225,9 @@ async fn host_dispatch_parallel_multi_instance_data_binding_overlays_iteration_i
             .must("parallel data-bound instance should emit requests"),
         vec![
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: "wf_dispatch_parallel_multi_instance_data_binding".to_string(),
-                token_id: pending[0].token_id,
+                instance_id: ("wf_dispatch_parallel_multi_instance_data_binding".to_string())
+                    .into(),
+                token_id: (pending[0].token_id).into(),
                 node_index: 1,
                 variables: json!({
                     "items": ["alpha", "beta"],
@@ -242,8 +243,9 @@ async fn host_dispatch_parallel_multi_instance_data_binding_overlays_iteration_i
                 )),
             }),
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: "wf_dispatch_parallel_multi_instance_data_binding".to_string(),
-                token_id: pending[1].token_id,
+                instance_id: ("wf_dispatch_parallel_multi_instance_data_binding".to_string())
+                    .into(),
+                token_id: (pending[1].token_id).into(),
                 node_index: 1,
                 variables: json!({
                     "items": ["alpha", "beta"],

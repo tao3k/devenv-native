@@ -5,7 +5,7 @@ use crate::runtime::{
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, ServiceTaskOutcome,
-    advance_instance, apply_pending_host_work_result, create_instance,
+    advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -53,7 +53,7 @@ async fn runtime_parallel_multi_instance_blocks_all_iterations_before_final_rout
     );
 
     for (completed, pending_work) in pending.iter().enumerate() {
-        let resumed = apply_pending_host_work_result(
+        let resumed = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending_work.token_id,
@@ -168,7 +168,7 @@ async fn runtime_parallel_multi_instance_completion_condition_cancels_siblings()
     };
     assert_eq!(pending.len(), 3);
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[1].token_id,

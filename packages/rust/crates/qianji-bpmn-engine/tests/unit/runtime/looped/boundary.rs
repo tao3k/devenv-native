@@ -5,7 +5,7 @@ use qianji_bpmn_engine::{
     BpmnInstanceState, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BpmnRepeatSpec,
     BpmnStandardLoopSpec, BpmnTimerKind, BpmnTimerSpec, EventPollOutcome, InstanceLifecycle,
     NodeRuntimeStatus, PendingHostWorkResult, ProcessKey, ServiceTaskOutcome, advance_instance,
-    apply_event_poll_outcome, apply_pending_host_work_result, create_instance,
+    apply_event_poll_outcome, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -125,7 +125,7 @@ async fn runtime_standard_loop_non_interrupting_boundary_stays_armed_across_reen
     assert_boundary_wait_armed(&instance);
 
     let token_id = instance.pending_host_work[0].token_id;
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,
@@ -173,7 +173,7 @@ async fn runtime_standard_loop_non_interrupting_boundary_stays_armed_across_reen
     assert_boundary_branch_drained(&instance);
 
     let token_id = instance.pending_host_work[0].token_id;
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

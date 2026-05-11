@@ -37,7 +37,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_anchor_kind_issue(
         "snapshot": diagram_snapshot_summary(&snapshot),
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.invalid_di_anchor_kind",
         "BPMN diagram interchange metadata points at the wrong semantic element kind",
         format!(

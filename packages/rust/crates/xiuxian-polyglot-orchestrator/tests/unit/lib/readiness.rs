@@ -119,9 +119,22 @@ fn thread_pinning_diagnostics_serialize_without_blocking_readiness() -> Result<(
 #[test]
 fn accelerator_diagnostics_serialize_without_blocking_readiness() -> Result<(), serde_json::Error> {
     let diagnostics = vec![
-        JuliaAcceleratorDiagnostics::new("metal", true, true).with_observed_output_count(Some(4)),
-        JuliaAcceleratorDiagnostics::new("cuda", false, false)
-            .with_notes(["CUDA.jl was not loaded by this worker"]),
+        JuliaAcceleratorDiagnostics::new(
+            "metal",
+            crate::JuliaAcceleratorState::new(crate::JuliaAcceleratorStateInput {
+                loaded: true,
+                functional: true,
+            }),
+        )
+        .with_observed_output_count(Some(4)),
+        JuliaAcceleratorDiagnostics::new(
+            "cuda",
+            crate::JuliaAcceleratorState::new(crate::JuliaAcceleratorStateInput {
+                loaded: false,
+                functional: false,
+            }),
+        )
+        .with_notes(["CUDA.jl was not loaded by this worker"]),
     ];
     let evidence = JuliaReadinessEvidence::graph_evidence_profile("wendaograph_gnn")
         .with_route_validation(ContractValidationState::Valid)

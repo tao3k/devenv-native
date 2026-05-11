@@ -34,7 +34,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_identity_issue(
         "snapshot": diagram_snapshot_summary(&snapshot),
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.duplicate_di_id",
         "BPMN diagram interchange metadata reuses an id",
         format!(

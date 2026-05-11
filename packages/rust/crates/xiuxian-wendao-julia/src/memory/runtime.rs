@@ -51,15 +51,16 @@ pub fn build_memory_julia_compute_binding(
                 ),
             }
         })?;
-    let timeout_secs = validate_flight_timeout_secs(runtime.timeout_secs).map_err(|error| {
-        RepoIntelligenceError::ConfigLoad {
-            message: format!(
-                "memory Julia compute profile `{}` has invalid timeout `{}`: {error}",
-                profile.profile_id(),
-                runtime.timeout_secs
-            ),
-        }
-    })?;
+    let timeout_secs =
+        validate_flight_timeout_secs(runtime.timeout_secs.value()).map_err(|error| {
+            RepoIntelligenceError::ConfigLoad {
+                message: format!(
+                    "memory Julia compute profile `{}` has invalid timeout `{}`: {error}",
+                    profile.profile_id(),
+                    runtime.timeout_secs.value()
+                ),
+            }
+        })?;
     let max_in_flight_requests = validate_flight_max_in_flight_requests(
         runtime.max_in_flight_requests,
     )
@@ -114,7 +115,7 @@ pub fn build_memory_julia_compute_bindings(
 fn normalized_provider_id(
     runtime: &MemoryJuliaComputeRuntimeConfig,
 ) -> Result<String, RepoIntelligenceError> {
-    let provider = runtime.plugin_id.trim();
+    let provider = runtime.plugin_id.as_str().trim();
     if provider.is_empty() {
         return Err(RepoIntelligenceError::ConfigLoad {
             message: "memory Julia compute plugin_id must not be blank".to_string(),

@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use walkdir::{DirEntry, WalkDir};
+use xiuxian_git_repo::list_tracked_file_paths;
 
 use super::classify::{FingerprintMode, analysis_fingerprint_mode};
 #[cfg(feature = "search-runtime")]
@@ -21,12 +22,15 @@ pub(crate) fn collect_repository_analysis_identity(
         return None;
     }
 
-    let mut relevant_files = WalkDir::new(repository_root)
-        .into_iter()
-        .filter_entry(|entry| !should_skip_walk_entry(entry))
-        .filter_map(Result::ok)
-        .filter_map(|entry| relevant_file(repository_root, entry, plugin_ids))
-        .collect::<Vec<_>>();
+    let mut relevant_files = git_tracked_relevant_files(repository_root, plugin_ids)
+        .unwrap_or_else(|| {
+            WalkDir::new(repository_root)
+                .into_iter()
+                .filter_entry(|entry| !should_skip_walk_entry(entry))
+                .filter_map(Result::ok)
+                .filter_map(|entry| relevant_file(repository_root, entry, plugin_ids))
+                .collect::<Vec<_>>()
+        });
 
     relevant_files.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
 
@@ -47,8 +51,7 @@ pub(crate) fn collect_repository_analysis_identity(
         match file.mode {
             RelevantFileIdentityMode::PathOnly => {}
             RelevantFileIdentityMode::Contents => {
-                let contents = fs::read(&file.absolute_path).ok()?;
-                hasher.update(contents.as_slice());
+                hash_file_contents(&file.absolute_path, &mut hasher)?;
                 hasher.update(b"\0");
             }
             #[cfg(feature = "search-runtime")]
@@ -106,12 +109,49 @@ fn relevant_file(
     })
 }
 
+fn git_tracked_relevant_files(
+    repository_root: &Path,
+    plugin_ids: &[String],
+) -> Option<Vec<RelevantFile>> {
+    let tracked_paths = list_tracked_file_paths(repository_root).ok()?;
+    Some(
+        tracked_paths
+            .into_iter()
+            .filter_map(|relative_path| {
+                relevant_tracked_file(repository_root, relative_path, plugin_ids)
+            })
+            .collect(),
+    )
+}
+
+fn relevant_tracked_file(
+    repository_root: &Path,
+    relative_path: String,
+    plugin_ids: &[String],
+) -> Option<RelevantFile> {
+    let mode = relevant_file_identity_mode(relative_path.as_str(), plugin_ids)?;
+    let absolute_path = repository_root.join(relative_path.as_str());
+    Some(RelevantFile {
+        relative_path,
+        absolute_path,
+        mode,
+    })
+}
+
 fn should_skip_walk_entry(entry: &DirEntry) -> bool {
     entry.depth() > 0
+        && entry.file_type().is_dir()
         && entry
             .file_name()
             .to_str()
-            .is_some_and(|name| name == ".git")
+            .is_some_and(is_ignored_analysis_identity_dir_name)
+}
+
+fn is_ignored_analysis_identity_dir_name(name: &str) -> bool {
+    matches!(
+        name,
+        ".cache" | ".devenv" | ".git" | ".run" | "node_modules" | "target"
+    )
 }
 
 fn relevant_file_identity_mode(
@@ -141,6 +181,15 @@ fn relevant_file_identity_mode_label(mode: &RelevantFileIdentityMode) -> String 
     }
 }
 
+fn hash_file_contents(absolute_path: &Path, hasher: &mut blake3::Hasher) -> Option<()> {
+    match fs::read(absolute_path) {
+        Ok(contents) => hasher.update(contents.as_slice()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => hasher.update(b"missing"),
+        Err(_) => return None,
+    };
+    Some(())
+}
+
 #[cfg(feature = "search-runtime")]
 fn hash_semantic_identity(
     repository: &RegisteredRepository,
@@ -149,7 +198,14 @@ fn hash_semantic_identity(
     owner: &SemanticFingerprintOwner,
     hasher: &mut blake3::Hasher,
 ) -> Option<()> {
-    let contents = fs::read(absolute_path).ok()?;
+    let contents = match fs::read(absolute_path) {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            hasher.update(b"missing\0");
+            return Some(());
+        }
+        Err(_) => return None,
+    };
     let semantic_fingerprint =
         std::str::from_utf8(contents.as_slice())
             .ok()

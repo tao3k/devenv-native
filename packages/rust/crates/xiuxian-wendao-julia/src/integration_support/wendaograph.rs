@@ -8,7 +8,9 @@ use std::process::Command;
 use serde_json::{Value, json};
 
 use super::search_strategy_flow_candidates::{
-    SearchStrategyFlowCandidateInputBatch, search_strategy_flow_candidate_input_batch_from_markdown,
+    SearchStrategyFlowCandidateInputBatch, search_strategy_flow_candidate_discovery_contract_json,
+    search_strategy_flow_candidate_input_batch_from_markdown,
+    search_strategy_flow_total_structured_candidate_index_contract_json,
 };
 #[cfg(test)]
 use super::search_strategy_flow_candidates::{
@@ -316,6 +318,7 @@ fn run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
         .arg(search_root)
         .arg(candidate_batch.tsv)
         .arg(candidate_batch.source)
+        .arg(candidate_batch.discovery_receipt_json)
         .output()
         .map_err(|error| format!("spawn WendaoGraph SearchStrategyFlow host request: {error}"))?;
 
@@ -346,6 +349,11 @@ fn add_search_strategy_flow_retrieval_routes(value: &mut Value) -> Result<(), St
     let routes = build_search_strategy_flow_retrieval_routes(value);
     let projected_evidence_rows =
         build_search_strategy_flow_rust_projected_evidence_rows(value, &routes);
+    let candidate_discovery_contract = search_strategy_flow_candidate_discovery_contract_json(
+        json_string(value, "candidateInputSource"),
+        json_usize(value, "candidateInputCount"),
+        value.get("candidateInputDiscovery"),
+    );
     let object = value.as_object_mut().ok_or_else(|| {
         "WendaoGraph SearchStrategyFlow JSON trace root must be an object".to_owned()
     })?;
@@ -353,6 +361,14 @@ fn add_search_strategy_flow_retrieval_routes(value: &mut Value) -> Result<(), St
     object.insert(
         "rustProjectedEvidenceRows".to_owned(),
         Value::Array(projected_evidence_rows),
+    );
+    object.insert(
+        "structuredCandidateIndexContract".to_owned(),
+        search_strategy_flow_total_structured_candidate_index_contract_json(),
+    );
+    object.insert(
+        "candidateDiscoveryContract".to_owned(),
+        candidate_discovery_contract,
     );
     Ok(())
 }

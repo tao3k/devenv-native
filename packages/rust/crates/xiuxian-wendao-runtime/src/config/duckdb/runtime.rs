@@ -83,7 +83,17 @@ pub fn resolve_search_duckdb_runtime_with_settings(
     settings: &Value,
 ) -> SearchDuckDbRuntimeConfig {
     let mut resolved = default_search_duckdb_runtime(project_root);
+    apply_search_duckdb_core_settings(project_root, settings, &mut resolved);
+    apply_search_duckdb_execution_settings(settings, &mut resolved);
+    apply_search_duckdb_resource_settings(settings, &mut resolved);
+    resolved
+}
 
+fn apply_search_duckdb_core_settings(
+    project_root: &Path,
+    settings: &Value,
+    resolved: &mut SearchDuckDbRuntimeConfig,
+) {
     if let Some(enabled) = get_setting_bool(settings, "search.duckdb.enabled") {
         resolved.enabled = enabled;
     }
@@ -104,7 +114,12 @@ pub fn resolve_search_duckdb_runtime_with_settings(
     {
         resolved.threads = threads;
     }
+}
 
+fn apply_search_duckdb_execution_settings(
+    settings: &Value,
+    resolved: &mut SearchDuckDbRuntimeConfig,
+) {
     if let Some(preserve_insertion_order) =
         get_setting_bool(settings, "search.duckdb.preserve_insertion_order")
     {
@@ -117,6 +132,17 @@ pub fn resolve_search_duckdb_runtime_with_settings(
         resolved.execution.parquet_metadata_cache = parquet_metadata_cache;
     }
 
+    if let Some(prefer_virtual_arrow) =
+        get_setting_bool(settings, "search.duckdb.prefer_virtual_arrow")
+    {
+        resolved.execution.prefer_virtual_arrow = prefer_virtual_arrow;
+    }
+}
+
+fn apply_search_duckdb_resource_settings(
+    settings: &Value,
+    resolved: &mut SearchDuckDbRuntimeConfig,
+) {
     if let Some(memory_limit) = resolve_non_empty_string(settings, "search.duckdb.memory_limit") {
         resolved.memory_limit = Some(memory_limit);
     }
@@ -134,14 +160,6 @@ pub fn resolve_search_duckdb_runtime_with_settings(
     {
         resolved.materialize_threshold_rows = threshold;
     }
-
-    if let Some(prefer_virtual_arrow) =
-        get_setting_bool(settings, "search.duckdb.prefer_virtual_arrow")
-    {
-        resolved.execution.prefer_virtual_arrow = prefer_virtual_arrow;
-    }
-
-    resolved
 }
 
 #[cfg(test)]

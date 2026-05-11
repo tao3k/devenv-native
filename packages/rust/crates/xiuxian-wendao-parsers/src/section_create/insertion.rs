@@ -4,6 +4,32 @@ use super::types::{InsertionInfo, SiblingInfo};
 
 type HeadingPosition = (usize, usize, String);
 
+/// Parsed Markdown ATX heading line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedHeadingLine {
+    /// Heading level from 1 through 6.
+    pub level: usize,
+    /// Normalized heading title.
+    pub title: String,
+}
+
+impl ParsedHeadingLine {
+    /// Build a parsed heading line.
+    #[must_use]
+    pub fn new(level: usize, title: impl Into<String>) -> Self {
+        Self {
+            level,
+            title: title.into(),
+        }
+    }
+}
+
+impl PartialEq<(usize, String)> for ParsedHeadingLine {
+    fn eq(&self, other: &(usize, String)) -> bool {
+        self.level == other.0 && self.title == other.1
+    }
+}
+
 /// Find the insertion point for one missing Markdown heading path.
 ///
 /// The result captures the byte offset where new content should be inserted,
@@ -61,19 +87,15 @@ pub fn find_insertion_point(doc_content: &str, path_components: &[String]) -> In
 
 /// Parse one Markdown ATX heading line into its level plus normalized title.
 #[must_use]
-pub fn parse_heading_line(line: &str) -> Option<(usize, String)> {
+pub fn parse_heading_line(line: &str) -> Option<ParsedHeadingLine> {
     if !line.starts_with('#') {
         return None;
     }
 
-    let mut level = 0;
-    for character in line.chars() {
-        if character == '#' {
-            level += 1;
-        } else {
-            break;
-        }
-    }
+    let level = line
+        .chars()
+        .take_while(|character| *character == '#')
+        .count();
 
     if level == 0 || level > 6 {
         return None;
@@ -84,7 +106,7 @@ pub fn parse_heading_line(line: &str) -> Option<(usize, String)> {
         return None;
     }
 
-    Some((level, title))
+    Some(ParsedHeadingLine::new(level, title))
 }
 
 fn parse_headings(lines: &[&str]) -> Vec<HeadingPosition> {
@@ -92,8 +114,8 @@ fn parse_headings(lines: &[&str]) -> Vec<HeadingPosition> {
 
     for (line_idx, line) in lines.iter().enumerate() {
         let trimmed = line.trim_start();
-        if let Some((level, title)) = parse_heading_line(trimmed) {
-            headings.push((line_idx, level, title));
+        if let Some(heading) = parse_heading_line(trimmed) {
+            headings.push((line_idx, heading.level, heading.title));
         }
     }
 

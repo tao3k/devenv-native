@@ -6,22 +6,22 @@ use super::{ranked_example_matches, ranked_module_matches, ranked_symbol_matches
 
 fn module_record(module_id: &str, qualified_name: &str) -> ModuleRecord {
     ModuleRecord {
-        repo_id: "repo".to_string(),
-        module_id: module_id.to_string(),
+        repo_id: "repo".to_string().into(),
+        module_id: module_id.to_string().into(),
         qualified_name: qualified_name.to_string(),
-        path: format!("src/{qualified_name}.jl"),
+        path: format!("src/{qualified_name}.jl").into(),
     }
 }
 
 fn symbol_record(symbol_id: &str, name: &str, qualified_name: &str) -> SymbolRecord {
     SymbolRecord {
-        repo_id: "repo".to_string(),
-        symbol_id: symbol_id.to_string(),
-        module_id: Some("repo:module:Sample".to_string()),
+        repo_id: "repo".to_string().into(),
+        symbol_id: symbol_id.to_string().into(),
+        module_id: Some("repo:module:Sample".to_string().into()),
         name: name.to_string(),
         qualified_name: qualified_name.to_string(),
         kind: RepoSymbolKind::Function,
-        path: "src/Sample.jl".to_string(),
+        path: "src/Sample.jl".to_string().into(),
         line_start: None,
         line_end: None,
         signature: None,
@@ -33,10 +33,10 @@ fn symbol_record(symbol_id: &str, name: &str, qualified_name: &str) -> SymbolRec
 
 fn example_record(example_id: &str, title: &str) -> ExampleRecord {
     ExampleRecord {
-        repo_id: "repo".to_string(),
-        example_id: example_id.to_string(),
+        repo_id: "repo".to_string().into(),
+        example_id: example_id.to_string().into(),
         title: title.to_string(),
-        path: format!("examples/{title}.jl"),
+        path: format!("examples/{title}.jl").into(),
         summary: Some(format!("{title} walkthrough")),
     }
 }

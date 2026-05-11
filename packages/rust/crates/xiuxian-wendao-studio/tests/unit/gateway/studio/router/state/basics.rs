@@ -1,9 +1,9 @@
 use crate::contracts::UiProjectConfig;
-use crate::studio::router::state::helpers::graph_include_dirs;
 use crate::studio::router::state::lifecycle::{
     gateway_bootstrap_background_indexing_with_lookup,
     gateway_start_bootstrap_background_indexing_with_lookup,
 };
+use crate::studio::router::state::project_config::graph_include_dirs;
 use crate::studio::router::state::{GatewayState, StudioState, supported_code_kinds};
 use std::sync::Arc;
 

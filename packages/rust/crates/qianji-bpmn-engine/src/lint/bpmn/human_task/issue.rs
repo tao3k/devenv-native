@@ -11,7 +11,7 @@ pub(super) fn unsupported_global_task_binding_issue(
     let source_id = &source.source_id;
     let process_id = call_activity.process_id.as_deref().unwrap_or("<unknown>");
     let activity_id = call_activity.activity_id.as_deref().unwrap_or("<unknown>");
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_global_task_binding",
         "Global task binding is not executable",
         format!(
@@ -81,7 +81,7 @@ pub(super) fn unsupported_native_rendering_issue(
 ) -> LintIssue {
     let source_id = &source.source_id;
     let task_id = task.task_id.as_deref().unwrap_or("<unknown>");
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_human_task_rendering",
         "Native BPMN user-task rendering is deferred",
         format!(
@@ -132,7 +132,7 @@ pub(super) fn invalid_manual_task_rendering_issue(
 ) -> LintIssue {
     let source_id = &source.source_id;
     let task_id = task.task_id.as_deref().unwrap_or("<unknown>");
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.invalid_manual_task_rendering",
         "Manual task rendering is not a BPMN execution contract",
         format!(
@@ -221,7 +221,7 @@ pub(super) fn unsupported_assignment_issue(
 ) -> LintIssue {
     let source_id = &source.source_id;
     let task_id = task.task_id.as_deref().unwrap_or("<unknown>");
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_human_task_assignment_semantics",
         "Human-task assignment semantics exceed routing metadata",
         format!(

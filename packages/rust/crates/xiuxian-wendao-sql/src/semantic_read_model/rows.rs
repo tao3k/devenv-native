@@ -1,8 +1,48 @@
+//! Row construction for advisory semantic read-model tables.
+
 use xiuxian_wendao_parsers::semantic_ssot::{
     SemanticConfidenceSource, SemanticObject, SemanticObjectKind, SemanticProjection,
     SemanticProjectionStaleness, SemanticRelationKind, SemanticRepository, SemanticStatus,
     semantic_projection_source_revision,
 };
+
+macro_rules! semantic_read_model_string_type {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the stable token.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+
+        impl PartialEq<&str> for $name {
+            fn eq(&self, other: &&str) -> bool {
+                self.as_str() == *other
+            }
+        }
+    };
+}
+
+semantic_read_model_string_type!(SemanticObjectKindToken, "Semantic object kind token.");
+semantic_read_model_string_type!(SemanticStatusToken, "Semantic lifecycle status token.");
+semantic_read_model_string_type!(SemanticRelationKindToken, "Semantic relation kind token.");
 
 /// Complete semantic read-model row set.
 #[derive(Debug, Clone, PartialEq)]
@@ -21,11 +61,11 @@ pub struct SemanticObjectReadModelRow {
     /// Semantic object id.
     pub id: String,
     /// Semantic object kind token.
-    pub kind: String,
+    pub kind: SemanticObjectKindToken,
     /// Semantic object title.
     pub title: String,
     /// Semantic lifecycle status token.
-    pub status: String,
+    pub status: SemanticStatusToken,
     /// Normalized confidence score.
     pub confidence_score: f64,
     /// Confidence source token.
@@ -62,7 +102,7 @@ pub struct SemanticRelationReadModelRow {
     /// Source semantic object id.
     pub source: String,
     /// Relation kind token.
-    pub kind: String,
+    pub kind: SemanticRelationKindToken,
     /// Target semantic object id.
     pub target: String,
     /// Source object path relative to the semantic root.
@@ -81,7 +121,7 @@ pub struct SemanticProjectionStateReadModelRow {
     /// Projection name.
     pub projection: String,
     /// Projection lifecycle status token.
-    pub status: String,
+    pub status: SemanticStatusToken,
     /// Declared source revision stored on the projection artifact.
     pub source_revision: String,
     /// Current source revision computed from source objects.
@@ -136,7 +176,7 @@ pub(super) fn build_rows(repository: &SemanticRepository) -> Result<SemanticRead
             if accepted_ids.contains(relation.target.as_str()) {
                 relations.push(SemanticRelationReadModelRow {
                     source: object.id.clone(),
-                    kind: relation_kind_token(&relation.kind).to_string(),
+                    kind: relation_kind_token(&relation.kind).into(),
                     target: relation.target.clone(),
                     source_path: source_path_string(object),
                     read_model_source_revision: read_model_meta.source_revision.clone(),
@@ -190,9 +230,9 @@ fn object_row(
 ) -> Result<SemanticObjectReadModelRow, String> {
     Ok(SemanticObjectReadModelRow {
         id: object.id.clone(),
-        kind: object_kind_token(&object.kind).to_string(),
+        kind: object_kind_token(&object.kind).into(),
         title: object.title.clone(),
-        status: status_token(&object.status).to_string(),
+        status: status_token(&object.status).into(),
         confidence_score: object.confidence.score,
         confidence_source: confidence_source_token(&object.confidence.source).to_string(),
         owner_count: i64::try_from(object.owners.len()).unwrap_or(i64::MAX),
@@ -221,7 +261,7 @@ fn projection_state_row(
 ) -> Result<SemanticProjectionStateReadModelRow, String> {
     Ok(SemanticProjectionStateReadModelRow {
         projection: projection.projection.clone(),
-        status: status_token(&projection.status).to_string(),
+        status: status_token(&projection.status).into(),
         source_revision: projection.source_revision.clone(),
         current_source_revision: semantic_projection_source_revision(repository, projection)
             .unwrap_or_default(),

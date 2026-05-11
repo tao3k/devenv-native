@@ -574,6 +574,13 @@ async fn wendaograph_search_strategy_flow_live_flight_index_replay_runs_when_ena
             .is_some_and(|count| count > 0),
         "live Flight replay must discover at least one candidate"
     );
+    assert_eq!(
+        trace
+            .get("candidateInputDiscovery")
+            .and_then(|receipt| receipt.get("transport")),
+        Some(&serde_json::json!("arrow-flight")),
+        "live Flight replay must expose the Rust Flight discovery receipt"
+    );
     let candidates = json_array(&trace, "candidates", "live-flight-index");
     let routes = json_array(&trace, "retrievalRoutes", "live-flight-index");
     let projected_rows = json_array(&trace, "rustProjectedEvidenceRows", "live-flight-index");
@@ -746,6 +753,21 @@ pub(super) fn assert_search_strategy_flow_live_replay_trace_with_candidate_sourc
             .and_then(serde_json::Value::as_u64),
         Some(input_candidate_count as u64),
         "{family} trace must preserve bounded input candidate count"
+    );
+    assert_eq!(
+        trace
+            .get("candidateInputDiscovery")
+            .and_then(|receipt| receipt.get("candidateInputSource")),
+        Some(&serde_json::json!(expected_candidate_source)),
+        "{family} trace must preserve Rust candidate discovery receipt source"
+    );
+    assert_eq!(
+        trace
+            .get("candidateDiscoveryContract")
+            .and_then(|contract| contract.get("discoveryReceipt"))
+            .and_then(|receipt| receipt.get("candidateInputSource")),
+        Some(&serde_json::json!(expected_candidate_source)),
+        "{family} discovery contract must embed the Rust discovery receipt"
     );
 
     let candidates = json_array(&trace, "candidates", family);
@@ -1299,21 +1321,49 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
     server.abort();
 
     assert_eq!(batch.source, "rust-flight-repo-search");
-    assert_eq!(batch.row_count, 4);
-    assert_eq!(batch.tsv.lines().count(), 4);
+    assert_eq!(batch.row_count, 3);
+    assert_eq!(batch.tsv.lines().count(), 3);
+    let discovery_receipt: serde_json::Value =
+        serde_json::from_str(batch.discovery_receipt_json.as_str())
+            .unwrap_or_else(|error| panic!("parse fake Flight discovery receipt: {error}"));
+    assert_eq!(
+        discovery_receipt.get("transport"),
+        Some(&serde_json::json!("arrow-flight"))
+    );
+    assert_eq!(
+        discovery_receipt.get("route"),
+        Some(&serde_json::json!(REPO_SEARCH_ROUTE))
+    );
+    assert_eq!(
+        discovery_receipt.get("candidateInputCount"),
+        Some(&serde_json::json!(3))
+    );
+    assert_eq!(
+        discovery_receipt.get("mergedCandidateCount"),
+        Some(&serde_json::json!(3))
+    );
+    assert!(
+        discovery_receipt
+            .get("attempts")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|attempts| {
+                attempts.iter().any(|attempt| {
+                    attempt.get("route") == Some(&serde_json::json!(REPO_SEARCH_ROUTE))
+                        && attempt.get("rowCount") == Some(&serde_json::json!(4))
+                })
+            }),
+        "fake Flight discovery receipt must keep per-attempt row counts: {discovery_receipt}"
+    );
     for expected_fragment in [
         "packages/rust/crates/xiuxian-wendao/src/link_graph/index/ppr/mod.rs",
         "wendao.toml",
         "packages/python/xiuxian-wendao-analyzer/src/xiuxian_wendao_analyzer/worker.py",
-        ".data/WendaoGraph.jl/src/reasoning/search_strategy_flow/frontier.jl",
         "ppr-runtime-search-strategy",
         "wendao-repository-configuration",
         "python-analyzer-worker",
-        "julia-frontier-strategy",
         "effective-parser:rust-lang-parser",
         "effective-parser:xiuxian-ast:toml",
         "effective-parser:xiuxian-ast:python",
-        "effective-parser:julia-lang-parser",
         "parser-priority:local-override",
         "parser-priority:general-baseline",
         "repo-search",
@@ -1325,6 +1375,11 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
             batch.tsv
         );
     }
+    assert!(
+        !batch.tsv.contains(".data/WendaoGraph.jl"),
+        "Flight candidate discovery must not promote transient nested-repo paths:\n{}",
+        batch.tsv
+    );
 }
 
 #[test]
@@ -1339,6 +1394,15 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
         "controlPlane": "rust",
         "graphProject": "/tmp/WendaoGraph.jl",
         "searchRoot": "/tmp/WendaoGraph.jl",
+        "candidateInputSource": "rust-flight-repo-search",
+        "candidateInputCount": 2,
+        "candidateInputDiscovery": {
+            "receiptSource": "rust-flight-repo-search",
+            "transport": "arrow-flight",
+            "route": "/search/repos/main",
+            "attemptCount": 2,
+            "mergedCandidateCount": 2
+        },
         "stageReceipts": [],
         "candidates": [
             {
@@ -1407,9 +1471,66 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
         .get("rustProjectedEvidenceRows")
         .and_then(serde_json::Value::as_array)
         .unwrap_or_else(|| panic!("rustProjectedEvidenceRows must be an array"));
+    let structured_contract = enriched
+        .get("structuredCandidateIndexContract")
+        .unwrap_or_else(|| panic!("structuredCandidateIndexContract must be present"));
+    let discovery_contract = enriched
+        .get("candidateDiscoveryContract")
+        .unwrap_or_else(|| panic!("candidateDiscoveryContract must be present"));
 
     assert_eq!(routes.len(), 1);
     assert_eq!(projected_rows.len(), 2);
+    assert_eq!(
+        structured_contract.get("totalCandidateCount"),
+        Some(&serde_json::json!(2818))
+    );
+    assert_eq!(
+        structured_contract.get("juliaInputPolicy"),
+        Some(&serde_json::json!("narrowed-candidate-batch"))
+    );
+    assert_eq!(
+        structured_contract.get("allSurfacesShareRustBackend"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        structured_contract
+            .get("surfaces")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::len),
+        Some(3)
+    );
+    assert_eq!(
+        discovery_contract.get("candidateInputSource"),
+        Some(&serde_json::json!("rust-flight-repo-search"))
+    );
+    assert_eq!(
+        discovery_contract.get("structuredSurfaceId"),
+        Some(&serde_json::json!("code-intelligence-downlink"))
+    );
+    assert_eq!(
+        discovery_contract.get("promotionDenominator"),
+        Some(&serde_json::json!(2818))
+    );
+    assert_eq!(
+        discovery_contract.get("inputIsNarrowedBatch"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        discovery_contract.get("juliaReceivesFullInventory"),
+        Some(&serde_json::json!(false))
+    );
+    assert_eq!(
+        discovery_contract
+            .get("discoveryReceipt")
+            .and_then(|receipt| receipt.get("transport")),
+        Some(&serde_json::json!("arrow-flight"))
+    );
+    assert_eq!(
+        discovery_contract
+            .get("discoveryReceipt")
+            .and_then(|receipt| receipt.get("route")),
+        Some(&serde_json::json!("/search/repos/main"))
+    );
     let route = &routes[0];
     assert_eq!(
         route.get("materializationStatus"),

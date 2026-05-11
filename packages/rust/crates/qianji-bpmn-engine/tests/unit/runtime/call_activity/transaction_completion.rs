@@ -2,7 +2,7 @@ use super::{StubHost, TRANSACTION_PROCESS_ID, node_index, parsed_fixture_package
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, InstanceLifecycle, PendingHostWorkResult,
-    UserTaskOutcome, advance_instance, apply_pending_host_work_result, create_instance,
+    UserTaskOutcome, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -28,7 +28,7 @@ async fn runtime_transaction_normal_completion_cancels_all_boundaries() {
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
     assert_eq!(pending.len(), 1);
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[0].token_id,

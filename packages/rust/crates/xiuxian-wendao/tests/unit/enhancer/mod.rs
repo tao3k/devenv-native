@@ -86,7 +86,7 @@ fn test_infer_relations_from_property_drawers_are_scoped_and_explicit() {
 #[test]
 fn test_enhance_note_full() {
     let input = NoteInput {
-        path: "docs/test.md".to_string(),
+        path: "docs/test.md".to_string().into(),
         title: "Test Doc".to_string(),
         content: "---\ntitle: Test\ntags:\n  - demo\n---\nContent with [[Python#Syntax]] ref"
             .to_string(),
@@ -117,12 +117,12 @@ fn test_enhance_note_full() {
 fn test_enhance_notes_batch() {
     let inputs = vec![
         NoteInput {
-            path: "a.md".to_string(),
+            path: "a.md".to_string().into(),
             title: "A".to_string(),
             content: "About [[X]]".to_string(),
         },
         NoteInput {
-            path: "b.md".to_string(),
+            path: "b.md".to_string().into(),
             title: "B".to_string(),
             content: "About [[Y]] and [[Z]]".to_string(),
         },
@@ -137,7 +137,7 @@ fn test_enhance_notes_batch() {
 #[test]
 fn test_enhance_note_reference_relations_snapshot() {
     let input = NoteInput {
-        path: "snapshots/reference.md".to_string(),
+        path: "snapshots/reference.md".to_string().into(),
         title: "Snapshot Persona".to_string(),
         content: r"---
 title: Snapshot Persona

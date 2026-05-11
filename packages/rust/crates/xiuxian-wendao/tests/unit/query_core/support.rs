@@ -35,7 +35,7 @@ pub(super) fn repo_document(
     modified_unix_ms: u64,
 ) -> RepoCodeDocument {
     RepoCodeDocument {
-        path: path.to_string(),
+        path: path.to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from(contents),
         size_bytes,
@@ -46,31 +46,31 @@ pub(super) fn repo_document(
 pub(super) fn sample_repo_analysis(repo_id: &str) -> RepositoryAnalysisOutput {
     RepositoryAnalysisOutput {
         modules: vec![ModuleRecord {
-            repo_id: repo_id.to_string(),
-            module_id: "module:BaseModelica".to_string(),
+            repo_id: repo_id.to_string().into(),
+            module_id: "module:BaseModelica".to_string().into(),
             qualified_name: "BaseModelica".to_string(),
-            path: "src/BaseModelica.jl".to_string(),
+            path: "src/BaseModelica.jl".to_string().into(),
         }],
         symbols: vec![SymbolRecord {
-            repo_id: repo_id.to_string(),
-            symbol_id: "symbol:reexport".to_string(),
-            module_id: Some("module:BaseModelica".to_string()),
+            repo_id: repo_id.to_string().into(),
+            symbol_id: "symbol:reexport".to_string().into(),
+            module_id: Some("module:BaseModelica".to_string().into()),
             name: "reexport".to_string(),
             qualified_name: "BaseModelica.reexport".to_string(),
             kind: RepoSymbolKind::Function,
-            path: "src/BaseModelica.jl".to_string(),
+            path: "src/BaseModelica.jl".to_string().into(),
             line_start: Some(7),
             line_end: Some(9),
             signature: Some("reexport()".to_string()),
-            audit_status: Some("verified".to_string()),
-            verification_state: Some("verified".to_string()),
+            audit_status: Some("verified".to_string().into()),
+            verification_state: Some("verified".to_string().into()),
             attributes: std::collections::BTreeMap::new(),
         }],
         examples: vec![ExampleRecord {
-            repo_id: repo_id.to_string(),
-            example_id: "example:reexport".to_string(),
+            repo_id: repo_id.to_string().into(),
+            example_id: "example:reexport".to_string().into(),
             title: "Reexport example".to_string(),
-            path: "examples/reexport.jl".to_string(),
+            path: "examples/reexport.jl".to_string().into(),
             summary: Some("Shows how to reexport ModelingToolkit".to_string()),
         }],
         ..RepositoryAnalysisOutput::default()
@@ -86,7 +86,7 @@ pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
             10,
         ),
         RepoCodeDocument {
-            path: "examples/reexport.jl".to_string(),
+            path: "examples/reexport.jl".to_string().into(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from("using BaseModelica\nreexport()\n"),
             size_bytes: 29,

@@ -61,7 +61,7 @@ fn render_xml_lite_prefers_path_and_semantic_hit_type() {
         results: vec![LinkGraphHit {
             stem: "daily".to_string(),
             title: "Daily Journal".to_string(),
-            path: "journal/daily.md".to_string(),
+            path: "journal/daily.md".to_string().into(),
             doc_type: None,
             tags: Vec::new(),
             score: 0.9,
@@ -102,7 +102,7 @@ fn render_xml_lite_prefers_frontmatter_doc_type_over_tags_and_path() {
         results: vec![LinkGraphHit {
             stem: "override".to_string(),
             title: "Override".to_string(),
-            path: "journal/override.md".to_string(),
+            path: "journal/override.md".to_string().into(),
             doc_type: Some("agenda".to_string()),
             tags: vec!["journal".to_string()],
             score: 0.9,

@@ -23,12 +23,12 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
     let doc_lookup = analysis
         .docs
         .iter()
-        .map(|doc| (doc.doc_id.clone(), doc))
+        .map(|doc| (doc.doc_id.to_string(), doc))
         .collect::<BTreeMap<_, _>>();
     let example_lookup = analysis
         .examples
         .iter()
-        .map(|example| (example.example_id.clone(), example))
+        .map(|example| (example.example_id.to_string(), example))
         .collect::<BTreeMap<_, _>>();
 
     let mut docs_by_target = BTreeMap::<String, SourceAssociations>::new();
@@ -79,13 +79,13 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
     for module in &analysis.modules {
         let docs = source_associations_for_module(
             &docs_by_target,
-            &module.module_id,
-            symbol_ids_by_module.get(&module.module_id),
+            module.module_id.as_str(),
+            symbol_ids_by_module.get(module.module_id.as_str()),
         );
         let examples = source_associations_for_module(
             &examples_by_target,
-            &module.module_id,
-            symbol_ids_by_module.get(&module.module_id),
+            module.module_id.as_str(),
+            symbol_ids_by_module.get(module.module_id.as_str()),
         );
         pages.push(ProjectionPageSeed {
             repo_id: repo_id.clone(),
@@ -95,12 +95,12 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
             ),
             kind: ProjectionPageKind::Reference,
             title: module.qualified_name.clone(),
-            module_ids: vec![module.module_id.clone()],
+            module_ids: vec![module.module_id.to_string()],
             symbol_ids: Vec::new(),
             example_ids: examples.example_ids,
             doc_ids: docs.doc_ids,
             paths: sorted_strings(
-                [module.path.clone()],
+                [module.path.to_string()],
                 docs.doc_paths,
                 examples.example_paths,
             ),
@@ -110,11 +110,11 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
 
     for symbol in &analysis.symbols {
         let docs = docs_by_target
-            .get(&symbol.symbol_id)
+            .get(symbol.symbol_id.as_str())
             .cloned()
             .unwrap_or_default();
         let examples = examples_by_target
-            .get(&symbol.symbol_id)
+            .get(symbol.symbol_id.as_str())
             .cloned()
             .unwrap_or_default();
         pages.push(ProjectionPageSeed {
@@ -125,12 +125,17 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
             ),
             kind: ProjectionPageKind::Reference,
             title: symbol.qualified_name.clone(),
-            module_ids: symbol.module_id.clone().into_iter().collect(),
-            symbol_ids: vec![symbol.symbol_id.clone()],
+            module_ids: symbol
+                .module_id
+                .as_ref()
+                .map(ToString::to_string)
+                .into_iter()
+                .collect(),
+            symbol_ids: vec![symbol.symbol_id.to_string()],
             example_ids: examples.example_ids,
             doc_ids: docs.doc_ids,
             paths: sorted_strings(
-                [symbol.path.clone()],
+                [symbol.path.to_string()],
                 docs.doc_paths,
                 examples.example_paths,
             ),
@@ -140,7 +145,7 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
 
     for example in &analysis.examples {
         let targets = targets_by_example
-            .get(&example.example_id)
+            .get(example.example_id.as_str())
             .cloned()
             .unwrap_or_default();
         let related_docs = source_associations_for_targets(&docs_by_target, &targets);
@@ -154,9 +159,13 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
             title: example.title.clone(),
             module_ids: targets.module_ids,
             symbol_ids: targets.symbol_ids,
-            example_ids: vec![example.example_id.clone()],
+            example_ids: vec![example.example_id.to_string()],
             doc_ids: related_docs.doc_ids,
-            paths: sorted_strings([example.path.clone()], related_docs.doc_paths, Vec::new()),
+            paths: sorted_strings(
+                [example.path.to_string()],
+                related_docs.doc_paths,
+                Vec::new(),
+            ),
             format_hints: sorted_strings(
                 Vec::<String>::new(),
                 related_docs.format_hints,
@@ -166,7 +175,10 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
     }
 
     for doc in &analysis.docs {
-        let targets = targets_by_doc.get(&doc.doc_id).cloned().unwrap_or_default();
+        let targets = targets_by_doc
+            .get(doc.doc_id.as_str())
+            .cloned()
+            .unwrap_or_default();
         let related_examples = source_associations_for_targets(&examples_by_target, &targets);
         let kind = doc_projection_kind(doc, &targets);
         pages.push(ProjectionPageSeed {
@@ -181,9 +193,9 @@ pub fn build_projection_inputs(analysis: &RepositoryAnalysisOutput) -> Projectio
             module_ids: targets.module_ids,
             symbol_ids: targets.symbol_ids,
             example_ids: related_examples.example_ids,
-            doc_ids: vec![doc.doc_id.clone()],
+            doc_ids: vec![doc.doc_id.to_string()],
             paths: sorted_strings(
-                [doc.path.clone()],
+                [doc.path.to_string()],
                 related_examples.example_paths,
                 Vec::new(),
             ),
@@ -205,25 +217,25 @@ fn projection_repo_id(analysis: &RepositoryAnalysisOutput) -> String {
     analysis
         .repository
         .as_ref()
-        .map(|repository| repository.repo_id.clone())
+        .map(|repository| repository.repo_id.to_string())
         .or_else(|| {
             analysis
                 .modules
                 .first()
-                .map(|module| module.repo_id.clone())
+                .map(|module| module.repo_id.to_string())
         })
         .or_else(|| {
             analysis
                 .symbols
                 .first()
-                .map(|symbol| symbol.repo_id.clone())
+                .map(|symbol| symbol.repo_id.to_string())
         })
         .or_else(|| {
             analysis
                 .examples
                 .first()
-                .map(|example| example.repo_id.clone())
+                .map(|example| example.repo_id.to_string())
         })
-        .or_else(|| analysis.docs.first().map(|doc| doc.repo_id.clone()))
+        .or_else(|| analysis.docs.first().map(|doc| doc.repo_id.to_string()))
         .unwrap_or_default()
 }

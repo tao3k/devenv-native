@@ -1,16 +1,17 @@
 //! `Episode` tests.
 
-use xiuxian_memory_engine::Episode;
+use xiuxian_memory_engine::{Episode, EpisodeDraft};
 
 #[test]
 fn test_episode_creation() {
-    let episode = Episode::new(
-        "ep-001".to_string(),
-        "debug network error".to_string(),
-        vec![0.1, 0.2, 0.3],
-        "Checked firewall rules".to_string(),
-        "success".to_string(),
-    );
+    let episode = Episode::new(EpisodeDraft {
+        id: ("ep-001".to_string()).into(),
+        intent: "debug network error".to_string(),
+        intent_embedding: vec![0.1, 0.2, 0.3],
+        experience: "Checked firewall rules".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
 
     assert_eq!(episode.id, "ep-001");
     assert!((episode.q_value - 0.5).abs() < f32::EPSILON);
@@ -22,13 +23,14 @@ fn test_episode_creation() {
 
 #[test]
 fn test_utility_calculation() {
-    let mut episode = Episode::new(
-        "ep-001".to_string(),
-        "test intent".to_string(),
-        vec![0.1, 0.2],
-        "test experience".to_string(),
-        "success".to_string(),
-    );
+    let mut episode = Episode::new(EpisodeDraft {
+        id: ("ep-001".to_string()).into(),
+        intent: "test intent".to_string(),
+        intent_embedding: vec![0.1, 0.2],
+        experience: "test experience".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
 
     let initial_util = episode.utility();
     assert!(initial_util > 0.0);

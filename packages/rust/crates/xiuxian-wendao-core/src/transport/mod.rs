@@ -1,3 +1,5 @@
+//! Transport contracts shared by Wendao plugin runtime clients.
+
 mod endpoint;
 mod kind;
 

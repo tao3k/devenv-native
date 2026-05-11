@@ -192,7 +192,8 @@ async fn queries_bounded_work_markdown_payload() -> TestResult {
         payload
             .metadata
             .local_relation_materialization_state
-            .as_deref(),
+            .as_ref()
+            .map(|state| state.as_str()),
         Some("materialized")
     );
     assert_eq!(payload.metadata.local_temp_storage_peak_bytes, None);
@@ -289,7 +290,8 @@ async fn queries_bounded_work_markdown_payload_with_duckdb_local_relation_engine
         payload
             .metadata
             .local_relation_materialization_state
-            .as_deref(),
+            .as_ref()
+            .map(|state| state.as_str()),
         Some("virtual")
     );
     assert!(payload.metadata.local_temp_storage_peak_bytes.is_some());
@@ -376,7 +378,8 @@ async fn queries_bounded_work_markdown_payload_with_duckdb_materialized_local_re
         payload
             .metadata
             .local_relation_materialization_state
-            .as_deref(),
+            .as_ref()
+            .map(|state| state.as_str()),
         Some("materialized")
     );
     assert!(payload.metadata.local_temp_storage_peak_bytes.is_some());

@@ -1,3 +1,5 @@
+//! Local relation registration for semantic read-model tables.
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_parsers::semantic_ssot::SemanticRepository;
 

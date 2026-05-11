@@ -39,7 +39,7 @@ pub(crate) fn build_module_row(
     let hit = SearchHit {
         stem: module.qualified_name.clone(),
         title: Some(module.qualified_name.clone()),
-        path: path.clone(),
+        path: path.to_string(),
         doc_type: Some(ENTITY_KIND_MODULE.to_string()),
         tags: repo_entity_tags(
             context.repo_id,
@@ -49,7 +49,7 @@ pub(crate) fn build_module_row(
             None,
         ),
         score: saliency_score,
-        best_section: Some(module.module_id.clone()),
+        best_section: Some(module.module_id.to_string()),
         match_reason: Some("repo_module_search".to_string()),
         hierarchical_uri: Some(hierarchical_uri.clone()),
         hierarchy: hierarchy.clone(),
@@ -66,17 +66,17 @@ pub(crate) fn build_module_row(
         )),
     };
     Ok(RepoEntityRow {
-        id: module_id,
+        id: module_id.to_string(),
         entity_kind: ENTITY_KIND_MODULE.to_string(),
         name: module.qualified_name.clone(),
         name_folded: module.qualified_name.to_ascii_lowercase(),
         qualified_name: module.qualified_name.clone(),
         qualified_name_folded: module.qualified_name.to_ascii_lowercase(),
-        path: path.clone(),
+        path: path.to_string(),
         path_folded: path.to_ascii_lowercase(),
         language: language.unwrap_or_default(),
         symbol_kind: "module".to_string(),
-        module_id: Some(module.module_id.clone()),
+        module_id: Some(module.module_id.to_string()),
         signature: None,
         signature_folded: String::new(),
         summary: None,

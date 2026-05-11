@@ -16,7 +16,7 @@ fn build_memory_julia_compute_bindings_materialize_all_profiles() {
         enabled: true,
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
-    runtime.plugin_id = "wendao.memory".to_string();
+    runtime.plugin_id = "wendao.memory".into();
     runtime.base_url = "http://127.0.0.1:18825".to_string();
     runtime.health_route = Some("/healthz".to_string());
     runtime.max_in_flight_requests = 9;
@@ -54,7 +54,7 @@ fn build_memory_julia_compute_binding_rejects_invalid_runtime_values() {
         enabled: true,
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
-    runtime.plugin_id = "  ".to_string();
+    runtime.plugin_id = "  ".into();
     let Err(error) =
         build_memory_julia_compute_binding(&runtime, MemoryJuliaComputeProfile::EpisodicRecall)
     else {
@@ -63,7 +63,7 @@ fn build_memory_julia_compute_binding_rejects_invalid_runtime_values() {
     let message = error.to_string();
     assert!(message.contains("plugin_id"));
 
-    runtime.plugin_id = "wendao.memory".to_string();
+    runtime.plugin_id = "wendao.memory".into();
     runtime.health_route = Some("/".to_string());
     let Err(error) =
         build_memory_julia_compute_binding(&runtime, MemoryJuliaComputeProfile::EpisodicRecall)

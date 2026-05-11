@@ -20,6 +20,6 @@ pub fn load_registered_repository(
         .into_iter()
         .find(|repository| repository.id == repo_id)
         .ok_or_else(|| RepoIntelligenceError::UnknownRepository {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
         })
 }

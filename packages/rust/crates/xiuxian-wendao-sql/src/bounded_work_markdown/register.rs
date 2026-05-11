@@ -1,3 +1,5 @@
+//! Local relation registration for bounded-work Markdown surfaces.
+
 use std::path::Path;
 
 use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};

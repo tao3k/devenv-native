@@ -31,7 +31,7 @@ pub(super) fn collect_semantic_reference_violations(
             scope,
             DiReferenceTarget {
                 element: "BPMNShape",
-                element_id: shape.shape_id.clone(),
+                element_id: shape.shape_id.as_deref().map(str::to_string),
                 attribute: "bpmnElement",
             },
             shape.bpmn_element.as_deref(),

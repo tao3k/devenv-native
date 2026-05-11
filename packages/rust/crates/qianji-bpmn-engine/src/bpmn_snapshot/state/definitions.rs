@@ -102,8 +102,8 @@ impl BpmnSnapshotScanState {
         };
         root.global_task_count += 1;
         root.global_tasks.push(BpmnGlobalTaskSnapshot {
-            task_kind: tag.to_string(),
-            task_id: attribute_value(source, reader, event, "id")?,
+            task_kind: tag.to_string().into(),
+            task_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             name: attribute_value(source, reader, event, "name")?,
             implementation: attribute_value(source, reader, event, "implementation")?,
             script_language: attribute_value(source, reader, event, "scriptLanguage")?,
@@ -305,10 +305,11 @@ impl BpmnSnapshotScanState {
         };
         root.item_definition_count += 1;
         root.item_definitions.push(BpmnItemDefinitionSnapshot {
-            item_definition_id: attribute_value(source, reader, event, "id")?,
+            item_definition_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             structure_ref: attribute_value(source, reader, event, "structureRef")?,
-            item_kind: attribute_value(source, reader, event, "itemKind")?,
-            is_collection: boolean_attribute_value(source, reader, event, "isCollection")?,
+            item_kind: attribute_value(source, reader, event, "itemKind")?.map(Into::into),
+            is_collection: boolean_attribute_value(source, reader, event, "isCollection")?
+                .map(Into::into),
         });
         Ok(())
     }
@@ -430,7 +431,7 @@ impl BpmnSnapshotScanState {
         root.imports.push(BpmnImportSnapshot {
             namespace: attribute_value(source, reader, event, "namespace")?,
             location: attribute_value(source, reader, event, "location")?,
-            import_type: attribute_value(source, reader, event, "importType")?,
+            import_type: attribute_value(source, reader, event, "importType")?.map(Into::into),
         });
         Ok(())
     }

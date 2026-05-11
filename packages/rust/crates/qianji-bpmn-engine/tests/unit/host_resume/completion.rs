@@ -2,8 +2,8 @@ use super::support::assert_host_resume;
 use qianji_bpmn_engine::{
     BpmnHumanTaskLifecycleEventKind, BpmnNodeKind, BpmnPackage, BusinessRuleTaskOutcome,
     DmnEvaluationResult, ManualTaskOutcome, PendingHostWorkKind, PendingHostWorkResult,
-    PendingHumanTaskClaimRequest, ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome,
-    UserTaskOutcome, apply_pending_host_work_result, claim_pending_human_task,
+    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, UserTaskOutcome,
+    claim_pending_human_task,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -101,11 +101,11 @@ async fn host_resume_claimed_user_result_records_claimant_on_completed_event() {
 
     claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(token_id, "claimed_user_resume", "task", "alice", 90),
+        crate::test_support::claim_request(token_id, "claimed_user_resume", "task", "alice", 90),
     )
     .unwrap_or_else(|error| panic!("human task claim should succeed: {error:?}"));
 
-    apply_pending_host_work_result(
+    crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

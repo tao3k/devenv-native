@@ -57,7 +57,7 @@ impl BpmnPackage {
     #[must_use]
     pub fn new(package_id: impl AsRef<str>, processes: Vec<BpmnProcessSpec>) -> Self {
         Self {
-            package_id: Arc::<str>::from(package_id.as_ref()),
+            package_id: (Arc::<str>::from(package_id.as_ref())).into(),
             processes,
             callable_registry: BpmnCallableRegistry::default(),
             collaboration_host_envelope: BpmnCollaborationHostEnvelope::default(),
@@ -140,7 +140,11 @@ impl BpmnPackage {
 
     /// Finds a process position and spec by BPMN process identifier.
     #[must_use]
-    pub fn find_process_position(&self, process_id: &str) -> Option<(u32, &BpmnProcessSpec)> {
+    pub fn find_process_position(
+        &self,
+        process_id: impl AsRef<str>,
+    ) -> Option<(u32, &BpmnProcessSpec)> {
+        let process_id = process_id.as_ref();
         self.processes
             .iter()
             .enumerate()
@@ -152,7 +156,7 @@ impl BpmnPackage {
 
     /// Finds a process by BPMN process identifier.
     #[must_use]
-    pub fn find_process(&self, process_id: &str) -> Option<&BpmnProcessSpec> {
+    pub fn find_process(&self, process_id: impl AsRef<str>) -> Option<&BpmnProcessSpec> {
         self.find_process_position(process_id)
             .map(|(_, process)| process)
     }
@@ -171,7 +175,10 @@ impl BpmnPackage {
 
     /// Finds one callable definition by BPMN identifier.
     #[must_use]
-    pub fn find_callable_definition(&self, callable_id: &str) -> Option<&BpmnCallableDefinition> {
+    pub fn find_callable_definition(
+        &self,
+        callable_id: impl AsRef<str>,
+    ) -> Option<&BpmnCallableDefinition> {
         self.callable_registry.find_definition(callable_id)
     }
 
@@ -221,7 +228,8 @@ impl BpmnPackage {
 
     /// Returns package-owned DMN import declarations from one declaring source.
     #[must_use]
-    pub fn dmn_imports_for_source(&self, source_id: &str) -> Vec<&DmnImportDefinition> {
+    pub fn dmn_imports_for_source(&self, source_id: impl AsRef<str>) -> Vec<&DmnImportDefinition> {
+        let source_id = source_id.as_ref();
         self.dmn_imports
             .iter()
             .filter(|dmn_import| dmn_import.is_declared_by(source_id))
@@ -236,10 +244,15 @@ impl BpmnPackage {
     /// one import declared by the source uses the requested alias.
     pub fn find_dmn_import_by_name(
         &self,
-        source_id: &str,
+        source_id: impl AsRef<str>,
         name: &str,
     ) -> Result<Option<&DmnImportDefinition>> {
-        self.find_dmn_import_by(source_id, "name", name, DmnImportDefinition::has_name)
+        self.find_dmn_import_by(
+            source_id.as_ref(),
+            "name",
+            name,
+            DmnImportDefinition::has_name,
+        )
     }
 
     /// Finds one deterministic DMN import by declaring source and imported namespace.
@@ -250,11 +263,11 @@ impl BpmnPackage {
     /// one import declared by the source targets the requested namespace.
     pub fn find_dmn_import_by_namespace(
         &self,
-        source_id: &str,
+        source_id: impl AsRef<str>,
         namespace: &str,
     ) -> Result<Option<&DmnImportDefinition>> {
         self.find_dmn_import_by(
-            source_id,
+            source_id.as_ref(),
             "namespace",
             namespace,
             DmnImportDefinition::has_namespace,
@@ -269,11 +282,11 @@ impl BpmnPackage {
     /// one import declared by the source uses the requested location URI.
     pub fn find_dmn_import_by_location_uri(
         &self,
-        source_id: &str,
+        source_id: impl AsRef<str>,
         location_uri: &str,
     ) -> Result<Option<&DmnImportDefinition>> {
         self.find_dmn_import_by(
-            source_id,
+            source_id.as_ref(),
             "locationURI",
             location_uri,
             DmnImportDefinition::has_location_uri,
@@ -282,7 +295,11 @@ impl BpmnPackage {
 
     /// Finds one deterministic DMN source-root definition by source id.
     #[must_use]
-    pub fn find_dmn_source_definition(&self, source_id: &str) -> Option<&DmnSourceDefinition> {
+    pub fn find_dmn_source_definition(
+        &self,
+        source_id: impl AsRef<str>,
+    ) -> Option<&DmnSourceDefinition> {
+        let source_id = source_id.as_ref();
         self.dmn_source_definitions
             .iter()
             .find(|source_definition| source_definition.has_source_id(source_id))
@@ -372,8 +389,8 @@ impl BpmnPackage {
         let additional_matches = matches.count();
         if additional_matches > 0 {
             return Err(BpmnEngineError::AmbiguousDmnDecisionReference {
-                decision_id: decision_ref.decision_id.to_string(),
-                source_id: decision_ref.source_id.as_ref().map(ToString::to_string),
+                decision_id: (decision_ref.decision_id.to_string()).into(),
+                source_id: (decision_ref.source_id.as_ref().map(ToString::to_string)).into(),
                 count: additional_matches + 1,
                 source_suffix: decision_ref
                     .source_id
@@ -407,8 +424,8 @@ impl BpmnPackage {
         let additional_matches = matches.count();
         if additional_matches > 0 {
             return Err(BpmnEngineError::AmbiguousDmnDecisionServiceReference {
-                decision_service_id: decision_ref.decision_id.to_string(),
-                source_id: decision_ref.source_id.as_ref().map(ToString::to_string),
+                decision_service_id: (decision_ref.decision_id.to_string()).into(),
+                source_id: (decision_ref.source_id.as_ref().map(ToString::to_string)).into(),
                 count: additional_matches + 1,
                 source_suffix: decision_ref
                     .source_id
@@ -424,9 +441,11 @@ impl BpmnPackage {
     #[must_use]
     pub fn find_dmn_input_data(
         &self,
-        source_id: &str,
-        input_data_id: &str,
+        source_id: impl AsRef<str>,
+        input_data_id: impl AsRef<str>,
     ) -> Option<&DmnInputDataDefinition> {
+        let source_id = source_id.as_ref();
+        let input_data_id = input_data_id.as_ref();
         self.dmn_input_data.iter().find(|input_data| {
             input_data.source_id.as_ref() == source_id
                 && input_data.input_data_id.as_deref() == Some(input_data_id)
@@ -438,9 +457,11 @@ impl BpmnPackage {
     #[must_use]
     pub fn find_dmn_business_knowledge_model(
         &self,
-        source_id: &str,
-        business_knowledge_model_id: &str,
+        source_id: impl AsRef<str>,
+        business_knowledge_model_id: impl AsRef<str>,
     ) -> Option<&DmnBusinessKnowledgeModelDefinition> {
+        let source_id = source_id.as_ref();
+        let business_knowledge_model_id = business_knowledge_model_id.as_ref();
         self.dmn_business_knowledge_models
             .iter()
             .find(|business_knowledge_model| {
@@ -468,7 +489,7 @@ impl BpmnPackage {
         let additional_matches = matches.count();
         if additional_matches > 0 {
             return Err(BpmnEngineError::AmbiguousDmnImportReference {
-                source_id: source_id.to_string(),
+                source_id: (source_id.to_string()).into(),
                 selector_kind,
                 selector_value: selector_value.to_string(),
                 count: additional_matches + 1,

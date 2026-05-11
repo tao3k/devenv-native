@@ -4,8 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use xiuxian_wendao_core::repo_intelligence::{
-    AnalysisContext, DocRecord, PluginAnalysisOutput, PluginRegistry, RepoIntelligenceError,
-    RepoIntelligencePlugin, RepositoryAnalysisOutput, RepositoryRecord,
+    AnalysisContext, BuiltinPluginId, DocRecord, PluginAnalysisOutput, PluginRegistry,
+    RepoIntelligenceError, RepoIntelligencePlugin, RepositoryAnalysisOutput, RepositoryRecord,
 };
 
 const MARKDOWN_PARSER_PLUGIN_ID: &str = "markdown-parser";
@@ -20,7 +20,7 @@ fn register_markdown_parser_into(
 
 inventory::submit! {
     xiuxian_wendao_core::repo_intelligence::BuiltinPluginRegistrar::new(
-        MARKDOWN_PARSER_PLUGIN_ID,
+        BuiltinPluginId::new(MARKDOWN_PARSER_PLUGIN_ID),
         register_markdown_parser_into,
     )
 }
@@ -143,10 +143,10 @@ fn is_markdown_path(path: &str) -> bool {
 
 fn doc_record(repo_id: &str, relative_path: &str, contents: &str) -> DocRecord {
     DocRecord {
-        repo_id: repo_id.to_string(),
-        doc_id: format!("repo:{repo_id}:doc:{relative_path}"),
+        repo_id: repo_id.to_string().into(),
+        doc_id: format!("repo:{repo_id}:doc:{relative_path}").into(),
         title: markdown_title(relative_path, contents),
-        path: relative_path.to_string(),
+        path: relative_path.to_string().into(),
         format: Some(markdown_format(relative_path).to_string()),
         doc_target: None,
     }

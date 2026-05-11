@@ -3,7 +3,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnPackage, NodeRuntimeStatus, PendingHostWork,
     PendingHostWorkKind, PendingHostWorkResult, ServiceTaskOutcome, advance_instance,
-    apply_pending_host_work_result, create_instance,
+    create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -38,10 +38,10 @@ async fn runtime_standard_loop_repeats_until_loop_maximum() {
         assert_eq!(
             pending,
             PendingHostWork {
-                token_id: instance.active_tokens[0].token_id,
-                process_id: Some("loop_maximum".to_string()),
+                token_id: (instance.active_tokens[0].token_id).into(),
+                process_id: (Some("loop_maximum".into())).into(),
                 node_index: 1,
-                activity_id: Some("review".to_string()),
+                activity_id: (Some("review".into())).into(),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
                 lane: None,
@@ -59,7 +59,7 @@ async fn runtime_standard_loop_repeats_until_loop_maximum() {
         assert_eq!(instance.standard_loops.len(), 1);
         assert_eq!(instance.standard_loops[0].completed_iterations, completed);
 
-        let resumed = apply_pending_host_work_result(
+        let resumed = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending.token_id,
@@ -133,7 +133,7 @@ async fn runtime_standard_loop_stops_after_condition_turns_false() {
     assert!(matches!(blocked, BpmnAdvanceOutcome::BlockedOnHost(_)));
     let token_id = instance.pending_host_work[0].token_id;
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

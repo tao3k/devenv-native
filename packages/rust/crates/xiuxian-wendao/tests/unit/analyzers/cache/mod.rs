@@ -1,5 +1,6 @@
 mod support;
 
+mod identity_surface;
 mod julia;
 mod key_normalization;
 mod mixed_julia_modelica;

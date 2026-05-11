@@ -4,7 +4,7 @@ use crate::lint_api::LintIssue;
 use serde_json::json;
 
 pub(super) fn unexpected_dmn_issue(source: &DmnSourceFile, error: &BpmnEngineError) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unexpected_engine_error",
         "Unexpected DMN lint error",
         format!(

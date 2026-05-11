@@ -2,8 +2,7 @@ use crate::runtime::{StubHost, parallel_multi_instance_data_binding_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, ServiceTaskOutcome,
-    advance_instance, apply_pending_host_work_result, build_pending_host_work_requests,
-    create_instance,
+    advance_instance, build_pending_host_work_requests, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -56,7 +55,7 @@ async fn runtime_parallel_multi_instance_data_binding_aggregates_object_output()
                 _ => None,
             })
             .must("parallel data-bound request should expose its current item");
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending_work.token_id,

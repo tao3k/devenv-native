@@ -38,10 +38,10 @@ fn repository_analysis_cache_can_recover_previous_revision_base() {
     let key = sample_analysis_key("revision-base-roundtrip");
     let analysis = crate::analyzers::RepositoryAnalysisOutput {
         modules: vec![crate::analyzers::ModuleRecord {
-            repo_id: key.repo_id.clone(),
-            module_id: "module:alpha".to_string(),
+            repo_id: key.repo_id.clone().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..crate::analyzers::RepositoryAnalysisOutput::default()
     };

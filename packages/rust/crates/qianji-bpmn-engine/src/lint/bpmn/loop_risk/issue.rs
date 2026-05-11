@@ -107,7 +107,7 @@ pub(super) fn unbounded_control_cycle_issue(
         xml_fixes.join("\n")
     };
 
-    let mut issue = LintIssue::new(
+    let mut issue = LintIssue::from_parts(
         "bpmn.loop_risk.unbounded_control_cycle",
         "Workflow cycle is missing a complete loop-progress contract",
         format!(

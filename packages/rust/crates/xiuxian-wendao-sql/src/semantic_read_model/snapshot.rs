@@ -1,3 +1,5 @@
+//! Deterministic snapshot revisions for semantic read-model rows.
+
 use std::path::Path;
 
 use arrow::datatypes::Schema;
@@ -229,7 +231,16 @@ fn relation_table_snapshot(
     let mut hasher = table_revision_hasher(SEMANTIC_RELATIONS_TABLE_NAME, rows.len(), schema);
     let mut sorted_rows = rows.iter().collect::<Vec<_>>();
     sorted_rows.sort_by(|left, right| {
-        (&left.source, &left.kind, &left.target).cmp(&(&right.source, &right.kind, &right.target))
+        (
+            left.source.as_str(),
+            left.kind.as_str(),
+            left.target.as_str(),
+        )
+            .cmp(&(
+                right.source.as_str(),
+                right.kind.as_str(),
+                right.target.as_str(),
+            ))
     });
     for row in sorted_rows {
         update_hash_field(&mut hasher, "source", row.source.as_str());

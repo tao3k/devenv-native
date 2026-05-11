@@ -198,14 +198,43 @@ pub struct JuliaAcceleratorDiagnostics {
     pub notes: Vec<String>,
 }
 
+/// Loaded and functional state for one Julia accelerator backend.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct JuliaAcceleratorState {
+    /// Whether the backend module was loaded in the Julia process.
+    pub loaded: bool,
+    /// Whether the backend was functional for the owner probe.
+    pub functional: bool,
+}
+
+/// Named input for Julia accelerator state.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct JuliaAcceleratorStateInput {
+    /// Whether the backend module was loaded in the Julia process.
+    pub loaded: bool,
+    /// Whether the backend was functional for the owner probe.
+    pub functional: bool,
+}
+
+impl JuliaAcceleratorState {
+    /// Creates accelerator state from owner diagnostics.
+    #[must_use]
+    pub const fn new(input: JuliaAcceleratorStateInput) -> Self {
+        Self {
+            loaded: input.loaded,
+            functional: input.functional,
+        }
+    }
+}
+
 impl JuliaAcceleratorDiagnostics {
     /// Creates accelerator diagnostics for one backend.
     #[must_use]
-    pub fn new(backend: impl Into<String>, loaded: bool, functional: bool) -> Self {
+    pub fn new(backend: impl Into<String>, state: JuliaAcceleratorState) -> Self {
         Self {
             backend: backend.into(),
-            loaded,
-            functional,
+            loaded: state.loaded,
+            functional: state.functional,
             observed_output_count: None,
             notes: Vec::new(),
         }
@@ -459,13 +488,13 @@ impl JuliaReadinessEvidence {
     /// Projects readiness evidence to a lane evidence envelope.
     #[must_use]
     pub fn to_lane_evidence(&self) -> LaneEvidence {
-        LaneEvidence::new(
-            self.lane,
-            self.health_state(),
-            self.readiness_state(),
-            self.pressure_level(),
-            FallbackEvidence::new(self.fallback_available),
-        )
+        LaneEvidence::new(crate::LaneEvidenceInput {
+            lane: self.lane,
+            health: self.health_state(),
+            readiness: self.readiness_state(),
+            pressure: self.pressure_level(),
+            fallback: FallbackEvidence::new(self.fallback_available),
+        })
     }
 
     const fn has_blocking_failure(&self) -> bool {

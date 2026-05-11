@@ -70,21 +70,25 @@ pub use docling_schedule::{
     DoclingScheduleAction, DoclingSchedulePlan, DoclingScheduleReason, DoclingSchedulingInput,
     DoclingWorkerPolicy,
 };
-pub use evidence::{FallbackEvidence, HealthState, LaneEvidence, PressureLevel, ReadinessState};
+pub use evidence::{
+    FallbackEvidence, HealthState, LaneEvidence, LaneEvidenceInput, PressureLevel, ReadinessState,
+};
 pub use julia_schedule::{
-    JuliaComputeTaskShape, JuliaRuntimeStats, JuliaScheduleAction, JuliaSchedulePlan,
-    JuliaScheduleReason, JuliaSchedulingInput, JuliaTaskComplexityClass,
+    JuliaComputeTaskShape, JuliaRuntimeStats, JuliaScheduleAction, JuliaScheduleBatchabilityKey,
+    JuliaScheduleLatencyMs, JuliaSchedulePlan, JuliaScheduleProfileId, JuliaScheduleReason,
+    JuliaSchedulingInput, JuliaTaskComplexityClass,
 };
 pub use lanes::{LaneCapability, PolyglotLane};
 pub use pressure::WorkerPressureEvidence;
 pub use readiness::{
-    BenchmarkState, ContractValidationState, JuliaAcceleratorDiagnostics, JuliaReadinessEvidence,
-    JuliaThreadPinningDiagnostics, JuliaThreadPinningState, JuliaThreadTopology,
-    ManifestReadinessState, WarmupState,
+    BenchmarkState, ContractValidationState, JuliaAcceleratorDiagnostics, JuliaAcceleratorState,
+    JuliaAcceleratorStateInput, JuliaReadinessEvidence, JuliaThreadPinningDiagnostics,
+    JuliaThreadPinningState, JuliaThreadTopology, ManifestReadinessState, WarmupState,
 };
 pub use refs::{ContractOwner, RouteProfileRef};
 pub use schema_benchmark::{
-    SchemaBenchmarkCase, SchemaBenchmarkEvidence, SchemaBenchmarkReport,
-    SchemaBenchmarkReportError, SchemaStrategyCandidate, SchemaStrategyPreference,
+    CachePressureBytes, EncodedByteSize, MemoryPressureBytes, SchemaBenchmarkCase,
+    SchemaBenchmarkEvidence, SchemaBenchmarkReport, SchemaBenchmarkReportError,
+    SchemaStrategyCandidate, SchemaStrategyPreference,
 };
 pub use snapshot::{PolyglotControlSnapshot, SnapshotInvariantError};

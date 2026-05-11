@@ -1,18 +1,19 @@
 //! Schema validation tests for `EpisodeMetadata`.
 
-use xiuxian_memory_engine::{Episode, EpisodeMetadata};
+use xiuxian_memory_engine::{Episode, EpisodeDraft, EpisodeMetadata};
 
 type TestResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
 #[test]
 fn test_metadata_validation_valid() -> TestResult {
-    let mut episode = Episode::new(
-        "ep-1".to_string(),
-        "intent".to_string(),
-        vec![0.1, 0.2],
-        "exp".to_string(),
-        "ok".to_string(),
-    );
+    let mut episode = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "intent".to_string(),
+        intent_embedding: vec![0.1, 0.2],
+        experience: "exp".to_string(),
+        outcome: "ok".to_string(),
+        scope: None,
+    });
     episode.q_value = 0.5;
     episode.retrieval_count = 2;
     episode.created_at = 12_345;
@@ -26,13 +27,14 @@ fn test_metadata_validation_valid() -> TestResult {
 
 #[test]
 fn test_metadata_validation_q_out_of_range() {
-    let mut episode = Episode::new(
-        "ep-1".to_string(),
-        "intent".to_string(),
-        vec![0.1, 0.2],
-        "a".to_string(),
-        "b".to_string(),
-    );
+    let mut episode = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "intent".to_string(),
+        intent_embedding: vec![0.1, 0.2],
+        experience: "a".to_string(),
+        outcome: "b".to_string(),
+        scope: None,
+    });
     episode.q_value = 1.5;
     assert!(EpisodeMetadata::from_episode(&episode).is_err());
     episode.q_value = -0.1;
@@ -41,13 +43,14 @@ fn test_metadata_validation_q_out_of_range() {
 
 #[test]
 fn test_metadata_roundtrip() -> TestResult {
-    let mut episode = Episode::new(
-        "ep-1".to_string(),
-        "intent".to_string(),
-        vec![0.1, 0.2],
-        "exp".to_string(),
-        "out".to_string(),
-    );
+    let mut episode = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "intent".to_string(),
+        intent_embedding: vec![0.1, 0.2],
+        experience: "exp".to_string(),
+        outcome: "out".to_string(),
+        scope: None,
+    });
     episode.q_value = 0.7;
     episode.retrieval_count = 3;
     episode.success_count = 1;

@@ -19,7 +19,7 @@ pub(crate) fn snapshot_bpmn_source_sync(source: &BpmnSourceFile) -> Result<BpmnD
             Ok(event) => event,
             Err(error) => {
                 return Err(BpmnEngineError::InvalidXml {
-                    source_id: source.source_id.clone(),
+                    source_id: (source.source_id.clone()).into(),
                     message: error.to_string(),
                     offset: Some(reader.error_position()),
                 });
@@ -260,7 +260,7 @@ fn parent_tag(element_stack: &[String]) -> Option<&str> {
 fn ensure_root_seen(source: &BpmnSourceFile, saw_root: bool) -> Result<()> {
     if !saw_root {
         return Err(BpmnEngineError::MissingRootElement {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
         });
     }
     Ok(())

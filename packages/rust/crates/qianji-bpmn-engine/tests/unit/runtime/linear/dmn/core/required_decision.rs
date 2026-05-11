@@ -37,8 +37,9 @@ async fn runtime_business_rule_task_rejects_missing_required_decision_target_loc
     assert_eq!(
         error,
         BpmnEngineError::MissingDmnRequiredDecisionTarget {
-            source_id: "versioned-missing-required-decision-runtime-20191111.dmn".to_string(),
-            decision_id: "Decision_missing_dependency".to_string(),
+            source_id: ("versioned-missing-required-decision-runtime-20191111.dmn".to_string())
+                .into(),
+            decision_id: ("Decision_missing_dependency".to_string()).into(),
             href: "#Decision_missing".to_string(),
         }
     );
@@ -60,8 +61,9 @@ async fn runtime_business_rule_task_rejects_cyclic_required_decision_dependency_
     assert_eq!(
         error,
         BpmnEngineError::CyclicDmnRequiredDecisionDependency {
-            source_id: "versioned-cyclic-required-decision-runtime-20191111.dmn".to_string(),
-            decision_id: "Decision_a".to_string(),
+            source_id: ("versioned-cyclic-required-decision-runtime-20191111.dmn".to_string())
+                .into(),
+            decision_id: ("Decision_a".to_string()).into(),
         }
     );
 }

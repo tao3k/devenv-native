@@ -3,6 +3,64 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+macro_rules! semantic_token {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Build a semantic token.
+            #[must_use]
+            pub fn new(value: impl Into<String>) -> Self {
+                Self(value.into())
+            }
+
+            /// Borrow this token as a string slice.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                self.0.as_str()
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self::new(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self::new(value)
+            }
+        }
+
+        impl PartialEq<&str> for $name {
+            fn eq(&self, other: &&str) -> bool {
+                self.as_str() == *other
+            }
+        }
+    };
+}
+
+semantic_token!(
+    SemanticProjectionType,
+    "Semantic projection artifact type token."
+);
+semantic_token!(
+    SemanticProjectionPolicyStatus,
+    "Semantic projection freshness policy status token."
+);
+semantic_token!(
+    SemanticProjectionRefreshPlanStatus,
+    "Semantic projection refresh-plan status token."
+);
+semantic_token!(
+    SemanticChangeIntentType,
+    "Semantic change-intent artifact type token."
+);
+
 /// Semantic object kind admitted by the first SSOT slice.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -214,7 +272,7 @@ pub struct SemanticObject {
 pub struct SemanticProjection {
     /// Projection artifact type. The first slice expects `semantic_projection`.
     #[serde(rename = "type")]
-    pub projection_type: String,
+    pub projection_type: SemanticProjectionType,
     /// Projection name, such as `llm_compression`.
     pub projection: String,
     /// Source object IDs used by this projection.
@@ -242,7 +300,7 @@ pub struct SemanticProjectionFreshnessPolicyReport {
     /// Stable projection policy identifier.
     pub policy_id: String,
     /// Policy status token.
-    pub status: String,
+    pub status: SemanticProjectionPolicyStatus,
     /// Count of projections that require review.
     pub failing_projection_count: usize,
     /// Human-readable policy message.
@@ -275,7 +333,7 @@ pub struct SemanticProjectionFreshnessPolicyEntry {
 #[serde(rename_all = "camelCase")]
 pub struct SemanticProjectionRefreshPlanReport {
     /// Plan status token.
-    pub status: String,
+    pub status: SemanticProjectionRefreshPlanStatus,
     /// Count of projections that can be refreshed from current repo facts.
     pub refreshable_projection_count: usize,
     /// Human-readable plan message.
@@ -326,7 +384,7 @@ pub struct SemanticScopeMetadataEnvelope {
 pub struct SemanticChangeIntent {
     /// Change-intent artifact type. The pilot expects `semantic_change_intent`.
     #[serde(rename = "type")]
-    pub intent_type: String,
+    pub intent_type: SemanticChangeIntentType,
     /// Stable semantic change identifier.
     pub id: String,
     /// Human-readable title.

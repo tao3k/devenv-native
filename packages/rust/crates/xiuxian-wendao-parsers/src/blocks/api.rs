@@ -3,8 +3,8 @@
 use comrak::{Arena, Options, nodes::AstNode, nodes::NodeValue, parse_document};
 
 use super::counter::BlockIndexCounter;
-use super::{MarkdownBlock, MarkdownBlockKind};
-use crate::sourcepos::line_col_to_byte_range;
+use super::types::{BlockCoreRequest, MarkdownBlock, MarkdownBlockKind};
+use crate::sourcepos::{LineColumnSpan, line_col_to_byte_range};
 
 /// Extract top-level Markdown blocks from one section body.
 ///
@@ -20,23 +20,19 @@ pub fn extract_blocks(
     let arena = Arena::new();
     let root = parse_document(&arena, section_text, &Options::default());
 
-    let mut blocks = Vec::new();
     let mut block_indices = BlockIndexCounter::default();
-
-    for node in root.children() {
-        if let Some(block) = node_to_block(
-            node,
-            section_text,
-            section_byte_offset,
-            section_line_offset,
-            &mut block_indices,
-            structural_path,
-        ) {
-            blocks.push(block);
-        }
-    }
-
-    blocks
+    root.children()
+        .filter_map(|node| {
+            node_to_block(
+                node,
+                section_text,
+                section_byte_offset,
+                section_line_offset,
+                &mut block_indices,
+                structural_path,
+            )
+        })
+        .collect()
 }
 
 fn node_to_block(
@@ -55,8 +51,10 @@ fn node_to_block(
     let end_line = sourcepos.end.line;
     let end_col = sourcepos.end.column;
 
-    let byte_range =
-        line_col_to_byte_range(section_text, start_line, start_col, end_line, end_col)?;
+    let byte_range = line_col_to_byte_range(
+        section_text,
+        LineColumnSpan::new(start_line, start_col, end_line, end_col),
+    )?;
 
     let doc_line_range = (
         section_line_offset
@@ -69,8 +67,8 @@ fn node_to_block(
             .max(1),
     );
 
-    let content = if byte_range.0 <= byte_range.1 && byte_range.1 <= section_text.len() {
-        &section_text[byte_range.0..byte_range.1]
+    let content = if byte_range.start <= byte_range.end && byte_range.end <= section_text.len() {
+        &section_text[byte_range.start..byte_range.end]
     } else {
         return None;
     };
@@ -132,15 +130,15 @@ fn node_to_block(
     };
 
     let index = block_indices.next(&kind);
-    Some(MarkdownBlock::new(
+    Some(MarkdownBlock::new(BlockCoreRequest {
         kind,
         index,
-        (
-            byte_range.0 + section_byte_offset,
-            byte_range.1 + section_byte_offset,
+        byte_range: (
+            byte_range.start + section_byte_offset,
+            byte_range.end + section_byte_offset,
         ),
-        doc_line_range,
-        content,
-        structural_path.to_vec(),
-    ))
+        line_range: doc_line_range,
+        content: content.to_string(),
+        structural_path: structural_path.to_vec(),
+    }))
 }

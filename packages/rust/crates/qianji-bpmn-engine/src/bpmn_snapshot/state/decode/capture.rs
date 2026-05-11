@@ -49,10 +49,12 @@ pub(in crate::bpmn_snapshot::state) fn font_from_event(
     Ok(BpmnFontSnapshot {
         name: attribute_value(source, reader, event, "name")?,
         size: attribute_value(source, reader, event, "size")?,
-        is_bold: boolean_attribute_value(source, reader, event, "isBold")?,
-        is_italic: boolean_attribute_value(source, reader, event, "isItalic")?,
-        is_underline: boolean_attribute_value(source, reader, event, "isUnderline")?,
-        is_strike_through: boolean_attribute_value(source, reader, event, "isStrikeThrough")?,
+        is_bold: boolean_attribute_value(source, reader, event, "isBold")?.map(Into::into),
+        is_italic: boolean_attribute_value(source, reader, event, "isItalic")?.map(Into::into),
+        is_underline: boolean_attribute_value(source, reader, event, "isUnderline")?
+            .map(Into::into),
+        is_strike_through: boolean_attribute_value(source, reader, event, "isStrikeThrough")?
+            .map(Into::into),
     })
 }
 
@@ -115,10 +117,11 @@ pub(in crate::bpmn_snapshot::state) fn data_input_output_from_event(
     event: &BytesStart<'_>,
 ) -> Result<BpmnDataInputOutputSnapshot> {
     Ok(BpmnDataInputOutputSnapshot {
-        data_id: attribute_value(source, reader, event, "id")?,
+        data_id: attribute_value(source, reader, event, "id")?.map(Into::into),
         name: attribute_value(source, reader, event, "name")?,
         item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
-        is_collection: boolean_attribute_value(source, reader, event, "isCollection")?,
+        is_collection: boolean_attribute_value(source, reader, event, "isCollection")?
+            .map(Into::into),
         data_state: None,
     })
 }
@@ -167,8 +170,8 @@ pub(in crate::bpmn_snapshot::state) fn resource_role_from_event(
     tag: &str,
 ) -> Result<BpmnResourceRoleSnapshot> {
     Ok(BpmnResourceRoleSnapshot {
-        role_kind: tag.to_string(),
-        role_id: attribute_value(source, reader, event, "id")?,
+        role_kind: tag.to_string().into(),
+        role_id: attribute_value(source, reader, event, "id")?.map(Into::into),
         name: attribute_value(source, reader, event, "name")?,
         resource_ref: None,
         assignment_expression_id: None,

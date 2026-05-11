@@ -1,7 +1,7 @@
 use crate::{
     AdmissionBudget, AdmissionDecision, ContractOwner, FallbackEvidence, HealthState, LaneEvidence,
-    PolyglotControlSnapshot, PolyglotLane, PressureLevel, ReadinessState, RouteProfileRef,
-    SnapshotInvariantError,
+    LaneEvidenceInput, PolyglotControlSnapshot, PolyglotLane, PressureLevel, ReadinessState,
+    RouteProfileRef, SnapshotInvariantError,
 };
 
 #[test]
@@ -15,13 +15,13 @@ fn snapshot_filters_refs_and_projects_decisions() -> Result<(), SnapshotInvarian
         pressure: PressureLevel::Medium,
         fallback_available: true,
     };
-    let evidence = LaneEvidence::new(
-        PolyglotLane::PythonDocling,
-        HealthState::Healthy,
-        ReadinessState::Ready,
-        PressureLevel::Medium,
-        FallbackEvidence::new(true),
-    );
+    let evidence = LaneEvidence::new(LaneEvidenceInput {
+        lane: PolyglotLane::PythonDocling,
+        health: HealthState::Healthy,
+        readiness: ReadinessState::Ready,
+        pressure: PressureLevel::Medium,
+        fallback: FallbackEvidence::new(true),
+    });
     let snapshot = PolyglotControlSnapshot::from_parts(
         vec![
             RouteProfileRef::document_extract("/analysis/document-extract"),

@@ -219,7 +219,7 @@ fn validate_projection(
     report: &mut SemanticValidationReport,
 ) {
     let path = Some(projection.source_path.clone());
-    if projection.projection_type != "semantic_projection" {
+    if projection.projection_type.as_str() != "semantic_projection" {
         report.push(
             path.clone(),
             "semantic projection `type` must be `semantic_projection`",
@@ -300,7 +300,7 @@ fn validate_change_intent_metadata(
     path: Option<&PathBuf>,
     report: &mut SemanticValidationReport,
 ) {
-    if intent.intent_type != "semantic_change_intent" {
+    if intent.intent_type.as_str() != "semantic_change_intent" {
         report.push(
             clone_path(path),
             "semantic change intent `type` must be `semantic_change_intent`",

@@ -55,21 +55,28 @@ impl RepoDocCoverageFlightRouteProvider for StudioRepoDocCoverageFlightRouteProv
 fn build_repo_doc_coverage_flight_batch(docs: &[DocRecord]) -> Result<LanceRecordBatch, String> {
     let repo_ids = docs
         .iter()
-        .map(|doc| doc.repo_id.clone())
+        .map(|doc| doc.repo_id.to_string())
         .collect::<Vec<_>>();
     let doc_ids = docs
         .iter()
-        .map(|doc| doc.doc_id.clone())
+        .map(|doc| doc.doc_id.to_string())
         .collect::<Vec<_>>();
     let titles = docs.iter().map(|doc| doc.title.clone()).collect::<Vec<_>>();
-    let paths = docs.iter().map(|doc| doc.path.clone()).collect::<Vec<_>>();
+    let paths = docs
+        .iter()
+        .map(|doc| doc.path.to_string())
+        .collect::<Vec<_>>();
     let formats = docs
         .iter()
         .map(|doc| doc.format.clone())
         .collect::<Vec<_>>();
     let target_kinds = docs
         .iter()
-        .map(|doc| doc.doc_target.as_ref().map(|target| target.kind.clone()))
+        .map(|doc| {
+            doc.doc_target
+                .as_ref()
+                .map(|target| target.kind.to_string())
+        })
         .collect::<Vec<_>>();
     let target_names = docs
         .iter()

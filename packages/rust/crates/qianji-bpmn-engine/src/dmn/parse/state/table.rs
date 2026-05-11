@@ -1,7 +1,7 @@
 use super::model::{TempInput, TempOutput, TempRule, TempTable};
 use crate::dmn_model_api::{
-    DmnDecisionTable, DmnHitPolicy, DmnInputClause, DmnOutputClause, DmnOutputEntry, DmnRule,
-    DmnSourceFile,
+    DmnDecisionTable, DmnDecisionTableInput, DmnHitPolicy, DmnInputClause, DmnInputClauseInput,
+    DmnOutputClause, DmnOutputEntry, DmnRule, DmnSourceFile,
 };
 use crate::dmn_parse_api::parser::unary;
 use crate::error::{BpmnEngineError, Result};
@@ -16,13 +16,13 @@ pub(crate) fn finalize_input(
     let Some(input) = current_input.take() else {
         return;
     };
-    table.inputs.push(DmnInputClause::new(
-        input.input_id,
-        input.label,
-        input.name,
-        input.expression,
-        input.type_ref,
-    ));
+    table.inputs.push(DmnInputClause::new(DmnInputClauseInput {
+        input_id: input.input_id.as_str(),
+        label: input.label.as_deref(),
+        name: input.name.as_deref(),
+        expression: input.expression.as_deref(),
+        type_ref: input.type_ref.as_deref(),
+    }));
 }
 
 pub(crate) fn finalize_output(
@@ -58,7 +58,7 @@ pub(crate) fn finalize_rule(
         || rule.output_entries.len() != table.outputs.len()
     {
         return Err(BpmnEngineError::InvalidDmnRuleArity {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             rule_id: rule.rule_id.clone(),
             expected_inputs: table.inputs.len(),
             actual_inputs: rule.input_entries.len(),
@@ -115,8 +115,8 @@ pub(crate) fn hit_policy_from_attr(
         "UNIQUE" => Ok(DmnHitPolicy::Unique),
         "COLLECT" => Ok(DmnHitPolicy::Collect),
         policy => Err(BpmnEngineError::UnsupportedDmnHitPolicy {
-            source_id: source.source_id.clone(),
-            decision_id: decision_id.to_string(),
+            source_id: (source.source_id.clone()).into(),
+            decision_id: (decision_id.to_string()).into(),
             hit_policy: policy.to_string(),
         }),
     }
@@ -124,13 +124,13 @@ pub(crate) fn hit_policy_from_attr(
 
 impl TempTable {
     pub(crate) fn into_definition(self) -> DmnDecisionTable {
-        DmnDecisionTable::new(
-            self.table_id,
-            self.name,
-            self.hit_policy,
-            self.inputs,
-            self.outputs,
-            self.rules,
-        )
+        DmnDecisionTable::new(DmnDecisionTableInput {
+            table_id: self.table_id.as_str(),
+            name: self.name.as_deref(),
+            hit_policy: self.hit_policy,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            rules: self.rules,
+        })
     }
 }

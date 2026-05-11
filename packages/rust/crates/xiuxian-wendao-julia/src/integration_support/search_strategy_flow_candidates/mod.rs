@@ -8,6 +8,7 @@ mod bridge_report;
 mod corpus;
 mod discovery;
 mod repo_search;
+mod structured_index;
 mod types;
 
 pub(super) use super::search_strategy_flow_evidence_edge_kinds;
@@ -27,10 +28,21 @@ pub(crate) use corpus::{
 #[cfg(test)]
 pub(crate) use discovery::discover_search_strategy_flow_candidate_inputs;
 pub(crate) use discovery::{
-    search_strategy_flow_candidate_input_batch,
     search_strategy_flow_candidate_input_batch_from_markdown,
+    search_strategy_flow_candidate_input_batch_with_discovery_receipt,
 };
 pub(crate) use repo_search::search_strategy_flow_candidate_input_from_repo_search_hit;
+#[cfg(test)]
+pub(crate) use structured_index::{
+    CODE_INTELLIGENCE_STRUCTURED_CANDIDATE_COUNT, PRIMARY_MARKDOWN_STRUCTURED_CANDIDATE_COUNT,
+    REGISTRY_AUTHORITY_STRUCTURED_CANDIDATE_COUNT, RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
+    TOTAL_STRUCTURED_CANDIDATE_COUNT,
+    search_strategy_flow_total_structured_candidate_index_contract,
+};
+pub(crate) use structured_index::{
+    search_strategy_flow_candidate_discovery_contract_json,
+    search_strategy_flow_total_structured_candidate_index_contract_json,
+};
 pub(crate) use types::{
     FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
     SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowRepoSearchHit,

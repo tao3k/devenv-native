@@ -9,13 +9,13 @@ use xiuxian_wendao::analyzers::{DocCoverageResult, DocRecord, DocTargetRecord};
 fn repo_doc_coverage_flight_batch_preserves_doc_rows() {
     let batch = build_repo_doc_coverage_flight_batch(&[
         DocRecord {
-            repo_id: "gateway-sync".to_string(),
-            doc_id: "repo:gateway-sync:doc:README.md".to_string(),
+            repo_id: "gateway-sync".to_string().into(),
+            doc_id: "repo:gateway-sync:doc:README.md".to_string().into(),
             title: "README".to_string(),
-            path: "README.md".to_string(),
+            path: "README.md".to_string().into(),
             format: Some("markdown".to_string()),
             doc_target: Some(DocTargetRecord {
-                kind: "module".to_string(),
+                kind: "module".to_string().into(),
                 name: "GatewaySyncPkg".to_string(),
                 path: Some("GatewaySyncPkg".to_string()),
                 line_start: Some(1),
@@ -23,10 +23,10 @@ fn repo_doc_coverage_flight_batch_preserves_doc_rows() {
             }),
         },
         DocRecord {
-            repo_id: "gateway-sync".to_string(),
-            doc_id: "repo:gateway-sync:doc:docs/solve.md".to_string(),
+            repo_id: "gateway-sync".to_string().into(),
+            doc_id: "repo:gateway-sync:doc:docs/solve.md".to_string().into(),
             title: "solve".to_string(),
-            path: "docs/solve.md".to_string(),
+            path: "docs/solve.md".to_string().into(),
             format: None,
             doc_target: None,
         },

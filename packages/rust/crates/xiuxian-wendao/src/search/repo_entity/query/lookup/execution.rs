@@ -245,9 +245,9 @@ fn candidate_score(inputs: &CandidateScoreInputs<'_>) -> Option<f64> {
         }
         "import" => {
             let import = crate::analyzers::ImportRecord {
-                repo_id: String::new(),
-                module_id: String::new(),
-                path: String::new(),
+                repo_id: String::new().into(),
+                module_id: String::new().into(),
+                path: String::new().into(),
                 import_name: inputs.name_folded.to_string(),
                 target_package: inputs.summary_folded.to_string(),
                 source_module: inputs.signature_folded.to_string(),

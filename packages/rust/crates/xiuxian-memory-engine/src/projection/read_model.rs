@@ -1,6 +1,6 @@
 //! Read-only projection rows for host compute and memory inspection lanes.
 
-use crate::episode::Episode;
+use crate::episode::{Episode, EpisodeId};
 use serde::{Deserialize, Serialize};
 
 /// Read-only filter applied when materializing a host memory projection.
@@ -24,7 +24,7 @@ impl MemoryProjectionFilter {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MemoryProjectionRow {
     /// Stable episode identifier used as the host-side join key.
-    pub episode_id: String,
+    pub episode_id: EpisodeId,
     /// Logical scope associated with the episode.
     pub scope: String,
     /// Semantic embedding of the stored intent.
@@ -38,24 +38,49 @@ pub struct MemoryProjectionRow {
     /// Number of total retrievals or accesses.
     pub retrieval_count: u32,
     /// Episode creation timestamp in Unix milliseconds.
-    pub created_at_ms: i64,
+    pub created_at_ms: MemoryProjectionTimestampMs,
     /// Episode last-update timestamp in Unix milliseconds.
-    pub updated_at_ms: i64,
+    pub updated_at_ms: MemoryProjectionTimestampMs,
+}
+
+/// Unix timestamp in milliseconds for memory projection rows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct MemoryProjectionTimestampMs(i64);
+
+impl MemoryProjectionTimestampMs {
+    /// Returns the timestamp value.
+    #[must_use]
+    pub const fn get(self) -> i64 {
+        self.0
+    }
+}
+
+impl From<i64> for MemoryProjectionTimestampMs {
+    fn from(value: i64) -> Self {
+        Self(value)
+    }
+}
+
+impl PartialEq<i64> for MemoryProjectionTimestampMs {
+    fn eq(&self, other: &i64) -> bool {
+        self.get() == *other
+    }
 }
 
 impl MemoryProjectionRow {
     #[must_use]
     pub(crate) fn from_episode(episode: &Episode, q_value: f32) -> Self {
         Self {
-            episode_id: episode.id.clone(),
+            episode_id: episode.id.as_str().into(),
             scope: episode.scope.clone(),
             intent_embedding: episode.intent_embedding.clone(),
             q_value,
             success_count: episode.success_count,
             failure_count: episode.failure_count,
             retrieval_count: episode.retrieval_count,
-            created_at_ms: episode.created_at,
-            updated_at_ms: episode.updated_at,
+            created_at_ms: episode.created_at.into(),
+            updated_at_ms: episode.updated_at.into(),
         }
     }
 }

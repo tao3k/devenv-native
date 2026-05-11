@@ -44,8 +44,8 @@ pub(crate) fn resolve_multi_instance_iteration_plan(
     let source_collection =
         resolve_value_path(variables, data_binding.loop_data_input_ref.as_ref()).ok_or_else(
             || BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.key.process_id.to_string(),
-                node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (process.nodes[node_index as usize].bpmn_id.to_string()).into(),
                 detail: "loop_data_input_collection_unresolved",
             },
         )?;
@@ -79,8 +79,8 @@ pub(crate) fn resolve_multi_instance_iteration_plan(
         ),
         _ => {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.key.process_id.to_string(),
-                node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (process.nodes[node_index as usize].bpmn_id.to_string()).into(),
                 detail: "unsupported_multi_instance_data_input_collection",
             });
         }

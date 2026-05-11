@@ -1,14 +1,68 @@
+//! Semantic document and cognitive trace contracts for `LinkGraphIndex`.
+
 use std::sync::Arc;
+
+macro_rules! semantic_string_type {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq, Default)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the serialized value.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl std::ops::Deref for $name {
+            type Target = str;
+
+            fn deref(&self) -> &Self::Target {
+                self.as_str()
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+
+        impl PartialEq<&str> for $name {
+            fn eq(&self, other: &&str) -> bool {
+                self.as_str() == *other
+            }
+        }
+    };
+}
+
+semantic_string_type!(SemanticAnchorId, "Stable semantic anchor identifier.");
+semantic_string_type!(SemanticDocId, "Stable semantic document identifier.");
+semantic_string_type!(
+    SemanticDocumentPath,
+    "Repository-relative semantic document path."
+);
+semantic_string_type!(CognitiveTraceId, "Stable cognitive trace identifier.");
+semantic_string_type!(CognitiveSessionId, "Cognitive trace session identifier.");
+semantic_string_type!(CognitiveNodeId, "Cognitive trace node identifier.");
 
 /// Typed semantic document exported from `LinkGraphIndex` for downstream retrieval runtimes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LinkGraphSemanticDocument {
     /// Stable anchor identifier used to recover semantic paths.
-    pub anchor_id: String,
+    pub anchor_id: SemanticAnchorId,
     /// Canonical document identifier owning this semantic document.
-    pub doc_id: String,
+    pub doc_id: SemanticDocId,
     /// Relative markdown path for traceability.
-    pub path: String,
+    pub path: SemanticDocumentPath,
     /// Semantic document kind used by downstream document-scope filters.
     pub kind: LinkGraphSemanticDocumentKind,
     /// Complete logical ancestry path recovered from `PageIndex`.
@@ -49,11 +103,11 @@ impl LinkGraphSemanticDocumentKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CognitiveTraceRecord {
     /// Unique identifier for this trace.
-    pub trace_id: String,
+    pub trace_id: CognitiveTraceId,
     /// Session identifier from Qianji execution.
-    pub session_id: Option<String>,
+    pub session_id: Option<CognitiveSessionId>,
     /// Node identifier from the compiled flow graph.
-    pub node_id: String,
+    pub node_id: CognitiveNodeId,
     /// The original user intent/prompt.
     pub intent: String,
     /// Aggregated reasoning content (thoughts + text deltas).
@@ -74,15 +128,15 @@ impl CognitiveTraceRecord {
     /// Create a new cognitive trace record.
     #[must_use]
     pub fn new(
-        trace_id: String,
-        session_id: Option<String>,
-        node_id: String,
+        trace_id: impl Into<CognitiveTraceId>,
+        session_id: Option<CognitiveSessionId>,
+        node_id: impl Into<CognitiveNodeId>,
         intent: String,
     ) -> Self {
         Self {
-            trace_id,
+            trace_id: trace_id.into(),
             session_id,
-            node_id,
+            node_id: node_id.into(),
             intent,
             reasoning: Arc::<str>::from(""),
             outcome: None,
@@ -100,13 +154,20 @@ impl CognitiveTraceRecord {
 
     /// Convert to a semantic document for Wendao ingestion.
     #[must_use]
-    pub fn to_semantic_document(&self, doc_id: &str, path: &str) -> LinkGraphSemanticDocument {
+    pub fn to_semantic_document(
+        &self,
+        doc_id: impl Into<SemanticDocId>,
+        path: impl Into<SemanticDocumentPath>,
+    ) -> LinkGraphSemanticDocument {
         LinkGraphSemanticDocument {
-            anchor_id: format!("trace:{}", self.trace_id),
-            doc_id: doc_id.to_string(),
-            path: path.to_string(),
+            anchor_id: format!("trace:{}", self.trace_id.as_str()).into(),
+            doc_id: doc_id.into(),
+            path: path.into(),
             kind: LinkGraphSemanticDocumentKind::CognitiveTrace,
-            semantic_path: vec!["Cognitive Traces".to_string(), self.node_id.clone()],
+            semantic_path: vec![
+                "Cognitive Traces".to_string(),
+                self.node_id.as_str().to_string(),
+            ],
             content: self.reasoning.clone(),
             line_range: None,
         }

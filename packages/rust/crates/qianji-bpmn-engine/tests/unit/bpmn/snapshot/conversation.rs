@@ -11,7 +11,7 @@ fn bpmn_snapshot_preserves_conversation_metadata() {
         collaboration.collaboration_id.as_deref(),
         Some("Collaboration_Conversation")
     );
-    assert_eq!(collaboration.is_closed, Some(false));
+    assert_eq!(collaboration.is_closed.map(|flag| flag.get()), Some(false));
     assert_eq!(collaboration.participants.len(), 2);
     assert_eq!(collaboration.message_flows.len(), 1);
     assert_eq!(collaboration.conversation_nodes.len(), 3);

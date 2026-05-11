@@ -4,17 +4,63 @@ use serde::{Deserialize, Serialize};
 
 use crate::duckdb::ensure_duckdb_identifier;
 
+macro_rules! duckdb_secret_string_type {
+    ($(#[$meta:meta])* $name:ident) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the secret configuration value.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl std::ops::Deref for $name {
+            type Target = str;
+
+            fn deref(&self) -> &Self::Target {
+                self.as_str()
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+    };
+}
+
+duckdb_secret_string_type!(
+    /// Access key id for a DuckDB S3-compatible secret.
+    DuckDbS3AccessKeyId
+);
+duckdb_secret_string_type!(
+    /// Temporary session token for a DuckDB S3-compatible secret.
+    DuckDbS3SessionToken
+);
+
 /// Credential provider for one `DuckDB` `S3`-compatible secret.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DuckDbS3SecretProvider {
     /// Use explicit static credentials from the caller.
     Config {
         /// Access key id.
-        key_id: String,
+        key_id: DuckDbS3AccessKeyId,
         /// Secret access key.
         secret: String,
         /// Optional session token for temporary credentials.
-        session_token: Option<String>,
+        session_token: Option<DuckDbS3SessionToken>,
     },
     /// Use `DuckDB`'s credential-chain provider.
     CredentialChain {
@@ -49,7 +95,7 @@ impl DuckDbS3SecretConfig {
     #[must_use]
     pub fn config(
         name: impl Into<String>,
-        key_id: impl Into<String>,
+        key_id: impl Into<DuckDbS3AccessKeyId>,
         secret: impl Into<String>,
     ) -> Self {
         Self {
@@ -140,10 +186,10 @@ pub fn build_duckdb_s3_secret_sql(config: &DuckDbS3SecretConfig) -> Result<Strin
             session_token,
         } => {
             entries.push("PROVIDER config".to_string());
-            push_non_blank_literal(&mut entries, "KEY_ID", key_id)?;
+            push_non_blank_literal(&mut entries, "KEY_ID", key_id.as_str())?;
             push_non_blank_literal(&mut entries, "SECRET", secret)?;
             if let Some(session_token) = session_token {
-                push_non_blank_literal(&mut entries, "SESSION_TOKEN", session_token)?;
+                push_non_blank_literal(&mut entries, "SESSION_TOKEN", session_token.as_str())?;
             }
         }
         DuckDbS3SecretProvider::CredentialChain { chain } => {

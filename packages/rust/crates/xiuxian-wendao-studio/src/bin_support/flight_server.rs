@@ -23,7 +23,7 @@ use crate::studio::{
     build_studio_flight_service_for_roots_with_weights, resolve_studio_config_root,
 };
 use walkdir::WalkDir;
-use xiuxian_git_repo::{SyncMode, discover_checkout_metadata};
+use xiuxian_git_repo::{SyncMode, discover_checkout_metadata, list_tracked_file_paths};
 use xiuxian_wendao::analyzers::{
     DocRecord, RegisteredRepository, RepositoryAnalysisOutput, RepositoryRecord,
     build_repository_analysis_cache_key, load_repo_intelligence_config,
@@ -135,7 +135,8 @@ async fn build_search_flight_service(
         StudioFlightRoots::new(
             project_root.clone(),
             resolve_search_host_studio_config_root(project_root.as_path()),
-        ),
+        )
+        .with_direct_repo_id(repo_id.clone()),
         effective_settings.expected_schema_version,
         effective_settings.rerank_dimension,
         effective_settings.rerank_weights,
@@ -232,15 +233,7 @@ async fn maybe_bootstrap_configured_repo_content(
         return Ok(());
     }
 
-    let config_path = resolve_runtime_config_path(project_root)
-        .ok_or_else(|| anyhow!("configured repo-content bootstrap requires wendao.toml"))?;
-    let repo_config = load_repo_intelligence_config(Some(config_path.as_path()), project_root)
-        .map_err(|error| anyhow!("load configured repo-content bootstrap config: {error}"))?;
-    let repository = repo_config
-        .repos
-        .iter()
-        .find(|repository| repository.id == repo_id)
-        .ok_or_else(|| anyhow!("configured repo-content bootstrap repo `{repo_id}` not found"))?;
+    let repository = configured_bootstrap_repository(repo_id, project_root)?;
     let checkout_root = repository
         .path
         .as_deref()
@@ -265,11 +258,38 @@ async fn maybe_bootstrap_configured_repo_content(
         "BOOTSTRAPPED_REPO_CONTENT {repo_id} documents={}",
         documents.len()
     );
-    prime_configured_repo_content_analysis_cache(repository, project_root, &documents)?;
+    prime_configured_repo_content_analysis_cache(&repository, project_root, &documents)?;
     Ok(())
 }
 
+fn configured_bootstrap_repository(
+    repo_id: &str,
+    project_root: &Path,
+) -> Result<RegisteredRepository> {
+    if let Some(config_path) = resolve_runtime_config_path(project_root) {
+        let repo_config = load_repo_intelligence_config(Some(config_path.as_path()), project_root)
+            .map_err(|error| anyhow!("load configured repo-content bootstrap config: {error}"))?;
+        if let Some(repository) = repo_config
+            .repos
+            .iter()
+            .find(|repository| repository.id == repo_id)
+        {
+            return Ok(repository.clone());
+        }
+    }
+
+    Ok(RegisteredRepository {
+        id: repo_id.to_owned(),
+        path: Some(project_root.to_path_buf()),
+        ..RegisteredRepository::default()
+    })
+}
+
 fn collect_configured_repo_content_documents(repo_root: &Path) -> Result<Vec<RepoCodeDocument>> {
+    if let Some(documents) = collect_git_tracked_configured_repo_content_documents(repo_root)? {
+        return Ok(documents);
+    }
+
     let mut documents = Vec::new();
     for entry in WalkDir::new(repo_root)
         .into_iter()
@@ -285,28 +305,54 @@ fn collect_configured_repo_content_documents(repo_root: &Path) -> Result<Vec<Rep
             .map_err(|error| anyhow!("strip configured repo content path: {error}"))?
             .to_string_lossy()
             .replace('\\', "/");
-        let contents = std::fs::read_to_string(path).map_err(|error| {
-            anyhow!("read configured repo content `{}`: {error}", path.display())
-        })?;
-        let metadata = entry
-            .metadata()
-            .map_err(|error| anyhow!("read configured repo content metadata: {error}"))?;
-        documents.push(RepoCodeDocument {
-            path: relative_path,
-            language: language_for_repo_content_path(path).map(str::to_owned),
-            contents: Arc::<str>::from(contents),
-            size_bytes: metadata.len(),
-            modified_unix_ms: metadata
-                .modified()
-                .ok()
-                .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
-                .map_or(0, |duration| {
-                    u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
-                }),
-        });
+        documents.push(repo_content_document(relative_path.as_str(), path)?);
     }
     documents.sort_by(|left, right| left.path.cmp(&right.path));
     Ok(documents)
+}
+
+fn collect_git_tracked_configured_repo_content_documents(
+    repo_root: &Path,
+) -> Result<Option<Vec<RepoCodeDocument>>> {
+    let tracked_paths = match list_tracked_file_paths(repo_root) {
+        Ok(paths) => paths,
+        Err(_) => return Ok(None),
+    };
+
+    let mut documents = Vec::new();
+    for relative_path in tracked_paths {
+        let path = repo_root.join(relative_path.as_str());
+        if !path.is_file() || !is_supported_repo_content_path(path.as_path()) {
+            continue;
+        }
+        documents.push(repo_content_document(
+            relative_path.as_str(),
+            path.as_path(),
+        )?);
+    }
+    documents.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(Some(documents))
+}
+
+fn repo_content_document(relative_path: &str, path: &Path) -> Result<RepoCodeDocument> {
+    let contents = std::fs::read_to_string(path)
+        .map_err(|error| anyhow!("read configured repo content `{}`: {error}", path.display()))?;
+    let metadata = path
+        .metadata()
+        .map_err(|error| anyhow!("read configured repo content metadata: {error}"))?;
+    Ok(RepoCodeDocument {
+        path: relative_path.replace('\\', "/"),
+        language: language_for_repo_content_path(path).map(str::to_owned),
+        contents: Arc::<str>::from(contents),
+        size_bytes: metadata.len(),
+        modified_unix_ms: metadata
+            .modified()
+            .ok()
+            .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
+            .map_or(0, |duration| {
+                u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
+            }),
+    })
 }
 
 fn is_ignored_repo_content_path(path: &Path) -> bool {
@@ -369,9 +415,9 @@ fn configured_repo_content_analysis(
 ) -> RepositoryAnalysisOutput {
     RepositoryAnalysisOutput {
         repository: Some(RepositoryRecord {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
             name: repository.id.clone(),
-            path: repo_root.display().to_string(),
+            path: repo_root.display().to_string().into(),
             url: repository.url.clone(),
             revision,
             version: None,
@@ -388,10 +434,10 @@ fn configured_repo_content_analysis(
 
 fn configured_repo_content_doc_record(repo_id: &str, document: &RepoCodeDocument) -> DocRecord {
     DocRecord {
-        repo_id: repo_id.to_owned(),
-        doc_id: format!("repo:{repo_id}:doc:{}", document.path),
+        repo_id: repo_id.to_owned().into(),
+        doc_id: format!("repo:{repo_id}:doc:{}", document.path).into(),
         title: configured_repo_content_doc_title(document.path.as_str()),
-        path: document.path.clone(),
+        path: document.path.clone().into(),
         format: Some(configured_repo_content_doc_format(document).to_owned()),
         doc_target: None,
     }

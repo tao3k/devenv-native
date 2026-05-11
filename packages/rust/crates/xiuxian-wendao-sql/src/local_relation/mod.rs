@@ -1,3 +1,5 @@
+//! Local relation engine abstraction and `DataFusion` implementation.
+
 mod datafusion;
 mod types;
 

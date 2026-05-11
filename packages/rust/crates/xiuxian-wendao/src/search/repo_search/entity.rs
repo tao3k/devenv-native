@@ -131,13 +131,15 @@ pub(crate) fn record_query_core_telemetry(
 }
 
 fn retrieval_row_to_search_hit(repo_id: &str, row: &xiuxian_db_store::RetrievalRow) -> SearchHit {
-    let doc_type = row.doc_type.clone().or_else(|| Some("file".to_string()));
-    let kind_tag = doc_type.clone().unwrap_or_else(|| "unknown".to_string());
+    let doc_type = row.doc_type.as_ref().map_or_else(
+        || "file".to_string(),
+        |doc_type| doc_type.as_str().to_string(),
+    );
     let mut tags = vec![
         repo_id.to_string(),
         "code".to_string(),
-        kind_tag.clone(),
-        format!("kind:{kind_tag}"),
+        doc_type.clone(),
+        format!("kind:{doc_type}"),
     ];
     if let Some(language) = row
         .language
@@ -161,7 +163,7 @@ fn retrieval_row_to_search_hit(repo_id: &str, row: &xiuxian_db_store::RetrievalR
         stem,
         title: row.title.clone().or_else(|| Some(row.path.clone())),
         path: row.path.clone(),
-        doc_type,
+        doc_type: Some(doc_type),
         tags,
         score: row.score.unwrap_or_default(),
         best_section: row.best_section.clone().or(row.snippet.clone()),

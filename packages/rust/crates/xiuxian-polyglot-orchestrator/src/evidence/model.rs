@@ -110,22 +110,31 @@ pub struct LaneEvidence {
     pub fallback: FallbackEvidence,
 }
 
+/// Named input for constructing one lane evidence envelope.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct LaneEvidenceInput {
+    /// Lane described by this evidence envelope.
+    pub lane: PolyglotLane,
+    /// Coarse health state.
+    pub health: HealthState,
+    /// Coarse readiness state.
+    pub readiness: ReadinessState,
+    /// Coarse pressure state.
+    pub pressure: PressureLevel,
+    /// Fallback evidence for this lane.
+    pub fallback: FallbackEvidence,
+}
+
 impl LaneEvidence {
     /// Creates evidence for a lane with explicit states.
     #[must_use]
-    pub const fn new(
-        lane: PolyglotLane,
-        health: HealthState,
-        readiness: ReadinessState,
-        pressure: PressureLevel,
-        fallback: FallbackEvidence,
-    ) -> Self {
+    pub fn new(input: LaneEvidenceInput) -> Self {
         Self {
-            lane,
-            health,
-            readiness,
-            pressure,
-            fallback,
+            lane: input.lane,
+            health: input.health,
+            readiness: input.readiness,
+            pressure: input.pressure,
+            fallback: input.fallback,
         }
     }
 }

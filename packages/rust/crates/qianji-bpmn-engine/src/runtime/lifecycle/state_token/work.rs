@@ -32,12 +32,12 @@ pub(crate) fn record_human_task_lifecycle_event(
             process_id: pending
                 .process_id
                 .clone()
-                .unwrap_or_else(|| instance.process.process_id.to_string()),
+                .unwrap_or_else(|| instance.process.process_id.as_ref().into()),
             activity_id: pending
                 .activity_id
                 .clone()
-                .unwrap_or_else(|| format!("node#{}", pending.node_index)),
-            token_id: pending.token_id,
+                .unwrap_or_else(|| format!("node#{}", pending.node_index).into()),
+            token_id: (pending.token_id).into(),
             node_index: pending.node_index,
             work_kind: pending.kind.clone(),
             claimant,

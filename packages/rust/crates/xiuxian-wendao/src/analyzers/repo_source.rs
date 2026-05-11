@@ -49,18 +49,19 @@ fn repo_refresh_policy(policy: RepositoryRefreshPolicy) -> RepoRefreshPolicy {
 fn map_repo_error(repository: &RegisteredRepository, error: RepoError) -> RepoIntelligenceError {
     match error.kind {
         RepoErrorKind::MissingSource => RepoIntelligenceError::MissingRepositorySource {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
         },
         RepoErrorKind::InvalidPath => RepoIntelligenceError::InvalidRepositoryPath {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
             path: repository
                 .path
                 .as_ref()
-                .map_or_else(String::new, |path| path.display().to_string()),
+                .map_or_else(String::new, |path| path.display().to_string())
+                .into(),
             reason: error.message,
         },
         RepoErrorKind::Unsupported => RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
             message: error.message,
         },
         _ => RepoIntelligenceError::AnalysisFailed {

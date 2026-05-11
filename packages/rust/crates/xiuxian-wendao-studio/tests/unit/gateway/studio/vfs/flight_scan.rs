@@ -7,15 +7,15 @@ use crate::studio::vfs::flight_scan::{
 
 fn sample_entry() -> VfsScanEntry {
     VfsScanEntry {
-        path: "kernel/docs/alpha.md".to_string(),
+        path: "kernel/docs/alpha.md".to_string().into(),
         name: "alpha.md".to_string(),
         is_dir: false,
         category: VfsCategory::Doc,
         size: 128,
         modified: 42,
-        content_type: Some("text/markdown".to_string()),
+        content_type: Some("text/markdown".to_string().into()),
         has_frontmatter: true,
-        wendao_id: Some("doc:alpha".to_string()),
+        wendao_id: Some("doc:alpha".to_string().into()),
         project_name: Some("kernel".to_string()),
         root_label: Some("docs".to_string()),
         project_root: Some(".".to_string()),

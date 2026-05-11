@@ -2,7 +2,7 @@ use crate::host_resume::support::{StubHost, blocking_process, create_blocked_ins
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnEngineError, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, PendingHostWorkResult,
-    ServiceTaskOutcome, UserTaskOutcome, apply_pending_host_work_result, create_instance,
+    ServiceTaskOutcome, UserTaskOutcome, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -20,7 +20,7 @@ async fn host_resume_requires_pending_work() {
     )
     .must("instance should be created");
 
-    let error = apply_pending_host_work_result(
+    let error = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         1,
@@ -34,7 +34,7 @@ async fn host_resume_requires_pending_work() {
     assert_eq!(
         error,
         BpmnEngineError::MissingPendingHostWork {
-            instance_id: "wf_resume".to_string(),
+            instance_id: ("wf_resume".to_string()).into(),
         }
     );
 }
@@ -49,7 +49,7 @@ async fn host_resume_rejects_kind_mismatch() {
         create_blocked_instance(Arc::clone(&package), "resume", &StubHost::new(55)).await;
     let token_id = instance.pending_host_work[0].token_id;
 
-    let error = apply_pending_host_work_result(
+    let error = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

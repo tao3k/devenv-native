@@ -9,6 +9,7 @@ use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServi
 use futures::TryStreamExt;
 use tokio::sync::{OwnedSemaphorePermit, TryAcquireError};
 use tonic::transport::{Channel, Endpoint};
+use xiuxian_wendao_runtime::polyglot::DocumentExtractPressureEvidenceInput;
 use xiuxian_wendao_server::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
@@ -51,12 +52,14 @@ impl StudioDocumentExtractFlightRouteProvider {
             .conversion_limit
             .saturating_sub(available_permits);
         let pressure = xiuxian_wendao_runtime::polyglot::document_extract_pressure_evidence(
-            Some(saturating_u32(self.runtime.conversion_limit)),
-            saturating_u32(active_in_flight),
-            0,
-            0,
-            0,
-            false,
+            DocumentExtractPressureEvidenceInput {
+                max_in_flight: Some(saturating_u32(self.runtime.conversion_limit)),
+                active_in_flight: saturating_u32(active_in_flight),
+                queued_items: 0,
+                failed_items: 0,
+                retryable_failures: 0,
+                fallback_available: false,
+            },
         );
         xiuxian_wendao_runtime::polyglot::document_extract_schedule_plan(
             pressure,

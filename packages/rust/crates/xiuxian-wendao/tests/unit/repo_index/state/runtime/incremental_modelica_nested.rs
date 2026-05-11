@@ -63,7 +63,7 @@ async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),
@@ -139,7 +139,7 @@ async fn prepare_incremental_analysis_merges_nested_package_modelica_source_chan
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),
@@ -240,7 +240,7 @@ async fn prepare_incremental_analysis_returns_none_for_nested_package_modelica_d
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),

@@ -74,11 +74,20 @@ pub(super) fn repo_relative_candidate_inputs(
 ) -> Vec<SearchStrategyFlowCandidateInput> {
     candidates
         .into_iter()
-        .map(|mut candidate| {
+        .filter_map(|mut candidate| {
             candidate.relative_path = repo_relative_source_path(repo_id, &candidate.relative_path);
-            candidate
+            is_search_strategy_flow_visible_repo_path(candidate.relative_path.as_str())
+                .then_some(candidate)
         })
         .collect()
+}
+
+fn is_search_strategy_flow_visible_repo_path(path: &str) -> bool {
+    let normalized = path.trim().trim_matches('/');
+    !normalized.is_empty()
+        && ![".cache/", ".data/", ".run/", "node_modules/", "target/"]
+            .iter()
+            .any(|prefix| normalized.starts_with(prefix))
 }
 
 pub(super) fn first_page_index_repo_search_row(

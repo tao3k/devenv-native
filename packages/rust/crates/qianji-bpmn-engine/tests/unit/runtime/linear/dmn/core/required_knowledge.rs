@@ -36,8 +36,9 @@ async fn runtime_business_rule_task_rejects_missing_required_knowledge_target_lo
     assert_eq!(
         error,
         BpmnEngineError::MissingDmnRequiredKnowledgeTarget {
-            source_id: "versioned-missing-required-knowledge-runtime-20191111.dmn".to_string(),
-            decision_id: "Decision_missing_required_knowledge".to_string(),
+            source_id: ("versioned-missing-required-knowledge-runtime-20191111.dmn".to_string())
+                .into(),
+            decision_id: ("Decision_missing_required_knowledge".to_string()).into(),
             href: "#BKM_missing".to_string(),
         }
     );
@@ -59,8 +60,9 @@ async fn runtime_business_rule_task_rejects_invocation_outside_required_knowledg
     assert_eq!(
         error,
         BpmnEngineError::UndeclaredDmnInvocationKnowledgeTarget {
-            source_id: "versioned-outside-required-knowledge-runtime-20191111.dmn".to_string(),
-            decision_id: "Decision_outside_required_knowledge".to_string(),
+            source_id: ("versioned-outside-required-knowledge-runtime-20191111.dmn".to_string())
+                .into(),
+            decision_id: ("Decision_outside_required_knowledge".to_string()).into(),
             target: "scoreCard".to_string(),
         }
     );

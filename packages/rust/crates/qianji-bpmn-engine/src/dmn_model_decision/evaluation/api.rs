@@ -42,7 +42,7 @@ impl DmnEvaluationResult {
         matched_rule_ids: Vec<Arc<str>>,
     ) -> Self {
         Self {
-            decision_id: Arc::<str>::from(decision_id.as_ref()),
+            decision_id: (Arc::<str>::from(decision_id.as_ref())).into(),
             output,
             matched_rule_ids,
         }

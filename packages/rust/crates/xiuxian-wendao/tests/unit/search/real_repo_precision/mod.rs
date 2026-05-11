@@ -428,7 +428,7 @@ fn link_graph_cache_metadata_records_miss_then_resident_hit()
     let catalog = vec![RealRepoPrecisionCatalogEntry {
         repository: RegisteredRepository {
             id: "local-knowledge-repo".to_string(),
-            path: Some(repo_root.clone()),
+            path: Some(repo_root.clone().into()),
             url: None,
             git_ref: None,
             refresh: RepositoryRefreshPolicy::Manual,

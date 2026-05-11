@@ -17,7 +17,7 @@ pub(crate) fn resolve_process_for_instance<'a>(
     let (process_index, process) = package
         .find_process_position(instance.process.process_id.as_ref())
         .ok_or_else(|| BpmnEngineError::MissingProcess {
-            process_id: instance.process.process_id.to_string(),
+            process_id: (instance.process.process_id.to_string()).into(),
         })?;
     instance.process_index = process_index;
     Ok(process)

@@ -110,5 +110,14 @@ fn serializes_tsv_without_losing_candidate_boundaries() -> Result<(), Box<dyn st
     assert!(batch.tsv.contains("doc.md"));
     assert!(batch.tsv.contains("Query\\tUnderstanding"));
     assert_eq!(batch.tsv.lines().count(), 1);
+    let receipt: serde_json::Value = serde_json::from_str(&batch.discovery_receipt_json)?;
+    assert_eq!(
+        receipt.get("transport"),
+        Some(&serde_json::json!("local-markdown-scan"))
+    );
+    assert_eq!(
+        receipt.get("candidateInputCount"),
+        Some(&serde_json::json!(1))
+    );
     Ok(())
 }

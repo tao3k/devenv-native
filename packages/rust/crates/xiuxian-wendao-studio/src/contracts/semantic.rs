@@ -56,6 +56,12 @@ macro_rules! string_carrier {
             }
         }
 
+        impl AsRef<std::ffi::OsStr> for $name {
+            fn as_ref(&self) -> &std::ffi::OsStr {
+                std::ffi::OsStr::new(self.as_str())
+            }
+        }
+
         impl std::ops::Deref for $name {
             type Target = str;
 
@@ -76,9 +82,27 @@ macro_rules! string_carrier {
             }
         }
 
+        impl PartialEq<str> for $name {
+            fn eq(&self, other: &str) -> bool {
+                self.as_str() == other
+            }
+        }
+
+        impl PartialEq<String> for $name {
+            fn eq(&self, other: &String) -> bool {
+                self.as_str() == other
+            }
+        }
+
         impl PartialEq<$name> for &str {
             fn eq(&self, other: &$name) -> bool {
                 *self == other.as_str()
+            }
+        }
+
+        impl PartialEq<$name> for String {
+            fn eq(&self, other: &$name) -> bool {
+                self == other.as_str()
             }
         }
     };

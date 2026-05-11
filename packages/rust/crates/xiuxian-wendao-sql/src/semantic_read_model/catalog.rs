@@ -1,3 +1,5 @@
+//! Catalog reports for advisory semantic read-model tables.
+
 use std::path::Path;
 
 use arrow::datatypes::{Field, Schema};
@@ -12,6 +14,37 @@ use super::rows::SemanticReadModelRows;
 use super::schema::{
     semantic_objects_schema, semantic_projection_state_schema, semantic_relations_schema,
 };
+
+/// Stable text label for one Arrow column data type.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct SemanticReadModelDataTypeLabel(String);
+
+impl SemanticReadModelDataTypeLabel {
+    /// Borrows the stable data-type token.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SemanticReadModelDataTypeLabel {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for SemanticReadModelDataTypeLabel {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl PartialEq<&str> for SemanticReadModelDataTypeLabel {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
 
 /// Stable advisory catalog for the semantic read-model surface.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,7 +83,7 @@ pub struct SemanticReadModelColumnCatalog {
     /// Column name exposed to read-only query consumers.
     pub name: String,
     /// Arrow data type rendered as a stable text token.
-    pub data_type: String,
+    pub data_type: SemanticReadModelDataTypeLabel,
     /// Whether the column permits null values.
     pub nullable: bool,
 }
@@ -128,7 +161,7 @@ fn table_catalog(name: &str, row_count: usize, schema: &Schema) -> SemanticReadM
 fn column_catalog(field: &Field) -> SemanticReadModelColumnCatalog {
     SemanticReadModelColumnCatalog {
         name: field.name().clone(),
-        data_type: field.data_type().to_string(),
+        data_type: field.data_type().to_string().into(),
         nullable: field.is_nullable(),
     }
 }

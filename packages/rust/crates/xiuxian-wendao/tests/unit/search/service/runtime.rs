@@ -49,7 +49,7 @@ async fn status_with_repo_runtime_hydrates_repo_corpus_status_from_repo_record_i
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -126,7 +126,7 @@ async fn synchronize_repo_runtime_removes_local_repo_record_files_for_removed_re
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -164,7 +164,7 @@ async fn status_with_repo_runtime_is_stable_for_reordered_ready_published_repo_r
         SearchPlaneCache::for_tests(keyspace),
     );
     let documents = vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -357,7 +357,7 @@ async fn stale_repo_runtime_refresh_does_not_override_newer_generation() {
         .refresh_repo_runtime_cache_for_test(
             stale_generation,
             vec![SearchRepoRuntimeRecord {
-                repo_id: "stale/repo".to_string(),
+                repo_id: "stale/repo".to_string().into(),
                 phase: RepoIndexPhase::Ready,
                 last_revision: Some("rev-1".to_string()),
                 last_error: None,
@@ -372,7 +372,7 @@ async fn stale_repo_runtime_refresh_does_not_override_newer_generation() {
         .refresh_repo_runtime_cache_for_test(
             current_generation,
             vec![SearchRepoRuntimeRecord {
-                repo_id: "fresh/repo".to_string(),
+                repo_id: "fresh/repo".to_string().into(),
                 phase: RepoIndexPhase::Ready,
                 last_revision: Some("rev-2".to_string()),
                 last_error: None,

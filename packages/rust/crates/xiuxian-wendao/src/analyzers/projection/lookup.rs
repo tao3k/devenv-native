@@ -19,8 +19,8 @@ pub fn build_projected_page(
         .into_iter()
         .find(|page| page.page_id == query.page_id)
         .ok_or_else(|| RepoIntelligenceError::UnknownProjectedPage {
-            repo_id: query.repo_id.clone(),
-            page_id: query.page_id.clone(),
+            repo_id: query.repo_id.clone().into(),
+            page_id: query.page_id.clone().into(),
         })?;
 
     Ok(RepoProjectedPageResult {

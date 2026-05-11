@@ -49,6 +49,61 @@ impl<T> MustExt for Option<T> {
     }
 }
 
+pub(crate) fn apply_pending_host_work_result(
+    package: &qianji_bpmn_engine::BpmnPackage,
+    instance: &mut qianji_bpmn_engine::BpmnInstanceState,
+    token_id: u64,
+    result: qianji_bpmn_engine::PendingHostWorkResult,
+    completed_at_ms: u64,
+) -> std::result::Result<qianji_bpmn_engine::BpmnAdvanceOutcome, qianji_bpmn_engine::BpmnEngineError>
+{
+    qianji_bpmn_engine::apply_pending_host_work_result(
+        qianji_bpmn_engine::PendingHostWorkApplyInput {
+            package,
+            instance,
+            token_id: token_id.into(),
+            result,
+            completed_at_ms: completed_at_ms.into(),
+        },
+    )
+}
+
+pub(crate) fn claim_request(
+    token_id: u64,
+    process_id: impl Into<String>,
+    activity_id: impl Into<String>,
+    claimant: impl Into<String>,
+    claimed_at_ms: u64,
+) -> qianji_bpmn_engine::PendingHumanTaskClaimRequest {
+    qianji_bpmn_engine::PendingHumanTaskClaimRequest::from_input(
+        qianji_bpmn_engine::PendingHumanTaskClaimInput {
+            token_id: token_id.into(),
+            process_id: process_id.into().into(),
+            activity_id: activity_id.into().into(),
+            claimant: claimant.into(),
+            claimed_at_ms: claimed_at_ms.into(),
+        },
+    )
+}
+
+pub(crate) fn release_request(
+    token_id: u64,
+    process_id: impl Into<String>,
+    activity_id: impl Into<String>,
+    claimant: impl Into<String>,
+    released_at_ms: u64,
+) -> qianji_bpmn_engine::PendingHumanTaskReleaseRequest {
+    qianji_bpmn_engine::PendingHumanTaskReleaseRequest::from_input(
+        qianji_bpmn_engine::PendingHumanTaskReleaseInput {
+            token_id: token_id.into(),
+            process_id: process_id.into().into(),
+            activity_id: activity_id.into().into(),
+            claimant: claimant.into(),
+            released_at_ms: released_at_ms.into(),
+        },
+    )
+}
+
 pub(crate) fn data_object_io_bpmn() -> &'static str {
     r#"<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_service_task_data_object_io">

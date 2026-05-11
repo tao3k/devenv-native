@@ -126,20 +126,20 @@ fn resolve_invocation_business_knowledge_model<'a>(
         [target] => Ok(*target),
         [] => Err(if allowed_targets.is_some() {
             BpmnEngineError::UndeclaredDmnInvocationKnowledgeTarget {
-                source_id: decision.source_id.to_string(),
-                decision_id: decision.decision.decision_id.to_string(),
+                source_id: (decision.source_id.to_string()).into(),
+                decision_id: (decision.decision.decision_id.to_string()).into(),
                 target: target_name.to_string(),
             }
         } else {
             BpmnEngineError::MissingDmnInvocationTarget {
-                source_id: decision.source_id.to_string(),
-                decision_id: decision.decision.decision_id.to_string(),
+                source_id: (decision.source_id.to_string()).into(),
+                decision_id: (decision.decision.decision_id.to_string()).into(),
                 target: target_name.to_string(),
             }
         }),
         _ => Err(BpmnEngineError::AmbiguousDmnInvocationTarget {
-            source_id: decision.source_id.to_string(),
-            decision_id: decision.decision.decision_id.to_string(),
+            source_id: (decision.source_id.to_string()).into(),
+            decision_id: (decision.decision.decision_id.to_string()).into(),
             target: target_name.to_string(),
             count: matches.len(),
         }),
@@ -174,8 +174,8 @@ fn resolve_required_knowledge_definition<'a>(
     package
         .find_dmn_business_knowledge_model(decision.source_id.as_ref(), &target_id)
         .ok_or_else(|| BpmnEngineError::MissingDmnRequiredKnowledgeTarget {
-            source_id: decision.source_id.to_string(),
-            decision_id: decision.decision.decision_id.to_string(),
+            source_id: (decision.source_id.to_string()).into(),
+            decision_id: (decision.decision.decision_id.to_string()).into(),
             href: requirement
                 .href
                 .as_deref()

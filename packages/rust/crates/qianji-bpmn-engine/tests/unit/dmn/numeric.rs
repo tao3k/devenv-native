@@ -39,15 +39,15 @@ fn dmn_parser_supports_numeric_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::NumericRange(qianji_bpmn_engine::DmnNumericRange::new(
-            Some(DmnNumericRangeBound::new(100.0, true)),
-            Some(DmnNumericRangeBound::new(110.0, true)),
+            Some(DmnNumericRangeBound::new(100.0, true.into())),
+            Some(DmnNumericRangeBound::new(110.0, true.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::NumericRange(qianji_bpmn_engine::DmnNumericRange::new(
-            Some(DmnNumericRangeBound::new(200.0, true)),
-            Some(DmnNumericRangeBound::new(210.0, false)),
+            Some(DmnNumericRangeBound::new(200.0, true.into())),
+            Some(DmnNumericRangeBound::new(210.0, false.into())),
         ))
     );
 }

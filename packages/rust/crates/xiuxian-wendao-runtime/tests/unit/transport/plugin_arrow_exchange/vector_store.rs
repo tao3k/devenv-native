@@ -1,6 +1,7 @@
 use super::support::{err_or_panic, tempdir_or_panic};
 use crate::transport::plugin_arrow_exchange::{
-    PluginArrowRequestRow, PluginArrowVectorStoreRequestBuildError,
+    PluginArrowRequestRow, PluginArrowVectorStoreRequestBatchInput,
+    PluginArrowVectorStoreRequestBuildError,
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,
     prepare_plugin_arrow_request_rows_from_vector_store,
 };
@@ -72,13 +73,15 @@ async fn build_plugin_arrow_request_batch_from_vector_store_with_metadata_sets_t
         .unwrap_or_else(|error| panic!("seed vector table: {error}"));
 
     let batch = build_plugin_arrow_request_batch_from_vector_store_with_metadata(
-        &store,
-        "anchors",
-        [("doc-1#alpha".to_string(), 0.25)],
-        &[9.0, 8.0, 7.0],
-        "xiuxian-wendao-julia",
-        "alpha signal",
-        "v1",
+        PluginArrowVectorStoreRequestBatchInput {
+            store: &store,
+            table_name: "anchors",
+            rows: [("doc-1#alpha".to_string(), 0.25)],
+            query_vector: &[9.0, 8.0, 7.0],
+            provider_id: "xiuxian-wendao-julia",
+            query_text: "alpha signal",
+            schema_version: "v1",
+        },
     )
     .await
     .unwrap_or_else(|error| panic!("request batch with metadata should build: {error}"));

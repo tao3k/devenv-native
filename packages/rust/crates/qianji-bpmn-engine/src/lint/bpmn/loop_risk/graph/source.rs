@@ -66,7 +66,7 @@ pub(in crate::lint::bpmn::loop_risk) fn source_component_entry(
         .map(|index| {
             let node = &process.nodes[*index];
             SourceComponentEntry {
-                node_id: node.bpmn_id.to_string(),
+                node_id: (node.bpmn_id.to_string()).into(),
                 index: *index,
                 is_host_task: is_host_task(&node.kind),
                 is_end_event: node.kind == BpmnNodeKind::EndEvent,

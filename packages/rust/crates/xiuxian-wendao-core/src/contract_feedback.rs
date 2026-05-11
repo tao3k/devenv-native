@@ -8,6 +8,55 @@ use serde_json::json;
 
 use crate::{KnowledgeCategory, KnowledgeEntry};
 
+macro_rules! contract_feedback_string_type {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the serialized value.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+    };
+}
+
+contract_feedback_string_type!(
+    ContractKnowledgeEntryId,
+    "Stable contract-feedback knowledge entry identifier."
+);
+contract_feedback_string_type!(
+    ContractSuiteId,
+    "Stable contract-feedback suite identifier."
+);
+contract_feedback_string_type!(ContractRuleId, "Stable contract-feedback rule identifier.");
+contract_feedback_string_type!(
+    ContractRulePackId,
+    "Stable contract-feedback rule-pack identifier."
+);
+
 /// Severity exported by a contract-feedback producer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ContractFindingSeverity {
@@ -59,15 +108,15 @@ impl ContractKnowledgeDecision {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContractKnowledgeEnvelope {
     /// Stable export identifier for downstream storage.
-    pub entry_id: String,
+    pub entry_id: ContractKnowledgeEntryId,
     /// Contract suite identifier that produced the finding.
-    pub suite_id: String,
+    pub suite_id: ContractSuiteId,
     /// Generation timestamp inherited from the parent report.
     pub generated_at: String,
     /// Stable rule identifier.
-    pub rule_id: String,
+    pub rule_id: ContractRuleId,
     /// Rule-pack identifier.
-    pub pack_id: String,
+    pub pack_id: ContractRulePackId,
     /// Logical domain for grouping and filtering.
     pub domain: String,
     /// Exported severity.
@@ -104,7 +153,7 @@ pub struct ContractKnowledgeEnvelope {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContractKnowledgeBatch {
     /// Contract suite identifier.
-    pub suite_id: String,
+    pub suite_id: ContractSuiteId,
     /// Timestamp inherited from the parent report.
     pub generated_at: String,
     /// Exported knowledge envelopes.
@@ -120,7 +169,7 @@ impl WendaoContractFeedbackAdapter {
     #[must_use]
     pub fn knowledge_entry_from_envelope(envelope: &ContractKnowledgeEnvelope) -> KnowledgeEntry {
         let mut entry = KnowledgeEntry::new(
-            envelope.entry_id.clone(),
+            envelope.entry_id.as_str(),
             envelope.title.clone(),
             envelope.content.clone(),
             Self::knowledge_category(envelope),
@@ -182,9 +231,9 @@ impl WendaoContractFeedbackAdapter {
             .iter()
             .map(|(key, value)| (key.clone(), value.clone()))
             .collect();
-        metadata.insert("entry_id".to_string(), json!(envelope.entry_id));
-        metadata.insert("rule_id".to_string(), json!(envelope.rule_id));
-        metadata.insert("pack_id".to_string(), json!(envelope.pack_id));
+        metadata.insert("entry_id".to_string(), json!(envelope.entry_id.as_str()));
+        metadata.insert("rule_id".to_string(), json!(envelope.rule_id.as_str()));
+        metadata.insert("pack_id".to_string(), json!(envelope.pack_id.as_str()));
         metadata.insert("domain".to_string(), json!(envelope.domain));
         metadata.insert("decision".to_string(), json!(envelope.decision.as_str()));
         metadata.insert("severity".to_string(), json!(envelope.severity));
@@ -193,7 +242,7 @@ impl WendaoContractFeedbackAdapter {
         metadata.insert("why_it_matters".to_string(), json!(envelope.why_it_matters));
         metadata.insert("remediation".to_string(), json!(envelope.remediation));
         metadata.insert("generated_at".to_string(), json!(envelope.generated_at));
-        metadata.insert("suite_id".to_string(), json!(envelope.suite_id));
+        metadata.insert("suite_id".to_string(), json!(envelope.suite_id.as_str()));
         if let Some(evidence_excerpt) = &envelope.evidence_excerpt {
             metadata.insert("evidence_excerpt".to_string(), json!(evidence_excerpt));
         }

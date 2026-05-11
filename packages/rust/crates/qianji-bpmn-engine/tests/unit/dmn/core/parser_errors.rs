@@ -10,7 +10,7 @@ fn dmn_parser_exact_one_wrapper_rejects_multiple_decisions() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnDecisionCount {
-            source_id: "multiple-decisions.dmn".to_string(),
+            source_id: ("multiple-decisions.dmn".to_string()).into(),
             count: 2,
         }
     );
@@ -24,7 +24,7 @@ fn dmn_parser_rejects_unsupported_unary_tests() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: "invalid-unsupported-unary-test.dmn".to_string(),
+            source_id: ("invalid-unsupported-unary-test.dmn".to_string()).into(),
             expression: "duration(\"P1.5Y\")".to_string(),
         }
     );

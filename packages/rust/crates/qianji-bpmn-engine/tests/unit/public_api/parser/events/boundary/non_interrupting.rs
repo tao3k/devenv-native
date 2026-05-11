@@ -113,8 +113,8 @@ fn parser_escalation_deferred_non_interrupting_boundary_reports_stable_detail() 
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: "review_with_non_interrupting_escalation".to_string(),
-            node_id: "review_escalated".to_string(),
+            process_id: ("review_with_non_interrupting_escalation".to_string()).into(),
+            node_id: ("review_escalated".to_string()).into(),
             detail: "non_interrupting_escalation_boundary_deferred",
         }
     );

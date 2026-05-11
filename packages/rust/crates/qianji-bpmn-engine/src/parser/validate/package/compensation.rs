@@ -165,9 +165,9 @@ fn resolve_compensated_activity<'a>(
     };
     let Some(activity) = node_by_id.get(attached_to_ref).copied() else {
         return Err(BpmnEngineError::UnknownBoundaryAttachment {
-            process_id: process.process_id.clone(),
-            node_id: boundary.bpmn_id.clone(),
-            attached_to_node_id: attached_to_ref.to_string(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (boundary.bpmn_id.clone()).into(),
+            attached_to_node_id: (attached_to_ref.to_string()).into(),
         });
     };
     Ok(activity)
@@ -354,10 +354,10 @@ fn resolve_compensation_handler<'a>(
 ) -> Result<&'a RawNode> {
     let Some(handler) = node_by_id.get(association.target_ref.as_str()).copied() else {
         return Err(BpmnEngineError::UnknownSequenceFlowEndpoint {
-            process_id: process.process_id.clone(),
-            flow_id: association.association_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            flow_id: (association.association_id.clone()).into(),
             endpoint: "target",
-            node_id: association.target_ref.clone(),
+            node_id: (association.target_ref.clone()).into(),
         });
     };
     Ok(handler)
@@ -451,8 +451,8 @@ fn compensation_error(
     detail: &'static str,
 ) -> BpmnEngineError {
     BpmnEngineError::UnsupportedCompensationConfiguration {
-        process_id: process.process_id.clone(),
-        node_id: node_id.to_string(),
+        process_id: (process.process_id.clone()).into(),
+        node_id: (node_id.to_string()).into(),
         detail,
     }
 }

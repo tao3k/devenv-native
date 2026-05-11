@@ -81,7 +81,7 @@ fn projected_page_search_with_artifacts_preserves_ranked_results() {
         vec!["solver".to_string(), "matrix".to_string()],
     )]);
     let cache_key = RepositoryAnalysisCacheKey {
-        repo_id: "projection".to_string(),
+        repo_id: "projection".to_string().into(),
         checkout_root: "/virtual/repos/projection".to_string(),
         analysis_identity: "analysis:projection".to_string(),
         checkout_revision: Some("fixture".to_string()),
@@ -90,7 +90,7 @@ fn projected_page_search_with_artifacts_preserves_ranked_results() {
         plugin_ids: vec!["docs".to_string()],
     };
     let query = crate::analyzers::RepoProjectedPageSearchQuery {
-        repo_id: "repo".to_string(),
+        repo_id: "repo".to_string().into(),
         query: "slove".to_string(),
         kind: Some(ProjectionPageKind::Reference),
         limit: 10,
@@ -113,15 +113,15 @@ fn test_page(
     keywords: Vec<String>,
 ) -> crate::analyzers::ProjectedPageRecord {
     crate::analyzers::ProjectedPageRecord {
-        repo_id: "repo".to_string(),
-        page_id: page_id.to_string(),
+        repo_id: "repo".to_string().into(),
+        page_id: page_id.to_string().into(),
         kind,
         title: title.to_string(),
         doc_ids: vec![page_id.to_string()],
         paths: vec![path.to_string()],
         format_hints: vec!["reference".to_string()],
-        doc_id: format!("{page_id}:doc"),
-        path: path.to_string(),
+        doc_id: format!("{page_id}:doc").into(),
+        path: path.to_string().into(),
         keywords,
         ..crate::analyzers::ProjectedPageRecord::default()
     }
@@ -134,10 +134,10 @@ fn test_analysis(
         docs: pages
             .into_iter()
             .map(|page| crate::analyzers::DocRecord {
-                repo_id: page.repo_id,
-                doc_id: page.doc_id,
+                repo_id: page.repo_id.into(),
+                doc_id: page.doc_id.into(),
                 title: page.title,
-                path: page.path,
+                path: page.path.into(),
                 format: page.format_hints.first().cloned(),
                 doc_target: None,
             })

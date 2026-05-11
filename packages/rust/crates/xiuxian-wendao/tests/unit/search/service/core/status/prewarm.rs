@@ -17,7 +17,7 @@ fn annotate_runtime_status_marks_repo_prewarm_running_from_active_task() {
         SearchMaintenancePolicy::default(),
     );
     let runtime_status = RepoIndexEntryStatus {
-        repo_id: "alpha/repo".to_string(),
+        repo_id: "alpha/repo".to_string().into(),
         phase: RepoIndexPhase::Indexing,
         queue_position: None,
         last_error: None,
@@ -68,7 +68,7 @@ fn annotate_runtime_status_surfaces_repo_prewarm_queue_backlog() {
         SearchMaintenancePolicy::default(),
     );
     let runtime_status = RepoIndexEntryStatus {
-        repo_id: "alpha/repo".to_string(),
+        repo_id: "alpha/repo".to_string().into(),
         phase: RepoIndexPhase::Indexing,
         queue_position: None,
         last_error: None,
@@ -92,7 +92,7 @@ fn annotate_runtime_status_surfaces_repo_prewarm_queue_backlog() {
                 task: crate::search::service::core::types::RepoMaintenanceTask::Compaction(
                     crate::search::service::core::types::RepoCompactionTask {
                         corpus: SearchCorpusKind::RepoEntity,
-                        repo_id: "beta/repo".to_string(),
+                        repo_id: "beta/repo".to_string().into(),
                         publication_id: "publication-beta".to_string(),
                         table_name: "repo_entity_repo_beta".to_string(),
                         row_count: 12,
@@ -108,7 +108,7 @@ fn annotate_runtime_status_surfaces_repo_prewarm_queue_backlog() {
                 task: crate::search::service::core::types::RepoMaintenanceTask::Prewarm(
                     crate::search::service::core::types::RepoPrewarmTask {
                         corpus: SearchCorpusKind::RepoEntity,
-                        repo_id: "alpha/repo".to_string(),
+                        repo_id: "alpha/repo".to_string().into(),
                         table_name: "repo_entity_repo_alpha".to_string(),
                         projected_columns: vec!["name".to_string()],
                     },

@@ -65,15 +65,15 @@ fn normalize_multi_instance_data_binding(
 ) -> Result<BpmnMultiInstanceDataBindingSpec> {
     let loop_data_input_ref = loop_spec.loop_data_input_ref().ok_or_else(|| {
         BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: raw.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (raw.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_loop_cardinality_or_data_input",
         }
     })?;
     let input_data_item = loop_spec.input_data_item().ok_or_else(|| {
         BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: raw.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (raw.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_input_data_item",
         }
     })?;
@@ -87,13 +87,13 @@ fn normalize_multi_instance_data_binding(
         }
         (None, None) => Ok(binding),
         (Some(_), None) => Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: raw.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (raw.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_output_data_item",
         }),
         (None, Some(_)) => Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: raw.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (raw.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_loop_data_output_ref",
         }),
     }

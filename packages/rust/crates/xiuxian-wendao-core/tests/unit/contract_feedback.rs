@@ -9,11 +9,11 @@ use xiuxian_wendao_core::{
 
 fn rest_failure_envelope() -> ContractKnowledgeEnvelope {
     ContractKnowledgeEnvelope {
-        entry_id: "wendao-contracts::rest_docs::REST-R003::/api/search/definition".to_string(),
-        suite_id: "wendao-contracts".to_string(),
+        entry_id: "wendao-contracts::rest_docs::REST-R003::/api/search/definition".into(),
+        suite_id: "wendao-contracts".into(),
         generated_at: "2026-03-17T00:00:00Z".to_string(),
-        rule_id: "REST-R003".to_string(),
-        pack_id: "rest_docs".to_string(),
+        rule_id: "REST-R003".into(),
+        pack_id: "rest_docs".into(),
         domain: "rest".to_string(),
         severity: ContractFindingSeverity::Error,
         decision: ContractKnowledgeDecision::Fail,
@@ -44,9 +44,9 @@ fn rest_failure_envelope() -> ContractKnowledgeEnvelope {
 
 fn generated_rest_docs_batch() -> ContractKnowledgeBatch {
     let mut envelope = rest_failure_envelope();
-    envelope.entry_id = "wendao-contracts::rest_docs::REST-R007::/documents".to_string();
-    envelope.rule_id = "REST-R007".to_string();
-    envelope.pack_id = "rest_docs".to_string();
+    envelope.entry_id = "wendao-contracts::rest_docs::REST-R007::/documents".into();
+    envelope.rule_id = "REST-R007".into();
+    envelope.pack_id = "rest_docs".into();
     envelope.domain = "rest".to_string();
     envelope.decision = ContractKnowledgeDecision::Warn;
     envelope.severity = ContractFindingSeverity::Warning;
@@ -59,7 +59,7 @@ fn generated_rest_docs_batch() -> ContractKnowledgeBatch {
     ];
 
     ContractKnowledgeBatch {
-        suite_id: "wendao-contracts".to_string(),
+        suite_id: "wendao-contracts".into(),
         generated_at: "2026-03-18T00:00:00Z".to_string(),
         entries: vec![envelope],
     }
@@ -67,9 +67,9 @@ fn generated_rest_docs_batch() -> ContractKnowledgeBatch {
 
 fn generated_modularity_batch() -> ContractKnowledgeBatch {
     let mut envelope = rest_failure_envelope();
-    envelope.entry_id = "wendao-contracts::modularity::MOD-R002::internal::state.rs".to_string();
-    envelope.rule_id = "MOD-R002".to_string();
-    envelope.pack_id = "modularity".to_string();
+    envelope.entry_id = "wendao-contracts::modularity::MOD-R002::internal::state.rs".into();
+    envelope.rule_id = "MOD-R002".into();
+    envelope.pack_id = "modularity".into();
     envelope.domain = "architecture".to_string();
     envelope.decision = ContractKnowledgeDecision::Warn;
     envelope.severity = ContractFindingSeverity::Warning;
@@ -82,7 +82,7 @@ fn generated_modularity_batch() -> ContractKnowledgeBatch {
     ];
 
     ContractKnowledgeBatch {
-        suite_id: "wendao-contracts".to_string(),
+        suite_id: "wendao-contracts".into(),
         generated_at: "2026-03-18T00:00:00Z".to_string(),
         entries: vec![envelope],
     }
@@ -94,7 +94,7 @@ fn contract_feedback_adapter_maps_failure_to_error_entry() {
 
     let entry = WendaoContractFeedbackAdapter::knowledge_entry_from_envelope(&envelope);
 
-    assert_eq!(entry.id, envelope.entry_id);
+    assert_eq!(entry.id, envelope.entry_id.as_str());
     assert_eq!(entry.title, envelope.title);
     assert_eq!(entry.content, envelope.content);
     assert_eq!(entry.category, KnowledgeCategory::Error);
@@ -123,7 +123,7 @@ fn contract_feedback_adapter_uses_pack_specific_non_failure_categories() {
     let mut envelope = rest_failure_envelope();
     envelope.decision = ContractKnowledgeDecision::Warn;
     envelope.severity = ContractFindingSeverity::Warning;
-    envelope.pack_id = "modularity".to_string();
+    envelope.pack_id = "modularity".into();
     envelope.domain = "architecture".to_string();
 
     let category = WendaoContractFeedbackAdapter::knowledge_category(&envelope);
@@ -135,16 +135,16 @@ fn contract_feedback_adapter_uses_pack_specific_non_failure_categories() {
 fn contract_feedback_adapter_maps_batches_to_entries() {
     let first = rest_failure_envelope();
     let mut second = rest_failure_envelope();
-    second.entry_id = "wendao-contracts::multi_role_audit::AUDIT-R003::global".to_string();
-    second.rule_id = "AUDIT-R003".to_string();
-    second.pack_id = "multi_role_audit".to_string();
+    second.entry_id = "wendao-contracts::multi_role_audit::AUDIT-R003::global".into();
+    second.rule_id = "AUDIT-R003".into();
+    second.pack_id = "multi_role_audit".into();
     second.domain = "audit".to_string();
     second.decision = ContractKnowledgeDecision::Warn;
     second.severity = ContractFindingSeverity::Warning;
     second.title = "[AUDIT-R003] Runtime drift warning".to_string();
 
     let batch = ContractKnowledgeBatch {
-        suite_id: "wendao-contracts".to_string(),
+        suite_id: "wendao-contracts".into(),
         generated_at: "2026-03-17T00:00:00Z".to_string(),
         entries: vec![first, second],
     };
@@ -161,7 +161,7 @@ fn contract_feedback_adapter_maps_generated_rest_docs_batch_to_reference_entries
     let batch = generated_rest_docs_batch();
 
     assert_eq!(batch.entries.len(), 1);
-    assert_eq!(batch.entries[0].pack_id, "rest_docs");
+    assert_eq!(batch.entries[0].pack_id.as_str(), "rest_docs");
     assert_eq!(batch.entries[0].decision, ContractKnowledgeDecision::Warn);
 
     let entries = WendaoContractFeedbackAdapter::knowledge_entries_from_batch(&batch);
@@ -188,7 +188,7 @@ fn contract_feedback_adapter_maps_generated_modularity_batch_to_architecture_ent
     let batch = generated_modularity_batch();
 
     assert_eq!(batch.entries.len(), 1);
-    assert_eq!(batch.entries[0].pack_id, "modularity");
+    assert_eq!(batch.entries[0].pack_id.as_str(), "modularity");
     assert_eq!(batch.entries[0].decision, ContractKnowledgeDecision::Warn);
 
     let entries = WendaoContractFeedbackAdapter::knowledge_entries_from_batch(&batch);

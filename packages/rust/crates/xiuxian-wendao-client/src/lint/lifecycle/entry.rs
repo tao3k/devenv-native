@@ -56,38 +56,57 @@ pub(crate) fn apply_semantic_lifecycle_plan(root: &Path) -> Result<usize> {
         .iter()
         .map(|object| (object.id.as_str(), object))
         .collect::<BTreeMap<_, _>>();
-    let mut applied_object_ids = BTreeSet::new();
-    let mut promoted_object_ids = BTreeSet::new();
-    let mut applied_count = 0usize;
+    let apply_receipt =
+        apply_pending_lifecycle_entries(root, pending_entries.as_slice(), &object_by_id)?;
 
-    for entry in pending_entries {
-        let object = object_by_id
-            .get(entry.object_id.as_str())
-            .with_context(|| {
-                format!(
-                    "semantic lifecycle apply target `{}` does not resolve",
-                    entry.object_id
-                )
-            })?;
-        apply_object_lifecycle_writeback(
+    if !apply_receipt.promoted_object_ids.is_empty() {
+        remove_promoted_candidate_suggestions(
             root,
-            object,
-            entry.to.as_str(),
-            entry.outcome == "promotion",
+            &repository,
+            &apply_receipt.promoted_object_ids,
         )?;
-        applied_object_ids.insert(entry.object_id.clone());
-        if entry.outcome == "promotion" {
-            promoted_object_ids.insert(entry.object_id.clone());
-        }
-        applied_count += 1;
     }
+    mark_lifecycle_projection_sources_stale(root, &repository, &apply_receipt.applied_object_ids)?;
 
-    if !promoted_object_ids.is_empty() {
-        remove_promoted_candidate_suggestions(root, &repository, &promoted_object_ids)?;
-    }
-    mark_lifecycle_projection_sources_stale(root, &repository, &applied_object_ids)?;
+    Ok(apply_receipt.applied_count)
+}
 
-    Ok(applied_count)
+struct SemanticLifecycleApplyReceipt {
+    applied_count: usize,
+    applied_object_ids: BTreeSet<String>,
+    promoted_object_ids: BTreeSet<String>,
+}
+
+fn apply_pending_lifecycle_entries(
+    root: &Path,
+    pending_entries: &[&SemanticLifecyclePlanEntry],
+    object_by_id: &BTreeMap<&str, &SemanticObject>,
+) -> Result<SemanticLifecycleApplyReceipt> {
+    pending_entries.iter().try_fold(
+        SemanticLifecycleApplyReceipt {
+            applied_count: 0,
+            applied_object_ids: BTreeSet::new(),
+            promoted_object_ids: BTreeSet::new(),
+        },
+        |mut receipt, entry| {
+            let object = object_by_id
+                .get(entry.object_id.as_str())
+                .with_context(|| {
+                    format!(
+                        "semantic lifecycle apply target `{}` does not resolve",
+                        entry.object_id
+                    )
+                })?;
+            let is_promotion = entry.outcome == "promotion";
+            apply_object_lifecycle_writeback(root, object, entry.to.as_str(), is_promotion)?;
+            receipt.applied_object_ids.insert(entry.object_id.clone());
+            if is_promotion {
+                receipt.promoted_object_ids.insert(entry.object_id.clone());
+            }
+            receipt.applied_count += 1;
+            Ok(receipt)
+        },
+    )
 }
 
 pub(crate) fn semantic_lifecycle_plan_report(
@@ -288,47 +307,62 @@ fn remove_promoted_candidate_suggestions(
     repository: &SemanticRepository,
     promoted_object_ids: &BTreeSet<String>,
 ) -> Result<usize> {
-    let mut changed_file_count = 0usize;
-    for intent in &repository.change_intents {
-        if !intent
-            .candidate_suggestions
-            .iter()
-            .any(|object_id| promoted_object_ids.contains(object_id))
-        {
-            continue;
-        }
-        let intent_path = root.join(&intent.source_path);
-        let content = std::fs::read_to_string(intent_path.as_path()).with_context(|| {
+    repository
+        .change_intents
+        .iter()
+        .filter(|intent| intent_has_promoted_candidate(intent, promoted_object_ids))
+        .try_fold(0usize, |changed_count, intent| {
+            rewrite_promoted_candidate_suggestions(root, intent, promoted_object_ids)
+                .map(|changed| changed_count + usize::from(changed))
+        })
+}
+
+fn intent_has_promoted_candidate(
+    intent: &SemanticChangeIntent,
+    promoted_object_ids: &BTreeSet<String>,
+) -> bool {
+    intent
+        .candidate_suggestions
+        .iter()
+        .any(|object_id| promoted_object_ids.contains(object_id))
+}
+
+fn rewrite_promoted_candidate_suggestions(
+    root: &Path,
+    intent: &SemanticChangeIntent,
+    promoted_object_ids: &BTreeSet<String>,
+) -> Result<bool> {
+    let intent_path = root.join(&intent.source_path);
+    let content = std::fs::read_to_string(intent_path.as_path()).with_context(|| {
+        format!(
+            "failed to read semantic change intent `{}`",
+            intent_path.display()
+        )
+    })?;
+    let parts = split_frontmatter_raw(&content).with_context(|| {
+        format!(
+            "semantic change intent `{}` is missing frontmatter",
+            intent_path.display()
+        )
+    })?;
+    let mut frontmatter =
+        serde_yaml::from_str::<serde_yaml::Value>(parts.yaml).with_context(|| {
             format!(
-                "failed to read semantic change intent `{}`",
+                "failed to parse semantic change intent frontmatter `{}`",
                 intent_path.display()
             )
         })?;
-        let parts = split_frontmatter_raw(&content).with_context(|| {
-            format!(
-                "semantic change intent `{}` is missing frontmatter",
-                intent_path.display()
-            )
-        })?;
-        let mut frontmatter =
-            serde_yaml::from_str::<serde_yaml::Value>(parts.yaml).with_context(|| {
-                format!(
-                    "failed to parse semantic change intent frontmatter `{}`",
-                    intent_path.display()
-                )
-            })?;
-        if remove_candidate_suggestions_from_frontmatter(&mut frontmatter, promoted_object_ids)? {
-            let rendered = render_semantic_document(&frontmatter, parts.body)?;
-            std::fs::write(intent_path.as_path(), rendered).with_context(|| {
-                format!(
-                    "failed to write semantic change intent `{}`",
-                    intent_path.display()
-                )
-            })?;
-            changed_file_count += 1;
-        }
+    if !remove_candidate_suggestions_from_frontmatter(&mut frontmatter, promoted_object_ids)? {
+        return Ok(false);
     }
-    Ok(changed_file_count)
+    let rendered = render_semantic_document(&frontmatter, parts.body)?;
+    std::fs::write(intent_path.as_path(), rendered).with_context(|| {
+        format!(
+            "failed to write semantic change intent `{}`",
+            intent_path.display()
+        )
+    })?;
+    Ok(true)
 }
 
 fn remove_candidate_suggestions_from_frontmatter(
@@ -359,47 +393,59 @@ fn mark_lifecycle_projection_sources_stale(
     repository: &SemanticRepository,
     applied_object_ids: &BTreeSet<String>,
 ) -> Result<usize> {
-    let mut changed_count = 0usize;
-    for projection in &repository.projections {
-        if projection.staleness == SemanticProjectionStaleness::Stale
-            || !projection
-                .source_objects
-                .iter()
-                .any(|object_id| applied_object_ids.contains(object_id))
-        {
-            continue;
-        }
-        let projection_path = root.join(&projection.source_path);
-        let content = std::fs::read_to_string(projection_path.as_path()).with_context(|| {
+    repository
+        .projections
+        .iter()
+        .filter(|projection| projection_should_be_marked_stale(projection, applied_object_ids))
+        .try_fold(0usize, |changed_count, projection| {
+            mark_projection_file_stale(root, projection).map(|()| changed_count + 1)
+        })
+}
+
+fn projection_should_be_marked_stale(
+    projection: &xiuxian_wendao_parsers::semantic_ssot::SemanticProjection,
+    applied_object_ids: &BTreeSet<String>,
+) -> bool {
+    projection.staleness != SemanticProjectionStaleness::Stale
+        && projection
+            .source_objects
+            .iter()
+            .any(|object_id| applied_object_ids.contains(object_id))
+}
+
+fn mark_projection_file_stale(
+    root: &Path,
+    projection: &xiuxian_wendao_parsers::semantic_ssot::SemanticProjection,
+) -> Result<()> {
+    let projection_path = root.join(&projection.source_path);
+    let content = std::fs::read_to_string(projection_path.as_path()).with_context(|| {
+        format!(
+            "failed to read semantic projection `{}`",
+            projection_path.display()
+        )
+    })?;
+    let parts = split_frontmatter_raw(&content).with_context(|| {
+        format!(
+            "semantic projection `{}` is missing frontmatter",
+            projection_path.display()
+        )
+    })?;
+    let mut frontmatter =
+        serde_yaml::from_str::<serde_yaml::Value>(parts.yaml).with_context(|| {
             format!(
-                "failed to read semantic projection `{}`",
+                "failed to parse semantic projection frontmatter `{}`",
                 projection_path.display()
             )
         })?;
-        let parts = split_frontmatter_raw(&content).with_context(|| {
-            format!(
-                "semantic projection `{}` is missing frontmatter",
-                projection_path.display()
-            )
-        })?;
-        let mut frontmatter =
-            serde_yaml::from_str::<serde_yaml::Value>(parts.yaml).with_context(|| {
-                format!(
-                    "failed to parse semantic projection frontmatter `{}`",
-                    projection_path.display()
-                )
-            })?;
-        mark_projection_frontmatter_stale(&mut frontmatter, projection.source_revision.as_str())?;
-        let rendered = render_semantic_document(&frontmatter, parts.body)?;
-        std::fs::write(projection_path.as_path(), rendered).with_context(|| {
-            format!(
-                "failed to write semantic projection `{}`",
-                projection_path.display()
-            )
-        })?;
-        changed_count += 1;
-    }
-    Ok(changed_count)
+    mark_projection_frontmatter_stale(&mut frontmatter, projection.source_revision.as_str())?;
+    let rendered = render_semantic_document(&frontmatter, parts.body)?;
+    std::fs::write(projection_path.as_path(), rendered).with_context(|| {
+        format!(
+            "failed to write semantic projection `{}`",
+            projection_path.display()
+        )
+    })?;
+    Ok(())
 }
 
 fn mark_projection_frontmatter_stale(

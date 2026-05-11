@@ -11,7 +11,7 @@ pub(super) fn local_symbol_hit_to_search_hit(hit: AstSearchHit, code_biased: boo
         hit.language.clone(),
         format!("lang:{}", hit.language),
     ];
-    if let Some(node_kind) = hit.node_kind.as_ref().map(|kind| kind.as_ref()) {
+    if let Some(node_kind) = hit.node_kind.as_ref().map(|kind| kind.as_str()) {
         tags.push(node_kind.to_string());
         tags.push(format!("kind:{node_kind}"));
     } else {

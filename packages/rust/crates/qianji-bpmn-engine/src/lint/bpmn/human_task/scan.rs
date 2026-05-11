@@ -42,7 +42,7 @@ impl HumanTaskStandardScanState {
             )
         {
             self.call_activities.push(CallActivityContext {
-                process_id: process.process_id.clone(),
+                process_id: (process.process_id.clone()).into(),
                 activity_id: attribute_value(reader, event, "id"),
                 called_element,
                 span: event_span(reader, event).unwrap_or(0..0),

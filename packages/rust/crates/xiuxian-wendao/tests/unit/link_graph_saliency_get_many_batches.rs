@@ -16,7 +16,7 @@ fn test_saliency_get_many_batches() {
     for index in 0..BATCH_TEST_COUNT {
         let node_id = format!("node_{index:04}");
         let request = LinkGraphSaliencyTouchRequest {
-            node_id: node_id.clone(),
+            node_id: node_id.clone().into(),
             ..Default::default()
         };
         if valkey_saliency_touch_with_valkey(request, TEST_VALKEY_URL, Some(&prefix)).is_err() {

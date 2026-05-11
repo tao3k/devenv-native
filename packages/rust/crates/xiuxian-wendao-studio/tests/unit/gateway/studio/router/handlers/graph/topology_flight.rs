@@ -5,9 +5,9 @@ use crate::studio::router::handlers::graph::topology_flight::topology_3d_respons
 fn topology_3d_response_batch_preserves_row_kinds() {
     let batch = topology_3d_response_batch(&Topology3dPayload {
         nodes: vec![TopologyNode {
-            id: "kernel/docs/alpha.md".to_string(),
+            id: "kernel/docs/alpha.md".to_string().into(),
             name: "alpha".to_string(),
-            node_type: "doc".to_string(),
+            node_type: "doc".to_string().into(),
             position: [1.0, 2.0, 3.0],
             cluster_id: Some("kernel".to_string()),
         }],

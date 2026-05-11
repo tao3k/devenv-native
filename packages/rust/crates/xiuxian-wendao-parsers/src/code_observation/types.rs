@@ -3,6 +3,13 @@
 use super::glob::{find_closing_quote, path_matches_scope};
 use serde::{Deserialize, Serialize};
 
+struct ParsedObservationInput<'a> {
+    language: String,
+    scope: Option<String>,
+    pattern: String,
+    raw_value: &'a str,
+}
+
 /// Parsed code observation entry from `:OBSERVE:` property drawer.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CodeObservation {
@@ -98,46 +105,9 @@ impl CodeObservation {
     /// assert!(obs.is_some());
     /// ```
     #[must_use]
-    #[allow(clippy::too_many_lines)]
     pub fn parse(value: &str) -> Option<Self> {
-        let trimmed = value.trim();
-        if !trimmed.starts_with("lang:") {
-            return None;
-        }
-
-        let after_lang = &trimmed[5..];
-        let space_pos = after_lang.find(' ')?;
-
-        let language = after_lang[..space_pos].trim().to_string();
-        if language.is_empty() {
-            return None;
-        }
-
-        let mut rest = after_lang[space_pos..].trim();
-        let mut scope = None;
-
-        if rest.starts_with("scope:\"") {
-            let scope_str = &rest[7..];
-            if let Some(end_quote) = find_closing_quote(scope_str) {
-                scope = Some(scope_str[..end_quote].replace("\\\"", "\""));
-                rest = scope_str[end_quote + 1..].trim();
-            }
-        }
-
-        if !rest.starts_with('"') {
-            return None;
-        }
-
-        let pattern_str = &rest[1..];
-        let end_pos = find_closing_quote(pattern_str)?;
-        let pattern = pattern_str[..end_pos].replace("\\\"", "\"");
-
-        let mut observation = Self::new(language, pattern, value.to_string());
-        if let Some(scope) = scope {
-            observation = observation.with_scope(scope);
-        }
-
-        Some(observation)
+        let parsed = parse_observation_input(value)?;
+        Some(build_observation(parsed))
     }
 
     /// Get the language for `xiuxian-ast` queries.
@@ -162,5 +132,55 @@ impl CodeObservation {
             .map_err(|error| format!("Invalid pattern: {error}"))?;
 
         Ok(())
+    }
+}
+
+fn parse_observation_input(value: &str) -> Option<ParsedObservationInput<'_>> {
+    let after_lang = value.trim().strip_prefix("lang:")?;
+    let (language, rest) = parse_language_prefix(after_lang)?;
+    let (scope, rest) = parse_optional_scope(rest);
+    let pattern = parse_quoted_pattern(rest)?;
+
+    Some(ParsedObservationInput {
+        language,
+        scope,
+        pattern,
+        raw_value: value,
+    })
+}
+
+fn parse_language_prefix(after_lang: &str) -> Option<(String, &str)> {
+    let space_pos = after_lang.find(' ')?;
+    let language = after_lang[..space_pos].trim().to_string();
+    (!language.is_empty()).then_some((language, after_lang[space_pos..].trim()))
+}
+
+fn parse_optional_scope(rest: &str) -> (Option<String>, &str) {
+    let Some(scope_str) = rest.strip_prefix("scope:\"") else {
+        return (None, rest);
+    };
+    find_closing_quote(scope_str).map_or((None, rest), |end_quote| {
+        (
+            Some(scope_str[..end_quote].replace("\\\"", "\"")),
+            scope_str[end_quote + 1..].trim(),
+        )
+    })
+}
+
+fn parse_quoted_pattern(rest: &str) -> Option<String> {
+    let pattern_str = rest.strip_prefix('"')?;
+    let end_pos = find_closing_quote(pattern_str)?;
+    Some(pattern_str[..end_pos].replace("\\\"", "\""))
+}
+
+fn build_observation(parsed: ParsedObservationInput<'_>) -> CodeObservation {
+    let observation = CodeObservation::new(
+        parsed.language,
+        parsed.pattern,
+        parsed.raw_value.to_string(),
+    );
+    match parsed.scope {
+        Some(scope) => observation.with_scope(scope),
+        None => observation,
     }
 }

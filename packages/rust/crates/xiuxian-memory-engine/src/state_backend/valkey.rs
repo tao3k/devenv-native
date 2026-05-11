@@ -39,15 +39,14 @@ impl ValkeyMemoryStateStore {
         let client = redis::Client::open(redis_url)
             .with_context(|| format!("invalid redis url for memory persistence: {redis_url}"))?;
         let legacy_snapshot_key = key.into();
-        let (episodes_hash_key, q_values_hash_key) =
-            default_valkey_state_hash_keys(&legacy_snapshot_key);
+        let hash_keys = default_valkey_state_hash_keys(&legacy_snapshot_key);
         let recall_feedback_hash_key =
             default_valkey_recall_feedback_hash_key(&legacy_snapshot_key);
         Ok(Self {
             client,
             legacy_snapshot_key,
-            episodes_hash_key,
-            q_values_hash_key,
+            episodes_hash_key: hash_keys.episodes,
+            q_values_hash_key: hash_keys.q_values,
             recall_feedback_hash_key,
             strict_startup,
         })

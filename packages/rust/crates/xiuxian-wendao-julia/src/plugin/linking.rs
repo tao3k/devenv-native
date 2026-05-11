@@ -25,25 +25,25 @@ pub(crate) fn build_doc_relations(
         let mut target_ids = BTreeSet::new();
 
         if let Some(module) = root_module.filter(|_| evidence.is_root_readme()) {
-            target_ids.insert(module.module_id.clone());
+            target_ids.insert(module.module_id.to_string());
         }
 
         for module in &context.modules {
             if evidence.matches_module(module) {
-                target_ids.insert(module.module_id.clone());
+                target_ids.insert(module.module_id.to_string());
             }
         }
 
         for symbol in &context.symbols {
             if evidence.matches_symbol(symbol) {
-                target_ids.insert(symbol.symbol_id.clone());
+                target_ids.insert(symbol.symbol_id.to_string());
             }
         }
 
         relations.extend(target_ids.into_iter().map(|target_id| RelationRecord {
             repo_id: doc.repo_id.clone(),
-            source_id: doc.doc_id.clone(),
-            target_id,
+            source_id: doc.doc_id.clone().to_string(),
+            target_id: target_id.to_string(),
             kind: RelationKind::Documents,
         }));
     }
@@ -62,7 +62,7 @@ pub(crate) fn build_example_relations(
 
         relations.extend(target_ids.into_iter().map(|target_id| RelationRecord {
             repo_id: example.repo_id.clone(),
-            source_id: example.example_id.clone(),
+            source_id: example.example_id.clone().to_string(),
             target_id,
             kind: RelationKind::ExampleOf,
         }));
@@ -88,9 +88,9 @@ fn example_symbol_target_ids(
     let mut target_ids = BTreeSet::new();
     for symbol in symbols {
         if evidence.matches_symbol(symbol) {
-            target_ids.insert(symbol.symbol_id.clone());
+            target_ids.insert(symbol.symbol_id.to_string());
             if let Some(module_id) = &symbol.module_id {
-                target_ids.insert(module_id.clone());
+                target_ids.insert(module_id.to_string());
             }
         }
     }
@@ -104,7 +104,7 @@ fn example_module_target_ids(
     modules
         .iter()
         .filter(|module| evidence.matches_module(module))
-        .map(|module| module.module_id.clone())
+        .map(|module| module.module_id.to_string())
         .collect()
 }
 
@@ -123,7 +123,7 @@ struct ExampleLinkEvidence {
 
 impl DocLinkEvidence {
     fn load(repository_root: &Path, doc: &DocRecord) -> Result<Self, RepoIntelligenceError> {
-        let path = repository_root.join(&doc.path);
+        let path = repository_root.join(doc.path.as_str());
         let contents =
             fs::read_to_string(&path).map_err(|error| RepoIntelligenceError::AnalysisFailed {
                 message: format!(
@@ -131,7 +131,7 @@ impl DocLinkEvidence {
                     path.display()
                 ),
             })?;
-        let stem = Path::new(&doc.path)
+        let stem = Path::new(doc.path.as_str())
             .file_stem()
             .and_then(|value| value.to_str())
             .unwrap_or_default()
@@ -185,7 +185,7 @@ impl ExampleLinkEvidence {
         repository_root: &Path,
         example: &ExampleRecord,
     ) -> Result<Self, RepoIntelligenceError> {
-        let path = repository_root.join(&example.path);
+        let path = repository_root.join(example.path.as_str());
         let contents =
             fs::read_to_string(&path).map_err(|error| RepoIntelligenceError::AnalysisFailed {
                 message: format!("failed to read example file `{}`: {error}", path.display()),

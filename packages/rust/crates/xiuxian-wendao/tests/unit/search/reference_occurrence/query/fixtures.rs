@@ -36,7 +36,7 @@ pub(super) fn write_search_duckdb_runtime_override(
 pub(super) fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearchHit {
     ReferenceSearchHit {
         name: name.to_string(),
-        path: path.to_string(),
+        path: path.to_string().into(),
         language: "rust".to_string(),
         crate_name: "kernel".to_string(),
         project_name: None,
@@ -45,7 +45,7 @@ pub(super) fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearch
         column: 5,
         line_text: format!("let _value = {name};"),
         navigation_target: StudioNavigationTarget {
-            path: path.to_string(),
+            path: path.to_string().into(),
             category: "doc".to_string(),
             project_name: None,
             root_label: None,

@@ -1,6 +1,8 @@
 use xiuxian_wendao_parsers::blocks::{
-    MarkdownBlock, MarkdownBlockKind, compute_block_hash, extract_blocks, line_col_to_byte_range,
+    BlockCoreRequest, MarkdownBlock, MarkdownBlockKind, compute_block_hash, extract_blocks,
+    line_col_to_byte_range,
 };
+use xiuxian_wendao_parsers::{LineColumnSpan, SourceByteRange};
 
 #[test]
 fn block_kind_id_prefixes_match_markdown_contract() {
@@ -28,14 +30,14 @@ fn block_kind_id_prefixes_match_markdown_contract() {
 
 #[test]
 fn markdown_block_new_generates_stable_fields() {
-    let block = MarkdownBlock::new(
-        MarkdownBlockKind::Paragraph,
-        0,
-        (0, 20),
-        (1, 2),
-        "Hello, world!",
-        vec!["Section".to_string()],
-    );
+    let block = MarkdownBlock::new(BlockCoreRequest {
+        kind: MarkdownBlockKind::Paragraph,
+        index: 0,
+        byte_range: (0, 20),
+        line_range: (1, 2),
+        content: "Hello, world!".to_string(),
+        structural_path: vec!["Section".to_string()],
+    });
 
     assert_eq!(block.block_id, "block-para-0");
     assert_eq!(block.byte_range, (0, 20));
@@ -46,17 +48,17 @@ fn markdown_block_new_generates_stable_fields() {
 
 #[test]
 fn markdown_block_with_explicit_id_replaces_generated_id() {
-    let block = MarkdownBlock::new(
-        MarkdownBlockKind::CodeFence {
+    let block = MarkdownBlock::new(BlockCoreRequest {
+        kind: MarkdownBlockKind::CodeFence {
             language: "rust".into(),
         },
-        0,
-        (0, 100),
-        (1, 10),
-        "fn main() {}",
-        vec!["Code".to_string(), "Examples".to_string()],
-    )
-    .with_explicit_id("my-snippet".to_string());
+        index: 0,
+        byte_range: (0, 100),
+        line_range: (1, 10),
+        content: "fn main() {}".to_string(),
+        structural_path: vec!["Code".to_string(), "Examples".to_string()],
+    })
+    .with_explicit_id("my-snippet".into());
 
     assert_eq!(block.block_id, "my-snippet");
     assert_eq!(block.id, Some("my-snippet".to_string()));
@@ -122,10 +124,16 @@ fn extract_blocks_offsets_ranges_from_section_origin() {
 #[test]
 fn line_col_to_byte_range_handles_single_and_multi_line_ranges() {
     let text = "Hello\nWorld";
-    assert_eq!(line_col_to_byte_range(text, 1, 1, 1, 5), Some((0, 5)));
-    assert_eq!(line_col_to_byte_range(text, 2, 1, 2, 5), Some((6, 11)));
+    assert_eq!(
+        line_col_to_byte_range(text, LineColumnSpan::new(1, 1, 1, 5)),
+        Some(SourceByteRange::new(0, 5))
+    );
+    assert_eq!(
+        line_col_to_byte_range(text, LineColumnSpan::new(2, 1, 2, 5)),
+        Some(SourceByteRange::new(6, 11))
+    );
 
     let multiline = "Line 1\nLine 2\nLine 3";
-    let range = line_col_to_byte_range(multiline, 1, 1, 3, 6);
-    assert_eq!(range, Some((0, multiline.len())));
+    let range = line_col_to_byte_range(multiline, LineColumnSpan::new(1, 1, 3, 6));
+    assert_eq!(range, Some(SourceByteRange::new(0, multiline.len())));
 }

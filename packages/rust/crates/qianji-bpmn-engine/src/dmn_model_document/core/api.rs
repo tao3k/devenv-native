@@ -1,6 +1,6 @@
 //! Public dmn model document core contracts for BPMN/DMN engine integration.
 
-use super::DmnFunctionDefinitionSnapshot;
+use super::{DmnFunctionDefinitionSnapshot, DmnSnapshotKind, DmnSnapshotType};
 
 /// Snapshot of one top-level DMN `import`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -12,7 +12,7 @@ pub struct DmnImportSnapshot {
     /// Optional import location URI.
     pub location_uri: Option<String>,
     /// Optional imported model type URI.
-    pub import_type: Option<String>,
+    pub import_type: Option<DmnSnapshotType>,
 }
 
 /// Snapshot of one top-level DMN `itemDefinition`.
@@ -125,7 +125,7 @@ pub struct DmnDecisionServiceReferenceSnapshot {
     /// Optional direct `href` payload preserved from the reference element.
     pub href: Option<String>,
     /// Local name of the reference element, such as `outputDecision`.
-    pub reference_kind: String,
+    pub reference_kind: DmnSnapshotKind,
 }
 
 /// Snapshot of one top-level DMN `organizationUnit`.

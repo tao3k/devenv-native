@@ -93,7 +93,7 @@ fn find_model_namespace_uri(
 ) -> Result<Option<String>> {
     for attribute in event.attributes() {
         let attribute = attribute.map_err(|error| BpmnEngineError::InvalidDmnXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
         })?;
         let key = attribute.key.as_ref();
@@ -103,7 +103,7 @@ fn find_model_namespace_uri(
         let value = attribute
             .decode_and_unescape_value(reader.decoder())
             .map_err(|error| BpmnEngineError::InvalidDmnXml {
-                source_id: source.source_id.clone(),
+                source_id: (source.source_id.clone()).into(),
                 message: error.to_string(),
             })?;
         let value = value.as_ref();

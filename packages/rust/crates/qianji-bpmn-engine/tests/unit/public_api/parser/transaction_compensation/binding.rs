@@ -67,8 +67,8 @@ fn parser_transaction_compensation_requires_handler_marker() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id: TRANSACTION_PROCESS_ID.to_string(),
-            node_id: "tx_refund".to_string(),
+            process_id: (TRANSACTION_PROCESS_ID.to_string()).into(),
+            node_id: ("tx_refund".to_string()).into(),
             detail: "missing_compensation_handler_marker",
         }
     );

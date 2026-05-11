@@ -11,6 +11,23 @@ pub const WENDAO_REPO_INDEX_REQUEST_ID_HEADER: &str = "x-wendao-repo-index-reque
 /// Stable route for the repo index analysis contract.
 pub const ANALYSIS_REPO_INDEX_ROUTE: &str = "/analysis/repo-index";
 
+/// Normalized repo-index request metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoIndexRequest {
+    /// Optional normalized repository identifier.
+    pub repo_id: Option<String>,
+    /// Normalized refresh flag.
+    pub refresh: bool,
+    /// Normalized request identifier.
+    pub request_id: String,
+}
+
+impl PartialEq<(Option<String>, bool, String)> for RepoIndexRequest {
+    fn eq(&self, other: &(Option<String>, bool, String)) -> bool {
+        self.repo_id == other.0 && self.refresh == other.1 && self.request_id == other.2
+    }
+}
+
 /// Validate the stable repo index request contract.
 ///
 /// # Errors
@@ -21,7 +38,7 @@ pub fn validate_repo_index_request(
     repo_id: Option<RepoIdRef<'_>>,
     refresh: Option<&str>,
     request_id: RequestIdRef<'_>,
-) -> Result<(Option<String>, bool, String), String> {
+) -> Result<RepoIndexRequest, String> {
     let normalized_repo_id = repo_id
         .map(str::trim)
         .filter(|value| !value.is_empty())
@@ -39,9 +56,9 @@ pub fn validate_repo_index_request(
     if normalized_request_id.is_empty() {
         return Err("repo index request id must not be blank".to_string());
     }
-    Ok((
-        normalized_repo_id,
-        normalized_refresh,
-        normalized_request_id.to_string(),
-    ))
+    Ok(RepoIndexRequest {
+        repo_id: normalized_repo_id,
+        refresh: normalized_refresh,
+        request_id: normalized_request_id.to_string(),
+    })
 }

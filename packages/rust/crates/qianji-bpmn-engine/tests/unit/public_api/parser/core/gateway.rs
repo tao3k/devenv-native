@@ -102,8 +102,8 @@ fn parser_event_based_gateway_requires_wait_targets() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
-            process_id: "event_race_invalid".to_string(),
-            node_id: "wait_race".to_string(),
+            process_id: ("event_race_invalid".to_string()).into(),
+            node_id: ("wait_race".to_string()).into(),
             detail: "unsupported_wait_target_kind",
         }
     );
@@ -118,8 +118,8 @@ fn parser_unsupported_complex_gateway_is_rejected() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedElement {
-            source_id: "invalid-unsupported-gateway.bpmn".to_string(),
-            process_id: "gateway_flow".to_string(),
+            source_id: ("invalid-unsupported-gateway.bpmn".to_string()).into(),
+            process_id: ("gateway_flow".to_string()).into(),
             element: "complexGateway".to_string(),
         }
     );
@@ -163,8 +163,8 @@ fn parser_invalid_structured_inclusive_gateway_is_rejected() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: "inclusive_gateway_invalid".to_string(),
-            node_id: "decision".to_string(),
+            process_id: ("inclusive_gateway_invalid".to_string()).into(),
+            node_id: ("decision".to_string()).into(),
             detail: "inclusive_split_branch_ends_before_join",
         }
     );
@@ -252,8 +252,8 @@ fn parser_exclusive_gateway_unsupported_condition_is_rejected() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: "gateway_flow".to_string(),
-            node_id: "decision".to_string(),
+            process_id: ("gateway_flow".to_string()).into(),
+            node_id: ("decision".to_string()).into(),
             detail: "unsupported_condition_expression",
         }
     );

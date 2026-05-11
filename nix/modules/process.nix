@@ -1,6 +1,5 @@
-{
-  __inputs__,
-  ...
+{ __inputs__
+, ...
 }:
 let
   processScript =
@@ -32,7 +31,6 @@ in
     };
 
     carfox.exec = processEntrypoint "carfox";
-    agent.exec = processEntrypoint "agent";
 
     # Wendao Phase 7.6 Integrated Services
     wendao-document-extract = {

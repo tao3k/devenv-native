@@ -31,10 +31,10 @@ pub(crate) fn collect_module_records(
             }
             let qualified_name = qualified_module_name(root_package_name, relative)?;
             Some(ModuleRecord {
-                repo_id: repo_id.to_string(),
-                module_id: module_id(repo_id, qualified_name.as_str()),
+                repo_id: (repo_id.to_string()).into(),
+                module_id: (module_id(repo_id, qualified_name.as_str())).into(),
                 qualified_name,
-                path: relative.to_string(),
+                path: (relative.to_string()).into(),
             })
         })
         .collect::<Vec<_>>();
@@ -93,13 +93,13 @@ pub(crate) fn collect_symbol_records(
                 continue;
             }
             symbols.push(SymbolRecord {
-                repo_id: repo_id.to_string(),
-                symbol_id,
+                repo_id: (repo_id.to_string()).into(),
+                symbol_id: symbol_id.into(),
                 module_id: module_id.clone(),
                 name: declaration.name,
                 qualified_name,
                 kind: declaration.kind,
-                path: entry.relative_path.clone(),
+                path: (entry.relative_path.clone()).into(),
                 line_start: declaration.line_start,
                 line_end: declaration.line_end,
                 signature: Some(declaration.signature),
@@ -167,7 +167,7 @@ pub(crate) fn collect_import_records_for_file(
     };
     let source_module_id = modules.get(module_qualified_name.as_str()).map_or_else(
         || module_id(repo_id, module_qualified_name.as_str()),
-        |module| module.module_id.clone(),
+        |module| module.module_id.to_string(),
     );
     let mut imports = Vec::new();
     let mut seen = BTreeSet::new();
@@ -215,9 +215,9 @@ pub(crate) fn collect_import_records_for_file(
             continue;
         }
         imports.push(ImportRecord {
-            repo_id: repo_id.to_string(),
-            module_id: source_module_id.clone(),
-            path: record_path.to_string(),
+            repo_id: (repo_id.to_string()).into(),
+            module_id: (source_module_id.clone()).into(),
+            path: (record_path.to_string()).into(),
             import_name,
             target_package,
             source_module,
@@ -275,10 +275,10 @@ pub(crate) fn collect_example_records(
             .unwrap_or("example")
             .to_string();
         examples.push(ExampleRecord {
-            repo_id: repo_id.to_string(),
-            example_id: format!("repo:{repo_id}:example:{}", entry.relative_path),
+            repo_id: (repo_id.to_string()).into(),
+            example_id: (format!("repo:{repo_id}:example:{}", entry.relative_path)).into(),
             title,
-            path: entry.relative_path.clone(),
+            path: (entry.relative_path.clone()).into(),
             summary: None,
         });
     }

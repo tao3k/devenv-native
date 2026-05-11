@@ -46,8 +46,8 @@ fn parser_duplicate_node_id_is_rejected() {
     assert_eq!(
         error,
         BpmnEngineError::DuplicateNodeId {
-            process_id: "duplicate_nodes".to_string(),
-            node_id: "task".to_string(),
+            process_id: ("duplicate_nodes".to_string()).into(),
+            node_id: ("task".to_string()).into(),
         }
     );
 }
@@ -61,10 +61,10 @@ fn parser_missing_flow_target_is_rejected() {
     assert_eq!(
         error,
         BpmnEngineError::UnknownSequenceFlowEndpoint {
-            process_id: "missing_target".to_string(),
-            flow_id: "flow_1".to_string(),
+            process_id: ("missing_target".to_string()).into(),
+            flow_id: ("flow_1".to_string()).into(),
             endpoint: "target",
-            node_id: "missing_end".to_string(),
+            node_id: ("missing_end".to_string()).into(),
         }
     );
 }

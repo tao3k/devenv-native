@@ -49,48 +49,59 @@ pub const REPO_SEARCH_SCORE_COLUMN: &str = "score";
 /// Canonical repo-search response `language` column.
 pub const REPO_SEARCH_LANGUAGE_COLUMN: &str = "language";
 
+/// Repo-search request validation input.
+#[derive(Debug, Clone, Copy)]
+pub struct RepoSearchRequest<'a> {
+    /// Query text to validate.
+    pub query_text: &'a str,
+    /// Requested result limit.
+    pub limit: usize,
+    /// Language filters.
+    pub language_filters: &'a [String],
+    /// Path-prefix filters.
+    pub path_prefixes: &'a [String],
+    /// Title filters.
+    pub title_filters: &'a [String],
+    /// Tag filters.
+    pub tag_filters: &'a [String],
+    /// Filename filters.
+    pub filename_filters: &'a [String],
+}
+
 /// Validate the stable repo-search request contract.
 ///
 /// # Errors
 ///
 /// Returns an error when the repo-search query text is blank or the requested
 /// limit is zero.
-pub fn validate_repo_search_request(
-    query_text: &str,
-    limit: usize,
-    language_filters: &[String],
-    path_prefixes: &[String],
-    title_filters: &[String],
-    tag_filters: &[String],
-    filename_filters: &[String],
-) -> Result<(), String> {
-    if query_text.trim().is_empty() {
+pub fn validate_repo_search_request(request: RepoSearchRequest<'_>) -> Result<(), String> {
+    if request.query_text.trim().is_empty() {
         return Err("repo search query text must not be blank".to_string());
     }
-    if limit == 0 {
+    if request.limit == 0 {
         return Err("repo search limit must be greater than zero".to_string());
     }
-    for language_filter in language_filters {
+    for language_filter in request.language_filters {
         if language_filter.trim().is_empty() {
             return Err("repo search language filters must not contain blank values".to_string());
         }
     }
-    for path_prefix in path_prefixes {
+    for path_prefix in request.path_prefixes {
         if path_prefix.trim().is_empty() {
             return Err("repo search path prefixes must not contain blank values".to_string());
         }
     }
-    for title_filter in title_filters {
+    for title_filter in request.title_filters {
         if title_filter.trim().is_empty() {
             return Err("repo search title filters must not contain blank values".to_string());
         }
     }
-    for tag_filter in tag_filters {
+    for tag_filter in request.tag_filters {
         if tag_filter.trim().is_empty() {
             return Err("repo search tag filters must not contain blank values".to_string());
         }
     }
-    for filename_filter in filename_filters {
+    for filename_filter in request.filename_filters {
         if filename_filter.trim().is_empty() {
             return Err("repo search filename filters must not contain blank values".to_string());
         }

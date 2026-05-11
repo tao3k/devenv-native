@@ -37,7 +37,7 @@ fn host_snapshot_combines_document_memory_and_graph_refs() -> Result<(), Snapsho
 
     assert_eq!(
         snapshot.route_refs().len(),
-        1 + MemoryJuliaComputeProfile::ALL.len() + 4
+        1 + MemoryJuliaComputeProfile::ALL.len() + 6
     );
     assert_eq!(
         snapshot
@@ -51,7 +51,7 @@ fn host_snapshot_combines_document_memory_and_graph_refs() -> Result<(), Snapsho
             .route_refs_for_owner(ContractOwner::Julia)
             .filter(|reference| reference.lane == PolyglotLane::JuliaCompute)
             .count(),
-        MemoryJuliaComputeProfile::ALL.len() + 4
+        MemoryJuliaComputeProfile::ALL.len() + 6
     );
     assert!(snapshot.route_refs().iter().any(
         |reference| reference.profile.as_deref() == Some(WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID)

@@ -110,7 +110,7 @@ fn repo_publication_id_changes_when_source_revision_changes() {
 fn repo_publication_active_epoch_falls_back_for_legacy_payloads() {
     let legacy = SearchRepoPublicationRecord {
         corpus: SearchCorpusKind::RepoEntity,
-        repo_id: "alpha/repo".to_string(),
+        repo_id: "alpha/repo".to_string().into(),
         active_epoch: None,
         publication_id: "legacy-publication".to_string(),
         table_name: "repo_entity_repo_alpha".to_string(),

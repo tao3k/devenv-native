@@ -44,6 +44,63 @@ pub enum SchemaStrategyPreference {
     Right,
 }
 
+/// Encoded Arrow payload size in bytes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct EncodedByteSize(u64);
+
+impl EncodedByteSize {
+    /// Creates encoded byte-size evidence.
+    #[must_use]
+    pub const fn new(bytes: u64) -> Self {
+        Self(bytes)
+    }
+
+    /// Returns the byte count.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
+/// Cache pressure evidence in bytes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct CachePressureBytes(u64);
+
+impl CachePressureBytes {
+    /// Creates cache pressure evidence.
+    #[must_use]
+    pub const fn new(bytes: u64) -> Self {
+        Self(bytes)
+    }
+
+    /// Returns the byte count.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
+/// Memory pressure evidence in bytes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct MemoryPressureBytes(u64);
+
+impl MemoryPressureBytes {
+    /// Creates memory pressure evidence.
+    #[must_use]
+    pub const fn new(bytes: u64) -> Self {
+        Self(bytes)
+    }
+
+    /// Returns the byte count.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
 /// Inert benchmark evidence supplied for one schema strategy candidate.
 ///
 /// The evidence records supplied observations only. It does not benchmark live
@@ -57,15 +114,15 @@ pub struct SchemaBenchmarkEvidence {
     /// Owner-supplied row count.
     pub row_count: u64,
     /// Owner-supplied encoded byte size.
-    pub encoded_bytes: u64,
+    pub encoded_bytes: EncodedByteSize,
     /// Owner-supplied null cell count.
     pub null_cells: u64,
     /// Owner-supplied total comparable cell count.
     pub total_cells: u64,
     /// Owner-supplied cache pressure in bytes.
-    pub cache_pressure_bytes: u64,
+    pub cache_pressure_bytes: CachePressureBytes,
     /// Owner-supplied memory pressure in bytes.
-    pub memory_pressure_bytes: u64,
+    pub memory_pressure_bytes: MemoryPressureBytes,
     /// Owner-supplied schema evolution cost units.
     pub schema_evolution_cost_units: u64,
     /// Owner-supplied lossy projection count.
@@ -80,11 +137,11 @@ impl SchemaBenchmarkEvidence {
             candidate,
             validation_cost_units: 0,
             row_count: 0,
-            encoded_bytes: 0,
+            encoded_bytes: EncodedByteSize::new(0),
             null_cells: 0,
             total_cells: 0,
-            cache_pressure_bytes: 0,
-            memory_pressure_bytes: 0,
+            cache_pressure_bytes: CachePressureBytes::new(0),
+            memory_pressure_bytes: MemoryPressureBytes::new(0),
             schema_evolution_cost_units: 0,
             lossy_projection_count: 0,
         }
@@ -131,7 +188,7 @@ impl SchemaBenchmarkEvidence {
     /// Returns this evidence with encoded byte size.
     #[must_use]
     pub const fn with_encoded_bytes(mut self, encoded_bytes: u64) -> Self {
-        self.encoded_bytes = encoded_bytes;
+        self.encoded_bytes = EncodedByteSize::new(encoded_bytes);
         self
     }
 
@@ -150,8 +207,8 @@ impl SchemaBenchmarkEvidence {
         cache_pressure_bytes: u64,
         memory_pressure_bytes: u64,
     ) -> Self {
-        self.cache_pressure_bytes = cache_pressure_bytes;
-        self.memory_pressure_bytes = memory_pressure_bytes;
+        self.cache_pressure_bytes = CachePressureBytes::new(cache_pressure_bytes);
+        self.memory_pressure_bytes = MemoryPressureBytes::new(memory_pressure_bytes);
         self
     }
 
@@ -185,9 +242,9 @@ impl SchemaBenchmarkEvidence {
     #[must_use]
     pub const fn advisory_cost_score(self) -> u64 {
         self.validation_cost_units
-            .saturating_add(kib(self.encoded_bytes))
-            .saturating_add(kib(self.cache_pressure_bytes))
-            .saturating_add(kib(self.memory_pressure_bytes))
+            .saturating_add(kib(self.encoded_bytes.get()))
+            .saturating_add(kib(self.cache_pressure_bytes.get()))
+            .saturating_add(kib(self.memory_pressure_bytes.get()))
             .saturating_add(self.null_density_basis_points())
             .saturating_add(self.schema_evolution_cost_units)
             .saturating_add(self.lossy_projection_count.saturating_mul(10_000))

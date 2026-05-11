@@ -50,8 +50,8 @@ pub(super) fn resolve_decision_service_output_decisions<'a>(
 ) -> Result<Vec<&'a DmnDecisionDefinition>> {
     if decision_service.output_decisions.is_empty() {
         return Err(BpmnEngineError::UnsupportedDmnDecisionServiceOutputCount {
-            source_id: decision_service.source_id.to_string(),
-            decision_service_id: decision_service_id_for_error(decision_service),
+            source_id: (decision_service.source_id.to_string()).into(),
+            decision_service_id: (decision_service_id_for_error(decision_service)).into(),
             count: decision_service.output_decisions.len(),
         });
     }
@@ -65,8 +65,8 @@ pub(super) fn resolve_decision_service_output_decisions<'a>(
                 DmnDecisionRef::new(target_id).with_source_id(decision_service.source_id.as_ref());
             package.find_dmn_decision(&decision_ref)?.ok_or_else(|| {
                 BpmnEngineError::MissingDmnDecisionServiceOutputTarget {
-                    source_id: decision_service.source_id.to_string(),
-                    decision_service_id: decision_service_id_for_error(decision_service),
+                    source_id: (decision_service.source_id.to_string()).into(),
+                    decision_service_id: (decision_service_id_for_error(decision_service)).into(),
                     href: output_reference
                         .href
                         .as_deref()
@@ -131,8 +131,8 @@ fn decision_service_output_href(
         .map(ToString::to_string)
         .ok_or_else(
             || BpmnEngineError::UnsupportedDmnDecisionServiceOutputHref {
-                source_id: decision_service.source_id.to_string(),
-                decision_service_id: decision_service_id_for_error(decision_service),
+                source_id: (decision_service.source_id.to_string()).into(),
+                decision_service_id: (decision_service_id_for_error(decision_service)).into(),
                 href: href.to_string(),
             },
         )
@@ -148,9 +148,9 @@ fn resolve_decision_service_decision_reference<'a>(
         DmnDecisionRef::new(&target_id).with_source_id(decision_service.source_id.as_ref());
     package.find_dmn_decision(&decision_ref)?.ok_or_else(|| {
         BpmnEngineError::MissingDmnDecisionServiceReferenceTarget {
-            source_id: decision_service.source_id.to_string(),
-            decision_service_id: decision_service_id_for_error(decision_service),
-            reference_kind: reference.reference_kind.to_string(),
+            source_id: (decision_service.source_id.to_string()).into(),
+            decision_service_id: (decision_service_id_for_error(decision_service)).into(),
+            reference_kind: (reference.reference_kind.to_string()).into(),
             href: reference.href.as_deref().unwrap_or("<missing>").to_string(),
         }
     })
@@ -166,9 +166,9 @@ fn resolve_decision_service_input_data_reference<'a>(
         .find_dmn_input_data(decision_service.source_id.as_ref(), &target_id)
         .ok_or_else(
             || BpmnEngineError::MissingDmnDecisionServiceReferenceTarget {
-                source_id: decision_service.source_id.to_string(),
-                decision_service_id: decision_service_id_for_error(decision_service),
-                reference_kind: reference.reference_kind.to_string(),
+                source_id: (decision_service.source_id.to_string()).into(),
+                decision_service_id: (decision_service_id_for_error(decision_service)).into(),
+                reference_kind: (reference.reference_kind.to_string()).into(),
                 href: reference.href.as_deref().unwrap_or("<missing>").to_string(),
             },
         )
@@ -184,9 +184,9 @@ fn decision_service_reference_target_id(
         .map(ToString::to_string)
         .ok_or_else(
             || BpmnEngineError::UnsupportedDmnDecisionServiceReferenceHref {
-                source_id: decision_service.source_id.to_string(),
-                decision_service_id: decision_service_id_for_error(decision_service),
-                reference_kind: reference.reference_kind.to_string(),
+                source_id: (decision_service.source_id.to_string()).into(),
+                decision_service_id: (decision_service_id_for_error(decision_service)).into(),
+                reference_kind: (reference.reference_kind.to_string()).into(),
                 href: href.to_string(),
             },
         )

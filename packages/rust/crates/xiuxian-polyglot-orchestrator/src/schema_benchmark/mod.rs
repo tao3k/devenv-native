@@ -3,6 +3,7 @@
 mod model;
 
 pub use model::{
-    SchemaBenchmarkCase, SchemaBenchmarkEvidence, SchemaBenchmarkReport,
-    SchemaBenchmarkReportError, SchemaStrategyCandidate, SchemaStrategyPreference,
+    CachePressureBytes, EncodedByteSize, MemoryPressureBytes, SchemaBenchmarkCase,
+    SchemaBenchmarkEvidence, SchemaBenchmarkReport, SchemaBenchmarkReportError,
+    SchemaStrategyCandidate, SchemaStrategyPreference,
 };

@@ -45,7 +45,7 @@ fn operation_binding_issue(
     span: Option<std::ops::Range<usize>>,
 ) -> LintIssue {
     let source_id = &source.source_id;
-    let issue = LintIssue::new(
+    let issue = LintIssue::from_parts(
         "bpmn.unsupported_operation_binding",
         "Task operation binding is deferred",
         format!(

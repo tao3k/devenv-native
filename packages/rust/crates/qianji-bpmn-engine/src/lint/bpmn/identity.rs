@@ -8,7 +8,7 @@ pub(super) fn issue_from_bpmn_identity_error(error: &BpmnEngineError) -> Option<
             process_id,
             node_id,
             element,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "bpmn.missing_required_node_element",
             "Required BPMN node structure is missing",
             format!("Process '{process_id}' node '{node_id}' is missing required element '{element}'."),
@@ -29,7 +29,7 @@ pub(super) fn issue_from_bpmn_identity_error(error: &BpmnEngineError) -> Option<
         BpmnEngineError::MissingRequiredProcessElement {
             process_id,
             element,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "bpmn.missing_required_process_element",
             "Required BPMN process element is missing",
             format!("Process '{process_id}' is missing required element '{element}'."),

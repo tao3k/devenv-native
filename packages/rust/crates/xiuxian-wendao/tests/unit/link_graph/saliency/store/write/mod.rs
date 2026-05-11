@@ -11,12 +11,12 @@ fn unix_seconds_to_f64_converts_seconds() {
 #[test]
 fn outbound_neighbors_are_weighted_more_than_inbound_neighbors() {
     let outbound = CoactivationNeighbor {
-        node_id: "note-a".to_string(),
+        node_id: "note-a".to_string().into(),
         direction: CoactivationNeighborDirection::Outbound,
         rank: 0,
     };
     let inbound = CoactivationNeighbor {
-        node_id: "note-b".to_string(),
+        node_id: "note-b".to_string().into(),
         direction: CoactivationNeighborDirection::Inbound,
         rank: 0,
     };
@@ -28,12 +28,12 @@ fn outbound_neighbors_are_weighted_more_than_inbound_neighbors() {
 #[test]
 fn higher_rank_neighbors_receive_lower_weight() {
     let rank_zero = CoactivationNeighbor {
-        node_id: "note-a".to_string(),
+        node_id: "note-a".to_string().into(),
         direction: CoactivationNeighborDirection::Outbound,
         rank: 0,
     };
     let rank_two = CoactivationNeighbor {
-        node_id: "note-b".to_string(),
+        node_id: "note-b".to_string().into(),
         direction: CoactivationNeighborDirection::Outbound,
         rank: 2,
     };

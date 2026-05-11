@@ -1,3 +1,5 @@
+//! Capability version contracts used for compatibility checks.
+
 use serde::{Deserialize, Serialize};
 
 /// Stable contract-version marker used by generic plugin-runtime records.

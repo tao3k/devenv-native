@@ -48,11 +48,13 @@ pub fn memory_julia_compute_snapshot(
         memory_julia_compute_profile_refs(runtime),
         Vec::new(),
         vec![LaneEvidence::new(
-            PolyglotLane::JuliaCompute,
-            HealthState::Unknown,
-            memory_julia_compute_config_readiness(runtime),
-            PressureLevel::Unknown,
-            FallbackEvidence::new(false),
+            xiuxian_polyglot_orchestrator::LaneEvidenceInput {
+                lane: PolyglotLane::JuliaCompute,
+                health: HealthState::Unknown,
+                readiness: memory_julia_compute_config_readiness(runtime),
+                pressure: PressureLevel::Unknown,
+                fallback: FallbackEvidence::new(false),
+            },
         )],
     )
 }

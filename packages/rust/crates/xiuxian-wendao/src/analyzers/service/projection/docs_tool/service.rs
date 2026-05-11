@@ -247,8 +247,8 @@ impl DocsToolService {
             .iter()
             .find(|document| document.page_id == page_id)
             .ok_or_else(|| RepoIntelligenceError::UnknownProjectedPage {
-                repo_id: self.repo_id.clone(),
-                page_id: page_id.to_string(),
+                repo_id: self.repo_id.clone().into(),
+                page_id: page_id.to_string().into(),
             })?;
         build_document_segment(document, line_start, line_end)
     }

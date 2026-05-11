@@ -20,7 +20,7 @@ fn forward_notification_serialization() {
         source_path: "src/lib.rs".to_string(),
         timestamp: "2024-01-01T00:00:00Z".to_string(),
         affected_docs: vec![AffectedDocInfo {
-            doc_id: "docs/api".to_string(),
+            doc_id: "docs/api".to_string().into(),
             pattern: "fn process_data($$$)".to_string(),
             language: "rust".to_string(),
             line_number: Some(42),

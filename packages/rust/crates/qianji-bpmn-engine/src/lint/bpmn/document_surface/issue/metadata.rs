@@ -10,7 +10,7 @@ pub(super) fn resource_role_metadata_issue(source: &BpmnSourceFile) -> Option<Li
     }
     let source_id = &source.source_id;
     Some(
-        LintIssue::new(
+        LintIssue::from_parts(
             "bpmn.unsupported_resource_role_metadata",
             "Resource-role assignment semantics are deferred",
             format!(
@@ -57,7 +57,7 @@ pub(super) fn flow_element_metadata_issue(source: &BpmnSourceFile) -> Option<Lin
     }
     let source_id = &source.source_id;
     Some(
-        LintIssue::new(
+        LintIssue::from_parts(
             "bpmn.unsupported_flow_element_metadata",
             "Flow-element audit and classification semantics are deferred",
             format!(

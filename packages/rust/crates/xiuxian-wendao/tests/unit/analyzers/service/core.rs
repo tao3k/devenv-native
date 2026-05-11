@@ -12,15 +12,15 @@ use xiuxian_git_repo::LocalCheckoutMetadata;
 #[test]
 fn test_refine_contract_serialization() {
     let req = RefineEntityDocRequest {
-        repo_id: "test".to_string(),
+        repo_id: "test".to_string().into(),
         entity_id: "sym1".to_string(),
         user_hints: Some("more details".to_string()),
     };
     let res = RefineEntityDocResponse {
-        repo_id: "test".to_string(),
+        repo_id: "test".to_string().into(),
         entity_id: "sym1".to_string(),
         refined_content: "Refined".to_string(),
-        verification_state: "verified".to_string(),
+        verification_state: "verified".to_string().into(),
     };
     assert_eq!(req.repo_id, "test");
     assert_eq!(res.verification_state, "verified");
@@ -29,9 +29,9 @@ fn test_refine_contract_serialization() {
 #[test]
 fn merge_repository_record_prefers_overlay_metadata() {
     let base = RepositoryRecord {
-        repo_id: "demo".to_string(),
+        repo_id: "demo".to_string().into(),
         name: "demo".to_string(),
-        path: "/tmp/demo".to_string(),
+        path: "/tmp/demo".to_string().into(),
         url: Some("https://base.invalid/demo.git".to_string()),
         revision: Some("base-rev".to_string()),
         version: None,
@@ -39,9 +39,9 @@ fn merge_repository_record_prefers_overlay_metadata() {
         dependencies: Vec::new(),
     };
     let overlay = RepositoryRecord {
-        repo_id: "demo".to_string(),
+        repo_id: "demo".to_string().into(),
         name: "DemoPkg".to_string(),
-        path: "/tmp/demo".to_string(),
+        path: "/tmp/demo".to_string().into(),
         url: None,
         revision: None,
         version: Some("0.1.0".to_string()),
@@ -70,9 +70,9 @@ fn hydrate_repository_record_backfills_checkout_metadata() {
         plugins: Vec::new(),
     };
     let mut record = RepositoryRecord {
-        repo_id: String::new(),
+        repo_id: String::new().into(),
         name: String::new(),
-        path: String::new(),
+        path: String::new().into(),
         url: None,
         revision: None,
         version: None,

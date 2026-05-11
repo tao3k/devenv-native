@@ -3,7 +3,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceInit, BpmnTimerKind, EventPollOutcome,
     InstanceLifecycle, NodeRuntimeStatus, PendingHostWorkResult, UserTaskOutcome, advance_instance,
-    apply_event_poll_outcome, apply_pending_host_work_result, create_instance,
+    apply_event_poll_outcome, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -137,7 +137,7 @@ async fn runtime_call_activity_mixed_error_route_clears_timer_wait() {
     let token_id = instance.pending_host_work[0].token_id;
 
     assert_eq!(
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             token_id,
@@ -219,7 +219,7 @@ async fn runtime_call_activity_mixed_success_clears_all_boundaries() {
     let token_id = instance.pending_host_work[0].token_id;
 
     assert_eq!(
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             token_id,

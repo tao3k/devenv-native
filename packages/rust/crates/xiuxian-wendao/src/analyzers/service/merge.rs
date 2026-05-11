@@ -69,13 +69,13 @@ pub(super) fn hydrate_repository_record(
     checkout_metadata: Option<&LocalCheckoutMetadata>,
 ) {
     if record.repo_id.trim().is_empty() {
-        record.repo_id.clone_from(&repository.id);
+        record.repo_id = repository.id.clone().into();
     }
     if record.name.trim().is_empty() {
         record.name.clone_from(&repository.id);
     }
     if record.path.trim().is_empty() {
-        record.path = repository_root.display().to_string();
+        record.path = repository_root.display().to_string().into();
     }
     if record.url.is_none() {
         record.url = repository

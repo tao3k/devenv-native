@@ -47,7 +47,7 @@ async fn vector_search_routes_through_search_plane_adapter_and_returns_relation(
         &ctx,
         &VectorSearchOp {
             corpus: RetrievalCorpus::RepoContent,
-            repo_id: "alpha/repo".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
             search_term: "alpha".to_string(),
             language_filters: HashSet::new(),
             kind_filters: HashSet::new(),
@@ -97,7 +97,7 @@ async fn graph_neighbors_routes_through_link_graph_adapter_and_returns_relation(
     let relation = execute_graph_neighbors(
         &ctx,
         &GraphNeighborsOp {
-            node_id: "alpha.md".to_string(),
+            node_id: "alpha.md".to_string().into(),
             direction: GraphDirection::Both,
             hops: 1,
             limit: 10,
@@ -143,7 +143,7 @@ async fn column_mask_filters_before_payload_fetch_and_emits_phase_counts() {
         &ctx,
         &VectorSearchOp {
             corpus: RetrievalCorpus::RepoContent,
-            repo_id: "alpha/repo".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
             search_term: "fn".to_string(),
             language_filters: HashSet::new(),
             kind_filters: HashSet::new(),
@@ -189,13 +189,13 @@ async fn payload_fetch_projects_requested_columns() {
     let batch =
         xiuxian_db_store::retrieval_rows_to_record_batch(&[xiuxian_db_store::RetrievalRow {
             id: "alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
             repo: Some("alpha/repo".to_string()),
             title: Some("Alpha".to_string()),
             score: Some(0.9),
             source: "test".to_string(),
             snippet: Some("fn alpha()".to_string()),
-            doc_type: Some("file".to_string()),
+            doc_type: Some("file".into()),
             match_reason: Some("repo_content_search".to_string()),
             best_section: Some("3: fn alpha()".to_string()),
             language: Some("rust".to_string()),

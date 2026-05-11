@@ -34,7 +34,7 @@ impl DmnBusinessKnowledgeModelDefinition {
         name: Option<impl AsRef<str>>,
     ) -> Self {
         Self {
-            source_id: Arc::<str>::from(source_id.as_ref()),
+            source_id: (Arc::<str>::from(source_id.as_ref())).into(),
             business_knowledge_model_id: business_knowledge_model_id
                 .map(|value| Arc::<str>::from(value.as_ref())),
             name: name.map(|value| Arc::<str>::from(value.as_ref())),

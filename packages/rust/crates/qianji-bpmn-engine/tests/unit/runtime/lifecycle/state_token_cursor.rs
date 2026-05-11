@@ -105,9 +105,9 @@ fn token(token_id: u64) -> TokenRecord {
 fn pending_host_work(token_id: u64) -> PendingHostWork {
     PendingHostWork {
         token_id,
-        process_id: Some("process_token_cursor".to_string()),
+        process_id: (Some("process_token_cursor".into())).into(),
         node_index: 0,
-        activity_id: Some("Task_0".to_string()),
+        activity_id: (Some("Task_0".into())).into(),
         kind: PendingHostWorkKind::Service,
         decision: None,
         lane: None,

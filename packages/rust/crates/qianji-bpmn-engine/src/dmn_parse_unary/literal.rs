@@ -39,7 +39,7 @@ pub(crate) fn parse_literal(source_id: &str, raw: &str) -> Result<serde_json::Va
         return Ok(serde_json::Value::String(trimmed.to_string()));
     }
     Err(BpmnEngineError::UnsupportedDmnLiteral {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         literal: trimmed.to_string(),
     })
 }
@@ -54,19 +54,19 @@ pub(super) fn parse_date_literal(source_id: &str, raw: &str) -> Result<Option<St
         .and_then(|value| value.strip_suffix(')'))
     else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
     let Some(value) = parse_exact_quoted_string(inner.trim()) else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
     let date = NaiveDate::parse_from_str(&value, "%Y-%m-%d").map_err(|_| {
         BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         }
     })?;
@@ -83,19 +83,19 @@ pub(super) fn parse_time_literal(source_id: &str, raw: &str) -> Result<Option<St
         .and_then(|value| value.strip_suffix(')'))
     else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
     let Some(value) = parse_exact_quoted_string(inner.trim()) else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
     let time = NaiveTime::parse_from_str(&value, "%H:%M:%S").map_err(|_| {
         BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         }
     })?;
@@ -112,13 +112,13 @@ pub(super) fn parse_date_time_literal(source_id: &str, raw: &str) -> Result<Opti
         .and_then(|value| value.strip_suffix(')'))
     else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
     let Some(value) = parse_exact_quoted_string(inner.trim()) else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
@@ -136,13 +136,13 @@ pub(super) fn parse_duration_literal(source_id: &str, raw: &str) -> Result<Optio
         .and_then(|value| value.strip_suffix(')'))
     else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
     let Some(value) = parse_exact_quoted_string(inner.trim()) else {
         return Err(BpmnEngineError::UnsupportedDmnLiteral {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             literal: trimmed.to_string(),
         });
     };
@@ -158,7 +158,7 @@ fn validate_supported_date_time_literal(source_id: &str, raw: &str, value: &str)
         return Ok(());
     }
     Err(BpmnEngineError::UnsupportedDmnLiteral {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         literal: raw.to_string(),
     })
 }
@@ -175,7 +175,7 @@ fn validate_supported_duration_literal(
         return Ok(duration.family());
     }
     Err(BpmnEngineError::UnsupportedDmnLiteral {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         literal: raw.to_string(),
     })
 }

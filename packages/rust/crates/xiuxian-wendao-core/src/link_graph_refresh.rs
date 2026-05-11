@@ -1,3 +1,5 @@
+//! Refresh request and result contracts for link-graph materialization.
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -98,7 +98,7 @@ pub(super) fn sample_hit() -> AstSearchHit {
     AstSearchHit {
         name: "AlphaSymbol".to_string(),
         signature: "fn AlphaSymbol()".to_string(),
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         language: "rust".to_string(),
         crate_name: "kernel".to_string(),
         project_name: None,
@@ -106,7 +106,7 @@ pub(super) fn sample_hit() -> AstSearchHit {
         node_kind: None,
         owner_title: None,
         navigation_target: StudioNavigationTarget {
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
             category: "symbol".to_string(),
             project_name: None,
             root_label: None,
@@ -123,31 +123,31 @@ pub(super) fn sample_hit() -> AstSearchHit {
 pub(super) fn sample_repo_analysis() -> RepositoryAnalysisOutput {
     RepositoryAnalysisOutput {
         modules: vec![ModuleRecord {
-            repo_id: "alpha/repo".to_string(),
-            module_id: "module:BaseModelica".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
+            module_id: "module:BaseModelica".to_string().into(),
             qualified_name: "BaseModelica".to_string(),
-            path: "src/BaseModelica.jl".to_string(),
+            path: "src/BaseModelica.jl".to_string().into(),
         }],
         symbols: vec![SymbolRecord {
-            repo_id: "alpha/repo".to_string(),
-            symbol_id: "symbol:reexport".to_string(),
-            module_id: Some("module:BaseModelica".to_string()),
+            repo_id: "alpha/repo".to_string().into(),
+            symbol_id: "symbol:reexport".to_string().into(),
+            module_id: Some("module:BaseModelica".to_string().into()),
             name: "reexport".to_string(),
             qualified_name: "BaseModelica.reexport".to_string(),
             kind: RepoSymbolKind::Function,
-            path: "src/BaseModelica.jl".to_string(),
+            path: "src/BaseModelica.jl".to_string().into(),
             line_start: Some(7),
             line_end: Some(9),
             signature: Some("reexport()".to_string()),
-            audit_status: Some("verified".to_string()),
-            verification_state: Some("verified".to_string()),
+            audit_status: Some("verified".to_string().into()),
+            verification_state: Some("verified".to_string().into()),
             attributes: std::collections::BTreeMap::new(),
         }],
         examples: vec![ExampleRecord {
-            repo_id: "alpha/repo".to_string(),
-            example_id: "example:reexport".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
+            example_id: "example:reexport".to_string().into(),
             title: "Reexport example".to_string(),
-            path: "examples/reexport.jl".to_string(),
+            path: "examples/reexport.jl".to_string().into(),
             summary: Some("Shows how to reexport ModelingToolkit".to_string()),
         }],
         ..RepositoryAnalysisOutput::default()
@@ -157,7 +157,7 @@ pub(super) fn sample_repo_analysis() -> RepositoryAnalysisOutput {
 pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
     vec![
         RepoCodeDocument {
-            path: "src/BaseModelica.jl".to_string(),
+            path: "src/BaseModelica.jl".to_string().into(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from(
                 "module BaseModelica\nexport reexport\nreexport() = nothing\nend\n",
@@ -166,7 +166,7 @@ pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
             modified_unix_ms: 10,
         },
         RepoCodeDocument {
-            path: "examples/reexport.jl".to_string(),
+            path: "examples/reexport.jl".to_string().into(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from("using BaseModelica\nreexport()\n"),
             size_bytes: 29,
@@ -177,7 +177,7 @@ pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
 
 pub(super) fn repo_status_entry(repo_id: &str, phase: RepoIndexPhase) -> RepoIndexEntryStatus {
     RepoIndexEntryStatus {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         phase,
         queue_position: None,
         last_error: None,

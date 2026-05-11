@@ -117,7 +117,7 @@ pub(in crate::checkpoint) async fn save_checkpoint_impl(
 
     if result >= 0 {
         return Err(BpmnEngineError::StaleCheckpointWrite {
-            instance_id: checkpoint.state.instance_id.to_string(),
+            instance_id: (checkpoint.state.instance_id.to_string()).into(),
             attempted_sequence: checkpoint.sequence,
             stored_sequence: result.cast_unsigned(),
         });
@@ -178,7 +178,7 @@ pub(in crate::checkpoint) async fn delete_checkpoint_as_owner_impl(
     match deleted {
         1 => Ok(()),
         0 => Err(BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
         }),
         _ => Err(BpmnEngineError::CheckpointStorage {
             operation: "delete_checkpoint_as_owner_eval",
@@ -226,10 +226,10 @@ pub(in crate::checkpoint) async fn save_checkpoint_as_owner_impl(
     match result {
         -1 => Ok(()),
         -2 => Err(BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
         }),
         stored_sequence if stored_sequence >= 0 => Err(BpmnEngineError::StaleCheckpointWrite {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
             attempted_sequence: checkpoint.sequence,
             stored_sequence: stored_sequence.cast_unsigned(),
         }),

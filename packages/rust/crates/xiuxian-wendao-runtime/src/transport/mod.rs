@@ -26,9 +26,9 @@ pub use contract::{
 };
 #[cfg(feature = "transport")]
 pub use host_settings::{
-    EffectiveRerankFlightHostSettings, ParsedRerankFlightHostOverrides,
-    rerank_score_weights_from_env, resolve_effective_rerank_flight_host_settings,
-    split_rerank_flight_host_overrides,
+    EffectiveRerankFlightHostSettings, EffectiveRerankFlightHostSettingsInput,
+    ParsedRerankFlightHostOverrides, rerank_score_weights_from_env,
+    resolve_effective_rerank_flight_host_settings, split_rerank_flight_host_overrides,
 };
 #[cfg(feature = "transport")]
 pub use negotiation::{
@@ -38,7 +38,8 @@ pub use negotiation::{
 #[cfg(feature = "transport")]
 pub use plugin_arrow_exchange::{
     NegotiatedPluginArrowScoreRows, PluginArrowCandidateProjection,
-    PluginArrowRequestBatchBuildError, PluginArrowRequestRow, PluginArrowScoreRoundtripError,
+    PluginArrowEmbeddingsRequestBatchInput, PluginArrowRequestBatchBuildError,
+    PluginArrowRequestMetadataInput, PluginArrowRequestRow, PluginArrowScoreRoundtripError,
     PluginArrowScoreRow, PluginArrowScoredCandidate, attach_plugin_arrow_request_metadata,
     build_plugin_arrow_request_batch, build_plugin_arrow_request_batch_from_embeddings,
     build_plugin_arrow_request_batch_from_embeddings_with_metadata, decode_plugin_arrow_score_rows,
@@ -47,7 +48,8 @@ pub use plugin_arrow_exchange::{
 };
 #[cfg(all(feature = "transport", feature = "vector-store"))]
 pub use plugin_arrow_exchange::{
-    PluginArrowVectorStoreRequestBuildError, build_plugin_arrow_request_batch_from_vector_store,
+    PluginArrowVectorStoreRequestBatchInput, PluginArrowVectorStoreRequestBuildError,
+    build_plugin_arrow_request_batch_from_vector_store,
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,
     prepare_plugin_arrow_request_rows_from_vector_store,
 };
@@ -62,14 +64,18 @@ pub use query_contract::{
     ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
     ANALYSIS_REPO_SYNC_ROUTE, DOCUMENT_EXTRACT_FAST_TEXT_PROFILE, DOCUMENT_EXTRACT_FULL_PROFILE,
     DocumentExtractFlightRequest, DocumentExtractMode, GRAPH_NEIGHBORS_DEFAULT_HOPS,
-    GRAPH_NEIGHBORS_DEFAULT_LIMIT, GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE,
+    GRAPH_NEIGHBORS_DEFAULT_LIMIT, GRAPH_NEIGHBORS_ROUTE, GraphNeighborsRequest, QUERY_SQL_ROUTE,
     REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT, REPO_SEARCH_BEST_SECTION_COLUMN,
     REPO_SEARCH_DEFAULT_LIMIT, REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_HIERARCHY_COLUMN,
     REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_MATCH_REASON_COLUMN,
     REPO_SEARCH_NAVIGATION_CATEGORY_COLUMN, REPO_SEARCH_NAVIGATION_LINE_COLUMN,
     REPO_SEARCH_NAVIGATION_LINE_END_COLUMN, REPO_SEARCH_NAVIGATION_PATH_COLUMN,
     REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_ROUTE, REPO_SEARCH_SCORE_COLUMN, REPO_SEARCH_TAGS_COLUMN,
-    REPO_SEARCH_TITLE_COLUMN, RERANK_ROUTE, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
+    REPO_SEARCH_TITLE_COLUMN, RERANK_ROUTE, RefineDocRequest, RepoDocCoverageRequest,
+    RepoIndexRequest, RepoProjectedPageIndexTreeRequest, RepoProjectedRetrievalContextInput,
+    RepoProjectedRetrievalContextNodeId, RepoProjectedRetrievalContextPageId,
+    RepoProjectedRetrievalContextRepoId, RepoProjectedRetrievalContextRequest, RepoSearchRequest,
+    RepoSyncMode, RepoSyncRequest, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
     SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE, SEARCH_INTENT_ROUTE,
     SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE, TOPOLOGY_3D_ROUTE,
     VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE, WENDAO_ANALYSIS_LINE_HEADER,

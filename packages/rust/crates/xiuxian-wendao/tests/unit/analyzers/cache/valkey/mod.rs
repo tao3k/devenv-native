@@ -15,7 +15,7 @@ use serde_yaml::Value;
 
 fn sample_cache_key(repo_id: &str) -> RepositoryAnalysisCacheKey {
     RepositoryAnalysisCacheKey {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         checkout_root: format!("/virtual/{repo_id}"),
         analysis_identity: format!("analysis:{repo_id}"),
         checkout_revision: Some("rev-1".to_string()),
@@ -119,7 +119,7 @@ analyzers:
 #[test]
 fn valkey_analysis_key_uses_analysis_identity_even_without_revision() {
     let key = RepositoryAnalysisCacheKey {
-        repo_id: "no-revision".to_string(),
+        repo_id: "no-revision".to_string().into(),
         checkout_root: "/tmp/no-revision".to_string(),
         analysis_identity: "analysis:no-revision".to_string(),
         checkout_revision: None,
@@ -140,10 +140,10 @@ fn payload_roundtrip_preserves_analysis_output() {
     let key = sample_cache_key("payload-roundtrip");
     let analysis = RepositoryAnalysisOutput {
         modules: vec![crate::analyzers::ModuleRecord {
-            repo_id: key.repo_id.clone(),
-            module_id: "module:alpha".to_string(),
+            repo_id: key.repo_id.clone().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     };
@@ -170,10 +170,10 @@ fn cache_roundtrip_uses_test_shadow_when_no_live_client_is_bound() {
     let key = sample_cache_key("shadow-roundtrip");
     let analysis = RepositoryAnalysisOutput {
         modules: vec![crate::analyzers::ModuleRecord {
-            repo_id: key.repo_id.clone(),
-            module_id: "module:alpha".to_string(),
+            repo_id: key.repo_id.clone().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     };

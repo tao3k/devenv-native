@@ -22,7 +22,7 @@ pub(super) fn repo_document(
     modified_unix_ms: u64,
 ) -> RepoCodeDocument {
     RepoCodeDocument {
-        path: path.to_string(),
+        path: path.to_string().into(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from(contents),
         size_bytes,

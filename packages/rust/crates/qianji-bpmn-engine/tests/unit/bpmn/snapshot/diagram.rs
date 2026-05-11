@@ -23,10 +23,10 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
     };
     assert_eq!(font.name.as_deref(), Some("Inter"));
     assert_eq!(font.size.as_deref(), Some("12"));
-    assert_eq!(font.is_bold, Some(true));
-    assert_eq!(font.is_italic, Some(false));
-    assert_eq!(font.is_underline, Some(false));
-    assert_eq!(font.is_strike_through, Some(false));
+    assert_eq!(font.is_bold.map(|flag| flag.get()), Some(true));
+    assert_eq!(font.is_italic.map(|flag| flag.get()), Some(false));
+    assert_eq!(font.is_underline.map(|flag| flag.get()), Some(false));
+    assert_eq!(font.is_strike_through.map(|flag| flag.get()), Some(false));
 
     let Some(plane) = diagram.plane.as_ref() else {
         panic!("diagram should carry a plane");
@@ -39,9 +39,9 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
     let shape = &plane.shapes[0];
     assert_eq!(shape.shape_id.as_deref(), Some("Shape_Start"));
     assert_eq!(shape.bpmn_element.as_deref(), Some("start"));
-    assert_eq!(shape.is_horizontal, Some(true));
-    assert_eq!(shape.is_expanded, Some(false));
-    assert_eq!(shape.is_marker_visible, Some(true));
+    assert_eq!(shape.is_horizontal.map(|flag| flag.get()), Some(true));
+    assert_eq!(shape.is_expanded.map(|flag| flag.get()), Some(false));
+    assert_eq!(shape.is_marker_visible.map(|flag| flag.get()), Some(true));
     assert_eq!(shape.is_message_visible, None);
     assert_bounds(
         shape.bounds.as_ref(),

@@ -15,8 +15,8 @@ pub(super) fn symbol_ids_by_module(
             continue;
         };
         push_unique(
-            symbol_ids.entry(module_id.clone()).or_default(),
-            symbol.symbol_id.clone(),
+            symbol_ids.entry(module_id.to_string()).or_default(),
+            symbol.symbol_id.to_string(),
         );
     }
     symbol_ids
@@ -79,8 +79,8 @@ pub(super) fn source_associations_for_target_ids(
 }
 
 pub(super) fn attach_doc_source(associations: &mut SourceAssociations, doc: &DocRecord) {
-    push_unique(&mut associations.doc_ids, doc.doc_id.clone());
-    push_unique(&mut associations.doc_paths, doc.path.clone());
+    push_unique(&mut associations.doc_ids, doc.doc_id.to_string());
+    push_unique(&mut associations.doc_paths, doc.path.to_string());
     if let Some(format) = &doc.format {
         push_unique(&mut associations.format_hints, format.clone());
     }
@@ -90,6 +90,9 @@ pub(super) fn attach_example_source(
     associations: &mut SourceAssociations,
     example: &ExampleRecord,
 ) {
-    push_unique(&mut associations.example_ids, example.example_id.clone());
-    push_unique(&mut associations.example_paths, example.path.clone());
+    push_unique(
+        &mut associations.example_ids,
+        example.example_id.to_string(),
+    );
+    push_unique(&mut associations.example_paths, example.path.to_string());
 }

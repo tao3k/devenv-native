@@ -59,8 +59,8 @@ pub(in crate::parser::import) fn last_process_node_mut<'a>(
         .nodes
         .last_mut()
         .ok_or(BpmnEngineError::UnsupportedElement {
-            source_id: source.source_id.clone(),
-            process_id: process.process_id.clone(),
+            source_id: (source.source_id.clone()).into(),
+            process_id: (process.process_id.clone()).into(),
             element: "event_definition_without_node".to_string(),
         })
 }

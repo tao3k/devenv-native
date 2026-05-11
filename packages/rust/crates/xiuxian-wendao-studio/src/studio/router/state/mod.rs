@@ -3,7 +3,7 @@
 mod cold_start;
 mod graph;
 mod lifecycle;
-mod project_config;
+pub(crate) mod project_config;
 mod search;
 mod types;
 mod ui;

@@ -13,13 +13,13 @@ pub fn compute_repository_saliency(analysis: &RepositoryAnalysisOutput) -> HashM
     // 1. Collect all potential entities from records
     let mut entity_ids = Vec::new();
     for module in &analysis.modules {
-        entity_ids.push(module.module_id.clone());
+        entity_ids.push(module.module_id.to_string());
     }
     for symbol in &analysis.symbols {
-        entity_ids.push(symbol.symbol_id.clone());
+        entity_ids.push(symbol.symbol_id.to_string());
     }
     for example in &analysis.examples {
-        entity_ids.push(example.example_id.clone());
+        entity_ids.push(example.example_id.to_string());
     }
 
     for id in entity_ids {
@@ -31,8 +31,8 @@ pub fn compute_repository_saliency(analysis: &RepositoryAnalysisOutput) -> HashM
     // 2. Add edges from relations
     for relation in &analysis.relations {
         if let (Some(&source), Some(&target)) = (
-            nodes.get(&relation.source_id),
-            nodes.get(&relation.target_id),
+            nodes.get(relation.source_id.as_str()),
+            nodes.get(relation.target_id.as_str()),
         ) {
             // Weight can be adjusted based on RelationKind
             graph.add_edge(source, target, ());

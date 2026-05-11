@@ -3,6 +3,97 @@
 /// Result alias for BPMN engine operations.
 pub type Result<T> = std::result::Result<T, BpmnEngineError>;
 
+macro_rules! error_string_type {
+    ($(#[$meta:meta])* $name:ident) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the serialized diagnostic value.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+
+        impl std::ops::Deref for $name {
+            type Target = str;
+
+            fn deref(&self) -> &Self::Target {
+                self.as_str()
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+
+        impl PartialEq<&str> for $name {
+            fn eq(&self, other: &&str) -> bool {
+                self.as_str() == *other
+            }
+        }
+    };
+}
+
+error_string_type!(
+    /// Identifier value carried by a public BPMN engine diagnostic.
+    BpmnErrorId
+);
+error_string_type!(
+    /// Kind discriminator carried by a public BPMN engine diagnostic.
+    BpmnErrorKind
+);
+
+/// Runtime token identifier carried by a public BPMN engine diagnostic.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(transparent)]
+pub struct BpmnErrorTokenId(u64);
+
+impl BpmnErrorTokenId {
+    /// Returns the raw runtime token identifier.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
+impl std::fmt::Display for BpmnErrorTokenId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", self.get())
+    }
+}
+
+impl From<u64> for BpmnErrorTokenId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl PartialEq<u64> for BpmnErrorTokenId {
+    fn eq(&self, other: &u64) -> bool {
+        self.get() == *other
+    }
+}
+
 /// Detailed payload for a pending host-work identity mismatch.
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 #[error(
@@ -36,7 +127,7 @@ pub enum BpmnEngineError {
     #[error("process '{process_id}' was not found in the BPMN package")]
     MissingProcess {
         /// The requested process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
     },
     /// Returned when BPMN parsing receives an unsupported source bundle shape.
     #[error("unsupported BPMN source bundle: expected exactly one source file, got {count}")]
@@ -48,7 +139,7 @@ pub enum BpmnEngineError {
     #[error("invalid BPMN XML in source '{source_id}': {message}")]
     InvalidXml {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// XML parser diagnostic.
         message: String,
         /// Byte offset reported by the XML reader when available.
@@ -58,7 +149,7 @@ pub enum BpmnEngineError {
     #[error("BPMN source '{source_id}' has no root XML element")]
     MissingRootElement {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
     },
     /// Returned when a required BPMN attribute is missing.
     #[error(
@@ -66,7 +157,7 @@ pub enum BpmnEngineError {
     )]
     MissingAttribute {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Element local name.
         element: String,
         /// Missing attribute local name.
@@ -78,9 +169,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedElement {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Process identifier where the unsupported element appeared.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Unsupported element local name.
         element: String,
     },
@@ -88,7 +179,7 @@ pub enum BpmnEngineError {
     #[error("invalid DMN XML in source '{source_id}': {message}")]
     InvalidDmnXml {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// XML parser diagnostic.
         message: String,
     },
@@ -96,7 +187,7 @@ pub enum BpmnEngineError {
     #[error("DMN source '{source_id}' has no root XML element")]
     MissingDmnRootElement {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
     },
     /// Returned when the DMN root element is not `definitions`.
     #[error(
@@ -104,7 +195,7 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnRootElement {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Observed root element local name.
         element: String,
     },
@@ -112,7 +203,7 @@ pub enum BpmnEngineError {
     #[error("DMN source '{source_id}' is missing a supported DMN model namespace declaration")]
     MissingDmnModelNamespace {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
     },
     /// Returned when the DMN root declares a model namespace outside the bounded slice.
     #[error(
@@ -120,7 +211,7 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnModelNamespace {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Observed DMN model namespace URI.
         model_namespace_uri: String,
     },
@@ -128,7 +219,7 @@ pub enum BpmnEngineError {
     #[error("DMN source '{source_id}' uses unsupported top-level import declarations")]
     UnsupportedDmnImport {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
     },
     /// Returned when a required DMN attribute is missing.
     #[error(
@@ -136,7 +227,7 @@ pub enum BpmnEngineError {
     )]
     MissingDmnAttribute {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Element local name.
         element: String,
         /// Missing attribute local name.
@@ -146,7 +237,7 @@ pub enum BpmnEngineError {
     #[error("DMN source '{source_id}' does not contain any decisions")]
     MissingDmnDecision {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
     },
     /// Returned when an exact-one DMN parse entrypoint receives anything other
     /// than exactly one decision.
@@ -155,7 +246,7 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnDecisionCount {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Observed decision count.
         count: usize,
     },
@@ -163,7 +254,7 @@ pub enum BpmnEngineError {
     #[error("DMN decision '{decision_id}' does not contain any decision tables")]
     MissingDmnDecisionTable {
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
     },
     /// Returned when more than one DMN table appears in one bounded decision.
     #[error(
@@ -171,7 +262,7 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnDecisionTableCount {
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Observed table count.
         count: usize,
     },
@@ -181,9 +272,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnHitPolicy {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Observed hit policy.
         hit_policy: String,
     },
@@ -191,7 +282,7 @@ pub enum BpmnEngineError {
     #[error("DMN source '{source_id}' uses unsupported literal expression '{literal}'")]
     UnsupportedDmnLiteral {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Unsupported literal text.
         literal: String,
     },
@@ -199,7 +290,7 @@ pub enum BpmnEngineError {
     #[error("DMN source '{source_id}' uses unsupported unary test '{expression}'")]
     UnsupportedDmnUnaryTest {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Unsupported unary-test expression text.
         expression: String,
     },
@@ -209,7 +300,7 @@ pub enum BpmnEngineError {
     )]
     InvalidDmnRuleArity {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Rule identifier.
         rule_id: String,
         /// Expected input count.
@@ -235,7 +326,7 @@ pub enum BpmnEngineError {
     )]
     AmbiguousDmnDecisionReference {
         /// Requested decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Optional source identifier on the request.
         source_id: Option<String>,
         /// Number of matching registered definitions.
@@ -250,7 +341,7 @@ pub enum BpmnEngineError {
     )]
     AmbiguousDmnDecisionServiceReference {
         /// Requested decision-service identifier.
-        decision_service_id: String,
+        decision_service_id: BpmnErrorId,
         /// Optional source identifier on the request.
         source_id: Option<String>,
         /// Number of matching registered definitions.
@@ -264,7 +355,7 @@ pub enum BpmnEngineError {
     )]
     AmbiguousDmnImportReference {
         /// Declaring source identifier used for the lookup.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Selector field used by the lookup.
         selector_kind: &'static str,
         /// Selector value used by the lookup.
@@ -289,9 +380,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnInformationRequirementHref {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Observed href value or placeholder.
         href: String,
     },
@@ -302,9 +393,9 @@ pub enum BpmnEngineError {
     )]
     MissingDmnRequiredDecisionTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Missing local href target.
         href: String,
     },
@@ -315,9 +406,9 @@ pub enum BpmnEngineError {
     )]
     MissingDmnRequiredInputTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Missing local href target.
         href: String,
     },
@@ -328,9 +419,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnKnowledgeRequirementHref {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Observed href value or placeholder.
         href: String,
     },
@@ -341,9 +432,9 @@ pub enum BpmnEngineError {
     )]
     MissingDmnRequiredKnowledgeTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Missing local href target.
         href: String,
     },
@@ -354,9 +445,9 @@ pub enum BpmnEngineError {
     )]
     MissingDmnInvocationTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Missing invocation target text.
         target: String,
     },
@@ -367,9 +458,9 @@ pub enum BpmnEngineError {
     )]
     AmbiguousDmnInvocationTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Ambiguous invocation target text.
         target: String,
         /// Number of matching business-knowledge-model definitions.
@@ -382,9 +473,9 @@ pub enum BpmnEngineError {
     )]
     UndeclaredDmnInvocationKnowledgeTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
         /// Invocation target text that did not match required knowledge.
         target: String,
     },
@@ -395,9 +486,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnDecisionServiceOutputCount {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision-service identifier.
-        decision_service_id: String,
+        decision_service_id: BpmnErrorId,
         /// Number of preserved `outputDecision` references.
         count: usize,
     },
@@ -408,9 +499,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnDecisionServiceOutputHref {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision-service identifier.
-        decision_service_id: String,
+        decision_service_id: BpmnErrorId,
         /// Observed href value or placeholder.
         href: String,
     },
@@ -421,9 +512,9 @@ pub enum BpmnEngineError {
     )]
     MissingDmnDecisionServiceOutputTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision-service identifier.
-        decision_service_id: String,
+        decision_service_id: BpmnErrorId,
         /// Missing local href target.
         href: String,
     },
@@ -434,11 +525,11 @@ pub enum BpmnEngineError {
     )]
     UnsupportedDmnDecisionServiceReferenceHref {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision-service identifier.
-        decision_service_id: String,
+        decision_service_id: BpmnErrorId,
         /// Direct decision-service child kind.
-        reference_kind: String,
+        reference_kind: BpmnErrorKind,
         /// Observed href value or placeholder.
         href: String,
     },
@@ -449,11 +540,11 @@ pub enum BpmnEngineError {
     )]
     MissingDmnDecisionServiceReferenceTarget {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision-service identifier.
-        decision_service_id: String,
+        decision_service_id: BpmnErrorId,
         /// Direct decision-service child kind.
-        reference_kind: String,
+        reference_kind: BpmnErrorKind,
         /// Missing local href target.
         href: String,
     },
@@ -464,45 +555,45 @@ pub enum BpmnEngineError {
     )]
     CyclicDmnRequiredDecisionDependency {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Decision identifier.
-        decision_id: String,
+        decision_id: BpmnErrorId,
     },
     /// Returned when no process definitions are present in the BPMN package.
     #[error("BPMN source '{source_id}' does not contain any process definitions")]
     MissingProcessDefinitions {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
     },
     /// Returned when duplicate process identifiers appear in one package.
     #[error("duplicate BPMN process identifier '{process_id}' in package '{package_id}'")]
     DuplicateProcessId {
         /// Package identifier.
-        package_id: String,
+        package_id: BpmnErrorId,
         /// Duplicate process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
     },
     /// Returned when duplicate node identifiers appear in one process.
     #[error("duplicate BPMN node identifier '{node_id}' in process '{process_id}'")]
     DuplicateNodeId {
         /// Owning process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Duplicate node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
     },
     /// Returned when duplicate sequence-flow identifiers appear in one process.
     #[error("duplicate BPMN sequence flow identifier '{flow_id}' in process '{process_id}'")]
     DuplicateSequenceFlowId {
         /// Owning process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Duplicate sequence-flow identifier.
-        flow_id: String,
+        flow_id: BpmnErrorId,
     },
     /// Returned when a process is structurally invalid for the bounded subset.
     #[error("BPMN process '{process_id}' is missing a required {element}")]
     MissingRequiredProcessElement {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Missing required element kind.
         element: &'static str,
     },
@@ -510,9 +601,9 @@ pub enum BpmnEngineError {
     #[error("BPMN process '{process_id}' node '{node_id}' is missing required {element}")]
     MissingRequiredNodeElement {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Missing required element kind.
         element: &'static str,
     },
@@ -522,9 +613,9 @@ pub enum BpmnEngineError {
     )]
     MissingBusinessRuleDecisionRef {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
     },
     /// Returned when a sequence flow references a missing source or target.
     #[error(
@@ -532,13 +623,13 @@ pub enum BpmnEngineError {
     )]
     UnknownSequenceFlowEndpoint {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Sequence flow identifier.
-        flow_id: String,
+        flow_id: BpmnErrorId,
         /// Endpoint kind.
         endpoint: &'static str,
         /// Missing node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
     },
     /// Returned when the bounded event slice encounters multiple event
     /// definitions on one node.
@@ -547,11 +638,11 @@ pub enum BpmnEngineError {
     )]
     UnsupportedMultipleEventDefinitions {
         /// Source identifier used for diagnostics.
-        source_id: String,
+        source_id: BpmnErrorId,
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
     },
     /// Returned when one boundary event references an unknown attached node.
     #[error(
@@ -559,11 +650,11 @@ pub enum BpmnEngineError {
     )]
     UnknownBoundaryAttachment {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Boundary-event BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Missing attached target node identifier.
-        attached_to_node_id: String,
+        attached_to_node_id: BpmnErrorId,
     },
     /// Returned when one boundary event exceeds the bounded supported slice.
     #[error(
@@ -571,9 +662,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedBoundaryEventConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Boundary-event BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -583,9 +674,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedCompensationConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Compensation-boundary or compensation-activity BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -595,9 +686,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedEventBasedGatewayConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Event-based gateway BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -607,9 +698,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedEventConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Event BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -619,9 +710,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedGatewayConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Gateway BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -631,9 +722,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedTaskConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN task node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -643,9 +734,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedLoopConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -655,11 +746,11 @@ pub enum BpmnEngineError {
     )]
     UnknownCalledProcess {
         /// Owning process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// Call-activity BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Missing called-process identifier.
-        called_process_id: String,
+        called_process_id: BpmnErrorId,
     },
     /// Returned when one subprocess or call-activity configuration exceeds the bounded slice.
     #[error(
@@ -667,9 +758,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedSubProcessConfiguration {
         /// Owning process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN subprocess or call-activity node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -679,9 +770,9 @@ pub enum BpmnEngineError {
     )]
     UnsupportedTransactionConfiguration {
         /// Process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN node identifier.
-        node_id: String,
+        node_id: BpmnErrorId,
         /// Stable unsupported configuration discriminator.
         detail: &'static str,
     },
@@ -692,7 +783,7 @@ pub enum BpmnEngineError {
     #[error("workflow instance '{instance_id}' does not have pending host work")]
     MissingPendingHostWork {
         /// Owning workflow instance identifier.
-        instance_id: String,
+        instance_id: BpmnErrorId,
     },
     /// Returned when one workflow instance has multiple pending host-work
     /// entries but a singleton request surface was used.
@@ -701,7 +792,7 @@ pub enum BpmnEngineError {
     )]
     AmbiguousPendingHostWork {
         /// Owning workflow instance identifier.
-        instance_id: String,
+        instance_id: BpmnErrorId,
         /// Observed pending-work count.
         count: usize,
     },
@@ -712,9 +803,9 @@ pub enum BpmnEngineError {
     )]
     MissingPendingHostWorkToken {
         /// Owning workflow instance identifier.
-        instance_id: String,
+        instance_id: BpmnErrorId,
         /// Missing blocked token identifier.
-        token_id: u64,
+        token_id: BpmnErrorTokenId,
     },
     /// Returned when a host result does not match the pending host-work kind.
     #[error(
@@ -742,17 +833,17 @@ pub enum BpmnEngineError {
     )]
     PendingHostWorkNotHumanTask {
         /// Runtime token identifier for the pending host work.
-        token_id: u64,
+        token_id: BpmnErrorTokenId,
         /// BPMN node index.
         node_index: u32,
         /// Checkpointed host-work kind.
-        kind: String,
+        kind: BpmnErrorKind,
     },
     /// Returned when a different claimant already owns one pending human task.
     #[error("pending host work token {token_id} is already claimed by '{claimed_by}'")]
     PendingHostWorkAlreadyClaimed {
         /// Runtime token identifier for the pending host work.
-        token_id: u64,
+        token_id: BpmnErrorTokenId,
         /// Existing claimant identifier.
         claimed_by: String,
     },
@@ -760,7 +851,7 @@ pub enum BpmnEngineError {
     #[error("pending host work token {token_id} is not claimed")]
     PendingHostWorkNotClaimed {
         /// Runtime token identifier for the pending host work.
-        token_id: u64,
+        token_id: BpmnErrorTokenId,
     },
     /// Returned when a release request is made by a claimant that does not own
     /// the pending human work.
@@ -769,7 +860,7 @@ pub enum BpmnEngineError {
     )]
     PendingHostWorkClaimReleaseMismatch {
         /// Runtime token identifier for the pending host work.
-        token_id: u64,
+        token_id: BpmnErrorTokenId,
         /// Existing claimant identifier.
         claimed_by: String,
         /// Claimant supplied by the release request.
@@ -781,9 +872,9 @@ pub enum BpmnEngineError {
     )]
     HumanTaskCompletionDataNotObject {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN activity identifier.
-        activity_id: String,
+        activity_id: BpmnErrorId,
     },
     /// Returned when form-backed human-task completion omits a required field.
     #[error(
@@ -791,9 +882,9 @@ pub enum BpmnEngineError {
     )]
     MissingHumanTaskCompletionField {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN activity identifier.
-        activity_id: String,
+        activity_id: BpmnErrorId,
         /// Missing field name.
         field: String,
     },
@@ -804,9 +895,9 @@ pub enum BpmnEngineError {
     )]
     UndeclaredHumanTaskCompletionField {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN activity identifier.
-        activity_id: String,
+        activity_id: BpmnErrorId,
         /// Undeclared field name.
         field: String,
     },
@@ -817,7 +908,7 @@ pub enum BpmnEngineError {
     )]
     UnresolvedTaskInputSource {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN node index.
         node_index: u32,
         /// Data input name.
@@ -832,9 +923,9 @@ pub enum BpmnEngineError {
     )]
     UnknownDataObjectReference {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN `dataObjectReference` identifier.
-        reference_id: String,
+        reference_id: BpmnErrorId,
         /// Missing BPMN `dataObject` identifier.
         data_object_ref: String,
     },
@@ -845,9 +936,9 @@ pub enum BpmnEngineError {
     )]
     MissingTaskOutputMapping {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN activity identifier.
-        activity_id: String,
+        activity_id: BpmnErrorId,
     },
     /// Returned when host-dispatched task completion data is not an object.
     #[error(
@@ -855,9 +946,9 @@ pub enum BpmnEngineError {
     )]
     TaskCompletionDataNotObject {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN activity identifier.
-        activity_id: String,
+        activity_id: BpmnErrorId,
     },
     /// Returned when host-dispatched task completion omits a declared output.
     #[error(
@@ -865,9 +956,9 @@ pub enum BpmnEngineError {
     )]
     MissingTaskCompletionField {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN activity identifier.
-        activity_id: String,
+        activity_id: BpmnErrorId,
         /// Missing output field name.
         field: String,
     },
@@ -878,9 +969,9 @@ pub enum BpmnEngineError {
     )]
     UndeclaredTaskCompletionField {
         /// BPMN process identifier.
-        process_id: String,
+        process_id: BpmnErrorId,
         /// BPMN activity identifier.
-        activity_id: String,
+        activity_id: BpmnErrorId,
         /// Undeclared output field name.
         field: String,
     },
@@ -890,7 +981,7 @@ pub enum BpmnEngineError {
     )]
     StaleCheckpointWrite {
         /// Owning workflow instance identifier.
-        instance_id: String,
+        instance_id: BpmnErrorId,
         /// Incoming checkpoint sequence.
         attempted_sequence: u64,
         /// Already stored checkpoint sequence.
@@ -906,13 +997,13 @@ pub enum BpmnEngineError {
     #[error("workflow instance '{instance_id}' checkpoint lease is not owned by the caller")]
     CheckpointLeaseNotOwned {
         /// Owning workflow instance identifier.
-        instance_id: String,
+        instance_id: BpmnErrorId,
     },
     /// Returned when an event-poll operation is attempted without a wait.
     #[error("workflow instance '{instance_id}' does not have any active wait registrations")]
     MissingWaitRegistration {
         /// Owning workflow instance identifier.
-        instance_id: String,
+        instance_id: BpmnErrorId,
     },
     /// Returned when Valkey checkpoint I/O fails.
     #[error("checkpoint storage operation '{operation}' failed: {message}")]

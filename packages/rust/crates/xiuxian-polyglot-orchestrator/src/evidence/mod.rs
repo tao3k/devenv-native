@@ -2,4 +2,6 @@
 
 mod model;
 
-pub use model::{FallbackEvidence, HealthState, LaneEvidence, PressureLevel, ReadinessState};
+pub use model::{
+    FallbackEvidence, HealthState, LaneEvidence, LaneEvidenceInput, PressureLevel, ReadinessState,
+};

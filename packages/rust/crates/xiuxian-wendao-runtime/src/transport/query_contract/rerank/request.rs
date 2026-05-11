@@ -79,6 +79,13 @@ pub fn validate_rerank_request_batch(
         return Err("rerank request batch must contain at least one row".to_string());
     }
 
+    validate_rerank_request_doc_ids(batch)?;
+    validate_rerank_request_vector_scores(batch)?;
+    validate_rerank_request_query_embeddings(batch)
+}
+
+#[cfg(feature = "transport")]
+fn validate_rerank_request_doc_ids(batch: &RecordBatch) -> Result<(), String> {
     let doc_ids = batch
         .column_by_name(RERANK_REQUEST_DOC_ID_COLUMN)
         .and_then(|column| column.as_any().downcast_ref::<StringArray>())
@@ -99,7 +106,11 @@ pub fn validate_rerank_request_batch(
             ));
         }
     }
+    Ok(())
+}
 
+#[cfg(feature = "transport")]
+fn validate_rerank_request_vector_scores(batch: &RecordBatch) -> Result<(), String> {
     let vector_scores = batch
         .column_by_name(RERANK_REQUEST_VECTOR_SCORE_COLUMN)
         .and_then(|column| column.as_any().downcast_ref::<Float32Array>())
@@ -121,7 +132,11 @@ pub fn validate_rerank_request_batch(
             ));
         }
     }
+    Ok(())
+}
 
+#[cfg(feature = "transport")]
+fn validate_rerank_request_query_embeddings(batch: &RecordBatch) -> Result<(), String> {
     let query_embeddings = batch
         .column_by_name(RERANK_REQUEST_QUERY_EMBEDDING_COLUMN)
         .and_then(|column| column.as_any().downcast_ref::<FixedSizeListArray>())

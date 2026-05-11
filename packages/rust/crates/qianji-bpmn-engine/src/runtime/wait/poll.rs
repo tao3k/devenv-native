@@ -45,7 +45,7 @@ pub(crate) fn build_event_poll_request_impl(
 ) -> Result<EventPollRequest> {
     let waits = event_poll_waits(instance)?;
     Ok(EventPollRequest {
-        instance_id: instance.instance_id.to_string(),
+        instance_id: (instance.instance_id.to_string()).into(),
         gateway_node_index: waits.gateway_node_index,
         waits: waits.waits,
     })
@@ -428,7 +428,7 @@ fn event_poll_waits(instance: &BpmnInstanceState) -> Result<EventPollWaitSet> {
             operation: "event_poll_waits_multiple_frame_levels",
         }),
         (true, None) => Err(BpmnEngineError::MissingWaitRegistration {
-            instance_id: instance.instance_id.to_string(),
+            instance_id: (instance.instance_id.to_string()).into(),
         }),
     }
 }
@@ -473,7 +473,7 @@ fn resolve_wait_process_by_index<'a>(
         .filter(|process| process.key.process_id.as_ref() == process_id)
         .or_else(|| package.find_process(process_id))
         .ok_or_else(|| BpmnEngineError::MissingProcess {
-            process_id: process_id.to_string(),
+            process_id: (process_id.to_string()).into(),
         })
 }
 

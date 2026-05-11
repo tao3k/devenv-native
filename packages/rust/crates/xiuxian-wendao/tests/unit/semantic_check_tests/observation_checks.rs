@@ -79,7 +79,7 @@ fn test_check_code_observations_with_fuzzy_suggestion() {
     let node = create_node_with_observations("test.md#fuzzy", vec![obs]);
 
     let source = SourceFile {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         content: "fn existing_function(x: i32) -> i32 { x + 1 }".to_string(),
     };
 

@@ -17,7 +17,7 @@ pub(super) fn unsupported_association_document_issue(
     } else {
         "associations"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_association_document",
         "DMN file contains associations but no executable decisions",
         format!(
@@ -56,7 +56,7 @@ pub(super) fn unsupported_element_collection_document_issue(
     } else {
         "collections"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_element_collection_document",
         "DMN file contains element collections but no executable decisions",
         format!(
@@ -91,7 +91,7 @@ pub(super) fn unsupported_group_document_issue(
 ) -> LintIssue {
     let group_count = snapshot_group_count(snapshot);
     let noun = if group_count == 1 { "group" } else { "groups" };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_group_document",
         "DMN file contains group artifacts but no executable decisions",
         format!(
@@ -126,7 +126,7 @@ pub(super) fn unsupported_dmndi_document_issue(
 ) -> LintIssue {
     let dmndi_count = snapshot_dmndi_count(snapshot);
     let noun = if dmndi_count == 1 { "block" } else { "blocks" };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_dmndi_document",
         "DMN file contains diagram interchange metadata but no executable decisions",
         format!(

@@ -31,7 +31,7 @@ pub(in crate::dmn::snapshot::state) struct TempDecisionSnapshot {
 impl From<TempDecisionSnapshot> for DmnDecisionSnapshot {
     fn from(value: TempDecisionSnapshot) -> Self {
         Self {
-            decision_id: value.decision_id,
+            decision_id: (value.decision_id).into(),
             name: value.name,
             allowed_answers_count: value.allowed_answers_count,
             decision_maker_count: value.decision_maker_count,

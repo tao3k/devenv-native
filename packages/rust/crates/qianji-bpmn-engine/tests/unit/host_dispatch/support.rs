@@ -225,11 +225,11 @@ pub(super) fn with_token_id(
             PendingHostWorkRequest::Script(request)
         }
         PendingHostWorkRequest::User(mut request) => {
-            request.token_id = token_id;
+            request.token_id = token_id.into();
             PendingHostWorkRequest::User(request)
         }
         PendingHostWorkRequest::Manual(mut request) => {
-            request.token_id = token_id;
+            request.token_id = token_id.into();
             PendingHostWorkRequest::Manual(request)
         }
         PendingHostWorkRequest::BusinessRule(mut request) => {

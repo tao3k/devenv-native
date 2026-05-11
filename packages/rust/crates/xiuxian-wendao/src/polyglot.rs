@@ -65,11 +65,13 @@ pub fn wendao_polyglot_control_snapshot_from_parts(
     );
 
     let admission_budget = xiuxian_wendao_runtime::polyglot::memory_julia_compute_admission_budget(
-        memory_runtime,
-        active_in_flight,
-        queue_depth,
-        readiness,
-        pressure,
+        xiuxian_wendao_runtime::polyglot::MemoryJuliaComputeAdmissionBudgetInput {
+            config: memory_runtime,
+            active_in_flight,
+            queue_depth,
+            readiness,
+            pressure,
+        },
     );
 
     PolyglotControlSnapshot::from_parts(route_refs, vec![admission_budget], Vec::new())

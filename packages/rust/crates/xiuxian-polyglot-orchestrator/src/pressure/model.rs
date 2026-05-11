@@ -128,14 +128,14 @@ impl WorkerPressureEvidence {
 
     /// Projects pressure evidence to a lane evidence envelope.
     #[must_use]
-    pub const fn to_lane_evidence(self) -> LaneEvidence {
-        LaneEvidence::new(
-            self.lane,
-            self.health_state(),
-            self.readiness_state(),
-            self.pressure_level(),
-            FallbackEvidence::new(self.fallback_available),
-        )
+    pub fn to_lane_evidence(self) -> LaneEvidence {
+        LaneEvidence::new(crate::LaneEvidenceInput {
+            lane: self.lane,
+            health: self.health_state(),
+            readiness: self.readiness_state(),
+            pressure: self.pressure_level(),
+            fallback: FallbackEvidence::new(self.fallback_available),
+        })
     }
 
     const fn readiness_state(self) -> ReadinessState {

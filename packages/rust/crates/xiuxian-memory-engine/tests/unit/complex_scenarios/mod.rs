@@ -2,7 +2,7 @@
 
 use crate::common;
 
-pub(super) use xiuxian_memory_engine::{Episode, EpisodeStore, StoreConfig};
+pub(super) use xiuxian_memory_engine::{Episode, EpisodeDraft, EpisodeStore, StoreConfig};
 
 mod adaptation;
 mod lifecycle;

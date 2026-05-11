@@ -18,7 +18,7 @@ impl From<TempImportSnapshot> for DmnImportSnapshot {
             name: value.name,
             namespace: value.namespace,
             location_uri: value.location_uri,
-            import_type: value.import_type,
+            import_type: value.import_type.map(Into::into),
         }
     }
 }
@@ -33,7 +33,7 @@ impl TempImportSnapshot {
             name: attribute_value(source, reader, event, "name")?,
             namespace: attribute_value(source, reader, event, "namespace")?,
             location_uri: attribute_value(source, reader, event, "locationURI")?,
-            import_type: attribute_value(source, reader, event, "importType")?,
+            import_type: attribute_value(source, reader, event, "importType")?.map(Into::into),
         })
     }
 }

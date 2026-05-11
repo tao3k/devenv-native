@@ -7,7 +7,7 @@ use qianji_bpmn_engine::{
     EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest,
     PendingHostWorkKind, PendingHostWorkResult, ProcessKey, ScriptTaskOutcome, ScriptTaskRequest,
     SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome,
-    UserTaskRequest, advance_instance, apply_pending_host_work_result, create_instance,
+    UserTaskRequest, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -25,7 +25,7 @@ pub(super) async fn assert_host_resume(
     let mut instance = create_blocked_instance(Arc::clone(&package), "resume", &host).await;
     let token_id = instance.pending_host_work[0].token_id;
 
-    let outcome = apply_pending_host_work_result(
+    let outcome = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

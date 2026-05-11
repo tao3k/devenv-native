@@ -7,7 +7,7 @@ pub(super) fn issue_from_bpmn_reference_error(error: &BpmnEngineError) -> Option
         BpmnEngineError::DuplicateProcessId {
             package_id,
             process_id,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "bpmn.duplicate_process_id",
             "Duplicate BPMN process id",
             format!(
@@ -26,7 +26,7 @@ pub(super) fn issue_from_bpmn_reference_error(error: &BpmnEngineError) -> Option
                 "process_id": process_id,
             }),
         ),
-        BpmnEngineError::DuplicateNodeId { process_id, node_id } => LintIssue::new(
+        BpmnEngineError::DuplicateNodeId { process_id, node_id } => LintIssue::from_parts(
             "bpmn.duplicate_node_id",
             "Duplicate BPMN node id",
             format!("Process '{process_id}' defines node id '{node_id}' more than once."),
@@ -43,7 +43,7 @@ pub(super) fn issue_from_bpmn_reference_error(error: &BpmnEngineError) -> Option
                 "node_id": node_id,
             }),
         ),
-        BpmnEngineError::DuplicateSequenceFlowId { process_id, flow_id } => LintIssue::new(
+        BpmnEngineError::DuplicateSequenceFlowId { process_id, flow_id } => LintIssue::from_parts(
             "bpmn.duplicate_sequence_flow_id",
             "Duplicate sequence flow id",
             format!(
@@ -67,7 +67,7 @@ pub(super) fn issue_from_bpmn_reference_error(error: &BpmnEngineError) -> Option
             flow_id,
             endpoint,
             node_id,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "bpmn.unknown_sequence_flow_endpoint",
             "Sequence flow points to an unknown node",
             format!(

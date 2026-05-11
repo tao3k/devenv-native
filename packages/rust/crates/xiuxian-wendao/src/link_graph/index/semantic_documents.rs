@@ -70,9 +70,9 @@ fn build_summary_document(
         .or_else(|| normalize_text(Some(doc.title.as_str())))?;
 
     Some(LinkGraphSemanticDocument {
-        anchor_id: doc.id.clone(),
-        doc_id: doc.id.clone(),
-        path: doc.path.clone(),
+        anchor_id: doc.id.clone().into(),
+        doc_id: doc.id.clone().into(),
+        path: doc.path.clone().into(),
         kind: LinkGraphSemanticDocumentKind::Summary,
         semantic_path,
         content: summary,
@@ -96,9 +96,9 @@ fn collect_section_documents(
             .or_else(|| normalize_text(Some(node.text.as_ref())))
         {
             documents.push(LinkGraphSemanticDocument {
-                anchor_id: node.node_id.clone(),
-                doc_id: doc_id.to_string(),
-                path: path.to_string(),
+                anchor_id: node.node_id.clone().into(),
+                doc_id: doc_id.to_string().into(),
+                path: path.to_string().into(),
                 kind: LinkGraphSemanticDocumentKind::Section,
                 semantic_path: semantic_path.clone(),
                 content,

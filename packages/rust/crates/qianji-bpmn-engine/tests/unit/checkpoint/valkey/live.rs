@@ -64,7 +64,7 @@ async fn checkpoint_live_rejects_stale_sequences_when_valkey_is_available() {
     assert_eq!(
         equal_error,
         BpmnEngineError::StaleCheckpointWrite {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
             attempted_sequence: 5,
             stored_sequence: 5,
         }
@@ -76,7 +76,7 @@ async fn checkpoint_live_rejects_stale_sequences_when_valkey_is_available() {
     assert_eq!(
         older_error,
         BpmnEngineError::StaleCheckpointWrite {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
             attempted_sequence: 4,
             stored_sequence: 5,
         }
@@ -189,7 +189,7 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     assert_eq!(
         missing_lease,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
         }
     );
 
@@ -208,7 +208,7 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     assert_eq!(
         wrong_owner,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
         }
     );
 
@@ -218,7 +218,7 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     assert_eq!(
         stale_error,
         BpmnEngineError::StaleCheckpointWrite {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
             attempted_sequence: 1,
             stored_sequence: 1,
         }
@@ -259,7 +259,7 @@ async fn checkpoint_live_owner_guarded_delete_requires_lease_when_valkey_is_avai
     assert_eq!(
         missing_lease,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
         }
     );
 
@@ -275,7 +275,7 @@ async fn checkpoint_live_owner_guarded_delete_requires_lease_when_valkey_is_avai
     assert_eq!(
         wrong_owner,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: instance_id.to_string(),
+            instance_id: (instance_id.to_string()).into(),
         }
     );
 

@@ -11,7 +11,7 @@ fn trim_best_by_path_keeps_top_ranked_paths() {
         (
             "src/zeta.jl".to_string(),
             RepoContentChunkCandidate {
-                path: "src/zeta.jl".to_string(),
+                path: "src/zeta.jl".to_string().into(),
                 language: Some("julia".to_string()),
                 line_number: 30,
                 line_text: "zeta".to_string(),
@@ -22,7 +22,7 @@ fn trim_best_by_path_keeps_top_ranked_paths() {
         (
             "src/beta.jl".to_string(),
             RepoContentChunkCandidate {
-                path: "src/beta.jl".to_string(),
+                path: "src/beta.jl".to_string().into(),
                 language: Some("julia".to_string()),
                 line_number: 20,
                 line_text: "beta".to_string(),
@@ -33,7 +33,7 @@ fn trim_best_by_path_keeps_top_ranked_paths() {
         (
             "src/alpha.jl".to_string(),
             RepoContentChunkCandidate {
-                path: "src/alpha.jl".to_string(),
+                path: "src/alpha.jl".to_string().into(),
                 language: Some("julia".to_string()),
                 line_number: 10,
                 line_text: "alpha".to_string(),

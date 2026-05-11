@@ -1,6 +1,7 @@
 //! Public runtime instance construction and state shells.
 
 use crate::error::Result;
+use crate::host_types_api::{BpmnHostActivityId, BpmnHostProcessId, BpmnHostWorkId};
 use crate::ir::{BpmnPackage, ProcessKey};
 use crate::ir_index_api::BpmnNodeIndex;
 use crate::runtime::{
@@ -33,7 +34,7 @@ impl BpmnInstanceInit {
         initial_timestamp_ms: u64,
     ) -> Self {
         Self {
-            instance_id: Arc::<str>::from(instance_id.as_ref()),
+            instance_id: (Arc::<str>::from(instance_id.as_ref())).into(),
             initial_variables,
             initial_timestamp_ms,
         }
@@ -152,9 +153,9 @@ pub struct BpmnHumanTaskLifecycleEvent {
     /// Unix timestamp in milliseconds when the event was recorded.
     pub occurred_at_ms: u64,
     /// BPMN process identifier that owns the human task.
-    pub process_id: String,
+    pub process_id: BpmnHostProcessId,
     /// Stable BPMN activity identifier for the human task.
-    pub activity_id: String,
+    pub activity_id: BpmnHostActivityId,
     /// Runtime token identifier for the human task.
     pub token_id: u64,
     /// BPMN node index for the human task.
@@ -166,7 +167,7 @@ pub struct BpmnHumanTaskLifecycleEvent {
     pub claimant: Option<String>,
     /// Optional host-generated work identifier.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub work_id: Option<String>,
+    pub work_id: Option<BpmnHostWorkId>,
 }
 
 /// High-level instance lifecycle shell.

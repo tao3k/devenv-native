@@ -132,8 +132,8 @@ impl TaskIoStartContext<'_, '_, '_> {
                     .bpmn_id
                     .clone();
                 Err(BpmnEngineError::UnsupportedTaskConfiguration {
-                    process_id,
-                    node_id,
+                    process_id: process_id.into(),
+                    node_id: node_id.into(),
                     detail: "task_io_transformation_deferred",
                 })
             }

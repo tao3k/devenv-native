@@ -1,3 +1,5 @@
+//! Query execution over bounded-work Markdown rows through local relations.
+
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -76,20 +78,22 @@ async fn payload_from_query_engine_batches(
         registered_view_source_count: 0,
         result_batch_count: engine_batches.len(),
         result_row_count,
-        registered_input_bytes: Some(registration.input_bytes),
-        result_bytes: Some(result_bytes),
+        registered_input_bytes: Some(registration.input_bytes.into()),
+        result_bytes: Some(result_bytes.into()),
         local_relation_materialization_state: query_engine
             .relation_materialization_state(BOUNDED_WORK_MARKDOWN_TABLE_NAME)
-            .map(|state| state.as_str().to_string()),
-        local_temp_storage_peak_bytes: query_engine.last_query_temp_storage_peak_bytes(),
+            .map(|state| state.as_str().to_string().into()),
+        local_temp_storage_peak_bytes: query_engine
+            .last_query_temp_storage_peak_bytes()
+            .map(Into::into),
         local_relation_engine: Some(query_engine.kind().as_str().to_string()),
         duckdb_registration_strategy: query_engine
             .relation_registration_strategy(BOUNDED_WORK_MARKDOWN_TABLE_NAME)
             .map(str::to_string),
         registered_input_batch_count: Some(registration.input_batch_count),
         registered_input_row_count: Some(registration.input_row_count),
-        registration_time_ms: Some(registration_time_ms),
-        local_query_execution_time_ms: Some(local_query_execution_time_ms),
+        registration_time_ms: Some(registration_time_ms.into()),
+        local_query_execution_time_ms: Some(local_query_execution_time_ms.into()),
     };
     sql_query_payload_from_record_batches(metadata, &engine_batches)
 }

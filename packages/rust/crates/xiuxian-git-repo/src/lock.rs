@@ -122,94 +122,166 @@ pub fn acquire_managed_checkout_lock_with_policy(
     max_wait: Duration,
     stale_after: Duration,
 ) -> Result<ManagedCheckoutLock, RepoError> {
-    if let Some(parent) = lock_path.parent() {
-        fs::create_dir_all(parent).map_err(|error| {
-            RepoError::new(
-                RepoErrorKind::Permanent,
-                format!(
-                    "failed to create managed checkout lock dir `{}`: {error}",
-                    parent.display()
-                ),
-            )
-        })?;
-    }
+    ensure_lock_parent_directory(&lock_path)?;
+    wait_for_managed_checkout_lock(lock_path, retry_delay, max_wait, stale_after)
+}
 
+fn ensure_lock_parent_directory(lock_path: &Path) -> Result<(), RepoError> {
+    if let Some(parent) = lock_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| lock_parent_directory_error(parent, error))?;
+    }
+    Ok(())
+}
+
+fn lock_parent_directory_error(parent: &Path, error: std::io::Error) -> RepoError {
+    RepoError::new(
+        RepoErrorKind::Permanent,
+        format!(
+            "failed to create managed checkout lock dir `{}`: {error}",
+            parent.display()
+        ),
+    )
+}
+
+fn wait_for_managed_checkout_lock(
+    lock_path: PathBuf,
+    retry_delay: Duration,
+    max_wait: Duration,
+    stale_after: Duration,
+) -> Result<ManagedCheckoutLock, RepoError> {
     let started_at = Instant::now();
     loop {
-        match OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&lock_path)
-        {
-            Ok(mut file) => {
-                let _ = writeln!(
-                    file,
-                    "pid={} acquired_at={}",
-                    std::process::id(),
-                    Utc::now().to_rfc3339()
-                );
+        match try_managed_checkout_lock(&lock_path, stale_after)? {
+            LockAttempt::Acquired(file) => {
                 return Ok(ManagedCheckoutLock {
                     path: lock_path,
                     _file: file,
                 });
             }
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                if lockfile_is_stale(&lock_path, stale_after) {
-                    match fs::remove_file(&lock_path) {
-                        Ok(()) => continue,
-                        Err(remove_error)
-                            if remove_error.kind() == std::io::ErrorKind::NotFound =>
-                        {
-                            continue;
-                        }
-                        Err(remove_error) => {
-                            return Err(RepoError::new(
-                                RepoErrorKind::Permanent,
-                                format!(
-                                    "failed to reclaim stale managed checkout lock `{}`: {remove_error}",
-                                    lock_path.display()
-                                ),
-                            ));
-                        }
-                    }
-                }
-
-                if started_at.elapsed() >= max_wait {
-                    return Err(RepoError::new(
-                        RepoErrorKind::LockBusy,
-                        format!(
-                            "timed out waiting for managed checkout lock `{}`",
-                            lock_path.display()
-                        ),
-                    ));
-                }
-
-                thread::sleep(retry_delay);
-            }
-            Err(error) if is_descriptor_pressure_error(&error) => {
-                if started_at.elapsed() >= max_wait {
-                    return Err(RepoError::new(
-                        RepoErrorKind::DescriptorPressure,
-                        format!(
-                            "timed out waiting for managed checkout lock `{}` while file-descriptor pressure persisted: {error}",
-                            lock_path.display()
-                        ),
-                    ));
-                }
-
-                thread::sleep(retry_delay);
-            }
-            Err(error) => {
-                return Err(RepoError::new(
-                    RepoErrorKind::Permanent,
-                    format!(
-                        "failed to acquire managed checkout lock `{}`: {error}",
-                        lock_path.display()
-                    ),
-                ));
-            }
+            LockAttempt::Busy => wait_or_timeout(
+                &lock_path,
+                started_at,
+                max_wait,
+                retry_delay,
+                RepoErrorKind::LockBusy,
+                None,
+            )?,
+            LockAttempt::DescriptorPressure(error) => wait_or_timeout(
+                &lock_path,
+                started_at,
+                max_wait,
+                retry_delay,
+                RepoErrorKind::DescriptorPressure,
+                Some(&error),
+            )?,
         }
     }
+}
+
+enum LockAttempt {
+    Acquired(fs::File),
+    Busy,
+    DescriptorPressure(std::io::Error),
+}
+
+fn try_managed_checkout_lock(
+    lock_path: &Path,
+    stale_after: Duration,
+) -> Result<LockAttempt, RepoError> {
+    match OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(lock_path)
+    {
+        Ok(mut file) => {
+            write_lockfile_metadata(&mut file);
+            Ok(LockAttempt::Acquired(file))
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            reclaim_stale_lock_if_needed(lock_path, stale_after)?;
+            Ok(LockAttempt::Busy)
+        }
+        Err(error) if is_descriptor_pressure_error(&error) => {
+            Ok(LockAttempt::DescriptorPressure(error))
+        }
+        Err(error) => Err(acquire_lock_error(lock_path, error)),
+    }
+}
+
+fn write_lockfile_metadata(file: &mut fs::File) {
+    let _ = writeln!(
+        file,
+        "pid={} acquired_at={}",
+        std::process::id(),
+        Utc::now().to_rfc3339()
+    );
+}
+
+fn reclaim_stale_lock_if_needed(lock_path: &Path, stale_after: Duration) -> Result<(), RepoError> {
+    if !lockfile_is_stale(lock_path, stale_after) {
+        return Ok(());
+    }
+    match fs::remove_file(lock_path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(reclaim_stale_lock_error(lock_path, error)),
+    }
+}
+
+fn wait_or_timeout(
+    lock_path: &Path,
+    started_at: Instant,
+    max_wait: Duration,
+    retry_delay: Duration,
+    timeout_kind: RepoErrorKind,
+    cause: Option<&std::io::Error>,
+) -> Result<(), RepoError> {
+    if started_at.elapsed() >= max_wait {
+        return Err(timeout_waiting_for_lock_error(
+            lock_path,
+            timeout_kind,
+            cause,
+        ));
+    }
+    thread::sleep(retry_delay);
+    Ok(())
+}
+
+fn timeout_waiting_for_lock_error(
+    lock_path: &Path,
+    kind: RepoErrorKind,
+    cause: Option<&std::io::Error>,
+) -> RepoError {
+    let suffix = cause.map_or_else(String::new, |error| {
+        format!(" while file-descriptor pressure persisted: {error}")
+    });
+    RepoError::new(
+        kind,
+        format!(
+            "timed out waiting for managed checkout lock `{}`{suffix}",
+            lock_path.display()
+        ),
+    )
+}
+
+fn acquire_lock_error(lock_path: &Path, error: std::io::Error) -> RepoError {
+    RepoError::new(
+        RepoErrorKind::Permanent,
+        format!(
+            "failed to acquire managed checkout lock `{}`: {error}",
+            lock_path.display()
+        ),
+    )
+}
+
+fn reclaim_stale_lock_error(lock_path: &Path, error: std::io::Error) -> RepoError {
+    RepoError::new(
+        RepoErrorKind::Permanent,
+        format!(
+            "failed to reclaim stale managed checkout lock `{}`: {error}",
+            lock_path.display()
+        ),
+    )
 }
 
 fn lockfile_is_stale(lock_path: &Path, stale_after: Duration) -> bool {

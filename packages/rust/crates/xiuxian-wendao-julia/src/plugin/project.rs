@@ -20,7 +20,7 @@ pub(crate) fn load_project_metadata(
     let project_path = repository_root.join("Project.toml");
     if !project_path.is_file() {
         return Err(RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: repo_id.to_string(),
+            repo_id: (repo_id.to_string()).into(),
             message: "missing Project.toml".to_string(),
         });
     }
@@ -42,7 +42,7 @@ pub(crate) fn load_project_metadata(
         .to_string();
     if name.is_empty() {
         return Err(RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: repo_id.to_string(),
+            repo_id: (repo_id.to_string()).into(),
             message: "Project.toml is missing package name".to_string(),
         });
     }
@@ -78,7 +78,7 @@ pub(crate) fn locate_root_module_file(
     let src_dir = repository_root.join("src");
     if !src_dir.is_dir() {
         return Err(RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: repo_id.to_string(),
+            repo_id: (repo_id.to_string()).into(),
             message: "missing src/ directory".to_string(),
         });
     }
@@ -100,15 +100,16 @@ pub(crate) fn locate_root_module_file(
 
     let Some(fallback) = candidates.into_iter().next() else {
         return Err(RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: repo_id.to_string(),
+            repo_id: (repo_id.to_string()).into(),
             message: format!("no Julia source files found under `{}`", src_dir.display()),
         });
     };
 
     diagnostics.push(DiagnosticRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: (repo_id.to_string()).into(),
         path: relative_path_string(repository_root, &fallback)
-            .unwrap_or_else(|_| fallback.display().to_string()),
+            .unwrap_or_else(|_| fallback.display().to_string())
+            .into(),
         line: 0,
         message: format!(
             "expected root file `src/{project_name}.jl` was not found; using `{}` instead",

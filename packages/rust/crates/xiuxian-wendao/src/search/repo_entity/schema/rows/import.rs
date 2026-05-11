@@ -33,7 +33,7 @@ pub(crate) fn build_import_row(
     let attributes = import
         .resolved_id
         .as_ref()
-        .map(|resolved_id| BTreeMap::from([(String::from("resolved_id"), resolved_id.clone())]))
+        .map(|resolved_id| BTreeMap::from([(String::from("resolved_id"), resolved_id.to_string())]))
         .unwrap_or_default();
     let hit = SearchHit {
         stem: import.import_name.clone(),
@@ -74,7 +74,7 @@ pub(crate) fn build_import_row(
         path_folded: path.to_ascii_lowercase(),
         language: language.unwrap_or_default(),
         symbol_kind: import_kind,
-        module_id: Some(import.module_id.clone()),
+        module_id: Some(import.module_id.to_string()),
         signature: Some(import.source_module.clone()),
         signature_folded: import.source_module.to_ascii_lowercase(),
         summary: Some(import.target_package.clone()),

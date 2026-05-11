@@ -11,8 +11,8 @@ pub(in crate::dmn::snapshot::state) struct TempRequirementReferenceSnapshot {
 impl From<TempRequirementReferenceSnapshot> for DmnRequirementReferenceSnapshot {
     fn from(value: TempRequirementReferenceSnapshot) -> Self {
         Self {
-            requirement_kind: value.requirement_kind,
-            reference_kind: value.reference_kind,
+            requirement_kind: value.requirement_kind.into(),
+            reference_kind: value.reference_kind.into(),
             href: value.href,
         }
     }
@@ -27,8 +27,8 @@ impl TempRequirementReferenceSnapshot {
         reference_kind: &str,
     ) -> Result<Self> {
         Ok(Self {
-            requirement_kind: requirement_kind.to_string(),
-            reference_kind: reference_kind.to_string(),
+            requirement_kind: requirement_kind.to_string().into(),
+            reference_kind: reference_kind.to_string().into(),
             href: attribute_value(source, reader, event, "href")?,
         })
     }

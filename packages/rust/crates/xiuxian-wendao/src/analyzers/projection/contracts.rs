@@ -93,8 +93,8 @@ pub struct ProjectedPageRecord {
 impl From<&DocRecord> for ProjectedPageRecord {
     fn from(doc: &DocRecord) -> Self {
         let kind = projection_kind_from_doc_format(doc.format.as_deref());
-        let path = doc.path.clone();
-        let doc_id = doc.doc_id.clone();
+        let path = doc.path.to_string();
+        let doc_id = doc.doc_id.to_string();
         let format_hints = doc.format.clone().into_iter().collect::<Vec<_>>();
         let mut keywords = vec![doc.title.clone(), path.clone(), doc_id.clone()];
         keywords.extend(format_hints.iter().cloned());
@@ -102,7 +102,7 @@ impl From<&DocRecord> for ProjectedPageRecord {
         keywords.dedup();
 
         Self {
-            repo_id: doc.repo_id.clone(),
+            repo_id: doc.repo_id.to_string(),
             page_id: format!(
                 "repo:{}:projection:{}:doc:{}",
                 doc.repo_id,
@@ -114,7 +114,7 @@ impl From<&DocRecord> for ProjectedPageRecord {
             module_ids: Vec::new(),
             symbol_ids: Vec::new(),
             example_ids: Vec::new(),
-            doc_ids: vec![doc.doc_id.clone()],
+            doc_ids: vec![doc.doc_id.to_string()],
             paths: vec![path.clone()],
             format_hints,
             sections: Vec::new(),

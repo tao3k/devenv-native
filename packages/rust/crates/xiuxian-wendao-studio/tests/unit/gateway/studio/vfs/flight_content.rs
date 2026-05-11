@@ -7,8 +7,8 @@ use crate::studio::vfs::flight_content::{
 #[test]
 fn vfs_content_response_batch_preserves_payload_fields() {
     let batch = vfs_content_response_batch(&VfsContentResponse {
-        path: "main/docs/index.md".to_string(),
-        content_type: "text/plain".to_string(),
+        path: "main/docs/index.md".to_string().into(),
+        content_type: "text/plain".to_string().into(),
         content: "# Index".to_string(),
         modified: 42,
     })
@@ -35,8 +35,8 @@ fn vfs_content_response_batch_preserves_payload_fields() {
 #[test]
 fn vfs_content_response_metadata_preserves_summary_fields() {
     let metadata = vfs_content_response_flight_app_metadata(&VfsContentResponse {
-        path: "main/docs/index.md".to_string(),
-        content_type: "text/plain".to_string(),
+        path: "main/docs/index.md".to_string().into(),
+        content_type: "text/plain".to_string().into(),
         content: "# Index".to_string(),
         modified: 42,
     })

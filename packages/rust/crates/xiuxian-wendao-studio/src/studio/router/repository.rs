@@ -26,12 +26,12 @@ pub(crate) fn configured_repository(
             .into_iter()
             .find(|repository| repository.id.eq_ignore_ascii_case(resolved_id))
             .ok_or_else(|| RepoIntelligenceError::UnknownRepository {
-                repo_id: resolved_id.to_string(),
+                repo_id: resolved_id.to_string().into(),
             });
     }
 
     Err(RepoIntelligenceError::UnknownRepository {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
     })
 }
 

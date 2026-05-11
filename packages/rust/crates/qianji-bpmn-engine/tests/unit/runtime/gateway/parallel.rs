@@ -6,7 +6,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnPackage, EventPollOutcome, PendingHostWorkKind,
     PendingHostWorkResult, ServiceTaskOutcome, advance_instance, apply_event_poll_outcome,
-    apply_pending_host_work_result, create_instance,
+    create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -173,7 +173,7 @@ async fn runtime_parallel_gateway_preserves_join_arrival_while_host_branch_block
         qianji_bpmn_engine::NodeRuntimeStatus::Executing
     );
 
-    let resume = apply_pending_host_work_result(
+    let resume = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[0].token_id,

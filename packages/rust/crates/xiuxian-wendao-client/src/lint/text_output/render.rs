@@ -1,10 +1,10 @@
-use super::{MarkdownLintIssue, MarkdownLintReport};
+use crate::lint::{MarkdownLintIssue, MarkdownLintReport};
 use anyhow::{Context, Result};
 use ariadne::{CharSet, Config, IndexType, Label, Report, ReportKind, Source};
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-pub(super) fn render_markdown_lint_text_report(
+pub(crate) fn render_markdown_lint_text_report(
     report: &MarkdownLintReport,
     source_contents: &BTreeMap<String, String>,
 ) -> Result<String> {

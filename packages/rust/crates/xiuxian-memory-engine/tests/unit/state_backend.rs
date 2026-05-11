@@ -46,8 +46,8 @@ fn default_valkey_state_hash_keys_are_deterministic() {
     let hash_keys_b = default_valkey_state_hash_keys(&base_key);
 
     assert_eq!(hash_keys_a, hash_keys_b);
-    assert!(hash_keys_a.0.ends_with(":episodes"));
-    assert!(hash_keys_a.1.ends_with(":q_values"));
+    assert!(hash_keys_a.episodes.ends_with(":episodes"));
+    assert!(hash_keys_a.q_values.ends_with(":q_values"));
 }
 
 #[test]

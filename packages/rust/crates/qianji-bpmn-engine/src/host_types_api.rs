@@ -9,6 +9,99 @@ use crate::runtime::WaitRegistration;
 use crate::runtime::{PendingHostWorkClaim, PendingHostWorkKind};
 use serde_json::Value;
 
+macro_rules! string_id_type {
+    ($(#[$meta:meta])* $name:ident) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the serialized identifier.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl std::ops::Deref for $name {
+            type Target = str;
+
+            fn deref(&self) -> &Self::Target {
+                self.as_str()
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+
+        impl From<std::sync::Arc<str>> for $name {
+            fn from(value: std::sync::Arc<str>) -> Self {
+                Self(value.to_string())
+            }
+        }
+
+        impl PartialEq<&str> for $name {
+            fn eq(&self, other: &&str) -> bool {
+                self.as_str() == *other
+            }
+        }
+    };
+}
+
+string_id_type!(
+    /// Workflow instance identifier serialized through host-bridge requests.
+    BpmnHostInstanceId
+);
+string_id_type!(
+    /// BPMN process identifier serialized through host-bridge requests.
+    BpmnHostProcessId
+);
+string_id_type!(
+    /// BPMN activity identifier serialized through host-bridge requests.
+    BpmnHostActivityId
+);
+string_id_type!(
+    /// Host-generated pending work identifier serialized through runtime state.
+    BpmnHostWorkId
+);
+
+/// Runtime token identifier serialized through host-bridge requests.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(transparent)]
+pub struct BpmnHostTokenId(u64);
+
+impl BpmnHostTokenId {
+    /// Returns the serialized runtime token identifier.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
+impl From<u64> for BpmnHostTokenId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl From<BpmnHostTokenId> for u64 {
+    fn from(value: BpmnHostTokenId) -> Self {
+        value.get()
+    }
+}
+
 /// Error returned by host-bridge implementations.
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum HostBridgeError {
@@ -145,15 +238,15 @@ pub struct ScriptTaskOutcome {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UserTaskRequest {
     /// Owning workflow instance identifier.
-    pub instance_id: String,
+    pub instance_id: BpmnHostInstanceId,
     /// Owning BPMN process identifier.
-    pub process_id: String,
+    pub process_id: BpmnHostProcessId,
     /// Owning runtime token identifier.
-    pub token_id: u64,
+    pub token_id: BpmnHostTokenId,
     /// BPMN node index.
     pub node_index: u32,
     /// Stable BPMN activity identifier.
-    pub activity_id: String,
+    pub activity_id: BpmnHostActivityId,
     /// Current workflow variables snapshot.
     pub variables: Value,
     /// Resolved standard BPMN task inputs for this dispatch.
@@ -185,15 +278,15 @@ pub struct UserTaskOutcome {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ManualTaskRequest {
     /// Owning workflow instance identifier.
-    pub instance_id: String,
+    pub instance_id: BpmnHostInstanceId,
     /// Owning BPMN process identifier.
-    pub process_id: String,
+    pub process_id: BpmnHostProcessId,
     /// Owning runtime token identifier.
-    pub token_id: u64,
+    pub token_id: BpmnHostTokenId,
     /// BPMN node index.
     pub node_index: u32,
     /// Stable BPMN activity identifier.
-    pub activity_id: String,
+    pub activity_id: BpmnHostActivityId,
     /// Current workflow variables snapshot.
     pub variables: Value,
     /// Resolved standard BPMN task inputs for this dispatch.

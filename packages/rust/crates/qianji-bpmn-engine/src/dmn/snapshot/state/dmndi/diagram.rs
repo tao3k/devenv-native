@@ -81,15 +81,17 @@ impl TempDiagramSnapshot {
         event: &BytesStart<'_>,
     ) -> Result<()> {
         self.shapes.push(DmnShapeSnapshot {
-            shape_id: attribute_value(source, reader, event, "id")?,
+            shape_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             dmn_element_ref: attribute_value(source, reader, event, "dmnElementRef")?,
             is_listed_input_data: boolean_attribute_value(
                 source,
                 reader,
                 event,
                 "isListedInputData",
-            )?,
-            is_collapsed: boolean_attribute_value(source, reader, event, "isCollapsed")?,
+            )?
+            .map(Into::into),
+            is_collapsed: boolean_attribute_value(source, reader, event, "isCollapsed")?
+                .map(Into::into),
             bounds: None,
             decision_service_divider_line: None,
             label: None,

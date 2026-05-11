@@ -4,6 +4,23 @@
 
 use thiserror::Error;
 
+/// Observed file size and the configured upper bound.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FileSizeLimit {
+    /// Actual file size in bytes.
+    pub bytes: u64,
+    /// Maximum allowed file size in bytes.
+    pub limit: u64,
+}
+
+impl FileSizeLimit {
+    /// Create file size limit evidence.
+    #[must_use]
+    pub const fn new(bytes: u64, limit: u64) -> Self {
+        Self { bytes, limit }
+    }
+}
+
 /// Error types for file I/O operations.
 ///
 /// Each variant represents a specific failure mode in the I/O pipeline.
@@ -14,8 +31,8 @@ pub enum IoError {
     NotFound(String),
 
     /// File exceeds size limit.
-    #[error("File too large: {0} bytes (limit: {1})")]
-    TooLarge(u64, u64),
+    #[error("File too large: {} bytes (limit: {})", .0.bytes, .0.limit)]
+    TooLarge(FileSizeLimit),
 
     /// File contains binary content (NULL bytes detected).
     #[error("Binary file detected")]
@@ -24,6 +41,11 @@ pub enum IoError {
     /// Low-level I/O error from std::io.
     #[error("IO error: {0}")]
     System(#[from] std::io::Error),
+
+    /// File watcher backend error.
+    #[cfg(feature = "notify")]
+    #[error("Watcher error: {0}")]
+    Watcher(#[from] notify::Error),
 
     /// Invalid UTF-8 encoding.
     #[error("UTF-8 decoding error")]

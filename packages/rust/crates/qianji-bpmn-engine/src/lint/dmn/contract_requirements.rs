@@ -78,7 +78,7 @@ pub(super) fn unsupported_information_requirement_decision_issue(
             )
         };
 
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_information_requirement_decision",
         title,
         why_it_failed,
@@ -142,7 +142,7 @@ pub(super) fn unsupported_knowledge_requirement_decision_issue(
             )
         };
 
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_knowledge_requirement_decision",
         title,
         why_it_failed,
@@ -206,7 +206,7 @@ pub(super) fn unsupported_authority_requirement_decision_issue(
             )
         };
 
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_authority_requirement_decision",
         title,
         why_it_failed,

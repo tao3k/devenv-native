@@ -21,15 +21,15 @@ pub(crate) fn symbol_search_hit_to_search_hit(
         tags.push(format!("lang:{language}"));
     }
     if let Some(status) = hit.audit_status.clone() {
-        tags.push(status);
+        tags.push(status.to_string());
     }
 
     crate::studio::types::SearchHit {
         stem: hit.symbol.name.clone(),
         title: Some(hit.symbol.qualified_name.clone()),
-        path: hit.symbol.path.clone(),
-        doc_type: Some("symbol".to_string()),
-        tags,
+        path: hit.symbol.path.to_string().into(),
+        doc_type: Some("symbol".to_string().into()),
+        tags: tags.into_iter().map(Into::into).collect(),
         score: hit.saliency_score.or(hit.score).unwrap_or(0.0),
         best_section: hit
             .symbol
@@ -40,8 +40,8 @@ pub(crate) fn symbol_search_hit_to_search_hit(
         hierarchical_uri: hit.hierarchical_uri,
         hierarchy: hit.hierarchy,
         saliency_score: hit.saliency_score,
-        audit_status: hit.audit_status,
-        verification_state: hit.verification_state,
+        audit_status: hit.audit_status.map(|status| status.to_string().into()),
+        verification_state: hit.verification_state.map(|state| state.to_string().into()),
         implicit_backlinks: hit.implicit_backlinks,
         implicit_backlink_items: map_backlink_items(hit.implicit_backlink_items),
         navigation_target: Some(repo_navigation_target(
@@ -62,8 +62,8 @@ fn map_backlink_items(items: Option<Vec<RepoBacklinkItem>>) -> Option<Vec<Search
             .map(|item| SearchBacklinkItem {
                 id: item.id,
                 title: item.title,
-                path: item.path,
-                kind: item.kind,
+                path: item.path.map(Into::into),
+                kind: item.kind.map(Into::into),
             })
             .collect()
     })
@@ -84,8 +84,8 @@ pub(crate) fn repo_navigation_target(
         format!("{repo_id}/{normalized_path}")
     };
     StudioNavigationTarget {
-        path,
-        category: category.unwrap_or_else(|| "repo_code".to_string()),
+        path: path.into(),
+        category: category.unwrap_or_else(|| "repo_code".to_string()).into(),
         project_name: Some(repo_id.to_string()),
         root_label: Some(repo_id.to_string()),
         line,

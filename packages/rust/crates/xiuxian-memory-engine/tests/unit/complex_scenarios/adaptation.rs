@@ -1,17 +1,18 @@
-use super::{Episode, TestResult, test_store, test_store_with_dim};
+use super::{Episode, EpisodeDraft, TestResult, test_store, test_store_with_dim};
 
 #[test]
 fn test_self_evolution_from_feedback() -> TestResult {
     let store = test_store("test");
     let encoder = store.encoder();
 
-    let ep1 = Episode::new(
-        "ep-1".to_string(),
-        "fix network timeout".to_string(),
-        encoder.encode("fix network timeout"),
-        "Increased timeout to 30s".to_string(),
-        "success".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "fix network timeout".to_string(),
+        intent_embedding: encoder.encode("fix network timeout"),
+        experience: "Increased timeout to 30s".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(ep1.clone())?;
 
     let initial_q = store.q_table.get_q("ep-1");
@@ -27,13 +28,14 @@ fn test_self_evolution_from_feedback() -> TestResult {
         "Q-value should increase after success"
     );
 
-    let ep2 = Episode::new(
-        "ep-2".to_string(),
-        "debug api crash".to_string(),
-        encoder.encode("debug api crash"),
-        "Restarted service".to_string(),
-        "failure".to_string(),
-    );
+    let ep2 = Episode::new(EpisodeDraft {
+        id: ("ep-2".to_string()).into(),
+        intent: "debug api crash".to_string(),
+        intent_embedding: encoder.encode("debug api crash"),
+        experience: "Restarted service".to_string(),
+        outcome: "failure".to_string(),
+        scope: None,
+    });
     store.store(ep2)?;
 
     store.update_q("ep-2", 0.0);
@@ -68,13 +70,14 @@ fn test_two_phase_noise_reduction() -> TestResult {
     ];
 
     for (i, (intent, exp, outcome)) in intents.iter().enumerate() {
-        let ep = Episode::new(
-            format!("ep-{i}"),
-            intent.to_string(),
-            encoder.encode(intent),
-            exp.to_string(),
-            outcome.to_string(),
-        );
+        let ep = Episode::new(EpisodeDraft {
+            id: (format!("ep-{i}")).into(),
+            intent: intent.to_string(),
+            intent_embedding: encoder.encode(intent),
+            experience: exp.to_string(),
+            outcome: outcome.to_string(),
+            scope: None,
+        });
         store.store(ep)?;
     }
 
@@ -107,13 +110,14 @@ fn test_q_learning_convergence_scenario() -> TestResult {
     let store = test_store("test");
     let encoder = store.encoder();
 
-    let ep = Episode::new(
-        "converge-test".to_string(),
-        "test task".to_string(),
-        encoder.encode("test task"),
-        "Did X".to_string(),
-        "success".to_string(),
-    );
+    let ep = Episode::new(EpisodeDraft {
+        id: ("converge-test".to_string()).into(),
+        intent: "test task".to_string(),
+        intent_embedding: encoder.encode("test task"),
+        experience: "Did X".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(ep)?;
 
     let mut q_values = vec![0.5];
@@ -144,27 +148,30 @@ fn test_conflicting_experiences() -> TestResult {
     let encoder = store.encoder();
     let intent = "fix critical bug";
 
-    let ep1 = Episode::new(
-        "fix-1".to_string(),
-        intent.to_string(),
-        encoder.encode(intent),
-        "Solution A worked".to_string(),
-        "success".to_string(),
-    );
-    let ep2 = Episode::new(
-        "fix-2".to_string(),
-        intent.to_string(),
-        encoder.encode(intent),
-        "Solution B failed".to_string(),
-        "failure".to_string(),
-    );
-    let ep3 = Episode::new(
-        "fix-3".to_string(),
-        intent.to_string(),
-        encoder.encode(intent),
-        "Solution C worked better".to_string(),
-        "success".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("fix-1".to_string()).into(),
+        intent: intent.to_string(),
+        intent_embedding: encoder.encode(intent),
+        experience: "Solution A worked".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
+    let ep2 = Episode::new(EpisodeDraft {
+        id: ("fix-2".to_string()).into(),
+        intent: intent.to_string(),
+        intent_embedding: encoder.encode(intent),
+        experience: "Solution B failed".to_string(),
+        outcome: "failure".to_string(),
+        scope: None,
+    });
+    let ep3 = Episode::new(EpisodeDraft {
+        id: ("fix-3".to_string()).into(),
+        intent: intent.to_string(),
+        intent_embedding: encoder.encode(intent),
+        experience: "Solution C worked better".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
 
     store.store(ep1)?;
     store.store(ep2)?;
@@ -197,20 +204,22 @@ fn test_conflicting_experiences() -> TestResult {
 fn test_utility_similarity_tradeoff() -> TestResult {
     let store = test_store_with_dim("test", 4);
 
-    let ep1 = Episode::new(
-        "high-sim-low-q".to_string(),
-        "debug api timeout".to_string(),
-        vec![0.95, 0.05, 0.0, 0.0],
-        "Old failed fix".to_string(),
-        "failure".to_string(),
-    );
-    let ep2 = Episode::new(
-        "low-sim-high-q".to_string(),
-        "fix database connection pool".to_string(),
-        vec![0.0, 1.0, 0.0, 0.0],
-        "New successful fix".to_string(),
-        "success".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("high-sim-low-q".to_string()).into(),
+        intent: "debug api timeout".to_string(),
+        intent_embedding: vec![0.95, 0.05, 0.0, 0.0],
+        experience: "Old failed fix".to_string(),
+        outcome: "failure".to_string(),
+        scope: None,
+    });
+    let ep2 = Episode::new(EpisodeDraft {
+        id: ("low-sim-high-q".to_string()).into(),
+        intent: "fix database connection pool".to_string(),
+        intent_embedding: vec![0.0, 1.0, 0.0, 0.0],
+        experience: "New successful fix".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
 
     store.store(ep1)?;
     store.store(ep2)?;

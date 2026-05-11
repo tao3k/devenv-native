@@ -56,8 +56,8 @@ fn parser_embedded_subprocess_error_path_requires_matching_parent_boundary() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "inline_review".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("inline_review".to_string()).into(),
             detail: "embedded_subprocess_error_missing_boundary",
         }
     );

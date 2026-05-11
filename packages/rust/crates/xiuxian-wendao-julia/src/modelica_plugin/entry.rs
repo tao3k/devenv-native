@@ -4,9 +4,9 @@ use std::ffi::OsStr;
 use std::path::Path;
 
 use xiuxian_wendao_core::repo_intelligence::{
-    AnalysisContext, ModuleRecord, PluginAnalysisOutput, PluginLinkContext, PluginRegistry,
-    RegisteredRepository, RelationRecord, RepoIntelligenceError, RepoIntelligencePlugin,
-    RepoSourceFile, RepositoryAnalysisOutput, SymbolRecord,
+    AnalysisContext, BuiltinPluginId, ModuleRecord, PluginAnalysisOutput, PluginLinkContext,
+    PluginRegistry, RegisteredRepository, RelationRecord, RepoIntelligenceError,
+    RepoIntelligencePlugin, RepoSourceFile, RepositoryAnalysisOutput, SymbolRecord,
 };
 
 use super::analysis;
@@ -32,7 +32,7 @@ pub fn register_modelica_into(registry: &mut PluginRegistry) -> Result<(), RepoI
 
 inventory::submit! {
     xiuxian_wendao_core::repo_intelligence::BuiltinPluginRegistrar::new(
-        MODELICA_PLUGIN_ID,
+        BuiltinPluginId::new(MODELICA_PLUGIN_ID),
         register_modelica_into,
     )
 }
@@ -81,13 +81,14 @@ impl RepoIntelligencePlugin for ModelicaRepoIntelligencePlugin {
                     format!("{module_name}.{}", declaration.name)
                 };
                 SymbolRecord {
-                    repo_id: context.repository.id.clone(),
-                    symbol_id: format!("repo:{}:symbol:{qualified_name}", context.repository.id),
-                    module_id: Some(module_id.clone()),
+                    repo_id: (context.repository.id.clone()).into(),
+                    symbol_id: (format!("repo:{}:symbol:{qualified_name}", context.repository.id))
+                        .into(),
+                    module_id: Some((module_id.clone()).into()),
                     name: declaration.name,
                     qualified_name,
                     kind: declaration.kind,
-                    path: file.path.clone(),
+                    path: (file.path.clone()).into(),
                     line_start: declaration.line_start,
                     line_end: declaration.line_end,
                     signature: Some(declaration.signature),
@@ -99,10 +100,10 @@ impl RepoIntelligencePlugin for ModelicaRepoIntelligencePlugin {
             .collect::<Vec<_>>();
         Ok(PluginAnalysisOutput {
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id,
+                repo_id: (context.repository.id.clone()).into(),
+                module_id: module_id.into(),
                 qualified_name: module_name,
-                path: file.path.clone(),
+                path: (file.path.clone()).into(),
             }],
             symbols,
             imports: Vec::new(),

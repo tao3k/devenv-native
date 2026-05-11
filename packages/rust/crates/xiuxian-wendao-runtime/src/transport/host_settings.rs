@@ -25,6 +25,23 @@ pub struct ParsedRerankFlightHostOverrides {
     pub positional_args: Vec<String>,
 }
 
+/// Inputs used to resolve effective rerank Flight host settings.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EffectiveRerankFlightHostSettingsInput {
+    /// Explicit schema-version override from the command line.
+    pub schema_version_override: Option<String>,
+    /// Explicit rerank-dimension override from the command line.
+    pub rerank_dimension_override: Option<usize>,
+    /// Schema version supplied by file-backed configuration.
+    pub file_backed_schema_version: Option<String>,
+    /// Weights supplied by file-backed configuration.
+    pub file_backed_weights: Option<RerankScoreWeights>,
+    /// Fallback dimension supplied by env/default resolution.
+    pub fallback_dimension: usize,
+    /// Fallback weights supplied by env/default resolution.
+    pub fallback_weights: RerankScoreWeights,
+}
+
 /// Split optional explicit host-setting overrides from binary args.
 ///
 /// Returns parsed overrides plus the remaining positional args.
@@ -94,19 +111,17 @@ where
 /// 2. env/default fallback weights supplied by the caller
 #[must_use]
 pub fn resolve_effective_rerank_flight_host_settings(
-    schema_version_override: Option<String>,
-    rerank_dimension_override: Option<usize>,
-    file_backed_schema_version: Option<String>,
-    file_backed_weights: Option<RerankScoreWeights>,
-    fallback_dimension: usize,
-    fallback_weights: RerankScoreWeights,
+    input: EffectiveRerankFlightHostSettingsInput,
 ) -> EffectiveRerankFlightHostSettings {
     EffectiveRerankFlightHostSettings {
-        expected_schema_version: schema_version_override
-            .or(file_backed_schema_version)
+        expected_schema_version: input
+            .schema_version_override
+            .or(input.file_backed_schema_version)
             .unwrap_or_else(|| "v2".to_string()),
-        rerank_dimension: rerank_dimension_override.unwrap_or(fallback_dimension),
-        rerank_weights: file_backed_weights.unwrap_or(fallback_weights),
+        rerank_dimension: input
+            .rerank_dimension_override
+            .unwrap_or(input.fallback_dimension),
+        rerank_weights: input.file_backed_weights.unwrap_or(input.fallback_weights),
     }
 }
 

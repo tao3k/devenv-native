@@ -3,7 +3,7 @@ use crate::analyzers::ImportSearchQuery;
 #[test]
 fn canonical_import_query_text_preserves_package_and_module_identity() {
     let query = ImportSearchQuery {
-        repo_id: "alpha/repo".to_string(),
+        repo_id: "alpha/repo".to_string().into(),
         package: Some("SciMLBase".to_string()),
         module: Some("BaseModelica".to_string()),
         limit: 10,
@@ -18,7 +18,7 @@ fn canonical_import_query_text_preserves_package_and_module_identity() {
 #[test]
 fn canonical_import_query_text_uses_stable_wildcards_for_missing_filters() {
     let query = ImportSearchQuery {
-        repo_id: "alpha/repo".to_string(),
+        repo_id: "alpha/repo".to_string().into(),
         package: Some("SciMLBase".to_string()),
         module: None,
         limit: 10,

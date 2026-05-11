@@ -64,7 +64,7 @@ fn runtime_frontier_plan_returns_waiting_idle_outcome() {
     instance.node_states[1].status = NodeRuntimeStatus::Completed;
     instance.node_states[3].status = NodeRuntimeStatus::Executing;
     instance.waits.push(WaitRegistration {
-        process_id: Some("parallel_wait_only_frontier_plan".to_string()),
+        process_id: (Some("parallel_wait_only_frontier_plan".into())).into(),
         node_index: 3,
         blocking_node_index: None,
         kind: WaitKind::ExternalEvent,

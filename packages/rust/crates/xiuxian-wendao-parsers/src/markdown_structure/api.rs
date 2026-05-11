@@ -33,7 +33,7 @@ pub(crate) fn parse_markdown_structure(body: &str) -> MarkdownStructure {
     for node in root.descendants() {
         let sourcepos = node.data().sourcepos;
         let span = MarkdownOccurrenceSpan {
-            byte_range: sourcepos_to_byte_range(body, sourcepos),
+            byte_range: sourcepos_to_byte_range(body, sourcepos).map(|range| range.as_tuple()),
             line_range: (sourcepos.start.line.max(1), sourcepos.end.line.max(1)),
         };
 
@@ -98,7 +98,7 @@ pub(crate) fn parse_markdown_document_metadata(body: &str) -> MarkdownDocumentMe
 
     for node in root.descendants() {
         let sourcepos = node.data().sourcepos;
-        let byte_range = sourcepos_to_byte_range(body, sourcepos);
+        let byte_range = sourcepos_to_byte_range(body, sourcepos).map(|range| range.as_tuple());
 
         match &node.data().value {
             NodeValue::Paragraph if lead.is_none() => {

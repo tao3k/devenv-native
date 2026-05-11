@@ -6,22 +6,23 @@ use super::data::{
     BpmnDataStoreReferenceSnapshot, BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot,
 };
 use super::definitions::BpmnResourceRoleSnapshot;
+use super::types::{BpmnSnapshotFlag, BpmnSnapshotId, BpmnSnapshotKind, BpmnSnapshotType};
 
 /// Snapshot of one BPMN `process` metadata shell.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnProcessSnapshot {
     /// Optional stable process identifier.
-    pub process_id: Option<String>,
+    pub process_id: Option<BpmnSnapshotId>,
     /// Optional human-readable process name.
     pub name: Option<String>,
     /// Optional BPMN process type marker.
     #[serde(default)]
-    pub process_type: Option<String>,
+    pub process_type: Option<BpmnSnapshotType>,
     /// Optional BPMN closed-process marker.
     #[serde(default)]
-    pub is_closed: Option<bool>,
+    pub is_closed: Option<BpmnSnapshotFlag>,
     /// Optional BPMN `isExecutable` marker.
-    pub is_executable: Option<bool>,
+    pub is_executable: Option<BpmnSnapshotFlag>,
     /// Optional BPMN definitional collaboration reference.
     #[serde(default)]
     pub definitional_collaboration_ref: Option<String>,
@@ -113,23 +114,23 @@ pub struct BpmnProcessSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnFlowElementMetadataSnapshot {
     /// Local BPMN flow-element kind.
-    pub element_kind: String,
+    pub element_kind: BpmnSnapshotKind,
     /// Optional stable flow-element identifier.
-    pub element_id: Option<String>,
+    pub element_id: Option<BpmnSnapshotId>,
     /// Optional human-readable flow-element name.
     pub name: Option<String>,
     /// Whether this flow element declares direct `auditing` metadata.
     #[serde(default)]
-    pub has_auditing: bool,
+    pub has_auditing: BpmnSnapshotFlag,
     /// Optional direct `auditing` identifier.
     #[serde(default)]
-    pub auditing_id: Option<String>,
+    pub auditing_id: Option<BpmnSnapshotId>,
     /// Whether this flow element declares direct `monitoring` metadata.
     #[serde(default)]
-    pub has_monitoring: bool,
+    pub has_monitoring: BpmnSnapshotFlag,
     /// Optional direct `monitoring` identifier.
     #[serde(default)]
-    pub monitoring_id: Option<String>,
+    pub monitoring_id: Option<BpmnSnapshotId>,
     /// Direct `categoryValueRef` values preserved in source order.
     #[serde(default)]
     pub category_value_refs: Vec<String>,

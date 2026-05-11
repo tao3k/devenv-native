@@ -4,7 +4,7 @@ use crate::lint_api::LintIssue;
 
 pub(super) fn diagram_issue(source: &BpmnSourceFile, tag: &str) -> LintIssue {
     let source_id = &source.source_id;
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.metadata_di_surface",
         "BPMN diagram interchange is metadata-only",
         format!("Source '{source_id}' contains BPMN diagram-interchange element '<{tag}>'."),

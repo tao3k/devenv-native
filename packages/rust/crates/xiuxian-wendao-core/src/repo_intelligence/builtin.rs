@@ -1,9 +1,29 @@
+//! Inventory-backed builtin plugin registration for repository intelligence.
+
 use super::errors::RepoIntelligenceError;
 use super::registry::PluginRegistry;
 
+/// Static identifier for a builtin repository-intelligence plugin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BuiltinPluginId(&'static str);
+
+impl BuiltinPluginId {
+    /// Creates a static builtin plugin identifier.
+    #[must_use]
+    pub const fn new(value: &'static str) -> Self {
+        Self(value)
+    }
+
+    /// Borrows the plugin identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        self.0
+    }
+}
+
 /// One plugin-owned builtin registrar that can extend a host registry.
 pub struct BuiltinPluginRegistrar {
-    plugin_id: &'static str,
+    plugin_id: BuiltinPluginId,
     register: fn(&mut PluginRegistry) -> Result<(), RepoIntelligenceError>,
 }
 
@@ -11,7 +31,7 @@ impl BuiltinPluginRegistrar {
     /// Create one builtin registrar entry.
     #[must_use]
     pub const fn new(
-        plugin_id: &'static str,
+        plugin_id: BuiltinPluginId,
         register: fn(&mut PluginRegistry) -> Result<(), RepoIntelligenceError>,
     ) -> Self {
         Self {
@@ -23,7 +43,7 @@ impl BuiltinPluginRegistrar {
     /// Return the stable plugin identifier for this registrar.
     #[must_use]
     pub const fn plugin_id(&self) -> &'static str {
-        self.plugin_id
+        self.plugin_id.as_str()
     }
 
     /// Register this plugin into the provided registry.

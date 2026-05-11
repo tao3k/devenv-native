@@ -1,6 +1,8 @@
 //! Projection regression coverage for the Julia compute host read model.
 
-use xiuxian_memory_engine::{Episode, EpisodeStore, MemoryProjectionFilter, StoreConfig};
+use xiuxian_memory_engine::{
+    Episode, EpisodeDraft, EpisodeStore, MemoryProjectionFilter, StoreConfig,
+};
 
 fn make_store() -> Result<(tempfile::TempDir, EpisodeStore), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
@@ -17,14 +19,14 @@ fn memory_projection_rows_export_read_only_episode_features()
 -> Result<(), Box<dyn std::error::Error>> {
     let (_temp, store) = make_store()?;
 
-    let mut alpha = Episode::new_scoped(
-        "episode-alpha".to_string(),
-        "alpha intent".to_string(),
-        vec![1.0, 0.0, 0.0, 0.0],
-        "alpha experience".to_string(),
-        "success".to_string(),
-        "alpha",
-    );
+    let mut alpha = Episode::new(EpisodeDraft {
+        id: ("episode-alpha".to_string()).into(),
+        intent: "alpha intent".to_string(),
+        intent_embedding: vec![1.0, 0.0, 0.0, 0.0],
+        experience: "alpha experience".to_string(),
+        outcome: "success".to_string(),
+        scope: Some(("alpha").to_string()),
+    });
     alpha.retrieval_count = 7;
     alpha.success_count = 5;
     alpha.failure_count = 2;
@@ -33,14 +35,14 @@ fn memory_projection_rows_export_read_only_episode_features()
     store.store(alpha)?;
     let alpha_q = store.update_q("episode-alpha", 1.0);
 
-    let mut beta = Episode::new_scoped(
-        "episode-beta".to_string(),
-        "beta intent".to_string(),
-        vec![0.0, 1.0, 0.0, 0.0],
-        "beta experience".to_string(),
-        "pending".to_string(),
-        "beta",
-    );
+    let mut beta = Episode::new(EpisodeDraft {
+        id: ("episode-beta".to_string()).into(),
+        intent: "beta intent".to_string(),
+        intent_embedding: vec![0.0, 1.0, 0.0, 0.0],
+        experience: "beta experience".to_string(),
+        outcome: "pending".to_string(),
+        scope: Some(("beta").to_string()),
+    });
     beta.retrieval_count = 1;
     beta.created_at = 3_000;
     beta.updated_at = 4_000;
@@ -83,14 +85,14 @@ fn memory_projection_rows_filter_by_scope_and_limit() -> Result<(), Box<dyn std:
         ("episode-beta-1", "beta"),
         ("episode-alpha-2", "alpha"),
     ] {
-        let episode = Episode::new_scoped(
-            episode_id.to_string(),
-            format!("{scope} intent"),
-            vec![0.1, 0.2, 0.3, 0.4],
-            format!("{scope} experience"),
-            "pending".to_string(),
-            scope,
-        );
+        let episode = Episode::new(EpisodeDraft {
+            id: (episode_id.to_string()).into(),
+            intent: format!("{scope} intent"),
+            intent_embedding: vec![0.1, 0.2, 0.3, 0.4],
+            experience: format!("{scope} experience"),
+            outcome: "pending".to_string(),
+            scope: Some((scope).to_string()),
+        });
         store.store(episode)?;
     }
 

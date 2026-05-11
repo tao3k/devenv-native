@@ -9,6 +9,7 @@ use xiuxian_wendao_server::transport::{
 };
 
 use super::service::build_studio_search_flight_service_with_repo_provider;
+use crate::studio::types::{UiConfig, UiRepoProjectConfig};
 use crate::studio::{GatewayState, StudioState};
 use xiuxian_db_store::lance_batch_to_engine_batch;
 use xiuxian_wendao::repo_index::RepoCodeDocument;
@@ -66,16 +67,10 @@ impl RepoSearchFlightRouteProvider for StudioRepoSearchFlightRouteProvider {
         let result = if let Some(studio) = self.studio.as_ref() {
             let runtime_request = runtime_repo_search_request(request);
             let repository =
-                crate::studio::configured_repository(studio.as_ref(), request.repo_id.trim())
-                    .map_err(|error| {
-                        format!(
-                            "failed to resolve repo-search repository `{}`: {error}",
-                            request.repo_id.trim()
-                        )
-                    })?;
+                crate::studio::configured_repository(studio.as_ref(), request.repo_id.trim()).ok();
             search_repo_content_batch_with_repository(
                 self.search_plane.as_ref(),
-                Some(&repository),
+                repository.as_ref(),
                 &runtime_request,
             )
             .await
@@ -94,6 +89,7 @@ impl RepoSearchFlightRouteProvider for StudioRepoSearchFlightRouteProvider {
 pub struct StudioFlightRoots {
     project_root: std::path::PathBuf,
     config_root: std::path::PathBuf,
+    direct_repo_id: Option<String>,
 }
 
 impl StudioFlightRoots {
@@ -103,7 +99,16 @@ impl StudioFlightRoots {
         Self {
             project_root,
             config_root,
+            direct_repo_id: None,
         }
+    }
+
+    /// Register the project root as a direct repository when the runtime config
+    /// does not already declare the requested repo id.
+    #[must_use]
+    pub fn with_direct_repo_id(mut self, repo_id: impl Into<String>) -> Self {
+        self.direct_repo_id = Some(repo_id.into());
+        self
     }
 }
 
@@ -258,13 +263,35 @@ pub(crate) fn build_studio_flight_service_for_roots_with_weights(
     let StudioFlightRoots {
         project_root,
         config_root,
+        direct_repo_id,
     } = roots;
     let studio = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
         plugin_registry,
-        project_root,
+        project_root.clone(),
         config_root,
         search_plane.as_ref().clone(),
     );
+    if let Some(repo_id) = direct_repo_id
+        && !studio
+            .configured_repo_projects()
+            .iter()
+            .any(|repository| repository.id == repo_id)
+    {
+        studio.bootstrap_runtime_ui_config(
+            UiConfig {
+                projects: Vec::new(),
+                repo_projects: vec![UiRepoProjectConfig {
+                    id: repo_id,
+                    root: Some(project_root.display().to_string()),
+                    url: None,
+                    git_ref: None,
+                    refresh: Some("manual".to_string()),
+                    plugins: vec!["markdown-parser".to_string()],
+                }],
+            },
+            false,
+        );
+    }
     let gateway_state = Arc::new(GatewayState {
         index: None,
         signal_tx: None,

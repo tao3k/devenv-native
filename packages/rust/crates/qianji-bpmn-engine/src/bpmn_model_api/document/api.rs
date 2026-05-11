@@ -20,7 +20,8 @@ pub struct BpmnDocumentSnapshot {
 impl BpmnDocumentSnapshot {
     /// Returns one process snapshot by id.
     #[must_use]
-    pub fn process(&self, process_id: &str) -> Option<&BpmnProcessSnapshot> {
+    pub fn process(&self, process_id: impl AsRef<str>) -> Option<&BpmnProcessSnapshot> {
+        let process_id = process_id.as_ref();
         self.processes
             .iter()
             .find(|process| process.process_id.as_deref() == Some(process_id))

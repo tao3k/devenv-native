@@ -137,7 +137,7 @@ pub(super) fn build_local_toc_documents_with_ignore(
     })?;
     documents.sort_by(|left, right| left.doc_id.cmp(&right.doc_id));
     Ok(DocsPageIndexDocumentsResult {
-        repo_id: LOCAL_SCOPE_REPO_ID.to_string(),
+        repo_id: LOCAL_SCOPE_REPO_ID.into(),
         documents,
     })
 }
@@ -167,7 +167,7 @@ pub(crate) fn build_local_page_index_trees_with_ignore(
     })?;
     trees.sort_by(|left, right| left.doc_id.cmp(&right.doc_id));
     Ok(DocsPageIndexTreesResult {
-        repo_id: LOCAL_SCOPE_REPO_ID.to_string(),
+        repo_id: LOCAL_SCOPE_REPO_ID.into(),
         trees,
     })
 }
@@ -215,10 +215,10 @@ fn build_local_projected_page_index_document(
     let path = display_absolute_path(file_path);
     let doc_id = display_scope_path(file_path, canonical_client_root, scope);
     Ok(ProjectedPageIndexDocument {
-        repo_id: LOCAL_SCOPE_REPO_ID.to_string(),
-        page_id: local_page_id(doc_id.as_str()),
-        path,
-        doc_id,
+        repo_id: LOCAL_SCOPE_REPO_ID.into(),
+        page_id: local_page_id(doc_id.as_str()).into(),
+        path: path.into(),
+        doc_id: doc_id.into(),
         title: outline.title.clone(),
         sections: build_local_outline_sections(&outline),
     })
@@ -236,11 +236,11 @@ fn build_local_projected_page_index_tree(
     let title = note.document.core.title.clone();
     let roots = build_local_page_index_nodes(doc_id.as_str(), title.as_str(), &note);
     Ok(ProjectedPageIndexTree {
-        repo_id: LOCAL_SCOPE_REPO_ID.to_string(),
-        page_id,
+        repo_id: LOCAL_SCOPE_REPO_ID.into(),
+        page_id: page_id.into(),
         kind: local_projection_kind(doc_id.as_str(), note.document.core.doc_type.as_deref()),
-        path,
-        doc_id,
+        path: path.into(),
+        doc_id: doc_id.into(),
         title,
         root_count: roots.len(),
         roots,
@@ -268,35 +268,33 @@ fn load_local_note(file_path: &Path) -> Result<MarkdownNote> {
 fn build_local_outline_sections(
     outline: &MarkdownOutlineDocument,
 ) -> Vec<ProjectedPageIndexSection> {
-    let mut sections = Vec::new();
-    let mut heading_stack = Vec::<String>::new();
-
     if outline.headings.is_empty() {
-        sections.push(ProjectedPageIndexSection {
+        return vec![ProjectedPageIndexSection {
             heading_path: outline.title.clone(),
             title: outline.title.clone(),
             level: 1,
             line_range: (1, outline.line_count.max(1)),
             attributes: Vec::new(),
-        });
-        return sections;
+        }];
     }
 
-    for heading in &outline.headings {
-        if heading_stack.len() >= heading.level {
-            heading_stack.truncate(heading.level.saturating_sub(1));
-        }
-        heading_stack.push(heading.title.clone());
-        sections.push(ProjectedPageIndexSection {
-            heading_path: heading_stack.join(" / "),
-            title: heading.title.clone(),
-            level: heading.level,
-            line_range: heading.line_range,
-            attributes: Vec::new(),
-        });
-    }
-
-    sections
+    outline
+        .headings
+        .iter()
+        .scan(Vec::<String>::new(), |heading_stack, heading| {
+            if heading_stack.len() >= heading.level {
+                heading_stack.truncate(heading.level.saturating_sub(1));
+            }
+            heading_stack.push(heading.title.clone());
+            Some(ProjectedPageIndexSection {
+                heading_path: heading_stack.join(" / "),
+                title: heading.title.clone(),
+                level: heading.level,
+                line_range: heading.line_range,
+                attributes: Vec::new(),
+            })
+        })
+        .collect()
 }
 
 fn build_local_page_index_nodes(
@@ -407,30 +405,37 @@ fn collect_section_links(
     section: &MarkdownSection,
     targets: &[MarkdownTargetOccurrence],
 ) -> Vec<ProjectedPageIndexLink> {
-    let mut links = Vec::new();
-    for occurrence in targets {
-        if !matches!(
-            occurrence.kind,
-            MarkdownTargetOccurrenceKind::MarkdownLink
-                | MarkdownTargetOccurrenceKind::MarkdownImage
-                | MarkdownTargetOccurrenceKind::WikiLink
-                | MarkdownTargetOccurrenceKind::WikiEmbed
-        ) {
-            continue;
-        }
-        if occurrence.line_range.0 < section.line_start()
-            || occurrence.line_range.0 > section.line_end()
-        {
-            continue;
-        }
-        let link = ProjectedPageIndexLink {
-            kind: local_target_kind_label(occurrence.kind).to_string(),
+    targets
+        .iter()
+        .filter(|occurrence| is_local_page_index_link_occurrence(section, occurrence))
+        .map(|occurrence| ProjectedPageIndexLink {
+            kind: local_target_kind_label(occurrence.kind).into(),
             target: occurrence.target.clone(),
             surface: local_target_surface(occurrence),
-        };
-        if !links.contains(&link) {
-            links.push(link);
-        }
+        })
+        .fold(Vec::new(), push_unique_projected_link)
+}
+
+fn is_local_page_index_link_occurrence(
+    section: &MarkdownSection,
+    occurrence: &MarkdownTargetOccurrence,
+) -> bool {
+    matches!(
+        occurrence.kind,
+        MarkdownTargetOccurrenceKind::MarkdownLink
+            | MarkdownTargetOccurrenceKind::MarkdownImage
+            | MarkdownTargetOccurrenceKind::WikiLink
+            | MarkdownTargetOccurrenceKind::WikiEmbed
+    ) && occurrence.line_range.0 >= section.line_start()
+        && occurrence.line_range.0 <= section.line_end()
+}
+
+fn push_unique_projected_link(
+    mut links: Vec<ProjectedPageIndexLink>,
+    link: ProjectedPageIndexLink,
+) -> Vec<ProjectedPageIndexLink> {
+    if !links.contains(&link) {
+        links.push(link);
     }
     links
 }

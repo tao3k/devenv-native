@@ -13,21 +13,15 @@ use std::hash::BuildHasher;
 pub fn extract_observations<S: BuildHasher>(
     attributes: &HashMap<String, String, S>,
 ) -> Vec<CodeObservation> {
-    let mut observations = Vec::new();
-
-    if let Some(value) = attributes.get("OBSERVE")
-        && let Some(observation) = CodeObservation::parse(value)
-    {
-        observations.push(observation);
-    }
-
-    for (key, value) in attributes {
-        if key.starts_with("OBSERVE_")
-            && let Some(observation) = CodeObservation::parse(value)
-        {
-            observations.push(observation);
-        }
-    }
-
-    observations
+    attributes
+        .get("OBSERVE")
+        .and_then(|value| CodeObservation::parse(value))
+        .into_iter()
+        .chain(
+            attributes
+                .iter()
+                .filter(|(key, _)| key.starts_with("OBSERVE_"))
+                .filter_map(|(_, value)| CodeObservation::parse(value)),
+        )
+        .collect()
 }

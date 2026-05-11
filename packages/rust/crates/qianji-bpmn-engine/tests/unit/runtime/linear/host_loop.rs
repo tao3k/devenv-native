@@ -4,8 +4,7 @@ use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
     BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, InstanceLifecycle,
     NodeRuntimeStatus, PendingHostWorkKind, PendingHostWorkResult, ProcessKey, UserTaskOutcome,
-    WaitKind, advance_instance, apply_event_poll_outcome, apply_pending_host_work_result,
-    create_instance,
+    WaitKind, advance_instance, apply_event_poll_outcome, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -47,7 +46,7 @@ async fn runtime_human_interaction_loop_advances_from_engine_work_to_human_wait_
     assert_eq!(instance.active_tokens[0].node_index, 2);
 
     let token_id = pending[0].token_id;
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

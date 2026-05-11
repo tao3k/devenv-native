@@ -12,7 +12,7 @@ mod config;
 mod health;
 mod query;
 mod registry;
-mod state;
+pub(crate) mod state;
 mod status;
 
 pub(crate) use command::handle;

@@ -27,7 +27,7 @@ fn test_saliency_touch_and_get_with_valkey() -> Result<(), String> {
 
     let first = valkey_saliency_touch_with_valkey(
         LinkGraphSaliencyTouchRequest {
-            node_id: "note-a".to_string(),
+            node_id: "note-a".to_string().into(),
             activation_delta: 2,
             saliency_base: Some(5.0),
             decay_rate: Some(0.05),
@@ -43,7 +43,7 @@ fn test_saliency_touch_and_get_with_valkey() -> Result<(), String> {
 
     let second = valkey_saliency_touch_with_valkey(
         LinkGraphSaliencyTouchRequest {
-            node_id: "note-a".to_string(),
+            node_id: "note-a".to_string().into(),
             activation_delta: 3,
             saliency_base: None,
             decay_rate: None,

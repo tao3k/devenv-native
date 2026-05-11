@@ -1,7 +1,7 @@
 //! Public frontmatter parsing API and SKILL.md validation helpers.
 
 use super::raw::{split_frontmatter, split_frontmatter_raw};
-use super::types::NoteFrontmatter;
+use super::types::{NoteCategory, NoteFrontmatter};
 use chrono::{DateTime, NaiveDateTime};
 use serde_yaml::{Mapping, Value};
 use std::fmt;
@@ -73,7 +73,7 @@ pub fn parse_frontmatter(content: &str) -> NoteFrontmatter {
         title: mapping_string(mapping, "title"),
         description: mapping_string(mapping, "description"),
         name: mapping_string(mapping, "name"),
-        category: mapping_string(mapping, "category"),
+        category: mapping_string(mapping, "category").map(NoteCategory::new),
         tags: mapping_string_vec(mapping, "tags"),
         routing_keywords: metadata.map_or_else(Vec::new, |value| {
             mapping_string_vec(value, "routing_keywords")
@@ -250,7 +250,7 @@ fn frontmatter_from_mapping(mapping: &Mapping) -> NoteFrontmatter {
         title: mapping_string(mapping, "title"),
         description: mapping_string(mapping, "description"),
         name: mapping_string(mapping, "name"),
-        category: mapping_string(mapping, "category"),
+        category: mapping_string(mapping, "category").map(NoteCategory::new),
         tags: mapping_string_vec(mapping, "tags"),
         routing_keywords: metadata.map_or_else(Vec::new, |value| {
             mapping_string_vec(value, "routing_keywords")

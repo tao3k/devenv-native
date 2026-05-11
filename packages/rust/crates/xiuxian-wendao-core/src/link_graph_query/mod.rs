@@ -1,3 +1,5 @@
+//! Link-graph query options, filters, sorting, and enum contracts.
+
 mod enums;
 mod filters;
 mod options;

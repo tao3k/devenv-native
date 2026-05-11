@@ -3,7 +3,7 @@
 mod model;
 
 pub use model::{
-    BenchmarkState, ContractValidationState, JuliaAcceleratorDiagnostics, JuliaReadinessEvidence,
-    JuliaThreadPinningDiagnostics, JuliaThreadPinningState, JuliaThreadTopology,
-    ManifestReadinessState, WarmupState,
+    BenchmarkState, ContractValidationState, JuliaAcceleratorDiagnostics, JuliaAcceleratorState,
+    JuliaAcceleratorStateInput, JuliaReadinessEvidence, JuliaThreadPinningDiagnostics,
+    JuliaThreadPinningState, JuliaThreadTopology, ManifestReadinessState, WarmupState,
 };

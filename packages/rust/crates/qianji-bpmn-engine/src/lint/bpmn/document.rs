@@ -28,7 +28,7 @@ pub(super) fn issue_from_bpmn_document_error(error: &BpmnEngineError) -> Option<
 }
 
 fn invalid_xml_issue(source_id: &str, message: &str, offset: Option<u64>) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.invalid_xml",
         "BPMN XML is not well-formed",
         format!("Source '{source_id}' cannot be parsed as XML: {message}"),
@@ -49,7 +49,7 @@ fn invalid_xml_issue(source_id: &str, message: &str, offset: Option<u64>) -> Lin
 }
 
 fn missing_root_element_issue(source_id: &str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.missing_root_element",
         "BPMN file has no root XML element",
         format!("Source '{source_id}' does not contain a root XML element."),
@@ -68,7 +68,7 @@ fn missing_root_element_issue(source_id: &str) -> LintIssue {
 }
 
 fn missing_attribute_issue(source_id: &str, element: &str, attribute: &str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.missing_attribute",
         "Required BPMN attribute is missing",
         format!("Element '<{element}>' in source '{source_id}' is missing required attribute '{attribute}'."),
@@ -93,7 +93,7 @@ fn unsupported_element_issue(source_id: &str, process_id: &str, element: &str) -
         return unsupported_complex_gateway_issue(source_id, process_id);
     }
 
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_element",
         "BPMN element is outside the supported subset",
         format!(
@@ -116,7 +116,7 @@ fn unsupported_element_issue(source_id: &str, process_id: &str, element: &str) -
 }
 
 fn unsupported_complex_gateway_issue(source_id: &str, process_id: &str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_complex_gateway",
         "Complex gateway execution is deferred",
         format!(
@@ -170,7 +170,7 @@ fn unsupported_complex_gateway_issue(source_id: &str, process_id: &str) -> LintI
 }
 
 fn missing_process_definitions_issue(source_id: &str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.missing_process_definitions",
         "BPMN file contains no process definitions",
         format!("Source '{source_id}' does not contain any `<process>` definitions."),

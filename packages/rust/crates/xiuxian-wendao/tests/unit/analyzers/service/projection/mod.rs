@@ -27,7 +27,7 @@ fn repo_projected_pages_wraps_projection_fixture() {
     let analysis = sample_projection_analysis("projection-sample");
     let result = build_repo_projected_pages(
         &RepoProjectedPagesQuery {
-            repo_id: "projection-sample".to_string(),
+            repo_id: "projection-sample".to_string().into(),
         },
         &analysis,
     );
@@ -41,13 +41,13 @@ fn repo_and_docs_gap_reports_share_the_same_surface() {
     let analysis = sample_projection_analysis("projection-sample");
     let repo_result = build_repo_projected_gap_report(
         &RepoProjectedGapReportQuery {
-            repo_id: "projection-sample".to_string(),
+            repo_id: "projection-sample".to_string().into(),
         },
         &analysis,
     );
     let docs_result = build_docs_projected_gap_report(
         &DocsProjectedGapReportQuery {
-            repo_id: "projection-sample".to_string(),
+            repo_id: "projection-sample".to_string().into(),
         },
         &analysis,
     );
@@ -60,7 +60,7 @@ fn docs_and_repo_projected_search_results_match() {
     let analysis = sample_projection_analysis("projection-sample");
     let repo_result = build_repo_projected_page_search(
         &RepoProjectedPageSearchQuery {
-            repo_id: "projection-sample".to_string(),
+            repo_id: "projection-sample".to_string().into(),
             query: "solve".to_string(),
             kind: None,
             limit: 10,
@@ -69,7 +69,7 @@ fn docs_and_repo_projected_search_results_match() {
     );
     let docs_result = build_docs_search(
         &DocsSearchQuery {
-            repo_id: "projection-sample".to_string(),
+            repo_id: "projection-sample".to_string().into(),
             query: "solve".to_string(),
             kind: None,
             limit: 10,
@@ -87,7 +87,7 @@ fn projected_page_index_trees_and_retrieval_wrap_the_fixture() {
     let trees = ok_or_panic(
         build_repo_projected_page_index_trees(
             &RepoProjectedPageIndexTreesQuery {
-                repo_id: "projection-sample".to_string(),
+                repo_id: "projection-sample".to_string().into(),
             },
             &analysis,
         ),
@@ -95,7 +95,7 @@ fn projected_page_index_trees_and_retrieval_wrap_the_fixture() {
     );
     let retrieval = build_repo_projected_retrieval(
         &RepoProjectedRetrievalQuery {
-            repo_id: "projection-sample".to_string(),
+            repo_id: "projection-sample".to_string().into(),
             query: "solve".to_string(),
             kind: None,
             limit: 10,
@@ -113,7 +113,7 @@ fn projected_page_index_trees_and_retrieval_wrap_the_fixture() {
 fn projected_page_search_with_artifacts_matches_direct_search() {
     let analysis = sample_projection_analysis("projection-artifacts");
     let query = RepoProjectedPageSearchQuery {
-        repo_id: "projection-artifacts".to_string(),
+        repo_id: "projection-artifacts".to_string().into(),
         query: "solve".to_string(),
         kind: None,
         limit: 10,
@@ -121,7 +121,7 @@ fn projected_page_search_with_artifacts_matches_direct_search() {
     let artifacts = ok_or_panic(
         repository_search_artifacts(
             &RepositoryAnalysisCacheKey {
-                repo_id: "projection-artifacts".to_string(),
+                repo_id: "projection-artifacts".to_string().into(),
                 checkout_root: "/virtual/repos/projection-artifacts".to_string(),
                 analysis_identity: "analysis:projection-artifacts".to_string(),
                 checkout_revision: Some("fixture".to_string()),

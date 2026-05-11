@@ -123,7 +123,7 @@ fn dmn_snapshot_preserves_decision_service_divider_line_placeholders() {
         Some("_DMNShape_DecisionService_1")
     );
     assert_eq!(shape.dmn_element_ref.as_deref(), Some("DecisionService_1"));
-    assert_eq!(shape.is_collapsed, Some(false));
+    assert_eq!(shape.is_collapsed.map(|flag| flag.get()), Some(false));
     assert_label_bounds(
         shape.label.as_ref(),
         Some("354"),
@@ -165,7 +165,12 @@ fn dmn_snapshot_preserves_listed_input_data_shape_metadata() {
         diagram.shapes[0].dmn_element_ref.as_deref(),
         Some("InputData_1")
     );
-    assert_eq!(diagram.shapes[0].is_listed_input_data, Some(true));
+    assert_eq!(
+        diagram.shapes[0]
+            .is_listed_input_data
+            .map(|flag| flag.get()),
+        Some(true)
+    );
     assert_eq!(diagram.shapes[0].is_collapsed, None);
     assert_bounds(
         diagram.shapes[0].bounds.as_ref(),

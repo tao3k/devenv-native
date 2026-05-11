@@ -5,7 +5,7 @@ use axum::extract::State;
 
 use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::router::handlers::graph::neighbors::graph_neighbors;
-use crate::studio::router::handlers::graph::shared::GraphNeighborsQuery;
+use crate::studio::router::handlers::graph::query_support::GraphNeighborsQuery;
 use crate::studio::router::{GatewayState, StudioState};
 
 #[tokio::test]

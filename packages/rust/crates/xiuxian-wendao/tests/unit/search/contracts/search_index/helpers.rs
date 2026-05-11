@@ -74,7 +74,7 @@ pub(super) fn degraded_repo_entity_status() -> SearchCorpusStatus {
     repo_entity.issues.push(SearchCorpusIssue {
         code: SearchCorpusIssueCode::PublishedRevisionMismatch,
         readable: true,
-        repo_id: Some("alpha/repo".to_string()),
+        repo_id: Some("alpha/repo".to_string().into()),
         current_revision: Some("rev-2".to_string()),
         published_revision: Some("rev-1".to_string()),
         message: "alpha/repo drifted".to_string(),

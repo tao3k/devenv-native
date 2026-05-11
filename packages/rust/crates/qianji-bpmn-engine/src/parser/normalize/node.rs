@@ -110,19 +110,19 @@ fn attach_default_outgoing_edge(
         .iter()
         .position(|flow| flow.flow_id == default_flow_ref)
         .ok_or_else(|| BpmnEngineError::UnknownSequenceFlowEndpoint {
-            process_id: raw.process_id.clone(),
-            flow_id: default_flow_ref.to_string(),
+            process_id: (raw.process_id.clone()).into(),
+            flow_id: (default_flow_ref.to_string()).into(),
             endpoint: "default",
-            node_id: node.bpmn_id.clone(),
+            node_id: (node.bpmn_id.clone()).into(),
         })?;
     let normalized_edge_index =
         normalize_node_index(edge_index, "normalize_default_flow_edge_index_overflow")?;
     if edges[edge_index].from != source_index {
         return Err(BpmnEngineError::UnknownSequenceFlowEndpoint {
-            process_id: raw.process_id.clone(),
-            flow_id: default_flow_ref.to_string(),
+            process_id: (raw.process_id.clone()).into(),
+            flow_id: (default_flow_ref.to_string()).into(),
             endpoint: "default",
-            node_id: node.bpmn_id.clone(),
+            node_id: (node.bpmn_id.clone()).into(),
         });
     }
     Ok(spec.with_default_outgoing_edge(normalized_edge_index))
@@ -155,9 +155,9 @@ fn attach_boundary_host(
         Some(attached_to_ref) => {
             let attached_to = index_by_id.get(attached_to_ref).copied().ok_or_else(|| {
                 BpmnEngineError::UnknownBoundaryAttachment {
-                    process_id: raw.process_id.clone(),
-                    node_id: node.bpmn_id.clone(),
-                    attached_to_node_id: attached_to_ref.clone(),
+                    process_id: (raw.process_id.clone()).into(),
+                    node_id: (node.bpmn_id.clone()).into(),
+                    attached_to_node_id: (attached_to_ref.clone()).into(),
                 }
             })?;
             Ok(spec.with_boundary_attachment(attached_to, node.cancel_activity))

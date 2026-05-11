@@ -1,3 +1,5 @@
+//! Enumerated link-graph query labels exposed through schemas.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

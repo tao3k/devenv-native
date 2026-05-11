@@ -51,7 +51,7 @@ pub(crate) fn validate_raw_package(raw: &RawPackageDocument) -> Result<()> {
 fn ensure_process_definitions(raw: &RawPackageDocument) -> Result<()> {
     if raw.processes.is_empty() {
         return Err(BpmnEngineError::MissingProcessDefinitions {
-            source_id: raw.source_id.clone(),
+            source_id: (raw.source_id.clone()).into(),
         });
     }
     Ok(())
@@ -66,36 +66,53 @@ fn ensure_unique_process_id<'a>(
         return Ok(());
     }
     Err(BpmnEngineError::DuplicateProcessId {
-        package_id: raw.package_id.clone(),
-        process_id: process.process_id.clone(),
+        package_id: (raw.package_id.clone()).into(),
+        process_id: (process.process_id.clone()).into(),
     })
 }
 
 fn collect_node_ids(process: &RawProcess) -> Result<HashSet<&str>> {
-    let mut seen_node_ids = HashSet::new();
-    let mut node_ids = HashSet::new();
-    let mut start_event_count = 0usize;
-    let mut has_end_event = false;
+    let scan = scan_node_ids(process)?;
+    validate_start_event_count(process, scan.start_event_count)?;
+    validate_has_end_event(process, scan.has_end_event)?;
+    Ok(scan.node_ids)
+}
 
-    for node in &process.nodes {
-        if !seen_node_ids.insert(node.bpmn_id.as_str()) {
-            return Err(BpmnEngineError::DuplicateNodeId {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
-            });
-        }
-        node_ids.insert(node.bpmn_id.as_str());
-        if matches!(node.kind, BpmnNodeKind::StartEvent) {
-            start_event_count += 1;
-        }
-        has_end_event |= matches!(node.kind, BpmnNodeKind::EndEvent);
-    }
+struct NodeIdScan<'a> {
+    node_ids: HashSet<&'a str>,
+    start_event_count: usize,
+    has_end_event: bool,
+}
 
+fn scan_node_ids(process: &RawProcess) -> Result<NodeIdScan<'_>> {
+    process.nodes.iter().try_fold(
+        NodeIdScan {
+            node_ids: HashSet::new(),
+            start_event_count: 0,
+            has_end_event: false,
+        },
+        |mut scan, node| {
+            if !scan.node_ids.insert(node.bpmn_id.as_str()) {
+                return Err(BpmnEngineError::DuplicateNodeId {
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (node.bpmn_id.clone()).into(),
+                });
+            }
+            if matches!(node.kind, BpmnNodeKind::StartEvent) {
+                scan.start_event_count += 1;
+            }
+            scan.has_end_event |= matches!(node.kind, BpmnNodeKind::EndEvent);
+            Ok(scan)
+        },
+    )
+}
+
+fn validate_start_event_count(process: &RawProcess, start_event_count: usize) -> Result<()> {
     match &process.scope {
         RawProcessScope::TopLevel => {
             if start_event_count == 0 {
                 return Err(BpmnEngineError::MissingRequiredProcessElement {
-                    process_id: process.process_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
                     element: "start_event",
                 });
             }
@@ -107,17 +124,21 @@ fn collect_node_ids(process: &RawProcess) -> Result<HashSet<&str>> {
         } => {
             if start_event_count != 1 {
                 return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-                    process_id: owner_process_id.clone(),
-                    node_id: owner_node_id.clone(),
+                    process_id: (owner_process_id.clone()).into(),
+                    node_id: (owner_node_id.clone()).into(),
                     detail: nested_shell_start_event_detail(*kind),
                 });
             }
         }
     }
+    Ok(())
+}
+
+fn validate_has_end_event(process: &RawProcess, has_end_event: bool) -> Result<()> {
     if !has_end_event {
         return Err(match &process.scope {
             RawProcessScope::TopLevel => BpmnEngineError::MissingRequiredProcessElement {
-                process_id: process.process_id.clone(),
+                process_id: (process.process_id.clone()).into(),
                 element: "end_event",
             },
             RawProcessScope::NestedShell {
@@ -125,14 +146,13 @@ fn collect_node_ids(process: &RawProcess) -> Result<HashSet<&str>> {
                 owner_node_id,
                 kind,
             } => BpmnEngineError::UnsupportedSubProcessConfiguration {
-                process_id: owner_process_id.clone(),
-                node_id: owner_node_id.clone(),
+                process_id: (owner_process_id.clone()).into(),
+                node_id: (owner_node_id.clone()).into(),
                 detail: nested_shell_missing_end_detail(*kind),
             },
         });
     }
-
-    Ok(node_ids)
+    Ok(())
 }
 
 fn nested_shell_start_event_detail(kind: NestedShellKind) -> &'static str {

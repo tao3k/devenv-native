@@ -1,6 +1,6 @@
 use tempfile::TempDir;
 
-use super::{Episode, TestResult, test_store};
+use super::{Episode, EpisodeDraft, TestResult, test_store};
 
 #[test]
 fn test_persistence_and_recovery() -> TestResult {
@@ -12,13 +12,14 @@ fn test_persistence_and_recovery() -> TestResult {
 
     {
         let store = test_store("test");
-        let ep = Episode::new(
-            "persist-1".to_string(),
-            "important task".to_string(),
-            store.encoder().encode("important task"),
-            "Critical fix".to_string(),
-            "success".to_string(),
-        );
+        let ep = Episode::new(EpisodeDraft {
+            id: ("persist-1".to_string()).into(),
+            intent: "important task".to_string(),
+            intent_embedding: store.encoder().encode("important task"),
+            experience: "Critical fix".to_string(),
+            outcome: "success".to_string(),
+            scope: None,
+        });
         store.store(ep)?;
         store.update_q("persist-1", 1.0);
         store.update_q("persist-1", 0.85);

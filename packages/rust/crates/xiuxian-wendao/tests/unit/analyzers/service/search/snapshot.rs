@@ -8,7 +8,7 @@ fn import_search_snapshot_matches_package_and_module_filters() {
     let analysis = sample_search_analysis("import-snapshot");
     let result = build_import_search(
         &ImportSearchQuery {
-            repo_id: "import-snapshot".to_string(),
+            repo_id: "import-snapshot".to_string().into(),
             package: Some("SciMLBase".to_string()),
             module: Some("BaseModelica".to_string()),
             limit: 10,

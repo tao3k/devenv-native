@@ -53,7 +53,7 @@ pub(super) fn missing_dmn_decision_issue(
     } else if snapshot_has_only_dmndi(snapshot) {
         unsupported_dmndi_document_issue(source_id, snapshot)
     } else {
-        LintIssue::new(
+        LintIssue::from_parts(
             "dmn.missing_decision",
             "DMN file contains no decisions",
             format!("Source '{source_id}' does not contain any `<decision>` elements."),

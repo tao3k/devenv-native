@@ -5,7 +5,7 @@ use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnInstanceInit, BpmnNodeKind,
     BpmnNodeSpec, BpmnPackage, BpmnParallelMultiInstanceSpec, BpmnProcessSpec, BpmnRepeatSpec,
     BpmnTimerKind, BpmnTimerSpec, ProcessKey, advance_instance, apply_event_poll_outcome,
-    apply_pending_host_work_result, create_instance,
+    create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -215,7 +215,7 @@ async fn runtime_non_interrupting_boundary_timer_opens_parallel_multi_instance_b
     assert_parallel_multi_instance_non_interrupting_boundary_branch_drained(&instance);
 
     for (completed, pending_work) in pending.iter().enumerate() {
-        let resumed = apply_pending_host_work_result(
+        let resumed = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending_work.token_id,
@@ -282,7 +282,7 @@ async fn runtime_parallel_multi_instance_host_completion_keeps_non_interrupting_
     assert_eq!(instance.waits.len(), 1);
 
     for (completed, pending_work) in pending.iter().take(2).enumerate() {
-        let resumed = apply_pending_host_work_result(
+        let resumed = crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending_work.token_id,
@@ -308,7 +308,7 @@ async fn runtime_parallel_multi_instance_host_completion_keeps_non_interrupting_
         );
     }
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[2].token_id,

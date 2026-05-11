@@ -1,3 +1,5 @@
+//! `DataFusion` implementation of the local relation engine contract.
+
 use std::sync::Arc;
 
 use arrow::datatypes::SchemaRef;

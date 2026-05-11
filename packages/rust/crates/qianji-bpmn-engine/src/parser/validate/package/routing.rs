@@ -15,24 +15,24 @@ pub(super) fn validate_sequence_flows(
     for flow in &process.flows {
         if !seen_flow_ids.insert(flow.flow_id.as_str()) {
             return Err(BpmnEngineError::DuplicateSequenceFlowId {
-                process_id: process.process_id.clone(),
-                flow_id: flow.flow_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                flow_id: (flow.flow_id.clone()).into(),
             });
         }
         if !node_ids.contains(flow.source_ref.as_str()) {
             return Err(BpmnEngineError::UnknownSequenceFlowEndpoint {
-                process_id: process.process_id.clone(),
-                flow_id: flow.flow_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                flow_id: (flow.flow_id.clone()).into(),
                 endpoint: "source",
-                node_id: flow.source_ref.clone(),
+                node_id: (flow.source_ref.clone()).into(),
             });
         }
         if !node_ids.contains(flow.target_ref.as_str()) {
             return Err(BpmnEngineError::UnknownSequenceFlowEndpoint {
-                process_id: process.process_id.clone(),
-                flow_id: flow.flow_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                flow_id: (flow.flow_id.clone()).into(),
                 endpoint: "target",
-                node_id: flow.target_ref.clone(),
+                node_id: (flow.target_ref.clone()).into(),
             });
         }
     }
@@ -55,8 +55,8 @@ pub(super) fn validate_task_routing(process: &RawProcess) -> Result<()> {
             .unwrap_or_default();
         if outgoing_count != 1 {
             return Err(BpmnEngineError::UnsupportedTaskConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "task_requires_single_outgoing",
             });
         }
@@ -100,8 +100,8 @@ pub(super) fn validate_gateways(process: &RawProcess) -> Result<()> {
                 Some(BpmnGatewayKind::Exclusive | BpmnGatewayKind::Inclusive)
             ) {
                 return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.process_id.clone(),
-                    node_id: node.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (node.bpmn_id.clone()).into(),
                     detail: "condition_expression_requires_conditional_gateway",
                 });
             }
@@ -138,8 +138,8 @@ fn validate_conditional_gateway_defaults_and_conditions<'a>(
     if outgoing.len() <= 1 {
         if node.default_flow_ref.is_some() {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "default_flow_requires_multiple_outgoing",
             });
         }
@@ -150,22 +150,22 @@ fn validate_conditional_gateway_defaults_and_conditions<'a>(
     if let Some(default_flow_id) = default_flow_id {
         let Some(default_flow) = flow_by_id.get(default_flow_id).copied() else {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unknown_default_flow",
             });
         };
         if default_flow.source_ref != node.bpmn_id {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "default_flow_not_outgoing",
             });
         }
         if default_flow.condition_expression.is_some() {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "default_flow_must_not_have_condition_expression",
             });
         }
@@ -177,15 +177,15 @@ fn validate_conditional_gateway_defaults_and_conditions<'a>(
         }
         let Some(condition_expression) = flow.condition_expression.as_deref() else {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "missing_condition_expression",
             });
         };
         if !is_supported_gateway_condition(condition_expression) {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unsupported_condition_expression",
             });
         }
@@ -213,15 +213,15 @@ fn validate_structured_inclusive_gateway(
     if incoming_len > 1 && outgoing.len() == 1 {
         if node.default_flow_ref.is_some() {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "inclusive_join_default_not_supported",
             });
         }
         if outgoing[0].condition_expression.is_some() {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "inclusive_join_condition_expression_not_supported",
             });
         }
@@ -229,8 +229,8 @@ fn validate_structured_inclusive_gateway(
     }
 
     Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-        process_id: process.process_id.clone(),
-        node_id: node.bpmn_id.clone(),
+        process_id: (process.process_id.clone()).into(),
+        node_id: (node.bpmn_id.clone()).into(),
         detail: "inclusive_gateway_requires_structured_split_or_join",
     })
 }
@@ -278,16 +278,16 @@ pub(crate) fn resolve_structured_inclusive_join(
             trace_inclusive_branch_to_join(process, node, flow, &node_by_id, &flow_by_source)?;
         if !seen_join_inputs.insert(join_input_flow_id.clone()) {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "inclusive_split_branch_duplicate_join_input",
             });
         }
         match &join_node_id {
             Some(expected_join_node_id) if expected_join_node_id != &branch_join_node_id => {
                 return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.process_id.clone(),
-                    node_id: node.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (node.bpmn_id.clone()).into(),
                     detail: "inclusive_split_branch_mismatched_join",
                 });
             }
@@ -298,8 +298,8 @@ pub(crate) fn resolve_structured_inclusive_join(
 
     join_node_id
         .ok_or_else(|| BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "inclusive_split_missing_join",
         })
         .map(Some)
@@ -318,17 +318,17 @@ fn trace_inclusive_branch_to_join<'a>(
     loop {
         let Some(current_node) = node_by_id.get(current_flow.target_ref.as_str()).copied() else {
             return Err(BpmnEngineError::UnknownSequenceFlowEndpoint {
-                process_id: process.process_id.clone(),
-                flow_id: current_flow.flow_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                flow_id: (current_flow.flow_id.clone()).into(),
                 endpoint: "target",
-                node_id: current_flow.target_ref.clone(),
+                node_id: (current_flow.target_ref.clone()).into(),
             });
         };
 
         if !visited_nodes.insert(current_node.bpmn_id.as_str()) {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: split_node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (split_node.bpmn_id.clone()).into(),
                 detail: "inclusive_split_branch_not_linear",
             });
         }
@@ -346,16 +346,16 @@ fn trace_inclusive_branch_to_join<'a>(
                 return Ok((current_node.bpmn_id.clone(), current_flow.flow_id.clone()));
             }
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: split_node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (split_node.bpmn_id.clone()).into(),
                 detail: "inclusive_split_branch_unsupported_gateway",
             });
         }
 
         if current_node.kind == BpmnNodeKind::Gateway {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: split_node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (split_node.bpmn_id.clone()).into(),
                 detail: "inclusive_split_branch_unsupported_gateway",
             });
         }
@@ -367,8 +367,8 @@ fn trace_inclusive_branch_to_join<'a>(
         match outgoing.as_slice() {
             [] => {
                 return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.process_id.clone(),
-                    node_id: split_node.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (split_node.bpmn_id.clone()).into(),
                     detail: "inclusive_split_branch_ends_before_join",
                 });
             }
@@ -377,8 +377,8 @@ fn trace_inclusive_branch_to_join<'a>(
             }
             _ => {
                 return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.process_id.clone(),
-                    node_id: split_node.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (split_node.bpmn_id.clone()).into(),
                     detail: "inclusive_split_branch_not_linear",
                 });
             }
@@ -401,8 +401,8 @@ pub(super) fn validate_standard_loops(process: &RawProcess) -> Result<()> {
                 | BpmnNodeKind::BusinessRuleTask
         ) {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unsupported_standard_loop_host_kind",
             });
         }
@@ -414,16 +414,16 @@ pub(super) fn validate_standard_loops(process: &RawProcess) -> Result<()> {
             .filter(|condition| !condition.is_empty());
         if loop_spec.loop_maximum.is_none() && loop_condition.is_none() {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "missing_loop_maximum_or_condition",
             });
         }
 
         if loop_spec.loop_maximum == Some(0) {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "non_positive_loop_maximum",
             });
         }
@@ -432,8 +432,8 @@ pub(super) fn validate_standard_loops(process: &RawProcess) -> Result<()> {
             && !is_supported_standard_loop_condition(loop_condition)
         {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unsupported_loop_condition_expression",
             });
         }
@@ -457,8 +457,8 @@ pub(super) fn validate_multi_instances(process: &RawProcess) -> Result<()> {
                 | BpmnNodeKind::BusinessRuleTask
         ) {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unsupported_multi_instance_host_kind",
             });
         }
@@ -469,8 +469,8 @@ pub(super) fn validate_multi_instances(process: &RawProcess) -> Result<()> {
             && !is_supported_multi_instance_completion_condition(completion_condition)
         {
             return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unsupported_multi_instance_completion_condition_expression",
             });
         }
@@ -521,43 +521,43 @@ fn validate_multi_instance_expansion(
 ) -> Result<()> {
     if shape.loop_cardinality.is_some() && shape.loop_data_input_ref.is_some() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "mixed_multi_instance_expansion",
         });
     }
     if shape.loop_cardinality.is_none() && shape.loop_data_input_ref.is_none() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_loop_cardinality_or_data_input",
         });
     }
     if shape.loop_data_input_ref.is_some() && shape.input_data_item.is_none() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_input_data_item",
         });
     }
     if shape.loop_data_input_ref.is_none() && shape.input_data_item.is_some() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_loop_data_input_ref",
         });
     }
     if shape.loop_data_output_ref.is_some() && shape.output_data_item.is_none() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_output_data_item",
         });
     }
     if shape.loop_data_output_ref.is_none() && shape.output_data_item.is_some() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "missing_loop_data_output_ref",
         });
     }
@@ -566,8 +566,8 @@ fn validate_multi_instance_expansion(
         && loop_data_input_ref == loop_data_output_ref
     {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "unsupported_multi_instance_in_place_output",
         });
     }
@@ -596,8 +596,8 @@ pub(super) fn validate_event_based_gateways(
 
         if outgoing_targets.len() < 2 {
             return Err(BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: gateway.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (gateway.bpmn_id.clone()).into(),
                 detail: "insufficient_outgoing_waits",
             });
         }
@@ -609,24 +609,24 @@ pub(super) fn validate_event_based_gateways(
 
             let Some(target) = node_by_id.get(target_id) else {
                 return Err(BpmnEngineError::UnknownSequenceFlowEndpoint {
-                    process_id: process.process_id.clone(),
-                    flow_id: gateway.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    flow_id: (gateway.bpmn_id.clone()).into(),
                     endpoint: "target",
-                    node_id: target_id.to_string(),
+                    node_id: (target_id.to_string()).into(),
                 });
             };
             if target.kind != BpmnNodeKind::IntermediateCatchEvent {
                 return Err(BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
-                    process_id: process.process_id.clone(),
-                    node_id: gateway.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (gateway.bpmn_id.clone()).into(),
                     detail: "unsupported_wait_target_kind",
                 });
             }
 
             let Some(event) = target.event.as_ref() else {
                 return Err(BpmnEngineError::MissingRequiredNodeElement {
-                    process_id: process.process_id.clone(),
-                    node_id: target.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (target.bpmn_id.clone()).into(),
                     element: "event_definition",
                 });
             };
@@ -638,8 +638,8 @@ pub(super) fn validate_event_based_gateways(
                     | BpmnEventKind::Conditional
             ) {
                 return Err(BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
-                    process_id: process.process_id.clone(),
-                    node_id: gateway.bpmn_id.clone(),
+                    process_id: (process.process_id.clone()).into(),
+                    node_id: (gateway.bpmn_id.clone()).into(),
                     detail: "unsupported_wait_event_kind",
                 });
             }

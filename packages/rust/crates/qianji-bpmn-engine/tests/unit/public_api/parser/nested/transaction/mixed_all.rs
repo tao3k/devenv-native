@@ -67,8 +67,8 @@ fn parser_transaction_shell_rejects_multiple_external_boundaries_even_with_cance
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "tx_timeout_late".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("tx_timeout_late".to_string()).into(),
             detail: "multiple_boundary_events_for_attached_node",
         }
     );

@@ -1,5 +1,6 @@
 use crate::{
-    FallbackEvidence, HealthState, LaneEvidence, PolyglotLane, PressureLevel, ReadinessState,
+    FallbackEvidence, HealthState, LaneEvidence, LaneEvidenceInput, PolyglotLane, PressureLevel,
+    ReadinessState,
 };
 
 #[test]
@@ -17,13 +18,13 @@ fn readiness_states_identify_normal_traffic() {
 
 #[test]
 fn lane_evidence_serializes_lane_and_states() -> Result<(), serde_json::Error> {
-    let evidence = LaneEvidence::new(
-        PolyglotLane::JuliaCompute,
-        HealthState::Healthy,
-        ReadinessState::Ready,
-        PressureLevel::Low,
-        FallbackEvidence::new(false),
-    );
+    let evidence = LaneEvidence::new(LaneEvidenceInput {
+        lane: PolyglotLane::JuliaCompute,
+        health: HealthState::Healthy,
+        readiness: ReadinessState::Ready,
+        pressure: PressureLevel::Low,
+        fallback: FallbackEvidence::new(false),
+    });
     let serialized = serde_json::to_string(&evidence)?;
     assert!(serialized.contains("julia_compute"));
     assert!(serialized.contains("healthy"));

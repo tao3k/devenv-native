@@ -107,8 +107,8 @@ fn parser_event_subprocess_rejects_non_interrupting_start() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: "event_subprocess_non_interrupting".to_string(),
-            node_id: "non_interrupting_event_subprocess".to_string(),
+            process_id: ("event_subprocess_non_interrupting".to_string()).into(),
+            node_id: ("non_interrupting_event_subprocess".to_string()).into(),
             detail: "event_subprocess_non_interrupting",
         }
     );
@@ -125,8 +125,8 @@ fn parser_event_subprocess_rejects_compensation_trigger() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "comp_handler".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("comp_handler".to_string()).into(),
             detail: "event_subprocess_compensation_deferred",
         }
     );

@@ -37,8 +37,8 @@ fn parser_standard_loop_requires_maximum_or_condition() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: "loop_invalid".to_string(),
-            node_id: "review".to_string(),
+            process_id: ("loop_invalid".to_string()).into(),
+            node_id: ("review".to_string()).into(),
             detail: "missing_loop_maximum_or_condition",
         }
     );
@@ -212,8 +212,8 @@ fn parser_parallel_multi_instance_rejects_unsupported_completion_condition_expre
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: "multi_instance_invalid".to_string(),
-            node_id: "review".to_string(),
+            process_id: ("multi_instance_invalid".to_string()).into(),
+            node_id: ("review".to_string()).into(),
             detail: "unsupported_multi_instance_completion_condition_expression",
         }
     );
@@ -229,8 +229,8 @@ fn parser_sequential_multi_instance_requires_loop_cardinality() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: "multi_instance_missing_cardinality".to_string(),
-            node_id: "review".to_string(),
+            process_id: ("multi_instance_missing_cardinality".to_string()).into(),
+            node_id: ("review".to_string()).into(),
             detail: "missing_loop_cardinality_or_data_input",
         }
     );
@@ -246,8 +246,8 @@ fn parser_data_bound_multi_instance_rejects_in_place_output_binding() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id: "multi_instance_in_place_output".to_string(),
-            node_id: "review".to_string(),
+            process_id: ("multi_instance_in_place_output".to_string()).into(),
+            node_id: ("review".to_string()).into(),
             detail: "unsupported_multi_instance_in_place_output",
         }
     );

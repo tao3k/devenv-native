@@ -1,9 +1,9 @@
 use std::fmt::Display;
 
 use super::{
-    EffectiveRerankFlightHostSettings, ParsedRerankFlightHostOverrides,
-    rerank_score_weights_from_env, resolve_effective_rerank_flight_host_settings,
-    split_rerank_flight_host_overrides,
+    EffectiveRerankFlightHostSettings, EffectiveRerankFlightHostSettingsInput,
+    ParsedRerankFlightHostOverrides, rerank_score_weights_from_env,
+    resolve_effective_rerank_flight_host_settings, split_rerank_flight_host_overrides,
 };
 use crate::transport::RerankScoreWeights;
 
@@ -69,14 +69,15 @@ fn resolve_effective_rerank_flight_host_settings_applies_precedence() {
         "file-backed weights should validate",
     );
 
-    let settings: EffectiveRerankFlightHostSettings = resolve_effective_rerank_flight_host_settings(
-        Some("v8".to_string()),
-        Some(4),
-        Some("v9".to_string()),
-        Some(file_backed_weights),
-        3,
-        fallback_weights,
-    );
+    let settings: EffectiveRerankFlightHostSettings =
+        resolve_effective_rerank_flight_host_settings(EffectiveRerankFlightHostSettingsInput {
+            schema_version_override: Some("v8".to_string()),
+            rerank_dimension_override: Some(4),
+            file_backed_schema_version: Some("v9".to_string()),
+            file_backed_weights: Some(file_backed_weights),
+            fallback_dimension: 3,
+            fallback_weights,
+        });
 
     assert_eq!(settings.expected_schema_version, "v8");
     assert_eq!(settings.rerank_dimension, 4);

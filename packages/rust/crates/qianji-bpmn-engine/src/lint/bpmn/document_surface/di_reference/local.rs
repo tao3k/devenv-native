@@ -60,7 +60,7 @@ fn collect_shape_reference(
         scope,
         DiReferenceTarget {
             element: "BPMNShape",
-            element_id: shape.shape_id.clone(),
+            element_id: shape.shape_id.as_deref().map(str::to_string),
             attribute: "choreographyActivityShape",
         },
         shape.choreography_activity_shape.as_deref(),

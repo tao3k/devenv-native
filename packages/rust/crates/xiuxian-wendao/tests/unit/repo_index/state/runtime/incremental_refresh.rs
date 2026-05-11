@@ -54,7 +54,7 @@ async fn prepare_incremental_analysis_returns_refresh_only_for_non_code_revision
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),
@@ -126,7 +126,7 @@ async fn prepare_incremental_analysis_merges_leaf_julia_source_changes() {
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),

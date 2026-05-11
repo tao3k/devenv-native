@@ -29,7 +29,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_numeric_issue(
         "invalid_numerics_truncated": violations.len() > SNAPSHOT_EVIDENCE_LIMIT,
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.invalid_di_numeric",
         "BPMN diagram interchange metadata uses an invalid numeric value",
         format!(

@@ -58,7 +58,7 @@ async fn prepare_incremental_analysis_merges_root_package_modelica_source_change
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),
@@ -156,7 +156,7 @@ async fn prepare_incremental_analysis_returns_none_for_root_package_modelica_ren
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone(),
+                repo_id: repository.id.clone().into(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),

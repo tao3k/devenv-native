@@ -32,7 +32,7 @@ pub(crate) fn ranked_example_matches(
     {
         let lookup = examples
             .iter()
-            .map(|example| (example.example_id.clone(), example.clone()))
+            .map(|example| (example.example_id.to_string(), example.clone()))
             .collect::<BTreeMap<_, _>>();
         let Some(index) = build_search_document_index(examples.iter().map(|example| {
             let metadata = metadata_lookup

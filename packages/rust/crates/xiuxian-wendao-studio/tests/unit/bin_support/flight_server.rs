@@ -1,8 +1,10 @@
 use std::fs;
+use std::path::Path;
+use std::process::Command;
 
 use super::{
-    collect_configured_repo_content_documents, configured_repo_content_analysis,
-    search_flight_grpc_web_enabled_with_lookup,
+    collect_configured_repo_content_documents, configured_bootstrap_repository,
+    configured_repo_content_analysis, search_flight_grpc_web_enabled_with_lookup,
 };
 use xiuxian_wendao::analyzers::RegisteredRepository;
 
@@ -86,6 +88,46 @@ fn configured_repo_content_bootstrap_collects_supported_text_files()
 }
 
 #[test]
+fn configured_repo_content_bootstrap_prefers_git_tracked_scope()
+-> Result<(), Box<dyn std::error::Error>> {
+    let tempdir = tempfile::tempdir()?;
+    run_git(tempdir.path(), &["init", "--quiet"])?;
+    run_git(
+        tempdir.path(),
+        &["config", "user.email", "test@example.com"],
+    )?;
+    run_git(tempdir.path(), &["config", "user.name", "Test User"])?;
+    fs::create_dir_all(tempdir.path().join("docs"))?;
+    fs::create_dir_all(tempdir.path().join(".data/nested"))?;
+    fs::write(tempdir.path().join("docs/tracked.md"), "# Tracked\n")?;
+    fs::write(tempdir.path().join("docs/untracked.md"), "# Untracked\n")?;
+    fs::write(tempdir.path().join(".data/nested/leaked.md"), "# Nested\n")?;
+    fs::write(tempdir.path().join("Project.toml"), "name = \"Demo\"\n")?;
+    run_git(tempdir.path(), &["add", "docs/tracked.md", "Project.toml"])?;
+    run_git(tempdir.path(), &["commit", "--quiet", "-m", "initial"])?;
+
+    let documents = collect_configured_repo_content_documents(tempdir.path())?;
+    let paths = documents
+        .iter()
+        .map(|document| document.path.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths, vec!["Project.toml", "docs/tracked.md"]);
+    Ok(())
+}
+
+#[test]
+fn configured_repo_content_bootstrap_uses_project_root_when_config_misses_repo()
+-> Result<(), Box<dyn std::error::Error>> {
+    let tempdir = tempfile::tempdir()?;
+    let repository = configured_bootstrap_repository("docs", tempdir.path())?;
+
+    assert_eq!(repository.id, "docs");
+    assert_eq!(repository.path.as_deref(), Some(tempdir.path()));
+    Ok(())
+}
+
+#[test]
 fn configured_repo_content_analysis_projects_all_supported_documents()
 -> Result<(), Box<dyn std::error::Error>> {
     let tempdir = tempfile::tempdir()?;
@@ -141,4 +183,17 @@ fn configured_repo_content_analysis_projects_all_supported_documents()
         ]
     );
     Ok(())
+}
+
+fn run_git(cwd: &Path, args: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
+    let output = Command::new("git").args(args).current_dir(cwd).output()?;
+    if output.status.success() {
+        return Ok(());
+    }
+    Err(format!(
+        "git {} failed: {}",
+        args.join(" "),
+        String::from_utf8_lossy(&output.stderr)
+    )
+    .into())
 }

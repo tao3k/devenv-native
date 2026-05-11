@@ -79,7 +79,7 @@ pub(crate) fn parse_input_entry(source_id: &str, raw: &str) -> Result<DmnInputEn
         return Ok(parsed);
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: trimmed.to_string(),
     })
 }

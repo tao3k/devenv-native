@@ -1,15 +1,14 @@
-// Included from dmn.rs to keep the Rust test harness entrypoint small.
-use crate::test_support::MustExt as _;
-use qianji_bpmn_engine::{ BpmnEngineError,
+// Included from dmn.rs to keep the Rust test harness entrypoint small. use
+crate::test_support::MustExt as _; use qianji_bpmn_engine::{ BpmnEngineError,
 BpmnPackage, DmnBusinessKnowledgeModelDefinition, DmnDecisionRef,
 DmnDecisionServiceDefinition, DmnDecisionServiceReference, DmnImportDefinition,
-DmnInformationRequirementReference, DmnKnowledgeRequirementReference,
-DmnSourceDefinition, DmnSourceFile, parse_dmn_decision, parse_dmn_decisions,
-snapshot_dmn_source, }; #[test] fn
-package_registered_dmn_decision_resolves_deterministically() { let definition =
-parse_dmn_decision(&fixture_source( "simple-unique-eligibility.dmn",
-"simple-unique-eligibility.dmn", )) .must("fixture DMN should parse"); let
-package = BpmnPackage::new("pkg_api",
+DmnImportDefinitionInput, DmnInformationRequirementReference,
+DmnKnowledgeRequirementReference, DmnSourceDefinition, DmnSourceDefinitionInput,
+DmnSourceFile, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source, };
+#[test] fn package_registered_dmn_decision_resolves_deterministically() { let
+definition = parse_dmn_decision(&fixture_source(
+"simple-unique-eligibility.dmn", "simple-unique-eligibility.dmn", ))
+.must("fixture DMN should parse"); let package = BpmnPackage::new("pkg_api",
 Vec::new()).with_dmn_decisions(vec![definition]); let resolved = package
 .find_dmn_decision(
 &DmnDecisionRef::new("loan-decision").with_source_id("simple-unique-eligibility.dmn"),
@@ -27,7 +26,7 @@ second]); let error = package
 .find_dmn_decision(&DmnDecisionRef::new("loan-decision")) .must_err("unqualified
 duplicate decision ids should fail explicitly"); assert_eq!( error,
 BpmnEngineError::AmbiguousDmnDecisionReference { decision_id:
-"loan-decision".to_string(), source_id: None, count: 2, source_suffix:
+("loan-decision".to_string()).into(), source_id: None, count: 2, source_suffix:
 String::new(), } ); } #[test] fn
 package_same_source_multi_decision_lookup_resolves_deterministically() { let
 definitions = parse_dmn_decisions(&fixture_source( "multiple-decisions.dmn",
@@ -143,13 +142,12 @@ imports[0].import_type.as_deref(),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/") ); assert!( package
 .dmn_imports_for_source("partner-services.dmn") .is_empty() ); } #[test] fn
 package_registered_dmn_import_lookup_is_source_scoped() { let package =
-BpmnPackage::new("pkg_api", Vec::new()).with_dmn_imports(vec![
-DmnImportDefinition::new( "customer.dmn", Some("Partner Services"),
+BpmnPackage::new("pkg_api", Vec::new()).with_dmn_imports(vec![ dmn_import(
+"customer.dmn", Some("Partner Services"),
 Some("https://example.com/dmn/customer-partner-services"),
 Some("customer-partner-services.dmn"),
-Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ),
-DmnImportDefinition::new( "risk.dmn", Some("Partner Services"),
-Some("https://example.com/dmn/risk-partner-services"),
+Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), dmn_import( "risk.dmn",
+Some("Partner Services"), Some("https://example.com/dmn/risk-partner-services"),
 Some("risk-partner-services.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), ]); let customer_import
 = package .find_dmn_import_by_name("customer.dmn", "Partner Services")
@@ -162,12 +160,12 @@ Some("https://example.com/dmn/customer-partner-services") ); assert_eq!(
 risk_import.namespace.as_deref(),
 Some("https://example.com/dmn/risk-partner-services") ); } #[test] fn
 package_registered_dmn_import_lookup_keeps_selectors_distinct() { let package =
-BpmnPackage::new("pkg_api", Vec::new()).with_dmn_imports(vec![
-DmnImportDefinition::new( "customer.dmn", Some("Partner Services"),
+BpmnPackage::new("pkg_api", Vec::new()).with_dmn_imports(vec![ dmn_import(
+"customer.dmn", Some("Partner Services"),
 Some("https://example.com/dmn/customer-partner-services"),
 Some("customer-partner-services.dmn"),
-Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ),
-DmnImportDefinition::new( "customer.dmn", Some("Customer Rules"),
+Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), dmn_import(
+"customer.dmn", Some("Customer Rules"),
 Some("https://example.com/dmn/customer-rules"), Some("customer-rules.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), ]); let
 namespace_import = package .find_dmn_import_by_namespace( "customer.dmn",
@@ -182,18 +180,19 @@ package .find_dmn_import_by_namespace("customer.dmn", "Partner Services")
 .must("alias text should not match namespace selectors") .is_none() ); } #[test]
 fn package_registered_dmn_import_lookup_rejects_ambiguous_aliases() { let
 package = BpmnPackage::new("pkg_api", Vec::new()).with_dmn_imports(vec![
-DmnImportDefinition::new( "customer.dmn", Some("Partner Services"),
+dmn_import( "customer.dmn", Some("Partner Services"),
 Some("https://example.com/dmn/customer-partner-services-v1"),
 Some("customer-partner-services-v1.dmn"),
-Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ),
-DmnImportDefinition::new( "customer.dmn", Some("Partner Services"),
+Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), dmn_import(
+"customer.dmn", Some("Partner Services"),
 Some("https://example.com/dmn/customer-partner-services-v2"),
 Some("customer-partner-services-v2.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), ]); let error = package
 .find_dmn_import_by_name("customer.dmn", "Partner Services")
 .must_err("duplicate aliases in one declaring source should be ambiguous");
 assert_eq!( error, BpmnEngineError::AmbiguousDmnImportReference { source_id:
-"customer.dmn".to_string(), selector_kind: "name", selector_value: "Partner Services".to_string(), count: 2, } ); } #[test] fn
+("customer.dmn".to_string()).into(), selector_kind: "name", selector_value:
+"Partner Services".to_string(), count: 2, } ); } #[test] fn
 package_registered_dmn_source_root_preserves_namespace_metadata() { let snapshot
 = snapshot_dmn_source(&fixture_source( "simple-unique-eligibility.dmn",
 "simple-unique-eligibility.dmn", )) .must("simple fixture should snapshot"); let
@@ -211,13 +210,12 @@ assert_eq!(source.namespace.as_deref(), Some("http://example.com/dmn"));
 assert_eq!(source.model_version_hint.as_deref(), Some("20191111")); } #[test] fn
 package_registered_dmn_source_root_namespace_lookup_does_not_use_source_id() {
 let package = BpmnPackage::new("pkg_api", Vec::new())
-.with_dmn_imports(vec![DmnImportDefinition::new( "customer.dmn", Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
-Some("partner-services.dmn"),
+.with_dmn_imports(vec![dmn_import( "customer.dmn", Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"), Some("partner-services.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), )])
-.with_dmn_source_definitions(vec![DmnSourceDefinition::new(
-"partner-services.dmn", Some("Definitions_partner_services"), Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
+.with_dmn_source_definitions(vec![dmn_source( "partner-services.dmn",
+Some("Definitions_partner_services"), Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("1.3"), )]); let
 imported_namespace = package .find_dmn_import_by_namespace("customer.dmn",
 "https://example.com/dmn/partner-services") .must("import namespace lookup
@@ -231,13 +229,12 @@ assert!( package
 id text should not match namespace lookup") .is_none() ); } #[test] fn
 package_registered_dmn_import_resolves_bundled_source_root_by_namespace() { let
 package = BpmnPackage::new("pkg_api", Vec::new())
-.with_dmn_imports(vec![DmnImportDefinition::new( "customer.dmn", Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
-Some("partner-services.dmn"),
+.with_dmn_imports(vec![dmn_import( "customer.dmn", Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"), Some("partner-services.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), )])
-.with_dmn_source_definitions(vec![DmnSourceDefinition::new(
-"partner-services.dmn", Some("Definitions_partner_services"), Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
+.with_dmn_source_definitions(vec![dmn_source( "partner-services.dmn",
+Some("Definitions_partner_services"), Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("20191111"), )]); let
 dmn_import = package .find_dmn_import_by_name("customer.dmn", "Partner
 Services") .must("import lookup should be deterministic") .must("import should
@@ -248,29 +245,27 @@ to bundled source root"); assert_eq!(source.source_id.as_ref(),
 Some("https://example.com/dmn/partner-services") ); } #[test] fn
 package_registered_dmn_import_without_namespace_has_no_source_binding() { let
 package = BpmnPackage::new("pkg_api", Vec::new())
-.with_dmn_imports(vec![DmnImportDefinition::new( "customer.dmn", Some("Partner
-Services"), None::<&str>, Some("partner-services.dmn"),
+.with_dmn_imports(vec![dmn_import( "customer.dmn", Some("Partner Services"),
+None::<&str>, Some("partner-services.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), )])
-.with_dmn_source_definitions(vec![DmnSourceDefinition::new(
-"partner-services.dmn", Some("Definitions_partner_services"), Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
+.with_dmn_source_definitions(vec![dmn_source( "partner-services.dmn",
+Some("Definitions_partner_services"), Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("20191111"), )]); let
 dmn_import = package.dmn_imports()[0].clone(); assert!( package
 .resolve_dmn_import_source(&dmn_import) .must("missing import namespace should
 not be ambiguous") .is_none() ); } #[test] fn
 package_registered_dmn_import_source_binding_rejects_ambiguous_namespaces() {
 let package = BpmnPackage::new("pkg_api", Vec::new())
-.with_dmn_imports(vec![DmnImportDefinition::new( "customer.dmn", Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
-Some("partner-services.dmn"),
+.with_dmn_imports(vec![dmn_import( "customer.dmn", Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"), Some("partner-services.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), )])
-.with_dmn_source_definitions(vec![ DmnSourceDefinition::new( "partner-v1.dmn",
+.with_dmn_source_definitions(vec![ dmn_source( "partner-v1.dmn",
 Some("Definitions_partner_services_v1"), Some("Partner Services v1"),
 Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("20191111"), ),
-DmnSourceDefinition::new( "partner-v2.dmn",
-Some("Definitions_partner_services_v2"), Some("Partner Services v2"),
-Some("https://example.com/dmn/partner-services"),
+dmn_source( "partner-v2.dmn", Some("Definitions_partner_services_v2"),
+Some("Partner Services v2"), Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("20191111"), ), ]);
 let dmn_import = &package.dmn_imports()[0]; let error = package
 .resolve_dmn_import_source(dmn_import) .must_err("duplicate target namespaces
@@ -280,18 +275,18 @@ BpmnEngineError::AmbiguousDmnSourceNamespace { namespace:
 fn
 package_registered_dmn_import_source_binding_report_marks_bound_and_unbound_imports()
 { let package = BpmnPackage::new("pkg_api", Vec::new()) .with_dmn_imports(vec![
-DmnImportDefinition::new( "customer.dmn", Some("Partner Services"),
+dmn_import( "customer.dmn", Some("Partner Services"),
 Some("https://example.com/dmn/partner-services"), Some("partner-services.dmn"),
-Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ),
-DmnImportDefinition::new( "customer.dmn", Some("External Rules"),
+Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), dmn_import(
+"customer.dmn", Some("External Rules"),
 Some("https://example.com/dmn/external-rules"), Some("external-rules.dmn"),
-Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ),
-DmnImportDefinition::new( "customer.dmn", Some("Unnamed Namespace"),
-None::<&str>, Some("unnamed-namespace.dmn"),
+Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), dmn_import(
+"customer.dmn", Some("Unnamed Namespace"), None::<&str>,
+Some("unnamed-namespace.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), ), ])
-.with_dmn_source_definitions(vec![DmnSourceDefinition::new(
-"partner-services.dmn", Some("Definitions_partner_services"), Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
+.with_dmn_source_definitions(vec![dmn_source( "partner-services.dmn",
+Some("Definitions_partner_services"), Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("20191111"), )]); let
 bindings = package .dmn_import_source_bindings() .must("import binding report
 should be deterministic"); assert_eq!(bindings.len(), 3);
@@ -304,17 +299,15 @@ assert!(!bindings[2].is_bound()); assert_eq!(bindings[2].dmn_import.namespace,
 None); } #[test] fn
 package_registered_dmn_import_source_binding_report_rejects_ambiguous_targets()
 { let package = BpmnPackage::new("pkg_api", Vec::new())
-.with_dmn_imports(vec![DmnImportDefinition::new( "customer.dmn", Some("Partner
-Services"), Some("https://example.com/dmn/partner-services"),
-Some("partner-services.dmn"),
+.with_dmn_imports(vec![dmn_import( "customer.dmn", Some("Partner Services"),
+Some("https://example.com/dmn/partner-services"), Some("partner-services.dmn"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), )])
-.with_dmn_source_definitions(vec![ DmnSourceDefinition::new( "partner-v1.dmn",
+.with_dmn_source_definitions(vec![ dmn_source( "partner-v1.dmn",
 Some("Definitions_partner_services_v1"), Some("Partner Services v1"),
 Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("20191111"), ),
-DmnSourceDefinition::new( "partner-v2.dmn",
-Some("Definitions_partner_services_v2"), Some("Partner Services v2"),
-Some("https://example.com/dmn/partner-services"),
+dmn_source( "partner-v2.dmn", Some("Definitions_partner_services_v2"),
+Some("Partner Services v2"), Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("20191111"), ), ]);
 let error = package .dmn_import_source_bindings() .must_err("binding report
 should reject ambiguous target namespaces"); assert_eq!( error,
@@ -322,13 +315,12 @@ BpmnEngineError::AmbiguousDmnSourceNamespace { namespace:
 "https://example.com/dmn/partner-services".to_string(), count: 2, } ); } #[test]
 fn package_registered_dmn_source_root_rejects_ambiguous_namespaces() { let
 package = BpmnPackage::new("pkg_api",
-Vec::new()).with_dmn_source_definitions(vec![ DmnSourceDefinition::new(
-"partner-v1.dmn", Some("Definitions_partner_services_v1"), Some("Partner
-Services v1"), Some("https://example.com/dmn/partner-services"),
-Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("1.3"), ),
-DmnSourceDefinition::new( "partner-v2.dmn",
-Some("Definitions_partner_services_v2"), Some("Partner Services v2"),
+Vec::new()).with_dmn_source_definitions(vec![ dmn_source( "partner-v1.dmn",
+Some("Definitions_partner_services_v1"), Some("Partner Services v1"),
 Some("https://example.com/dmn/partner-services"),
+Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("1.3"), ),
+dmn_source( "partner-v2.dmn", Some("Definitions_partner_services_v2"),
+Some("Partner Services v2"), Some("https://example.com/dmn/partner-services"),
 Some("https://www.omg.org/spec/DMN/20191111/MODEL/"), Some("1.3"), ), ]); let
 error = package
 .find_dmn_source_definition_by_namespace("https://example.com/dmn/partner-services")
@@ -338,4 +330,14 @@ BpmnEngineError::AmbiguousDmnSourceNamespace { namespace:
 fixture_source(source_id: &str, fixture_name: &str) -> DmnSourceFile { let path
 = format!( "{}/tests/fixtures/dmn/{fixture_name}", env!("CARGO_MANIFEST_DIR") );
 let contents = std::fs::read_to_string(path).must("fixture should be readable");
-DmnSourceFile::new(source_id, contents) }
+DmnSourceFile::new(source_id, contents) } fn dmn_import( source_id: &str, name:
+Option<&str>, namespace: Option<&str>, location_uri: Option<&str>, import_type:
+Option<&str>, ) -> DmnImportDefinition {
+DmnImportDefinition::new(DmnImportDefinitionInput { source_id, name, namespace,
+location_uri, import_type, }) } fn dmn_source( source_id: &str, definitions_id:
+Option<&str>, name: Option<&str>, namespace: Option<&str>, model_namespace_uri:
+Option<&str>, model_version_hint: Option<&str>, ) -> DmnSourceDefinition {
+DmnSourceDefinition::new(DmnSourceDefinitionInput { source_id: source_id.into(),
+definitions_id: definitions_id.map(Into::into), name, namespace,
+model_namespace_uri: model_namespace_uri.map(Into::into), model_version_hint, })
+}

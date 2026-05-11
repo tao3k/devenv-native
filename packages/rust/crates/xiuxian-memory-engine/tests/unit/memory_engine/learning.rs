@@ -1,4 +1,4 @@
-use super::{Episode, IntentEncoder, QTable};
+use super::{Episode, EpisodeDraft, IntentEncoder, QTable};
 
 #[test]
 fn test_q_learning_convergence() {
@@ -39,13 +39,14 @@ fn test_intent_encoder_determinism() {
 
 #[test]
 fn test_episode_utility_calculation() {
-    let mut episode = Episode::new(
-        "ep-test".to_string(),
-        "test intent".to_string(),
-        vec![0.1, 0.2, 0.3],
-        "test experience".to_string(),
-        "success".to_string(),
-    );
+    let mut episode = Episode::new(EpisodeDraft {
+        id: ("ep-test".to_string()).into(),
+        intent: "test intent".to_string(),
+        intent_embedding: vec![0.1, 0.2, 0.3],
+        experience: "test experience".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
 
     let initial_util = episode.utility();
     assert!(initial_util > 0.0);

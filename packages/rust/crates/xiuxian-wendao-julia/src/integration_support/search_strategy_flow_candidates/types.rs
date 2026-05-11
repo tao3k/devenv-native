@@ -31,6 +31,7 @@ pub struct SearchStrategyFlowCandidateInputBatch {
     pub(crate) source: &'static str,
     pub(crate) row_count: usize,
     pub(crate) tsv: String,
+    pub(crate) discovery_receipt_json: String,
 }
 
 pub(crate) struct SearchStrategyFlowRepoSearchHit<'a> {

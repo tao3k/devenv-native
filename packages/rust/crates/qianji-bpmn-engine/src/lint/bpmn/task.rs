@@ -15,7 +15,7 @@ pub(super) fn task_configuration_issue(
         "unsupported_receive_task_event_kind" => "Receive task uses an unsupported event binding",
         _ => "Task configuration exceeds the bounded slice",
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_task_configuration",
         summary,
         format!(

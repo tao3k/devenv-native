@@ -3,8 +3,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceInit, BpmnTimerKind, EventPollOutcome,
     InstanceLifecycle, NodeRuntimeStatus, PendingHostWorkResult, UserTaskOutcome, advance_instance,
-    apply_event_poll_outcome, apply_pending_host_work_result, build_event_poll_request,
-    create_instance,
+    apply_event_poll_outcome, build_event_poll_request, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -161,7 +160,7 @@ async fn runtime_call_activity_success_clears_interrupting_timer_boundary_wait()
     assert_parent_timer_boundary_wait_armed(package.as_ref(), &instance);
     let token_id = instance.pending_host_work[0].token_id;
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

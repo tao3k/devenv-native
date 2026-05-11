@@ -17,10 +17,10 @@ struct SectionCursor<'a> {
     byte_range: (usize, usize),
 }
 
-fn push_section(out: &mut Vec<MarkdownSection>, cursor: SectionCursor<'_>, lines: &[String]) {
+fn section_from_cursor(cursor: SectionCursor<'_>, lines: &[String]) -> Option<MarkdownSection> {
     let section_text = lines.join("\n").trim().to_string();
     if section_text.is_empty() && cursor.heading_path.trim().is_empty() {
-        return;
+        return None;
     }
 
     let attributes = if cursor.heading_level > 0 {
@@ -38,7 +38,7 @@ fn push_section(out: &mut Vec<MarkdownSection>, cursor: SectionCursor<'_>, lines
     let line_start = cursor.line_range.0.max(1);
     let line_end = cursor.line_range.1.max(line_start);
 
-    out.push(SectionCore {
+    Some(SectionCore {
         scope: SectionScope {
             heading_title: cursor.heading_title.to_string(),
             heading_path: cursor.heading_path.to_string(),
@@ -55,7 +55,7 @@ fn push_section(out: &mut Vec<MarkdownSection>, cursor: SectionCursor<'_>, lines
             attributes,
             logbook,
         },
-    });
+    })
 }
 
 /// Extract parser-owned Markdown sections from one document body.
@@ -78,85 +78,96 @@ pub(crate) fn extract_sections_with_structure(
 
     let total_lines = lines.len().max(1);
     let last_seen_byte = last_line_end_byte(body, &lines);
-    let mut sections = Vec::new();
-
-    push_section(
-        &mut sections,
-        SectionCursor {
-            heading_title: "",
-            heading_path: "",
-            heading_level: 0,
-            line_range: (
-                1,
-                headings
-                    .first()
-                    .map_or(1, |heading| heading.start_line.saturating_sub(1).max(1)),
-            ),
-            byte_range: (
-                0,
-                headings
-                    .first()
-                    .map_or(0, |heading| heading.byte_start.saturating_sub(1)),
-            ),
-        },
-        &lines[..headings.first().map_or(0, |heading| {
-            heading.start_line.saturating_sub(1).min(lines.len())
-        })],
-    );
-
+    let root = root_section_before_first_heading(&lines, &headings);
     let mut heading_stack = Vec::<String>::new();
-    for (index, heading) in headings.iter().enumerate() {
-        if heading_stack.len() >= heading.level {
-            heading_stack.truncate(heading.level.saturating_sub(1));
-        }
-        heading_stack.push(heading.label.clone());
-        let heading_path = heading_stack.join(" / ");
-
-        let next_heading = headings.get(index + 1);
-        let line_end = next_heading.map_or(total_lines.max(heading.start_line), |next| {
-            next.start_line.saturating_sub(1).max(heading.start_line)
-        });
-        let byte_end = next_heading.map_or(last_seen_byte.max(heading.byte_start), |next| {
-            next.byte_start.saturating_sub(1).max(heading.byte_start)
-        });
-        let body_start_index = heading.end_line.saturating_add(1).saturating_sub(1);
-        let body_end_exclusive = line_end.min(lines.len());
-        let body_lines = if body_start_index >= body_end_exclusive {
-            &[][..]
-        } else {
-            &lines[body_start_index..body_end_exclusive]
-        };
-
-        push_section(
-            &mut sections,
-            SectionCursor {
-                heading_title: heading.label.as_str(),
-                heading_path: heading_path.as_str(),
-                heading_level: heading.level,
-                line_range: (heading.start_line, line_end),
-                byte_range: (heading.byte_start, byte_end),
-            },
-            body_lines,
-        );
-    }
-
-    sections
+    root.into_iter()
+        .chain(headings.iter().enumerate().filter_map(|(index, heading)| {
+            section_for_heading(
+                &lines,
+                &headings,
+                &mut heading_stack,
+                index,
+                heading,
+                total_lines,
+                last_seen_byte,
+            )
+        }))
+        .collect()
 }
 
 fn last_line_end_byte(body: &str, lines: &[String]) -> usize {
-    if lines.is_empty() {
-        return 0;
-    }
+    lines
+        .iter()
+        .enumerate()
+        .scan(0usize, |byte_offset, (index, line)| {
+            let end = *byte_offset + line.len();
+            *byte_offset = end + usize::from(index + 1 < lines.len());
+            Some(end)
+        })
+        .last()
+        .unwrap_or_else(|| usize::from(!body.is_empty()) * body.len())
+}
 
-    let mut byte_offset = 0usize;
-    for (index, line) in lines.iter().enumerate() {
-        if index + 1 == lines.len() {
-            return byte_offset + line.len();
-        }
-        byte_offset += line.len() + 1;
-    }
+fn root_section_before_first_heading(
+    lines: &[String],
+    headings: &[&crate::markdown_structure::MarkdownHeading],
+) -> Option<MarkdownSection> {
+    let first = headings.first()?;
+    let cursor = SectionCursor {
+        heading_title: "",
+        heading_path: "",
+        heading_level: 0,
+        line_range: (1, first.start_line.saturating_sub(1).max(1)),
+        byte_range: (0, first.byte_start.saturating_sub(1)),
+    };
+    let end = first.start_line.saturating_sub(1).min(lines.len());
+    section_from_cursor(cursor, &lines[..end])
+}
 
-    body.len()
+fn section_for_heading<'a>(
+    lines: &'a [String],
+    headings: &[&'a crate::markdown_structure::MarkdownHeading],
+    heading_stack: &mut Vec<String>,
+    index: usize,
+    heading: &'a crate::markdown_structure::MarkdownHeading,
+    total_lines: usize,
+    last_seen_byte: usize,
+) -> Option<MarkdownSection> {
+    if heading_stack.len() >= heading.level {
+        heading_stack.truncate(heading.level.saturating_sub(1));
+    }
+    heading_stack.push(heading.label.clone());
+    let heading_path = heading_stack.join(" / ");
+
+    let next_heading = headings.get(index + 1);
+    let line_end = next_heading.map_or(total_lines.max(heading.start_line), |next| {
+        next.start_line.saturating_sub(1).max(heading.start_line)
+    });
+    let byte_end = next_heading.map_or(last_seen_byte.max(heading.byte_start), |next| {
+        next.byte_start.saturating_sub(1).max(heading.byte_start)
+    });
+    let body_lines = section_body_lines(lines, heading.end_line, line_end);
+
+    section_from_cursor(
+        SectionCursor {
+            heading_title: heading.label.as_str(),
+            heading_path: heading_path.as_str(),
+            heading_level: heading.level,
+            line_range: (heading.start_line, line_end),
+            byte_range: (heading.byte_start, byte_end),
+        },
+        body_lines,
+    )
+}
+
+fn section_body_lines(lines: &[String], heading_end_line: usize, line_end: usize) -> &[String] {
+    let body_start_index = heading_end_line.saturating_add(1).saturating_sub(1);
+    let body_end_exclusive = line_end.min(lines.len());
+    if body_start_index >= body_end_exclusive {
+        &[]
+    } else {
+        &lines[body_start_index..body_end_exclusive]
+    }
 }
 
 fn root_section(body: &str) -> MarkdownSection {

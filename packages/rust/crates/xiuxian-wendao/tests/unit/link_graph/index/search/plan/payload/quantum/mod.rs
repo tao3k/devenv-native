@@ -13,8 +13,8 @@ fn apply_plugin_rerank_scores_overwrites_saliency_and_resorts_contexts() {
     let mut contexts = vec![
         QuantumContext {
             anchor_id: "doc-1#a".to_string(),
-            doc_id: "doc-1".to_string(),
-            path: "notes/doc-1.md".to_string(),
+            doc_id: "doc-1".to_string().into(),
+            path: "notes/doc-1.md".to_string().into(),
             semantic_path: vec![],
             trace_label: None,
             related_clusters: vec![],
@@ -24,8 +24,8 @@ fn apply_plugin_rerank_scores_overwrites_saliency_and_resorts_contexts() {
         },
         QuantumContext {
             anchor_id: "doc-2#b".to_string(),
-            doc_id: "doc-2".to_string(),
-            path: "notes/doc-2.md".to_string(),
+            doc_id: "doc-2".to_string().into(),
+            path: "notes/doc-2.md".to_string().into(),
             semantic_path: vec![],
             trace_label: None,
             related_clusters: vec![],
@@ -38,7 +38,7 @@ fn apply_plugin_rerank_scores_overwrites_saliency_and_resorts_contexts() {
         (
             "doc-1#a".to_string(),
             PluginArrowScoreRow {
-                doc_id: "doc-1#a".to_string(),
+                doc_id: "doc-1#a".to_string().into(),
                 analyzer_score: 0.7,
                 final_score: 0.95,
                 trace_id: None,
@@ -47,7 +47,7 @@ fn apply_plugin_rerank_scores_overwrites_saliency_and_resorts_contexts() {
         (
             "doc-2#b".to_string(),
             PluginArrowScoreRow {
-                doc_id: "doc-2#b".to_string(),
+                doc_id: "doc-2#b".to_string().into(),
                 analyzer_score: 0.3,
                 final_score: 0.4,
                 trace_id: None,
@@ -70,7 +70,7 @@ fn collect_plugin_rerank_trace_ids_deduplicates_non_empty_values() {
         (
             "doc-1#a".to_string(),
             PluginArrowScoreRow {
-                doc_id: "doc-1#a".to_string(),
+                doc_id: "doc-1#a".to_string().into(),
                 analyzer_score: 0.7,
                 final_score: 0.95,
                 trace_id: Some("trace-123".to_string()),
@@ -79,7 +79,7 @@ fn collect_plugin_rerank_trace_ids_deduplicates_non_empty_values() {
         (
             "doc-2#b".to_string(),
             PluginArrowScoreRow {
-                doc_id: "doc-2#b".to_string(),
+                doc_id: "doc-2#b".to_string().into(),
                 analyzer_score: 0.3,
                 final_score: 0.4,
                 trace_id: Some("trace-123".to_string()),
@@ -88,7 +88,7 @@ fn collect_plugin_rerank_trace_ids_deduplicates_non_empty_values() {
         (
             "doc-3#c".to_string(),
             PluginArrowScoreRow {
-                doc_id: "doc-3#c".to_string(),
+                doc_id: "doc-3#c".to_string().into(),
                 analyzer_score: 0.2,
                 final_score: 0.1,
                 trace_id: Some("trace-456".to_string()),
@@ -109,8 +109,8 @@ fn collect_plugin_rerank_anchors_preserves_anchor_ids_and_scores() {
     let contexts = vec![
         QuantumContext {
             anchor_id: "doc-1#a".to_string(),
-            doc_id: "doc-1".to_string(),
-            path: "notes/doc-1.md".to_string(),
+            doc_id: "doc-1".to_string().into(),
+            path: "notes/doc-1.md".to_string().into(),
             semantic_path: vec![],
             trace_label: None,
             related_clusters: vec![],
@@ -120,8 +120,8 @@ fn collect_plugin_rerank_anchors_preserves_anchor_ids_and_scores() {
         },
         QuantumContext {
             anchor_id: "doc-2#b".to_string(),
-            doc_id: "doc-2".to_string(),
-            path: "notes/doc-2.md".to_string(),
+            doc_id: "doc-2".to_string().into(),
+            path: "notes/doc-2.md".to_string().into(),
             semantic_path: vec![],
             trace_label: None,
             related_clusters: vec![],

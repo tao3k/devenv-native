@@ -38,7 +38,7 @@ pub(super) fn source_unsupported_gateway_condition(
         return None;
     }
     Some(UnsupportedGatewayCondition {
-        process_id: flow.process_id.clone(),
+        process_id: (flow.process_id.clone()).into(),
         gateway_id: flow.gateway_id.clone(),
         condition: condition.to_string(),
     })
@@ -56,7 +56,7 @@ pub(super) fn grouped_unsupported_gateway_condition_issues(
             group.conditions.push(condition.condition);
         } else {
             groups.push(UnsupportedGatewayConditionGroup {
-                process_id: condition.process_id,
+                process_id: (condition.process_id).into(),
                 gateway_id: condition.gateway_id,
                 conditions: vec![condition.condition],
             });

@@ -48,7 +48,7 @@ pub fn analyze_registered_repository_cached_bundle_with_registry(
 ) -> Result<CachedRepositoryAnalysis, RepoIntelligenceError> {
     if !repository.has_repo_intelligence_plugins() {
         return Err(RepoIntelligenceError::MissingRepoIntelligencePlugins {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
         });
     }
 
@@ -90,6 +90,6 @@ pub fn analyze_registered_repository_cached_bundle_with_registry(
     }
 
     Err(RepoIntelligenceError::PendingRepositoryIndex {
-        repo_id: repository.id.clone(),
+        repo_id: repository.id.clone().into(),
     })
 }

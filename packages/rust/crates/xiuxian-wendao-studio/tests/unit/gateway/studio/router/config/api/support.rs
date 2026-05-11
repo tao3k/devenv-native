@@ -15,7 +15,6 @@ pub(super) fn expected_builtin_languages(registry: &PluginRegistry) -> Vec<Strin
     let mut expected = xiuxian_code_intelligence::all_code_language_ids()
         .into_iter()
         .map(|language_id| language_id.as_str().to_string())
-        .map(std::string::ToString::to_string)
         .collect::<std::collections::BTreeSet<_>>();
     expected.extend(registry_languages);
     expected.into_iter().collect::<Vec<_>>()

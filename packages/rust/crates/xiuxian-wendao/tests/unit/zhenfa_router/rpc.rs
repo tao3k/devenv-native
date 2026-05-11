@@ -57,7 +57,7 @@ fn render_markdown_includes_hits() {
         hits: vec![crate::link_graph::LinkGraphDisplayHit {
             stem: "alpha".to_string(),
             title: "Alpha Note".to_string(),
-            path: "notes/alpha.md".to_string(),
+            path: "notes/alpha.md".to_string().into(),
             doc_type: None,
             tags: Vec::new(),
             score: 0.9,
@@ -92,8 +92,8 @@ fn render_markdown_includes_hits() {
         query_vector: None,
         quantum_contexts: vec![QuantumContext {
             anchor_id: "alpha".to_string(),
-            doc_id: "alpha".to_string(),
-            path: "notes/alpha.md".to_string(),
+            doc_id: "alpha".to_string().into(),
+            path: "notes/alpha.md".to_string().into(),
             semantic_path: vec!["Alpha".to_string(), "Design".to_string()],
             trace_label: None,
             related_clusters: Vec::new(),
