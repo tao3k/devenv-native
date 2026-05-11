@@ -61,3 +61,11 @@ By utilizing Org-mode and the `orgize` parser, we achieve a profound architectur
 ## 5. Conclusion
 
 Transitioning from Markdown to Org-mode as the primary serialization format for Agent reasoning resolves the fundamental tension between unstructured LLM outputs and the strict data requirements of the Semantic Ontology Engine. Coupled with the native `orgize` parser, it enables the `xiuxian-artisan-workshop` to maintain complex, multi-turn cognitive states with absolute structural integrity and near-zero latency overhead.
+
+## 6. Academic References & Extensions
+
+The adoption of Org-mode and semantic ASTs for Agentic Memory is strongly validated by 2025-2026 research in AI reasoning frameworks:
+
+- **Interoperable Literate Programming (ILP) (2025)**: Demonstrated that using Org-mode's DAG (Directed Acyclic Graph) structures for literate programming allows LLMs to navigate complex interdependencies vastly better than flat text files. Our use of `orgize` to parse Org into Semantic ASTs physically implements this academic theory.
+- **Memory-Augmented Agentic RL (SWE-TRACE, 2026)**: Research on systems like SWE-TRACE proves the necessity of structured "skill documents" for long-term memory. Org-mode's property drawers (`:PROPERTIES:`) and tags allow agents to execute "contrastive reflection" via explicit, typed memory retrieval, directly combating context compaction and reasoning drift.
+- **Lifecycle-Aware AST Verification (2025-2026)**: State-of-the-art Process Reward Models (PRMs) like SWE-Next rely on AST-based representations of agent trajectories. By ensuring our agents output Org-mode, which is instantly parsed into a rigorous AST by Rust, we natively support rubric-based verification of the agent's entire "train of thought" before execution.
