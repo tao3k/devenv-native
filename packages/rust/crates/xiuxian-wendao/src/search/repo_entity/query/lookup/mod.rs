@@ -1,3 +1,5 @@
+//! `search::repo_entity::query::lookup` owns Wendao repo entity query lookup behavior.
+
 mod execution;
 mod prepare;
 mod route;

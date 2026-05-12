@@ -1,3 +1,5 @@
+//! `parsers::graph::persistence` owns Wendao parsers graph persistence behavior.
+
 mod api;
 mod entity;
 mod relation;

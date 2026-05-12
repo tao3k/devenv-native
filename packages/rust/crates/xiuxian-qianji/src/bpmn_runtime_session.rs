@@ -4,8 +4,9 @@ use crate::bpmn::{resolve_pending_host_work, resolve_waiting_external_event};
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge,
     BpmnInstanceInit, BpmnInstanceState, BpmnNodeKind, BpmnPackage, InstanceLifecycle,
-    NodeRuntimeStatus, PendingHostWork, PendingHostWorkKind, PendingHostWorkResult, SuspendReason,
-    TokenRecord, advance_instance, apply_pending_host_work_result, create_instance,
+    NodeRuntimeStatus, PendingHostWork, PendingHostWorkApplyInput, PendingHostWorkKind,
+    PendingHostWorkResult, SuspendReason, TokenRecord, advance_instance,
+    apply_pending_host_work_result, create_instance,
 };
 use std::sync::Arc;
 
@@ -252,13 +253,13 @@ impl QianjiBpmnSession {
             activity_id,
         )?;
         let completed_at_ms = self.instance.updated_at_ms;
-        let mut outcome = apply_pending_host_work_result(
-            self.package.as_ref(),
-            &mut self.instance,
-            token_id,
+        let mut outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+            package: self.package.as_ref(),
+            instance: &mut self.instance,
+            token_id: token_id.into(),
             result,
-            completed_at_ms,
-        )?;
+            completed_at_ms: completed_at_ms.into(),
+        })?;
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {
@@ -311,13 +312,13 @@ impl QianjiBpmnSession {
             activity_id,
         )?;
         let completed_at_ms = self.instance.updated_at_ms;
-        let mut outcome = apply_pending_host_work_result(
-            self.package.as_ref(),
-            &mut self.instance,
-            token_id,
+        let mut outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+            package: self.package.as_ref(),
+            instance: &mut self.instance,
+            token_id: token_id.into(),
             result,
-            completed_at_ms,
-        )?;
+            completed_at_ms: completed_at_ms.into(),
+        })?;
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {
@@ -357,13 +358,13 @@ impl QianjiBpmnSession {
             activity_id,
         )?;
         let completed_at_ms = self.instance.updated_at_ms;
-        let mut outcome = apply_pending_host_work_result(
-            self.package.as_ref(),
-            &mut self.instance,
-            token_id,
+        let mut outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+            package: self.package.as_ref(),
+            instance: &mut self.instance,
+            token_id: token_id.into(),
             result,
-            completed_at_ms,
-        )?;
+            completed_at_ms: completed_at_ms.into(),
+        })?;
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {
@@ -592,8 +593,8 @@ fn validate_pending_host_work_identity(
         .find(|work| work.token_id == token_id)
         .ok_or_else(
             || qianji_bpmn_engine::BpmnEngineError::MissingPendingHostWorkToken {
-                instance_id: instance.instance_id.to_string(),
-                token_id,
+                instance_id: instance.instance_id.to_string().into(),
+                token_id: token_id.into(),
             },
         )?;
 

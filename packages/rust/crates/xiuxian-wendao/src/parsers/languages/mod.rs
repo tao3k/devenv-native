@@ -1,3 +1,5 @@
+//! `parsers::languages` owns Wendao parsers languages behavior.
+
 /// Python language parser families.
 #[path = "python/mod.rs"]
 pub mod python;

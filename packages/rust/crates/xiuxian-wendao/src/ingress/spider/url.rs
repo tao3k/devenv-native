@@ -1,3 +1,5 @@
+//! `ingress::spider::url` owns Wendao ingress spider url behavior.
+
 use url::Url;
 
 use super::errors::SpiderIngressError;

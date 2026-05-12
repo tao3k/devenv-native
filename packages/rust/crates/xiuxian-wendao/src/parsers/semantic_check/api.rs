@@ -5,81 +5,48 @@ use super::types::HashReference;
 /// Extract ID references from text content.
 ///
 /// Looks for wiki-style links like `[[#id]]` or `[[id]]`.
-#[allow(clippy::expect_used)]
 #[must_use]
 pub(crate) fn extract_id_references(text: &str) -> Vec<String> {
-    let mut refs = Vec::new();
-    let mut chars = text.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        if ch == '[' && chars.peek() == Some(&'[') {
-            chars.next();
-            let mut link_content = String::new();
-            while let Some(&next) = chars.peek() {
-                if next == ']' {
-                    chars.next();
-                    if chars.peek() == Some(&']') {
-                        chars.next();
-                        break;
-                    }
-                    link_content.push(']');
-                } else {
-                    link_content.push(chars.next().expect("char exists after peek"));
-                }
-            }
-            let link = link_content.trim();
-            if link.starts_with('#') {
-                refs.push(link.to_string());
-            }
-        }
-    }
-    refs
+    wiki_link_contents(text)
+        .map(str::trim)
+        .filter(|link| link.starts_with('#'))
+        .map(str::to_string)
+        .collect()
 }
 
 /// Extract hash-annotated references from text content.
 ///
 /// Format: `[[#id@hash]]` where `@hash` is the expected content hash.
-#[allow(clippy::expect_used)]
 #[must_use]
 pub(crate) fn extract_hash_references(text: &str) -> Vec<HashReference> {
-    let mut refs = Vec::new();
-    let mut chars = text.chars().peekable();
+    wiki_link_contents(text)
+        .map(str::trim)
+        .filter_map(|link| link.strip_prefix('#'))
+        .map(hash_reference_from_id_part)
+        .collect()
+}
 
-    while let Some(ch) = chars.next() {
-        if ch == '[' && chars.peek() == Some(&'[') {
-            chars.next();
-            let mut link_content = String::new();
-            while let Some(&next) = chars.peek() {
-                if next == ']' {
-                    chars.next();
-                    if chars.peek() == Some(&']') {
-                        chars.next();
-                        break;
-                    }
-                    link_content.push(']');
-                } else {
-                    link_content.push(chars.next().expect("char exists after peek"));
-                }
-            }
-            let link = link_content.trim();
-            if let Some(id_part) = link.strip_prefix('#') {
-                if let Some(at_pos) = id_part.find('@') {
-                    let target_id = id_part[..at_pos].to_string();
-                    let expect_hash = id_part[at_pos + 1..].to_string();
-                    refs.push(HashReference {
-                        target_id,
-                        expect_hash: Some(expect_hash),
-                    });
-                } else {
-                    refs.push(HashReference {
-                        target_id: id_part.to_string(),
-                        expect_hash: None,
-                    });
-                }
-            }
+fn wiki_link_contents(text: &str) -> impl Iterator<Item = &str> {
+    text.match_indices("[[").filter_map(|(start, _)| {
+        let content_start = start + 2;
+        text[content_start..]
+            .find("]]")
+            .map(|end| &text[content_start..content_start + end])
+    })
+}
+
+fn hash_reference_from_id_part(id_part: &str) -> HashReference {
+    if let Some(at_pos) = id_part.find('@') {
+        HashReference {
+            target_id: id_part[..at_pos].to_string(),
+            expect_hash: Some(id_part[at_pos + 1..].to_string()),
+        }
+    } else {
+        HashReference {
+            target_id: id_part.to_string(),
+            expect_hash: None,
         }
     }
-    refs
 }
 
 /// Validate a contract expression against content.
@@ -99,12 +66,10 @@ pub(crate) fn validate_contract(contract: &str, content: &str) -> Option<String>
             .filter(|s| !s.is_empty())
             .collect();
 
-        for term in terms {
-            if !content.contains(term) {
-                return Some(format!("missing required term '{term}'"));
-            }
-        }
-        return None;
+        return terms
+            .into_iter()
+            .find(|term| !content.contains(*term))
+            .map(|term| format!("missing required term '{term}'"));
     }
 
     if let Some(args) = extract_function_args(contract, "must_not_contain") {

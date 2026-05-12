@@ -1,3 +1,5 @@
+//! `parsers::markdown::api` owns Wendao parsers markdown api behavior.
+
 use super::content::extract_saliency_params;
 use super::links::extract_link_targets_from_occurrences;
 use super::paths::{is_org_note, normalize_slashes, relative_doc_id};

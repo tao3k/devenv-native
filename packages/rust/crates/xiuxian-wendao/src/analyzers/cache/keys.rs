@@ -1,3 +1,5 @@
+//! `analyzers::cache::keys` owns Wendao analyzers cache keys behavior.
+
 use crate::analyzers::RegisteredRepository;
 use crate::analyzers::cache::identity::collect_repository_analysis_identity;
 use crate::search::FuzzySearchOptions;
@@ -98,6 +100,7 @@ pub struct RepositorySearchQueryCacheKey {
 impl RepositorySearchQueryCacheKey {
     /// Build one endpoint cache key from the shared analysis identity plus query settings.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn new(
         analysis_key: &RepositoryAnalysisCacheKey,
         endpoint: &str,

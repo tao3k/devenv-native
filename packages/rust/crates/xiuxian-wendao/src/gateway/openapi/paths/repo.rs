@@ -1,3 +1,5 @@
+//! `gateway::openapi::paths::repo` owns Wendao openapi paths repo behavior.
+
 /// Axum runtime path for the repo overview endpoint.
 pub const API_REPO_OVERVIEW_AXUM_PATH: &str = "/api/repo/overview";
 /// `OpenAPI` path for the repo overview endpoint.

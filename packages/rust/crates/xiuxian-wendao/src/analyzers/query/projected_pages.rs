@@ -1,3 +1,5 @@
+//! `analyzers::query::projected_pages` owns Wendao analyzers query projected pages behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

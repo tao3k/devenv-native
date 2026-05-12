@@ -1,3 +1,5 @@
+//! `analyzers::service::incremental` owns Wendao analyzers service incremental behavior.
+
 mod merge;
 mod orchestration;
 mod relations;

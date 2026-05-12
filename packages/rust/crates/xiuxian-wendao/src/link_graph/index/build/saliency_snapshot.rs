@@ -73,12 +73,14 @@ impl SaliencySnapshot {
 
     /// Get saliency value for a specific node, defaulting to 0.0.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn saliency_of(&self, node_id: &str) -> f64 {
         self.states.get(node_id).map_or(0.0, |s| s.current_saliency)
     }
 
     /// Check if a node qualifies as high saliency.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn is_high_saliency(&self, node_id: &str) -> bool {
         self.high_saliency_nodes.contains(&node_id.to_string())
     }

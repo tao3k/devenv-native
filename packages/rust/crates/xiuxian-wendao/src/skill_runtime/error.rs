@@ -1,3 +1,5 @@
+//! `skill_runtime::error` owns Wendao skill runtime error behavior.
+
 use std::path::PathBuf;
 
 use thiserror::Error;

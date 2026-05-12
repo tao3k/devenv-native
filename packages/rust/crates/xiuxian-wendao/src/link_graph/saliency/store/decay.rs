@@ -1,3 +1,5 @@
+//! `link_graph::saliency::store::decay` owns Wendao saliency store decay behavior.
+
 use super::common::{
     now_unix_i64, parse_saliency_payload_any_node, redis_connection, resolve_runtime,
 };

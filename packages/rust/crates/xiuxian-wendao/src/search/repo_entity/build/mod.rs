@@ -1,3 +1,5 @@
+//! `search::repo_entity::build` owns Wendao search repo entity build behavior.
+
 mod orchestration;
 mod plan;
 mod types;

@@ -1,7 +1,7 @@
 //! Saliency calculation for repository entities using structural topology.
 
 use super::plugin::RepositoryAnalysisOutput;
-use petgraph::graph::DiGraph;
+use petgraph::graph::{DiGraph, NodeIndex};
 use std::collections::HashMap;
 
 /// Compute structural saliency scores for all symbols and modules in the analysis output.
@@ -10,60 +10,78 @@ pub fn compute_repository_saliency(analysis: &RepositoryAnalysisOutput) -> HashM
     let mut graph = DiGraph::<String, ()>::new();
     let mut nodes = HashMap::new();
 
-    // 1. Collect all potential entities from records
-    let mut entity_ids = Vec::new();
-    for module in &analysis.modules {
-        entity_ids.push(module.module_id.to_string());
-    }
-    for symbol in &analysis.symbols {
-        entity_ids.push(symbol.symbol_id.to_string());
-    }
-    for example in &analysis.examples {
-        entity_ids.push(example.example_id.to_string());
-    }
+    add_analysis_entities(analysis, &mut graph, &mut nodes);
+    add_relation_edges(analysis, &mut graph, &nodes);
+    normalize_scores(degree_saliency_scores(&graph))
+}
 
-    for id in entity_ids {
+fn add_analysis_entities(
+    analysis: &RepositoryAnalysisOutput,
+    graph: &mut DiGraph<String, ()>,
+    nodes: &mut HashMap<String, NodeIndex>,
+) {
+    repository_entity_ids(analysis).for_each(|id| {
         nodes
             .entry(id.clone())
             .or_insert_with(|| graph.add_node(id));
-    }
+    });
+}
 
-    // 2. Add edges from relations
-    for relation in &analysis.relations {
-        if let (Some(&source), Some(&target)) = (
-            nodes.get(relation.source_id.as_str()),
-            nodes.get(relation.target_id.as_str()),
-        ) {
-            // Weight can be adjusted based on RelationKind
+fn repository_entity_ids(analysis: &RepositoryAnalysisOutput) -> impl Iterator<Item = String> + '_ {
+    analysis
+        .modules
+        .iter()
+        .map(|module| module.module_id.to_string())
+        .chain(
+            analysis
+                .symbols
+                .iter()
+                .map(|symbol| symbol.symbol_id.to_string()),
+        )
+        .chain(
+            analysis
+                .examples
+                .iter()
+                .map(|example| example.example_id.to_string()),
+        )
+}
+
+fn add_relation_edges(
+    analysis: &RepositoryAnalysisOutput,
+    graph: &mut DiGraph<String, ()>,
+    nodes: &HashMap<String, NodeIndex>,
+) {
+    analysis
+        .relations
+        .iter()
+        .filter_map(|relation| {
+            nodes
+                .get(relation.source_id.as_str())
+                .zip(nodes.get(relation.target_id.as_str()))
+        })
+        .for_each(|(&source, &target)| {
             graph.add_edge(source, target, ());
-        }
-    }
+        });
+}
 
-    // 3. Compute simple degree-based saliency (Placeholder for PPR)
-    // Core hub nodes (high in-degree) get higher scores.
-    let mut scores = HashMap::new();
-    let node_count = graph.node_count();
-    if node_count == 0 {
-        return scores;
-    }
+fn degree_saliency_scores(graph: &DiGraph<String, ()>) -> HashMap<String, f64> {
+    graph
+        .node_indices()
+        .map(|idx| (graph[idx].clone(), degree_saliency_score(graph, idx)))
+        .collect()
+}
 
-    for idx in graph.node_indices() {
-        let id = graph[idx].clone();
-        let in_degree = graph
-            .edges_directed(idx, petgraph::Direction::Incoming)
-            .count();
-        let out_degree = graph
-            .edges_directed(idx, petgraph::Direction::Outgoing)
-            .count();
+fn degree_saliency_score(graph: &DiGraph<String, ()>, idx: NodeIndex) -> f64 {
+    let in_degree = graph
+        .edges_directed(idx, petgraph::Direction::Incoming)
+        .count();
+    let out_degree = graph
+        .edges_directed(idx, petgraph::Direction::Outgoing)
+        .count();
+    (bounded_usize_to_f64(in_degree) * 2.0) + (bounded_usize_to_f64(out_degree) * 0.5)
+}
 
-        // Saliency = normalized (in_degree * 2 + out_degree)
-        // Hubs (like base types or common solvers) will have many incoming edges (Uses/Implements).
-        let raw_score =
-            (bounded_usize_to_f64(in_degree) * 2.0) + (bounded_usize_to_f64(out_degree) * 0.5);
-        scores.insert(id, raw_score);
-    }
-
-    // 4. Normalize scores to 0.0 - 1.0
+fn normalize_scores(mut scores: HashMap<String, f64>) -> HashMap<String, f64> {
     let max_score = scores.values().copied().fold(0.0, f64::max);
     if max_score > 0.0 {
         for score in scores.values_mut() {

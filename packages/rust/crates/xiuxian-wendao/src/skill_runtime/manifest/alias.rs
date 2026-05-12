@@ -161,6 +161,7 @@ pub enum SkillNativeAliasCompileError {
 /// # Errors
 ///
 /// Returns an error when the binding id is unknown.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn resolve_skill_binding_target(
     binding_id: &str,
 ) -> Result<String, SkillNativeAliasCompileError> {

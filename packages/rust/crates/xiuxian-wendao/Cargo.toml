@@ -100,6 +100,10 @@ name = "wendao_performance"
 harness = false
 required-features = ["performance"]
 
+[[bin]]
+name = "wendao_repo_search_flight_server"
+required-features = ["search-runtime", "duckdb"]
+
 
 [dependencies]
 

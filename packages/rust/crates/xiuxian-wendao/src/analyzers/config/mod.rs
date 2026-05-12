@@ -1,3 +1,5 @@
+//! `analyzers::config` owns Wendao analyzers config behavior.
+
 mod load;
 mod parse;
 #[cfg(test)]

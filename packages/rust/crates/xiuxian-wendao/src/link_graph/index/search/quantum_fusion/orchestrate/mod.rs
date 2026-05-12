@@ -1,3 +1,5 @@
+//! `link_graph::index::search::quantum_fusion::orchestrate` owns Wendao search quantum fusion orchestrate behavior.
+
 #[path = "candidates.rs"]
 pub(crate) mod candidates;
 #[path = "error.rs"]

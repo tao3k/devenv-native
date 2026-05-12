@@ -73,46 +73,50 @@ pub(crate) fn plan_attachment_build_with_scanned_files(
     let markdown_snapshot = service
         .shared_markdown_project_snapshot(project_root, files_requiring_semantic_eval.as_slice());
 
-    let mut file_fingerprints = BTreeMap::<String, SearchFileFingerprint>::new();
-    let mut changed_files = Vec::<ProjectScannedFile>::new();
-    let mut changed_hits = Vec::new();
+    let (file_fingerprints, changed_files, changed_hits) = scanned_files.iter().fold(
+        (
+            BTreeMap::<String, SearchFileFingerprint>::new(),
+            Vec::<ProjectScannedFile>::new(),
+            Vec::new(),
+        ),
+        |(mut file_fingerprints, mut changed_files, mut changed_hits), file| {
+            if can_incremental_reuse
+                && let Some(previous) = previous_fingerprints.get(file.normalized_path.as_str())
+                && previous.matches_scan_metadata(
+                    Some(file.partition_id.as_str()),
+                    file.size_bytes,
+                    file.modified_unix_ms(),
+                    ATTACHMENT_EXTRACTOR_VERSION,
+                    SearchCorpusKind::Attachment.schema_version(),
+                )
+            {
+                file_fingerprints.insert(file.normalized_path.clone(), previous.clone());
+                return (file_fingerprints, changed_files, changed_hits);
+            }
 
-    for file in scanned_files {
-        if can_incremental_reuse
-            && let Some(previous) = previous_fingerprints.get(file.normalized_path.as_str())
-            && previous.matches_scan_metadata(
-                Some(file.partition_id.as_str()),
-                file.size_bytes,
-                file.modified_unix_ms(),
+            let entry = markdown_snapshot.entry(file.normalized_path.as_str());
+            let semantic_fingerprint = entry
+                .and_then(|entry| entry.note_fingerprint.clone())
+                .unwrap_or_else(|| attachment_hits_fingerprint(&[]));
+            let fingerprint = file.to_semantic_file_fingerprint(
                 ATTACHMENT_EXTRACTOR_VERSION,
                 SearchCorpusKind::Attachment.schema_version(),
-            )
-        {
-            file_fingerprints.insert(file.normalized_path.clone(), previous.clone());
-            continue;
-        }
-
-        let entry = markdown_snapshot.entry(file.normalized_path.as_str());
-        let semantic_fingerprint = entry
-            .and_then(|entry| entry.note_fingerprint.clone())
-            .unwrap_or_else(|| attachment_hits_fingerprint(&[]));
-        let fingerprint = file.to_semantic_file_fingerprint(
-            ATTACHMENT_EXTRACTOR_VERSION,
-            SearchCorpusKind::Attachment.schema_version(),
-            semantic_fingerprint,
-        );
-        let changed = !can_incremental_reuse
-            || previous_fingerprints
-                .get(file.normalized_path.as_str())
-                .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
-        file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
-        if changed {
-            let file_hits =
-                entry.map_or_else(Vec::new, |entry| build_attachment_hits_for_entry(entry));
-            changed_files.push(file.clone());
-            changed_hits.extend(file_hits);
-        }
-    }
+                semantic_fingerprint,
+            );
+            let changed = !can_incremental_reuse
+                || previous_fingerprints
+                    .get(file.normalized_path.as_str())
+                    .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
+            file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
+            if changed {
+                let file_hits =
+                    entry.map_or_else(Vec::new, |entry| build_attachment_hits_for_entry(entry));
+                changed_files.push(file.clone());
+                changed_hits.extend(file_hits);
+            }
+            (file_fingerprints, changed_files, changed_hits)
+        },
+    );
 
     if !can_incremental_reuse {
         return AttachmentBuildPlan {
@@ -127,11 +131,12 @@ pub(crate) fn plan_attachment_build_with_scanned_files(
         .iter()
         .map(|file| file.normalized_path.clone())
         .collect::<BTreeSet<_>>();
-    for path in previous_fingerprints.keys() {
-        if !file_fingerprints.contains_key(path) {
-            replaced_paths.insert(path.clone());
-        }
-    }
+    replaced_paths.extend(
+        previous_fingerprints
+            .keys()
+            .filter(|path| !file_fingerprints.contains_key(*path))
+            .cloned(),
+    );
 
     AttachmentBuildPlan {
         base_epoch: active_epoch,

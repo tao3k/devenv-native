@@ -1,3 +1,5 @@
+//! `dependency_indexer::symbols::extract` owns Wendao dependency indexer symbols extract behavior.
+
 use std::path::Path;
 
 use super::{ExternalSymbol, SymbolKind};

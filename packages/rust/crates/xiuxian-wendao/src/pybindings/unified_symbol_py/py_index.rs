@@ -1,3 +1,5 @@
+//! `pybindings::unified_symbol_py::py_index` owns Wendao pybindings unified symbol py py index behavior.
+
 use pyo3::{pyclass, pymethods};
 
 use crate::unified_symbol::UnifiedSymbolIndex;

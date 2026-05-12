@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `link_graph::index::shared` owns Wendao link graph index shared behavior.
+
 use super::{
     LinkGraphDocument, LinkGraphHit, LinkGraphSortField, LinkGraphSortOrder, LinkGraphSortTerm,
 };
@@ -8,6 +11,7 @@ use std::hash::{Hash, Hasher};
 pub(super) fn doc_sort_key(doc: &LinkGraphDocument) -> (&str, &str) {
     (doc.path.as_str(), doc.stem.as_str())
 }
+/// `ScoredSearchRow` public type boundary for Wendao.
 
 #[derive(Debug, Clone)]
 pub struct ScoredSearchRow {
@@ -51,6 +55,7 @@ fn compare_by_sort_term(
         LinkGraphSortOrder::Desc => base.reverse(),
     }
 }
+/// `sort_hits` public function boundary for Wendao.
 
 pub fn sort_hits(rows: &mut [ScoredSearchRow], sort_terms: &[LinkGraphSortTerm]) {
     let terms = if sort_terms.is_empty() {
@@ -74,6 +79,7 @@ pub fn sort_hits(rows: &mut [ScoredSearchRow], sort_terms: &[LinkGraphSortTerm])
             .then(left.hit.stem.cmp(&right.hit.stem))
     });
 }
+/// `deterministic_random_key` public function boundary for Wendao.
 
 pub fn deterministic_random_key(stem: &str, path: &str) -> u64 {
     let mut hasher = DefaultHasher::new();
@@ -81,6 +87,7 @@ pub fn deterministic_random_key(stem: &str, path: &str) -> u64 {
     path.hash(&mut hasher);
     hasher.finish()
 }
+/// `normalize_path_filter` public function boundary for Wendao.
 
 pub fn normalize_path_filter(path: &str) -> String {
     path.trim()
@@ -88,6 +95,7 @@ pub fn normalize_path_filter(path: &str) -> String {
         .trim_matches('/')
         .to_lowercase()
 }
+/// `path_matches_filter` public function boundary for Wendao.
 
 pub fn path_matches_filter(path: &str, filter: &str) -> bool {
     if filter.is_empty() {
@@ -96,6 +104,7 @@ pub fn path_matches_filter(path: &str, filter: &str) -> bool {
     let normalized_path = normalize_path_filter(path);
     normalized_path == filter || normalized_path.starts_with(&format!("{filter}/"))
 }
+/// `doc_contains_phrase` public function boundary for Wendao.
 
 pub fn doc_contains_phrase(doc: &LinkGraphDocument, phrase: &str, case_sensitive: bool) -> bool {
     if phrase.trim().is_empty() {

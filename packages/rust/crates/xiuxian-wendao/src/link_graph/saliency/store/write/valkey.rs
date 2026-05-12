@@ -1,3 +1,5 @@
+//! `link_graph::saliency::store::write::valkey` owns Wendao store write valkey behavior.
+
 use super::coactivation::propagate_coactivation;
 use super::touch::apply_touch_with_connection;
 use super::types::TouchUpdateSpec;
@@ -14,6 +16,7 @@ use crate::link_graph::saliency::{
 /// # Errors
 ///
 /// Returns an error when runtime configuration is invalid or Valkey operations fail.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn valkey_saliency_del(node_id: &str) -> Result<(), String> {
     let (valkey_url, key_prefix) = resolve_runtime()?;
     let trimmed = node_id.trim();

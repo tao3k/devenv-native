@@ -1,6 +1,7 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 //! Coordinates search-plane query methods across repository, symbol, attachment, and vector owners.
 
-use super::types::SearchPlaneService;
+use super::SearchPlaneService;
 use crate::search::contracts::{ProjectConfigView, materialize_project_configs};
 use crate::search::{
     AttachmentSearchError, KnowledgeSectionSearchError, LocalSymbolSearchError, ProjectScannedFile,
@@ -180,6 +181,7 @@ impl SearchPlaneService {
     /// # Errors
     ///
     /// Returns an attachment search error when the active publication cannot
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     /// be queried or decoded.
     pub async fn search_attachment_hits(
         &self,

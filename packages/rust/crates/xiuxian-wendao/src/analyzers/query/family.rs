@@ -1,3 +1,5 @@
+//! `analyzers::query::family` owns Wendao analyzers query family behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

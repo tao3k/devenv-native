@@ -5,14 +5,16 @@ use xiuxian_db_store::EngineRecordBatch;
 
 use crate::search::ranking::{RetainedWindow, StreamingRerankTelemetry, trim_ranked_string_map};
 
-use super::candidates::RepoContentChunkCandidate;
+use super::candidates::{
+    RepoContentChunkCandidate, candidate_path_key, compare_candidates,
+    repo_content_detail_filter_expression,
+};
 use super::error::RepoContentChunkSearchError;
 use super::filters::RepoContentChunkSearchFilters;
 use super::helpers::{
-    candidate_path_key, compare_candidates, detail_projected_repo_content_columns,
-    engine_string_column, engine_u64_column, exact_match_expression, exact_match_projection_column,
-    filename_filter_expression, language_filter_expression, path_prefix_filter_expression,
-    query_text_filter_expression, repo_content_detail_filter_expression,
+    detail_projected_repo_content_columns, engine_string_column, engine_u64_column,
+    exact_match_expression, exact_match_projection_column, filename_filter_expression,
+    language_filter_expression, path_prefix_filter_expression, query_text_filter_expression,
     stage1_global_order_clause, stage1_projected_repo_content_columns, title_filter_expression,
 };
 

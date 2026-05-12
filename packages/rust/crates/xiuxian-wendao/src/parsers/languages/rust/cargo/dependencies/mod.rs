@@ -1,3 +1,5 @@
+//! `parsers::languages::rust::cargo::dependencies` owns Wendao rust cargo dependencies behavior.
+
 mod api;
 mod regex;
 mod types;

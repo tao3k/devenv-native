@@ -1,3 +1,5 @@
+//! Incremental filesystem discovery and manifest diffing.
+
 use super::{DiscoveryOptions, SyncManifest, SyncResult};
 use std::collections::{BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
@@ -107,70 +109,13 @@ impl SyncEngine {
     /// Discover files under the project root according to discovery options.
     #[must_use]
     pub fn discover_files(&self) -> Vec<PathBuf> {
-        let mut files = Vec::new();
         let root = self.project_root.as_path();
         if !root.is_dir() {
-            return files;
+            return Vec::new();
         }
 
-        let options = &self.options;
-        let extensions: HashSet<String> = options
-            .extensions
-            .iter()
-            .map(|ext| ext.to_ascii_lowercase())
-            .collect();
-        let skip_dirs: HashSet<String> = options
-            .skip_dirs
-            .iter()
-            .map(|name| name.to_ascii_lowercase())
-            .collect();
-
-        for entry in WalkDir::new(root)
-            .follow_links(false)
-            .into_iter()
-            .filter_entry(|entry| {
-                if entry.depth() == 0 {
-                    return true;
-                }
-                if entry.file_type().is_dir() {
-                    let name = entry.file_name().to_string_lossy();
-                    if options.skip_hidden && name.starts_with('.') {
-                        return false;
-                    }
-                    if skip_dirs.contains(name.to_ascii_lowercase().as_str()) {
-                        return false;
-                    }
-                }
-                true
-            })
-            .filter_map(Result::ok)
-        {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            let path = entry.path();
-            if options.skip_hidden && is_hidden_path(path) {
-                continue;
-            }
-            let Some(ext) = path.extension().and_then(|value| value.to_str()) else {
-                continue;
-            };
-            if !extensions.contains(&ext.to_ascii_lowercase()) {
-                continue;
-            }
-            if let Ok(metadata) = path.metadata()
-                && metadata.len() > options.max_file_size
-            {
-                continue;
-            }
-            files.push(path.to_path_buf());
-            if let Some(limit) = options.max_files
-                && files.len() >= limit
-            {
-                break;
-            }
-        }
-
+        let filter = DiscoveryFilter::from_options(&self.options);
+        let mut files = discover_files_under_root(root, &self.options, &filter);
         files.sort();
         files
     }
@@ -201,6 +146,95 @@ impl SyncEngine {
 
         result
     }
+}
+
+struct DiscoveryFilter {
+    extensions: HashSet<String>,
+    skip_dirs: HashSet<String>,
+}
+
+impl DiscoveryFilter {
+    fn from_options(options: &DiscoveryOptions) -> Self {
+        Self {
+            extensions: options
+                .extensions
+                .iter()
+                .map(|ext| ext.to_ascii_lowercase())
+                .collect(),
+            skip_dirs: options
+                .skip_dirs
+                .iter()
+                .map(|name| name.to_ascii_lowercase())
+                .collect(),
+        }
+    }
+
+    fn should_descend(&self, entry: &walkdir::DirEntry, options: &DiscoveryOptions) -> bool {
+        if entry.depth() == 0 || !entry.file_type().is_dir() {
+            return true;
+        }
+
+        let name = entry.file_name().to_string_lossy();
+        if options.skip_hidden && name.starts_with('.') {
+            return false;
+        }
+        !self.skip_dirs.contains(name.to_ascii_lowercase().as_str())
+    }
+
+    fn accepts_file(&self, path: &Path, options: &DiscoveryOptions) -> bool {
+        file_is_visible(path, options)
+            && file_extension_is_supported(path, &self.extensions)
+            && file_size_is_allowed(path, options.max_file_size)
+    }
+}
+
+fn discover_files_under_root(
+    root: &Path,
+    options: &DiscoveryOptions,
+    filter: &DiscoveryFilter,
+) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    for entry in WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_entry(|entry| filter.should_descend(entry, options))
+        .filter_map(Result::ok)
+    {
+        if accepted_file_entry(&entry, options, filter) {
+            files.push(entry.path().to_path_buf());
+        }
+        if discovery_limit_reached(files.len(), options.max_files) {
+            break;
+        }
+    }
+    files
+}
+
+fn accepted_file_entry(
+    entry: &walkdir::DirEntry,
+    options: &DiscoveryOptions,
+    filter: &DiscoveryFilter,
+) -> bool {
+    entry.file_type().is_file() && filter.accepts_file(entry.path(), options)
+}
+
+fn file_is_visible(path: &Path, options: &DiscoveryOptions) -> bool {
+    !options.skip_hidden || !is_hidden_path(path)
+}
+
+fn file_extension_is_supported(path: &Path, extensions: &HashSet<String>) -> bool {
+    path.extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|ext| extensions.contains(&ext.to_ascii_lowercase()))
+}
+
+fn file_size_is_allowed(path: &Path, max_file_size: u64) -> bool {
+    path.metadata()
+        .map_or(true, |metadata| metadata.len() <= max_file_size)
+}
+
+fn discovery_limit_reached(file_count: usize, max_files: Option<usize>) -> bool {
+    max_files.is_some_and(|limit| file_count >= limit)
 }
 
 fn is_hidden_path(path: &Path) -> bool {

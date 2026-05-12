@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::docs_tool::contracts` owns Wendao projection docs tool contracts behavior.
+
 use std::collections::BTreeMap;
 
 #[cfg(test)]
@@ -225,6 +227,7 @@ pub struct DocsToolContractSnapshot {
 
 /// Canonical parameter description for the invocation contract.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct DocsContractParamSnapshot {
     /// Canonical parameter name.
     pub name: String,
@@ -301,6 +304,7 @@ struct DocsContractParamManifest {
 
 /// Resolve the raw checked-in assets for one docs contract id.
 #[must_use]
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn docs_capability_contract_assets(contract_id: &str) -> Option<DocsCapabilityContractAssets> {
     match contract_id {
         DOCS_SEARCH_CONTRACT_ID => Some(DocsCapabilityContractAssets {
@@ -329,12 +333,14 @@ pub fn docs_capability_contract_assets(contract_id: &str) -> Option<DocsCapabili
 
 /// Resolve the raw checked-in `contract.toml` for one docs contract id.
 #[must_use]
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn docs_capability_contract_snapshot(contract_id: &str) -> Option<&'static str> {
     docs_capability_contract_assets(contract_id).map(|assets| assets.contract_toml)
 }
 
 /// Resolve the raw checked-in `schema.json` for one docs contract id.
 #[must_use]
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn docs_capability_schema_snapshot(contract_id: &str) -> Option<&'static str> {
     docs_capability_contract_assets(contract_id).map(|assets| assets.schema_json)
 }

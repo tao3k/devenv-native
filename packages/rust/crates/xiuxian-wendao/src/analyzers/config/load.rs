@@ -1,3 +1,5 @@
+//! `analyzers::config::load` owns Wendao analyzers config load behavior.
+
 use std::path::{Path, PathBuf};
 
 use crate::analyzers::RepoIntelligenceError;

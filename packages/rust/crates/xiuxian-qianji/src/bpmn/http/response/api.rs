@@ -42,11 +42,20 @@ impl QianjiBpmnPendingHostWorkHttpResponse {
     fn from_pending_host_work(work: &PendingHostWork) -> Self {
         Self {
             token_id: work.token_id,
-            process_id: work.process_id.clone(),
+            process_id: work
+                .process_id
+                .as_ref()
+                .map(|process_id| process_id.as_str().to_owned()),
             node_index: work.node_index,
-            activity_id: work.activity_id.clone(),
+            activity_id: work
+                .activity_id
+                .as_ref()
+                .map(|activity_id| activity_id.as_str().to_owned()),
             kind: work.kind.clone(),
-            work_id: work.work_id.clone(),
+            work_id: work
+                .work_id
+                .as_ref()
+                .map(|work_id| work_id.as_str().to_owned()),
             form: work.human_task_form.clone(),
             assignment: work.human_task_assignment.clone(),
             lane: work.lane.clone(),

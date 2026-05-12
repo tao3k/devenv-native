@@ -22,7 +22,7 @@ pub mod contracts;
 pub mod openapi;
 
 /// Runtime support for the Studio-owned command-line and service binaries.
-#[cfg(feature = "cli-bin-support")]
+#[cfg(any(feature = "cli-bin-support", feature = "flight-server-bin-support"))]
 #[doc(hidden)]
 pub mod bin_support;
 

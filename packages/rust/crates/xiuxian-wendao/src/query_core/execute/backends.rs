@@ -1,3 +1,5 @@
+//! `query_core::execute::backends` owns Wendao query core execute backends behavior.
+
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, StringArray, UInt64Array};
@@ -115,19 +117,43 @@ impl GraphBackend for LinkGraphNeighborsBackend {
             .index
             .neighbors(op.node_id.as_str(), direction, op.hops, op.limit);
 
-        let mut node_ids = vec![op.node_id.clone()];
-        let mut paths = vec![center.path.clone()];
-        let mut titles = vec![Some(center.title.clone())];
-        let mut distances = vec![0_u64];
-        let mut directions = vec!["center".to_string()];
-
-        for neighbor in neighbors {
-            node_ids.push(neighbor.stem);
-            paths.push(neighbor.path);
-            titles.push(Some(neighbor.title));
-            distances.push(u64::try_from(neighbor.distance).unwrap_or(u64::MAX));
-            directions.push(graph_direction_label(op.direction).to_string());
-        }
+        let rows = std::iter::once((
+            op.node_id.clone(),
+            center.path.clone(),
+            Some(center.title.clone()),
+            0_u64,
+            "center".to_string(),
+        ))
+        .chain(neighbors.into_iter().map(|neighbor| {
+            (
+                neighbor.stem,
+                neighbor.path,
+                Some(neighbor.title),
+                u64::try_from(neighbor.distance).unwrap_or(u64::MAX),
+                graph_direction_label(op.direction).to_string(),
+            )
+        }))
+        .collect::<Vec<_>>();
+        let node_ids = rows
+            .iter()
+            .map(|(node_id, _, _, _, _)| node_id.clone())
+            .collect::<Vec<_>>();
+        let paths = rows
+            .iter()
+            .map(|(_, path, _, _, _)| path.clone())
+            .collect::<Vec<_>>();
+        let titles = rows
+            .iter()
+            .map(|(_, _, title, _, _)| title.clone())
+            .collect::<Vec<_>>();
+        let distances = rows
+            .iter()
+            .map(|(_, _, _, distance, _)| *distance)
+            .collect::<Vec<_>>();
+        let directions = rows
+            .iter()
+            .map(|(_, _, _, _, direction)| direction.clone())
+            .collect::<Vec<_>>();
 
         let schema = Arc::new(Schema::new(vec![
             Field::new("node_id", DataType::Utf8, false),

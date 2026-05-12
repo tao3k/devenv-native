@@ -5,3 +5,4 @@ mod crud;
 mod query;
 
 pub use core::KnowledgeStorage;
+pub use crud::KnowledgeStorageError;

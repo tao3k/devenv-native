@@ -1,3 +1,5 @@
+//! `search::attachment::build` owns Wendao search attachment build behavior.
+
 mod extract;
 mod orchestration;
 mod plan;

@@ -6,6 +6,7 @@ use crate::parsers::markdown::normalize_alias;
 impl LinkGraphIndex {
     /// Get per-note metadata.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn metadata(&self, stem_or_id: &str) -> Option<LinkGraphMetadata> {
         let doc_id = self.resolve_doc_id(stem_or_id)?;
         let doc = self.docs_by_id.get(doc_id)?;
@@ -19,6 +20,7 @@ impl LinkGraphIndex {
 
     /// Resolve ambiguous stem/id/path input into deterministic metadata candidates.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn resolve_metadata_candidates(&self, stem_or_id: &str) -> Vec<LinkGraphMetadata> {
         let key = normalize_alias(stem_or_id);
         if key.is_empty() {

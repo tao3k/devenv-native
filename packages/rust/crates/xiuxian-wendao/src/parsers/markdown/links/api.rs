@@ -1,3 +1,5 @@
+//! `parsers::markdown::links::api` owns Wendao markdown links api behavior.
+
 use super::parse_target::{parse_markdown_target, parse_wikilink_target};
 #[cfg(any(test, feature = "search-runtime"))]
 use super::types::ResolvedNoteReference;

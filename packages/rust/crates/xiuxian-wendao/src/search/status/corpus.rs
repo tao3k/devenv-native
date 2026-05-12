@@ -1,3 +1,5 @@
+//! `search::status::corpus` owns Wendao search status corpus behavior.
+
 use serde::{Deserialize, Serialize};
 
 use crate::search::SearchCorpusKind;

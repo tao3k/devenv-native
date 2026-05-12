@@ -1,3 +1,5 @@
+//! Discovery queries over embedded `Zhixing` skill reference resources.
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
@@ -39,47 +41,84 @@ struct EmbeddedDiscoveryRecord {
 ///
 /// Returns an error when embedded registry construction fails.
 pub fn embedded_discover_canonical_uris(query: &str) -> Result<Vec<String>> {
-    let normalized_query = query.trim();
-    if normalized_query.is_empty() {
-        return Ok(Vec::new());
+    match classify_embedded_discovery_query(query) {
+        EmbeddedDiscoveryQuery::Empty => Ok(Vec::new()),
+        EmbeddedDiscoveryQuery::ReferenceType(reference_type) => {
+            discover_reference_type_query(reference_type)
+        }
+        EmbeddedDiscoveryQuery::ConfigId(config_id) => discover_config_id_query(config_id),
+        EmbeddedDiscoveryQuery::SemanticTerms(terms) => discover_semantic_query(terms.as_slice()),
     }
-    let normalized_query = normalized_query
-        .strip_prefix("query:")
-        .map_or(normalized_query, str::trim);
-    if normalized_query.is_empty() {
-        return Ok(Vec::new());
-    }
+}
 
-    let records = embedded_discovery_records()?;
+enum EmbeddedDiscoveryQuery<'a> {
+    Empty,
+    ReferenceType(&'a str),
+    ConfigId(&'a str),
+    SemanticTerms(Vec<String>),
+}
+
+fn classify_embedded_discovery_query(query: &str) -> EmbeddedDiscoveryQuery<'_> {
+    let Some(normalized_query) = normalize_embedded_discovery_query(query) else {
+        return EmbeddedDiscoveryQuery::Empty;
+    };
 
     if let Some(reference_type) =
         parse_prefixed_value(normalized_query, &["reference_type", "type", "ref_type"])
     {
-        let hits = discover_by_reference_type(records, reference_type);
-        if !hits.is_empty() {
-            return Ok(hits);
-        }
-        return embedded_skill_links_for_reference_type(reference_type);
+        return EmbeddedDiscoveryQuery::ReferenceType(reference_type);
     }
     if let Some(config_id) = parse_prefixed_value(normalized_query, &["id"]) {
-        let hits = discover_by_config_id(records, config_id);
-        if !hits.is_empty() {
-            return Ok(hits);
-        }
-        return embedded_skill_links_for_id(config_id);
+        return EmbeddedDiscoveryQuery::ConfigId(config_id);
     }
 
     let terms = semantic_query_terms(normalized_query);
     if terms.is_empty() {
-        return Ok(Vec::new());
+        EmbeddedDiscoveryQuery::Empty
+    } else {
+        EmbeddedDiscoveryQuery::SemanticTerms(terms)
     }
+}
 
-    let hits = discover_by_semantic_terms(records, terms.as_slice());
-    if !hits.is_empty() {
-        return Ok(hits);
+fn normalize_embedded_discovery_query(query: &str) -> Option<&str> {
+    let normalized_query = query.trim();
+    if normalized_query.is_empty() {
+        return None;
     }
+    let normalized_query = normalized_query
+        .strip_prefix("query:")
+        .map_or(normalized_query, str::trim);
+    (!normalized_query.is_empty()).then_some(normalized_query)
+}
 
-    discover_by_registry_scan(terms.as_slice())
+fn discover_reference_type_query(reference_type: &str) -> Result<Vec<String>> {
+    let records = embedded_discovery_records()?;
+    let hits = discover_by_reference_type(records, reference_type);
+    if hits.is_empty() {
+        embedded_skill_links_for_reference_type(reference_type)
+    } else {
+        Ok(hits)
+    }
+}
+
+fn discover_config_id_query(config_id: &str) -> Result<Vec<String>> {
+    let records = embedded_discovery_records()?;
+    let hits = discover_by_config_id(records, config_id);
+    if hits.is_empty() {
+        embedded_skill_links_for_id(config_id)
+    } else {
+        Ok(hits)
+    }
+}
+
+fn discover_semantic_query(terms: &[String]) -> Result<Vec<String>> {
+    let records = embedded_discovery_records()?;
+    let hits = discover_by_semantic_terms(records, terms);
+    if hits.is_empty() {
+        discover_by_registry_scan(terms)
+    } else {
+        Ok(hits)
+    }
 }
 
 fn parse_prefixed_value<'a>(query: &'a str, keys: &[&str]) -> Option<&'a str> {
@@ -268,38 +307,42 @@ fn discover_by_registry_scan(terms: &[String]) -> Result<Vec<String>> {
     candidates.sort();
     candidates.dedup();
 
-    let mut hits = Vec::new();
-    for uri in candidates {
-        let Some(content) = embedded_resource_text_from_wendao_uri(uri.as_str()) else {
-            continue;
-        };
-        let frontmatter = parse_frontmatter(content);
-        let mut haystacks = Vec::with_capacity(5);
-        haystacks.push(uri.to_ascii_lowercase());
-        haystacks.push(content.to_ascii_lowercase());
-        if let Some(name) = frontmatter.name.as_deref() {
-            haystacks.push(name.to_ascii_lowercase());
-        }
-        haystacks.extend(
-            frontmatter
-                .routing_keywords
+    let mut hits = candidates
+        .into_iter()
+        .filter(|uri| {
+            let Some(content) = embedded_resource_text_from_wendao_uri(uri.as_str()) else {
+                return false;
+            };
+            let haystacks = registry_scan_haystacks(uri, content);
+            terms
                 .iter()
-                .map(|value| value.to_ascii_lowercase()),
-        );
-        haystacks.extend(
-            frontmatter
-                .intents
-                .iter()
-                .map(|value| value.to_ascii_lowercase()),
-        );
-        if terms
-            .iter()
-            .all(|term| haystacks.iter().any(|entry| entry.contains(term.as_str())))
-        {
-            hits.push(uri);
-        }
-    }
+                .all(|term| haystacks.iter().any(|entry| entry.contains(term.as_str())))
+        })
+        .collect::<Vec<_>>();
     hits.sort();
     hits.dedup();
     Ok(hits)
+}
+
+fn registry_scan_haystacks(uri: &str, content: &str) -> Vec<String> {
+    let frontmatter = parse_frontmatter(content);
+    let mut haystacks = Vec::with_capacity(5);
+    haystacks.push(uri.to_ascii_lowercase());
+    haystacks.push(content.to_ascii_lowercase());
+    if let Some(name) = frontmatter.name.as_deref() {
+        haystacks.push(name.to_ascii_lowercase());
+    }
+    haystacks.extend(
+        frontmatter
+            .routing_keywords
+            .iter()
+            .map(|value| value.to_ascii_lowercase()),
+    );
+    haystacks.extend(
+        frontmatter
+            .intents
+            .iter()
+            .map(|value| value.to_ascii_lowercase()),
+    );
+    haystacks
 }

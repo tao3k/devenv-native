@@ -1,3 +1,5 @@
+//! `link_graph::addressing::indices` owns Wendao link graph addressing indices behavior.
+
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 

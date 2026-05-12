@@ -1,3 +1,5 @@
+//! `search::status::phase` owns Wendao search status phase behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Runtime phase for a search-plane corpus.

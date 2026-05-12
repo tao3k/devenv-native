@@ -34,6 +34,7 @@ fn apply_signed_delta(base: usize, delta: i64) -> Option<usize> {
 /// 2. The system to trigger AST re-parsing
 /// 3. Conflict detection when multiple agents edit overlapping regions
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct StructuralTransaction {
     /// Document that was modified.
     pub doc_id: String,
@@ -61,6 +62,9 @@ impl StructuralTransaction {
     /// Create a new structural transaction record.
     #[allow(clippy::too_many_arguments)]
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+    /// Tuple API boundary: this public API preserves byte or count pairs used by existing addressing contracts.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn new(
         doc_id: String,
         doc_path: String,
@@ -92,6 +96,7 @@ impl StructuralTransaction {
     /// If the range is after the edit, it's shifted by `byte_delta`.
     /// If the range overlaps the edit, returns None (conflict).
     #[must_use]
+    /// Tuple API boundary: this public API preserves byte or count pairs used by existing addressing contracts.
     pub fn adjust_byte_range(&self, range: (usize, usize)) -> Option<(usize, usize)> {
         let (start, end) = range;
         let (edit_start, edit_end) = self.original_byte_range;
@@ -115,6 +120,7 @@ impl StructuralTransaction {
 
     /// Check if a given byte range conflicts with this transaction.
     #[must_use]
+    /// Tuple API boundary: this public API preserves byte or count pairs used by existing addressing contracts.
     pub fn conflicts_with(&self, range: (usize, usize)) -> bool {
         self.adjust_byte_range(range).is_none()
     }
@@ -247,12 +253,15 @@ impl StructuralTransactionCoordinator {
 
     /// Get the last transaction for a document.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn last_transaction_for(&self, doc_id: &str) -> Option<&StructuralTransaction> {
         self.last_per_doc.get(doc_id)
     }
 
     /// Adjust a byte range for a document based on all pending transactions.
     #[must_use]
+    /// Tuple API boundary: this public API preserves byte or count pairs used by existing addressing contracts.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn adjust_byte_range(&self, doc_id: &str, range: (usize, usize)) -> Option<(usize, usize)> {
         let mut current = range;
         for tx in &self.pending {
@@ -265,6 +274,8 @@ impl StructuralTransactionCoordinator {
 
     /// Check if a byte range conflicts with any pending transaction for a document.
     #[must_use]
+    /// Tuple API boundary: this public API preserves byte or count pairs used by existing addressing contracts.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn has_conflict(&self, doc_id: &str, range: (usize, usize)) -> bool {
         self.pending
             .iter()

@@ -4,15 +4,12 @@ impl UnifiedSymbolIndex {
     /// Return index statistics.
     #[must_use]
     pub fn stats(&self) -> UnifiedIndexStats {
-        let mut project_symbols = 0;
-        let mut external_symbols = 0;
-        for symbol in &self.symbols {
-            if symbol.is_project() {
-                project_symbols += 1;
-            } else {
-                external_symbols += 1;
-            }
-        }
+        let project_symbols = self
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.is_project())
+            .count();
+        let external_symbols = self.symbols.len().saturating_sub(project_symbols);
 
         UnifiedIndexStats {
             total_symbols: self.symbols.len(),

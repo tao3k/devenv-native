@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `search::local_symbol::query::shared::types` owns Wendao query shared types behavior.
+
 use crate::duckdb::ParquetQueryEngine;
 use crate::search::contracts::AutocompleteSuggestion;
 use crate::search::ranking::{StreamingRerankSource, StreamingRerankTelemetry};

@@ -1,3 +1,5 @@
+//! `link_graph::agentic::types::config` owns Wendao agentic types config behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Runtime budget config for bounded agentic expansion planning.

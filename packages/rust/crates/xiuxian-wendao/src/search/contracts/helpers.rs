@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::path::{Component, Path, PathBuf};
 
 use walkdir::DirEntry;

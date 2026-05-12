@@ -1,3 +1,5 @@
+//! `search::repo_entity::query::lookup::types` owns Wendao query lookup types behavior.
+
 use tokio::sync::OwnedSemaphorePermit;
 
 use crate::duckdb::ParquetQueryEngine;

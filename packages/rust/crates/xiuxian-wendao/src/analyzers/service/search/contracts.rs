@@ -1,3 +1,5 @@
+//! `analyzers::service::search::contracts` owns Wendao service search contracts behavior.
+
 #[cfg(any(feature = "search-runtime", feature = "search-runtime"))]
 use crate::analyzers::ImportSearchQuery;
 #[cfg(feature = "search-runtime")]

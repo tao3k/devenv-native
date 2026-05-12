@@ -9,28 +9,34 @@ pub(crate) fn build_restart_state(
     seeds: &HashMap<String, f64>,
     node_to_idx: &HashMap<String, usize>,
 ) -> Option<RestartState> {
-    let mut teleport = vec![0.0_f64; graph_node_count];
-    let mut total_seed_weight = 0.0_f64;
-
-    for (seed_id, &weight) in seeds {
-        if let Some(seed_idx) = node_to_idx.get(seed_id).copied() {
-            let safe_weight = weight.max(0.0);
-            teleport[seed_idx] = safe_weight;
-            total_seed_weight += safe_weight;
-        }
-    }
+    let weighted_seeds = seeds
+        .iter()
+        .filter_map(|(seed_id, &weight)| {
+            node_to_idx
+                .get(seed_id)
+                .copied()
+                .map(|seed_idx| (seed_idx, weight.max(0.0)))
+        })
+        .collect::<Vec<_>>();
+    let total_seed_weight = weighted_seeds
+        .iter()
+        .map(|(_, weight)| *weight)
+        .sum::<f64>();
 
     if total_seed_weight <= 0.0 {
         return None;
     }
 
-    let mut restart_nodes: Vec<(usize, f64)> = Vec::with_capacity(seeds.len());
-    for (idx, value) in teleport.iter_mut().enumerate() {
-        *value /= total_seed_weight;
-        if *value > 0.0 {
-            restart_nodes.push((idx, *value));
-        }
-    }
+    let mut teleport = vec![0.0_f64; graph_node_count];
+    weighted_seeds
+        .iter()
+        .for_each(|(seed_idx, weight)| teleport[*seed_idx] = *weight / total_seed_weight);
+    let restart_nodes = teleport
+        .iter()
+        .copied()
+        .enumerate()
+        .filter(|(_, value)| *value > 0.0)
+        .collect::<Vec<_>>();
 
     Some(RestartState {
         teleport,

@@ -51,12 +51,10 @@ impl<'conn> WendaoEventLakeAppender<'conn> {
     where
         I: IntoIterator<Item = RecordBatch>,
     {
-        let mut row_count = 0;
-        for batch in batches {
+        batches.into_iter().try_fold(0usize, |row_count, batch| {
             validate_wendao_event_batch(&batch)?;
-            row_count += self.inner.append_batch(batch)?;
-        }
-        Ok(row_count)
+            self.inner.append_batch(batch).map(|rows| row_count + rows)
+        })
     }
 
     /// Convert Wendao event records into `Arrow` and append without flushing.
@@ -85,12 +83,13 @@ impl<'conn> WendaoEventLakeAppender<'conn> {
             return Err("Wendao event append rows_per_batch must be greater than zero".to_string());
         }
 
-        let mut row_count = 0;
-        for chunk in events.chunks(rows_per_batch) {
-            let batch = wendao_event_record_batch(chunk)?;
-            row_count += self.append_batches(std::iter::once(batch))?;
-        }
-        Ok(row_count)
+        events
+            .chunks(rows_per_batch)
+            .try_fold(0usize, |row_count, chunk| {
+                let batch = wendao_event_record_batch(chunk)?;
+                self.append_batches(std::iter::once(batch))
+                    .map(|rows| row_count + rows)
+            })
     }
 
     /// Flush appended rows into `DuckDB`.

@@ -1,3 +1,5 @@
+//! `analyzers::cache::query` owns Wendao analyzers cache query behavior.
+
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
 

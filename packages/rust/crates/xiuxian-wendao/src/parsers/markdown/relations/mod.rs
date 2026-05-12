@@ -1,3 +1,5 @@
+//! `parsers::markdown::relations` owns Wendao parsers markdown relations behavior.
+
 mod api;
 mod keys;
 mod targets;

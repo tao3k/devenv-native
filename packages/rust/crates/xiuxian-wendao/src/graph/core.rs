@@ -1,3 +1,5 @@
+//! `graph::core` owns Wendao graph core behavior.
+
 use crate::entity::{Entity, Relation};
 use std::collections::{HashMap, HashSet};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};

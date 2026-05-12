@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::gap` owns Wendao service projection gap behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

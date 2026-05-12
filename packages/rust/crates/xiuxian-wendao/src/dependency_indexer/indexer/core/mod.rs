@@ -1,6 +1,8 @@
+//! `dependency_indexer::indexer::core` owns Wendao dependency indexer indexer core behavior.
+
 mod build;
-mod indexer;
+mod engine;
 mod process;
 mod query;
 
-pub use indexer::DependencyIndexer;
+pub use engine::DependencyIndexer;

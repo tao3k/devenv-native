@@ -10,8 +10,10 @@ pub mod graph;
 /// Language-specific parser families.
 #[path = "languages/mod.rs"]
 pub mod languages;
+/// Public Wendao boundary.
 #[path = "link_graph/mod.rs"]
 pub mod link_graph;
+/// Public Wendao boundary.
 #[path = "markdown/mod.rs"]
 pub mod markdown;
 /// Search query parsing.
@@ -21,5 +23,6 @@ pub mod search;
 #[cfg(any(test, feature = "zhenfa-router"))]
 #[path = "semantic_check/mod.rs"]
 pub mod semantic_check;
+/// Public Wendao boundary.
 #[path = "zhixing/mod.rs"]
 pub mod zhixing;

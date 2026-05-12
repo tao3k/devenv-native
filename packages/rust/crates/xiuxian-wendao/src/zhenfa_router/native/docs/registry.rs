@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::registry` owns Wendao native docs registry behavior.
+
 use std::sync::Arc;
 
 use xiuxian_zhenfa::{ZhenfaRegistry, ZhenfaTool};

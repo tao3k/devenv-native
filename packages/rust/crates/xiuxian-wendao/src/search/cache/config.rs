@@ -1,3 +1,5 @@
+//! `search::cache::config` owns Wendao search cache config behavior.
+
 use crate::settings::get_setting_string;
 use serde_yaml::Value;
 use std::time::Duration;

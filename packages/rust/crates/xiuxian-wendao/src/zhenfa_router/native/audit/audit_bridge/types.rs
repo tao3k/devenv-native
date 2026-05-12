@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::audit_bridge::types` owns Wendao audit audit bridge types behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Byte range for precise content addressing.
@@ -161,6 +163,7 @@ impl std::fmt::Display for FixResult {
 
 /// Represents a single fix operation to be applied to a document.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct BatchFix {
     /// Type of issue being fixed.
     pub issue_type: String,

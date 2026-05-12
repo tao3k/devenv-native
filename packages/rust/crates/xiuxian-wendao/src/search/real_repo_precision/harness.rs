@@ -416,27 +416,36 @@ fn run_repository_queries(
 }
 
 fn link_graph_corpus_receipt(index: &LinkGraphIndex) -> RealRepoPrecisionLinkGraphCorpusReceipt {
-    let mut document_count = 0;
-    let mut markdown_document_count = 0;
-    let mut org_document_count = 0;
-    let mut total_word_count = 0;
-    let mut path_prefix_counts = BTreeMap::<String, (usize, usize)>::new();
-
-    for document in index.docs_by_id.values() {
-        document_count += 1;
-        total_word_count += document.word_count;
-        if is_markdown_document(&document.path) {
-            markdown_document_count += 1;
-        }
-        if has_extension(&document.path, "org") {
-            org_document_count += 1;
-        }
-        let prefix = corpus_path_prefix(&document.path);
-        let (prefix_document_count, prefix_word_count) =
-            path_prefix_counts.entry(prefix).or_default();
-        *prefix_document_count += 1;
-        *prefix_word_count += document.word_count;
-    }
+    let (
+        document_count,
+        markdown_document_count,
+        org_document_count,
+        total_word_count,
+        path_prefix_counts,
+    ) = index.docs_by_id.values().fold(
+        (0, 0, 0, 0, BTreeMap::<String, (usize, usize)>::new()),
+        |(
+            document_count,
+            markdown_document_count,
+            org_document_count,
+            total_word_count,
+            mut path_prefix_counts,
+        ),
+         document| {
+            let prefix = corpus_path_prefix(&document.path);
+            let (prefix_document_count, prefix_word_count) =
+                path_prefix_counts.entry(prefix).or_default();
+            *prefix_document_count += 1;
+            *prefix_word_count += document.word_count;
+            (
+                document_count + 1,
+                markdown_document_count + usize::from(is_markdown_document(&document.path)),
+                org_document_count + usize::from(has_extension(&document.path, "org")),
+                total_word_count + document.word_count,
+                path_prefix_counts,
+            )
+        },
+    );
 
     RealRepoPrecisionLinkGraphCorpusReceipt {
         document_count,

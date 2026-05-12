@@ -1,3 +1,5 @@
+//! `search::service::core` owns Wendao search service core behavior.
+
 mod cache_keys;
 #[path = "construction/mod.rs"]
 mod construction;
@@ -9,10 +11,10 @@ mod local_runtime;
 mod maintenance;
 mod markdown_snapshot;
 mod publication;
+mod queries;
 mod repeat_work;
 #[path = "repo_runtime/mod.rs"]
 mod repo_runtime;
-mod search;
 mod source_snapshot;
 #[path = "status/mod.rs"]
 mod status;

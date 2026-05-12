@@ -1,3 +1,5 @@
+//! `search::manifest::records` owns Wendao search manifest records behavior.
+
 use serde::{Deserialize, Serialize};
 
 use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase};
@@ -87,6 +89,7 @@ impl SearchManifestRecord {
 
 /// Materialized publication row for one published repo-backed corpus table.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct SearchRepoPublicationRecord {
     /// Repo-backed corpus this manifest row belongs to.
     pub corpus: SearchCorpusKind,

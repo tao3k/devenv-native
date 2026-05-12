@@ -1,14 +1,17 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `analyzers::cache::valkey::cache` owns Wendao cache valkey cache behavior.
+
 #[cfg(all(test, feature = "search-runtime"))]
 use std::collections::BTreeMap;
 
 use crate::analyzers::RepositoryAnalysisOutput;
 
-use super::runtime::{ValkeyAnalysisCacheRuntime, resolve_valkey_analysis_cache_runtime};
-use super::scope::{RepositoryAnalysisValkeyScope, RepositorySearchQueryValkeyScope};
-use super::storage::{
-    encode_analysis_payload, encode_search_query_payload, valkey_analysis_key,
-    valkey_analysis_revision_key,
+use super::{
+    RepositoryAnalysisValkeyScope, RepositorySearchQueryValkeyScope, ValkeyAnalysisCacheRuntime,
+    encode_analysis_payload, encode_search_query_payload, resolve_valkey_analysis_cache_runtime,
+    valkey_analysis_key, valkey_analysis_revision_key,
 };
+/// `ValkeyAnalysisCache` public type boundary for Wendao.
 
 #[derive(Debug, Clone)]
 pub struct ValkeyAnalysisCache {

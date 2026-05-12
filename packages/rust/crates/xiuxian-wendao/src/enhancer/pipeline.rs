@@ -1,3 +1,5 @@
+//! `enhancer::pipeline` owns Wendao enhancer pipeline behavior.
+
 use crate::link_graph_refs::{extract_entity_refs, get_ref_stats};
 
 use super::relations::infer_relations;

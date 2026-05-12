@@ -1,3 +1,5 @@
+//! `search::queries::sql::provider` owns Wendao queries sql provider behavior.
+
 #[path = "metadata.rs"]
 pub(crate) mod metadata;
 #[cfg(feature = "runtime-transport")]

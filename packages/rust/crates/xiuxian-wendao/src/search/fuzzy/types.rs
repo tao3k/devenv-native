@@ -1,3 +1,5 @@
+//! `search::fuzzy::types` owns Wendao search fuzzy types behavior.
+
 /// One scored fuzzy match result.
 #[derive(Debug, Clone)]
 pub struct FuzzyMatch<T> {

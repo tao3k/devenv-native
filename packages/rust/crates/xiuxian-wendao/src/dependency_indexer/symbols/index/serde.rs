@@ -1,4 +1,7 @@
+//! Symbol index text serialization helpers.
+
 use super::SymbolIndex;
+use super::types::CrateSymbols;
 use crate::dependency_indexer::symbols::{ExternalSymbol, SymbolKind};
 use std::io::Write;
 
@@ -6,42 +9,7 @@ impl SymbolIndex {
     /// Serialize to JSON string.
     #[must_use]
     pub fn serialize(&self) -> String {
-        let mut output = Vec::new();
-
-        for crate_sym in &self.by_crate {
-            for symbol in &crate_sym.symbols {
-                let kind_str = match symbol.kind {
-                    SymbolKind::Struct => "struct",
-                    SymbolKind::Enum => "enum",
-                    SymbolKind::Trait => "trait",
-                    SymbolKind::Function => "fn",
-                    SymbolKind::Method => "method",
-                    SymbolKind::Field => "field",
-                    SymbolKind::Impl => "impl",
-                    SymbolKind::Mod => "mod",
-                    SymbolKind::Const => "const",
-                    SymbolKind::Static => "static",
-                    SymbolKind::TypeAlias => "type",
-                    SymbolKind::Unknown => "unknown",
-                };
-
-                let line = symbol.line;
-                let file = symbol.file.to_string_lossy();
-
-                // Format: crate_name|symbol_name|kind|file:line
-                if writeln!(
-                    output,
-                    "{}|{}|{}|{}:{}",
-                    crate_sym.name, symbol.name, kind_str, file, line
-                )
-                .is_err()
-                {
-                    return String::new();
-                }
-            }
-        }
-
-        String::from_utf8(output).unwrap_or_default()
+        serialize_index(self).unwrap_or_default()
     }
 
     /// Deserialize from JSON string.
@@ -95,5 +63,55 @@ impl SymbolIndex {
         }
 
         true
+    }
+}
+
+fn serialize_index(index: &SymbolIndex) -> Option<String> {
+    let mut output = Vec::new();
+    for crate_symbols in &index.by_crate {
+        write_crate_symbols(&mut output, crate_symbols).ok()?;
+    }
+    String::from_utf8(output).ok()
+}
+
+fn write_crate_symbols(output: &mut Vec<u8>, crate_symbols: &CrateSymbols) -> std::io::Result<()> {
+    for symbol in &crate_symbols.symbols {
+        write_symbol_line(output, &crate_symbols.name, symbol)?;
+    }
+    Ok(())
+}
+
+fn write_symbol_line(
+    output: &mut Vec<u8>,
+    crate_name: &str,
+    symbol: &ExternalSymbol,
+) -> std::io::Result<()> {
+    let line = symbol.line;
+    let file = symbol.file.to_string_lossy();
+    writeln!(
+        output,
+        "{}|{}|{}|{}:{}",
+        crate_name,
+        symbol.name,
+        symbol_kind_label(&symbol.kind),
+        file,
+        line
+    )
+}
+
+fn symbol_kind_label(kind: &SymbolKind) -> &'static str {
+    match kind {
+        SymbolKind::Struct => "struct",
+        SymbolKind::Enum => "enum",
+        SymbolKind::Trait => "trait",
+        SymbolKind::Function => "fn",
+        SymbolKind::Method => "method",
+        SymbolKind::Field => "field",
+        SymbolKind::Impl => "impl",
+        SymbolKind::Mod => "mod",
+        SymbolKind::Const => "const",
+        SymbolKind::Static => "static",
+        SymbolKind::TypeAlias => "type",
+        SymbolKind::Unknown => "unknown",
     }
 }

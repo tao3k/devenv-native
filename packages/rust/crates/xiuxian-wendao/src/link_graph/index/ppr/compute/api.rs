@@ -117,17 +117,17 @@ fn resolve_related_ppr_seed_weights(seed_ids: &HashSet<String>) -> HashMap<Strin
         return fallback_weights;
     };
 
-    let mut total_weight = 0.0_f64;
-    let mut weighted_seed_ids: HashMap<String, f64> =
-        HashMap::with_capacity(ordered_seed_ids.len());
-    for seed_id in ordered_seed_ids {
-        let weight = states
-            .get(&seed_id)
-            .map_or(1.0, learned_saliency_signal_from_state)
-            .max(0.0);
-        total_weight += weight;
-        weighted_seed_ids.insert(seed_id, weight);
-    }
+    let weighted_seed_ids = ordered_seed_ids
+        .into_iter()
+        .map(|seed_id| {
+            let weight = states
+                .get(&seed_id)
+                .map_or(1.0, learned_saliency_signal_from_state)
+                .max(0.0);
+            (seed_id, weight)
+        })
+        .collect::<HashMap<_, _>>();
+    let total_weight = weighted_seed_ids.values().sum::<f64>();
 
     if total_weight <= 0.0 {
         fallback_weights

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::segment` owns Wendao native docs segment behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};

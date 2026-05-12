@@ -1,3 +1,5 @@
+//! `analyzers::service::search::overview` owns Wendao service search overview behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

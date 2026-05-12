@@ -234,6 +234,7 @@ impl SearchPlaneService {
     ///
     /// Returns a vector-store error when the repository content publication
     /// cannot be written.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub async fn publish_repo_content_chunks_with_revision(
         &self,
         repo_id: &str,
@@ -272,6 +273,7 @@ impl SearchPlaneService {
     ///
     /// Returns a repository content chunk search error when the published index
     /// cannot be queried or decoded.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub async fn search_repo_content_chunks(
         &self,
         repo_id: &str,
@@ -321,6 +323,7 @@ impl SearchPlaneService {
     ///
     /// Returns a vector-store error when the repository entity publication
     /// cannot be written.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub async fn publish_repo_entities_with_revision(
         &self,
         repo_id: &str,
@@ -411,6 +414,8 @@ impl SearchPlaneService {
     ///
     /// Returns a repository entity search error when the publication cannot be
     /// queried or decoded.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub async fn search_repo_entities(
         &self,
         repo_id: &str,

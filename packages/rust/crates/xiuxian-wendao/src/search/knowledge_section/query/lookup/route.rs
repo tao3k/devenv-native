@@ -8,11 +8,11 @@ use crate::search::ranking::{
 };
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 
-use super::candidates::{KnowledgeCandidate, collect_candidates, retained_window};
-use super::error::KnowledgeSectionSearchError;
-use super::helpers::{
-    compare_candidates, engine_string_column, sql_identifier, sql_string_literal,
+use super::candidates::{
+    KnowledgeCandidate, collect_candidates, compare_candidates, retained_window,
 };
+use super::error::KnowledgeSectionSearchError;
+use super::helpers::{engine_string_column, sql_identifier, sql_string_literal};
 
 #[derive(Debug)]
 struct KnowledgeSearchExecution {

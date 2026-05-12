@@ -1,3 +1,5 @@
+//! `link_graph::saliency` owns Wendao link graph saliency behavior.
+
 mod calc;
 mod keys;
 mod signal;

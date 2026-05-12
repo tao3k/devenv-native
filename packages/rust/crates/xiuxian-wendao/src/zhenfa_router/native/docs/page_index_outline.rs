@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::page_index_outline` owns Wendao native docs page index outline behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};

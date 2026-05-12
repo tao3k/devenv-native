@@ -1,3 +1,5 @@
+//! `search::contracts::search_index::definitions::issues` owns Wendao search index definitions issues behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

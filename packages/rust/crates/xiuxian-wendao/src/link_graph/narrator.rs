@@ -1,3 +1,5 @@
+//! `link_graph::narrator` owns Wendao link graph narrator behavior.
+
 use super::LinkGraphHit;
 use std::fmt::Write;
 

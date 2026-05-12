@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::semantic_read` owns Wendao zhenfa router native semantic read behavior.
+
 use std::fmt::Write;
 
 use schemars::JsonSchema;

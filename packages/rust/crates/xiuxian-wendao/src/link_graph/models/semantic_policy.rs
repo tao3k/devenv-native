@@ -1,3 +1,5 @@
+//! `link_graph::models::semantic_policy` owns Wendao link graph models semantic policy behavior.
+
 use serde::{Deserialize, Serialize};
 /// Scope of semantic documents allowed in retrieval.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

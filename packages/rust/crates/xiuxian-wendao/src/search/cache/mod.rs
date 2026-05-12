@@ -1,3 +1,5 @@
+//! `search::cache` owns Wendao search cache behavior.
+
 mod config;
 mod construction;
 mod fingerprints;

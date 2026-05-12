@@ -1,3 +1,5 @@
+//! Project `LinkGraph` evidence into the generic `WendaoGraph.jl` request tables.
+
 use std::collections::BTreeSet;
 use std::sync::Arc;
 

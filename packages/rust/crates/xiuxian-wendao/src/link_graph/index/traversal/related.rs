@@ -5,6 +5,7 @@ use crate::link_graph::index::{
 impl LinkGraphIndex {
     /// Find related notes from a seed note stem or id.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn related(
         &self,
         stem_or_id: &str,
@@ -17,6 +18,7 @@ impl LinkGraphIndex {
 
     /// Find related notes and return PPR diagnostics.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn related_with_diagnostics(
         &self,
         stem_or_id: &str,

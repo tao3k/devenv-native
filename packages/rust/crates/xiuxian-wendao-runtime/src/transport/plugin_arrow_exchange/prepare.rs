@@ -11,7 +11,7 @@ use super::metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request
 use super::request::{PluginArrowRequestRow, build_plugin_arrow_request_batch};
 
 /// Inputs used to build a metadata-bearing request batch from vector-store rows.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct PluginArrowVectorStoreRequestBatchInput<'a, I> {
     /// Vector store used to fetch candidate embeddings.
     pub store: &'a VectorStore,

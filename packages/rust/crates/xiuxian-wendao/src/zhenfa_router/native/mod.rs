@@ -5,6 +5,7 @@
 
 #[path = "agentic_nav.rs"]
 mod agentic_nav;
+/// Public Wendao boundary.
 #[path = "audit/mod.rs"]
 pub mod audit;
 #[path = "context.rs"]
@@ -19,12 +20,14 @@ mod forwarder;
 mod remediation;
 #[path = "search.rs"]
 mod search;
+/// Public Wendao boundary.
 #[path = "semantic_check/mod.rs"]
 pub mod semantic_check;
 #[path = "semantic_edit.rs"]
 mod semantic_edit;
 #[path = "semantic_read.rs"]
 mod semantic_read;
+/// Public Wendao boundary.
 #[path = "sentinel/mod.rs"]
 pub mod sentinel;
 #[path = "xml_lite.rs"]

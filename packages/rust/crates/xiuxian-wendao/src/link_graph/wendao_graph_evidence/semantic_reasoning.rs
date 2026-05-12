@@ -1,3 +1,5 @@
+//! Project semantic SSOT scopes into `WendaoGraph.jl` page-index reasoning tables.
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 

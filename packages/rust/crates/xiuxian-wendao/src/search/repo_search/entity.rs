@@ -1,3 +1,5 @@
+//! `search::repo_search::entity` owns Wendao search repo search entity behavior.
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -18,6 +20,7 @@ use crate::search::{
 /// # Errors
 ///
 /// Returns a string error when the repository entity query or hit decode fails.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn search_repo_entity_hits_for_query(
     search_plane: &SearchPlaneService,
     repo_id: &str,

@@ -1,3 +1,5 @@
+//! `search::repo_search::ast` owns Wendao search repo search ast behavior.
+
 #[cfg(test)]
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -453,65 +455,61 @@ impl SearchAccumulator {
     }
 
     fn push_pattern_matches(&mut self, file: &RepoAstFile<'_>, pattern: &str) -> bool {
-        for result in extract_code_pattern_matches(file.content, pattern, file.lang, None) {
-            let dedupe_key = format!(
-                "{}:{}:{}:{}",
-                file.relative_path, result.line_start, result.line_end, result.text
-            );
-            if !self.seen.insert(dedupe_key) {
-                continue;
-            }
+        extract_code_pattern_matches(file.content, pattern, file.lang, None)
+            .into_iter()
+            .any(|result| {
+                let dedupe_key = format!(
+                    "{}:{}:{}:{}",
+                    file.relative_path, result.line_start, result.line_end, result.text
+                );
+                if !self.seen.insert(dedupe_key) {
+                    return false;
+                }
 
-            self.hits.push(build_ast_search_hit(
-                file.repo_id,
-                file.relative_path,
-                file.lang,
-                &result,
-            ));
-            if self.hits.len() >= self.limit {
-                return true;
-            }
-        }
-
-        false
+                self.hits.push(build_ast_search_hit(
+                    file.repo_id,
+                    file.relative_path,
+                    file.lang,
+                    &result,
+                ));
+                self.hits.len() >= self.limit
+            })
     }
 
     fn push_analysis_matches(&mut self, file: &RepoAstFile<'_>, search_term: Option<&str>) -> bool {
-        for symbol in extract_code_structure_symbols(file.content, file.lang) {
-            let Some(score) = score_code_structure_query(
-                search_term,
-                file.relative_path,
-                symbol.name.as_str(),
-                symbol.signature.as_str(),
-            ) else {
-                continue;
-            };
-            let dedupe_key = format!(
-                "{}:{}:{}:{}",
-                file.relative_path, symbol.line_start, symbol.line_end, symbol.name
-            );
-            if !self.seen.insert(dedupe_key) {
-                continue;
-            }
+        extract_code_structure_symbols(file.content, file.lang)
+            .into_iter()
+            .any(|symbol| {
+                let Some(score) = score_code_structure_query(
+                    search_term,
+                    file.relative_path,
+                    symbol.name.as_str(),
+                    symbol.signature.as_str(),
+                ) else {
+                    return false;
+                };
+                let dedupe_key = format!(
+                    "{}:{}:{}:{}",
+                    file.relative_path, symbol.line_start, symbol.line_end, symbol.name
+                );
+                if !self.seen.insert(dedupe_key) {
+                    return false;
+                }
 
-            let analysis_match = GenericAstAnalysisMatch {
-                repo_id: file.repo_id,
-                relative_path: file.relative_path,
-                lang: file.lang,
-                name: symbol.name.as_str(),
-                signature: symbol.signature.as_str(),
-                line_start: symbol.line_start,
-                line_end: symbol.line_end,
-                score,
-            };
-            self.hits
-                .push(build_generic_ast_analysis_hit(&analysis_match));
-            if self.hits.len() >= self.limit {
-                return true;
-            }
-        }
-
-        false
+                let analysis_match = GenericAstAnalysisMatch {
+                    repo_id: file.repo_id,
+                    relative_path: file.relative_path,
+                    lang: file.lang,
+                    name: symbol.name.as_str(),
+                    signature: symbol.signature.as_str(),
+                    line_start: symbol.line_start,
+                    line_end: symbol.line_end,
+                    score,
+                };
+                self.hits
+                    .push(build_generic_ast_analysis_hit(&analysis_match));
+                self.hits.len() >= self.limit
+            })
     }
 }
 

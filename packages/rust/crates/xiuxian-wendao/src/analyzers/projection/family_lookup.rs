@@ -1,3 +1,5 @@
+//! `analyzers::projection::family_lookup` owns Wendao analyzers projection family lookup behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{

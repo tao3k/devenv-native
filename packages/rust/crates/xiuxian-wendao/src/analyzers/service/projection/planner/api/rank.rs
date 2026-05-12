@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::api::rank` owns Wendao planner api rank behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

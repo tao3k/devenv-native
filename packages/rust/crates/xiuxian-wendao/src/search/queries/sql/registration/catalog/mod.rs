@@ -1,3 +1,5 @@
+//! `search::queries::sql::registration::catalog` owns Wendao sql registration catalog behavior.
+
 mod columns;
 mod tables;
 mod view_sources;

@@ -1,3 +1,5 @@
+//! `analyzers::query::docs::planner::item` owns Wendao docs planner item behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

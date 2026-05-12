@@ -1,3 +1,5 @@
+//! `search::corpus` owns Wendao search corpus behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Canonical corpus partitions in the Studio search plane.

@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::api` owns Wendao projection planner api behavior.
+
 mod item;
 mod queue;
 mod rank;

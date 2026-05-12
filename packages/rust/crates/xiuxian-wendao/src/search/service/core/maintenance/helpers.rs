@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase};
 use crate::search::service::core::types::RepoRuntimeState;
 use crate::search::service::helpers::repo_corpus_active_epoch;

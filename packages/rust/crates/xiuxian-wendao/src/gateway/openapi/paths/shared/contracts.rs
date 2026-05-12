@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `gateway::openapi::paths::shared::contracts` owns Wendao paths shared contracts behavior.
+
 /// Axum runtime path for the health endpoint.
 pub const API_HEALTH_AXUM_PATH: &str = "/api/health";
 /// `OpenAPI` path for the health endpoint.

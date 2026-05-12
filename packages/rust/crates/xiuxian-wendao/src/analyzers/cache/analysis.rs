@@ -1,3 +1,5 @@
+//! `analyzers::cache::analysis` owns Wendao analyzers cache analysis behavior.
+
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
 
@@ -36,6 +38,7 @@ pub fn load_cached_repository_analysis(
 ///
 /// Returns an error when the in-memory cache lock is poisoned.
 #[cfg(feature = "search-runtime")]
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn load_cached_repository_analysis_for_revision(
     repo_id: &str,
     checkout_root: &str,

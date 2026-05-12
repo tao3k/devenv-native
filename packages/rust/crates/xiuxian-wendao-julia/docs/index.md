@@ -36,8 +36,16 @@ Polyglot boundary:
    `modelica-lang-parser`. Those local/native/plugin parsers have priority
    over the general baseline when they own richer domain facts and become the
    effective parser for their surfaces, while the general AST baseline remains a
-   comparable supporting evidence plane when available. Both sources pass bounded candidates into `WendaoGraph.jl` for deterministic SearchStrategyFlow scoring. Julia still
-   owns the graph algorithm; Rust owns evidence discovery, Flight route
+   comparable supporting evidence plane when available. Both sources pass
+   bounded candidates into `WendaoGraph.jl` for deterministic
+   SearchStrategyFlow scoring. The Flight source runs route-scoped authority
+   attempts before broad repo-search windows, ranks merged candidates before
+   truncation, and calibrates package owner docs, validation docs, and
+   ownership RFCs as authority evidence so Julia frontier scoring does not
+   promote generic LinkGraph mentions over required evidence. It keeps one best
+   candidate per source path before Julia selection, so duplicate sections from
+   one document cannot displace required validation or ownership branches. Julia
+   still owns the graph algorithm; Rust owns evidence discovery, Flight route
    planning, and materialization receipts. The bridge enriches the returned
    trace with additive
    `retrievalRoutes` plans for Studio-owned Arrow Flight materialization routes
@@ -50,14 +58,35 @@ Polyglot boundary:
    nodes and link-graph document nodes in separate namespaces: retrieval
    context uses the resolved section node, while graph-neighbor expansion uses
    `resolvedGraphNodeId` from the Studio display path. Executed receipts keep
-   `sourcePath`, `headingAnchor`, `materializedRows`, route receipts, decoded
-   payload receipts, and evidence anchors stable so downstream agents can
-   consume section-level provenance without opening full Markdown files. The
-   bridge also adds `rustProjectedEvidenceRows` to the JSON trace as additive
-   research metadata over candidates, frontier selection, planner
+   `sourcePath`, `headingAnchor`, `repoSearchResolutionStatus`,
+   `materializedRows`, route receipts, decoded payload receipts, and evidence
+   anchors stable so downstream agents can consume section-level provenance
+   without opening full Markdown files. A selected `sourcePath` remains the
+   fallback structure contract when repo-search cannot rediscover the exact
+   row; page-index, retrieval-context, and graph-neighbor routes still execute
+   through the real Flight host. Graph-neighbor materialization is intentionally
+   a compact one-hop relation proof rather than a two-hop neighborhood dump, so
+   live traces preserve relation-path evidence without large graph fanout. The
+   bridge also records additive `elapsedMs` timings for candidate-discovery
+   attempts and executed materialization routes. Candidate discovery can stop
+   after the required attempt floor once enough unique source paths are present,
+   while the host-local projection cache keeps projected page-index and
+   retrieval-context materialization in the millisecond range. The measured
+   next boundary is the persistent batch host: one warm Julia process preserves
+   the same frontier and route contracts while reducing repeated 32-family
+   replay cold submits from the `7774 ms-8907 ms` range to warm submits in the
+   `48 ms-164 ms` range. That host is now available as an integration-support
+   surface for Rust-controlled Julia pod promotion, with
+   `SearchStrategyFlowPersistentBatchHost::submit_with_flight_materialization`
+   as the real Flight-backed warm-host entry point and
+   `stabilize_with_flight_materialization` as the pre-release admission report
+   path. The report exports a stable JSON evidence object for later harness or
+   receipt archival.
+   The bridge also adds `rustProjectedEvidenceRows` to the JSON trace as
+   additive research metadata over candidates, frontier selection, planner
    materialization, and planned route counts. That projection is a bridge
-   receipt surface for SearchStrategyFlow research notebooks; it does not add
-   a public Arrow schema or a new Flight route.
+   receipt surface for SearchStrategyFlow research notebooks; it does not add a
+   public Arrow schema or a new Flight route.
 4. The bridge does not transfer Julia scheduling, route mutation, or schema
    authority to Rust.
 

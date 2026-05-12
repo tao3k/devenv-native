@@ -1,3 +1,5 @@
+//! `analyzers::projection::mixed_search` owns Wendao analyzers projection mixed search behavior.
+
 use std::collections::BTreeMap;
 
 use crate::analyzers::RepositoryAnalysisOutput;

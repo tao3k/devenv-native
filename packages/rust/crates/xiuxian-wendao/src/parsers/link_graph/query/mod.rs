@@ -1,3 +1,5 @@
+//! `parsers::link_graph::query` owns Wendao parsers link graph query behavior.
+
 mod api;
 #[path = "helpers/mod.rs"]
 mod helpers;

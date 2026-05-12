@@ -98,22 +98,24 @@ pub fn is_canonical_repo_doc(doc_path: &str) -> bool {
 /// Collects line slices from content.
 #[must_use]
 pub fn collect_lines(content: &str) -> Vec<LineSlice<'_>> {
-    let mut lines = Vec::new();
-    let mut offset = 0usize;
-
-    for (line_number, raw_line) in content.split_inclusive('\n').enumerate() {
-        let without_newline = raw_line.trim_end_matches(['\n', '\r']);
-        let newline = &raw_line[without_newline.len()..];
-        lines.push(LineSlice {
-            line_number: line_number + 1,
-            start_offset: offset,
-            end_offset: offset + raw_line.len(),
-            trimmed: without_newline.trim(),
-            without_newline,
-            newline,
-        });
-        offset += raw_line.len();
-    }
+    let mut lines = content
+        .split_inclusive('\n')
+        .enumerate()
+        .scan(0usize, |offset, (line_number, raw_line)| {
+            let start_offset = *offset;
+            let without_newline = raw_line.trim_end_matches(['\n', '\r']);
+            let newline = &raw_line[without_newline.len()..];
+            *offset += raw_line.len();
+            Some(LineSlice {
+                line_number: line_number + 1,
+                start_offset,
+                end_offset: *offset,
+                trimmed: without_newline.trim(),
+                without_newline,
+                newline,
+            })
+        })
+        .collect::<Vec<_>>();
 
     if !content.is_empty() && !content.ends_with('\n') {
         let without_newline = content.rsplit_once('\n').map_or(content, |(_, tail)| tail);

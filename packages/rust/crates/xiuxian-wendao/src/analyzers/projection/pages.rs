@@ -1,3 +1,5 @@
+//! `analyzers::projection::pages` owns Wendao analyzers projection pages behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::analyzers::RepositoryAnalysisOutput;

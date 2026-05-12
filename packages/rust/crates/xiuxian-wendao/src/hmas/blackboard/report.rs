@@ -1,3 +1,5 @@
+//! `hmas::blackboard::report` owns Wendao hmas blackboard report behavior.
+
 use crate::hmas::protocol::HmasRecordKind;
 use serde::{Deserialize, Serialize};
 

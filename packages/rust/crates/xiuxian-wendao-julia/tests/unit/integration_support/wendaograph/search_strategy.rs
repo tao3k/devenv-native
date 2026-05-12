@@ -4,13 +4,16 @@ use std::{
     path::{Path, PathBuf},
     pin::Pin,
     sync::Arc,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use super::{
     RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST_ENV,
     SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowFlightMaterializationConfig,
-    SearchStrategyFlowPersistentBatchHost,
+    SearchStrategyFlowPersistentBatchHost, SearchStrategyFlowPersistentHostStabilizationLimits,
+    SearchStrategyFlowPersistentHostStabilizationReason,
+    SearchStrategyFlowPersistentHostStabilizationReport,
+    SearchStrategyFlowPersistentHostWarmPathStats,
     configured_wendaograph_search_strategy_flow_markdown_replay_families,
     configured_wendaograph_search_strategy_flow_markdown_replay_families_with_limit,
     enrich_wendaograph_search_strategy_flow_retrieval_routes,
@@ -57,6 +60,8 @@ type ActionTypeStream =
 
 const RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_REPLAY_TEST_ENV: &str =
     "RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_REPLAY_TEST";
+const RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_PERSISTENT_HOST_TEST_ENV: &str =
+    "RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_PERSISTENT_HOST_TEST";
 const WENDAOGRAPH_SEARCH_STRATEGY_FLOW_FLIGHT_BASE_URL_ENV: &str =
     "WENDAOGRAPH_SEARCH_STRATEGY_FLOW_FLIGHT_BASE_URL";
 const WENDAOGRAPH_SEARCH_STRATEGY_FLOW_FLIGHT_REPO_ID_ENV: &str =
@@ -309,6 +314,24 @@ async fn spawn_fake_search_strategy_flow_flight_service_for(
     .await
 }
 
+async fn spawn_fake_search_strategy_flow_flight_service_with_empty_repo_search(
+    scenario: SearchStrategyFlowFakeFlightScenario,
+) -> (String, tokio::task::JoinHandle<()>) {
+    spawn_fake_search_strategy_flow_flight_service_with_batches(HashMap::from([
+        (REPO_SEARCH_ROUTE.to_owned(), empty_repo_search_batch()),
+        (
+            ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE.to_owned(),
+            page_index_batch(scenario),
+        ),
+        (
+            ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE.to_owned(),
+            retrieval_context_batch(scenario),
+        ),
+        (GRAPH_NEIGHBORS_ROUTE.to_owned(), graph_neighbors_batch()),
+    ]))
+    .await
+}
+
 async fn spawn_fake_search_strategy_flow_candidate_discovery_service()
 -> (String, tokio::task::JoinHandle<()>) {
     spawn_fake_search_strategy_flow_flight_service_with_batches(HashMap::from([(
@@ -368,6 +391,36 @@ fn repo_search_batch(scenario: SearchStrategyFlowFakeFlightScenario) -> RecordBa
         ],
     )
     .unwrap_or_else(|error| panic!("repo search batch should build: {error}"))
+}
+
+fn empty_repo_search_batch() -> RecordBatch {
+    RecordBatch::try_new(
+        Arc::new(Schema::new(vec![
+            Field::new(REPO_SEARCH_PATH_COLUMN, DataType::Utf8, false),
+            Field::new(REPO_SEARCH_NAVIGATION_PATH_COLUMN, DataType::Utf8, false),
+            Field::new(REPO_SEARCH_DOC_ID_COLUMN, DataType::Utf8, false),
+            Field::new(REPO_SEARCH_TITLE_COLUMN, DataType::Utf8, false),
+            Field::new(REPO_SEARCH_BEST_SECTION_COLUMN, DataType::Utf8, false),
+            Field::new(REPO_SEARCH_NAVIGATION_LINE_COLUMN, DataType::Int32, false),
+            Field::new(
+                REPO_SEARCH_NAVIGATION_LINE_END_COLUMN,
+                DataType::Int32,
+                false,
+            ),
+            Field::new(REPO_SEARCH_SCORE_COLUMN, DataType::Float64, false),
+        ])),
+        vec![
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(Int32Array::from(Vec::<i32>::new())),
+            Arc::new(Int32Array::from(Vec::<i32>::new())),
+            Arc::new(Float64Array::from(Vec::<f64>::new())),
+        ],
+    )
+    .unwrap_or_else(|error| panic!("empty repo search batch should build: {error}"))
 }
 
 fn repo_search_candidate_discovery_batch() -> RecordBatch {
@@ -519,6 +572,59 @@ fn search_strategy_flow_rust_bridge_rejects_blank_intent_before_launch() {
 }
 
 #[test]
+fn search_strategy_flow_persistent_host_stability_limits_recommend_admission_budget() {
+    let limits = SearchStrategyFlowPersistentHostStabilizationLimits {
+        max_p95_ms: 200.0,
+        max_max_ms: 400.0,
+        max_spread_ratio: 4.0,
+        preferred_max_in_flight: 2,
+        degraded_max_in_flight: 1,
+        ..SearchStrategyFlowPersistentHostStabilizationLimits::default()
+    };
+    let stable = search_strategy_flow_persistent_host_stats(40.0, 80.0, 120.0, 3.0);
+    let high_p95 = search_strategy_flow_persistent_host_stats(40.0, 201.0, 220.0, 3.0);
+    let high_max = search_strategy_flow_persistent_host_stats(40.0, 199.0, 401.0, 3.0);
+    let high_spread = search_strategy_flow_persistent_host_stats(40.0, 199.0, 220.0, 5.0);
+
+    assert_eq!(
+        limits.stability_reason_for(&stable),
+        SearchStrategyFlowPersistentHostStabilizationReason::Stable
+    );
+    assert_eq!(
+        limits.stability_reason_for(&high_p95),
+        SearchStrategyFlowPersistentHostStabilizationReason::P95Exceeded
+    );
+    assert_eq!(
+        limits.stability_reason_for(&high_max),
+        SearchStrategyFlowPersistentHostStabilizationReason::MaxExceeded
+    );
+    assert_eq!(
+        limits.stability_reason_for(&high_spread),
+        SearchStrategyFlowPersistentHostStabilizationReason::SpreadExceeded
+    );
+}
+
+#[test]
+fn search_strategy_flow_persistent_host_stability_report_exports_json_evidence() {
+    let report = SearchStrategyFlowPersistentHostStabilizationReport {
+        prewarm_elapsed: Duration::from_millis(123),
+        warm: search_strategy_flow_persistent_host_stats(40.0, 80.0, 120.0, 3.0),
+        stable: true,
+        stability_reason: SearchStrategyFlowPersistentHostStabilizationReason::Stable,
+        recommended_max_in_flight: 2,
+    };
+
+    let evidence = report.to_json_value();
+
+    assert_eq!(evidence["prewarmElapsedMs"], 123.0);
+    assert_eq!(evidence["warm"]["sampleCount"], 3);
+    assert_eq!(evidence["warm"]["p95Ms"], 80.0);
+    assert_eq!(evidence["stable"], true);
+    assert_eq!(evidence["stabilityReason"], "stable");
+    assert_eq!(evidence["recommendedMaxInFlight"], 2);
+}
+
+#[test]
 fn wendaograph_search_strategy_flow_live_replay_runs_local_markdown_families_when_enabled() {
     if env::var_os(RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST_ENV).is_none() {
         eprintln!(
@@ -559,44 +665,58 @@ async fn wendaograph_search_strategy_flow_live_flight_index_replay_runs_when_ena
     )
     .await
     .unwrap_or_else(|error| panic!("run live SearchStrategyFlow Flight index replay: {error}"));
-    let trace: serde_json::Value = serde_json::from_str(&trace)
+    let trace = serde_json::from_str::<serde_json::Value>(&trace)
         .unwrap_or_else(|error| panic!("parse live Flight replay trace: {error}"));
+    assert_live_flight_trace_contract("live-flight-index", &trace, &expected_source_fragments);
+}
 
-    assert_eq!(
-        trace.get("candidateInputSource"),
-        Some(&serde_json::json!("rust-flight-repo-search")),
-        "live Flight replay must use Flight repo-search candidates"
-    );
-    assert!(
-        trace
-            .get("candidateInputCount")
-            .and_then(serde_json::Value::as_u64)
-            .is_some_and(|count| count > 0),
-        "live Flight replay must discover at least one candidate"
-    );
-    assert_eq!(
-        trace
-            .get("candidateInputDiscovery")
-            .and_then(|receipt| receipt.get("transport")),
-        Some(&serde_json::json!("arrow-flight")),
-        "live Flight replay must expose the Rust Flight discovery receipt"
-    );
-    let candidates = json_array(&trace, "candidates", "live-flight-index");
-    let routes = json_array(&trace, "retrievalRoutes", "live-flight-index");
-    let projected_rows = json_array(&trace, "rustProjectedEvidenceRows", "live-flight-index");
+#[tokio::test]
+async fn wendaograph_search_strategy_flow_live_flight_persistent_host_runs_when_enabled() {
+    if env::var_os(RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_PERSISTENT_HOST_TEST_ENV)
+        .is_none()
+    {
+        eprintln!(
+            "skipping WendaoGraph SearchStrategyFlow persistent live Flight replay; set {RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_PERSISTENT_HOST_TEST_ENV}=1, {WENDAOGRAPH_SEARCH_STRATEGY_FLOW_FLIGHT_BASE_URL_ENV}, and {WENDAOGRAPH_SEARCH_STRATEGY_FLOW_FLIGHT_REPO_ID_ENV}"
+        );
+        return;
+    }
 
-    assert!(!candidates.is_empty(), "live Flight candidates must exist");
-    assert!(!routes.is_empty(), "live Flight routes must exist");
-    assert!(
-        !projected_rows.is_empty(),
-        "live Flight projected evidence rows must exist"
+    let base_url = required_non_blank_env(WENDAOGRAPH_SEARCH_STRATEGY_FLOW_FLIGHT_BASE_URL_ENV);
+    let repo_id = required_non_blank_env(WENDAOGRAPH_SEARCH_STRATEGY_FLOW_FLIGHT_REPO_ID_ENV);
+    let timeout_seconds = live_flight_timeout_seconds();
+    let intent = optional_non_blank_env(WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_INTENT_ENV)
+        .unwrap_or_else(|| WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_DEFAULT_INTENT.to_owned());
+    let search_root = search_strategy_flow_live_replay_search_root();
+    let config = SearchStrategyFlowFlightMaterializationConfig::new(base_url, repo_id)
+        .unwrap_or_else(|error| {
+            panic!("create persistent live Flight materialization config: {error}")
+        })
+        .with_timeout_seconds(timeout_seconds);
+    let mut host = SearchStrategyFlowPersistentBatchHost::start(search_root.as_path())
+        .unwrap_or_else(|error| panic!("start persistent SearchStrategyFlow host: {error}"));
+
+    let report = host
+        .stabilize_with_flight_materialization(
+            &intent,
+            &config,
+            SearchStrategyFlowPersistentHostStabilizationLimits::default().with_sample_count(1),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("stabilize persistent live Flight host: {error}"));
+    host.finish()
+        .unwrap_or_else(|error| panic!("finish persistent SearchStrategyFlow host: {error}"));
+
+    assert_eq!(report.warm.sample_count, 1);
+    assert!(report.recommended_max_in_flight >= 1);
+    eprintln!(
+        "SearchStrategyFlow persistent live Flight release summary: prewarmMs={}, warmP95Ms={:.3}, warmMaxMs={:.3}, stable={}, reason={:?}, recommendedMaxInFlight={}",
+        report.prewarm_elapsed.as_millis(),
+        report.warm.p95_ms,
+        report.warm.max_ms,
+        report.stable,
+        report.stability_reason,
+        report.recommended_max_in_flight
     );
-    assert_summary_matches_candidate_rows("live-flight-index", &trace, candidates);
-    assert_strategy_flow_validation_flags("live-flight-index", &trace, true);
-    assert_live_flight_routes_materialized(routes);
-    assert_projected_rows_cover_route_receipts("live-flight-index", projected_rows, routes);
-    assert_projected_rows_carry_algorithm_receipts("live-flight-index", projected_rows);
-    assert_live_trace_contains_expected_source_fragments(&trace, &expected_source_fragments);
 }
 
 fn search_strategy_flow_live_replay_search_root() -> PathBuf {
@@ -614,6 +734,22 @@ fn required_non_blank_env(name: &str) -> String {
     optional_non_blank_env(name).unwrap_or_else(|| {
         panic!("{name} must be set when {RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_REPLAY_TEST_ENV}=1")
     })
+}
+
+fn search_strategy_flow_persistent_host_stats(
+    min_ms: f64,
+    p95_ms: f64,
+    max_ms: f64,
+    spread_ratio: f64,
+) -> SearchStrategyFlowPersistentHostWarmPathStats {
+    SearchStrategyFlowPersistentHostWarmPathStats {
+        sample_count: 3,
+        min_ms,
+        median_ms: p95_ms,
+        p95_ms,
+        max_ms,
+        spread_ratio,
+    }
 }
 
 fn optional_non_blank_env(name: &str) -> Option<String> {
@@ -1145,6 +1281,48 @@ fn assert_live_flight_routes_materialized(routes: &[serde_json::Value]) {
             "executed live Flight routes must keep decoded payload receipts"
         );
     }
+}
+
+fn assert_live_flight_trace_contract(
+    family: &str,
+    trace: &serde_json::Value,
+    expected_source_fragments: &[String],
+) {
+    assert_eq!(
+        trace.get("candidateInputSource"),
+        Some(&serde_json::json!("rust-flight-repo-search")),
+        "{family} must use Flight repo-search candidates"
+    );
+    assert!(
+        trace
+            .get("candidateInputCount")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|count| count > 0),
+        "{family} must discover at least one candidate"
+    );
+    assert_eq!(
+        trace
+            .get("candidateInputDiscovery")
+            .and_then(|receipt| receipt.get("transport")),
+        Some(&serde_json::json!("arrow-flight")),
+        "{family} must expose the Rust Flight discovery receipt"
+    );
+    let candidates = json_array(trace, "candidates", family);
+    let routes = json_array(trace, "retrievalRoutes", family);
+    let projected_rows = json_array(trace, "rustProjectedEvidenceRows", family);
+
+    assert!(!candidates.is_empty(), "{family} candidates must exist");
+    assert!(!routes.is_empty(), "{family} routes must exist");
+    assert!(
+        !projected_rows.is_empty(),
+        "{family} projected evidence rows must exist"
+    );
+    assert_summary_matches_candidate_rows(family, trace, candidates);
+    assert_strategy_flow_validation_flags(family, trace, true);
+    assert_live_flight_routes_materialized(routes);
+    assert_projected_rows_cover_route_receipts(family, projected_rows, routes);
+    assert_projected_rows_carry_algorithm_receipts(family, projected_rows);
+    assert_live_trace_contains_expected_source_fragments(trace, expected_source_fragments);
 }
 
 fn assert_live_trace_contains_expected_source_fragments(
@@ -1878,8 +2056,12 @@ async fn search_strategy_flow_flight_materialization_executes_and_decodes_route_
             route_receipts.iter().any(|receipt| {
                 receipt.get("route").and_then(serde_json::Value::as_str) == Some(expected_route)
                     && receipt.get("rowCount").and_then(serde_json::Value::as_u64) == Some(1)
+                    && receipt
+                        .get("elapsedMs")
+                        .and_then(serde_json::Value::as_u64)
+                        .is_some()
             }),
-            "route receipt for {expected_route} should exist"
+            "timed route receipt for {expected_route} should exist"
         );
         assert!(
             decoded_receipts.iter().any(|receipt| {
@@ -1889,6 +2071,113 @@ async fn search_strategy_flow_flight_materialization_executes_and_decodes_route_
             "decoded receipt for {expected_route} should exist"
         );
     }
+}
+
+#[tokio::test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Flight fallback fixture keeps the full route trace shape explicit"
+)]
+async fn search_strategy_flow_flight_materialization_uses_source_path_when_repo_search_has_no_rows()
+{
+    let scenario = SearchStrategyFlowFakeFlightScenario::markdown();
+    let trace = serde_json::json!({
+        "intent": "find query understanding",
+        "backend": "rust-wendao-julia",
+        "controlPlane": "rust",
+        "graphProject": "/tmp/WendaoGraph.jl",
+        "searchRoot": "/tmp/WendaoGraph.jl",
+        "stageReceipts": [],
+        "candidates": [
+            {
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "action": "keep",
+                "reason": "score",
+                "finalScore": 0.91,
+                "evidenceCoverage": 0.98,
+                "graphScore": 0.95,
+                "authorityScore": 0.93,
+                "semanticScore": 0.0,
+                "structuralScore": 0.9,
+                "contextCost": 1000,
+                "blocked": false
+            }
+        ],
+        "frontier": [
+            {
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "rank": 1,
+                "selected": true,
+                "finalScore": 0.91,
+                "action": "keep",
+                "contextBudget": 1000,
+                "judgementKind": "graph_verified_candidate"
+            }
+        ],
+        "plannerActions": [
+            {
+                "actionKind": "materialize",
+                "candidateId": "docs/30_search_strategy/30.01_search_strategy_flow.md#stage-1-query-understanding",
+                "targetCandidateId": "",
+                "cycleAllowed": false,
+                "requiresLlmJudgement": false,
+                "score": 0.91,
+                "contextBudget": 1000,
+                "reason": "graph_materialize_candidate"
+            }
+        ],
+        "summary": {},
+        "validation": {}
+    });
+    let (base_url, server) =
+        spawn_fake_search_strategy_flow_flight_service_with_empty_repo_search(scenario).await;
+    let config = SearchStrategyFlowFlightMaterializationConfig::new(base_url, "docs")
+        .unwrap_or_else(|error| panic!("create fake Flight materialization config: {error}"));
+
+    let enriched =
+        enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
+            &trace.to_string(),
+            &config,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("execute fake Flight materialization: {error}"));
+    server.abort();
+
+    let enriched: serde_json::Value = serde_json::from_str(&enriched)
+        .unwrap_or_else(|error| panic!("parse materialized trace: {error}"));
+    let route = enriched
+        .get("retrievalRoutes")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|routes| routes.first())
+        .unwrap_or_else(|| panic!("materialized route should exist"));
+    assert_eq!(
+        route.get("materializationStatus"),
+        Some(&serde_json::json!("executed"))
+    );
+    assert_eq!(
+        route.get("repoSearchResolutionStatus"),
+        Some(&serde_json::json!("source-path-fallback"))
+    );
+    assert_eq!(
+        route.get("resolvedPageId"),
+        Some(&serde_json::json!(
+            "repo:docs:projection:explanation:doc:repo:docs:doc:30_search_strategy/30.01_search_strategy_flow.md"
+        ))
+    );
+    assert_eq!(
+        route.get("resolvedGraphNodeId"),
+        Some(&serde_json::json!(
+            "docs/30_search_strategy/30.01_search_strategy_flow.md"
+        ))
+    );
+    let route_receipts = route
+        .get("routeReceipts")
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| panic!("routeReceipts must be an array"));
+    assert!(route_receipts.iter().any(|receipt| {
+        receipt.get("route").and_then(serde_json::Value::as_str) == Some(REPO_SEARCH_ROUTE)
+            && receipt.get("rowCount").and_then(serde_json::Value::as_u64) == Some(0)
+    }));
 }
 
 #[tokio::test]

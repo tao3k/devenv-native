@@ -98,20 +98,19 @@ fn count_source_hints(hits: &[LinkGraphHit], cap: usize) -> usize {
 }
 
 fn resolve_live_budget_factor(hits: &[LinkGraphHit], source_cap: usize) -> f64 {
-    let mut candidate_doc_ids = Vec::new();
     let mut seen = HashSet::new();
-    for hit in hits {
-        let normalized = hit.stem.trim();
-        if normalized.is_empty() {
-            continue;
-        }
-        if seen.insert(normalized.to_string()) {
-            candidate_doc_ids.push(normalized.to_string());
-        }
-        if candidate_doc_ids.len() >= source_cap.max(1) {
-            break;
-        }
-    }
+    let candidate_doc_ids = hits
+        .iter()
+        .filter_map(|hit| {
+            let normalized = hit.stem.trim();
+            if normalized.is_empty() || !seen.insert(normalized.to_string()) {
+                None
+            } else {
+                Some(normalized.to_string())
+            }
+        })
+        .take(source_cap.max(1))
+        .collect::<Vec<_>>();
 
     if candidate_doc_ids.is_empty() {
         return 1.0;
@@ -124,19 +123,18 @@ fn resolve_live_budget_factor(hits: &[LinkGraphHit], source_cap: usize) -> f64 {
     let maximum_signal = LinkGraphSaliencyPolicy::default()
         .maximum
         .max(DEFAULT_SALIENCY_BASE);
-    let mut total_signal = 0.0_f64;
-    let mut signal_count = 0_u32;
-    for doc_id in candidate_doc_ids {
-        let Some(state) = states.get(&doc_id) else {
-            continue;
-        };
-        let bounded_signal =
-            learned_saliency_signal_from_state(state).clamp(DEFAULT_SALIENCY_BASE, maximum_signal);
-        let normalized_signal = (bounded_signal - DEFAULT_SALIENCY_BASE)
-            / (maximum_signal - DEFAULT_SALIENCY_BASE).max(f64::EPSILON);
-        total_signal += normalized_signal;
-        signal_count = signal_count.saturating_add(1);
-    }
+    let (total_signal, signal_count) = candidate_doc_ids
+        .iter()
+        .filter_map(|doc_id| states.get(doc_id))
+        .map(|state| {
+            let bounded_signal = learned_saliency_signal_from_state(state)
+                .clamp(DEFAULT_SALIENCY_BASE, maximum_signal);
+            (bounded_signal - DEFAULT_SALIENCY_BASE)
+                / (maximum_signal - DEFAULT_SALIENCY_BASE).max(f64::EPSILON)
+        })
+        .fold((0.0_f64, 0_u32), |(total_signal, signal_count), signal| {
+            (total_signal + signal, signal_count.saturating_add(1))
+        });
 
     if signal_count == 0 {
         1.0

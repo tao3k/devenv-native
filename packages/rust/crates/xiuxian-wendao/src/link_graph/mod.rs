@@ -1,7 +1,9 @@
 //! Markdown link graph index + retrieval algorithms.
+/// Public Wendao boundary.
 
 #[path = "addressing/mod.rs"]
 pub mod addressing;
+/// Public Wendao boundary.
 #[path = "agentic/mod.rs"]
 pub mod agentic;
 #[path = "context_snapshot/mod.rs"]
@@ -18,6 +20,7 @@ mod page_index;
 #[cfg(feature = "performance")]
 #[path = "perf_support.rs"]
 pub mod perf_support;
+/// Public Wendao boundary.
 #[path = "ppr_hybrid.rs"]
 pub mod ppr_hybrid;
 /// Runtime configuration resolution for link-graph retrieval and cache behavior.
@@ -28,6 +31,7 @@ pub mod runtime_config;
 pub mod saliency;
 #[path = "stats_cache/mod.rs"]
 mod stats_cache;
+/// Public Wendao boundary.
 #[cfg(feature = "julia")]
 #[path = "wendao_graph_evidence/mod.rs"]
 pub mod wendao_graph_evidence;
@@ -131,7 +135,8 @@ pub use wendao_graph_evidence::{
     LinkGraphWendaoGraphEvidenceError, WendaoGraphEvidenceRequestBundle,
     WendaoGraphEvidenceRequestOptions, WendaoGraphEvidenceSeed,
     WendaoGraphPageIndexReasoningRequestBundle, WendaoGraphPageIndexReasoningRequestOptions,
-    WendaoGraphPageIndexReasoningSeed, build_semantic_scope_page_index_reasoning_request_bundle,
+    WendaoGraphPageIndexReasoningSeed, WendaoGraphSemanticOverlayEdge,
+    build_semantic_scope_page_index_reasoning_request_bundle,
     build_semantic_scope_page_index_reasoning_request_bundle_with_options,
     build_wendao_graph_evidence_request_bundle,
     build_wendao_graph_evidence_request_bundle_with_options,

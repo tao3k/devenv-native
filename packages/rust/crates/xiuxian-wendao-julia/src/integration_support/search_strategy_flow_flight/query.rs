@@ -33,16 +33,17 @@ fn stage_stripped_terms(terms: &[String]) -> &[String] {
 pub(super) fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt> {
     let mut attempts = Vec::new();
     let trimmed = intent.trim();
-    push_repo_search_attempt(&mut attempts, trimmed, "");
 
     let terms = search_terms(trimmed);
     if terms.is_empty() {
+        push_repo_search_attempt(&mut attempts, trimmed, "");
         return attempts;
     }
 
-    push_repo_search_attempt(&mut attempts, terms.join(" ").as_str(), "");
     push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
     push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
+    push_repo_search_attempt(&mut attempts, trimmed, "");
+    push_repo_search_attempt(&mut attempts, terms.join(" ").as_str(), "");
     for window_size in [4, 3, 2] {
         if terms.len() < window_size {
             continue;
@@ -61,15 +62,54 @@ pub(super) fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt
 fn push_exact_anchor_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, terms: &[String]) {
     if has_all_terms(terms, &["search", "strategy", "flow"]) {
         push_repo_search_attempt(attempts, "SearchStrategyFlow", "docs/30_search_strategy");
+        push_repo_search_attempt(
+            attempts,
+            "SearchStrategyFlow",
+            "packages/rust/crates/xiuxian-wendao-julia/docs",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "SearchStrategyFlow",
+            "packages/rust/crates/xiuxian-wendao-julia/README.md",
+        );
         push_repo_search_attempt(attempts, "SearchStrategyFlow", "");
     }
     if has_all_terms(terms, &["page", "index"]) {
         push_repo_search_attempt(attempts, "PageIndex", "docs/20_page_index");
+        push_repo_search_attempt(
+            attempts,
+            "PageIndex",
+            "packages/rust/crates/xiuxian-wendao-julia/docs",
+        );
         push_repo_search_attempt(attempts, "PageIndex", "");
     }
     if has_all_terms(terms, &["link", "graph"]) {
         push_repo_search_attempt(attempts, "LinkGraph", "docs/10_graph_compute");
+        push_repo_search_attempt(attempts, "LinkGraph", "docs/01_core/wendao");
+        push_repo_search_attempt(
+            attempts,
+            "LinkGraph",
+            "packages/rust/crates/xiuxian-wendao-julia/docs",
+        );
         push_repo_search_attempt(attempts, "LinkGraph", "");
+    }
+    if has_any_term(terms, &["ownership", "authority", "boundary"]) {
+        push_repo_search_attempt(attempts, "ownership boundary", "docs/30_search_strategy");
+        push_repo_search_attempt(
+            attempts,
+            "ownership boundary",
+            "packages/rust/crates/xiuxian-wendao-julia/docs",
+        );
+        push_repo_search_attempt(attempts, "ownership boundary", "docs/rfcs");
+    }
+    if has_any_term(terms, &["validation", "gate", "path"]) {
+        push_repo_search_attempt(attempts, "validation path", "docs/90_validation");
+        push_repo_search_attempt(
+            attempts,
+            "validation path",
+            "packages/rust/crates/xiuxian-wendao-julia/docs",
+        );
+        push_repo_search_attempt(attempts, "validation path", "docs/testing");
     }
 }
 
@@ -92,6 +132,12 @@ fn has_all_terms(terms: &[String], needles: &[&str]) -> bool {
     needles
         .iter()
         .all(|needle| terms.iter().any(|term| term == needle))
+}
+
+fn has_any_term(terms: &[String], needles: &[&str]) -> bool {
+    needles
+        .iter()
+        .any(|needle| terms.iter().any(|term| term == needle))
 }
 
 pub(super) fn repo_search_attempts_for_route(
@@ -210,3 +256,7 @@ fn search_terms(text: &str) -> Vec<String> {
 
     terms.into_iter().filter(|term| term.len() >= 2).collect()
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/integration_support/search_strategy_flow_flight/query.rs"]
+mod tests;

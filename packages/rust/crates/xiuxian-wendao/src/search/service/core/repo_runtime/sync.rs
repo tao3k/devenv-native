@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::repo_index::RepoIndexStatusResponse;
 use crate::search::service::core::types::SearchPlaneService;
 use crate::search::{SearchCorpusKind, SearchRepoRuntimeRecord};
+use futures::stream::{self, StreamExt};
 
 impl SearchPlaneService {
     fn advance_repo_runtime_generation(&self) -> u64 {
@@ -77,25 +78,34 @@ impl SearchPlaneService {
         generation: u64,
         removed_repo_ids: &[String],
     ) -> bool {
-        for repo_id in removed_repo_ids {
-            if !self.repo_runtime_generation_is_current(generation) {
-                return false;
-            }
-            for corpus in [
-                SearchCorpusKind::RepoEntity,
-                SearchCorpusKind::RepoContentChunk,
-            ] {
-                self.repo_corpus_records
-                    .write()
-                    .unwrap_or_else(std::sync::PoisonError::into_inner)
-                    .remove(&(corpus, repo_id.clone()));
-                self.cache
-                    .delete_repo_corpus_record(corpus, repo_id.as_str())
+        stream::iter(removed_repo_ids)
+            .then(|repo_id| async move {
+                if !self.repo_runtime_generation_is_current(generation) {
+                    return false;
+                }
+                self.delete_removed_repo_runtime_record_for_repo(repo_id)
                     .await;
-                let _ = std::fs::remove_file(self.repo_corpus_record_json_path(corpus, repo_id));
-            }
-        }
-        true
+                true
+            })
+            .all(|deleted| async move { deleted })
+            .await
+    }
+
+    async fn delete_removed_repo_runtime_record_for_repo(&self, repo_id: &str) {
+        stream::iter([
+            SearchCorpusKind::RepoEntity,
+            SearchCorpusKind::RepoContentChunk,
+        ])
+        .then(|corpus| async move {
+            self.repo_corpus_records
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .remove(&(corpus, repo_id.to_string()));
+            self.cache.delete_repo_corpus_record(corpus, repo_id).await;
+            let _ = std::fs::remove_file(self.repo_corpus_record_json_path(corpus, repo_id));
+        })
+        .collect::<Vec<_>>()
+        .await;
     }
 
     async fn refresh_repo_corpus_records(

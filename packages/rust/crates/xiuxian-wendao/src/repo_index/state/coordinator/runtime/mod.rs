@@ -1,7 +1,9 @@
+//! `repo_index::state::coordinator::runtime` owns Wendao state coordinator runtime behavior.
+
+mod active;
 mod incremental;
 mod repository;
 mod scheduler;
-mod state;
 mod task;
 
 #[cfg(test)]

@@ -1,3 +1,5 @@
+//! Project `LinkGraph` page-index trees into `WendaoGraph.jl` reasoning tables.
+
 use std::collections::BTreeSet;
 use std::sync::Arc;
 

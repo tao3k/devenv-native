@@ -1,3 +1,5 @@
+//! `search::queries::flightsql::discovery` owns Wendao queries flightsql discovery behavior.
+
 mod catalogs;
 mod schemas;
 mod tables;

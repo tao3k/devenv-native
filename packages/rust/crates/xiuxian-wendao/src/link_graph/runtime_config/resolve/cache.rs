@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::resolve::cache` owns Wendao runtime config resolve cache behavior.
+
 use crate::link_graph::runtime_config::LinkGraphCacheRuntimeConfig;
 use crate::link_graph::runtime_config::settings::merged_wendao_settings;
 use xiuxian_wendao_runtime::config::resolve_link_graph_cache_runtime_with_settings;

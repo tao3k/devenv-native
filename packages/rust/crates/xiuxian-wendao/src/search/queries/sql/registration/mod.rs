@@ -1,3 +1,5 @@
+//! `search::queries::sql::registration` owns Wendao queries sql registration behavior.
+
 #[path = "catalog/mod.rs"]
 mod catalog;
 #[cfg(not(feature = "duckdb"))]

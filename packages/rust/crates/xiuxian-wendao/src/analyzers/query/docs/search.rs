@@ -1,3 +1,5 @@
+//! `analyzers::query::docs::search` owns Wendao query docs search behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -48,6 +50,7 @@ pub type DocsRetrievalResult = RepoProjectedRetrievalResult;
 
 /// Docs-facing query for deterministic mixed projected retrieval context around one stable hit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct DocsRetrievalContextQuery {
     /// Repository identifier to project.
     pub repo_id: String,
@@ -161,6 +164,7 @@ pub type DocsPageIndexTreeSearchResult = RepoProjectedPageIndexTreeSearchResult;
 /// Docs-facing query for deterministic projected page-index node lookup by stable identifiers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[allow(clippy::struct_field_names)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct DocsPageIndexNodeQuery {
     /// Repository identifier to project.
     pub repo_id: String,
@@ -223,6 +227,7 @@ pub type DocsFamilyClusterResult = RepoProjectedPageFamilyClusterResult;
 
 /// Docs-facing query for deterministic projected-page navigation around one stable page.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct DocsNavigationQuery {
     /// Repository identifier to project.
     pub repo_id: String,

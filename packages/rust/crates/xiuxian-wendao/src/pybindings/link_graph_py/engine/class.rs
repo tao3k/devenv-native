@@ -1,3 +1,5 @@
+//! `pybindings::link_graph_py::engine::class` owns Wendao link graph py engine class behavior.
+
 use crate::link_graph::{LinkGraphDirection, LinkGraphIndex};
 use pyo3::{PyResult, pyclass, pymethods};
 use std::path::PathBuf;

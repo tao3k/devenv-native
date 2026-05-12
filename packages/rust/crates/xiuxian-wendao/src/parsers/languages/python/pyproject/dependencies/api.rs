@@ -1,3 +1,5 @@
+//! Dependency parser for Python `pyproject.toml` package metadata.
+
 use std::fs::read_to_string;
 use std::path::Path;
 
@@ -13,32 +15,37 @@ pub fn parse_pyproject_dependencies(
     path: &Path,
 ) -> Result<Vec<PyprojectDependency>, std::io::Error> {
     let content = read_to_string(path)?;
+    Ok(parse_pyproject_dependency_content(content.as_str()))
+}
 
-    let mut deps = Vec::new();
+fn parse_pyproject_dependency_content(content: &str) -> Vec<PyprojectDependency> {
+    match content.parse::<toml::Value>() {
+        Ok(toml) => parse_toml_project_dependencies(&toml),
+        Err(_) => parse_regex_project_dependencies(content),
+    }
+}
 
-    if let Ok(toml) = content.parse::<toml::Value>() {
-        if let Some(dependencies) = toml
-            .get("project")
-            .and_then(|project| project.get("dependencies"))
-            && let Some(dep_array) = dependencies.as_array()
-        {
-            for dep in dep_array {
-                if let Some(dep_str) = dep.as_str()
-                    && let Some((name, version)) = parse_pyproject_dep(dep_str)
-                {
-                    deps.push(PyprojectDependency::new(name, Some(version)));
-                }
-            }
-        }
-    } else {
-        for cap in RE_DEP.captures_iter(&content) {
+fn parse_toml_project_dependencies(toml: &toml::Value) -> Vec<PyprojectDependency> {
+    toml.get("project")
+        .and_then(|project| project.get("dependencies"))
+        .and_then(toml::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(toml::Value::as_str)
+        .filter_map(parse_pyproject_dep)
+        .map(|(name, version)| PyprojectDependency::new(name, Some(version)))
+        .collect()
+}
+
+fn parse_regex_project_dependencies(content: &str) -> Vec<PyprojectDependency> {
+    RE_DEP
+        .captures_iter(content)
+        .map(|cap| {
             let name = cap[1].to_string();
             let version = cap[2].trim().to_string();
-            deps.push(PyprojectDependency::new(name, Some(version)));
-        }
-    }
-
-    Ok(deps)
+            PyprojectDependency::new(name, Some(version))
+        })
+        .collect()
 }
 
 fn parse_pyproject_dep(dep: &str) -> Option<(String, String)> {

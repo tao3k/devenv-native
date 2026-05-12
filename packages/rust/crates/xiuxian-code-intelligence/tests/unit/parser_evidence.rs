@@ -65,6 +65,7 @@ fn typescript_keeps_general_ast_baseline_when_no_override_exists() {
 #[test]
 fn normalizes_parser_identifiers_into_language_ids() {
     assert_eq!(normalize_code_language_identifier("TS"), "typescript");
+    assert_eq!(normalize_code_language_identifier("md"), "markdown");
     assert_eq!(
         normalize_code_language_identifier("julia-code-parser"),
         "julia"

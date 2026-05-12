@@ -1,3 +1,5 @@
+//! `ingress::spider::sink` owns Wendao ingress spider sink behavior.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

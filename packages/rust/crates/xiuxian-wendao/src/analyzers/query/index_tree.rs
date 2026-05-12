@@ -1,3 +1,5 @@
+//! `analyzers::query::index_tree` owns Wendao analyzers query index tree behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -44,6 +46,7 @@ pub struct RepoProjectedPageIndexTreeResult {
 /// Query for deterministic projected page-index node lookup by stable identifiers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[allow(clippy::struct_field_names)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct RepoProjectedPageIndexNodeQuery {
     /// Repository identifier to project.
     pub repo_id: String,
@@ -55,6 +58,7 @@ pub struct RepoProjectedPageIndexNodeQuery {
 
 /// One deterministic section-level retrieval hit inside a projected page-index tree.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct ProjectedPageIndexNodeHit {
     /// Owning repository identifier.
     pub repo_id: String,

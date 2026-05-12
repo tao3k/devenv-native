@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 pub(in crate::parsers::link_graph::query) fn split_terms_preserving_quotes(
     raw: &str,
 ) -> Vec<String> {

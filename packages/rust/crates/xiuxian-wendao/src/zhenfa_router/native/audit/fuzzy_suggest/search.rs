@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::fuzzy_suggest::search` owns Wendao audit fuzzy suggest search behavior.
+
 use super::cache::{
     CONFIDENCE_THRESHOLD, hash_content, lookup_cached_candidates, store_cached_candidates,
 };
@@ -50,83 +52,96 @@ pub fn suggest_pattern_fix_with_threshold(
     threshold: Option<f32>,
 ) -> Option<FuzzySuggestion> {
     let effective_threshold = threshold.unwrap_or(CONFIDENCE_THRESHOLD);
-
     if source_files.is_empty() {
         return None;
     }
-
     let original_skeleton = PatternSkeleton::extract(original_pattern);
-    let mut candidates: Vec<CandidateMatch> = Vec::new();
+    let candidates = scan_source_files_for_candidates(source_files, language_id);
+    let (confidence, best_match) =
+        best_scored_candidate(&candidates, &original_skeleton, effective_threshold)?;
+    Some(fuzzy_suggestion_from_match(
+        original_pattern,
+        language_id,
+        best_match,
+        confidence,
+    ))
+}
 
-    // Scan source files for potential matches
-    for source_file in source_files {
-        let matches = scan_for_candidates(&source_file.content, language_id, &source_file.path);
-        candidates.extend(matches);
-    }
-
-    if candidates.is_empty() {
-        return None;
-    }
-
-    // Score and rank candidates
-    let mut scored_candidates: Vec<(f32, &CandidateMatch)> = candidates
+fn scan_source_files_for_candidates(
+    source_files: &[SourceFile],
+    language_id: &CodeLanguageId,
+) -> Vec<CandidateMatch> {
+    source_files
         .iter()
-        .filter_map(|candidate| {
-            let skeleton_score =
-                calculate_skeleton_similarity(&original_skeleton, &candidate.skeleton);
-
-            // Bonus for identifier similarity (renamed symbol detection)
-            let identifier_bonus = if let (Some(orig_id), Some(cand_id)) =
-                (original_skeleton.identifiers.first(), &candidate.identifier)
-            {
-                let id_sim = string_similarity(orig_id, cand_id);
-                // Add bonus if there's meaningful similarity (lowered threshold to 0.2)
-                if id_sim > 0.2 {
-                    // Increased bonus weight from 0.2 to 0.4 for better renamed symbol detection
-                    id_sim * 0.4
-                } else {
-                    0.0
-                }
-            } else {
-                0.0
-            };
-
-            let total_score = skeleton_score + identifier_bonus;
-
-            // Filter by threshold
-            if total_score >= effective_threshold {
-                Some((total_score, candidate))
-            } else {
-                None
-            }
+        .flat_map(|source_file| {
+            scan_for_candidates(&source_file.content, language_id, &source_file.path)
         })
-        .collect();
+        .collect()
+}
 
-    // Sort by score descending
-    scored_candidates.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
-
-    // Return best match
-    if let Some((confidence, best_match)) = scored_candidates.first() {
-        let suggested_pattern =
-            generate_suggested_pattern(original_pattern, best_match, language_id);
-        let replacement_drawer = format!(
-            ":OBSERVE: lang:{} \"{}\"",
-            language_id.as_str(),
-            suggested_pattern.replace('"', "\\\"")
-        );
-        let source_location = Some(format!(
-            "{}:{}",
-            best_match.file_path, best_match.line_number
-        ));
-
-        Some(FuzzySuggestion {
-            suggested_pattern,
-            confidence: *confidence,
-            source_location,
-            replacement_drawer,
+fn best_scored_candidate<'a>(
+    candidates: &'a [CandidateMatch],
+    original_skeleton: &PatternSkeleton,
+    threshold: f32,
+) -> Option<(f32, &'a CandidateMatch)> {
+    candidates
+        .iter()
+        .filter_map(|candidate| scored_candidate(candidate, original_skeleton, threshold))
+        .max_by(|left, right| {
+            left.0
+                .partial_cmp(&right.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
         })
-    } else {
-        None
+}
+
+fn scored_candidate<'a>(
+    candidate: &'a CandidateMatch,
+    original_skeleton: &PatternSkeleton,
+    threshold: f32,
+) -> Option<(f32, &'a CandidateMatch)> {
+    let total_score = calculate_skeleton_similarity(original_skeleton, &candidate.skeleton)
+        + identifier_similarity_bonus(original_skeleton, candidate);
+    (total_score >= threshold).then_some((total_score, candidate))
+}
+
+fn identifier_similarity_bonus(
+    original_skeleton: &PatternSkeleton,
+    candidate: &CandidateMatch,
+) -> f32 {
+    let (Some(original_identifier), Some(candidate_identifier)) = (
+        original_skeleton.identifiers.first(),
+        candidate.identifier.as_ref(),
+    ) else {
+        return 0.0;
+    };
+    let similarity = string_similarity(original_identifier, candidate_identifier);
+    if similarity > 0.2 {
+        return similarity * 0.4;
+    }
+    0.0
+}
+
+fn fuzzy_suggestion_from_match(
+    original_pattern: &str,
+    language_id: &CodeLanguageId,
+    best_match: &CandidateMatch,
+    confidence: f32,
+) -> FuzzySuggestion {
+    let suggested_pattern = generate_suggested_pattern(original_pattern, best_match, language_id);
+    let replacement_drawer = format!(
+        ":OBSERVE: lang:{} \"{}\"",
+        language_id.as_str(),
+        suggested_pattern.replace('"', "\\\"")
+    );
+    let source_location = Some(format!(
+        "{}:{}",
+        best_match.file_path, best_match.line_number
+    ));
+    FuzzySuggestion {
+        suggested_pattern,
+        confidence,
+        source_location,
+        replacement_drawer,
     }
 }
 

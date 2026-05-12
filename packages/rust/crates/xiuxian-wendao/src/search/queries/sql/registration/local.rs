@@ -12,44 +12,63 @@ pub(super) fn collect_local_tables(
     tables: &mut BTreeMap<String, RegisteredSqlTable>,
     parquet_paths: &mut BTreeMap<String, PathBuf>,
 ) {
-    for corpus in SearchCorpusKind::ALL
+    SearchCorpusKind::ALL
         .into_iter()
         .filter(|corpus| !corpus.is_repo_backed())
-    {
-        let status = service.coordinator().status_for(corpus);
-        let Some(active_epoch) = status.active_epoch else {
-            continue;
-        };
+        .for_each(|corpus| collect_local_corpus_tables(service, tables, parquet_paths, corpus));
+}
 
-        if corpus == SearchCorpusKind::LocalSymbol {
-            for table_name in service.local_epoch_table_names_for_reads(corpus, active_epoch) {
-                let parquet_path = service.local_table_parquet_path(corpus, table_name.as_str());
-                if !parquet_path.exists() {
-                    continue;
-                }
-                parquet_paths.insert(table_name.clone(), parquet_path);
-                tables.insert(
-                    table_name.clone(),
-                    RegisteredSqlTable::local(corpus, table_name.clone(), table_name),
-                );
-            }
-            continue;
-        }
+fn collect_local_corpus_tables(
+    service: &SearchPlaneService,
+    tables: &mut BTreeMap<String, RegisteredSqlTable>,
+    parquet_paths: &mut BTreeMap<String, PathBuf>,
+    corpus: SearchCorpusKind,
+) {
+    let status = service.coordinator().status_for(corpus);
+    let Some(active_epoch) = status.active_epoch else {
+        return;
+    };
 
-        let parquet_path = service.local_epoch_parquet_path(corpus, active_epoch);
-        if !parquet_path.exists() {
-            continue;
-        }
-
-        let engine_table_name =
-            SearchPlaneService::local_epoch_engine_table_name(corpus, active_epoch);
-        let sql_table_name = naming::local_sql_table_name(corpus, engine_table_name.as_str());
-        parquet_paths.insert(sql_table_name.clone(), parquet_path);
-        tables.insert(
-            sql_table_name.clone(),
-            RegisteredSqlTable::local(corpus, sql_table_name, engine_table_name),
-        );
+    if corpus == SearchCorpusKind::LocalSymbol {
+        collect_local_symbol_tables(service, tables, parquet_paths, corpus, active_epoch);
+        return;
     }
+
+    let parquet_path = service.local_epoch_parquet_path(corpus, active_epoch);
+    if !parquet_path.exists() {
+        return;
+    }
+
+    let engine_table_name = SearchPlaneService::local_epoch_engine_table_name(corpus, active_epoch);
+    let sql_table_name = naming::local_sql_table_name(corpus, engine_table_name.as_str());
+    parquet_paths.insert(sql_table_name.clone(), parquet_path);
+    tables.insert(
+        sql_table_name.clone(),
+        RegisteredSqlTable::local(corpus, sql_table_name, engine_table_name),
+    );
+}
+
+fn collect_local_symbol_tables(
+    service: &SearchPlaneService,
+    tables: &mut BTreeMap<String, RegisteredSqlTable>,
+    parquet_paths: &mut BTreeMap<String, PathBuf>,
+    corpus: SearchCorpusKind,
+    active_epoch: u64,
+) {
+    service
+        .local_epoch_table_names_for_reads(corpus, active_epoch)
+        .into_iter()
+        .for_each(|table_name| {
+            let parquet_path = service.local_table_parquet_path(corpus, table_name.as_str());
+            if !parquet_path.exists() {
+                return;
+            }
+            parquet_paths.insert(table_name.clone(), parquet_path);
+            tables.insert(
+                table_name.clone(),
+                RegisteredSqlTable::local(corpus, table_name.clone(), table_name),
+            );
+        });
 }
 
 #[cfg(not(feature = "duckdb"))]

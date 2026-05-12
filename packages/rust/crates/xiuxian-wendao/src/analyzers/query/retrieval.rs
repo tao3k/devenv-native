@@ -1,3 +1,5 @@
+//! `analyzers::query::retrieval` owns Wendao analyzers query retrieval behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -52,6 +54,7 @@ pub struct RepoProjectedRetrievalResult {
 /// Query for deterministic Stage-2 mixed retrieval hit lookup by stable identifiers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[allow(clippy::struct_field_names)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct RepoProjectedRetrievalHitQuery {
     /// Repository identifier to project.
     pub repo_id: String,
@@ -72,6 +75,7 @@ pub struct RepoProjectedRetrievalHitResult {
 
 /// Query for deterministic Stage-2 retrieval context around one stable hit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct RepoProjectedRetrievalContextQuery {
     /// Repository identifier to project.
     pub repo_id: String,

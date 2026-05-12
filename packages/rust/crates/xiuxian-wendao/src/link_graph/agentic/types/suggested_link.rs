@@ -1,3 +1,5 @@
+//! `link_graph::agentic::types::suggested_link` owns Wendao agentic types suggested link behavior.
+
 use super::schema::LinkGraphSuggestedLinkState;
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +23,7 @@ pub struct LinkGraphSuggestedLinkDecisionRequest {
 /// Input payload for passive suggested-link logging.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct LinkGraphSuggestedLinkRequest {
     /// Canonical source node id/path.
     pub source_id: String,
@@ -43,6 +46,7 @@ pub struct LinkGraphSuggestedLinkRequest {
 /// Persisted suggested-link proposal record.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct LinkGraphSuggestedLink {
     /// Stable suggestion identifier.
     #[serde(default)]
@@ -79,6 +83,7 @@ pub struct LinkGraphSuggestedLink {
 /// Persisted audit record for one suggested-link promotion/rejection decision.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct LinkGraphSuggestedLinkDecision {
     /// Persistence schema version.
     pub schema: String,

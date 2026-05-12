@@ -1,7 +1,7 @@
 use crate::search::fuzzy::{FuzzyMatch, FuzzySearchOptions};
 use crate::search::tantivy::document::SearchDocumentHit;
 use crate::search::tantivy::index::core::SearchDocumentIndex;
-use crate::search::tantivy::matcher::TantivyMatcher;
+use crate::search::tantivy::matcher::{TantivyDocumentMatch, TantivyMatcher};
 use tantivy::TantivyError;
 
 impl SearchDocumentIndex {
@@ -74,26 +74,28 @@ impl SearchDocumentIndex {
             options,
         );
         let raw_matches = matcher.search_with_fields(query, limit)?;
-        let mut hits = Vec::new();
+        Ok(self.collect_fuzzy_hits(raw_matches, limit))
+    }
+
+    fn collect_fuzzy_hits(
+        &self,
+        raw_matches: Vec<TantivyDocumentMatch>,
+        limit: usize,
+    ) -> Vec<SearchDocumentHit> {
         let mut seen_ids = std::collections::HashSet::new();
-
-        for raw_match in raw_matches {
-            let hit = self.fields.parse_hit(
-                &raw_match.item,
-                raw_match.score,
-                raw_match.matched_field,
-                Some(raw_match.matched_text),
-                raw_match.distance,
-            );
-            if !seen_ids.insert(hit.id.clone()) {
-                continue;
-            }
-            hits.push(hit);
-            if hits.len() >= limit {
-                break;
-            }
-        }
-
-        Ok(hits)
+        raw_matches
+            .into_iter()
+            .map(|raw_match| {
+                self.fields.parse_hit(
+                    &raw_match.item,
+                    raw_match.score,
+                    raw_match.matched_field,
+                    Some(raw_match.matched_text),
+                    raw_match.distance,
+                )
+            })
+            .filter(|hit| seen_ids.insert(hit.id.clone()))
+            .take(limit)
+            .collect()
     }
 }

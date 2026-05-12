@@ -1,3 +1,5 @@
+//! `search::queries::sql::registration::views` owns Wendao sql registration views behavior.
+
 mod local;
 mod repo;
 

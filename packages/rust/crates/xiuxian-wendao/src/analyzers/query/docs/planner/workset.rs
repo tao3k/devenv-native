@@ -1,3 +1,5 @@
+//! `analyzers::query::docs::planner::workset` owns Wendao docs planner workset behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

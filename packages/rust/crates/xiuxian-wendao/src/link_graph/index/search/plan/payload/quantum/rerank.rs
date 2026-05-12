@@ -243,14 +243,14 @@ pub(super) fn apply_plugin_rerank_scores(
     contexts: &mut [QuantumContext],
     response_rows: &BTreeMap<String, PluginArrowScoreRow>,
 ) -> usize {
-    let mut updated = 0usize;
-    for context in contexts.iter_mut() {
-        let Some(score_row) = response_rows.get(context.anchor_id.as_str()) else {
-            continue;
-        };
-        context.saliency_score = score_row.final_score;
-        updated += 1;
-    }
+    let updated = contexts
+        .iter_mut()
+        .filter_map(|context| {
+            let score_row = response_rows.get(context.anchor_id.as_str())?;
+            context.saliency_score = score_row.final_score;
+            Some(())
+        })
+        .count();
     contexts.sort_by(|left, right| {
         right
             .saliency_score

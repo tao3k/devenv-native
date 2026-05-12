@@ -1,3 +1,5 @@
+//! `search::coordinator::types` owns Wendao search coordinator types behavior.
+
 use crate::search::{SearchCorpusKind, SearchCorpusStatus, SearchPlaneStatusSnapshot};
 
 /// Reason that triggered a background compaction request.

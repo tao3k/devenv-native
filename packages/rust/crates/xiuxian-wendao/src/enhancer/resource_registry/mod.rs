@@ -1,3 +1,5 @@
+//! `enhancer::resource_registry` owns Wendao enhancer resource registry behavior.
+
 mod registry;
 mod scan;
 mod semantic;

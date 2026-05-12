@@ -1,3 +1,5 @@
+//! `analyzers::repo_source` owns Wendao analyzers repo source behavior.
+
 use std::path::Path;
 
 use xiuxian_git_repo::{RepoError, RepoErrorKind, RepoRefreshPolicy, RepoSpec, RevisionSelector};

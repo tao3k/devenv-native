@@ -7,64 +7,99 @@ pub(crate) fn build_edge_tables(
     parsed_notes: &[ParsedNote],
     alias_to_doc_id: &HashMap<String, String>,
 ) -> EdgeTables {
-    let mut outgoing: HashMap<String, HashSet<String>> = HashMap::new();
-    let mut incoming: HashMap<String, HashSet<String>> = HashMap::new();
-    let mut edge_count = 0usize;
-
-    for parsed in parsed_notes {
-        let from_id = &parsed.doc.id;
-
-        for raw_target in &parsed.link_targets {
-            let normalized = normalize_alias(raw_target);
-            if normalized.is_empty() {
-                continue;
-            }
-            let Some(to_id) = alias_to_doc_id.get(&normalized).cloned() else {
-                continue;
-            };
-            if &to_id == from_id {
-                continue;
-            }
-            let inserted = outgoing
-                .entry(from_id.clone())
-                .or_default()
-                .insert(to_id.clone());
-            if inserted {
-                incoming.entry(to_id).or_default().insert(from_id.clone());
-                edge_count += 1;
-            }
-        }
-
-        for section in &parsed.sections {
-            let pd_edges =
-                crate::link_graph::index::build::property_drawer_edges::extract_property_drawer_edges(
-                    from_id,
-                    section,
-                    alias_to_doc_id,
-                );
-
-            for edge in pd_edges {
-                if edge.to == *from_id {
-                    continue;
-                }
-                let inserted = outgoing
-                    .entry(edge.from.clone())
-                    .or_default()
-                    .insert(edge.to.clone());
-                if inserted {
-                    incoming
-                        .entry(edge.to)
-                        .or_default()
-                        .insert(edge.from.clone());
-                    edge_count += 1;
-                }
-            }
-        }
-    }
+    let (outgoing, incoming, edge_count) = parsed_notes.iter().fold(
+        (
+            HashMap::<String, HashSet<String>>::new(),
+            HashMap::<String, HashSet<String>>::new(),
+            0usize,
+        ),
+        |(mut outgoing, mut incoming, edge_count), parsed| {
+            let from_id = &parsed.doc.id;
+            let markdown_edge_count = insert_markdown_link_edges(
+                from_id,
+                &parsed.link_targets,
+                alias_to_doc_id,
+                &mut outgoing,
+                &mut incoming,
+            );
+            let property_edge_count = insert_property_drawer_edges(
+                from_id,
+                &parsed.sections,
+                alias_to_doc_id,
+                &mut outgoing,
+                &mut incoming,
+            );
+            (
+                outgoing,
+                incoming,
+                edge_count + markdown_edge_count + property_edge_count,
+            )
+        },
+    );
 
     EdgeTables {
         outgoing,
         incoming,
         edge_count,
     }
+}
+
+fn insert_markdown_link_edges(
+    from_id: &str,
+    link_targets: &[String],
+    alias_to_doc_id: &HashMap<String, String>,
+    outgoing: &mut HashMap<String, HashSet<String>>,
+    incoming: &mut HashMap<String, HashSet<String>>,
+) -> usize {
+    link_targets
+        .iter()
+        .filter_map(|raw_target| {
+            let normalized = normalize_alias(raw_target);
+            (!normalized.is_empty())
+                .then(|| alias_to_doc_id.get(&normalized).cloned())
+                .flatten()
+        })
+        .filter(|to_id| to_id != from_id)
+        .filter(|to_id| insert_edge(from_id, to_id, outgoing, incoming))
+        .count()
+}
+
+fn insert_property_drawer_edges(
+    from_id: &str,
+    sections: &[crate::parsers::markdown::ParsedSection],
+    alias_to_doc_id: &HashMap<String, String>,
+    outgoing: &mut HashMap<String, HashSet<String>>,
+    incoming: &mut HashMap<String, HashSet<String>>,
+) -> usize {
+    sections
+        .iter()
+        .flat_map(|section| {
+            crate::link_graph::index::build::property_drawer_edges::extract_property_drawer_edges(
+                from_id,
+                section,
+                alias_to_doc_id,
+            )
+        })
+        .filter(|edge| edge.to != from_id)
+        .filter(|edge| insert_edge(edge.from.as_str(), edge.to.as_str(), outgoing, incoming))
+        .count()
+}
+
+fn insert_edge(
+    from_id: &str,
+    to_id: &str,
+    outgoing: &mut HashMap<String, HashSet<String>>,
+    incoming: &mut HashMap<String, HashSet<String>>,
+) -> bool {
+    let inserted = outgoing
+        .entry(from_id.to_string())
+        .or_default()
+        .insert(to_id.to_string());
+    if inserted {
+        incoming
+            .entry(to_id.to_string())
+            .or_default()
+            .insert(from_id.to_string());
+    }
+    inserted
 }

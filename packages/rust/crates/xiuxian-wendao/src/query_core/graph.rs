@@ -9,6 +9,7 @@ use crate::query_core::types::{WendaoQueryCoreError, WendaoRelation};
 
 /// Query-core-native graph node projection.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct WendaoGraphNode {
     /// Stable graph node id from the link-graph index.
     pub node_id: String,

@@ -1,3 +1,5 @@
+//! `search::repo_entity` owns Wendao search repo entity behavior.
+
 #[path = "build/mod.rs"]
 mod build;
 #[path = "query/mod.rs"]

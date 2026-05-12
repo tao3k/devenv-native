@@ -1,3 +1,5 @@
+//! `search::repo_search::buffered` owns Wendao search repo search buffered behavior.
+
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,10 +14,10 @@ use crate::query_core::{
 use crate::search::contracts::SearchHit;
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 
+use super::content::search_repo_content_hits_for_query;
 use super::dispatch::{RepoSearchTarget, repo_search_parallelism};
 use super::entity::search_repo_entity_hits_for_query;
 use super::entity::{record_query_core_telemetry, relation_to_search_hits};
-use super::search::search_repo_content_hits_for_query;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// Per-repository result limits for buffered repository code search.

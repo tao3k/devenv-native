@@ -11,7 +11,10 @@ use xiuxian_wendao_parsers::semantic_ssot::{
     SemanticRelationKind, SemanticScopeBundle, SemanticStatus, SemanticVerification,
 };
 
-use super::{float_column, int64_column, string_column};
+use super::support::{
+    float_column, int64_column, page_index_edge_rows, page_index_node_rows, page_index_seed_rows,
+    string_column,
+};
 use crate::link_graph::{
     LinkGraphWendaoGraphEvidenceError, WendaoGraphPageIndexReasoningRequestBundle,
     WendaoGraphPageIndexReasoningRequestOptions,
@@ -333,17 +336,17 @@ fn write_semantic_page_index_fixture(
             "line_end",
             "token_count",
         ],
-        super::page_index_node_rows(&bundle.nodes),
+        page_index_node_rows(&bundle.nodes),
     );
     write_tsv_file(
         &fixture_dir.join("page_index_edges.tsv"),
         &["source_id", "target_id", "edge_kind", "weight"],
-        super::page_index_edge_rows(&bundle.edges),
+        page_index_edge_rows(&bundle.edges),
     );
     write_tsv_file(
         &fixture_dir.join("page_index_seeds.tsv"),
         &["node_id", "weight", "seed_kind"],
-        super::page_index_seed_rows(&bundle.seeds),
+        page_index_seed_rows(&bundle.seeds),
     );
 }
 

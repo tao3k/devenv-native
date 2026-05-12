@@ -13,6 +13,7 @@ pub struct AuditVerdict {
     pub missing_anchors: Vec<String>,
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Result of audit evaluation with optional compensation request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditResult {

@@ -1,3 +1,5 @@
+//! `analyzers::service::bootstrap` owns Wendao analyzers service bootstrap behavior.
+
 #[cfg(feature = "builtin-plugins")]
 pub use xiuxian_wendao_builtin::bootstrap_builtin_registry;
 #[cfg(not(feature = "builtin-plugins"))]

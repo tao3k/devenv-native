@@ -1,3 +1,5 @@
+//! `link_graph::index::search::quantum_fusion::openai_ignition` owns Wendao search quantum fusion openai ignition behavior.
+
 use super::scoring::distance_to_score;
 use super::semantic_ignition::{QuantumSemanticIgnition, QuantumSemanticIgnitionFuture};
 #[cfg(feature = "julia")]

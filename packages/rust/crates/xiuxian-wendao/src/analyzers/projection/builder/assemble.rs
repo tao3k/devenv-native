@@ -1,3 +1,5 @@
+//! `analyzers::projection::builder::assemble` owns Wendao projection builder assemble behavior.
+
 use std::collections::BTreeMap;
 
 use crate::analyzers::RepositoryAnalysisOutput;

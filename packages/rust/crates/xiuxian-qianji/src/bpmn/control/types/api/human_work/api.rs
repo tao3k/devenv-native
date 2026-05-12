@@ -126,15 +126,14 @@ impl QianjiBpmnWorkflowWorklistItem {
         ) {
             return None;
         }
-        let process_id = pending
-            .process_id
-            .as_deref()
-            .unwrap_or(checkpoint.state.process.process_id.as_ref())
-            .to_string();
-        let activity_id = pending
-            .activity_id
-            .clone()
-            .unwrap_or_else(|| format!("node#{}", pending.node_index));
+        let process_id = pending.process_id.as_ref().map_or_else(
+            || checkpoint.state.process.process_id.to_string(),
+            |process_id| process_id.as_str().to_owned(),
+        );
+        let activity_id = pending.activity_id.as_ref().map_or_else(
+            || format!("node#{}", pending.node_index),
+            |activity_id| activity_id.as_str().to_owned(),
+        );
 
         Some(Self {
             instance_id: checkpoint.state.instance_id.to_string(),

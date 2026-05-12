@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::repo_index::state::coordinator::RepoIndexCoordinator;
 
 impl RepoIndexCoordinator {

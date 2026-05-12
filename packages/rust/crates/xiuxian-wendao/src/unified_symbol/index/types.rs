@@ -1,3 +1,5 @@
+//! `unified_symbol::index::types` owns Wendao unified symbol index types behavior.
+
 use crate::search::SearchDocumentIndex;
 use crate::unified_symbol::UnifiedSymbol;
 use crate::unified_symbol::symbol::SymbolSource;
@@ -34,12 +36,14 @@ impl UnifiedSymbolIndex {
     /// Returns list of all unique external crate names in the index.
     #[must_use]
     pub fn get_external_crates(&self) -> Vec<String> {
-        let mut crates = Vec::new();
-        for symbol in &self.symbols {
-            if let SymbolSource::External(ref name) = symbol.source {
-                crates.push(name.clone());
-            }
-        }
+        let mut crates = self
+            .symbols
+            .iter()
+            .filter_map(|symbol| match &symbol.source {
+                SymbolSource::External(name) => Some(name.clone()),
+                SymbolSource::Project => None,
+            })
+            .collect::<Vec<_>>();
         crates.sort();
         crates.dedup();
         crates
@@ -48,12 +52,12 @@ impl UnifiedSymbolIndex {
     /// Returns list of all unique project-local crate names in the index.
     #[must_use]
     pub fn get_project_crates(&self) -> Vec<String> {
-        let mut crates = Vec::new();
-        for symbol in &self.symbols {
-            if symbol.source == SymbolSource::Project {
-                crates.push(symbol.crate_name.clone());
-            }
-        }
+        let mut crates = self
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.source == SymbolSource::Project)
+            .map(|symbol| symbol.crate_name.clone())
+            .collect::<Vec<_>>();
         crates.sort();
         crates.dedup();
         crates

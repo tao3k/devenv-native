@@ -1,3 +1,5 @@
+//! `parsers::link_graph::query::api` owns Wendao link graph query api behavior.
+
 use super::merge::merge_into_base;
 use super::scan::parse_terms;
 use super::state::ParsedDirectiveState;

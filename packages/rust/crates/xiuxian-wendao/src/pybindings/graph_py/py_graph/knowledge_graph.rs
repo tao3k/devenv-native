@@ -1,3 +1,5 @@
+//! `pybindings::graph_py::py_graph::knowledge_graph` owns Wendao graph py py graph knowledge graph behavior.
+
 use pyo3::{PyResult, pyclass, pymethods};
 
 use crate::graph::KnowledgeGraph;

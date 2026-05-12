@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::collections::BTreeSet;
 
 pub(super) fn sorted_strings<I, J, K>(primary: I, secondary: J, tertiary: K) -> Vec<String>

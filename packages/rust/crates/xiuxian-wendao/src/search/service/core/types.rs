@@ -1,3 +1,5 @@
+//! `search::service::core::types` owns Wendao service core types behavior.
+
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicU64;
@@ -8,7 +10,6 @@ use tokio::task::JoinHandle;
 
 use crate::repo_index::{RepoIndexEntryStatus, RepoIndexPhase};
 use crate::search::coordinator::SearchCompactionReason;
-use crate::search::service::core::repeat_work::SearchBuildRepeatWorkTelemetryState;
 use crate::search::{
     MarkdownSnapshotEntry, SearchCorpusKind, SearchManifestKeyspace, SearchPlaneCoordinator,
     SearchQueryTelemetry, SearchRepoCorpusRecord, SearchRepoRuntimeRecord, SourceSnapshotEntry,
@@ -112,6 +113,18 @@ pub(crate) struct RepoMaintenanceRuntime {
 #[derive(Default)]
 pub(crate) struct LocalMaintenanceRuntime {
     pub(crate) shutdown_requested: bool,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct SearchBuildRepeatWorkTelemetryState {
+    pub(crate) source_operations: BTreeMap<(String, String), SearchBuildRepeatWorkSourceState>,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct SearchBuildRepeatWorkSourceState {
+    pub(crate) batch_count: u64,
+    pub(crate) file_observation_count: u64,
+    pub(crate) path_counts: BTreeMap<String, u64>,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -1,3 +1,5 @@
+//! `pybindings::graph_py::py_entity` owns Wendao pybindings graph py py entity behavior.
+
 use pyo3::{pyclass, pymethods};
 use serde_json::json;
 

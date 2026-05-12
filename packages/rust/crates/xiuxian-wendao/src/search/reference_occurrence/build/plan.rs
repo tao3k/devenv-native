@@ -52,26 +52,28 @@ pub(crate) fn plan_reference_occurrence_build_with_scanned_files(
 ) -> ReferenceOccurrenceBuildPlan {
     let can_incremental_reuse = active_epoch.is_some() && !previous_fingerprints.is_empty();
     if !can_incremental_reuse {
-        let mut file_fingerprints = BTreeMap::<String, SearchFileFingerprint>::new();
-        let mut changed_hits = Vec::new();
-        for file in scanned_files {
-            let file_hits = build_reference_occurrences_for_file(
-                service,
-                project_root,
-                config_root,
-                projects,
-                file,
-            );
-            file_fingerprints.insert(
-                file.normalized_path.clone(),
-                file.to_semantic_file_fingerprint(
-                    REFERENCE_OCCURRENCE_EXTRACTOR_VERSION,
-                    SearchCorpusKind::ReferenceOccurrence.schema_version(),
-                    reference_hits_fingerprint(&file_hits),
-                ),
-            );
-            changed_hits.extend(file_hits);
-        }
+        let (file_fingerprints, changed_hits) = scanned_files.iter().fold(
+            (BTreeMap::<String, SearchFileFingerprint>::new(), Vec::new()),
+            |(mut file_fingerprints, mut changed_hits), file| {
+                let file_hits = build_reference_occurrences_for_file(
+                    service,
+                    project_root,
+                    config_root,
+                    projects,
+                    file,
+                );
+                file_fingerprints.insert(
+                    file.normalized_path.clone(),
+                    file.to_semantic_file_fingerprint(
+                        REFERENCE_OCCURRENCE_EXTRACTOR_VERSION,
+                        SearchCorpusKind::ReferenceOccurrence.schema_version(),
+                        reference_hits_fingerprint(&file_hits),
+                    ),
+                );
+                changed_hits.extend(file_hits);
+                (file_fingerprints, changed_hits)
+            },
+        );
         return ReferenceOccurrenceBuildPlan {
             base_epoch: None,
             file_fingerprints,
@@ -80,53 +82,59 @@ pub(crate) fn plan_reference_occurrence_build_with_scanned_files(
         };
     }
 
-    let mut file_fingerprints = BTreeMap::<String, SearchFileFingerprint>::new();
-    let mut changed_files = Vec::<ProjectScannedFile>::new();
-    let mut changed_hits = Vec::new();
-    for file in scanned_files {
-        if let Some(previous) = previous_fingerprints.get(file.normalized_path.as_str())
-            && previous.matches_scan_metadata(
-                Some(file.partition_id.as_str()),
-                file.size_bytes,
-                file.modified_unix_ms(),
+    let (file_fingerprints, changed_files, changed_hits) = scanned_files.iter().fold(
+        (
+            BTreeMap::<String, SearchFileFingerprint>::new(),
+            Vec::<ProjectScannedFile>::new(),
+            Vec::new(),
+        ),
+        |(mut file_fingerprints, mut changed_files, mut changed_hits), file| {
+            if let Some(previous) = previous_fingerprints.get(file.normalized_path.as_str())
+                && previous.matches_scan_metadata(
+                    Some(file.partition_id.as_str()),
+                    file.size_bytes,
+                    file.modified_unix_ms(),
+                    REFERENCE_OCCURRENCE_EXTRACTOR_VERSION,
+                    SearchCorpusKind::ReferenceOccurrence.schema_version(),
+                )
+            {
+                file_fingerprints.insert(file.normalized_path.clone(), previous.clone());
+                return (file_fingerprints, changed_files, changed_hits);
+            }
+
+            let file_hits = build_reference_occurrences_for_file(
+                service,
+                project_root,
+                config_root,
+                projects,
+                file,
+            );
+            let fingerprint = file.to_semantic_file_fingerprint(
                 REFERENCE_OCCURRENCE_EXTRACTOR_VERSION,
                 SearchCorpusKind::ReferenceOccurrence.schema_version(),
-            )
-        {
-            file_fingerprints.insert(file.normalized_path.clone(), previous.clone());
-            continue;
-        }
-
-        let file_hits = build_reference_occurrences_for_file(
-            service,
-            project_root,
-            config_root,
-            projects,
-            file,
-        );
-        let fingerprint = file.to_semantic_file_fingerprint(
-            REFERENCE_OCCURRENCE_EXTRACTOR_VERSION,
-            SearchCorpusKind::ReferenceOccurrence.schema_version(),
-            reference_hits_fingerprint(&file_hits),
-        );
-        let changed = previous_fingerprints
-            .get(file.normalized_path.as_str())
-            .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
-        file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
-        if changed {
-            changed_files.push(file.clone());
-            changed_hits.extend(file_hits);
-        }
-    }
+                reference_hits_fingerprint(&file_hits),
+            );
+            let changed = previous_fingerprints
+                .get(file.normalized_path.as_str())
+                .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
+            file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
+            if changed {
+                changed_files.push(file.clone());
+                changed_hits.extend(file_hits);
+            }
+            (file_fingerprints, changed_files, changed_hits)
+        },
+    );
     let mut replaced_paths = changed_files
         .iter()
         .map(|file| file.normalized_path.clone())
         .collect::<BTreeSet<_>>();
-    for path in previous_fingerprints.keys() {
-        if !file_fingerprints.contains_key(path) {
-            replaced_paths.insert(path.clone());
-        }
-    }
+    replaced_paths.extend(
+        previous_fingerprints
+            .keys()
+            .filter(|path| !file_fingerprints.contains_key(*path))
+            .cloned(),
+    );
 
     ReferenceOccurrenceBuildPlan {
         base_epoch: active_epoch,

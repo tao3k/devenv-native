@@ -1,7 +1,7 @@
 //! Runtime support for Wendao command binaries.
 
 /// Command-line interface runtime for the main `wendao` binary.
-#[cfg(all(feature = "studio", feature = "zhenfa-router"))]
+#[cfg(feature = "cli-bin-support")]
 #[path = "wendao.rs"]
 pub mod wendao;
 

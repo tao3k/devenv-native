@@ -1,3 +1,5 @@
+//! `analyzers::projection::node_lookup` owns Wendao analyzers projection node lookup behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::ProjectedPageIndexNode;
@@ -6,6 +8,7 @@ use crate::analyzers::{
     ProjectedPageIndexNodeHit, RepoProjectedPageIndexNodeQuery, RepoProjectedPageIndexNodeResult,
 };
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Resolve one projected page-index node hit by page and node identifier.
 ///
 /// # Errors

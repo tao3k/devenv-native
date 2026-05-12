@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::models::retrieval` owns Wendao runtime config models retrieval behavior.
+
 mod policy;
 mod semantic_ignition;
 

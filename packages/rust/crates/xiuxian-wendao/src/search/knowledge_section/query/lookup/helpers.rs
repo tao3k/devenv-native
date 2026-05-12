@@ -1,7 +1,7 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use arrow::array::{Array, StringArray, StringViewArray};
 use xiuxian_db_store::EngineRecordBatch;
 
-use super::candidates::KnowledgeCandidate;
 use super::error::KnowledgeSectionSearchError;
 
 #[derive(Clone, Copy)]
@@ -24,22 +24,6 @@ impl<'a> EngineStringColumn<'a> {
             Self::Utf8View(column) => column.is_null(row),
         }
     }
-}
-
-pub(crate) fn compare_candidates(
-    left: &KnowledgeCandidate,
-    right: &KnowledgeCandidate,
-) -> std::cmp::Ordering {
-    right
-        .score
-        .partial_cmp(&left.score)
-        .unwrap_or(std::cmp::Ordering::Equal)
-        .then_with(|| left.path.cmp(&right.path))
-        .then_with(|| left.stem.cmp(&right.stem))
-}
-
-pub(crate) fn candidate_path_key(candidate: &KnowledgeCandidate) -> String {
-    candidate.path.clone()
 }
 
 pub(crate) fn score_candidate(

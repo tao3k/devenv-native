@@ -1,3 +1,5 @@
+//! `link_graph::models::records::markdown_block::address` owns Wendao records markdown block address behavior.
+
 use std::fmt;
 
 /// Block kind specifier for path-based addressing.

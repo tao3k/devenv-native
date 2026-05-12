@@ -1,3 +1,5 @@
+//! `analyzers::service::search::ranking` owns Wendao service search ranking behavior.
+
 mod example;
 mod module;
 mod shared;

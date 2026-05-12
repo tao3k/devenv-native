@@ -1,3 +1,5 @@
+//! `search::repo_content_chunk` owns Wendao search repo content chunk behavior.
+
 #[path = "build/mod.rs"]
 mod build;
 #[path = "query/mod.rs"]

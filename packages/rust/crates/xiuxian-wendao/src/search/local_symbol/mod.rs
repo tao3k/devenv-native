@@ -1,3 +1,5 @@
+//! `search::local_symbol` owns Wendao search local symbol behavior.
+
 #[path = "build/mod.rs"]
 mod build;
 #[path = "query/mod.rs"]

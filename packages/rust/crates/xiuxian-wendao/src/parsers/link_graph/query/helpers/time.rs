@@ -1,4 +1,13 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+
+#[derive(Clone, Copy)]
+enum TimeFilterSlot {
+    CreatedAfter,
+    CreatedBefore,
+    ModifiedAfter,
+    ModifiedBefore,
+}
 
 pub(in crate::parsers::link_graph::query) fn parse_timestamp(raw: &str) -> Option<i64> {
     let trimmed = raw.trim();
@@ -33,35 +42,31 @@ pub(in crate::parsers::link_graph::query) fn parse_time_filter(
 ) -> bool {
     let lower = token.trim().to_lowercase();
     let rules = [
-        ("created>=", "created_after"),
-        ("created<=", "created_before"),
-        ("created>", "created_after"),
-        ("created<", "created_before"),
-        ("modified>=", "modified_after"),
-        ("modified<=", "modified_before"),
-        ("modified>", "modified_after"),
-        ("modified<", "modified_before"),
-        ("updated>=", "modified_after"),
-        ("updated<=", "modified_before"),
-        ("updated>", "modified_after"),
-        ("updated<", "modified_before"),
+        ("created>=", TimeFilterSlot::CreatedAfter),
+        ("created<=", TimeFilterSlot::CreatedBefore),
+        ("created>", TimeFilterSlot::CreatedAfter),
+        ("created<", TimeFilterSlot::CreatedBefore),
+        ("modified>=", TimeFilterSlot::ModifiedAfter),
+        ("modified<=", TimeFilterSlot::ModifiedBefore),
+        ("modified>", TimeFilterSlot::ModifiedAfter),
+        ("modified<", TimeFilterSlot::ModifiedBefore),
+        ("updated>=", TimeFilterSlot::ModifiedAfter),
+        ("updated<=", TimeFilterSlot::ModifiedBefore),
+        ("updated>", TimeFilterSlot::ModifiedAfter),
+        ("updated<", TimeFilterSlot::ModifiedBefore),
     ];
-    for (prefix, slot) in rules {
-        if !lower.starts_with(prefix) {
-            continue;
-        }
-        let value = token[prefix.len()..].trim().trim_start_matches(':');
-        let Some(parsed) = parse_timestamp(value) else {
-            return false;
-        };
-        match slot {
-            "created_after" => *created_after = Some(parsed),
-            "created_before" => *created_before = Some(parsed),
-            "modified_after" => *modified_after = Some(parsed),
-            "modified_before" => *modified_before = Some(parsed),
-            _ => {}
-        }
-        return true;
+    let Some(&(prefix, slot)) = rules.iter().find(|(prefix, _)| lower.starts_with(prefix)) else {
+        return false;
+    };
+    let value = token[prefix.len()..].trim().trim_start_matches(':');
+    let Some(parsed) = parse_timestamp(value) else {
+        return false;
+    };
+    match slot {
+        TimeFilterSlot::CreatedAfter => *created_after = Some(parsed),
+        TimeFilterSlot::CreatedBefore => *created_before = Some(parsed),
+        TimeFilterSlot::ModifiedAfter => *modified_after = Some(parsed),
+        TimeFilterSlot::ModifiedBefore => *modified_before = Some(parsed),
     }
-    false
+    true
 }

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::search` owns Wendao zhenfa router native search behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};

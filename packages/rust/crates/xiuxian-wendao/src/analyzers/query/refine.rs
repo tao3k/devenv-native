@@ -1,3 +1,5 @@
+//! `analyzers::query::refine` owns Wendao analyzers query refine behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +16,7 @@ pub struct RefineEntityDocRequest {
 
 /// Response for a documentation refinement request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct RefineEntityDocResponse {
     /// Owning repository identifier.
     pub repo_id: String,

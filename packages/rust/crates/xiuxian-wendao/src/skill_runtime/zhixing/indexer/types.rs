@@ -1,3 +1,5 @@
+//! `skill_runtime::zhixing::indexer::types` owns Wendao zhixing indexer types behavior.
+
 use crate::graph::KnowledgeGraph;
 use crate::skill_runtime::zhixing::Result;
 use crate::sync::IncrementalSyncPolicy;

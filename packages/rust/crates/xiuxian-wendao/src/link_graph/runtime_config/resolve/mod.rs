@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::resolve` owns Wendao link graph runtime config resolve behavior.
+
 #[path = "agentic/mod.rs"]
 mod agentic;
 mod cache;

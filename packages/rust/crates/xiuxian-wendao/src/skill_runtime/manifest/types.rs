@@ -1,3 +1,5 @@
+//! `skill_runtime::manifest::types` owns Wendao skill runtime manifest types behavior.
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -136,6 +138,7 @@ pub struct SkillManifestScan {
     pub issues: Vec<String>,
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Authority report for runtime skill manifest discovery.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SkillAuthorityReport {

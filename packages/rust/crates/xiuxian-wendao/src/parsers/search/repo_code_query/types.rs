@@ -1,3 +1,5 @@
+//! `parsers::search::repo_code_query::types` owns Wendao search repo code query types behavior.
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 /// Parsed filters and residual text for a repository code search query.
 pub struct ParsedRepoCodeSearchQuery {

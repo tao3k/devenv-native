@@ -1,3 +1,5 @@
+//! `analyzers::projection::lookup` owns Wendao analyzers projection lookup behavior.
+
 use crate::analyzers::{
     RepoIntelligenceError, RepoProjectedPageQuery, RepoProjectedPageResult,
     RepositoryAnalysisOutput,

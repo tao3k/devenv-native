@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 //! Coordinates repository search across source discovery, AST extraction, and batch rendering.
 
 use std::collections::HashSet;
@@ -5,12 +6,9 @@ use std::path::Path;
 
 use walkdir::{DirEntry, WalkDir};
 use xiuxian_code_intelligence::code_language_id_from_path;
-use xiuxian_db_store::LanceRecordBatch;
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
-use super::ast::repository_supports_generic_ast_analysis;
-use super::batch::repo_search_batch_from_hits;
 use crate::analyzers::{RegisteredRepository, resolve_registered_repository_source};
 use crate::parsers::search::repo_code_query::parse_repo_code_search_query;
 use crate::search::contracts::SearchHit;
@@ -22,6 +20,7 @@ use crate::search::{RepoContentChunkSearchFilters, SearchPlaneService};
 /// # Errors
 ///
 /// Returns a string error when the repository content query fails.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn search_repo_content_hits_for_query(
     search_plane: &SearchPlaneService,
     repo_id: &str,
@@ -95,39 +94,11 @@ pub(crate) async fn search_repo_content_hits_with_repository(
     let Some(repository) = repository else {
         return Ok(published_hits);
     };
-    if !repository_supports_generic_ast_analysis(repository) {
+    if !repository_supports_content_checkout_analysis(repository) {
         return Ok(published_hits);
     }
 
     search_repo_checkout_content_hits(search_plane, repository, request).await
-}
-
-/// Execute repository content search and render the result as a Flight record batch.
-///
-/// # Errors
-///
-/// Returns a string error when repository search or batch rendering fails.
-pub async fn search_repo_content_batch(
-    search_plane: &SearchPlaneService,
-    request: &RepoSearchFlightRequest,
-) -> Result<LanceRecordBatch, String> {
-    let hits = search_repo_content_hits(search_plane, request).await?;
-    repo_search_batch_from_hits(&hits)
-}
-
-/// Execute repository content search with an optional checkout fallback repository.
-///
-/// # Errors
-///
-/// Returns a string error when repository search, checkout fallback, or batch
-/// rendering fails.
-pub async fn search_repo_content_batch_with_repository(
-    search_plane: &SearchPlaneService,
-    repository: Option<&RegisteredRepository>,
-    request: &RepoSearchFlightRequest,
-) -> Result<LanceRecordBatch, String> {
-    let hits = search_repo_content_hits_with_repository(search_plane, repository, request).await?;
-    repo_search_batch_from_hits(&hits)
 }
 
 async fn search_repo_checkout_content_hits(
@@ -144,6 +115,13 @@ async fn search_repo_checkout_content_hits(
     })
     .await
     .map_err(|error| format!("repo-search checkout fallback task failed: {error}"))?
+}
+
+fn repository_supports_content_checkout_analysis(repository: &RegisteredRepository) -> bool {
+    repository
+        .plugins
+        .iter()
+        .any(|plugin| plugin.id().eq_ignore_ascii_case("ast-grep"))
 }
 
 fn search_repo_checkout_content_hits_blocking(

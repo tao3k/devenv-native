@@ -1,17 +1,14 @@
-pub(super) use std::path::PathBuf;
-pub(super) use std::sync::Arc;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-pub(super) use crate::analyzers::{
-    ExampleRecord, ModuleRecord, RepoSymbolKind, RepositoryAnalysisOutput, SymbolRecord,
-};
+pub(super) use crate::analyzers::RepositoryAnalysisOutput;
+use crate::analyzers::{ExampleRecord, ModuleRecord, RepoSymbolKind, SymbolRecord};
 pub(super) use crate::repo_index::{RepoCodeDocument, RepoIndexEntryStatus, RepoIndexPhase};
 pub(super) use crate::search::contracts::{AstSearchHit, StudioNavigationTarget};
-pub(super) use crate::search::service::helpers::{derive_status_reason, summarize_issues};
 pub(super) use crate::search::{
     SearchCorpusIssueSummary, SearchCorpusKind, SearchCorpusStatus, SearchCorpusStatusAction,
-    SearchCorpusStatusReasonCode, SearchCorpusStatusSeverity, SearchMaintenancePolicy,
-    SearchManifestKeyspace, SearchPlaneService, SearchPlaneStatusSnapshot, SearchQueryTelemetry,
+    SearchCorpusStatusReasonCode, SearchCorpusStatusSeverity, SearchManifestKeyspace,
+    SearchPlaneService, SearchPlaneStatusSnapshot, SearchQueryTelemetry,
 };
 
 static TEST_KEYSPACE_COUNTER: AtomicU64 = AtomicU64::new(1);

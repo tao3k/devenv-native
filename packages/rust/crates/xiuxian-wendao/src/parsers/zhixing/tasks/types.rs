@@ -1,3 +1,5 @@
+//! `parsers::zhixing::tasks::types` owns Wendao zhixing tasks types behavior.
+
 /// Structured zhixing agenda-task projection parsed from one markdown line.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskLineProjection {

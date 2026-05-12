@@ -1,3 +1,5 @@
+//! `link_graph::index::build::assemble` owns Wendao index build assemble behavior.
+
 mod api;
 mod edges;
 mod finalize;

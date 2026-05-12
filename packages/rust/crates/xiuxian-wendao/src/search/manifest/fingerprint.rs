@@ -1,7 +1,10 @@
+//! `search::manifest::fingerprint` owns Wendao search manifest fingerprint behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Stable file-level fingerprint payload for incremental manifest updates.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct SearchFileFingerprint {
     /// Repo-relative path for the source file.
     pub relative_path: String,
@@ -23,6 +26,8 @@ pub struct SearchFileFingerprint {
 impl SearchFileFingerprint {
     /// Returns whether the stored scan metadata still matches the current file snapshot.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn matches_scan_metadata(
         &self,
         partition_id: Option<&str>,

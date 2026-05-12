@@ -12,6 +12,7 @@ mod arrow;
 #[cfg(feature = "duckdb")]
 mod connection;
 mod engine;
+/// Public Wendao boundary.
 #[cfg(feature = "duckdb")]
 pub mod event_lake;
 mod parquet;

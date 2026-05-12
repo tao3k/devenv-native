@@ -1,3 +1,5 @@
+//! `analyzers::projection::markdown` owns Wendao analyzers projection markdown behavior.
+
 use std::path::Path;
 
 use crate::analyzers::RepoIntelligenceError;

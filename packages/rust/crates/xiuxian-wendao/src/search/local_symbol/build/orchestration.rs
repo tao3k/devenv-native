@@ -1,3 +1,5 @@
+//! `search::local_symbol::build::orchestration` owns Wendao local symbol build orchestration behavior.
+
 use std::path::Path;
 
 use tokio::runtime::Handle;
@@ -13,6 +15,7 @@ use crate::search::{
     BeginBuildDecision, ProjectScannedFile, SearchCorpusKind, SearchPlaneService,
     fingerprint_symbol_projects_from_scanned_files,
 };
+/// `ensure_local_symbol_index_started` public function boundary for Wendao.
 
 #[cfg(any(test, feature = "test-support"))]
 pub fn ensure_local_symbol_index_started(
@@ -41,7 +44,9 @@ pub fn ensure_local_symbol_index_started(
         scanned_files,
     )
 }
+/// `ensure_local_symbol_index_started_with_scanned_files` public function boundary for Wendao.
 
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ensure_local_symbol_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
@@ -175,6 +180,7 @@ fn ensure_local_symbol_index_started_with_fingerprint_and_scanned_files(
 
     true
 }
+/// `publish_local_symbol_hits` public function boundary for Wendao.
 
 #[cfg(any(test, feature = "test-support"))]
 pub async fn publish_local_symbol_hits(

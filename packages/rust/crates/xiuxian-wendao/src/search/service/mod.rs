@@ -1,3 +1,5 @@
+//! `search::service` owns Wendao search service behavior.
+
 #[path = "core/mod.rs"]
 mod core;
 #[path = "helpers/mod.rs"]

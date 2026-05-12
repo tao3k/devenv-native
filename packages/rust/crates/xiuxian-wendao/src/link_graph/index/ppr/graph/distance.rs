@@ -1,4 +1,4 @@
-use crate::link_graph::index::{LinkGraphIndex, doc_sort_key};
+use crate::link_graph::index::{LinkGraphDocument, LinkGraphIndex, doc_sort_key};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 impl LinkGraphIndex {
@@ -27,37 +27,20 @@ impl LinkGraphIndex {
             }
             let next_depth = depth + 1;
 
-            if let Some(targets) = self.outgoing.get(&current) {
-                for target in targets {
-                    if !self.docs_by_id.contains_key(target) {
-                        continue;
-                    }
-                    let should_update = match distances.get(target) {
-                        Some(existing) => next_depth < *existing,
-                        None => true,
-                    };
-                    if should_update {
-                        distances.insert(target.clone(), next_depth);
-                        queue.push_back(target.clone());
-                    }
-                }
-            }
-
-            if let Some(sources) = self.incoming.get(&current) {
-                for source in sources {
-                    if !self.docs_by_id.contains_key(source) {
-                        continue;
-                    }
-                    let should_update = match distances.get(source) {
-                        Some(existing) => next_depth < *existing,
-                        None => true,
-                    };
-                    if should_update {
-                        distances.insert(source.clone(), next_depth);
-                        queue.push_back(source.clone());
-                    }
-                }
-            }
+            enqueue_bidirectional_neighbors(
+                self.outgoing.get(&current),
+                &self.docs_by_id,
+                &mut distances,
+                &mut queue,
+                next_depth,
+            );
+            enqueue_bidirectional_neighbors(
+                self.incoming.get(&current),
+                &self.docs_by_id,
+                &mut distances,
+                &mut queue,
+                next_depth,
+            );
         }
 
         distances
@@ -128,4 +111,28 @@ impl LinkGraphIndex {
         }
         kept
     }
+}
+
+fn enqueue_bidirectional_neighbors(
+    neighbors: Option<&HashSet<String>>,
+    docs_by_id: &HashMap<String, LinkGraphDocument>,
+    distances: &mut HashMap<String, usize>,
+    queue: &mut VecDeque<String>,
+    next_depth: usize,
+) {
+    let pending_neighbors = neighbors
+        .into_iter()
+        .flatten()
+        .filter(|neighbor| docs_by_id.contains_key(*neighbor))
+        .filter(|neighbor| {
+            distances
+                .get(*neighbor)
+                .is_none_or(|existing| next_depth < *existing)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    pending_neighbors.into_iter().for_each(|neighbor| {
+        distances.insert(neighbor.clone(), next_depth);
+        queue.push_back(neighbor);
+    });
 }

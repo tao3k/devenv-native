@@ -1,3 +1,5 @@
+//! `link_graph::models::records::quantum_fusion` owns Wendao models records quantum fusion behavior.
+
 use super::retrieval_plan::LinkGraphRetrievalBudget;
 use crate::link_graph::models::LinkGraphRelatedPprOptions;
 use crate::link_graph::models::LinkGraphSemanticSearchPolicy;
@@ -55,6 +57,7 @@ impl QuantumFusionOptions {
 /// One fused quantum context derived from anchor hits.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct QuantumContext {
     /// Canonical anchor id used as the semantic seed.
     pub anchor_id: String,

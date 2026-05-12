@@ -1,3 +1,5 @@
+//! `analyzers::service::search::artifacts` owns Wendao service search artifacts behavior.
+
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 

@@ -56,6 +56,7 @@ pub struct RepoRetrievalQuery {
 
 impl RepoRetrievalQuery {
     /// Build one repo-scoped retrieval query from generic set-like filters.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn new<LS, KS>(
         repo_id: impl Into<String>,
         search_term: impl Into<String>,
@@ -108,6 +109,8 @@ pub struct RepoCodeQueryRequest {
 
 impl RepoCodeQueryRequest {
     /// Build one repo-code request from set-like filters and lane policy.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+    /// Flag mode boundary: this public API mirrors an existing flag-based query contract.
     pub fn new<LS, KS>(
         repo_id: impl Into<String>,
         search_term: impl Into<String>,
@@ -245,6 +248,8 @@ pub async fn query_repo_entity_relation(
 /// # Errors
 ///
 /// Returns [`WendaoQueryCoreError`] when the typed repo-entity query fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn query_repo_entity_module_results_if_published(
     search_plane: &SearchPlaneService,
     repo_id: &str,
@@ -268,6 +273,8 @@ pub async fn query_repo_entity_module_results_if_published(
 /// # Errors
 ///
 /// Returns [`WendaoQueryCoreError`] when the typed repo-entity query fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn query_repo_entity_symbol_results_if_published(
     search_plane: &SearchPlaneService,
     repo_id: &str,
@@ -291,6 +298,8 @@ pub async fn query_repo_entity_symbol_results_if_published(
 /// # Errors
 ///
 /// Returns [`WendaoQueryCoreError`] when the typed repo-entity query fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn query_repo_entity_example_results_if_published(
     search_plane: &SearchPlaneService,
     repo_id: &str,
@@ -314,6 +323,8 @@ pub async fn query_repo_entity_example_results_if_published(
 /// # Errors
 ///
 /// Returns [`WendaoQueryCoreError`] when the typed repo-entity query fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn query_repo_entity_import_results_if_published(
     search_plane: &SearchPlaneService,
     repo_id: &str,
@@ -345,6 +356,8 @@ pub async fn query_repo_entity_import_results_if_published(
 /// # Errors
 ///
 /// Returns [`WendaoQueryCoreError`] when the typed repo-entity query fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn query_repo_entity_results_if_published<T>(
     search_plane: &SearchPlaneService,
     repo_id: &str,
@@ -408,6 +421,8 @@ pub fn repo_entity_example_results_contract() -> RepoEntityTypedResultsContract<
 /// # Errors
 ///
 /// Returns [`WendaoQueryCoreError`] when the graph adapter or execution layer fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn query_graph_neighbors_relation(
     index: Arc<LinkGraphIndex>,
     node_id: &str,
@@ -434,6 +449,8 @@ pub async fn query_graph_neighbors_relation(
 /// # Errors
 ///
 /// Returns [`WendaoQueryCoreError`] when graph execution or projection fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn query_graph_neighbors_projection(
     index: Arc<LinkGraphIndex>,
     node_id: &str,

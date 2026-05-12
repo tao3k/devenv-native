@@ -1,3 +1,5 @@
+//! `link_graph::context_snapshot::id` owns Wendao link graph context snapshot id behavior.
+
 use crate::link_graph::context_snapshot::types::LINK_GRAPH_QUANTUM_CONTEXT_SNAPSHOT_SCHEMA_VERSION;
 use crate::link_graph::models::{QuantumAnchorHit, QuantumFusionOptions};
 use serde::Serialize;

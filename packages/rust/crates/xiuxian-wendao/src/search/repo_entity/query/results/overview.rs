@@ -1,5 +1,10 @@
+//! `search::repo_entity::query::results::overview` owns Wendao query results overview behavior.
+
 use std::collections::BTreeSet;
 
+use arrow::record_batch::RecordBatch;
+
+use crate::duckdb::ParquetQueryEngine;
 use crate::search::SearchPlaneService;
 use crate::search::repo_entity::query::hydrate::{
     engine_list_string_column, engine_list_string_values, engine_string_column,
@@ -29,12 +34,18 @@ pub struct RepoEntityOverviewSummary {
     pub doc_count: usize,
 }
 
+struct RepoEntityOverviewAccumulator {
+    summary: RepoEntityOverviewSummary,
+    projected_pages: BTreeSet<String>,
+}
+
 /// Build a compact repository entity overview from the published entity table.
 ///
 /// # Errors
 ///
 /// Returns a repository entity search error when the underlying publication
 /// cannot be opened or decoded.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn summarize_repo_entity_overview(
     service: &SearchPlaneService,
     repo_id: &str,
@@ -48,47 +59,84 @@ pub async fn summarize_repo_entity_overview(
         engine_table_name,
         source_revision,
     } = prepared;
-    let batches = query_engine
+    let batches = repo_entity_overview_batches(&query_engine, &engine_table_name).await?;
+    let summary = RepoEntityOverviewAccumulator::new(source_revision).summarize(batches)?;
+    Ok(Some(summary))
+}
+
+async fn repo_entity_overview_batches(
+    query_engine: &ParquetQueryEngine,
+    engine_table_name: &str,
+) -> Result<Vec<RecordBatch>, RepoEntitySearchError> {
+    Ok(query_engine
         .query_batches(
             format!(
                 "SELECT {COLUMN_ENTITY_KIND}, {COLUMN_QUALIFIED_NAME}, {COLUMN_PROJECTION_PAGE_IDS} FROM {engine_table_name}"
             )
             .as_str(),
         )
-        .await?;
-    let mut summary = RepoEntityOverviewSummary {
-        display_name: None,
-        source_revision,
-        module_count: 0,
-        symbol_count: 0,
-        example_count: 0,
-        doc_count: 0,
-    };
-    let mut projected_pages = BTreeSet::new();
+        .await?)
+}
 
-    for batch in batches {
+impl RepoEntityOverviewAccumulator {
+    fn new(source_revision: Option<String>) -> Self {
+        Self {
+            summary: RepoEntityOverviewSummary {
+                display_name: None,
+                source_revision,
+                module_count: 0,
+                symbol_count: 0,
+                example_count: 0,
+                doc_count: 0,
+            },
+            projected_pages: BTreeSet::new(),
+        }
+    }
+
+    fn summarize(
+        mut self,
+        batches: Vec<RecordBatch>,
+    ) -> Result<RepoEntityOverviewSummary, RepoEntitySearchError> {
+        for batch in batches {
+            self.apply_batch(&batch)?;
+        }
+        self.summary.doc_count = self.projected_pages.len();
+        Ok(self.summary)
+    }
+
+    fn apply_batch(&mut self, batch: &RecordBatch) -> Result<(), RepoEntitySearchError> {
         let entity_kind = engine_string_column(&batch, COLUMN_ENTITY_KIND)?;
         let qualified_name = engine_string_column(&batch, COLUMN_QUALIFIED_NAME)?;
         let projection_page_ids = engine_list_string_column(&batch, COLUMN_PROJECTION_PAGE_IDS)?;
         for row in 0..batch.num_rows() {
-            match entity_kind.value(row) {
-                ENTITY_KIND_MODULE => {
-                    summary.module_count += 1;
-                    update_display_name_candidate(
-                        &mut summary.display_name,
-                        qualified_name.value(row),
-                    );
-                }
-                ENTITY_KIND_SYMBOL => summary.symbol_count += 1,
-                ENTITY_KIND_EXAMPLE => summary.example_count += 1,
-                _ => {}
-            }
-            projected_pages.extend(engine_list_string_values(projection_page_ids, row));
+            self.apply_row(
+                entity_kind.value(row),
+                qualified_name.value(row),
+                engine_list_string_values(projection_page_ids, row),
+            );
         }
+        Ok(())
     }
 
-    summary.doc_count = projected_pages.len();
-    Ok(Some(summary))
+    fn apply_row(
+        &mut self,
+        entity_kind: &str,
+        qualified_name: &str,
+        projection_page_ids: Vec<String>,
+    ) {
+        match entity_kind {
+            ENTITY_KIND_MODULE => self.apply_module_row(qualified_name),
+            ENTITY_KIND_SYMBOL => self.summary.symbol_count += 1,
+            ENTITY_KIND_EXAMPLE => self.summary.example_count += 1,
+            _ => {}
+        }
+        self.projected_pages.extend(projection_page_ids);
+    }
+
+    fn apply_module_row(&mut self, qualified_name: &str) {
+        self.summary.module_count += 1;
+        update_display_name_candidate(&mut self.summary.display_name, qualified_name);
+    }
 }
 
 fn update_display_name_candidate(display_name: &mut Option<String>, candidate: &str) {

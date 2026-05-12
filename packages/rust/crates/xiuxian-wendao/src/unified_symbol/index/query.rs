@@ -143,20 +143,15 @@ impl UnifiedSymbolIndex {
             return None;
         };
 
-        let mut results = Vec::new();
-        for fuzzy_match in matches {
-            if let Some(symbol) =
-                self.symbol_from_search_id(fuzzy_match.item.id.as_str(), source_filter)
-            {
-                results.push(symbol);
-            }
-
-            if results.len() >= limit {
-                break;
-            }
-        }
-
-        Some(results)
+        Some(
+            matches
+                .into_iter()
+                .filter_map(|fuzzy_match| {
+                    self.symbol_from_search_id(fuzzy_match.item.id.as_str(), source_filter)
+                })
+                .take(limit)
+                .collect(),
+        )
     }
 
     fn search_memory_fallback(
@@ -167,30 +162,13 @@ impl UnifiedSymbolIndex {
         options: FuzzySearchOptions,
     ) -> Vec<UnifiedSymbol> {
         let query_lower = query_str.to_lowercase();
-        let mut results = Vec::new();
-
-        for &idx in self.by_name.get(&query_lower).unwrap_or(&Vec::new()) {
-            let s = &self.symbols[idx];
-            if Self::matches_filter(s, source_filter) {
-                results.push(s.clone());
-            }
-        }
-
-        for (name, indices) in &self.by_name {
-            if results.len() >= limit {
-                break;
-            }
-            if name != &query_lower && name.starts_with(&query_lower) {
-                for &idx in indices {
-                    let s = &self.symbols[idx];
-                    if Self::matches_filter(s, source_filter) {
-                        results.push(s.clone());
-                    }
-                    if results.len() >= limit {
-                        break;
-                    }
-                }
-            }
+        let mut results = self.exact_memory_symbols(query_lower.as_str(), source_filter);
+        if results.len() < limit {
+            results.extend(self.prefix_memory_symbols(
+                query_lower.as_str(),
+                source_filter,
+                limit - results.len(),
+            ));
         }
 
         if !results.is_empty() {
@@ -198,6 +176,48 @@ impl UnifiedSymbolIndex {
             return results;
         }
 
+        self.fuzzy_memory_symbols(query_str, limit, source_filter, options)
+    }
+
+    fn exact_memory_symbols(
+        &self,
+        query_lower: &str,
+        source_filter: Option<&str>,
+    ) -> Vec<UnifiedSymbol> {
+        self.by_name
+            .get(query_lower)
+            .into_iter()
+            .flatten()
+            .filter_map(|&idx| self.symbols.get(idx))
+            .filter(|symbol| Self::matches_filter(symbol, source_filter))
+            .cloned()
+            .collect()
+    }
+
+    fn prefix_memory_symbols(
+        &self,
+        query_lower: &str,
+        source_filter: Option<&str>,
+        limit: usize,
+    ) -> Vec<UnifiedSymbol> {
+        self.by_name
+            .iter()
+            .filter(|(name, _)| name.as_str() != query_lower && name.starts_with(query_lower))
+            .flat_map(|(_, indices)| indices.iter())
+            .filter_map(|&idx| self.symbols.get(idx))
+            .filter(|symbol| Self::matches_filter(symbol, source_filter))
+            .take(limit)
+            .cloned()
+            .collect()
+    }
+
+    fn fuzzy_memory_symbols(
+        &self,
+        query_str: &str,
+        limit: usize,
+        source_filter: Option<&str>,
+        options: FuzzySearchOptions,
+    ) -> Vec<UnifiedSymbol> {
         let filtered_symbols = self
             .symbols
             .iter()
@@ -209,14 +229,11 @@ impl UnifiedSymbolIndex {
         let fuzzy_matches = matcher
             .search(query_str, limit)
             .expect("lexical matcher is infallible");
-        results.extend(
-            fuzzy_matches
-                .into_iter()
-                .map(|fuzzy_match| fuzzy_match.item),
-        );
-
-        results.truncate(limit);
-        results
+        fuzzy_matches
+            .into_iter()
+            .map(|fuzzy_match| fuzzy_match.item)
+            .take(limit)
+            .collect()
     }
 
     fn matches_filter(symbol: &UnifiedSymbol, filter: Option<&str>) -> bool {
@@ -252,16 +269,11 @@ impl UnifiedSymbolIndex {
         limit: usize,
         source_filter: Option<&str>,
     ) -> Vec<UnifiedSymbol> {
-        let mut results = Vec::new();
-        for record in records {
-            if let Some(symbol) = self.symbol_from_search_id(record.id.as_str(), source_filter) {
-                results.push(symbol);
-            }
-            if results.len() >= limit {
-                break;
-            }
-        }
-        results
+        records
+            .into_iter()
+            .filter_map(|record| self.symbol_from_search_id(record.id.as_str(), source_filter))
+            .take(limit)
+            .collect()
     }
 
     fn symbol_from_search_id(

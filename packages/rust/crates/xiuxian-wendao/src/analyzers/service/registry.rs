@@ -1,3 +1,5 @@
+//! `analyzers::service::registry` owns Wendao analyzers service registry behavior.
+
 use std::path::Path;
 
 use crate::analyzers::RepoIntelligenceError;
@@ -9,6 +11,7 @@ use crate::analyzers::{RegisteredRepository, load_repo_intelligence_config};
 ///
 /// Returns [`RepoIntelligenceError`] when config loading fails or the
 /// repository id is unknown.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn load_registered_repository(
     repo_id: &str,
     config_path: Option<&Path>,

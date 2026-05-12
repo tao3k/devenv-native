@@ -146,7 +146,10 @@ SearchStrategyFlow uses that same ownership split. The product crate owns the
 structured search backend, including DuckDB-backed candidate retrieval where
 configured. `xiuxian-wendao-julia` receives narrowed candidate batches for
 Julia strategy/frontier selection; Julia does not own DuckDB access or full
-candidate discovery.
+candidate discovery. The domain-owned Flight host also prewarms bootstrap
+projected pages and page-index trees, then serves projected page-index and
+retrieval-context materialization from a host-local cache before falling back to
+analysis-backed route construction.
 
 Do not place new code here when it is better classified as:
 

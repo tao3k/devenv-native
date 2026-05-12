@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::fuzzy_suggest::sources` owns Wendao audit fuzzy suggest sources behavior.
+
 use std::path::Path;
 
 use super::types::SourceFile;

@@ -1,3 +1,5 @@
+//! `parsers::languages::python::pyproject::dependencies::types` owns Wendao pyproject dependencies types behavior.
+
 /// A parsed Python dependency from `pyproject.toml`.
 #[derive(Debug, Clone)]
 pub struct PyprojectDependency {

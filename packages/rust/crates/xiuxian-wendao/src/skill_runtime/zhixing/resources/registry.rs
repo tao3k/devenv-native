@@ -1,3 +1,5 @@
+//! `skill_runtime::zhixing::resources::registry` owns Wendao zhixing resources registry behavior.
+
 use crate::WendaoResourceRegistry;
 use crate::skill_runtime::zhixing::{Error, Result};
 
@@ -20,6 +22,7 @@ pub fn build_embedded_wendao_registry() -> Result<WendaoResourceRegistry> {
 /// # Errors
 ///
 /// Returns an error when embedded registry construction fails.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn embedded_skill_links_for_id(id: &str) -> Result<Vec<String>> {
     let links_by_id = embedded_skill_links_index()?;
     if let Some(links) = links_by_id.get(id) {

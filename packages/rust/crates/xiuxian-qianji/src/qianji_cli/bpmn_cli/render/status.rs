@@ -127,13 +127,13 @@ fn append_bpmn_status_pending_host_work(
         );
         append_bpmn_status_node_context(&mut line, process, work.node_index);
         if let Some(activity_id) = work.activity_id.as_ref() {
-            let _ = write!(line, " | activity={activity_id}");
+            let _ = write!(line, " | activity={}", activity_id.as_str());
         }
         if let Some(process_id) = work.process_id.as_ref() {
-            let _ = write!(line, " | process={process_id}");
+            let _ = write!(line, " | process={}", process_id.as_str());
         }
         if let Some(work_id) = work.work_id.as_ref() {
-            let _ = write!(line, " | work_id={work_id}");
+            let _ = write!(line, " | work_id={}", work_id.as_str());
         }
         if let Some(claim) = work.claim.as_ref() {
             let _ = write!(line, " | claim={}", claim.claimant);

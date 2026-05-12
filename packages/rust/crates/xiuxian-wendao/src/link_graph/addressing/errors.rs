@@ -1,3 +1,5 @@
+//! `link_graph::addressing::errors` owns Wendao link graph addressing errors behavior.
+
 use thiserror::Error;
 
 /// Resolve error types for dual-index addressing.

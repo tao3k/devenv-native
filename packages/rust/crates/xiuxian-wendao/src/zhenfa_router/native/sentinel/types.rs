@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::sentinel::types` owns Wendao native sentinel types behavior.
+
 use chrono;
 use serde::{Deserialize, Serialize};
 

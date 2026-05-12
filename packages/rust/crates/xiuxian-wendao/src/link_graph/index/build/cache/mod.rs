@@ -1,3 +1,5 @@
+//! `link_graph::index::build::cache` owns Wendao index build cache behavior.
+
 #[cfg(feature = "duckdb")]
 #[path = "arrow_snapshot/mod.rs"]
 mod arrow_snapshot;

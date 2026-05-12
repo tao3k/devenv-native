@@ -1,3 +1,5 @@
+//! `analyzers::service::cached` owns Wendao analyzers service cached behavior.
+
 use std::path::Path;
 
 use xiuxian_git_repo::{SyncMode, discover_checkout_metadata};

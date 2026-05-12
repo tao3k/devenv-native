@@ -1,3 +1,5 @@
+//! `search::queries::rest::request` owns Wendao queries rest request behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Request payload for the shared REST query adapter.

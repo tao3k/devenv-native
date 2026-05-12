@@ -1,3 +1,5 @@
+//! `link_graph::index::search::quantum_fusion::scoring` owns Wendao search quantum fusion scoring behavior.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -16,6 +18,11 @@ pub const QUANTUM_SALIENCY_COLUMN: &str = "quantum_saliency";
 #[derive(Debug, Clone)]
 pub struct BatchQuantumScorer {
     options: QuantumFusionOptions,
+}
+
+struct BatchScoreColumns<'a> {
+    ids: &'a StringArray,
+    similarities: &'a Float64Array,
 }
 
 impl BatchQuantumScorer {
@@ -44,79 +51,132 @@ impl BatchQuantumScorer {
         id_col: &str,
         sim_col: &str,
     ) -> Result<RecordBatch, BatchQuantumScorerError> {
-        let ids_column =
-            batch
-                .column_by_name(id_col)
-                .ok_or_else(|| BatchQuantumScorerError::MissingColumn {
-                    column: id_col.to_string(),
-                })?;
-        let ids = ids_column
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .ok_or_else(|| BatchQuantumScorerError::InvalidUtf8Column {
-                column: id_col.to_string(),
-                data_type: ids_column.data_type().clone(),
-            })?;
-
-        let similarity_column = batch.column_by_name(sim_col).ok_or_else(|| {
-            BatchQuantumScorerError::MissingColumn {
-                column: sim_col.to_string(),
-            }
-        })?;
-        let similarities = similarity_column
-            .as_any()
-            .downcast_ref::<Float64Array>()
-            .ok_or_else(|| BatchQuantumScorerError::InvalidFloat64Column {
-                column: sim_col.to_string(),
-                data_type: similarity_column.data_type().clone(),
-            })?;
-
-        let mut fused_scores = Vec::with_capacity(batch.num_rows());
-        for row in 0..batch.num_rows() {
-            if ids.is_null(row) {
-                return Err(BatchQuantumScorerError::NullValue {
-                    column: id_col.to_string(),
-                    row,
-                });
-            }
-            if similarities.is_null(row) {
-                return Err(BatchQuantumScorerError::NullValue {
-                    column: sim_col.to_string(),
-                    row,
-                });
-            }
-
-            let doc_id = ids.value(row);
-            let semantic_score = similarities.value(row);
-            let topology_score = ppr_map.get(doc_id).copied().unwrap_or(0.0);
-            fused_scores.push(fuse_saliency_score(
-                semantic_score,
-                topology_score,
-                &self.options,
-            ));
-        }
-
-        let fused_array: Arc<dyn Array> = Arc::new(Float64Array::from(fused_scores));
-        let mut fields = batch
-            .schema_ref()
-            .fields()
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
-        fields.push(Arc::new(Field::new(
-            QUANTUM_SALIENCY_COLUMN,
-            DataType::Float64,
-            false,
-        )));
-        let schema = Arc::new(Schema::new_with_metadata(
-            fields,
-            batch.schema_ref().metadata().clone(),
-        ));
-
-        let mut columns = batch.columns().to_vec();
-        columns.push(fused_array);
+        let score_columns = score_columns(batch, id_col, sim_col)?;
+        let fused_scores = self.fused_scores(batch, &score_columns, ppr_map, id_col, sim_col)?;
+        let schema = score_batch_schema(batch);
+        let columns = score_batch_columns(batch, fused_scores);
         RecordBatch::try_new(schema, columns).map_err(BatchQuantumScorerError::Arrow)
     }
+
+    fn fused_scores(
+        &self,
+        batch: &RecordBatch,
+        score_columns: &BatchScoreColumns<'_>,
+        ppr_map: &HashMap<String, f64>,
+        id_col: &str,
+        sim_col: &str,
+    ) -> Result<Vec<f64>, BatchQuantumScorerError> {
+        (0..batch.num_rows())
+            .map(|row| self.fused_score_for_row(score_columns, ppr_map, id_col, sim_col, row))
+            .collect()
+    }
+
+    fn fused_score_for_row(
+        &self,
+        score_columns: &BatchScoreColumns<'_>,
+        ppr_map: &HashMap<String, f64>,
+        id_col: &str,
+        sim_col: &str,
+        row: usize,
+    ) -> Result<f64, BatchQuantumScorerError> {
+        ensure_non_null(score_columns.ids, id_col, row)?;
+        ensure_non_null(score_columns.similarities, sim_col, row)?;
+        let doc_id = score_columns.ids.value(row);
+        let semantic_score = score_columns.similarities.value(row);
+        let topology_score = ppr_map.get(doc_id).copied().unwrap_or(0.0);
+        Ok(fuse_saliency_score(
+            semantic_score,
+            topology_score,
+            &self.options,
+        ))
+    }
+}
+
+fn score_columns<'a>(
+    batch: &'a RecordBatch,
+    id_col: &str,
+    sim_col: &str,
+) -> Result<BatchScoreColumns<'a>, BatchQuantumScorerError> {
+    Ok(BatchScoreColumns {
+        ids: utf8_column(batch, id_col)?,
+        similarities: float64_column(batch, sim_col)?,
+    })
+}
+
+fn utf8_column<'a>(
+    batch: &'a RecordBatch,
+    column: &str,
+) -> Result<&'a StringArray, BatchQuantumScorerError> {
+    let array =
+        batch
+            .column_by_name(column)
+            .ok_or_else(|| BatchQuantumScorerError::MissingColumn {
+                column: column.to_string(),
+            })?;
+    array.as_any().downcast_ref::<StringArray>().ok_or_else(|| {
+        BatchQuantumScorerError::InvalidUtf8Column {
+            column: column.to_string(),
+            data_type: array.data_type().clone(),
+        }
+    })
+}
+
+fn float64_column<'a>(
+    batch: &'a RecordBatch,
+    column: &str,
+) -> Result<&'a Float64Array, BatchQuantumScorerError> {
+    let array =
+        batch
+            .column_by_name(column)
+            .ok_or_else(|| BatchQuantumScorerError::MissingColumn {
+                column: column.to_string(),
+            })?;
+    array
+        .as_any()
+        .downcast_ref::<Float64Array>()
+        .ok_or_else(|| BatchQuantumScorerError::InvalidFloat64Column {
+            column: column.to_string(),
+            data_type: array.data_type().clone(),
+        })
+}
+
+fn ensure_non_null(
+    array: &dyn Array,
+    column: &str,
+    row: usize,
+) -> Result<(), BatchQuantumScorerError> {
+    if array.is_null(row) {
+        return Err(BatchQuantumScorerError::NullValue {
+            column: column.to_string(),
+            row,
+        });
+    }
+    Ok(())
+}
+
+fn score_batch_schema(batch: &RecordBatch) -> Arc<Schema> {
+    let mut fields = batch
+        .schema_ref()
+        .fields()
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+    fields.push(Arc::new(Field::new(
+        QUANTUM_SALIENCY_COLUMN,
+        DataType::Float64,
+        false,
+    )));
+    Arc::new(Schema::new_with_metadata(
+        fields,
+        batch.schema_ref().metadata().clone(),
+    ))
+}
+
+fn score_batch_columns(batch: &RecordBatch, fused_scores: Vec<f64>) -> Vec<Arc<dyn Array>> {
+    let fused_array: Arc<dyn Array> = Arc::new(Float64Array::from(fused_scores));
+    let mut columns = batch.columns().to_vec();
+    columns.push(fused_array);
+    columns
 }
 
 /// Error returned when Arrow-native batch scoring cannot be completed.
@@ -178,11 +238,12 @@ pub(in crate::link_graph::index::search::quantum_fusion) fn topology_score_from_
     ranked: &[(String, usize, f64)],
     related_limit: usize,
 ) -> f64 {
-    let mut total = 0.0_f64;
-    for (_, _, score) in ranked.iter().take(related_limit.max(1)) {
-        total += score.max(0.0);
-    }
-    total.clamp(0.0, 1.0)
+    ranked
+        .iter()
+        .take(related_limit.max(1))
+        .map(|(_, _, score)| score.max(0.0))
+        .sum::<f64>()
+        .clamp(0.0, 1.0)
 }
 
 #[cfg(test)]

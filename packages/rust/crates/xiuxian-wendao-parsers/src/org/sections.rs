@@ -2,8 +2,9 @@
 
 use std::collections::HashMap;
 
+use orgize::Org;
 use orgize::rowan::ast::AstNode;
-use orgize::{Org, ast::Headline};
+use orgize::syntax_ast::Headline;
 
 use crate::sections::{SectionCore, SectionMetadata, SectionScope, extract_logbook_entries};
 
@@ -24,7 +25,7 @@ struct OrgHeadline {
 pub fn extract_org_sections(body: &str) -> Vec<OrgSection> {
     let org = Org::parse(body);
     let headlines = org
-        .document()
+        .syntax_document()
         .syntax()
         .descendants()
         .filter_map(Headline::cast)

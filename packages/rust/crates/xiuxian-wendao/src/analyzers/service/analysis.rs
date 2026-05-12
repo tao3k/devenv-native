@@ -1,3 +1,5 @@
+//! Repository analysis service orchestration and cache-aware entrypoints.
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -21,7 +23,8 @@ use crate::analyzers::cache::{
 use crate::analyzers::resolve_registered_repository_source;
 use crate::analyzers::skeptic;
 use crate::analyzers::{
-    AnalysisContext, PluginLinkContext, RepoIntelligencePlugin, RepositoryAnalysisOutput,
+    AnalysisContext, PluginAnalysisOutput, PluginLinkContext, RepoIntelligencePlugin,
+    RepositoryAnalysisOutput,
 };
 #[cfg(feature = "search-runtime")]
 use crate::analyzers::{RelationKind, RelationRecord};
@@ -40,6 +43,7 @@ use super::relation_dedupe::dedupe_relations;
 ///
 /// Returns [`RepoIntelligenceError`] when config loading or repository
 /// analysis fails.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn analyze_repository_from_config_with_registry(
     repo_id: &str,
     config_path: Option<&Path>,
@@ -56,6 +60,7 @@ pub fn analyze_repository_from_config_with_registry(
 ///
 /// Returns [`RepoIntelligenceError`] when config loading or repository
 /// analysis fails.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn analyze_repository_from_config(
     repo_id: &str,
     config_path: Option<&Path>,
@@ -94,91 +99,41 @@ pub fn analyze_registered_repository_target_file_with_registry(
     registry: &PluginRegistry,
     repo_relative_path: &str,
 ) -> Result<RepositoryAnalysisOutput, RepoIntelligenceError> {
-    if !repository.has_repo_intelligence_plugins() {
-        return Err(RepoIntelligenceError::MissingRepoIntelligencePlugins {
-            repo_id: repository.id.clone().into(),
-        });
-    }
+    ensure_repo_intelligence_plugins(repository)?;
+    let target_context = prepare_target_file_analysis_context(repository, cwd)?;
 
-    let repository_source = resolve_target_file_analysis_source(repository, cwd)?;
-    let repository_root = repository_source.checkout_root.clone();
-    let checkout_metadata = discover_checkout_metadata(repository_root.as_path());
     if let Some(mut cached_output) =
         load_cached_target_file_analysis(repository, cwd, registry, repo_relative_path)?
     {
         finalize_target_file_analysis_output(
             repository,
-            repository_root.as_path(),
-            checkout_metadata.as_ref(),
+            target_context.repository_root.as_path(),
+            target_context.checkout_metadata.as_ref(),
             &mut cached_output,
         );
         return Ok(cached_output);
     }
 
-    let analysis_context = AnalysisContext {
-        repository: repository.clone(),
-        repository_root: repository_root.clone(),
-    };
     let plugins = registry.resolve_for_repository(repository)?;
-    let source_path = repository_root.join(repo_relative_path);
-    let source_text = fs::read_to_string(&source_path).map_err(|error| {
-        RepoIntelligenceError::AnalysisFailed {
-            message: format!(
-                "failed to read repository source `{}` for repo `{}`: {error}",
-                source_path.display(),
-                repository.id,
-            ),
-        }
-    })?;
-    let source_file = RepoSourceFile {
-        path: repo_relative_path.to_string(),
-        contents: source_text,
-    };
-
-    let mut output = RepositoryAnalysisOutput::default();
-    let mut any_plugin_output = false;
-    for plugin in &plugins {
-        let plugin_output = plugin.analyze_file(&analysis_context, &source_file)?;
-        any_plugin_output |= !(plugin_output.modules.is_empty()
-            && plugin_output.symbols.is_empty()
-            && plugin_output.examples.is_empty()
-            && plugin_output.docs.is_empty()
-            && plugin_output.diagnostics.is_empty());
-        output.modules.extend(plugin_output.modules);
-        output.symbols.extend(plugin_output.symbols);
-        output.examples.extend(plugin_output.examples);
-        output.docs.extend(plugin_output.docs);
-        output.diagnostics.extend(plugin_output.diagnostics);
-    }
-
-    if !any_plugin_output {
-        return Err(RepoIntelligenceError::AnalysisFailed {
-            message: format!(
-                "repo `{}` produced no file analysis output for `{repo_relative_path}`",
-                repository.id,
-            ),
-        });
-    }
+    let source_file = read_target_repo_source_file(
+        repository,
+        target_context.repository_root.as_path(),
+        repo_relative_path,
+    )?;
+    let mut output = analyze_target_file_plugins(
+        repository,
+        &target_context.analysis_context,
+        &plugins,
+        &source_file,
+    )?;
 
     finalize_target_file_analysis_output(
         repository,
-        repository_root.as_path(),
-        checkout_metadata.as_ref(),
+        target_context.repository_root.as_path(),
+        target_context.checkout_metadata.as_ref(),
         &mut output,
     );
-    for plugin in &plugins {
-        let link_context = PluginLinkContext {
-            repository: repository.clone(),
-            repository_root: repository_root.clone(),
-            modules: output.modules.clone(),
-            symbols: output.symbols.clone(),
-            examples: output.examples.clone(),
-            docs: output.docs.clone(),
-        };
-        output
-            .relations
-            .extend(plugin.enrich_relations(&link_context)?);
-    }
+    enrich_target_file_relations(&plugins, &target_context, &mut output)?;
     dedupe_relations(&mut output.relations);
 
     Ok(output)
@@ -194,91 +149,28 @@ pub fn analyze_registered_repository_bundle_with_registry(
     cwd: &Path,
     registry: &PluginRegistry,
 ) -> Result<CachedRepositoryAnalysis, RepoIntelligenceError> {
-    if !repository.has_repo_intelligence_plugins() {
-        return Err(RepoIntelligenceError::MissingRepoIntelligencePlugins {
-            repo_id: repository.id.clone().into(),
-        });
-    }
-
+    ensure_repo_intelligence_plugins(repository)?;
     let repository_source = resolve_analysis_source(repository, cwd)?;
-    let repository_root = repository_source.checkout_root.clone();
-    let checkout_metadata = discover_checkout_metadata(repository_root.as_path());
+    let bundle_context = prepare_bundle_analysis_context(repository, &repository_source);
     let cache_key = build_repository_analysis_cache_key(
         repository,
         &repository_source,
-        checkout_metadata.as_ref(),
+        bundle_context.checkout_metadata.as_ref(),
     );
-    if let Some(cached) = load_cached_repository_analysis(&cache_key)? {
-        return Ok(CachedRepositoryAnalysis {
-            #[cfg(feature = "search-runtime")]
-            cache_key,
-            analysis: cached,
-        });
+    if let Some(cached) = load_local_cached_bundle_analysis(&cache_key)? {
+        return Ok(cached);
     }
 
-    let analysis_context = AnalysisContext {
-        repository: repository.clone(),
-        repository_root: repository_root.clone(),
-    };
-    let plugins = registry.resolve_for_repository(repository)?;
-    preflight_repository_plugins(&plugins, &analysis_context, repository_root.as_path())?;
-
+    let plugins = resolve_preflight_repository_plugins(repository, registry, &bundle_context)?;
     let valkey_cache = ValkeyAnalysisCache::new()?;
     if let Some(cached) = load_cached_analysis_from_valkey(&cache_key, valkey_cache.as_ref())? {
-        return Ok(CachedRepositoryAnalysis {
-            #[cfg(feature = "search-runtime")]
-            cache_key,
-            analysis: cached,
-        });
+        return Ok(cached_repository_analysis(cache_key, cached));
     }
 
-    let mut output = analyze_repository_plugins(
-        repository,
-        repository_root.as_path(),
-        &analysis_context,
-        &plugins,
-    )?;
+    let output = analyze_uncached_repository_bundle(repository, &bundle_context, &plugins)?;
+    store_repository_bundle_analysis(&cache_key, valkey_cache.as_ref(), &output)?;
 
-    let link_context = PluginLinkContext {
-        repository: repository.clone(),
-        repository_root: repository_root.clone(),
-        modules: output.modules.clone(),
-        symbols: output.symbols.clone(),
-        examples: output.examples.clone(),
-        docs: output.docs.clone(),
-    };
-    enrich_repository_relations(&plugins, &link_context, &mut output)?;
-    dedupe_relations(&mut output.relations);
-
-    if output.repository.is_none() {
-        output.repository = Some(repository.into());
-    }
-    if let Some(record) = output.repository.as_mut() {
-        hydrate_repository_record(
-            record,
-            repository,
-            repository_root.as_path(),
-            checkout_metadata.as_ref(),
-        );
-    }
-
-    let audit_results = skeptic::audit_symbols(&output.symbols, &output.docs, &output.relations);
-    for symbol in &mut output.symbols {
-        if let Some(state) = audit_results.get(symbol.symbol_id.as_str()) {
-            symbol.verification_state = Some(state.clone().into());
-        }
-    }
-
-    if let Some(ref cache) = valkey_cache {
-        cache.set_analysis(RepositoryAnalysisValkeyScope::current(&cache_key), &output);
-    }
-    store_cached_repository_analysis(cache_key.clone(), &output)?;
-
-    Ok(CachedRepositoryAnalysis {
-        #[cfg(feature = "search-runtime")]
-        cache_key,
-        analysis: output,
-    })
+    Ok(cached_repository_analysis(cache_key, output))
 }
 
 /// Analyze one already-resolved registered repository.
@@ -308,6 +200,107 @@ fn resolve_analysis_source(
     }
 }
 
+fn ensure_repo_intelligence_plugins(
+    repository: &RegisteredRepository,
+) -> Result<(), RepoIntelligenceError> {
+    if repository.has_repo_intelligence_plugins() {
+        Ok(())
+    } else {
+        Err(RepoIntelligenceError::MissingRepoIntelligencePlugins {
+            repo_id: repository.id.clone().into(),
+        })
+    }
+}
+
+struct BundleAnalysisContext {
+    repository_root: std::path::PathBuf,
+    checkout_metadata: Option<xiuxian_git_repo::LocalCheckoutMetadata>,
+    analysis_context: AnalysisContext,
+}
+
+fn prepare_bundle_analysis_context(
+    repository: &RegisteredRepository,
+    repository_source: &MaterializedRepo,
+) -> BundleAnalysisContext {
+    let repository_root = repository_source.checkout_root.clone();
+    let checkout_metadata = discover_checkout_metadata(repository_root.as_path());
+    let analysis_context = AnalysisContext {
+        repository: repository.clone(),
+        repository_root: repository_root.clone(),
+    };
+    BundleAnalysisContext {
+        repository_root,
+        checkout_metadata,
+        analysis_context,
+    }
+}
+
+fn cached_repository_analysis(
+    cache_key: RepositoryAnalysisCacheKey,
+    analysis: RepositoryAnalysisOutput,
+) -> CachedRepositoryAnalysis {
+    CachedRepositoryAnalysis {
+        #[cfg(feature = "search-runtime")]
+        cache_key,
+        analysis,
+    }
+}
+
+fn load_local_cached_bundle_analysis(
+    cache_key: &RepositoryAnalysisCacheKey,
+) -> Result<Option<CachedRepositoryAnalysis>, RepoIntelligenceError> {
+    Ok(load_cached_repository_analysis(cache_key)?
+        .map(|cached| cached_repository_analysis(cache_key.clone(), cached)))
+}
+
+fn resolve_preflight_repository_plugins(
+    repository: &RegisteredRepository,
+    registry: &PluginRegistry,
+    bundle_context: &BundleAnalysisContext,
+) -> Result<Vec<Arc<dyn RepoIntelligencePlugin>>, RepoIntelligenceError> {
+    let plugins = registry.resolve_for_repository(repository)?;
+    preflight_repository_plugins(
+        &plugins,
+        &bundle_context.analysis_context,
+        bundle_context.repository_root.as_path(),
+    )?;
+    Ok(plugins)
+}
+
+fn analyze_uncached_repository_bundle(
+    repository: &RegisteredRepository,
+    bundle_context: &BundleAnalysisContext,
+    plugins: &[Arc<dyn RepoIntelligencePlugin>],
+) -> Result<RepositoryAnalysisOutput, RepoIntelligenceError> {
+    let mut output = analyze_repository_plugins(
+        repository,
+        bundle_context.repository_root.as_path(),
+        &bundle_context.analysis_context,
+        plugins,
+    )?;
+
+    let link_context = plugin_link_context(
+        repository,
+        bundle_context.repository_root.as_path(),
+        &output,
+    );
+    enrich_repository_relations(plugins, &link_context, &mut output)?;
+    dedupe_relations(&mut output.relations);
+    finalize_bundle_analysis_output(repository, bundle_context, &mut output);
+    Ok(output)
+}
+
+fn store_repository_bundle_analysis(
+    cache_key: &RepositoryAnalysisCacheKey,
+    valkey_cache: Option<&ValkeyAnalysisCache>,
+    output: &RepositoryAnalysisOutput,
+) -> Result<(), RepoIntelligenceError> {
+    if let Some(cache) = valkey_cache {
+        cache.set_analysis(RepositoryAnalysisValkeyScope::current(cache_key), output);
+    }
+    store_cached_repository_analysis(cache_key.clone(), output)
+}
+
 #[cfg(feature = "search-runtime")]
 fn resolve_target_file_analysis_source(
     repository: &RegisteredRepository,
@@ -319,6 +312,113 @@ fn resolve_target_file_analysis_source(
     } else {
         resolve_registered_repository_source(repository, cwd, SyncMode::Ensure)
     }
+}
+
+#[cfg(feature = "search-runtime")]
+struct TargetFileAnalysisContext {
+    repository_root: std::path::PathBuf,
+    checkout_metadata: Option<xiuxian_git_repo::LocalCheckoutMetadata>,
+    analysis_context: AnalysisContext,
+}
+
+#[cfg(feature = "search-runtime")]
+fn prepare_target_file_analysis_context(
+    repository: &RegisteredRepository,
+    cwd: &Path,
+) -> Result<TargetFileAnalysisContext, RepoIntelligenceError> {
+    let repository_source = resolve_target_file_analysis_source(repository, cwd)?;
+    let repository_root = repository_source.checkout_root.clone();
+    let checkout_metadata = discover_checkout_metadata(repository_root.as_path());
+    let analysis_context = AnalysisContext {
+        repository: repository.clone(),
+        repository_root: repository_root.clone(),
+    };
+    Ok(TargetFileAnalysisContext {
+        repository_root,
+        checkout_metadata,
+        analysis_context,
+    })
+}
+
+#[cfg(feature = "search-runtime")]
+fn read_target_repo_source_file(
+    repository: &RegisteredRepository,
+    repository_root: &Path,
+    repo_relative_path: &str,
+) -> Result<RepoSourceFile, RepoIntelligenceError> {
+    let source_path = repository_root.join(repo_relative_path);
+    let contents = fs::read_to_string(&source_path).map_err(|error| {
+        RepoIntelligenceError::AnalysisFailed {
+            message: format!(
+                "failed to read repository source `{}` for repo `{}`: {error}",
+                source_path.display(),
+                repository.id,
+            ),
+        }
+    })?;
+    Ok(RepoSourceFile {
+        path: repo_relative_path.to_string(),
+        contents,
+    })
+}
+
+#[cfg(feature = "search-runtime")]
+fn analyze_target_file_plugins(
+    repository: &RegisteredRepository,
+    analysis_context: &AnalysisContext,
+    plugins: &[Arc<dyn RepoIntelligencePlugin>],
+    source_file: &RepoSourceFile,
+) -> Result<RepositoryAnalysisOutput, RepoIntelligenceError> {
+    let mut output = RepositoryAnalysisOutput::default();
+    let mut any_plugin_output = false;
+    for plugin in plugins {
+        let plugin_output = plugin.analyze_file(analysis_context, source_file)?;
+        any_plugin_output |= plugin_file_output_has_records(&plugin_output);
+        output.modules.extend(plugin_output.modules);
+        output.symbols.extend(plugin_output.symbols);
+        output.examples.extend(plugin_output.examples);
+        output.docs.extend(plugin_output.docs);
+        output.diagnostics.extend(plugin_output.diagnostics);
+    }
+
+    if any_plugin_output {
+        Ok(output)
+    } else {
+        Err(RepoIntelligenceError::AnalysisFailed {
+            message: format!(
+                "repo `{}` produced no file analysis output for `{}`",
+                repository.id, source_file.path,
+            ),
+        })
+    }
+}
+
+#[cfg(feature = "search-runtime")]
+fn plugin_file_output_has_records(output: &PluginAnalysisOutput) -> bool {
+    !(output.modules.is_empty()
+        && output.symbols.is_empty()
+        && output.examples.is_empty()
+        && output.docs.is_empty()
+        && output.diagnostics.is_empty())
+}
+
+#[cfg(feature = "search-runtime")]
+fn enrich_target_file_relations(
+    plugins: &[Arc<dyn RepoIntelligencePlugin>],
+    target_context: &TargetFileAnalysisContext,
+    output: &mut RepositoryAnalysisOutput,
+) -> Result<(), RepoIntelligenceError> {
+    let link_context = plugin_link_context(
+        &target_context.analysis_context.repository,
+        target_context.repository_root.as_path(),
+        output,
+    );
+    for plugin in plugins {
+        output
+            .relations
+            .extend(plugin.enrich_relations(&link_context)?);
+    }
+    Ok(())
 }
 
 #[cfg(feature = "search-runtime")]
@@ -340,6 +440,46 @@ fn load_cached_target_file_analysis(
         }
         Err(RepoIntelligenceError::PendingRepositoryIndex { .. }) => Ok(None),
         Err(error) => Err(error),
+    }
+}
+
+fn plugin_link_context(
+    repository: &RegisteredRepository,
+    repository_root: &Path,
+    output: &RepositoryAnalysisOutput,
+) -> PluginLinkContext {
+    PluginLinkContext {
+        repository: repository.clone(),
+        repository_root: repository_root.to_path_buf(),
+        modules: output.modules.clone(),
+        symbols: output.symbols.clone(),
+        examples: output.examples.clone(),
+        docs: output.docs.clone(),
+    }
+}
+
+fn finalize_bundle_analysis_output(
+    repository: &RegisteredRepository,
+    bundle_context: &BundleAnalysisContext,
+    output: &mut RepositoryAnalysisOutput,
+) {
+    if output.repository.is_none() {
+        output.repository = Some(repository.into());
+    }
+    if let Some(record) = output.repository.as_mut() {
+        hydrate_repository_record(
+            record,
+            repository,
+            bundle_context.repository_root.as_path(),
+            bundle_context.checkout_metadata.as_ref(),
+        );
+    }
+
+    let audit_results = skeptic::audit_symbols(&output.symbols, &output.docs, &output.relations);
+    for symbol in &mut output.symbols {
+        if let Some(state) = audit_results.get(symbol.symbol_id.as_str()) {
+            symbol.verification_state = Some(state.clone().into());
+        }
     }
 }
 

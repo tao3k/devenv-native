@@ -1,3 +1,5 @@
+//! `search::contracts::retrieval` owns Wendao search contracts retrieval behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -28,6 +30,7 @@ pub enum RetrievalChunkSurface {
 /// Shared retrieval chunk contract across markdown and code analysis surfaces.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct RetrievalChunk {
     /// Owning node identifier.
     pub owner_id: String,

@@ -14,10 +14,11 @@ use crate::integration_support::search_strategy_flow_candidates::{
 
 use super::ids::repo_relative_source_path;
 
-pub(super) fn route_receipt(route: &str, batches: &[RecordBatch]) -> Value {
+pub(super) fn timed_route_receipt(route: &str, batches: &[RecordBatch], elapsed_ms: u128) -> Value {
     json!({
         "route": route,
         "rowCount": row_count(batches),
+        "elapsedMs": elapsed_ms,
     })
 }
 

@@ -12,18 +12,19 @@
 mod checks;
 #[path = "core.rs"]
 mod core;
+/// Public Wendao boundary.
+
+#[path = "docs_governance/mod.rs"]
+pub mod docs_governance;
 #[path = "episteme.rs"]
 mod episteme;
 #[path = "report.rs"]
 mod report;
-#[path = "types/mod.rs"]
-mod types;
-
-#[path = "docs_governance/mod.rs"]
-pub mod docs_governance;
 #[doc(hidden)]
 #[path = "test_api.rs"]
 pub mod test_api;
+#[path = "types/mod.rs"]
+mod types;
 
 pub use core::{WendaoSemanticCheckTool, run_audit_core, wendao_semantic_check};
 pub use episteme::{EpistemeLoadReport, EpistemePolicyQueryReport};

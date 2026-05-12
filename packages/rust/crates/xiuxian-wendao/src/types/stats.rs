@@ -1,3 +1,5 @@
+//! `types::stats` owns Wendao types stats behavior.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

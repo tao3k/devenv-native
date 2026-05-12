@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::dependency_indexer::{ExternalSymbol, SymbolKind};
 
 pub(super) fn symbol_kind_from_str(kind: &str) -> SymbolKind {

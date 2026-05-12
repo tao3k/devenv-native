@@ -67,85 +67,116 @@ pub(crate) fn build_adjacency(
     let mut seen_epoch_by_idx: Vec<u32> = vec![0; graph_nodes.len()];
     let mut epoch: u32 = 1;
 
-    for (source_idx, source_id) in graph_nodes.iter().enumerate() {
-        if epoch == u32::MAX {
-            seen_epoch_by_idx.fill(0);
-            epoch = 1;
-        }
-        let current_epoch = epoch;
-        epoch += 1;
-        let outgoing_len = index
-            .outgoing
-            .get(source_id)
-            .map_or(0, std::collections::HashSet::len);
-        let incoming_len = index
-            .incoming
-            .get(source_id)
-            .map_or(0, std::collections::HashSet::len);
-        let mut neighbor_indices: Vec<usize> = Vec::with_capacity(outgoing_len + incoming_len);
-
-        if let Some(targets) = index.outgoing.get(source_id) {
-            for target_id in targets {
-                if let Some(target_idx) = node_to_idx.get(target_id).copied() {
-                    push_unique_neighbor(
-                        &mut neighbor_indices,
-                        &mut seen_epoch_by_idx,
-                        current_epoch,
-                        source_idx,
-                        target_idx,
-                    );
-                }
+    graph_nodes
+        .iter()
+        .enumerate()
+        .for_each(|(source_idx, source_id)| {
+            if epoch == u32::MAX {
+                seen_epoch_by_idx.fill(0);
+                epoch = 1;
             }
-        }
+            let current_epoch = epoch;
+            epoch += 1;
+            let outgoing_len = index
+                .outgoing
+                .get(source_id)
+                .map_or(0, std::collections::HashSet::len);
+            let incoming_len = index
+                .incoming
+                .get(source_id)
+                .map_or(0, std::collections::HashSet::len);
+            let mut neighbor_indices: Vec<usize> = Vec::with_capacity(outgoing_len + incoming_len);
 
-        if let Some(sources) = index.incoming.get(source_id) {
-            for source_neighbor_id in sources {
-                if let Some(source_neighbor_idx) = node_to_idx.get(source_neighbor_id).copied() {
-                    push_unique_neighbor(
-                        &mut neighbor_indices,
-                        &mut seen_epoch_by_idx,
-                        current_epoch,
-                        source_idx,
-                        source_neighbor_idx,
-                    );
-                }
-            }
-        }
-
-        if let Some(entity_indices) = passage_entity_adjacency
-            .passage_entities_by_idx
-            .get(&source_idx)
-        {
-            for &entity_idx in entity_indices {
-                push_unique_neighbor(
+            if let Some(targets) = index.outgoing.get(source_id) {
+                push_unique_neighbor_ids(
+                    targets,
+                    node_to_idx,
                     &mut neighbor_indices,
                     &mut seen_epoch_by_idx,
                     current_epoch,
                     source_idx,
-                    entity_idx,
                 );
             }
-        }
 
-        if let Some(passage_indices) = passage_entity_adjacency
-            .entity_passages_by_idx
-            .get(&source_idx)
-        {
-            for &passage_idx in passage_indices {
-                push_unique_neighbor(
+            if let Some(sources) = index.incoming.get(source_id) {
+                push_unique_neighbor_ids(
+                    sources,
+                    node_to_idx,
                     &mut neighbor_indices,
                     &mut seen_epoch_by_idx,
                     current_epoch,
                     source_idx,
-                    passage_idx,
                 );
             }
-        }
 
-        adjacency[source_idx] = neighbor_indices;
-    }
+            if let Some(entity_indices) = passage_entity_adjacency
+                .passage_entities_by_idx
+                .get(&source_idx)
+            {
+                push_unique_neighbor_indices(
+                    entity_indices.iter().copied(),
+                    &mut neighbor_indices,
+                    &mut seen_epoch_by_idx,
+                    current_epoch,
+                    source_idx,
+                );
+            }
+
+            if let Some(passage_indices) = passage_entity_adjacency
+                .entity_passages_by_idx
+                .get(&source_idx)
+            {
+                push_unique_neighbor_indices(
+                    passage_indices.iter().copied(),
+                    &mut neighbor_indices,
+                    &mut seen_epoch_by_idx,
+                    current_epoch,
+                    source_idx,
+                );
+            }
+
+            adjacency[source_idx] = neighbor_indices;
+        });
 
     adjacency
+}
+
+fn push_unique_neighbor_ids(
+    neighbor_ids: &std::collections::HashSet<String>,
+    node_to_idx: &HashMap<String, usize>,
+    neighbor_indices: &mut Vec<usize>,
+    seen_epoch_by_idx: &mut [u32],
+    current_epoch: u32,
+    source_idx: usize,
+) {
+    let indices = neighbor_ids
+        .iter()
+        .filter_map(|neighbor_id| node_to_idx.get(neighbor_id).copied());
+    push_unique_neighbor_indices(
+        indices,
+        neighbor_indices,
+        seen_epoch_by_idx,
+        current_epoch,
+        source_idx,
+    );
+}
+
+fn push_unique_neighbor_indices(
+    indices: impl IntoIterator<Item = usize>,
+    neighbor_indices: &mut Vec<usize>,
+    seen_epoch_by_idx: &mut [u32],
+    current_epoch: u32,
+    source_idx: usize,
+) {
+    indices.into_iter().for_each(|candidate_idx| {
+        push_unique_neighbor(
+            neighbor_indices,
+            seen_epoch_by_idx,
+            current_epoch,
+            source_idx,
+            candidate_idx,
+        );
+    });
 }
 
 pub(crate) fn passage_entity_edges_enabled() -> bool {

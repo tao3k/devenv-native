@@ -71,14 +71,14 @@ pub(crate) use router::{
 #[cfg(feature = "zhenfa-router")]
 pub use search::build_ast_index;
 #[cfg(feature = "zhenfa-router")]
+pub(crate) use search::handlers::build_studio_flight_service_for_roots_with_weights;
+#[cfg(feature = "cli-bin-support")]
+pub(crate) use search::handlers::build_studio_flight_service_with_weights;
+#[cfg(feature = "zhenfa-router")]
 pub use search::handlers::{
     StudioFlightRoots, StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
     build_repo_search_flight_service, build_repo_search_flight_service_with_weights,
     build_studio_flight_service, build_studio_flight_service_for_roots,
-};
-#[cfg(feature = "zhenfa-router")]
-pub(crate) use search::handlers::{
-    build_studio_flight_service_for_roots_with_weights, build_studio_flight_service_with_weights,
 };
 #[cfg(feature = "zhenfa-router")]
 pub use startup_health::{

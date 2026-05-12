@@ -1,3 +1,5 @@
+//! `analyzers::projection::gap_report` owns Wendao analyzers projection gap report behavior.
+
 use std::collections::BTreeMap;
 
 use crate::analyzers::RepositoryAnalysisOutput;

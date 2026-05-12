@@ -1,3 +1,5 @@
+//! `search::repo_entity::query::results` owns Wendao repo entity query results behavior.
+
 mod example;
 mod import;
 mod module;

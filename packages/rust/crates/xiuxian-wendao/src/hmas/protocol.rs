@@ -1,3 +1,5 @@
+//! `hmas::protocol` owns Wendao hmas protocol behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Supported HMAS blackboard record categories.

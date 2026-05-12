@@ -37,13 +37,13 @@ pub(crate) use autocomplete::build_autocomplete_response;
 #[cfg(test)]
 pub(crate) use definition::build_definition_response;
 pub use flight::StudioFlightRoots;
+pub(crate) use flight::build_studio_flight_service_for_roots_with_weights;
+#[cfg(feature = "cli-bin-support")]
+pub(crate) use flight::build_studio_flight_service_with_weights;
 pub use flight::{
     StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
     build_repo_search_flight_service, build_repo_search_flight_service_with_weights,
     build_studio_flight_service, build_studio_flight_service_for_roots,
-};
-pub(crate) use flight::{
-    build_studio_flight_service_for_roots_with_weights, build_studio_flight_service_with_weights,
 };
 pub use index::build_ast_index;
 pub use index::build_symbol_index;

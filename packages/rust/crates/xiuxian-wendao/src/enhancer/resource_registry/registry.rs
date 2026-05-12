@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use include_dir::Dir;
 
 use crate::enhancer::markdown_config::{
@@ -45,51 +43,55 @@ pub(super) fn build_from_embedded(
         let semantic_skill_name =
             semantic_skill_name_from_descriptor(relative_path.as_str(), markdown);
         let raw_link_targets = extract_markdown_config_link_targets_by_id(markdown, &relative_path);
-        let mut link_targets_by_id: HashMap<String, Vec<WendaoResourceLinkTarget>> = HashMap::new();
-        for (id, targets) in &raw_link_targets {
-            let lifted = targets
+        let link_targets_by_id = raw_link_targets
+            .iter()
+            .map(|(id, targets)| {
+                (
+                    id.clone(),
+                    targets
+                        .iter()
+                        .map(|target| WendaoResourceLinkTarget {
+                            target_path: semantic_lift_target(
+                                target.target.as_str(),
+                                relative_path.as_str(),
+                                semantic_skill_name.as_deref(),
+                            ),
+                            reference_type: target.reference_type.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect();
+        let links_by_id = raw_link_targets
+            .iter()
+            .map(|(id, targets)| {
+                (
+                    id.clone(),
+                    targets
+                        .iter()
+                        .map(|target| {
+                            semantic_lift_target(
+                                target.target.as_str(),
+                                relative_path.as_str(),
+                                semantic_skill_name.as_deref(),
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect();
+        missing_links.extend(
+            raw_link_targets
                 .iter()
-                .map(|target| WendaoResourceLinkTarget {
-                    target_path: semantic_lift_target(
-                        target.target.as_str(),
-                        relative_path.as_str(),
-                        semantic_skill_name.as_deref(),
-                    ),
-                    reference_type: target.reference_type.clone(),
-                })
-                .collect::<Vec<_>>();
-            link_targets_by_id.insert(id.clone(), lifted);
-        }
-
-        let mut links_by_id: HashMap<String, Vec<String>> = HashMap::new();
-        for (id, targets) in &raw_link_targets {
-            let lifted = targets
-                .iter()
-                .map(|target| {
-                    semantic_lift_target(
-                        target.target.as_str(),
-                        relative_path.as_str(),
-                        semantic_skill_name.as_deref(),
-                    )
-                })
-                .collect::<Vec<_>>();
-            links_by_id.insert(id.clone(), lifted);
-        }
-
-        for (id, targets) in &raw_link_targets {
-            for target in targets {
-                if is_wendao_uri(target.target.as_str()) {
-                    continue;
-                }
-                if embedded.get_file(target.target.as_str()).is_none() {
-                    missing_links.push(MissingEmbeddedLink {
-                        source_path: relative_path.clone(),
-                        id: id.clone(),
-                        target_path: target.target.clone(),
-                    });
-                }
-            }
-        }
+                .flat_map(|(id, targets)| targets.iter().map(move |target| (id, target)))
+                .filter(|(_, target)| !is_wendao_uri(target.target.as_str()))
+                .filter(|(_, target)| embedded.get_file(target.target.as_str()).is_none())
+                .map(|(id, target)| MissingEmbeddedLink {
+                    source_path: relative_path.clone(),
+                    id: id.clone(),
+                    target_path: target.target.clone(),
+                }),
+        );
 
         registry.files_by_path.insert(
             relative_path.clone(),

@@ -1,3 +1,5 @@
+//! `analyzers::query::docs::planner::rank` owns Wendao docs planner rank behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

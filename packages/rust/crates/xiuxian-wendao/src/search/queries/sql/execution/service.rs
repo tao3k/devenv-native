@@ -1,3 +1,5 @@
+//! `search::queries::sql::execution::service` owns Wendao sql execution service behavior.
+
 use crate::duckdb::LocalRelationEngineKind;
 use crate::search::SearchCorpusKind;
 use crate::search::queries::SearchQueryService;

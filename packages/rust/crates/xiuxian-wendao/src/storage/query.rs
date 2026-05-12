@@ -1,3 +1,5 @@
+//! Query and statistics operations for `KnowledgeStorage`.
+
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
@@ -5,6 +7,7 @@ use crate::types::{KnowledgeEntry, KnowledgeStats};
 
 use super::KnowledgeStorage;
 use super::core::saturating_usize_to_i64;
+use super::crud::StorageResult;
 
 impl KnowledgeStorage {
     /// Search knowledge entries by vector similarity.
@@ -12,11 +15,7 @@ impl KnowledgeStorage {
     /// # Errors
     ///
     /// Returns an error when entry loading fails.
-    pub fn search(
-        &self,
-        query: &[f32],
-        limit: i32,
-    ) -> Result<Vec<KnowledgeEntry>, Box<dyn std::error::Error>> {
+    pub fn search(&self, query: &[f32], limit: i32) -> StorageResult<Vec<KnowledgeEntry>> {
         let take_n = usize::try_from(limit).unwrap_or(0);
         if take_n == 0 {
             return Ok(Vec::new());
@@ -48,9 +47,10 @@ impl KnowledgeStorage {
     /// Returns an error when entry loading fails.
     pub fn search_text(
         &self,
-        query: &str,
+        query: impl AsRef<str>,
         limit: i32,
-    ) -> Result<Vec<KnowledgeEntry>, Box<dyn std::error::Error>> {
+    ) -> StorageResult<Vec<KnowledgeEntry>> {
+        let query = query.as_ref();
         let take_n = usize::try_from(limit).unwrap_or(0);
         if take_n == 0 {
             return Ok(Vec::new());
@@ -85,7 +85,7 @@ impl KnowledgeStorage {
     /// # Errors
     ///
     /// Returns an error when entry loading fails.
-    pub fn stats(&self) -> Result<KnowledgeStats, Box<dyn std::error::Error>> {
+    pub fn stats(&self) -> StorageResult<KnowledgeStats> {
         let entries = self.load_all_entries()?;
         if entries.is_empty() {
             return Ok(KnowledgeStats::default());

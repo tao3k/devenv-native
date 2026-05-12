@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::toc` owns Wendao native docs toc behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};

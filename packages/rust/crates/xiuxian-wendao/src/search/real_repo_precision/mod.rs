@@ -4,7 +4,6 @@
 mod catalog;
 #[path = "evaluate.rs"]
 mod evaluate;
-#[path = "frontier.rs"]
 mod frontier;
 #[path = "harness.rs"]
 mod harness;
@@ -36,9 +35,13 @@ pub(crate) use types::MARKDOWN_SSOT_PROOF_ENV;
 pub(crate) use types::{
     DOCS_CORPUS_PROOF_ENV, PREWARM_PROOF_ENV, RESIDENT_PROOF_ENV, RealRepoGoldQuery,
     RealRepoGoldQueryKind, RealRepoKnowledgeScenario,
-    RealRepoKnowledgeScenarioAuthorityExpectation, RealRepoKnowledgeScenarioKind,
-    RealRepoKnowledgeScenarioQueryVariant, RealRepoKnowledgeScenarioQueryVariantKind,
-    RealRepoKnowledgeScenarioReceipt, RealRepoMarkdownKnowledgeSemanticGateReceipt,
+    RealRepoKnowledgeScenarioAuthorityExpectation, RealRepoKnowledgeScenarioAuthorityReceipt,
+    RealRepoKnowledgeScenarioBackendFrontierNodeReceipt,
+    RealRepoKnowledgeScenarioBackendFrontierReceipt, RealRepoKnowledgeScenarioKind,
+    RealRepoKnowledgeScenarioNegativeGuardReceipt, RealRepoKnowledgeScenarioQueryVariant,
+    RealRepoKnowledgeScenarioQueryVariantKind, RealRepoKnowledgeScenarioReasoningTreeReceipt,
+    RealRepoKnowledgeScenarioReasoningTreeStepReceipt, RealRepoKnowledgeScenarioReceipt,
+    RealRepoMarkdownKnowledgeSemanticGateReceipt,
     RealRepoMarkdownKnowledgeSemanticRelationPathReceipt, RealRepoPrecisionCatalogEntry,
     RealRepoPrecisionQueryReceipt, RealRepoPrecisionRunOptions, RealRepoPrecisionRunStatus,
     RealRepoPrecisionSyncMode,

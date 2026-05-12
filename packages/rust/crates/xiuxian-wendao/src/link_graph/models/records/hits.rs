@@ -1,7 +1,10 @@
+//! `link_graph::models::records::hits` owns Wendao models records hits behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Search hit.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct LinkGraphHit {
     /// Stem identifier.
     pub stem: String,
@@ -27,6 +30,7 @@ pub struct LinkGraphHit {
 
 /// Display-friendly search hit for external payload contracts.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct LinkGraphDisplayHit {
     /// Stem identifier.
     pub stem: String,

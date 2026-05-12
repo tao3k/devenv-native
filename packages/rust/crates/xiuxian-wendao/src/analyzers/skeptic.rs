@@ -3,6 +3,7 @@
 use super::records::{DocRecord, RelationKind, RelationRecord, SymbolRecord};
 use std::collections::HashMap;
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Result of a skepticism audit for a symbol.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuditResult {

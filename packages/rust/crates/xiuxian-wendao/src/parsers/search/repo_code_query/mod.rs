@@ -1,3 +1,5 @@
+//! `parsers::search::repo_code_query` owns Wendao parsers search repo code query behavior.
+
 mod api;
 mod types;
 

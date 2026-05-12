@@ -438,6 +438,7 @@ impl LinkGraphIndex {
     /// # Errors
     ///
     /// Returns an error when `valkey_url` is invalid, cache I/O fails, or index build fails.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn build_with_cache_with_valkey(
         root_dir: &Path,
         include_dirs: &[String],
@@ -464,6 +465,7 @@ impl LinkGraphIndex {
     /// # Errors
     ///
     /// Returns an error when `valkey_url` is invalid, cache I/O fails, or index build fails.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn build_with_cache_with_valkey_with_meta(
         root_dir: &Path,
         include_dirs: &[String],

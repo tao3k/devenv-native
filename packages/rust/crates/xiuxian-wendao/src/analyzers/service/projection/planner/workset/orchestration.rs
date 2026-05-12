@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::workset::orchestration` owns Wendao planner workset orchestration behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

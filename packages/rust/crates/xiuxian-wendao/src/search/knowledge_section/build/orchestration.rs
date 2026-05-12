@@ -1,3 +1,5 @@
+//! `search::knowledge_section::build::orchestration` owns Wendao knowledge section build orchestration behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
@@ -16,6 +18,7 @@ use crate::search::{
 use tokio::runtime::Handle;
 
 const KNOWLEDGE_SECTION_EXTRACTOR_VERSION: u32 = 1;
+/// `ensure_knowledge_section_index_started` public function boundary for Wendao.
 
 #[cfg(any(test, feature = "test-support"))]
 pub fn ensure_knowledge_section_index_started(
@@ -43,7 +46,9 @@ pub fn ensure_knowledge_section_index_started(
         scanned_files,
     )
 }
+/// `ensure_knowledge_section_index_started_with_scanned_files` public function boundary for Wendao.
 
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ensure_knowledge_section_index_started_with_scanned_files(
     service: &SearchPlaneService,
     project_root: &Path,
@@ -235,47 +240,56 @@ fn plan_knowledge_section_build_with_scanned_files(
     let markdown_snapshot = service
         .shared_markdown_project_snapshot(project_root, files_requiring_semantic_eval.as_slice());
 
-    let mut file_fingerprints = BTreeMap::<String, SearchFileFingerprint>::new();
-    let mut changed_files = Vec::<ProjectScannedFile>::new();
-    let mut changed_rows = Vec::new();
+    let (file_fingerprints, changed_files, changed_rows) = scanned_files.iter().fold(
+        (
+            BTreeMap::<String, SearchFileFingerprint>::new(),
+            Vec::<ProjectScannedFile>::new(),
+            Vec::new(),
+        ),
+        |(mut file_fingerprints, mut changed_files, mut changed_rows), file| {
+            if can_incremental_reuse
+                && let Some(previous) = previous_fingerprints.get(file.normalized_path.as_str())
+                && previous.matches_scan_metadata(
+                    Some(file.partition_id.as_str()),
+                    file.size_bytes,
+                    file.modified_unix_ms(),
+                    KNOWLEDGE_SECTION_EXTRACTOR_VERSION,
+                    SearchCorpusKind::KnowledgeSection.schema_version(),
+                )
+            {
+                file_fingerprints.insert(file.normalized_path.clone(), previous.clone());
+                return (file_fingerprints, changed_files, changed_rows);
+            }
 
-    for file in scanned_files {
-        if can_incremental_reuse
-            && let Some(previous) = previous_fingerprints.get(file.normalized_path.as_str())
-            && previous.matches_scan_metadata(
-                Some(file.partition_id.as_str()),
-                file.size_bytes,
-                file.modified_unix_ms(),
+            let entry = markdown_snapshot.entry(file.normalized_path.as_str());
+            let semantic_fingerprint = entry
+                .and_then(|entry| entry.note_fingerprint.clone())
+                .unwrap_or_else(|| knowledge_section_rows_fingerprint(&[]));
+            let fingerprint = file.to_semantic_file_fingerprint(
                 KNOWLEDGE_SECTION_EXTRACTOR_VERSION,
                 SearchCorpusKind::KnowledgeSection.schema_version(),
-            )
-        {
-            file_fingerprints.insert(file.normalized_path.clone(), previous.clone());
-            continue;
-        }
-
-        let entry = markdown_snapshot.entry(file.normalized_path.as_str());
-        let semantic_fingerprint = entry
-            .and_then(|entry| entry.note_fingerprint.clone())
-            .unwrap_or_else(|| knowledge_section_rows_fingerprint(&[]));
-        let fingerprint = file.to_semantic_file_fingerprint(
-            KNOWLEDGE_SECTION_EXTRACTOR_VERSION,
-            SearchCorpusKind::KnowledgeSection.schema_version(),
-            semantic_fingerprint,
-        );
-        let changed = !can_incremental_reuse
-            || previous_fingerprints
-                .get(file.normalized_path.as_str())
-                .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
-        file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
-        if changed {
-            let file_rows = entry.map_or_else(Vec::new, |entry| {
-                build_knowledge_section_rows_for_entry(project_root, config_root, projects, entry)
-            });
-            changed_files.push(file.clone());
-            changed_rows.extend(file_rows);
-        }
-    }
+                semantic_fingerprint,
+            );
+            let changed = !can_incremental_reuse
+                || previous_fingerprints
+                    .get(file.normalized_path.as_str())
+                    .is_none_or(|previous| !previous.equivalent_for_incremental(&fingerprint));
+            file_fingerprints.insert(file.normalized_path.clone(), fingerprint);
+            if changed {
+                let file_rows = entry.map_or_else(Vec::new, |entry| {
+                    build_knowledge_section_rows_for_entry(
+                        project_root,
+                        config_root,
+                        projects,
+                        entry,
+                    )
+                });
+                changed_files.push(file.clone());
+                changed_rows.extend(file_rows);
+            }
+            (file_fingerprints, changed_files, changed_rows)
+        },
+    );
 
     if !can_incremental_reuse {
         return KnowledgeSectionBuildPlan {
@@ -290,11 +304,12 @@ fn plan_knowledge_section_build_with_scanned_files(
         .iter()
         .map(|file| file.normalized_path.clone())
         .collect::<BTreeSet<_>>();
-    for path in previous_fingerprints.keys() {
-        if !file_fingerprints.contains_key(path) {
-            replaced_paths.insert(path.clone());
-        }
-    }
+    replaced_paths.extend(
+        previous_fingerprints
+            .keys()
+            .filter(|path| !file_fingerprints.contains_key(*path))
+            .cloned(),
+    );
 
     KnowledgeSectionBuildPlan {
         base_epoch: active_epoch,

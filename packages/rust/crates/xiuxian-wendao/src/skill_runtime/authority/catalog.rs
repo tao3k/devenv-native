@@ -1,3 +1,5 @@
+//! `skill_runtime::authority::catalog` owns Wendao skill runtime authority catalog behavior.
+
 use std::collections::BTreeSet;
 use std::path::Path;
 

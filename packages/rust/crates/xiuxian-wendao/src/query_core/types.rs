@@ -1,3 +1,5 @@
+//! `query_core::types` owns Wendao query core types behavior.
+
 use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
 use thiserror::Error;

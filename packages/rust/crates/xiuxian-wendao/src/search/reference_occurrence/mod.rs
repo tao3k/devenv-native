@@ -1,3 +1,5 @@
+//! `search::reference_occurrence` owns Wendao search reference occurrence behavior.
+
 #[path = "build/mod.rs"]
 mod build;
 #[path = "query/mod.rs"]

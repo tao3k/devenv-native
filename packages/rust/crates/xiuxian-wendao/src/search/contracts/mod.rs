@@ -9,9 +9,9 @@ mod config;
 mod definitions;
 #[cfg(feature = "search-runtime")]
 mod helpers;
+mod hits;
 mod navigation;
 mod retrieval;
-mod search;
 #[cfg(feature = "search-runtime")]
 #[path = "search_index/mod.rs"]
 mod search_index;
@@ -30,9 +30,9 @@ pub(crate) use helpers::{
     index_path_for_entry, infer_crate_name, is_markdown_path, markdown_scope_name,
     project_metadata_for_path, resolve_project_root_path, score_reference_hit, should_skip_entry,
 };
+pub use hits::{IntentSearchHit, KnowledgeSearchHit, SearchBacklinkItem, SearchHit};
 pub use navigation::StudioNavigationTarget;
 pub use retrieval::{RetrievalChunk, RetrievalChunkSurface};
-pub use search::{IntentSearchHit, KnowledgeSearchHit, SearchBacklinkItem, SearchHit};
 #[cfg(feature = "search-runtime")]
 pub use search_index::{
     SearchCorpusIndexStatus, SearchIndexMaintenanceStatus, SearchIndexPhase,

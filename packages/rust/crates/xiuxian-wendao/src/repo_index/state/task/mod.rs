@@ -1,3 +1,5 @@
+//! `repo_index::state::task` owns Wendao repo index state task behavior.
+
 mod adaptive;
 mod machine;
 mod policy;

@@ -1,3 +1,5 @@
+//! `link_graph::wendao_graph_evidence::types` owns Wendao link graph wendao graph evidence types behavior.
+
 use arrow::record_batch::RecordBatch;
 
 /// One optional seed row sent to the `WendaoGraph` evidence request contract.
@@ -28,6 +30,7 @@ pub struct WendaoGraphSemanticNeighbor {
 
 /// One optional semantic-overlay row sent to the `WendaoGraph` evidence request contract.
 #[derive(Debug, Clone, PartialEq)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct WendaoGraphSemanticOverlayEdge {
     /// Source node id in the projected graph.
     pub source_id: String,
@@ -49,6 +52,7 @@ pub struct WendaoGraphSemanticOverlayEdge {
 
 /// One optional seed row sent to the `WendaoGraph` `PageIndex` reasoning contract.
 #[derive(Debug, Clone, PartialEq)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct WendaoGraphPageIndexReasoningSeed {
     /// `PageIndex` node id.
     pub node_id: String,
@@ -84,6 +88,7 @@ impl WendaoGraphEvidenceSeed {
 impl WendaoGraphSemanticNeighbor {
     /// Create a semantic-neighbor row.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn new(
         query_id: impl Into<String>,
         neighbor_id: impl Into<String>,
@@ -168,6 +173,7 @@ impl WendaoGraphEvidenceRequestOptions {
 
     /// Append one semantic-neighbor row.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn with_semantic_neighbor(
         mut self,
         query_id: impl Into<String>,
@@ -351,6 +357,7 @@ pub enum LinkGraphWendaoGraphEvidenceError {
     },
     /// A semantic-neighbor row has an invalid index, rank, or distance.
     #[error("WendaoGraph semantic neighbor `{query_id}` -> `{neighbor_id}` has invalid {field}")]
+    /// Primitive payload boundary: this public variant mirrors serialized Wendao validation payload fields.
     InvalidSemanticNeighbor {
         /// Query node id.
         query_id: String,
@@ -374,6 +381,7 @@ pub enum LinkGraphWendaoGraphEvidenceError {
     },
     /// A semantic-overlay row has an invalid index, rank, distance, weight, or edge kind.
     #[error("WendaoGraph semantic overlay `{source_id}` -> `{target_id}` has invalid {field}")]
+    /// Primitive payload boundary: this public variant mirrors serialized Wendao validation payload fields.
     InvalidSemanticOverlay {
         /// Source node id.
         source_id: String,

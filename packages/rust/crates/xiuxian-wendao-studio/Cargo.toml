@@ -118,6 +118,9 @@ cli-bin-support = [
   "dep:xiuxian-wendao-client",
   "xiuxian-zhenfa/gateway",
 ]
+flight-server-bin-support = [
+  "zhenfa-router",
+]
 document-extract-pdf-source-range = [
   "local-runtime",
   "dep:xiuxian-wendao-attachments",
@@ -148,7 +151,7 @@ required-features = ["contracts"]
 [[bin]]
 name = "wendao_search_flight_server"
 path = "src/bin/wendao_search_flight_server.rs"
-required-features = ["cli-bin-support", "zhenfa-router"]
+required-features = ["flight-server-bin-support"]
 
 [[bin]]
 name = "wendao_search_flightsql_server"

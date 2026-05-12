@@ -79,6 +79,13 @@ needs a feature-gated second plugin bundle for these languages.
   graph-neighbor expansion uses a separate `resolvedGraphNodeId` based on the
   Studio display path. This prevents page-index section ids from being sent as
   link-graph node ids.
+- SearchStrategyFlow Flight materialization now also treats a selected
+  `sourcePath` as the fallback structure contract. Repo search can strengthen a
+  route with doc-id evidence, but a later zero-row repo-search lookup no longer
+  blocks projected page-index, retrieval-context, or graph-neighbor execution
+  for an already selected source path. Executed route receipts expose
+  `repoSearchResolutionStatus` so live audits can distinguish repo-search
+  resolution from source-path fallback.
 - SearchStrategyFlow candidate ownership now distinguishes the full structured
   inventory from the Markdown replay subset. The Rust bridge records the
   `2818`-candidate denominator as `478` primary Markdown candidates, `2159`
@@ -86,6 +93,43 @@ needs a feature-gated second plugin bundle for these languages.
   candidates. Rust/DuckDB owns structured candidate retrieval; Julia receives a
   narrowed candidate batch and owns strategy scoring, required-evidence
   coverage, and frontier selection.
+- SearchStrategyFlow Flight candidate discovery now runs route-scoped authority
+  attempts before broad repo-search windows and ranks the merged result before
+  truncating the Julia input batch. Package-owned `xiuxian-wendao-julia`
+  README/docs rows, validation docs, and ownership RFC rows carry calibrated
+  evidence scores so Julia frontier scoring keeps authority, validation, and
+  ownership evidence ahead of generic LinkGraph mentions. The narrowed Flight
+  batch also keeps one best candidate per source path, so a single high-scoring
+  document cannot consume multiple frontier slots before required validation or
+  ownership evidence is considered.
+- SearchStrategyFlow Flight materialization treats graph-neighbor expansion as
+  direct relation evidence, not broad graph harvesting. The materializer sends a
+  one-hop compact graph budget and keeps route receipts as proof that the
+  relation path is reachable while avoiding two-hop neighborhood fanout in live
+  replay traces.
+- SearchStrategyFlow Flight receipts now include additive `elapsedMs` timing for
+  candidate discovery attempts and each executed materialization route. Candidate
+  discovery stops after the required attempt floor once the narrowed batch has
+  enough unique source paths, so live replays keep required evidence coverage
+  without spending the full broad-search window. The latest real-host replay
+  shows materialization routes in the millisecond range; the remaining wall time
+  is now outside Flight route execution and belongs to bridge/JIT/process
+  execution overhead.
+- The persistent SearchStrategyFlow batch host is now a formal
+  integration-support surface. It keeps one Julia process warm across
+  submissions while Rust still owns candidate discovery, TSV construction,
+  route enrichment, and materialization receipts.
+  `SearchStrategyFlowPersistentBatchHost::submit_with_flight_materialization`
+  is the warm-host entry point for real Flight-backed replay, and
+  `stabilize_with_flight_materialization` turns prewarm plus warm-submit
+  samples into a Rust admission report with `stable`,
+  `stability_reason`, `recommended_max_in_flight`, and a stable JSON evidence
+  object. The opt-in
+  materialized replay proof measured a 32-family replay with cold submits in
+  the `7774 ms-8907 ms` range and warm submits in the `48 ms-164 ms` range
+  while preserving selected frontier, route, and projected-row counts. That
+  evidence supports promoting a long-lived Rust-controlled Julia pod path
+  before adding lower-level transport changes.
 - Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
   reports can show both the narrowed Julia input count and the full `2818`
   promotion denominator. This prevents a fast Markdown replay subset from being

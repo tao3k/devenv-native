@@ -1,9 +1,12 @@
+//! `search::contracts::navigation` owns Wendao search contracts navigation behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 /// Navigation target for opening files/symbols in the Studio editor.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct StudioNavigationTarget {
     /// Full path or URI.
     pub path: String,

@@ -41,6 +41,7 @@ impl LinkGraphIndex {
     ///
     /// Call this when a document's `:OBSERVE:` patterns may have changed.
     /// This performs a targeted update without rebuilding the entire index.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn refresh_symbol_cache_for_doc(&mut self, doc_id: &str) {
         // First, remove existing entries for this document.
         self.remove_symbol_refs_for_doc(doc_id);
@@ -102,6 +103,7 @@ impl LinkGraphIndex {
 
     /// Check if a document has any indexed symbols.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn doc_has_symbols(&self, doc_id: &str) -> bool {
         self.symbol_to_docs
             .values()

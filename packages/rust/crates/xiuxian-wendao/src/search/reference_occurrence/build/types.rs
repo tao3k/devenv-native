@@ -1,3 +1,5 @@
+//! `search::reference_occurrence::build::types` owns Wendao reference occurrence build types behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::search::SearchFileFingerprint;
@@ -16,6 +18,7 @@ pub(crate) struct ReferenceOccurrenceWriteResult {
     pub(crate) row_count: u64,
     pub(crate) fragment_count: u64,
 }
+/// `ReferenceOccurrenceBuildError` public enum boundary for Wendao.
 
 #[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]

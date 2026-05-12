@@ -1,6 +1,9 @@
 //! Route execution for `SearchStrategyFlow` Flight materialization.
 
+use std::time::Instant;
+
 use arrow::record_batch::RecordBatch;
+use futures::future::try_join_all;
 use serde_json::{Value, json};
 use xiuxian_wendao_runtime::transport::{
     ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
@@ -20,8 +23,8 @@ use super::metadata::{
 };
 use super::query::{RepoSearchAttempt, repo_search_attempts_for_route};
 use super::rows::{
-    decoded_payload_receipt, first_page_index_repo_search_row, first_string, route_receipt,
-    route_string, row_count,
+    decoded_payload_receipt, first_page_index_repo_search_row, first_string, route_string,
+    row_count, timed_route_receipt,
 };
 
 #[derive(Debug)]
@@ -30,8 +33,17 @@ struct SearchStrategyFlowRouteReceipt {
     resolved_page_id: String,
     resolved_node_id: String,
     resolved_graph_node_id: String,
+    repo_search_resolution_warning: Option<String>,
     route_receipts: Vec<Value>,
     decoded_payload_receipts: Vec<Value>,
+}
+
+#[derive(Debug)]
+struct SearchStrategyFlowRouteTimings {
+    repo_search_elapsed_ms: u128,
+    page_index_elapsed_ms: u128,
+    retrieval_context_elapsed_ms: u128,
+    graph_elapsed_ms: u128,
 }
 
 /// Executes all `SearchStrategyFlow` retrieval routes in a JSON trace through a
@@ -53,9 +65,16 @@ pub async fn materialize_search_strategy_flow_routes(
         return Ok(());
     }
 
-    let mut client = SearchStrategyFlowFlightClient::connect(config).await?;
-    for route in routes {
-        let receipt = materialize_route(&mut client, config, route).await?;
+    let planned_routes = routes.clone();
+    let receipts = try_join_all(planned_routes.into_iter().map(|route| {
+        let config = config.clone();
+        async move {
+            let mut client = SearchStrategyFlowFlightClient::connect(&config).await?;
+            materialize_route(&mut client, &config, &route).await
+        }
+    }))
+    .await?;
+    for (route, receipt) in routes.iter_mut().zip(receipts) {
         apply_route_receipt(route, receipt)?;
     }
     Ok(())
@@ -105,13 +124,20 @@ async fn materialize_route(
     let heading_anchor = route.get("headingAnchor").and_then(Value::as_str);
     let repo_relative_route_source_path =
         repo_relative_source_path(config.repo_id.as_str(), source_path);
-    let repo_search_batches = collect_first_non_empty_repo_search(
-        client,
-        config,
-        &repo_search_attempts_for_route(config.repo_id.as_str(), source_path, heading_anchor),
-        "SearchStrategyFlow repo search materialization",
-    )
-    .await?;
+    let repo_search_started_at = Instant::now();
+    let (repo_search_batches, repo_search_resolution_warning) =
+        match collect_first_non_empty_repo_search(
+            client,
+            config,
+            &repo_search_attempts_for_route(config.repo_id.as_str(), source_path, heading_anchor),
+            "SearchStrategyFlow repo search materialization",
+        )
+        .await
+        {
+            Ok(batches) => (batches, None),
+            Err(error) => (Vec::new(), Some(error)),
+        };
+    let repo_search_elapsed_ms = elapsed_ms(repo_search_started_at);
     let (repo_search_path, doc_id) = first_page_index_repo_search_row(
         &repo_search_batches,
         &config.repo_id,
@@ -126,6 +152,7 @@ async fn materialize_route(
     );
     let page_id = projected_page_id(&config.repo_id, &doc_id, &repo_search_path);
 
+    let page_index_started_at = Instant::now();
     let page_index_batches = client
         .collect_route_batches(
             ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
@@ -133,6 +160,7 @@ async fn materialize_route(
             |metadata| populate_page_index_headers(metadata, &config.repo_id, page_id.as_str()),
         )
         .await?;
+    let page_index_elapsed_ms = elapsed_ms(page_index_started_at);
     let roots_json = first_string(&page_index_batches[0], "rootsJson")?;
     let roots = serde_json::from_str::<Value>(&roots_json)
         .map_err(|error| format!("decode SearchStrategyFlow rootsJson: {error}"))?;
@@ -142,6 +170,7 @@ async fn materialize_route(
         .ok_or_else(|| "SearchStrategyFlow page-index tree did not expose a node id".to_owned())?;
     let graph_node_ids = graph_node_display_id_candidates(&config.repo_id, &repo_search_path);
 
+    let retrieval_context_started_at = Instant::now();
     let retrieval_context_batches = client
         .collect_route_batches(
             ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
@@ -157,15 +186,24 @@ async fn materialize_route(
             },
         )
         .await?;
+    let retrieval_context_elapsed_ms = elapsed_ms(retrieval_context_started_at);
 
+    let graph_started_at = Instant::now();
     let (graph_node_id, graph_batches) =
         collect_first_available_graph_neighbors(client, &graph_node_ids).await?;
+    let graph_elapsed_ms = elapsed_ms(graph_started_at);
 
     let route_receipts = route_receipts(
         &repo_search_batches,
         &page_index_batches,
         &retrieval_context_batches,
         &graph_batches,
+        &SearchStrategyFlowRouteTimings {
+            repo_search_elapsed_ms,
+            page_index_elapsed_ms,
+            retrieval_context_elapsed_ms,
+            graph_elapsed_ms,
+        },
     );
     let decoded_payload_receipts = decoded_payload_receipts(
         repo_search_path.as_str(),
@@ -186,6 +224,7 @@ async fn materialize_route(
         resolved_page_id: page_id,
         resolved_node_id: node_id,
         resolved_graph_node_id: graph_node_id,
+        repo_search_resolution_warning,
         route_receipts,
         decoded_payload_receipts,
     })
@@ -238,18 +277,29 @@ fn route_receipts(
     page_index_batches: &[RecordBatch],
     retrieval_context_batches: &[RecordBatch],
     graph_batches: &[RecordBatch],
+    timings: &SearchStrategyFlowRouteTimings,
 ) -> Vec<Value> {
     vec![
-        route_receipt(REPO_SEARCH_ROUTE, repo_search_batches),
-        route_receipt(
+        timed_route_receipt(
+            REPO_SEARCH_ROUTE,
+            repo_search_batches,
+            timings.repo_search_elapsed_ms,
+        ),
+        timed_route_receipt(
             ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
             page_index_batches,
+            timings.page_index_elapsed_ms,
         ),
-        route_receipt(
+        timed_route_receipt(
             ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
             retrieval_context_batches,
+            timings.retrieval_context_elapsed_ms,
         ),
-        route_receipt(GRAPH_NEIGHBORS_ROUTE, graph_batches),
+        timed_route_receipt(
+            GRAPH_NEIGHBORS_ROUTE,
+            graph_batches,
+            timings.graph_elapsed_ms,
+        ),
     ]
 }
 
@@ -307,6 +357,10 @@ fn prefixed_evidence_anchor(prefix: &str, value: &str) -> String {
     }
 }
 
+fn elapsed_ms(started_at: Instant) -> u128 {
+    started_at.elapsed().as_millis()
+}
+
 fn apply_route_receipt(
     route: &mut Value,
     receipt: SearchStrategyFlowRouteReceipt,
@@ -326,6 +380,18 @@ fn apply_route_receipt(
         "resolvedGraphNodeId".to_owned(),
         json!(receipt.resolved_graph_node_id),
     );
+    if let Some(warning) = receipt.repo_search_resolution_warning {
+        object.insert(
+            "repoSearchResolutionStatus".to_owned(),
+            json!("source-path-fallback"),
+        );
+        object.insert("repoSearchResolutionWarning".to_owned(), json!(warning));
+    } else {
+        object.insert(
+            "repoSearchResolutionStatus".to_owned(),
+            json!("repo-search"),
+        );
+    }
     object.insert(
         "routeReceipts".to_owned(),
         Value::Array(receipt.route_receipts),

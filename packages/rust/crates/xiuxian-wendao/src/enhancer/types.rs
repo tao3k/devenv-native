@@ -1,3 +1,5 @@
+//! `enhancer::types` owns Wendao enhancer types behavior.
+
 use serde::{Deserialize, Serialize};
 use xiuxian_wendao_parsers::NoteFrontmatter;
 
@@ -14,6 +16,7 @@ pub struct NoteInput {
 
 /// A relation inferred from note structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct InferredRelation {
     /// Source entity name.
     pub source: String,

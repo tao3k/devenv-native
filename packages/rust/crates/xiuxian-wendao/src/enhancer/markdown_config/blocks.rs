@@ -1,3 +1,5 @@
+//! `enhancer::markdown_config::blocks` owns Wendao enhancer markdown config blocks behavior.
+
 use comrak::{
     Arena, Options,
     nodes::{AstNode, NodeValue},

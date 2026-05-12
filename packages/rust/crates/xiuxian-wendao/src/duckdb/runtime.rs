@@ -1,3 +1,5 @@
+//! `duckdb::runtime` owns Wendao duckdb runtime behavior.
+
 use std::path::PathBuf;
 
 use crate::settings::{merged_wendao_settings, wendao_config_file_override};

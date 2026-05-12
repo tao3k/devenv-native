@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::docs_tool::segment` owns Wendao projection docs tool segment behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -7,6 +9,7 @@ use crate::analyzers::projection::{ProjectedMarkdownDocument, ProjectionPageKind
 /// Precise docs-facing projected markdown segment reopened by stable page id
 /// and 1-based inclusive line range.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct DocsDocumentSegmentResult {
     /// Repository identifier projected.
     pub repo_id: String,

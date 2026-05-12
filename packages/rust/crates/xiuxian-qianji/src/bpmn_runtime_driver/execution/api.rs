@@ -764,7 +764,7 @@ impl QianjiBpmnExecutionDriver {
             .await?;
         if !renewed {
             return Err(BpmnEngineError::CheckpointLeaseNotOwned {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
             }
             .into());
         }
@@ -790,7 +790,7 @@ impl QianjiBpmnExecutionDriver {
             .await?;
         if !released {
             return Err(BpmnEngineError::CheckpointLeaseNotOwned {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
             }
             .into());
         }

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::semantic_check::docs_governance::collection::relations` owns Wendao docs governance collection relations behavior.
+
 use crate::parsers::docs_governance::{
     collect_index_body_links, collect_lines, extract_wikilinks, parse_relations_links_line,
 };

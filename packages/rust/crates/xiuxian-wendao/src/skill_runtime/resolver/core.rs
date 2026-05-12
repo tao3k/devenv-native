@@ -1,3 +1,5 @@
+//! `skill_runtime::resolver::core` owns Wendao skill runtime resolver core behavior.
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};

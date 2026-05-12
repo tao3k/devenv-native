@@ -1,3 +1,5 @@
+//! `search::service::core::maintenance` owns Wendao service core maintenance behavior.
+
 mod helpers;
 mod local;
 mod queue;

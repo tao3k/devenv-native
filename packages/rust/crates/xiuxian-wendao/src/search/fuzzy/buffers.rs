@@ -1,6 +1,6 @@
 use std::{cell::RefCell, thread_local};
 
-use crate::search::fuzzy::distance::chars_equal_ignore_case;
+use super::case::chars_equal_ignore_case;
 
 #[derive(Default)]
 pub(crate) struct FuzzyThreadLocalBuffers {

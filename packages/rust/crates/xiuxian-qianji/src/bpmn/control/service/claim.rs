@@ -14,8 +14,9 @@ use crate::bpmn::ownership::QianjiBpmnSchedulerLeaseConfig;
 use crate::telemetry::unix_millis_now;
 use qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskResourceRoleSpec,
-    BpmnLaneMembershipSpec, PendingHumanTaskClaimRequest, PendingHumanTaskReleaseRequest,
-    claim_pending_human_task, release_pending_human_task,
+    BpmnLaneMembershipSpec, PendingHumanTaskClaimInput, PendingHumanTaskClaimRequest,
+    PendingHumanTaskReleaseInput, PendingHumanTaskReleaseRequest, claim_pending_human_task,
+    release_pending_human_task,
 };
 use std::io;
 
@@ -28,13 +29,13 @@ pub(crate) async fn claim_workflow_task(
             .await?;
     let outcome = claim_pending_human_task(
         &mut checkpoint.state,
-        PendingHumanTaskClaimRequest::new(
-            request.claim.token_id,
-            request.claim.process_id.as_str(),
-            request.claim.activity_id.as_str(),
-            request.claim.claimant.as_str(),
-            unix_millis_now(),
-        ),
+        PendingHumanTaskClaimRequest::from_input(PendingHumanTaskClaimInput {
+            token_id: request.claim.token_id.into(),
+            process_id: request.claim.process_id.as_str().into(),
+            activity_id: request.claim.activity_id.as_str().into(),
+            claimant: request.claim.claimant.clone(),
+            claimed_at_ms: unix_millis_now().into(),
+        }),
     )
     .map_err(BpmnOrchestrationError::from)?;
 
@@ -67,13 +68,13 @@ pub(crate) async fn release_workflow_task(
             .await?;
     let outcome = release_pending_human_task(
         &mut checkpoint.state,
-        PendingHumanTaskReleaseRequest::new(
-            request.release.token_id,
-            request.release.process_id.as_str(),
-            request.release.activity_id.as_str(),
-            request.release.claimant.as_str(),
-            unix_millis_now(),
-        ),
+        PendingHumanTaskReleaseRequest::from_input(PendingHumanTaskReleaseInput {
+            token_id: request.release.token_id.into(),
+            process_id: request.release.process_id.as_str().into(),
+            activity_id: request.release.activity_id.as_str().into(),
+            claimant: request.release.claimant.clone(),
+            released_at_ms: unix_millis_now().into(),
+        }),
     )
     .map_err(BpmnOrchestrationError::from)?;
 

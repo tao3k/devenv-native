@@ -1,3 +1,5 @@
+//! `pybindings::unified_symbol_py::py_stats` owns Wendao pybindings unified symbol py py stats behavior.
+
 use crate::unified_symbol::UnifiedIndexStats;
 use pyo3::{pyclass, pymethods};
 use xiuxian_macros::py_from;

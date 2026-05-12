@@ -1,3 +1,5 @@
+//! `pybindings::knowledge_py::py_category` owns Wendao pybindings knowledge py py category behavior.
+
 use pyo3::{PyResult, pyclass, pymethods};
 
 use crate::types::KnowledgeCategory;

@@ -1,3 +1,5 @@
+//! `analyzers::service::search::documents` owns Wendao service search documents behavior.
+
 use crate::analyzers::ExampleRecord;
 use crate::analyzers::RepositoryAnalysisOutput;
 #[cfg(feature = "repo-lexical-index")]
@@ -10,6 +12,7 @@ use crate::analyzers::service::{
     example_match_score, example_relation_lookup, related_modules_for_example,
     related_symbols_for_example,
 };
+/// `ExampleSearchMetadata` public type boundary for Wendao.
 
 #[derive(Debug, Clone, Default)]
 pub struct ExampleSearchMetadata {

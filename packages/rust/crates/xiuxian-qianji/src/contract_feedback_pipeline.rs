@@ -59,7 +59,7 @@ impl QianjiContractFeedbackRun {
 
 fn wendao_contract_knowledge_batch_from_report(report: &ContractReport) -> ContractKnowledgeBatch {
     ContractKnowledgeBatch {
-        suite_id: report.suite_id.clone(),
+        suite_id: report.suite_id.clone().into(),
         generated_at: report.generated_at.clone(),
         entries: report
             .findings
@@ -93,11 +93,11 @@ fn wendao_contract_knowledge_envelope_from_finding(
     let decision = wendao_contract_knowledge_decision_from_severity(finding.severity);
 
     ContractKnowledgeEnvelope {
-        entry_id: build_contract_feedback_entry_id(suite_id, finding),
-        suite_id: suite_id.to_string(),
+        entry_id: build_contract_feedback_entry_id(suite_id, finding).into(),
+        suite_id: suite_id.to_string().into(),
         generated_at: generated_at.to_string(),
-        rule_id: finding.rule_id.clone(),
-        pack_id: finding.pack_id.clone(),
+        rule_id: finding.rule_id.clone().into(),
+        pack_id: finding.pack_id.clone().into(),
         domain: domain.clone(),
         severity: wendao_contract_finding_severity(finding.severity),
         decision,

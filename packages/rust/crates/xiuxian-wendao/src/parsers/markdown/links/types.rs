@@ -1,3 +1,5 @@
+//! `parsers::markdown::links::types` owns Wendao markdown links types behavior.
+
 #[derive(Debug, Default)]
 pub(in crate::parsers::markdown) struct ExtractedLinkTargets {
     pub note_links: Vec<String>,

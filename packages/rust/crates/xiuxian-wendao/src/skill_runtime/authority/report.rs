@@ -1,7 +1,10 @@
+//! `skill_runtime::authority::report` owns Wendao skill runtime authority report behavior.
+
 use std::collections::BTreeSet;
 
 use super::catalog::SkillIntentCatalog;
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Cross-check result between `SKILL.md` intention links and physically mounted manifests.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SkillAuthorityReport {

@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 //! Coordinates docs-tool projection requests across registry, page, and retrieval owners.
 
 use std::path::{Path, PathBuf};
@@ -99,6 +100,7 @@ impl DocsToolService {
 
     /// Borrow the optional config path used for capability calls.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn config_path(&self) -> Option<&Path> {
         self.config_path.as_deref()
     }
@@ -109,6 +111,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// requested projected page is not present for the configured repository.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError> {
         docs_page_from_config(
             &DocsPageQuery {
@@ -152,6 +155,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// requested page cannot be projected.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_document_for_registered_repository(
         &self,
         page_id: &str,
@@ -175,6 +179,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails, the
     /// requested page is not present, or page-index tree construction fails.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_page_index_tree(
         &self,
         page_id: &str,
@@ -196,6 +201,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails, the
     /// requested page is not present, or page-index tree construction fails.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_page_index_outline(
         &self,
         page_id: &str,
@@ -229,6 +235,7 @@ impl DocsToolService {
     /// Returns [`RepoIntelligenceError`] when repository analysis fails, the
     /// requested projected page is not present, or the requested line range is
     /// invalid for the rendered projected markdown document.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_document_segment(
         &self,
         page_id: &str,
@@ -260,6 +267,7 @@ impl DocsToolService {
     /// Returns [`RepoIntelligenceError`] when repository analysis fails, the
     /// requested page is not present, or the requested page-index node is not
     /// present for the projected page.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_document_node(
         &self,
         page_id: &str,
@@ -308,6 +316,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// requested page tree cannot be projected.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_page_index_tree_for_registered_repository(
         &self,
         page_id: &str,
@@ -349,6 +358,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// requested projected page, node, or family cluster is not present.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_navigation(
         &self,
         page_id: &str,
@@ -370,6 +380,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// requested projected page, node, or family cluster is not present.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_navigation_with_options(
         &self,
         page_id: &str,
@@ -397,6 +408,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// navigation context cannot be projected.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_navigation_with_options_for_registered_repository(
         &self,
         page_id: &str,
@@ -427,6 +439,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// requested projected page or node is not present.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_retrieval_context(
         &self,
         page_id: &str,
@@ -448,6 +461,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// requested projected page or node is not present.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_retrieval_context_with_options(
         &self,
         page_id: &str,
@@ -472,6 +486,7 @@ impl DocsToolService {
     ///
     /// Returns [`RepoIntelligenceError`] when repository analysis fails or the
     /// retrieval context cannot be projected.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_retrieval_context_with_options_for_registered_repository(
         &self,
         page_id: &str,
@@ -515,5 +530,5 @@ fn strip_text_from_nodes(nodes: &mut [ProjectedPageIndexNode]) {
 }
 
 #[cfg(test)]
-#[path = "../../../../../tests/unit/analyzers/service/projection/docs_tool/service.rs"]
+#[path = "../../../../../tests/unit/analyzers/service/projection/docs_tool/facade.rs"]
 mod tests;

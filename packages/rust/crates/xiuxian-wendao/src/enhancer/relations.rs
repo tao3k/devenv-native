@@ -1,3 +1,5 @@
+//! `enhancer::relations` owns Wendao enhancer relations behavior.
+
 use crate::link_graph_refs::LinkGraphEntityRef;
 use crate::parsers::markdown::{ExplicitSectionRelation, parse_property_relations};
 

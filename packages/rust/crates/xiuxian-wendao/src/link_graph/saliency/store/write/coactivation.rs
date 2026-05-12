@@ -104,38 +104,8 @@ pub(super) fn bounded_coactivation_targets(
             break;
         }
 
-        let mut next_frontier_weights: HashMap<String, f64> = HashMap::new();
-        for (source_node_id, source_weight) in frontier {
-            for neighbor in direct_coactivation_neighbors(
-                conn,
-                &source_node_id,
-                key_prefix,
-                runtime.max_neighbors_per_direction,
-            ) {
-                if seen.contains(&neighbor.node_id) {
-                    continue;
-                }
-
-                let edge_weight = coactivation_weight_for_neighbor(&neighbor);
-                if edge_weight <= f64::EPSILON {
-                    continue;
-                }
-
-                let hop_weight = if hop <= 1 {
-                    source_weight * edge_weight
-                } else {
-                    source_weight * runtime.hop_decay_scale * edge_weight
-                };
-                if hop_weight <= f64::EPSILON {
-                    continue;
-                }
-
-                next_frontier_weights
-                    .entry(neighbor.node_id)
-                    .and_modify(|weight| *weight = weight.max(hop_weight))
-                    .or_insert(hop_weight);
-            }
-        }
+        let next_frontier_weights =
+            next_coactivation_frontier_weights(conn, frontier, hop, key_prefix, runtime, &seen);
 
         let mut hop_targets: Vec<CoactivationPropagationTarget> = next_frontier_weights
             .into_iter()
@@ -170,6 +140,57 @@ pub(super) fn bounded_coactivation_targets(
     }
 
     targets
+}
+
+fn next_coactivation_frontier_weights(
+    conn: &mut redis::Connection,
+    frontier: Vec<(String, f64)>,
+    hop: usize,
+    key_prefix: &str,
+    runtime: &crate::link_graph::runtime_config::models::LinkGraphCoactivationRuntimeConfig,
+    seen: &HashSet<String>,
+) -> HashMap<String, f64> {
+    frontier
+        .into_iter()
+        .flat_map(|(source_node_id, source_weight)| {
+            direct_coactivation_neighbors(
+                conn,
+                &source_node_id,
+                key_prefix,
+                runtime.max_neighbors_per_direction,
+            )
+            .into_iter()
+            .filter_map(move |neighbor| {
+                coactivation_hop_weight(&neighbor, source_weight, hop, runtime)
+                    .map(|weight| (neighbor.node_id, weight))
+            })
+        })
+        .filter(|(node_id, _)| !seen.contains(node_id))
+        .fold(HashMap::new(), |mut weights, (node_id, hop_weight)| {
+            weights
+                .entry(node_id)
+                .and_modify(|weight: &mut f64| *weight = weight.max(hop_weight))
+                .or_insert(hop_weight);
+            weights
+        })
+}
+
+fn coactivation_hop_weight(
+    neighbor: &CoactivationNeighbor,
+    source_weight: f64,
+    hop: usize,
+    runtime: &crate::link_graph::runtime_config::models::LinkGraphCoactivationRuntimeConfig,
+) -> Option<f64> {
+    let edge_weight = coactivation_weight_for_neighbor(neighbor);
+    if edge_weight <= f64::EPSILON {
+        return None;
+    }
+    let hop_weight = if hop <= 1 {
+        source_weight * edge_weight
+    } else {
+        source_weight * runtime.hop_decay_scale * edge_weight
+    };
+    (hop_weight > f64::EPSILON).then_some(hop_weight)
 }
 
 pub(super) fn propagate_coactivation(

@@ -1,3 +1,5 @@
+//! `ingress::spider::bridge` owns Wendao ingress spider bridge behavior.
+
 use std::sync::{Arc, Mutex};
 
 use super::errors::SpiderIngressError;

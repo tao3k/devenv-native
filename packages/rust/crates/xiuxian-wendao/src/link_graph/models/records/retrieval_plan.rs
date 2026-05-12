@@ -1,3 +1,5 @@
+//! `link_graph::models::records::retrieval_plan` owns Wendao models records retrieval plan behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Canonical schema version for `LinkGraph` retrieval-plan records.

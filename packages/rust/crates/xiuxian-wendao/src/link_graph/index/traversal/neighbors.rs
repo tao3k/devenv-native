@@ -5,9 +5,21 @@ use crate::link_graph::models::{
 };
 use std::collections::{HashSet, VecDeque};
 
+struct NeighborQueueEntry {
+    doc_id: String,
+    distance: usize,
+}
+
+struct NeighborSearchState {
+    visited: HashSet<String>,
+    queue: VecDeque<NeighborQueueEntry>,
+    results: Vec<LinkGraphNeighbor>,
+}
+
 impl LinkGraphIndex {
     /// Return the neighbor count for a note.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn neighbor_count(&self, stem_or_id: &str, direction: LinkGraphDirection) -> usize {
         let Some(doc_id) = self.resolve_doc_id(stem_or_id) else {
             return 0;
@@ -30,6 +42,7 @@ impl LinkGraphIndex {
 
     /// Return neighbors for a note within a specific hop distance.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn neighbors(
         &self,
         stem_or_id: &str,
@@ -37,83 +50,97 @@ impl LinkGraphIndex {
         max_distance: usize,
         limit: usize,
     ) -> Vec<LinkGraphNeighbor> {
-        let Some(start_id) = self
-            .resolve_doc_id(stem_or_id)
-            .map(std::string::ToString::to_string)
-        else {
+        let Some(start_id) = self.neighbor_start_id(stem_or_id) else {
             return Vec::new();
         };
+        let results = self.collect_neighbors(start_id, direction, max_distance, limit);
+        ranked_neighbors(results, limit)
+    }
 
-        let mut visited = HashSet::new();
-        let mut queue = VecDeque::new();
-        let mut results = Vec::new();
+    fn neighbor_start_id(&self, stem_or_id: &str) -> Option<String> {
+        self.resolve_doc_id(stem_or_id)
+            .map(std::string::ToString::to_string)
+    }
 
-        visited.insert(start_id.clone());
-        queue.push_back((start_id.clone(), 0, LinkGraphDirection::Both));
-
-        while let Some((current_id, distance, _)) = queue.pop_front() {
-            if distance >= max_distance || results.len() >= limit {
+    fn collect_neighbors(
+        &self,
+        start_id: String,
+        direction: LinkGraphDirection,
+        max_distance: usize,
+        limit: usize,
+    ) -> Vec<LinkGraphNeighbor> {
+        let mut state = NeighborSearchState::new(start_id);
+        while let Some(entry) = state.queue.pop_front() {
+            if state.should_skip_entry(entry.distance, max_distance, limit) {
                 continue;
             }
-
-            let next_distance = distance + 1;
-
-            if (direction == LinkGraphDirection::Outgoing || direction == LinkGraphDirection::Both)
-                && let Some(neighbors) = self.outgoing.get(&current_id)
-            {
-                for neighbor_id in neighbors {
-                    if !visited.insert(neighbor_id.clone()) {
-                        continue;
-                    }
-                    if let Some(doc) = self.docs_by_id.get(neighbor_id) {
-                        results.push(LinkGraphNeighbor {
-                            stem: doc.stem.clone(),
-                            title: doc.title.clone(),
-                            path: doc.path.clone(),
-                            distance: next_distance,
-                            direction: LinkGraphDirection::Outgoing,
-                        });
-                        queue.push_back((
-                            neighbor_id.clone(),
-                            next_distance,
-                            LinkGraphDirection::Outgoing,
-                        ));
-                    }
-                }
-            }
-
-            if (direction == LinkGraphDirection::Incoming || direction == LinkGraphDirection::Both)
-                && let Some(neighbors) = self.incoming.get(&current_id)
-            {
-                for neighbor_id in neighbors {
-                    if !visited.insert(neighbor_id.clone()) {
-                        continue;
-                    }
-                    if let Some(doc) = self.docs_by_id.get(neighbor_id) {
-                        results.push(LinkGraphNeighbor {
-                            stem: doc.stem.clone(),
-                            title: doc.title.clone(),
-                            path: doc.path.clone(),
-                            distance: next_distance,
-                            direction: LinkGraphDirection::Incoming,
-                        });
-                        queue.push_back((
-                            neighbor_id.clone(),
-                            next_distance,
-                            LinkGraphDirection::Incoming,
-                        ));
-                    }
-                }
-            }
+            self.visit_neighbor_step(&mut state, &entry, direction);
         }
+        state.results
+    }
 
-        results.sort_by(|a, b| {
-            a.distance
-                .cmp(&b.distance)
-                .then_with(|| a.stem.cmp(&b.stem))
+    fn visit_neighbor_step(
+        &self,
+        state: &mut NeighborSearchState,
+        entry: &NeighborQueueEntry,
+        direction: LinkGraphDirection,
+    ) {
+        for edge_direction in active_neighbor_directions(direction) {
+            self.visit_neighbor_direction(state, entry, edge_direction);
+        }
+    }
+
+    fn visit_neighbor_direction(
+        &self,
+        state: &mut NeighborSearchState,
+        entry: &NeighborQueueEntry,
+        direction: LinkGraphDirection,
+    ) {
+        let Some(neighbor_ids) = self.neighbor_ids_for_direction(&entry.doc_id, direction) else {
+            return;
+        };
+        let next_distance = entry.distance + 1;
+        for neighbor_id in neighbor_ids {
+            self.visit_neighbor_id(state, neighbor_id, next_distance, direction);
+        }
+    }
+
+    fn neighbor_ids_for_direction(
+        &self,
+        doc_id: &str,
+        direction: LinkGraphDirection,
+    ) -> Option<&HashSet<String>> {
+        match direction {
+            LinkGraphDirection::Outgoing => self.outgoing.get(doc_id),
+            LinkGraphDirection::Incoming => self.incoming.get(doc_id),
+            LinkGraphDirection::Both => None,
+        }
+    }
+
+    fn visit_neighbor_id(
+        &self,
+        state: &mut NeighborSearchState,
+        neighbor_id: &str,
+        distance: usize,
+        direction: LinkGraphDirection,
+    ) {
+        if !state.visited.insert(neighbor_id.to_string()) {
+            return;
+        }
+        let Some(doc) = self.docs_by_id.get(neighbor_id) else {
+            return;
+        };
+        state.results.push(LinkGraphNeighbor {
+            stem: doc.stem.clone(),
+            title: doc.title.clone(),
+            path: doc.path.clone(),
+            distance,
+            direction,
         });
-        results.truncate(limit);
-        results
+        state.queue.push_back(NeighborQueueEntry {
+            doc_id: neighbor_id.to_string(),
+            distance,
+        });
     }
 
     /// Find related notes from explicit seed notes and return PPR diagnostics.
@@ -162,4 +189,45 @@ impl LinkGraphIndex {
             })
             .collect()
     }
+}
+
+impl NeighborSearchState {
+    fn new(start_id: String) -> Self {
+        let mut visited = HashSet::new();
+        visited.insert(start_id.clone());
+        let mut queue = VecDeque::new();
+        queue.push_back(NeighborQueueEntry {
+            doc_id: start_id,
+            distance: 0,
+        });
+        Self {
+            visited,
+            queue,
+            results: Vec::new(),
+        }
+    }
+
+    fn should_skip_entry(&self, distance: usize, max_distance: usize, limit: usize) -> bool {
+        distance >= max_distance || self.results.len() >= limit
+    }
+}
+
+fn active_neighbor_directions(direction: LinkGraphDirection) -> Vec<LinkGraphDirection> {
+    match direction {
+        LinkGraphDirection::Outgoing => vec![LinkGraphDirection::Outgoing],
+        LinkGraphDirection::Incoming => vec![LinkGraphDirection::Incoming],
+        LinkGraphDirection::Both => {
+            vec![LinkGraphDirection::Outgoing, LinkGraphDirection::Incoming]
+        }
+    }
+}
+
+fn ranked_neighbors(mut results: Vec<LinkGraphNeighbor>, limit: usize) -> Vec<LinkGraphNeighbor> {
+    results.sort_by(|a, b| {
+        a.distance
+            .cmp(&b.distance)
+            .then_with(|| a.stem.cmp(&b.stem))
+    });
+    results.truncate(limit);
+    results
 }

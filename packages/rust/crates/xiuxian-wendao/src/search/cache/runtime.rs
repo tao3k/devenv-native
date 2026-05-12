@@ -1,3 +1,5 @@
+//! `search::cache::runtime` owns Wendao search cache runtime behavior.
+
 use serde_yaml::Value;
 use xiuxian_config_core::{first_non_empty_named_lookup, toml_first_env, trimmed_non_empty};
 

@@ -6,6 +6,14 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::BuildHasher;
 
+#[derive(Debug, Clone, Copy)]
+struct PairBoost {
+    left: usize,
+    right: usize,
+    link: bool,
+    tag: bool,
+}
+
 /// Apply `LinkGraph` link and tag proximity boost to recall results.
 ///
 /// For each pair of results (`i`, `j`) where stems share a `LinkGraph` link or tag:
@@ -13,6 +21,7 @@ use std::hash::BuildHasher;
 /// - Add `tag_boost` to both scores when stems share tags
 ///
 /// Results are re-sorted by score (descending) in place.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn apply_link_graph_proximity_boost<LinksHasher, LinkSetHasher, TagsHasher, TagSetHasher>(
     results: &mut [RecallResult],
     stem_links: &HashMap<String, HashSet<String, LinkSetHasher>, LinksHasher>,
@@ -29,46 +38,10 @@ pub fn apply_link_graph_proximity_boost<LinksHasher, LinkSetHasher, TagsHasher, 
         return;
     }
 
-    for i in 0..results.len() {
-        let stem1 = stem_from_source(&results[i].source);
-        let Some(links1) = stem_links.get(&stem1) else {
-            continue;
-        };
-
-        for j in (i + 1)..results.len() {
-            let stem2 = stem_from_source(&results[j].source);
-            let Some(links2) = stem_links.get(&stem2) else {
-                continue;
-            };
-
-            let mut add_link = false;
-            if links1.contains(&stem2) || links2.contains(&stem1) {
-                add_link = true;
-            }
-
-            let mut add_tag = false;
-            if let (Some(tags1), Some(tags2)) = (stem_tags.get(&stem1), stem_tags.get(&stem2))
-                && !tags1.is_disjoint(tags2)
-            {
-                add_tag = true;
-            }
-
-            if add_link {
-                results[i].score += link_boost;
-                results[j].score += link_boost;
-            }
-            if add_tag {
-                results[i].score += tag_boost;
-                results[j].score += tag_boost;
-            }
-        }
-    }
-
-    results.sort_by(|a, b| {
-        b.score
-            .partial_cmp(&a.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    let stems = result_stems(results);
+    let boosts = collect_pair_boosts(&stems, stem_links, stem_tags);
+    apply_pair_boosts(results, &boosts, link_boost, tag_boost);
+    sort_results_by_score(results);
 }
 
 /// Extract stem from source path (filename without extension).
@@ -106,6 +79,89 @@ impl RecallResult {
             title,
         }
     }
+}
+
+fn result_stems(results: &[RecallResult]) -> Vec<String> {
+    results
+        .iter()
+        .map(|result| stem_from_source(&result.source))
+        .collect()
+}
+
+fn collect_pair_boosts<LinksHasher, LinkSetHasher, TagsHasher, TagSetHasher>(
+    stems: &[String],
+    stem_links: &HashMap<String, HashSet<String, LinkSetHasher>, LinksHasher>,
+    stem_tags: &HashMap<String, HashSet<String, TagSetHasher>, TagsHasher>,
+) -> Vec<PairBoost>
+where
+    LinksHasher: BuildHasher,
+    LinkSetHasher: BuildHasher,
+    TagsHasher: BuildHasher,
+    TagSetHasher: BuildHasher,
+{
+    (0..stems.len())
+        .flat_map(|left| {
+            ((left + 1)..stems.len())
+                .filter_map(move |right| pair_boost(left, right, stems, stem_links, stem_tags))
+        })
+        .collect()
+}
+
+fn pair_boost<LinksHasher, LinkSetHasher, TagsHasher, TagSetHasher>(
+    left: usize,
+    right: usize,
+    stems: &[String],
+    stem_links: &HashMap<String, HashSet<String, LinkSetHasher>, LinksHasher>,
+    stem_tags: &HashMap<String, HashSet<String, TagSetHasher>, TagsHasher>,
+) -> Option<PairBoost>
+where
+    LinksHasher: BuildHasher,
+    LinkSetHasher: BuildHasher,
+    TagsHasher: BuildHasher,
+    TagSetHasher: BuildHasher,
+{
+    let stem1 = &stems[left];
+    let stem2 = &stems[right];
+    let links1 = stem_links.get(stem1)?;
+    let links2 = stem_links.get(stem2)?;
+    let link = links1.contains(stem2) || links2.contains(stem1);
+    let tag = stem_tags
+        .get(stem1)
+        .zip(stem_tags.get(stem2))
+        .is_some_and(|(tags1, tags2)| !tags1.is_disjoint(tags2));
+
+    (link || tag).then_some(PairBoost {
+        left,
+        right,
+        link,
+        tag,
+    })
+}
+
+fn apply_pair_boosts(
+    results: &mut [RecallResult],
+    boosts: &[PairBoost],
+    link_boost: f64,
+    tag_boost: f64,
+) {
+    for boost in boosts {
+        if boost.link {
+            results[boost.left].score += link_boost;
+            results[boost.right].score += link_boost;
+        }
+        if boost.tag {
+            results[boost.left].score += tag_boost;
+            results[boost.right].score += tag_boost;
+        }
+    }
+}
+
+fn sort_results_by_score(results: &mut [RecallResult]) {
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 }
 
 #[cfg(test)]

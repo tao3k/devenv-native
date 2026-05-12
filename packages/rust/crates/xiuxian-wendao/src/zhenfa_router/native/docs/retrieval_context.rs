@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::retrieval_context` owns Wendao native docs retrieval context behavior.
+
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
 
 use super::shared::{optional_non_empty_argument, require_non_empty_argument, serialize_payload};

@@ -1,8 +1,9 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::sync::Arc;
 
 use xiuxian_db_store::{LanceDataType, LanceField, LanceSchema};
 
-use crate::search::repo_entity::schema::definitions::{
+use crate::search::repo_entity::schema::{
     COLUMN_ATTRIBUTES_JSON, COLUMN_AUDIT_STATUS, COLUMN_ENTITY_KIND, COLUMN_HIERARCHICAL_URI,
     COLUMN_HIERARCHY, COLUMN_HIT_JSON, COLUMN_ID, COLUMN_IMPLICIT_BACKLINK_ITEMS_JSON,
     COLUMN_IMPLICIT_BACKLINKS, COLUMN_LANGUAGE, COLUMN_LINE_END, COLUMN_LINE_START,

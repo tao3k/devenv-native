@@ -448,7 +448,7 @@ fn semantic_projection_policy_summaries_from_report(
         .map(|report| {
             vec![WorkdirSemanticProjectionPolicySummary {
                 policy_id: report.policy_id.clone(),
-                status: report.status.clone(),
+                status: report.status.as_str().to_owned(),
                 failing_projection_count: report.failing_projection_count,
                 message: report.message.clone(),
             }]

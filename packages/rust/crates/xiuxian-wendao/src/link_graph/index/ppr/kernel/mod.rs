@@ -1,3 +1,5 @@
+//! `link_graph::index::ppr::kernel` owns Wendao index ppr kernel behavior.
+
 #[path = "adjacency.rs"]
 pub(crate) mod adjacency;
 #[path = "iteration.rs"]

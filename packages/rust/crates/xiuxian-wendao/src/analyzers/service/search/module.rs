@@ -1,3 +1,5 @@
+//! `analyzers::service::search::module` owns Wendao service search module behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -31,6 +33,7 @@ pub fn build_module_search(
         ranked_module_matches(query.query.as_str(), &analysis.modules, query.limit.max(1)),
     )
 }
+/// `build_module_search_with_artifacts` public function boundary for Wendao.
 
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]

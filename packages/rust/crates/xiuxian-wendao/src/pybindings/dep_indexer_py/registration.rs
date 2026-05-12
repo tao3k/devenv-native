@@ -1,3 +1,5 @@
+//! `pybindings::dep_indexer_py::registration` owns Wendao pybindings dep indexer py registration behavior.
+
 use pyo3::types::{PyModule, PyModuleMethods};
 use pyo3::{Bound, PyResult};
 

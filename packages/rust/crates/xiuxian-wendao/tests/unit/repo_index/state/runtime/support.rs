@@ -1,4 +1,5 @@
-pub(super) use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
+pub(super) use std::collections::HashSet;
 pub(super) use std::fs;
 pub(super) use std::path::PathBuf;
 pub(super) use std::sync::Arc;
@@ -6,6 +7,7 @@ pub(super) use std::time::Duration;
 
 pub(super) use crate::analyzers::PluginRegistry;
 pub(super) use crate::analyzers::RepoSourceFile;
+pub(super) use crate::analyzers::RepositoryRecord;
 #[cfg(feature = "julia")]
 pub(super) use crate::analyzers::bootstrap_builtin_registry;
 pub(super) use crate::analyzers::{
@@ -13,7 +15,7 @@ pub(super) use crate::analyzers::{
     RepoIntelligencePlugin, RepositoryAnalysisOutput, RepositoryPluginConfig,
     RepositoryRefreshPolicy, analyze_registered_repository_with_registry,
 };
-pub(super) use crate::analyzers::{ModuleRecord, RepoSymbolKind, RepositoryRecord, SymbolRecord};
+use crate::analyzers::{ModuleRecord, RepoSymbolKind, SymbolRecord};
 pub(super) use crate::analyzers::{RepoSourceKind, RepoSyncResult};
 pub(super) use crate::repo_index::state::coordinator::PreparedIncrementalAnalysis;
 pub(super) use crate::repo_index::state::fingerprint::timestamp_now;

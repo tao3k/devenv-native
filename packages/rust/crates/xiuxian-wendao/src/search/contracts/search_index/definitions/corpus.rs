@@ -1,3 +1,5 @@
+//! `search::contracts::search_index::definitions::corpus` owns Wendao search index definitions corpus behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

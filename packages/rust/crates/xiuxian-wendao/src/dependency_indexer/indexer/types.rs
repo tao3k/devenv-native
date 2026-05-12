@@ -1,5 +1,8 @@
+//! `dependency_indexer::indexer::types` owns Wendao dependency indexer indexer types behavior.
+
 use serde::{Deserialize, Serialize};
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Dependency indexer configuration (for Python bindings compatibility)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DependencyConfig {

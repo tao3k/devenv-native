@@ -1,3 +1,5 @@
+//! `search::contracts::analysis` owns Wendao search contracts analysis behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

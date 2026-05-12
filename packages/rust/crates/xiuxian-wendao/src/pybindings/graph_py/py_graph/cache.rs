@@ -1,3 +1,5 @@
+//! `pybindings::graph_py::py_graph::cache` owns Wendao graph py py graph cache behavior.
+
 use pyo3::{PyResult, pyfunction};
 
 use crate::kg_cache;

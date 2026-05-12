@@ -5,6 +5,7 @@ use serde_json::Value;
 
 /// Single Wendao process or agent event prepared for event-lake ingestion.
 #[derive(Debug, Clone, PartialEq)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct WendaoEventRecord {
     /// Tenant or workspace boundary for the event.
     pub tenant_id: String,
@@ -21,6 +22,7 @@ pub struct WendaoEventRecord {
 impl WendaoEventRecord {
     /// Build a Wendao event record from validated event fields.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn new(
         tenant_id: impl Into<String>,
         case_id: impl Into<String>,
@@ -42,6 +44,7 @@ impl WendaoEventRecord {
     /// # Errors
     ///
     /// Returns an error when `payload_json` is not valid JSON.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn from_payload_json(
         tenant_id: impl Into<String>,
         case_id: impl Into<String>,
@@ -96,6 +99,7 @@ impl WendaoEventRecord {
 
 /// Aggregate count for one Wendao event type.
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct WendaoEventTypeCount {
     /// Event kind.
     pub event_type: String,

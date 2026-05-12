@@ -1,3 +1,5 @@
+//! `analyzers::projection::navigation_bundle` owns Wendao analyzers projection navigation bundle behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{

@@ -1,3 +1,5 @@
+//! `search::fuzzy::options` owns Wendao search fuzzy options behavior.
+
 /// Shared fuzzy-search configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FuzzySearchOptions {

@@ -1,3 +1,5 @@
+//! `search::queries::graphql` owns Wendao search queries graphql behavior.
+
 #[path = "context.rs"]
 pub(crate) mod context;
 #[path = "document.rs"]

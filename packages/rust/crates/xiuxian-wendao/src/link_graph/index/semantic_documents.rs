@@ -20,6 +20,7 @@ impl LinkGraphIndex {
 
     /// Export semantic documents for one note resolved by stem or canonical id.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn semantic_documents_for(
         &self,
         stem_or_id: &str,

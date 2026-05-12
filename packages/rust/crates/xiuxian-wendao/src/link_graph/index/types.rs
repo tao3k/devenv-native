@@ -1,3 +1,5 @@
+//! `link_graph::index::types` owns Wendao link graph index types behavior.
+
 use super::build;
 use crate::link_graph::models::{
     LinkGraphAttachment, LinkGraphDocument, LinkGraphPassage, PageIndexNode,
@@ -102,6 +104,7 @@ pub(crate) struct SectionCandidate {
 
 /// Cache build metadata emitted by the `LinkGraph` cache bootstrap.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct LinkGraphCacheBuildMeta {
     /// Cache backend name.
     pub backend: String,

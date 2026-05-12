@@ -1,3 +1,5 @@
+//! `search::manifest` owns Wendao search manifest behavior.
+
 mod fingerprint;
 mod input;
 mod keyspace;

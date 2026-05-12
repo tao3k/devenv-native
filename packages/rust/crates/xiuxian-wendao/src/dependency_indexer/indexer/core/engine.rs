@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `dependency_indexer::indexer::core::indexer` owns Wendao indexer core indexer behavior.
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 

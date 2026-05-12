@@ -1,3 +1,5 @@
+//! `link_graph::index::build::property_drawer_edges` owns Wendao index build property drawer edges behavior.
+
 use std::collections::HashMap;
 
 use crate::link_graph::addressing::Address;
@@ -22,6 +24,7 @@ pub struct PropertyDrawerEdge {
 /// This is a graph adapter over the canonical markdown relation parser. It
 /// only resolves targets that can be mapped safely with the current graph
 /// inputs: document aliases and explicit `:ID:` anchors.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn extract_property_drawer_edges(
     doc_id: &str,
     section: &ParsedSection,

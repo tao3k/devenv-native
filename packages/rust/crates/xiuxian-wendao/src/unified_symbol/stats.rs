@@ -1,3 +1,5 @@
+//! `unified_symbol::stats` owns Wendao unified symbol stats behavior.
+
 /// Statistics for unified symbol index.
 #[derive(Debug, Default, Clone, serde::Serialize)]
 pub struct UnifiedIndexStats {

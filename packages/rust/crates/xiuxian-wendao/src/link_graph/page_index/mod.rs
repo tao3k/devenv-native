@@ -1,3 +1,5 @@
+//! `link_graph::page_index` owns Wendao link graph page index behavior.
+
 mod builder;
 mod thinning;
 

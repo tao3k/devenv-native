@@ -1,3 +1,5 @@
+//! `ingress::spider::reindex` owns Wendao ingress spider reindex behavior.
+
 use super::errors::SpiderIngressError;
 
 /// Hook for scheduling namespace-level partial re-index.

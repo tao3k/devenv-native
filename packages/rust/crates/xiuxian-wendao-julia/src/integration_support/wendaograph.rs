@@ -107,14 +107,24 @@ pub fn search_strategy_flow_probe_action_route(
 #[path = "wendaograph_scripts.rs"]
 mod scripts;
 
+#[path = "wendaograph_persistent_host_report.rs"]
+mod persistent_host_report;
+
 #[path = "wendaograph_batch_replay.rs"]
 mod batch_replay;
 
 use scripts::SEARCH_STRATEGY_FLOW_JULIA;
 
-#[cfg(test)]
-pub(crate) use batch_replay::SearchStrategyFlowPersistentBatchHost;
-pub use batch_replay::run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches;
+pub use batch_replay::{
+    SearchStrategyFlowPersistentBatchHost,
+    run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
+};
+pub use persistent_host_report::{
+    SearchStrategyFlowPersistentHostStabilizationLimits,
+    SearchStrategyFlowPersistentHostStabilizationReason,
+    SearchStrategyFlowPersistentHostStabilizationReport,
+    SearchStrategyFlowPersistentHostWarmPathStats,
+};
 
 #[path = "wendaograph_probes.rs"]
 mod probes;

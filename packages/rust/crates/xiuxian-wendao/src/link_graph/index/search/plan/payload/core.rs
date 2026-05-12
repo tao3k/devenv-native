@@ -226,20 +226,17 @@ fn evaluate_ccs_audit(anchors: &[String], evidence: &[String]) -> (f64, bool, Ve
 
 #[cfg(not(feature = "zhenfa-router"))]
 fn evaluate_ccs_audit(anchors: &[String], evidence: &[String]) -> (f64, bool, Vec<String>) {
-    let mut matches = 0_usize;
-    let mut missing_anchors = Vec::new();
-
-    for anchor in anchors {
-        let anchor_lower = anchor.to_lowercase();
-        let found = evidence
-            .iter()
-            .any(|item| item.to_lowercase().contains(&anchor_lower));
-        if found {
-            matches += 1;
-        } else {
-            missing_anchors.push(anchor.clone());
-        }
-    }
+    let missing_anchors = anchors
+        .iter()
+        .filter(|anchor| {
+            let anchor_lower = anchor.to_lowercase();
+            !evidence
+                .iter()
+                .any(|item| item.to_lowercase().contains(&anchor_lower))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let matches = anchors.len().saturating_sub(missing_anchors.len());
 
     let ccs_score = if anchors.is_empty() {
         1.0

@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::api::item` owns Wendao planner api item behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

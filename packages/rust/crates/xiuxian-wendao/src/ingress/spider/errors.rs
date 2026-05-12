@@ -1,3 +1,5 @@
+//! `ingress::spider::errors` owns Wendao ingress spider errors behavior.
+
 use thiserror::Error;
 
 /// Spider ingress pipeline errors.

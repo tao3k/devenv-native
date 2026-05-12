@@ -1,3 +1,5 @@
+//! `search::repo_entity::query` owns Wendao search repo entity query behavior.
+
 #[path = "hydrate/mod.rs"]
 mod hydrate;
 #[path = "lookup/mod.rs"]

@@ -109,14 +109,17 @@ fn parse_table_query(field: &gql::Field<'_, String>) -> Result<StudioGraphqlTabl
 fn parse_projection_columns(
     selection_set: &gql::SelectionSet<'_, String>,
 ) -> Result<Vec<String>, String> {
-    let mut columns = Vec::new();
-    for selection in &selection_set.items {
-        let gql::Selection::Field(field) = selection else {
-            return Err("GraphQL table queries only support field selections".to_string());
-        };
-        ensure_empty_selection(field)?;
-        columns.push(field.name.clone());
-    }
+    let columns = selection_set
+        .items
+        .iter()
+        .map(|selection| {
+            let gql::Selection::Field(field) = selection else {
+                return Err("GraphQL table queries only support field selections".to_string());
+            };
+            ensure_empty_selection(field)?;
+            Ok(field.name.clone())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     if columns.is_empty() {
         return Err("GraphQL table queries must request at least one field".to_string());
     }

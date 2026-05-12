@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::api::search` owns Wendao planner api search behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

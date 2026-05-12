@@ -1,3 +1,5 @@
+//! `link_graph::saliency::signal` owns Wendao link graph saliency signal behavior.
+
 use super::LinkGraphSaliencyState;
 
 /// Map a saliency state into a normalized learning signal.

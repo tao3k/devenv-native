@@ -1,3 +1,5 @@
+//! `analyzers::query::imports` owns Wendao analyzers query imports behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

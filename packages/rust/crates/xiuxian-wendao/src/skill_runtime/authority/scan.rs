@@ -1,3 +1,5 @@
+//! `skill_runtime::authority::scan` owns Wendao skill runtime authority scan behavior.
+
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 

@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::family` owns Wendao service projection family behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -275,6 +277,7 @@ pub fn repo_projected_page_family_cluster_from_config(
     })
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build deterministic page-family search results from normalized analysis records.
 #[must_use]
 pub fn build_repo_projected_page_family_search(

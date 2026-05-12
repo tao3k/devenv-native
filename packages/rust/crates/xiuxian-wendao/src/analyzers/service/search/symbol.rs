@@ -1,3 +1,5 @@
+//! `analyzers::service::search::symbol` owns Wendao service search symbol behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -31,6 +33,7 @@ pub fn build_symbol_search(
         ranked_symbol_matches(query.query.as_str(), &analysis.symbols, query.limit.max(1)),
     )
 }
+/// `build_symbol_search_with_artifacts` public function boundary for Wendao.
 
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]

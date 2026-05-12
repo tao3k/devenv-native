@@ -35,7 +35,7 @@ mod manifest;
 mod markdown_snapshot;
 /// Synthetic benchmark and probe helpers for search-plane performance seams.
 #[cfg(feature = "search-runtime")]
-#[path = "perf_support.rs"]
+#[path = "perf_support/mod.rs"]
 pub mod perf_support;
 #[cfg(feature = "search-runtime")]
 #[path = "project_fingerprint.rs"]

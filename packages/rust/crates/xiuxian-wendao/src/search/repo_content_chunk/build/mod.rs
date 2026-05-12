@@ -1,3 +1,5 @@
+//! `search::repo_content_chunk::build` owns Wendao search repo content chunk build behavior.
+
 #[path = "orchestration.rs"]
 pub(crate) mod orchestration;
 #[path = "partitions.rs"]

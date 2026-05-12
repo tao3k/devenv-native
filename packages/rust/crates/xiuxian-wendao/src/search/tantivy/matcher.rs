@@ -1,10 +1,12 @@
+//! `search::tantivy::matcher` owns Wendao search tantivy matcher behavior.
+
 use std::cmp::Ordering;
 
 use crate::search::fuzzy::{FuzzyMatch, FuzzyMatcher, FuzzySearchOptions};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::schema::{Field, Value};
-use tantivy::{Index, TantivyDocument, TantivyError};
+use tantivy::{DocAddress, Index, Searcher, TantivyDocument, TantivyError};
 
 use super::compare::{best_match_candidate, collect_lowercase_chars};
 use super::document::SearchDocumentMatchField;
@@ -68,12 +70,7 @@ impl<'a> TantivyMatcher<'a> {
             return Ok(Vec::new());
         }
 
-        let mut query_chars = Vec::new();
-        let mut candidate_chars = Vec::new();
-        let mut scratch = Vec::new();
-        let mut seen_ranges = Vec::new();
-        let mut boundary_scratch = Vec::new();
-        collect_lowercase_chars(query, &mut query_chars);
+        let mut scratch = TantivyMatchScratch::from_query(query);
 
         let reader = self.index.reader()?;
         let searcher = reader.searcher();
@@ -94,77 +91,155 @@ impl<'a> TantivyMatcher<'a> {
             .min(FUZZY_CANDIDATE_WINDOW_CAP);
         let top_docs = searcher.search(&query_object, &TopDocs::with_limit(candidate_limit))?;
 
-        let mut matches = Vec::new();
-        for (_tantivy_score, doc_address) in top_docs {
-            let document: TantivyDocument = searcher.doc(doc_address)?;
-            let mut best: Option<(Option<SearchDocumentMatchField>, String, f32, usize)> = None;
-
-            for spec in &self.match_fields {
-                for stored_text in document
-                    .get_all(spec.text_field)
-                    .filter_map(|value| value.as_str())
-                {
-                    let Some((matched_text, score)) = best_match_candidate(
-                        query,
-                        query_chars.as_slice(),
-                        stored_text,
-                        self.options,
-                        &mut candidate_chars,
-                        &mut scratch,
-                        &mut seen_ranges,
-                        &mut boundary_scratch,
-                    ) else {
-                        continue;
-                    };
-
-                    let adjusted_score = score.score * spec.fuzzy_boost;
-                    let replace = match best.as_ref() {
-                        None => true,
-                        Some((best_field, best_text, best_score, best_distance)) => {
-                            compare_tantivy_match_parts(
-                                TantivyMatchParts {
-                                    field: Some(spec.label),
-                                    text: matched_text.as_str(),
-                                    score: adjusted_score,
-                                    distance: score.distance,
-                                },
-                                TantivyMatchParts {
-                                    field: *best_field,
-                                    text: best_text.as_str(),
-                                    score: *best_score,
-                                    distance: *best_distance,
-                                },
-                            )
-                            .is_lt()
-                        }
-                    };
-
-                    if replace {
-                        best = Some((
-                            Some(spec.label),
-                            matched_text,
-                            adjusted_score,
-                            score.distance,
-                        ));
-                    }
-                }
-            }
-
-            let Some((matched_field, matched_text, score, distance)) = best else {
-                continue;
-            };
-            matches.push(TantivyDocumentMatch {
-                item: document,
-                matched_field,
-                matched_text,
-                score,
-                distance,
-            });
-        }
+        let mut matches = collect_tantivy_matches(self, &searcher, top_docs, query, &mut scratch)?;
 
         matches.sort_by(compare_tantivy_matches);
         matches.truncate(limit);
         Ok(matches)
+    }
+}
+
+fn collect_tantivy_matches(
+    matcher: &TantivyMatcher<'_>,
+    searcher: &Searcher,
+    top_docs: Vec<(f32, DocAddress)>,
+    query: &str,
+    scratch: &mut TantivyMatchScratch,
+) -> Result<Vec<TantivyDocumentMatch>, TantivyError> {
+    top_docs
+        .into_iter()
+        .filter_map(|(_score, doc_address)| {
+            match_tantivy_document(matcher, searcher, doc_address, query, scratch).transpose()
+        })
+        .collect()
+}
+
+fn match_tantivy_document(
+    matcher: &TantivyMatcher<'_>,
+    searcher: &Searcher,
+    doc_address: DocAddress,
+    query: &str,
+    scratch: &mut TantivyMatchScratch,
+) -> Result<Option<TantivyDocumentMatch>, TantivyError> {
+    let document: TantivyDocument = searcher.doc(doc_address)?;
+    Ok(
+        best_tantivy_document_match(matcher, &document, query, scratch).map(|best| {
+            TantivyDocumentMatch {
+                item: document,
+                matched_field: best.field,
+                matched_text: best.text,
+                score: best.score,
+                distance: best.distance,
+            }
+        }),
+    )
+}
+
+fn best_tantivy_document_match(
+    matcher: &TantivyMatcher<'_>,
+    document: &TantivyDocument,
+    query: &str,
+    scratch: &mut TantivyMatchScratch,
+) -> Option<TantivyBestMatch> {
+    matcher
+        .match_fields
+        .iter()
+        .filter_map(|spec| best_tantivy_field_match(matcher, document, query, spec, scratch))
+        .fold(None, select_better_tantivy_match)
+}
+
+fn best_tantivy_field_match(
+    matcher: &TantivyMatcher<'_>,
+    document: &TantivyDocument,
+    query: &str,
+    spec: &SearchFieldSpec,
+    scratch: &mut TantivyMatchScratch,
+) -> Option<TantivyBestMatch> {
+    document
+        .get_all(spec.text_field)
+        .filter_map(|value| value.as_str())
+        .filter_map(|stored_text| matcher.match_stored_text(query, spec, stored_text, scratch))
+        .fold(None, select_better_tantivy_match)
+}
+
+fn select_better_tantivy_match(
+    best: Option<TantivyBestMatch>,
+    candidate: TantivyBestMatch,
+) -> Option<TantivyBestMatch> {
+    match best {
+        Some(current)
+            if compare_tantivy_match_parts(candidate.as_parts(), current.as_parts()).is_ge() =>
+        {
+            Some(current)
+        }
+        _ => Some(candidate),
+    }
+}
+
+impl TantivyMatcher<'_> {
+    fn match_stored_text(
+        &self,
+        query: &str,
+        spec: &SearchFieldSpec,
+        stored_text: &str,
+        scratch: &mut TantivyMatchScratch,
+    ) -> Option<TantivyBestMatch> {
+        best_match_candidate(
+            query,
+            scratch.query_chars.as_slice(),
+            stored_text,
+            self.options,
+            &mut scratch.candidate_chars,
+            &mut scratch.scratch,
+            &mut scratch.seen_ranges,
+            &mut scratch.boundary_scratch,
+        )
+        .map(|(matched_text, score)| TantivyBestMatch {
+            field: Some(spec.label),
+            text: matched_text,
+            score: score.score * spec.fuzzy_boost,
+            distance: score.distance,
+        })
+    }
+}
+
+struct TantivyMatchScratch {
+    query_chars: Vec<char>,
+    candidate_chars: Vec<char>,
+    scratch: Vec<usize>,
+    seen_ranges: Vec<(usize, usize)>,
+    boundary_scratch: Vec<usize>,
+}
+
+impl TantivyMatchScratch {
+    fn from_query(query: &str) -> Self {
+        let mut query_chars = Vec::new();
+        collect_lowercase_chars(query, &mut query_chars);
+        Self {
+            query_chars,
+            candidate_chars: Vec::new(),
+            scratch: Vec::new(),
+            seen_ranges: Vec::new(),
+            boundary_scratch: Vec::new(),
+        }
+    }
+}
+
+struct TantivyBestMatch {
+    field: Option<SearchDocumentMatchField>,
+    text: String,
+    score: f32,
+    distance: usize,
+}
+
+impl TantivyBestMatch {
+    fn as_parts(&self) -> TantivyMatchParts<'_> {
+        TantivyMatchParts {
+            field: self.field,
+            text: self.text.as_str(),
+            score: self.score,
+            distance: self.distance,
+        }
     }
 }
 

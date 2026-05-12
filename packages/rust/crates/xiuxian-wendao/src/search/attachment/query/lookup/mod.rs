@@ -1,3 +1,5 @@
+//! `search::attachment::query::lookup` owns Wendao attachment query lookup behavior.
+
 mod decode;
 mod helpers;
 mod route;

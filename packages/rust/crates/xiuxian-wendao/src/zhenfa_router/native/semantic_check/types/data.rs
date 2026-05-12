@@ -91,6 +91,7 @@ pub enum CheckType {
 
 /// Result of a semantic check operation.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct SemanticCheckResult {
     /// Overall status: "pass", "warning", or "fail".
     pub status: String,
@@ -121,6 +122,7 @@ pub struct FileAuditReport {
 
 /// A single semantic issue found during check.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct SemanticIssue {
     /// Issue severity: "error", "warning", or "info".
     pub severity: String,

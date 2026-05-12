@@ -1,3 +1,5 @@
+//! `analyzers::service::search::coverage` owns Wendao service search coverage behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

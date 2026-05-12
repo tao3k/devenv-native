@@ -1,3 +1,5 @@
+//! `analyzers::projection::family_search` owns Wendao analyzers projection family search behavior.
+
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::ProjectedPageRecord;
 use crate::analyzers::projection::family_context::build_projected_page_family_context;
@@ -7,6 +9,7 @@ use crate::analyzers::{
     RepoProjectedPageFamilySearchResult,
 };
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build repo projected-page family search hits from scored projected pages.
 #[must_use]
 pub fn build_repo_projected_page_family_search(

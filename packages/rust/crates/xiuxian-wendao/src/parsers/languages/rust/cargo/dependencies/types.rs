@@ -1,3 +1,5 @@
+//! `parsers::languages::rust::cargo::dependencies::types` owns Wendao cargo dependencies types behavior.
+
 /// A parsed dependency.
 #[derive(Debug, Clone)]
 pub struct CargoDependency {

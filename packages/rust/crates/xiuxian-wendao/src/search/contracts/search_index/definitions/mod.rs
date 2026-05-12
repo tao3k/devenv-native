@@ -1,3 +1,5 @@
+//! `search::contracts::search_index::definitions` owns Wendao contracts search index definitions behavior.
+
 mod corpus;
 mod issues;
 mod lifecycle;

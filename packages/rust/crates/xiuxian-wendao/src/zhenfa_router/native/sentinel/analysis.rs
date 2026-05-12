@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::sentinel::analysis` owns Wendao native sentinel analysis behavior.
+
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -8,6 +10,64 @@ use crate::link_graph::{PageIndexNode, SymbolRef};
 use crate::parsers::markdown::code_observation::path_matches_scope;
 
 use super::types::{AffectedDoc, DriftConfidence, SemanticDriftSignal};
+
+static RE_FN: OnceLock<Option<regex::Regex>> = OnceLock::new();
+static RE_STRUCT: OnceLock<Option<regex::Regex>> = OnceLock::new();
+static RE_CLASS: OnceLock<Option<regex::Regex>> = OnceLock::new();
+static RE_ENUM: OnceLock<Option<regex::Regex>> = OnceLock::new();
+static RE_METHOD: OnceLock<Option<regex::Regex>> = OnceLock::new();
+static RE_TRAIT: OnceLock<Option<regex::Regex>> = OnceLock::new();
+static RE_IMPL: OnceLock<Option<regex::Regex>> = OnceLock::new();
+
+struct SymbolExtractor {
+    regex: &'static OnceLock<Option<regex::Regex>>,
+    source: &'static str,
+    unique: bool,
+}
+
+static SYMBOL_EXTRACTORS: [SymbolExtractor; 7] = [
+    SymbolExtractor {
+        regex: &RE_FN,
+        source: r"\bfn\s+([a-z_][a-z0-9_]*)",
+        unique: false,
+    },
+    SymbolExtractor {
+        regex: &RE_STRUCT,
+        source: r"\bstruct\s+([A-Z][a-zA-Z0-9_]*)",
+        unique: false,
+    },
+    SymbolExtractor {
+        regex: &RE_CLASS,
+        source: r"\bclass\s+([A-Z][a-zA-Z0-9_]*)",
+        unique: false,
+    },
+    SymbolExtractor {
+        regex: &RE_ENUM,
+        source: r"\benum\s+([A-Z][a-zA-Z0-9_]*)",
+        unique: false,
+    },
+    SymbolExtractor {
+        regex: &RE_METHOD,
+        source: r"\b(?:async\s+)?fn\s+([a-z_][a-z0-9_]*)\s*\(",
+        unique: true,
+    },
+    SymbolExtractor {
+        regex: &RE_TRAIT,
+        source: r"\btrait\s+([A-Z][a-zA-Z0-9_]*)",
+        unique: false,
+    },
+    SymbolExtractor {
+        regex: &RE_IMPL,
+        source: r"\bimpl\s+(?:[A-Z][a-zA-Z0-9_]*\s+for\s+)?([A-Z][a-zA-Z0-9_]*)",
+        unique: false,
+    },
+];
+
+struct SourceChangeContext {
+    file_path: String,
+    file_stem: String,
+    file_stem_lower: String,
+}
 
 fn capture_symbol(pattern: &str, regex: Option<&regex::Regex>) -> Option<String> {
     regex.and_then(|compiled| {
@@ -36,6 +96,22 @@ fn push_unique_captured_symbol(
     }
 }
 
+fn compiled_symbol_regex(extractor: &SymbolExtractor) -> Option<&regex::Regex> {
+    extractor
+        .regex
+        .get_or_init(|| regex::Regex::new(extractor.source).ok())
+        .as_ref()
+}
+
+fn push_extracted_symbol(symbols: &mut Vec<String>, pattern: &str, extractor: &SymbolExtractor) {
+    let regex = compiled_symbol_regex(extractor);
+    if extractor.unique {
+        push_unique_captured_symbol(symbols, pattern, regex);
+    } else {
+        push_captured_symbol(symbols, pattern, regex);
+    }
+}
+
 /// Extract core symbols from an observation pattern.
 ///
 /// This is a heuristic extraction for the Symbol-to-Node Inverted Index.
@@ -43,62 +119,10 @@ fn push_unique_captured_symbol(
 /// Patterns like `struct User { $$$ }` yield `["User"]`.
 #[must_use]
 pub fn extract_pattern_symbols(pattern: &str) -> Vec<String> {
-    // Pre-compiled regex patterns for zero-cost repeated extraction
-    static RE_FN: OnceLock<Option<regex::Regex>> = OnceLock::new();
-    static RE_STRUCT: OnceLock<Option<regex::Regex>> = OnceLock::new();
-    static RE_CLASS: OnceLock<Option<regex::Regex>> = OnceLock::new();
-    static RE_ENUM: OnceLock<Option<regex::Regex>> = OnceLock::new();
-    static RE_METHOD: OnceLock<Option<regex::Regex>> = OnceLock::new();
-    static RE_TRAIT: OnceLock<Option<regex::Regex>> = OnceLock::new();
-    static RE_IMPL: OnceLock<Option<regex::Regex>> = OnceLock::new();
-
-    let re_fn = RE_FN
-        .get_or_init(|| regex::Regex::new(r"\bfn\s+([a-z_][a-z0-9_]*)").ok())
-        .as_ref();
-    let re_struct = RE_STRUCT
-        .get_or_init(|| regex::Regex::new(r"\bstruct\s+([A-Z][a-zA-Z0-9_]*)").ok())
-        .as_ref();
-    let re_class = RE_CLASS
-        .get_or_init(|| regex::Regex::new(r"\bclass\s+([A-Z][a-zA-Z0-9_]*)").ok())
-        .as_ref();
-    let re_enum = RE_ENUM
-        .get_or_init(|| regex::Regex::new(r"\benum\s+([A-Z][a-zA-Z0-9_]*)").ok())
-        .as_ref();
-    let re_method = RE_METHOD
-        .get_or_init(|| regex::Regex::new(r"\b(?:async\s+)?fn\s+([a-z_][a-z0-9_]*)\s*\(").ok())
-        .as_ref();
-    let re_trait = RE_TRAIT
-        .get_or_init(|| regex::Regex::new(r"\btrait\s+([A-Z][a-zA-Z0-9_]*)").ok())
-        .as_ref();
-    let re_impl = RE_IMPL
-        .get_or_init(|| {
-            regex::Regex::new(r"\bimpl\s+(?:[A-Z][a-zA-Z0-9_]*\s+for\s+)?([A-Z][a-zA-Z0-9_]*)").ok()
-        })
-        .as_ref();
-
     let mut symbols = Vec::new();
-
-    // Extract function names: fn NAME
-    push_captured_symbol(&mut symbols, pattern, re_fn);
-
-    // Extract struct names: struct NAME
-    push_captured_symbol(&mut symbols, pattern, re_struct);
-
-    // Extract class names: class NAME
-    push_captured_symbol(&mut symbols, pattern, re_class);
-
-    // Extract enum names: enum NAME
-    push_captured_symbol(&mut symbols, pattern, re_enum);
-
-    // Extract method names: fn NAME( or async fn NAME(
-    push_unique_captured_symbol(&mut symbols, pattern, re_method);
-
-    // Extract trait names: trait NAME
-    push_captured_symbol(&mut symbols, pattern, re_trait);
-
-    // Extract impl targets: impl NAME or impl Trait for NAME
-    push_captured_symbol(&mut symbols, pattern, re_impl);
-
+    for extractor in &SYMBOL_EXTRACTORS {
+        push_extracted_symbol(&mut symbols, pattern, extractor);
+    }
     symbols
 }
 
@@ -167,6 +191,112 @@ fn has_explicit_reference(affected_docs: &[AffectedDoc], file_stem: &str) -> boo
     })
 }
 
+fn source_change_context(path: &Path) -> SourceChangeContext {
+    let file_stem = path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("")
+        .to_string();
+    SourceChangeContext {
+        file_path: path.to_string_lossy().to_string(),
+        file_stem_lower: file_stem.to_lowercase(),
+        file_stem,
+    }
+}
+
+fn add_index_symbol_matches(
+    index: &LinkGraphIndex,
+    context: &SourceChangeContext,
+    signal: &mut SemanticDriftSignal,
+) {
+    if !index.has_symbols() {
+        return;
+    }
+
+    for symbol in source_symbol_variants(context.file_stem.as_str()) {
+        add_symbol_variant_matches(index, symbol.as_str(), &context.file_path, signal);
+    }
+}
+
+fn source_symbol_variants(file_stem: &str) -> Vec<String> {
+    let mut variants = vec![file_stem.to_string()];
+    let snake_variant = file_stem.to_lowercase().replace('-', "_");
+    if snake_variant != file_stem {
+        variants.push(snake_variant);
+    }
+    variants.push(to_pascal_case(file_stem));
+    variants
+}
+
+fn add_symbol_variant_matches(
+    index: &LinkGraphIndex,
+    symbol: &str,
+    file_path: &str,
+    signal: &mut SemanticDriftSignal,
+) {
+    let Some(symbol_refs) = index.lookup_symbol(symbol) else {
+        return;
+    };
+    info!(
+        "Phase 6.4: O(1) cache hit for symbol '{}' ({} refs)",
+        symbol,
+        symbol_refs.len()
+    );
+    add_symbol_refs_to_signal(signal, symbol_refs, file_path);
+}
+
+fn add_heuristic_matches(
+    index: &LinkGraphIndex,
+    context: &SourceChangeContext,
+    signal: &mut SemanticDriftSignal,
+) {
+    if !signal.affected_docs.is_empty() {
+        return;
+    }
+
+    info!("Phase 6: Cache miss, falling back to heuristic traversal");
+    for (doc_id, nodes) in index.all_page_index_trees() {
+        traverse_nodes_for_observations(
+            nodes,
+            doc_id,
+            &context.file_stem,
+            &context.file_stem_lower,
+            signal,
+        );
+    }
+}
+
+fn finalize_source_change_signal(
+    mut signal: SemanticDriftSignal,
+    context: &SourceChangeContext,
+) -> Vec<SemanticDriftSignal> {
+    if signal.affected_docs.is_empty() {
+        return Vec::new();
+    }
+
+    signal.update_confidence(source_change_confidence(
+        &signal,
+        context.file_stem.as_str(),
+    ));
+
+    info!(
+        "Phase 6: {} documents potentially affected by source change.",
+        signal.affected_docs.len()
+    );
+
+    vec![signal]
+}
+
+fn source_change_confidence(signal: &SemanticDriftSignal, file_stem: &str) -> DriftConfidence {
+    if has_explicit_reference(&signal.affected_docs, file_stem) {
+        DriftConfidence::High
+    } else if signal.affected_docs.len() <= 3 {
+        DriftConfidence::Medium
+    } else {
+        DriftConfidence::Low
+    }
+}
+
 /// Phase 6: Core logic for propagating source changes to documentation.
 ///
 /// Uses the Symbol-to-Node Inverted Index for O(1) lookup when available,
@@ -182,81 +312,14 @@ fn has_explicit_reference(affected_docs: &[AffectedDoc], file_stem: &str) -> boo
 ///
 /// A vector of `SemanticDriftSignal` events for each affected observation.
 #[must_use]
-#[allow(clippy::too_many_lines)]
 pub fn propagate_source_change(index: &LinkGraphIndex, path: &Path) -> Vec<SemanticDriftSignal> {
     info!("Propagating semantic change from code: {}", path.display());
 
-    let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-    let file_stem_lower = file_stem.to_lowercase();
-
-    // Phase 7.6: Get file path for scope filtering
-    let file_path_str = path.to_string_lossy();
-
-    let mut signal = SemanticDriftSignal::new(path.to_string_lossy(), file_stem);
-
-    // Phase 6.4: O(1) lookup via Symbol-to-Node Inverted Index
-    if index.has_symbols() {
-        // Try direct symbol lookup first (fast path)
-        if let Some(symbol_refs) = index.lookup_symbol(file_stem) {
-            info!(
-                "Phase 6.4: O(1) cache hit for symbol '{}' ({} refs)",
-                file_stem,
-                symbol_refs.len()
-            );
-            add_symbol_refs_to_signal(&mut signal, symbol_refs, &file_path_str);
-        }
-
-        // Also check for snake_case and PascalCase variants
-        let snake_variant = file_stem.to_lowercase().replace('-', "_");
-        if snake_variant != file_stem
-            && let Some(symbol_refs) = index.lookup_symbol(&snake_variant)
-        {
-            add_symbol_refs_to_signal(&mut signal, symbol_refs, &file_path_str);
-        }
-
-        // PascalCase variant (e.g., "user_handler" -> "UserHandler")
-        let pascal_variant = to_pascal_case(file_stem);
-        if let Some(symbol_refs) = index.lookup_symbol(&pascal_variant) {
-            add_symbol_refs_to_signal(&mut signal, symbol_refs, &file_path_str);
-        }
-    }
-
-    // Fall back to heuristic traversal if cache misses or is empty
-    if signal.affected_docs.is_empty() {
-        info!("Phase 6: Cache miss, falling back to heuristic traversal");
-        let trees = index.all_page_index_trees();
-        for (doc_id, nodes) in trees {
-            traverse_nodes_for_observations(
-                nodes,
-                doc_id,
-                file_stem,
-                &file_stem_lower,
-                &mut signal,
-            );
-        }
-    }
-
-    if signal.affected_docs.is_empty() {
-        return Vec::new();
-    }
-
-    // Determine confidence based on match quality
-    let has_explicit_reference = has_explicit_reference(&signal.affected_docs, file_stem);
-
-    signal.update_confidence(if has_explicit_reference {
-        DriftConfidence::High
-    } else if signal.affected_docs.len() <= 3 {
-        DriftConfidence::Medium
-    } else {
-        DriftConfidence::Low
-    });
-
-    info!(
-        "Phase 6: {} documents potentially affected by source change.",
-        signal.affected_docs.len()
-    );
-
-    vec![signal]
+    let context = source_change_context(path);
+    let mut signal = SemanticDriftSignal::new(&context.file_path, &context.file_stem);
+    add_index_symbol_matches(index, &context, &mut signal);
+    add_heuristic_matches(index, &context, &mut signal);
+    finalize_source_change_signal(signal, &context)
 }
 
 /// Convert `snake_case` to `PascalCase`.

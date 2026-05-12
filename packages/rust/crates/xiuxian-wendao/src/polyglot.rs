@@ -49,6 +49,7 @@ pub fn resolve_wendao_polyglot_control_snapshot(
 ///
 /// Returns [`SnapshotInvariantError`] when the assembled route/profile refs or
 /// admission facts violate neutral orchestrator invariants.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn wendao_polyglot_control_snapshot_from_parts(
     memory_runtime: &MemoryJuliaComputeRuntimeConfig,
     link_graph_julia_runtime: &LinkGraphJuliaRerankRuntimeConfig,

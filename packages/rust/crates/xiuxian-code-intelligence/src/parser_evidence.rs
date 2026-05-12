@@ -96,6 +96,9 @@ pub fn normalize_code_language_identifier(identifier: &str) -> String {
     if normalized.is_empty() {
         return normalized;
     }
+    if let Some(language) = normalized_code_language_alias(&normalized) {
+        return language.to_owned();
+    }
     if let Ok(lang) = Lang::try_from(normalized.as_str()) {
         return lang.as_str().to_owned();
     }
@@ -107,6 +110,24 @@ pub fn normalize_code_language_identifier(identifier: &str) -> String {
         }
     }
     normalized
+}
+
+fn normalized_code_language_alias(identifier: &str) -> Option<&'static str> {
+    match identifier {
+        "c++" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some("cpp"),
+        "cs" | "csharp" => Some("csharp"),
+        "go" | "golang" => Some("go"),
+        "js" | "jsx" => Some("javascript"),
+        "jl" => Some("julia"),
+        "md" | "mdown" | "mkd" | "mkdn" => Some("markdown"),
+        "py" => Some("python"),
+        "rb" => Some("ruby"),
+        "rs" => Some("rust"),
+        "sh" | "shell" | "zsh" => Some("bash"),
+        "ts" | "tsx" => Some("typescript"),
+        "yml" => Some("yaml"),
+        _ => None,
+    }
 }
 
 /// Resolve the source-code language for a path using the shared AST language

@@ -1,3 +1,5 @@
+//! `link_graph::saliency::touch` owns Wendao link graph saliency touch behavior.
+
 use crate::link_graph::LinkGraphDisplayHit;
 use crate::link_graph::runtime_config::resolve_link_graph_coactivation_runtime;
 use crate::link_graph::saliency::{

@@ -1,5 +1,8 @@
+//! `search::tantivy::document` owns Wendao search tantivy document behavior.
+
 /// One shared search document stored in Tantivy.
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct SearchDocument {
     /// Stable identifier used to map search hits back into domain records.
     pub id: String,

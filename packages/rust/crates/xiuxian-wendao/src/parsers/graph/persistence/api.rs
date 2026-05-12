@@ -1,3 +1,5 @@
+//! `parsers::graph::persistence::api` owns Wendao graph persistence api behavior.
+
 use super::entity::parse_entity_type_str;
 use super::relation::parse_persisted_relation_type;
 use crate::entity::{Entity, Relation};

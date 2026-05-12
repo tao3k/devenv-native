@@ -31,9 +31,12 @@ pub(crate) use service_runtime::{
     wendaosearch_julia_project, wendaosearch_script,
 };
 pub use wendaograph::{
-    SearchStrategyFlowProbeAction, WendaoGraphLinkGraphFullStructuralHostProbeReport,
-    WendaoGraphLinkGraphHostProbeReport, WendaoGraphPageIndexHostProbeReport,
-    WendaoGraphPageIndexPlannerActionHostProbeReport,
+    SearchStrategyFlowPersistentBatchHost, SearchStrategyFlowPersistentHostStabilizationLimits,
+    SearchStrategyFlowPersistentHostStabilizationReason,
+    SearchStrategyFlowPersistentHostStabilizationReport,
+    SearchStrategyFlowPersistentHostWarmPathStats, SearchStrategyFlowProbeAction,
+    WendaoGraphLinkGraphFullStructuralHostProbeReport, WendaoGraphLinkGraphHostProbeReport,
+    WendaoGraphPageIndexHostProbeReport, WendaoGraphPageIndexPlannerActionHostProbeReport,
     enrich_wendaograph_search_strategy_flow_retrieval_routes,
     enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     parse_search_strategy_flow_probe_action,

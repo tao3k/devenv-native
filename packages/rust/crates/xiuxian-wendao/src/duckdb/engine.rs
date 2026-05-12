@@ -1,3 +1,5 @@
+//! `duckdb::engine` owns Wendao duckdb engine behavior.
+
 #[cfg(feature = "duckdb")]
 use std::collections::HashMap;
 use std::sync::Arc;

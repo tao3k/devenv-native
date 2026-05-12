@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `search::contracts::search` owns Wendao search contracts search behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -23,6 +26,7 @@ pub struct KnowledgeSearchHit {
 
 /// Structured backlink metadata surfaced on search hits.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 #[serde(rename_all = "camelCase")]
 pub struct SearchBacklinkItem {
     /// Stable backlink identifier.
@@ -40,6 +44,7 @@ pub struct SearchBacklinkItem {
 
 /// Unified search hit consumed by the frontend search surface.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 #[serde(rename_all = "camelCase")]
 pub struct SearchHit {
     /// Stable stem or primary identifier.

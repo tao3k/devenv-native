@@ -6,7 +6,6 @@ use crate::duckdb_crate::OptionalExt;
 use super::{
     QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
     QianjiBpmnDuckDbDataStoreConfig, QianjiBpmnInstanceId, QianjiBpmnRecordKey,
-    QianjiBpmnUpdatedAtMs,
 };
 use qianji_bpmn_engine::BpmnCheckpointEnvelope;
 

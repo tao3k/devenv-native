@@ -1,3 +1,5 @@
+//! `pybindings::graph_py::py_skill_doc` owns Wendao pybindings graph py py skill doc behavior.
+
 use pyo3::{pyclass, pymethods};
 
 use crate::graph::SkillDoc;

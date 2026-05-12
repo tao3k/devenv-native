@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::models::retrieval::policy` owns Wendao models retrieval policy behavior.
+
 use crate::link_graph::models::LinkGraphRetrievalMode;
 use crate::link_graph::runtime_config::constants::DEFAULT_LINK_GRAPH_RETRIEVAL_MODE;
 use xiuxian_wendao_core::capabilities::PluginCapabilityBinding;
@@ -5,6 +7,7 @@ use xiuxian_wendao_runtime::config::LinkGraphRetrievalBaseRuntimeConfig;
 use xiuxian_wendao_runtime::transport::RerankScoreWeights;
 
 use super::semantic_ignition::LinkGraphSemanticIgnitionRuntimeConfig;
+/// `LinkGraphRetrievalPolicyRuntimeConfig` public type boundary for Wendao.
 
 pub struct LinkGraphRetrievalPolicyRuntimeConfig {
     pub mode: LinkGraphRetrievalMode,

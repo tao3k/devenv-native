@@ -30,6 +30,7 @@ mod audit_bridge;
 mod ccs;
 #[path = "compensation.rs"]
 mod compensation;
+/// Public Wendao boundary.
 #[path = "fix/mod.rs"]
 pub mod fix;
 #[path = "fuzzy_suggest/mod.rs"]

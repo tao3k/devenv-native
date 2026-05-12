@@ -2,22 +2,27 @@
 
 use std::{
     env,
-    path::{Path, PathBuf},
-    process::Command,
-};
-
-#[cfg(test)]
-use std::{
     io::{BufRead, BufReader, BufWriter, Read, Write},
-    process::{Child, ChildStderr, ChildStdin, ChildStdout, Stdio},
+    path::{Path, PathBuf},
+    process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, Stdio},
+    time::Instant,
 };
 
+use super::persistent_host_report::{
+    SearchStrategyFlowPersistentHostStabilizationLimits,
+    SearchStrategyFlowPersistentHostStabilizationReason,
+    SearchStrategyFlowPersistentHostStabilizationReport, warm_path_stats_from_samples,
+};
 use super::scripts::SEARCH_STRATEGY_FLOW_JULIA;
 use super::{
     enrich_wendaograph_search_strategy_flow_retrieval_routes, resolve_existing_path,
     validate_search_strategy_flow_intent, wendaograph_julia_project,
 };
 use crate::integration_support::search_strategy_flow_candidates::SearchStrategyFlowCandidateInputBatch;
+use crate::integration_support::search_strategy_flow_flight::{
+    SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
+    search_strategy_flow_candidate_input_batch_from_repo_search,
+};
 
 /// Run a batched `WendaoGraph` `SearchStrategyFlow` JSON host replay.
 ///
@@ -37,17 +42,28 @@ pub fn run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches(
         .collect()
 }
 
-#[cfg(test)]
-pub(crate) struct SearchStrategyFlowPersistentBatchHost {
+/// Persistent `WendaoGraph.jl` `SearchStrategyFlow` batch host.
+///
+/// The host keeps one Julia process warm across multiple batch submissions.
+/// Rust still owns candidate discovery, TSV construction, trace enrichment, and
+/// materialization receipts; Julia remains the owner of strategy scoring and
+/// frontier selection.
+pub struct SearchStrategyFlowPersistentBatchHost {
     child: Child,
     stdin: BufWriter<ChildStdin>,
     stdout: BufReader<ChildStdout>,
     stderr: ChildStderr,
 }
 
-#[cfg(test)]
 impl SearchStrategyFlowPersistentBatchHost {
-    pub(crate) fn start(search_root: impl Into<PathBuf>) -> Result<Self, String> {
+    /// Start a persistent Julia batch host for one resolved search root.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the Julia project or search root cannot be
+    /// resolved, the child process cannot be spawned, or the expected standard
+    /// streams are not available.
+    pub fn start(search_root: impl Into<PathBuf>) -> Result<Self, String> {
         let julia_project = wendaograph_julia_project()?;
         let search_root =
             resolve_existing_path("WendaoGraph SearchStrategyFlow search root", search_root)?;
@@ -73,6 +89,13 @@ impl SearchStrategyFlowPersistentBatchHost {
         })
     }
 
+    /// Submit one batch request to the warm Julia process.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the batch request is invalid, stdin cannot be
+    /// written, stdout cannot be read, or the trace count differs from the
+    /// submitted batch count.
     pub(crate) fn submit(
         &mut self,
         candidate_batches: Vec<(&str, SearchStrategyFlowCandidateInputBatch)>,
@@ -96,7 +119,89 @@ impl SearchStrategyFlowPersistentBatchHost {
             .collect()
     }
 
-    pub(crate) fn finish(mut self) -> Result<(), String> {
+    /// Discover candidates through Flight, submit them to the warm Julia host,
+    /// and materialize the planned routes through the same Flight endpoint.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when Flight candidate discovery fails, the warm Julia
+    /// host returns an invalid trace count, JSON trace parsing fails, or Flight
+    /// route materialization fails.
+    pub async fn submit_with_flight_materialization(
+        &mut self,
+        intent: &str,
+        config: &SearchStrategyFlowFlightMaterializationConfig,
+    ) -> Result<String, String> {
+        validate_search_strategy_flow_intent(intent)?;
+        let candidate_batch =
+            search_strategy_flow_candidate_input_batch_from_repo_search(intent, config).await?;
+        let mut traces = self.submit(vec![(intent, candidate_batch)])?;
+        let trace = traces.pop().ok_or_else(|| {
+            "persistent WendaoGraph SearchStrategyFlow host returned no trace".to_owned()
+        })?;
+        let mut value = serde_json::from_str::<serde_json::Value>(&trace).map_err(|error| {
+            format!("parse persistent WendaoGraph SearchStrategyFlow JSON trace: {error}")
+        })?;
+        materialize_search_strategy_flow_routes(&mut value, config).await?;
+        serde_json::to_string(&value)
+            .map(|trace| format!("{trace}\n"))
+            .map_err(|error| {
+                format!("serialize persistent SearchStrategyFlow materialized trace: {error}")
+            })
+    }
+
+    /// Prewarm and sample this host before releasing it to user-visible
+    /// SearchStrategyFlow traffic.
+    ///
+    /// The method keeps the existing TSV, JSON trace, and Flight route
+    /// contracts intact. It only turns warm-host measurements into a Rust
+    /// admission recommendation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the prewarm submit or any warm sample fails.
+    pub async fn stabilize_with_flight_materialization(
+        &mut self,
+        intent: &str,
+        config: &SearchStrategyFlowFlightMaterializationConfig,
+        limits: SearchStrategyFlowPersistentHostStabilizationLimits,
+    ) -> Result<SearchStrategyFlowPersistentHostStabilizationReport, String> {
+        validate_search_strategy_flow_intent(intent)?;
+        let started = Instant::now();
+        self.submit_with_flight_materialization(intent, config)
+            .await?;
+        let prewarm_elapsed = started.elapsed();
+
+        let mut samples = Vec::with_capacity(limits.sample_count);
+        for _ in 0..limits.sample_count {
+            let sample_started = Instant::now();
+            self.submit_with_flight_materialization(intent, config)
+                .await?;
+            samples.push(sample_started.elapsed());
+        }
+
+        let warm = warm_path_stats_from_samples(&samples);
+        let stability_reason = limits.stability_reason_for(&warm);
+        let stable =
+            stability_reason == SearchStrategyFlowPersistentHostStabilizationReason::Stable;
+        let recommended_max_in_flight = limits.recommended_max_in_flight_for(stability_reason);
+
+        Ok(SearchStrategyFlowPersistentHostStabilizationReport {
+            prewarm_elapsed,
+            warm,
+            stable,
+            stability_reason,
+            recommended_max_in_flight,
+        })
+    }
+
+    /// Finish the persistent Julia host and surface any process failure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when waiting for the child process or reading stderr
+    /// fails, or when the child process exits unsuccessfully.
+    pub fn finish(mut self) -> Result<(), String> {
         drop(self.stdin);
         drop(self.stdout);
         let status = self.child.wait().map_err(|error| {
@@ -186,7 +291,6 @@ fn search_strategy_flow_batch_command(
     command
 }
 
-#[cfg(test)]
 fn search_strategy_flow_persistent_batch_command(
     julia_project: &Path,
     search_root: &Path,
@@ -228,7 +332,6 @@ fn parse_batch_stdout(stdout: &[u8], batch_count: usize) -> Result<Vec<String>, 
     Ok(traces)
 }
 
-#[cfg(test)]
 fn write_payload(writer: &mut BufWriter<ChildStdin>, value: &str) -> Result<(), String> {
     writer
         .write_all(format!("{}\n", value.len()).as_bytes())
@@ -238,7 +341,6 @@ fn write_payload(writer: &mut BufWriter<ChildStdin>, value: &str) -> Result<(), 
         })
 }
 
-#[cfg(test)]
 fn read_batch_stdout_lines(
     reader: &mut BufReader<ChildStdout>,
     batch_count: usize,

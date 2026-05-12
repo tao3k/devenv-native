@@ -1,3 +1,5 @@
+//! `parsers::link_graph::query::scan::directives` owns Wendao query scan directives behavior.
+
 mod apply;
 mod filters;
 mod links;

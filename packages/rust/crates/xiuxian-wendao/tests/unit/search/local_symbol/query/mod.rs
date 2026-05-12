@@ -1,3 +1,3 @@
 mod autocomplete;
 mod fixtures;
-mod search;
+mod lookup;

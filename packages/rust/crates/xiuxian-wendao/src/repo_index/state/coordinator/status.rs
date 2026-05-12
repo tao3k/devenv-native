@@ -15,6 +15,7 @@ use crate::repo_index::state::task::RepoIndexTask;
 
 impl RepoIndexCoordinator {
     /// Return the latest coordinator status, optionally filtered to one repository.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn status_response(&self, repo_id: Option<&str>) -> RepoIndexStatusResponse {
         let snapshot = self
             .status_snapshot

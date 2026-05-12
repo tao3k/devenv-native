@@ -1,3 +1,5 @@
+//! `analyzers::query::example` owns Wendao analyzers query example behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

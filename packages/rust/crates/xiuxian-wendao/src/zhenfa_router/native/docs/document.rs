@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::document` owns Wendao native docs document behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};

@@ -1,3 +1,5 @@
+//! `search::contracts::config` owns Wendao search contracts config behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

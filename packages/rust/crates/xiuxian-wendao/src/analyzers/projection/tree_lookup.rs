@@ -1,3 +1,5 @@
+//! `analyzers::projection::tree_lookup` owns Wendao analyzers projection tree lookup behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{RepoProjectedPageIndexTreeQuery, RepoProjectedPageIndexTreeResult};

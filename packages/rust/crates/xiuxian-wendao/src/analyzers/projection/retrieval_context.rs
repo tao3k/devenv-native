@@ -1,3 +1,5 @@
+//! `analyzers::projection::retrieval_context` owns Wendao analyzers projection retrieval context behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{

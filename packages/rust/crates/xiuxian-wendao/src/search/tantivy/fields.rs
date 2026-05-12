@@ -1,3 +1,5 @@
+//! `search::tantivy::fields` owns Wendao search tantivy fields behavior.
+
 use std::collections::HashSet;
 
 use tantivy::TantivyDocument;

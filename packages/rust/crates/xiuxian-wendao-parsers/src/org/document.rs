@@ -2,8 +2,9 @@
 
 use std::collections::BTreeMap;
 
+use orgize::Org;
 use orgize::rowan::ast::AstNode;
-use orgize::{Org, ast::Headline};
+use orgize::syntax_ast::Headline;
 
 use crate::document::{
     DocumentCore, DocumentFormat, DocumentType, OrgDocument, OrgDocumentMetadata,
@@ -56,7 +57,7 @@ fn extract_org_metadata(org: &Org) -> OrgDocumentMetadata {
     }
 
     let properties = org
-        .document()
+        .syntax_document()
         .properties()
         .map(|drawer| {
             drawer
@@ -83,7 +84,7 @@ fn normalize_property_pair(key: &str, value: &str) -> Option<(String, String)> {
 }
 
 fn first_headline_title(org: &Org) -> Option<String> {
-    org.document()
+    org.syntax_document()
         .syntax()
         .descendants()
         .find_map(Headline::cast)

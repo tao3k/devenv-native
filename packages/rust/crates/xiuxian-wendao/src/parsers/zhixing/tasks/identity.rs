@@ -1,3 +1,5 @@
+//! `parsers::zhixing::tasks::identity` owns Wendao zhixing tasks identity behavior.
+
 /// Normalize a stable identity token for zhixing task entities.
 #[must_use]
 pub fn normalize_identity_token(raw: &str) -> String {

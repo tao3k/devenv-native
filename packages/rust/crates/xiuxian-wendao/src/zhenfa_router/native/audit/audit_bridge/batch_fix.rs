@@ -7,6 +7,7 @@ use super::{BatchFix, BatchFixMode, ByteRange, FixResult};
 impl BatchFix {
     /// Create a new batch fix (v2.9 compatible).
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn new(
         issue_type: String,
         doc_path: String,
@@ -31,6 +32,7 @@ impl BatchFix {
 
     /// Create a surgical fix with byte precision (v3.0).
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn surgical(
         doc_path: String,
         line_number: usize,
@@ -110,6 +112,7 @@ impl BatchFix {
 
     /// Generate a surgical batch fix from a fuzzy suggestion with location data.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn from_fuzzy_suggestion_surgical(
         doc_path: String,
         location: &IssueLocation,

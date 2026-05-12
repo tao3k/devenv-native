@@ -1,3 +1,5 @@
+//! `link_graph::context_snapshot` owns Wendao link graph context snapshot behavior.
+
 #[path = "id.rs"]
 pub(crate) mod id;
 #[path = "runtime.rs"]

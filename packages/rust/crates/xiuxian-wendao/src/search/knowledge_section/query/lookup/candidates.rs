@@ -4,9 +4,7 @@ use crate::search::ranking::{RetainedWindow, StreamingRerankTelemetry, trim_rank
 use xiuxian_db_store::EngineRecordBatch;
 
 use super::error::KnowledgeSectionSearchError;
-use super::helpers::{
-    candidate_path_key, compare_candidates, engine_string_column, nullable_value, score_candidate,
-};
+use super::helpers::{engine_string_column, nullable_value, score_candidate};
 
 const MIN_RETAINED_PATHS: usize = 128;
 const RETAINED_PATH_MULTIPLIER: usize = 8;
@@ -75,6 +73,22 @@ pub(crate) fn collect_candidates(
     }
 
     Ok(())
+}
+
+pub(crate) fn compare_candidates(
+    left: &KnowledgeCandidate,
+    right: &KnowledgeCandidate,
+) -> std::cmp::Ordering {
+    right
+        .score
+        .partial_cmp(&left.score)
+        .unwrap_or(std::cmp::Ordering::Equal)
+        .then_with(|| left.path.cmp(&right.path))
+        .then_with(|| left.stem.cmp(&right.stem))
+}
+
+pub(crate) fn candidate_path_key(candidate: &KnowledgeCandidate) -> String {
+    candidate.path.clone()
 }
 
 pub(crate) fn retained_window(limit: usize) -> RetainedWindow {

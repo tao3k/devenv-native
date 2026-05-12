@@ -1,3 +1,5 @@
+//! `hmas::blackboard::validate` owns Wendao hmas blackboard validate behavior.
+
 use super::extract::{ExtractedBlock, collect_blocks};
 use super::report::HmasValidationReport;
 use crate::hmas::protocol::{

@@ -1,3 +1,5 @@
+//! `repo_index::state::coordinator::types` owns Wendao state coordinator types behavior.
+
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;

@@ -1,3 +1,5 @@
+//! `search::status::snapshot` owns Wendao search status snapshot behavior.
+
 use serde::{Deserialize, Serialize};
 
 use crate::search::status::SearchCorpusStatus;

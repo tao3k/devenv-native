@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::artifacts` owns Wendao link graph runtime config artifacts behavior.
+
 #[cfg(all(
     feature = "julia",
     feature = "builtin-plugins",

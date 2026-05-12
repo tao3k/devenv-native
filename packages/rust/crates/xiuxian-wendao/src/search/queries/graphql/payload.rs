@@ -1,3 +1,5 @@
+//! `search::queries::graphql::payload` owns Wendao queries graphql payload behavior.
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
