@@ -5,15 +5,15 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[cfg(test)]
 use serde_json::json;
 
-use super::discovery::{
-    markdown_anchor, search_strategy_flow_candidate_input_batch_with_discovery_receipt,
-};
-use super::types::{
-    CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
-    SearchStrategyFlowCandidateInputBatch,
-};
+use super::discovery::markdown_anchor;
+#[cfg(test)]
+use super::discovery::search_strategy_flow_candidate_input_batch_with_discovery_receipt;
+use super::types::SearchStrategyFlowCandidateInput;
+#[cfg(test)]
+use super::types::{CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInputBatch};
 
 const ROOT_WENDAO_CONFIG_PATH: &str = "wendao.toml";
 const WENDAO_RUST_SURFACE: &str = "packages/rust/crates/xiuxian-wendao";
@@ -42,6 +42,7 @@ pub(crate) fn audit_search_strategy_flow_code_intelligence_inventory(
     ))
 }
 
+#[cfg(test)]
 pub(crate) fn search_strategy_flow_code_intelligence_inventory_candidate_input_batch(
     project_root: &Path,
 ) -> Result<SearchStrategyFlowCandidateInputBatch, String> {

@@ -380,7 +380,9 @@ frontier = strategy_flow_frontier_rows(
     flow_id = flow_id,
     beam_width = strategy_budget.beam_width,
     context_budget = 1900,
+    query_understanding = query_understanding,
 )
+required_evidence_coverage = strategy_flow_required_evidence_coverage(frontier, query_understanding)
 actions = strategy_flow_planner_action_rows(
     rows,
     transitions,
@@ -466,6 +468,9 @@ validation = json_object((
     "materializedTopCandidate" => any(row.action_kind == "materialize" && row.candidate_id in selected_ids for row in actions),
     "blockedEvidencePruned" => all(row -> !row.blocked || !(row.candidate_id in selected_ids), rows),
     "selectedContextReduced" => selected_context < total_context,
+    "requiredEvidenceCovered" => required_evidence_coverage.required_evidence_covered,
+    "selectedRequiredEvidence" => required_evidence_coverage.selected_required_evidence,
+    "missingRequiredEvidence" => required_evidence_coverage.missing_required_evidence,
 ))
 
 return "{" * join((

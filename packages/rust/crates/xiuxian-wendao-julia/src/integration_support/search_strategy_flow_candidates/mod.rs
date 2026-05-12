@@ -19,6 +19,7 @@ pub(crate) use bridge_report::{
     SearchStrategyFlowMaterializedRepoReplayFamily,
     materialized_search_strategy_flow_markdown_replay_families_from_bridge_report,
 };
+#[cfg(test)]
 pub(crate) use code_inventory::{
     audit_search_strategy_flow_code_intelligence_inventory,
     search_strategy_flow_code_intelligence_inventory_candidate_input_batch,
@@ -37,6 +38,7 @@ pub(crate) use discovery::{
     search_strategy_flow_candidate_input_batch_from_markdown,
     search_strategy_flow_candidate_input_batch_with_discovery_receipt,
 };
+#[cfg(test)]
 pub(crate) use registry::{
     audit_search_strategy_flow_registry_authority,
     search_strategy_flow_registry_authority_candidate_input_batch,

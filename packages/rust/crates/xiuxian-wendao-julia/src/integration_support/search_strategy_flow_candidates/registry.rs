@@ -4,13 +4,18 @@ use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
 use serde_json::json;
 
+use super::discovery::repo_relative_path;
+#[cfg(test)]
 use super::discovery::{
-    line_context_cost, markdown_anchor, repo_relative_path,
+    line_context_cost, markdown_anchor,
     search_strategy_flow_candidate_input_batch_with_discovery_receipt,
 };
+#[cfg(test)]
 use super::structured_index::REGISTRY_METADATA_CANDIDATE_SOURCE;
+#[cfg(test)]
 use super::types::{SearchStrategyFlowCandidateInput, SearchStrategyFlowCandidateInputBatch};
 
 const ROOT_WENDAO_CONFIG_PATH: &str = "wendao.toml";
@@ -65,6 +70,7 @@ pub(crate) fn audit_search_strategy_flow_registry_authority(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn search_strategy_flow_registry_authority_candidate_input_batch(
     project_root: &Path,
 ) -> Result<SearchStrategyFlowCandidateInputBatch, String> {
@@ -173,6 +179,7 @@ fn registry_authority_project(
     }
 }
 
+#[cfg(test)]
 fn registry_authority_candidate_input(
     project: &SearchStrategyFlowRegistryAuthorityProject,
 ) -> SearchStrategyFlowCandidateInput {

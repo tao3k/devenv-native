@@ -20,11 +20,20 @@ pub(super) fn projected_page_id(repo_id: &str, doc_id: &str, source_path: &str) 
 }
 
 pub(super) fn graph_node_display_id_candidates(repo_id: &str, source_path: &str) -> Vec<String> {
-    let mut candidates = vec![graph_node_display_id(repo_id, source_path)];
+    let normalized_source_path = repo_relative_source_path(repo_id, source_path);
+    let mut candidates = vec![graph_node_display_id(
+        repo_id,
+        normalized_source_path.as_str(),
+    )];
+    push_unique(&mut candidates, normalized_source_path.clone());
     for surrogate in markdown_surrogate_source_paths(source_path) {
         push_unique(
             &mut candidates,
             graph_node_display_id(repo_id, surrogate.as_str()),
+        );
+        push_unique(
+            &mut candidates,
+            repo_relative_source_path(repo_id, surrogate.as_str()),
         );
     }
     candidates

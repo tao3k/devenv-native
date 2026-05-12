@@ -32,8 +32,10 @@ struct SearchStrategyFlowRouteReceipt {
     materialized_rows: usize,
     resolved_page_id: String,
     resolved_node_id: String,
-    resolved_graph_node_id: String,
+    resolved_graph_node_id: Option<String>,
+    graph_materialization_status: &'static str,
     repo_search_resolution_warning: Option<String>,
+    graph_materialization_warning: Option<String>,
     route_receipts: Vec<Value>,
     decoded_payload_receipts: Vec<Value>,
 }
@@ -189,8 +191,17 @@ async fn materialize_route(
     let retrieval_context_elapsed_ms = elapsed_ms(retrieval_context_started_at);
 
     let graph_started_at = Instant::now();
-    let (graph_node_id, graph_batches) =
-        collect_first_available_graph_neighbors(client, &graph_node_ids).await?;
+    let graph_substitute_status = graph_relation_substitute_status(repo_search_path.as_str());
+    let (graph_node_id, graph_materialization_status, graph_batches, graph_materialization_warning) =
+        match collect_first_available_graph_neighbors(client, &graph_node_ids).await {
+            Ok((graph_node_id, graph_batches)) => {
+                (Some(graph_node_id), "resolved", graph_batches, None)
+            }
+            Err(error) if is_graph_node_not_found_error(error.as_str()) => {
+                (None, graph_substitute_status, Vec::new(), Some(error))
+            }
+            Err(error) => return Err(error),
+        };
     let graph_elapsed_ms = elapsed_ms(graph_started_at);
 
     let route_receipts = route_receipts(
@@ -212,7 +223,8 @@ async fn materialize_route(
         &retrieval_context_batches,
         &graph_batches,
         node_id.as_str(),
-        graph_node_id.as_str(),
+        graph_node_id.as_deref(),
+        graph_materialization_status,
     )?;
     let materialized_rows = row_count(&repo_search_batches)
         + row_count(&page_index_batches)
@@ -224,7 +236,9 @@ async fn materialize_route(
         resolved_page_id: page_id,
         resolved_node_id: node_id,
         resolved_graph_node_id: graph_node_id,
+        graph_materialization_status,
         repo_search_resolution_warning,
+        graph_materialization_warning,
         route_receipts,
         decoded_payload_receipts,
     })
@@ -272,6 +286,22 @@ fn is_graph_node_not_found_error(error: &str) -> bool {
     normalized.contains("graph node") && normalized.contains("not found")
 }
 
+fn graph_relation_substitute_status(source_path: &str) -> &'static str {
+    if source_path_has_markdown_extension(source_path) {
+        "missing"
+    } else {
+        "structured-code-relation-substitute"
+    }
+}
+
+fn source_path_has_markdown_extension(source_path: &str) -> bool {
+    std::path::Path::new(source_path.trim())
+        .extension()
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
+        })
+}
+
 fn route_receipts(
     repo_search_batches: &[RecordBatch],
     page_index_batches: &[RecordBatch],
@@ -310,7 +340,8 @@ fn decoded_payload_receipts(
     retrieval_context_batches: &[RecordBatch],
     graph_batches: &[RecordBatch],
     node_id: &str,
-    graph_node_id: &str,
+    graph_node_id: Option<&str>,
+    graph_materialization_status: &str,
 ) -> Result<Vec<Value>, String> {
     let repo_search_evidence_anchor = format!("path:{repo_search_path}");
     let page_index_evidence_anchor = prefixed_evidence_anchor("node", node_id);
@@ -318,7 +349,8 @@ fn decoded_payload_receipts(
         "node-context:{}",
         first_string(&retrieval_context_batches[0], "nodeId")?
     );
-    let graph_evidence_anchor = format!("graph-node:{graph_node_id}");
+    let graph_evidence_anchor =
+        graph_evidence_anchor(node_id, graph_node_id, graph_materialization_status);
 
     Ok(vec![
         decoded_payload_receipt(
@@ -346,6 +378,23 @@ fn decoded_payload_receipts(
             &graph_evidence_anchor,
         ),
     ])
+}
+
+fn graph_evidence_anchor(
+    node_id: &str,
+    graph_node_id: Option<&str>,
+    graph_materialization_status: &str,
+) -> String {
+    match (graph_materialization_status, graph_node_id) {
+        ("resolved", Some(graph_node_id)) => format!("graph-node:{graph_node_id}"),
+        ("structured-code-relation-substitute", _) => {
+            format!(
+                "structured-code-relation:{}",
+                prefixed_evidence_anchor("node", node_id)
+            )
+        }
+        _ => "graph-node:missing".to_owned(),
+    }
 }
 
 fn prefixed_evidence_anchor(prefix: &str, value: &str) -> String {
@@ -376,10 +425,20 @@ fn apply_route_receipt(
     object.insert("decodedPayloadStatus".to_owned(), json!("decoded"));
     object.insert("resolvedPageId".to_owned(), json!(receipt.resolved_page_id));
     object.insert("resolvedNodeId".to_owned(), json!(receipt.resolved_node_id));
+    let graph_materialization_status = receipt.graph_materialization_status;
+    if let Some(resolved_graph_node_id) = receipt.resolved_graph_node_id {
+        object.insert(
+            "resolvedGraphNodeId".to_owned(),
+            json!(resolved_graph_node_id),
+        );
+    }
     object.insert(
-        "resolvedGraphNodeId".to_owned(),
-        json!(receipt.resolved_graph_node_id),
+        "graphMaterializationStatus".to_owned(),
+        json!(graph_materialization_status),
     );
+    if let Some(warning) = receipt.graph_materialization_warning {
+        object.insert("graphMaterializationWarning".to_owned(), json!(warning));
+    }
     if let Some(warning) = receipt.repo_search_resolution_warning {
         object.insert(
             "repoSearchResolutionStatus".to_owned(),

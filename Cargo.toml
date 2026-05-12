@@ -176,7 +176,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "cfe30635afdaf194891389ce38ec8671c1493471" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "7f359a988861ad8529612d4970ea528ee6697989" }
 
 
 # Performance optimization - Thin LTO for reduced memory
