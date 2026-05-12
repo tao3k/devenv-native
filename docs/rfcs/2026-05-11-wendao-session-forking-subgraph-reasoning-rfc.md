@@ -47,25 +47,24 @@ The agent now operates within a highly focused **Sub-Graph**.
 - **Absolute Focus**: The LLM's context contains only the exact code it needs to edit and the exact rules it must follow.
 - **Hallucination Elimination**: Because unrelated codebase history is physically absent from the context window, the model cannot hallucinate variables or logic from other domains.
 
-## 3. Implementation via Org-Mode and Non-Intrusive SDK
+## 3. Pragmatic Implementation via Native Python SDKs
 
-Crucially, this architecture is designed to augment, not replace, frontier agents (Claude, Codex). We act as the context orchestrator beneath them.
+Crucially, this architecture avoids over-engineered, system-level interventions (e.g., process hijacking or FUSE file system proxies). We do not attempt to "hack" the internal state of closed-source CLI tools.
 
-The **Org-mode** structure defined in previous RFCs serves as the physical map for this Session Graph:
+Instead, we integrate directly at the application layer utilizing official, native Python SDKs (such as the OpenAI/Codex SDK or compatible interfaces).
 
-```org
-* EPIC: Refactor Authentication
-  * DONE [Checkpoint: Auth Domain Map]
-    :PROPERTIES:
-    :CONTEXT_HASH: x9f2a
-    :END:
+### 3.1 Direct Context Array Manipulation
 
-    ** DOING [Fork: from x9f2a] Task: Rewrite verify_token
-       # The LLM session here only contains context x9f2a and this specific task.
+Because we interface with the models via SDKs, we possess absolute, programmatic control over the context window (the `messages` array). The orchestrator (e.g., within `xiuxian-wendao-analyzer`) manages the Org-mode memory tree and constructs the payload dynamically.
 
-    ** TODO [Fork: from x9f2a] Task: Update User Model
-       # An entirely separate session, immune to errors made in the verify_token task.
-```
+1. **State Retrieval**: When a sub-task is initiated, the Python logic reads the specific Org-mode checkpoint, extracting the verified native AST definitions and ontology constraints.
+2. **The "Fork" execution**: The orchestrator simply initializes a fresh array in Python memory: `forked_messages = [system_prompt, pure_checkpoint_data, new_task]`.
+3. **Stateless API Invocation**: The orchestrator passes this highly curated array directly to the SDK (e.g., `client.chat.completions.create(messages=forked_messages)`).
+
+### 3.2 Benefits of the SDK-Driven Approach
+
+- **Zero Hallucination Carryover**: Because the SDK invocation is completely stateless, there is zero physical possibility of the model remembering mistakes from a previous, unrelated turn. The hallucination chain is physically severed.
+- **Minimal Engineering Overhead**: We rely on the robust network, retry, and connection handling built into the official SDKs, allowing our development effort to remain strictly focused on the semantic quality of the graph we pass into the `messages` array.
 
 ## 4. Conclusion
 
