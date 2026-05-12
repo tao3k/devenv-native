@@ -29,23 +29,32 @@ This RFC introduces **Active Citations (Executable Evidence)** to our `orgize`-b
 
 An Active Citation is a hyper-specialized reference syntax embedded within an Org-mode document. Instead of resolving to a static file path, it resolves to an executable query against the system's underlying parsers, DuckDB, or Git history.
 
-### 2.1 Proposed Syntax Extension
+### 2.1 Standardized Syntax via Org-Mode Macros
 
-We will extend the `tao3k/orgize` parser to recognize a new `Link` subtype or exploit the existing `Babel` (Source Block) / `Macro` infrastructure in Org-mode.
+A core architectural principle is that **we do not invent new markdown or markup syntax.** Doing so breaks existing tooling and creates proprietary lock-in.
 
-**Approach A: The Active Link (Recommended for inline evidence)**
+Instead, we map our "Active Citations" strictly to the native, highly-standardized **Macro** capabilities of Org-mode, which the `tao3k/orgize` parser already supports natively.
+
+**Approach A: The Macro Evaluation (Recommended for inline evidence)**
+We utilize Org-mode macros to explicitly and cleanly declare the execution context (e.g., `sql` or `ast-grep`).
 
 ```org
 The system must reject this payload because it violates the dependency constraint:
-[[query:sql:"SELECT target_id FROM dependencies WHERE source_id='auth'"][Check Current Dependencies]]
+{{{sql(SELECT target_id FROM dependencies WHERE source_id='auth')}}}
 ```
 
-**Approach B: The Executable Property Drawer (Recommended for structural logic)**
+Or for an AST query:
+
+```org
+Ensure the target function still exists: {{{ast-grep(pattern: pub fn verify_token($$$))}}}
+```
+
+**Approach B: The Standard Property Drawer (Recommended for structural logic)**
 
 ```org
 * DONE Verify Architecture Compliance
   :PROPERTIES:
-  :EVIDENCE_QUERY: ast-grep:"pattern: pub fn verify_token($$$)"
+  :EVIDENCE_SQL: SELECT COUNT(*) FROM dependencies WHERE source_id='auth'
   :EXPECTED_COUNT: 1
   :END:
 ```
