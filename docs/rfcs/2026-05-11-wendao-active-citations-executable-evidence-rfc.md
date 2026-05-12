@@ -25,39 +25,42 @@ To achieve true "Agentic Autonomy" without hallucinations, an Agent's reasoning 
 
 This RFC introduces **Active Citations (Executable Evidence)** to our `orgize`-based Agentic Memory pipeline. We shift from pointing to _locations_ (where a fact lived) to pointing to _queries_ (how to compute the fact now).
 
-## 2. Core Concept: Query-as-Evidence
+## 2. Core Concept: Query-as-Evidence via Babel Source Blocks
 
-An Active Citation is a hyper-specialized reference syntax embedded within an Org-mode document. Instead of resolving to a static file path, it resolves to an executable query against the system's underlying parsers, DuckDB, or Git history.
+An Active Citation is a hyper-specialized reference mechanism embedded within an Org-mode document. Instead of resolving to a static file path, it resolves to an executable query against the system's underlying parsers, DuckDB, or Git history.
 
-### 2.1 Standardized Syntax via Org-Mode Macros
+### 2.1 Standardized Syntax: Babel Blocks and Name References
 
-A core architectural principle is that **we do not invent new markdown or markup syntax.** Doing so breaks existing tooling and creates proprietary lock-in.
+A critical architectural principle is that **we do not invent new markup syntax or abuse property constraints.** Stuffing multi-line SQL or complex `ast-grep` patterns into single-line Property Drawers or Macro arguments is an anti-pattern that breaks syntax highlighting and escaping logic.
 
-Instead, we map our "Active Citations" strictly to the native, highly-standardized **Macro** capabilities of Org-mode, which the `tao3k/orgize` parser already supports natively.
+Instead, we strictly leverage Org-mode's native **Babel (Source Block)** infrastructure and **Named References**, which the `tao3k/orgize` parser natively supports.
 
-**Approach A: The Macro Evaluation (Recommended for inline evidence)**
-We utilize Org-mode macros to explicitly and cleanly declare the execution context (e.g., `sql` or `ast-grep`).
+**The Implementation Pattern:**
 
-```org
-The system must reject this payload because it violates the dependency constraint:
-{{{sql(SELECT target_id FROM dependencies WHERE source_id='auth')}}}
-```
-
-Or for an AST query:
+1. **Define the Executable Block**: The actual query is written in a properly syntax-highlighted source block, tagged with a unique `#+name`.
 
 ```org
-Ensure the target function still exists: {{{ast-grep(pattern: pub fn verify_token($$$))}}}
+#+name: check-auth-dependencies
+#+begin_src sql
+  SELECT target_id
+  FROM dependencies
+  WHERE source_id = 'auth'
+#+end_src
 ```
 
-**Approach B: The Standard Property Drawer (Recommended for structural logic)**
+2. **Reference in the Property Drawer**: The operational node (e.g., an Agentic reasoning step or a validation gate) links to this query using a standardized property key that references the block's name.
 
 ```org
 * DONE Verify Architecture Compliance
   :PROPERTIES:
-  :EVIDENCE_SQL: SELECT COUNT(*) FROM dependencies WHERE source_id='auth'
-  :EXPECTED_COUNT: 1
+  :EVIDENCE_REF: check-auth-dependencies
+  :EXPECTED_ROWS: 1
   :END:
 ```
+
+### 2.2 Inline Results (Literate Provenance)
+
+Because this utilizes standard Babel syntax, the Rust orchestrator can execute the query and inject the result directly beneath the source block using `#+RESULTS:`, providing an auditable, human-readable trace of the exact data the Agent used to make its decision.
 
 ## 3. The Execution Pipeline (Rust Orchestration)
 
