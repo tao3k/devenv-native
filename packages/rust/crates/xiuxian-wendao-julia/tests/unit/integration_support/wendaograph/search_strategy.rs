@@ -24,6 +24,7 @@ use super::{
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     search_strategy_flow_candidate_input_batch_from_repo_search,
     search_strategy_flow_probe_action_route,
+    search_strategy_flow_registry_authority_candidate_input_batch,
 };
 use arrow::{
     array::{Float64Array, Int32Array, StringArray},
@@ -122,6 +123,8 @@ struct SearchStrategyFlowFakeFlightService {
 mod batch_profile;
 #[path = "search_strategy/materialized_bridge.rs"]
 mod materialized_bridge;
+#[path = "search_strategy/registry.rs"]
+mod registry;
 
 #[derive(Clone, Copy)]
 struct SearchStrategyFlowFakeFlightScenario {
@@ -1290,8 +1293,8 @@ fn assert_live_flight_trace_contract(
 ) {
     assert_eq!(
         trace.get("candidateInputSource"),
-        Some(&serde_json::json!("rust-flight-repo-search")),
-        "{family} must use Flight repo-search candidates"
+        Some(&serde_json::json!("rust-code-intelligence-inventory")),
+        "{family} must use Code-Intelligence inventory candidates"
     );
     assert!(
         trace
@@ -1498,7 +1501,7 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
     .unwrap_or_else(|error| panic!("discover fake Flight candidates: {error}"));
     server.abort();
 
-    assert_eq!(batch.source, "rust-flight-repo-search");
+    assert_eq!(batch.source, "rust-code-intelligence-inventory");
     assert_eq!(batch.row_count, 3);
     assert_eq!(batch.tsv.lines().count(), 3);
     let discovery_receipt: serde_json::Value =
@@ -1566,16 +1569,17 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
     reason = "JSON bridge fixture is intentionally explicit"
 )]
 fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
+    let search_root = search_strategy_flow_live_replay_search_root();
     let trace = serde_json::json!({
         "intent": "find query understanding",
         "backend": "rust-wendao-julia",
         "controlPlane": "rust",
         "graphProject": "/tmp/WendaoGraph.jl",
-        "searchRoot": "/tmp/WendaoGraph.jl",
-        "candidateInputSource": "rust-flight-repo-search",
+        "searchRoot": search_root,
+        "candidateInputSource": "rust-code-intelligence-inventory",
         "candidateInputCount": 2,
         "candidateInputDiscovery": {
-            "receiptSource": "rust-flight-repo-search",
+            "receiptSource": "rust-code-intelligence-inventory",
             "transport": "arrow-flight",
             "route": "/search/repos/main",
             "attemptCount": 2,
@@ -1660,7 +1664,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     assert_eq!(projected_rows.len(), 2);
     assert_eq!(
         structured_contract.get("totalCandidateCount"),
-        Some(&serde_json::json!(2818))
+        Some(&serde_json::json!(2851))
     );
     assert_eq!(
         structured_contract.get("juliaInputPolicy"),
@@ -1679,7 +1683,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     );
     assert_eq!(
         discovery_contract.get("candidateInputSource"),
-        Some(&serde_json::json!("rust-flight-repo-search"))
+        Some(&serde_json::json!("rust-code-intelligence-inventory"))
     );
     assert_eq!(
         discovery_contract.get("structuredSurfaceId"),
@@ -1687,7 +1691,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     );
     assert_eq!(
         discovery_contract.get("promotionDenominator"),
-        Some(&serde_json::json!(2818))
+        Some(&serde_json::json!(2851))
     );
     assert_eq!(
         discovery_contract.get("inputIsNarrowedBatch"),

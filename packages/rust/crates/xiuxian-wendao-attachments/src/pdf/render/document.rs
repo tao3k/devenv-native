@@ -52,7 +52,7 @@ pub(super) fn bind_pdfium() -> Result<Pdfium, String> {
     };
     match bindings {
         Ok(bindings) => Ok(Pdfium::new(bindings)),
-        Err(PdfiumError::PdfiumLibraryBindingsAlreadyInitialized) => Ok(Pdfium),
+        Err(PdfiumError::PdfiumLibraryBindingsAlreadyInitialized) => Ok(Pdfium::default()),
         Err(error) => Err(format!("bind Pdfium library: {error}")),
     }
 }

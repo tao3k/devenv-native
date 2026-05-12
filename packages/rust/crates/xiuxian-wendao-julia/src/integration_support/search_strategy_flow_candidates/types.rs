@@ -4,7 +4,7 @@ use serde::Serialize;
 
 pub(crate) const MAX_CANDIDATES: usize = 12;
 pub(crate) const MARKDOWN_HEADING_CANDIDATE_SOURCE: &str = "rust-markdown-headings";
-pub(crate) const FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE: &str = "rust-flight-repo-search";
+pub(crate) const CODE_INTELLIGENCE_CANDIDATE_SOURCE: &str = "rust-code-intelligence-inventory";
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

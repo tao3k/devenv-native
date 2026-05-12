@@ -2,14 +2,16 @@
 
 use std::collections::{HashMap, HashSet};
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde_json::{Value, json};
 
 use super::search_strategy_flow_candidates::{
-    SearchStrategyFlowCandidateInputBatch, search_strategy_flow_candidate_discovery_contract_json,
+    SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowStructuredCandidateCounts,
+    search_strategy_flow_candidate_discovery_contract_json,
     search_strategy_flow_candidate_input_batch_from_markdown,
+    search_strategy_flow_configured_structured_candidate_counts,
     search_strategy_flow_total_structured_candidate_index_contract_json,
 };
 #[cfg(test)]
@@ -17,6 +19,7 @@ use super::search_strategy_flow_candidates::{
     SearchStrategyFlowConfiguredMarkdownReplayFamily,
     configured_search_strategy_flow_markdown_replay_families,
     configured_search_strategy_flow_markdown_replay_families_with_limit,
+    search_strategy_flow_registry_authority_candidate_input_batch,
 };
 use super::search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
@@ -359,7 +362,9 @@ fn add_search_strategy_flow_retrieval_routes(value: &mut Value) -> Result<(), St
     let routes = build_search_strategy_flow_retrieval_routes(value);
     let projected_evidence_rows =
         build_search_strategy_flow_rust_projected_evidence_rows(value, &routes);
+    let (candidate_counts, inventory_source) = search_strategy_flow_trace_candidate_counts(value);
     let candidate_discovery_contract = search_strategy_flow_candidate_discovery_contract_json(
+        candidate_counts,
         json_string(value, "candidateInputSource"),
         json_usize(value, "candidateInputCount"),
         value.get("candidateInputDiscovery"),
@@ -374,13 +379,47 @@ fn add_search_strategy_flow_retrieval_routes(value: &mut Value) -> Result<(), St
     );
     object.insert(
         "structuredCandidateIndexContract".to_owned(),
-        search_strategy_flow_total_structured_candidate_index_contract_json(),
+        search_strategy_flow_total_structured_candidate_index_contract_json(
+            candidate_counts,
+            inventory_source,
+        ),
     );
     object.insert(
         "candidateDiscoveryContract".to_owned(),
         candidate_discovery_contract,
     );
     Ok(())
+}
+
+fn search_strategy_flow_trace_candidate_counts(
+    value: &Value,
+) -> (SearchStrategyFlowStructuredCandidateCounts, &'static str) {
+    let Some(search_root) = json_string(value, "searchRoot") else {
+        return (
+            SearchStrategyFlowStructuredCandidateCounts::default(),
+            "missing-search-root",
+        );
+    };
+    let Some(project_root) = find_wendao_project_root(Path::new(search_root)) else {
+        return (
+            SearchStrategyFlowStructuredCandidateCounts::default(),
+            "unresolved-wendao-project-root",
+        );
+    };
+    search_strategy_flow_configured_structured_candidate_counts(project_root.as_path()).map_or(
+        (
+            SearchStrategyFlowStructuredCandidateCounts::default(),
+            "inventory-scan-error",
+        ),
+        |counts| (counts, "wendao-toml-git-tracked-inventory"),
+    )
+}
+
+fn find_wendao_project_root(start: &Path) -> Option<PathBuf> {
+    start
+        .ancestors()
+        .find(|ancestor| ancestor.join("wendao.toml").is_file())
+        .map(Path::to_path_buf)
 }
 
 fn serialize_search_strategy_flow_trace(value: &Value) -> Result<String, String> {

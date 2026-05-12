@@ -3,10 +3,12 @@
 #[cfg(test)]
 #[path = "../../../tests/unit/integration_support/search_strategy_flow_candidates/bridge_report_support.rs"]
 mod bridge_report;
+mod code_inventory;
 #[cfg(test)]
 #[path = "../../../tests/unit/integration_support/search_strategy_flow_candidates/corpus_support.rs"]
 mod corpus;
 mod discovery;
+mod registry;
 mod repo_search;
 mod structured_index;
 mod types;
@@ -16,6 +18,10 @@ pub(super) use super::search_strategy_flow_evidence_edge_kinds;
 pub(crate) use bridge_report::{
     SearchStrategyFlowMaterializedRepoReplayFamily,
     materialized_search_strategy_flow_markdown_replay_families_from_bridge_report,
+};
+pub(crate) use code_inventory::{
+    audit_search_strategy_flow_code_intelligence_inventory,
+    search_strategy_flow_code_intelligence_inventory_candidate_input_batch,
 };
 #[cfg(test)]
 pub(crate) use corpus::{
@@ -31,20 +37,24 @@ pub(crate) use discovery::{
     search_strategy_flow_candidate_input_batch_from_markdown,
     search_strategy_flow_candidate_input_batch_with_discovery_receipt,
 };
+pub(crate) use registry::{
+    audit_search_strategy_flow_registry_authority,
+    search_strategy_flow_registry_authority_candidate_input_batch,
+};
 pub(crate) use repo_search::search_strategy_flow_candidate_input_from_repo_search_hit;
 #[cfg(test)]
 pub(crate) use structured_index::{
-    CODE_INTELLIGENCE_STRUCTURED_CANDIDATE_COUNT, PRIMARY_MARKDOWN_STRUCTURED_CANDIDATE_COUNT,
-    REGISTRY_AUTHORITY_STRUCTURED_CANDIDATE_COUNT, RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
-    TOTAL_STRUCTURED_CANDIDATE_COUNT,
+    REGISTRY_METADATA_CANDIDATE_SOURCE, RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
     search_strategy_flow_total_structured_candidate_index_contract,
 };
 pub(crate) use structured_index::{
+    SearchStrategyFlowStructuredCandidateCounts,
     search_strategy_flow_candidate_discovery_contract_json,
+    search_strategy_flow_configured_structured_candidate_counts,
     search_strategy_flow_total_structured_candidate_index_contract_json,
 };
 pub(crate) use types::{
-    FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
+    CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
     SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowRepoSearchHit,
 };
 #[cfg(test)]

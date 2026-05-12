@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use xiuxian_wendao_runtime::transport::REPO_SEARCH_ROUTE;
 
 use crate::integration_support::search_strategy_flow_candidates::{
-    FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
+    CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
     SearchStrategyFlowCandidateInputBatch,
     search_strategy_flow_candidate_input_batch_with_discovery_receipt,
 };
@@ -88,7 +88,7 @@ pub(crate) async fn search_strategy_flow_candidate_input_batch_from_repo_search(
         merged_candidates.truncate(MAX_FLIGHT_DISCOVERY_CANDIDATES);
         return Ok(
             search_strategy_flow_candidate_input_batch_with_discovery_receipt(
-                FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE,
+                CODE_INTELLIGENCE_CANDIDATE_SOURCE,
                 &merged_candidates,
                 candidate_discovery_receipt(
                     config.repo_id.as_str(),
@@ -280,8 +280,8 @@ fn candidate_discovery_receipt(
     attempts: Vec<Value>,
 ) -> Value {
     json!({
-        "receiptSource": FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE,
-        "candidateInputSource": FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE,
+        "receiptSource": CODE_INTELLIGENCE_CANDIDATE_SOURCE,
+        "candidateInputSource": CODE_INTELLIGENCE_CANDIDATE_SOURCE,
         "candidateInputCount": merged_candidate_count,
         "repoId": repo_id,
         "transport": "arrow-flight",

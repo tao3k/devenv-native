@@ -22,6 +22,7 @@ use super::{
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     search_strategy_flow_candidate_input_batch_from_repo_search,
     search_strategy_flow_probe_action_route,
+    search_strategy_flow_registry_authority_candidate_input_batch,
 };
 
 const RUN_WENDAOGRAPH_PAGE_INDEX_HOST_PROBE_TEST_ENV: &str =

@@ -87,12 +87,13 @@ needs a feature-gated second plugin bundle for these languages.
   `repoSearchResolutionStatus` so live audits can distinguish repo-search
   resolution from source-path fallback.
 - SearchStrategyFlow candidate ownership now distinguishes the full structured
-  inventory from the Markdown replay subset. The Rust bridge records the
-  `2818`-candidate denominator as `478` primary Markdown candidates, `2159`
-  Code-Intelligence downlink candidates, and `181` registry authority
-  candidates. Rust/DuckDB owns structured candidate retrieval; Julia receives a
-  narrowed candidate batch and owns strategy scoring, required-evidence
-  coverage, and frontier selection.
+  inventory from the Markdown replay subset. The Rust bridge derives the
+  denominator at runtime from root `wendao.toml` plus git-tracked files; the
+  current repository scan reports `2851` candidates as `476` primary Markdown
+  candidates, `2194` Code-Intelligence downlink candidates, and `181` registry
+  authority candidates. Rust/DuckDB owns structured candidate retrieval; Julia
+  receives a narrowed candidate batch and owns strategy scoring,
+  required-evidence coverage, and frontier selection.
 - SearchStrategyFlow Flight candidate discovery now runs route-scoped authority
   attempts before broad repo-search windows and ranks the merged result before
   truncating the Julia input batch. Package-owned `xiuxian-wendao-julia`
@@ -131,13 +132,13 @@ needs a feature-gated second plugin bundle for these languages.
   evidence supports promoting a long-lived Rust-controlled Julia pod path
   before adding lower-level transport changes.
 - Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
-  reports can show both the narrowed Julia input count and the full `2818`
+  reports can show both the narrowed Julia input count and the runtime
   promotion denominator. This prevents a fast Markdown replay subset from being
-  mistaken for the total structured search surface. Flight-sourced batches also
-  embed a candidate-discovery receipt with the Rust route, transport, attempt
-  count, per-attempt row counts, request limit, and merged candidate count so
-  live traces can prove which Rust path narrowed the batch before Julia
-  strategy selection.
+  mistaken for the total structured search surface. Code-Intelligence and
+  Flight-sourced batches also embed a candidate-discovery receipt with the Rust
+  route, transport, attempt count, per-attempt row counts, request limit, and
+  merged candidate count so live traces can prove which Rust path narrowed the
+  batch before Julia strategy selection.
 - Julia test support now lives under `tests/unit/plugin/` plus
   `tests/unit/memory/mod.rs` instead of production `src/` files, while
   `src/lib.rs` owns the root harness target so `cargo test --lib` executes the
@@ -384,11 +385,11 @@ needs a feature-gated second plugin bundle for these languages.
 - when a SearchStrategyFlow Flight materialization endpoint is configured, the
   bridge first asks the Studio `/search/repos/main` Arrow Flight route for
   repo-native candidate rows and passes those rows to Julia with
-  `candidateInputSource="rust-flight-repo-search"`. This keeps section
-  discovery on the indexed Rust/Studio side while Julia owns graph strategy
-  flow decisions. The local Markdown heading scan remains the no-endpoint
-  smoke path and is not a TypeScript or `pi-wendao` responsibility. The same
-  trace includes `candidateInputDiscovery` and folds that receipt into
+  `candidateInputSource="rust-code-intelligence-inventory"`. This keeps
+  section discovery on the indexed Rust/Studio side while Julia owns graph
+  strategy flow decisions. The local Markdown heading scan remains the
+  no-endpoint smoke path and is not a TypeScript or `pi-wendao` responsibility.
+  The same trace includes `candidateInputDiscovery` and folds that receipt into
   `candidateDiscoveryContract.discoveryReceipt` without changing the
   candidate TSV ABI.
 - the algorithm catalog now also exposes a relationship-search subset for

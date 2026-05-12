@@ -1,16 +1,13 @@
 //! Total structured candidate-index contract for `SearchStrategyFlow`.
 
+use std::path::Path;
+
 use serde_json::{Value, json};
 
 pub(crate) const STRUCTURED_INDEX_CANDIDATE_SOURCE: &str = "rust-structured-candidate-index";
 pub(crate) const REGISTRY_METADATA_CANDIDATE_SOURCE: &str = "rust-registry-metadata";
 pub(crate) const RUST_DUCKDB_STRUCTURED_INDEX_BACKEND: &str = "rust-duckdb-structured-index";
 pub(crate) const NARROWED_CANDIDATE_BATCH_POLICY: &str = "narrowed-candidate-batch";
-
-pub(crate) const TOTAL_STRUCTURED_CANDIDATE_COUNT: usize = 2818;
-pub(crate) const PRIMARY_MARKDOWN_STRUCTURED_CANDIDATE_COUNT: usize = 478;
-pub(crate) const CODE_INTELLIGENCE_STRUCTURED_CANDIDATE_COUNT: usize = 2159;
-pub(crate) const REGISTRY_AUTHORITY_STRUCTURED_CANDIDATE_COUNT: usize = 181;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SearchStrategyFlowStructuredCandidateSurface {
@@ -22,6 +19,23 @@ pub(crate) struct SearchStrategyFlowStructuredCandidateSurface {
     pub(crate) bridge_status: &'static str,
     pub(crate) julia_input_policy: &'static str,
     pub(crate) promotion_denominator: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SearchStrategyFlowStructuredCandidateCounts {
+    pub(crate) primary_markdown: usize,
+    pub(crate) code_intelligence: usize,
+    pub(crate) registry_authority: usize,
+}
+
+impl Default for SearchStrategyFlowStructuredCandidateCounts {
+    fn default() -> Self {
+        Self {
+            primary_markdown: 0,
+            code_intelligence: 0,
+            registry_authority: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,14 +77,30 @@ impl SearchStrategyFlowStructuredCandidateIndexContract {
     }
 }
 
-pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract()
--> SearchStrategyFlowStructuredCandidateIndexContract {
+pub(crate) fn search_strategy_flow_configured_structured_candidate_counts(
+    project_root: &Path,
+) -> Result<SearchStrategyFlowStructuredCandidateCounts, String> {
+    let code_inventory =
+        super::code_inventory::audit_search_strategy_flow_code_intelligence_inventory(
+            project_root,
+        )?;
+    let registry = super::registry::audit_search_strategy_flow_registry_authority(project_root)?;
+    Ok(SearchStrategyFlowStructuredCandidateCounts {
+        primary_markdown: code_inventory.primary_markdown_count,
+        code_intelligence: code_inventory.total_candidate_count,
+        registry_authority: registry.configured_project_count,
+    })
+}
+
+pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract(
+    counts: SearchStrategyFlowStructuredCandidateCounts,
+) -> SearchStrategyFlowStructuredCandidateIndexContract {
     SearchStrategyFlowStructuredCandidateIndexContract {
         surfaces: vec![
             SearchStrategyFlowStructuredCandidateSurface {
                 surface_id: "primary-markdown",
                 candidate_source: super::types::MARKDOWN_HEADING_CANDIDATE_SOURCE,
-                candidate_count: PRIMARY_MARKDOWN_STRUCTURED_CANDIDATE_COUNT,
+                candidate_count: counts.primary_markdown,
                 structured_surface_role: "primary-markdown-scenario",
                 rust_backend: RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
                 bridge_status: "measured-local-rust-trace",
@@ -79,21 +109,21 @@ pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract()
             },
             SearchStrategyFlowStructuredCandidateSurface {
                 surface_id: "code-intelligence-downlink",
-                candidate_source: super::types::FLIGHT_REPO_SEARCH_CANDIDATE_SOURCE,
-                candidate_count: CODE_INTELLIGENCE_STRUCTURED_CANDIDATE_COUNT,
+                candidate_source: super::types::CODE_INTELLIGENCE_CANDIDATE_SOURCE,
+                candidate_count: counts.code_intelligence,
                 structured_surface_role: "code-intelligence-support-evidence",
                 rust_backend: RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
-                bridge_status: "pending-live-flight-inventory",
+                bridge_status: "measured-git-tracked-inventory",
                 julia_input_policy: NARROWED_CANDIDATE_BATCH_POLICY,
                 promotion_denominator: true,
             },
             SearchStrategyFlowStructuredCandidateSurface {
                 surface_id: "registry-authority",
                 candidate_source: REGISTRY_METADATA_CANDIDATE_SOURCE,
-                candidate_count: REGISTRY_AUTHORITY_STRUCTURED_CANDIDATE_COUNT,
+                candidate_count: counts.registry_authority,
                 structured_surface_role: "registry-authority-index",
                 rust_backend: RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
-                bridge_status: "pending-registry-metadata-replay",
+                bridge_status: "measured-registry-metadata-replay",
                 julia_input_policy: NARROWED_CANDIDATE_BATCH_POLICY,
                 promotion_denominator: true,
             },
@@ -101,13 +131,12 @@ pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract()
     }
 }
 
-pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract_json() -> Value {
-    let contract = search_strategy_flow_total_structured_candidate_index_contract();
+pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract_json(
+    counts: SearchStrategyFlowStructuredCandidateCounts,
+    inventory_source: &str,
+) -> Value {
+    let contract = search_strategy_flow_total_structured_candidate_index_contract(counts);
     let total_candidate_count = contract.total_candidate_count();
-    debug_assert_eq!(
-        total_candidate_count, TOTAL_STRUCTURED_CANDIDATE_COUNT,
-        "SearchStrategyFlow structured candidate surface counts must sum to the locked denominator"
-    );
     let surfaces = contract
         .surfaces
         .iter()
@@ -126,6 +155,7 @@ pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract_jso
         .collect::<Vec<_>>();
     json!({
         "contractSource": STRUCTURED_INDEX_CANDIDATE_SOURCE,
+        "inventorySource": inventory_source,
         "totalCandidateCount": total_candidate_count,
         "pendingSurfaceCount": contract.pending_surface_count(),
         "rustBackend": RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
@@ -138,11 +168,12 @@ pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract_jso
 }
 
 pub(crate) fn search_strategy_flow_candidate_discovery_contract_json(
+    counts: SearchStrategyFlowStructuredCandidateCounts,
     candidate_input_source: Option<&str>,
     candidate_input_count: usize,
     candidate_input_discovery: Option<&Value>,
 ) -> Value {
-    let contract = search_strategy_flow_total_structured_candidate_index_contract();
+    let contract = search_strategy_flow_total_structured_candidate_index_contract(counts);
     let total_candidate_count = contract.total_candidate_count();
     let source = candidate_input_source.unwrap_or("unknown");
     let surface = contract
