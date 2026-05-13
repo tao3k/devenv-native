@@ -6,7 +6,7 @@
 pub mod wendao;
 
 /// Runtime-backed Arrow Flight server entrypoint support.
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "flight-server-bin-support")]
 #[path = "flight_server.rs"]
 pub mod flight_server;
 

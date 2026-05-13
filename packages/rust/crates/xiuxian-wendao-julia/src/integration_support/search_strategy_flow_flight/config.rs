@@ -2,6 +2,8 @@
 
 use super::constants::DEFAULT_TIMEOUT_SECONDS;
 
+const DEFAULT_BACKEND_REPO_ID: &str = "main";
+
 /// Network endpoint settings for Studio-backed `SearchStrategyFlow` Flight
 /// materialization through the Rust bridge client.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -34,6 +36,16 @@ impl SearchStrategyFlowFlightMaterializationConfig {
             repo_id,
             timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
         })
+    }
+
+    /// Creates a Flight materialization config using the backend-owned default
+    /// repository admission context.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the endpoint is blank.
+    pub fn new_with_backend_default_repo(base_url: impl Into<String>) -> Result<Self, String> {
+        Self::new(base_url, DEFAULT_BACKEND_REPO_ID)
     }
 
     /// Sets the per-route request timeout.

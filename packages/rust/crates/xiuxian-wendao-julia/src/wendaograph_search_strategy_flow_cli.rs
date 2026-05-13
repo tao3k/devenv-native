@@ -15,7 +15,7 @@ use crate::integration_support::{
 use serde::Deserialize;
 use serde_json::json;
 
-const USAGE: &str = "usage: wendaograph_search_strategy_flow --intent <text> --search-root <path> [--flight-base-url <url> --flight-repo <repo>] [--persistent-warm-samples <count>] [--serve-stdio]";
+const USAGE: &str = "usage: wendaograph_search_strategy_flow --intent <text> [--search-root <path>] [--flight-base-url <url> [--flight-repo <repo>]] [--persistent-warm-samples <count>] [--serve-stdio]";
 const STDIO_SESSION_RESPONSE_KIND: &str =
     "xiuxian_wendao.wendaograph.search_strategy_flow.persistent_stdio_response.v1";
 
@@ -54,9 +54,7 @@ pub async fn run_with_args(args: impl Iterator<Item = String>) -> i32 {
 async fn run(args: Args) -> Result<String, String> {
     let config = args.flight_materialization_config()?;
     if args.serve_stdio {
-        let config = config.ok_or_else(|| {
-            "--serve-stdio requires --flight-base-url and --flight-repo".to_owned()
-        })?;
+        let config = config.ok_or_else(|| "--serve-stdio requires --flight-base-url".to_owned())?;
         return run_persistent_stdio_session(&args, &config).await;
     }
     let intent = args
@@ -64,9 +62,8 @@ async fn run(args: Args) -> Result<String, String> {
         .as_deref()
         .ok_or_else(|| "missing --intent".to_owned())?;
     if let Some(sample_count) = args.persistent_warm_samples {
-        let config = config.ok_or_else(|| {
-            "--persistent-warm-samples requires --flight-base-url and --flight-repo".to_owned()
-        })?;
+        let config = config
+            .ok_or_else(|| "--persistent-warm-samples requires --flight-base-url".to_owned())?;
         return run_persistent_stabilization_report(&args, intent, &config, sample_count).await;
     }
     run_wendaograph_search_strategy_flow_json_with_flight_materialization(
@@ -101,7 +98,7 @@ async fn run_persistent_stabilization_report(
                 "searchRoot": args.search_root.display().to_string(),
                 "flight": {
                     "baseUrl": args.flight_base_url.as_deref().unwrap_or_default(),
-                    "repo": args.flight_repo.as_deref().unwrap_or_default(),
+                    "repo": config.repo_id,
                     "timeoutSeconds": args.flight_timeout_seconds,
                 },
                 "persistentHost": report.to_json_value(),
@@ -226,14 +223,15 @@ impl Args {
         let Some(base_url) = self.flight_base_url.as_ref() else {
             return Ok(None);
         };
-        let Some(repo) = self.flight_repo.as_ref() else {
-            return Ok(None);
-        };
-        Ok(Some(
-            SearchStrategyFlowFlightMaterializationConfig::new(base_url, repo)
-                .map_err(|error| format!("invalid SearchStrategyFlow Flight config: {error}"))?
-                .with_timeout_seconds(self.flight_timeout_seconds),
-        ))
+        let config = match self.flight_repo.as_ref() {
+            Some(repo) => SearchStrategyFlowFlightMaterializationConfig::new(base_url, repo),
+            None => SearchStrategyFlowFlightMaterializationConfig::new_with_backend_default_repo(
+                base_url,
+            ),
+        }
+        .map_err(|error| format!("invalid SearchStrategyFlow Flight config: {error}"))?
+        .with_timeout_seconds(self.flight_timeout_seconds);
+        Ok(Some(config))
     }
 }
 
@@ -301,7 +299,9 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args, String> {
         }
     }
 
-    let search_root = search_root.ok_or_else(|| "missing --search-root".to_owned())?;
+    let search_root = search_root.map(Ok).unwrap_or_else(|| {
+        env::current_dir().map_err(|error| format!("resolve current dir: {error}"))
+    })?;
     if serve_stdio && persistent_warm_samples.is_some() {
         return Err("--serve-stdio cannot be combined with --persistent-warm-samples".to_owned());
     }
@@ -310,7 +310,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args, String> {
     }
     match (&flight_base_url, &flight_repo) {
         (Some(_), Some(_)) | (None, None) => {}
-        (Some(_), None) => return Err("missing --flight-repo".to_owned()),
+        (Some(_), None) => {}
         (None, Some(_)) => return Err("missing --flight-base-url".to_owned()),
     }
     Ok(Args {

@@ -17,8 +17,6 @@ fn parse_args_accepts_persistent_warm_samples() {
             ".",
             "--flight-base-url",
             "http://127.0.0.1:50052",
-            "--flight-repo",
-            "main",
             "--persistent-warm-samples",
             "3",
         ]
@@ -61,8 +59,6 @@ fn parse_args_accepts_stdio_session_without_intent() {
             ".",
             "--flight-base-url",
             "http://127.0.0.1:50052",
-            "--flight-repo",
-            "main",
             "--serve-stdio",
         ]
         .into_iter()
@@ -76,6 +72,25 @@ fn parse_args_accepts_stdio_session_without_intent() {
 }
 
 #[test]
+fn parse_args_defaults_search_root_to_current_dir() {
+    let Ok(args) = parse_args(
+        [
+            "--intent",
+            "Find ownership and validation evidence",
+            "--flight-base-url",
+            "http://127.0.0.1:50052",
+        ]
+        .into_iter()
+        .map(str::to_owned),
+    ) else {
+        panic!("search root should default to current dir");
+    };
+
+    assert!(args.search_root.is_absolute());
+    assert_eq!(args.flight_repo, None);
+}
+
+#[test]
 fn parse_args_rejects_stdio_session_combined_with_stabilization_report() {
     let Err(error) = parse_args(
         [
@@ -85,8 +100,6 @@ fn parse_args_rejects_stdio_session_combined_with_stabilization_report() {
             ".",
             "--flight-base-url",
             "http://127.0.0.1:50052",
-            "--flight-repo",
-            "main",
             "--persistent-warm-samples",
             "2",
             "--serve-stdio",
@@ -161,6 +174,6 @@ async fn persistent_warm_samples_require_flight_config_before_launch() {
 
     assert_eq!(
         error,
-        "--persistent-warm-samples requires --flight-base-url and --flight-repo"
+        "--persistent-warm-samples requires --flight-base-url"
     );
 }
