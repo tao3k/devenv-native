@@ -5,11 +5,11 @@ use tonic::metadata::MetadataMap;
 
 use super::header_values::split_non_empty_header_values;
 use crate::transport::query_contract::{
-    WENDAO_REPO_SEARCH_FILENAME_FILTERS_HEADER, WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER,
-    WENDAO_REPO_SEARCH_LIMIT_HEADER, WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER,
-    WENDAO_REPO_SEARCH_QUERY_HEADER, WENDAO_REPO_SEARCH_REPO_HEADER,
-    WENDAO_REPO_SEARCH_TAG_FILTERS_HEADER, WENDAO_REPO_SEARCH_TITLE_FILTERS_HEADER,
-    validate_repo_search_request,
+    RepoSearchRequest, WENDAO_REPO_SEARCH_FILENAME_FILTERS_HEADER,
+    WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER, WENDAO_REPO_SEARCH_LIMIT_HEADER,
+    WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER, WENDAO_REPO_SEARCH_QUERY_HEADER,
+    WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_REPO_SEARCH_TAG_FILTERS_HEADER,
+    WENDAO_REPO_SEARCH_TITLE_FILTERS_HEADER, validate_repo_search_request,
 };
 use crate::transport::server::types::RepoSearchFlightRequest;
 
@@ -51,15 +51,15 @@ pub(crate) fn validate_repo_search_request_metadata(
         split_non_empty_header_values(metadata, WENDAO_REPO_SEARCH_TAG_FILTERS_HEADER);
     let filename_filter_values =
         split_non_empty_header_values(metadata, WENDAO_REPO_SEARCH_FILENAME_FILTERS_HEADER);
-    validate_repo_search_request(
-        query_text.as_str(),
-        parsed_limit,
-        &language_filter_values,
-        &path_prefix_values,
-        &title_filter_values,
-        &tag_filter_values,
-        &filename_filter_values,
-    )
+    validate_repo_search_request(RepoSearchRequest {
+        query_text: query_text.as_str(),
+        limit: parsed_limit,
+        language_filters: &language_filter_values,
+        path_prefixes: &path_prefix_values,
+        title_filters: &title_filter_values,
+        tag_filters: &tag_filter_values,
+        filename_filters: &filename_filter_values,
+    })
     .map_err(Status::invalid_argument)?;
     let language_filters = language_filter_values
         .into_iter()

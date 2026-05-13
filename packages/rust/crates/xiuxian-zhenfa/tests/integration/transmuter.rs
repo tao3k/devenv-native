@@ -1,6 +1,8 @@
 //! Transmuter structural validation and normalization coverage.
 
-use xiuxian_zhenfa::{ZhenfaResolveAndWashError, ZhenfaTransmuter, ZhenfaTransmuterError};
+use xiuxian_zhenfa::{
+    ZhenfaResolveAndWashError, ZhenfaTransmuter, ZhenfaTransmuterError, ZhenfaXmlLiteTagName,
+};
 
 #[test]
 fn validate_structure_accepts_balanced_xml_lite() {
@@ -44,7 +46,7 @@ fn validate_and_refine_rejects_unclosed_tag() {
     assert_eq!(
         result,
         Err(ZhenfaTransmuterError::UnclosedTag {
-            tag: "score".to_string(),
+            tag: ZhenfaXmlLiteTagName::from("score"),
         })
     );
 }
@@ -83,7 +85,7 @@ fn resolve_and_wash_validates_xml_for_xml_assets() {
         result,
         Err(ZhenfaResolveAndWashError::Transmuter(
             ZhenfaTransmuterError::UnclosedTag {
-                tag: "score".to_string(),
+                tag: ZhenfaXmlLiteTagName::from("score"),
             }
         ))
     );

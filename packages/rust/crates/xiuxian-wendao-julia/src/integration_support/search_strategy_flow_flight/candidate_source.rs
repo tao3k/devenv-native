@@ -6,8 +6,8 @@ use serde_json::{Value, json};
 use xiuxian_wendao_runtime::transport::REPO_SEARCH_ROUTE;
 
 use crate::integration_support::search_strategy_flow_candidates::{
-    CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
-    SearchStrategyFlowCandidateInputBatch,
+    SearchStrategyFlowCandidateInput, SearchStrategyFlowCandidateInputBatch,
+    WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
     search_strategy_flow_candidate_input_batch_with_discovery_receipt,
 };
 
@@ -16,6 +16,7 @@ use super::config::SearchStrategyFlowFlightMaterializationConfig;
 use super::constants::{
     MAX_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS, MAX_FLIGHT_DISCOVERY_CANDIDATES,
     MIN_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP,
+    MIN_FLIGHT_REQUIRED_EVIDENCE_CANDIDATES_BEFORE_EARLY_STOP,
     MIN_FLIGHT_REQUIRED_EVIDENCE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP, REPO_SEARCH_LIMIT,
 };
 use super::metadata::populate_repo_search_headers;
@@ -33,7 +34,6 @@ pub(crate) async fn search_strategy_flow_candidate_input_batch_from_repo_search(
     let attempts = candidate_discovery_queries(intent);
     let mut attempted = Vec::new();
     let mut attempt_receipts = Vec::new();
-    let mut seen = HashSet::<(String, String)>::new();
     let mut merged_candidates = Vec::new();
     for (attempt_index, attempt) in attempts
         .iter()
@@ -70,26 +70,20 @@ pub(crate) async fn search_strategy_flow_candidate_input_batch_from_repo_search(
             config.repo_id.as_str(),
             repo_search_batches_to_candidate_inputs(&batches),
         ) {
-            let key = (
-                candidate.relative_path.clone(),
-                candidate.heading_anchor.clone(),
-            );
-            if seen.insert(key) {
-                merged_candidates.push(candidate);
-            }
+            merge_candidate_discovery_result(&mut merged_candidates, candidate);
         }
         if should_stop_candidate_discovery(attempt_index + 1, &merged_candidates) {
             break;
         }
     }
     if !merged_candidates.is_empty() {
-        calibrate_candidate_discovery_scores(&mut merged_candidates);
-        rank_candidate_discovery_results(&mut merged_candidates);
+        calibrate_candidate_discovery_scores_for_intent(&mut merged_candidates, intent);
+        rank_candidate_discovery_results_for_intent(&mut merged_candidates, intent);
         retain_unique_candidate_sources(&mut merged_candidates);
         merged_candidates.truncate(MAX_FLIGHT_DISCOVERY_CANDIDATES);
         return Ok(
             search_strategy_flow_candidate_input_batch_with_discovery_receipt(
-                CODE_INTELLIGENCE_CANDIDATE_SOURCE,
+                WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
                 &merged_candidates,
                 &candidate_discovery_receipt(
                     config.repo_id.as_str(),
@@ -117,6 +111,31 @@ fn retain_unique_candidate_sources(candidates: &mut Vec<SearchStrategyFlowCandid
     candidates.retain(|candidate| seen_paths.insert(candidate.relative_path.clone()));
 }
 
+fn merge_candidate_discovery_result(
+    candidates: &mut Vec<SearchStrategyFlowCandidateInput>,
+    candidate: SearchStrategyFlowCandidateInput,
+) {
+    let Some(existing) = candidates.iter_mut().find(|existing| {
+        existing.relative_path == candidate.relative_path
+            && existing.heading_anchor == candidate.heading_anchor
+    }) else {
+        candidates.push(candidate);
+        return;
+    };
+
+    existing.evidence_coverage = existing.evidence_coverage.max(candidate.evidence_coverage);
+    existing.graph_score = existing.graph_score.max(candidate.graph_score);
+    existing.authority_score = existing.authority_score.max(candidate.authority_score);
+    existing.structural_score = existing.structural_score.max(candidate.structural_score);
+    existing.uncertainty = existing.uncertainty.min(candidate.uncertainty);
+    existing.context_cost = existing.context_cost.min(candidate.context_cost);
+    existing.line_start = existing.line_start.min(candidate.line_start);
+    existing.line_end = existing.line_end.max(candidate.line_end);
+    existing.edge_kinds.extend(candidate.edge_kinds);
+    existing.edge_kinds.sort();
+    existing.edge_kinds.dedup();
+}
+
 fn should_stop_candidate_discovery(
     attempted_count: usize,
     candidates: &[SearchStrategyFlowCandidateInput],
@@ -125,6 +144,8 @@ fn should_stop_candidate_discovery(
         .iter()
         .any(candidate_matches_relation_path_evidence);
     if attempted_count >= MIN_FLIGHT_REQUIRED_EVIDENCE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP
+        && unique_candidate_source_count(candidates)
+            >= MIN_FLIGHT_REQUIRED_EVIDENCE_CANDIDATES_BEFORE_EARLY_STOP
         && covers_relation
         && candidate_discovery_covers_required_evidence(candidates)
     {
@@ -201,7 +222,28 @@ fn unique_candidate_source_count(candidates: &[SearchStrategyFlowCandidateInput]
         .len()
 }
 
+#[cfg(test)]
 fn calibrate_candidate_discovery_scores(candidates: &mut [SearchStrategyFlowCandidateInput]) {
+    calibrate_candidate_discovery_scores_for_mode(
+        candidates,
+        CandidateDiscoveryRankingMode::StrategyAuthority,
+    );
+}
+
+fn calibrate_candidate_discovery_scores_for_intent(
+    candidates: &mut [SearchStrategyFlowCandidateInput],
+    intent: &str,
+) {
+    calibrate_candidate_discovery_scores_for_mode(candidates, ranking_mode_for_intent(intent));
+}
+
+fn calibrate_candidate_discovery_scores_for_mode(
+    candidates: &mut [SearchStrategyFlowCandidateInput],
+    mode: CandidateDiscoveryRankingMode,
+) {
+    if mode != CandidateDiscoveryRankingMode::StrategyAuthority {
+        return;
+    }
     for candidate in candidates {
         match candidate_discovery_priority(candidate) {
             0 => apply_candidate_score_floor(candidate, 0.97, 0.96, 0.97, 0.94, 0.05),
@@ -239,8 +281,49 @@ fn compare_candidate_discovery_results(
         .then_with(|| left.heading_anchor.cmp(&right.heading_anchor))
 }
 
+fn compare_candidate_discovery_corpus_results(
+    left: &SearchStrategyFlowCandidateInput,
+    right: &SearchStrategyFlowCandidateInput,
+) -> Ordering {
+    candidate_discovery_corpus_priority(left)
+        .cmp(&candidate_discovery_corpus_priority(right))
+        .then_with(|| compare_score(right.evidence_coverage, left.evidence_coverage))
+        .then_with(|| compare_score(right.graph_score, left.graph_score))
+        .then_with(|| compare_score(right.authority_score, left.authority_score))
+        .then_with(|| left.relative_path.cmp(&right.relative_path))
+        .then_with(|| left.heading_anchor.cmp(&right.heading_anchor))
+}
+
 fn compare_score(left: f64, right: f64) -> Ordering {
     left.partial_cmp(&right).unwrap_or(Ordering::Equal)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CandidateDiscoveryRankingMode {
+    StrategyAuthority,
+    CorpusRecall,
+}
+
+fn ranking_mode_for_intent(intent: &str) -> CandidateDiscoveryRankingMode {
+    let normalized = intent.to_ascii_lowercase();
+    let mentions_strategy_flow = normalized.contains("searchstrategyflow")
+        || (normalized.contains("search")
+            && normalized.contains("strategy")
+            && normalized.contains("flow"));
+    let asks_for_required_evidence = normalized.contains("ownership")
+        || normalized.contains("authority")
+        || normalized.contains("validation")
+        || normalized.contains("relation")
+        || normalized.contains("boundary")
+        || normalized.contains("page index")
+        || normalized.contains("pageindex")
+        || normalized.contains("link graph")
+        || normalized.contains("linkgraph");
+    if mentions_strategy_flow && asks_for_required_evidence {
+        CandidateDiscoveryRankingMode::StrategyAuthority
+    } else {
+        CandidateDiscoveryRankingMode::CorpusRecall
+    }
 }
 
 fn candidate_discovery_priority(candidate: &SearchStrategyFlowCandidateInput) -> u8 {
@@ -272,6 +355,37 @@ fn candidate_discovery_priority(candidate: &SearchStrategyFlowCandidateInput) ->
         return 5;
     }
     6
+}
+
+fn candidate_discovery_corpus_priority(candidate: &SearchStrategyFlowCandidateInput) -> u8 {
+    let path = candidate.relative_path.to_ascii_lowercase();
+    if is_markdown_path(path.as_str()) {
+        return 0;
+    }
+    if path_has_extension(path.as_str(), "toml") {
+        return 1;
+    }
+    if is_package_source_path(path.as_str()) {
+        return 2;
+    }
+    if is_test_path(path.as_str()) {
+        return 3;
+    }
+    4
+}
+
+fn rank_candidate_discovery_results_for_intent(
+    candidates: &mut [SearchStrategyFlowCandidateInput],
+    intent: &str,
+) {
+    match ranking_mode_for_intent(intent) {
+        CandidateDiscoveryRankingMode::StrategyAuthority => {
+            rank_candidate_discovery_results(candidates);
+        }
+        CandidateDiscoveryRankingMode::CorpusRecall => {
+            candidates.sort_by(compare_candidate_discovery_corpus_results);
+        }
+    }
 }
 
 fn is_search_strategy_flow_owner_markdown_path(path: &str) -> bool {
@@ -352,12 +466,14 @@ fn candidate_discovery_receipt(
     attempts: &[Value],
 ) -> Value {
     json!({
-        "receiptSource": CODE_INTELLIGENCE_CANDIDATE_SOURCE,
-        "candidateInputSource": CODE_INTELLIGENCE_CANDIDATE_SOURCE,
+        "receiptSource": WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
+        "candidateInputSource": WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
         "candidateInputCount": merged_candidate_count,
         "repoId": repo_id,
         "transport": "arrow-flight",
         "route": REPO_SEARCH_ROUTE,
+        "retrievalOwner": "wendao-gateway",
+        "candidateDiscoveryMode": "repo-search-page-index-link-graph-frontier",
         "requestLimit": REPO_SEARCH_LIMIT,
         "attemptCount": attempts.len(),
         "maxAttemptCount": MAX_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS,
@@ -389,5 +505,5 @@ fn elapsed_ms(started_at: Instant) -> u128 {
 }
 
 #[cfg(test)]
-#[path = "../../../tests/unit/integration_support/search_strategy_flow_flight/candidate_source.rs"]
+#[path = "../../../tests/unit/integration_support/search_strategy_flow_flight/candidate_source/mod.rs"]
 mod candidate_source_unit_tests;

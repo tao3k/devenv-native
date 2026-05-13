@@ -17,5 +17,7 @@ pub use orchestrator::{
 };
 pub use registry::ZhenfaRegistry;
 pub use signal::ZhenfaSignal;
-pub use signal_registry::{BroadcastResult, ExternalSignal, SignalRegistry, SignalRegistryExt};
+pub use signal_registry::{
+    BroadcastResult, ExternalSignal, ObservationSignalInput, SignalRegistry, SignalRegistryExt,
+};
 pub use tool::ZhenfaTool;

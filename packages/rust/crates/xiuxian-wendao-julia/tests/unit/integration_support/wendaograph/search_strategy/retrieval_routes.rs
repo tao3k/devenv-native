@@ -123,7 +123,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
             .get("surfaces")
             .and_then(serde_json::Value::as_array)
             .map(Vec::len),
-        Some(3)
+        Some(4)
     );
     assert_eq!(
         discovery_contract.get("candidateInputSource"),

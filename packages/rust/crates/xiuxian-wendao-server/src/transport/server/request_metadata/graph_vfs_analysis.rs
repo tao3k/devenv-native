@@ -72,6 +72,14 @@ pub(crate) fn validate_graph_neighbors_request_metadata(
     };
 
     validate_graph_neighbors_request(node_id, direction, parsed_hops, parsed_limit)
+        .map(|request| {
+            (
+                request.node_id,
+                request.direction,
+                request.hops,
+                request.limit,
+            )
+        })
         .map_err(Status::invalid_argument)
 }
 

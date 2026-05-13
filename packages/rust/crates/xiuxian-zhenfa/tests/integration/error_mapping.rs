@@ -1,6 +1,6 @@
 //! LLM-safe error mapping coverage for Zhenfa errors.
 
-use xiuxian_zhenfa::{ZhenfaError, ZhenfaTransmuterError};
+use xiuxian_zhenfa::{ZhenfaError, ZhenfaTransmuterError, ZhenfaXmlLiteTagName};
 
 #[test]
 fn zhenfa_error_exposes_llm_safe_summary() {
@@ -26,7 +26,7 @@ fn zhenfa_error_exposes_llm_safe_summary() {
 #[test]
 fn transmuter_error_exposes_llm_safe_summary() {
     let malformed = ZhenfaTransmuterError::UnclosedTag {
-        tag: "score".to_string(),
+        tag: ZhenfaXmlLiteTagName::from("score"),
     };
     assert_eq!(
         malformed.llm_safe_message(),

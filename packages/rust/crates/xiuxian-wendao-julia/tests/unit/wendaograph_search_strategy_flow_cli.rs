@@ -118,10 +118,11 @@ fn parse_args_rejects_stdio_session_combined_with_stabilization_report() {
 
 #[test]
 fn parse_stdio_session_request_trims_intent_and_keeps_request_id() {
-    let request = parse_stdio_session_request(
+    let Ok(request) = parse_stdio_session_request(
         r#"{"requestId":"req-1","intent":"  find ownership evidence  "}"#,
-    )
-    .expect("parse stdio request");
+    ) else {
+        panic!("parse stdio request");
+    };
 
     assert_eq!(request.request_id.as_deref(), Some("req-1"));
     assert_eq!(request.intent, "find ownership evidence");

@@ -29,6 +29,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{error, info, warn};
 
+use crate::ZhenfaSignalType;
 use crate::native::ZhenfaSignal;
 
 /// Default webhook timeout in seconds.
@@ -65,7 +66,7 @@ impl Default for WebhookConfig {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NotificationPayload {
     /// Signal type (e.g., "`semantic_drift`").
-    pub signal_type: String,
+    pub signal_type: ZhenfaSignalType,
     /// Source of the signal.
     pub source: String,
     /// Human-readable summary.
@@ -135,7 +136,7 @@ impl NotificationService {
                 confidence,
                 summary,
             } => NotificationPayload {
-                signal_type: "semantic_drift".to_string(),
+                signal_type: ZhenfaSignalType::from("semantic_drift"),
                 source: source_path.clone(),
                 summary: summary.clone(),
                 confidence: confidence.clone(),
@@ -149,7 +150,7 @@ impl NotificationService {
                 value,
                 source,
             } => NotificationPayload {
-                signal_type: "reward".to_string(),
+                signal_type: ZhenfaSignalType::from("reward"),
                 source: source.clone(),
                 summary: format!("Episode {episode_id} received reward {value:.2}"),
                 confidence: "high".to_string(),
@@ -159,7 +160,7 @@ impl NotificationService {
                 fix_approval_url: None,
             },
             ZhenfaSignal::Trace { node_id, event } => NotificationPayload {
-                signal_type: "trace".to_string(),
+                signal_type: ZhenfaSignalType::from("trace"),
                 source: node_id.clone(),
                 summary: event.clone(),
                 confidence: "high".to_string(),

@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::transport::{
-    EffectiveRerankFlightHostSettings, RerankScoreWeights, rerank_score_weights_from_env,
+    EffectiveRerankFlightHostSettings, EffectiveRerankFlightHostSettingsInput, RerankScoreWeights,
+    rerank_score_weights_from_env,
     resolve_effective_rerank_flight_host_settings as resolve_runtime_effective_rerank_flight_host_settings,
     split_rerank_flight_host_overrides,
 };
@@ -200,12 +201,14 @@ fn resolve_effective_search_host_settings(
         .transpose()
         .map_err(anyhow::Error::msg)?;
     Ok(resolve_runtime_effective_rerank_flight_host_settings(
-        schema_version_override,
-        rerank_dimension_override,
-        file_backed_settings.schema_version,
-        file_backed_weights,
-        fallback_rerank_dimension,
-        rerank_score_weights_from_env().map_err(anyhow::Error::msg)?,
+        EffectiveRerankFlightHostSettingsInput {
+            schema_version_override,
+            rerank_dimension_override,
+            file_backed_schema_version: file_backed_settings.schema_version,
+            file_backed_weights,
+            fallback_dimension: fallback_rerank_dimension,
+            fallback_weights: rerank_score_weights_from_env().map_err(anyhow::Error::msg)?,
+        },
     ))
 }
 

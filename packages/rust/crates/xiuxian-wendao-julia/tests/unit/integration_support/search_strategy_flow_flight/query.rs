@@ -99,6 +99,31 @@ fn candidate_discovery_queries_include_relation_attempt_for_required_evidence_in
     );
 }
 
+#[test]
+fn candidate_discovery_queries_start_with_full_intent_for_corpus_recall() {
+    let attempts = candidate_discovery_queries(
+        "locate the benchmark profile contract for SearchStrategyFlow corpus accuracy",
+    );
+
+    assert_eq!(
+        attempts
+            .first()
+            .map(|attempt| (attempt.query.as_str(), attempt.path_prefix.as_str())),
+        Some((
+            "locate the benchmark profile contract for SearchStrategyFlow corpus accuracy",
+            "",
+        )),
+        "corpus recall intents should let Gateway retrieval score the specific intent before generic SearchStrategyFlow probes",
+    );
+    assert!(
+        attempts.iter().position(|attempt| {
+            attempt.query == "SearchStrategyFlow"
+                && attempt.path_prefix == "packages/rust/crates/xiuxian-wendao-julia/README.md"
+        }) > Some(0),
+        "generic SearchStrategyFlow route probes should remain available after specific intent attempts"
+    );
+}
+
 fn position_matching<T>(
     items: &[T],
     predicate: impl Fn(&T) -> bool,

@@ -15,7 +15,7 @@ use tokio::sync::mpsc;
 use crate::bin_support::wendao::types::{Cli, SentinelArgs, SentinelCommand, SentinelWatchArgs};
 use xiuxian_wendao::LinkGraphIndex;
 use xiuxian_wendao::zhenfa_router::native::sentinel::{Sentinel, SentinelConfig};
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaSignal};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaSessionId, ZhenfaSignal};
 
 /// Handle the sentinel command.
 pub(crate) async fn handle(
@@ -61,7 +61,11 @@ async fn handle_watch(args: &SentinelWatchArgs, index: Option<&LinkGraphIndex>) 
     let (signal_tx, mut signal_rx) = mpsc::unbounded_channel::<ZhenfaSignal>();
 
     // Build ZhenfaContext with optional LinkGraphIndex
-    let mut ctx = ZhenfaContext::new(Some("sentinel".to_string()), None, HashMap::default());
+    let mut ctx = ZhenfaContext::new(
+        Some(ZhenfaSessionId::from("sentinel")),
+        None,
+        HashMap::default(),
+    );
 
     // Attach signal sender so Sentinel can emit signals
     ctx.attach_signal_sender(signal_tx);

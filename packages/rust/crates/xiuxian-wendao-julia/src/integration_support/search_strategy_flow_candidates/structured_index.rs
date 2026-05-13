@@ -24,6 +24,7 @@ pub(crate) struct SearchStrategyFlowStructuredCandidateCounts {
     pub(crate) primary_markdown: usize,
     pub(crate) code_intelligence: usize,
     pub(crate) registry_authority: usize,
+    pub(crate) gateway_retrieval: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,6 +78,16 @@ pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract(
                 structured_surface_role: "primary-markdown-scenario",
                 rust_backend: RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
                 bridge_status: "measured-local-rust-trace",
+                julia_input_policy: NARROWED_CANDIDATE_BATCH_POLICY,
+                promotion_denominator: true,
+            },
+            SearchStrategyFlowStructuredCandidateSurface {
+                surface_id: "gateway-retrieval-frontier",
+                candidate_source: super::types::WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
+                candidate_count: counts.gateway_retrieval,
+                structured_surface_role: "gateway-retrieval-narrowed-frontier",
+                rust_backend: RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
+                bridge_status: "measured-flight-repo-search",
                 julia_input_policy: NARROWED_CANDIDATE_BATCH_POLICY,
                 promotion_denominator: true,
             },

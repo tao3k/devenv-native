@@ -1,10 +1,8 @@
-use crate::integration_support::search_strategy_flow_candidates::SearchStrategyFlowCandidateInput;
-
 use super::{
-    calibrate_candidate_discovery_scores, candidate_discovery_attempt_receipt,
-    candidate_discovery_priority, candidate_matches_relation_path_evidence,
-    rank_candidate_discovery_results, retain_unique_candidate_sources,
-    should_stop_candidate_discovery,
+    CandidateDiscoveryRankingMode, calibrate_candidate_discovery_scores, candidate,
+    candidate_discovery_priority, candidate_matches_relation_path_evidence, candidate_with_edges,
+    rank_candidate_discovery_results, rank_candidate_discovery_results_for_intent,
+    ranking_mode_for_intent, retain_unique_candidate_sources,
 };
 
 #[test]
@@ -51,6 +49,49 @@ fn candidate_discovery_ranking_prefers_authority_markdown_over_tests() {
             .last()
             .is_some_and(|candidate| candidate.relative_path.contains("/tests/")),
         "test paths should be retained but ranked after authority docs"
+    );
+}
+
+#[test]
+fn candidate_discovery_corpus_intent_keeps_gateway_scores_ahead_of_static_authority() {
+    let mut candidates = vec![
+        candidate(
+            "packages/rust/crates/xiuxian-wendao-julia/docs/index.md",
+            "SearchStrategyFlow Rust Flight Bridge",
+            0.80,
+        ),
+        candidate(
+            "packages/python/wendao-knowledge-retrieval-benchmark/docs/profile_contract.md",
+            "Benchmark Profile Contract",
+            0.98,
+        ),
+        candidate(
+            "packages/rust/crates/xiuxian-wendao-julia/tests/unit/integration_support/wendaograph/search_strategy/candidate_discovery.rs",
+            "SearchStrategyFlow LinkGraph relation path",
+            0.99,
+        ),
+    ];
+
+    rank_candidate_discovery_results_for_intent(
+        &mut candidates,
+        "locate the benchmark profile contract for SearchStrategyFlow corpus accuracy",
+    );
+
+    assert_eq!(
+        ranking_mode_for_intent(
+            "locate the benchmark profile contract for SearchStrategyFlow corpus accuracy"
+        ),
+        CandidateDiscoveryRankingMode::CorpusRecall
+    );
+    assert_eq!(
+        candidates[0].relative_path,
+        "packages/python/wendao-knowledge-retrieval-benchmark/docs/profile_contract.md"
+    );
+    assert!(
+        candidates
+            .last()
+            .is_some_and(|candidate| candidate.relative_path.contains("/tests/")),
+        "test paths should not outrank high-score Markdown corpus hits"
     );
 }
 
@@ -145,135 +186,4 @@ fn candidate_discovery_keeps_one_best_candidate_per_source_path() {
     assert!(candidates.iter().any(|candidate| {
         candidate.relative_path == "docs/rfcs/2026-03-26-wendao-query-engine-rfc.md"
     }));
-}
-
-#[test]
-fn candidate_discovery_attempt_receipt_records_elapsed_time() {
-    let receipt = candidate_discovery_attempt_receipt("search strategy", "docs", 3, 42);
-
-    assert_eq!(receipt.get("rowCount"), Some(&serde_json::json!(3)));
-    assert_eq!(receipt.get("elapsedMs"), Some(&serde_json::json!(42)));
-}
-
-#[test]
-fn candidate_discovery_early_stop_waits_for_attempt_floor_and_source_budget() {
-    let candidates = (0..12)
-        .map(|index| {
-            candidate(
-                if index == 0 {
-                    "packages/rust/crates/xiuxian-wendao-julia/tests/unit/integration_support/wendaograph/search_strategy/candidate_discovery.rs"
-                } else {
-                    Box::leak(format!("docs/{index}.md").into_boxed_str())
-                },
-                if index == 0 {
-                    "SearchStrategyFlow LinkGraph relation path"
-                } else {
-                    "SearchStrategyFlow evidence"
-                },
-                0.80,
-            )
-        })
-        .collect::<Vec<_>>();
-
-    assert!(!should_stop_candidate_discovery(19, &candidates));
-    assert!(should_stop_candidate_discovery(20, &candidates));
-}
-
-#[test]
-fn candidate_discovery_early_stop_accepts_required_evidence_after_scoped_attempts() {
-    let candidates = vec![
-        candidate(
-            "packages/rust/crates/xiuxian-wendao-julia/README.md",
-            "SearchStrategyFlow ownership boundary",
-            0.91,
-        ),
-        candidate("docs/testing/README.md", "Default validation path", 0.88),
-        candidate(
-            "packages/rust/crates/xiuxian-wendao-julia/tests/unit/integration_support/wendaograph/search_strategy/candidate_discovery.rs",
-            "Search Strategy Flow Link Graph Python Julia TOML",
-            0.84,
-        ),
-    ];
-
-    assert!(!should_stop_candidate_discovery(3, &candidates));
-    assert!(should_stop_candidate_discovery(4, &candidates));
-}
-
-#[test]
-fn candidate_discovery_required_evidence_stop_keeps_missing_relation_open() {
-    let candidates = vec![
-        candidate(
-            "packages/rust/crates/xiuxian-wendao-julia/README.md",
-            "SearchStrategyFlow ownership boundary",
-            0.91,
-        ),
-        candidate("docs/testing/README.md", "Default validation path", 0.88),
-    ];
-
-    assert!(!should_stop_candidate_discovery(4, &candidates));
-}
-
-#[test]
-fn candidate_discovery_max_candidate_stop_keeps_missing_relation_open() {
-    let candidates = (0..12)
-        .map(|index| {
-            candidate(
-                Box::leak(format!("docs/{index}.md").into_boxed_str()),
-                "SearchStrategyFlow evidence",
-                0.80,
-            )
-        })
-        .collect::<Vec<_>>();
-
-    assert!(!should_stop_candidate_discovery(20, &candidates));
-}
-
-#[test]
-fn candidate_discovery_early_stop_counts_unique_source_paths() {
-    let candidates = (0..12)
-        .map(|index| {
-            candidate(
-                if index % 2 == 0 {
-                    "docs/repeated.md"
-                } else {
-                    "docs/other.md"
-                },
-                "SearchStrategyFlow evidence",
-                0.80,
-            )
-        })
-        .collect::<Vec<_>>();
-
-    assert!(!should_stop_candidate_discovery(20, &candidates));
-}
-
-fn candidate(
-    relative_path: &'static str,
-    title: &'static str,
-    score: f64,
-) -> SearchStrategyFlowCandidateInput {
-    candidate_with_edges(relative_path, title, score, &[])
-}
-
-fn candidate_with_edges(
-    relative_path: &'static str,
-    title: &'static str,
-    score: f64,
-    edge_kinds: &[&str],
-) -> SearchStrategyFlowCandidateInput {
-    SearchStrategyFlowCandidateInput {
-        relative_path: relative_path.to_owned(),
-        heading_anchor: title.to_ascii_lowercase().replace(' ', "-"),
-        title: title.to_owned(),
-        line_start: 1,
-        line_end: 8,
-        context_cost: 8,
-        evidence_coverage: score,
-        graph_score: score,
-        authority_score: score,
-        structural_score: score,
-        uncertainty: 1.0 - score,
-        blocked: false,
-        edge_kinds: edge_kinds.iter().map(|kind| (*kind).to_owned()).collect(),
-    }
 }

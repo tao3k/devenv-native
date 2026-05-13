@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use crate::integration_support::search_strategy_flow_candidates::{
     CODE_INTELLIGENCE_CANDIDATE_SOURCE, MARKDOWN_HEADING_CANDIDATE_SOURCE,
     REGISTRY_METADATA_CANDIDATE_SOURCE, SearchStrategyFlowStructuredCandidateCounts,
-    link_search_strategy_flow_offline_audit_entrypoints,
+    WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE, link_search_strategy_flow_offline_audit_entrypoints,
     search_strategy_flow_candidate_discovery_contract_json,
     search_strategy_flow_total_structured_candidate_index_contract_json,
 };
@@ -69,6 +69,9 @@ fn search_strategy_flow_trace_candidate_counts(
         }
         Some(MARKDOWN_HEADING_CANDIDATE_SOURCE) => {
             counts.primary_markdown = candidate_input_count;
+        }
+        Some(WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE) => {
+            counts.gateway_retrieval = candidate_input_count;
         }
         _ => {}
     }

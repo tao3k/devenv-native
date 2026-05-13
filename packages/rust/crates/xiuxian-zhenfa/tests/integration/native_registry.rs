@@ -242,7 +242,7 @@ struct CollectingAuditSink {
 
 #[derive(Default)]
 struct CollectingSignalSink {
-    signals: Mutex<Vec<(Option<String>, ZhenfaSignal)>>,
+    signals: Mutex<Vec<(Option<xiuxian_zhenfa::ZhenfaTraceId>, ZhenfaSignal)>>,
 }
 
 impl CollectingSignalSink {
@@ -250,7 +250,7 @@ impl CollectingSignalSink {
         self.signals.lock().await.len()
     }
 
-    async fn first(&self) -> Option<(Option<String>, ZhenfaSignal)> {
+    async fn first(&self) -> Option<(Option<xiuxian_zhenfa::ZhenfaTraceId>, ZhenfaSignal)> {
         self.signals.lock().await.first().cloned()
     }
 }
@@ -287,7 +287,7 @@ async fn orchestrator_dispatches_registered_tool() {
     let orchestrator = ZhenfaOrchestrator::new(registry);
 
     let mut ctx = ZhenfaContext::default();
-    ctx.session_id = Some("telegram:42".to_string());
+    ctx.session_id = Some(xiuxian_zhenfa::ZhenfaSessionId::from("telegram:42"));
     let result = orchestrator
         .dispatch("echo.tool", &ctx, json!({ "value": "native" }))
         .await
@@ -395,7 +395,7 @@ async fn orchestrator_stores_successful_result_into_cache() {
     let cache = Arc::new(InMemoryResultCache::default());
     let audit = Arc::new(CollectingAuditSink::default());
     let mut ctx = ZhenfaContext::default();
-    ctx.session_id = Some("discord:100".to_string());
+    ctx.session_id = Some(xiuxian_zhenfa::ZhenfaSessionId::from("discord:100"));
     let orchestrator = ZhenfaOrchestrator::with_hooks(
         registry,
         ZhenfaOrchestratorHooks {
@@ -531,7 +531,10 @@ async fn orchestrator_routes_tool_emitted_signals_to_signal_sink() {
     let Some((trace_id, payload)) = signal_sink.first().await else {
         panic!("signal sink should receive one emitted signal");
     };
-    assert_eq!(trace_id.as_deref(), Some("corr:reward-test"));
+    assert_eq!(
+        trace_id.as_ref().map(xiuxian_zhenfa::ZhenfaTraceId::as_str),
+        Some("corr:reward-test")
+    );
     let ZhenfaSignal::Reward {
         episode_id,
         value,

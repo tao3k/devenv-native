@@ -62,6 +62,7 @@ pub(crate) use types::MAX_CANDIDATES;
 pub(crate) use types::{
     CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
     SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowRepoSearchHit,
+    WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
 };
 
 #[cfg(test)]

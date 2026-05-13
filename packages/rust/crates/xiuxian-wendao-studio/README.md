@@ -90,6 +90,11 @@ This proof is an in-process Studio test helper only. The production
 materialization path must stay Arrow Flight-native: external agent surfaces
 talk to the Rust bridge, and the Rust bridge talks to the Studio/Wendao Flight
 service endpoint.
+SearchStrategyFlow intent and query understanding stay outside the public
+Gateway OpenAPI surface; `pi-wendao` owns that agent-facing layer. Studio does
+not expose a `/api/search/strategy-flow` REST route. Gateway REST or Flight is
+used after the query-understanding subagent and WendaoGraph.jl have selected
+concrete retrieval/materialization routes.
 
 ## Polyglot Docling Scheduling
 

@@ -45,7 +45,8 @@ use crate::studio::{
 };
 #[cfg(feature = "zhenfa-router")]
 use crate::transport::{
-    EffectiveRerankFlightHostSettings, RerankScoreWeights, rerank_score_weights_from_env,
+    EffectiveRerankFlightHostSettings, EffectiveRerankFlightHostSettingsInput, RerankScoreWeights,
+    rerank_score_weights_from_env,
     resolve_effective_rerank_flight_host_settings as resolve_runtime_effective_rerank_flight_host_settings,
 };
 use xiuxian_config_core::{lookup_bool_flag, lookup_positive_parsed};
@@ -362,12 +363,14 @@ fn resolve_gateway_effective_search_host_settings() -> Result<EffectiveRerankFli
         .transpose()
         .map_err(anyhow::Error::msg)?;
     Ok(resolve_runtime_effective_rerank_flight_host_settings(
-        None,
-        None,
-        file_backed_settings.schema_version,
-        file_backed_weights,
-        DEFAULT_GATEWAY_SEARCH_FLIGHT_RERANK_DIMENSION,
-        rerank_score_weights_from_env().map_err(anyhow::Error::msg)?,
+        EffectiveRerankFlightHostSettingsInput {
+            schema_version_override: None,
+            rerank_dimension_override: None,
+            file_backed_schema_version: file_backed_settings.schema_version,
+            file_backed_weights,
+            fallback_dimension: DEFAULT_GATEWAY_SEARCH_FLIGHT_RERANK_DIMENSION,
+            fallback_weights: rerank_score_weights_from_env().map_err(anyhow::Error::msg)?,
+        },
     ))
 }
 

@@ -299,19 +299,18 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args, String> {
         }
     }
 
-    let search_root = search_root.map(Ok).unwrap_or_else(|| {
-        env::current_dir().map_err(|error| format!("resolve current dir: {error}"))
-    })?;
+    let search_root = search_root.map_or_else(
+        || env::current_dir().map_err(|error| format!("resolve current dir: {error}")),
+        Ok,
+    )?;
     if serve_stdio && persistent_warm_samples.is_some() {
         return Err("--serve-stdio cannot be combined with --persistent-warm-samples".to_owned());
     }
     if !serve_stdio && intent.is_none() {
         return Err("missing --intent".to_owned());
     }
-    match (&flight_base_url, &flight_repo) {
-        (Some(_), Some(_)) | (None, None) => {}
-        (Some(_), None) => {}
-        (None, Some(_)) => return Err("missing --flight-base-url".to_owned()),
+    if flight_base_url.is_none() && flight_repo.is_some() {
+        return Err("missing --flight-base-url".to_owned());
     }
     Ok(Args {
         intent,

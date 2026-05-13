@@ -40,11 +40,19 @@ pub(super) fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt
         return attempts;
     }
 
-    push_required_evidence_candidate_attempts(&mut attempts, terms.as_slice());
-    push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
-    push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
+    let frontload_route_attempts = should_frontload_route_scoped_attempts(terms.as_slice());
+    if frontload_route_attempts {
+        push_required_evidence_candidate_attempts(&mut attempts, terms.as_slice());
+        push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
+        push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
+    }
     push_repo_search_attempt(&mut attempts, trimmed, "");
     push_repo_search_attempt(&mut attempts, terms.join(" ").as_str(), "");
+    if !frontload_route_attempts {
+        push_required_evidence_candidate_attempts(&mut attempts, terms.as_slice());
+        push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
+        push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
+    }
     for window_size in [4, 3, 2] {
         if terms.len() < window_size {
             continue;
@@ -58,6 +66,26 @@ pub(super) fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt
     }
     attempts.truncate(32);
     attempts
+}
+
+fn should_frontload_route_scoped_attempts(terms: &[String]) -> bool {
+    has_all_terms(terms, &["search", "strategy", "flow"])
+        && has_any_term(
+            terms,
+            &[
+                "ownership",
+                "authority",
+                "boundary",
+                "validation",
+                "gate",
+                "path",
+                "relation",
+                "page",
+                "index",
+                "link",
+                "graph",
+            ],
+        )
 }
 
 fn push_required_evidence_candidate_attempts(

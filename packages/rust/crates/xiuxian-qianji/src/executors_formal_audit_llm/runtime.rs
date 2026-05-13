@@ -2,7 +2,9 @@ use crate::contracts::{FlowInstruction, QianjiOutput};
 use futures::StreamExt;
 use serde_json::{Value, json};
 use xiuxian_llm::llm::ChatRequest;
-use xiuxian_zhenfa::{CognitiveDistribution, StreamProvider, ZhenfaPipeline};
+use xiuxian_zhenfa::{
+    CognitiveDistribution, StreamProvider, ZhenfaPipeline, ZhenfaPipelineOptions,
+};
 
 use super::api::LlmAugmentedAuditMechanism;
 use super::context::{context_non_empty_string, resolve_model_for_request};
@@ -36,10 +38,8 @@ impl LlmAugmentedAuditMechanism {
         request: ChatRequest,
     ) -> Result<(String, Option<CognitiveMetrics>), String> {
         let mut pipeline = ZhenfaPipeline::with_options(
-            self.resolve_provider(),
-            true,
-            true,
-            self.cognitive_early_halt_threshold,
+            ZhenfaPipelineOptions::new(self.resolve_provider())
+                .with_early_halt_threshold(self.cognitive_early_halt_threshold),
         );
 
         let mut stream = self

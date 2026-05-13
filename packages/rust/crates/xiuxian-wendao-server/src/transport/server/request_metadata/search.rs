@@ -4,7 +4,7 @@ use tonic::Status;
 use tonic::metadata::MetadataMap;
 
 use crate::transport::query_contract::{
-    WENDAO_AUTOCOMPLETE_LIMIT_HEADER, WENDAO_AUTOCOMPLETE_PREFIX_HEADER,
+    RepoSearchRequest, WENDAO_AUTOCOMPLETE_LIMIT_HEADER, WENDAO_AUTOCOMPLETE_PREFIX_HEADER,
     WENDAO_DEFINITION_LINE_HEADER, WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
     WENDAO_SEARCH_INTENT_HEADER, WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER,
     WENDAO_SEARCH_REPO_HEADER, WENDAO_SQL_QUERY_HEADER, validate_autocomplete_request,
@@ -40,8 +40,16 @@ pub(crate) fn validate_search_request_metadata(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToString::to_string);
-    validate_repo_search_request(query_text.as_str(), parsed_limit, &[], &[], &[], &[], &[])
-        .map_err(Status::invalid_argument)?;
+    validate_repo_search_request(RepoSearchRequest {
+        query_text: query_text.as_str(),
+        limit: parsed_limit,
+        language_filters: &[],
+        path_prefixes: &[],
+        title_filters: &[],
+        tag_filters: &[],
+        filename_filters: &[],
+    })
+    .map_err(Status::invalid_argument)?;
     Ok((query_text, parsed_limit, intent, repo_hint))
 }
 

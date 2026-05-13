@@ -18,7 +18,7 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
     .unwrap_or_else(|error| panic!("discover fake Flight candidates: {error}"));
     server.abort();
 
-    assert_eq!(batch.source, "rust-code-intelligence-inventory");
+    assert_eq!(batch.source, "wendao-gateway-retrieval");
     assert_eq!(batch.row_count, 3);
     assert_eq!(batch.tsv.lines().count(), 3);
     let discovery_receipt: serde_json::Value =
@@ -27,6 +27,10 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
     assert_eq!(
         discovery_receipt.get("transport"),
         Some(&serde_json::json!("arrow-flight"))
+    );
+    assert_eq!(
+        discovery_receipt.get("retrievalOwner"),
+        Some(&serde_json::json!("wendao-gateway"))
     );
     assert_eq!(
         discovery_receipt.get("route"),

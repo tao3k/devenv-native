@@ -9,6 +9,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 use tracing::warn;
 
 use super::{ZhenfaContext, ZhenfaError, ZhenfaRegistry, ZhenfaSignal};
+use crate::{ZhenfaElapsedMillis, ZhenfaSessionId, ZhenfaToolId, ZhenfaToolIdRef, ZhenfaTraceId};
 
 /// Guard returned by distributed lock implementations.
 pub trait ZhenfaMutationGuard: Send + Sync {}
@@ -56,13 +57,13 @@ pub enum ZhenfaDispatchOutcome {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ZhenfaDispatchEvent {
     /// Invoked tool identifier.
-    pub tool_id: String,
+    pub tool_id: ZhenfaToolId,
     /// Optional runtime session identifier.
-    pub session_id: Option<String>,
+    pub session_id: Option<ZhenfaSessionId>,
     /// Optional trace identifier for correlation.
-    pub trace_id: Option<String>,
+    pub trace_id: Option<ZhenfaTraceId>,
     /// Dispatch elapsed milliseconds.
-    pub elapsed_ms: u128,
+    pub elapsed_ms: ZhenfaElapsedMillis,
     /// Success/cached/failure outcome.
     pub outcome: ZhenfaDispatchOutcome,
     /// Optional domain/system code for failure outcomes.
@@ -144,7 +145,7 @@ impl ZhenfaOrchestrator {
     /// Returns tool execution errors from [`ZhenfaTool::call_native`].
     pub async fn dispatch(
         &self,
-        tool_id: &str,
+        tool_id: ZhenfaToolIdRef<'_>,
         ctx: &ZhenfaContext,
         args: Value,
     ) -> Result<String, ZhenfaError> {
@@ -279,10 +280,10 @@ impl ZhenfaOrchestrator {
         outcome: ZhenfaDispatchOutcome,
     ) {
         let event = ZhenfaDispatchEvent {
-            tool_id: tool_id.to_string(),
+            tool_id: ZhenfaToolId::from(tool_id),
             session_id: ctx.session_id.clone(),
             trace_id: ctx.trace_id.clone(),
-            elapsed_ms: started_at.elapsed().as_millis(),
+            elapsed_ms: ZhenfaElapsedMillis::new(started_at.elapsed().as_millis()),
             outcome,
             error_code: None,
             error_message: None,
@@ -298,10 +299,10 @@ impl ZhenfaOrchestrator {
         error: &ZhenfaError,
     ) {
         let event = ZhenfaDispatchEvent {
-            tool_id: tool_id.to_string(),
+            tool_id: ZhenfaToolId::from(tool_id),
             session_id: ctx.session_id.clone(),
             trace_id: ctx.trace_id.clone(),
-            elapsed_ms: started_at.elapsed().as_millis(),
+            elapsed_ms: ZhenfaElapsedMillis::new(started_at.elapsed().as_millis()),
             outcome: ZhenfaDispatchOutcome::Failed,
             error_code: error_code(error),
             error_message: Some(error.to_string()),

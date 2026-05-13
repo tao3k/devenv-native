@@ -30,6 +30,7 @@ use super::supervisor::{CognitiveDimension, CognitiveEvent, CognitiveSupervisor}
 use super::traits::StreamingTransmuter;
 use super::{ClaudeStreamingParser, CodexStreamingParser, GeminiStreamingParser};
 use super::{StreamingOutcome, ZhenfaStreamingEvent};
+use crate::ZhenfaSignalType;
 
 /// External signal that can be injected into the pipeline.
 ///
@@ -40,7 +41,7 @@ pub struct ExternalSignal {
     /// Signal source identifier.
     pub source: String,
     /// Signal type (e.g., `semantic_drift`, `observation_stale`).
-    pub signal_type: String,
+    pub signal_type: ZhenfaSignalType,
     /// Human-readable summary.
     pub summary: String,
     /// Confidence level (0.0 to 1.0).
@@ -63,6 +64,53 @@ pub enum StreamProvider {
     Gemini,
     /// Codex / OpenAI-style agents.
     Codex,
+}
+
+/// Construction options for a streaming pipeline.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ZhenfaPipelineOptions {
+    /// Provider parser to use.
+    pub provider: StreamProvider,
+    /// Whether XML/XSD hot validation is enabled.
+    pub validate_xsd: bool,
+    /// Whether cognitive monitoring is enabled.
+    pub monitor_cognitive: bool,
+    /// Coherence threshold for early halt; zero disables early halt.
+    pub early_halt_threshold: f32,
+}
+
+impl ZhenfaPipelineOptions {
+    /// Create default options for one provider.
+    #[must_use]
+    pub const fn new(provider: StreamProvider) -> Self {
+        Self {
+            provider,
+            validate_xsd: true,
+            monitor_cognitive: true,
+            early_halt_threshold: 0.3,
+        }
+    }
+
+    /// Set XML/XSD validation mode.
+    #[must_use]
+    pub const fn with_xsd_validation(mut self, enabled: bool) -> Self {
+        self.validate_xsd = enabled;
+        self
+    }
+
+    /// Set cognitive monitoring mode.
+    #[must_use]
+    pub const fn with_cognitive_monitoring(mut self, enabled: bool) -> Self {
+        self.monitor_cognitive = enabled;
+        self
+    }
+
+    /// Set early-halt coherence threshold.
+    #[must_use]
+    pub const fn with_early_halt_threshold(mut self, threshold: f32) -> Self {
+        self.early_halt_threshold = threshold;
+        self
+    }
 }
 
 /// Output from the `ZhenfaPipeline` after processing a chunk.
@@ -152,32 +200,20 @@ impl ZhenfaPipeline {
     /// Create a new pipeline for the given provider.
     #[must_use]
     pub fn new(provider: StreamProvider) -> Self {
-        Self::with_options(provider, true, true, 0.3)
+        Self::with_options(ZhenfaPipelineOptions::new(provider))
     }
 
     /// Create a pipeline with custom options.
-    ///
-    /// # Arguments
-    ///
-    /// * `provider` - The streaming provider to use.
-    /// * `validate_xsd` - Whether to enable XSD validation.
-    /// * `monitor_cognitive` - Whether to enable cognitive monitoring.
-    /// * `early_halt_threshold` - Coherence threshold for early halt (0.0 to disable).
     #[must_use]
-    pub fn with_options(
-        provider: StreamProvider,
-        validate_xsd: bool,
-        monitor_cognitive: bool,
-        early_halt_threshold: f32,
-    ) -> Self {
-        let parser: Box<dyn StreamingTransmuter> = match provider {
+    pub fn with_options(options: ZhenfaPipelineOptions) -> Self {
+        let parser: Box<dyn StreamingTransmuter> = match options.provider {
             StreamProvider::Claude => Box::new(ClaudeStreamingParser::new()),
             StreamProvider::Gemini => Box::new(GeminiStreamingParser::new()),
             StreamProvider::Codex => Box::new(CodexStreamingParser::new()),
         };
 
-        let supervisor = if early_halt_threshold > 0.0 {
-            CognitiveSupervisor::with_early_halt_threshold(early_halt_threshold)
+        let supervisor = if options.early_halt_threshold > 0.0 {
+            CognitiveSupervisor::with_early_halt_threshold(options.early_halt_threshold)
         } else {
             CognitiveSupervisor::new()
         };
@@ -186,9 +222,9 @@ impl ZhenfaPipeline {
             parser,
             logic_gate: LogicGate::new(),
             supervisor,
-            provider,
-            validate_xsd,
-            monitor_cognitive,
+            provider: options.provider,
+            validate_xsd: options.validate_xsd,
+            monitor_cognitive: options.monitor_cognitive,
             signal_rx: None,
         }
     }
@@ -244,75 +280,118 @@ impl ZhenfaPipeline {
     /// Returns `PipelineError` when parsing fails, validation fails, or
     /// early halt is triggered.
     pub fn process_line(&mut self, line: &str) -> Result<Vec<PipelineOutput>, PipelineError> {
-        // Phase 7.3: Poll external signals first (heterogeneous event fusion)
         let external_signals = self.poll_external_signals();
+        self.reject_when_early_halt_active()?;
+        let events = self.parse_streaming_events(line)?;
 
-        // Check for early halt before processing
+        let mut outputs = Vec::with_capacity(events.len().max(1));
+        if self.push_signal_only_output(&events, external_signals.as_slice(), &mut outputs) {
+            return Ok(outputs);
+        }
+
+        for (index, event) in events.into_iter().enumerate() {
+            let output = self.process_event(
+                &event,
+                if index == 0 {
+                    external_signals.clone()
+                } else {
+                    Vec::new()
+                },
+            )?;
+            outputs.push(output);
+        }
+
+        Ok(outputs)
+    }
+
+    fn reject_when_early_halt_active(&self) -> Result<(), PipelineError> {
         if self.supervisor.should_halt() {
             return Err(PipelineError::EarlyHaltTriggered {
                 score: self.supervisor.coherence().score,
                 threshold: self.supervisor.early_halt_threshold(),
             });
         }
+        Ok(())
+    }
 
-        // Parse the line into streaming events
-        let events = self
-            .parser
+    fn parse_streaming_events(
+        &mut self,
+        line: &str,
+    ) -> Result<Vec<ZhenfaStreamingEvent>, PipelineError> {
+        self.parser
             .parse_line(line)
-            .map_err(PipelineError::ParseError)?;
+            .map_err(PipelineError::ParseError)
+    }
 
-        let mut outputs = Vec::with_capacity(events.len().max(1));
-
-        // If we have external signals but no parsed events, still emit them
-        if events.is_empty() && !external_signals.is_empty() {
-            outputs.push(PipelineOutput {
-                event: ZhenfaStreamingEvent::Status(std::sync::Arc::from("external_signal")),
-                cognitive: None,
-                validation: Vec::new(),
-                coherence_score: self.supervisor.coherence().score,
-                should_halt: false,
-                external_signals,
-            });
-            return Ok(outputs);
+    fn push_signal_only_output(
+        &self,
+        events: &[ZhenfaStreamingEvent],
+        external_signals: &[ExternalSignal],
+        outputs: &mut Vec<PipelineOutput>,
+    ) -> bool {
+        if !events.is_empty() || external_signals.is_empty() {
+            return false;
         }
+        outputs.push(PipelineOutput {
+            event: ZhenfaStreamingEvent::Status(std::sync::Arc::from("external_signal")),
+            cognitive: None,
+            validation: Vec::new(),
+            coherence_score: self.supervisor.coherence().score,
+            should_halt: false,
+            external_signals: external_signals.to_vec(),
+        });
+        true
+    }
 
-        for event in events {
-            let mut output = PipelineOutput {
-                event: event.clone(),
-                cognitive: None,
-                validation: Vec::new(),
-                coherence_score: self.supervisor.coherence().score,
-                should_halt: false,
-                external_signals: if outputs.is_empty() {
-                    external_signals.clone()
-                } else {
-                    Vec::new()
-                },
-            };
+    fn process_event(
+        &mut self,
+        event: &ZhenfaStreamingEvent,
+        external_signals: Vec<ExternalSignal>,
+    ) -> Result<PipelineOutput, PipelineError> {
+        let mut output = PipelineOutput {
+            event: event.clone(),
+            cognitive: None,
+            validation: Vec::new(),
+            coherence_score: self.supervisor.coherence().score,
+            should_halt: false,
+            external_signals,
+        };
 
-            // Run cognitive monitoring on thoughts
-            if self.monitor_cognitive && matches!(event, ZhenfaStreamingEvent::Thought(_)) {
-                let cognitive = self.supervisor.classify(event.clone());
-                output.coherence_score = cognitive.coherence;
-                output.should_halt = self.supervisor.should_halt();
-                output.cognitive = Some(cognitive);
-            }
+        self.apply_cognitive_monitoring(event, &mut output);
+        self.apply_hot_validation(event, &mut output)?;
+        Ok(output)
+    }
 
-            // Run XSD validation on text content (for XML output)
-            if self.validate_xsd
-                && let Some(text) = event.text_content()
-            {
-                let validation = self
-                    .logic_gate
-                    .hot_validate(text)
-                    .map_err(PipelineError::ValidationError)?;
-                output.validation = validation;
-            }
-
-            outputs.push(output);
+    fn apply_cognitive_monitoring(
+        &mut self,
+        event: &ZhenfaStreamingEvent,
+        output: &mut PipelineOutput,
+    ) {
+        if !self.monitor_cognitive || !matches!(event, ZhenfaStreamingEvent::Thought(_)) {
+            return;
         }
+        let cognitive = self.supervisor.classify(event.clone());
+        output.coherence_score = cognitive.coherence;
+        output.should_halt = self.supervisor.should_halt();
+        output.cognitive = Some(cognitive);
+    }
 
-        Ok(outputs)
+    fn apply_hot_validation(
+        &mut self,
+        event: &ZhenfaStreamingEvent,
+        output: &mut PipelineOutput,
+    ) -> Result<(), PipelineError> {
+        if !self.validate_xsd {
+            return Ok(());
+        }
+        let Some(text) = event.text_content() else {
+            return Ok(());
+        };
+        output.validation = self
+            .logic_gate
+            .hot_validate(text)
+            .map_err(PipelineError::ValidationError)?;
+        Ok(())
     }
 
     /// Finalize the stream and get the final outcome.
@@ -353,33 +432,14 @@ impl ZhenfaPipeline {
     /// Get the cognitive dimension distribution.
     #[must_use]
     pub fn cognitive_distribution(&self) -> CognitiveDistribution {
-        let history = self
-            .supervisor
-            .history_slice(0, self.supervisor.history_len());
-
-        let mut meta = 0;
-        let mut operational = 0;
-        let mut epistemic = 0;
-        let mut instrumental = 0;
-        let mut system = 0;
-
-        for dim in history {
-            match dim {
-                CognitiveDimension::Meta => meta += 1,
-                CognitiveDimension::Operational => operational += 1,
-                CognitiveDimension::Epistemic => epistemic += 1,
-                CognitiveDimension::Instrumental => instrumental += 1,
-                CognitiveDimension::System => system += 1,
-            }
-        }
-
-        CognitiveDistribution {
-            meta,
-            operational,
-            epistemic,
-            instrumental,
-            system,
-        }
+        self.supervisor
+            .history_slice(0, self.supervisor.history_len())
+            .iter()
+            .copied()
+            .fold(CognitiveDistribution::default(), |mut distribution, dim| {
+                distribution.increment(dim);
+                distribution
+            })
     }
 
     /// Reset the pipeline state for a new session.
@@ -412,6 +472,16 @@ pub struct CognitiveDistribution {
 }
 
 impl CognitiveDistribution {
+    fn increment(&mut self, dim: CognitiveDimension) {
+        match dim {
+            CognitiveDimension::Meta => self.meta += 1,
+            CognitiveDimension::Operational => self.operational += 1,
+            CognitiveDimension::Epistemic => self.epistemic += 1,
+            CognitiveDimension::Instrumental => self.instrumental += 1,
+            CognitiveDimension::System => self.system += 1,
+        }
+    }
+
     /// Get the total number of events.
     #[must_use]
     pub const fn total(&self) -> usize {

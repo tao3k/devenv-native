@@ -42,6 +42,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::{broadcast, mpsc};
 
 // Re-export ExternalSignal for convenience
+use crate::ZhenfaSignalType;
 pub use crate::transmuter::streaming::ExternalSignal;
 
 /// Maximum number of subscribers supported by the registry.
@@ -168,6 +169,23 @@ pub enum BroadcastResult {
     },
     /// No subscribers were registered.
     NoSubscribers,
+}
+
+/// Input used to convert one observation into a pipeline external signal.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObservationSignalInput {
+    /// Signal source identifier.
+    pub source: String,
+    /// Typed signal kind.
+    pub signal_type: ZhenfaSignalType,
+    /// Human-readable summary.
+    pub summary: String,
+    /// Confidence score from 0.0 to 1.0.
+    pub confidence: f32,
+    /// Affected document identifiers.
+    pub affected_docs: Vec<String>,
+    /// Whether an automatic fix path exists.
+    pub auto_fix_available: bool,
 }
 
 /// Global signal registry for broadcasting external signals to multiple subscribers.
@@ -348,21 +366,14 @@ impl SignalRegistry {
     /// This is the bridge function that maps wendao's `ObservationSignal`
     /// to `ExternalSignal` for pipeline consumption.
     #[must_use]
-    pub fn convert_observation_signal(
-        source: &str,
-        signal_type: &str,
-        summary: &str,
-        confidence: f32,
-        affected_docs: Vec<String>,
-        auto_fix_available: bool,
-    ) -> ExternalSignal {
+    pub fn convert_observation_signal(input: ObservationSignalInput) -> ExternalSignal {
         ExternalSignal {
-            source: source.to_string(),
-            signal_type: signal_type.to_string(),
-            summary: summary.to_string(),
-            confidence,
-            affected_docs,
-            auto_fix_available,
+            source: input.source,
+            signal_type: input.signal_type,
+            summary: input.summary,
+            confidence: input.confidence,
+            affected_docs: input.affected_docs,
+            auto_fix_available: input.auto_fix_available,
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map_or_else(

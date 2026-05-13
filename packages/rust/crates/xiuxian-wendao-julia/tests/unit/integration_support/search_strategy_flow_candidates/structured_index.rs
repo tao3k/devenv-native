@@ -5,12 +5,13 @@ use super::{
     search_strategy_flow_candidate_discovery_contract_json,
     search_strategy_flow_total_structured_candidate_index_contract,
 };
+use crate::integration_support::search_strategy_flow_candidates::WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE;
 
 #[test]
 fn total_structured_candidate_index_contract_uses_dynamic_promotion_denominator() {
     let contract = search_strategy_flow_total_structured_candidate_index_contract(fixture_counts());
 
-    assert_eq!(contract.surfaces.len(), 3);
+    assert_eq!(contract.surfaces.len(), 4);
     assert_eq!(contract.total_candidate_count(), 2851);
     assert_eq!(
         contract
@@ -19,6 +20,14 @@ fn total_structured_candidate_index_contract_uses_dynamic_promotion_denominator(
             .find(|surface| surface.surface_id == "primary-markdown")
             .map(|surface| surface.candidate_count),
         Some(476)
+    );
+    assert_eq!(
+        contract
+            .surfaces
+            .iter()
+            .find(|surface| surface.surface_id == "gateway-retrieval-frontier")
+            .map(|surface| surface.candidate_count),
+        Some(0)
     );
     assert_eq!(
         contract
@@ -166,10 +175,48 @@ fn candidate_discovery_contract_maps_markdown_source_as_subset_not_denominator()
     );
 }
 
+#[test]
+fn candidate_discovery_contract_maps_gateway_retrieval_source() {
+    let mut counts = fixture_counts();
+    counts.gateway_retrieval = 32;
+    let summary = search_strategy_flow_candidate_discovery_contract_json(
+        counts,
+        Some(WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE),
+        32,
+        Some(&serde_json::json!({
+            "transport": "arrow-flight",
+            "route": "/search/repo",
+            "retrievalOwner": "wendao-gateway",
+        })),
+    );
+
+    assert_eq!(
+        summary.get("candidateInputSource"),
+        Some(&serde_json::json!(
+            WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE
+        ))
+    );
+    assert_eq!(
+        summary.get("structuredSurfaceId"),
+        Some(&serde_json::json!("gateway-retrieval-frontier"))
+    );
+    assert_eq!(
+        summary.get("structuredSurfaceCandidateCount"),
+        Some(&serde_json::json!(32))
+    );
+    assert_eq!(
+        summary
+            .get("discoveryReceipt")
+            .and_then(|receipt| receipt.get("retrievalOwner")),
+        Some(&serde_json::json!("wendao-gateway"))
+    );
+}
+
 fn fixture_counts() -> SearchStrategyFlowStructuredCandidateCounts {
     SearchStrategyFlowStructuredCandidateCounts {
         primary_markdown: 476,
         code_intelligence: 2194,
         registry_authority: 181,
+        gateway_retrieval: 0,
     }
 }

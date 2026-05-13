@@ -53,5 +53,5 @@ pub use snapshot::{
 };
 
 #[cfg(test)]
-#[path = "../../tests/unit/semantic_read_model.rs"]
+#[path = "../../tests/unit/semantic_read_model/mod.rs"]
 mod tests;

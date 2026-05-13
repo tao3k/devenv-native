@@ -87,7 +87,7 @@ pub use startup_health::{
 };
 
 /// SearchStrategyFlow proof surfaces owned by Studio.
-#[cfg(all(feature = "zhenfa-router", feature = "test-support", feature = "julia"))]
+#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 pub mod search_strategy_flow;
 
 #[cfg(test)]

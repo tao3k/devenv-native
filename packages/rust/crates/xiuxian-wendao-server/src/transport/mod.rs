@@ -13,9 +13,9 @@ pub use contract::{
     validate_flight_timeout_secs,
 };
 pub use host_settings::{
-    EffectiveRerankFlightHostSettings, ParsedRerankFlightHostOverrides,
-    rerank_score_weights_from_env, resolve_effective_rerank_flight_host_settings,
-    split_rerank_flight_host_overrides,
+    EffectiveRerankFlightHostSettings, EffectiveRerankFlightHostSettingsInput,
+    ParsedRerankFlightHostOverrides, rerank_score_weights_from_env,
+    resolve_effective_rerank_flight_host_settings, split_rerank_flight_host_overrides,
 };
 pub use query_contract::RerankScoreWeights;
 pub use query_contract::{
@@ -25,15 +25,20 @@ pub use query_contract::{
     ANALYSIS_REPO_INDEX_STATUS_ROUTE, ANALYSIS_REPO_OVERVIEW_ROUTE,
     ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
     ANALYSIS_REPO_SYNC_ROUTE, ANALYSIS_SEMANTIC_SCOPE_ROUTE, DOCUMENT_EXTRACT_FAST_TEXT_PROFILE,
-    DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest, DocumentExtractMode,
+    DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest, DocumentExtractMode, EntityIdRef,
     GRAPH_NEIGHBORS_DEFAULT_HOPS, GRAPH_NEIGHBORS_DEFAULT_LIMIT, GRAPH_NEIGHBORS_ROUTE,
-    QUERY_SQL_ROUTE, REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT,
-    REPO_SEARCH_BEST_SECTION_COLUMN, REPO_SEARCH_DEFAULT_LIMIT, REPO_SEARCH_DOC_ID_COLUMN,
-    REPO_SEARCH_HIERARCHY_COLUMN, REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_MATCH_REASON_COLUMN,
+    GraphNeighborsRequest, ModuleIdRef, NodeIdRef, PageIdRef, QUERY_SQL_ROUTE,
+    REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT, REPO_SEARCH_BEST_SECTION_COLUMN,
+    REPO_SEARCH_DEFAULT_LIMIT, REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_HIERARCHY_COLUMN,
+    REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_MATCH_REASON_COLUMN,
     REPO_SEARCH_NAVIGATION_CATEGORY_COLUMN, REPO_SEARCH_NAVIGATION_LINE_COLUMN,
     REPO_SEARCH_NAVIGATION_LINE_END_COLUMN, REPO_SEARCH_NAVIGATION_PATH_COLUMN,
     REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_ROUTE, REPO_SEARCH_SCORE_COLUMN, REPO_SEARCH_TAGS_COLUMN,
-    REPO_SEARCH_TITLE_COLUMN, RERANK_ROUTE, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
+    REPO_SEARCH_TITLE_COLUMN, RERANK_ROUTE, RefineDocRequest, RepoDocCoverageRequest, RepoIdRef,
+    RepoIndexRequest, RepoProjectedPageIndexTreeRequest, RepoProjectedRetrievalContextInput,
+    RepoProjectedRetrievalContextNodeId, RepoProjectedRetrievalContextPageId,
+    RepoProjectedRetrievalContextRepoId, RepoProjectedRetrievalContextRequest, RepoSearchRequest,
+    RepoSyncMode, RepoSyncRequest, RequestIdRef, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
     SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE, SEARCH_INTENT_ROUTE,
     SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE,
     SemanticScopeFlightRequest, TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE,

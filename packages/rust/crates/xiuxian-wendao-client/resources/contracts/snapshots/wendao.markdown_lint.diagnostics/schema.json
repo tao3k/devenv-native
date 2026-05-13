@@ -80,7 +80,7 @@
         },
         "kind": {
           "description": "High-level classification for this issue.",
-          "type": "string"
+          "$ref": "#/$defs/MarkdownLintIssueKind"
         },
         "line": {
           "description": "One-based source line.",
@@ -118,6 +118,10 @@
         }
       },
       "required": ["code", "kind", "problem", "message", "line", "column"]
+    },
+    "MarkdownLintIssueKind": {
+      "description": "High-level classification for one Markdown lint issue.",
+      "type": "string"
     }
   }
 }

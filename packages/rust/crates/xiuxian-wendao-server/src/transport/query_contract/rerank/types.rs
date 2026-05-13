@@ -14,7 +14,7 @@ pub struct RerankScoredCandidate {
     pub final_score: f64,
 }
 
-/// Shared transport-owned rerank score weights.
+/// Shared runtime-owned rerank score weights.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RerankScoreWeights {
     /// Weight applied to the inbound `vector_score`.

@@ -5,6 +5,7 @@ use serde::Serialize;
 pub(crate) const MAX_CANDIDATES: usize = 12;
 pub(crate) const MARKDOWN_HEADING_CANDIDATE_SOURCE: &str = "rust-markdown-headings";
 pub(crate) const CODE_INTELLIGENCE_CANDIDATE_SOURCE: &str = "rust-code-intelligence-inventory";
+pub(crate) const WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE: &str = "wendao-gateway-retrieval";
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

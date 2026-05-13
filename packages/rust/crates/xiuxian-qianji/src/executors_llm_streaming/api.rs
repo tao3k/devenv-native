@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use xiuxian_llm::llm::LlmClient;
-use xiuxian_zhenfa::{StreamProvider, ZhenfaPipeline};
+use xiuxian_zhenfa::{StreamProvider, ZhenfaPipeline, ZhenfaPipelineOptions};
 
 /// Streaming LLM analyzer with cognitive sovereignty protection.
 ///
@@ -104,10 +104,10 @@ impl StreamingLlmAnalyzer {
     /// Create the `ZhenfaPipeline` for this analyzer.
     pub(crate) fn create_pipeline(&self) -> ZhenfaPipeline {
         ZhenfaPipeline::with_options(
-            self.pipeline_settings.stream_provider,
-            self.pipeline_settings.flags.validate_xsd,
-            self.pipeline_settings.flags.monitor_cognitive,
-            self.pipeline_settings.early_halt_threshold,
+            ZhenfaPipelineOptions::new(self.pipeline_settings.stream_provider)
+                .with_xsd_validation(self.pipeline_settings.flags.validate_xsd)
+                .with_cognitive_monitoring(self.pipeline_settings.flags.monitor_cognitive)
+                .with_early_halt_threshold(self.pipeline_settings.early_halt_threshold),
         )
     }
 }

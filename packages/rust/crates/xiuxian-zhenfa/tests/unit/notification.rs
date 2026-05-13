@@ -6,7 +6,9 @@
 //! - Payload serialization
 //! - Error handling
 
-use xiuxian_zhenfa::{NotificationError, NotificationPayload, NotificationService, WebhookConfig};
+use xiuxian_zhenfa::{
+    NotificationError, NotificationPayload, NotificationService, WebhookConfig, ZhenfaSignalType,
+};
 
 /// Helper to create a test webhook config.
 fn test_config() -> WebhookConfig {
@@ -21,7 +23,7 @@ fn test_config() -> WebhookConfig {
 /// Helper to create a test payload.
 fn test_payload() -> NotificationPayload {
     NotificationPayload {
-        signal_type: "semantic_drift".to_string(),
+        signal_type: ZhenfaSignalType::from("semantic_drift"),
         source: "src/lib.rs".to_string(),
         summary: "Code changed".to_string(),
         confidence: "high".to_string(),
@@ -43,7 +45,7 @@ fn notification_service_new_with_config() {
 #[test]
 fn notification_payload_serialization() {
     let payload = NotificationPayload {
-        signal_type: "semantic_drift".to_string(),
+        signal_type: ZhenfaSignalType::from("semantic_drift"),
         source: "src/lib.rs".to_string(),
         summary: "Code changed".to_string(),
         confidence: "high".to_string(),
@@ -74,7 +76,7 @@ fn notification_payload_serialization() {
 #[test]
 fn notification_payload_with_fix_approval_url() {
     let payload = NotificationPayload {
-        signal_type: "semantic_drift".to_string(),
+        signal_type: ZhenfaSignalType::from("semantic_drift"),
         source: "src/lib.rs".to_string(),
         summary: "Fix available".to_string(),
         confidence: "high".to_string(),

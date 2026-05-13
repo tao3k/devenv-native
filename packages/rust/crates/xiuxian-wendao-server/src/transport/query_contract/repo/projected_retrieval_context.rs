@@ -22,6 +22,88 @@ pub const ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE: &str =
 /// Stable default related page limit for projected retrieval-context requests.
 pub const REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT: usize = 5;
 
+use crate::transport::query_contract::{NodeIdRef, PageIdRef, RepoIdRef};
+
+macro_rules! retrieval_context_token {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Build a normalized projected retrieval-context token.
+            #[must_use]
+            pub fn new(value: impl Into<String>) -> Self {
+                Self(value.into())
+            }
+
+            /// Borrow this token as a string slice.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                self.0.as_str()
+            }
+
+            /// Return the owned string.
+            #[must_use]
+            pub fn into_string(self) -> String {
+                self.0
+            }
+        }
+    };
+}
+
+retrieval_context_token!(
+    RepoProjectedRetrievalContextRepoId,
+    "Normalized repository identifier for projected retrieval-context requests."
+);
+retrieval_context_token!(
+    RepoProjectedRetrievalContextPageId,
+    "Normalized page identifier for projected retrieval-context requests."
+);
+retrieval_context_token!(
+    RepoProjectedRetrievalContextNodeId,
+    "Normalized node identifier for projected retrieval-context requests."
+);
+
+/// Projected retrieval-context request input.
+#[derive(Debug, Clone, Copy)]
+pub struct RepoProjectedRetrievalContextInput<'a> {
+    /// Repository identifier from request metadata.
+    pub repo_id: RepoIdRef<'a>,
+    /// Page identifier from request metadata.
+    pub page_id: PageIdRef<'a>,
+    /// Optional node identifier from request metadata.
+    pub node_id: Option<NodeIdRef<'a>>,
+    /// Optional related-page limit.
+    pub related_limit: Option<usize>,
+}
+
+/// Normalized projected retrieval-context request metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoProjectedRetrievalContextRequest {
+    /// Normalized repository identifier.
+    pub repo_id: RepoProjectedRetrievalContextRepoId,
+    /// Normalized page identifier.
+    pub page_id: RepoProjectedRetrievalContextPageId,
+    /// Optional normalized node identifier.
+    pub node_id: Option<RepoProjectedRetrievalContextNodeId>,
+    /// Normalized related-page limit.
+    pub related_limit: usize,
+}
+
+impl PartialEq<(String, String, Option<String>, usize)> for RepoProjectedRetrievalContextRequest {
+    fn eq(&self, other: &(String, String, Option<String>, usize)) -> bool {
+        self.repo_id.as_str() == other.0
+            && self.page_id.as_str() == other.1
+            && self
+                .node_id
+                .as_ref()
+                .map(RepoProjectedRetrievalContextNodeId::as_str)
+                == other.2.as_deref()
+            && self.related_limit == other.3
+    }
+}
+
 /// Validate the stable projected retrieval-context request contract.
 ///
 /// # Errors
@@ -29,34 +111,33 @@ pub const REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT: usize = 5;
 /// Returns an error when the repository identifier or page identifier is
 /// blank, or when the related-limit value is zero.
 pub fn validate_repo_projected_retrieval_context_request(
-    repo_id: &str,
-    page_id: &str,
-    node_id: Option<&str>,
-    related_limit: Option<usize>,
-) -> Result<(String, String, Option<String>, usize), String> {
-    let normalized_repo_id = repo_id.trim();
+    input: RepoProjectedRetrievalContextInput<'_>,
+) -> Result<RepoProjectedRetrievalContextRequest, String> {
+    let normalized_repo_id = input.repo_id.trim();
     if normalized_repo_id.is_empty() {
         return Err("repo projected retrieval-context repo must not be blank".to_string());
     }
-    let normalized_page_id = page_id.trim();
+    let normalized_page_id = input.page_id.trim();
     if normalized_page_id.is_empty() {
         return Err("repo projected retrieval-context page id must not be blank".to_string());
     }
-    let normalized_node_id = node_id
+    let normalized_node_id = input
+        .node_id
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .map(ToString::to_string);
-    let related_limit =
-        related_limit.unwrap_or(REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT);
+        .map(RepoProjectedRetrievalContextNodeId::new);
+    let related_limit = input
+        .related_limit
+        .unwrap_or(REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT);
     if related_limit == 0 {
         return Err(
             "repo projected retrieval-context related_limit must be greater than zero".to_string(),
         );
     }
-    Ok((
-        normalized_repo_id.to_string(),
-        normalized_page_id.to_string(),
-        normalized_node_id,
+    Ok(RepoProjectedRetrievalContextRequest {
+        repo_id: RepoProjectedRetrievalContextRepoId::new(normalized_repo_id),
+        page_id: RepoProjectedRetrievalContextPageId::new(normalized_page_id),
+        node_id: normalized_node_id,
         related_limit,
-    ))
+    })
 }
