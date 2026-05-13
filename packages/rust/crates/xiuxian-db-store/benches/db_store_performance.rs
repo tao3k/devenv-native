@@ -44,7 +44,7 @@ fn bench_qianji_bpmn_duckdb_store(c: &mut Criterion) {
                 for record in &fixture.records {
                     let loaded = fixture
                         .store
-                        .load_record(&record.instance_id, &record.record_key)
+                        .load_record(record.instance_id.as_str(), record.record_key.as_str())
                         .unwrap_or_else(|error| panic!("load benchmark record: {error}"))
                         .unwrap_or_else(|| panic!("benchmark record should exist"));
                     black_box(loaded);
