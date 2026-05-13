@@ -13,7 +13,6 @@ const LINK_GRAPH_CACHE_INDEXING_CONTRACT_REVISION: &str = "semantic_frontmatter_
 /// Schema version identifier for persisted `LinkGraph` cache snapshots.
 pub const LINK_GRAPH_CACHE_SCHEMA_VERSION: &str = "xiuxian_wendao.link_graph.cache_snapshot.v1";
 /// `cache_schema_fingerprint` public function boundary for Wendao.
-
 pub fn cache_schema_fingerprint() -> &'static str {
     LINK_GRAPH_CACHE_SCHEMA_FINGERPRINT.get_or_init(|| {
         let mut hasher = DefaultHasher::new();
@@ -23,7 +22,6 @@ pub fn cache_schema_fingerprint() -> &'static str {
     })
 }
 /// `cache_slot_key` public function boundary for Wendao.
-
 pub fn cache_slot_key(root: &Path, include_dirs: &[String], excluded_dirs: &[String]) -> String {
     let mut hasher = DefaultHasher::new();
     root.hash(&mut hasher);

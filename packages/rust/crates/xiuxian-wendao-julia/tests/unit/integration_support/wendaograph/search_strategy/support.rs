@@ -210,6 +210,11 @@ impl FlightService for SearchStrategyFlowFakeFlightService {
             }
         }
         if !self.batches_by_route.contains_key(route.as_str()) {
+            if route == ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE {
+                return Err(Status::not_found(
+                    "repo `main` does not contain projected page `missing`",
+                ));
+            }
             return Err(Status::not_found(format!("unknown route `{route}`")));
         }
         Ok(Response::new(FlightInfo {
@@ -340,6 +345,16 @@ async fn spawn_fake_search_strategy_flow_flight_service_with_empty_repo_search(
         ),
         (GRAPH_NEIGHBORS_ROUTE.to_owned(), graph_neighbors_batch()),
     ]))
+    .await
+}
+
+async fn spawn_fake_search_strategy_flow_flight_service_without_page_index(
+    scenario: SearchStrategyFlowFakeFlightScenario,
+) -> (String, tokio::task::JoinHandle<()>) {
+    spawn_fake_search_strategy_flow_flight_service_with_batches(HashMap::from([(
+        REPO_SEARCH_ROUTE.to_owned(),
+        repo_search_batch(scenario),
+    )]))
     .await
 }
 
@@ -762,6 +777,67 @@ pub(super) fn assert_search_strategy_flow_live_replay_trace_with_candidate_sourc
     let trace: serde_json::Value = serde_json::from_str(trace).unwrap_or_else(|error| {
         panic!("parse live SearchStrategyFlow replay for {family}: {error}")
     });
+    assert_live_replay_candidate_source_contract(
+        family,
+        &trace,
+        expected_candidate_source,
+        input_candidate_count,
+    );
+
+    let candidates = json_array(&trace, "candidates", family);
+    let frontier = json_array(&trace, "frontier", family);
+    let planner_actions = json_array(&trace, "plannerActions", family);
+    assert_summary_matches_candidate_rows(family, &trace, candidates);
+    assert_strategy_flow_validation_flags(family, &trace, require_selected_context_reduced);
+    assert_selected_frontier_and_planner_actions(
+        family,
+        frontier,
+        planner_actions,
+        require_stop_planner_action,
+    );
+    let routes = json_array(&trace, "retrievalRoutes", family);
+    let projected_rows = json_array(&trace, "rustProjectedEvidenceRows", family);
+    assert_live_replay_route_projection_contract(
+        family,
+        routes,
+        projected_rows,
+        expected_source_prefix,
+    );
+
+    let selected_frontier_count = frontier
+        .iter()
+        .filter(|row| row.get("selected").and_then(serde_json::Value::as_bool) == Some(true))
+        .count();
+    let non_stop_planner_action_count = planner_actions
+        .iter()
+        .filter(|row| {
+            row.get("actionKind")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|kind| kind != "stop")
+        })
+        .count();
+
+    SearchStrategyFlowLiveReplayFamilyReport {
+        family,
+        surface_markdown_file_count,
+        surface_heading_count,
+        input_candidate_count,
+        trace_candidate_count: candidates.len(),
+        frontier_count: frontier.len(),
+        selected_frontier_count,
+        planner_action_count: planner_actions.len(),
+        non_stop_planner_action_count,
+        route_count: routes.len(),
+        projected_row_count: projected_rows.len(),
+    }
+}
+
+fn assert_live_replay_candidate_source_contract(
+    family: &str,
+    trace: &serde_json::Value,
+    expected_candidate_source: &str,
+    input_candidate_count: usize,
+) {
     assert_eq!(
         trace.get("candidateInputSource"),
         Some(&serde_json::json!(expected_candidate_source)),
@@ -796,77 +872,39 @@ pub(super) fn assert_search_strategy_flow_live_replay_trace_with_candidate_sourc
         Some(&serde_json::json!(expected_candidate_source)),
         "{family} discovery contract must embed the Rust discovery receipt"
     );
+}
 
-    let candidates = json_array(&trace, "candidates", family);
-    let frontier = json_array(&trace, "frontier", family);
-    let planner_actions = json_array(&trace, "plannerActions", family);
-    let routes = trace
-        .get("retrievalRoutes")
-        .and_then(serde_json::Value::as_array)
-        .unwrap_or_else(|| panic!("{family} retrievalRoutes must be an array"));
-    let projected_rows = trace
-        .get("rustProjectedEvidenceRows")
-        .and_then(serde_json::Value::as_array)
-        .unwrap_or_else(|| panic!("{family} rustProjectedEvidenceRows must be an array"));
+fn assert_live_replay_route_projection_contract(
+    family: &str,
+    routes: &[serde_json::Value],
+    projected_rows: &[serde_json::Value],
+    expected_source_prefix: &str,
+) {
     assert!(!routes.is_empty(), "{family} must plan retrieval routes");
     assert!(
         !projected_rows.is_empty(),
         "{family} must project Rust evidence rows"
     );
-    assert_summary_matches_candidate_rows(family, &trace, candidates);
-    assert_strategy_flow_validation_flags(family, &trace, require_selected_context_reduced);
-    assert_selected_frontier_and_planner_actions(
-        family,
-        frontier,
-        planner_actions,
-        require_stop_planner_action,
-    );
+    assert_source_prefix_present(family, routes, expected_source_prefix, "route");
+    assert_source_prefix_present(family, projected_rows, expected_source_prefix, "evidence row");
+    assert_projected_rows_cover_route_receipts(family, projected_rows, routes);
+    assert_projected_rows_carry_algorithm_receipts(family, projected_rows);
+}
+
+fn assert_source_prefix_present(
+    family: &str,
+    rows: &[serde_json::Value],
+    expected_source_prefix: &str,
+    surface: &str,
+) {
     assert!(
-        routes.iter().any(|route| {
-            route
-                .get("sourcePath")
-                .and_then(serde_json::Value::as_str)
-                .is_some_and(|path| path.starts_with(expected_source_prefix))
-        }),
-        "{family} must route at least one {expected_source_prefix} candidate"
-    );
-    assert!(
-        projected_rows.iter().any(|row| {
+        rows.iter().any(|row| {
             row.get("sourcePath")
                 .and_then(serde_json::Value::as_str)
                 .is_some_and(|path| path.starts_with(expected_source_prefix))
         }),
-        "{family} must project at least one {expected_source_prefix} evidence row"
+        "{family} must include at least one {expected_source_prefix} {surface}"
     );
-    assert_projected_rows_cover_route_receipts(family, projected_rows, routes);
-    assert_projected_rows_carry_algorithm_receipts(family, projected_rows);
-
-    let selected_frontier_count = frontier
-        .iter()
-        .filter(|row| row.get("selected").and_then(serde_json::Value::as_bool) == Some(true))
-        .count();
-    let non_stop_planner_action_count = planner_actions
-        .iter()
-        .filter(|row| {
-            row.get("actionKind")
-                .and_then(serde_json::Value::as_str)
-                .is_some_and(|kind| kind != "stop")
-        })
-        .count();
-
-    SearchStrategyFlowLiveReplayFamilyReport {
-        family,
-        surface_markdown_file_count,
-        surface_heading_count,
-        input_candidate_count,
-        trace_candidate_count: candidates.len(),
-        frontier_count: frontier.len(),
-        selected_frontier_count,
-        planner_action_count: planner_actions.len(),
-        non_stop_planner_action_count,
-        route_count: routes.len(),
-        projected_row_count: projected_rows.len(),
-    }
 }
 
 fn configured_markdown_replay_inputs(

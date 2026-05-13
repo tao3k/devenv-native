@@ -1,3 +1,5 @@
+//! Executors http call surface for `xiuxian-qianji`.
+
 use std::collections::BTreeMap;
 
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
@@ -6,6 +8,7 @@ use async_trait::async_trait;
 use serde_json::{Value, json};
 
 /// Mechanism responsible for one contract-validated HTTP call.
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct HttpCallMechanism {
     /// Stable contract id used for validation.
     pub contract: String,

@@ -25,8 +25,8 @@ async fn workflow_control_service_cancels_checkpointed_session_from_duckdb_store
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: "wf_cancel_duckdb".to_string(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: "wf_cancel_duckdb".to_string().into(),
                     initial_variables: Some(json!({ "amount": 7 })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
@@ -45,7 +45,7 @@ async fn workflow_control_service_cancels_checkpointed_session_from_duckdb_store
     let cancel_report = ok_of(
         service
             .cancel_workflow(&QianjiBpmnWorkflowCancelRequest {
-                instance_id: "wf_cancel_duckdb".to_string(),
+                instance_id: "wf_cancel_duckdb".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             })
             .await,
@@ -94,8 +94,8 @@ async fn workflow_control_service_runtime_valkey_cancel_requires_stable_agent_id
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: instance_id.clone(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: instance_id.clone().into(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
@@ -118,7 +118,7 @@ async fn workflow_control_service_runtime_valkey_cancel_requires_stable_agent_id
             Some("manager".to_string()),
         ))
         .cancel_workflow(&QianjiBpmnWorkflowCancelRequest {
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
         })
         .await
@@ -160,8 +160,8 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: instance_id.clone(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: instance_id.clone().into(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
@@ -187,7 +187,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
     let cancel_report = ok_of(
         service
             .cancel_workflow(&QianjiBpmnWorkflowCancelRequest {
-                instance_id: instance_id.clone(),
+                instance_id: instance_id.clone().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
             })
             .await,

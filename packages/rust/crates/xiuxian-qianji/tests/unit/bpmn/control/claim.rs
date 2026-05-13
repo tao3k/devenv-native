@@ -37,12 +37,12 @@ async fn workflow_control_service_claim_persists_human_task_owner() {
     let claim_report = ok_of(
         service
             .claim_workflow_task(&QianjiBpmnWorkflowTaskClaimRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 claim: QianjiBpmnWorkflowTaskClaimPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: pending_activity_id,
+                    process_id: "review".to_string().into(),
+                    activity_id: pending_activity_id.into(),
                     claimant: "alice".to_string(),
                 },
             })
@@ -70,7 +70,7 @@ async fn workflow_control_service_claim_persists_human_task_owner() {
     let status_report = ok_of(
         service
             .load_workflow_status(&QianjiBpmnWorkflowStatusRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             })
             .await,
@@ -130,11 +130,11 @@ async fn workflow_control_service_worklist_filters_checkpointed_human_work() {
     ok_of(
         service
             .claim_workflow_task(&QianjiBpmnWorkflowTaskClaimRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 claim: QianjiBpmnWorkflowTaskClaimPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
+                    process_id: "review".to_string().into(),
                     activity_id: all_work.work_items[0].activity_id.clone(),
                     claimant: "alice".to_string(),
                 },
@@ -221,11 +221,11 @@ async fn workflow_control_service_worklist_filters_assignment_routing_metadata_w
     let claimed_by_non_resource = ok_of(
         service
             .claim_workflow_task(&QianjiBpmnWorkflowTaskClaimRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 claim: QianjiBpmnWorkflowTaskClaimPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
+                    process_id: "review".to_string().into(),
                     activity_id: review_team_work.work_items[0].activity_id.clone(),
                     claimant: "finance-user".to_string(),
                 },
@@ -319,11 +319,11 @@ async fn workflow_control_service_worklist_filters_lane_metadata_without_authori
     let claimed_by_non_lane_actor = ok_of(
         service
             .claim_workflow_task(&QianjiBpmnWorkflowTaskClaimRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 claim: QianjiBpmnWorkflowTaskClaimPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
+                    process_id: "review".to_string().into(),
                     activity_id: lane_name_work.work_items[0].activity_id.clone(),
                     claimant: "finance-user".to_string(),
                 },
@@ -398,12 +398,12 @@ async fn workflow_control_service_rejects_claimed_task_completion_by_different_c
     ok_of(
         service
             .claim_workflow_task(&QianjiBpmnWorkflowTaskClaimRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 claim: QianjiBpmnWorkflowTaskClaimPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: pending_activity_id.clone(),
+                    process_id: "review".to_string().into(),
+                    activity_id: pending_activity_id.clone().into(),
                     claimant: "alice".to_string(),
                 },
             })
@@ -414,12 +414,12 @@ async fn workflow_control_service_rejects_claimed_task_completion_by_different_c
     let build_completion = |claimant: Option<&str>| QianjiBpmnWorkflowTaskCompleteRequest {
         bpmn_path: bpmn_path.clone(),
         dmn_paths: Vec::new(),
-        instance_id: instance_id.to_string(),
+        instance_id: instance_id.to_string().into(),
         checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
         completion: QianjiBpmnWorkflowTaskCompletionPayload {
             token_id: pending_token_id,
-            process_id: "review".to_string(),
-            activity_id: pending_activity_id.clone(),
+            process_id: "review".to_string().into(),
+            activity_id: pending_activity_id.clone().into(),
             kind: QianjiBpmnWorkflowTaskCompletionKind::User,
             data: json!({
                 "answer": "approved",
@@ -489,12 +489,12 @@ async fn workflow_control_service_release_returns_human_task_to_unclaimed_workli
     ok_of(
         service
             .claim_workflow_task(&QianjiBpmnWorkflowTaskClaimRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 claim: QianjiBpmnWorkflowTaskClaimPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: pending_activity_id.clone(),
+                    process_id: "review".to_string().into(),
+                    activity_id: pending_activity_id.clone().into(),
                     claimant: "alice".to_string(),
                 },
             })
@@ -504,12 +504,12 @@ async fn workflow_control_service_release_returns_human_task_to_unclaimed_workli
 
     let mismatch = match service
         .release_workflow_task(&QianjiBpmnWorkflowTaskReleaseRequest {
-            instance_id: instance_id.to_string(),
+            instance_id: instance_id.to_string().into(),
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             release: QianjiBpmnWorkflowTaskReleasePayload {
                 token_id: pending_token_id,
-                process_id: "review".to_string(),
-                activity_id: pending_activity_id.clone(),
+                process_id: "review".to_string().into(),
+                activity_id: pending_activity_id.clone().into(),
                 claimant: "bob".to_string(),
             },
         })
@@ -523,12 +523,12 @@ async fn workflow_control_service_release_returns_human_task_to_unclaimed_workli
     let release_report = ok_of(
         service
             .release_workflow_task(&QianjiBpmnWorkflowTaskReleaseRequest {
-                instance_id: instance_id.to_string(),
+                instance_id: instance_id.to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 release: QianjiBpmnWorkflowTaskReleasePayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: pending_activity_id,
+                    process_id: "review".to_string().into(),
+                    activity_id: pending_activity_id.into(),
                     claimant: "alice".to_string(),
                 },
             })
@@ -611,19 +611,19 @@ impl HumanTaskIdentity {
 
     fn status_request(&self) -> QianjiBpmnWorkflowStatusRequest {
         QianjiBpmnWorkflowStatusRequest {
-            instance_id: self.instance.clone(),
+            instance_id: self.instance.clone().into(),
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
         }
     }
 
     fn claim_request(&self, claimant: &str) -> QianjiBpmnWorkflowTaskClaimRequest {
         QianjiBpmnWorkflowTaskClaimRequest {
-            instance_id: self.instance.clone(),
+            instance_id: self.instance.clone().into(),
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             claim: QianjiBpmnWorkflowTaskClaimPayload {
                 token_id: self.token,
-                process_id: Self::PROCESS_ID.to_string(),
-                activity_id: self.activity.clone(),
+                process_id: Self::PROCESS_ID.to_string().into(),
+                activity_id: self.activity.clone().into(),
                 claimant: claimant.to_string(),
             },
         }
@@ -631,12 +631,12 @@ impl HumanTaskIdentity {
 
     fn release_request(&self, claimant: &str) -> QianjiBpmnWorkflowTaskReleaseRequest {
         QianjiBpmnWorkflowTaskReleaseRequest {
-            instance_id: self.instance.clone(),
+            instance_id: self.instance.clone().into(),
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             release: QianjiBpmnWorkflowTaskReleasePayload {
                 token_id: self.token,
-                process_id: Self::PROCESS_ID.to_string(),
-                activity_id: self.activity.clone(),
+                process_id: Self::PROCESS_ID.to_string().into(),
+                activity_id: self.activity.clone().into(),
                 claimant: claimant.to_string(),
             },
         }
@@ -650,12 +650,12 @@ impl HumanTaskIdentity {
         QianjiBpmnWorkflowTaskCompleteRequest {
             bpmn_path: bpmn_path.to_path_buf(),
             dmn_paths: Vec::new(),
-            instance_id: self.instance.clone(),
+            instance_id: self.instance.clone().into(),
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             completion: QianjiBpmnWorkflowTaskCompletionPayload {
                 token_id: self.token,
-                process_id: Self::PROCESS_ID.to_string(),
-                activity_id: self.activity.clone(),
+                process_id: Self::PROCESS_ID.to_string().into(),
+                activity_id: self.activity.clone().into(),
                 kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                 data: json!({
                     "answer": "claim_identity_roundtrip",
@@ -961,5 +961,5 @@ async fn seed_pending_user_task_checkpoint(
             .await,
         "pending user task checkpoint should persist",
     );
-    (pending_token_id, pending_activity_id)
+    (pending_token_id, pending_activity_id.as_str().to_string())
 }

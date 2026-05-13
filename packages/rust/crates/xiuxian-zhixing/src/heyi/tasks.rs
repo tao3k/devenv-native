@@ -122,14 +122,19 @@ impl ZhixingHeyi {
         if let (Some(reminder_queue), Some(scheduled_at)) = (
             self.reminder_queue.as_ref(),
             scheduled_at_for_queue.as_deref(),
-        ) && let Err(error) = reminder_queue.enqueue_task(
-            &format!("task:{}", journal.id),
-            &task_name,
-            Some(title),
-            scheduled_at,
-            reminder_recipient_for_queue.as_deref(),
         ) {
-            log::warn!("Failed to enqueue scheduled task reminder: {error}");
+            let mut task = super::ReminderQueueTask::new(
+                format!("task:{}", journal.id),
+                &task_name,
+                scheduled_at,
+            )
+            .with_task_brief(title);
+            if let Some(recipient) = reminder_recipient_for_queue {
+                task = task.with_recipient(recipient);
+            }
+            if let Err(error) = reminder_queue.enqueue_task(task) {
+                log::warn!("Failed to enqueue scheduled task reminder: {error}");
+            }
         }
 
         Ok(format!("Vow manifested: '{task_name}'."))

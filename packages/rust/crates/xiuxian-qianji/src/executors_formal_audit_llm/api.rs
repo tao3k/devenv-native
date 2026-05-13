@@ -1,3 +1,5 @@
+//! Api surface for `xiuxian-qianji`.
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -15,6 +17,8 @@ use super::scoring::{extract_xml_score, score_to_memrl_reward};
 /// - Real-time coherence monitoring during LLM streaming
 /// - Early-halt detection for cognitive drift
 /// - Cognitive distribution metrics in output
+///
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct LlmAugmentedAuditMechanism {
     /// Node-local context annotator used to generate critique prompts.
     pub annotator: ContextAnnotator,

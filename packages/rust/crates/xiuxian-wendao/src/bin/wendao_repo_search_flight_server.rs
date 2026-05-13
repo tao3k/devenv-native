@@ -1,4 +1,4 @@
-//! Thin entrypoint for the domain-owned SearchStrategyFlow Flight host.
+//! Thin entrypoint for the domain-owned `SearchStrategyFlow` Flight host.
 
 #[tokio::main]
 async fn main() -> xiuxian_wendao::flight_host::FlightHostResult<()> {

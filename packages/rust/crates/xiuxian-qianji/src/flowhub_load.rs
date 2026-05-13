@@ -1,3 +1,5 @@
+//! Flowhub load surface for `xiuxian-qianji`.
+
 use std::fs;
 use std::path::Path;
 

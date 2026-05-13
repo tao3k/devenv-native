@@ -27,8 +27,8 @@ impl TempRequirementReferenceSnapshot {
         reference_kind: &str,
     ) -> Result<Self> {
         Ok(Self {
-            requirement_kind: requirement_kind.to_string().into(),
-            reference_kind: reference_kind.to_string().into(),
+            requirement_kind: requirement_kind.to_string(),
+            reference_kind: reference_kind.to_string(),
             href: attribute_value(source, reader, event, "href")?,
         })
     }

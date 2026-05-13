@@ -157,7 +157,7 @@ fn validate_completion_claimant(
         .filter(|id| !id.is_empty())
     else {
         return Err(BpmnOrchestrationError::PendingHostWorkClaimRequired {
-            instance_id: checkpoint.state.instance_id.to_string(),
+            instance_id: checkpoint.state.instance_id.as_ref().into(),
             token_id: completion.token_id,
             claimed_by: claim.claimant.clone(),
         }
@@ -169,7 +169,7 @@ fn validate_completion_claimant(
     }
 
     Err(BpmnOrchestrationError::PendingHostWorkClaimantMismatch {
-        instance_id: checkpoint.state.instance_id.to_string(),
+        instance_id: checkpoint.state.instance_id.as_ref().into(),
         token_id: completion.token_id,
         expected_claimant: claim.claimant.clone(),
         actual_claimant: actual_claimant.to_string(),

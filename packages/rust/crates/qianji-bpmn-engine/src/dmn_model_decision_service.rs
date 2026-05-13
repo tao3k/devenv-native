@@ -18,7 +18,7 @@ impl DmnDecisionServiceReference {
     #[must_use]
     pub fn new(reference_kind: impl AsRef<str>, href: Option<impl AsRef<str>>) -> Self {
         Self {
-            reference_kind: (Arc::<str>::from(reference_kind.as_ref())).into(),
+            reference_kind: (Arc::<str>::from(reference_kind.as_ref())),
             href: href.map(|value| Arc::<str>::from(value.as_ref())),
         }
     }
@@ -59,10 +59,9 @@ impl DmnDecisionServiceDefinition {
         name: Option<impl AsRef<str>>,
     ) -> Self {
         Self {
-            source_id: (Arc::<str>::from(source_id.as_ref())).into(),
+            source_id: (Arc::<str>::from(source_id.as_ref())),
             decision_service_id: (decision_service_id
-                .map(|value| Arc::<str>::from(value.as_ref())))
-            .into(),
+                .map(|value| Arc::<str>::from(value.as_ref()))),
             name: name.map(|value| Arc::<str>::from(value.as_ref())),
             output_decisions: Vec::new(),
             encapsulated_decisions: Vec::new(),

@@ -42,7 +42,7 @@ pub(super) fn mixed_modelica_unknown_plugin_configs() -> Vec<RepositoryPluginCon
 
 pub(super) fn sample_analysis_key(repo_id: &str) -> RepositoryAnalysisCacheKey {
     RepositoryAnalysisCacheKey {
-        repo_id: repo_id.to_string().into(),
+        repo_id: repo_id.to_string(),
         checkout_root: format!("/virtual/{repo_id}"),
         analysis_identity: format!("analysis:{repo_id}"),
         checkout_revision: Some("rev-1".to_string()),

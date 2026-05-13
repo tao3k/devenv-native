@@ -110,9 +110,9 @@ impl PendingHumanTaskReleaseRequest {
     #[must_use]
     pub fn from_input(input: PendingHumanTaskReleaseInput) -> Self {
         Self {
-            token_id: (input.token_id).into(),
-            process_id: (input.process_id).into(),
-            activity_id: (input.activity_id).into(),
+            token_id: (input.token_id),
+            process_id: (input.process_id),
+            activity_id: (input.activity_id),
             claimant: input.claimant,
             released_at_ms: input.released_at_ms,
         }
@@ -124,9 +124,9 @@ impl PendingHumanTaskClaimRequest {
     #[must_use]
     pub fn from_input(input: PendingHumanTaskClaimInput) -> Self {
         Self {
-            token_id: (input.token_id).into(),
-            process_id: (input.process_id).into(),
-            activity_id: (input.activity_id).into(),
+            token_id: (input.token_id),
+            process_id: (input.process_id),
+            activity_id: (input.activity_id),
             claimant: input.claimant,
             claimed_at_ms: input.claimed_at_ms,
         }

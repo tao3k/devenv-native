@@ -19,15 +19,16 @@ mod engine_orchestrator;
 mod engine_types;
 #[path = "../swarm_possession_bus.rs"]
 mod possession_bus;
+#[path = "possession/clock.rs"]
+mod possession_clock;
 #[path = "../swarm_possession_error_map.rs"]
 mod possession_error_map;
 #[path = "../swarm_possession_model.rs"]
 mod possession_model;
-#[path = "possession/util.rs"]
-mod possession_util;
 
 pub use self::api::{
     ClusterNodeIdentity, ClusterNodeRecord, GlobalSwarmRegistry, RemoteNodeRequest,
-    RemoteNodeResponse, RemotePossessionBus, SwarmAgentConfig, SwarmAgentReport, SwarmEngine,
-    SwarmExecutionOptions, SwarmExecutionReport, map_execution_error_to_response,
+    RemoteNodeResponse, RemotePossessionBus, RemotePossessionBusError, SwarmAgentConfig,
+    SwarmAgentReport, SwarmEngine, SwarmExecutionOptions, SwarmExecutionReport,
+    map_execution_error_to_response,
 };

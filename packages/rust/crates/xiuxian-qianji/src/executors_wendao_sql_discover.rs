@@ -1,3 +1,5 @@
+//! Executors wendao sql discover surface for `xiuxian-qianji`.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
@@ -14,6 +16,7 @@ const TABLES_CATALOG_QUERY: &str = "SELECT sql_table_name, corpus, scope, sql_ob
 const COLUMNS_CATALOG_QUERY: &str = "SELECT sql_table_name, column_name, data_type, is_nullable, ordinal_position, column_origin_kind FROM wendao_sql_columns ORDER BY sql_table_name, ordinal_position, column_name";
 
 /// Deterministic discovery node for request-scoped Wendao SQL surface metadata.
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct WendaoSqlDiscoverMechanism {
     /// Output context key storing the rendered XML surface bundle.
     pub output_key: String,

@@ -38,10 +38,10 @@ async fn runtime_standard_loop_repeats_until_loop_maximum() {
         assert_eq!(
             pending,
             PendingHostWork {
-                token_id: (instance.active_tokens[0].token_id).into(),
-                process_id: (Some("loop_maximum".into())).into(),
+                token_id: (instance.active_tokens[0].token_id),
+                process_id: (Some("loop_maximum".into())),
                 node_index: 1,
-                activity_id: (Some("review".into())).into(),
+                activity_id: (Some("review".into())),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
                 lane: None,

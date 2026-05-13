@@ -4,12 +4,15 @@
 mod api;
 #[path = "discover.rs"]
 mod discover;
+#[path = "model.rs"]
+mod model;
 #[path = "render/mod.rs"]
 mod render;
 
-pub use api::{
+pub use api::{render_flowhub_show, show_flowhub};
+pub use model::{
     FlowhubModuleKind, FlowhubModuleShow, FlowhubModuleSummary, FlowhubRootShow,
-    FlowhubScenarioCaseSummary, FlowhubShow, render_flowhub_show, show_flowhub,
+    FlowhubScenarioCaseSummary, FlowhubShow,
 };
 
 #[cfg(test)]

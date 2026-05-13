@@ -1,3 +1,5 @@
+//! Facade surface for `xiuxian-qianji`.
+
 use super::{critique, runtime};
 
 use std::sync::Arc;

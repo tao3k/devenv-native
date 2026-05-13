@@ -15,7 +15,8 @@ use super::client::SearchStrategyFlowFlightClient;
 use super::config::SearchStrategyFlowFlightMaterializationConfig;
 use super::constants::{
     MAX_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS, MAX_FLIGHT_DISCOVERY_CANDIDATES,
-    MIN_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP, REPO_SEARCH_LIMIT,
+    MIN_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP,
+    MIN_FLIGHT_REQUIRED_EVIDENCE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP, REPO_SEARCH_LIMIT,
 };
 use super::metadata::populate_repo_search_headers;
 use super::query::candidate_discovery_queries;
@@ -90,11 +91,11 @@ pub(crate) async fn search_strategy_flow_candidate_input_batch_from_repo_search(
             search_strategy_flow_candidate_input_batch_with_discovery_receipt(
                 CODE_INTELLIGENCE_CANDIDATE_SOURCE,
                 &merged_candidates,
-                candidate_discovery_receipt(
+                &candidate_discovery_receipt(
                     config.repo_id.as_str(),
                     merged_candidates.len(),
                     elapsed_ms(discovery_started_at),
-                    attempt_receipts,
+                    &attempt_receipts,
                 ),
             ),
         );
@@ -120,8 +121,76 @@ fn should_stop_candidate_discovery(
     attempted_count: usize,
     candidates: &[SearchStrategyFlowCandidateInput],
 ) -> bool {
-    attempted_count >= MIN_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP
+    let covers_relation = candidates
+        .iter()
+        .any(candidate_matches_relation_path_evidence);
+    if attempted_count >= MIN_FLIGHT_REQUIRED_EVIDENCE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP
+        && covers_relation
+        && candidate_discovery_covers_required_evidence(candidates)
+    {
+        return true;
+    }
+
+    covers_relation
+        && attempted_count >= MIN_FLIGHT_CANDIDATE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP
         && unique_candidate_source_count(candidates) >= MAX_FLIGHT_DISCOVERY_CANDIDATES
+}
+
+fn candidate_discovery_covers_required_evidence(
+    candidates: &[SearchStrategyFlowCandidateInput],
+) -> bool {
+    candidates
+        .iter()
+        .any(candidate_matches_ownership_boundary_evidence)
+        && candidates
+            .iter()
+            .any(candidate_matches_validation_path_evidence)
+        && candidates
+            .iter()
+            .any(candidate_matches_relation_path_evidence)
+}
+
+fn candidate_matches_ownership_boundary_evidence(
+    candidate: &SearchStrategyFlowCandidateInput,
+) -> bool {
+    let path = candidate.relative_path.to_ascii_lowercase();
+    let combined = candidate_discovery_combined_text(candidate);
+    is_search_strategy_flow_owner_markdown_path(path.as_str())
+        || is_policy_authority_markdown_path(path.as_str(), combined.as_str())
+}
+
+fn candidate_matches_validation_path_evidence(
+    candidate: &SearchStrategyFlowCandidateInput,
+) -> bool {
+    let path = candidate.relative_path.to_ascii_lowercase();
+    let combined = candidate_discovery_combined_text(candidate);
+    is_validation_authority_markdown_path(path.as_str(), combined.as_str())
+}
+
+fn candidate_matches_relation_path_evidence(candidate: &SearchStrategyFlowCandidateInput) -> bool {
+    let path = candidate.relative_path.to_ascii_lowercase();
+    let combined = candidate_discovery_combined_text(candidate);
+    relation_evidence_path(path.as_str(), combined.as_str())
+        || candidate
+            .edge_kinds
+            .iter()
+            .any(|kind| has_relation_terms(kind.as_str()))
+}
+
+fn relation_evidence_path(path: &str, combined: &str) -> bool {
+    path.contains("link_graph")
+        || path.contains("link-graph")
+        || path.starts_with("docs/10_graph_compute/")
+        || (path.contains("/wendaograph/search_strategy/") && has_relation_terms(combined))
+}
+
+fn candidate_discovery_combined_text(candidate: &SearchStrategyFlowCandidateInput) -> String {
+    format!(
+        "{} {} {}",
+        candidate.relative_path.to_ascii_lowercase(),
+        candidate.title.to_ascii_lowercase(),
+        candidate.heading_anchor.to_ascii_lowercase()
+    )
 }
 
 fn unique_candidate_source_count(candidates: &[SearchStrategyFlowCandidateInput]) -> usize {
@@ -178,23 +247,26 @@ fn candidate_discovery_priority(candidate: &SearchStrategyFlowCandidateInput) ->
     let path = candidate.relative_path.to_ascii_lowercase();
     let title = candidate.title.to_ascii_lowercase();
     let combined = format!("{path} {title}");
-    if is_test_path(path.as_str()) {
-        return 6;
-    }
     if is_search_strategy_flow_owner_markdown_path(path.as_str()) {
         return 0;
     }
     if is_validation_authority_markdown_path(path.as_str(), combined.as_str()) {
         return 1;
     }
-    if is_policy_authority_markdown_path(path.as_str(), combined.as_str()) {
+    if candidate_matches_relation_path_evidence(candidate) {
         return 2;
     }
-    if is_markdown_path(path.as_str()) {
+    if is_policy_authority_markdown_path(path.as_str(), combined.as_str()) {
         return 3;
     }
-    if path.ends_with(".toml") {
+    if is_test_path(path.as_str()) {
+        return 6;
+    }
+    if is_markdown_path(path.as_str()) {
         return 4;
+    }
+    if path_has_extension(path.as_str(), "toml") {
+        return 5;
     }
     if is_package_source_path(path.as_str()) {
         return 5;
@@ -241,7 +313,7 @@ fn has_relation_terms(combined: &str) -> bool {
 }
 
 fn is_markdown_path(path: &str) -> bool {
-    path.ends_with(".md")
+    path_has_extension(path, "md")
 }
 
 fn is_package_source_path(path: &str) -> bool {
@@ -253,8 +325,8 @@ fn is_test_path(path: &str) -> bool {
         || path.starts_with("tests/")
         || path.contains("/test/")
         || path.ends_with("_test.rs")
-        || path.ends_with(".test.ts")
-        || path.ends_with(".spec.ts")
+        || path_has_double_extension(path, "test", "ts")
+        || path_has_double_extension(path, "spec", "ts")
 }
 
 fn candidate_discovery_attempt_receipt(
@@ -277,7 +349,7 @@ fn candidate_discovery_receipt(
     repo_id: &str,
     merged_candidate_count: usize,
     elapsed_ms: u128,
-    attempts: Vec<Value>,
+    attempts: &[Value],
 ) -> Value {
     json!({
         "receiptSource": CODE_INTELLIGENCE_CANDIDATE_SOURCE,
@@ -296,10 +368,26 @@ fn candidate_discovery_receipt(
     })
 }
 
+fn path_has_extension(path: &str, extension: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .is_some_and(|candidate| candidate.eq_ignore_ascii_case(extension))
+}
+
+fn path_has_double_extension(path: &str, first: &str, second: &str) -> bool {
+    let Some(stem) = std::path::Path::new(path)
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+    else {
+        return false;
+    };
+    path_has_extension(path, second) && path_has_extension(stem, first)
+}
+
 fn elapsed_ms(started_at: Instant) -> u128 {
     started_at.elapsed().as_millis()
 }
 
 #[cfg(test)]
 #[path = "../../../tests/unit/integration_support/search_strategy_flow_flight/candidate_source.rs"]
-mod tests;
+mod candidate_source_unit_tests;

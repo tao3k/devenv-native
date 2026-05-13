@@ -19,7 +19,6 @@ pub(crate) struct AttachmentWriteResult {
     pub(crate) fragment_count: u64,
 }
 /// `AttachmentBuildError` public enum boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
 pub enum AttachmentBuildError {

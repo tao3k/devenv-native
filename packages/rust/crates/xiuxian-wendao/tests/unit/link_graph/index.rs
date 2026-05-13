@@ -28,8 +28,8 @@ fn test_symbol_cache_stats_with_data() {
 #[test]
 fn test_symbol_ref_serialization() {
     let symbol_ref = SymbolRef {
-        doc_id: "docs/api".to_string().into(),
-        node_id: "docs/api#section-1".to_string().into(),
+        doc_id: "docs/api".to_string(),
+        node_id: "docs/api#section-1".to_string(),
         pattern: "fn process_data($$$)".to_string(),
         language: "rust".to_string(),
         line_number: Some(42),
@@ -54,8 +54,8 @@ fn test_symbol_ref_serialization() {
 #[test]
 fn test_symbol_ref_serialization_no_scope() {
     let symbol_ref = SymbolRef {
-        doc_id: "docs/api".to_string().into(),
-        node_id: "docs/api#section-1".to_string().into(),
+        doc_id: "docs/api".to_string(),
+        node_id: "docs/api#section-1".to_string(),
         pattern: "fn process_data($$$)".to_string(),
         language: "rust".to_string(),
         line_number: Some(42),
@@ -86,7 +86,7 @@ fn test_page_index_lineage_helpers_follow_canonical_owner_surface() {
                 id_lower: doc_id.clone(),
                 stem: "a".to_string(),
                 stem_lower: "a".to_string(),
-                path: "notes/a.md".to_string().into(),
+                path: "notes/a.md".to_string(),
                 path_lower: "notes/a.md".to_string(),
                 title: "Doc A".to_string(),
                 title_lower: "doc a".to_string(),
@@ -109,14 +109,14 @@ fn test_page_index_lineage_helpers_follow_canonical_owner_surface() {
         trees_by_doc: HashMap::from([(
             doc_id.clone(),
             vec![PageIndexNode {
-                node_id: doc_id.clone().into(),
+                node_id: doc_id.clone(),
                 parent_id: None,
                 title: "Doc A".to_string(),
                 level: 1,
                 text: Arc::<str>::from(""),
                 summary: None,
                 children: vec![PageIndexNode {
-                    node_id: child_id.clone().into(),
+                    node_id: child_id.clone(),
                     parent_id: Some(doc_id.clone()),
                     title: "Section".to_string(),
                     level: 2,

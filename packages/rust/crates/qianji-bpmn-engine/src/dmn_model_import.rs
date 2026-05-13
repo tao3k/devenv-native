@@ -29,6 +29,7 @@ pub struct DmnImportSourceBinding {
 }
 
 /// Named construction payload for one DMN import definition.
+#[derive(Clone, Copy)]
 pub struct DmnImportDefinitionInput<'a> {
     /// Source identifier of the DMN document declaring the import.
     pub source_id: &'a str,
@@ -67,7 +68,7 @@ impl DmnImportDefinition {
     #[must_use]
     pub fn new(input: DmnImportDefinitionInput<'_>) -> Self {
         Self {
-            source_id: (Arc::<str>::from(input.source_id)).into(),
+            source_id: (Arc::<str>::from(input.source_id)),
             name: input.name.map(Arc::<str>::from),
             namespace: input.namespace.map(Arc::<str>::from),
             location_uri: input.location_uri.map(Arc::<str>::from),
@@ -79,7 +80,7 @@ impl DmnImportDefinition {
     #[must_use]
     pub fn from_snapshot(source_id: impl AsRef<str>, snapshot: &DmnImportSnapshot) -> Self {
         Self::new(DmnImportDefinitionInput {
-            source_id: (source_id.as_ref()).into(),
+            source_id: (source_id.as_ref()),
             name: snapshot.name.as_deref(),
             namespace: snapshot.namespace.as_deref(),
             location_uri: snapshot.location_uri.as_deref(),

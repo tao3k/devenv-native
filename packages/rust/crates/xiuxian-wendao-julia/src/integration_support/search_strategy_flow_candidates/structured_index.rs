@@ -1,7 +1,5 @@
 //! Total structured candidate-index contract for `SearchStrategyFlow`.
 
-use std::path::Path;
-
 use serde_json::{Value, json};
 
 pub(crate) const STRUCTURED_INDEX_CANDIDATE_SOURCE: &str = "rust-structured-candidate-index";
@@ -21,21 +19,11 @@ pub(crate) struct SearchStrategyFlowStructuredCandidateSurface {
     pub(crate) promotion_denominator: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct SearchStrategyFlowStructuredCandidateCounts {
     pub(crate) primary_markdown: usize,
     pub(crate) code_intelligence: usize,
     pub(crate) registry_authority: usize,
-}
-
-impl Default for SearchStrategyFlowStructuredCandidateCounts {
-    fn default() -> Self {
-        Self {
-            primary_markdown: 0,
-            code_intelligence: 0,
-            registry_authority: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,21 +63,6 @@ impl SearchStrategyFlowStructuredCandidateIndexContract {
             .iter()
             .all(|surface| surface.promotion_denominator)
     }
-}
-
-pub(crate) fn search_strategy_flow_configured_structured_candidate_counts(
-    project_root: &Path,
-) -> Result<SearchStrategyFlowStructuredCandidateCounts, String> {
-    let code_inventory =
-        super::code_inventory::audit_search_strategy_flow_code_intelligence_inventory(
-            project_root,
-        )?;
-    let registry = super::registry::audit_search_strategy_flow_registry_authority(project_root)?;
-    Ok(SearchStrategyFlowStructuredCandidateCounts {
-        primary_markdown: code_inventory.primary_markdown_count,
-        code_intelligence: code_inventory.total_candidate_count,
-        registry_authority: registry.configured_project_count,
-    })
 }
 
 pub(crate) fn search_strategy_flow_total_structured_candidate_index_contract(

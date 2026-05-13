@@ -1,3 +1,5 @@
+//! Consensus manager branch for Valkey-backed node-vote coordination.
+
 use super::models::{AgentIdentity, AgentVote, ConsensusPolicy, ConsensusResult};
 use anyhow::{Context, Result, anyhow};
 use futures::StreamExt;
@@ -54,6 +56,7 @@ impl ConsensusManager {
     /// # Errors
     ///
     /// Returns an error when Valkey commands fail or vote serialization fails.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn submit_vote(
         &self,
         session_id: &str,
@@ -73,6 +76,8 @@ impl ConsensusManager {
     /// # Errors
     ///
     /// Returns an error when Valkey commands fail or vote serialization fails.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
+    /// Positional boundary: this compatibility API keeps the established public call shape.
     pub async fn submit_vote_with_payload(
         &self,
         session_id: &str,
@@ -96,6 +101,7 @@ impl ConsensusManager {
     /// # Errors
     ///
     /// Returns an error when Valkey lookup fails.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn get_output_payload(
         &self,
         session_id: &str,
@@ -118,6 +124,7 @@ impl ConsensusManager {
     /// # Errors
     ///
     /// Returns an error when pub/sub connection or channel operations fail.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn wait_for_quorum(
         &self,
         session_id: &str,

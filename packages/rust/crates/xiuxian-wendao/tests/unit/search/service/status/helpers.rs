@@ -11,7 +11,7 @@ use crate::search::{
 
 pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
     vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\nlet beta = alpha();\n"),
         size_bytes: 34,

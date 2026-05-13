@@ -21,7 +21,7 @@ pub struct TwoPhaseConfig {
 }
 
 /// Request for executing two-phase search.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct TwoPhaseSearchRequest<'a> {
     /// Episodes available for search.
     pub episodes: &'a [Episode],

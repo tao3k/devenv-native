@@ -1,3 +1,5 @@
+//! Telemetry events surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -33,6 +35,7 @@ pub enum ConsensusStatus {
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum SwarmEvent {
     /// Lightweight worker heartbeat used for liveness/cluster monitoring.
+    /// Semantic payload boundary: this public event payload preserves externally serialized field names.
     SwarmHeartbeat {
         /// Logical swarm session identifier.
         session_id: Option<String>,
@@ -50,6 +53,7 @@ pub enum SwarmEvent {
         timestamp_ms: u64,
     },
     /// Scheduler node lifecycle transition.
+    /// Semantic payload boundary: this public event payload preserves externally serialized field names.
     NodeTransition {
         /// Logical swarm session identifier.
         session_id: Option<String>,
@@ -65,6 +69,7 @@ pub enum SwarmEvent {
         timestamp_ms: u64,
     },
     /// Consensus state signal for observability consumers.
+    /// Semantic payload boundary: this public event payload preserves externally serialized field names.
     ConsensusSpike {
         /// Logical swarm session identifier.
         session_id: String,
@@ -80,6 +85,7 @@ pub enum SwarmEvent {
         timestamp_ms: u64,
     },
     /// Event fired when one manifestation artifact is produced.
+    /// Semantic payload boundary: this public event payload preserves externally serialized field names.
     EvolutionBirth {
         /// Logical swarm session identifier.
         session_id: Option<String>,
@@ -91,6 +97,7 @@ pub enum SwarmEvent {
         timestamp_ms: u64,
     },
     /// Affinity failover warning when local proxy delegation is activated.
+    /// Semantic payload boundary: this public event payload preserves externally serialized field names.
     AffinityAlert {
         /// Logical swarm session identifier.
         session_id: Option<String>,
@@ -106,6 +113,7 @@ pub enum SwarmEvent {
         timestamp_ms: u64,
     },
     /// Cognitive supervision metrics emitted during LLM streaming.
+    /// Semantic payload boundary: this public event payload preserves externally serialized field names.
     CognitivePulse {
         /// Logical swarm session identifier.
         session_id: Option<String>,

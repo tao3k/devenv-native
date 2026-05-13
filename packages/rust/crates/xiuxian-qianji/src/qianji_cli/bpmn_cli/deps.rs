@@ -38,6 +38,6 @@ pub(crate) use qianji_bpmn_engine::{
 };
 pub(crate) use serde::Deserialize;
 
-pub(crate) use crate::qianji_cli::common::{
+pub(crate) use crate::qianji_cli::input::{
     empty_json_object, invalid_input, parse_flag_value, resolve_cli_path,
 };

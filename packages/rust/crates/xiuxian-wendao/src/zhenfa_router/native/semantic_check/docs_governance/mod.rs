@@ -4,7 +4,6 @@
 //! crate documentation, ensuring proper identity protocols, index structure,
 //! and relation tracking.
 /// Public Wendao boundary.
-
 #[path = "collection/mod.rs"]
 pub mod collection;
 /// Public Wendao boundary.

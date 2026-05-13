@@ -80,6 +80,7 @@ struct FenceStart {
     width: usize,
 }
 
+#[derive(Clone, Copy)]
 struct LintSourceLine<'a> {
     index: usize,
     text: &'a str,

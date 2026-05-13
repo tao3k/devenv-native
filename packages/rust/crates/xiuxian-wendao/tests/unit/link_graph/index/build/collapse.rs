@@ -23,7 +23,7 @@ fn make_doc(id: &str, stem: &str) -> LinkGraphDocument {
         id_lower: id.to_lowercase(),
         stem: stem.to_string(),
         stem_lower: stem.to_lowercase(),
-        path: format!("{id}.md").into(),
+        path: format!("{id}.md"),
         path_lower: format!("{}.md", id.to_lowercase()),
         title: stem.to_string(),
         title_lower: stem.to_lowercase(),

@@ -66,11 +66,11 @@ fn assert_single_pending_host_work(
     assert_eq!(
         pending,
         PendingHostWork {
-            token_id: (instance.active_tokens[0].token_id).into(),
-            process_id: (Some(instance.process.process_id.as_ref().into())).into(),
+            token_id: (instance.active_tokens[0].token_id),
+            process_id: (Some(instance.process.process_id.as_ref().into())),
             node_index: 1,
-            activity_id: (Some(expected.activity_id.into())).into(),
-            kind: (expected.kind).into(),
+            activity_id: (Some(expected.activity_id.into())),
+            kind: (expected.kind),
             decision: expected.decision,
             lane: None,
             script_format: expected.script_format.map(str::to_string),

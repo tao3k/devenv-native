@@ -38,7 +38,6 @@ pub fn build_repo_projected_page_index_tree_search(
     }
 }
 /// `scored_projected_page_index_node_hits` public function boundary for Wendao.
-
 #[must_use]
 pub fn scored_projected_page_index_node_hits(
     query: &str,

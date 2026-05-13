@@ -11,8 +11,8 @@ use crate::flowhub::{
     validate_mermaid_flowchart,
 };
 
-use super::api::FlowhubDiagnostic;
 use super::contract::mermaid_file_is_contracted;
+use super::model::FlowhubDiagnostic;
 
 struct MermaidCaseValidation<'a> {
     module_ref: &'a str,

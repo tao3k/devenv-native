@@ -259,7 +259,7 @@ fn managed_remote_repository(refresh: RepositoryRefreshPolicy) -> RegisteredRepo
 
 fn ready_status(last_revision: Option<&str>) -> RepoIndexEntryStatus {
     RepoIndexEntryStatus {
-        repo_id: "managed-remote".to_string().into(),
+        repo_id: "managed-remote".to_string(),
         phase: RepoIndexPhase::Ready,
         queue_position: None,
         last_error: None,
@@ -271,7 +271,7 @@ fn ready_status(last_revision: Option<&str>) -> RepoIndexEntryStatus {
 
 fn managed_remote_sync_result() -> RepoSyncResult {
     RepoSyncResult {
-        repo_id: "managed-remote".to_string().into(),
+        repo_id: "managed-remote".to_string(),
         source_kind: RepoSourceKind::ManagedRemote,
         health_state: RepoSyncHealthState::Healthy,
         staleness_state: RepoSyncStalenessState::Fresh,

@@ -84,7 +84,7 @@ pub struct BpmnFrontierExecutionProposal {
 impl From<&BpmnFrontierEntry> for BpmnFrontierExecutionProposal {
     fn from(entry: &BpmnFrontierEntry) -> Self {
         Self {
-            token_id: (entry.token_id).into(),
+            token_id: (entry.token_id),
             token_index: entry.token_index,
             node_index: entry.node_index,
             incoming_edge_index: entry.incoming_edge_index,

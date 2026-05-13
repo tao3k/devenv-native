@@ -35,7 +35,7 @@ pub(super) fn repo_document(
     modified_unix_ms: u64,
 ) -> RepoCodeDocument {
     RepoCodeDocument {
-        path: path.to_string().into(),
+        path: path.to_string(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from(contents),
         size_bytes,
@@ -86,7 +86,7 @@ pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
             10,
         ),
         RepoCodeDocument {
-            path: "examples/reexport.jl".to_string().into(),
+            path: "examples/reexport.jl".to_string(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from("using BaseModelica\nreexport()\n"),
             size_bytes: 29,

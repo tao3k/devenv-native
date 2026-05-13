@@ -79,7 +79,10 @@ impl PdfPageRenderSelection {
     }
 }
 
-/// Raster render profile for PDF page shards.
+/// Stringly state boundary for PDF page render profiles.
+///
+/// The image MIME type is a serialized worker-profile token shared with Arrow
+/// sidecars and Python OCR workers.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfPageRenderProfile {
@@ -273,7 +276,11 @@ pub struct PdfPageShardGeometry {
     pub point_to_pixel_scale_y: f64,
 }
 
-/// Manifest row for one rendered PDF page or region shard.
+/// Raw DTO boundary and stringly state boundary for rendered PDF shard rows.
+///
+/// The manifest is a stable Arrow/JSON sidecar contract, so source paths,
+/// image paths, MIME type, and element identifiers remain primitive serialized
+/// fields at this transport boundary.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfPageShardManifest {
@@ -399,7 +406,10 @@ impl OcrShardManifestSource for PdfPageShardManifest {
     }
 }
 
-/// Summary report for a PDF page render shard operation.
+/// Raw DTO boundary and stringly state boundary for PDF render reports.
+///
+/// This report is serialized for diagnostics and cache receipts, so output
+/// paths and status/routing tokens remain primitive fields.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfPageRenderShardReport {

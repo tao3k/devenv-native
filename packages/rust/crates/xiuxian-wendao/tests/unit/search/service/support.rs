@@ -95,7 +95,7 @@ pub(super) fn sample_hit() -> AstSearchHit {
     AstSearchHit {
         name: "AlphaSymbol".to_string(),
         signature: "fn AlphaSymbol()".to_string(),
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         language: "rust".to_string(),
         crate_name: "kernel".to_string(),
         project_name: None,
@@ -103,7 +103,7 @@ pub(super) fn sample_hit() -> AstSearchHit {
         node_kind: None,
         owner_title: None,
         navigation_target: StudioNavigationTarget {
-            path: "src/lib.rs".to_string().into(),
+            path: "src/lib.rs".to_string(),
             category: "symbol".to_string(),
             project_name: None,
             root_label: None,
@@ -154,7 +154,7 @@ pub(super) fn sample_repo_analysis() -> RepositoryAnalysisOutput {
 pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
     vec![
         RepoCodeDocument {
-            path: "src/BaseModelica.jl".to_string().into(),
+            path: "src/BaseModelica.jl".to_string(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from(
                 "module BaseModelica\nexport reexport\nreexport() = nothing\nend\n",
@@ -163,7 +163,7 @@ pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
             modified_unix_ms: 10,
         },
         RepoCodeDocument {
-            path: "examples/reexport.jl".to_string().into(),
+            path: "examples/reexport.jl".to_string(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from("using BaseModelica\nreexport()\n"),
             size_bytes: 29,
@@ -174,7 +174,7 @@ pub(super) fn sample_repo_documents() -> Vec<RepoCodeDocument> {
 
 pub(super) fn repo_status_entry(repo_id: &str, phase: RepoIndexPhase) -> RepoIndexEntryStatus {
     RepoIndexEntryStatus {
-        repo_id: repo_id.to_string().into(),
+        repo_id: repo_id.to_string(),
         phase,
         queue_position: None,
         last_error: None,

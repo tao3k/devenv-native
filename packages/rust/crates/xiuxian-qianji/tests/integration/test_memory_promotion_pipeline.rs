@@ -4,7 +4,9 @@ use std::sync::Arc;
 
 use serde_json::json;
 use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
-use xiuxian_qianji::{MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp, QianjiManifest};
+use xiuxian_qianji::{
+    MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp, QianjiManifest, QianjiPipelineDependencies,
+};
 use xiuxian_wendao::LinkGraphIndex;
 
 #[test]
@@ -62,9 +64,9 @@ async fn memory_promotion_pipeline_executes_and_returns_branch_decision() {
     ));
     let registry = Arc::new(PersonaRegistry::with_builtins());
 
-    let scheduler =
-        QianjiApp::create_memory_promotion_pipeline(index, orchestrator, registry, None)
-            .unwrap_or_else(|error| panic!("memory promotion pipeline should compile: {error}"));
+    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry);
+    let scheduler = QianjiApp::create_memory_promotion_pipeline(dependencies)
+        .unwrap_or_else(|error| panic!("memory promotion pipeline should compile: {error}"));
     let result = scheduler
         .run(json!({
             "query": "audit trail traceability architectural consistency for recurring workaround",

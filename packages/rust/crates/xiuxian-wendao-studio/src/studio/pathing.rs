@@ -26,7 +26,11 @@ pub fn resolve_path_like(base: &Path, input: &str) -> Option<PathBuf> {
 
 /// Normalizes a configured project directory root for Studio path matching.
 pub fn normalize_project_dir_root(dir: &str) -> Option<String> {
-    normalize_path_like(dir)
+    let mut normalized = normalize_path_like(dir)?;
+    while normalized.len() > 2 && normalized.starts_with("./") {
+        normalized = normalized[2..].to_string();
+    }
+    Some(normalized)
 }
 
 /// Normalizes a path-like string into Studio's slash-separated path form.

@@ -4,10 +4,10 @@ use crate::qianji_cli::bpmn_cli::deps::{
 };
 use crate::qianji_cli::bpmn_cli::host;
 use crate::qianji_cli::bpmn_cli::render;
+use crate::qianji_cli::bpmn_cli::run::control_service::workflow_control_service;
 use crate::qianji_cli::bpmn_cli::run::execution::{
     build_bpmn_workflow_start_request, build_bpmn_workflow_task_complete_request,
 };
-use crate::qianji_cli::bpmn_cli::run::shared::workflow_control_service;
 use crate::qianji_cli::bpmn_cli::types::{BpmnCliHostBridgeContext, BpmnHostSessionCliCommand};
 
 use super::prepared::{run_prepared_session_start, run_prepared_session_task_complete};
@@ -58,7 +58,7 @@ impl BpmnHostSessionRuntime {
         let resume_request = QianjiBpmnWorkflowResumeRequest {
             bpmn_path: task_command.bpmn_path.clone(),
             dmn_paths: task_command.dmn_paths.clone(),
-            instance_id: task_command.instance_id.clone(),
+            instance_id: task_command.instance_id.clone().into(),
             checkpoint_backend: task_command.checkpoint_backend.clone(),
         };
         match self

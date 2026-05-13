@@ -10,7 +10,9 @@ use futures::TryStreamExt;
 use lance::dataset::WriteParams;
 use lance::deps::arrow_array::builder::{ListBuilder, StringBuilder};
 use lance::deps::arrow_array::types::Int32Type;
-use lance::deps::arrow_array::{DictionaryArray, Int32Array, RecordBatch, StringArray};
+use lance::deps::arrow_array::{
+    DictionaryArray, Int32Array, RecordBatch, RecordBatchIterator, StringArray,
+};
 use lance::deps::arrow_schema::DataType;
 use std::sync::Arc;
 
@@ -218,37 +220,39 @@ impl crate::VectorStore {
     /// Returns an error when reading source data, converting batches, recreating
     /// the destination table, or appending migrated batches fails.
     pub async fn migrate(&mut self, table_name: &str) -> Result<MigrateResult, VectorStoreError> {
-        use lance::deps::arrow_array::RecordBatchIterator;
-
         let pending = self.check_migrations(table_name).await?;
         if pending.is_empty() {
             return Ok(MigrateResult::default());
         }
 
+        if self.current_migration_schema_version(table_name).await? != 1 {
+            return Ok(MigrateResult::default());
+        }
+
+        self.migrate_v1_table_to_v2(table_name).await
+    }
+
+    async fn current_migration_schema_version(
+        &self,
+        table_name: &str,
+    ) -> Result<u32, VectorStoreError> {
         let table_path = self.table_path(table_name);
         let uri = table_path.to_string_lossy();
         let dataset = self.open_dataset_at_uri(uri.as_ref()).await?;
         let arrow_schema_v1 = Arc::new(lance::deps::arrow_schema::Schema::from(dataset.schema()));
-        let current = schema_version_from_schema(arrow_schema_v1.as_ref());
-        if current != 1 {
-            return Ok(MigrateResult::default());
-        }
+        Ok(schema_version_from_schema(arrow_schema_v1.as_ref()))
+    }
 
-        // v1 → v2: scan in stream, convert each batch, create table with first batch then append rest (bounded memory).
+    async fn migrate_v1_table_to_v2(
+        &mut self,
+        table_name: &str,
+    ) -> Result<MigrateResult, VectorStoreError> {
         let schema_v2 = self.create_schema();
-        let v1_columns = [
-            ID_COLUMN,
-            VECTOR_COLUMN,
-            CONTENT_COLUMN,
-            SKILL_NAME_COLUMN,
-            CATEGORY_COLUMN,
-            TOOL_NAME_COLUMN,
-            FILE_PATH_COLUMN,
-            ROUTING_KEYWORDS_COLUMN,
-            INTENTS_COLUMN,
-        ];
+        let table_path = self.table_path(table_name);
+        let uri = table_path.to_string_lossy();
+        let dataset = self.open_dataset_at_uri(uri.as_ref()).await?;
         let mut scanner = dataset.scan();
-        scanner.project(&v1_columns)?;
+        scanner.project(&v1_migration_columns())?;
         let mut stream = scanner.try_into_stream().await?;
 
         let Some(first_batch) = stream.try_next().await? else {
@@ -297,4 +301,18 @@ impl crate::VectorStore {
             rows_processed,
         })
     }
+}
+
+fn v1_migration_columns() -> [&'static str; 9] {
+    [
+        ID_COLUMN,
+        VECTOR_COLUMN,
+        CONTENT_COLUMN,
+        SKILL_NAME_COLUMN,
+        CATEGORY_COLUMN,
+        TOOL_NAME_COLUMN,
+        FILE_PATH_COLUMN,
+        ROUTING_KEYWORDS_COLUMN,
+        INTENTS_COLUMN,
+    ]
 }

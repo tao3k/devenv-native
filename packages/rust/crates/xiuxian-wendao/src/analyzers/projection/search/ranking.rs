@@ -31,7 +31,6 @@ pub fn build_repo_projected_page_search(
     )
 }
 /// `build_repo_projected_page_search_with_options` public function boundary for Wendao.
-
 #[must_use]
 pub fn build_repo_projected_page_search_with_options(
     query: &RepoProjectedPageSearchQuery,
@@ -54,7 +53,6 @@ pub fn build_repo_projected_page_search_with_options(
 }
 /// Namespace boundary: this public name is scoped by its module owner.
 /// `build_repo_projected_page_search_with_artifacts` public function boundary for Wendao.
-
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 pub fn build_repo_projected_page_search_with_artifacts(
@@ -78,7 +76,6 @@ pub fn build_repo_projected_page_search_with_artifacts(
     }
 }
 /// `scored_projected_page_matches` public function boundary for Wendao.
-
 #[must_use]
 pub fn scored_projected_page_matches(
     query: &str,
@@ -130,7 +127,6 @@ pub(super) fn ranked_projected_page_matches(
     lexical_projected_page_matches(query, kind_filter, pages.as_slice(), limit, options)
 }
 /// `ranked_projected_page_matches_with_artifacts` public function boundary for Wendao.
-
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ranked_projected_page_matches_with_artifacts(

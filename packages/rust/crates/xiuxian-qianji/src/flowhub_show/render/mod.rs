@@ -1,3 +1,5 @@
+//! Flowhub show rendering branch for root, module, and scenario views.
+
 #[path = "root.rs"]
 mod root;
 #[path = "scenario.rs"]

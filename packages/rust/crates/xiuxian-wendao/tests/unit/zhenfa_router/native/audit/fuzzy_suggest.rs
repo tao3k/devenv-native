@@ -92,7 +92,7 @@ fn test_extract_capture_name() {
 fn test_suggest_pattern_fix_finds_renamed_symbol() {
     clear_candidate_cache();
     let source = SourceFile {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         content: "fn process_records(data: Vec<u8>) -> Result<()> { todo!() }".to_string(),
     };
 
@@ -116,7 +116,7 @@ fn test_candidate_cache_stats_and_clear() {
     assert_eq!(cache_stats(), (0, 0));
 
     let source = SourceFile {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         content: "fn process_records() { }".to_string(),
     };
 
@@ -137,7 +137,7 @@ fn test_candidate_cache_stats_and_clear() {
 #[test]
 fn test_suggest_pattern_fix_no_similar_code() {
     let source = SourceFile {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         content: "struct Point { x: i32, y: i32 }".to_string(),
     };
 

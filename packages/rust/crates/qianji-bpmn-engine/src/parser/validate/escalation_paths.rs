@@ -122,8 +122,8 @@ fn resolve_supported_escalation_owners<'a>(
             owner_node_id,
             kind: NestedShellKind::Transaction,
         } => vec![EscalationOwnerRequirement {
-            process_id: (owner_process_id.as_str()).into(),
-            node_id: (owner_node_id.as_str()).into(),
+            process_id: (owner_process_id.as_str()),
+            node_id: (owner_node_id.as_str()),
             owner_kind: SupportedEscalationOwner::Transaction,
         }],
         RawProcessScope::NestedShell {
@@ -131,8 +131,8 @@ fn resolve_supported_escalation_owners<'a>(
             owner_node_id,
             kind: NestedShellKind::EmbeddedSubProcess,
         } => vec![EscalationOwnerRequirement {
-            process_id: (owner_process_id.as_str()).into(),
-            node_id: (owner_node_id.as_str()).into(),
+            process_id: (owner_process_id.as_str()),
+            node_id: (owner_node_id.as_str()),
             owner_kind: SupportedEscalationOwner::EmbeddedSubProcess,
         }],
         RawProcessScope::NestedShell {
@@ -145,8 +145,8 @@ fn resolve_supported_escalation_owners<'a>(
                 owners
                     .iter()
                     .map(|owner| EscalationOwnerRequirement {
-                        process_id: (owner.process_id).into(),
-                        node_id: (owner.node_id).into(),
+                        process_id: (owner.process_id),
+                        node_id: (owner.node_id),
                         owner_kind: SupportedEscalationOwner::CallActivity,
                     })
                     .collect::<Vec<_>>()

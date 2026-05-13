@@ -49,7 +49,6 @@ pub(crate) fn ranked_symbol_matches(
     }
 }
 /// `ranked_symbol_matches_with_artifacts` public function boundary for Wendao.
-
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ranked_symbol_matches_with_artifacts(

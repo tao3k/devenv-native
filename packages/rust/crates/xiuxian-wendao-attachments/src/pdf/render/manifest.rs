@@ -10,7 +10,10 @@ use super::types::{
     PdfPageRenderProfile, PdfPageShardGeometry, PdfPageShardManifest, PdfPageShardManifestInput,
 };
 
-/// Compute raster dimensions for a PDF point box and render profile.
+/// Tuple API boundary for raster dimensions produced from a PDF point box.
+///
+/// The pair is kept as `(width_px, height_px)` because callers immediately
+/// destructure it into existing sidecar geometry fields.
 #[must_use]
 pub fn render_dimensions_for_box(
     page_box: PdfPageBox,

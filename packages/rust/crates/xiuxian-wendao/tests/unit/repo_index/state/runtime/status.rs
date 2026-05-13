@@ -147,7 +147,7 @@ async fn refresh_status_snapshot_synchronizes_search_plane_runtime() {
     );
     let coordinator = new_coordinator(search_plane.clone());
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "pending".to_string().into(),
+        repo_id: "pending".to_string(),
         phase: crate::repo_index::types::RepoIndexPhase::Queued,
         queue_position: None,
         last_error: None,
@@ -156,7 +156,7 @@ async fn refresh_status_snapshot_synchronizes_search_plane_runtime() {
         attempt_count: 1,
     });
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "skipped".to_string().into(),
+        repo_id: "skipped".to_string(),
         phase: crate::repo_index::types::RepoIndexPhase::Failed,
         queue_position: None,
         last_error: Some("boom".to_string()),
@@ -204,7 +204,7 @@ async fn refresh_status_snapshot_synchronizes_repo_backed_corpus_statuses() {
         SearchMaintenancePolicy::default(),
     );
     let documents = vec![crate::repo_index::types::RepoCodeDocument {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -233,7 +233,7 @@ async fn refresh_status_snapshot_synchronizes_repo_backed_corpus_statuses() {
         .unwrap_or_else(|error| panic!("publish repo content chunks: {error}"));
     let coordinator = new_coordinator(search_plane.clone());
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "alpha/repo".to_string().into(),
+        repo_id: "alpha/repo".to_string(),
         phase: crate::repo_index::types::RepoIndexPhase::Ready,
         queue_position: None,
         last_error: None,

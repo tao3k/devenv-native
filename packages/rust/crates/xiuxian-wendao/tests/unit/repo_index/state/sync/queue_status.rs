@@ -8,7 +8,7 @@ use super::support::{
 fn record_repo_status_advances_attempt_count_without_lock_reentrancy() {
     let coordinator = new_coordinator(SearchPlaneService::new(PathBuf::from(".")));
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "ADTypes.jl".to_string().into(),
+        repo_id: "ADTypes.jl".to_string(),
         phase: RepoIndexPhase::Indexing,
         queue_position: None,
         last_error: None,

@@ -1,3 +1,5 @@
+//! Executors write file mechanism surface for `xiuxian-qianji`.
+
 use super::pathing::{resolve_destination_path, resolve_root_dir};
 use super::template::render_template;
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};

@@ -7,7 +7,6 @@ use crate::link_graph::agentic::types::{
     LinkGraphSuggestedLinkState,
 };
 /// `normalize_record_for_read` public function boundary for Wendao.
-
 pub fn normalize_record_for_read(mut record: LinkGraphSuggestedLink) -> LinkGraphSuggestedLink {
     if record.suggestion_id.trim().is_empty() {
         record.suggestion_id = suggestion_id_from_parts(
@@ -36,7 +35,6 @@ struct NormalizedSuggestedLinkRequest {
     created_at_unix: f64,
 }
 /// `normalize_request` public function boundary for Wendao.
-
 pub fn normalize_request(
     request: &LinkGraphSuggestedLinkRequest,
 ) -> Result<LinkGraphSuggestedLink, String> {
@@ -82,7 +80,6 @@ fn normalize_suggested_link_request(
     })
 }
 /// `normalize_decision_request` public function boundary for Wendao.
-
 /// Tuple API boundary: this public API preserves byte or count pairs used by existing addressing contracts.
 pub fn normalize_decision_request(
     request: &LinkGraphSuggestedLinkDecisionRequest,

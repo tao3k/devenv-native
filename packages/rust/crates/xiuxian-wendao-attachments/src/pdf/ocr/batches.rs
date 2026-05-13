@@ -384,54 +384,89 @@ pub fn decode_ocr_shard_result_batch(
         "OCR shard result",
     )?;
 
-    let contract_version = string_column(batch, "contractVersion")?;
-    let source_path = string_column(batch, "sourcePath")?;
-    let source_content_hash = string_column(batch, "sourceContentHash")?;
-    let page_index = int32_column(batch, "pageIndex")?;
-    let image_path = string_column(batch, "imagePath")?;
-    let image_mime_type = string_column(batch, "imageMimeType")?;
-    let raster_sha256 = string_column(batch, "rasterSha256")?;
-    let render_profile = string_column(batch, "renderProfile")?;
-    let ocr_profile = string_column(batch, "ocrProfile")?;
-    let status = string_column(batch, "status")?;
-    let text = string_column(batch, "text")?;
-    let text_mime_type = string_column(batch, "textMimeType")?;
-    let confidence = float64_column(batch, "confidence")?;
-    let error_message = string_column(batch, "errorMessage")?;
-    let shard_element_id = string_column(batch, "shardElementId")?;
-    let element_id = string_column(batch, "elementId")?;
+    let columns = OcrShardResultColumns::from_batch(batch)?;
+    (0..batch.num_rows())
+        .map(|row| decode_ocr_shard_result_row(&columns, row))
+        .collect()
+}
 
-    let mut results = Vec::with_capacity(batch.num_rows());
-    for row in 0..batch.num_rows() {
-        let version = required_string(contract_version, row, "contractVersion")?;
-        if version != PDF_OCR_SHARD_RESULT_SCHEMA_VERSION {
-            return Err(format!(
-                "unexpected OCR shard result contract version `{version}`"
-            ));
-        }
+struct OcrShardResultColumns<'a> {
+    contract_version: &'a StringArray,
+    source_path: &'a StringArray,
+    source_content_hash: &'a StringArray,
+    page_index: &'a Int32Array,
+    image_path: &'a StringArray,
+    image_mime_type: &'a StringArray,
+    raster_sha256: &'a StringArray,
+    render_profile: &'a StringArray,
+    ocr_profile: &'a StringArray,
+    status: &'a StringArray,
+    text: &'a StringArray,
+    text_mime_type: &'a StringArray,
+    confidence: &'a Float64Array,
+    error_message: &'a StringArray,
+    shard_element_id: &'a StringArray,
+    element_id: &'a StringArray,
+}
 
-        results.push(PdfOcrShardResult {
-            contract_version: version,
-            source_path: required_string(source_path, row, "sourcePath")?,
-            source_content_hash: required_string(source_content_hash, row, "sourceContentHash")?,
-            page_index: required_u32(page_index, row, "pageIndex")?,
-            image_path: required_string(image_path, row, "imagePath")?,
-            image_mime_type: required_string(image_mime_type, row, "imageMimeType")?,
-            raster_sha256: required_string(raster_sha256, row, "rasterSha256")?,
-            render_profile: required_string(render_profile, row, "renderProfile")?,
-            ocr_profile: required_string(ocr_profile, row, "ocrProfile")?,
-            status: PdfOcrShardResultStatus::parse(
-                required_string(status, row, "status")?.as_str(),
-            )?,
-            text: optional_string(text, row),
-            text_mime_type: required_string(text_mime_type, row, "textMimeType")?,
-            confidence: optional_f64(confidence, row),
-            error_message: optional_string(error_message, row),
-            shard_element_id: required_string(shard_element_id, row, "shardElementId")?,
-            element_id: required_string(element_id, row, "elementId")?,
-        });
+impl<'a> OcrShardResultColumns<'a> {
+    fn from_batch(batch: &'a RecordBatch) -> Result<Self, String> {
+        Ok(Self {
+            contract_version: string_column(batch, "contractVersion")?,
+            source_path: string_column(batch, "sourcePath")?,
+            source_content_hash: string_column(batch, "sourceContentHash")?,
+            page_index: int32_column(batch, "pageIndex")?,
+            image_path: string_column(batch, "imagePath")?,
+            image_mime_type: string_column(batch, "imageMimeType")?,
+            raster_sha256: string_column(batch, "rasterSha256")?,
+            render_profile: string_column(batch, "renderProfile")?,
+            ocr_profile: string_column(batch, "ocrProfile")?,
+            status: string_column(batch, "status")?,
+            text: string_column(batch, "text")?,
+            text_mime_type: string_column(batch, "textMimeType")?,
+            confidence: float64_column(batch, "confidence")?,
+            error_message: string_column(batch, "errorMessage")?,
+            shard_element_id: string_column(batch, "shardElementId")?,
+            element_id: string_column(batch, "elementId")?,
+        })
     }
-    Ok(results)
+}
+
+fn decode_ocr_shard_result_row(
+    columns: &OcrShardResultColumns<'_>,
+    row: usize,
+) -> Result<PdfOcrShardResult, String> {
+    let version = required_string(columns.contract_version, row, "contractVersion")?;
+    if version != PDF_OCR_SHARD_RESULT_SCHEMA_VERSION {
+        return Err(format!(
+            "unexpected OCR shard result contract version `{version}`"
+        ));
+    }
+
+    Ok(PdfOcrShardResult {
+        contract_version: version,
+        source_path: required_string(columns.source_path, row, "sourcePath")?,
+        source_content_hash: required_string(
+            columns.source_content_hash,
+            row,
+            "sourceContentHash",
+        )?,
+        page_index: required_u32(columns.page_index, row, "pageIndex")?,
+        image_path: required_string(columns.image_path, row, "imagePath")?,
+        image_mime_type: required_string(columns.image_mime_type, row, "imageMimeType")?,
+        raster_sha256: required_string(columns.raster_sha256, row, "rasterSha256")?,
+        render_profile: required_string(columns.render_profile, row, "renderProfile")?,
+        ocr_profile: required_string(columns.ocr_profile, row, "ocrProfile")?,
+        status: PdfOcrShardResultStatus::parse(
+            required_string(columns.status, row, "status")?.as_str(),
+        )?,
+        text: optional_string(columns.text, row),
+        text_mime_type: required_string(columns.text_mime_type, row, "textMimeType")?,
+        confidence: optional_f64(columns.confidence, row),
+        error_message: optional_string(columns.error_message, row),
+        shard_element_id: required_string(columns.shard_element_id, row, "shardElementId")?,
+        element_id: required_string(columns.element_id, row, "elementId")?,
+    })
 }
 
 /// # Errors

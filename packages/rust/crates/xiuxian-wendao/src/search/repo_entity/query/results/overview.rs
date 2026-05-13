@@ -105,9 +105,9 @@ impl RepoEntityOverviewAccumulator {
     }
 
     fn apply_batch(&mut self, batch: &RecordBatch) -> Result<(), RepoEntitySearchError> {
-        let entity_kind = engine_string_column(&batch, COLUMN_ENTITY_KIND)?;
-        let qualified_name = engine_string_column(&batch, COLUMN_QUALIFIED_NAME)?;
-        let projection_page_ids = engine_list_string_column(&batch, COLUMN_PROJECTION_PAGE_IDS)?;
+        let entity_kind = engine_string_column(batch, COLUMN_ENTITY_KIND)?;
+        let qualified_name = engine_string_column(batch, COLUMN_QUALIFIED_NAME)?;
+        let projection_page_ids = engine_list_string_column(batch, COLUMN_PROJECTION_PAGE_IDS)?;
         for row in 0..batch.num_rows() {
             self.apply_row(
                 entity_kind.value(row),

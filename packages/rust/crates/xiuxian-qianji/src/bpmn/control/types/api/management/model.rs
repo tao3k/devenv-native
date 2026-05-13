@@ -1,13 +1,18 @@
+//! Status, listing, cancel, and interrupt contracts for BPMN control.
+
 use super::execution::QianjiBpmnWorkflowCheckpointBackend;
 use super::human_work::QianjiBpmnWorkflowWorklistItem;
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
+use crate::bpmn::identity::{
+    QianjiBpmnPackageId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
+};
 use qianji_bpmn_engine::{BpmnInstanceState, PendingHostWork};
 
 /// Typed request for loading one checkpoint-backed BPMN workflow status.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiBpmnWorkflowStatusRequest {
     /// Workflow instance identifier used for checkpoint lookup.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend to inspect for this bounded status request.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
@@ -23,7 +28,7 @@ pub struct QianjiBpmnWorkflowInstancesRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiBpmnWorkflowCancelRequest {
     /// Workflow instance identifier used for checkpoint lookup and deletion.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend to cancel for this bounded workflow instance.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
@@ -33,7 +38,7 @@ pub struct QianjiBpmnWorkflowCancelRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiBpmnWorkflowInterruptRequest {
     /// Workflow instance identifier used for checkpoint lookup and preservation.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend to interrupt for this bounded workflow instance.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
@@ -96,11 +101,11 @@ pub struct QianjiBpmnWorkflowWorklistReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiBpmnWorkflowInstanceSummary {
     /// Workflow instance identifier.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// BPMN process identifier.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN package identifier.
-    pub package_id: String,
+    pub package_id: QianjiBpmnPackageId,
     /// Durable instance lifecycle.
     pub lifecycle: qianji_bpmn_engine::InstanceLifecycle,
     /// Monotonic checkpoint sequence loaded from the persisted envelope.
@@ -120,9 +125,9 @@ pub struct QianjiBpmnWorkflowInstanceSummary {
 impl QianjiBpmnWorkflowInstanceSummary {
     pub(crate) fn from_checkpoint(checkpoint: qianji_bpmn_engine::BpmnCheckpointEnvelope) -> Self {
         Self {
-            instance_id: checkpoint.state.instance_id.as_ref().to_string(),
-            process_id: checkpoint.state.process.process_id.as_ref().to_string(),
-            package_id: checkpoint.state.process.package_id.as_ref().to_string(),
+            instance_id: checkpoint.state.instance_id.as_ref().into(),
+            process_id: checkpoint.state.process.process_id.as_ref().into(),
+            package_id: checkpoint.state.process.package_id.as_ref().into(),
             lifecycle: checkpoint.state.lifecycle,
             checkpoint_sequence: checkpoint.sequence,
             state_sequence: checkpoint.state.sequence,

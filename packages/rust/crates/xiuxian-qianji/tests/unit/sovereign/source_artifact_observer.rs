@@ -168,7 +168,7 @@ impl<S: WendaoIngestionSink> ArtifactObserver<S> {
         // Ingest into Wendao
         match self.sink.ingest_trace(trace, &document).await {
             Ok(anchor_id) => ArtifactIngestionResult::Ingested {
-                trace_id: trace.trace_id.clone(),
+                trace_id: trace.trace_id.as_str().to_string(),
                 anchor_id,
             },
             Err(error) => ArtifactIngestionResult::Failed {

@@ -1,7 +1,7 @@
 //! Formal logic and safety auditing.
 
+use crate::QianjiError;
 use crate::engine::QianjiEngine;
-use crate::error::QianjiError;
 use petgraph::algo::is_cyclic_directed;
 
 /// Lightweight formal-logic helpers for Synapse-Audit traces.

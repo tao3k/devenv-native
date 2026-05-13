@@ -15,7 +15,7 @@ use serde_yaml::Value;
 
 fn sample_cache_key(repo_id: &str) -> RepositoryAnalysisCacheKey {
     RepositoryAnalysisCacheKey {
-        repo_id: repo_id.to_string().into(),
+        repo_id: repo_id.to_string(),
         checkout_root: format!("/virtual/{repo_id}"),
         analysis_identity: format!("analysis:{repo_id}"),
         checkout_revision: Some("rev-1".to_string()),
@@ -119,7 +119,7 @@ analyzers:
 #[test]
 fn valkey_analysis_key_uses_analysis_identity_even_without_revision() {
     let key = RepositoryAnalysisCacheKey {
-        repo_id: "no-revision".to_string().into(),
+        repo_id: "no-revision".to_string(),
         checkout_root: "/tmp/no-revision".to_string(),
         analysis_identity: "analysis:no-revision".to_string(),
         checkout_revision: None,

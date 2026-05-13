@@ -70,7 +70,7 @@ pub(crate) use router::{
 };
 #[cfg(feature = "zhenfa-router")]
 pub use search::build_ast_index;
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "flight-server-bin-support")]
 pub(crate) use search::handlers::build_studio_flight_service_for_roots_with_weights;
 #[cfg(feature = "cli-bin-support")]
 pub(crate) use search::handlers::build_studio_flight_service_with_weights;

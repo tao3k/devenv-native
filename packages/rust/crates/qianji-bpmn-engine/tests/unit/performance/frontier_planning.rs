@@ -145,7 +145,7 @@ fn direct_runtime_execution_proposals(
                 .get(token.node_index as usize)
                 .map(|node_state| &node_state.status);
             (status == Some(&NodeRuntimeStatus::Queued)).then_some(BpmnFrontierExecutionProposal {
-                token_id: (token.token_id).into(),
+                token_id: (token.token_id),
                 token_index,
                 node_index: token.node_index,
                 incoming_edge_index: token.incoming_edge_index,

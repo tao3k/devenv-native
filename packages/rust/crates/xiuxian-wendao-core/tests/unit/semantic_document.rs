@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use xiuxian_wendao_core::{
-    CognitiveTraceRecord, LinkGraphSemanticDocument, LinkGraphSemanticDocumentKind,
+    CognitiveSessionId, CognitiveTraceRecord, LinkGraphSemanticDocument,
+    LinkGraphSemanticDocumentKind,
 };
 
 #[test]
@@ -45,10 +46,7 @@ fn cognitive_trace_record_new_creates_minimal_record() {
 
     assert_eq!(record.trace_id, "trace-123");
     assert_eq!(
-        record
-            .session_id
-            .as_ref()
-            .map(|session_id| session_id.as_str()),
+        record.session_id.as_ref().map(CognitiveSessionId::as_str),
         Some("session-456")
     );
     assert_eq!(record.node_id, "AuditNode");

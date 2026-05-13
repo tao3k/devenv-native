@@ -78,7 +78,7 @@ fn helper_serialization_uses_optional_metadata_shapes() {
     let backlink_items = vec![SearchBacklinkItem {
         id: "backlink:1".to_string(),
         title: Some("Backlink".to_string()),
-        path: Some("src/lib.rs".to_string().into()),
+        path: Some("src/lib.rs".to_string()),
         kind: Some("documents".to_string()),
     }];
 

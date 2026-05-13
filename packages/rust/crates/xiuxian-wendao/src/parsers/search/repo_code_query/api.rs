@@ -19,6 +19,7 @@ pub fn parse_repo_code_search_query(query: &str) -> ParsedRepoCodeSearchQuery {
 }
 
 /// Parse a repository code search query while applying a default repository hint.
+#[must_use]
 pub fn parse_repo_code_search_query_with_repo_hint(
     query: &str,
     repo_hint: Option<&str>,

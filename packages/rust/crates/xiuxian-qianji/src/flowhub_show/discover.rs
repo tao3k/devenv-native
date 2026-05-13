@@ -6,7 +6,7 @@ use crate::flowhub::discover::FlowhubDiscoveredModule;
 use crate::flowhub::load::load_flowhub_root_manifest;
 use crate::flowhub::parse_mermaid_flowchart;
 
-use super::api::{FlowhubModuleKind, FlowhubModuleSummary, FlowhubScenarioCaseSummary};
+use super::model::{FlowhubModuleKind, FlowhubModuleSummary, FlowhubScenarioCaseSummary};
 use crate::flowhub::{parse_flowhub_graph_annotations, resolve_flowhub_graph_name};
 
 pub(super) fn module_summary(

@@ -17,7 +17,6 @@ fn rounded_f64_to_u64(value: f64) -> u64 {
     rounded.to_string().parse::<u64>().unwrap_or(u64::MAX)
 }
 /// `AdaptiveConcurrencyAdjustment` public enum boundary for Wendao.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdaptiveConcurrencyAdjustment {
     Initialized,
@@ -67,7 +66,6 @@ pub(crate) struct AdaptiveConcurrencySnapshot {
     pub(crate) max_limit: usize,
 }
 /// `AdaptiveConcurrencyDebugSnapshot` public type boundary for Wendao.
-
 #[cfg(feature = "performance")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.

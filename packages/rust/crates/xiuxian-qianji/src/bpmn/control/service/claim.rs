@@ -229,8 +229,8 @@ async fn save_runtime_valkey_claimed_checkpoint(
         .await?;
     if !acquired {
         return Err(BpmnOrchestrationError::CheckpointLeaseConflict {
-            instance_id: checkpoint.state.instance_id.to_string(),
-            owner_token,
+            instance_id: checkpoint.state.instance_id.as_ref().into(),
+            owner_token: owner_token.into(),
         }
         .into());
     }

@@ -232,31 +232,28 @@ impl<'a> RestDocsEvaluator<'a> {
             .get("content")
             .and_then(Value::as_object)?;
 
-        let mut requires_example = false;
-        let mut documented_examples = false;
-        let mut missing_media_types = Vec::new();
+        let non_trivial_media = content
+            .iter()
+            .filter_map(|(media_type, media_value)| {
+                let media_object = media_value.as_object()?;
+                let schema = media_object.get("schema");
+                self.schema_is_non_trivial(schema)
+                    .then_some((media_type, media_object, schema))
+            })
+            .collect::<Vec<_>>();
 
-        for (media_type, media_value) in content {
-            let Some(media_object) = media_value.as_object() else {
-                continue;
-            };
-            let schema = media_object.get("schema");
-            if !self.schema_is_non_trivial(schema) {
-                continue;
-            }
-
-            requires_example = true;
-            if media_type_has_examples(media_object) || self.schema_has_examples(schema) {
-                documented_examples = true;
-                continue;
-            }
-
-            missing_media_types.push(media_type.clone());
-        }
-
-        if !requires_example || documented_examples {
+        if non_trivial_media.is_empty()
+            || non_trivial_media.iter().any(|(_, media_object, schema)| {
+                media_type_has_examples(media_object) || self.schema_has_examples(*schema)
+            })
+        {
             return None;
         }
+
+        let missing_media_types = non_trivial_media
+            .into_iter()
+            .map(|(media_type, _, _)| media_type.clone())
+            .collect::<Vec<_>>();
 
         let mut finding = self.base_finding(
             "REST-R007",
@@ -661,6 +658,7 @@ pub async fn run_and_persist_rest_docs_contract_feedback(
 /// Returns an error when deterministic REST docs evaluation fails or the live advisory executor
 /// fails.
 #[cfg(feature = "llm")]
+/// Positional boundary: this compatibility API keeps the established public call shape.
 pub async fn run_rest_docs_contract_feedback_with_live_advisory(
     openapi_path: impl Into<PathBuf>,
     collection_context: CollectionContext,
@@ -685,6 +683,7 @@ pub async fn run_rest_docs_contract_feedback_with_live_advisory(
 ///
 /// Returns an error when contract feedback execution fails or the sink rejects generated entries.
 #[cfg(feature = "llm")]
+/// Positional boundary: this compatibility API keeps the established public call shape.
 pub async fn run_and_persist_rest_docs_contract_feedback_with_live_advisory(
     openapi_path: impl Into<PathBuf>,
     collection_context: CollectionContext,

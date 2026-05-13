@@ -152,7 +152,7 @@ fn markdown_doc_paths(docs_dir: &Path) -> Vec<PathBuf> {
     WalkDir::new(docs_dir)
         .into_iter()
         .flatten()
-        .map(|entry| entry.into_path())
+        .map(walkdir::DirEntry::into_path)
         .filter(|path| is_markdown_file(path))
         .collect()
 }

@@ -145,7 +145,9 @@ fn best_tantivy_document_match(
         .match_fields
         .iter()
         .filter_map(|spec| best_tantivy_field_match(matcher, document, query, spec, scratch))
-        .fold(None, select_better_tantivy_match)
+        .fold(None, |best, candidate| {
+            Some(select_better_tantivy_match(best, candidate))
+        })
 }
 
 fn best_tantivy_field_match(
@@ -159,20 +161,22 @@ fn best_tantivy_field_match(
         .get_all(spec.text_field)
         .filter_map(|value| value.as_str())
         .filter_map(|stored_text| matcher.match_stored_text(query, spec, stored_text, scratch))
-        .fold(None, select_better_tantivy_match)
+        .fold(None, |best, candidate| {
+            Some(select_better_tantivy_match(best, candidate))
+        })
 }
 
 fn select_better_tantivy_match(
     best: Option<TantivyBestMatch>,
     candidate: TantivyBestMatch,
-) -> Option<TantivyBestMatch> {
+) -> TantivyBestMatch {
     match best {
         Some(current)
             if compare_tantivy_match_parts(candidate.as_parts(), current.as_parts()).is_ge() =>
         {
-            Some(current)
+            current
         }
-        _ => Some(candidate),
+        _ => candidate,
     }
 }
 

@@ -1,3 +1,5 @@
+//! Api surface for `xiuxian-qianji`.
+
 use serde::Serialize;
 
 /// Lifecycle status for a construct-card contract.

@@ -62,8 +62,8 @@ pub(in crate::parser) fn collect_call_activity_owners(
                     .entry(called_process_id)
                     .or_insert_with(Vec::new)
                     .push(CallActivityOwner {
-                        process_id: (process.process_id.as_str()).into(),
-                        node_id: (node.bpmn_id.as_str()).into(),
+                        process_id: (process.process_id.as_str()),
+                        node_id: (node.bpmn_id.as_str()),
                     });
             }
         }
@@ -134,8 +134,8 @@ fn resolve_supported_error_owners<'a>(
             owner_node_id,
             kind: NestedShellKind::Transaction,
         } => vec![ErrorOwnerRequirement {
-            process_id: (owner_process_id.as_str()).into(),
-            node_id: (owner_node_id.as_str()).into(),
+            process_id: (owner_process_id.as_str()),
+            node_id: (owner_node_id.as_str()),
             owner_kind: SupportedErrorOwner::Transaction,
         }],
         RawProcessScope::NestedShell {
@@ -143,8 +143,8 @@ fn resolve_supported_error_owners<'a>(
             owner_node_id,
             kind: NestedShellKind::EmbeddedSubProcess,
         } => vec![ErrorOwnerRequirement {
-            process_id: (owner_process_id.as_str()).into(),
-            node_id: (owner_node_id.as_str()).into(),
+            process_id: (owner_process_id.as_str()),
+            node_id: (owner_node_id.as_str()),
             owner_kind: SupportedErrorOwner::EmbeddedSubProcess,
         }],
         RawProcessScope::NestedShell {
@@ -157,8 +157,8 @@ fn resolve_supported_error_owners<'a>(
                 owners
                     .iter()
                     .map(|owner| ErrorOwnerRequirement {
-                        process_id: (owner.process_id).into(),
-                        node_id: (owner.node_id).into(),
+                        process_id: (owner.process_id),
+                        node_id: (owner.node_id),
                         owner_kind: SupportedErrorOwner::CallActivity,
                     })
                     .collect::<Vec<_>>()

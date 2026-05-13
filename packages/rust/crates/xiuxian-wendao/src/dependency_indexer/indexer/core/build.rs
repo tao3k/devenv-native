@@ -132,16 +132,15 @@ impl DependencyIndexer {
         verbose: bool,
         result: &mut DependencyIndexResult,
     ) {
-        match manifest.error {
-            Some(error) => record_manifest_error(result, verbose, &manifest.crate_name, &error),
-            None => {
-                self.crate_versions
-                    .insert(manifest.crate_name.clone(), manifest.version);
-                self.symbol_index
-                    .add_symbols(&manifest.crate_name, &manifest.symbols);
-                result.total_symbols += manifest.symbols.len();
-                result.crates_indexed += 1;
-            }
+        if let Some(error) = manifest.error {
+            record_manifest_error(result, verbose, &manifest.crate_name, &error);
+        } else {
+            self.crate_versions
+                .insert(manifest.crate_name.clone(), manifest.version);
+            self.symbol_index
+                .add_symbols(&manifest.crate_name, &manifest.symbols);
+            result.total_symbols += manifest.symbols.len();
+            result.crates_indexed += 1;
         }
     }
 }

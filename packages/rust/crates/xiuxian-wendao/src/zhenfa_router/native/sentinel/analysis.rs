@@ -64,9 +64,9 @@ static SYMBOL_EXTRACTORS: [SymbolExtractor; 7] = [
 ];
 
 struct SourceChangeContext {
-    file_path: String,
-    file_stem: String,
-    file_stem_lower: String,
+    path: String,
+    stem: String,
+    stem_lower: String,
 }
 
 fn capture_symbol(pattern: &str, regex: Option<&regex::Regex>) -> Option<String> {
@@ -198,9 +198,9 @@ fn source_change_context(path: &Path) -> SourceChangeContext {
         .unwrap_or("")
         .to_string();
     SourceChangeContext {
-        file_path: path.to_string_lossy().to_string(),
-        file_stem_lower: file_stem.to_lowercase(),
-        file_stem,
+        path: path.to_string_lossy().to_string(),
+        stem_lower: file_stem.to_lowercase(),
+        stem: file_stem,
     }
 }
 
@@ -213,8 +213,8 @@ fn add_index_symbol_matches(
         return;
     }
 
-    for symbol in source_symbol_variants(context.file_stem.as_str()) {
-        add_symbol_variant_matches(index, symbol.as_str(), &context.file_path, signal);
+    for symbol in source_symbol_variants(context.stem.as_str()) {
+        add_symbol_variant_matches(index, symbol.as_str(), &context.path, signal);
     }
 }
 
@@ -256,13 +256,7 @@ fn add_heuristic_matches(
 
     info!("Phase 6: Cache miss, falling back to heuristic traversal");
     for (doc_id, nodes) in index.all_page_index_trees() {
-        traverse_nodes_for_observations(
-            nodes,
-            doc_id,
-            &context.file_stem,
-            &context.file_stem_lower,
-            signal,
-        );
+        traverse_nodes_for_observations(nodes, doc_id, &context.stem, &context.stem_lower, signal);
     }
 }
 
@@ -274,10 +268,7 @@ fn finalize_source_change_signal(
         return Vec::new();
     }
 
-    signal.update_confidence(source_change_confidence(
-        &signal,
-        context.file_stem.as_str(),
-    ));
+    signal.update_confidence(source_change_confidence(&signal, context.stem.as_str()));
 
     info!(
         "Phase 6: {} documents potentially affected by source change.",
@@ -316,7 +307,7 @@ pub fn propagate_source_change(index: &LinkGraphIndex, path: &Path) -> Vec<Seman
     info!("Propagating semantic change from code: {}", path.display());
 
     let context = source_change_context(path);
-    let mut signal = SemanticDriftSignal::new(&context.file_path, &context.file_stem);
+    let mut signal = SemanticDriftSignal::new(&context.path, &context.stem);
     add_index_symbol_matches(index, &context, &mut signal);
     add_heuristic_matches(index, &context, &mut signal);
     finalize_source_change_signal(signal, &context)

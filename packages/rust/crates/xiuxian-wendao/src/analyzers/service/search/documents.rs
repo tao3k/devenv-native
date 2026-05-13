@@ -13,7 +13,6 @@ use crate::analyzers::service::{
     related_symbols_for_example,
 };
 /// `ExampleSearchMetadata` public type boundary for Wendao.
-
 #[derive(Debug, Clone, Default)]
 pub struct ExampleSearchMetadata {
     pub(super) related_symbols: Vec<String>,

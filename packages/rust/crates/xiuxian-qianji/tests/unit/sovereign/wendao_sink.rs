@@ -32,7 +32,7 @@ async fn file_sink_writes_trace_file() {
 
     let trace = CognitiveTraceRecord::new(
         "trace-test-123".to_string(),
-        Some("session-abc".to_string()),
+        Some("session-abc".into()),
         "AuditNode".to_string(),
         "Critique the agenda".to_string(),
     );
@@ -74,7 +74,7 @@ async fn file_sink_produces_valid_markdown() {
 
     let trace = CognitiveTraceRecord::new(
         "trace-md-test".to_string(),
-        Some("session-xyz".to_string()),
+        Some("session-xyz".into()),
         "PlanNode".to_string(),
         "Generate a plan".to_string(),
     );
@@ -190,7 +190,7 @@ async fn memory_sink_multiple_traces() {
             "TestNode".to_string(),
             "Test".to_string(),
         );
-        let doc = trace.to_semantic_document(&format!("doc-{i}"), "test.md");
+        let doc = trace.to_semantic_document(format!("doc-{i}"), "test.md");
         sink.ingest_trace(&trace, &doc)
             .await
             .unwrap_or_else(|err| panic!("failed to ingest trace: {err}"));
@@ -276,7 +276,7 @@ fn render_markdown_minimal() {
 fn render_markdown_full() {
     let mut trace = CognitiveTraceRecord::new(
         "trace-render-full".to_string(),
-        Some("session-123".to_string()),
+        Some("session-123".into()),
         "FullNode".to_string(),
         "Full test".to_string(),
     );

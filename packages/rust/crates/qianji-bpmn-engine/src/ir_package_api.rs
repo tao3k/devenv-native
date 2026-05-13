@@ -57,7 +57,7 @@ impl BpmnPackage {
     #[must_use]
     pub fn new(package_id: impl AsRef<str>, processes: Vec<BpmnProcessSpec>) -> Self {
         Self {
-            package_id: (Arc::<str>::from(package_id.as_ref())).into(),
+            package_id: (Arc::<str>::from(package_id.as_ref())),
             processes,
             callable_registry: BpmnCallableRegistry::default(),
             collaboration_host_envelope: BpmnCollaborationHostEnvelope::default(),
@@ -390,7 +390,7 @@ impl BpmnPackage {
         if additional_matches > 0 {
             return Err(BpmnEngineError::AmbiguousDmnDecisionReference {
                 decision_id: (decision_ref.decision_id.to_string()).into(),
-                source_id: (decision_ref.source_id.as_ref().map(ToString::to_string)).into(),
+                source_id: (decision_ref.source_id.as_ref().map(ToString::to_string)),
                 count: additional_matches + 1,
                 source_suffix: decision_ref
                     .source_id
@@ -425,7 +425,7 @@ impl BpmnPackage {
         if additional_matches > 0 {
             return Err(BpmnEngineError::AmbiguousDmnDecisionServiceReference {
                 decision_service_id: (decision_ref.decision_id.to_string()).into(),
-                source_id: (decision_ref.source_id.as_ref().map(ToString::to_string)).into(),
+                source_id: (decision_ref.source_id.as_ref().map(ToString::to_string)),
                 count: additional_matches + 1,
                 source_suffix: decision_ref
                     .source_id

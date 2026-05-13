@@ -52,7 +52,7 @@ pub(super) fn write_search_duckdb_runtime_override(
 pub(super) fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearchHit {
     ReferenceSearchHit {
         name: name.to_string(),
-        path: path.to_string().into(),
+        path: path.to_string(),
         language: "rust".to_string(),
         crate_name: "kernel".to_string(),
         project_name: None,
@@ -61,7 +61,7 @@ pub(super) fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearch
         column: 5,
         line_text: format!("let _value = {name};"),
         navigation_target: StudioNavigationTarget {
-            path: path.to_string().into(),
+            path: path.to_string(),
             category: "doc".to_string(),
             project_name: None,
             root_label: None,
@@ -77,7 +77,7 @@ pub(super) fn sample_local_symbol_hit(name: &str, path: &str, line_start: usize)
     AstSearchHit {
         name: name.to_string(),
         signature: format!("fn {name}()"),
-        path: path.to_string().into(),
+        path: path.to_string(),
         language: "rust".to_string(),
         crate_name: "kernel".to_string(),
         project_name: None,
@@ -85,7 +85,7 @@ pub(super) fn sample_local_symbol_hit(name: &str, path: &str, line_start: usize)
         node_kind: None,
         owner_title: None,
         navigation_target: StudioNavigationTarget {
-            path: path.to_string().into(),
+            path: path.to_string(),
             category: "symbol".to_string(),
             project_name: None,
             root_label: None,
@@ -106,7 +106,7 @@ pub(super) fn repo_document(
     modified_unix_ms: u64,
 ) -> RepoCodeDocument {
     RepoCodeDocument {
-        path: path.to_string().into(),
+        path: path.to_string(),
         language: Some(language.to_string()),
         contents: Arc::<str>::from(contents),
         size_bytes: u64::try_from(contents.len()).unwrap_or(u64::MAX),

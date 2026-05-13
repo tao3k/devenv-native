@@ -6,8 +6,8 @@ use crate::flowhub::{
     FlowhubScenarioIr, MermaidFlowchart, MermaidNodeKind, scenario_graph_label_is_allowed,
 };
 
-use super::api::{FlowhubGraphEdgeSummary, FlowhubGraphNodeSummary};
 use super::load::ModuleExports;
+use super::model::{FlowhubGraphEdgeSummary, FlowhubGraphNodeSummary};
 use super::semantics::graph_node_semantics;
 
 pub(super) fn collect_unknown_graph_nodes(

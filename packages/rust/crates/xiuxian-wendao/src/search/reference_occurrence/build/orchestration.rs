@@ -19,7 +19,6 @@ use crate::search::reference_occurrence::build::{
     plan_reference_occurrence_build_with_scanned_files, write_reference_occurrence_epoch,
 };
 /// `ensure_reference_occurrence_index_started` public function boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 pub fn ensure_reference_occurrence_index_started(
     service: &SearchPlaneService,
@@ -48,7 +47,6 @@ pub fn ensure_reference_occurrence_index_started(
     )
 }
 /// `ensure_reference_occurrence_index_started_with_scanned_files` public function boundary for Wendao.
-
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ensure_reference_occurrence_index_started_with_scanned_files(
     service: &SearchPlaneService,
@@ -182,7 +180,6 @@ fn ensure_reference_occurrence_index_started_with_fingerprint_and_scanned_files(
     true
 }
 /// `publish_reference_occurrences_from_projects` public function boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 pub async fn publish_reference_occurrences_from_projects(
     service: &SearchPlaneService,

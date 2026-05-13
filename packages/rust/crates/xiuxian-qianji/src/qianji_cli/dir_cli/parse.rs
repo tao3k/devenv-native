@@ -2,7 +2,7 @@ use std::io;
 use std::path::PathBuf;
 
 use super::types::{DirCliCommand, MaterializeCliTarget, ShowCliTarget};
-use crate::qianji_cli::common::invalid_input;
+use crate::qianji_cli::input::invalid_input;
 
 pub(crate) fn parse_dir_command(args: &[String]) -> io::Result<Option<DirCliCommand>> {
     match args.get(1).map(String::as_str) {

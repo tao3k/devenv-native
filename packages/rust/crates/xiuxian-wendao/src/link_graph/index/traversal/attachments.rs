@@ -108,16 +108,19 @@ impl AttachmentSearchQuery {
     }
 
     fn weighted_score(&self, fields: &[String], token_hit_count: usize) -> f64 {
-        let exact_name = fields
-            .get(1)
-            .is_some_and(|value| value == &self.normalized)
-            .then_some(1.0)
-            .unwrap_or(0.0);
-        let path_hit = fields
+        let exact_name = if fields.get(1).is_some_and(|value| value == &self.normalized) {
+            1.0
+        } else {
+            0.0
+        };
+        let path_hit = if fields
             .first()
             .is_some_and(|value| value.contains(self.normalized.as_str()))
-            .then_some(1.0)
-            .unwrap_or(0.0);
+        {
+            1.0
+        } else {
+            0.0
+        };
         let token_ratio = self.token_ratio(token_hit_count);
         (exact_name * 0.5 + path_hit * 0.3 + token_ratio * 0.2).clamp(0.0, 1.0)
     }

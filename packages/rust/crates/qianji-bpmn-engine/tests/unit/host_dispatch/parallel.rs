@@ -36,8 +36,8 @@ async fn host_dispatch_parallel_host_work_requires_plural_builder() {
             .must("parallel blocked instance should emit requests"),
         vec![
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: ("wf_dispatch_parallel".to_string()).into(),
-                token_id: (pending[0].token_id).into(),
+                instance_id: ("wf_dispatch_parallel".to_string()),
+                token_id: (pending[0].token_id),
                 node_index: 2,
                 variables: json!({ "amount": 7 }),
                 inputs: json!({}),
@@ -45,8 +45,8 @@ async fn host_dispatch_parallel_host_work_requires_plural_builder() {
                 repeat: None,
             }),
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id: ("wf_dispatch_parallel".to_string()).into(),
-                token_id: (pending[1].token_id).into(),
+                instance_id: ("wf_dispatch_parallel".to_string()),
+                token_id: (pending[1].token_id),
                 node_index: 3,
                 variables: json!({ "amount": 7 }),
                 inputs: json!({}),

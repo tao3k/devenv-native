@@ -596,8 +596,8 @@ impl QianjiBpmnExecutionDriver {
 
         let Some(initial_variables) = request.initial_variables.clone() else {
             return Err(BpmnOrchestrationError::FreshContextRequired {
-                process_id: request.process_id.clone(),
-                instance_id: request.instance_id.clone(),
+                process_id: request.process_id.to_string().into(),
+                instance_id: request.instance_id.to_string().into(),
             });
         };
 
@@ -628,8 +628,8 @@ impl QianjiBpmnExecutionDriver {
 
         let Some(initial_variables) = request.initial_variables.clone() else {
             return Err(BpmnOrchestrationError::FreshContextRequired {
-                process_id: request.process_id.clone(),
-                instance_id: request.instance_id.clone(),
+                process_id: request.process_id.to_string().into(),
+                instance_id: request.instance_id.to_string().into(),
             });
         };
 
@@ -730,8 +730,8 @@ impl QianjiBpmnExecutionDriver {
             .await?;
         if !acquired {
             return Err(BpmnOrchestrationError::CheckpointLeaseConflict {
-                instance_id: instance_id.to_string(),
-                owner_token: checkpoint_lease.owner_token().to_string(),
+                instance_id: instance_id.into(),
+                owner_token: checkpoint_lease.owner_token().into(),
             });
         }
         Ok(())

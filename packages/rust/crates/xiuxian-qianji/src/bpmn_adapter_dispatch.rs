@@ -1,3 +1,5 @@
+//! Bpmn adapter dispatch surface for `xiuxian-qianji`.
+
 use super::adapter_error::BpmnAdapterError;
 use futures::future::try_join_all;
 use qianji_bpmn_engine::{

@@ -24,8 +24,10 @@ fn bootstrap_projection_cache_resolves_page_index_and_retrieval_context() {
         .tree
         .as_ref()
         .and_then(|tree| tree.roots.first())
-        .map(|node| node.node_id.clone())
-        .unwrap_or_else(|| panic!("cached tree should expose a root node"));
+        .map_or_else(
+            || panic!("cached tree should expose a root node"),
+            |node| node.node_id.clone(),
+        );
 
     let context = cache
         .retrieval_context(&RepoProjectedRetrievalContextQuery {

@@ -36,10 +36,10 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         _limit: usize,
     ) -> Result<DocsSearchResult, RepoIntelligenceError> {
         Ok(DocsSearchResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
             pages: vec![ProjectedPageRecord {
-                repo_id: TEST_REPO_ID.to_string().into(),
-                page_id: TEST_PAGE_ID.to_string().into(),
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: TEST_PAGE_ID.to_string(),
                 kind: kind.unwrap_or(ProjectionPageKind::Reference),
                 title: query.to_ascii_uppercase(),
                 module_ids: Vec::new(),
@@ -53,7 +53,7 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
                 format_hints: vec!["modelica".to_string()],
                 sections: Vec::new(),
                 doc_id: String::new(),
-                path: "Projectionica/Controllers/PI.mo".to_string().into(),
+                path: "Projectionica/Controllers/PI.mo".to_string(),
                 keywords: vec![query.to_string()],
             }],
         })
@@ -61,10 +61,10 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
 
     fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError> {
         Ok(DocsPageResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
             page: ProjectedPageRecord {
-                repo_id: TEST_REPO_ID.to_string().into(),
-                page_id: page_id.to_string().into(),
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: page_id.to_string(),
                 kind: ProjectionPageKind::Reference,
                 title: "Projectionica.Controllers.PI".to_string(),
                 module_ids: Vec::new(),
@@ -78,7 +78,7 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
                 format_hints: vec!["modelica".to_string()],
                 sections: Vec::new(),
                 doc_id: String::new(),
-                path: "Projectionica/Controllers/PI.mo".to_string().into(),
+                path: "Projectionica/Controllers/PI.mo".to_string(),
                 keywords: vec![
                     "Projectionica.Controllers.PI".to_string(),
                     "Projectionica/Controllers/PI.mo".to_string(),
@@ -100,19 +100,17 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         _page_id: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
         Ok(DocsPageIndexTreeResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
             tree: Some(crate::analyzers::ProjectedPageIndexTree {
-                repo_id: TEST_REPO_ID.to_string().into(),
-                page_id: TEST_PAGE_ID.to_string().into(),
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: TEST_PAGE_ID.to_string(),
                 kind: ProjectionPageKind::Reference,
-                path: "reference/projectionica-controllers-pi.md"
-                    .to_string()
-                    .into(),
-                doc_id: "doc:projectionica-controllers-pi".to_string().into(),
+                path: "reference/projectionica-controllers-pi.md".to_string(),
+                doc_id: "doc:projectionica-controllers-pi".to_string(),
                 title: "Projectionica.Controllers.PI".to_string(),
                 root_count: 1,
                 roots: vec![crate::analyzers::ProjectedPageIndexNode {
-                    node_id: "outline:1".to_string().into(),
+                    node_id: "outline:1".to_string(),
                     title: "Anchors".to_string(),
                     level: 2,
                     structural_path: vec![
@@ -132,19 +130,17 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
 
     fn get_page_index(&self) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
         Ok(DocsPageIndexTreesResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
             trees: vec![crate::analyzers::ProjectedPageIndexTree {
-                repo_id: TEST_REPO_ID.to_string().into(),
-                page_id: TEST_PAGE_ID.to_string().into(),
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: TEST_PAGE_ID.to_string(),
                 kind: ProjectionPageKind::Reference,
-                path: "reference/projectionica-controllers-pi.md"
-                    .to_string()
-                    .into(),
-                doc_id: "doc:projectionica-controllers-pi".to_string().into(),
+                path: "reference/projectionica-controllers-pi.md".to_string(),
+                doc_id: "doc:projectionica-controllers-pi".to_string(),
                 title: "Projectionica.Controllers.PI".to_string(),
                 root_count: 1,
                 roots: vec![crate::analyzers::ProjectedPageIndexNode {
-                    node_id: "catalog:1".to_string().into(),
+                    node_id: "catalog:1".to_string(),
                     title: "Anchors".to_string(),
                     level: 2,
                     structural_path: vec![
@@ -169,12 +165,10 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         line_end: usize,
     ) -> Result<DocsDocumentSegmentResult, RepoIntelligenceError> {
         Ok(DocsDocumentSegmentResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
-            page_id: page_id.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
+            page_id: page_id.to_string(),
             kind: ProjectionPageKind::Reference,
-            path: "reference/projectionica-controllers-pi.md"
-                .to_string()
-                .into(),
+            path: "reference/projectionica-controllers-pi.md".to_string(),
             title: "Projectionica.Controllers.PI".to_string(),
             line_range: (line_start, line_end),
             line_count: 18,
@@ -188,17 +182,15 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         node_id: &str,
     ) -> Result<DocsPageIndexNodeResult, RepoIntelligenceError> {
         Ok(DocsPageIndexNodeResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
             hit: Some(ProjectedPageIndexNodeHit {
-                repo_id: TEST_REPO_ID.to_string().into(),
-                page_id: page_id.to_string().into(),
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: page_id.to_string(),
                 page_title: "Projectionica.Controllers.PI".to_string(),
                 page_kind: ProjectionPageKind::Reference,
-                path: "reference/projectionica-controllers-pi.md"
-                    .to_string()
-                    .into(),
-                doc_id: "doc:projectionica-controllers-pi".to_string().into(),
-                node_id: node_id.to_string().into(),
+                path: "reference/projectionica-controllers-pi.md".to_string(),
+                doc_id: "doc:projectionica-controllers-pi".to_string(),
+                node_id: node_id.to_string(),
                 node_title: "Anchors".to_string(),
                 structural_path: vec![
                     "Projectionica.Controllers.PI".to_string(),
@@ -217,17 +209,15 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
         limit: usize,
     ) -> Result<DocsPageIndexTreeSearchResult, RepoIntelligenceError> {
         Ok(DocsPageIndexTreeSearchResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
             hits: vec![ProjectedPageIndexNodeHit {
-                repo_id: TEST_REPO_ID.to_string().into(),
-                page_id: TEST_PAGE_ID.to_string().into(),
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: TEST_PAGE_ID.to_string(),
                 page_title: "Projectionica.Controllers.PI".to_string(),
                 page_kind: kind.unwrap_or(ProjectionPageKind::Reference),
-                path: "reference/projectionica-controllers-pi.md"
-                    .to_string()
-                    .into(),
-                doc_id: "doc:projectionica-controllers-pi".to_string().into(),
-                node_id: format!("search:{limit}").into(),
+                path: "reference/projectionica-controllers-pi.md".to_string(),
+                doc_id: "doc:projectionica-controllers-pi".to_string(),
+                node_id: format!("search:{limit}"),
                 node_title: query.to_ascii_uppercase(),
                 structural_path: vec![
                     "Projectionica.Controllers.PI".to_string(),
@@ -241,14 +231,12 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
 
     fn get_toc_documents(&self) -> Result<DocsPageIndexDocumentsResult, RepoIntelligenceError> {
         Ok(DocsPageIndexDocumentsResult {
-            repo_id: TEST_REPO_ID.to_string().into(),
+            repo_id: TEST_REPO_ID.to_string(),
             documents: vec![ProjectedPageIndexDocument {
-                repo_id: TEST_REPO_ID.to_string().into(),
-                page_id: TEST_PAGE_ID.to_string().into(),
-                path: "reference/projectionica-controllers-pi.md"
-                    .to_string()
-                    .into(),
-                doc_id: "doc:projectionica-controllers-pi".to_string().into(),
+                repo_id: TEST_REPO_ID.to_string(),
+                page_id: TEST_PAGE_ID.to_string(),
+                path: "reference/projectionica-controllers-pi.md".to_string(),
+                doc_id: "doc:projectionica-controllers-pi".to_string(),
                 title: "Projectionica.Controllers.PI".to_string(),
                 sections: Vec::new(),
             }],

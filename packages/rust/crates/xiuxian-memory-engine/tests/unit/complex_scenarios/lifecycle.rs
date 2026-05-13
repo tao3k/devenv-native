@@ -66,7 +66,7 @@ fn test_multi_hop_reasoning_scenario() -> TestResult {
             scope: None,
         });
         store.store(ep)?;
-        store.update_q(&format!("ep-{i}"), *q);
+        store.update_q(format!("ep-{i}"), *q);
     }
 
     let queries = vec![

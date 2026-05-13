@@ -37,7 +37,7 @@ pub(crate) fn record_human_task_lifecycle_event(
                 .activity_id
                 .clone()
                 .unwrap_or_else(|| format!("node#{}", pending.node_index).into()),
-            token_id: (pending.token_id).into(),
+            token_id: (pending.token_id),
             node_index: pending.node_index,
             work_kind: pending.kind.clone(),
             claimant,

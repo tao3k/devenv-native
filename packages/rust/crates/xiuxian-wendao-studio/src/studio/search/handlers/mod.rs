@@ -37,6 +37,7 @@ pub(crate) use autocomplete::build_autocomplete_response;
 #[cfg(test)]
 pub(crate) use definition::build_definition_response;
 pub use flight::StudioFlightRoots;
+#[cfg(feature = "flight-server-bin-support")]
 pub(crate) use flight::build_studio_flight_service_for_roots_with_weights;
 #[cfg(feature = "cli-bin-support")]
 pub(crate) use flight::build_studio_flight_service_with_weights;

@@ -12,7 +12,6 @@ use super::{
     valkey_analysis_key, valkey_analysis_revision_key,
 };
 /// `ValkeyAnalysisCache` public type boundary for Wendao.
-
 #[derive(Debug, Clone)]
 pub struct ValkeyAnalysisCache {
     runtime: ValkeyAnalysisCacheRuntime,

@@ -9,6 +9,7 @@ mod tests;
 
 #[cfg(test)]
 pub(crate) use self::provider::StudioSearchFlightRouteProvider;
+#[cfg(feature = "flight-server-bin-support")]
 pub(crate) use self::repo_search::build_studio_flight_service_for_roots_with_weights;
 #[cfg(feature = "cli-bin-support")]
 pub(crate) use self::repo_search::build_studio_flight_service_with_weights;

@@ -128,12 +128,12 @@ pub fn acquire_managed_checkout_lock_with_policy(
 
 fn ensure_lock_parent_directory(lock_path: &Path) -> Result<(), RepoError> {
     if let Some(parent) = lock_path.parent() {
-        fs::create_dir_all(parent).map_err(|error| lock_parent_directory_error(parent, error))?;
+        fs::create_dir_all(parent).map_err(|error| lock_parent_directory_error(parent, &error))?;
     }
     Ok(())
 }
 
-fn lock_parent_directory_error(parent: &Path, error: std::io::Error) -> RepoError {
+fn lock_parent_directory_error(parent: &Path, error: &std::io::Error) -> RepoError {
     RepoError::new(
         RepoErrorKind::Permanent,
         format!(
@@ -204,7 +204,7 @@ fn try_managed_checkout_lock(
         Err(error) if is_descriptor_pressure_error(&error) => {
             Ok(LockAttempt::DescriptorPressure(error))
         }
-        Err(error) => Err(acquire_lock_error(lock_path, error)),
+        Err(error) => Err(acquire_lock_error(lock_path, &error)),
     }
 }
 
@@ -224,7 +224,7 @@ fn reclaim_stale_lock_if_needed(lock_path: &Path, stale_after: Duration) -> Resu
     match fs::remove_file(lock_path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(reclaim_stale_lock_error(lock_path, error)),
+        Err(error) => Err(reclaim_stale_lock_error(lock_path, &error)),
     }
 }
 
@@ -264,7 +264,7 @@ fn timeout_waiting_for_lock_error(
     )
 }
 
-fn acquire_lock_error(lock_path: &Path, error: std::io::Error) -> RepoError {
+fn acquire_lock_error(lock_path: &Path, error: &std::io::Error) -> RepoError {
     RepoError::new(
         RepoErrorKind::Permanent,
         format!(
@@ -274,7 +274,7 @@ fn acquire_lock_error(lock_path: &Path, error: std::io::Error) -> RepoError {
     )
 }
 
-fn reclaim_stale_lock_error(lock_path: &Path, error: std::io::Error) -> RepoError {
+fn reclaim_stale_lock_error(lock_path: &Path, error: &std::io::Error) -> RepoError {
     RepoError::new(
         RepoErrorKind::Permanent,
         format!(

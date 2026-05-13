@@ -86,6 +86,78 @@ impl DueReminderRecord {
     }
 }
 
+/// Domain identifier for one scheduled reminder task.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ReminderTaskId(String);
+
+impl ReminderTaskId {
+    /// Returns the serialized task identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for ReminderTaskId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for ReminderTaskId {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+/// Named request for adding one task to the reminder queue.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReminderQueueTask {
+    /// Task entity ID.
+    pub task_id: ReminderTaskId,
+    /// Human-readable task title.
+    pub title: String,
+    /// Optional task detail/body to clarify intended action.
+    pub task_brief: Option<String>,
+    /// Scheduled time in RFC3339 form.
+    pub scheduled_at_rfc3339: String,
+    /// Delivery target (for example `telegram:1304799691`).
+    pub recipient: Option<String>,
+}
+
+impl ReminderQueueTask {
+    /// Creates one reminder queue request with no optional brief or recipient.
+    #[must_use]
+    pub fn new(
+        task_id: impl Into<ReminderTaskId>,
+        title: impl Into<String>,
+        scheduled_at_rfc3339: impl Into<String>,
+    ) -> Self {
+        Self {
+            task_id: task_id.into(),
+            title: title.into(),
+            task_brief: None,
+            scheduled_at_rfc3339: scheduled_at_rfc3339.into(),
+            recipient: None,
+        }
+    }
+
+    /// Adds an optional task brief.
+    #[must_use]
+    pub fn with_task_brief(mut self, task_brief: impl Into<String>) -> Self {
+        self.task_brief = Some(task_brief.into());
+        self
+    }
+
+    /// Adds an optional reminder recipient.
+    #[must_use]
+    pub fn with_recipient(mut self, recipient: impl Into<String>) -> Self {
+        self.recipient = Some(recipient.into());
+        self
+    }
+}
+
 /// Valkey-backed reminder due-queue implemented with ZSET + HASH.
 #[derive(Debug, Clone)]
 pub struct ReminderQueueStore {
@@ -121,27 +193,23 @@ impl ReminderQueueStore {
     ///
     /// # Errors
     /// Returns an error when schedule parsing or Valkey IO fails.
-    pub fn enqueue_task(
-        &self,
-        task_id: &str,
-        title: &str,
-        task_brief: Option<&str>,
-        scheduled_at_rfc3339: &str,
-        recipient: Option<&str>,
-    ) -> Result<(), String> {
-        let scheduled_at = DateTime::parse_from_rfc3339(scheduled_at_rfc3339)
+    pub fn enqueue_task(&self, task: ReminderQueueTask) -> Result<(), String> {
+        let task_id = task.task_id.as_str();
+        let scheduled_at = DateTime::parse_from_rfc3339(&task.scheduled_at_rfc3339)
             .map_err(|error| format!("invalid scheduled_at rfc3339: {error}"))?
             .with_timezone(&Utc);
         let due_at_unix = (scheduled_at - Duration::minutes(REMINDER_LEAD_MINUTES)).timestamp();
 
         let payload = ReminderQueuePayload {
             task_id: task_id.to_string(),
-            title: title.to_string(),
-            task_brief: task_brief
+            title: task.title,
+            task_brief: task
+                .task_brief
+                .as_deref()
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
                 .map(ToString::to_string),
-            recipient: recipient.map(ToString::to_string),
+            recipient: task.recipient,
             scheduled_at: scheduled_at.to_rfc3339(),
         };
         let payload_json = serde_json::to_string(&payload)

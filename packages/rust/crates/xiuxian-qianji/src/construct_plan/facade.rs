@@ -1,3 +1,5 @@
+//! Facade surface for `xiuxian-qianji`.
+
 use super::{
     WorkflowPlan, WorkflowPlanEmitError, WorkflowPlanValidationReport, emission, render, validation,
 };

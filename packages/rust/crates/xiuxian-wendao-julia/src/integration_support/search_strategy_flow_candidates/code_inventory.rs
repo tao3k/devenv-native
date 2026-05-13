@@ -1,4 +1,9 @@
-//! Code-Intelligence candidate inventory from git-tracked configured files.
+//! Offline Code-Intelligence candidate inventory from git-tracked configured
+//! files.
+//!
+//! The live `SearchStrategyFlow` path materializes through the Wendao Gateway
+//! Flight routes. This module is for audit, replay, and benchmark surfaces that
+//! need to measure the configured repository corpus without starting Gateway.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -15,7 +20,7 @@ use super::types::SearchStrategyFlowCandidateInput;
 #[cfg(test)]
 use super::types::{CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInputBatch};
 
-const ROOT_WENDAO_CONFIG_PATH: &str = "wendao.toml";
+const OFFLINE_AUDIT_ROOT_WENDAO_CONFIG_PATH: &str = "wendao.toml";
 const WENDAO_RUST_SURFACE: &str = "packages/rust/crates/xiuxian-wendao";
 const LINK_GRAPH_RUST_SURFACE: &str = "packages/rust/crates/xiuxian-wendao/src/link_graph";
 const BENCHMARK_PYTHON_SURFACE: &str = "packages/python/wendao-knowledge-retrieval-benchmark";
@@ -70,7 +75,7 @@ pub(crate) fn search_strategy_flow_code_intelligence_inventory_candidate_input_b
         search_strategy_flow_candidate_input_batch_with_discovery_receipt(
             CODE_INTELLIGENCE_CANDIDATE_SOURCE,
             &candidates,
-            receipt,
+            &receipt,
         ),
     )
 }
@@ -110,7 +115,7 @@ fn primary_markdown_candidate_count(include_dirs: &[String], tracked_paths: &[St
         .collect::<BTreeSet<_>>();
     tracked_paths
         .iter()
-        .filter(|path| path.ends_with(".md"))
+        .filter(|path| path_has_extension(path, "md"))
         .filter(|path| {
             (include_dirs.contains("docs") && path_is_under(path, "docs"))
                 || (include_dirs.contains("semantic") && path_is_under(path, "semantic"))
@@ -136,14 +141,14 @@ fn code_intelligence_inventory_candidates(
             tracked_paths
                 .iter()
                 .filter(|path| path_is_under(path, WENDAO_RUST_SURFACE))
-                .filter(|path| path.ends_with(".rs"))
+                .filter(|path| path_has_extension(path, "rs"))
                 .map(|path| code_inventory_candidate(path, "rust-control-plane-source", "rust")),
         );
         candidates.extend(
             tracked_paths
                 .iter()
                 .filter(|path| path_is_under(path, WENDAO_RUST_SURFACE))
-                .filter(|path| path.ends_with(".toml"))
+                .filter(|path| path_has_extension(path, "toml"))
                 .map(|path| code_inventory_candidate(path, "toml-config-boundary", "toml")),
         );
     }
@@ -152,7 +157,7 @@ fn code_intelligence_inventory_candidates(
             tracked_paths
                 .iter()
                 .filter(|path| path_is_under(path, LINK_GRAPH_RUST_SURFACE))
-                .filter(|path| path.ends_with(".rs"))
+                .filter(|path| path_has_extension(path, "rs"))
                 .map(|path| code_inventory_candidate(path, "link-graph-source-focus", "rust")),
         );
     }
@@ -161,14 +166,14 @@ fn code_intelligence_inventory_candidates(
             tracked_paths
                 .iter()
                 .filter(|path| path_is_under(path, BENCHMARK_PYTHON_SURFACE))
-                .filter(|path| path.ends_with(".py"))
+                .filter(|path| path_has_extension(path, "py"))
                 .map(|path| code_inventory_candidate(path, "benchmark-python-adapter", "python")),
         );
         candidates.extend(
             tracked_paths
                 .iter()
                 .filter(|path| path_is_under(path, BENCHMARK_PYTHON_SURFACE))
-                .filter(|path| path.ends_with(".toml"))
+                .filter(|path| path_has_extension(path, "toml"))
                 .map(|path| code_inventory_candidate(path, "toml-config-boundary", "toml")),
         );
     }
@@ -213,12 +218,18 @@ fn code_inventory_candidate(
     }
 }
 
+fn path_has_extension(path: &str, extension: &str) -> bool {
+    Path::new(path)
+        .extension()
+        .is_some_and(|candidate| candidate.eq_ignore_ascii_case(extension))
+}
+
 fn configured_include_dirs(project_root: &Path) -> Result<Vec<String>, String> {
     let mut visited_config_paths = BTreeSet::new();
     let mut include_dirs = BTreeSet::new();
     collect_configured_include_dirs(
         project_root,
-        Path::new(ROOT_WENDAO_CONFIG_PATH),
+        Path::new(OFFLINE_AUDIT_ROOT_WENDAO_CONFIG_PATH),
         &mut visited_config_paths,
         &mut include_dirs,
     )?;

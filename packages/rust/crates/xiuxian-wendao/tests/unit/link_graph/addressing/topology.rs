@@ -9,7 +9,7 @@ use crate::link_graph::PageIndexNode;
 
 fn make_test_node_with_path(title: &str, path: &[&str], hash: Option<&str>) -> PageIndexNode {
     PageIndexNode {
-        node_id: format!("doc#{title}").into(),
+        node_id: format!("doc#{title}"),
         parent_id: None,
         title: title.to_string(),
         level: path.len(),

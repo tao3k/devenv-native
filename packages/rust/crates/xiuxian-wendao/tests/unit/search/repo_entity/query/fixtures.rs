@@ -93,7 +93,7 @@ fn sample_analysis(
 fn sample_documents(symbol_name: &str, source_modified_unix_ms: u64) -> Vec<RepoCodeDocument> {
     vec![
         RepoCodeDocument {
-            path: "src/BaseModelica.jl".to_string().into(),
+            path: "src/BaseModelica.jl".to_string(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from(format!(
                 "module BaseModelica\n{symbol_name}() = nothing\nend\n"
@@ -102,7 +102,7 @@ fn sample_documents(symbol_name: &str, source_modified_unix_ms: u64) -> Vec<Repo
             modified_unix_ms: source_modified_unix_ms,
         },
         RepoCodeDocument {
-            path: "examples/solve.jl".to_string().into(),
+            path: "examples/solve.jl".to_string(),
             language: Some("julia".to_string()),
             contents: Arc::<str>::from("using BaseModelica\nsolve()\n"),
             size_bytes: 28,

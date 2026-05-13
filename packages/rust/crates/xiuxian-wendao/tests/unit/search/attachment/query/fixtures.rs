@@ -41,7 +41,7 @@ pub(super) fn sample_hit(
 ) -> AttachmentSearchHit {
     AttachmentSearchHit {
         name: name.to_string(),
-        path: source_path.to_string().into(),
+        path: source_path.to_string(),
         source_id: source_path.trim_end_matches(".md").to_string(),
         source_stem: "alpha".to_string(),
         source_title: "Alpha".to_string(),
@@ -56,7 +56,7 @@ pub(super) fn sample_hit(
             .to_string(),
         kind: kind.to_string(),
         navigation_target: StudioNavigationTarget {
-            path: source_path.to_string().into(),
+            path: source_path.to_string(),
             category: "doc".to_string(),
             project_name: None,
             root_label: None,

@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
-/// Warm-path timing statistics for a persistent SearchStrategyFlow Julia host.
+/// Warm-path timing statistics for a persistent `SearchStrategyFlow` Julia host.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SearchStrategyFlowPersistentHostWarmPathStats {
     /// Number of measured warm submits.
@@ -21,7 +21,7 @@ pub struct SearchStrategyFlowPersistentHostWarmPathStats {
     pub spread_ratio: f64,
 }
 
-/// Stability limits for releasing a persistent SearchStrategyFlow Julia host.
+/// Stability limits for releasing a persistent `SearchStrategyFlow` Julia host.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SearchStrategyFlowPersistentHostStabilizationLimits {
     /// Number of warm submit samples to measure after the first prewarm submit.
@@ -38,7 +38,7 @@ pub struct SearchStrategyFlowPersistentHostStabilizationLimits {
     pub degraded_max_in_flight: usize,
 }
 
-/// Stability reason emitted by the SearchStrategyFlow persistent host release gate.
+/// Stability reason emitted by the `SearchStrategyFlow` persistent host release gate.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SearchStrategyFlowPersistentHostStabilizationReason {
     /// Warm submits stayed within the configured tail budget.
@@ -67,7 +67,7 @@ impl SearchStrategyFlowPersistentHostStabilizationReason {
     }
 }
 
-/// Release-gate report for one persistent SearchStrategyFlow Julia host.
+/// Release-gate report for one persistent `SearchStrategyFlow` Julia host.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SearchStrategyFlowPersistentHostStabilizationReport {
     /// The first real Flight-backed submit used to prewarm the host.

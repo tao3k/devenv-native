@@ -1,3 +1,5 @@
+//! Error surface for `xiuxian-qianji`.
+
 use thiserror::Error;
 
 /// Error type for `xiuxian-qianji` graph construction and execution.

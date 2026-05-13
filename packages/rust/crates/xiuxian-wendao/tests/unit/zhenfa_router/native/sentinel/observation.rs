@@ -37,12 +37,12 @@ fn test_observation_signal_stale_from_drift() {
 #[test]
 fn test_observation_signal_to_status_message() {
     let signal = ObservationSignal::Stale {
-        doc_id: "docs/api".to_string().into(),
+        doc_id: "docs/api".to_string(),
         observation: ObservationRef {
             pattern: "fn test()".to_string(),
             language: "rust".to_string(),
             line_number: 42,
-            node_id: "node-1".to_string().into(),
+            node_id: "node-1".to_string(),
         },
         trigger_source: "src/lib.rs".to_string(),
         confidence: DriftConfidence::High,
@@ -58,12 +58,12 @@ fn test_observation_signal_to_status_message() {
 #[test]
 fn test_observation_signal_requires_attention() {
     let high_stale = ObservationSignal::Stale {
-        doc_id: "docs/api".to_string().into(),
+        doc_id: "docs/api".to_string(),
         observation: ObservationRef {
             pattern: "fn test()".to_string(),
             language: "rust".to_string(),
             line_number: 1,
-            node_id: "n1".to_string().into(),
+            node_id: "n1".to_string(),
         },
         trigger_source: "src/lib.rs".to_string(),
         confidence: DriftConfidence::High,
@@ -71,12 +71,12 @@ fn test_observation_signal_requires_attention() {
     assert!(high_stale.requires_attention());
 
     let low_stale = ObservationSignal::Stale {
-        doc_id: "docs/api".to_string().into(),
+        doc_id: "docs/api".to_string(),
         observation: ObservationRef {
             pattern: "fn test()".to_string(),
             language: "rust".to_string(),
             line_number: 1,
-            node_id: "n1".to_string().into(),
+            node_id: "n1".to_string(),
         },
         trigger_source: "src/lib.rs".to_string(),
         confidence: DriftConfidence::Low,
@@ -84,12 +84,12 @@ fn test_observation_signal_requires_attention() {
     assert!(!low_stale.requires_attention());
 
     let broken = ObservationSignal::Broken {
-        doc_id: "docs/api".to_string().into(),
+        doc_id: "docs/api".to_string(),
         observation: ObservationRef {
             pattern: "fn test()".to_string(),
             language: "rust".to_string(),
             line_number: 1,
-            node_id: "n1".to_string().into(),
+            node_id: "n1".to_string(),
         },
         error: "Pattern not found".to_string(),
     };
@@ -106,12 +106,12 @@ fn test_observation_bus_emit() {
     assert!(bus.is_connected());
 
     let signal = ObservationSignal::Stale {
-        doc_id: "docs/api".to_string().into(),
+        doc_id: "docs/api".to_string(),
         observation: ObservationRef {
             pattern: "fn test()".to_string(),
             language: "rust".to_string(),
             line_number: 1,
-            node_id: "n1".to_string().into(),
+            node_id: "n1".to_string(),
         },
         trigger_source: "src/lib.rs".to_string(),
         confidence: DriftConfidence::High,
@@ -142,23 +142,23 @@ fn test_observation_bus_emit_drift_signals() {
 fn test_signals_to_status_batch() {
     let signals = vec![
         ObservationSignal::Stale {
-            doc_id: "docs/a".to_string().into(),
+            doc_id: "docs/a".to_string(),
             observation: ObservationRef {
                 pattern: "fn a()".to_string(),
                 language: "rust".to_string(),
                 line_number: 1,
-                node_id: "n1".to_string().into(),
+                node_id: "n1".to_string(),
             },
             trigger_source: "src/a.rs".to_string(),
             confidence: DriftConfidence::High,
         },
         ObservationSignal::Broken {
-            doc_id: "docs/b".to_string().into(),
+            doc_id: "docs/b".to_string(),
             observation: ObservationRef {
                 pattern: "fn b()".to_string(),
                 language: "rust".to_string(),
                 line_number: 2,
-                node_id: "n2".to_string().into(),
+                node_id: "n2".to_string(),
             },
             error: "Not found".to_string(),
         },

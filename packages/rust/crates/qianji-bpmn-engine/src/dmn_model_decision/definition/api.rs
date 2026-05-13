@@ -50,7 +50,7 @@ impl DmnDecisionDefinition {
         table: DmnDecisionTable,
     ) -> Self {
         Self {
-            source_id: (Arc::<str>::from(source_id.as_ref())).into(),
+            source_id: (Arc::<str>::from(source_id.as_ref())),
             decision,
             name: name.map(|value| Arc::<str>::from(value.as_ref())),
             table,

@@ -17,7 +17,7 @@ fn test_generate_surgical_fixes_supports_incomplete_package_docs_index_footer_bl
         severity: "warning".to_string(),
         issue_type: INCOMPLETE_PACKAGE_DOCS_INDEX_FOOTER_BLOCK_ISSUE_TYPE.to_string(),
         doc: doc_path,
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Incomplete package docs footer block".to_string(),
         location: Some(IssueLocation {
             line: 1,
@@ -54,7 +54,7 @@ fn test_generate_surgical_fixes_supports_stale_package_docs_index_footer_standar
         severity: "warning".to_string(),
         issue_type: STALE_PACKAGE_DOCS_INDEX_FOOTER_STANDARDS_ISSUE_TYPE.to_string(),
         doc: doc_path,
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Stale package docs footer standards".to_string(),
         location: Some(IssueLocation {
             line: 1,
@@ -92,9 +92,7 @@ fn test_generate_surgical_fixes_resolves_absolute_doc_path_against_relative_file
         severity: "warning".to_string(),
         issue_type: STALE_PACKAGE_DOCS_INDEX_FOOTER_STANDARDS_ISSUE_TYPE.to_string(),
         doc: absolute_doc_path,
-        node_id: "/tmp/workspace/packages/rust/crates/demo/docs/index.md"
-            .to_string()
-            .into(),
+        node_id: "/tmp/workspace/packages/rust/crates/demo/docs/index.md".to_string(),
         message: "Stale package docs footer standards".to_string(),
         location: Some(IssueLocation {
             line: 1,
@@ -134,7 +132,7 @@ fn test_generate_surgical_fixes_supports_stale_package_docs_index_relation_link(
         severity: "warning".to_string(),
         issue_type: STALE_PACKAGE_DOCS_INDEX_RELATION_LINK_ISSUE_TYPE.to_string(),
         doc: doc_path,
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Stale package docs relation link".to_string(),
         location: Some(IssueLocation {
             line: 2,

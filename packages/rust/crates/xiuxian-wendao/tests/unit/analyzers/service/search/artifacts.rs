@@ -12,7 +12,7 @@ use crate::analyzers::{
 fn module_search_with_artifacts_matches_direct_search() {
     let analysis = sample_search_analysis("module-artifacts");
     let query = ModuleSearchQuery {
-        repo_id: "module-artifacts".to_string().into(),
+        repo_id: "module-artifacts".to_string(),
         query: "ProjectonPkg".to_string(),
         limit: 10,
     };
@@ -31,7 +31,7 @@ fn module_search_with_artifacts_matches_direct_search() {
 fn symbol_search_with_artifacts_matches_direct_search() {
     let analysis = sample_search_analysis("symbol-artifacts");
     let query = SymbolSearchQuery {
-        repo_id: "symbol-artifacts".to_string().into(),
+        repo_id: "symbol-artifacts".to_string(),
         query: "slove".to_string(),
         limit: 10,
     };
@@ -50,7 +50,7 @@ fn symbol_search_with_artifacts_matches_direct_search() {
 fn example_search_with_artifacts_matches_direct_search() {
     let analysis = sample_search_analysis("example-artifacts");
     let query = ExampleSearchQuery {
-        repo_id: "example-artifacts".to_string().into(),
+        repo_id: "example-artifacts".to_string(),
         query: "slove".to_string(),
         limit: 10,
     };
@@ -69,7 +69,7 @@ fn example_search_with_artifacts_matches_direct_search() {
 fn import_search_with_artifacts_matches_direct_search() {
     let analysis = sample_search_analysis("import-artifacts");
     let query = ImportSearchQuery {
-        repo_id: "import-artifacts".to_string().into(),
+        repo_id: "import-artifacts".to_string(),
         package: Some("SciMLBase".to_string()),
         module: Some("BaseModelica".to_string()),
         limit: 10,

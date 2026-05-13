@@ -51,40 +51,40 @@ pub(crate) fn evaluate_dmn_decision_sync(
         });
     }
 
-    match decision.table.hit_policy {
+    Ok(match decision.table.hit_policy {
         DmnHitPolicy::Unique => evaluate_unique_hit_policy(decision, &request.variables),
         DmnHitPolicy::Collect => evaluate_collect_hit_policy(decision, &request.variables),
-    }
+    })
 }
 
 fn evaluate_unique_hit_policy(
     decision: &DmnDecisionDefinition,
     variables: &Value,
-) -> Result<DmnEvaluationResult> {
+) -> DmnEvaluationResult {
     let Some(rule) = decision
         .table
         .rules
         .iter()
         .find(|rule| rule::rule_matches(decision, rule, variables))
     else {
-        return Ok(DmnEvaluationResult::new(
+        return DmnEvaluationResult::new(
             decision.decision.decision_id.as_ref(),
             Value::Object(Map::new()),
             Vec::new(),
-        ));
+        );
     };
 
-    Ok(DmnEvaluationResult::new(
+    DmnEvaluationResult::new(
         decision.decision.decision_id.as_ref(),
         rule::unique_rule_output(decision, rule),
         vec![Arc::clone(&rule.rule_id)],
-    ))
+    )
 }
 
 fn evaluate_collect_hit_policy(
     decision: &DmnDecisionDefinition,
     variables: &Value,
-) -> Result<DmnEvaluationResult> {
+) -> DmnEvaluationResult {
     let mut matched_rule_ids = Vec::new();
     let mut output = Map::new();
     decision
@@ -94,11 +94,11 @@ fn evaluate_collect_hit_policy(
         .filter(|rule| rule::rule_matches(decision, rule, variables))
         .for_each(|rule| collect_rule_output(decision, rule, &mut output, &mut matched_rule_ids));
 
-    Ok(DmnEvaluationResult::new(
+    DmnEvaluationResult::new(
         decision.decision.decision_id.as_ref(),
         Value::Object(output),
         matched_rule_ids,
-    ))
+    )
 }
 
 fn collect_rule_output(

@@ -17,7 +17,7 @@ fn backlinks_and_example_relations_are_deduplicated_and_trimmed() {
         Some(vec![RepoBacklinkItem {
             id: "doc-a".to_string(),
             title: Some("Alpha Guide".to_string()),
-            path: Some("docs/alpha.md".to_string().into()),
+            path: Some("docs/alpha.md".to_string()),
             kind: Some("documents".to_string()),
         }])
     );

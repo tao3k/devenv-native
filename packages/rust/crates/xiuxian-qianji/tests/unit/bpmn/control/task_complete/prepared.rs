@@ -29,8 +29,8 @@ async fn workflow_control_service_prepared_task_complete_can_stop_at_next_host_b
         service.prepare_start_workflow(&QianjiBpmnWorkflowStartRequest {
             bpmn_path: bpmn_path.clone(),
             dmn_paths: Vec::new(),
-            process_id: "review".to_string(),
-            instance_id: instance_id.to_string(),
+            process_id: "review".to_string().into(),
+            instance_id: instance_id.to_string().into(),
             initial_variables: Some(json!({})),
             start_at_node_id: None,
             checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
@@ -43,7 +43,7 @@ async fn workflow_control_service_prepared_task_complete_can_stop_at_next_host_b
                 &QianjiBpmnWorkflowResumeRequest {
                     bpmn_path: bpmn_path.clone(),
                     dmn_paths: Vec::new(),
-                    instance_id: instance_id.to_string(),
+                    instance_id: instance_id.to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 },
                 &prepared_start,
@@ -59,12 +59,12 @@ async fn workflow_control_service_prepared_task_complete_can_stop_at_next_host_b
                 &QianjiBpmnWorkflowTaskCompleteRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    instance_id: instance_id.to_string(),
+                    instance_id: instance_id.to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                     completion: QianjiBpmnWorkflowTaskCompletionPayload {
                         token_id: pending_token_id,
-                        process_id: "review".to_string(),
-                        activity_id: pending_activity_id,
+                        process_id: "review".to_string().into(),
+                        activity_id: pending_activity_id.into(),
                         kind: QianjiBpmnWorkflowTaskCompletionKind::Service,
                         data: json!({
                             "stored": true,
@@ -126,8 +126,8 @@ async fn workflow_control_service_prepared_task_complete_reuses_prepared_package
         service.prepare_start_workflow(&QianjiBpmnWorkflowStartRequest {
             bpmn_path: bpmn_path.clone(),
             dmn_paths: Vec::new(),
-            process_id: "review".to_string(),
-            instance_id: instance_id.to_string(),
+            process_id: "review".to_string().into(),
+            instance_id: instance_id.to_string().into(),
             initial_variables: Some(json!({})),
             start_at_node_id: None,
             checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
@@ -140,7 +140,7 @@ async fn workflow_control_service_prepared_task_complete_reuses_prepared_package
                 &QianjiBpmnWorkflowResumeRequest {
                     bpmn_path: bpmn_path.clone(),
                     dmn_paths: Vec::new(),
-                    instance_id: instance_id.to_string(),
+                    instance_id: instance_id.to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 },
                 &prepared_start,
@@ -174,12 +174,12 @@ async fn workflow_control_service_prepared_task_complete_reuses_prepared_package
                 &QianjiBpmnWorkflowTaskCompleteRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    instance_id: instance_id.to_string(),
+                    instance_id: instance_id.to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                     completion: QianjiBpmnWorkflowTaskCompletionPayload {
                         token_id: pending_token_id,
-                        process_id: "review".to_string(),
-                        activity_id: pending_activity_id,
+                        process_id: "review".to_string().into(),
+                        activity_id: pending_activity_id.into(),
                         kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                         data: json!({
                             "answer": "prepared",

@@ -19,8 +19,9 @@ use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec,
     BpmnHumanTaskFormSpec, BpmnHumanTaskLifecycleEventKind, BpmnHumanTaskResourceRoleSpec,
     BpmnInstanceInit, BpmnLaneMembershipSpec, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
-    BpmnProcessSpec, PendingHostWorkClaim, PendingHostWorkKind, PendingHumanTaskClaimRequest,
-    ProcessKey, advance_instance, claim_pending_human_task, create_instance,
+    BpmnProcessSpec, PendingHostWorkClaim, PendingHostWorkKind, PendingHumanTaskClaimInput,
+    PendingHumanTaskClaimRequest, ProcessKey, advance_instance, claim_pending_human_task,
+    create_instance,
 };
 use serde::de::DeserializeOwned;
 use serde_json::json;
@@ -150,7 +151,13 @@ async fn bpmn_workflow_http_snapshot_exposes_pending_human_task_contract() {
     let token_id = instance.pending_host_work[0].token_id;
     claim_pending_human_task(
         &mut instance,
-        PendingHumanTaskClaimRequest::new(token_id, "review_flow", "Task_Review", "alice", 99),
+        PendingHumanTaskClaimRequest::from_input(PendingHumanTaskClaimInput {
+            token_id: token_id.into(),
+            process_id: "review_flow".into(),
+            activity_id: "Task_Review".into(),
+            claimant: "alice".to_string(),
+            claimed_at_ms: 99.into(),
+        }),
     )
     .unwrap_or_else(|error| panic!("human task claim should succeed: {error:?}"));
 
@@ -397,7 +404,8 @@ impl HttpHumanTaskIdentity {
             activity: work
                 .activity_id
                 .clone()
-                .unwrap_or_else(|| panic!("HTTP pending work should carry activity identity")),
+                .unwrap_or_else(|| panic!("HTTP pending work should carry activity identity"))
+                .to_string(),
         };
         identity.assert_unclaimed_work(work);
         identity
@@ -506,8 +514,8 @@ async fn seed_http_runtime_valkey_user_task(valkey_url: &str, bpmn_path: &Path, 
     let request = QianjiBpmnWorkflowStartRequest {
         bpmn_path: bpmn_path.to_path_buf(),
         dmn_paths: Vec::new(),
-        process_id: HttpHumanTaskIdentity::PROCESS.to_string(),
-        instance_id: instance.to_string(),
+        process_id: HttpHumanTaskIdentity::PROCESS.to_string().into(),
+        instance_id: instance.to_string().into(),
         initial_variables: Some(json!({ "risk": "high" })),
         start_at_node_id: None,
         checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),

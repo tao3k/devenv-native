@@ -20,3 +20,5 @@ mod registry;
 mod required_evidence;
 #[path = "search_strategy/retrieval_routes.rs"]
 mod retrieval_routes;
+#[path = "search_strategy/service_boundary.rs"]
+mod service_boundary;

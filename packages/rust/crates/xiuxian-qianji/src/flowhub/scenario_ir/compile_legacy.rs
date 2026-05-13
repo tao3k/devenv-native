@@ -34,7 +34,7 @@ pub(super) fn compile_legacy_scenario_ir(
 fn compose_legacy_node_ir(node: &FlowhubGraphNodeContract) -> FlowhubScenarioNodeIr {
     FlowhubScenarioNodeIr {
         label: node.label.clone(),
-        kind: Some(node.kind.clone()),
+        kind: Some(node.kind.as_str().to_string()),
         role: Some(node.role.clone()),
         agent_action: Some(node.agent_action.clone()),
         checkpoint: None,

@@ -1,3 +1,5 @@
+//! Contracts workdir manifest surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Root `[plan]` table for one bounded work-surface manifest.

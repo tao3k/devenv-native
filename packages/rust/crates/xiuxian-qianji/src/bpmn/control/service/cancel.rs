@@ -51,8 +51,8 @@ async fn cancel_runtime_valkey_checkpoint(
         .await?;
     if !acquired {
         return Err(BpmnOrchestrationError::CheckpointLeaseConflict {
-            instance_id: instance_id.to_string(),
-            owner_token,
+            instance_id: instance_id.into(),
+            owner_token: owner_token.into(),
         }
         .into());
     }

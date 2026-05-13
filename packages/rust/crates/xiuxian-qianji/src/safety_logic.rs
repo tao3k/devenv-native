@@ -1,3 +1,5 @@
+//! Safety logic surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Basic logical proposition extracted from LLM output.

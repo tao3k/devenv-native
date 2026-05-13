@@ -24,8 +24,8 @@ async fn workflow_control_service_resumes_checkpointed_session_from_duckdb_store
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path: bpmn_path.clone(),
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: "wf_resume_service".to_string(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: "wf_resume_service".to_string().into(),
                     initial_variables: Some(json!({ "amount": 7 })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
@@ -58,7 +58,7 @@ async fn workflow_control_service_resumes_checkpointed_session_from_duckdb_store
                 &QianjiBpmnWorkflowResumeRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    instance_id: "wf_resume_service".to_string(),
+                    instance_id: "wf_resume_service".to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 },
                 &host,
@@ -99,7 +99,7 @@ async fn workflow_control_service_resume_requires_existing_checkpoint() {
             &QianjiBpmnWorkflowResumeRequest {
                 bpmn_path,
                 dmn_paths: Vec::new(),
-                instance_id: "wf_resume_missing".to_string(),
+                instance_id: "wf_resume_missing".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             },
             &QianjiBpmnHostBridge::default(),

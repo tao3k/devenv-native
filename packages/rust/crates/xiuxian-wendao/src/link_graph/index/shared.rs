@@ -12,7 +12,6 @@ pub(super) fn doc_sort_key(doc: &LinkGraphDocument) -> (&str, &str) {
     (doc.path.as_str(), doc.stem.as_str())
 }
 /// `ScoredSearchRow` public type boundary for Wendao.
-
 #[derive(Debug, Clone)]
 pub struct ScoredSearchRow {
     pub hit: LinkGraphHit,
@@ -56,7 +55,6 @@ fn compare_by_sort_term(
     }
 }
 /// `sort_hits` public function boundary for Wendao.
-
 pub fn sort_hits(rows: &mut [ScoredSearchRow], sort_terms: &[LinkGraphSortTerm]) {
     let terms = if sort_terms.is_empty() {
         vec![LinkGraphSortTerm::default()]
@@ -80,7 +78,6 @@ pub fn sort_hits(rows: &mut [ScoredSearchRow], sort_terms: &[LinkGraphSortTerm])
     });
 }
 /// `deterministic_random_key` public function boundary for Wendao.
-
 pub fn deterministic_random_key(stem: &str, path: &str) -> u64 {
     let mut hasher = DefaultHasher::new();
     stem.hash(&mut hasher);
@@ -88,7 +85,6 @@ pub fn deterministic_random_key(stem: &str, path: &str) -> u64 {
     hasher.finish()
 }
 /// `normalize_path_filter` public function boundary for Wendao.
-
 pub fn normalize_path_filter(path: &str) -> String {
     path.trim()
         .replace('\\', "/")
@@ -96,7 +92,6 @@ pub fn normalize_path_filter(path: &str) -> String {
         .to_lowercase()
 }
 /// `path_matches_filter` public function boundary for Wendao.
-
 pub fn path_matches_filter(path: &str, filter: &str) -> bool {
     if filter.is_empty() {
         return false;
@@ -105,7 +100,6 @@ pub fn path_matches_filter(path: &str, filter: &str) -> bool {
     normalized_path == filter || normalized_path.starts_with(&format!("{filter}/"))
 }
 /// `doc_contains_phrase` public function boundary for Wendao.
-
 pub fn doc_contains_phrase(doc: &LinkGraphDocument, phrase: &str, case_sensitive: bool) -> bool {
     if phrase.trim().is_empty() {
         return false;

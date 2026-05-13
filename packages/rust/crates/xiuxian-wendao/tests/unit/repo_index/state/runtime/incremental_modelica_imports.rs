@@ -58,7 +58,7 @@ async fn prepare_incremental_analysis_merges_import_bearing_leaf_modelica_source
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone().into(),
+                repo_id: repository.id.clone(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),
@@ -138,7 +138,7 @@ async fn prepare_incremental_analysis_returns_none_for_documentation_annotation_
         .prepare_incremental_analysis(
             &repository,
             &RepoSyncResult {
-                repo_id: repository.id.clone().into(),
+                repo_id: repository.id.clone(),
                 source_kind: RepoSourceKind::LocalCheckout,
                 checkout_path: tempdir.path().display().to_string(),
                 revision: Some(current_revision),

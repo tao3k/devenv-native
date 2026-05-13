@@ -120,14 +120,14 @@ where
     TagsHasher: BuildHasher,
     TagSetHasher: BuildHasher,
 {
-    let stem1 = &stems[left];
-    let stem2 = &stems[right];
-    let links1 = stem_links.get(stem1)?;
-    let links2 = stem_links.get(stem2)?;
-    let link = links1.contains(stem2) || links2.contains(stem1);
+    let left_key = &stems[left];
+    let right_key = &stems[right];
+    let links1 = stem_links.get(left_key)?;
+    let links2 = stem_links.get(right_key)?;
+    let link = links1.contains(right_key) || links2.contains(left_key);
     let tag = stem_tags
-        .get(stem1)
-        .zip(stem_tags.get(stem2))
+        .get(left_key)
+        .zip(stem_tags.get(right_key))
         .is_some_and(|(tags1, tags2)| !tags1.is_disjoint(tags2));
 
     (link || tag).then_some(PairBoost {

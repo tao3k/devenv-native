@@ -19,7 +19,7 @@ fn handle_task_result_releases_repo_after_panicked_worker() {
         SearchPlaneService::new(PathBuf::from(".")),
     );
     coordinator.set_status_for_test(RepoIndexEntryStatus {
-        repo_id: "alpha/repo".to_string().into(),
+        repo_id: "alpha/repo".to_string(),
         phase: RepoIndexPhase::Syncing,
         queue_position: None,
         last_error: None,
@@ -30,7 +30,7 @@ fn handle_task_result_releases_repo_after_panicked_worker() {
     coordinator.mark_active_for_test("alpha/repo");
 
     coordinator.handle_task_result(Ok(RepoTaskJoinResult::Panicked {
-        repo_id: "alpha/repo".to_string().into(),
+        repo_id: "alpha/repo".to_string(),
     }));
 
     let status = coordinator.status_response(None);
@@ -79,7 +79,7 @@ fn handle_task_result_uses_control_elapsed_for_adaptive_concurrency() {
 
     coordinator.handle_task_result(Ok(RepoTaskJoinResult::Completed(Box::new(
         RepoTaskFeedback {
-            repo_id: "alpha/repo".to_string().into(),
+            repo_id: "alpha/repo".to_string(),
             control_elapsed: Duration::from_millis(110),
             outcome: RepoTaskOutcome::Success {
                 revision: Some("rev-1".to_string()),
@@ -127,7 +127,7 @@ fn handle_task_result_does_not_penalize_unsupported_repo_failures() {
 
     coordinator.handle_task_result(Ok(RepoTaskJoinResult::Completed(Box::new(
         RepoTaskFeedback {
-            repo_id: "alpha/repo".to_string().into(),
+            repo_id: "alpha/repo".to_string(),
             control_elapsed: Duration::from_millis(110),
             outcome: RepoTaskOutcome::Failure {
                 revision: None,

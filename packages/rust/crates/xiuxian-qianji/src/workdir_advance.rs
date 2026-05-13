@@ -1,3 +1,9 @@
+//! Localized workdir step advancement.
+//!
+//! This module advances the current Mermaid node for a bounded run root,
+//! rewrites runtime state, scaffolds node-owned surfaces, and rolls back when
+//! `qianji check --dir` rejects the advanced state.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -58,6 +64,60 @@ pub fn advance_workdir_step(
     target_node_ref: &str,
 ) -> Result<WorkdirAdvance, QianjiError> {
     let workdir = workdir.as_ref();
+    let plan = plan_workdir_advance(workdir, target_node_ref)?;
+    let snapshot = read_runtime_state_snapshot(workdir)?;
+
+    write_runtime_state(
+        &snapshot.current_node_path,
+        &snapshot.allowed_next_path,
+        &snapshot.trace_path,
+        plan.current_node.label.as_str(),
+        &plan.target_node,
+        plan.next_allowed.as_slice(),
+        snapshot.original_trace.as_str(),
+    )?;
+    let created_step_surface =
+        scaffold_current_step_surface(workdir, plan.current_step_surface.as_slice())?;
+    validate_advanced_workdir_or_restore(workdir, &snapshot, created_step_surface.as_slice())?;
+
+    Ok(plan.into_advance(workdir, snapshot.trace_path))
+}
+
+struct WorkdirAdvancePlan {
+    plan_name: String,
+    current_node: WorkdirRuntimeNode,
+    target_node: WorkdirRuntimeNode,
+    next_allowed: Vec<String>,
+    current_step_surface: Vec<String>,
+}
+
+impl WorkdirAdvancePlan {
+    fn into_advance(self, workdir: &Path, trace_path: PathBuf) -> WorkdirAdvance {
+        WorkdirAdvance {
+            plan_name: self.plan_name,
+            workdir: workdir.to_path_buf(),
+            previous_node: self.current_node.label,
+            current_node: self.target_node.label,
+            allowed_next: self.next_allowed,
+            current_step_surface: self.current_step_surface,
+            trace_path,
+        }
+    }
+}
+
+struct RuntimeStateSnapshot {
+    current_node_path: PathBuf,
+    allowed_next_path: PathBuf,
+    trace_path: PathBuf,
+    original_current_node: String,
+    original_allowed_next: String,
+    original_trace: String,
+}
+
+fn plan_workdir_advance(
+    workdir: &Path,
+    target_node_ref: &str,
+) -> Result<WorkdirAdvancePlan, QianjiError> {
     let manifest = load_workdir_manifest(workdir.join("qianji.toml"))?;
     let contract = load_runtime_contract(&workdir.join("flowchart.mmd"))?;
     let runtime_state = load_workdir_runtime_state(workdir, &contract.flowchart)?;
@@ -88,6 +148,16 @@ pub fn advance_workdir_step(
     let current_step_surface =
         target_node_owned_paths(&contract.scenario_ir, target_node.label.as_str());
 
+    Ok(WorkdirAdvancePlan {
+        plan_name: manifest.plan.name,
+        current_node,
+        target_node,
+        next_allowed,
+        current_step_surface,
+    })
+}
+
+fn read_runtime_state_snapshot(workdir: &Path) -> Result<RuntimeStateSnapshot, QianjiError> {
     let current_node_path = workdir.join("state/current_node.toml");
     let allowed_next_path = workdir.join("state/allowed_next.json");
     let trace_path = workdir.join("state/trace.jsonl");
@@ -97,45 +167,39 @@ pub fn advance_workdir_step(
         read_required_runtime_file(&allowed_next_path, "localized allowed-next state")?;
     let original_trace = read_required_runtime_file(&trace_path, "localized trace state")?;
 
-    write_runtime_state(
-        &current_node_path,
-        &allowed_next_path,
-        &trace_path,
-        current_node.label.as_str(),
-        &target_node,
-        next_allowed.as_slice(),
-        original_trace.as_str(),
-    )?;
-    let created_step_surface =
-        scaffold_current_step_surface(workdir, current_step_surface.as_slice())?;
+    Ok(RuntimeStateSnapshot {
+        current_node_path,
+        allowed_next_path,
+        trace_path,
+        original_current_node,
+        original_allowed_next,
+        original_trace,
+    })
+}
 
+fn validate_advanced_workdir_or_restore(
+    workdir: &Path,
+    snapshot: &RuntimeStateSnapshot,
+    created_step_surface: &[PathBuf],
+) -> Result<(), QianjiError> {
     let report = check_workdir(workdir)?;
     if !report.is_valid() {
         restore_runtime_state(
-            &current_node_path,
-            original_current_node.as_str(),
-            &allowed_next_path,
-            original_allowed_next.as_str(),
-            &trace_path,
-            original_trace.as_str(),
+            &snapshot.current_node_path,
+            snapshot.original_current_node.as_str(),
+            &snapshot.allowed_next_path,
+            snapshot.original_allowed_next.as_str(),
+            &snapshot.trace_path,
+            snapshot.original_trace.as_str(),
         )?;
-        restore_current_step_surface(workdir, created_step_surface.as_slice())?;
+        restore_current_step_surface(workdir, created_step_surface)?;
         return Err(QianjiError::Topology(format!(
             "Advanced work surface `{}` failed validation:\n{}",
             workdir.display(),
             render_workdir_check_markdown(&report)
         )));
     }
-
-    Ok(WorkdirAdvance {
-        plan_name: manifest.plan.name,
-        workdir: workdir.to_path_buf(),
-        previous_node: current_node.label,
-        current_node: target_node.label,
-        allowed_next: next_allowed,
-        current_step_surface,
-        trace_path,
-    })
+    Ok(())
 }
 
 /// Render one localized step advance into a compact markdown summary.
@@ -388,18 +452,16 @@ fn scaffold_current_step_surface(
     workdir: &Path,
     current_step_surface: &[String],
 ) -> Result<Vec<PathBuf>, QianjiError> {
-    let mut created = Vec::new();
-    for relative_path in current_step_surface {
-        let target_path = workdir.join(relative_path);
-        if target_path.exists() {
-            continue;
-        }
-
-        write_scaffold_file(&target_path, scaffold_file_content(relative_path))?;
-        created.push(target_path);
-    }
-
-    Ok(created)
+    current_step_surface
+        .iter()
+        .try_fold(Vec::new(), |mut created, relative_path| {
+            let target_path = workdir.join(relative_path);
+            if !target_path.exists() {
+                write_scaffold_file(&target_path, scaffold_file_content(relative_path))?;
+                created.push(target_path);
+            }
+            Ok(created)
+        })
 }
 
 fn restore_current_step_surface(

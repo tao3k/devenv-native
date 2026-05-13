@@ -116,33 +116,26 @@ fn derive_enriched_required_paths(
     annotations: &FlowhubGraphAnnotations,
     nodes: &[FlowhubScenarioNodeIr],
 ) -> Vec<String> {
-    let mut require = Vec::new();
-    let mut seen = BTreeSet::new();
-
-    for entry in DEFAULT_WORKDIR_PREFIX_REQUIRE {
-        push_unique(&mut require, &mut seen, entry);
-    }
-    for entry in &annotations.scenario.requires {
-        push_unique(&mut require, &mut seen, entry);
-    }
-    for entry in DEFAULT_WORKDIR_STATE_REQUIRE {
-        push_unique(&mut require, &mut seen, entry);
-    }
-    for node in nodes {
-        if let Some(checkpoint) = &node.checkpoint {
-            push_unique(&mut require, &mut seen, checkpoint);
-        }
-    }
-    for node in nodes {
-        for write in &node.writes {
-            push_unique(&mut require, &mut seen, write);
-        }
-    }
-    for entry in DEFAULT_WORKDIR_DIAGNOSTIC_REQUIRE {
-        push_unique(&mut require, &mut seen, entry);
-    }
-
-    require
+    DEFAULT_WORKDIR_PREFIX_REQUIRE
+        .iter()
+        .copied()
+        .chain(annotations.scenario.requires.iter().map(String::as_str))
+        .chain(DEFAULT_WORKDIR_STATE_REQUIRE.iter().copied())
+        .chain(nodes.iter().filter_map(|node| node.checkpoint.as_deref()))
+        .chain(
+            nodes
+                .iter()
+                .flat_map(|node| node.writes.iter().map(String::as_str)),
+        )
+        .chain(DEFAULT_WORKDIR_DIAGNOSTIC_REQUIRE.iter().copied())
+        .fold(
+            (Vec::new(), BTreeSet::new()),
+            |(mut require, mut seen), entry| {
+                push_unique(&mut require, &mut seen, entry);
+                (require, seen)
+            },
+        )
+        .0
 }
 
 fn derive_flowchart_surfaces(require: &[String]) -> Vec<String> {

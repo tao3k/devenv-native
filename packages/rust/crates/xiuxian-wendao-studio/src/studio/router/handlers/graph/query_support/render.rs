@@ -38,12 +38,20 @@ fn resolve_graph_node_id_by_display_path(
     None
 }
 
+fn resolve_graph_node_id_by_internal_path(index: &LinkGraphIndex, node_id: &str) -> Option<String> {
+    let normalized = normalize_path_like(node_id)?;
+    index
+        .resolve_doc_id_pub(normalized.as_str())
+        .map(str::to_owned)
+}
+
 pub(crate) fn resolve_graph_node_id(
     state: &GatewayState,
     index: &LinkGraphIndex,
     node_id: &str,
 ) -> Option<String> {
     resolve_graph_node_id_by_display_path(state, index, node_id)
+        .or_else(|| resolve_graph_node_id_by_internal_path(index, node_id))
 }
 
 pub(crate) fn graph_node(

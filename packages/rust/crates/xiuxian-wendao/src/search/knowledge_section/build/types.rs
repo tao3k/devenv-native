@@ -22,7 +22,6 @@ pub(super) struct KnowledgeSectionWriteResult {
     pub(super) fragment_count: u64,
 }
 /// `KnowledgeSectionBuildError` public enum boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
 pub enum KnowledgeSectionBuildError {

@@ -14,7 +14,7 @@ async fn managed_remote_skips_reindex_when_repo_publications_already_match_revis
         SearchMaintenancePolicy::default(),
     );
     let documents = vec![crate::repo_index::types::RepoCodeDocument {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -48,7 +48,7 @@ async fn managed_remote_skips_reindex_when_repo_publications_already_match_revis
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string().into(),
+                    repo_id: "alpha/repo".to_string(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()
@@ -104,7 +104,7 @@ async fn managed_remote_reuses_latest_persisted_publications_without_revision_ca
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string().into(),
+                    repo_id: "alpha/repo".to_string(),
                     source_kind: RepoSourceKind::ManagedRemote,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()
@@ -124,7 +124,7 @@ async fn local_checkout_does_not_short_circuit_on_revision_match() {
         SearchMaintenancePolicy::default(),
     );
     let documents = vec![crate::repo_index::types::RepoCodeDocument {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,
@@ -158,7 +158,7 @@ async fn local_checkout_does_not_short_circuit_on_revision_match() {
             .repo_publications_are_current(
                 "alpha/repo",
                 &RepoSyncResult {
-                    repo_id: "alpha/repo".to_string().into(),
+                    repo_id: "alpha/repo".to_string(),
                     source_kind: RepoSourceKind::LocalCheckout,
                     revision: Some("rev-1".to_string()),
                     ..RepoSyncResult::default()

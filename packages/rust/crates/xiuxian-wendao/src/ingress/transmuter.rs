@@ -114,6 +114,7 @@ fn validate_structure(content: &str) -> Result<(), IngressTransmuterError> {
     Ok(())
 }
 
+#[derive(Clone, Copy)]
 struct XmlLiteTag<'a> {
     name: &'a str,
     closing: bool,

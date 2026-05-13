@@ -1,4 +1,4 @@
-//! Project backend frontier nodes into SearchStrategyFlow reasoning steps.
+//! Project backend frontier nodes into `SearchStrategyFlow` reasoning steps.
 
 use crate::search::real_repo_precision::frontier::score::saturating_usize_to_u32;
 use crate::search::real_repo_precision::{

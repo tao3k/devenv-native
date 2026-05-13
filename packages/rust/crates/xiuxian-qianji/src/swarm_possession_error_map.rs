@@ -1,10 +1,13 @@
+//! Swarm possession error map surface for `xiuxian-qianji`.
+
 use crate::contracts::{FlowInstruction, QianjiOutput};
 
+use super::possession_clock::current_unix_millis;
 use super::possession_model::{RemoteNodeRequest, RemoteNodeResponse};
-use super::possession_util::current_unix_millis;
 
 /// Converts any mechanism error into a failed remote response.
 #[must_use]
+/// Identifier boundary: this public compatibility seam accepts externally owned ids.
 pub fn map_execution_error_to_response(
     request: &RemoteNodeRequest,
     responder_cluster_id: &str,

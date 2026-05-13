@@ -24,9 +24,27 @@ macro_rules! semantic_string_type {
             }
         }
 
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                self.as_str()
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+
         impl From<String> for $name {
             fn from(value: String) -> Self {
                 Self(value)
+            }
+        }
+
+        impl From<&String> for $name {
+            fn from(value: &String) -> Self {
+                Self(value.to_owned())
             }
         }
 

@@ -37,6 +37,12 @@ pub(super) fn resolve_source_page_range_selection(
     }
 }
 
+/// Return the number of pages in a source PDF using the lightweight page tree.
+///
+/// # Errors
+///
+/// Returns an error when the PDF cannot be loaded or the page count exceeds
+/// the public `u32` contract.
 pub fn source_pdf_page_count(path: &Path) -> Result<u32, String> {
     let document = LopdfDocument::load(path)
         .map_err(|error| format!("load PDF page tree with lopdf: {error}"))?;

@@ -1,13 +1,13 @@
 //! `qianji` command implementation.
 
 mod bpmn_cli;
-mod common;
 mod construct_cli;
 mod contract_feedback_cli;
 mod dir_cli;
 mod dispatch;
 mod emit_cli;
 mod graph_export;
+mod input;
 mod json_output;
 mod lint_cli;
 mod manifest_exec;
@@ -17,7 +17,7 @@ mod template_cli;
 pub(crate) mod test_exports;
 mod usage;
 mod workspace;
-pub(crate) use common::{invalid_input, parse_flag_value, resolve_cli_path};
+pub(crate) use input::{invalid_input, parse_flag_value, resolve_cli_path};
 #[cfg(test)]
 pub(crate) use test_exports::{
     BpmnCliCheckpointBackend, BpmnCliCommand, BpmnHostSessionCliCommand, BpmnRunCliCommand,
@@ -45,4 +45,4 @@ mod facade;
 #[path = "../../tests/unit/bin/qianji/mod.rs"]
 mod tests;
 
-pub use facade::run_qianji_cli;
+pub use facade::{QianjiCliError, run_qianji_cli};

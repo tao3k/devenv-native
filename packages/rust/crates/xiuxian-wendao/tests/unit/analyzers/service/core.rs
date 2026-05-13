@@ -12,15 +12,15 @@ use xiuxian_git_repo::LocalCheckoutMetadata;
 #[test]
 fn test_refine_contract_serialization() {
     let req = RefineEntityDocRequest {
-        repo_id: "test".to_string().into(),
+        repo_id: "test".to_string(),
         entity_id: "sym1".to_string(),
         user_hints: Some("more details".to_string()),
     };
     let res = RefineEntityDocResponse {
-        repo_id: "test".to_string().into(),
+        repo_id: "test".to_string(),
         entity_id: "sym1".to_string(),
         refined_content: "Refined".to_string(),
-        verification_state: "verified".to_string().into(),
+        verification_state: "verified".to_string(),
     };
     assert_eq!(req.repo_id, "test");
     assert_eq!(res.verification_state, "verified");

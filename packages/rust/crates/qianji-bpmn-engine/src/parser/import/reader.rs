@@ -110,8 +110,8 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
     }
 
     Ok(RawPackageDocument {
-        source_id: (source.source_id.clone()).into(),
-        package_id: (package_id.unwrap_or_else(|| source.source_id.clone())).into(),
+        source_id: (source.source_id.clone()),
+        package_id: (package_id.unwrap_or_else(|| source.source_id.clone())),
         processes,
     })
 }

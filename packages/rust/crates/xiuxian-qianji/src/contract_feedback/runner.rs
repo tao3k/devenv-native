@@ -36,6 +36,7 @@ impl Default for ContractRunConfig {
 impl ContractRunConfig {
     /// Return the advisory policy that applies to the given pack identifier.
     #[must_use]
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub fn advisory_policy_for_pack(&self, pack_id: &str) -> AdvisoryAuditPolicy {
         self.advisory_policies
             .get(pack_id)

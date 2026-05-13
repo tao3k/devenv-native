@@ -1,4 +1,9 @@
+//! Human-work claim, release, and worklist contracts for BPMN control.
+
 use super::execution::QianjiBpmnWorkflowCheckpointBackend;
+use crate::bpmn::identity::{
+    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
+};
 use qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
     BpmnLaneMembershipSpec, BpmnTaskIoSpec, PendingHostWork, PendingHostWorkClaim,
@@ -12,9 +17,9 @@ pub struct QianjiBpmnWorkflowTaskClaimPayload {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier expected for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN activity identifier expected for the pending host work.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Host- or operator-facing claimant identifier.
     pub claimant: String,
 }
@@ -24,7 +29,7 @@ pub struct QianjiBpmnWorkflowTaskClaimPayload {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiBpmnWorkflowTaskClaimRequest {
     /// Workflow instance identifier used for checkpoint lookup.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend that already owns persisted workflow state.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
     /// Explicit human-task claim payload.
@@ -38,9 +43,9 @@ pub struct QianjiBpmnWorkflowTaskReleasePayload {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier expected for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN activity identifier expected for the pending host work.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Host- or operator-facing claimant identifier that currently owns the
     /// work.
     pub claimant: String,
@@ -51,7 +56,7 @@ pub struct QianjiBpmnWorkflowTaskReleasePayload {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiBpmnWorkflowTaskReleaseRequest {
     /// Workflow instance identifier used for checkpoint lookup.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend that already owns persisted workflow state.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
     /// Explicit human-task claim release payload.
@@ -86,15 +91,15 @@ pub struct QianjiBpmnWorkflowWorklistRoutingFilter {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QianjiBpmnWorkflowWorklistItem {
     /// Workflow instance identifier.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// BPMN process identifier for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN node index.
     pub node_index: u32,
     /// Stable BPMN activity identifier for the blocked node.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Host work category.
     pub kind: PendingHostWorkKind,
     /// Optional human-task form metadata preserved for host rendering.
@@ -136,11 +141,11 @@ impl QianjiBpmnWorkflowWorklistItem {
         );
 
         Some(Self {
-            instance_id: checkpoint.state.instance_id.to_string(),
-            process_id,
+            instance_id: checkpoint.state.instance_id.as_ref().into(),
+            process_id: process_id.into(),
             token_id: pending.token_id,
             node_index: pending.node_index,
-            activity_id,
+            activity_id: activity_id.into(),
             kind: pending.kind.clone(),
             form: pending.human_task_form.clone(),
             assignment: pending.human_task_assignment.clone(),

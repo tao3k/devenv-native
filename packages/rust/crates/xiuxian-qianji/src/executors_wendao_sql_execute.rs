@@ -1,3 +1,5 @@
+//! Executors wendao sql execute surface for `xiuxian-qianji`.
+
 use async_trait::async_trait;
 use serde_json::json;
 
@@ -8,6 +10,7 @@ use super::input::{required_context_string, resolve_endpoint};
 use super::render::execution_report_xml;
 
 /// Deterministic execution node for validated Wendao SQL.
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct WendaoSqlExecuteMechanism {
     /// Context key containing canonical SQL to execute.
     pub sql_key: String,

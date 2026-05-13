@@ -334,7 +334,7 @@ pub(in crate::lint::bpmn::api) fn find_missing_branch_condition_context(
         .map(|flow| flow.id.clone())
         .collect::<Vec<_>>();
     Some(MissingBranchConditionContext {
-        flow_id: (missing.id.clone()).into(),
+        flow_id: (missing.id.clone()),
         target_ref: missing.target_ref.clone(),
         flow_span: missing.span.clone(),
         duplicate_conditioned_flow_ids,

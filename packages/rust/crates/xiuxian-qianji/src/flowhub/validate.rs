@@ -449,26 +449,29 @@ fn validate_graph_workdir_surface(
 }
 
 fn derive_graph_workdir_surface_entries(require: &[String]) -> Vec<String> {
-    let mut surfaces = Vec::new();
-    let mut seen = BTreeSet::new();
+    require
+        .iter()
+        .filter_map(|entry| graph_workdir_surface_entry(entry))
+        .fold(
+            (Vec::new(), BTreeSet::new()),
+            |(mut surfaces, mut seen), top_level| {
+                if seen.insert(top_level.clone()) {
+                    surfaces.push(top_level);
+                }
+                (surfaces, seen)
+            },
+        )
+        .0
+}
 
-    for entry in require {
-        let trimmed = entry.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-
-        let top_level = trimmed.split('/').next().unwrap_or(trimmed);
-        if top_level == "qianji.toml" {
-            continue;
-        }
-
-        if seen.insert(top_level.to_string()) {
-            surfaces.push(top_level.to_string());
-        }
+fn graph_workdir_surface_entry(entry: &str) -> Option<String> {
+    let trimmed = entry.trim();
+    if trimmed.is_empty() {
+        return None;
     }
 
-    surfaces
+    let top_level = trimmed.split('/').next().unwrap_or(trimmed);
+    (top_level != "qianji.toml").then(|| top_level.to_string())
 }
 
 fn validate_graph_node_contract(

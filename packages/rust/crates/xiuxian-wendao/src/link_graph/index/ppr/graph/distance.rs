@@ -131,8 +131,8 @@ fn enqueue_bidirectional_neighbors(
         })
         .cloned()
         .collect::<Vec<_>>();
-    pending_neighbors.into_iter().for_each(|neighbor| {
+    for neighbor in pending_neighbors {
         distances.insert(neighbor.clone(), next_depth);
         queue.push_back(neighbor);
-    });
+    }
 }

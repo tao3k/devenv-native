@@ -3,6 +3,7 @@ use super::{
     TableColumnType, TableInfo, TableNewColumn, TableVersionInfo, TryStreamExt, VectorStore,
     VectorStoreError, is_dataset_not_found_or_invalid,
 };
+use lance::deps::arrow_array::{Array, RecordBatch, StringArray};
 
 impl VectorStore {
     /// Get the number of rows in a table.
@@ -247,61 +248,86 @@ impl VectorStore {
         let dataset = self
             .open_dataset_at_uri(table_path.to_string_lossy().as_ref())
             .await?;
-        let schema = dataset.schema();
-        let has_metadata = schema.field(METADATA_COLUMN).is_some();
-        let project_cols: Vec<&str> = if has_metadata {
-            vec![ID_COLUMN, crate::FILE_PATH_COLUMN, METADATA_COLUMN]
-        } else {
-            vec![ID_COLUMN, crate::FILE_PATH_COLUMN]
-        };
+        let project_cols = file_hash_projection(dataset.schema().field(METADATA_COLUMN).is_some());
         let mut scanner = dataset.scan();
         scanner.project(&project_cols)?;
         let mut stream = scanner.try_into_stream().await?;
         let mut hash_map = std::collections::HashMap::new();
         while let Some(batch) = stream.try_next().await? {
-            use lance::deps::arrow_array::{Array, StringArray};
-            let id_col = batch.column_by_name(ID_COLUMN);
-            let file_path_col = batch.column_by_name(crate::FILE_PATH_COLUMN);
-            let metadata_col = batch.column_by_name(METADATA_COLUMN);
-            let id_arr = id_col.and_then(|c| c.as_any().downcast_ref::<StringArray>());
-            let file_path_arr =
-                file_path_col.and_then(|c| c.as_any().downcast_ref::<StringArray>());
-            let meta_arr = metadata_col.and_then(|c| c.as_any().downcast_ref::<StringArray>());
-            if let Some(ids) = id_arr {
-                for i in 0..batch.num_rows() {
-                    let id = ids.value(i).to_string();
-                    let path_from_col = file_path_arr
-                        .filter(|arr| !arr.is_null(i))
-                        .map(|arr| arr.value(i).to_string())
-                        .filter(|s| !s.is_empty());
-                    let meta = meta_arr.and_then(|ma| {
-                        if ma.is_null(i) {
-                            None
-                        } else {
-                            serde_json::from_str::<serde_json::Value>(ma.value(i)).ok()
-                        }
-                    });
-                    let path = path_from_col.or_else(|| {
-                        meta.as_ref().and_then(|m| {
-                            m.get("file_path")
-                                .and_then(|v| v.as_str())
-                                .map(String::from)
-                        })
-                    });
-                    let hash = meta.and_then(|m| {
-                        m.get("file_hash")
-                            .and_then(|v| v.as_str())
-                            .map(String::from)
-                    });
-                    if let Some(path) = path {
-                        hash_map.insert(
-                            path,
-                            serde_json::json!({ "hash": hash.unwrap_or_default(), "id": id }),
-                        );
-                    }
-                }
-            }
+            hash_map.extend(file_hash_rows_from_batch(&batch));
         }
         serde_json::to_string(&hash_map).map_err(|e| VectorStoreError::General(e.to_string()))
     }
+}
+
+fn file_hash_projection(has_metadata: bool) -> Vec<&'static str> {
+    if has_metadata {
+        vec![ID_COLUMN, crate::FILE_PATH_COLUMN, METADATA_COLUMN]
+    } else {
+        vec![ID_COLUMN, crate::FILE_PATH_COLUMN]
+    }
+}
+
+fn file_hash_rows_from_batch(
+    batch: &RecordBatch,
+) -> std::collections::HashMap<String, serde_json::Value> {
+    let Some(ids) = string_column(batch, ID_COLUMN) else {
+        return std::collections::HashMap::new();
+    };
+    let file_path_arr = string_column(batch, crate::FILE_PATH_COLUMN);
+    let metadata_arr = string_column(batch, METADATA_COLUMN);
+    (0..batch.num_rows())
+        .filter_map(|row| file_hash_row(ids, file_path_arr, metadata_arr, row))
+        .collect()
+}
+
+fn file_hash_row(
+    ids: &StringArray,
+    file_path_arr: Option<&StringArray>,
+    metadata_arr: Option<&StringArray>,
+    row: usize,
+) -> Option<(String, serde_json::Value)> {
+    let metadata = metadata_value(metadata_arr, row);
+    let path = path_from_column(file_path_arr, row)
+        .or_else(|| metadata.as_ref().and_then(path_from_metadata))?;
+    let hash = metadata
+        .as_ref()
+        .and_then(hash_from_metadata)
+        .unwrap_or_default();
+    Some((
+        path,
+        serde_json::json!({ "hash": hash, "id": ids.value(row).to_string() }),
+    ))
+}
+
+fn path_from_column(file_path_arr: Option<&StringArray>, row: usize) -> Option<String> {
+    file_path_arr
+        .filter(|arr| !arr.is_null(row))
+        .map(|arr| arr.value(row).to_string())
+        .filter(|path| !path.is_empty())
+}
+
+fn metadata_value(metadata_arr: Option<&StringArray>, row: usize) -> Option<serde_json::Value> {
+    let metadata_arr = metadata_arr.filter(|arr| !arr.is_null(row))?;
+    serde_json::from_str(metadata_arr.value(row)).ok()
+}
+
+fn path_from_metadata(metadata: &serde_json::Value) -> Option<String> {
+    metadata
+        .get("file_path")
+        .and_then(|value| value.as_str())
+        .map(String::from)
+}
+
+fn hash_from_metadata(metadata: &serde_json::Value) -> Option<String> {
+    metadata
+        .get("file_hash")
+        .and_then(|value| value.as_str())
+        .map(String::from)
+}
+
+fn string_column<'a>(batch: &'a RecordBatch, column: &str) -> Option<&'a StringArray> {
+    batch
+        .column_by_name(column)
+        .and_then(|array| array.as_any().downcast_ref::<StringArray>())
 }

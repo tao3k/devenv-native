@@ -1,5 +1,11 @@
+//! Execution request and report contracts for BPMN workflow control.
+
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::driver::{QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest};
+use crate::bpmn::identity::{
+    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnStartAtNodeId,
+    QianjiBpmnWorkflowInstanceId,
+};
 use qianji_bpmn_engine::{BpmnCheckpointEnvelope, BpmnPackage};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -23,13 +29,13 @@ pub struct QianjiBpmnWorkflowStartRequest {
     /// Optional DMN sources loaded alongside the BPMN package.
     pub dmn_paths: Vec<PathBuf>,
     /// BPMN process identifier used for a fresh run.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// Workflow instance identifier used for checkpoint lookup and fresh runs.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Optional initial variables for a fresh run.
     pub initial_variables: Option<Value>,
     /// Optional node id for a fresh synthetic start-at run.
-    pub start_at_node_id: Option<String>,
+    pub start_at_node_id: Option<QianjiBpmnStartAtNodeId>,
     /// Optional checkpoint backend to use for this bounded run.
     pub checkpoint_backend: Option<QianjiBpmnWorkflowCheckpointBackend>,
 }
@@ -77,7 +83,7 @@ pub struct QianjiBpmnWorkflowResumeRequest {
     /// Optional DMN sources loaded alongside the BPMN package.
     pub dmn_paths: Vec<PathBuf>,
     /// Workflow instance identifier used for checkpoint lookup.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend that already owns persisted workflow state.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
@@ -99,7 +105,7 @@ pub struct QianjiBpmnWorkflowEventPollRequest {
     /// Optional DMN sources loaded alongside the BPMN package.
     pub dmn_paths: Vec<PathBuf>,
     /// Workflow instance identifier used for checkpoint lookup.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend that already owns persisted workflow state.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
@@ -130,9 +136,9 @@ pub struct QianjiBpmnWorkflowTaskCompletionPayload {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier expected for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN activity identifier expected for the pending host work.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Pending host-work result kind.
     pub kind: QianjiBpmnWorkflowTaskCompletionKind,
     /// User- or operator-supplied payload merged into workflow variables.
@@ -151,7 +157,7 @@ pub struct QianjiBpmnWorkflowTaskCompleteRequest {
     /// Optional DMN sources loaded alongside the BPMN package.
     pub dmn_paths: Vec<PathBuf>,
     /// Workflow instance identifier used for checkpoint lookup.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Checkpoint backend that already owns persisted workflow state.
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
     /// Explicit completion payload for the pending host task.

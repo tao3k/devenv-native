@@ -174,7 +174,7 @@ fn build_snapshot_document(
 ) -> DmnDocumentSnapshot {
     let (root, decisions) = state.into_parts();
     DmnDocumentSnapshot {
-        source_id: (source.source_id.clone()).into(),
+        source_id: (source.source_id.clone()),
         root: root.unwrap_or_else(empty_root_snapshot),
         decisions,
     }

@@ -34,7 +34,6 @@ pub fn build_module_search(
     )
 }
 /// `build_module_search_with_artifacts` public function boundary for Wendao.
-
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 pub fn build_module_search_with_artifacts(

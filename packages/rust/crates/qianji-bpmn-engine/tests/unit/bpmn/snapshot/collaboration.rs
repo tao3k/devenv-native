@@ -33,7 +33,7 @@ fn bpmn_snapshot_preserves_collaboration_metadata_item_catalog() {
     assert_eq!(
         snapshot.root.item_definitions[0]
             .is_collection
-            .map(|flag| flag.get()),
+            .map(qianji_bpmn_engine::bpmn_model_api::BpmnSnapshotFlag::get),
         Some(false)
     );
     assert_eq!(snapshot.root.message_count, 1);

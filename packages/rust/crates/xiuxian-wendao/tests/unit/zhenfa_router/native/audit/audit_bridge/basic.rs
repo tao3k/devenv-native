@@ -222,7 +222,7 @@ fn test_generate_surgical_fixes() {
         severity: "error".to_string(),
         issue_type: "invalid_observation_pattern".to_string(),
         doc: doc_path.clone(),
-        node_id: "node1".to_string().into(),
+        node_id: "node1".to_string(),
         message: "Invalid pattern".to_string(),
         location: Some(IssueLocation {
             line: 2,

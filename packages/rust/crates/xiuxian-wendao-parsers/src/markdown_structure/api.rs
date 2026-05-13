@@ -6,7 +6,7 @@ use comrak::{
 
 use crate::AddressedTarget;
 use crate::references::{MarkdownReference, MarkdownReferenceKind};
-use crate::sourcepos::sourcepos_to_byte_range;
+use crate::sourcepos::{SourceByteRange, sourcepos_to_byte_range};
 use crate::targets::{MarkdownTargetOccurrence, MarkdownTargetOccurrenceKind};
 
 use super::target_scan::extend_loose_markdown_targets;
@@ -33,7 +33,7 @@ pub(crate) fn parse_markdown_structure(body: &str) -> MarkdownStructure {
     for node in root.descendants() {
         let sourcepos = node.data().sourcepos;
         let span = MarkdownOccurrenceSpan {
-            byte_range: sourcepos_to_byte_range(body, sourcepos).map(|range| range.as_tuple()),
+            byte_range: sourcepos_to_byte_range(body, sourcepos).map(SourceByteRange::as_tuple),
             line_range: (sourcepos.start.line.max(1), sourcepos.end.line.max(1)),
         };
 
@@ -98,7 +98,7 @@ pub(crate) fn parse_markdown_document_metadata(body: &str) -> MarkdownDocumentMe
 
     for node in root.descendants() {
         let sourcepos = node.data().sourcepos;
-        let byte_range = sourcepos_to_byte_range(body, sourcepos).map(|range| range.as_tuple());
+        let byte_range = sourcepos_to_byte_range(body, sourcepos).map(SourceByteRange::as_tuple);
 
         match &node.data().value {
             NodeValue::Paragraph if lead.is_none() => {

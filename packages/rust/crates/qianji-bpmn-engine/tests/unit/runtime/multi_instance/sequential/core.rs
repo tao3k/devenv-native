@@ -45,10 +45,10 @@ async fn runtime_sequential_multi_instance_repeats_until_cardinality_is_reached(
         assert_eq!(
             pending,
             PendingHostWork {
-                token_id: (instance.active_tokens[0].token_id).into(),
-                process_id: (Some("multi_instance_service".into())).into(),
+                token_id: (instance.active_tokens[0].token_id),
+                process_id: (Some("multi_instance_service".into())),
                 node_index: 1,
-                activity_id: (Some("review".into())).into(),
+                activity_id: (Some("review".into())),
                 kind: PendingHostWorkKind::Service,
                 decision: None,
                 lane: None,

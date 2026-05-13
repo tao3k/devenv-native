@@ -29,7 +29,7 @@ pub(crate) fn create_instance_impl(
         }
     })?;
     Ok(BpmnInstanceState {
-        instance_id: (init.instance_id).into(),
+        instance_id: (init.instance_id),
         process: process.key.clone(),
         process_index,
         call_stack: Vec::new(),

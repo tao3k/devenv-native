@@ -57,7 +57,11 @@ pub fn pdf_ocr_shard_contract_snapshot(
     )
 }
 
-/// Returns OCR shard pressure evidence from owner-supplied counters.
+/// Positional boundary for OCR shard pressure counters.
+///
+/// The helper mirrors the orchestrator evidence constructor and keeps caller
+/// sites explicit about each counter until the transport contract is promoted
+/// to a shared request type.
 #[cfg(feature = "pdf-source-range")]
 #[must_use]
 pub fn pdf_ocr_shard_pressure_evidence(
@@ -120,6 +124,9 @@ pub fn pdf_ocr_shard_schedule_plan(
 /// The optional `diagnostic_worker_override` is for benchmark sweeps only.
 /// When it is `None`, the orchestrator crate computes the worker request from
 /// the owner-supplied adaptive budget, maximum worker cap, and shard count.
+///
+/// Positional boundary: the arguments mirror the orchestrator scheduling
+/// constructor while this crate remains a read-only owner bridge.
 #[cfg(feature = "pdf-source-range")]
 #[must_use]
 pub fn pdf_ocr_source_range_shard_schedule_plan(

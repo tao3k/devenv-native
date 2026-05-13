@@ -25,7 +25,7 @@ pub(super) use xiuxian_git_repo::{
 
 pub(super) fn repo_documents() -> Vec<RepoCodeDocument> {
     vec![RepoCodeDocument {
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         language: Some("rust".to_string()),
         contents: std::sync::Arc::<str>::from("fn alpha() {}\n"),
         size_bytes: 14,

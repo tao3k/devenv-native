@@ -2,8 +2,8 @@
 
 use super::constants::DEFAULT_TIMEOUT_SECONDS;
 
-/// Network endpoint settings for Rust-owned `SearchStrategyFlow` Flight
-/// materialization.
+/// Network endpoint settings for Studio-backed `SearchStrategyFlow` Flight
+/// materialization through the Rust bridge client.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SearchStrategyFlowFlightMaterializationConfig {
     /// Base URL of the Studio Arrow Flight endpoint.

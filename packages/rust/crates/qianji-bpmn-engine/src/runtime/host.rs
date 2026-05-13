@@ -127,7 +127,7 @@ fn build_pending_host_work_request_for_entry(
             process_id: process_id.into(),
             token_id: token_id.into(),
             node_index,
-            activity_id: activity_id.into(),
+            activity_id,
             variables,
             inputs,
             output_bindings,
@@ -142,7 +142,7 @@ fn build_pending_host_work_request_for_entry(
             process_id: process_id.into(),
             token_id: token_id.into(),
             node_index,
-            activity_id: activity_id.into(),
+            activity_id,
             variables,
             inputs,
             output_bindings,
@@ -261,8 +261,8 @@ fn build_business_rule_task_request(
     };
     Ok(PendingHostWorkRequest::BusinessRule(
         BusinessRuleTaskRequest {
-            instance_id: (envelope.instance_id).into(),
-            token_id: (envelope.token_id).into(),
+            instance_id: (envelope.instance_id),
+            token_id: (envelope.token_id),
             node_index: envelope.node_index,
             evaluation: DmnEvaluationRequest::new(decision, evaluation_variables),
             inputs: envelope.inputs,

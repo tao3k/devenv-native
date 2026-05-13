@@ -1,3 +1,5 @@
+//! Engine compiler api surface for `xiuxian-qianji`.
+
 use crate::QianjiLlmClient;
 use crate::engine::QianjiEngine;
 use crate::error::QianjiError;

@@ -62,7 +62,6 @@ pub fn build_import_search(
     }
 }
 /// `build_import_search_with_artifacts` public function boundary for Wendao.
-
 #[must_use]
 #[cfg(feature = "search-runtime")]
 pub fn build_import_search_with_artifacts(

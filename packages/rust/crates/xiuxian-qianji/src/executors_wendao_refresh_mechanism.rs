@@ -1,3 +1,5 @@
+//! Executors wendao refresh mechanism surface for `xiuxian-qianji`.
+
 use super::input::{collect_changed_paths, resolve_root_dir};
 use super::refresh::{build_index, execute_refresh, refresh_mode_label};
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
@@ -8,6 +10,7 @@ use serde_json::{Value, json};
 ///
 /// This mechanism prefers incremental refresh from context-provided
 /// changed paths and only falls back to full rebuild when required.
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct WendaoRefreshMechanism {
     /// Output context key for refresh telemetry.
     pub output_key: String,

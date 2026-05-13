@@ -1,3 +1,5 @@
+//! Facade surface for `xiuxian-qianji`.
+
 use super::contract;
 
 use std::collections::BTreeMap;

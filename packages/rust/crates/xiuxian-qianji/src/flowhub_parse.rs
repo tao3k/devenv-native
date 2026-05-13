@@ -1,3 +1,5 @@
+//! Flowhub parse surface for `xiuxian-qianji`.
+
 use crate::contracts::{FlowhubModuleManifest, FlowhubScenarioManifest};
 use crate::error::QianjiError;
 

@@ -95,17 +95,13 @@ impl DmnSourceDefinition {
     #[must_use]
     pub fn new(input: DmnSourceDefinitionInput<'_>) -> Self {
         Self {
-            source_id: (Arc::<str>::from(input.source_id.as_str())).into(),
-            definitions_id: input
-                .definitions_id
-                .as_ref()
-                .map(|value| Arc::<str>::from(value.as_str())),
+            source_id: Arc::<str>::from(input.source_id.0),
+            definitions_id: input.definitions_id.map(|value| Arc::<str>::from(value.0)),
             name: input.name.map(Arc::<str>::from),
             namespace: input.namespace.map(Arc::<str>::from),
             model_namespace_uri: input
                 .model_namespace_uri
-                .as_ref()
-                .map(|value| Arc::<str>::from(value.as_str())),
+                .map(|value| Arc::<str>::from(value.0)),
             model_version_hint: input.model_version_hint.map(Arc::<str>::from),
         }
     }

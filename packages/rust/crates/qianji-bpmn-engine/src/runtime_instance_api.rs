@@ -34,7 +34,7 @@ impl BpmnInstanceInit {
         initial_timestamp_ms: u64,
     ) -> Self {
         Self {
-            instance_id: (Arc::<str>::from(instance_id.as_ref())).into(),
+            instance_id: (Arc::<str>::from(instance_id.as_ref())),
             initial_variables,
             initial_timestamp_ms,
         }

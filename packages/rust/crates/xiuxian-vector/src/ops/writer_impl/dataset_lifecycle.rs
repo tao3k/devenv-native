@@ -2,12 +2,22 @@ use super::{
     Arc, Dataset, MergeInsertStats, Result, VectorStore, VectorStoreError, default_write_params,
     has_lance_data,
 };
+use lance::dataset::{MergeInsertBuilder, MergeStats, WhenMatched, WhenNotMatched};
+use lance::deps::arrow_array::RecordBatchIterator;
+
+type MergeInsertBatchResult =
+    Result<lance::deps::arrow_array::RecordBatch, crate::error::ArrowError>;
+type MergeInsertSource = Box<RecordBatchIterator<Vec<MergeInsertBatchResult>>>;
 
 impl VectorStore {
     /// Replace all documents in a table with the provided batch atomically
     /// from the caller perspective (drop then write fresh snapshot).
     ///
     /// Robustness: Never drop when batch is empty; avoids leaving table empty on caller error.
+    ///
+    /// Positional boundary: this public writer API preserves the existing
+    /// document component surface used by callers that already batch ids,
+    /// vectors, contents, and metadata separately.
     ///
     /// # Errors
     ///
@@ -33,6 +43,9 @@ impl VectorStore {
 
     /// Merge-insert (upsert) documents using a key column (default use-case: `id`).
     ///
+    /// Positional boundary: the method mirrors [`Self::add_documents`] and
+    /// exposes the match key explicitly for Lance merge-insert compatibility.
+    ///
     /// # Errors
     ///
     /// Returns an error when source batch preparation fails, dataset open/create fails,
@@ -46,31 +59,14 @@ impl VectorStore {
         metadatas: Vec<String>,
         match_on: &str,
     ) -> Result<MergeInsertStats, VectorStoreError> {
-        use lance::dataset::{MergeInsertBuilder, WhenMatched, WhenNotMatched};
-        use lance::deps::arrow_array::RecordBatchIterator;
-
         if ids.is_empty() {
             return Ok(MergeInsertStats::default());
         }
 
-        let (schema, batch) = self.build_document_batch(ids, vectors, contents, metadatas)?;
-        let source_batches: Vec<Result<_, crate::error::ArrowError>> = vec![Ok(batch)];
-        let source = Box::new(RecordBatchIterator::new(source_batches, schema));
-
-        let table_path = self.table_path(table_name);
-        let dataset = if table_path.exists() {
-            self.open_dataset_at_uri(table_path.to_string_lossy().as_ref())
-                .await?
-        } else {
-            self.get_or_create_dataset(table_name, false, None).await?.0
-        };
-        let mut builder =
-            MergeInsertBuilder::try_new(Arc::new(dataset), vec![match_on.to_string()])?;
-        builder
-            .when_matched(WhenMatched::UpdateAll)
-            .when_not_matched(WhenNotMatched::InsertAll);
-        let job = builder.try_build()?;
-        let (updated_dataset, stats) = job.execute_reader(source).await?;
+        let source = self.merge_insert_source(ids, vectors, contents, metadatas)?;
+        let dataset = self.merge_insert_target_dataset(table_name).await?;
+        let (updated_dataset, stats) =
+            execute_merge_insert(dataset, source, match_on.to_string()).await?;
 
         {
             let mut cache = self.datasets.write().await;
@@ -85,6 +81,31 @@ impl VectorStore {
             bytes_written: stats.bytes_written,
             files_written: stats.num_files_written,
         })
+    }
+
+    fn merge_insert_source(
+        &self,
+        ids: Vec<String>,
+        vectors: Vec<Vec<f32>>,
+        contents: Vec<String>,
+        metadatas: Vec<String>,
+    ) -> Result<MergeInsertSource, VectorStoreError> {
+        let (schema, batch) = self.build_document_batch(ids, vectors, contents, metadatas)?;
+        let source_batches: Vec<Result<_, crate::error::ArrowError>> = vec![Ok(batch)];
+        Ok(Box::new(RecordBatchIterator::new(source_batches, schema)))
+    }
+
+    async fn merge_insert_target_dataset(
+        &self,
+        table_name: &str,
+    ) -> Result<Dataset, VectorStoreError> {
+        let table_path = self.table_path(table_name);
+        if table_path.exists() {
+            self.open_dataset_at_uri(table_path.to_string_lossy().as_ref())
+                .await
+        } else {
+            Ok(self.get_or_create_dataset(table_name, false, None).await?.0)
+        }
     }
 
     /// Get or create a dataset. When `initial` is `Some((schema, batch))` and the table is
@@ -174,4 +195,17 @@ impl VectorStore {
         }
         Ok((dataset, created))
     }
+}
+
+async fn execute_merge_insert(
+    dataset: Dataset,
+    source: MergeInsertSource,
+    match_on: String,
+) -> Result<(Arc<Dataset>, MergeStats), VectorStoreError> {
+    let mut builder = MergeInsertBuilder::try_new(Arc::new(dataset), vec![match_on])?;
+    builder
+        .when_matched(WhenMatched::UpdateAll)
+        .when_not_matched(WhenNotMatched::InsertAll);
+    let job = builder.try_build()?;
+    job.execute_reader(source).await.map_err(Into::into)
 }

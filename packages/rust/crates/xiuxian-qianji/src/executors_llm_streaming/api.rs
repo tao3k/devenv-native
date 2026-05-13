@@ -1,3 +1,5 @@
+//! Api surface for `xiuxian-qianji`.
+
 use std::sync::Arc;
 
 use xiuxian_llm::llm::LlmClient;

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use super::types::{
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, RestDocsCliCommand,
 };
-use crate::qianji_cli::common::{invalid_input, parse_flag_value};
+use crate::qianji_cli::input::{invalid_input, parse_flag_value};
 
 pub(crate) fn parse_contract_feedback_command(
     args: &[String],

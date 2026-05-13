@@ -134,6 +134,35 @@ async fn graph_neighbors_resolves_project_prefixed_display_paths() {
 }
 
 #[tokio::test]
+async fn graph_neighbors_resolves_internal_paths_for_project_scoped_docs() {
+    let fixture = build_fixture(&[
+        ("docs/alpha.md", "# Alpha\n\nSee [[beta]].\n"),
+        ("docs/beta.md", "# Beta\n\nBody.\n"),
+    ]);
+
+    let response = graph_neighbors(
+        State(Arc::clone(&fixture.state)),
+        AxumPath("docs/alpha.md".to_string()),
+        Query(GraphNeighborsQuery {
+            direction: Some("both".to_string()),
+            hops: Some(1),
+            limit: Some(20),
+        }),
+    )
+    .await
+    .unwrap_or_else(|error| panic!("internal-path graph neighbors should succeed: {error:?}"))
+    .0;
+
+    assert_eq!(response.center.id, "kernel/docs/alpha.md");
+    assert!(
+        response
+            .nodes
+            .iter()
+            .any(|node| node.id == "kernel/docs/beta.md")
+    );
+}
+
+#[tokio::test]
 async fn graph_neighbors_prefers_exact_display_path_for_project_scoped_index_pages() {
     let fixture = build_fixture_with_projects(
         &[

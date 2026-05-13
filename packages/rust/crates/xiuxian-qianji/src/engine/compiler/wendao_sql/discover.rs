@@ -1,6 +1,6 @@
 use crate::contracts::NodeDefinition;
 
-use super::shared::{string_list_param, string_param, usize_param};
+use super::params::{string_list_param, string_param, usize_param};
 
 pub(in crate::engine::compiler) struct WendaoSqlDiscoverMechanismConfig {
     pub(in crate::engine::compiler) output_key: String,

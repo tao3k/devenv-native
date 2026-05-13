@@ -33,8 +33,9 @@ fn apply_signed_delta(base: usize, delta: i64) -> Option<usize> {
 /// 1. Concurrent agents to adjust their viewports
 /// 2. The system to trigger AST re-parsing
 /// 3. Conflict detection when multiple agents edit overlapping regions
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+///
 /// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StructuralTransaction {
     /// Document that was modified.
     pub doc_id: String,

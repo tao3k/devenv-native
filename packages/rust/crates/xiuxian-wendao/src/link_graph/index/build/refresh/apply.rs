@@ -173,15 +173,15 @@ impl LinkGraphIndex {
     }
 
     fn insert_parsed_docs(&mut self, parsed_updates: &[ParsedNote]) {
-        parsed_updates
-            .iter()
-            .for_each(|parsed| self.insert_doc_no_edges(parsed));
+        for parsed in parsed_updates {
+            self.insert_doc_no_edges(parsed);
+        }
     }
 
     fn add_parsed_doc_edges(&mut self, parsed_updates: &[ParsedNote]) {
-        parsed_updates
-            .iter()
-            .for_each(|parsed| self.add_outgoing_links_for_doc(parsed));
+        for parsed in parsed_updates {
+            self.add_outgoing_links_for_doc(parsed);
+        }
     }
 
     fn finalize_delta_refresh_graph(&mut self) {

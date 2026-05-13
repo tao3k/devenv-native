@@ -10,7 +10,7 @@ use crate::search::{
 #[test]
 fn synthesize_repo_status_marks_indexing_corpus_as_prewarming_when_staging_was_prewarmed() {
     let runtime_status = RepoIndexEntryStatus {
-        repo_id: "alpha/repo".to_string().into(),
+        repo_id: "alpha/repo".to_string(),
         phase: RepoIndexPhase::Indexing,
         queue_position: None,
         last_error: None,
@@ -55,7 +55,7 @@ fn synthesize_repo_status_marks_indexing_corpus_as_prewarming_when_staging_was_p
 #[test]
 fn synthesize_repo_status_marks_indexing_corpus_as_prewarming_when_prewarm_is_running() {
     let runtime_status = RepoIndexEntryStatus {
-        repo_id: "alpha/repo".to_string().into(),
+        repo_id: "alpha/repo".to_string(),
         phase: RepoIndexPhase::Indexing,
         queue_position: None,
         last_error: None,
@@ -128,7 +128,7 @@ fn ready_published_repo_record(
     published_at: &str,
 ) -> SearchRepoCorpusRecord {
     let runtime_status = RepoIndexEntryStatus {
-        repo_id: repo_id.to_string().into(),
+        repo_id: repo_id.to_string(),
         phase: RepoIndexPhase::Ready,
         queue_position: None,
         last_error: None,

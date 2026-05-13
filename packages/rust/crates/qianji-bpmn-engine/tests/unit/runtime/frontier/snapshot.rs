@@ -90,7 +90,7 @@ fn boundary_owner_frontier_fixture(
     instance.node_states[1].status = NodeRuntimeStatus::Completed;
     instance.node_states[2].status = owner_status;
     instance.waits.push(WaitRegistration {
-        process_id: (Some("boundary_owner_frontier_classification".into())).into(),
+        process_id: (Some("boundary_owner_frontier_classification".into())),
         node_index: 3,
         blocking_node_index: Some(2),
         kind: WaitKind::Timer,

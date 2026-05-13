@@ -41,7 +41,6 @@ pub fn build_example_search(
     )
 }
 /// `build_example_search_with_artifacts` public function boundary for Wendao.
-
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 pub fn build_example_search_with_artifacts(

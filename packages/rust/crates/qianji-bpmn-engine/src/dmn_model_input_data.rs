@@ -27,7 +27,7 @@ impl DmnInputDataDefinition {
         name: Option<impl AsRef<str>>,
     ) -> Self {
         Self {
-            source_id: (Arc::<str>::from(source_id.as_ref())).into(),
+            source_id: (Arc::<str>::from(source_id.as_ref())),
             input_data_id: input_data_id.map(|value| Arc::<str>::from(value.as_ref())),
             name: name.map(|value| Arc::<str>::from(value.as_ref())),
             variable_name: None,

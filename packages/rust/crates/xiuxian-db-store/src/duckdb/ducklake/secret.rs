@@ -42,11 +42,11 @@ macro_rules! duckdb_secret_string_type {
 }
 
 duckdb_secret_string_type!(
-    /// Access key id for a DuckDB S3-compatible secret.
+    /// Access key id for a `DuckDB` `S3`-compatible secret.
     DuckDbS3AccessKeyId
 );
 duckdb_secret_string_type!(
-    /// Temporary session token for a DuckDB S3-compatible secret.
+    /// Temporary session token for a `DuckDB` `S3`-compatible secret.
     DuckDbS3SessionToken
 );
 

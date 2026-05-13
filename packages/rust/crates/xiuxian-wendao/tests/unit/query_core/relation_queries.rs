@@ -84,7 +84,7 @@ async fn query_repo_code_relation_falls_back_to_repo_content_when_entity_lane_is
         .publish_repo_content_chunks_with_revision(
             "alpha/repo",
             &[RepoCodeDocument {
-                path: "src/BaseModelica.jl".to_string().into(),
+                path: "src/BaseModelica.jl".to_string(),
                 language: Some("julia".to_string()),
                 contents: Arc::<str>::from(
                     "module BaseModelica\nusing Reexport\n@reexport using ModelingToolkit\nend\n",

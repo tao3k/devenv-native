@@ -1,4 +1,10 @@
+//! Public execution-driver contracts for host-owned BPMN runs.
+
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
+use crate::bpmn::identity::{
+    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnStartAtNodeId,
+    QianjiBpmnWorkflowInstanceId,
+};
 use crate::bpmn::session::QianjiBpmnSession;
 use qianji_bpmn_engine::{BpmnAdvanceOutcome, BpmnPackage, PendingHostWorkResult};
 use serde_json::Value;
@@ -15,13 +21,13 @@ pub struct QianjiBpmnExecutionDriver {
 #[derive(Debug, Clone, PartialEq)]
 pub struct QianjiBpmnExecutionRequest {
     /// BPMN process identifier to create when no checkpoint exists.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// Workflow instance identifier used for checkpoint lookup and fresh runs.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Optional initial variables for a fresh run.
     pub initial_variables: Option<Value>,
     /// Optional BPMN node id for a fresh synthetic start-at run.
-    pub start_at_node_id: Option<String>,
+    pub start_at_node_id: Option<QianjiBpmnStartAtNodeId>,
     /// Millisecond timestamp used for fresh instance creation.
     pub started_at_ms: u64,
 }
@@ -32,9 +38,9 @@ pub struct QianjiBpmnPendingHostCompletion {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier expected for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN activity identifier expected for the pending host work.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Host-work result payload to apply.
     pub result: PendingHostWorkResult,
 }
@@ -42,10 +48,11 @@ pub struct QianjiBpmnPendingHostCompletion {
 impl QianjiBpmnPendingHostCompletion {
     /// Creates one explicit pending host-work completion target.
     #[must_use]
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub fn new(
         token_id: u64,
-        process_id: impl Into<String>,
-        activity_id: impl Into<String>,
+        process_id: impl Into<QianjiBpmnProcessId>,
+        activity_id: impl Into<QianjiBpmnActivityId>,
         result: PendingHostWorkResult,
     ) -> Self {
         Self {
@@ -104,8 +111,8 @@ impl QianjiBpmnExecutionRequest {
     /// Creates one execution request for a BPMN run attempt.
     #[must_use]
     pub fn new(
-        process_id: impl Into<String>,
-        instance_id: impl Into<String>,
+        process_id: impl Into<QianjiBpmnProcessId>,
+        instance_id: impl Into<QianjiBpmnWorkflowInstanceId>,
         initial_variables: Option<Value>,
         started_at_ms: u64,
     ) -> Self {
@@ -120,7 +127,10 @@ impl QianjiBpmnExecutionRequest {
 
     /// Records a target BPMN node for a fresh synthetic start-at run.
     #[must_use]
-    pub fn with_start_at_node_id(mut self, start_at_node_id: Option<String>) -> Self {
+    pub fn with_start_at_node_id(
+        mut self,
+        start_at_node_id: Option<QianjiBpmnStartAtNodeId>,
+    ) -> Self {
         self.start_at_node_id = start_at_node_id;
         self
     }

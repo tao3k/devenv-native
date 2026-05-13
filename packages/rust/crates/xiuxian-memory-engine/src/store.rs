@@ -37,7 +37,7 @@ pub struct MemoryStateSnapshot {
 }
 
 /// Scoped two-phase recall request using a text intent.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ScopedTwoPhaseRecallRequest<'a> {
     /// Logical scope for candidate filtering.
     pub scope: &'a str,
@@ -52,7 +52,7 @@ pub struct ScopedTwoPhaseRecallRequest<'a> {
 }
 
 /// Scoped two-phase recall request using a precomputed embedding.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ScopedTwoPhaseEmbeddingRecallRequest<'a> {
     /// Logical scope for candidate filtering.
     pub scope: &'a str,

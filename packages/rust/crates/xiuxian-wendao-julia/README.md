@@ -79,6 +79,18 @@ needs a feature-gated second plugin bundle for these languages.
   graph-neighbor expansion uses a separate `resolvedGraphNodeId` based on the
   Studio display path. This prevents page-index section ids from being sent as
   link-graph node ids.
+- SearchStrategyFlow service-boundary work now aligns with the WendaoSearch
+  gRPC server stack. `WendaoGraph.jl` keeps `ArrowTypes.jl` as its explicit
+  table-contract dependency and uses the source-pinned `WendaoArrow.jl` plus
+  `gRPCServer.jl` transport line for the algorithm service. Its startup
+  contract now exposes the same health/reflection/max-message-size and Flight
+  admission kwargs shape as WendaoSearch while keeping raw `Arrow.jl` out of
+  the root `WendaoGraph.jl` dependency contract. The package-local runner is
+  `scripts/run_search_strategy_flow_service.jl` inside `WendaoGraph.jl`, and it
+  accepts host, port, flow id, and Flight admission parameters only. This crate
+  remains the Rust bridge client and validation surface for Studio-backed Flight
+  materialization; it does not own Gateway route registration or load
+  `wendao.toml` in the live client boundary.
 - SearchStrategyFlow Flight materialization now also treats a selected
   `sourcePath` as the fallback structure contract. Repo search can strengthen a
   route with doc-id evidence, but a later zero-row repo-search lookup no longer
@@ -131,6 +143,25 @@ needs a feature-gated second plugin bundle for these languages.
   while preserving selected frontier, route, and projected-row counts. That
   evidence supports promoting a long-lived Rust-controlled Julia pod path
   before adding lower-level transport changes.
+- The `wendaograph_search_strategy_flow` binary now exposes the same release
+  gate through `--persistent-warm-samples <count>` for real Flight-backed
+  profiling. Default trace output is unchanged; the flag switches the binary to
+  a stabilization report that records prewarm latency, warm min/median/p95/max,
+  stability reason, and recommended admission budget. The latest root-backed
+  Flight proof bootstrapped `7061` repo-content documents, measured direct
+  Rust bridge repeats at `15.01s` and `13.11s`, and measured the persistent
+  host path as `20.78s` total with `19363.439 ms` prewarm plus `54.343 ms` and
+  `145.905 ms` warm submits. The result keeps required evidence covered and
+  confirms that a long-lived graph host is the high-leverage optimization
+  boundary.
+- The same binary now also exposes `--serve-stdio` as a JSONL local-session
+  adapter for a long-lived Rust bridge process. Each input line is a JSON
+  object with `requestId` and `intent`; each output line records `ok`,
+  `elapsedMs`, and either the regular trace JSON or an error. This keeps the
+  production route authority unchanged while giving Gateway and `pi-wendao`
+  integration work a concrete non-spawning session contract. The first
+  root-backed two-request proof measured the warmup request at `20557.705 ms`
+  and the second request at `83.391 ms`, with required evidence still covered.
 - Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
   reports can show both the narrowed Julia input count and the runtime
   promotion denominator. This prevents a fast Markdown replay subset from being

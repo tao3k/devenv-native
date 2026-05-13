@@ -1,4 +1,9 @@
-//! Registry-authority candidate batches from the root `wendao.toml` surface.
+//! Offline registry-authority candidate batches from the root `wendao.toml`
+//! surface.
+//!
+//! The live `SearchStrategyFlow` path consumes Gateway/Flight facts. This module
+//! is reserved for audit, replay, and benchmark surfaces that need to inspect
+//! configured project authority without starting Gateway.
 
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
@@ -18,8 +23,8 @@ use super::structured_index::REGISTRY_METADATA_CANDIDATE_SOURCE;
 #[cfg(test)]
 use super::types::{SearchStrategyFlowCandidateInput, SearchStrategyFlowCandidateInputBatch};
 
-const ROOT_WENDAO_CONFIG_PATH: &str = "wendao.toml";
-const ROOT_WENDAO_CONFIG_SURFACE: &str = "root-wendao.toml";
+const OFFLINE_AUDIT_ROOT_WENDAO_CONFIG_PATH: &str = "wendao.toml";
+const OFFLINE_AUDIT_ROOT_WENDAO_CONFIG_SURFACE: &str = "root-wendao.toml";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SearchStrategyFlowRegistryAuthorityAudit {
@@ -51,7 +56,7 @@ pub(crate) fn audit_search_strategy_flow_registry_authority(
     let mut projects = BTreeMap::new();
     collect_registry_authority_surface(
         project_root,
-        Path::new(ROOT_WENDAO_CONFIG_PATH),
+        Path::new(OFFLINE_AUDIT_ROOT_WENDAO_CONFIG_PATH),
         &mut visited_config_paths,
         &mut projects,
     )?;
@@ -61,7 +66,7 @@ pub(crate) fn audit_search_strategy_flow_registry_authority(
     let remote_project_count = rows.iter().filter(|project| project.url.is_some()).count();
 
     Ok(SearchStrategyFlowRegistryAuthorityAudit {
-        config_surface: ROOT_WENDAO_CONFIG_SURFACE.to_owned(),
+        config_surface: OFFLINE_AUDIT_ROOT_WENDAO_CONFIG_SURFACE.to_owned(),
         configured_project_count: rows.len(),
         local_project_count,
         remote_project_count,
@@ -97,7 +102,7 @@ pub(crate) fn search_strategy_flow_registry_authority_candidate_input_batch(
         search_strategy_flow_candidate_input_batch_with_discovery_receipt(
             REGISTRY_METADATA_CANDIDATE_SOURCE,
             &candidates,
-            receipt,
+            &receipt,
         ),
     )
 }

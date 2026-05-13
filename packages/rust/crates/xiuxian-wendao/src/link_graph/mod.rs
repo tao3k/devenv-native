@@ -1,6 +1,5 @@
 //! Markdown link graph index + retrieval algorithms.
 /// Public Wendao boundary.
-
 #[path = "addressing/mod.rs"]
 pub mod addressing;
 /// Public Wendao boundary.

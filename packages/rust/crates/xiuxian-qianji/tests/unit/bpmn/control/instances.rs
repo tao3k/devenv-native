@@ -25,8 +25,8 @@ async fn workflow_control_service_lists_duckdb_checkpoint_instances() {
                     &QianjiBpmnWorkflowStartRequest {
                         bpmn_path: bpmn_path.clone(),
                         dmn_paths: Vec::new(),
-                        process_id: "wait_flow".to_string(),
-                        instance_id: instance_id.to_string(),
+                        process_id: "wait_flow".to_string().into(),
+                        instance_id: instance_id.to_string().into(),
                         initial_variables: Some(json!({ "instance": instance_id })),
                         start_at_node_id: None,
                         checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),

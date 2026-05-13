@@ -1,5 +1,9 @@
 use super::snapshot_fixture;
-use qianji_bpmn_engine::{BpmnBoundsSnapshot, BpmnWaypointSnapshot};
+use qianji_bpmn_engine::bpmn_model_api::BpmnSnapshotFlag;
+use qianji_bpmn_engine::{
+    BpmnBoundsSnapshot, BpmnDiagramSnapshot, BpmnEdgeSnapshot, BpmnFontSnapshot, BpmnPlaneSnapshot,
+    BpmnShapeSnapshot, BpmnWaypointSnapshot,
+};
 
 #[test]
 fn bpmn_snapshot_preserves_diagram_metadata() {
@@ -8,6 +12,19 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
     assert_eq!(snapshot.root.diagram_count, 1);
     assert_eq!(snapshot.root.diagrams.len(), 1);
     let diagram = &snapshot.root.diagrams[0];
+    assert_diagram_metadata(diagram);
+    assert_diagram_label_style(diagram);
+
+    let Some(plane) = diagram.plane.as_ref() else {
+        panic!("diagram should carry a plane");
+    };
+    assert_plane_metadata(plane);
+    assert_start_shape(&plane.shapes[0]);
+    assert_end_shape(&plane.shapes[1]);
+    assert_sequence_edge(&plane.edges[0]);
+}
+
+fn assert_diagram_metadata(diagram: &BpmnDiagramSnapshot) {
     assert_eq!(diagram.diagram_id.as_deref(), Some("Diagram_Main"));
     assert_eq!(diagram.name.as_deref(), Some("Main diagram"));
     assert_eq!(
@@ -15,33 +32,46 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
         Some("Passive interchange layout")
     );
     assert_eq!(diagram.resolution.as_deref(), Some("96"));
+}
+
+fn assert_diagram_label_style(diagram: &BpmnDiagramSnapshot) {
     assert_eq!(diagram.label_styles.len(), 1);
     let style = &diagram.label_styles[0];
     assert_eq!(style.style_id.as_deref(), Some("Style_Default"));
     let Some(font) = style.font.as_ref() else {
         panic!("label style should carry font");
     };
+    assert_font_metadata(font);
+}
+
+fn assert_font_metadata(font: &BpmnFontSnapshot) {
     assert_eq!(font.name.as_deref(), Some("Inter"));
     assert_eq!(font.size.as_deref(), Some("12"));
-    assert_eq!(font.is_bold.map(|flag| flag.get()), Some(true));
-    assert_eq!(font.is_italic.map(|flag| flag.get()), Some(false));
-    assert_eq!(font.is_underline.map(|flag| flag.get()), Some(false));
-    assert_eq!(font.is_strike_through.map(|flag| flag.get()), Some(false));
+    assert_eq!(font.is_bold.map(BpmnSnapshotFlag::get), Some(true));
+    assert_eq!(font.is_italic.map(BpmnSnapshotFlag::get), Some(false));
+    assert_eq!(font.is_underline.map(BpmnSnapshotFlag::get), Some(false));
+    assert_eq!(
+        font.is_strike_through.map(BpmnSnapshotFlag::get),
+        Some(false)
+    );
+}
 
-    let Some(plane) = diagram.plane.as_ref() else {
-        panic!("diagram should carry a plane");
-    };
+fn assert_plane_metadata(plane: &BpmnPlaneSnapshot) {
     assert_eq!(plane.plane_id.as_deref(), Some("Plane_Main"));
     assert_eq!(plane.bpmn_element.as_deref(), Some("diagram_process"));
     assert_eq!(plane.shapes.len(), 2);
     assert_eq!(plane.edges.len(), 1);
+}
 
-    let shape = &plane.shapes[0];
+fn assert_start_shape(shape: &BpmnShapeSnapshot) {
     assert_eq!(shape.shape_id.as_deref(), Some("Shape_Start"));
     assert_eq!(shape.bpmn_element.as_deref(), Some("start"));
-    assert_eq!(shape.is_horizontal.map(|flag| flag.get()), Some(true));
-    assert_eq!(shape.is_expanded.map(|flag| flag.get()), Some(false));
-    assert_eq!(shape.is_marker_visible.map(|flag| flag.get()), Some(true));
+    assert_eq!(shape.is_horizontal.map(BpmnSnapshotFlag::get), Some(true));
+    assert_eq!(shape.is_expanded.map(BpmnSnapshotFlag::get), Some(false));
+    assert_eq!(
+        shape.is_marker_visible.map(BpmnSnapshotFlag::get),
+        Some(true)
+    );
     assert_eq!(shape.is_message_visible, None);
     assert_bounds(
         shape.bounds.as_ref(),
@@ -62,8 +92,9 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
         Some("52"),
         Some("18"),
     );
+}
 
-    let shape = &plane.shapes[1];
+fn assert_end_shape(shape: &BpmnShapeSnapshot) {
     assert_eq!(shape.shape_id.as_deref(), Some("Shape_End"));
     assert_eq!(shape.bpmn_element.as_deref(), Some("end"));
     assert_bounds(
@@ -73,8 +104,9 @@ fn bpmn_snapshot_preserves_diagram_metadata() {
         Some("36"),
         Some("36"),
     );
+}
 
-    let edge = &plane.edges[0];
+fn assert_sequence_edge(edge: &BpmnEdgeSnapshot) {
     assert_eq!(edge.edge_id.as_deref(), Some("Edge_Start_End"));
     assert_eq!(edge.bpmn_element.as_deref(), Some("flow_start_end"));
     assert_eq!(edge.source_element.as_deref(), Some("Shape_Start"));

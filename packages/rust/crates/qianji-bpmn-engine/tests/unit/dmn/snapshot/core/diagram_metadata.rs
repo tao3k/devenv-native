@@ -58,7 +58,9 @@ fn dmn_snapshot_classifies_decision_service_documents() {
     );
     assert_eq!(diagram.shapes[0].is_listed_input_data, None);
     assert_eq!(
-        diagram.shapes[0].is_collapsed.map(|flag| flag.get()),
+        diagram.shapes[0]
+            .is_collapsed
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
         Some(false)
     );
     assert_label_bounds(
@@ -184,7 +186,7 @@ fn dmn_snapshot_preserves_versioned_listed_input_data_shape_metadata() {
     assert_eq!(
         diagram.shapes[1]
             .is_listed_input_data
-            .map(|flag| flag.get()),
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
         Some(true)
     );
     assert_shape_bounds(
@@ -206,7 +208,7 @@ fn dmn_snapshot_preserves_versioned_listed_input_data_shape_metadata() {
     assert_eq!(
         diagram.shapes[2]
             .is_listed_input_data
-            .map(|flag| flag.get()),
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
         Some(true)
     );
     assert_shape_bounds(
@@ -271,7 +273,7 @@ fn dmn_snapshot_preserves_versioned_direct_label_placeholders() {
     assert_eq!(
         diagram.shapes[1]
             .is_listed_input_data
-            .map(|flag| flag.get()),
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
         Some(true)
     );
     assert_shape_bounds(
@@ -299,7 +301,7 @@ fn dmn_snapshot_preserves_versioned_direct_label_placeholders() {
     assert_eq!(
         diagram.shapes[2]
             .is_listed_input_data
-            .map(|flag| flag.get()),
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
         Some(true)
     );
     assert_shape_bounds(

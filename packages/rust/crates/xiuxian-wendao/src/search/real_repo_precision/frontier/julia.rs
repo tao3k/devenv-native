@@ -23,9 +23,9 @@ pub(super) fn attach_julia_schedule_projection(
     nodes: &mut [RealRepoKnowledgeScenarioBackendFrontierNodeReceipt],
 ) {
     let context = JuliaFrontierScheduleContext::from_nodes(nodes);
-    nodes
-        .iter_mut()
-        .for_each(|node| attach_julia_schedule_projection_to_node(node, &context));
+    for node in nodes {
+        attach_julia_schedule_projection_to_node(node, &context);
+    }
 }
 
 #[cfg(not(feature = "julia"))]

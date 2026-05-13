@@ -24,7 +24,7 @@ fn repo_document(
     modified_unix_ms: u64,
 ) -> RepoCodeDocument {
     RepoCodeDocument {
-        path: path.to_string().into(),
+        path: path.to_string(),
         language: Some("rust".to_string()),
         contents: Arc::<str>::from(contents),
         size_bytes,

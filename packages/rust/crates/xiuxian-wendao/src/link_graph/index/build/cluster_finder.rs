@@ -167,7 +167,7 @@ fn expand_valid_clusters(
             continue;
         }
 
-        let cluster = expand_cluster(seed, &high_set, &visited, outgoing, incoming, saliency_map);
+        let cluster = expand_cluster(seed, high_set, &visited, outgoing, incoming, saliency_map);
 
         if cluster.members.len() >= MIN_CLUSTER_SIZE {
             // Mark all members as visited

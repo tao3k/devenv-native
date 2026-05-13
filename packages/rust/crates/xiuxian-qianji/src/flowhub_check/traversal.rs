@@ -11,16 +11,55 @@ use crate::flowhub::discover::{
 use crate::flowhub::load::load_flowhub_root_manifest;
 use crate::{ResolvedFlowhubModule, resolve_flowhub_module_children};
 
-use super::api::{FlowhubCheckReport, FlowhubDiagnostic};
 use super::contract::{
     validate_registered_contract, validate_root_contract, validate_unregistered_child_directories,
 };
 use super::filesystem::{count_glob_matches, last_module_segment};
 use super::mermaid::validate_mermaid_case_files;
+use super::model::{FlowhubCheckReport, FlowhubDiagnostic};
 
 pub(super) fn check_flowhub_root(root: &Path) -> Result<FlowhubCheckReport, QianjiError> {
     let mut diagnostics = Vec::new();
-    let root_manifest = match load_flowhub_root_manifest(root.join("qianji.toml")) {
+    let Some(root_manifest) = load_root_manifest_or_diagnostic(root, &mut diagnostics) else {
+        return Ok(FlowhubCheckReport {
+            target: root.to_path_buf(),
+            checked_modules: 0,
+            diagnostics,
+        });
+    };
+
+    validate_root_contract(root, &root_manifest.contract, &mut diagnostics)?;
+    let known_module_names = discover_all_flowhub_module_refs(root)?;
+    let candidates = registered_root_candidates(root, &root_manifest.contract.register);
+    if candidates.is_empty() {
+        diagnostics.push(no_registered_modules_diagnostic(root));
+        return Ok(FlowhubCheckReport {
+            target: root.to_path_buf(),
+            checked_modules: 0,
+            diagnostics,
+        });
+    }
+
+    let mut visited = BTreeSet::new();
+    let checked_modules = validate_registered_candidates(
+        &candidates,
+        &known_module_names,
+        &mut diagnostics,
+        &mut visited,
+    )?;
+
+    Ok(FlowhubCheckReport {
+        target: root.to_path_buf(),
+        checked_modules,
+        diagnostics,
+    })
+}
+
+fn load_root_manifest_or_diagnostic(
+    root: &Path,
+    diagnostics: &mut Vec<FlowhubDiagnostic>,
+) -> Option<crate::contracts::FlowhubRootManifest> {
+    match load_flowhub_root_manifest(root.join("qianji.toml")) {
         Ok(manifest) => Some(manifest),
         Err(error) => {
             diagnostics.push(FlowhubDiagnostic {
@@ -34,62 +73,41 @@ pub(super) fn check_flowhub_root(root: &Path) -> Result<FlowhubCheckReport, Qian
             });
             None
         }
-    };
+    }
+}
 
-    let Some(root_manifest) = root_manifest else {
-        return Ok(FlowhubCheckReport {
-            target: root.to_path_buf(),
-            checked_modules: 0,
-            diagnostics,
-        });
-    };
-
-    validate_root_contract(root, &root_manifest.contract, &mut diagnostics)?;
-    let known_module_names = discover_all_flowhub_module_refs(root)?;
-
-    let candidates = root_manifest
-        .contract
-        .register
+fn registered_root_candidates(root: &Path, module_refs: &[String]) -> Vec<FlowhubModuleCandidate> {
+    module_refs
         .iter()
         .map(|module_ref| module_candidate_from_ref(root, module_ref))
-        .collect::<Vec<_>>();
-    if candidates.is_empty() {
-        diagnostics.push(FlowhubDiagnostic {
-            title: "No Flowhub modules".to_string(),
-            location: root.to_path_buf(),
-            problem: "the Flowhub root contract does not register any top-level graph modules"
-                .to_string(),
-            why_it_blocks: "Qianji cannot expose or validate any reusable Flowhub graph nodes"
-                .to_string(),
-            fix: "add at least one `contract.register` entry in the Flowhub root manifest"
-                .to_string(),
-        });
-        return Ok(FlowhubCheckReport {
-            target: root.to_path_buf(),
-            checked_modules: 0,
-            diagnostics,
-        });
-    }
+        .collect()
+}
 
-    let mut checked_modules = 0;
-    let mut visited = BTreeSet::new();
-    for candidate in &candidates {
-        if !candidate.manifest_path.is_file() {
-            continue;
-        }
-        checked_modules += validate_candidate(
-            candidate,
-            &known_module_names,
-            &mut diagnostics,
-            &mut visited,
-        )?;
+fn no_registered_modules_diagnostic(root: &Path) -> FlowhubDiagnostic {
+    FlowhubDiagnostic {
+        title: "No Flowhub modules".to_string(),
+        location: root.to_path_buf(),
+        problem: "the Flowhub root contract does not register any top-level graph modules"
+            .to_string(),
+        why_it_blocks: "Qianji cannot expose or validate any reusable Flowhub graph nodes"
+            .to_string(),
+        fix: "add at least one `contract.register` entry in the Flowhub root manifest".to_string(),
     }
+}
 
-    Ok(FlowhubCheckReport {
-        target: root.to_path_buf(),
-        checked_modules,
-        diagnostics,
-    })
+fn validate_registered_candidates(
+    candidates: &[FlowhubModuleCandidate],
+    known_module_names: &[String],
+    diagnostics: &mut Vec<FlowhubDiagnostic>,
+    visited: &mut BTreeSet<String>,
+) -> Result<usize, QianjiError> {
+    candidates
+        .iter()
+        .filter(|candidate| candidate.manifest_path.is_file())
+        .try_fold(0_usize, |checked_modules, candidate| {
+            Ok(checked_modules
+                + validate_candidate(candidate, known_module_names, diagnostics, visited)?)
+        })
 }
 
 pub(super) fn check_flowhub_module(module_dir: &Path) -> Result<FlowhubCheckReport, QianjiError> {

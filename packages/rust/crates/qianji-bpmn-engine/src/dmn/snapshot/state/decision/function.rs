@@ -15,7 +15,7 @@ impl From<TempFunctionDefinitionSnapshot> for DmnFunctionDefinitionSnapshot {
     fn from(value: TempFunctionDefinitionSnapshot) -> Self {
         Self {
             function_definition_id: value.function_definition_id,
-            kind: (value.kind.map(Into::into)).into(),
+            kind: (value.kind.map(Into::into)),
             parameters: value.parameters.into_iter().map(Into::into).collect(),
             body: value.body.map(Into::into),
         }
@@ -30,7 +30,7 @@ impl TempFunctionDefinitionSnapshot {
     ) -> Result<Self> {
         Ok(Self {
             function_definition_id: attribute_value(source, reader, event, "id")?,
-            kind: attribute_value(source, reader, event, "kind")?.map(Into::into),
+            kind: attribute_value(source, reader, event, "kind")?,
             parameters: Vec::new(),
             body: None,
         })

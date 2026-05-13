@@ -3,12 +3,12 @@ use crate::qianji_cli::bpmn_cli::types::{BpmnCliCommand, BpmnCliOutput};
 use super::{cancel, execution, instances, interrupt, session, status, tasks};
 
 #[cfg(test)]
+pub(crate) use super::control_service::resolve_bpmn_checkpoint_store_with_env;
+#[cfg(test)]
 pub(crate) use super::execution::{
     run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
     run_bpmn_task_complete_command_with_runtime_env,
 };
-#[cfg(test)]
-pub(crate) use super::shared::resolve_bpmn_checkpoint_store_with_env;
 #[cfg(test)]
 pub(crate) use super::status::run_bpmn_status_command_with_runtime_env;
 #[cfg(test)]

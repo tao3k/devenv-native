@@ -8,7 +8,7 @@ fn repo_search_batch_from_hits_rejects_navigation_lines_outside_i32_range() {
     let hits = vec![SearchHit {
         stem: "lib.rs".to_string(),
         title: None,
-        path: "src/lib.rs".to_string().into(),
+        path: "src/lib.rs".to_string(),
         doc_type: None,
         tags: Vec::new(),
         score: 1.0,
@@ -22,7 +22,7 @@ fn repo_search_batch_from_hits_rejects_navigation_lines_outside_i32_range() {
         implicit_backlinks: None,
         implicit_backlink_items: None,
         navigation_target: Some(StudioNavigationTarget {
-            path: "src/lib.rs".to_string().into(),
+            path: "src/lib.rs".to_string(),
             category: "symbol".to_string(),
             project_name: None,
             root_label: None,

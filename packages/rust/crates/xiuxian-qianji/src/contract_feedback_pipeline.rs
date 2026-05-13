@@ -382,6 +382,7 @@ pub async fn persist_contract_feedback_run(
 ///
 /// Returns an error when contract execution fails or when the sink fails to persist the generated
 /// knowledge entries.
+/// Positional boundary: this compatibility API keeps the established public call shape.
 pub async fn run_and_persist_contract_feedback_flow(
     suite: &ContractSuite,
     ctx: &CollectionContext,
@@ -453,6 +454,7 @@ impl QianjiLiveContractFeedbackRuntime {
 /// Returns an error when advisory planning fails, when the LLM-backed advisory executor fails, or
 /// when the underlying contract suite run fails.
 #[cfg(feature = "llm")]
+/// Positional boundary: this compatibility API keeps the established public call shape.
 pub async fn run_contract_feedback_flow_with_live_advisory(
     suite: &ContractSuite,
     ctx: &CollectionContext,
@@ -480,6 +482,7 @@ pub async fn run_contract_feedback_flow_with_live_advisory(
 /// Returns an error when live advisory execution fails or when the sink fails to persist the
 /// generated knowledge entries.
 #[cfg(feature = "llm")]
+/// Positional boundary: this compatibility API keeps the established public call shape.
 pub async fn run_and_persist_contract_feedback_flow_with_live_advisory(
     suite: &ContractSuite,
     ctx: &CollectionContext,

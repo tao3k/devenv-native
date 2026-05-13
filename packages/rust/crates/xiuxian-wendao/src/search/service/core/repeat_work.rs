@@ -17,7 +17,6 @@ const MAX_TELEMETRY_PATH_SAMPLES: usize = 10;
 const MAX_TELEMETRY_HOT_PATHS: usize = 20;
 const MAX_TELEMETRY_FINDINGS: usize = 20;
 /// `SearchBuildRepeatWorkSummaryTelemetry` public type boundary for Wendao.
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkSummaryTelemetry {
@@ -35,7 +34,6 @@ pub struct SearchBuildRepeatWorkSummaryTelemetry {
     pub findings: usize,
 }
 /// `SearchBuildRepeatWorkPathTelemetry` public type boundary for Wendao.
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkPathTelemetry {
@@ -43,7 +41,6 @@ pub struct SearchBuildRepeatWorkPathTelemetry {
     pub observations: u64,
 }
 /// `SearchBuildRepeatWorkSourceTelemetry` public type boundary for Wendao.
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkSourceTelemetry {
@@ -57,7 +54,6 @@ pub struct SearchBuildRepeatWorkSourceTelemetry {
     pub top_repeated_paths: Vec<SearchBuildRepeatWorkPathTelemetry>,
 }
 /// `SearchBuildRepeatWorkHotPathTelemetry` public type boundary for Wendao.
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkHotPathTelemetry {
@@ -70,7 +66,6 @@ pub struct SearchBuildRepeatWorkHotPathTelemetry {
     pub operations: Vec<String>,
 }
 /// `SearchBuildRepeatWorkFindingTelemetry` public type boundary for Wendao.
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 /// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.

@@ -147,12 +147,12 @@ pub(super) fn copy_dir_recursive(source: &Path, target: &Path) -> std::io::Resul
     std::fs::create_dir_all(target)?;
     for entry in std::fs::read_dir(source)? {
         let entry = entry?;
-        copy_dir_entry(source.as_ref(), target, entry)?;
+        copy_dir_entry(target, &entry)?;
     }
     Ok(())
 }
 
-fn copy_dir_entry(_source: &Path, target: &Path, entry: std::fs::DirEntry) -> std::io::Result<()> {
+fn copy_dir_entry(target: &Path, entry: &std::fs::DirEntry) -> std::io::Result<()> {
     let source_path = entry.path();
     let target_path = target.join(entry.file_name());
     let file_type = entry.file_type()?;

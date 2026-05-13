@@ -13,8 +13,8 @@ fn workflow_control_service_prepares_package_and_resolved_paths() {
     let request = QianjiBpmnWorkflowStartRequest {
         bpmn_path: bpmn_path.clone(),
         dmn_paths: Vec::new(),
-        process_id: "wait_flow".to_string(),
-        instance_id: "wf_prepare".to_string(),
+        process_id: "wait_flow".to_string().into(),
+        instance_id: "wf_prepare".to_string().into(),
         initial_variables: Some(json!({})),
         start_at_node_id: None,
         checkpoint_backend: None,
@@ -47,8 +47,8 @@ async fn workflow_control_service_runs_prepared_linear_bundle() {
     let request = QianjiBpmnWorkflowStartRequest {
         bpmn_path,
         dmn_paths: Vec::new(),
-        process_id: "linear".to_string(),
-        instance_id: "wf_control_linear".to_string(),
+        process_id: "linear".to_string().into(),
+        instance_id: "wf_control_linear".to_string().into(),
         initial_variables: Some(json!({ "risk": "low" })),
         start_at_node_id: None,
         checkpoint_backend: None,
@@ -122,8 +122,8 @@ async fn workflow_control_service_runtime_valkey_scheduler_identity_deletes_term
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    process_id: "linear".to_string(),
-                    instance_id: "wf_control_runtime_valkey".to_string(),
+                    process_id: "linear".to_string().into(),
+                    instance_id: "wf_control_runtime_valkey".to_string().into(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),

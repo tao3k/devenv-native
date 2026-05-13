@@ -59,13 +59,13 @@ pub fn wendao_semantic_edit(
     ctx: &ZhenfaContext,
     args: WendaoSemanticEditArgs,
 ) -> Result<String, ZhenfaError> {
-    semantic_edit_impl(ctx, args)
+    semantic_edit_impl(ctx, &args)
 }
 
 #[allow(clippy::too_many_lines)]
 fn semantic_edit_impl(
     ctx: &ZhenfaContext,
-    args: WendaoSemanticEditArgs,
+    args: &WendaoSemanticEditArgs,
 ) -> Result<String, ZhenfaError> {
     let address = Address::parse(&args.address).ok_or_else(|| {
         ZhenfaError::invalid_arguments(format!(

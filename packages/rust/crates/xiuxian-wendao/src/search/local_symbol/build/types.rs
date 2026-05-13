@@ -24,7 +24,6 @@ pub(crate) struct LocalSymbolWriteResult {
     pub(crate) fragment_count: u64,
 }
 /// `LocalSymbolBuildError` public enum boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
 pub enum LocalSymbolBuildError {

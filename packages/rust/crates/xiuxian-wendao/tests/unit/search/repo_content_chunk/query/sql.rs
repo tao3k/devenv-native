@@ -126,7 +126,7 @@ fn build_repo_content_detail_sql_targets_specific_path_line_pairs() {
         "repo_content_chunk_alpha_repo",
         &[
             RepoContentChunkCandidate {
-                path: "src/alpha.jl".to_string().into(),
+                path: "src/alpha.jl".to_string(),
                 language: Some("julia".to_string()),
                 line_number: 7,
                 line_text: String::new(),
@@ -134,7 +134,7 @@ fn build_repo_content_detail_sql_targets_specific_path_line_pairs() {
                 exact_match: true,
             },
             RepoContentChunkCandidate {
-                path: "src/beta.jl".to_string().into(),
+                path: "src/beta.jl".to_string(),
                 language: Some("julia".to_string()),
                 line_number: 11,
                 line_text: String::new(),

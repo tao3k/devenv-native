@@ -1,3 +1,5 @@
+//! Contracts flowhub contract surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Shared child-graph contract anchored by one Flowhub `qianji.toml`.

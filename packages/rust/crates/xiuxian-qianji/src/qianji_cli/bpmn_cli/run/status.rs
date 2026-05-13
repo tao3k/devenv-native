@@ -5,7 +5,7 @@ use crate::qianji_cli::bpmn_cli::deps::{
 use crate::qianji_cli::bpmn_cli::render;
 use crate::qianji_cli::bpmn_cli::types::{BpmnCliOutput, BpmnStatusCliCommand};
 
-use super::shared::workflow_control_service;
+use super::control_service::workflow_control_service;
 
 pub(crate) async fn run_bpmn_status_command(
     command: &BpmnStatusCliCommand,
@@ -19,7 +19,7 @@ pub(crate) async fn run_bpmn_status_command_with_runtime_env(
 ) -> Result<BpmnCliOutput, Box<dyn std::error::Error>> {
     let control_service = workflow_control_service(runtime_env, None);
     let status_request = QianjiBpmnWorkflowStatusRequest {
-        instance_id: command.instance_id.clone(),
+        instance_id: command.instance_id.clone().into(),
         checkpoint_backend: command.checkpoint_backend.clone(),
     };
     let package = command

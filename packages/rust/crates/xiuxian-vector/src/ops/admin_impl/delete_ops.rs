@@ -1,3 +1,7 @@
+use std::collections::HashSet;
+
+use lance::deps::arrow_array::{Array, RecordBatch, StringArray};
+
 use super::{ID_COLUMN, METADATA_COLUMN, Result, TryStreamExt, VectorStore, VectorStoreError};
 
 impl VectorStore {
@@ -43,67 +47,9 @@ impl VectorStore {
         let mut dataset = self
             .open_dataset_at_uri(table_path.to_string_lossy().as_ref())
             .await?;
-        let file_paths_set: std::collections::HashSet<String> =
-            file_paths.iter().cloned().collect();
-        let schema = dataset.schema();
-        let has_metadata = schema.field(METADATA_COLUMN).is_some();
-        let project_cols: Vec<&str> = if has_metadata {
-            vec![ID_COLUMN, crate::FILE_PATH_COLUMN, METADATA_COLUMN]
-        } else {
-            vec![ID_COLUMN, crate::FILE_PATH_COLUMN]
-        };
-        let mut scanner = dataset.scan();
-        scanner.project(&project_cols)?;
-        let mut stream = scanner.try_into_stream().await?;
-        let mut ids_to_delete = Vec::new();
-        while let Some(batch) = stream.try_next().await? {
-            use lance::deps::arrow_array::{Array, StringArray};
-            let id_col = batch.column_by_name(ID_COLUMN);
-            let file_path_col = batch.column_by_name(crate::FILE_PATH_COLUMN);
-            let metadata_col = batch.column_by_name(METADATA_COLUMN);
-            let id_arr = id_col.and_then(|c| c.as_any().downcast_ref::<StringArray>());
-            let file_path_arr =
-                file_path_col.and_then(|c| c.as_any().downcast_ref::<StringArray>());
-            let meta_arr = metadata_col.and_then(|c| c.as_any().downcast_ref::<StringArray>());
-            if let Some(ids) = id_arr {
-                for i in 0..batch.num_rows() {
-                    let id = ids.value(i).to_string();
-                    let path_from_col = file_path_arr
-                        .filter(|arr| !arr.is_null(i))
-                        .map(|arr| arr.value(i).to_string())
-                        .filter(|s| !s.is_empty());
-                    let path = path_from_col.or_else(|| {
-                        meta_arr.and_then(|ma| {
-                            if ma.is_null(i) {
-                                None
-                            } else {
-                                serde_json::from_str::<serde_json::Value>(ma.value(i))
-                                    .ok()
-                                    .and_then(|m| {
-                                        m.get("file_path")
-                                            .and_then(|v| v.as_str())
-                                            .map(String::from)
-                                    })
-                            }
-                        })
-                    });
-                    if let Some(path) = path
-                        && file_paths_set.contains(&path)
-                    {
-                        ids_to_delete.push(id);
-                    }
-                }
-            }
-        }
-        if !ids_to_delete.is_empty() {
-            let escaped: Vec<String> = ids_to_delete
-                .iter()
-                .map(|id| id.replace('\'', "''"))
-                .collect();
-            dataset
-                .delete(&format!("{ID_COLUMN} IN ('{}')", escaped.join("','")))
-                .await?;
-        }
+        let file_paths_set = file_paths.into_iter().collect();
+        let ids_to_delete = collect_ids_matching_file_paths(&dataset, &file_paths_set).await?;
+        delete_ids_from_dataset(&mut dataset, &ids_to_delete).await?;
         Ok(())
     }
 
@@ -129,54 +75,12 @@ impl VectorStore {
         let mut dataset = self
             .open_dataset_at_uri(table_path.to_string_lossy().as_ref())
             .await?;
-        let schema = dataset.schema();
-        if schema.field(METADATA_COLUMN).is_none() {
+        if dataset.schema().field(METADATA_COLUMN).is_none() {
             return Ok(0);
         }
-        let mut scanner = dataset.scan();
-        scanner.project(&[ID_COLUMN, METADATA_COLUMN])?;
-        let mut stream = scanner.try_into_stream().await?;
-        let mut ids_to_delete = Vec::new();
-        while let Some(batch) = stream.try_next().await? {
-            use crate::ops::column_read::get_utf8_at;
-            use lance::deps::arrow_array::Array;
-            let id_col = batch.column_by_name(ID_COLUMN);
-            let metadata_col = batch.column_by_name(METADATA_COLUMN);
-            let id_arr = id_col.and_then(|c| {
-                c.as_any()
-                    .downcast_ref::<lance::deps::arrow_array::StringArray>()
-            });
-            if let Some(ids) = id_arr {
-                for i in 0..batch.num_rows() {
-                    let id = ids.value(i).to_string();
-                    let meta_raw = metadata_col
-                        .as_ref()
-                        .map(|c| get_utf8_at(c.as_ref(), i))
-                        .unwrap_or_default();
-                    if meta_raw.is_empty() {
-                        continue;
-                    }
-                    let Ok(meta) = serde_json::from_str::<serde_json::Value>(&meta_raw) else {
-                        continue;
-                    };
-                    let row_source = meta.get("source").and_then(|v| v.as_str()).unwrap_or("");
-                    let matches = row_source == source || row_source.ends_with(source);
-                    if matches {
-                        ids_to_delete.push(id);
-                    }
-                }
-            }
-        }
+        let ids_to_delete = collect_ids_matching_metadata_source(&dataset, source).await?;
         let count = u32::try_from(ids_to_delete.len()).unwrap_or(u32::MAX);
-        if !ids_to_delete.is_empty() {
-            let escaped: Vec<String> = ids_to_delete
-                .iter()
-                .map(|id| id.replace('\'', "''"))
-                .collect();
-            dataset
-                .delete(&format!("{ID_COLUMN} IN ('{}')", escaped.join("','")))
-                .await?;
-        }
+        delete_ids_from_dataset(&mut dataset, &ids_to_delete).await?;
         Ok(count)
     }
 
@@ -239,4 +143,148 @@ impl VectorStore {
         }
         Ok(())
     }
+}
+
+async fn collect_ids_matching_file_paths(
+    dataset: &lance::dataset::Dataset,
+    file_paths: &HashSet<String>,
+) -> Result<Vec<String>, VectorStoreError> {
+    let project_cols =
+        file_path_delete_projection(dataset.schema().field(METADATA_COLUMN).is_some());
+    let mut scanner = dataset.scan();
+    scanner.project(&project_cols)?;
+    let mut stream = scanner.try_into_stream().await?;
+    let mut ids_to_delete = Vec::new();
+    while let Some(batch) = stream.try_next().await? {
+        ids_to_delete.extend(file_path_delete_ids_from_batch(&batch, file_paths));
+    }
+    Ok(ids_to_delete)
+}
+
+fn file_path_delete_projection(has_metadata: bool) -> Vec<&'static str> {
+    if has_metadata {
+        vec![ID_COLUMN, crate::FILE_PATH_COLUMN, METADATA_COLUMN]
+    } else {
+        vec![ID_COLUMN, crate::FILE_PATH_COLUMN]
+    }
+}
+
+fn file_path_delete_ids_from_batch(
+    batch: &RecordBatch,
+    file_paths: &HashSet<String>,
+) -> Vec<String> {
+    let Some(ids) = string_column(batch, ID_COLUMN) else {
+        return Vec::new();
+    };
+    let file_path_arr = string_column(batch, crate::FILE_PATH_COLUMN);
+    let metadata_arr = string_column(batch, METADATA_COLUMN);
+    (0..batch.num_rows())
+        .filter_map(|row| {
+            file_path_delete_id_for_row(ids, file_path_arr, metadata_arr, row, file_paths)
+        })
+        .collect()
+}
+
+fn file_path_delete_id_for_row(
+    ids: &StringArray,
+    file_path_arr: Option<&StringArray>,
+    metadata_arr: Option<&StringArray>,
+    row: usize,
+    file_paths: &HashSet<String>,
+) -> Option<String> {
+    let path = row_file_path(file_path_arr, metadata_arr, row)?;
+    file_paths
+        .contains(&path)
+        .then(|| ids.value(row).to_string())
+}
+
+fn row_file_path(
+    file_path_arr: Option<&StringArray>,
+    metadata_arr: Option<&StringArray>,
+    row: usize,
+) -> Option<String> {
+    path_from_column(file_path_arr, row).or_else(|| path_from_metadata(metadata_arr, row))
+}
+
+fn path_from_column(file_path_arr: Option<&StringArray>, row: usize) -> Option<String> {
+    file_path_arr
+        .filter(|arr| !arr.is_null(row))
+        .map(|arr| arr.value(row).to_string())
+        .filter(|path| !path.is_empty())
+}
+
+fn path_from_metadata(metadata_arr: Option<&StringArray>, row: usize) -> Option<String> {
+    metadata_value(metadata_arr, row).and_then(|metadata| {
+        metadata
+            .get("file_path")
+            .and_then(|value| value.as_str())
+            .map(String::from)
+    })
+}
+
+async fn collect_ids_matching_metadata_source(
+    dataset: &lance::dataset::Dataset,
+    source: &str,
+) -> Result<Vec<String>, VectorStoreError> {
+    let mut scanner = dataset.scan();
+    scanner.project(&[ID_COLUMN, METADATA_COLUMN])?;
+    let mut stream = scanner.try_into_stream().await?;
+    let mut ids_to_delete = Vec::new();
+    while let Some(batch) = stream.try_next().await? {
+        ids_to_delete.extend(metadata_source_delete_ids_from_batch(&batch, source));
+    }
+    Ok(ids_to_delete)
+}
+
+fn metadata_source_delete_ids_from_batch(batch: &RecordBatch, source: &str) -> Vec<String> {
+    let Some(ids) = string_column(batch, ID_COLUMN) else {
+        return Vec::new();
+    };
+    let metadata_arr = string_column(batch, METADATA_COLUMN);
+    (0..batch.num_rows())
+        .filter_map(|row| metadata_source_delete_id_for_row(ids, metadata_arr, row, source))
+        .collect()
+}
+
+fn metadata_source_delete_id_for_row(
+    ids: &StringArray,
+    metadata_arr: Option<&StringArray>,
+    row: usize,
+    source: &str,
+) -> Option<String> {
+    let metadata = metadata_value(metadata_arr, row)?;
+    let row_source = metadata.get("source").and_then(|value| value.as_str())?;
+    (row_source == source || row_source.ends_with(source)).then(|| ids.value(row).to_string())
+}
+
+fn metadata_value(metadata_arr: Option<&StringArray>, row: usize) -> Option<serde_json::Value> {
+    let metadata_arr = metadata_arr.filter(|arr| !arr.is_null(row))?;
+    serde_json::from_str(metadata_arr.value(row)).ok()
+}
+
+fn string_column<'a>(batch: &'a RecordBatch, column: &str) -> Option<&'a StringArray> {
+    batch
+        .column_by_name(column)
+        .and_then(|array| array.as_any().downcast_ref::<StringArray>())
+}
+
+async fn delete_ids_from_dataset(
+    dataset: &mut lance::dataset::Dataset,
+    ids_to_delete: &[String],
+) -> Result<(), VectorStoreError> {
+    if ids_to_delete.is_empty() {
+        return Ok(());
+    }
+    dataset
+        .delete(delete_ids_filter(ids_to_delete).as_str())
+        .await?;
+    Ok(())
+}
+
+fn delete_ids_filter(ids_to_delete: &[String]) -> String {
+    let escaped = ids_to_delete
+        .iter()
+        .map(|id| id.replace('\'', "''"))
+        .collect::<Vec<_>>();
+    format!("{ID_COLUMN} IN ('{}')", escaped.join("','"))
 }

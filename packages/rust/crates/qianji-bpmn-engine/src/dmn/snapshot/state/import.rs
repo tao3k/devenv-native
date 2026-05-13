@@ -33,7 +33,7 @@ impl TempImportSnapshot {
             name: attribute_value(source, reader, event, "name")?,
             namespace: attribute_value(source, reader, event, "namespace")?,
             location_uri: attribute_value(source, reader, event, "locationURI")?,
-            import_type: attribute_value(source, reader, event, "importType")?.map(Into::into),
+            import_type: attribute_value(source, reader, event, "importType")?,
         })
     }
 }

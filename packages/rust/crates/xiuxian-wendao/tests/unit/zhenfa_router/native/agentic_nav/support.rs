@@ -18,7 +18,7 @@ pub(super) fn validated_hit(
             vector_score,
         },
         is_valid,
-        doc_id: "doc.md".to_string().into(),
+        doc_id: "doc.md".to_string(),
         anchor: anchor.to_string(),
         structural_path: structural_path.map(|segments| {
             segments

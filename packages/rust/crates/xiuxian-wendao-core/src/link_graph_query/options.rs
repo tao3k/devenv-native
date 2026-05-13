@@ -60,10 +60,19 @@ impl LinkGraphSearchOptions {
     ///
     /// Returns an error string when one or more query filters violate the runtime schema.
     pub fn validate(&self) -> Result<(), String> {
-        validate_link_distance_filter("filters.link_to.max_distance", &self.filters.link_to)?;
-        validate_link_distance_filter("filters.linked_by.max_distance", &self.filters.linked_by)?;
-        validate_related_distance_filter("filters.related.max_distance", &self.filters.related)?;
-        validate_related_ppr(&self.filters.related)?;
+        validate_link_distance_filter(
+            "filters.link_to.max_distance",
+            self.filters.link_to.as_ref(),
+        )?;
+        validate_link_distance_filter(
+            "filters.linked_by.max_distance",
+            self.filters.linked_by.as_ref(),
+        )?;
+        validate_related_distance_filter(
+            "filters.related.max_distance",
+            self.filters.related.as_ref(),
+        )?;
+        validate_related_ppr(self.filters.related.as_ref())?;
         validate_heading_level(self.filters.max_heading_level)?;
         validate_per_doc_section_cap(self.filters.per_doc_section_cap)
     }
@@ -71,16 +80,16 @@ impl LinkGraphSearchOptions {
 
 fn validate_link_distance_filter(
     path: &'static str,
-    filter: &Option<LinkGraphLinkFilter>,
+    filter: Option<&LinkGraphLinkFilter>,
 ) -> Result<(), String> {
-    validate_positive_distance(path, filter.as_ref().and_then(|filter| filter.max_distance))
+    validate_positive_distance(path, filter.and_then(|filter| filter.max_distance))
 }
 
 fn validate_related_distance_filter(
     path: &'static str,
-    filter: &Option<LinkGraphRelatedFilter>,
+    filter: Option<&LinkGraphRelatedFilter>,
 ) -> Result<(), String> {
-    validate_positive_distance(path, filter.as_ref().and_then(|filter| filter.max_distance))
+    validate_positive_distance(path, filter.and_then(|filter| filter.max_distance))
 }
 
 fn validate_positive_distance(path: &'static str, distance: Option<usize>) -> Result<(), String> {
@@ -92,8 +101,8 @@ fn validate_positive_distance(path: &'static str, distance: Option<usize>) -> Re
     Ok(())
 }
 
-fn validate_related_ppr(related: &Option<LinkGraphRelatedFilter>) -> Result<(), String> {
-    let Some(ppr) = related.as_ref().and_then(|filter| filter.ppr.as_ref()) else {
+fn validate_related_ppr(related: Option<&LinkGraphRelatedFilter>) -> Result<(), String> {
+    let Some(ppr) = related.and_then(|filter| filter.ppr.as_ref()) else {
         return Ok(());
     };
     validate_ppr_alpha(ppr.alpha)?;

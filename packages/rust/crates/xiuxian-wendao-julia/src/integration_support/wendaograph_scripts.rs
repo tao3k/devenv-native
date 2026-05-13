@@ -379,7 +379,7 @@ frontier = strategy_flow_frontier_rows(
     rows;
     flow_id = flow_id,
     beam_width = strategy_budget.beam_width,
-    context_budget = 1900,
+    context_budget = 4096,
     query_understanding = query_understanding,
 )
 required_evidence_coverage = strategy_flow_required_evidence_coverage(frontier, query_understanding)

@@ -40,6 +40,7 @@ pub(super) fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt
         return attempts;
     }
 
+    push_required_evidence_candidate_attempts(&mut attempts, terms.as_slice());
     push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
     push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
     push_repo_search_attempt(&mut attempts, trimmed, "");
@@ -57,6 +58,54 @@ pub(super) fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt
     }
     attempts.truncate(32);
     attempts
+}
+
+fn push_required_evidence_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
+    if has_all_terms(terms, &["search", "strategy", "flow"]) {
+        push_repo_search_attempt(
+            attempts,
+            "SearchStrategyFlow",
+            "packages/rust/crates/xiuxian-wendao-julia/README.md",
+        );
+    }
+    if has_any_term(terms, &["ownership", "authority", "boundary"]) {
+        push_repo_search_attempt(attempts, "ownership boundary", "docs/rfcs");
+    }
+    if has_any_term(terms, &["validation", "gate", "path"]) {
+        push_repo_search_attempt(attempts, "validation path", "docs/testing");
+    }
+    if has_all_terms(terms, &["search", "strategy", "flow"])
+        && has_any_term(
+            terms,
+            &[
+                "ownership",
+                "authority",
+                "boundary",
+                "validation",
+                "gate",
+                "path",
+            ],
+        )
+    {
+        push_repo_search_attempt(
+            attempts,
+            "Search Strategy Flow Link Graph",
+            "packages/rust/crates/xiuxian-wendao-julia/tests/unit/integration_support/wendaograph/search_strategy",
+        );
+    }
+    if has_all_terms(terms, &["link", "graph"])
+        || has_all_terms(terms, &["graph"])
+        || has_all_terms(terms, &["relation"])
+    {
+        push_repo_search_attempt(
+            attempts,
+            "Search Strategy Flow Link Graph",
+            "packages/rust/crates/xiuxian-wendao-julia/tests/unit/integration_support/wendaograph/search_strategy",
+        );
+    }
 }
 
 fn push_exact_anchor_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, terms: &[String]) {
@@ -125,6 +174,11 @@ fn push_route_hint_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, ter
         || has_all_terms(terms, &["relation"])
     {
         push_repo_search_attempt(attempts, "link graph compute", "docs/10_graph_compute");
+        push_repo_search_attempt(
+            attempts,
+            "Search Strategy Flow Link Graph",
+            "packages/rust/crates/xiuxian-wendao-julia/tests/unit/integration_support/wendaograph/search_strategy",
+        );
     }
 }
 

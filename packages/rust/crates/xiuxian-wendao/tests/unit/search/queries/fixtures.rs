@@ -28,7 +28,7 @@ pub fn fixture_service(temp_dir: &TempDir, keyspace: &str) -> SearchPlaneService
 pub fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearchHit {
     ReferenceSearchHit {
         name: name.to_string(),
-        path: path.to_string().into(),
+        path: path.to_string(),
         language: "rust".to_string(),
         crate_name: "kernel".to_string(),
         project_name: None,
@@ -37,7 +37,7 @@ pub fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearchHit {
         column: 5,
         line_text: format!("let _value = {name};"),
         navigation_target: StudioNavigationTarget {
-            path: path.to_string().into(),
+            path: path.to_string(),
             category: "doc".to_string(),
             project_name: None,
             root_label: None,

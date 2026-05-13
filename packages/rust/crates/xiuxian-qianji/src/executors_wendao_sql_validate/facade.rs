@@ -1,3 +1,5 @@
+//! Facade surface for `xiuxian-qianji`.
+
 use super::validation;
 
 use async_trait::async_trait;
@@ -10,6 +12,7 @@ use crate::executors::wendao_sql::render::validation_report_xml;
 use validation::validate_and_render_sql;
 
 /// Deterministic validation gate for XML-authored Wendao SQL specs.
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct WendaoSqlValidateMechanism {
     /// Context key containing the discovery bundle XML.
     pub surface_bundle_key: String,

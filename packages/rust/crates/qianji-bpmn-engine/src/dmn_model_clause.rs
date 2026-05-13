@@ -29,6 +29,7 @@ pub struct DmnInputClause {
 }
 
 /// Named construction payload for one bounded DMN input clause.
+#[derive(Clone, Copy)]
 pub struct DmnInputClauseInput<'a> {
     /// Stable input identifier.
     pub input_id: &'a str,

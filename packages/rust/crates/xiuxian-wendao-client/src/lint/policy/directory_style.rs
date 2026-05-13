@@ -120,7 +120,7 @@ pub(crate) fn lint_directory_link_style_policy(
     files_by_directory(files)
         .into_iter()
         .flat_map(|(directory, directory_files)| {
-            directory_link_style_issues(directory, directory_files).into_iter()
+            directory_link_style_issues(directory, &directory_files).into_iter()
         })
         .fold(BTreeMap::new(), |mut issues_by_file, (path, issue)| {
             issues_by_file
@@ -147,20 +147,17 @@ fn files_by_directory(
 
 fn directory_link_style_issues(
     directory: &str,
-    directory_files: Vec<&MarkdownFileLinkStyleFacts>,
+    directory_files: &[&MarkdownFileLinkStyleFacts],
 ) -> Vec<(String, MarkdownLintIssue)> {
-    let summary = summarize_directory_styles(&directory_files);
+    let summary = summarize_directory_styles(directory_files);
     if summary.files_per_style.len() < 2 {
         return Vec::new();
     }
     match preferred_directory_style(&summary) {
-        Some(preferred_style) => preferred_directory_style_issues(
-            directory,
-            directory_files.as_slice(),
-            &summary,
-            preferred_style,
-        ),
-        None => ambiguous_directory_style_issues(directory, directory_files.as_slice(), &summary),
+        Some(preferred_style) => {
+            preferred_directory_style_issues(directory, directory_files, &summary, preferred_style)
+        }
+        None => ambiguous_directory_style_issues(directory, directory_files, &summary),
     }
 }
 

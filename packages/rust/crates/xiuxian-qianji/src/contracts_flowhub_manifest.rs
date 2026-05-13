@@ -1,4 +1,6 @@
-use std::path::Path;
+//! Contracts flowhub manifest surface for `xiuxian-qianji`.
+
+use std::{fmt, ops::Deref, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -32,6 +34,39 @@ impl FlowhubGraphTopology {
     }
 }
 
+/// Contract-owned Flowhub graph-node semantic kind.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct FlowhubGraphNodeKind(String);
+
+impl FlowhubGraphNodeKind {
+    /// Build a typed graph-node kind token.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Return the stable graph-node kind spelling.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl Deref for FlowhubGraphNodeKind {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+impl fmt::Display for FlowhubGraphNodeKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// One graph-node semantic contract owned by a Mermaid scenario-case contract.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -39,7 +74,7 @@ pub struct FlowhubGraphNodeContract {
     /// Exact Mermaid node label owned by this graph contract.
     pub label: String,
     /// Contract-owned node semantic kind.
-    pub kind: String,
+    pub kind: FlowhubGraphNodeKind,
     /// Stable role description shown on `qianji show --graph`.
     pub role: String,
     /// Stable action guidance shown on `qianji show --graph`.

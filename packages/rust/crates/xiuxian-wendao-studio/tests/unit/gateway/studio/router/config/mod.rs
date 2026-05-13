@@ -60,6 +60,40 @@ root = "."
 }
 
 #[test]
+fn load_ui_config_from_wendao_toml_maps_global_link_graph_include_dirs_to_main_project()
+-> TestResult {
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        temp.path().join("wendao.toml"),
+        r#"[link_graph]
+include_dirs = ["docs", "./semantic", "packages/rust/crates/xiuxian-wendao"]
+
+[link_graph.projects.main]
+root = "."
+plugins = []
+"#,
+    )?;
+
+    let Some(config) = load_ui_config_from_wendao_toml(temp.path()) else {
+        panic!("ui config should load");
+    };
+    assert_eq!(config.projects.len(), 1);
+    assert_eq!(config.projects[0].name, "main");
+    assert_eq!(config.projects[0].root, ".");
+    assert_eq!(
+        config.projects[0].dirs,
+        vec![
+            "docs".to_string(),
+            "semantic".to_string(),
+            "packages/rust/crates/xiuxian-wendao".to_string(),
+        ]
+    );
+    assert_eq!(config.repo_projects.len(), 1);
+    assert_eq!(config.repo_projects[0].id, "main");
+    Ok(())
+}
+
+#[test]
 fn load_ui_config_from_wendao_toml_prefers_overlay_importing_base() -> TestResult {
     let temp = tempfile::tempdir()?;
     fs::write(

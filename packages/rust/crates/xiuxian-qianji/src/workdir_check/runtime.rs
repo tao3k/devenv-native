@@ -11,7 +11,7 @@ use crate::workdir::{
     load_workdir_runtime_state,
 };
 
-use super::api::WorkdirDiagnostic;
+use super::model::WorkdirDiagnostic;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct WorkdirStepAwareContext {

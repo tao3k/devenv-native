@@ -28,9 +28,9 @@ pub(crate) fn build_restart_state(
     }
 
     let mut teleport = vec![0.0_f64; graph_node_count];
-    weighted_seeds
-        .iter()
-        .for_each(|(seed_idx, weight)| teleport[*seed_idx] = *weight / total_seed_weight);
+    for (seed_idx, weight) in weighted_seeds {
+        teleport[seed_idx] = weight / total_seed_weight;
+    }
     let restart_nodes = teleport
         .iter()
         .copied()

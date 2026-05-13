@@ -58,17 +58,17 @@ fn retrieval_context_options_default_to_docs_limit() {
 #[test]
 fn text_free_tree_result_clears_node_text_recursively() {
     let result = DocsPageIndexTreeResult {
-        repo_id: "repo-a".to_string().into(),
+        repo_id: "repo-a".to_string(),
         tree: Some(ProjectedPageIndexTree {
-            repo_id: "repo-a".to_string().into(),
-            page_id: "page-a".to_string().into(),
+            repo_id: "repo-a".to_string(),
+            page_id: "page-a".to_string(),
             kind: ProjectionPageKind::Reference,
-            path: "reference/page-a.md".to_string().into(),
-            doc_id: "doc:page-a".to_string().into(),
+            path: "reference/page-a.md".to_string(),
+            doc_id: "doc:page-a".to_string(),
             title: "Page A".to_string(),
             root_count: 1,
             roots: vec![ProjectedPageIndexNode {
-                node_id: "n1".to_string().into(),
+                node_id: "n1".to_string(),
                 title: "Root".to_string(),
                 level: 1,
                 structural_path: vec!["Root".to_string()],
@@ -78,7 +78,7 @@ fn text_free_tree_result_clears_node_text_recursively() {
                 text: "root body".to_string(),
                 summary: Some("summary".to_string()),
                 children: vec![ProjectedPageIndexNode {
-                    node_id: "n2".to_string().into(),
+                    node_id: "n2".to_string(),
                     title: "Child".to_string(),
                     level: 2,
                     structural_path: vec!["Root".to_string(), "Child".to_string()],
@@ -110,17 +110,17 @@ fn text_free_tree_result_clears_node_text_recursively() {
 #[test]
 fn text_free_trees_result_clears_node_text_recursively() {
     let result = DocsPageIndexTreesResult {
-        repo_id: "repo-a".to_string().into(),
+        repo_id: "repo-a".to_string(),
         trees: vec![ProjectedPageIndexTree {
-            repo_id: "repo-a".to_string().into(),
-            page_id: "page-a".to_string().into(),
+            repo_id: "repo-a".to_string(),
+            page_id: "page-a".to_string(),
             kind: ProjectionPageKind::Reference,
-            path: "reference/page-a.md".to_string().into(),
-            doc_id: "doc:page-a".to_string().into(),
+            path: "reference/page-a.md".to_string(),
+            doc_id: "doc:page-a".to_string(),
             title: "Page A".to_string(),
             root_count: 1,
             roots: vec![ProjectedPageIndexNode {
-                node_id: "n1".to_string().into(),
+                node_id: "n1".to_string(),
                 title: "Root".to_string(),
                 level: 1,
                 structural_path: vec!["Root".to_string()],
@@ -130,7 +130,7 @@ fn text_free_trees_result_clears_node_text_recursively() {
                 text: "root body".to_string(),
                 summary: Some("summary".to_string()),
                 children: vec![ProjectedPageIndexNode {
-                    node_id: "n2".to_string().into(),
+                    node_id: "n2".to_string(),
                     title: "Child".to_string(),
                     level: 2,
                     structural_path: vec!["Root".to_string(), "Child".to_string()],

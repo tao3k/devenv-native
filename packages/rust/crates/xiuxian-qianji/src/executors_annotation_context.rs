@@ -1,3 +1,5 @@
+//! Executors annotation context surface for `xiuxian-qianji`.
+
 use super::persona_markdown::persona_profile_from_markdown;
 use crate::contracts::{FlowInstruction, NodeQianhuanExecutionMode, QianjiMechanism, QianjiOutput};
 use crate::scheduler_preflight::{
@@ -30,6 +32,7 @@ struct PromptInjectionNarrativeContext {
 }
 
 /// Mechanism responsible for transmuting raw facts into persona-aligned context snapshots.
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct ContextAnnotator {
     /// Reference to the `ThousandFaces` orchestrator.
     pub orchestrator: Arc<ThousandFacesOrchestrator>,

@@ -1,3 +1,5 @@
+//! Facade surface for `xiuxian-qianji`.
+
 use super::{ConstructCard, ConstructIndexEntry, catalog, render};
 
 /// Return all registered construct cards in deterministic index order.
@@ -8,6 +10,7 @@ pub fn construct_cards() -> &'static [ConstructCard] {
 
 /// Find a construct card by stable id.
 #[must_use]
+/// Identifier boundary: this public compatibility seam accepts externally owned ids.
 pub fn find_construct_card(id: &str) -> Option<&'static ConstructCard> {
     catalog::find_construct_card(id)
 }

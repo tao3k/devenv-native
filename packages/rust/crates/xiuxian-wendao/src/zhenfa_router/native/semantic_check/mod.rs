@@ -13,7 +13,6 @@ mod checks;
 #[path = "core.rs"]
 mod core;
 /// Public Wendao boundary.
-
 #[path = "docs_governance/mod.rs"]
 pub mod docs_governance;
 #[path = "episteme.rs"]

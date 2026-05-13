@@ -1,3 +1,5 @@
+//! Wendao SQL executor branch that owns contract, validation, and execution flow.
+
 #[path = "executors_wendao_sql_contract/mod.rs"]
 mod contract;
 #[path = "executors_wendao_sql_discover.rs"]

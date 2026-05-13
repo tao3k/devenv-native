@@ -1,3 +1,5 @@
+//! Executors calibration surface for `xiuxian-qianji`.
+
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
 use async_trait::async_trait;
 use serde_json::json;

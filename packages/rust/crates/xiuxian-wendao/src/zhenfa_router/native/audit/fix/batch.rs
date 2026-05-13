@@ -1,7 +1,7 @@
 //! `zhenfa_router::native::audit::fix::batch` owns Wendao audit fix batch behavior.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::BatchFix;
 use super::hashing::compute_blake3_hash;
@@ -154,31 +154,31 @@ impl AtomicFixBatch {
     pub fn apply_all(&self) -> FixReport {
         let mut report = FixReport::default();
         for (path, mut fixes) in self.filter_by_confidence() {
-            self.apply_file_fixes(path, &mut fixes, &mut report);
+            self.apply_file_fixes(path.as_path(), &mut fixes, &mut report);
         }
 
         report
     }
 
-    fn apply_file_fixes(&self, path: PathBuf, fixes: &mut [BatchFix], report: &mut FixReport) {
+    fn apply_file_fixes(&self, path: &Path, fixes: &mut [BatchFix], report: &mut FixReport) {
         let create_file_mode = is_create_file_batch(fixes);
-        let Some(content) = read_fix_content(&path, fixes, report) else {
+        let Some(content) = read_fix_content(path, fixes, report) else {
             return;
         };
-        if !verify_create_file_target(&path, create_file_mode, report) {
+        if !verify_create_file_target(path, create_file_mode, report) {
             return;
         }
-        if !verify_fix_hash(&path, fixes, &content, create_file_mode, report) {
+        if !verify_fix_hash(path, fixes, &content, create_file_mode, report) {
             return;
         }
         sort_fixes_for_application(fixes);
-        let Some(modified_content) = apply_fixes_to_content(&path, fixes, &content, report) else {
+        let Some(modified_content) = apply_fixes_to_content(path, fixes, &content, report) else {
             return;
         };
-        self.finish_file_fixes(&path, &modified_content, report);
+        self.finish_file_fixes(path, &modified_content, report);
     }
 
-    fn finish_file_fixes(&self, path: &PathBuf, modified_content: &str, report: &mut FixReport) {
+    fn finish_file_fixes(&self, path: &Path, modified_content: &str, report: &mut FixReport) {
         if self.dry_run {
             report.files_modified += 1;
             return;
@@ -203,7 +203,7 @@ fn is_create_file_batch(fixes: &[BatchFix]) -> bool {
     fixes.len() == 1 && fixes[0].is_create_file()
 }
 
-fn read_fix_content(path: &PathBuf, fixes: &[BatchFix], report: &mut FixReport) -> Option<String> {
+fn read_fix_content(path: &Path, fixes: &[BatchFix], report: &mut FixReport) -> Option<String> {
     match std::fs::read_to_string(path) {
         Ok(content) => Some(content),
         Err(error)
@@ -221,11 +221,7 @@ fn read_fix_content(path: &PathBuf, fixes: &[BatchFix], report: &mut FixReport) 
     }
 }
 
-fn verify_create_file_target(
-    path: &PathBuf,
-    create_file_mode: bool,
-    report: &mut FixReport,
-) -> bool {
+fn verify_create_file_target(path: &Path, create_file_mode: bool, report: &mut FixReport) -> bool {
     if !create_file_mode || !path.exists() {
         return true;
     }
@@ -239,7 +235,7 @@ fn verify_create_file_target(
 }
 
 fn verify_fix_hash(
-    path: &PathBuf,
+    path: &Path,
     fixes: &[BatchFix],
     content: &str,
     create_file_mode: bool,
@@ -288,7 +284,7 @@ fn sort_fixes_for_application(fixes: &mut [BatchFix]) {
 }
 
 fn apply_fixes_to_content(
-    path: &PathBuf,
+    path: &Path,
     fixes: &[BatchFix],
     content: &str,
     report: &mut FixReport,
@@ -307,7 +303,7 @@ fn apply_fixes_to_content(
 }
 
 fn apply_one_fix(
-    path: &PathBuf,
+    path: &Path,
     fix: &BatchFix,
     modified_content: &mut String,
     report: &mut FixReport,
@@ -334,7 +330,7 @@ fn apply_one_fix(
     false
 }
 
-fn write_modified_content(path: &PathBuf, modified_content: &str, report: &mut FixReport) {
+fn write_modified_content(path: &Path, modified_content: &str, report: &mut FixReport) {
     if !ensure_parent_dir(path, report) {
         return;
     }
@@ -351,7 +347,7 @@ fn write_modified_content(path: &PathBuf, modified_content: &str, report: &mut F
     }
 }
 
-fn ensure_parent_dir(path: &PathBuf, report: &mut FixReport) -> bool {
+fn ensure_parent_dir(path: &Path, report: &mut FixReport) -> bool {
     let Some(parent) = path.parent() else {
         return true;
     };

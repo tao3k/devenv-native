@@ -31,7 +31,7 @@ pub(super) fn sample_hit(name: &str, path: &str, line_start: usize) -> AstSearch
     AstSearchHit {
         name: name.to_string(),
         signature: format!("fn {name}()"),
-        path: path.to_string().into(),
+        path: path.to_string(),
         language: "rust".to_string(),
         crate_name: "kernel".to_string(),
         project_name: None,
@@ -39,7 +39,7 @@ pub(super) fn sample_hit(name: &str, path: &str, line_start: usize) -> AstSearch
         node_kind: None,
         owner_title: None,
         navigation_target: StudioNavigationTarget {
-            path: path.to_string().into(),
+            path: path.to_string(),
             category: "symbol".to_string(),
             project_name: None,
             root_label: None,
@@ -61,7 +61,7 @@ pub(super) fn sample_markdown_hit(
     AstSearchHit {
         name: name.to_string(),
         signature: format!("## {name}"),
-        path: "docs/alpha.md".to_string().into(),
+        path: "docs/alpha.md".to_string(),
         language: "markdown".to_string(),
         crate_name: "docs".to_string(),
         project_name: None,
@@ -69,7 +69,7 @@ pub(super) fn sample_markdown_hit(
         node_kind: node_kind.map(ToOwned::to_owned),
         owner_title: owner_title.map(ToOwned::to_owned),
         navigation_target: StudioNavigationTarget {
-            path: "docs/alpha.md".to_string().into(),
+            path: "docs/alpha.md".to_string(),
             category: "symbol".to_string(),
             project_name: None,
             root_label: None,

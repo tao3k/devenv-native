@@ -25,12 +25,12 @@ async fn workflow_control_service_task_complete_rejects_undeclared_form_field() 
             &QianjiBpmnWorkflowTaskCompleteRequest {
                 bpmn_path,
                 dmn_paths: Vec::new(),
-                instance_id: "wf_task_complete_action".to_string(),
+                instance_id: "wf_task_complete_action".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 completion: QianjiBpmnWorkflowTaskCompletionPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: pending_activity_id,
+                    process_id: "review".to_string().into(),
+                    activity_id: pending_activity_id.into(),
                     kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                     data: json!({
                         "answer": "approve",
@@ -75,12 +75,12 @@ async fn workflow_control_service_task_complete_rejects_non_object_form_payload(
             &QianjiBpmnWorkflowTaskCompleteRequest {
                 bpmn_path,
                 dmn_paths: Vec::new(),
-                instance_id: "wf_task_complete_action".to_string(),
+                instance_id: "wf_task_complete_action".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 completion: QianjiBpmnWorkflowTaskCompletionPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: pending_activity_id,
+                    process_id: "review".to_string().into(),
+                    activity_id: pending_activity_id.into(),
                     kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                     data: json!("approve"),
                     claimant: None,
@@ -118,12 +118,12 @@ async fn workflow_control_service_task_complete_rejects_nested_form_output_envel
             &QianjiBpmnWorkflowTaskCompleteRequest {
                 bpmn_path,
                 dmn_paths: Vec::new(),
-                instance_id: "wf_task_complete_action".to_string(),
+                instance_id: "wf_task_complete_action".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 completion: QianjiBpmnWorkflowTaskCompletionPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: pending_activity_id,
+                    process_id: "review".to_string().into(),
+                    activity_id: pending_activity_id.into(),
                     kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                     data: json!({
                         "form": {
@@ -172,12 +172,12 @@ async fn workflow_control_service_task_complete_rejects_activity_identity_mismat
             &QianjiBpmnWorkflowTaskCompleteRequest {
                 bpmn_path,
                 dmn_paths: Vec::new(),
-                instance_id: "wf_task_complete_action".to_string(),
+                instance_id: "wf_task_complete_action".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 completion: QianjiBpmnWorkflowTaskCompletionPayload {
                     token_id: pending_token_id,
-                    process_id: "review".to_string(),
-                    activity_id: "different_task".to_string(),
+                    process_id: "review".to_string().into(),
+                    activity_id: "different_task".to_string().into(),
                     kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                     data: json!({
                         "approved": true,

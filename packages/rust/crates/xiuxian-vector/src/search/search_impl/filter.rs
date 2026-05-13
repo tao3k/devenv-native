@@ -3,96 +3,50 @@
 /// Convert JSON filter expression to `LanceDB` WHERE clause.
 #[must_use]
 pub fn json_to_lance_where(expr: &serde_json::Value) -> String {
-    match expr {
-        serde_json::Value::Object(obj) => {
-            if obj.is_empty() {
-                return String::new();
-            }
-            let mut clauses = Vec::new();
-            for (key, value) in obj {
-                let clause = match value {
-                    serde_json::Value::Object(comp) => {
-                        if let Some(op) = comp.keys().next() {
-                            match op.as_str() {
-                                "$gt" | ">" => {
-                                    if let Some(val) = comp.get("$gt").or(comp.get(">")) {
-                                        match val {
-                                            serde_json::Value::String(s) => {
-                                                format!("{key} > '{s}'")
-                                            }
-                                            _ => format!("{key} > {val}"),
-                                        }
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                "$gte" | ">=" => {
-                                    if let Some(val) = comp.get("$gte").or(comp.get(">=")) {
-                                        match val {
-                                            serde_json::Value::String(s) => {
-                                                format!("{key} >= '{s}'")
-                                            }
-                                            _ => format!("{key} >= {val}"),
-                                        }
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                "$lt" | "<" => {
-                                    if let Some(val) = comp.get("$lt").or(comp.get("<")) {
-                                        match val {
-                                            serde_json::Value::String(s) => {
-                                                format!("{key} < '{s}'")
-                                            }
-                                            _ => format!("{key} < {val}"),
-                                        }
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                "$lte" | "<=" => {
-                                    if let Some(val) = comp.get("$lte").or(comp.get("<=")) {
-                                        match val {
-                                            serde_json::Value::String(s) => {
-                                                format!("{key} <= '{s}'")
-                                            }
-                                            _ => format!("{key} <= {val}"),
-                                        }
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                "$ne" | "!=" => {
-                                    if let Some(val) = comp.get("$ne").or(comp.get("!=")) {
-                                        match val {
-                                            serde_json::Value::String(s) => {
-                                                format!("{key} != '{s}'")
-                                            }
-                                            _ => format!("{key} != {val}"),
-                                        }
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                _ => continue,
-                            }
-                        } else {
-                            continue;
-                        }
-                    }
-                    serde_json::Value::String(s) => format!("{key} = '{s}'"),
-                    serde_json::Value::Number(n) => format!("{key} = {n}"),
-                    serde_json::Value::Bool(b) => format!("{key} = {b}"),
-                    _ => continue,
-                };
-                clauses.push(clause);
-            }
-            if clauses.is_empty() {
-                String::new()
-            } else {
-                clauses.join(" AND ")
-            }
-        }
-        _ => String::new(),
+    let serde_json::Value::Object(object) = expr else {
+        return String::new();
+    };
+    object
+        .iter()
+        .filter_map(|(key, value)| lance_clause_for_value(key, value))
+        .collect::<Vec<_>>()
+        .join(" AND ")
+}
+
+fn lance_clause_for_value(key: &str, value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::Object(comparison) => lance_comparison_clause(key, comparison),
+        serde_json::Value::String(value) => Some(format!("{key} = '{value}'")),
+        serde_json::Value::Number(value) => Some(format!("{key} = {value}")),
+        serde_json::Value::Bool(value) => Some(format!("{key} = {value}")),
+        _ => None,
+    }
+}
+
+fn lance_comparison_clause(
+    key: &str,
+    comparison: &serde_json::Map<String, serde_json::Value>,
+) -> Option<String> {
+    comparison
+        .iter()
+        .find_map(|(operator, value)| comparison_operator(operator).map(|op| (op, value)))
+        .map(|(operator, value)| format!("{key} {operator} {}", lance_literal(value)))
+}
+
+fn comparison_operator(operator: &str) -> Option<&'static str> {
+    match operator {
+        "$gt" | ">" => Some(">"),
+        "$gte" | ">=" => Some(">="),
+        "$lt" | "<" => Some("<"),
+        "$lte" | "<=" => Some("<="),
+        "$ne" | "!=" => Some("!="),
+        _ => None,
+    }
+}
+
+fn lance_literal(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(value) => format!("'{value}'"),
+        _ => value.to_string(),
     }
 }

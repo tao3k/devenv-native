@@ -4,7 +4,7 @@ use crate::markdown::{
 };
 use crate::workdir::build_workdir_check_follow_up_query;
 
-use super::api::{WorkdirCheckReport, WorkdirMarkdownSurface};
+use super::model::{WorkdirCheckReport, WorkdirMarkdownSurface};
 
 pub(super) fn render_workdir_check_markdown_impl(report: &WorkdirCheckReport) -> String {
     if report.is_valid() {

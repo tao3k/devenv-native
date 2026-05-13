@@ -2,12 +2,13 @@ use tonic::Status;
 use tonic::metadata::MetadataMap;
 
 use crate::transport::query_contract::{
-    RepoProjectedRetrievalContextInput, WENDAO_REFINE_DOC_ENTITY_ID_HEADER,
-    WENDAO_REFINE_DOC_REPO_HEADER, WENDAO_REFINE_DOC_USER_HINTS_HEADER,
-    WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER, WENDAO_REPO_DOC_COVERAGE_REPO_HEADER,
-    WENDAO_REPO_INDEX_REFRESH_HEADER, WENDAO_REPO_INDEX_REPO_HEADER,
-    WENDAO_REPO_INDEX_REQUEST_ID_HEADER, WENDAO_REPO_INDEX_STATUS_REPO_HEADER,
-    WENDAO_REPO_OVERVIEW_REPO_HEADER, WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER,
+    RepoProjectedRetrievalContextInput, RepoProjectedRetrievalContextNodeId,
+    WENDAO_REFINE_DOC_ENTITY_ID_HEADER, WENDAO_REFINE_DOC_REPO_HEADER,
+    WENDAO_REFINE_DOC_USER_HINTS_HEADER, WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER,
+    WENDAO_REPO_DOC_COVERAGE_REPO_HEADER, WENDAO_REPO_INDEX_REFRESH_HEADER,
+    WENDAO_REPO_INDEX_REPO_HEADER, WENDAO_REPO_INDEX_REQUEST_ID_HEADER,
+    WENDAO_REPO_INDEX_STATUS_REPO_HEADER, WENDAO_REPO_OVERVIEW_REPO_HEADER,
+    WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER,
     WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
@@ -143,7 +144,9 @@ pub(crate) fn validate_repo_projected_retrieval_context_request_metadata(
         (
             request.repo_id.into_string(),
             request.page_id.into_string(),
-            request.node_id.map(|node_id| node_id.into_string()),
+            request
+                .node_id
+                .map(RepoProjectedRetrievalContextNodeId::into_string),
             request.related_limit,
         )
     })

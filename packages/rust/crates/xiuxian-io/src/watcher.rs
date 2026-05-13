@@ -204,16 +204,15 @@ where
                 result = watcher_rx.recv() => {
                     match result {
                         Some(Ok(event)) => {
-                            if let Some(result) = process_notify_event(
+                            let processed = process_notify_event(
                                 event,
                                 &patterns,
                                 &exclude,
                                 &debounce_map,
                                 debounce_duration,
-                            ).await {
-                                if let Some(ref cb) = cb {
-                                    cb(result);
-                                }
+                            ).await;
+                            if let (Some(result), Some(cb)) = (processed, cb.as_ref()) {
+                                cb(result);
                             }
                         }
                         Some(Err(e)) => {
@@ -297,7 +296,7 @@ async fn process_notify_event(
         return None;
     }
 
-    let (topic, final_path_str) = event_to_topic_and_path(event.kind.clone(), path);
+    let (topic, final_path_str) = event_to_topic_and_path(event.kind, path);
     let file_event = file_event_from_topic(topic, &final_path_str, path);
     let bus_event = OmniEvent::new(
         "watcher",

@@ -463,13 +463,13 @@ async fn seed_checkpointed_cli_pending_task(
         .unwrap_or_else(|| panic!("checkpoint should contain pending human work"));
     CheckpointedCliPendingTask {
         token: pending.token_id,
-        process: pending
-            .process_id
-            .clone()
-            .unwrap_or_else(|| checkpoint.state.process.process_id.as_ref().to_string()),
-        activity: pending
-            .activity_id
-            .clone()
-            .unwrap_or_else(|| format!("node#{}", pending.node_index)),
+        process: pending.process_id.as_ref().map_or_else(
+            || checkpoint.state.process.process_id.as_ref().to_string(),
+            |process_id| process_id.as_str().to_string(),
+        ),
+        activity: pending.activity_id.as_ref().map_or_else(
+            || format!("node#{}", pending.node_index),
+            |activity_id| activity_id.as_str().to_string(),
+        ),
     }
 }

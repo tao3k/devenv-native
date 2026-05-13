@@ -1,6 +1,12 @@
+//! BPMN workflow control facade.
+//!
+//! This owner coordinates BPMN orchestration errors, runtime-environment
+//! resolution, and scheduler identity because HTTP and host adapters both need
+//! one stable control-plane seam.
+
+use crate::SchedulerAgentIdentity;
 use crate::bpmn::error::BpmnOrchestrationError;
 use crate::runtime_config::QianjiRuntimeEnv;
-use crate::scheduler_identity::SchedulerAgentIdentity;
 use std::io;
 
 #[path = "service_api/api.rs"]

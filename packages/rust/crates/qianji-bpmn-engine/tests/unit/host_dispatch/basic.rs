@@ -16,7 +16,7 @@ async fn host_dispatch_send_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::SendTask,
         PendingHostWorkRequest::Send(SendTaskRequest {
-            instance_id: ("wf_dispatch".to_string()).into(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             message_reference: "invoice_dispatched".to_string(),
@@ -34,7 +34,7 @@ async fn host_dispatch_service_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::ServiceTask,
         PendingHostWorkRequest::Service(ServiceTaskRequest {
-            instance_id: ("wf_dispatch".to_string()).into(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             variables: json!({ "amount": 7 }),
@@ -51,7 +51,7 @@ async fn host_dispatch_script_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::ScriptTask,
         PendingHostWorkRequest::Script(ScriptTaskRequest {
-            instance_id: ("wf_dispatch".to_string()).into(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             script_format: Some("feel".to_string()),
@@ -213,7 +213,7 @@ async fn host_dispatch_business_rule_request_materializes_from_blocked_instance(
     assert_dispatch_request(
         BpmnNodeKind::BusinessRuleTask,
         PendingHostWorkRequest::BusinessRule(BusinessRuleTaskRequest {
-            instance_id: ("wf_dispatch".to_string()).into(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             evaluation: DmnEvaluationRequest::new(

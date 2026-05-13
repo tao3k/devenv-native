@@ -39,6 +39,8 @@ pub(crate) struct WendaoTomlDocumentExtractConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub(crate) struct WendaoTomlLinkGraphConfig {
     #[serde(default)]
+    pub(crate) include_dirs: Vec<String>,
+    #[serde(default)]
     pub(crate) projects: BTreeMap<String, WendaoTomlProjectConfig>,
     #[serde(default, flatten)]
     pub(crate) extra: BTreeMap<String, toml::Value>,

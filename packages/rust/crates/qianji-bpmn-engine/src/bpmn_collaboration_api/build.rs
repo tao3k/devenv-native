@@ -18,7 +18,7 @@ impl BpmnCollaborationHostEnvelope {
     #[must_use]
     pub(crate) fn from_document_snapshot(snapshot: &BpmnDocumentSnapshot) -> Self {
         let mut envelope = Self {
-            source_id: (Some(Arc::<str>::from(snapshot.source_id.as_str()))).into(),
+            source_id: (Some(Arc::<str>::from(snapshot.source_id.as_str()))),
             ..Self::default()
         };
 
@@ -213,7 +213,7 @@ fn process_correlation_subscription_intent(
     subscription: &BpmnCorrelationSubscriptionSnapshot,
 ) -> BpmnProcessCorrelationSubscriptionIntent {
     BpmnProcessCorrelationSubscriptionIntent {
-        process_id: (Arc::<str>::from(process_id)).into(),
+        process_id: (Arc::<str>::from(process_id)),
         subscription_id: optional_arc(subscription.subscription_id.as_deref()),
         correlation_key_ref: optional_arc(subscription.correlation_key_ref.as_deref()),
         bindings: subscription

@@ -74,26 +74,26 @@ pub(super) fn render_document_manifests(
         )
     })?;
 
-    let mut manifests = Vec::new();
     let page_indices = selected_page_indices.map_or_else(
         || document.pages().as_range().collect::<Vec<_>>(),
         <[i32]>::to_vec,
     );
-    for page_index in page_indices {
-        let page = document.pages().get(page_index).map_err(|error| {
-            ReportParts::fallback(
-                page_count,
-                checked_len_u32(manifests.len()),
-                format!("load page {page_index}: {error}"),
-            )
-        })?;
-        let manifest =
-            render_page_manifest(&page, page_index, context, source_hash).map_err(|error| {
-                ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
+    page_indices
+        .into_iter()
+        .enumerate()
+        .map(|(rendered_count, page_index)| {
+            let rendered_count = checked_len_u32(rendered_count);
+            let page = document.pages().get(page_index).map_err(|error| {
+                ReportParts::fallback(
+                    page_count,
+                    rendered_count,
+                    format!("load page {page_index}: {error}"),
+                )
             })?;
-        manifests.push(manifest);
-    }
-    Ok(manifests)
+            render_page_manifest(&page, page_index, context, source_hash)
+                .map_err(|error| ReportParts::fallback(page_count, rendered_count, error))
+        })
+        .collect()
 }
 
 pub(super) fn source_page_range_document_manifests(
@@ -102,20 +102,20 @@ pub(super) fn source_page_range_document_manifests(
     page_count: u32,
     selected_page_indices: Option<&[i32]>,
 ) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
-    let mut manifests = Vec::new();
     let page_indices = selected_page_indices.map_or_else(
         || source_page_range_all_page_indices(page_count),
         <[i32]>::to_vec,
     );
-    for page_index in page_indices {
-        let page_index =
-            source_page_range_validate_page_index(page_index, page_count).map_err(|error| {
-                ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
-            })?;
-        let manifest = source_page_range_manifest(page_index, context, source_hash);
-        manifests.push(manifest);
-    }
-    Ok(manifests)
+    page_indices
+        .into_iter()
+        .enumerate()
+        .map(|(rendered_count, page_index)| {
+            let rendered_count = checked_len_u32(rendered_count);
+            source_page_range_validate_page_index(page_index, page_count)
+                .map(|page_index| source_page_range_manifest(page_index, context, source_hash))
+                .map_err(|error| ReportParts::fallback(page_count, rendered_count, error))
+        })
+        .collect()
 }
 
 #[cfg(feature = "pdf-render")]

@@ -1,3 +1,5 @@
+//! Flowhub scenario detect surface for `xiuxian-qianji`.
+
 use std::path::Path;
 
 use crate::flowhub::load_flowhub_scenario_manifest;

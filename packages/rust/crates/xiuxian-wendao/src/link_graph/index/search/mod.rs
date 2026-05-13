@@ -1,6 +1,5 @@
 //! `link_graph::index::search` owns Wendao link graph index search behavior.
 /// Public Wendao boundary.
-
 #[path = "context.rs"]
 pub mod context;
 #[path = "emit.rs"]

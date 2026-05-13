@@ -8,6 +8,7 @@ mod code_inventory;
 #[path = "../../../tests/unit/integration_support/search_strategy_flow_candidates/corpus_support.rs"]
 mod corpus;
 mod discovery;
+mod offline_audit;
 mod registry;
 mod repo_search;
 mod structured_index;
@@ -38,29 +39,30 @@ pub(crate) use discovery::{
     search_strategy_flow_candidate_input_batch_from_markdown,
     search_strategy_flow_candidate_input_batch_with_discovery_receipt,
 };
+pub(crate) use offline_audit::link_search_strategy_flow_offline_audit_entrypoints;
 #[cfg(test)]
 pub(crate) use registry::{
     audit_search_strategy_flow_registry_authority,
     search_strategy_flow_registry_authority_candidate_input_batch,
 };
 pub(crate) use repo_search::search_strategy_flow_candidate_input_from_repo_search_hit;
-#[cfg(test)]
 pub(crate) use structured_index::{
-    REGISTRY_METADATA_CANDIDATE_SOURCE, RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
-    search_strategy_flow_total_structured_candidate_index_contract,
-};
-pub(crate) use structured_index::{
-    SearchStrategyFlowStructuredCandidateCounts,
+    REGISTRY_METADATA_CANDIDATE_SOURCE, SearchStrategyFlowStructuredCandidateCounts,
     search_strategy_flow_candidate_discovery_contract_json,
-    search_strategy_flow_configured_structured_candidate_counts,
     search_strategy_flow_total_structured_candidate_index_contract_json,
 };
+#[cfg(test)]
+pub(crate) use structured_index::{
+    RUST_DUCKDB_STRUCTURED_INDEX_BACKEND,
+    search_strategy_flow_total_structured_candidate_index_contract,
+};
+pub(crate) use types::MARKDOWN_HEADING_CANDIDATE_SOURCE;
+#[cfg(test)]
+pub(crate) use types::MAX_CANDIDATES;
 pub(crate) use types::{
     CODE_INTELLIGENCE_CANDIDATE_SOURCE, SearchStrategyFlowCandidateInput,
     SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowRepoSearchHit,
 };
-#[cfg(test)]
-pub(crate) use types::{MARKDOWN_HEADING_CANDIDATE_SOURCE, MAX_CANDIDATES};
 
 #[cfg(test)]
 #[path = "../../../tests/unit/integration_support/search_strategy_flow_candidates/mod.rs"]

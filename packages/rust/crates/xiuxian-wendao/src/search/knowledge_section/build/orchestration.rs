@@ -19,7 +19,6 @@ use tokio::runtime::Handle;
 
 const KNOWLEDGE_SECTION_EXTRACTOR_VERSION: u32 = 1;
 /// `ensure_knowledge_section_index_started` public function boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 pub fn ensure_knowledge_section_index_started(
     service: &SearchPlaneService,
@@ -47,7 +46,6 @@ pub fn ensure_knowledge_section_index_started(
     )
 }
 /// `ensure_knowledge_section_index_started_with_scanned_files` public function boundary for Wendao.
-
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ensure_knowledge_section_index_started_with_scanned_files(
     service: &SearchPlaneService,

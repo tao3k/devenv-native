@@ -12,7 +12,7 @@ use xiuxian_llm::llm::{LlmClient, OpenAICompatibleClient, OpenAIWireApi};
 use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 
 use super::types::RestDocsCliCommand;
-use crate::qianji_cli::common::resolve_path_against_root;
+use crate::qianji_cli::input::resolve_path_against_root;
 
 pub(crate) fn sanitize_prj_cache_home(workspace_root: &Path, resolved: PathBuf) -> PathBuf {
     if resolved.is_absolute() && !resolved.starts_with(workspace_root) {

@@ -11,21 +11,21 @@ fn trim_candidates_keeps_highest_ranked_entries() {
             score: 0.50,
             entity_kind: "example".to_string(),
             name: "zeta".to_string(),
-            path: "src/zeta.rs".to_string().into(),
+            path: "src/zeta.rs".to_string(),
         },
         RepoEntityCandidate {
             id: "symbol:1".to_string(),
             score: 0.93,
             entity_kind: "symbol".to_string(),
             name: "beta".to_string(),
-            path: "src/beta.rs".to_string().into(),
+            path: "src/beta.rs".to_string(),
         },
         RepoEntityCandidate {
             id: "module:1".to_string(),
             score: 0.93,
             entity_kind: "module".to_string(),
             name: "alpha".to_string(),
-            path: "src/alpha.rs".to_string().into(),
+            path: "src/alpha.rs".to_string(),
         },
     ];
 

@@ -1,3 +1,5 @@
+//! Engine api surface for `xiuxian-qianji`.
+
 use crate::consensus::ConsensusPolicy;
 use crate::contracts::{NodeStatus, QianjiMechanism};
 use petgraph::Directed;
@@ -54,11 +56,13 @@ impl QianjiEngine {
     }
 
     /// Adds a mechanism to the graph.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub fn add_mechanism(&mut self, id: &str, mechanism: Arc<dyn QianjiMechanism>) -> NodeIndex {
         self.add_mechanism_with_affinity(id, mechanism, None, NodeExecutionAffinity::default())
     }
 
     /// Adds a mechanism with consensus and execution affinity metadata.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub fn add_mechanism_with_affinity(
         &mut self,
         id: &str,

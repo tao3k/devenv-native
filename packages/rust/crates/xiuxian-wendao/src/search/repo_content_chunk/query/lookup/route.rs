@@ -13,7 +13,6 @@ use super::execution::{execute_repo_content_search, hydrate_repo_content_search_
 use super::filters::RepoContentChunkSearchFilters;
 use super::scan::retained_window;
 /// `search_repo_content_chunks_with_filters` public function boundary for Wendao.
-
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub async fn search_repo_content_chunks_with_filters(

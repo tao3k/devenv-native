@@ -55,7 +55,11 @@ impl Default for PdfOcrWorkerProfile {
     }
 }
 
-/// One OCR worker input row for a rendered page or region shard.
+/// Raw DTO boundary and stringly state boundary for OCR worker input rows.
+///
+/// These fields intentionally mirror the stable Arrow worker contract consumed
+/// by Python and Rust workers, so paths, MIME types, shard ids, and profile
+/// tokens stay serialized as primitive columns.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfOcrShardInput {
@@ -184,7 +188,11 @@ impl PdfOcrShardResultStatus {
     }
 }
 
-/// One OCR worker result row for a rendered page or region shard.
+/// Raw DTO boundary and stringly state boundary for OCR worker result rows.
+///
+/// The result row mirrors the stable Arrow return contract, preserving image
+/// and text MIME types plus element identifiers as serialized primitive fields
+/// while status itself is typed.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfOcrShardResult {

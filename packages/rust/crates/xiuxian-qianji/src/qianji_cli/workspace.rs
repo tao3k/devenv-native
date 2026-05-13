@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use xiuxian_config_core::resolve_project_root_or_cwd_from_value;
 
-use super::common::resolve_path_against_root;
+use super::input::resolve_path_against_root;
 
 pub(crate) fn resolve_workspace_root(explicit: Option<&Path>) -> io::Result<PathBuf> {
     let current_dir = env::current_dir()?;

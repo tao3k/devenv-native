@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 /// Compute structural saliency scores for all symbols and modules in the analysis output.
 /// Returns a map from entity ID to normalized saliency score (0.0 - 1.0).
+#[must_use]
 pub fn compute_repository_saliency(analysis: &RepositoryAnalysisOutput) -> HashMap<String, f64> {
     let mut graph = DiGraph::<String, ()>::new();
     let mut nodes = HashMap::new();

@@ -71,14 +71,20 @@ pub(crate) fn load_document_extract_endpoint_from_wendao_toml_path(
 fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
     let mut projects = Vec::new();
     let mut repo_projects = Vec::new();
+    let global_include_dirs = sanitize_path_list(&parsed.link_graph.include_dirs);
+    let mut global_include_dirs_applied = false;
 
     for (id, project) in parsed.link_graph.projects {
-        let dirs = sanitize_path_list(&project.dirs);
         let root = project
             .root
             .as_deref()
             .and_then(sanitize_path_like)
             .unwrap_or_else(|| ".".to_string());
+        let mut dirs = sanitize_path_list(&project.dirs);
+        if id == "main" && root == "." && !global_include_dirs.is_empty() {
+            dirs = merged_path_list(global_include_dirs.as_slice(), dirs.as_slice());
+            global_include_dirs_applied = true;
+        }
         if !dirs.is_empty() {
             projects.push(UiProjectConfig {
                 name: id.clone(),
@@ -128,10 +134,24 @@ fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
         });
     }
 
+    if !global_include_dirs.is_empty() && !global_include_dirs_applied {
+        projects.push(UiProjectConfig {
+            name: "main".to_string(),
+            root: ".".to_string(),
+            dirs: global_include_dirs,
+        });
+    }
+
     UiConfig {
         projects: sanitize_projects(projects),
         repo_projects: sanitize_repo_projects(repo_projects),
     }
+}
+
+fn merged_path_list(left: &[String], right: &[String]) -> Vec<String> {
+    let mut paths = left.to_vec();
+    paths.extend(right.iter().cloned());
+    sanitize_path_list(&paths)
 }
 
 fn repo_project_plugins_with_defaults(

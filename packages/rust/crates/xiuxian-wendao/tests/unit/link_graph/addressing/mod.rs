@@ -50,7 +50,7 @@ fn test_address_to_display_string() {
 #[test]
 fn test_find_by_id() {
     let node = PageIndexNode {
-        node_id: "doc#section".to_string().into(),
+        node_id: "doc#section".to_string(),
         parent_id: None,
         title: "Section".to_string(),
         level: 1,
@@ -85,7 +85,7 @@ fn test_find_by_id() {
 #[test]
 fn test_find_by_path() {
     let node = PageIndexNode {
-        node_id: "doc#storage".to_string().into(),
+        node_id: "doc#storage".to_string(),
         parent_id: None,
         title: "Storage".to_string(),
         level: 2,
@@ -119,7 +119,7 @@ fn test_find_by_path() {
 #[test]
 fn test_find_by_hash() {
     let node = PageIndexNode {
-        node_id: "doc#section".to_string().into(),
+        node_id: "doc#section".to_string(),
         parent_id: None,
         title: "Section".to_string(),
         level: 1,
@@ -191,7 +191,7 @@ fn test_replace_byte_range_out_of_bounds() {
 #[test]
 fn test_update_section_content() {
     let node = PageIndexNode {
-        node_id: "doc#section".to_string().into(),
+        node_id: "doc#section".to_string(),
         parent_id: None,
         title: "Section".to_string(),
         level: 1,

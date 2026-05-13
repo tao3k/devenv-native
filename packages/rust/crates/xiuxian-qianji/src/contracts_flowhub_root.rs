@@ -1,3 +1,5 @@
+//! Contracts flowhub root surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 use super::flowhub_contract::FlowhubStructureContract;

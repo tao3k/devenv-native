@@ -7,7 +7,6 @@ mod anchor_batch;
 #[path = "openai_ignition.rs"]
 pub mod openai_ignition;
 /// Public Wendao boundary.
-
 #[path = "orchestrate/mod.rs"]
 pub mod orchestrate;
 #[path = "scored_context.rs"]

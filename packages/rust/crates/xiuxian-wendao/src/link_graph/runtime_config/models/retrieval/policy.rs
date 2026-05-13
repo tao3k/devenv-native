@@ -8,7 +8,6 @@ use xiuxian_wendao_runtime::transport::RerankScoreWeights;
 
 use super::semantic_ignition::LinkGraphSemanticIgnitionRuntimeConfig;
 /// `LinkGraphRetrievalPolicyRuntimeConfig` public type boundary for Wendao.
-
 pub struct LinkGraphRetrievalPolicyRuntimeConfig {
     pub mode: LinkGraphRetrievalMode,
     pub candidate_multiplier: usize,

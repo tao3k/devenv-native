@@ -12,7 +12,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index() {
         severity: "error".to_string(),
         issue_type: MISSING_PACKAGE_DOCS_INDEX_ISSUE_TYPE.to_string(),
         doc: "/tmp/demo/docs/index.md".to_string(),
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Missing package docs index".to_string(),
         location: Some(IssueLocation {
             line: 1,
@@ -36,7 +36,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_tree() {
         severity: "warning".to_string(),
         issue_type: MISSING_PACKAGE_DOCS_TREE_ISSUE_TYPE.to_string(),
         doc: "/tmp/demo/docs/index.md".to_string(),
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Missing package docs tree".to_string(),
         location: Some(IssueLocation {
             line: 1,
@@ -60,9 +60,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_section_landing() 
         severity: "warning".to_string(),
         issue_type: MISSING_PACKAGE_DOCS_SECTION_LANDING_ISSUE_TYPE.to_string(),
         doc: "/tmp/demo/docs/03_features/201_demo_feature_ledger.md".to_string(),
-        node_id: "/tmp/demo/docs/03_features/201_demo_feature_ledger.md"
-            .to_string()
-            .into(),
+        node_id: "/tmp/demo/docs/03_features/201_demo_feature_ledger.md".to_string(),
         message: "Missing package docs section landing".to_string(),
         location: Some(IssueLocation {
             line: 1,

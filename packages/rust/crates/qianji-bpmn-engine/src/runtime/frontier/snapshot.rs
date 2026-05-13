@@ -147,7 +147,7 @@ impl<'a> FrontierScanContext<'a> {
 
     fn snapshot_token(&self, token_index: usize, token: &TokenRecord) -> BpmnFrontierEntry {
         BpmnFrontierEntry {
-            token_id: (token.token_id).into(),
+            token_id: (token.token_id),
             token_index,
             node_index: token.node_index,
             incoming_edge_index: token.incoming_edge_index,
@@ -162,7 +162,7 @@ impl<'a> FrontierScanContext<'a> {
     ) -> Option<BpmnFrontierExecutionProposal> {
         (self.classify_token(token) == BpmnFrontierEntryStatus::Runnable).then_some(
             BpmnFrontierExecutionProposal {
-                token_id: (token.token_id).into(),
+                token_id: (token.token_id),
                 token_index,
                 node_index: token.node_index,
                 incoming_edge_index: token.incoming_edge_index,

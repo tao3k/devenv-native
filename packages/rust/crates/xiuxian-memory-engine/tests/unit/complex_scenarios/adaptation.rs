@@ -82,10 +82,10 @@ fn test_two_phase_noise_reduction() -> TestResult {
     }
 
     for i in 0..3 {
-        store.update_q(&format!("ep-{i}"), 1.0);
+        store.update_q(format!("ep-{i}"), 1.0);
     }
     for i in 3..6 {
-        store.update_q(&format!("ep-{i}"), 0.0);
+        store.update_q(format!("ep-{i}"), 0.0);
     }
 
     let query_emb = encoder.encode("database connection error");

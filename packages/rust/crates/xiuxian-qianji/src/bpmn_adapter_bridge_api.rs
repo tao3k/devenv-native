@@ -1,3 +1,5 @@
+//! Bpmn adapter bridge api surface for `xiuxian-qianji`.
+
 use qianji_bpmn_engine::{
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
     HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ScriptTaskOutcome, ScriptTaskRequest,

@@ -1,3 +1,5 @@
+//! Bpmn runtime execution surface for `xiuxian-qianji`.
+
 use super::backend::QianjiBpmnCheckpointStore;
 use super::driver::{
     QianjiBpmnExecutionDriver, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,

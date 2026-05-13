@@ -9,7 +9,7 @@ use crate::qianji_cli::bpmn_cli::types::{
     BpmnCliOutput, BpmnTaskClaimCliCommand, BpmnTaskReleaseCliCommand, BpmnTaskWorklistCliCommand,
 };
 
-use super::shared::workflow_control_service;
+use super::control_service::workflow_control_service;
 
 pub(crate) async fn run_bpmn_task_claim_command(
     command: &BpmnTaskClaimCliCommand,
@@ -85,12 +85,12 @@ fn build_bpmn_workflow_task_claim_request(
     command: &BpmnTaskClaimCliCommand,
 ) -> QianjiBpmnWorkflowTaskClaimRequest {
     QianjiBpmnWorkflowTaskClaimRequest {
-        instance_id: command.instance_id.clone(),
+        instance_id: command.instance_id.clone().into(),
         checkpoint_backend: command.checkpoint_backend.clone(),
         claim: QianjiBpmnWorkflowTaskClaimPayload {
             token_id: command.token_id,
-            process_id: command.process_id.clone(),
-            activity_id: command.activity_id.clone(),
+            process_id: command.process_id.clone().into(),
+            activity_id: command.activity_id.clone().into(),
             claimant: command.claimant.clone(),
         },
     }
@@ -100,12 +100,12 @@ fn build_bpmn_workflow_task_release_request(
     command: &BpmnTaskReleaseCliCommand,
 ) -> QianjiBpmnWorkflowTaskReleaseRequest {
     QianjiBpmnWorkflowTaskReleaseRequest {
-        instance_id: command.instance_id.clone(),
+        instance_id: command.instance_id.clone().into(),
         checkpoint_backend: command.checkpoint_backend.clone(),
         release: QianjiBpmnWorkflowTaskReleasePayload {
             token_id: command.token_id,
-            process_id: command.process_id.clone(),
-            activity_id: command.activity_id.clone(),
+            process_id: command.process_id.clone().into(),
+            activity_id: command.activity_id.clone().into(),
             claimant: command.claimant.clone(),
         },
     }

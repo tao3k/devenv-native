@@ -1,5 +1,5 @@
 use crate::error::QianjiError;
-use crate::flowhub::show::api::FlowhubScenarioCaseSummary;
+use crate::flowhub::show::FlowhubScenarioCaseSummary;
 use serde_json::json;
 
 use super::{FLOWHUB_SCENARIO_CASE_TEMPLATE_NAME, render_embedded_flowhub_block};

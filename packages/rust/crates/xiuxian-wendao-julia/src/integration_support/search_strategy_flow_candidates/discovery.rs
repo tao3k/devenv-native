@@ -74,14 +74,14 @@ pub(crate) fn search_strategy_flow_candidate_input_batch(
     search_strategy_flow_candidate_input_batch_with_discovery_receipt(
         source,
         candidates,
-        default_candidate_discovery_receipt(source, candidates.len()),
+        &default_candidate_discovery_receipt(source, candidates.len()),
     )
 }
 
 pub(crate) fn search_strategy_flow_candidate_input_batch_with_discovery_receipt(
     source: &'static str,
     candidates: &[SearchStrategyFlowCandidateInput],
-    discovery_receipt: Value,
+    discovery_receipt: &Value,
 ) -> SearchStrategyFlowCandidateInputBatch {
     SearchStrategyFlowCandidateInputBatch {
         source,

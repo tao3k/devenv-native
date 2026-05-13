@@ -15,14 +15,12 @@ pub fn redis_client(valkey_url: &str) -> Result<redis::Client, String> {
         .map_err(|err| format!("invalid valkey url for link_graph suggested_link store: {err}"))
 }
 /// `now_unix_f64` public function boundary for Wendao.
-
 pub fn now_unix_f64() -> f64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0.0, |delta| delta.as_secs_f64())
 }
 /// `normalize_optional_string` public function boundary for Wendao.
-
 pub fn normalize_optional_string(value: Option<String>) -> Option<String> {
     value.and_then(|raw| {
         let normalized = raw.trim().to_string();
@@ -34,9 +32,7 @@ pub fn normalize_optional_string(value: Option<String>) -> Option<String> {
     })
 }
 /// `suggestion_id_from_parts` public function boundary for Wendao.
-
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
-
 /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn suggestion_id_from_parts(
     source_id: &str,
@@ -52,7 +48,6 @@ pub fn suggestion_id_from_parts(
     format!("sl_{:016x}", xxh3_64(raw.as_bytes()))
 }
 /// `state_label` public function boundary for Wendao.
-
 pub fn state_label(state: LinkGraphSuggestedLinkState) -> &'static str {
     match state {
         LinkGraphSuggestedLinkState::Provisional => "provisional",
@@ -61,9 +56,7 @@ pub fn state_label(state: LinkGraphSuggestedLinkState) -> &'static str {
     }
 }
 /// `push_stream_entry` public function boundary for Wendao.
-
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
-
 pub fn push_stream_entry(
     conn: &mut redis::Connection,
     stream_key: &str,

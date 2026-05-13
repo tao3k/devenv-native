@@ -45,7 +45,7 @@ pub(crate) fn build_event_poll_request_impl(
 ) -> Result<EventPollRequest> {
     let waits = event_poll_waits(instance)?;
     Ok(EventPollRequest {
-        instance_id: (instance.instance_id.to_string()).into(),
+        instance_id: (instance.instance_id.to_string()),
         gateway_node_index: waits.gateway_node_index,
         waits: waits.waits,
     })

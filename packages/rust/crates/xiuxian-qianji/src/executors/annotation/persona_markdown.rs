@@ -167,17 +167,13 @@ fn persona_id_from_name(name: &str) -> String {
 }
 
 fn dedup_non_empty(values: Vec<String>) -> Vec<String> {
-    let mut out = Vec::new();
-    for value in values {
+    values.into_iter().fold(Vec::new(), |mut out, value| {
         let trimmed = value.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if !out.iter().any(|existing: &String| existing == trimmed) {
+        if !trimmed.is_empty() && !out.iter().any(|existing| existing == trimmed) {
             out.push(trimmed.to_string());
         }
-    }
-    out
+        out
+    })
 }
 
 #[cfg(test)]

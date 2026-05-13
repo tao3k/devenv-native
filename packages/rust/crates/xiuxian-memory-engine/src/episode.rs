@@ -150,8 +150,7 @@ impl Episode {
             scope: draft
                 .scope
                 .as_deref()
-                .map(Self::normalize_scope)
-                .unwrap_or_else(|| GLOBAL_EPISODE_SCOPE.to_string()),
+                .map_or_else(|| GLOBAL_EPISODE_SCOPE.to_string(), Self::normalize_scope),
         }
     }
 

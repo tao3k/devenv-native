@@ -7,7 +7,7 @@ use super::{MatchType, find_node_by_id, match_type_to_string};
 
 fn make_node(node_id: &str, title: &str, children: Vec<PageIndexNode>) -> PageIndexNode {
     PageIndexNode {
-        node_id: node_id.to_string().into(),
+        node_id: node_id.to_string(),
         parent_id: None,
         title: title.to_string(),
         level: 1,

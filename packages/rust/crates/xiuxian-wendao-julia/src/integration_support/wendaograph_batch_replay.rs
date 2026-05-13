@@ -151,7 +151,7 @@ impl SearchStrategyFlowPersistentBatchHost {
     }
 
     /// Prewarm and sample this host before releasing it to user-visible
-    /// SearchStrategyFlow traffic.
+    /// `SearchStrategyFlow` traffic.
     ///
     /// The method keeps the existing TSV, JSON trace, and Flight route
     /// contracts intact. It only turns warm-host measurements into a Rust

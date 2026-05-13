@@ -1,3 +1,5 @@
+//! Api surface for `xiuxian-qianji`.
+
 use crate::bpmn::control::QianjiBpmnWorkflowControlError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};

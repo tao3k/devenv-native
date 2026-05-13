@@ -6,7 +6,6 @@ use crate::link_graph::index::{
 };
 use regex::{Regex, RegexBuilder};
 /// `SearchExecutionContext` public type boundary for Wendao.
-
 #[derive(Debug, Clone)]
 pub struct SearchExecutionContext {
     pub bounded: usize,
@@ -133,7 +132,6 @@ impl LinkGraphIndex {
     }
 }
 /// `SearchRuntimePolicy` public type boundary for Wendao.
-
 #[derive(Debug, Clone)]
 pub struct SearchRuntimePolicy {
     pub scope: LinkGraphScope,

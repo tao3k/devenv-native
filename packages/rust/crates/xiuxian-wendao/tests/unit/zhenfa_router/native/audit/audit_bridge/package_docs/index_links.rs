@@ -18,7 +18,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index_section_link
         severity: "warning".to_string(),
         issue_type: MISSING_PACKAGE_DOCS_INDEX_SECTION_LINK_ISSUE_TYPE.to_string(),
         doc: doc_path,
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Missing package docs index section link".to_string(),
         location: Some(IssueLocation {
             line: 3,
@@ -59,7 +59,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index_relation_lin
         severity: "warning".to_string(),
         issue_type: MISSING_PACKAGE_DOCS_INDEX_RELATION_LINK_ISSUE_TYPE.to_string(),
         doc: doc_path,
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Missing package docs relation link".to_string(),
         location: Some(IssueLocation {
             line: 2,
@@ -101,7 +101,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index_relations_bl
         severity: "warning".to_string(),
         issue_type: MISSING_PACKAGE_DOCS_INDEX_RELATIONS_BLOCK_ISSUE_TYPE.to_string(),
         doc: doc_path,
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Missing package docs relations block".to_string(),
         location: Some(IssueLocation {
             line: 5,
@@ -142,7 +142,7 @@ fn test_generate_surgical_fixes_supports_missing_package_docs_index_footer_block
         severity: "warning".to_string(),
         issue_type: MISSING_PACKAGE_DOCS_INDEX_FOOTER_BLOCK_ISSUE_TYPE.to_string(),
         doc: doc_path,
-        node_id: "/tmp/demo/docs/index.md".to_string().into(),
+        node_id: "/tmp/demo/docs/index.md".to_string(),
         message: "Missing package docs footer block".to_string(),
         location: Some(IssueLocation {
             line: 3,

@@ -1,4 +1,4 @@
-//! Arrow Flight materialization for Rust-owned `SearchStrategyFlow` routes.
+//! Arrow Flight client helpers for Studio-backed `SearchStrategyFlow` routes.
 
 mod candidate_source;
 mod client;

@@ -8,7 +8,7 @@ use crate::analyzers::{RepoSourceKind, RepoSyncResult};
 async fn await_repository_sync_completion_returns_without_waiting_for_full_timeout() {
     let task = tokio::task::spawn_blocking(|| {
         Ok::<RepoSyncResult, RepoIntelligenceError>(RepoSyncResult {
-            repo_id: "alpha/repo".to_string().into(),
+            repo_id: "alpha/repo".to_string(),
             source_kind: RepoSourceKind::ManagedRemote,
             ..RepoSyncResult::default()
         })
@@ -29,7 +29,7 @@ async fn await_repository_sync_completion_reports_timeout_for_stuck_worker() {
     let task = tokio::task::spawn_blocking(|| {
         std::thread::sleep(Duration::from_millis(50));
         Ok::<RepoSyncResult, RepoIntelligenceError>(RepoSyncResult {
-            repo_id: "alpha/repo".to_string().into(),
+            repo_id: "alpha/repo".to_string(),
             source_kind: RepoSourceKind::ManagedRemote,
             ..RepoSyncResult::default()
         })

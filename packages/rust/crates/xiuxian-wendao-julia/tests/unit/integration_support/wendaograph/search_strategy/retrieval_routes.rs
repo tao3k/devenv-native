@@ -104,7 +104,11 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     assert_eq!(projected_rows.len(), 2);
     assert_eq!(
         structured_contract.get("totalCandidateCount"),
-        Some(&serde_json::json!(2851))
+        Some(&serde_json::json!(2))
+    );
+    assert_eq!(
+        structured_contract.get("inventorySource"),
+        Some(&serde_json::json!("gateway-flight-trace"))
     );
     assert_eq!(
         structured_contract.get("juliaInputPolicy"),
@@ -131,11 +135,11 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
     );
     assert_eq!(
         discovery_contract.get("promotionDenominator"),
-        Some(&serde_json::json!(2851))
+        Some(&serde_json::json!(2))
     );
     assert_eq!(
         discovery_contract.get("inputIsNarrowedBatch"),
-        Some(&serde_json::json!(true))
+        Some(&serde_json::json!(false))
     );
     assert_eq!(
         discovery_contract.get("juliaReceivesFullInventory"),

@@ -13,7 +13,7 @@ fn make_test_node(id: &str, title: &str, path: &[&str]) -> PageIndexNode {
         attrs.insert("ID".to_string(), id.to_string());
     }
     PageIndexNode {
-        node_id: format!("doc#{title}").into(),
+        node_id: format!("doc#{title}"),
         parent_id: None,
         title: title.to_string(),
         level: path.len(),

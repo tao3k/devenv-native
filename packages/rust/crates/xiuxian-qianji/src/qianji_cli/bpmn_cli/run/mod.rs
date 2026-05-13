@@ -4,11 +4,11 @@
 
 mod api;
 mod cancel;
+mod control_service;
 mod execution;
 mod instances;
 mod interrupt;
 mod session;
-mod shared;
 mod status;
 mod tasks;
 

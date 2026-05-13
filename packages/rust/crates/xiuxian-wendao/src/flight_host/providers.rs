@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -342,16 +342,16 @@ impl RepoProjectedRetrievalContextFlightRouteProvider for RepoSearchFlightHostPr
     ) -> Result<AnalysisFlightRouteResponse, Status> {
         let effective_repo_id = effective_repo_id(repo_id, self.repo_id.as_str());
         let bootstrap_projection_cache = self.bootstrap_projection_cache()?;
-        let response = resolve_projected_retrieval_context(
-            effective_repo_id.as_str(),
+        let response = resolve_projected_retrieval_context(ProjectedRetrievalContextInput {
+            repo_id: effective_repo_id.as_str(),
             page_id,
             node_id,
             related_limit,
-            self.config_path.as_deref(),
-            self.project_root.as_path(),
-            self.bootstrap_analysis.as_deref(),
-            bootstrap_projection_cache.as_deref(),
-        )?;
+            config_path: self.config_path.as_deref(),
+            project_root: self.project_root.as_path(),
+            bootstrap_analysis: self.bootstrap_analysis.as_deref(),
+            bootstrap_projection_cache: bootstrap_projection_cache.as_deref(),
+        })?;
         let batch =
             repo_projected_retrieval_context_batch(&response, node_id).map_err(Status::internal)?;
         let metadata = repo_projected_retrieval_context_metadata(&response, node_id)
@@ -546,25 +546,30 @@ fn resolve_projected_page_index_tree(
     })))
 }
 
-fn resolve_projected_retrieval_context(
-    repo_id: &str,
-    page_id: &str,
-    node_id: Option<&str>,
+#[derive(Clone, Copy)]
+struct ProjectedRetrievalContextInput<'a> {
+    repo_id: &'a str,
+    page_id: &'a str,
+    node_id: Option<&'a str>,
     related_limit: usize,
-    config_path: Option<&std::path::Path>,
-    project_root: &std::path::Path,
-    bootstrap_analysis: Option<&RepositoryAnalysisOutput>,
-    bootstrap_projection_cache: Option<&BootstrapProjectionCache>,
+    config_path: Option<&'a Path>,
+    project_root: &'a Path,
+    bootstrap_analysis: Option<&'a RepositoryAnalysisOutput>,
+    bootstrap_projection_cache: Option<&'a BootstrapProjectionCache>,
+}
+
+fn resolve_projected_retrieval_context(
+    input: ProjectedRetrievalContextInput<'_>,
 ) -> Result<crate::analyzers::RepoProjectedRetrievalContextResult, Status> {
     let mut last_unknown_page = None;
-    for page_id in projected_page_id_variants(repo_id, page_id) {
+    for page_id in projected_page_id_variants(input.repo_id, input.page_id) {
         let query = RepoProjectedRetrievalContextQuery {
-            repo_id: repo_id.to_string(),
+            repo_id: input.repo_id.to_string(),
             page_id,
-            node_id: node_id.map(str::to_string),
-            related_limit,
+            node_id: input.node_id.map(str::to_string),
+            related_limit: input.related_limit,
         };
-        if let Some(cache) = bootstrap_projection_cache {
+        if let Some(cache) = input.bootstrap_projection_cache {
             match cache.retrieval_context(&query) {
                 Ok(response) => return Ok(response),
                 Err(error) if is_unknown_projected_page(&error) => {
@@ -573,14 +578,18 @@ fn resolve_projected_retrieval_context(
                 Err(error) => return Err(internal_status(error)),
             }
         }
-        match repo_projected_retrieval_context_from_config(&query, config_path, project_root) {
+        match repo_projected_retrieval_context_from_config(
+            &query,
+            input.config_path,
+            input.project_root,
+        ) {
             Ok(response) => return Ok(response),
-            Err(error) if should_try_bootstrap_projection(&error, bootstrap_analysis) => {
+            Err(error) if should_try_bootstrap_projection(&error, input.bootstrap_analysis) => {
                 remember_unknown_page(&mut last_unknown_page, error);
             }
             Err(error) => return Err(internal_status(error)),
         }
-        if let Some(analysis) = bootstrap_analysis {
+        if let Some(analysis) = input.bootstrap_analysis {
             match build_repo_projected_retrieval_context(&query, analysis) {
                 Ok(response) => return Ok(response),
                 Err(error) if is_unknown_projected_page(&error) => {
@@ -592,8 +601,8 @@ fn resolve_projected_retrieval_context(
     }
     Err(internal_status(last_unknown_page.unwrap_or_else(|| {
         RepoIntelligenceError::UnknownProjectedPage {
-            repo_id: repo_id.to_string().into(),
-            page_id: page_id.to_string().into(),
+            repo_id: input.repo_id.to_string().into(),
+            page_id: input.page_id.to_string().into(),
         }
     })))
 }

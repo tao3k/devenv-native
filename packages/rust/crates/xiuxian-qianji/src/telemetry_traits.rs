@@ -1,3 +1,5 @@
+//! Telemetry traits surface for `xiuxian-qianji`.
+
 use super::SwarmEvent;
 use async_trait::async_trait;
 

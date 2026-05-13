@@ -51,7 +51,7 @@ pub(super) fn build_wait_registration(
     };
 
     Ok(WaitRegistration {
-        process_id: (Some(process.key.process_id.to_string())).into(),
+        process_id: (Some(process.key.process_id.to_string())),
         node_index,
         blocking_node_index,
         kind: wait_kind,
@@ -106,9 +106,9 @@ pub(super) fn block_on_host_work(
         .map(|node| node.bpmn_id.to_string());
     let pending = PendingHostWork {
         token_id,
-        process_id: (Some(process.key.process_id.as_ref().into())).into(),
+        process_id: (Some(process.key.process_id.as_ref().into())),
         node_index,
-        activity_id: (activity_id.map(Into::into)).into(),
+        activity_id: (activity_id.map(Into::into)),
         kind,
         decision: None,
         lane,
@@ -147,7 +147,7 @@ pub(super) fn block_on_business_rule_work(
         })?;
     let pending = PendingHostWork {
         token_id,
-        process_id: (Some(process.key.process_id.as_ref().into())).into(),
+        process_id: (Some(process.key.process_id.as_ref().into())),
         node_index,
         activity_id: process
             .nodes

@@ -12,7 +12,10 @@ use super::routing::image_routing_decision;
 
 const HEADER_READ_LIMIT_BYTES: u64 = 1024 * 1024;
 
-/// Bounded Rust-side metadata for one image attachment.
+/// Raw DTO boundary and stringly state boundary for one image audit row.
+///
+/// The public audit report is serialized for routing diagnostics, so MIME type
+/// and decision fields remain primitive tokens at this transport edge.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AttachmentAudit {

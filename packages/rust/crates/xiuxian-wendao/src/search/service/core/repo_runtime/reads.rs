@@ -172,7 +172,8 @@ impl SearchPlaneService {
             .await;
         let changed_records = reconciled_records
             .iter()
-            .filter_map(|(_, record, changed)| changed.then(|| record.clone()))
+            .filter(|&(_, _record, changed)| *changed)
+            .map(|(_, record, _changed)| record.clone())
             .collect::<Vec<_>>();
         let reconciled = reconciled_records
             .into_iter()

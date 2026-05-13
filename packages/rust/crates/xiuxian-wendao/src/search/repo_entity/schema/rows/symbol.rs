@@ -49,7 +49,10 @@ pub(crate) fn build_symbol_row(
             ENTITY_KIND_SYMBOL,
             language.clone(),
             Some(symbol_kind.as_str()),
-            symbol.audit_status.as_ref().map(|status| status.as_str()),
+            symbol
+                .audit_status
+                .as_ref()
+                .map(xiuxian_wendao_core::repo_intelligence::RepoAuditStatus::as_str),
         ),
         score: saliency_score,
         best_section: symbol

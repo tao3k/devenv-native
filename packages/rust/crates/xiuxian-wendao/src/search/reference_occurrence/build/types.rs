@@ -19,7 +19,6 @@ pub(crate) struct ReferenceOccurrenceWriteResult {
     pub(crate) fragment_count: u64,
 }
 /// `ReferenceOccurrenceBuildError` public enum boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
 pub enum ReferenceOccurrenceBuildError {

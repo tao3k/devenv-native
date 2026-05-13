@@ -34,7 +34,6 @@ pub fn build_symbol_search(
     )
 }
 /// `build_symbol_search_with_artifacts` public function boundary for Wendao.
-
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 pub fn build_symbol_search_with_artifacts(

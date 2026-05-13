@@ -81,7 +81,16 @@ Polyglot boundary:
    as the real Flight-backed warm-host entry point and
    `stabilize_with_flight_materialization` as the pre-release admission report
    path. The report exports a stable JSON evidence object for later harness or
-   receipt archival.
+   receipt archival. The `wendaograph_search_strategy_flow` binary exposes that
+   report path through `--persistent-warm-samples <count>` without changing the
+   default trace schema. Root-backed warm Flight evidence currently shows
+   direct bridge repeats at `15.01s` and `13.11s`, while one persistent host
+   report measured `19363.439 ms` prewarm and `54.343 ms` / `145.905 ms` warm
+   submits. The binary also exposes `--serve-stdio` as a JSONL local-session
+   adapter that keeps one Rust bridge and Julia host alive across requests; the
+   first two-request root-backed proof measured `20557.705 ms` for the warmup
+   request and `83.391 ms` for the second request while preserving required
+   evidence coverage.
    The bridge also adds `rustProjectedEvidenceRows` to the JSON trace as
    additive research metadata over candidates, frontier selection, planner
    materialization, and planned route counts. That projection is a bridge

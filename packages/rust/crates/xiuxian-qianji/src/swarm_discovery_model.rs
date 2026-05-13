@@ -1,3 +1,5 @@
+//! Swarm discovery model surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 use super::discovery_util::normalize_optional_text;

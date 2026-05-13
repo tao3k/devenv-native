@@ -244,10 +244,10 @@ fn enqueue_detached_host_work(
     let token_id = state::allocate_token_id(instance);
     let pending = PendingHostWork {
         token_id,
-        process_id: (Some(process_id.into())).into(),
+        process_id: (Some(process_id.into())),
         node_index,
-        activity_id: (Some(activity_id.into())).into(),
-        kind: (spec.kind).into(),
+        activity_id: (Some(activity_id.into())),
+        kind: (spec.kind),
         decision: spec.decision,
         lane: None,
         script_format: spec.script_format,

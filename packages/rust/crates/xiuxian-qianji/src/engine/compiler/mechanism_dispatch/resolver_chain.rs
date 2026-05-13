@@ -3,11 +3,11 @@ use crate::engine::compiler_api::QianjiCompiler;
 use crate::error::QianjiError;
 use std::sync::Arc;
 
-use crate::engine::compiler::task_type;
+use crate::engine::compiler::TaskType;
 
 #[derive(Clone, Copy)]
 pub(super) struct DispatchContext<'a> {
-    pub(super) task_type: task_type::TaskType,
+    pub(super) task_type: TaskType,
     pub(super) compiler: &'a QianjiCompiler,
     pub(super) node_def: &'a NodeDefinition,
 }

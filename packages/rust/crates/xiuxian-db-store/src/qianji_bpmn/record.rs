@@ -53,11 +53,11 @@ macro_rules! qianji_bpmn_string_type {
 }
 
 qianji_bpmn_string_type!(
-    /// Workflow instance identifier in the Qianji BPMN DuckDB data store.
+    /// Workflow instance identifier in the Qianji BPMN `DuckDB` data store.
     QianjiBpmnInstanceId
 );
 qianji_bpmn_string_type!(
-    /// Workflow-local data record key in the Qianji BPMN DuckDB data store.
+    /// Workflow-local data record key in the Qianji BPMN `DuckDB` data store.
     QianjiBpmnRecordKey
 );
 

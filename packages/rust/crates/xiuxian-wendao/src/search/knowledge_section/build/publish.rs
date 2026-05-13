@@ -18,7 +18,6 @@ use crate::search::knowledge_section::schema::projected_columns;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::{BeginBuildDecision, SearchCorpusKind, SearchPlaneService};
 /// `publish_knowledge_sections_from_projects` public function boundary for Wendao.
-
 #[cfg(any(test, feature = "test-support"))]
 pub async fn publish_knowledge_sections_from_projects(
     service: &SearchPlaneService,

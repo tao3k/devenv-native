@@ -2,7 +2,6 @@
 
 use xiuxian_db_store::VectorStoreError;
 /// `RepoContentChunkSearchError` public enum boundary for Wendao.
-
 #[derive(Debug, thiserror::Error)]
 pub enum RepoContentChunkSearchError {
     #[error(transparent)]

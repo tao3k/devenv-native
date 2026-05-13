@@ -21,7 +21,7 @@ use super::support::{
 use super::types::{
     ContractFeedbackCliCommand, ContractFeedbackCliOutput, REST_DOCS_PACK_ID, RestDocsCliCommand,
 };
-use crate::qianji_cli::common::resolve_cli_path;
+use crate::qianji_cli::input::resolve_cli_path;
 use crate::qianji_cli::workspace::resolve_workspace_root;
 
 pub(crate) async fn handle_contract_feedback_command(

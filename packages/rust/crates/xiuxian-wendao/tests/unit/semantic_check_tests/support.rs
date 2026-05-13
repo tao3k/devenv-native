@@ -5,7 +5,7 @@ pub(super) fn create_node_with_observations(
     observations: Vec<CodeObservation>,
 ) -> PageIndexNode {
     PageIndexNode {
-        node_id: node_id.to_string().into(),
+        node_id: node_id.to_string(),
         parent_id: None,
         title: "Test Node".to_string(),
         level: 1,

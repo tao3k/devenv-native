@@ -29,40 +29,20 @@ impl VectorStore {
     ) -> Result<TableHealthReport, VectorStoreError> {
         let row_count = self.count(table_name).await?;
         let fragments = self.get_fragment_stats(table_name).await?;
-        let fragment_count = fragments.len();
-        let total_rows = f64::from(row_count);
-        let fragment_count_f64 =
-            u32::try_from(fragment_count).map_or(f64::from(u32::MAX), f64::from);
-        let fragmentation_ratio = if total_rows > 0.0 {
-            fragment_count_f64 / total_rows
-        } else {
-            0.0
-        };
-
         let indices = self.describe_indices(table_name).await?;
-        let indices_status: Vec<IndexStatus> = indices
-            .iter()
-            .map(|d| IndexStatus {
-                name: d.name().to_string(),
-                index_type: d.index_type().to_string(),
-            })
-            .collect();
-
         let has_vector = self.has_vector_index(table_name).await?;
         let has_scalar = self.has_scalar_index(table_name).await?;
-        let needs_indices =
-            row_count as usize >= ROW_COUNT_INDEX_THRESHOLD && (!has_vector || !has_scalar);
-
-        let mut recommendations = Vec::new();
-        if fragmentation_ratio > FRAGMENTATION_RATIO_THRESHOLD {
-            recommendations.push(Recommendation::RunCompaction);
-        }
-        if needs_indices {
-            recommendations.push(Recommendation::CreateIndices);
-        }
-        if recommendations.is_empty() {
-            recommendations.push(Recommendation::None);
-        }
+        let fragment_count = fragments.len();
+        let fragmentation_ratio = fragmentation_ratio(row_count, fragment_count);
+        let indices_status = index_statuses(&indices);
+        let recommendations = health_recommendations(
+            row_count,
+            fragmentation_ratio,
+            IndexCoverage {
+                has_vector,
+                has_scalar,
+            },
+        );
 
         Ok(TableHealthReport {
             row_count,
@@ -128,4 +108,52 @@ impl VectorStore {
             hit_rate,
         })
     }
+}
+
+#[derive(Clone, Copy)]
+struct IndexCoverage {
+    has_vector: bool,
+    has_scalar: bool,
+}
+
+fn fragmentation_ratio(row_count: u32, fragment_count: usize) -> f64 {
+    let total_rows = f64::from(row_count);
+    if total_rows == 0.0 {
+        return 0.0;
+    }
+    let fragment_count_f64 = u32::try_from(fragment_count).map_or(f64::from(u32::MAX), f64::from);
+    fragment_count_f64 / total_rows
+}
+
+fn index_statuses(indices: &[Arc<dyn lance_index::IndexDescription>]) -> Vec<IndexStatus> {
+    indices
+        .iter()
+        .map(|description| IndexStatus {
+            name: description.name().to_string(),
+            index_type: description.index_type().to_string().into(),
+        })
+        .collect()
+}
+
+fn health_recommendations(
+    row_count: u32,
+    fragmentation_ratio: f64,
+    coverage: IndexCoverage,
+) -> Vec<Recommendation> {
+    let mut recommendations = Vec::new();
+    if fragmentation_ratio > FRAGMENTATION_RATIO_THRESHOLD {
+        recommendations.push(Recommendation::RunCompaction);
+    }
+    if needs_indices(row_count, coverage) {
+        recommendations.push(Recommendation::CreateIndices);
+    }
+    if recommendations.is_empty() {
+        recommendations.push(Recommendation::None);
+    }
+    recommendations
+}
+
+fn needs_indices(row_count: u32, coverage: IndexCoverage) -> bool {
+    row_count as usize >= ROW_COUNT_INDEX_THRESHOLD
+        && (!coverage.has_vector || !coverage.has_scalar)
 }

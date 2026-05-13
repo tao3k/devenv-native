@@ -1,4 +1,4 @@
-use crate::flowhub::show::api::FlowhubModuleSummary;
+use crate::flowhub::show::FlowhubModuleSummary;
 use serde_json::json;
 
 use super::{

@@ -43,7 +43,7 @@ pub(crate) fn build_doc_relations(
         relations.extend(target_ids.into_iter().map(|target_id| RelationRecord {
             repo_id: doc.repo_id.clone(),
             source_id: doc.doc_id.clone().to_string(),
-            target_id: target_id.to_string(),
+            target_id,
             kind: RelationKind::Documents,
         }));
     }

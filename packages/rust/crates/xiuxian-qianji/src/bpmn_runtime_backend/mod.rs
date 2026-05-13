@@ -1,3 +1,5 @@
+//! Checkpoint backend branch for BPMN runtime persistence.
+
 #[cfg(feature = "duckdb")]
 #[path = "duckdb.rs"]
 mod duckdb;

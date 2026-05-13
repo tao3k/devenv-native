@@ -103,21 +103,21 @@ fn run_audit_core_with_index(
     let source_files = resolved_source_files(args);
     let build_result = index.build_registry_index_with_collisions();
     let mut issues = Vec::new();
-    collect_workspace_doc_governance(args, &index, &checks, &mut file_contents, &mut issues);
+    collect_workspace_doc_governance(args, index, &checks, &mut file_contents, &mut issues);
     if checks.contains(&CheckType::IdCollisions) {
         check_id_collisions(&build_result, &mut issues);
     }
 
     let registry = build_result.registry;
     let trees = index.all_page_index_trees();
-    let docs_to_check = docs_to_check(args.doc.as_deref(), &trees);
+    let docs_to_check = docs_to_check(args.doc.as_deref(), trees);
 
     if let Some(explicit_doc) = args.doc.as_deref() {
         seed_explicit_doc_content(explicit_doc, &mut file_contents);
     }
 
     let audit_context = AuditCoreContext {
-        trees: &trees,
+        trees,
         registry: &registry,
         checks: &checks,
         include_warnings,
@@ -184,9 +184,9 @@ fn collect_workspace_doc_governance(
     }
     let workspace_issues =
         docs_governance::collect_workspace_doc_governance_issues(index.root(), args.doc.as_deref());
-    workspace_issues
-        .iter()
-        .for_each(|issue| seed_explicit_doc_content(&issue.doc, file_contents));
+    for issue in &workspace_issues {
+        seed_explicit_doc_content(&issue.doc, file_contents);
+    }
     issues.extend(workspace_issues);
 }
 
@@ -270,9 +270,9 @@ fn check_doc_trees(
         source_files: audit_context.source_files,
         fuzzy_threshold: audit_context.fuzzy_threshold,
     };
-    doc_trees
-        .iter()
-        .for_each(|root| check_node(root, &audit_pass, issues));
+    for root in doc_trees {
+        check_node(root, &audit_pass, issues);
+    }
 }
 
 fn collect_explicit_doc_governance(

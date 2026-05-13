@@ -23,7 +23,7 @@ pub fn make_prewarm_task(
 ) -> RepoMaintenanceTask {
     RepoMaintenanceTask::Prewarm(RepoPrewarmTask {
         corpus,
-        repo_id: repo_id.to_string().into(),
+        repo_id: repo_id.to_string(),
         table_name: table_name.to_string(),
         projected_columns: projected_columns
             .iter()
@@ -42,7 +42,7 @@ pub fn make_compaction_task(
 ) -> RepoMaintenanceTask {
     RepoMaintenanceTask::Compaction(RepoCompactionTask {
         corpus,
-        repo_id: repo_id.to_string().into(),
+        repo_id: repo_id.to_string(),
         publication_id: publication_id.to_string(),
         table_name: table_name.to_string(),
         row_count,

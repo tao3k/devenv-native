@@ -2,10 +2,10 @@ use super::{ProjectedMarkdownDocument, ProjectionPageKind, build_document_segmen
 
 fn sample_document() -> ProjectedMarkdownDocument {
     ProjectedMarkdownDocument {
-        repo_id: "repo-a".to_string().into(),
-        page_id: "page-a".to_string().into(),
+        repo_id: "repo-a".to_string(),
+        page_id: "page-a".to_string(),
         kind: ProjectionPageKind::Reference,
-        path: "reference/page-a.md".to_string().into(),
+        path: "reference/page-a.md".to_string(),
         title: "Page A".to_string(),
         markdown: "# Page A\n## Anchors\nBody line\n### Integrator\nChild body\n".to_string(),
     }

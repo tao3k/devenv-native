@@ -1,3 +1,5 @@
+//! Task-mechanism branch modules used by the Qianji compiler.
+
 #[path = "engine/compiler/task_mechanisms/invocation.rs"]
 mod invocation;
 #[path = "engine/compiler/task_mechanisms/io_control.rs"]

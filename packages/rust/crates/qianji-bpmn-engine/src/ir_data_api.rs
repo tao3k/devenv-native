@@ -32,7 +32,7 @@ impl BpmnDataObjectBindingSpec {
         let object_id = Arc::<str>::from(object_id.as_ref());
         Self {
             object_id: Arc::clone(&object_id),
-            reference_id: (Some(Arc::<str>::from(reference_id.as_ref()))).into(),
+            reference_id: (Some(Arc::<str>::from(reference_id.as_ref()))),
             variable_ref: object_id,
         }
     }

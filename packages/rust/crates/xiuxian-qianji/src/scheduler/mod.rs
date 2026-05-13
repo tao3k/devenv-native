@@ -9,6 +9,6 @@ mod execution;
 mod types;
 
 pub use self::types::{QianjiScheduler, SchedulerRuntimeServices};
-pub use crate::scheduler_checkpoint::QianjiStateSnapshot;
-pub use crate::scheduler_identity::SchedulerAgentIdentity;
-pub use crate::scheduler_policy::{RoleAvailabilityRegistry, SchedulerExecutionPolicy};
+pub use crate::{
+    QianjiStateSnapshot, RoleAvailabilityRegistry, SchedulerAgentIdentity, SchedulerExecutionPolicy,
+};
