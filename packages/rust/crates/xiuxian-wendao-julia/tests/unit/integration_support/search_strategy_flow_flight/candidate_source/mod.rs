@@ -1,13 +1,16 @@
 use crate::integration_support::search_strategy_flow_candidates::{
     SearchStrategyFlowCandidateInput, WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
 };
+pub(super) use crate::integration_support::search_strategy_flow_flight::query::RepoSearchAttempt;
 
 use super::{
-    CandidateDiscoveryRankingMode, calibrate_candidate_discovery_scores,
-    candidate_discovery_attempt_receipt, candidate_discovery_priority, candidate_discovery_receipt,
-    candidate_matches_relation_path_evidence, merge_candidate_discovery_result,
-    rank_candidate_discovery_results, rank_candidate_discovery_results_for_intent,
-    ranking_mode_for_intent, retain_unique_candidate_sources, should_stop_candidate_discovery,
+    CandidateDiscoveryRankingMode, apply_exact_markdown_attempt_score_floor,
+    calibrate_candidate_discovery_scores, candidate_discovery_attempt_receipt,
+    candidate_discovery_priority, candidate_discovery_receipt,
+    candidate_from_exact_markdown_attempt, candidate_matches_relation_path_evidence,
+    merge_candidate_discovery_result, rank_candidate_discovery_results,
+    rank_candidate_discovery_results_for_intent, ranking_mode_for_intent,
+    retain_unique_candidate_sources, should_stop_candidate_discovery,
 };
 
 mod early_stop;

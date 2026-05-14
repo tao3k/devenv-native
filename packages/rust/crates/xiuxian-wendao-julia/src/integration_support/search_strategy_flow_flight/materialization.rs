@@ -228,6 +228,22 @@ async fn materialize_route(
                 ),
             );
         }
+        Err(error) if is_projected_page_not_found_error(error.message.as_str()) => {
+            return missing_projected_page_receipt_for_repo_search(
+                &repo_search,
+                heading_anchor,
+                SearchStrategyFlowRouteTimings {
+                    repo_search: repo_search.elapsed_ms,
+                    page_index: error.elapsed_ms,
+                    retrieval_context: 0,
+                    graph: 0,
+                },
+                format!(
+                    "SearchStrategyFlow page-index materialization skipped because projected page is unavailable: {}",
+                    error.message
+                ),
+            );
+        }
         Err(error) => return Err(error.message),
     };
 
@@ -400,6 +416,51 @@ fn structured_code_relation_receipt_for_repo_search(
         repo_search_resolution_warning: repo_search.resolution_warning.clone(),
         timings,
         page_index_materialization_warning,
+    })
+}
+
+fn missing_projected_page_receipt_for_repo_search(
+    repo_search: &RepoSearchMaterialization,
+    heading_anchor: Option<&str>,
+    timings: SearchStrategyFlowRouteTimings,
+    page_index_materialization_warning: String,
+) -> Result<SearchStrategyFlowRouteReceipt, String> {
+    let resolved_node_id = heading_anchor
+        .filter(|anchor| !anchor.trim().is_empty())
+        .map_or_else(|| repo_search.path.clone(), str::to_owned);
+    let empty_batches = Vec::new();
+    let route_receipts = route_receipts(
+        &repo_search.batches,
+        &empty_batches,
+        &empty_batches,
+        &empty_batches,
+        &timings,
+    );
+    let decoded_payload_receipts = decoded_payload_receipts(&DecodedPayloadReceiptInput {
+        repo_search_path: repo_search.path.as_str(),
+        repo_search_batches: &repo_search.batches,
+        page_index_batches: &empty_batches,
+        retrieval_context_batches: &empty_batches,
+        graph_batches: &empty_batches,
+        node_id: resolved_node_id.as_str(),
+        graph_node_id: None,
+        graph_materialization_status: "projected-page-missing",
+    })?;
+    Ok(SearchStrategyFlowRouteReceipt {
+        materialized_rows: row_count(&repo_search.batches),
+        resolved_page_id: repo_search.page_id.clone(),
+        resolved_node_id,
+        resolved_graph_node_id: None,
+        graph_materialization_status: "projected-page-missing",
+        repo_search_resolution_status: repo_search.resolution_status,
+        repo_search_resolution_warning: repo_search.resolution_warning.clone(),
+        page_index_materialization_warning: Some(page_index_materialization_warning),
+        graph_materialization_warning: Some(
+            "SearchStrategyFlow graph-neighbor materialization skipped because page-index tree was unavailable"
+                .to_owned(),
+        ),
+        route_receipts,
+        decoded_payload_receipts,
     })
 }
 

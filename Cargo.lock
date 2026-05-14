@@ -11485,6 +11485,7 @@ dependencies = [
  "lopdf",
  "num-traits",
  "pdfium-render",
+ "rayon",
  "rust-lang-project-harness",
  "serde",
  "serde_json",
@@ -11577,7 +11578,9 @@ dependencies = [
  "xiuxian-memory-engine",
  "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-core",
+ "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
+ "xiuxian-wendao-sql",
 ]
 
 [[package]]
@@ -11587,6 +11590,7 @@ dependencies = [
  "blake3",
  "chrono",
  "comrak",
+ "jsonschema",
  "orgize",
  "rust-lang-project-harness",
  "serde",

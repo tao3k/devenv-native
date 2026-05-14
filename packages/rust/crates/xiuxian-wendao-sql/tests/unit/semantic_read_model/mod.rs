@@ -9,11 +9,13 @@ use xiuxian_wendao_parsers::semantic_ssot::{
 
 use crate::semantic_read_model::{
     SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
-    SEMANTIC_RELATIONS_TABLE_NAME, SemanticSqlGuardStatus, build_semantic_read_model_rows,
+    SEMANTIC_RELATIONS_TABLE_NAME, SemanticSqlGuardStatus,
+    build_semantic_read_model_record_batches, build_semantic_read_model_rows,
     query_semantic_read_model_payload, run_semantic_sql_projection_freshness_guard,
     semantic_read_model_catalog, semantic_read_model_materialization_plan,
-    semantic_read_model_materialization_preflight, semantic_read_model_snapshot,
-    semantic_read_model_snapshot_check, validate_semantic_read_model_query_text,
+    semantic_read_model_materialization_preflight, semantic_read_model_record_batches_from_rows,
+    semantic_read_model_snapshot, semantic_read_model_snapshot_check,
+    validate_semantic_read_model_query_text,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -22,6 +24,7 @@ mod catalog;
 mod guard;
 mod materialization;
 mod query;
+mod record_batches;
 mod snapshot;
 
 fn write_file(path: &Path, body: &str) -> std::io::Result<()> {

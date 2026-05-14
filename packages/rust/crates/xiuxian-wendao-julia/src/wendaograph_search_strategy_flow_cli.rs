@@ -10,12 +10,12 @@ use std::{
 use crate::integration_support::{
     SearchStrategyFlowFlightMaterializationConfig, SearchStrategyFlowPersistentBatchHost,
     SearchStrategyFlowPersistentHostStabilizationLimits,
-    run_wendaograph_search_strategy_flow_json_with_flight_materialization,
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements,
 };
 use serde::Deserialize;
 use serde_json::json;
 
-const USAGE: &str = "usage: wendaograph_search_strategy_flow --intent <text> [--search-root <path>] [--flight-base-url <url> [--flight-repo <repo>]] [--persistent-warm-samples <count>] [--serve-stdio]";
+const USAGE: &str = "usage: wendaograph_search_strategy_flow --intent <text> [--search-root <path>] [--flight-base-url <url> [--flight-repo <repo>]] [--branch-judgements-tsv <tsv>] [--persistent-warm-samples <count>] [--serve-stdio]";
 const STDIO_SESSION_RESPONSE_KIND: &str =
     "xiuxian_wendao.wendaograph.search_strategy_flow.persistent_stdio_response.v1";
 
@@ -66,10 +66,11 @@ async fn run(args: Args) -> Result<String, String> {
             .ok_or_else(|| "--persistent-warm-samples requires --flight-base-url".to_owned())?;
         return run_persistent_stabilization_report(&args, intent, &config, sample_count).await;
     }
-    run_wendaograph_search_strategy_flow_json_with_flight_materialization(
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements(
         intent,
         args.search_root.as_path(),
         config,
+        args.branch_judgements_tsv.as_deref().unwrap_or(""),
     )
     .await
 }
@@ -131,7 +132,12 @@ async fn run_persistent_stdio_session(
         let response = match parse_stdio_session_request(&line) {
             Ok(request) => {
                 let result = host
-                    .submit_with_flight_materialization(&request.intent, config)
+                    .submit_with_flight_materialization_and_branch_judgements_and_ontology_registry(
+                        &request.intent,
+                        config,
+                        request.branch_judgements_tsv.as_deref().unwrap_or(""),
+                        request.ontology_registry_tsv.as_deref().unwrap_or(""),
+                    )
                     .await;
                 stdio_session_response(request.request_id.as_deref(), started, result)
             }
@@ -154,6 +160,8 @@ async fn run_persistent_stdio_session(
 struct StdioSessionRequest {
     request_id: Option<String>,
     intent: String,
+    branch_judgements_tsv: Option<String>,
+    ontology_registry_tsv: Option<String>,
 }
 
 fn parse_stdio_session_request(line: &str) -> Result<StdioSessionRequest, String> {
@@ -165,6 +173,8 @@ fn parse_stdio_session_request(line: &str) -> Result<StdioSessionRequest, String
     Ok(StdioSessionRequest {
         request_id: request.request_id,
         intent: request.intent.trim().to_owned(),
+        branch_judgements_tsv: request.branch_judgements_tsv,
+        ontology_registry_tsv: request.ontology_registry_tsv,
     })
 }
 
@@ -214,6 +224,7 @@ struct Args {
     flight_timeout_seconds: u64,
     persistent_warm_samples: Option<usize>,
     serve_stdio: bool,
+    branch_judgements_tsv: Option<String>,
 }
 
 impl Args {
@@ -243,6 +254,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args, String> {
     let mut flight_timeout_seconds = 30;
     let mut persistent_warm_samples = None;
     let mut serve_stdio = false;
+    let mut branch_judgements_tsv = None;
     let mut args = args.peekable();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -277,6 +289,12 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args, String> {
                     .parse::<u64>()
                     .map_err(|error| format!("invalid --flight-timeout-seconds: {error}"))?
                     .max(1);
+            }
+            "--branch-judgements-tsv" => {
+                branch_judgements_tsv = Some(
+                    args.next()
+                        .ok_or_else(|| "missing value for --branch-judgements-tsv".to_owned())?,
+                );
             }
             "--persistent-warm-samples" => {
                 let sample_count = args
@@ -320,6 +338,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Args, String> {
         flight_timeout_seconds,
         persistent_warm_samples,
         serve_stdio,
+        branch_judgements_tsv,
     })
 }
 

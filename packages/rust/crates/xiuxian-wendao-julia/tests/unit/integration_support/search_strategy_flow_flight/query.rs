@@ -124,6 +124,128 @@ fn candidate_discovery_queries_start_with_full_intent_for_corpus_recall() {
     );
 }
 
+#[test]
+fn candidate_discovery_queries_include_policy_package_and_roadmap_surfaces() {
+    let governance_attempts = candidate_discovery_queries(
+        "Find the Markdown governance rules for modularity, debt closure, and warning cleanup in this repository.",
+    );
+    assert!(governance_attempts.iter().any(|attempt| {
+        attempt.query == "modularity debt warning cleanup" && attempt.path_prefix == "AGENTS.md"
+    }));
+    assert!(governance_attempts.iter().any(|attempt| {
+        attempt.query == "Hyper Modularity"
+            && attempt.path_prefix == "docs/standards/AUDITOR_CODEX.md"
+    }));
+    assert!(governance_attempts.iter().any(|attempt| {
+        attempt.query == "modularity debt warning cleanup"
+            && attempt.path_prefix == "docs/standards"
+    }));
+
+    let docling_attempts = candidate_discovery_queries(
+        "Find the Markdown package documentation for attachment-side Docling structure, OCR shard provenance, and page index ordering.",
+    );
+    assert!(docling_attempts.iter().any(|attempt| {
+        attempt.query == "Docling OCR shard provenance page index"
+            && attempt.path_prefix == "packages/rust/crates/xiuxian-wendao-attachments/README.md"
+    }));
+    assert!(docling_attempts.iter().any(|attempt| {
+        attempt.query == "Docling OCR shard provenance page index"
+            && attempt.path_prefix == "packages/python/xiuxian-wendao-analyzer/README.md"
+    }));
+    assert!(
+        !docling_attempts
+            .iter()
+            .any(|attempt| attempt.path_prefix
+                == "packages/rust/crates/xiuxian-wendao/docs/06_roadmap/403_document_projection_and_retrieval_enhancement.md"),
+        "attachment package documentation should not pull the global page-index roadmap"
+    );
+
+    let projected_page_attempts = candidate_discovery_queries(
+        "Find the Markdown roadmap explaining projected documentation pages, page index, and graph-enhanced retrieval.",
+    );
+    assert!(projected_page_attempts.iter().any(|attempt| {
+        attempt.query == "projected documentation pages graph enhanced retrieval"
+            && attempt.path_prefix == "packages/rust/crates/xiuxian-wendao/docs/06_roadmap"
+    }));
+    assert!(projected_page_attempts.iter().any(|attempt| {
+        attempt.query == "projected documentation pages graph enhanced retrieval"
+            && attempt.path_prefix
+                == "packages/rust/crates/xiuxian-wendao/docs/06_roadmap/403_document_projection_and_retrieval_enhancement.md"
+    }));
+
+    let studio_attempts = candidate_discovery_queries(
+        "Find the Markdown package docs that define Studio ownership of SearchStrategyFlow Flight materialization.",
+    );
+    assert!(studio_attempts.iter().any(|attempt| {
+        attempt.query == "Studio SearchStrategyFlow Flight materialization ownership"
+            && attempt.path_prefix == "packages/rust/crates/xiuxian-wendao-studio/README.md"
+    }));
+    assert!(studio_attempts.iter().any(|attempt| {
+        attempt.query == "SearchStrategyFlow Flight materialization bridge"
+            && attempt.path_prefix == "packages/rust/crates/xiuxian-wendao-julia/README.md"
+    }));
+
+    let query_engine_attempts = candidate_discovery_queries(
+        "Find the RFC Markdown section that establishes the Wendao query engine ownership boundary and source authority.",
+    );
+    assert!(query_engine_attempts.iter().any(|attempt| {
+        attempt.query == "Wendao query engine ownership boundary source authority"
+            && attempt.path_prefix == "docs/rfcs/2026-03-26-wendao-query-engine-rfc.md"
+    }));
+
+    let testing_attempts = candidate_discovery_queries(
+        "Find the Markdown validation path that explains local validation and CI test proof.",
+    );
+    assert!(testing_attempts.iter().any(|attempt| {
+        attempt.query == "local validation CI test proof"
+            && attempt.path_prefix == "docs/developer/testing.md"
+    }));
+
+    let memory_attempts = candidate_discovery_queries(
+        "Find the Markdown RFC that places SearchStrategyFlow in the working-knowledge memory layer.",
+    );
+    assert!(memory_attempts.iter().any(|attempt| {
+        attempt.query == "validated SearchStrategyFlow working knowledge memory layer"
+            && attempt.path_prefix == "docs/rfcs/2026-04-05-wendao-memory-layer-boundaries-rfc.md"
+    }));
+
+    let benchmark_attempts = candidate_discovery_queries(
+        "Find the Markdown benchmark profile contract for SearchStrategyFlow frontier rows and required evidence coverage.",
+    );
+    assert!(benchmark_attempts.iter().any(|attempt| {
+        attempt.query == "SearchStrategyFlow frontier rows required evidence coverage"
+            && attempt.path_prefix
+                == "packages/python/wendao-knowledge-retrieval-benchmark/docs/profile_contract.md"
+    }));
+
+    let link_graph_attempts = candidate_discovery_queries(
+        "Find the Markdown standard that explains LinkGraph code adaptation and graph search evidence.",
+    );
+    assert!(link_graph_attempts.iter().any(|attempt| {
+        attempt.query == "LinkGraph code adaptation graph search evidence"
+            && attempt.path_prefix == "docs/02_dev/standards/LINK_GRAPH_CODE_ADAPTATION.md"
+    }));
+    assert!(
+        !link_graph_attempts
+            .iter()
+            .any(|attempt| attempt.path_prefix == "AGENTS.md"
+                || attempt.path_prefix == "docs/standards/AUDITOR_CODEX.md"),
+        "ordinary standard queries must not pull governance/modularity surfaces"
+    );
+
+    let polyglot_attempts = candidate_discovery_queries(
+        "Find the Markdown RFC and audit for the polyglot compute orchestrator boundary calibration.",
+    );
+    assert!(polyglot_attempts.iter().any(|attempt| {
+        attempt.query == "polyglot compute orchestrator boundary calibration"
+            && attempt.path_prefix == "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md"
+    }));
+    assert!(polyglot_attempts.iter().any(|attempt| {
+        attempt.query == "polyglot compute orchestrator boundary calibration audit"
+            && attempt.path_prefix == "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md"
+    }));
+}
+
 fn position_matching<T>(
     items: &[T],
     predicate: impl Fn(&T) -> bool,

@@ -11,6 +11,9 @@ use xiuxian_wendao_runtime::transport::{
     WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
 };
 
+pub(super) const ANALYSIS_SEMANTIC_SCOPE_ROUTE: &str = "/analysis/semantic-scope";
+const WENDAO_SEMANTIC_SCOPE_OBJECT_IDS_HEADER: &str = "x-wendao-semantic-object-ids";
+
 pub(super) fn populate_repo_search_headers(
     metadata: &mut MetadataMap,
     repo_id: &str,
@@ -96,6 +99,21 @@ pub(super) fn populate_graph_neighbors_headers(
     insert_header(metadata, WENDAO_GRAPH_DIRECTION_HEADER, direction)?;
     insert_header(metadata, WENDAO_GRAPH_HOPS_HEADER, &hops.to_string())?;
     insert_header(metadata, WENDAO_GRAPH_LIMIT_HEADER, &limit.to_string())
+}
+
+pub(super) fn populate_semantic_scope_headers(
+    metadata: &mut MetadataMap,
+    object_ids: &[String],
+) -> Result<(), String> {
+    populate_schema_headers(metadata)?;
+    if object_ids.is_empty() {
+        return Ok(());
+    }
+    insert_header(
+        metadata,
+        WENDAO_SEMANTIC_SCOPE_OBJECT_IDS_HEADER,
+        object_ids.join(",").as_str(),
+    )
 }
 
 fn populate_schema_headers(metadata: &mut MetadataMap) -> Result<(), String> {

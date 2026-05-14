@@ -14,6 +14,8 @@ use super::{
 mod code_substitute;
 #[path = "flight_materialization_cases/core.rs"]
 mod core;
+#[path = "flight_materialization_cases/missing_projected_page.rs"]
+mod missing_projected_page;
 #[path = "flight_materialization_cases/reference_routes.rs"]
 mod reference_routes;
 #[path = "flight_materialization_cases/structured_source.rs"]

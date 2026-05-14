@@ -1,0 +1,171 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://xiuxian.local/schemas/wendao/org-trace-projection-contract.draft.schema.json",
+  "title": "Wendao Org Trace Projection Contract",
+  "description": "Draft parser-owned DTO contract for Org reasoning traces compiled from orgize output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "traceId", "sourcePath", "sourceHash", "sections"],
+  "properties": {
+    "schema": {
+      "const": "xiuxian_wendao.org_trace_projection.v0.draft"
+    },
+    "traceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourcePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceHash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/traceSection"
+      }
+    }
+  },
+  "$defs": {
+    "sourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startLine", "endLine"],
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "startColumn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endColumn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "stringMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "traceState": {
+      "type": "string",
+      "enum": ["todo", "doing", "blocked", "done", "cancelled", "unknown"]
+    },
+    "planning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scheduled": {
+          "type": "string"
+        },
+        "deadline": {
+          "type": "string"
+        },
+        "closed": {
+          "type": "string"
+        }
+      }
+    },
+    "traceTable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "purpose", "columns", "rows"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "candidate_relations",
+            "validation_findings",
+            "action_parameters",
+            "query_parameters",
+            "evidence",
+            "decision_log"
+          ]
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stringMap"
+          }
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/sourceSpan"
+        }
+      }
+    },
+    "traceSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traceSectionId",
+        "path",
+        "state",
+        "properties",
+        "sourceSpan"
+      ],
+      "properties": {
+        "traceSectionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "state": {
+          "$ref": "#/$defs/traceState"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "properties": {
+          "$ref": "#/$defs/stringMap"
+        },
+        "planning": {
+          "$ref": "#/$defs/planning"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traceTable"
+          }
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/sourceSpan"
+        }
+      }
+    }
+  }
+}

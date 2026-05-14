@@ -14,6 +14,8 @@ mod lib_policy;
 mod lint;
 #[path = "unit/note.rs"]
 mod note;
+#[path = "unit/ontology_contract/mod.rs"]
+mod ontology_contract;
 #[path = "unit/org.rs"]
 mod org;
 #[path = "unit/references.rs"]

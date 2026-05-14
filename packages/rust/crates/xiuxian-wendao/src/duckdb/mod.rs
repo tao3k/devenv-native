@@ -11,6 +11,8 @@
 mod arrow;
 #[cfg(feature = "duckdb")]
 mod connection;
+#[cfg(feature = "duckdb")]
+mod dataset_ontology;
 mod engine;
 /// Public Wendao boundary.
 #[cfg(feature = "duckdb")]
@@ -24,6 +26,12 @@ mod tests;
 
 #[cfg(feature = "duckdb")]
 pub use connection::{SearchDuckDbConnection, open_search_duckdb_connection};
+#[cfg(feature = "duckdb")]
+pub use dataset_ontology::{
+    DatasetOntologyArrowIpcSourceTableSpec, DatasetOntologyDuckDbMaterializer,
+    DatasetOntologyRuntimeMaterializationReport, DatasetOntologyRuntimeMaterializationRequest,
+    read_dataset_ontology_arrow_ipc_source_table,
+};
 #[cfg(feature = "duckdb")]
 pub use engine::DuckDbLocalRelationEngine;
 #[cfg(all(feature = "duckdb", test))]

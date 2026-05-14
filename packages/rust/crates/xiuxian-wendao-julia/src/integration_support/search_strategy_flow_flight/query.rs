@@ -45,10 +45,12 @@ pub(super) fn candidate_discovery_queries(intent: &str) -> Vec<RepoSearchAttempt
         push_required_evidence_candidate_attempts(&mut attempts, terms.as_slice());
         push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
         push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
+        push_domain_surface_candidate_attempts(&mut attempts, terms.as_slice());
     }
     push_repo_search_attempt(&mut attempts, trimmed, "");
     push_repo_search_attempt(&mut attempts, terms.join(" ").as_str(), "");
     if !frontload_route_attempts {
+        push_domain_surface_candidate_attempts(&mut attempts, terms.as_slice());
         push_required_evidence_candidate_attempts(&mut attempts, terms.as_slice());
         push_exact_anchor_candidate_attempts(&mut attempts, terms.as_slice());
         push_route_hint_candidate_attempts(&mut attempts, terms.as_slice());
@@ -187,6 +189,172 @@ fn push_exact_anchor_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, t
             "packages/rust/crates/xiuxian-wendao-julia/docs",
         );
         push_repo_search_attempt(attempts, "validation path", "docs/testing");
+        push_repo_search_attempt(
+            attempts,
+            "local validation CI test proof",
+            "docs/developer/testing.md",
+        );
+    }
+}
+
+fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, terms: &[String]) {
+    if has_any_term(
+        terms,
+        &[
+            "governance",
+            "modularity",
+            "modular",
+            "warning",
+            "warnings",
+            "debt",
+            "policy",
+            "auditor",
+            "agent",
+            "agents",
+        ],
+    ) {
+        push_repo_search_attempt(attempts, "modularity debt warning cleanup", "AGENTS.md");
+        push_repo_search_attempt(attempts, "Debt Closure", "AGENTS.md");
+        push_repo_search_attempt(
+            attempts,
+            "modularity debt warning cleanup",
+            "docs/standards",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "Hyper Modularity",
+            "docs/standards/AUDITOR_CODEX.md",
+        );
+        push_repo_search_attempt(attempts, "governance modularity warnings", "docs/standards");
+    }
+
+    if has_any_term(
+        terms,
+        &[
+            "attachment",
+            "attachments",
+            "analyzer",
+            "docling",
+            "ocr",
+            "shard",
+            "shards",
+            "provenance",
+        ],
+    ) {
+        push_repo_search_attempt(
+            attempts,
+            "Docling OCR shard provenance page index",
+            "packages/rust/crates/xiuxian-wendao-attachments/README.md",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "Docling OCR shard provenance page index",
+            "packages/python/xiuxian-wendao-analyzer/README.md",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "Docling structure OCR shard provenance",
+            "packages/rust/crates/xiuxian-wendao-attachments",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "Docling structure OCR shard provenance",
+            "packages/python/xiuxian-wendao-analyzer",
+        );
+    }
+
+    if has_any_term(terms, &["studio", "flight", "materialization"]) {
+        push_repo_search_attempt(
+            attempts,
+            "Studio SearchStrategyFlow Flight materialization ownership",
+            "packages/rust/crates/xiuxian-wendao-studio/README.md",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "SearchStrategyFlow Flight materialization bridge",
+            "packages/rust/crates/xiuxian-wendao-julia/README.md",
+        );
+    }
+
+    if has_all_terms(terms, &["query", "engine"]) {
+        push_repo_search_attempt(
+            attempts,
+            "Wendao query engine ownership boundary source authority",
+            "docs/rfcs/2026-03-26-wendao-query-engine-rfc.md",
+        );
+    }
+
+    if has_any_term(terms, &["memory", "working", "knowledge"])
+        && has_any_term(terms, &["searchstrategyflow", "search", "strategy", "flow"])
+    {
+        push_repo_search_attempt(
+            attempts,
+            "validated SearchStrategyFlow working knowledge memory layer",
+            "docs/rfcs/2026-04-05-wendao-memory-layer-boundaries-rfc.md",
+        );
+    }
+
+    if has_any_term(terms, &["benchmark", "profile", "contract"]) {
+        push_repo_search_attempt(
+            attempts,
+            "SearchStrategyFlow frontier rows required evidence coverage",
+            "packages/python/wendao-knowledge-retrieval-benchmark/docs/profile_contract.md",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "SearchStrategyFlow benchmark architecture",
+            "packages/python/wendao-knowledge-retrieval-benchmark/docs/architecture.md",
+        );
+    }
+
+    if has_all_terms(terms, &["link", "graph"]) && has_any_term(terms, &["code", "adaptation"]) {
+        push_repo_search_attempt(
+            attempts,
+            "LinkGraph code adaptation graph search evidence",
+            "docs/02_dev/standards/LINK_GRAPH_CODE_ADAPTATION.md",
+        );
+    }
+
+    if has_any_term(terms, &["polyglot", "orchestrator"]) {
+        push_repo_search_attempt(
+            attempts,
+            "polyglot compute orchestrator boundary calibration",
+            "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "polyglot compute orchestrator boundary calibration audit",
+            "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md",
+        );
+    }
+
+    if has_all_terms(terms, &["page", "index"])
+        && has_any_term(
+            terms,
+            &[
+                "projected",
+                "projection",
+                "retrieval",
+                "enhancement",
+                "roadmap",
+            ],
+        )
+    {
+        push_repo_search_attempt(
+            attempts,
+            "projected documentation pages graph enhanced retrieval",
+            "packages/rust/crates/xiuxian-wendao/docs/06_roadmap",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "projected documentation pages graph enhanced retrieval",
+            "packages/rust/crates/xiuxian-wendao/docs/06_roadmap/403_document_projection_and_retrieval_enhancement.md",
+        );
+        push_repo_search_attempt(
+            attempts,
+            "page index projected documentation retrieval",
+            "packages/python/wendao-knowledge-retrieval-benchmark",
+        );
     }
 }
 

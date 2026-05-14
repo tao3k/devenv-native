@@ -159,6 +159,8 @@ tests live under `tests/unit/transport/query_contract/`.
 - `graph/`: neighbors and topology contracts
 - `analysis/`: markdown and code-AST request validation
 - `repo/`: repo analysis and refine-doc contracts
+- `ontology/`: dataset-to-ontology multi-table Arrow handoff route,
+  metadata headers, and manifest validation
 - `rerank/`: rerank schema, batch validation, and scoring
 - `tests/`: query contract coverage split by the same feature families
 

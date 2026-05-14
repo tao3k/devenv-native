@@ -39,8 +39,9 @@ pub use query::{
 };
 pub use register::{
     SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
-    SEMANTIC_RELATIONS_TABLE_NAME, build_semantic_read_model_rows,
-    register_semantic_read_model_tables,
+    SEMANTIC_RELATIONS_TABLE_NAME, SemanticReadModelRecordBatches,
+    build_semantic_read_model_record_batches, build_semantic_read_model_rows,
+    register_semantic_read_model_tables, semantic_read_model_record_batches_from_rows,
 };
 pub use rows::{
     SemanticObjectReadModelRow, SemanticProjectionStateReadModelRow, SemanticReadModelRows,

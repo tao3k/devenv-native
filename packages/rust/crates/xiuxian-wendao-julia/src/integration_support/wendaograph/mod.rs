@@ -4,6 +4,7 @@
 mod batch_replay;
 mod constants;
 mod host;
+pub mod ontology_read_model;
 #[path = "../wendaograph_persistent_host_report.rs"]
 mod persistent_host_report;
 #[path = "../wendaograph_probes.rs"]
@@ -41,6 +42,7 @@ pub use host::{
     enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     parse_search_strategy_flow_probe_action, run_wendaograph_search_strategy_flow_json,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements,
     search_strategy_flow_probe_action_route,
 };
 #[cfg(test)]
@@ -48,6 +50,33 @@ pub(crate) use host::{
     configured_wendaograph_search_strategy_flow_markdown_replay_families,
     configured_wendaograph_search_strategy_flow_markdown_replay_families_with_limit,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
+    run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements,
+};
+#[cfg(test)]
+pub(crate) use ontology_read_model::{
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_ARROW_IPC_MIME,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_CAPABILITY_ID,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_FLIGHT_DESCRIPTOR_PATH,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_METHOD,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROVIDER_ID,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_TABLES,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_RESPONSE_TABLE,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_ROUTE,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SERVICE,
+    WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
+    WendaoGraphOntologyReadModelQualityArrowRequest,
+    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
+    WendaoGraphOntologyReadModelQualityRequestBatches,
+    build_wendaograph_ontology_read_model_quality_arrow_request,
+    build_wendaograph_ontology_read_model_quality_flight_binding,
+    build_wendaograph_ontology_read_model_quality_flight_descriptor,
+    build_wendaograph_ontology_read_model_quality_flight_request_batch,
+    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
+    wendaograph_ontology_read_model_quality_provider_selector,
 };
 pub use persistent_host_report::{
     SearchStrategyFlowPersistentHostStabilizationLimits,

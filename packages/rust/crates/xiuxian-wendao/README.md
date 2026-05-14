@@ -139,6 +139,19 @@ Use `xiuxian-wendao` for:
   resolves the local embedded path convention under
   `$PRJ_DATA_HOME/wendao/event_lake/`
 - analyzers, enhancers, and other Wendao domain services
+- DuckDB-backed dataset-to-ontology materialization for raw Arrow/Flight source
+  tables, using source contracts from
+  [`wendao-episteme`](../../../../wendao-episteme/README.md) and bounded SQL
+  helper seams from
+  [`xiuxian-wendao-sql`](../xiuxian-wendao-sql/README.md). The callable
+  runtime seam is `duckdb::DatasetOntologyDuckDbMaterializer`; production
+  Gateway or Flight upload routes must call this materializer rather than
+  reimplementing DuckDB setup or source-contract SQL orchestration. The same
+  seam can build requests from named Arrow IPC stream files emitted by
+  source-contract tooling, keeping Python on validation and handoff only.
+  The stable transport manifest and route constants live in
+  [`xiuxian-wendao-runtime`](../xiuxian-wendao-runtime/README.md) under the
+  ontology query-contract family.
 - business handlers that materialize Wendao-specific responses
 - temporary compatibility seams that have not been extracted yet
 

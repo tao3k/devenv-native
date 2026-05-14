@@ -19,6 +19,7 @@ use super::{
     run_wendaograph_search_strategy_flow_json,
     run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
+    run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     search_strategy_flow_candidate_input_batch_from_repo_search,
     search_strategy_flow_probe_action_route,
@@ -35,6 +36,7 @@ const WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS_ENV: &str =
     "WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS";
 
 mod live_probes;
+mod ontology_read_model;
 mod relationship_search;
 mod reports;
 mod search_strategy;

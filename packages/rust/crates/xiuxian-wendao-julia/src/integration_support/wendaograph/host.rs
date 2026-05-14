@@ -22,6 +22,7 @@ use crate::integration_support::search_strategy_flow_candidates::{
 use crate::integration_support::search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
     search_strategy_flow_candidate_input_batch_from_repo_search,
+    search_strategy_flow_ontology_registry_tsv_from_semantic_scope,
 };
 
 use super::probes::{resolve_existing_path, wendaograph_julia_project};
@@ -155,6 +156,25 @@ pub(crate) fn run_wendaograph_search_strategy_flow_json_with_candidate_batch(
         intent,
         search_root,
         candidate_batch,
+        "",
+        "",
+    )?;
+    enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace)
+}
+
+#[cfg(test)]
+pub(crate) fn run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+    candidate_batch: SearchStrategyFlowCandidateInputBatch,
+    branch_judgements_tsv: &str,
+) -> Result<String, String> {
+    let trace = run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
+        intent,
+        search_root,
+        candidate_batch,
+        branch_judgements_tsv,
+        "",
     )?;
     enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace)
 }
@@ -201,19 +221,49 @@ pub async fn run_wendaograph_search_strategy_flow_json_with_flight_materializati
     search_root: impl Into<PathBuf>,
     config: Option<SearchStrategyFlowFlightMaterializationConfig>,
 ) -> Result<String, String> {
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements(
+        intent,
+        search_root,
+        config,
+        "",
+    )
+    .await
+}
+
+/// Runs local `WendaoGraph.jl` `SearchStrategyFlow` through the Rust owner
+/// bridge with optional Agent branch-judgement rows.
+///
+/// # Errors
+///
+/// Returns an error when the Julia host request fails, route enrichment fails,
+/// or configured Flight materialization cannot decode route evidence.
+pub async fn run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+    config: Option<SearchStrategyFlowFlightMaterializationConfig>,
+    branch_judgements_tsv: &str,
+) -> Result<String, String> {
     validate_search_strategy_flow_intent(intent)?;
     let search_root = search_root.into();
     let trace = match config.as_ref() {
         Some(config) => {
             let candidate_batch =
                 search_strategy_flow_candidate_input_batch_from_repo_search(intent, config).await?;
+            let ontology_registry_tsv =
+                search_strategy_flow_ontology_registry_tsv_from_semantic_scope(config).await?;
             run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
                 intent,
                 search_root.as_path(),
                 candidate_batch,
+                branch_judgements_tsv,
+                ontology_registry_tsv.as_str(),
             )?
         }
-        None => run_wendaograph_search_strategy_flow_raw_json(intent, search_root.as_path())?,
+        None => run_wendaograph_search_strategy_flow_raw_json_with_branch_judgements(
+            intent,
+            search_root.as_path(),
+            branch_judgements_tsv,
+        )?,
     };
     match config {
         Some(config) => {
@@ -230,6 +280,14 @@ fn run_wendaograph_search_strategy_flow_raw_json(
     intent: &str,
     search_root: impl Into<PathBuf>,
 ) -> Result<String, String> {
+    run_wendaograph_search_strategy_flow_raw_json_with_branch_judgements(intent, search_root, "")
+}
+
+fn run_wendaograph_search_strategy_flow_raw_json_with_branch_judgements(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+    branch_judgements_tsv: &str,
+) -> Result<String, String> {
     validate_search_strategy_flow_intent(intent)?;
     let search_root = search_root.into();
     let search_root =
@@ -240,6 +298,8 @@ fn run_wendaograph_search_strategy_flow_raw_json(
         intent,
         search_root.as_path(),
         candidate_batch,
+        branch_judgements_tsv,
+        "",
     )
 }
 
@@ -247,6 +307,8 @@ fn run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
     intent: &str,
     search_root: impl Into<PathBuf>,
     candidate_batch: SearchStrategyFlowCandidateInputBatch,
+    branch_judgements_tsv: &str,
+    ontology_registry_tsv: &str,
 ) -> Result<String, String> {
     validate_search_strategy_flow_intent(intent)?;
 
@@ -272,6 +334,8 @@ fn run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
         .arg(candidate_batch.tsv)
         .arg(candidate_batch.source)
         .arg(candidate_batch.discovery_receipt_json)
+        .arg(branch_judgements_tsv)
+        .arg(ontology_registry_tsv)
         .output()
         .map_err(|error| format!("spawn WendaoGraph SearchStrategyFlow host request: {error}"))?;
 

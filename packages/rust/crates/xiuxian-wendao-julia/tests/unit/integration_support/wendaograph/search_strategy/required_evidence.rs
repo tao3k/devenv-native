@@ -1,6 +1,7 @@
 use super::{
     SearchStrategyFlowCandidateInputBatch,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
+    run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements,
 };
 
 #[test]
@@ -74,5 +75,68 @@ fn search_strategy_flow_rust_bridge_reserves_required_evidence_frontier() {
                         })
             }),
         "validation-path candidate must be selected by the required-evidence frontier"
+    );
+}
+
+#[test]
+fn search_strategy_flow_rust_bridge_applies_agent_branch_judgements() {
+    let candidate_rows = [
+        "docs/a.md\towner\tOwner branch\t1\t12\t8\t0.88\t0.80\t0.60\t0.80\t0.10\tfalse\tgeneral",
+        "docs/b.md\tvalidation\tValidation branch\t13\t24\t8\t0.86\t0.78\t0.60\t0.78\t0.10\tfalse\tgeneral",
+        "docs/c.md\trelation\tRelation branch\t25\t36\t8\t0.84\t0.76\t0.60\t0.76\t0.10\tfalse\tgeneral",
+        "docs/d.md\tblocked\tBlocked branch\t37\t48\t8\t0.90\t0.90\t0.90\t0.90\t0.02\tfalse\tgeneral",
+    ];
+    let batch = SearchStrategyFlowCandidateInputBatch {
+        source: "rust-code-intelligence-inventory",
+        row_count: candidate_rows.len(),
+        tsv: candidate_rows.join("\n"),
+        discovery_receipt_json: serde_json::json!({
+            "receiptSource": "rust-code-intelligence-inventory",
+            "candidateInputSource": "rust-code-intelligence-inventory",
+            "candidateInputCount": candidate_rows.len(),
+            "transport": "unit",
+            "route": "unit-branch-judgement-frontier",
+            "attemptCount": 1,
+            "mergedCandidateCount": candidate_rows.len()
+        })
+        .to_string(),
+    };
+    let branch_judgements = [
+        "pi-wendao-search-strategy-flow\tdocs/a.md#owner\tauthority\t0.950000\t0.900000\tkeep\tfalse\tAgent judged ownership boundary evidence.",
+        "pi-wendao-search-strategy-flow\tdocs/b.md#validation\tvalidation\t0.940000\t0.900000\tkeep\tfalse\tAgent judged validation path evidence.",
+        "pi-wendao-search-strategy-flow\tdocs/c.md#relation\tlink_graph\t0.930000\t0.900000\tkeep\tfalse\tAgent judged relation path evidence.",
+        "pi-wendao-search-strategy-flow\tdocs/d.md#blocked\tsearch_strategy\t0.100000\t0.900000\treject\ttrue\tAgent rejected this branch.",
+    ]
+    .join("\n");
+
+    let trace =
+        run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements(
+            "find the SearchStrategyFlow ownership boundary and validation path",
+            ".",
+            batch,
+            &branch_judgements,
+        )
+        .unwrap_or_else(|error| panic!("run branch judgement frontier bridge trace: {error}"));
+    let trace: serde_json::Value = serde_json::from_str(&trace)
+        .unwrap_or_else(|error| panic!("parse branch judgement frontier trace: {error}"));
+    let selected_ids = trace
+        .get("frontier")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|row| row.get("selected").and_then(serde_json::Value::as_bool) == Some(true))
+        .filter_map(|row| row.get("candidateId").and_then(serde_json::Value::as_str))
+        .collect::<Vec<_>>();
+
+    assert!(selected_ids.contains(&"docs/a.md#owner"));
+    assert!(selected_ids.contains(&"docs/b.md#validation"));
+    assert!(selected_ids.contains(&"docs/c.md#relation"));
+    assert!(!selected_ids.contains(&"docs/d.md#blocked"));
+    assert_eq!(
+        trace
+            .get("validation")
+            .and_then(|validation| validation.get("requiredEvidenceCovered"))
+            .and_then(serde_json::Value::as_bool),
+        Some(true)
     );
 }

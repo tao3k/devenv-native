@@ -91,6 +91,30 @@ Polyglot boundary:
    first two-request root-backed proof measured `20557.705 ms` for the warmup
    request and `83.391 ms` for the second request while preserving required
    evidence coverage.
+   The ontology read-model quality bridge is separate from SearchStrategyFlow:
+   `build_wendaograph_ontology_read_model_quality_arrow_request(...)` packages
+   accepted semantic read-model `RecordBatch` tables as Arrow IPC streams for
+   `WendaoGraph.jl`'s `OntologyReadModelQuality` service contract. It keeps
+   read-model materialization in `xiuxian-wendao-sql`, graph-quality scoring in
+   `WendaoGraph.jl`, and Rust bridge responsibility limited to Arrow-native
+   request packaging. The companion
+   `build_wendaograph_ontology_read_model_quality_flight_request_batch(...)`
+   wraps the three payloads into one Arrow request-bundle table for the
+   WendaoGraph Flight route, and
+   `build_wendaograph_ontology_read_model_quality_flight_descriptor(...)`
+   builds the matching `FlightDescriptor` path.
+   `build_wendaograph_ontology_read_model_quality_flight_binding(...)` builds
+   the runtime-negotiable Arrow Flight binding for callers that use the shared
+   Wendao transport client, and
+   `roundtrip_wendaograph_ontology_read_model_quality_with_binding(...)` sends
+   the request bundle through that runtime-owned negotiated client. The focused
+   Rust smoke constructs those payloads
+   from `xiuxian-wendao-sql` semantic read-model `RecordBatch` output before
+   bundle packaging, proving the bridge consumes the SQL owner surface rather
+   than a registry JSON file. The opt-in live loopback test starts the
+   WendaoGraph ontology quality runner and sends the same bundle through the
+   runtime Flight client; it is not part of the default test path because it
+   launches a real Julia service process.
    The bridge also adds `rustProjectedEvidenceRows` to the JSON trace as
    additive research metadata over candidates, frontier selection, planner
    materialization, and planned route counts. That projection is a bridge

@@ -22,6 +22,7 @@ use crate::integration_support::search_strategy_flow_candidates::SearchStrategyF
 use crate::integration_support::search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
     search_strategy_flow_candidate_input_batch_from_repo_search,
+    search_strategy_flow_ontology_registry_tsv_from_semantic_scope,
 };
 
 /// Run a batched `WendaoGraph` `SearchStrategyFlow` JSON host replay.
@@ -96,6 +97,7 @@ impl SearchStrategyFlowPersistentBatchHost {
     /// Returns an error when the batch request is invalid, stdin cannot be
     /// written, stdout cannot be read, or the trace count differs from the
     /// submitted batch count.
+    #[cfg(test)]
     pub(crate) fn submit(
         &mut self,
         candidate_batches: Vec<(&str, SearchStrategyFlowCandidateInputBatch)>,
@@ -107,6 +109,8 @@ impl SearchStrategyFlowPersistentBatchHost {
             write_payload(&mut self.stdin, &candidate_batch.tsv)?;
             write_payload(&mut self.stdin, candidate_batch.source)?;
             write_payload(&mut self.stdin, &candidate_batch.discovery_receipt_json)?;
+            write_payload(&mut self.stdin, "")?;
+            write_payload(&mut self.stdin, "")?;
         }
         self.stdin.flush().map_err(|error| {
             format!("flush persistent WendaoGraph SearchStrategyFlow batch host stdin: {error}")
@@ -132,10 +136,63 @@ impl SearchStrategyFlowPersistentBatchHost {
         intent: &str,
         config: &SearchStrategyFlowFlightMaterializationConfig,
     ) -> Result<String, String> {
+        self.submit_with_flight_materialization_and_branch_judgements(intent, config, "")
+            .await
+    }
+
+    /// Discover candidates through Flight, submit them with Agent branch
+    /// judgements to the warm Julia process, and materialize planned routes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when Flight candidate discovery fails, the warm Julia
+    /// host returns an invalid trace count, JSON trace parsing fails, or Flight
+    /// route materialization fails.
+    pub async fn submit_with_flight_materialization_and_branch_judgements(
+        &mut self,
+        intent: &str,
+        config: &SearchStrategyFlowFlightMaterializationConfig,
+        branch_judgements_tsv: &str,
+    ) -> Result<String, String> {
+        self.submit_with_flight_materialization_and_branch_judgements_and_ontology_registry(
+            intent,
+            config,
+            branch_judgements_tsv,
+            "",
+        )
+        .await
+    }
+
+    /// Discover candidates through Flight, submit them with optional Agent
+    /// branch judgements and ontology registry rows to the warm Julia process,
+    /// and materialize planned routes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when Flight candidate discovery fails, the warm Julia
+    /// host returns an invalid trace count, JSON trace parsing fails, or Flight
+    /// route materialization fails.
+    pub async fn submit_with_flight_materialization_and_branch_judgements_and_ontology_registry(
+        &mut self,
+        intent: &str,
+        config: &SearchStrategyFlowFlightMaterializationConfig,
+        branch_judgements_tsv: &str,
+        ontology_registry_tsv: &str,
+    ) -> Result<String, String> {
         validate_search_strategy_flow_intent(intent)?;
         let candidate_batch =
             search_strategy_flow_candidate_input_batch_from_repo_search(intent, config).await?;
-        let mut traces = self.submit(vec![(intent, candidate_batch)])?;
+        let ontology_registry_tsv = if ontology_registry_tsv.is_empty() {
+            search_strategy_flow_ontology_registry_tsv_from_semantic_scope(config).await?
+        } else {
+            ontology_registry_tsv.to_owned()
+        };
+        let mut traces = self.submit_with_branch_judgements_and_ontology_registry(vec![(
+            intent,
+            candidate_batch,
+            branch_judgements_tsv,
+            ontology_registry_tsv.as_str(),
+        )])?;
         let trace = traces.pop().ok_or_else(|| {
             "persistent WendaoGraph SearchStrategyFlow host returned no trace".to_owned()
         })?;
@@ -195,6 +252,33 @@ impl SearchStrategyFlowPersistentBatchHost {
         })
     }
 
+    fn submit_with_branch_judgements_and_ontology_registry(
+        &mut self,
+        candidate_batches: Vec<(&str, SearchStrategyFlowCandidateInputBatch, &str, &str)>,
+    ) -> Result<Vec<String>, String> {
+        let batch_count = validate_judged_batch_request(&candidate_batches)?;
+        write_payload(&mut self.stdin, &batch_count.to_string())?;
+        for (intent, candidate_batch, branch_judgements_tsv, ontology_registry_tsv) in
+            candidate_batches
+        {
+            write_payload(&mut self.stdin, intent)?;
+            write_payload(&mut self.stdin, &candidate_batch.tsv)?;
+            write_payload(&mut self.stdin, candidate_batch.source)?;
+            write_payload(&mut self.stdin, &candidate_batch.discovery_receipt_json)?;
+            write_payload(&mut self.stdin, branch_judgements_tsv)?;
+            write_payload(&mut self.stdin, ontology_registry_tsv)?;
+        }
+        self.stdin.flush().map_err(|error| {
+            format!("flush persistent WendaoGraph SearchStrategyFlow batch host stdin: {error}")
+        })?;
+
+        let traces = read_batch_stdout_lines(&mut self.stdout, batch_count)?;
+        traces
+            .iter()
+            .map(|trace| enrich_wendaograph_search_strategy_flow_retrieval_routes(trace))
+            .collect()
+    }
+
     /// Finish the persistent Julia host and surface any process failure.
     ///
     /// # Errors
@@ -234,7 +318,9 @@ fn run_raw_json_batch_with_candidate_batches(
             .arg(intent)
             .arg(candidate_batch.tsv)
             .arg(candidate_batch.source)
-            .arg(candidate_batch.discovery_receipt_json);
+            .arg(candidate_batch.discovery_receipt_json)
+            .arg("")
+            .arg("");
     }
 
     let output = command.output().map_err(|error| {
@@ -260,6 +346,28 @@ fn validate_batch_request(
         );
     }
     for (intent, candidate_batch) in candidate_batches {
+        validate_search_strategy_flow_intent(intent)?;
+        debug_assert_eq!(
+            candidate_batch.row_count,
+            candidate_batch
+                .tsv
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .count()
+        );
+    }
+    Ok(candidate_batches.len())
+}
+
+fn validate_judged_batch_request(
+    candidate_batches: &[(&str, SearchStrategyFlowCandidateInputBatch, &str, &str)],
+) -> Result<usize, String> {
+    if candidate_batches.is_empty() {
+        return Err(
+            "SearchStrategyFlow batch request must include at least one candidate batch".to_owned(),
+        );
+    }
+    for (intent, candidate_batch, _, _) in candidate_batches {
         validate_search_strategy_flow_intent(intent)?;
         debug_assert_eq!(
             candidate_batch.row_count,

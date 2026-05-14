@@ -2,3 +2,6 @@
 
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
+
+#[path = "unit/audio/mod.rs"]
+mod audio;

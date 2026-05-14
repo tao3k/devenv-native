@@ -89,6 +89,7 @@ in
     pkgs.tree
     pkgs.duckdb
     pkgs.asciinema
+    pkgs.ffmpeg
     nixpkgs-latest.jujutsu
   ];
 

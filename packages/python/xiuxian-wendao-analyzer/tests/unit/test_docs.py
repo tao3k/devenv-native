@@ -157,6 +157,13 @@ def test_readme_records_beta_readiness_and_known_gaps() -> None:
     assert "no analyzer-owned rerank helper surface" in readme
     assert "no GA-level release promise yet" in readme
     assert "Docling is optional through the `documents` extra" in readme
+    assert "tests/scripts/audio_asr_diagnostic.py" in readme
+    assert "audio_shards.json" in readme
+    assert "xiuxian_wendao.audio_shards.v1" in readme
+    assert "materialize normalized shard media in parallel with local" in readme
+    assert "tests/scripts/fireredasr2s_local_setup.py" in readme
+    assert "OPENROUTER_API_KEY" in readme
+    assert "environment-provided diagnostic backend" in readme
     assert "Wendao-facing Arrow Flight service entrypoint" in readme
 
 

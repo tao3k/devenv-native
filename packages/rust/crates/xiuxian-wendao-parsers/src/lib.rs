@@ -66,7 +66,11 @@ pub use note::{
     parse_markdown_note_artifacts,
 };
 pub use org::{
-    OrgNote, OrgNoteCore, OrgSection, OrgTocDocument, extract_org_sections, parse_org_document,
+    ORG_ONTOLOGY_AUTHORING_SCHEMA_ID, OrgNote, OrgNoteCore, OrgOntologyAuthoringDocument,
+    OrgOntologyAuthoringError, OrgOntologyAuthoringKind, OrgOntologyAuthoringSection,
+    OrgOntologyAuthoringTable, OrgOntologyEmbeddedArtifact, OrgOntologyLifecycleState,
+    OrgOntologySourceSpan, OrgOntologyTableKind, OrgSection, OrgTocDocument,
+    compile_org_ontology_authoring_document, extract_org_sections, parse_org_document,
     parse_org_note, parse_org_toc,
 };
 pub use reference_core::ReferenceCore;

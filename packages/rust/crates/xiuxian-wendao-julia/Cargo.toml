@@ -38,6 +38,8 @@ insta = { workspace = true }
 serial_test = { workspace = true }
 async-trait = { workspace = true }
 tokio-stream = { workspace = true }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 
 [lints]
 workspace = true

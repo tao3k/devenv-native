@@ -20,7 +20,7 @@ use super::constants::{
     MIN_FLIGHT_REQUIRED_EVIDENCE_DISCOVERY_ATTEMPTS_BEFORE_EARLY_STOP, REPO_SEARCH_LIMIT,
 };
 use super::metadata::populate_repo_search_headers;
-use super::query::candidate_discovery_queries;
+use super::query::{RepoSearchAttempt, candidate_discovery_queries};
 use super::rows::{
     repo_relative_candidate_inputs, repo_search_batches_to_candidate_inputs, row_count,
 };
@@ -66,10 +66,17 @@ pub(crate) async fn search_strategy_flow_candidate_input_batch_from_repo_search(
             row_count(&batches),
             elapsed_ms(attempt_started_at),
         ));
-        for candidate in repo_relative_candidate_inputs(
+        let mut attempt_candidates = repo_relative_candidate_inputs(
             config.repo_id.as_str(),
             repo_search_batches_to_candidate_inputs(&batches),
-        ) {
+        );
+        if attempt_candidates.is_empty()
+            && let Some(candidate) = candidate_from_exact_markdown_attempt(attempt)
+        {
+            attempt_candidates.push(candidate);
+        }
+        apply_exact_markdown_attempt_score_floor(&mut attempt_candidates, attempt);
+        for candidate in attempt_candidates {
             merge_candidate_discovery_result(&mut merged_candidates, candidate);
         }
         if should_stop_candidate_discovery(attempt_index + 1, &merged_candidates) {
@@ -134,6 +141,79 @@ fn merge_candidate_discovery_result(
     existing.edge_kinds.extend(candidate.edge_kinds);
     existing.edge_kinds.sort();
     existing.edge_kinds.dedup();
+}
+
+fn candidate_from_exact_markdown_attempt(
+    attempt: &RepoSearchAttempt,
+) -> Option<SearchStrategyFlowCandidateInput> {
+    if !attempt_is_intent_exact_markdown_seed(attempt) {
+        return None;
+    }
+    let title = exact_markdown_seed_title(attempt);
+    Some(SearchStrategyFlowCandidateInput {
+        relative_path: attempt.path_prefix.clone(),
+        heading_anchor: "document".to_owned(),
+        title,
+        line_start: 1,
+        line_end: 1,
+        context_cost: 8,
+        evidence_coverage: 0.98,
+        graph_score: 0.96,
+        authority_score: 0.95,
+        structural_score: 0.94,
+        uncertainty: 0.04,
+        blocked: false,
+        edge_kinds: vec!["intent-exact-markdown-seed".to_owned()],
+    })
+}
+
+fn apply_exact_markdown_attempt_score_floor(
+    candidates: &mut [SearchStrategyFlowCandidateInput],
+    attempt: &RepoSearchAttempt,
+) {
+    if !attempt_is_intent_exact_markdown_seed(attempt) {
+        return;
+    }
+    for candidate in candidates
+        .iter_mut()
+        .filter(|candidate| candidate.relative_path == attempt.path_prefix)
+    {
+        apply_candidate_score_floor(candidate, 0.98, 0.96, 0.95, 0.94, 0.04);
+        if !candidate
+            .edge_kinds
+            .iter()
+            .any(|kind| kind == "intent-exact-markdown-seed")
+        {
+            candidate
+                .edge_kinds
+                .push("intent-exact-markdown-seed".to_owned());
+        }
+    }
+}
+
+fn attempt_is_intent_exact_markdown_seed(attempt: &RepoSearchAttempt) -> bool {
+    if attempt.path_prefix.trim().is_empty()
+        || !path_has_extension(attempt.path_prefix.as_str(), "md")
+    {
+        return false;
+    }
+    !matches!(
+        attempt.query.trim().to_ascii_lowercase().as_str(),
+        "searchstrategyflow" | "pageindex" | "linkgraph"
+    )
+}
+
+fn exact_markdown_seed_title(attempt: &RepoSearchAttempt) -> String {
+    let file_stem = std::path::Path::new(attempt.path_prefix.as_str())
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or(attempt.path_prefix.as_str())
+        .replace(['_', '-'], " ");
+    if attempt.query.trim().is_empty() {
+        file_stem
+    } else {
+        format!("{file_stem}: {}", attempt.query.trim())
+    }
 }
 
 fn should_stop_candidate_discovery(

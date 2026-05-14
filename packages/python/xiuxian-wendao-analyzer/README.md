@@ -92,6 +92,65 @@ extra when running real audio conversion:
 uv sync --extra documents-audio
 ```
 
+For bounded MP3 audio diagnostics, use the package-managed test script instead
+of adding a public command surface:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir> \
+  --backend both \
+  --openrouter-model xiaomi/mimo-v2.5 \
+  --local-language zh \
+  --sample-strategy uniform \
+  --limit-files 2 \
+  --limit-chunks 1
+```
+
+Production chunk planning belongs on the Rust side in
+`xiuxian-wendao-attachments::audio`: it derives logical chunk offsets, optional
+context windows, normalized media windows, shard cache keys, and downstream
+task/backend result cache keys before Python sees a backend request. The same
+Rust boundary can materialize normalized shard media in parallel with local
+`ffmpeg`, so Gateway/Studio can avoid Python-owned chunking on the hot path.
+The Python diagnostic mirrors that contract only for package tests and local
+comparison runs. It writes the backend-neutral
+`audio_shards.json` manifest, then compares local Whisper with OpenRouter
+audio-input models on the same chunks. A `local-docling` backend is also
+available as a converter baseline. OpenRouter runs require the standard
+`OPENROUTER_API_KEY` environment variable. The script writes JSON summaries and
+transcript files under the selected output directory. It also writes
+`quality.json` and `review.tsv` with proxy precision signals such as empty
+outputs, Chinese character ratio, inaudible-marker density, characters per
+minute, and optional character error rate when a reference JSONL transcript is
+provided. The shard manifest uses `xiuxian_wendao.audio_shards.v1` and
+`audio-shards-v1`; those names are model-neutral so local and hosted backends
+can change without changing chunk/cache identity.
+
+For a Chinese-first local ASR candidate, provision FireRedASR2S as an isolated
+diagnostic tool, then pass the emitted command into the shared diagnostic:
+
+```bash
+direnv exec . uv run python tests/scripts/fireredasr2s_local_setup.py \
+  --download-models \
+  --summary-json <setup-summary-json>
+```
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir> \
+  --backend firered-openrouter \
+  --fireredasr2s-command "<fireRedAsr2sCommand from setup summary>" \
+  --openrouter-model xiaomi/mimo-v2.5 \
+  --sample-strategy uniform \
+  --limit-files 2 \
+  --limit-chunks 1
+```
+
+The FireRedASR2S adapter calls its local CLI on the same normalized 16 kHz mono
+chunks used by OpenRouter, then feeds the result into the same quality review
+files. The setup helper pins the official source revision, creates a separate
+virtual environment, downloads the AED/VAD/LID/punctuation weights under the
+project model directory, and forces CPU execution on macOS. FireRedASR2S remains
+an environment-provided diagnostic backend, not a required analyzer dependency.
+
 Docling is the parsing authority. The analyzer does not maintain a runtime
 allowlist; it exposes known common Docling formats and suffixes for downstream
 UX. The current documented set includes PDF, DOCX, XLSX, PPTX, Markdown,

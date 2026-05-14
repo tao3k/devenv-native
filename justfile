@@ -46,10 +46,25 @@ xiuxian_wendao_runner_os := env_var_or_default("RUNNER_OS", "local")
 xiuxian_wendao_gateway_formal_filter := "test(performance::gateway_search::repo_module_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_symbol_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_example_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::repo_projected_page_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::studio_code_search_perf_gate_reports_warm_cache_latency_formal_gate) | test(performance::gateway_search::search_index_status_perf_gate_reports_query_telemetry_summary_formal_gate)"
 xiuxian_wendao_gateway_perf_report_dir := env_var_or_default("XIUXIAN_WENDAO_GATEWAY_PERF_REPORT_DIR", ".run/reports/xiuxian-wendao/perf-gateway")
 xiuxian_wendao_gateway_real_workspace_perf_report_dir := env_var_or_default("XIUXIAN_WENDAO_GATEWAY_REAL_WORKSPACE_PERF_REPORT_DIR", ".run/reports/xiuxian-wendao/perf-gateway-real-workspace")
+wendaograph_notebook_html_max_concurrent_runs := env_var_or_default("WENDAOGRAPH_NOTEBOOK_HTML_MAX_CONCURRENT_RUNS", "4")
 
 # ==============================================================================
 # Core Commands
 # ==============================================================================
+
+# Build WendaoGraph Pluto notebooks as static HTML.
+wendaograph-notebooks-html *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    root="${PRJ_ROOT:-$PWD}"
+    output_dir="${WENDAOGRAPH_NOTEBOOK_HTML_OUT:-${root}/.run/reports/wendaograph/notebooks/html}"
+    (
+      cd ".data/WendaoGraph.jl"
+      WENDAOGRAPH_NOTEBOOK_HTML_OUT="${output_dir}" \
+      WENDAOGRAPH_NOTEBOOK_HTML_MAX_CONCURRENT_RUNS="{{ wendaograph_notebook_html_max_concurrent_runs }}" \
+        julia --project=notebooks scripts/build_notebook_html.jl {{ args }}
+    )
 
 # Fetch Dots OCR vision weights and prune legacy model caches by default.
 fetch-vision-models:

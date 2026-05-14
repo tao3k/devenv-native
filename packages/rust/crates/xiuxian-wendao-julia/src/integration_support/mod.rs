@@ -30,11 +30,40 @@ pub(crate) use service_runtime::{
     repo_root, reserve_service_port, wait_for_service_ready_with_attempts,
     wendaosearch_julia_project, wendaosearch_script,
 };
+pub use wendaograph::ontology_read_model::{
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_ARROW_IPC_MIME,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_CAPABILITY_ID,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_FLIGHT_DESCRIPTOR_PATH,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_METHOD,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROVIDER_ID,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_TABLES,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_RESPONSE_TABLE,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_ROUTE,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SERVICE,
+    WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
+    WendaoGraphOntologyReadModelQualityArrowRequest,
+    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
+    WendaoGraphOntologyReadModelQualityRequestBatches,
+    WendaoGraphOntologyReadModelQualityRoundtrip,
+    WendaoGraphOntologyReadModelQualityRoundtripError,
+    build_wendaograph_ontology_read_model_quality_arrow_request,
+    build_wendaograph_ontology_read_model_quality_flight_binding,
+    build_wendaograph_ontology_read_model_quality_flight_descriptor,
+    build_wendaograph_ontology_read_model_quality_flight_request_batch,
+    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
+    wendaograph_ontology_read_model_quality_provider_selector,
+};
 pub use wendaograph::{
     SearchStrategyFlowPersistentBatchHost, SearchStrategyFlowPersistentHostStabilizationLimits,
     SearchStrategyFlowPersistentHostStabilizationReason,
     SearchStrategyFlowPersistentHostStabilizationReport,
     SearchStrategyFlowPersistentHostWarmPathStats, SearchStrategyFlowProbeAction,
+};
+pub use wendaograph::{
     WendaoGraphLinkGraphFullStructuralHostProbeReport, WendaoGraphLinkGraphHostProbeReport,
     WendaoGraphPageIndexHostProbeReport, WendaoGraphPageIndexPlannerActionHostProbeReport,
     enrich_wendaograph_search_strategy_flow_retrieval_routes,
@@ -48,6 +77,7 @@ pub use wendaograph::{
     run_wendaograph_search_strategy_flow_json,
     run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements,
     search_strategy_flow_probe_action_route,
 };
 pub use wendaograph_gnn::{

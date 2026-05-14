@@ -143,6 +143,12 @@ needs a feature-gated second plugin bundle for these languages.
   while preserving selected frontier, route, and projected-row counts. That
   evidence supports promoting a long-lived Rust-controlled Julia pod path
   before adding lower-level transport changes.
+- SearchStrategyFlow now accepts Agent-produced branch judgement rows without
+  moving graph truth into the LLM. `pi-wendao` validates candidate-scoped
+  `branch_judgements`, serializes them as bridge TSV, and the Rust bridge
+  passes them into WendaoGraph frontier selection. WendaoGraph still owns
+  required-evidence coverage, blocked-branch pruning, context budgets, and the
+  final selected frontier.
 - The `wendaograph_search_strategy_flow` binary now exposes the same release
   gate through `--persistent-warm-samples <count>` for real Flight-backed
   profiling. Default trace output is unchanged; the flag switches the binary to
@@ -162,6 +168,45 @@ needs a feature-gated second plugin bundle for these languages.
   integration work a concrete non-spawning session contract. The first
   root-backed two-request proof measured the warmup request at `20557.705 ms`
   and the second request at `83.391 ms`, with required evidence still covered.
+- The JSONL local-session request may also include `ontologyRegistryTsv`.
+  This is an internal bridge field for Gateway-supplied accepted ontology
+  registry or read-model rows. It lets WendaoGraph derive ontology-backed
+  query-understanding anchors while Rust/Gateway keeps ownership of registry
+  compilation, source configuration, and admission policy. No user-facing CLI
+  flag is added for this field.
+- When the bridge runs with a SearchStrategyFlow Flight materialization
+  configuration and no explicit `ontologyRegistryTsv` is supplied, it asks the
+  Studio `/analysis/semantic-scope` Arrow Flight route for accepted semantic
+  scope rows and projects those rows into the same internal registry TSV. This
+  keeps Gateway/Studio as the source-admission owner while `WendaoGraph.jl`
+  only consumes accepted object, link, and validation names as graph-search
+  route hints.
+- The ontology read-model quality bridge now exposes
+  `build_wendaograph_ontology_read_model_quality_arrow_request(...)` for
+  callers that already hold accepted semantic read-model `RecordBatch` tables.
+  It packages `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` as Arrow IPC stream payloads for
+  `WendaoGraph.jl`'s `OntologyReadModelQuality` service contract. This crate
+  owns only the Rust bridge packaging; `xiuxian-wendao-sql` owns read-model
+  materialization, and `WendaoGraph.jl` owns advisory graph-quality scoring.
+  `build_wendaograph_ontology_read_model_quality_flight_request_batch(...)`
+  wraps those three payloads into the single Arrow request-bundle table used by
+  the WendaoGraph Flight route, and
+  `build_wendaograph_ontology_read_model_quality_flight_descriptor(...)` builds
+  the matching `FlightDescriptor` path.
+  `build_wendaograph_ontology_read_model_quality_flight_binding(...)` builds
+  the runtime-negotiable Arrow Flight binding for callers that want to use the
+  shared Wendao transport client, and
+  `roundtrip_wendaograph_ontology_read_model_quality_with_binding(...)` sends
+  the request bundle through that negotiated runtime-owned Flight client. The
+  unit smoke now exercises real
+  `xiuxian-wendao-sql` semantic read-model `RecordBatch` output before bridge
+  packaging, so this path is SQL-materializer-backed rather than registry JSON
+  backed. A live loopback can be run with
+  `RUN_WENDAOGRAPH_ONTOLOGY_QUALITY_LIVE_LOOPBACK_TEST=1 cargo test -p xiuxian-wendao-julia --lib ontology_read_model_quality_live_loopback -- --nocapture`;
+  it starts the WendaoGraph ontology quality runner and sends the same request
+  through the runtime Flight client. The bridge does not read `registry.json`
+  or promote Julia diagnostics into runtime authority.
 - Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
   reports can show both the narrowed Julia input count and the runtime
   promotion denominator. This prevents a fast Markdown replay subset from being

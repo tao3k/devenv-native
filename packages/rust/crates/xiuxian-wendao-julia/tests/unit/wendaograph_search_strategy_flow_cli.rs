@@ -28,7 +28,29 @@ fn parse_args_accepts_persistent_warm_samples() {
 
     assert_eq!(args.persistent_warm_samples, Some(3));
     assert_eq!(args.flight_timeout_seconds, 30);
+    assert!(args.branch_judgements_tsv.is_none());
     assert!(!args.serve_stdio);
+}
+
+#[test]
+fn parse_args_accepts_branch_judgements_tsv() {
+    let Ok(args) = parse_args(
+        [
+            "--intent",
+            "Find ownership and validation evidence",
+            "--branch-judgements-tsv",
+            "flow\tcandidate\tauthority\t0.900000\t0.800000\tkeep\tfalse\treason",
+        ]
+        .into_iter()
+        .map(str::to_owned),
+    ) else {
+        panic!("parse branch judgements TSV");
+    };
+
+    assert_eq!(
+        args.branch_judgements_tsv.as_deref(),
+        Some("flow\tcandidate\tauthority\t0.900000\t0.800000\tkeep\tfalse\treason")
+    );
 }
 
 #[test]
@@ -126,6 +148,35 @@ fn parse_stdio_session_request_trims_intent_and_keeps_request_id() {
 
     assert_eq!(request.request_id.as_deref(), Some("req-1"));
     assert_eq!(request.intent, "find ownership evidence");
+    assert!(request.branch_judgements_tsv.is_none());
+}
+
+#[test]
+fn parse_stdio_session_request_accepts_branch_judgements_tsv() {
+    let Ok(request) = parse_stdio_session_request(
+        r#"{"requestId":"req-1","intent":"find ownership evidence","branchJudgementsTsv":"flow\tcandidate\tauthority\t0.9\t0.8\tkeep\tfalse\treason"}"#,
+    ) else {
+        panic!("parse stdio request with branch judgements");
+    };
+
+    assert_eq!(
+        request.branch_judgements_tsv.as_deref(),
+        Some("flow\tcandidate\tauthority\t0.9\t0.8\tkeep\tfalse\treason")
+    );
+}
+
+#[test]
+fn parse_stdio_session_request_accepts_ontology_registry_tsv() {
+    let Ok(request) = parse_stdio_session_request(
+        r#"{"requestId":"req-1","intent":"find PatientRecord evidence","ontologyRegistryTsv":"object_type\tPatientRecord\tfalse\nlink_type\tPatientRecord.encounters\tfalse"}"#,
+    ) else {
+        panic!("parse stdio request with ontology registry");
+    };
+
+    assert_eq!(
+        request.ontology_registry_tsv.as_deref(),
+        Some("object_type\tPatientRecord\tfalse\nlink_type\tPatientRecord.encounters\tfalse")
+    );
 }
 
 #[test]
@@ -167,6 +218,7 @@ async fn persistent_warm_samples_require_flight_config_before_launch() {
         flight_timeout_seconds: 30,
         persistent_warm_samples: Some(1),
         serve_stdio: false,
+        branch_judgements_tsv: None,
     };
 
     let Err(error) = run(args).await else {

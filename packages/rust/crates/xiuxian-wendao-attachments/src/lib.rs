@@ -44,6 +44,9 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
     }
 );
 
+/// Model-agnostic audio shard planning and cache identity contracts.
+pub mod audio;
+
 #[cfg(feature = "archive-audit")]
 /// Archive attachment manifest auditing for routing and cache planning.
 pub mod archive_audit;

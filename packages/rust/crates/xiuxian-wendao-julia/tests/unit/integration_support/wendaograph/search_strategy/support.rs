@@ -20,6 +20,7 @@ use super::{
     enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     parse_search_strategy_flow_probe_action, run_wendaograph_search_strategy_flow_json,
     run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
+    run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     search_strategy_flow_candidate_input_batch_from_repo_search,
@@ -76,6 +77,7 @@ const WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_EXPECTED_SOURCE_FRAGMENTS_ENV
 const WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_DEFAULT_INTENT: &str =
     "search strategy flow link graph python julia toml";
 const WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_DEFAULT_TIMEOUT_SECONDS: u64 = 30;
+const ANALYSIS_SEMANTIC_SCOPE_ROUTE: &str = "/analysis/semantic-scope";
 
 #[derive(Debug, Clone, Copy)]
 struct SearchStrategyFlowConfiguredMarkdownReplaySpec {
@@ -404,9 +406,12 @@ async fn spawn_fake_search_strategy_flow_flight_service_with_batches(
 }
 
 async fn spawn_fake_search_strategy_flow_flight_service_with_batches_and_graph_node_allowlist(
-    batches_by_route: HashMap<String, RecordBatch>,
+    mut batches_by_route: HashMap<String, RecordBatch>,
     graph_neighbors_allowed_node_ids: Option<HashSet<String>>,
 ) -> (String, tokio::task::JoinHandle<()>) {
+    batches_by_route
+        .entry(ANALYSIS_SEMANTIC_SCOPE_ROUTE.to_owned())
+        .or_insert_with(empty_semantic_scope_batch);
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .unwrap_or_else(|error| panic!("bind fake SearchStrategyFlow Flight service: {error}"));
@@ -593,6 +598,42 @@ fn graph_neighbors_batch() -> RecordBatch {
         vec![Arc::new(StringArray::from(vec!["neighbor"]))],
     )
     .unwrap_or_else(|error| panic!("graph-neighbors batch should build: {error}"))
+}
+
+fn empty_semantic_scope_batch() -> RecordBatch {
+    RecordBatch::try_new(
+        Arc::new(Schema::new(vec![
+            Field::new("objectId", DataType::Utf8, false),
+            Field::new("kind", DataType::Utf8, false),
+            Field::new("status", DataType::Utf8, false),
+            Field::new("title", DataType::Utf8, false),
+            Field::new("confidenceScore", DataType::Float64, false),
+            Field::new("confidenceSource", DataType::Utf8, false),
+            Field::new("sourcePath", DataType::Utf8, false),
+            Field::new("requiredValidationsJson", DataType::Utf8, false),
+            Field::new("relationTargetsJson", DataType::Utf8, false),
+            Field::new("changeIntentIdsJson", DataType::Utf8, false),
+            Field::new("projectionRevision", DataType::Utf8, false),
+            Field::new("projectionSourceRevision", DataType::Utf8, false),
+            Field::new("projectionStaleness", DataType::Utf8, false),
+        ])),
+        vec![
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(Float64Array::from(Vec::<f64>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+            Arc::new(StringArray::from(Vec::<&str>::new())),
+        ],
+    )
+    .unwrap_or_else(|error| panic!("empty semantic-scope batch should build: {error}"))
 }
 
 fn search_strategy_flow_configured_markdown_replay_specs()
