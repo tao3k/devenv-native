@@ -1,10 +1,11 @@
 //! Owns the Studio router config load surface.
 
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use xiuxian_config_core::load_toml_value_with_imports;
+use xiuxian_wendao::episteme::EpistemeRegistryEntry;
 
 use super::paths::studio_effective_wendao_toml_path;
 use super::sanitize::{
@@ -66,6 +67,24 @@ pub(crate) fn load_document_extract_endpoint_from_wendao_toml_path(
 
     let parsed = load_wendao_toml_config(config_path).ok()?;
     normalize_endpoint(parsed.document_extract.endpoint.as_deref())
+}
+
+pub(crate) fn load_episteme_registry_from_wendao_toml(
+    config_root: &Path,
+) -> Result<Vec<EpistemeRegistryEntry>, String> {
+    let config_path = studio_effective_wendao_toml_path(config_root);
+    load_episteme_registry_from_wendao_toml_path(config_path.as_path())
+}
+
+pub(crate) fn load_episteme_registry_from_wendao_toml_path(
+    config_path: &Path,
+) -> Result<Vec<EpistemeRegistryEntry>, String> {
+    if !config_path.is_file() {
+        return Ok(Vec::new());
+    }
+
+    let parsed = load_wendao_toml_config(config_path)?;
+    Ok(episteme_registry_entries_from_wendao_toml(parsed))
 }
 
 fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
@@ -146,6 +165,40 @@ fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
         projects: sanitize_projects(projects),
         repo_projects: sanitize_repo_projects(repo_projects),
     }
+}
+
+fn episteme_registry_entries_from_wendao_toml(
+    parsed: WendaoTomlConfig,
+) -> Vec<EpistemeRegistryEntry> {
+    parsed
+        .episteme
+        .registries
+        .into_iter()
+        .map(|(id, entry)| {
+            let mut registry_entry = EpistemeRegistryEntry {
+                id,
+                path: normalized_optional_path(entry.path.as_deref()),
+                url: normalized_optional_string(entry.url.as_deref()),
+                enabled: entry.enabled.unwrap_or(true),
+                subdir: normalized_optional_string(entry.subdir.as_deref())
+                    .map_or_else(|| PathBuf::from("."), PathBuf::from),
+            };
+            if registry_entry.subdir.as_os_str().is_empty() {
+                registry_entry.subdir = PathBuf::from(".");
+            }
+            registry_entry
+        })
+        .collect()
+}
+
+fn normalized_optional_path(raw: Option<&str>) -> Option<PathBuf> {
+    normalized_optional_string(raw).map(PathBuf::from)
+}
+
+fn normalized_optional_string(raw: Option<&str>) -> Option<String> {
+    raw.map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
 }
 
 fn merged_path_list(left: &[String], right: &[String]) -> Vec<String> {

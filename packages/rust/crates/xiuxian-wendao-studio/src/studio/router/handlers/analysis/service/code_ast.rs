@@ -144,12 +144,13 @@ fn maybe_build_generic_code_ast_response(
 ) -> Option<CodeAstAnalysisResponse> {
     let lang = repository_generic_ast_lang_for_path(repository, Path::new(repo_path))?;
     let source_content = source_content?;
+    let language_id = CodeLanguageId::from(lang.as_str());
     let mut response = build_generic_code_ast_analysis_response(
         repo_id.to_string(),
         repo_path.to_string(),
         line_hint,
         source_content,
-        CodeLanguageId::from(lang.as_str()),
+        &language_id,
     );
     response.path = request_path.to_string().into();
     Some(response)

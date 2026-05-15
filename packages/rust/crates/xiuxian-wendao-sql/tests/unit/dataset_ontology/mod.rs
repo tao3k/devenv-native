@@ -127,12 +127,12 @@ fn string_table(
 
 fn healthcare_mapping_sql(include_provider_links: bool) -> DatasetOntologyMappingSql {
     DatasetOntologyMappingSql {
-        object_observations: object_observations_sql(),
-        link_observations: link_observations_sql(include_provider_links),
-        evidence: evidence_sql(),
-        semantic_objects: semantic_objects_sql(),
-        semantic_relations: semantic_relations_sql(),
-        semantic_projection_state: semantic_projection_state_sql(),
+        object_observations: object_observations_sql().into(),
+        link_observations: link_observations_sql(include_provider_links).into(),
+        evidence: evidence_sql().into(),
+        semantic_objects: semantic_objects_sql().into(),
+        semantic_relations: semantic_relations_sql().into(),
+        semantic_projection_state: semantic_projection_state_sql().into(),
         validation_rules: vec![DatasetOntologyValidationRule::new(
             "HEALTHCARE_ENCOUNTER_MISSING_CONTEXT",
             encounter_context_validation_sql(),

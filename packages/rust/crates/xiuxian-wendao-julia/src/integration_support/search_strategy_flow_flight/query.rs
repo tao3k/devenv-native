@@ -198,6 +198,21 @@ fn push_exact_anchor_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, t
 }
 
 fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, terms: &[String]) {
+    push_governance_surface_candidate_attempts(attempts, terms);
+    push_attachment_surface_candidate_attempts(attempts, terms);
+    push_flight_materialization_surface_candidate_attempts(attempts, terms);
+    push_query_engine_surface_candidate_attempts(attempts, terms);
+    push_memory_surface_candidate_attempts(attempts, terms);
+    push_benchmark_surface_candidate_attempts(attempts, terms);
+    push_code_adaptation_surface_candidate_attempts(attempts, terms);
+    push_polyglot_surface_candidate_attempts(attempts, terms);
+    push_projected_page_index_surface_candidate_attempts(attempts, terms);
+}
+
+fn push_governance_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_any_term(
         terms,
         &[
@@ -227,7 +242,12 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
         );
         push_repo_search_attempt(attempts, "governance modularity warnings", "docs/standards");
     }
+}
 
+fn push_attachment_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_any_term(
         terms,
         &[
@@ -262,7 +282,12 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
             "packages/python/xiuxian-wendao-analyzer",
         );
     }
+}
 
+fn push_flight_materialization_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_any_term(terms, &["studio", "flight", "materialization"]) {
         push_repo_search_attempt(
             attempts,
@@ -275,7 +300,12 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
             "packages/rust/crates/xiuxian-wendao-julia/README.md",
         );
     }
+}
 
+fn push_query_engine_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_all_terms(terms, &["query", "engine"]) {
         push_repo_search_attempt(
             attempts,
@@ -283,7 +313,9 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
             "docs/rfcs/2026-03-26-wendao-query-engine-rfc.md",
         );
     }
+}
 
+fn push_memory_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, terms: &[String]) {
     if has_any_term(terms, &["memory", "working", "knowledge"])
         && has_any_term(terms, &["searchstrategyflow", "search", "strategy", "flow"])
     {
@@ -293,7 +325,12 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
             "docs/rfcs/2026-04-05-wendao-memory-layer-boundaries-rfc.md",
         );
     }
+}
 
+fn push_benchmark_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_any_term(terms, &["benchmark", "profile", "contract"]) {
         push_repo_search_attempt(
             attempts,
@@ -306,7 +343,12 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
             "packages/python/wendao-knowledge-retrieval-benchmark/docs/architecture.md",
         );
     }
+}
 
+fn push_code_adaptation_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_all_terms(terms, &["link", "graph"]) && has_any_term(terms, &["code", "adaptation"]) {
         push_repo_search_attempt(
             attempts,
@@ -314,7 +356,12 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
             "docs/02_dev/standards/LINK_GRAPH_CODE_ADAPTATION.md",
         );
     }
+}
 
+fn push_polyglot_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_any_term(terms, &["polyglot", "orchestrator"]) {
         push_repo_search_attempt(
             attempts,
@@ -327,7 +374,12 @@ fn push_domain_surface_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>,
             "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md",
         );
     }
+}
 
+fn push_projected_page_index_surface_candidate_attempts(
+    attempts: &mut Vec<RepoSearchAttempt>,
+    terms: &[String],
+) {
     if has_all_terms(terms, &["page", "index"])
         && has_any_term(
             terms,

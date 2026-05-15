@@ -28,14 +28,10 @@ pub(crate) fn build_generic_code_ast_analysis_response(
     path: String,
     line_hint: Option<usize>,
     source_content: &str,
-    language_id: CodeLanguageId,
+    language_id: &CodeLanguageId,
 ) -> CodeAstAnalysisResponse {
-    let items = extract_generic_ast_items(
-        repo_id.as_str(),
-        path.as_str(),
-        source_content,
-        &language_id,
-    );
+    let items =
+        extract_generic_ast_items(repo_id.as_str(), path.as_str(), source_content, language_id);
     let focus_item = focus_generic_ast_item(items.as_slice(), line_hint);
     let focus_node_id = focus_item.map(|item| item.id.clone());
     let mut nodes = Vec::with_capacity(items.len());
@@ -46,7 +42,7 @@ pub(crate) fn build_generic_code_ast_analysis_response(
             id: item.id.clone().into(),
             label: item.label.clone(),
             kind: item.kind,
-            path: Some(path.clone().into()),
+            path: Some(path.clone()),
             line_start: Some(item.line_start),
             line_end: Some(item.line_end),
         });
@@ -91,7 +87,7 @@ pub(crate) fn build_generic_code_ast_analysis_response(
         );
     }
 
-    if supports_generic_code_blocks(&language_id)
+    if supports_generic_code_blocks(language_id)
         && let Some(focus_item) = focus_item
     {
         retrieval_atoms.extend(build_code_block_retrieval_atoms(

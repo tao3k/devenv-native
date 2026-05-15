@@ -27,10 +27,10 @@ pub fn plan_audio_shards(plan: &AudioShardPlan) -> Result<Vec<AudioShardManifest
                 chunk_index,
                 start_ms: *start_ms,
                 duration_ms: plan.chunk_duration_ms,
-                media_start_ms: media_window.start_ms,
-                media_duration_ms: media_window.duration_ms,
-                context_before_ms: media_window.context_before_ms,
-                context_after_ms: media_window.context_after_ms,
+                media_start_ms: media_window.start,
+                media_duration_ms: media_window.duration,
+                context_before_ms: media_window.before_context,
+                context_after_ms: media_window.after_context,
                 sample_rate_hz: plan.sample_rate_hz,
                 channels: plan.channels,
                 audio_format: normalized_audio_format(plan.audio_format.as_str())?,
@@ -57,11 +57,9 @@ pub fn build_audio_shard_plan(input: &AudioShardPlannerInput) -> Result<AudioSha
     let start_offsets_ms = match input.strategy {
         AudioShardStrategy::Head => (0..input.limit_chunks)
             .map(|index| {
-                input.start_offset_ms.saturating_add(
-                    u64::from(index)
-                        .checked_mul(input.chunk_duration_ms)
-                        .unwrap_or(u64::MAX),
-                )
+                input
+                    .start_offset_ms
+                    .saturating_add(u64::from(index).saturating_mul(input.chunk_duration_ms))
             })
             .collect(),
         AudioShardStrategy::Uniform => uniform_offsets_ms(input)?,
@@ -145,10 +143,10 @@ fn normalized_audio_format(value: &str) -> Result<String, String> {
 
 #[derive(Debug, Clone, Copy)]
 struct AudioShardMediaWindow {
-    start_ms: u64,
-    duration_ms: u64,
-    context_before_ms: u64,
-    context_after_ms: u64,
+    start: u64,
+    duration: u64,
+    before_context: u64,
+    after_context: u64,
 }
 
 fn media_window_for_shard(
@@ -168,10 +166,10 @@ fn media_window_for_shard(
         .ok_or_else(|| "audio shard logical window exceeds u64::MAX".to_owned())?;
     let context_after_ms = media_end_ms.saturating_sub(logical_end_ms);
     Ok(AudioShardMediaWindow {
-        start_ms: media_start_ms,
-        duration_ms: media_end_ms.saturating_sub(media_start_ms),
-        context_before_ms,
-        context_after_ms,
+        start: media_start_ms,
+        duration: media_end_ms.saturating_sub(media_start_ms),
+        before_context: context_before_ms,
+        after_context: context_after_ms,
     })
 }
 
@@ -189,8 +187,8 @@ fn audio_shard_id(
             chunk_index,
             start_ms,
             plan.chunk_duration_ms,
-            media_window.start_ms,
-            media_window.duration_ms,
+            media_window.start,
+            media_window.duration,
             plan.sample_rate_hz,
             plan.channels,
             plan.audio_format.trim().to_ascii_lowercase()

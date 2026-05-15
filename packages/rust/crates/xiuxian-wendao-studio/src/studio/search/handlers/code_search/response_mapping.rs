@@ -21,7 +21,7 @@ pub(crate) fn symbol_search_hit_to_search_hit(
         tags.push(format!("lang:{language}"));
     }
     if let Some(status) = hit.audit_status.clone() {
-        tags.push(status.to_string());
+        tags.push(status.clone());
     }
 
     crate::studio::types::SearchHit {
@@ -40,8 +40,8 @@ pub(crate) fn symbol_search_hit_to_search_hit(
         hierarchical_uri: hit.hierarchical_uri,
         hierarchy: hit.hierarchy,
         saliency_score: hit.saliency_score,
-        audit_status: hit.audit_status.map(|status| status.to_string().into()),
-        verification_state: hit.verification_state.map(|state| state.to_string().into()),
+        audit_status: hit.audit_status.map(Into::into),
+        verification_state: hit.verification_state.map(Into::into),
         implicit_backlinks: hit.implicit_backlinks,
         implicit_backlink_items: map_backlink_items(hit.implicit_backlink_items),
         navigation_target: Some(repo_navigation_target(

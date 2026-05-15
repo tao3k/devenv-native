@@ -1,8 +1,10 @@
 //! Parallel media materialization for planned `audio` shards.
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use sha2::Digest;
 use std::ffi::OsString;
 use std::fs;
+use std::io::Read;
 use std::process::Command;
 
 use super::plan::plan_audio_shards;
@@ -47,9 +49,11 @@ fn materialize_one(
     }
     let output_path = input.output_dir.join(shard_file_name(&manifest));
     if output_path.exists() && !input.force {
+        let shard_sha256 = file_sha256_hex(output_path.as_path())?;
         return Ok(AudioShardMaterializedItem {
             manifest,
             output_path,
+            shard_sha256,
         });
     }
     let status = Command::new(input.ffmpeg_path.as_path())
@@ -73,6 +77,7 @@ fn materialize_one(
         ));
     }
     Ok(AudioShardMaterializedItem {
+        shard_sha256: file_sha256_hex(output_path.as_path())?,
         manifest,
         output_path,
     })
@@ -115,5 +120,24 @@ fn ffmpeg_args(
 }
 
 fn seconds_arg(ms: u64) -> OsString {
-    format!("{:.3}", ms as f64 / 1000.0).into()
+    let seconds = ms / 1000;
+    let milliseconds = ms % 1000;
+    format!("{seconds}.{milliseconds:03}").into()
+}
+
+fn file_sha256_hex(path: &std::path::Path) -> Result<String, String> {
+    let mut file = fs::File::open(path)
+        .map_err(|error| format!("failed to open audio shard {}: {error}", path.display()))?;
+    let mut hasher = sha2::Sha256::new();
+    let mut buffer = vec![0_u8; 64 * 1024];
+    loop {
+        let bytes_read = file
+            .read(&mut buffer)
+            .map_err(|error| format!("failed to read audio shard {}: {error}", path.display()))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
 }

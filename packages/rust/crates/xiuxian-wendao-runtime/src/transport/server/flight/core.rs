@@ -8,9 +8,10 @@ use super::cache::FlightRoutePayloadCache;
 use crate::transport::server::{
     AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, CodeAstAnalysisFlightRouteProvider,
-    DefinitionFlightRouteProvider, DocumentExtractFlightRouteProvider,
-    GraphNeighborsFlightRouteProvider, MarkdownAnalysisFlightRouteProvider,
-    RefineDocFlightRouteProvider, RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
+    DatasetOntologyMaterializeFlightRouteProvider, DefinitionFlightRouteProvider,
+    DocumentExtractFlightRouteProvider, GraphNeighborsFlightRouteProvider,
+    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
+    RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider,
     RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRouteProvider,
@@ -48,6 +49,8 @@ pub struct WendaoFlightService {
         Option<Arc<dyn RepoProjectedRetrievalContextFlightRouteProvider>>,
     pub(super) refine_doc_provider: Option<Arc<dyn RefineDocFlightRouteProvider>>,
     pub(super) document_extract_provider: Option<Arc<dyn DocumentExtractFlightRouteProvider>>,
+    pub(super) dataset_ontology_materialize_provider:
+        Option<Arc<dyn DatasetOntologyMaterializeFlightRouteProvider>>,
     pub(super) sql_provider: Option<Arc<dyn SqlFlightRouteProvider>>,
     pub(super) rerank_handler: RerankFlightRouteHandler,
     pub(super) route_payload_cache: Arc<FlightRoutePayloadCache>,
@@ -78,6 +81,7 @@ impl WendaoFlightService {
             repo_projected_retrieval_context: repo_projected_retrieval_context_provider,
             refine_doc: refine_doc_provider,
             document_extract: document_extract_provider,
+            dataset_ontology_materialize: dataset_ontology_materialize_provider,
             vfs_content: vfs_content_provider,
             vfs_scan: vfs_scan_provider,
             vfs_resolve: vfs_resolve_provider,
@@ -109,6 +113,7 @@ impl WendaoFlightService {
             repo_projected_retrieval_context_provider,
             refine_doc_provider,
             document_extract_provider,
+            dataset_ontology_materialize_provider,
             sql_provider,
             rerank_handler: RerankFlightRouteHandler::new_with_weights(
                 rerank_dimension,

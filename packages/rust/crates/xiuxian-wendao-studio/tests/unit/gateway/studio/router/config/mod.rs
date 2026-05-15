@@ -1,8 +1,8 @@
 use std::fs;
 
 use crate::studio::router::{
-    load_document_extract_endpoint_from_wendao_toml, load_ui_config_from_wendao_toml,
-    studio_wendao_overlay_toml_path, studio_wendao_toml_path,
+    load_document_extract_endpoint_from_wendao_toml, load_episteme_registry_from_wendao_toml,
+    load_ui_config_from_wendao_toml, studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -139,5 +139,41 @@ endpoint = "http://127.0.0.1:50051/"
         load_document_extract_endpoint_from_wendao_toml(temp.path()).as_deref(),
         Some("http://127.0.0.1:50051")
     );
+    Ok(())
+}
+
+#[test]
+fn load_episteme_registry_from_wendao_toml_accepts_path_and_url_entries() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        studio_wendao_toml_path(temp.path()),
+        r#"[episteme.registries.local_domain]
+path = ".data/local-episteme"
+subdir = "domain"
+
+[episteme.registries.remote_domain]
+url = "https://github.com/SciML/ADTypes.jl.git"
+
+[episteme.registries.disabled_domain]
+path = ".data/disabled-episteme"
+enabled = false
+"#,
+    )?;
+
+    let entries = load_episteme_registry_from_wendao_toml(temp.path())?;
+
+    assert_eq!(entries.len(), 3);
+    assert_eq!(entries[0].id, "disabled_domain");
+    assert!(!entries[0].enabled);
+    assert_eq!(
+        entries[1].path.as_deref(),
+        Some(std::path::Path::new(".data/local-episteme"))
+    );
+    assert_eq!(entries[1].subdir, std::path::PathBuf::from("domain"));
+    assert_eq!(
+        entries[2].url.as_deref(),
+        Some("https://github.com/SciML/ADTypes.jl.git")
+    );
+    assert_eq!(entries[2].subdir, std::path::PathBuf::from("."));
     Ok(())
 }

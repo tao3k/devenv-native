@@ -75,7 +75,8 @@
         "interface_type",
         "value_type",
         "validation_rule",
-        "dataset_mapping"
+        "dataset_mapping",
+        "corpus_mapping"
       ]
     },
     "table": {

@@ -1,0 +1,151 @@
+"""document_extract_perf_script test slice 8."""
+
+from __future__ import annotations
+
+from .support import (
+    Path,
+    _load_benchmark_module,
+)
+
+
+def test_find_pdfium_library_prefers_lib_directory(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    nested = tmp_path / "nested" / "libpdfium.dylib"
+    preferred = tmp_path / "lib" / "libpdfium.dylib"
+    nested.parent.mkdir(parents=True)
+    preferred.parent.mkdir(parents=True)
+    nested.write_bytes(b"nested")
+    preferred.write_bytes(b"preferred")
+
+    assert benchmark.find_pdfium_library(tmp_path, "libpdfium.dylib") == preferred
+
+
+def test_pdf_render_shard_features_are_not_duplicated() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert (
+        benchmark.cargo_features_with_pdf_render(
+            "performance document-extract-pdf-render"
+        )
+        == "performance,document-extract-pdf-render"
+    )
+
+
+def test_hybrid_source_range_features_do_not_pull_pdfium() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert (
+        benchmark.cargo_features_for_flight_mode(
+            "performance studio", "hybrid-page-ocr"
+        )
+        == "performance,studio,document-extract-pdf-source-range"
+    )
+
+
+def test_normalize_render_selection_accepts_cli_spelling() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert benchmark.normalize_render_selection("shard-fallback-pages") == (
+        "shard_fallback_pages"
+    )
+    assert benchmark.normalize_render_selection("region-shards") == "region_shards"
+
+
+def test_auto_local_ocr_endpoint_count_uses_machine_profile(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark.os, "cpu_count", lambda: 12)
+    args = benchmark.argparse.Namespace(
+        local_python_ocr_endpoint_count="auto",
+        external_endpoint=False,
+        real_docling=True,
+        flight_mode="hybrid-page-ocr",
+        pdf_ocr_worker="docling",
+    )
+
+    assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 4
+
+
+def test_auto_local_ocr_endpoint_count_keeps_non_hybrid_modes_single_endpoint(
+    monkeypatch,
+) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark.os, "cpu_count", lambda: 12)
+    args = benchmark.argparse.Namespace(
+        local_python_ocr_endpoint_count="auto",
+        external_endpoint=False,
+        real_docling=True,
+        flight_mode="sync",
+        pdf_ocr_worker="docling",
+    )
+
+    assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 1
+
+
+def test_explicit_local_ocr_endpoint_count_overrides_auto() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(local_python_ocr_endpoint_count="3")
+
+    assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 3
+
+
+def test_invalid_local_ocr_endpoint_count_is_rejected() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(local_python_ocr_endpoint_count="0")
+
+    try:
+        benchmark.resolve_local_python_ocr_endpoint_count(args)
+    except SystemExit as exc:
+        assert "--local-python-ocr-endpoint-count" in str(exc)
+    else:
+        raise AssertionError("expected invalid endpoint count to exit")
+
+
+def test_local_rust_provider_port_uses_free_port_unless_explicit(
+    monkeypatch,
+) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark._cli, "pick_free_port", lambda host: 62052)
+
+    assert (
+        benchmark.resolve_local_rust_provider_port(
+            benchmark.argparse.Namespace(host="127.0.0.1", rust_provider_port=None)
+        )
+        == 62052
+    )
+    assert (
+        benchmark.resolve_local_rust_provider_port(
+            benchmark.argparse.Namespace(host="127.0.0.1", rust_provider_port=63052)
+        )
+        == 63052
+    )
+
+
+def test_auto_document_extract_full_threads_caps_docling_structure_recovery() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        document_extract_full_threads="auto",
+        real_docling=True,
+        flight_mode="hybrid-page-ocr",
+        rust_pdf_ocr_profile_planner="docling-structure-recovery",
+    )
+
+    assert benchmark.resolve_document_extract_full_threads(args) == 1
+
+
+def test_auto_document_extract_full_threads_leaves_other_modes_unset() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        document_extract_full_threads="auto",
+        real_docling=True,
+        flight_mode="hybrid-page-ocr",
+        rust_pdf_ocr_profile_planner="fast-risk-window",
+    )
+
+    assert benchmark.resolve_document_extract_full_threads(args) is None
+
+
+def test_explicit_document_extract_full_threads_overrides_auto() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(document_extract_full_threads="2")
+
+    assert benchmark.resolve_document_extract_full_threads(args) == 2

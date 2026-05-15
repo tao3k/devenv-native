@@ -12,7 +12,33 @@ pub(crate) struct WendaoTomlConfig {
     #[serde(default)]
     pub(crate) document_extract: WendaoTomlDocumentExtractConfig,
     #[serde(default)]
+    pub(crate) episteme: WendaoTomlEpistemeConfig,
+    #[serde(default)]
     pub(crate) link_graph: WendaoTomlLinkGraphConfig,
+    #[serde(default, flatten)]
+    pub(crate) extra: BTreeMap<String, toml::Value>,
+}
+
+/// Episteme repository registry configuration.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub(crate) struct WendaoTomlEpistemeConfig {
+    #[serde(default)]
+    pub(crate) registries: BTreeMap<String, WendaoTomlEpistemeRegistryConfig>,
+    #[serde(default, flatten)]
+    pub(crate) extra: BTreeMap<String, toml::Value>,
+}
+
+/// One thin episteme registry entry from `wendao.toml`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub(crate) struct WendaoTomlEpistemeRegistryConfig {
+    #[serde(default)]
+    pub(crate) path: Option<String>,
+    #[serde(default)]
+    pub(crate) url: Option<String>,
+    #[serde(default)]
+    pub(crate) enabled: Option<bool>,
+    #[serde(default)]
+    pub(crate) subdir: Option<String>,
     #[serde(default, flatten)]
     pub(crate) extra: BTreeMap<String, toml::Value>,
 }

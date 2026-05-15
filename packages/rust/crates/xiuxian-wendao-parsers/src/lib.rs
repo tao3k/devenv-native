@@ -11,6 +11,8 @@ pub mod blocks;
 pub mod code_observation;
 /// Parser-owned Markdown document metadata extraction.
 pub mod document;
+/// Parser-owned episteme source-contract DTOs and parsers.
+pub mod episteme_contract;
 /// Markdown frontmatter parsing and parser-owned frontmatter contracts.
 pub mod frontmatter;
 /// Parser-owned Markdown syntax lint helpers for lightweight consumers.
@@ -50,6 +52,12 @@ pub use document::{
     DocumentCore, DocumentEnvelope, DocumentFormat, DocumentType, MarkdownDocument, OrgDocument,
     OrgDocumentMetadata, parse_markdown_document,
 };
+pub use episteme_contract::{
+    EpistemeExtractionQueueRow, EpistemeFileRow, EpistemeMappingLedgerValidation,
+    EpistemeSourceContractParseError, EpistemeSourceManifest, parse_episteme_extraction_queue_tsv,
+    parse_episteme_files_tsv, parse_episteme_source_manifest_toml,
+    validate_episteme_mapping_ledger_org,
+};
 pub use frontmatter::{
     NoteCategory, NoteFrontmatter, RawFrontmatter, SkillFrontmatterParseError,
     discover_skill_documents, frontmatter_kind, is_skill_descriptor_path, parse_frontmatter,
@@ -66,12 +74,17 @@ pub use note::{
     parse_markdown_note_artifacts,
 };
 pub use org::{
-    ORG_ONTOLOGY_AUTHORING_SCHEMA_ID, OrgNote, OrgNoteCore, OrgOntologyAuthoringDocument,
-    OrgOntologyAuthoringError, OrgOntologyAuthoringKind, OrgOntologyAuthoringSection,
-    OrgOntologyAuthoringTable, OrgOntologyEmbeddedArtifact, OrgOntologyLifecycleState,
-    OrgOntologySourceSpan, OrgOntologyTableKind, OrgSection, OrgTocDocument,
-    compile_org_ontology_authoring_document, extract_org_sections, parse_org_document,
-    parse_org_note, parse_org_toc,
+    ORG_ONTOLOGY_AUTHORING_SCHEMA_ID, ORG_PROP_BLANK_VALUE, ORG_PROP_INVALID_CONFIDENCE,
+    ORG_PROP_INVALID_ENUM, ORG_PROP_INVALID_SHA256, ORG_PROP_INVALID_UUID,
+    ORG_PROP_MISSING_REQUIRED, ORG_PROP_UNKNOWN_PROPERTY, ORG_REASONING_PROPERTY_SCHEMA_ID,
+    OrgNote, OrgNoteCore, OrgOntologyAuthoringDocument, OrgOntologyAuthoringError,
+    OrgOntologyAuthoringKind, OrgOntologyAuthoringSection, OrgOntologyAuthoringTable,
+    OrgOntologyEmbeddedArtifact, OrgOntologyLifecycleState, OrgOntologySourceSpan,
+    OrgOntologyTableKind, OrgReasoningPropertyDiagnostic, OrgReasoningPropertyRecord, OrgSection,
+    OrgTocDocument, compile_org_ontology_authoring_document,
+    compile_org_reasoning_property_records, extract_org_sections, parse_org_document,
+    parse_org_note, parse_org_toc, validate_org_reasoning_properties,
+    validate_org_reasoning_property_records,
 };
 pub use reference_core::ReferenceCore;
 pub use references::{

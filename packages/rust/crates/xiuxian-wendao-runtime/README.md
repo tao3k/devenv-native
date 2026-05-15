@@ -142,6 +142,15 @@ The transport server tests now follow a feature-folder layout under
 - `rerank.rs`: rerank contract tests
 - `routes/`: route-family integration coverage split by concern
 
+The dataset-to-ontology materialization route now has server-side admission
+coverage for its multi-table manifest metadata. Runtime validates the manifest
+and cache/admission key for `/ontology/dataset/materialize`. If no provider is
+configured, the route returns an explicit unimplemented status. If a provider
+is configured, runtime passes the admitted manifest through
+`DatasetOntologyMaterializeFlightRouteProvider` and streams the returned Arrow
+batches through the existing Flight payload path. DuckDB execution and
+source-contract SQL orchestration remain outside this crate.
+
 ## Transport Query Contract Layout
 
 The query-contract surface now follows the same folder-first rule.

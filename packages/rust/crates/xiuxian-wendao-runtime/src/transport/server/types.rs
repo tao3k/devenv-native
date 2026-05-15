@@ -13,6 +13,7 @@ use xiuxian_db_store::{
     LanceRecordBatch, LanceSchema, LanceStringArray,
 };
 
+use super::ontology::DatasetOntologyMaterializeFlightRouteProvider;
 use crate::transport::query_contract::{
     DocumentExtractFlightRequest, RERANK_RESPONSE_DOC_ID_COLUMN,
     RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
@@ -99,6 +100,9 @@ pub struct WendaoFlightRouteProviders {
     pub topology_3d: Option<Arc<dyn Topology3dFlightRouteProvider>>,
     /// Optional document extraction provider.
     pub document_extract: Option<Arc<dyn DocumentExtractFlightRouteProvider>>,
+    /// Optional dataset ontology materialization provider.
+    pub dataset_ontology_materialize:
+        Option<Arc<dyn DatasetOntologyMaterializeFlightRouteProvider>>,
     /// Optional SQL provider.
     pub sql: Option<Arc<dyn SqlFlightRouteProvider>>,
 }
@@ -130,6 +134,7 @@ impl WendaoFlightRouteProviders {
             graph_neighbors: None,
             topology_3d: None,
             document_extract: None,
+            dataset_ontology_materialize: None,
             sql: None,
         }
     }

@@ -7,8 +7,8 @@ use super::{
     repo_projected_retrieval_context_metadata_with_requested_node,
 };
 use xiuxian_wendao::analyzers::{
-    ProjectedPageRecord, ProjectedRetrievalHit, ProjectedRetrievalHitKind, ProjectionPageKind,
-    RepoProjectedRetrievalContextResult,
+    ProjectedPageIndexNodeContext, ProjectedPageRecord, ProjectedRetrievalHit,
+    ProjectedRetrievalHitKind, ProjectionPageKind, RepoProjectedRetrievalContextResult,
 };
 
 fn demo_page(page_id: &str, title: &str) -> ProjectedPageRecord {
@@ -52,7 +52,7 @@ fn demo_context() -> RepoProjectedRetrievalContextResult {
 
 fn demo_context_with_node_context() -> RepoProjectedRetrievalContextResult {
     RepoProjectedRetrievalContextResult {
-        node_context: Some(Default::default()),
+        node_context: Some(ProjectedPageIndexNodeContext::default()),
         ..demo_context()
     }
 }

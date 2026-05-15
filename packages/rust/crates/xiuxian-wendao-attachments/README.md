@@ -160,6 +160,16 @@ member suffixes, and member-manifest routing candidates. These remain
 benchmark evidence only, not live parser authority over Docling-owned
 semantics.
 
+For audio, attachments owns the model-neutral shard substrate used by the
+analyzer Flight service. It plans logical time windows, applies optional
+pre/post context, materializes normalized media with local `ffmpeg`, derives
+source and shard fingerprints, and builds `xiuxian_wendao.audio_shard_input.v1`
+rows. The companion merge helper consumes `xiuxian_wendao.audio_shard_result.v1`
+rows in `readingOrderKey` order, removes exact overlap text only at shard
+boundaries, and reports failed, skipped, missing, and duplicate shard coverage
+for Studio precision gates. Backend model names remain analyzer configuration,
+not attachment identity.
+
 ## PDFium Runtime
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium

@@ -3,6 +3,7 @@ mod ast;
 mod attachments;
 mod autocomplete;
 mod contracts;
+mod dataset_ontology;
 mod definition;
 mod fixtures;
 mod global_search;
@@ -13,9 +14,7 @@ mod materialization;
 mod provider;
 mod vfs;
 
-use super::{
-    StudioSearchFlightRouteProvider, build_studio_search_flight_service_with_repo_provider,
-};
+use super::build_studio_search_flight_service_with_repo_provider;
 use fixtures::{
     build_analysis_route_service, build_service, make_gateway_state_with_attachments,
     make_gateway_state_with_docs, make_gateway_state_with_search_routes,
@@ -29,9 +28,9 @@ use headers::{
     populate_vfs_content_headers, populate_vfs_resolve_headers, populate_vfs_scan_headers,
 };
 use headers::{
-    populate_code_ast_analysis_headers, populate_refine_doc_headers,
-    populate_repo_doc_coverage_headers, populate_repo_overview_headers,
-    populate_repo_projected_page_index_tree_headers,
+    populate_code_ast_analysis_headers, populate_dataset_ontology_headers,
+    populate_refine_doc_headers, populate_repo_doc_coverage_headers,
+    populate_repo_overview_headers, populate_repo_projected_page_index_tree_headers,
     populate_repo_projected_retrieval_context_headers,
 };
 use helpers::{

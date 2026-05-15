@@ -6,6 +6,8 @@ mod blocks;
 mod code_observation;
 #[path = "unit/document.rs"]
 mod document;
+#[path = "unit/episteme_contract/mod.rs"]
+mod episteme_contract;
 #[path = "unit/frontmatter.rs"]
 mod frontmatter;
 #[path = "unit/lib_policy.rs"]

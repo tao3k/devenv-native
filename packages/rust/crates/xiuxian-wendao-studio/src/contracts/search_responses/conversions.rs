@@ -55,7 +55,9 @@ impl From<AstSearchHit> for domain::AstSearchHit {
             crate_name: value.crate_name,
             project_name: value.project_name,
             root_label: value.root_label,
-            node_kind: value.node_kind.map(|kind| kind.into_string()),
+            node_kind: value
+                .node_kind
+                .map(super::super::semantic::StudioContractNodeKind::into_string),
             owner_title: value.owner_title,
             navigation_target: value.navigation_target.into(),
             line_start: value.line_start,

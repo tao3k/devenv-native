@@ -1,12 +1,18 @@
 use serde_json::json;
 
 use super::support::{
-    AUTHORING_SCHEMA, CANDIDATE_SCHEMA, TRACE_SCHEMA, assert_invalid, compile_schema,
+    AUTHORING_SCHEMA, CANDIDATE_SCHEMA, PROPERTY_SCHEMA, TRACE_SCHEMA, assert_invalid,
+    compile_schema,
 };
 
 #[test]
 fn ontology_json_schema_contracts_compile() {
-    for raw_schema in [AUTHORING_SCHEMA, TRACE_SCHEMA, CANDIDATE_SCHEMA] {
+    for raw_schema in [
+        AUTHORING_SCHEMA,
+        TRACE_SCHEMA,
+        CANDIDATE_SCHEMA,
+        PROPERTY_SCHEMA,
+    ] {
         compile_schema(raw_schema);
     }
 }

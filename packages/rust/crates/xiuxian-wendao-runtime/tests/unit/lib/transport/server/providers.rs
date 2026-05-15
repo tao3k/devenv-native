@@ -14,16 +14,18 @@ use xiuxian_db_store::{
 use crate::transport::{
     AnalysisFlightRouteResponse, AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, AutocompleteFlightRouteResponse,
-    CodeAstAnalysisFlightRouteProvider, DefinitionFlightRouteProvider,
-    DefinitionFlightRouteResponse, DocumentExtractFlightRouteProvider,
-    DocumentExtractFlightRouteResponse, GraphNeighborsFlightRouteProvider,
-    GraphNeighborsFlightRouteResponse, MarkdownAnalysisFlightRouteProvider,
-    RepoDocCoverageFlightRouteProvider, RepoIndexStatusFlightRouteProvider,
-    RepoOverviewFlightRouteProvider, RepoProjectedRetrievalContextFlightRouteProvider,
-    RepoSearchFlightRequest, RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider,
-    SearchFlightRouteProvider, SearchFlightRouteResponse, SqlFlightRouteProvider,
-    SqlFlightRouteResponse, VfsContentFlightRouteProvider, VfsContentFlightRouteResponse,
-    VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
+    CodeAstAnalysisFlightRouteProvider, DatasetOntologyFlightManifest,
+    DatasetOntologyMaterializeFlightRouteProvider, DatasetOntologyMaterializeFlightRouteResponse,
+    DefinitionFlightRouteProvider, DefinitionFlightRouteResponse,
+    DocumentExtractFlightRouteProvider, DocumentExtractFlightRouteResponse,
+    GraphNeighborsFlightRouteProvider, GraphNeighborsFlightRouteResponse,
+    MarkdownAnalysisFlightRouteProvider, RepoDocCoverageFlightRouteProvider,
+    RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
+    RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRequest,
+    RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider, SearchFlightRouteProvider,
+    SearchFlightRouteResponse, SqlFlightRouteProvider, SqlFlightRouteResponse,
+    VfsContentFlightRouteProvider, VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider,
+    VfsResolveFlightRouteResponse,
 };
 
 type SearchRequestRecord = (String, String, usize, Option<String>, Option<String>);
@@ -39,6 +41,7 @@ type RepoSyncRequestRecord = (String, String);
 type RepoDocCoverageRequestRecord = (String, Option<String>);
 type RepoProjectedRetrievalContextRequestRecord = (String, String, Option<String>, usize);
 type DocumentExtractRequestRecord = (String, String, bool, bool, String);
+type DatasetOntologyMaterializeRequestRecord = (String, String, Vec<String>);
 type VfsContentRequestRecord = String;
 
 fn lock_or_panic<'a, T>(mutex: &'a Mutex<T>, context: &str) -> std::sync::MutexGuard<'a, T> {
@@ -1317,5 +1320,79 @@ impl DocumentExtractFlightRouteProvider for RecordingDocumentExtractProvider {
         )
         .map_err(|error| error.to_string())?;
         Ok(DocumentExtractFlightRouteResponse::new(batch))
+    }
+}
+
+#[derive(Debug, Default)]
+pub(super) struct RecordingDatasetOntologyMaterializeProvider {
+    request: Mutex<Option<DatasetOntologyMaterializeRequestRecord>>,
+    call_count: Mutex<usize>,
+}
+
+impl RecordingDatasetOntologyMaterializeProvider {
+    pub(super) fn recorded_request(&self) -> Option<DatasetOntologyMaterializeRequestRecord> {
+        lock_or_panic(
+            &self.request,
+            "dataset ontology materialize provider record should lock",
+        )
+        .clone()
+    }
+
+    pub(super) fn call_count(&self) -> usize {
+        *lock_or_panic(
+            &self.call_count,
+            "dataset ontology materialize provider call count should lock",
+        )
+    }
+}
+
+#[async_trait]
+impl DatasetOntologyMaterializeFlightRouteProvider for RecordingDatasetOntologyMaterializeProvider {
+    async fn dataset_ontology_materialize_batch(
+        &self,
+        manifest: &DatasetOntologyFlightManifest,
+    ) -> Result<DatasetOntologyMaterializeFlightRouteResponse, String> {
+        let table_names = manifest
+            .tables
+            .iter()
+            .map(|table| table.table_name.clone())
+            .collect::<Vec<_>>();
+        *lock_or_panic(
+            &self.request,
+            "dataset ontology materialize provider record should lock",
+        ) = Some((
+            manifest.contract_id.clone(),
+            manifest.mapping_id.clone(),
+            table_names.clone(),
+        ));
+        *lock_or_panic(
+            &self.call_count,
+            "dataset ontology materialize provider call count should lock",
+        ) += 1;
+        let table_count = i32::try_from(table_names.len()).map_err(|error| error.to_string())?;
+        let batch = ArrowRecordBatch::try_new(
+            Arc::new(ArrowSchema::new(vec![
+                ArrowField::new("contractId", ArrowDataType::Utf8, false),
+                ArrowField::new("mappingId", ArrowDataType::Utf8, false),
+                ArrowField::new("tableCount", ArrowDataType::Int32, false),
+            ])),
+            vec![
+                Arc::new(ArrowStringArray::from(vec![manifest.contract_id.clone()])),
+                Arc::new(ArrowStringArray::from(vec![manifest.mapping_id.clone()])),
+                Arc::new(ArrowInt32Array::from(vec![table_count])),
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(
+            DatasetOntologyMaterializeFlightRouteResponse::new(batch).with_app_metadata(
+                serde_json::json!({
+                    "contractId": manifest.contract_id,
+                    "mappingId": manifest.mapping_id,
+                    "tableCount": table_names.len(),
+                })
+                .to_string()
+                .into_bytes(),
+            ),
+        )
     }
 }

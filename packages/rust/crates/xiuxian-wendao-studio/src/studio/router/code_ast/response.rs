@@ -38,7 +38,7 @@ pub(crate) fn build_code_ast_analysis_response(
             id: module.module_id.to_string().into(),
             label: module.qualified_name.clone(),
             kind: CodeAstNodeKind::Module,
-            path: Some(module.path.to_string().into()),
+            path: Some(module.path.to_string()),
             line_start: Some(line),
             line_end: Some(line),
         });
@@ -94,7 +94,7 @@ pub(crate) fn build_code_ast_analysis_response(
             id: symbol.symbol_id.to_string().into(),
             label: symbol.name.clone(),
             kind,
-            path: Some(symbol.path.to_string().into()),
+            path: Some(symbol.path.to_string()),
             line_start: symbol.line_start,
             line_end: symbol.line_end.or(symbol.line_start),
         });
@@ -199,8 +199,7 @@ pub(crate) fn build_code_ast_analysis_response(
             id: format!(
                 "{}-{}-{}",
                 relation.source_id, relation.target_id, relation.kind as u8
-            )
-            .into(),
+            ),
             source_id: relation.source_id.clone().into(),
             target_id: relation.target_id.clone().into(),
             kind,
@@ -320,12 +319,12 @@ fn build_import_code_ast_nodes(
                     id: import_id.clone().into(),
                     label: import.import_name.clone(),
                     kind: CodeAstNodeKind::ExternalSymbol,
-                    path: Some(path.to_string().into()),
+                    path: Some(path.to_string()),
                     line_start: import.line_start,
                     line_end: import.line_start,
                 },
                 CodeAstEdge {
-                    id: format!("{}-{}-imports", import.module_id, import_id).into(),
+                    id: format!("{}-{}-imports", import.module_id, import_id),
                     source_id: import.module_id.to_string().into(),
                     target_id: import_id.into(),
                     kind: CodeAstEdgeKind::Imports,

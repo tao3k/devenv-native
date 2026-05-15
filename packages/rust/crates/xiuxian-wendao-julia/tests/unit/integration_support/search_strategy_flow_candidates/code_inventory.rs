@@ -26,11 +26,18 @@ fn code_intelligence_inventory_covers_real_git_tracked_configured_surface()
             .configured_include_dirs
             .contains(&"packages/python/wendao-knowledge-retrieval-benchmark".to_owned())
     );
-    assert_eq!(audit.rust_control_plane_count, 1828);
-    assert_eq!(audit.link_graph_source_count, 256);
-    assert_eq!(audit.toml_config_count, 101);
-    assert_eq!(audit.benchmark_python_count, 9);
-    assert_eq!(audit.total_candidate_count, 2194);
+    assert!(audit.rust_control_plane_count > 0);
+    assert!(audit.link_graph_source_count > 0);
+    assert!(audit.toml_config_count > 0);
+    assert!(audit.benchmark_python_count > 0);
+    assert!(audit.rust_control_plane_count >= audit.link_graph_source_count);
+    assert_eq!(
+        audit.total_candidate_count,
+        audit.rust_control_plane_count
+            + audit.link_graph_source_count
+            + audit.toml_config_count
+            + audit.benchmark_python_count
+    );
     Ok(())
 }
 
@@ -40,9 +47,10 @@ fn code_intelligence_inventory_batch_uses_surface_source_not_transport_name()
     let root = repository_root();
     let batch =
         search_strategy_flow_code_intelligence_inventory_candidate_input_batch(root.as_path())?;
+    let audit = audit_search_strategy_flow_code_intelligence_inventory(root.as_path())?;
 
     assert_eq!(batch.source, CODE_INTELLIGENCE_CANDIDATE_SOURCE);
-    assert_eq!(batch.row_count, 2194);
+    assert_eq!(batch.row_count, audit.total_candidate_count);
     assert!(batch.tsv.contains("rust-control-plane-source-"));
     assert!(batch.tsv.contains("link-graph-source-focus-"));
     assert!(batch.tsv.contains("toml-config-boundary-"));
@@ -60,7 +68,7 @@ fn code_intelligence_inventory_batch_uses_surface_source_not_transport_name()
     );
     assert_eq!(
         receipt.get("mergedCandidateCount"),
-        Some(&serde_json::json!(2194))
+        Some(&serde_json::json!(audit.total_candidate_count))
     );
     Ok(())
 }

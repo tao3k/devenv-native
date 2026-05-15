@@ -6,6 +6,7 @@ mod audit;
 mod command;
 #[path = "docs/mod.rs"]
 mod docs;
+mod episteme;
 mod fix;
 #[cfg(feature = "zhenfa-router")]
 mod gateway;
@@ -27,6 +28,13 @@ pub(crate) use docs::{
     DocsCommand, DocsContextArgs, DocsNavigationArgs, DocsNodeArgs, DocsPageArgs,
     DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs, DocsSearchPageIndexArgs,
     DocsSegmentArgs, DocsTocArgs, DocsTreeArgs,
+};
+pub(crate) use episteme::{
+    EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
+    EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
+    EpistemeReadEvidenceArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
+    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
+    EpistemeWriteStructureTocArgs,
 };
 pub(crate) use fix::FixArgs;
 #[cfg(feature = "zhenfa-router")]

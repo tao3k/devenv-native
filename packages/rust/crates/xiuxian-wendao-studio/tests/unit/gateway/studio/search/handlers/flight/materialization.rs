@@ -105,7 +105,7 @@ async fn search_strategy_flow_materializes_native_flight_route_sequence() {
         GRAPH_NEIGHBORS_ROUTE,
         "SearchStrategyFlow graph-neighbor materialization",
         |metadata| {
-            populate_graph_neighbors_headers(metadata, "kernel/docs/alpha.md", "both", 1, 20)
+            populate_graph_neighbors_headers(metadata, "kernel/docs/alpha.md", "both", 1, 20);
         },
     )
     .await;
@@ -116,24 +116,40 @@ async fn search_strategy_flow_materializes_native_flight_route_sequence() {
         "graph-neighbors route should materialize node rows"
     );
 
+    assert_decoded_receipt(
+        &repo_search_batches,
+        &page_index_batches,
+        &retrieval_context_batches,
+        &graph_batches,
+        node_id.as_str(),
+    );
+}
+
+fn assert_decoded_receipt(
+    repo_search_batches: &[LanceRecordBatch],
+    page_index_batches: &[LanceRecordBatch],
+    retrieval_context_batches: &[LanceRecordBatch],
+    graph_batches: &[LanceRecordBatch],
+    node_id: &str,
+) {
     let receipt = SearchStrategyFlowMaterializationReceipt::executed(
         "studio-flight-proof",
         vec![
-            route_receipt(REPO_SEARCH_ROUTE, &repo_search_batches),
+            route_receipt(REPO_SEARCH_ROUTE, repo_search_batches),
             route_receipt(
                 ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
-                &page_index_batches,
+                page_index_batches,
             ),
             route_receipt(
                 ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
-                &retrieval_context_batches,
+                retrieval_context_batches,
             ),
-            route_receipt(GRAPH_NEIGHBORS_ROUTE, &graph_batches),
+            route_receipt(GRAPH_NEIGHBORS_ROUTE, graph_batches),
         ],
         vec![
             decoded_payload_receipt(
                 REPO_SEARCH_ROUTE,
-                &repo_search_batches,
+                repo_search_batches,
                 vec![REPO_SEARCH_PATH_COLUMN],
                 format!(
                     "path:{}",
@@ -142,13 +158,13 @@ async fn search_strategy_flow_materializes_native_flight_route_sequence() {
             ),
             decoded_payload_receipt(
                 ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
-                &page_index_batches,
+                page_index_batches,
                 vec!["pageId", "rootCount", "rootsJson"],
                 format!("node:{node_id}"),
             ),
             decoded_payload_receipt(
                 ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
-                &retrieval_context_batches,
+                retrieval_context_batches,
                 vec!["pageId", "nodeId", "centerJson", "nodeContextJson"],
                 format!(
                     "node-context:{}",
@@ -157,7 +173,7 @@ async fn search_strategy_flow_materializes_native_flight_route_sequence() {
             ),
             decoded_payload_receipt(
                 GRAPH_NEIGHBORS_ROUTE,
-                &graph_batches,
+                graph_batches,
                 vec!["rowType"],
                 "row-type:node".to_owned(),
             ),
@@ -186,7 +202,7 @@ async fn search_strategy_flow_materializes_native_flight_route_sequence() {
     assert!(
         serde_json::to_string(&receipt_json)
             .unwrap_or_else(|error| panic!("serialize decoded materialization receipt: {error}"))
-            .contains(node_id.as_str()),
+            .contains(node_id),
         "decoded receipt should carry the section node anchor"
     );
 }

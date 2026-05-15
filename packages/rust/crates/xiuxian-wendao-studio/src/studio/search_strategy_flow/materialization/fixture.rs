@@ -12,7 +12,7 @@ use crate::studio::arrow_types::LanceRecordBatch;
 use crate::studio::{GatewayState, StudioState, build_studio_flight_service};
 use crate::transport::{
     ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
-    GRAPH_NEIGHBORS_ROUTE, REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_ROUTE,
+    GRAPH_NEIGHBORS_ROUTE, REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_ROUTE, WendaoFlightService,
 };
 use xiuxian_git_repo::{SyncMode, discover_checkout_metadata};
 use xiuxian_wendao::analyzers::{
@@ -42,7 +42,7 @@ const TEST_GIT_AUTHOR_NAME: &str = "Xiuxian Test";
 const TEST_GIT_AUTHOR_EMAIL: &str = "test@example.com";
 const TEST_GIT_COMMIT_TIME: &str = "1700000000 +0000";
 
-/// Executes the fixture SearchStrategyFlow native Flight route sequence and
+/// Executes the fixture `SearchStrategyFlow` native Flight route sequence and
 /// returns a decoded materialization receipt as JSON.
 ///
 /// # Errors
@@ -70,34 +70,66 @@ async fn materialize_fixture_receipt()
             "build materialization Flight service: {error}"
         ))
     })?;
+    let route_batches = collect_materialization_route_batches(&service).await?;
 
-    let repo_search_batches = collect_route_batches(
-        &service,
+    let route_receipts = route_receipts(
+        &route_batches.repo_search,
+        &route_batches.page_index,
+        &route_batches.retrieval_context,
+        &route_batches.graph,
+    )?;
+    let decoded_payload_receipts = decoded_payload_receipts(
+        &route_batches.repo_search,
+        &route_batches.page_index,
+        &route_batches.retrieval_context,
+        &route_batches.graph,
+        &route_batches.node_id,
+    )?;
+    Ok(SearchStrategyFlowMaterializationReceipt::executed(
+        "studio-flight-proof",
+        route_receipts,
+        decoded_payload_receipts,
+    ))
+}
+
+struct SearchStrategyFlowRouteBatches {
+    repo_search: Vec<LanceRecordBatch>,
+    page_index: Vec<LanceRecordBatch>,
+    retrieval_context: Vec<LanceRecordBatch>,
+    graph: Vec<LanceRecordBatch>,
+    node_id: String,
+}
+
+async fn collect_materialization_route_batches(
+    service: &WendaoFlightService,
+) -> Result<SearchStrategyFlowRouteBatches, SearchStrategyFlowMaterializationError> {
+    let repo_search = collect_route_batches(
+        service,
         REPO_SEARCH_ROUTE,
         "SearchStrategyFlow repo search materialization",
         |metadata| populate_repo_search_headers(metadata, REPO_ID, "solve anchors", 5),
     )
     .await?;
     require(
-        string_values(&repo_search_batches[0], REPO_SEARCH_PATH_COLUMN)?
+        string_values(&repo_search[0], REPO_SEARCH_PATH_COLUMN)?
             .iter()
             .any(|path| path.contains("solve")),
         "repo search should materialize a solve-related repository hit",
     )?;
 
-    let page_index_batches = collect_route_batches(
-        &service,
+    let page_index = collect_route_batches(
+        service,
         ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
         "SearchStrategyFlow page-index materialization",
         |metadata| populate_repo_projected_page_index_tree_headers(metadata, REPO_ID, PAGE_ID),
     )
     .await?;
-    require_eq(first_string(&page_index_batches[0], "pageId")?, PAGE_ID)?;
+    require_eq(first_string(&page_index[0], "pageId")?, PAGE_ID)?;
     require(
-        first_u64(&page_index_batches[0], "rootCount")? > 0,
+        first_u64(&page_index[0], "rootCount")? > 0,
         "page-index tree should expose roots",
     )?;
-    let roots_json = first_string(&page_index_batches[0], "rootsJson")?;
+    let roots_json = first_string(&page_index[0], "rootsJson")?;
     require(
         roots_json.contains("Anchors"),
         "page-index tree should expose section-level anchors for agent traversal",
@@ -109,8 +141,8 @@ async fn materialize_fixture_receipt()
             )
         })?;
 
-    let retrieval_context_batches = collect_route_batches(
-        &service,
+    let retrieval_context = collect_route_batches(
+        service,
         ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
         "SearchStrategyFlow retrieval-context materialization",
         |metadata| {
@@ -124,25 +156,22 @@ async fn materialize_fixture_receipt()
         },
     )
     .await?;
+    require_eq(first_string(&retrieval_context[0], "pageId")?, PAGE_ID)?;
     require_eq(
-        first_string(&retrieval_context_batches[0], "pageId")?,
-        PAGE_ID,
-    )?;
-    require_eq(
-        first_string(&retrieval_context_batches[0], "nodeId")?,
+        first_string(&retrieval_context[0], "nodeId")?,
         node_id.as_str(),
     )?;
     require(
-        first_string(&retrieval_context_batches[0], "centerJson")?.contains("Anchors"),
+        first_string(&retrieval_context[0], "centerJson")?.contains("Anchors"),
         "retrieval context should preserve requested section content through the center page",
     )?;
     require(
-        first_string(&retrieval_context_batches[0], "nodeContextJson")?.contains("Documentation"),
+        first_string(&retrieval_context[0], "nodeContextJson")?.contains("Documentation"),
         "retrieval context should preserve the requested section neighborhood",
     )?;
 
-    let graph_batches = collect_route_batches(
-        &service,
+    let graph = collect_route_batches(
+        service,
         GRAPH_NEIGHBORS_ROUTE,
         "SearchStrategyFlow graph-neighbor materialization",
         |metadata| {
@@ -151,30 +180,18 @@ async fn materialize_fixture_receipt()
     )
     .await?;
     require(
-        string_values(&graph_batches[0], "rowType")?
+        string_values(&graph[0], "rowType")?
             .iter()
             .any(|row_type| row_type == "node"),
         "graph-neighbors route should materialize node rows",
     )?;
-
-    let route_receipts = route_receipts(
-        &repo_search_batches,
-        &page_index_batches,
-        &retrieval_context_batches,
-        &graph_batches,
-    )?;
-    let decoded_payload_receipts = decoded_payload_receipts(
-        &repo_search_batches,
-        &page_index_batches,
-        &retrieval_context_batches,
-        &graph_batches,
-        &node_id,
-    )?;
-    Ok(SearchStrategyFlowMaterializationReceipt::executed(
-        "studio-flight-proof",
-        route_receipts,
-        decoded_payload_receipts,
-    ))
+    Ok(SearchStrategyFlowRouteBatches {
+        repo_search,
+        page_index,
+        retrieval_context,
+        graph,
+        node_id,
+    })
 }
 
 fn route_receipts(
@@ -290,7 +307,7 @@ refresh = "manual"
             .publish_repo_content_chunks_with_revision(
                 REPO_ID,
                 &[RepoCodeDocument {
-                    path: ("docs/solve.md".to_string()).into(),
+                    path: "docs/solve.md".to_string(),
                     language: Some("markdown".to_string()),
                     contents: Arc::<str>::from("solve anchors and source examples"),
                     size_bytes: 33,
@@ -376,98 +393,130 @@ fn fixture_repository_analysis(
     let example_id = format!("repo:{REPO_ID}:example:examples/solve_demo.jl");
 
     RepositoryAnalysisOutput {
-        repository: Some(RepositoryRecord {
-            repo_id: (REPO_ID.to_string()).into(),
-            name: "GatewaySyncPkg".to_string(),
-            path: (repo_root.display().to_string()).into(),
-            url: None,
-            revision,
-            version: Some("0.1.0".to_string()),
-            uuid: Some("12345678-1234-1234-1234-123456789abc".to_string()),
-            dependencies: Vec::new(),
-        }),
-        modules: vec![ModuleRecord {
-            repo_id: (REPO_ID.to_string()).into(),
-            module_id: (module_id.clone()).into(),
-            qualified_name: "GatewaySyncPkg".to_string(),
-            path: ("src/GatewaySyncPkg.jl".to_string()).into(),
-        }],
-        symbols: vec![SymbolRecord {
-            repo_id: (REPO_ID.to_string()).into(),
-            symbol_id: (symbol_id.clone()).into(),
-            module_id: Some((module_id.clone()).into()),
-            name: "solve".to_string(),
-            qualified_name: "GatewaySyncPkg.solve".to_string(),
-            kind: RepoSymbolKind::Function,
-            path: ("src/GatewaySyncPkg.jl".to_string()).into(),
-            line_start: None,
-            line_end: None,
-            signature: Some("solve() = nothing".to_string()),
-            audit_status: None,
-            verification_state: Some(("unknown".to_string()).into()),
-            attributes: BTreeMap::new(),
-        }],
+        repository: Some(fixture_repository_record(repo_root, revision)),
+        modules: fixture_module_records(&module_id),
+        symbols: fixture_symbol_records(&module_id, &symbol_id),
         imports: Vec::new(),
-        examples: vec![ExampleRecord {
-            repo_id: (REPO_ID.to_string()).into(),
-            example_id: (example_id.clone()).into(),
-            title: "solve_demo".to_string(),
-            path: ("examples/solve_demo.jl".to_string()).into(),
-            summary: None,
-        }],
-        docs: vec![
-            DocRecord {
-                repo_id: (REPO_ID.to_string()).into(),
-                doc_id: (readme_doc_id.clone()).into(),
-                title: "README.md".to_string(),
-                path: ("README.md".to_string()).into(),
-                format: Some("md".to_string()),
-                doc_target: None,
-            },
-            DocRecord {
-                repo_id: (REPO_ID.to_string()).into(),
-                doc_id: (docstring_doc_id.clone()).into(),
-                title: "solve".to_string(),
-                path: (format!("src/GatewaySyncPkg.jl#symbol-id:{symbol_id}")).into(),
-                format: Some("julia_docstring".to_string()),
-                doc_target: None,
-            },
-            DocRecord {
-                repo_id: (REPO_ID.to_string()).into(),
-                doc_id: (solve_doc_id.clone()).into(),
-                title: "solve".to_string(),
-                path: ("docs/solve.md".to_string()).into(),
-                format: Some("md".to_string()),
-                doc_target: None,
-            },
-        ],
-        relations: vec![
-            RelationRecord {
-                repo_id: (REPO_ID.to_string()).into(),
-                source_id: readme_doc_id,
-                target_id: module_id.clone(),
-                kind: RelationKind::Documents,
-            },
-            RelationRecord {
-                repo_id: (REPO_ID.to_string()).into(),
-                source_id: docstring_doc_id,
-                target_id: symbol_id.clone(),
-                kind: RelationKind::Documents,
-            },
-            RelationRecord {
-                repo_id: (REPO_ID.to_string()).into(),
-                source_id: solve_doc_id,
-                target_id: symbol_id.clone(),
-                kind: RelationKind::Documents,
-            },
-            RelationRecord {
-                repo_id: (REPO_ID.to_string()).into(),
-                source_id: example_id,
-                target_id: symbol_id,
-                kind: RelationKind::ExampleOf,
-            },
-        ],
+        examples: fixture_example_records(&example_id),
+        docs: fixture_doc_records(&readme_doc_id, &docstring_doc_id, &solve_doc_id, &symbol_id),
+        relations: fixture_relation_records(
+            &readme_doc_id,
+            &docstring_doc_id,
+            &solve_doc_id,
+            &example_id,
+            &module_id,
+            &symbol_id,
+        ),
         diagnostics: Vec::new(),
+    }
+}
+
+fn fixture_repository_record(repo_root: &Path, revision: Option<String>) -> RepositoryRecord {
+    RepositoryRecord {
+        repo_id: REPO_ID.to_string().into(),
+        name: "GatewaySyncPkg".to_string(),
+        path: repo_root.display().to_string().into(),
+        url: None,
+        revision,
+        version: Some("0.1.0".to_string()),
+        uuid: Some("12345678-1234-1234-1234-123456789abc".to_string()),
+        dependencies: Vec::new(),
+    }
+}
+
+fn fixture_module_records(module_id: &str) -> Vec<ModuleRecord> {
+    vec![ModuleRecord {
+        repo_id: REPO_ID.to_string().into(),
+        module_id: module_id.to_string().into(),
+        qualified_name: "GatewaySyncPkg".to_string(),
+        path: "src/GatewaySyncPkg.jl".to_string().into(),
+    }]
+}
+
+fn fixture_symbol_records(module_id: &str, symbol_id: &str) -> Vec<SymbolRecord> {
+    vec![SymbolRecord {
+        repo_id: REPO_ID.to_string().into(),
+        symbol_id: symbol_id.to_string().into(),
+        module_id: Some(module_id.to_string().into()),
+        name: "solve".to_string(),
+        qualified_name: "GatewaySyncPkg.solve".to_string(),
+        kind: RepoSymbolKind::Function,
+        path: "src/GatewaySyncPkg.jl".to_string().into(),
+        line_start: None,
+        line_end: None,
+        signature: Some("solve() = nothing".to_string()),
+        audit_status: None,
+        verification_state: Some("unknown".to_string().into()),
+        attributes: BTreeMap::new(),
+    }]
+}
+
+fn fixture_example_records(example_id: &str) -> Vec<ExampleRecord> {
+    vec![ExampleRecord {
+        repo_id: REPO_ID.to_string().into(),
+        example_id: example_id.to_string().into(),
+        title: "solve_demo".to_string(),
+        path: "examples/solve_demo.jl".to_string().into(),
+        summary: None,
+    }]
+}
+
+fn fixture_doc_records(
+    readme_doc_id: &str,
+    docstring_doc_id: &str,
+    solve_doc_id: &str,
+    symbol_id: &str,
+) -> Vec<DocRecord> {
+    vec![
+        DocRecord {
+            repo_id: REPO_ID.to_string().into(),
+            doc_id: readme_doc_id.to_string().into(),
+            title: "README.md".to_string(),
+            path: "README.md".to_string().into(),
+            format: Some("md".to_string()),
+            doc_target: None,
+        },
+        DocRecord {
+            repo_id: REPO_ID.to_string().into(),
+            doc_id: docstring_doc_id.to_string().into(),
+            title: "solve".to_string(),
+            path: format!("src/GatewaySyncPkg.jl#symbol-id:{symbol_id}").into(),
+            format: Some("julia_docstring".to_string()),
+            doc_target: None,
+        },
+        DocRecord {
+            repo_id: REPO_ID.to_string().into(),
+            doc_id: solve_doc_id.to_string().into(),
+            title: "solve".to_string(),
+            path: "docs/solve.md".to_string().into(),
+            format: Some("md".to_string()),
+            doc_target: None,
+        },
+    ]
+}
+
+fn fixture_relation_records(
+    readme_doc_id: &str,
+    docstring_doc_id: &str,
+    solve_doc_id: &str,
+    example_id: &str,
+    module_id: &str,
+    symbol_id: &str,
+) -> Vec<RelationRecord> {
+    vec![
+        fixture_relation(readme_doc_id, module_id, RelationKind::Documents),
+        fixture_relation(docstring_doc_id, symbol_id, RelationKind::Documents),
+        fixture_relation(solve_doc_id, symbol_id, RelationKind::Documents),
+        fixture_relation(example_id, symbol_id, RelationKind::ExampleOf),
+    ]
+}
+
+fn fixture_relation(source_id: &str, target_id: &str, kind: RelationKind) -> RelationRecord {
+    RelationRecord {
+        repo_id: REPO_ID.to_string().into(),
+        source_id: source_id.to_string(),
+        target_id: target_id.to_string(),
+        kind,
     }
 }
 

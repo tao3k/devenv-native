@@ -59,7 +59,7 @@ async fn duckdb_materializes_healthcare_dataset_ontology_mapping_sql() -> TestRe
             &engine,
             "raw_patients"
         )
-        .map(|state| state.as_str()),
+        .map(xiuxian_wendao_sql::LocalRelationMaterializationState::as_str),
         Some("materialized")
     );
     Ok(())
@@ -152,6 +152,47 @@ async fn duckdb_runtime_materializer_reads_arrow_ipc_source_tables() -> TestResu
     Ok(())
 }
 
+#[tokio::test]
+async fn duckdb_runtime_materializer_returns_semantic_read_model_batches() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    let materializer = DatasetOntologyDuckDbMaterializer::from_runtime(
+        in_memory_search_duckdb_runtime(temp.path()),
+    )
+    .map_err(std::io::Error::other)?;
+
+    let request = DatasetOntologyRuntimeMaterializationRequest::new(
+        "healthcare.synthetic_care_delivery.contract.v1",
+        "healthcare.synthetic_care_delivery.v1",
+        healthcare_source_tables()?,
+        healthcare_contract_mapping_sql()?,
+    )
+    .map_err(std::io::Error::other)?;
+
+    let materialization = materializer
+        .materialize_with_read_model_batches(request)
+        .await
+        .map_err(std::io::Error::other)?;
+
+    assert!(materialization.report.passed());
+    assert_eq!(materialization.read_model_tables.len(), 3);
+    assert_eq!(
+        materialization.read_model_tables[0].table_name(),
+        DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME
+    );
+    assert_eq!(materialization.read_model_tables[0].row_count(), 8);
+    assert_eq!(
+        materialization.read_model_tables[1].table_name(),
+        DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME
+    );
+    assert_eq!(materialization.read_model_tables[1].row_count(), 6);
+    assert_eq!(
+        materialization.read_model_tables[2].table_name(),
+        DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME
+    );
+    assert_eq!(materialization.read_model_tables[2].row_count(), 1);
+    Ok(())
+}
+
 #[test]
 fn dataset_ontology_runtime_request_rejects_empty_identifiers() -> TestResult {
     let mapping_sql = healthcare_contract_mapping_sql()?;
@@ -182,14 +223,19 @@ fn healthcare_contract_mapping_sql() -> Result<DatasetOntologyMappingSql, std::i
     Ok(DatasetOntologyMappingSql {
         object_observations: ontology_file(
             "30_Healthcare/mappings/sql/01_object_observations.sql",
-        )?,
-        link_observations: ontology_file("30_Healthcare/mappings/sql/02_link_observations.sql")?,
-        evidence: ontology_file("30_Healthcare/mappings/sql/03_evidence.sql")?,
-        semantic_objects: ontology_file("30_Healthcare/mappings/sql/04_semantic_objects.sql")?,
-        semantic_relations: ontology_file("30_Healthcare/mappings/sql/05_semantic_relations.sql")?,
+        )?
+        .into(),
+        link_observations: ontology_file("30_Healthcare/mappings/sql/02_link_observations.sql")?
+            .into(),
+        evidence: ontology_file("30_Healthcare/mappings/sql/03_evidence.sql")?.into(),
+        semantic_objects: ontology_file("30_Healthcare/mappings/sql/04_semantic_objects.sql")?
+            .into(),
+        semantic_relations: ontology_file("30_Healthcare/mappings/sql/05_semantic_relations.sql")?
+            .into(),
         semantic_projection_state: ontology_file(
             "30_Healthcare/mappings/sql/06_semantic_projection_state.sql",
-        )?,
+        )?
+        .into(),
         validation_rules: vec![DatasetOntologyValidationRule::new(
             "HEALTHCARE_ENCOUNTER_MISSING_CONTEXT",
             ontology_file("30_Healthcare/rules/01_encounter_must_link_patient_provider.sql")?,

@@ -9,6 +9,9 @@ publish = false
 
 [features]
 default = []
+audio-shard-arrow = [
+  "dep:arrow",
+]
 archive-audit = [
   "dep:flate2",
   "dep:tar",

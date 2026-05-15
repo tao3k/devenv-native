@@ -29,7 +29,7 @@ fn search_strategy_flow_rust_bridge_reserves_required_evidence_frontier() {
     };
 
     let trace = run_wendaograph_search_strategy_flow_json_with_candidate_batch(
-        "find the SearchStrategyFlow ownership boundary and validation path",
+        "find the SearchStrategyFlow ownership boundary, validation path, and relation path",
         ".",
         batch,
     )

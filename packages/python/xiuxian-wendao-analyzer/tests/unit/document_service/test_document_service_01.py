@@ -5,8 +5,11 @@ from __future__ import annotations
 from xiuxian_wendao_analyzer import document_service
 
 from .support import (
+    ANALYSIS_AUDIO_SHARDS_ROUTE,
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_PDF_OCR_SHARDS_ROUTE,
+    AUDIO_SHARD_RESULT_SCHEMA,
+    AUDIO_SHARD_RESULT_SCHEMA_VERSION,
     DOCUMENT_RESOURCE_SCHEMA,
     EXPECTED_SCHEMA_VERSION,
     PDF_OCR_SHARD_RESULT_SCHEMA,
@@ -22,7 +25,9 @@ from .support import (
     DocumentExtractFlightServer,
     FakeDoclingConverter,
     Path,
+    _sample_audio_shard_input_table,
     _sample_pdf_ocr_input_table,
+    build_audio_shard_result_table,
     build_document_extract_table,
     build_pdf_ocr_shard_result_table,
     pytest,
@@ -290,10 +295,11 @@ def test_document_extract_table_validates_required_headers(tmp_path: Path) -> No
         )
 
 
-def test_document_extract_routes_include_only_primary_document_route() -> None:
+def test_document_extract_routes_include_document_and_internal_arrow_routes() -> None:
     assert SUPPORTED_DOCUMENT_ROUTES == (
         ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
         ANALYSIS_PDF_OCR_SHARDS_ROUTE,
+        ANALYSIS_AUDIO_SHARDS_ROUTE,
     )
 
 
@@ -307,4 +313,17 @@ def test_pdf_ocr_shard_result_table_defaults_to_skipped_rows() -> None:
     assert row["text"] is None
     assert row["confidence"] is None
     assert row["errorMessage"] == "OCR shard worker is not configured"
+    assert len(row["elementId"]) == 64
+
+
+def test_audio_shard_result_table_defaults_to_skipped_rows() -> None:
+    table = build_audio_shard_result_table(_sample_audio_shard_input_table())
+
+    assert table.schema == AUDIO_SHARD_RESULT_SCHEMA
+    row = table.to_pylist()[0]
+    assert row["contractVersion"] == AUDIO_SHARD_RESULT_SCHEMA_VERSION
+    assert row["status"] == "skipped"
+    assert row["text"] is None
+    assert row["confidence"] is None
+    assert row["errorMessage"] == "audio shard worker is not configured"
     assert len(row["elementId"]) == 64

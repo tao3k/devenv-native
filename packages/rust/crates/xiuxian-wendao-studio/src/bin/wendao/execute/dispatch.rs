@@ -36,6 +36,7 @@ pub(crate) async fn execute(cli: &Cli, index: Option<&LinkGraphIndex>) -> Result
         | Command::Resolve(_) => super::graph::handle(cli, index),
         Command::Saliency { .. } => super::saliency::handle(cli),
         Command::Hmas { .. } => super::hmas::handle(cli),
+        Command::Episteme { .. } => super::episteme::handle(cli),
         Command::Agentic { .. } => super::agentic::handle(cli, index),
         Command::Repo { .. } => super::repo::handle(cli),
         Command::Docs { .. } => super::docs::handle(cli),

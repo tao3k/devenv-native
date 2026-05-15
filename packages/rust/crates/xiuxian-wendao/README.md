@@ -152,6 +152,81 @@ Use `xiuxian-wendao` for:
   The stable transport manifest and route constants live in
   [`xiuxian-wendao-runtime`](../xiuxian-wendao-runtime/README.md) under the
   ontology query-contract family.
+- Episteme source-contract validation and run planning for
+  customer-owned domain extensions. Source-contract parse and DTO shape are
+  parser-owned in
+  [`xiuxian-wendao-parsers`](../xiuxian-wendao-parsers/docs/episteme-source-contracts.md);
+  this crate selects the active source manifest and mapping ledger from
+  `ontology/manifest.toml`, then owns source hash validation, queue selection,
+  persisted run-plan receipts, scheduling, cache identity, and compiled
+  read-model seed materialization into `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state` Arrow batches. Customer
+  repository names, domain names, corpus-root environment variable
+  names, source manifest paths, and mapping ledger paths are episteme
+  configuration facts, not Rust defaults. A single-contract episteme repository
+  can be selected automatically; multi-domain repositories must declare
+  `[active_source_contract]`. The read-model seed contains
+  source-contract facts and provenance only; it does not embed source corpus
+  text or promote raw rows to RDF truth. When the `julia` feature is enabled,
+  the compiled seed can be packaged into the existing WendaoGraph ontology
+  read-model quality request shape, still as accepted read-model batches rather
+  than TSV, RDF, or corpus parsing by Julia. Python tools in an episteme
+  repository are diagnostic or analyzer adapters only; they do not own
+  planning, promotion, or backend orchestration. The current operator
+  entrypoints are the Studio-owned
+  `wendao episteme structure write-toc` CLI command, which writes an
+  evidence-only Org TOC ledger from source-contract file rows, and
+  `wendao episteme evidence write-selection-plan`, which writes an
+  evidence-only selection ledger from chosen `file_id` values before any
+  extractor execution, and `wendao episteme source-contract plan-extraction-run`
+  CLI command, which can consume that selection ledger as a hard `file_id`
+  constraint before writing extractor tasks. A bounded Studio Gateway admission
+  endpoint exposes the same Rust writer. Episteme repositories may also provide
+  `episteme.toml` with runtime defaults for corpus and run roots; Rust resolves
+  those defaults generically, while explicit CLI or Gateway values remain
+  overrides. Structure
+  TOC generation defaults to metadata-only validation for fast human/LLM
+  orientation and keeps full sha256 validation as an explicit `full-hash` gate.
+  Extraction run planning uses `contract_shape_only` validation: it validates
+  manifests, mapping ledger shape, queue/file consistency, filters, and selected
+  `file_id` coverage without traversing or hashing the source corpus. Full
+  sha256 proof remains the validation/read-model/promotion boundary, not the
+  no-execution planning boundary.
+  The same source-contract service also exposes targeted evidence reads by
+  `file_id`, returning bounded metadata and plain-text previews without
+  arbitrary path reads, extractor execution, or ontology promotion. Studio
+  can also load episteme repositories from thin deployment registry entries:
+  local entries use `path = "..."`, Git entries use `url = "..."`, and Rust
+  owns source-kind inference, managed checkout materialization, resolved
+  revision receipts, and cache paths. The primary user config does not require
+  backend-shaped fields such as `source.kind`, `remote`, or `rev`. After
+  loading the enabled registry entries, Rust builds a deterministic reference
+  graph from each repository's `ontology/manifest.toml`: declared domain ids
+  must be unique, and any manifest extension target must be owned by a loaded
+  registry entry before a registry-selected run plan is admitted. A validated
+  registry graph can also be compiled into the same `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state` Arrow read-model
+  tables used by WendaoGraph quality checks, representing registry entries,
+  domains, ownership links, and extension links without requiring common
+  ontology repositories to declare source-contract TSVs. The
+  episteme source-contract test surface also includes an opt-in live diagnostic
+  guarded by `RUN_EPISTEME_SOURCE_CONTRACT_WENDAOGRAPH_QUALITY_LIVE_TEST=1`;
+  it requires `WENDAO_EPISTEME_SOURCE_CONTRACT_ROOT=<path>`, reads the selected
+  source manifest's `corpus_root_env`, sends the compiled seed through the
+  runtime Arrow Flight
+  client, and writes cache-local evidence. That diagnostic is not a default
+  test, not a production Gateway route, and not a semantic RDF promotion step.
+  The diagnostic accepts `WENDAO_EPISTEME_SOURCE_CONTRACT_QUALITY_REPEATS=<n>` for
+  bounded warm-service timing runs and
+  `WENDAO_EPISTEME_SOURCE_CONTRACT_QUALITY_PREWARM_ROUNDS=<n>` for unmeasured prewarm
+  quality exchanges before measured repeats. It can also target a prestarted
+  quality service with
+  `WENDAO_EPISTEME_SOURCE_CONTRACT_WENDAOGRAPH_QUALITY_BASE_URL=<url>`; if unset, the
+  diagnostic still spawns a local Julia service. The live diagnostic can also
+  opt into `WENDAO_EPISTEME_SOURCE_CONTRACT_VALIDATION_HASH_CACHE_PATH=<path>`; this
+  cache is a Rust-owned validation accelerator only, and entries are used only
+  when the current path metadata and recorded manifest SHA-256 still match.
+  Default validation still performs full-file hashing.
 - business handlers that materialize Wendao-specific responses
 - temporary compatibility seams that have not been extracted yet
 

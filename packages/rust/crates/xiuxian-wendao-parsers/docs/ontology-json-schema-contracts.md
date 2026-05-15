@@ -29,6 +29,9 @@ The first schema files are internal draft contracts:
 - [`ontology_candidate_contract.schema.json`](../schemas/ontology/ontology_candidate_contract.schema.json)
   validates ontology candidate DTOs derived from validated authoring or trace
   rows.
+- [`org_reasoning_property_contract.schema.json`](../schemas/ontology/org_reasoning_property_contract.schema.json)
+  validates schema-governed Org property drawer records used for Wendao
+  reasoning metadata.
 
 The schema id suffix `v0.draft` is intentional. These files are not public
 runtime wire schemas yet.
@@ -45,6 +48,8 @@ The contracts enforce structural facts:
 6. table shapes are typed before downstream compilation
 7. dataset mapping tables and SQL artifacts are explicit before structured
    data can be projected into ontology observations
+8. Org property drawers that opt into `WENDAO_KIND` are limited to explicit
+   keys and values before downstream ontology or graph consumers read them
 
 Semantic checks such as relation endpoint authority, lifecycle transitions,
 domain SQL rules, and registry freshness remain outside these schema files.
@@ -75,6 +80,29 @@ kinds for dataset columns, object mappings, link mappings, and mapping
 evidence. SQL source blocks are carried as `embeddedArtifacts` with
 `purpose = "mapping"` so downstream source-contract tooling can verify intent
 without treating raw rows or model output as ontology truth.
+
+## Org Property Drawer Schema Gate
+
+Org property drawers remain native Org syntax, but sections that declare
+`WENDAO_KIND` are also projected into `OrgReasoningPropertyRecord` rows and
+validated by `org_reasoning_property_contract.schema.json`.
+
+The first gated reasoning kinds are:
+
+1. `ontology_mapping`
+2. `evidence_summary`
+3. `validation_feedback`
+
+The gate requires UUID `ID` values, known `WENDAO_KIND` values, kind-specific
+required properties, known `PROMOTION_STATE` values, numeric `CONFIDENCE`
+values in the `0..1` range, and valid `SOURCE_SHA256` digests when present.
+Unknown property keys produce deterministic parser diagnostics instead of
+flowing into ontology truth or graph reasoning as free-form agent metadata.
+
+Compiler compatibility properties such as `ONTOLOGY_KIND`, `STATUS`, and
+`LIFECYCLE_STATE` remain allowed because the existing Org compiler uses them to
+project authoring kind and lifecycle state. New reasoning metadata should use
+the `WENDAO_*` keys rather than inventing ad hoc property names.
 
 ## Related RFC
 

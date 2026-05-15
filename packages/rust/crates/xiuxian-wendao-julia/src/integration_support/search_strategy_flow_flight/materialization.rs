@@ -70,6 +70,12 @@ struct PageIndexMaterialization {
 }
 
 #[derive(Debug)]
+enum PageIndexRouteMaterialization {
+    Ready(PageIndexMaterialization),
+    Substitute(SearchStrategyFlowRouteReceipt),
+}
+
+#[derive(Debug)]
 struct RetrievalContextMaterialization {
     batches: Vec<RecordBatch>,
     elapsed_ms: u128,
@@ -92,7 +98,7 @@ struct StructuredCodeRelationSubstituteReceiptInput<'a> {
     heading_anchor: Option<&'a str>,
     repo_search_resolution_status: &'static str,
     repo_search_resolution_warning: Option<String>,
-    timings: SearchStrategyFlowRouteTimings,
+    timings: &'a SearchStrategyFlowRouteTimings,
     page_index_materialization_warning: String,
 }
 
@@ -186,65 +192,17 @@ async fn materialize_route(
     let heading_anchor = route.get("headingAnchor").and_then(Value::as_str);
     let repo_search =
         materialize_repo_search(client, config, route, source_path, heading_anchor).await?;
-    if should_skip_page_index_for_structured_code_relation(
+    let page_index = match materialize_page_index_or_substitute_receipt(
+        client,
+        config,
         route,
-        &repo_search.batches,
-        repo_search.graph_substitute_status,
-    ) {
-        return structured_code_relation_receipt_for_repo_search(
-            &repo_search,
-            heading_anchor,
-            SearchStrategyFlowRouteTimings {
-                repo_search: repo_search.elapsed_ms,
-                page_index: 0,
-                retrieval_context: 0,
-                graph: 0,
-            },
-            "SearchStrategyFlow page-index materialization skipped for structured code relation substitute route class"
-                .to_owned(),
-        );
-    }
-
-    let page_index = match materialize_page_index(client, config, &repo_search, heading_anchor)
-        .await
+        &repo_search,
+        heading_anchor,
+    )
+    .await?
     {
-        Ok(page_index) => page_index,
-        Err(error)
-            if repo_search.graph_substitute_status == "structured-code-relation-substitute"
-                && is_projected_page_not_found_error(error.message.as_str()) =>
-        {
-            return structured_code_relation_receipt_for_repo_search(
-                &repo_search,
-                heading_anchor,
-                SearchStrategyFlowRouteTimings {
-                    repo_search: repo_search.elapsed_ms,
-                    page_index: error.elapsed_ms,
-                    retrieval_context: 0,
-                    graph: 0,
-                },
-                format!(
-                    "SearchStrategyFlow page-index materialization skipped for structured code relation substitute: {}",
-                    error.message
-                ),
-            );
-        }
-        Err(error) if is_projected_page_not_found_error(error.message.as_str()) => {
-            return missing_projected_page_receipt_for_repo_search(
-                &repo_search,
-                heading_anchor,
-                SearchStrategyFlowRouteTimings {
-                    repo_search: repo_search.elapsed_ms,
-                    page_index: error.elapsed_ms,
-                    retrieval_context: 0,
-                    graph: 0,
-                },
-                format!(
-                    "SearchStrategyFlow page-index materialization skipped because projected page is unavailable: {}",
-                    error.message
-                ),
-            );
-        }
-        Err(error) => return Err(error.message),
+        PageIndexRouteMaterialization::Ready(page_index) => page_index,
+        PageIndexRouteMaterialization::Substitute(receipt) => return Ok(receipt),
     };
 
     let retrieval_context =
@@ -295,6 +253,78 @@ async fn materialize_route(
         route_receipts,
         decoded_payload_receipts,
     })
+}
+
+async fn materialize_page_index_or_substitute_receipt(
+    client: &mut SearchStrategyFlowFlightClient,
+    config: &SearchStrategyFlowFlightMaterializationConfig,
+    route: &Value,
+    repo_search: &RepoSearchMaterialization,
+    heading_anchor: Option<&str>,
+) -> Result<PageIndexRouteMaterialization, String> {
+    if should_skip_page_index_for_structured_code_relation(
+        route,
+        &repo_search.batches,
+        repo_search.graph_substitute_status,
+    ) {
+        let timings = SearchStrategyFlowRouteTimings {
+            repo_search: repo_search.elapsed_ms,
+            page_index: 0,
+            retrieval_context: 0,
+            graph: 0,
+        };
+        let receipt = structured_code_relation_receipt_for_repo_search(
+            repo_search,
+            heading_anchor,
+            &timings,
+            "SearchStrategyFlow page-index materialization skipped for structured code relation substitute route class"
+                .to_owned(),
+        )?;
+        return Ok(PageIndexRouteMaterialization::Substitute(receipt));
+    }
+
+    match materialize_page_index(client, config, repo_search, heading_anchor).await {
+        Ok(page_index) => Ok(PageIndexRouteMaterialization::Ready(page_index)),
+        Err(error) if is_projected_page_not_found_error(error.message.as_str()) => {
+            page_index_substitute_receipt_for_error(repo_search, heading_anchor, &error)
+        }
+        Err(error) => Err(error.message),
+    }
+}
+
+fn page_index_substitute_receipt_for_error(
+    repo_search: &RepoSearchMaterialization,
+    heading_anchor: Option<&str>,
+    error: &MaterializationErrorWithTiming,
+) -> Result<PageIndexRouteMaterialization, String> {
+    let timings = SearchStrategyFlowRouteTimings {
+        repo_search: repo_search.elapsed_ms,
+        page_index: error.elapsed_ms,
+        retrieval_context: 0,
+        graph: 0,
+    };
+    let receipt = if repo_search.graph_substitute_status == "structured-code-relation-substitute" {
+        structured_code_relation_receipt_for_repo_search(
+            repo_search,
+            heading_anchor,
+            &timings,
+            format!(
+                "SearchStrategyFlow page-index materialization skipped for structured code relation substitute: {}",
+                error.message
+            ),
+        )?
+    } else {
+        missing_projected_page_receipt_for_repo_search(
+            repo_search,
+            heading_anchor,
+            &timings,
+            format!(
+                "SearchStrategyFlow page-index materialization skipped because projected page is unavailable: {}",
+                error.message
+            ),
+        )?
+    };
+    Ok(PageIndexRouteMaterialization::Substitute(receipt))
 }
 
 #[derive(Debug)]
@@ -404,7 +434,7 @@ async fn materialize_graph_neighbors(
 fn structured_code_relation_receipt_for_repo_search(
     repo_search: &RepoSearchMaterialization,
     heading_anchor: Option<&str>,
-    timings: SearchStrategyFlowRouteTimings,
+    timings: &SearchStrategyFlowRouteTimings,
     page_index_materialization_warning: String,
 ) -> Result<SearchStrategyFlowRouteReceipt, String> {
     structured_code_relation_substitute_receipt(StructuredCodeRelationSubstituteReceiptInput {
@@ -422,7 +452,7 @@ fn structured_code_relation_receipt_for_repo_search(
 fn missing_projected_page_receipt_for_repo_search(
     repo_search: &RepoSearchMaterialization,
     heading_anchor: Option<&str>,
-    timings: SearchStrategyFlowRouteTimings,
+    timings: &SearchStrategyFlowRouteTimings,
     page_index_materialization_warning: String,
 ) -> Result<SearchStrategyFlowRouteReceipt, String> {
     let resolved_node_id = heading_anchor
@@ -434,7 +464,7 @@ fn missing_projected_page_receipt_for_repo_search(
         &empty_batches,
         &empty_batches,
         &empty_batches,
-        &timings,
+        timings,
     );
     let decoded_payload_receipts = decoded_payload_receipts(&DecodedPayloadReceiptInput {
         repo_search_path: repo_search.path.as_str(),
@@ -572,7 +602,7 @@ fn structured_code_relation_substitute_receipt(
         &empty_batches,
         &empty_batches,
         &empty_batches,
-        &input.timings,
+        input.timings,
     );
     let decoded_payload_receipts = decoded_payload_receipts(&DecodedPayloadReceiptInput {
         repo_search_path: input.repo_search_path,

@@ -11,8 +11,13 @@ pub(crate) use cli::Cli;
 pub(crate) use commands::{
     AgenticCommand, AuditArgs, Command, DocsCommand, DocsContextArgs, DocsNavigationArgs,
     DocsNodeArgs, DocsPageArgs, DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs,
-    DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs, FixArgs, HmasCommand,
-    SaliencyCommand, SentinelArgs, SentinelCommand, SentinelWatchArgs,
+    DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs, EpistemeCommand,
+    EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
+    EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
+    EpistemeReadEvidenceArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
+    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
+    EpistemeWriteStructureTocArgs, FixArgs, HmasCommand, SaliencyCommand, SentinelArgs,
+    SentinelCommand, SentinelWatchArgs,
 };
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use commands::{

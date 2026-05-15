@@ -25,6 +25,38 @@ _pick_python() {
   return 1
 }
 
+_is_real_cargo() {
+  local candidate="${1:-}"
+  local version=""
+  if [[ -z ${candidate} || ! -x ${candidate} ]]; then
+    return 1
+  fi
+  version="$("${candidate}" --version 2>/dev/null || true)"
+  [[ ${version} == cargo\ * ]]
+}
+
+_pick_cargo() {
+  local candidate=""
+  for candidate in \
+    "${CARGO:-}" \
+    "${DEVENV_PROFILE:-}/bin/cargo" \
+    "${HOME:-}/.cargo/bin/cargo"
+  do
+    if _is_real_cargo "${candidate}"; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  candidate="$(command -v cargo 2>/dev/null || true)"
+  if _is_real_cargo "${candidate}"; then
+    printf '%s\n' "${candidate}"
+    return 0
+  fi
+
+  return 1
+}
+
 if [[ -n ${PYO3_PYTHON:-} && ! -x ${PYO3_PYTHON} ]]; then
   unset PYO3_PYTHON
 fi
@@ -75,4 +107,13 @@ if [[ "$(uname -s)" == "Darwin" && -z ${MISTRALRS_METAL_PRECOMPILE:-} ]]; then
   fi
 fi
 
-exec cargo "$@"
+if cargo_bin="$(_pick_cargo)"; then
+  exec "${cargo_bin}" "$@"
+fi
+
+if command -v rustup >/dev/null 2>&1 && rustup --version 2>/dev/null | grep -q '^rustup '; then
+  exec rustup run "${RUSTUP_TOOLCHAIN:-stable}" cargo "$@"
+fi
+
+printf 'error: usable cargo executable was not found; PATH cargo may be rustup-init without an installed Rust toolchain\n' >&2
+exit 127

@@ -207,6 +207,31 @@ needs a feature-gated second plugin bundle for these languages.
   it starts the WendaoGraph ontology quality runner and sends the same request
   through the runtime Flight client. The bridge does not read `registry.json`
   or promote Julia diagnostics into runtime authority.
+- The ontology read-model quality bridge also accepts the Gateway
+  dataset-ontology materialization envelope through
+  `build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope(...)`.
+  That adapter ignores materialization report rows, accepts only
+  `semantic_read_model` payload rows for `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state`, and rebuilds the
+  existing WendaoGraph request tables without loading raw fixture data, RDF, or
+  `wendao.toml`. Missing tables, malformed JSON payloads, unknown
+  read-model table names, or field type mismatches are rejected before a graph
+  quality request is packaged.
+- The same ontology read-model quality bridge now accepts private LTC
+  source-contract seed batches compiled by `xiuxian-wendao` when that crate's
+  `julia` feature is enabled. The proof keeps private LTC source admission,
+  hashing, and read-model seed materialization in the Wendao Rust backend, and
+  uses this crate only for the existing WendaoGraph Arrow request packaging.
+  Julia still consumes compiled `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` batches; it does not parse private TSV files,
+  RDF files, raw corpus files, or `wendao.toml`. The live private LTC
+  diagnostic is owned by the `xiuxian-wendao` test surface because it
+  materializes the private seed before calling this bridge; this crate remains
+  the reusable Arrow request and Flight binding owner. Repeated live benchmark
+  runs show warm ontology-quality Flight roundtrips are already sub-second for
+  the current private LTC seed; cold-path optimization belongs in upstream
+  source-contract materialization and service lifecycle policy, not in Julia
+  parsing of private source files.
 - Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
   reports can show both the narrowed Julia input count and the runtime
   promotion denominator. This prevents a fast Markdown replay subset from being

@@ -25,6 +25,12 @@ pub mod document_extract_pdf_ocr_client;
 #[cfg(feature = "document-extract-pdf-source-range")]
 pub(crate) use document_extract_pdf_ocr_client::PdfOcrShardSchedulerTrace;
 
+/// Feature-gated audio shard Flight client proof helpers.
+#[cfg(feature = "document-extract-audio-shards")]
+#[doc(hidden)]
+#[path = "document_extract_audio_client.rs"]
+pub mod document_extract_audio_client;
+
 #[cfg(feature = "zhenfa-router")]
 #[path = "analysis/mod.rs"]
 mod analysis;
@@ -90,7 +96,7 @@ pub use startup_health::{
 #[cfg(all(feature = "zhenfa-router", feature = "julia"))]
 pub mod search_strategy_flow;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "zhenfa-router"))]
 #[path = "../../tests/unit/gateway/studio/support.rs"]
 pub(crate) mod test_support;
 

@@ -2,6 +2,7 @@
 
 mod analysis;
 mod document_extract;
+mod ontology;
 mod repo;
 mod routing;
 mod search;
@@ -14,6 +15,7 @@ pub(crate) use analysis::{
 pub(crate) use document_extract::{
     validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
 };
+pub(crate) use ontology::validate_dataset_ontology_materialize_request_metadata;
 pub(crate) use repo::{
     validate_refine_doc_request_metadata, validate_repo_doc_coverage_request_metadata,
     validate_repo_index_request_metadata, validate_repo_index_status_request_metadata,

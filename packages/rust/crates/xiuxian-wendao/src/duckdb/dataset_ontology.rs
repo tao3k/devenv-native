@@ -4,14 +4,18 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use arrow::ipc::reader::StreamReader;
+use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
 use xiuxian_wendao_runtime::config::SearchDuckDbRuntimeConfig;
 use xiuxian_wendao_sql::dataset_ontology::{
-    DatasetOntologyMappingSql, DatasetOntologyMaterializationReport, DatasetOntologySourceTable,
+    DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
+    DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
+    DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME, DatasetOntologyMappingSql,
+    DatasetOntologyMaterializationReport, DatasetOntologySourceTable,
     materialize_dataset_ontology_with_engine,
 };
 
-use super::DuckDbLocalRelationEngine;
+use super::{DuckDbLocalRelationEngine, LocalRelationEngine};
 
 /// Named Arrow IPC source table supplied by a source-contract handoff.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -185,6 +189,52 @@ impl DatasetOntologyRuntimeMaterializationReport {
     }
 }
 
+/// Materialized read-model table emitted by the runtime materializer.
+pub struct DatasetOntologyRuntimeReadModelTable {
+    table_name: String,
+    batches: Vec<RecordBatch>,
+}
+
+impl DatasetOntologyRuntimeReadModelTable {
+    fn new(table_name: impl Into<String>, batches: Vec<RecordBatch>) -> Result<Self, String> {
+        let table_name = table_name.into();
+        if table_name.trim().is_empty() {
+            return Err("dataset ontology read-model table name must not be empty".to_string());
+        }
+        Ok(Self {
+            table_name,
+            batches,
+        })
+    }
+
+    /// Stable read-model table name.
+    #[must_use]
+    pub fn table_name(&self) -> &str {
+        &self.table_name
+    }
+
+    /// Materialized Arrow batches for the read-model table.
+    #[must_use]
+    pub fn batches(&self) -> &[RecordBatch] {
+        &self.batches
+    }
+
+    /// Total row count across all batches.
+    #[must_use]
+    pub fn row_count(&self) -> usize {
+        self.batches.iter().map(RecordBatch::num_rows).sum()
+    }
+}
+
+/// Full runtime materialization result, including report metadata and compiled
+/// read-model table batches.
+pub struct DatasetOntologyRuntimeMaterialization {
+    /// Compact materialization report.
+    pub report: DatasetOntologyRuntimeMaterializationReport,
+    /// Materialized semantic read-model tables.
+    pub read_model_tables: Vec<DatasetOntologyRuntimeReadModelTable>,
+}
+
 /// DuckDB-backed dataset-to-ontology materializer owned by `xiuxian-wendao`.
 pub struct DatasetOntologyDuckDbMaterializer {
     engine: DuckDbLocalRelationEngine,
@@ -237,5 +287,40 @@ impl DatasetOntologyDuckDbMaterializer {
             source_table_count: request.source_tables.len(),
             materialization,
         })
+    }
+
+    /// Materialize one dataset-to-ontology request and return the compiled
+    /// semantic read-model table batches.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when materialization fails or when any semantic
+    /// read-model table cannot be queried after materialization.
+    pub async fn materialize_with_read_model_batches(
+        &self,
+        request: DatasetOntologyRuntimeMaterializationRequest,
+    ) -> Result<DatasetOntologyRuntimeMaterialization, String> {
+        let report = self.materialize(request).await?;
+        let read_model_tables = self.read_model_tables().await?;
+        Ok(DatasetOntologyRuntimeMaterialization {
+            report,
+            read_model_tables,
+        })
+    }
+
+    async fn read_model_tables(&self) -> Result<Vec<DatasetOntologyRuntimeReadModelTable>, String> {
+        let mut tables = Vec::new();
+        for table_name in [
+            DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
+            DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME,
+            DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
+        ] {
+            let sql = format!("select * from {table_name}");
+            let batches = self.engine.query_batches(&sql).await?;
+            tables.push(DatasetOntologyRuntimeReadModelTable::new(
+                table_name, batches,
+            )?);
+        }
+        Ok(tables)
     }
 }

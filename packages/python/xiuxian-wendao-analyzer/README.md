@@ -75,7 +75,9 @@ The current beta exports:
 27. `build_document_extract_table(...)`
 28. `/analysis/document-extract` as the primary document extraction route
 29. `DoclingPdfOcrShardWorker` for opt-in page-shard OCR
-30. summary helpers over the same rows, table, query, and repo-search runs
+30. `/analysis/audio-shards` as the internal Flight/Arrow route for Rust-owned
+    audio shard processing
+31. summary helpers over the same rows, table, query, and repo-search runs
 
 Docling is optional through the `documents` extra. That extra includes
 Docling's XBRL support so the documented XML/XBRL coverage is real, not only a
@@ -101,6 +103,7 @@ direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir
   --openrouter-model xiaomi/mimo-v2.5 \
   --local-language zh \
   --sample-strategy uniform \
+  --audio-materialization-mode normalized-16k-wav \
   --limit-files 2 \
   --limit-chunks 1
 ```
@@ -113,17 +116,160 @@ Rust boundary can materialize normalized shard media in parallel with local
 `ffmpeg`, so Gateway/Studio can avoid Python-owned chunking on the hot path.
 The Python diagnostic mirrors that contract only for package tests and local
 comparison runs. It writes the backend-neutral
-`audio_shards.json` manifest, then compares local Whisper with OpenRouter
-audio-input models on the same chunks. A `local-docling` backend is also
-available as a converter baseline. OpenRouter runs require the standard
+`audio_shards.json` manifest, then compares Docling, hosted audio-input models,
+and explicit local OpenAI-compatible candidates on the same chunks. OpenRouter
+runs require the standard
 `OPENROUTER_API_KEY` environment variable. The script writes JSON summaries and
 transcript files under the selected output directory. It also writes
 `quality.json` and `review.tsv` with proxy precision signals such as empty
 outputs, Chinese character ratio, inaudible-marker density, characters per
 minute, and optional character error rate when a reference JSONL transcript is
-provided. The shard manifest uses `xiuxian_wendao.audio_shards.v1` and
+provided. Diagnostic inputs default to `--input-privacy private-local`, which
+requires output under `.cache/agent/evidence`; use
+`--allow-private-output-outside-cache` only for local scratch directories that
+will not be committed. Use `--domain-terms-file` to append a private glossary
+to hosted prompts, and `--required-terms-file` with
+`--min-required-term-recall` to mark critical term loss in `quality.json` and
+`review.tsv`. The shard manifest uses `xiuxian_wendao.audio_shards.v1` and
 `audio-shards-v1`; those names are model-neutral so local and hosted backends
 can change without changing chunk/cache identity.
+
+Audio materialization is explicit in diagnostics because the private evaluation
+set is MP3. The default `normalized-16k-wav` decodes bounded shards to 16 kHz
+mono WAV for broad model compatibility. `native-rate-wav` still decodes
+bounded shards, but preserves the source sample rate while using mono WAV.
+`source-direct` sends the original full source file, such as MP3, without
+ffmpeg chunking; use it only for backend compatibility and precision
+diagnostics because it cannot represent sub-source shard windows without
+decoding or trimming.
+
+For VAD-guided diagnostics, pass `--sample-strategy speech-segments` with
+`--speech-segments-jsonl <segments.jsonl>`. The segment sidecar is intentionally
+model-neutral: each JSONL row may include `source` or `sourceId`,
+`startSeconds` or `startMs`, and either `durationSeconds`/`durationMs` or
+`endSeconds`/`endMs`. This lets local CoreML VAD experiments, Rust-side audio
+materialization, or any future hosted speech detector provide precise speech
+windows without coupling the analyzer to one ASR model. The resulting shard
+manifest still uses the same `xiuxian_wendao.audio_shards.v1` identity surface.
+
+The document extraction Flight service uses the same model-neutral audio
+contract for real backend calls. Start the service with `--audio-worker skip`,
+`--audio-worker docling`, or `--audio-worker hosted`; the stable backend
+profiles are `docling-audio-transcript-v1` and
+`hosted-audio-transcript-v1`. `--audio-workers` and the
+`x-wendao-audio-workers` Flight metadata header bound analyzer-side request
+parallelism inside the Rust-owned shard budget. Hosted audio uses
+`WENDAO_AUDIO_HOSTED_PROVIDER`, `WENDAO_AUDIO_HOSTED_BASE_URL`,
+`WENDAO_AUDIO_HOSTED_MODEL`, `WENDAO_AUDIO_HOSTED_API_KEY`,
+`WENDAO_AUDIO_HOSTED_TIMEOUT_SECONDS`, and
+`WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY`; when the provider is `openrouter`,
+`OPENROUTER_API_KEY` is accepted as the public key fallback. The analyzer
+returns failed rows for missing configuration, malformed hosted responses,
+empty transcript text, and backend request errors so Rust can keep precision
+and coverage gates deterministic.
+
+Local model automation uses a shared analyzer `local_backend` substrate for
+device probes, launch descriptors, environment resolution, project cache/data
+roots, module-local adapter paths, and long-running backend process execution.
+OCR2 and audio keep separate backend packages and runner policy, so audio does
+not share OCR-specific code and OCR2 does not depend on audio implementation
+details. Use
+`--audio-probe-local-backend` to inspect the platform-selected runner, and
+`--audio-start-backend` to start a local OpenAI-compatible audio endpoint. On
+macOS Apple Silicon, `auto` selects the `qwen3-asr-mlx` runner and serves the
+same chat/audio `input_audio` shape used by the hosted worker. FireRedASR2S is
+not a Metal runner; its upstream CLI exposes CUDA-style `.cuda()` acceleration,
+so the setup helper refuses CPU fallback and reports MPS/Metal as blocked for
+that runner. `qwen3-asr-mlx` is an explicit Apple Silicon candidate through
+`mlx-qwen3-asr`; it is useful for local Chinese ASR
+experiments, but it is not promoted by default and must pass the same transcript
+truth/CER and repetition gates as every other backend.
+
+Promotion is gated by a curated Chinese transcript truth set, not only by
+agreement between Docling and hosted models. Reports should keep character
+error rate, critical number/entity preservation, shard coverage, duplicate
+span checks, and backend latency separate from Rust shard materialization and
+merge time. Private recordings may be used for local diagnostics only; any
+committed truth fixtures must be separately approved, redacted, or synthesized.
+The diagnostic writes `truth_template.jsonl`, `reference_draft.jsonl`, and
+`reference_draft.tsv`. The truth template stays blank. The reference draft is
+prefilled from candidate transcripts and is marked
+`referenceStatus: candidate-draft`, so it is rejected by the precision gate
+until reviewed. After correcting the draft text, convert it into a
+promotion-safe reference file:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --curate-reference-draft <edited-reference-draft.jsonl> \
+  --curated-reference-jsonl <curated-reference.jsonl>
+```
+
+or:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --curate-reference-tsv <edited-reference-draft.tsv> \
+  --curated-reference-jsonl <curated-reference.jsonl>
+```
+
+Then pass `<curated-reference.jsonl>` back through `--reference-jsonl` for CER
+and critical-term scoring. Before running ASR, validate the curated reference
+against the diagnostic shard manifest:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --validate-reference-jsonl <curated-reference.jsonl> \
+  --reference-audio-shards-json <audio-shards.json> \
+  --reference-validation-report-json <reference-validation-report.json>
+```
+
+For audio, the shard timeline is the structure authority. The validator checks
+that the reference rows cover the manifest and that the manifest timeline is
+valid: shard ids and reading-order keys must be unique, shard starts must be
+monotonic, durations must be positive, and the materialized media window must
+cover the logical shard window.
+
+Minimal reference rows without candidate backend metadata are also accepted.
+For the current Chinese PI private-audio lane, the next precision rerun is
+limited to the local `Qwen/Qwen3-ASR-1.7B` MLX endpoint and OpenRouter
+`xiaomi/mimo-v2.5`. Gemini remains historical rejected evidence for this lane.
+After the curated reference validates with `ready=true`, run the local
+candidate:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-file> \
+  --backend local-openai-audio \
+  --openrouter-base-url http://127.0.0.1:8013/v1/chat/completions \
+  --openrouter-model wendao-qwen3-asr-audio \
+  --limit-files 1 \
+  --limit-chunks 5 \
+  --chunk-seconds 60 \
+  --sample-strategy head \
+  --audio-materialization-mode native-rate-wav \
+  --reference-jsonl <curated-reference.jsonl>
+```
+
+Then run the hosted Xiaomi comparator:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-file> \
+  --backend openrouter-chat-audio \
+  --openrouter-model xiaomi/mimo-v2.5 \
+  --limit-files 1 \
+  --limit-chunks 5 \
+  --chunk-seconds 60 \
+  --sample-strategy head \
+  --audio-materialization-mode native-rate-wav \
+  --reference-jsonl <curated-reference.jsonl>
+```
+
+Compare candidate summaries with precision as the hard gate before wall time:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --compare-summary-json <qwen-summary.json> <xiaomi-summary.json> \
+  --comparison-report-json <comparison-report.json>
+```
 
 For a Chinese-first local ASR candidate, provision FireRedASR2S as an isolated
 diagnostic tool, then pass the emitted command into the shared diagnostic:
@@ -148,8 +294,32 @@ The FireRedASR2S adapter calls its local CLI on the same normalized 16 kHz mono
 chunks used by OpenRouter, then feeds the result into the same quality review
 files. The setup helper pins the official source revision, creates a separate
 virtual environment, downloads the AED/VAD/LID/punctuation weights under the
-project model directory, and forces CPU execution on macOS. FireRedASR2S remains
-an environment-provided diagnostic backend, not a required analyzer dependency.
+project model directory, and refuses CPU fallback. FireRedASR2S remains an
+environment-provided diagnostic backend, not a required analyzer dependency.
+Its upstream CLI accelerates through CUDA-style `.cuda()` calls; on macOS
+Metal/MPS hosts it is blocked until the upstream runner gains a model-neutral
+device path or FireRedASR2S is exposed through a separate hosted
+OpenAI-compatible service.
+
+For local Qwen3-ASR MLX experiments on Apple Silicon:
+
+```bash
+direnv exec . uv run wendao-document-extract \
+  --audio-start-backend \
+  --audio-backend-runner qwen3-asr-mlx \
+  --audio-backend-model-path Qwen/Qwen3-ASR-1.7B \
+  --audio-backend-host 127.0.0.1 \
+  --audio-backend-port 8013
+```
+
+Then point `audio_asr_diagnostic.py --backend local-openai-audio` at
+`http://127.0.0.1:8013/v1/chat/completions`. A May 15, 2026 private five-minute
+diagnostic kept `Qwen/Qwen3-ASR-1.7B` as the current local Mandarin precision
+candidate by proxy: zero failed rows, zero weak rows, stable Chinese output, and
+low repetition after warmup. It is still not promoted until a curated reference
+transcript supplies CER and critical entity/number checks. Do not use
+`mlx-community/*-8bit` weights with this adapter; the current runner expects
+the `mlx-qwen3-asr` model layout.
 
 Docling is the parsing authority. The analyzer does not maintain a runtime
 allowlist; it exposes known common Docling formats and suffixes for downstream
@@ -246,6 +416,16 @@ schemas or live routing. The current milestone evidence rejects broad
 multi-page prewarm for pages `5,11` because it preserved precision but
 regressed force refresh to `18784.875625 ms`.
 
+The same Flight service exposes `/analysis/audio-shards` for Rust-owned audio
+chunk scheduling and materialization. Rust is expected to create normalized
+audio shards through `xiuxian-wendao-attachments::audio`, then upload
+`xiuxian_wendao.audio_shard_input.v1` Arrow batches to Python. Python returns
+`xiuxian_wendao.audio_shard_result.v1` rows and does not own chunk planning,
+cache identity, or backend scheduling. The default worker returns explicit
+`skipped` rows until Docling or hosted audio is configured. Successful rows
+remain `text/plain`; higher-level transcript formatting is a separate merge or
+export concern.
+
 The built-in strategy is intentionally small:
 
 1. `score_rank`
@@ -340,9 +520,10 @@ uv run python tests/scripts/benchmark_wendao_document_extract.py \
   --fail-on-error-rows
 ```
 
-Use `--skip-audio` when ASR model artifacts should not be loaded. For real
-audio ASR, install `documents-audio` and run without `--skip-audio`; the
-benchmark configures the bundled `imageio-ffmpeg` executable for Whisper. Pass
+Use `--skip-audio` when audio model artifacts should not be loaded. For real
+audio conversion, install `documents-audio` and run without `--skip-audio`; the
+benchmark configures the bundled `imageio-ffmpeg` executable for media
+conversion. Pass
 `--python-uv-extra documents` for real Docling document OCR and
 `--python-uv-extra documents-audio` for real audio ASR worker starts.
 Use `--only-fixture audio` or another fixture name for targeted real fixture

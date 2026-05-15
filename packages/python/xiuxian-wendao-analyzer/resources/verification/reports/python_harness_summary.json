@@ -3,26 +3,28 @@
   "blocking_severities": ["error"],
   "disabled_rule_ids": [],
   "finding_counts": {
-    "advisory": 28,
+    "advisory": 83,
     "blocking": 0,
-    "non_blocking": 66,
-    "total": 66
+    "non_blocking": 118,
+    "total": 118
   },
   "finding_rule_counts": {
     "PY-AGENT-R001": 3,
-    "PY-AGENT-R003": 1,
+    "PY-AGENT-R002": 13,
+    "PY-AGENT-R003": 17,
     "PY-AGENT-R005": 1,
-    "PY-AGENT-R006": 7,
-    "PY-AGENT-R008": 3,
-    "PY-AGENT-R009": 3,
-    "PY-AGENT-R010": 8,
-    "PY-AGENT-R011": 2,
-    "PY-MOD-R002": 23,
-    "PY-MOD-R006": 11,
+    "PY-AGENT-R006": 15,
+    "PY-AGENT-R008": 4,
+    "PY-AGENT-R009": 9,
+    "PY-AGENT-R010": 16,
+    "PY-AGENT-R011": 4,
+    "PY-MOD-R002": 30,
+    "PY-PROJ-R011": 1,
+    "PY-TEST-R002": 1,
     "PY-TEST-R003": 4
   },
   "is_clean": true,
-  "parsed_count": 98,
+  "parsed_count": 276,
   "project": {
     "import_names": [],
     "name": "xiuxian-wendao-analyzer",
@@ -31,8 +33,8 @@
     "scripts": ["wendao-document-extract", "xiuxian-wendao-document-extract"]
   },
   "reasoning_tree": {
-    "import_edge_count": 834,
-    "node_count": 98,
+    "import_edge_count": 1977,
+    "node_count": 276,
     "shadowed_module_source_count": 0
   },
   "rule_packs": [
@@ -44,7 +46,7 @@
     "python.agent_policy"
   ],
   "source": {
-    "file_count": 98,
-    "module_count": 98
+    "file_count": 276,
+    "module_count": 276
   }
 }

@@ -51,7 +51,7 @@ pub(crate) fn make_edge(edge_seq: usize, draft: EdgeDraft<'_>) -> AnalysisEdge {
         target_id: draft.target_id.into(),
         label: draft.label,
         evidence: crate::studio::types::AnalysisEvidence {
-            path: draft.path.to_string().into(),
+            path: draft.path.to_string(),
             line_start: draft.line_start,
             line_end: draft.line_end,
             confidence: draft.confidence,

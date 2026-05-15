@@ -320,7 +320,7 @@ fn source_doc_backlink_row(
         relation_type: None,
         metadata_owner: None,
         doc_id: Some(source_doc.id.clone().into()),
-        path: Some(studio_display_path(state, source_doc.path.as_str()).into()),
+        path: Some(studio_display_path(state, source_doc.path.as_str())),
         title: Some(source_doc.title.clone()),
         target_address,
     }
@@ -338,7 +338,7 @@ fn fallback_backlink_row(
         relation_type: None,
         metadata_owner: None,
         doc_id: None,
-        path: Some(studio_display_path(state, internal_path).into()),
+        path: Some(studio_display_path(state, internal_path)),
         title: Some(title.to_string()),
         target_address: None,
     }
@@ -455,7 +455,7 @@ fn build_link_row(
         relation_type: seed.relation_type.map(Into::into),
         metadata_owner: seed.metadata_owner,
         doc_id: resolved.doc_id.map(Into::into),
-        path: resolved.path.map(Into::into),
+        path: resolved.path,
         title: resolved.title,
         target_address: seed.target_address.or(resolved.target_address),
     }

@@ -1,4 +1,19 @@
 use crate::transport::{
+    DatasetOntologyFlightManifest, DatasetOntologySourceTablePayload, WENDAO_ANALYSIS_PATH_HEADER,
+    WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER, WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER,
+    WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, WENDAO_AUTOCOMPLETE_LIMIT_HEADER,
+    WENDAO_AUTOCOMPLETE_PREFIX_HEADER, WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER,
+    WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER, WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER,
+    WENDAO_DEFINITION_LINE_HEADER, WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
+    WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER,
+    WENDAO_GRAPH_NODE_ID_HEADER, WENDAO_REPO_INDEX_REFRESH_HEADER, WENDAO_REPO_INDEX_REPO_HEADER,
+    WENDAO_REPO_INDEX_REQUEST_ID_HEADER, WENDAO_REPO_INDEX_STATUS_REPO_HEADER,
+    WENDAO_REPO_SEARCH_LIMIT_HEADER, WENDAO_REPO_SEARCH_QUERY_HEADER,
+    WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_REPO_SYNC_MODE_HEADER, WENDAO_REPO_SYNC_REPO_HEADER,
+    WENDAO_SCHEMA_VERSION_HEADER, WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER,
+    WENDAO_VFS_PATH_HEADER, encode_dataset_ontology_manifest_header,
+};
+use crate::transport::{
     WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_REPO_HEADER, WENDAO_REFINE_DOC_ENTITY_ID_HEADER,
     WENDAO_REFINE_DOC_REPO_HEADER, WENDAO_REFINE_DOC_USER_HINTS_HEADER,
     WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER, WENDAO_REPO_DOC_COVERAGE_REPO_HEADER,
@@ -8,19 +23,6 @@ use crate::transport::{
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_RELATED_LIMIT_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_REPO_HEADER,
-};
-use crate::transport::{
-    WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER,
-    WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER, WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER,
-    WENDAO_AUTOCOMPLETE_LIMIT_HEADER, WENDAO_AUTOCOMPLETE_PREFIX_HEADER,
-    WENDAO_DEFINITION_LINE_HEADER, WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
-    WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER,
-    WENDAO_GRAPH_NODE_ID_HEADER, WENDAO_REPO_INDEX_REFRESH_HEADER, WENDAO_REPO_INDEX_REPO_HEADER,
-    WENDAO_REPO_INDEX_REQUEST_ID_HEADER, WENDAO_REPO_INDEX_STATUS_REPO_HEADER,
-    WENDAO_REPO_SEARCH_LIMIT_HEADER, WENDAO_REPO_SEARCH_QUERY_HEADER,
-    WENDAO_REPO_SEARCH_REPO_HEADER, WENDAO_REPO_SYNC_MODE_HEADER, WENDAO_REPO_SYNC_REPO_HEADER,
-    WENDAO_SCHEMA_VERSION_HEADER, WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER,
-    WENDAO_VFS_PATH_HEADER,
 };
 use tonic::metadata::MetadataMap;
 
@@ -189,6 +191,44 @@ fn populate_schema_headers(metadata: &mut MetadataMap) {
 
 pub(super) fn populate_vfs_scan_headers(metadata: &mut MetadataMap) {
     populate_schema_headers(metadata);
+}
+
+pub(super) fn populate_dataset_ontology_headers(metadata: &mut MetadataMap) {
+    populate_schema_headers(metadata);
+    let manifest = DatasetOntologyFlightManifest::new(
+        "healthcare.synthetic_care_delivery.contract.v1",
+        "healthcare.synthetic_care_delivery.v1",
+        vec![
+            DatasetOntologySourceTablePayload::new("raw_patients", "patients-arrow")
+                .with_row_count(2),
+            DatasetOntologySourceTablePayload::new("raw_providers", "providers-arrow")
+                .with_row_count(2),
+            DatasetOntologySourceTablePayload::new("raw_encounters", "encounters-arrow")
+                .with_row_count(2),
+            DatasetOntologySourceTablePayload::new("raw_conditions", "conditions-arrow")
+                .with_row_count(2),
+        ],
+    );
+    insert_header(
+        metadata,
+        WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER,
+        manifest.contract_id.as_str(),
+        "dataset ontology contract metadata",
+    );
+    insert_header(
+        metadata,
+        WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER,
+        manifest.mapping_id.as_str(),
+        "dataset ontology mapping metadata",
+    );
+    insert_header(
+        metadata,
+        WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER,
+        encode_dataset_ontology_manifest_header(&manifest)
+            .unwrap_or_else(|error| panic!("encode dataset ontology manifest: {error}"))
+            .as_str(),
+        "dataset ontology manifest metadata",
+    );
 }
 
 pub(super) fn populate_graph_neighbors_headers(

@@ -29,7 +29,8 @@ pub use connection::{SearchDuckDbConnection, open_search_duckdb_connection};
 #[cfg(feature = "duckdb")]
 pub use dataset_ontology::{
     DatasetOntologyArrowIpcSourceTableSpec, DatasetOntologyDuckDbMaterializer,
-    DatasetOntologyRuntimeMaterializationReport, DatasetOntologyRuntimeMaterializationRequest,
+    DatasetOntologyRuntimeMaterialization, DatasetOntologyRuntimeMaterializationReport,
+    DatasetOntologyRuntimeMaterializationRequest, DatasetOntologyRuntimeReadModelTable,
     read_dataset_ontology_arrow_ipc_source_table,
 };
 #[cfg(feature = "duckdb")]

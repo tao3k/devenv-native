@@ -238,9 +238,9 @@ impl Error for OrgOntologyAuthoringError {}
 ///
 /// # Errors
 ///
-/// Returns [`OrgOntologyAuthoringError`] when the Org document has no headings,
-/// when a heading has no ontology authoring kind, or when authoring kind /
-/// lifecycle values are outside the draft parser contract vocabulary.
+/// Returns [`OrgOntologyAuthoringError`] when the Org document has no typed
+/// ontology authoring sections or when typed authoring kind / lifecycle values
+/// are outside the draft parser contract vocabulary.
 pub fn compile_org_ontology_authoring_document(
     content: &str,
     source_path: impl Into<String>,
@@ -272,8 +272,9 @@ pub fn compile_org_ontology_authoring_document(
                 Vec::<OrgOntologyAuthoringSection>::new(),
             ),
             |(mut heading_stack, mut sections), headline| {
-                let compiled = compile_headline(content, &mut heading_stack, &headline)?;
-                sections.push(compiled);
+                if let Some(compiled) = compile_headline(content, &mut heading_stack, &headline)? {
+                    sections.push(compiled);
+                }
                 Ok::<_, OrgOntologyAuthoringError>((heading_stack, sections))
             },
         )?;
@@ -295,7 +296,7 @@ fn compile_headline(
     content: &str,
     heading_stack: &mut Vec<String>,
     headline: &Headline,
-) -> Result<OrgOntologyAuthoringSection, OrgOntologyAuthoringError> {
+) -> Result<Option<OrgOntologyAuthoringSection>, OrgOntologyAuthoringError> {
     let title = headline.title_raw().trim().to_string();
     if heading_stack.len() >= headline.level() {
         heading_stack.truncate(headline.level().saturating_sub(1));
@@ -305,12 +306,9 @@ fn compile_headline(
     let heading_path_label = heading_path.join(" / ");
     let source_span = source_span_for_headline(content, headline);
     let properties = headline_properties(headline);
-    let authoring_kind = authoring_kind(&properties).ok_or_else(|| {
-        OrgOntologyAuthoringError::MissingAuthoringKind {
-            heading_path: heading_path_label.clone(),
-            source_span: source_span.clone(),
-        }
-    })?;
+    let Some(authoring_kind) = authoring_kind(&properties) else {
+        return Ok(None);
+    };
     let authoring_kind = normalize_authoring_kind(&authoring_kind).ok_or_else(|| {
         OrgOntologyAuthoringError::UnsupportedAuthoringKind {
             heading_path: heading_path_label.clone(),
@@ -326,7 +324,7 @@ fn compile_headline(
         }
     })?;
 
-    Ok(OrgOntologyAuthoringSection {
+    Ok(Some(OrgOntologyAuthoringSection {
         section_id: section_id(&heading_path_label, &properties),
         heading_path,
         level: headline.level(),
@@ -338,7 +336,7 @@ fn compile_headline(
         tables: extract_section_tables(content, headline),
         embedded_artifacts: extract_section_embedded_artifacts(content, headline),
         source_span,
-    })
+    }))
 }
 
 fn headline_properties(headline: &Headline) -> BTreeMap<String, String> {
@@ -382,6 +380,7 @@ fn normalize_authoring_kind(value: &str) -> Option<String> {
         "value" | "value_type" => Some("value_type".to_string()),
         "validation" | "validation_rule" => Some("validation_rule".to_string()),
         "dataset" | "dataset_mapping" | "data_mapping" => Some("dataset_mapping".to_string()),
+        "corpus" | "corpus_mapping" | "source_corpus_mapping" => Some("corpus_mapping".to_string()),
         _ => None,
     })
 }

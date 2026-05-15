@@ -32,6 +32,7 @@ EXPECTED_DEFAULT_RULE_PACKS = {
     "python.syntax",
     "python.test_layout",
 }
+STRUCTURAL_GATE_RULE_IDS = {"PY-MOD-R006"}
 
 test_python_project_harness_policy = python_project_harness_test(
     Path(__file__).resolve().parents[2],
@@ -59,6 +60,16 @@ def test_python_project_harness_blocks_no_error_findings() -> None:
         package_root,
         "Python project harness blocking findings",
         blocking_findings,
+    )
+    structural_findings = tuple(
+        finding
+        for finding in report.findings
+        if finding.rule_id in STRUCTURAL_GATE_RULE_IDS
+    )
+    assert not structural_findings, _render_finding_set(
+        package_root,
+        "Python project harness structural findings",
+        structural_findings,
     )
     assert_python_harness_baseline(package_root, report)
 
@@ -220,11 +231,12 @@ def _finding_rule_counts(report: PythonHarnessReport) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
-def _package_relative_path(project_root: Path, path: Path) -> str:
+def _package_relative_path(project_root: Path, path: Path | str | None) -> str:
+    resolved_path = Path(path or "")
     try:
-        return path.relative_to(project_root).as_posix()
+        return resolved_path.relative_to(project_root).as_posix()
     except ValueError:
-        return path.as_posix()
+        return resolved_path.as_posix()
 
 
 def write_json(path: Path, payload: object) -> None:

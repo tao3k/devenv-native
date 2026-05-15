@@ -1,4 +1,4 @@
-//! Semantic-scope to SearchStrategyFlow ontology-registry bridge.
+//! Semantic-scope to `SearchStrategyFlow` ontology-registry bridge.
 
 use std::collections::BTreeSet;
 
@@ -10,7 +10,7 @@ use super::config::SearchStrategyFlowFlightMaterializationConfig;
 use super::metadata::{ANALYSIS_SEMANTIC_SCOPE_ROUTE, populate_semantic_scope_headers};
 
 /// Fetch accepted semantic-scope rows and serialize them as ontology registry
-/// TSV rows for the local `WendaoGraph.jl` SearchStrategyFlow host.
+/// TSV rows for the local `WendaoGraph.jl` `SearchStrategyFlow` host.
 ///
 /// # Errors
 ///

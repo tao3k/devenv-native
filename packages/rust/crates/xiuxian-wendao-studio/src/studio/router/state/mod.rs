@@ -15,7 +15,7 @@ mod tests;
 pub use cold_start::{StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartTelemetry};
 #[cfg(test)]
 pub(crate) use project_config::supported_code_kinds;
-#[cfg(feature = "performance")]
+#[cfg(any(test, feature = "performance"))]
 pub(crate) use types::LocalCorpusScanCoalescingState;
 #[cfg(any(test, feature = "performance"))]
 pub(crate) use types::StudioSearchColdStartTelemetryState;

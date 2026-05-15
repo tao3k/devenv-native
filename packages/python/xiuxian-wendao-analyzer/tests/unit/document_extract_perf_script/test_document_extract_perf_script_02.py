@@ -62,14 +62,13 @@ def test_prepare_distinct_miss_fixtures_writes_unique_fake_inputs(
     assert len({path.read_bytes() for path in fixtures.values()}) == 4
 
 
-def test_document_extras_cover_xbrl_and_audio_asr() -> None:
+def test_document_extras_cover_xbrl_and_audio_media_support() -> None:
     package_root = Path(__file__).resolve().parents[3]
     pyproject = tomllib.loads((package_root / "pyproject.toml").read_text())
     optional_dependencies = pyproject["project"]["optional-dependencies"]
 
     assert "docling[xbrl]>=2.70.0" in optional_dependencies["documents"]
     assert "docling[xbrl]>=2.70.0" in optional_dependencies["documents-audio"]
-    assert "openai-whisper>=20250625" in optional_dependencies["documents-audio"]
     assert "imageio-ffmpeg>=0.6.0" in optional_dependencies["documents-audio"]
 
 

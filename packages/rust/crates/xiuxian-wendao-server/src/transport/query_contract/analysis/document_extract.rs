@@ -6,6 +6,8 @@ pub const ANALYSIS_DOCUMENT_EXTRACT_ROUTE: &str = "/analysis/document-extract";
 pub const ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE: &str = "/analysis/document-extract-status";
 /// Internal route for page-shard OCR exchange with the Python analyzer worker.
 pub const ANALYSIS_PDF_OCR_SHARDS_ROUTE: &str = "/analysis/pdf-ocr-shards";
+/// Internal route for audio-shard exchange with the Python analyzer worker.
+pub const ANALYSIS_AUDIO_SHARDS_ROUTE: &str = "/analysis/audio-shards";
 
 /// Canonical document source-path metadata header for Wendao Flight requests.
 pub const WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER: &str =
@@ -28,6 +30,8 @@ pub const WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER: &str = "x-wendao-document-extr
 pub const WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER: &str = "x-wendao-document-extract-job-id";
 /// Internal PDF OCR worker budget header for Python shard OCR requests.
 pub const WENDAO_PDF_OCR_WORKERS_HEADER: &str = "x-wendao-pdf-ocr-workers";
+/// Internal audio worker budget header for Python audio shard requests.
+pub const WENDAO_AUDIO_WORKERS_HEADER: &str = "x-wendao-audio-workers";
 
 /// Full Docling document extraction profile.
 pub const DOCUMENT_EXTRACT_FULL_PROFILE: &str = "full";

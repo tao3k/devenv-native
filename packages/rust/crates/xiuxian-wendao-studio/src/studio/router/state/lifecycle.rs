@@ -83,7 +83,7 @@ impl GatewayState {
     /// Create gateway state for the real `gateway start` runtime, with the
     /// launch-path bootstrap policy resolved from the runtime env.
     #[must_use]
-    #[cfg(any(feature = "cli-bin-support", feature = "test-support"))]
+    #[cfg(any(feature = "cli-bin-support", test))]
     pub(crate) fn new_for_gateway_start(
         index: Option<Arc<LinkGraphIndex>>,
         signal_tx: Option<tokio::sync::mpsc::UnboundedSender<ZhenfaSignal>>,

@@ -10,19 +10,20 @@ use crate::transport::query_contract::{
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
     ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE, ANALYSIS_REPO_SYNC_ROUTE,
-    GRAPH_NEIGHBORS_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE, SEARCH_AST_ROUTE,
-    SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
+    GRAPH_NEIGHBORS_ROUTE, ONTOLOGY_DATASET_MATERIALIZE_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE,
+    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
     TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
 };
 
 use crate::transport::server::{
     is_search_family_route, join_sorted_set, validate_attachment_search_request_metadata,
     validate_autocomplete_request_metadata, validate_code_ast_analysis_request_metadata,
-    validate_definition_request_metadata, validate_document_extract_request_metadata,
-    validate_document_extract_status_request_metadata, validate_graph_neighbors_request_metadata,
-    validate_markdown_analysis_request_metadata, validate_refine_doc_request_metadata,
-    validate_repo_doc_coverage_request_metadata, validate_repo_index_request_metadata,
-    validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
+    validate_dataset_ontology_materialize_request_metadata, validate_definition_request_metadata,
+    validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
+    validate_graph_neighbors_request_metadata, validate_markdown_analysis_request_metadata,
+    validate_refine_doc_request_metadata, validate_repo_doc_coverage_request_metadata,
+    validate_repo_index_request_metadata, validate_repo_index_status_request_metadata,
+    validate_repo_overview_request_metadata,
     validate_repo_projected_page_index_tree_request_metadata,
     validate_repo_projected_retrieval_context_request_metadata,
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
@@ -123,6 +124,23 @@ fn unexpected_routed_request(route: &str) -> Status {
     Status::invalid_argument(format!("unexpected routed Flight request: {route}"))
 }
 
+fn dataset_ontology_materialize_cache_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, Status> {
+    let manifest = validate_dataset_ontology_materialize_request_metadata(metadata)?;
+    let table_payloads = manifest
+        .tables
+        .iter()
+        .map(|table| format!("{}={}", table.table_name, table.payload_id))
+        .collect::<Vec<_>>()
+        .join(",");
+    Ok(format!(
+        "{route}|{:?}|{:?}|{table_payloads}",
+        manifest.contract_id, manifest.mapping_id
+    ))
+}
+
 impl WendaoFlightService {
     pub(super) fn route_request_cache_key(
         route: &str,
@@ -192,6 +210,8 @@ impl WendaoFlightService {
         } else if route == ANALYSIS_REFINE_DOC_ROUTE {
             let (repo_id, entity_id, user_hints) = validate_refine_doc_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}|{entity_id:?}|{user_hints:?}"))
+        } else if route == ONTOLOGY_DATASET_MATERIALIZE_ROUTE {
+            dataset_ontology_materialize_cache_key(route, metadata)
         } else if is_search_family_route(route) {
             generic_search_cache_key(route, metadata)
         } else {
@@ -253,6 +273,9 @@ impl WendaoFlightService {
                 .await
         } else if route == ANALYSIS_REFINE_DOC_ROUTE {
             self.read_refine_doc_payload(route, metadata).await
+        } else if route == ONTOLOGY_DATASET_MATERIALIZE_ROUTE {
+            self.read_dataset_ontology_materialize_payload(route, metadata)
+                .await
         } else if is_search_family_route(route) {
             self.read_search_family_payload(route, metadata).await
         } else {
@@ -707,6 +730,32 @@ impl WendaoFlightService {
         })?;
         provider
             .document_extract_status_batch(job_id.as_str())
+            .await
+            .map_err(Status::internal)
+            .and_then(|response| {
+                FlightRoutePayload::from_engine_batches_with_app_metadata(
+                    &response.batches,
+                    response.app_metadata,
+                )
+            })
+    }
+
+    async fn read_dataset_ontology_materialize_payload(
+        &self,
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<FlightRoutePayload, Status> {
+        let manifest = validate_dataset_ontology_materialize_request_metadata(metadata)?;
+        let provider = self
+            .dataset_ontology_materialize_provider
+            .as_ref()
+            .ok_or_else(|| {
+                Status::unimplemented(format!(
+                    "dataset ontology materialize Flight route `{route}` is not configured for this runtime host"
+                ))
+            })?;
+        provider
+            .dataset_ontology_materialize_batch(&manifest)
             .await
             .map_err(Status::internal)
             .and_then(|response| {

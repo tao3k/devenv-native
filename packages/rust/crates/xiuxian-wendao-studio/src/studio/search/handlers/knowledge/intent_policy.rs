@@ -11,7 +11,11 @@ pub(super) fn local_symbol_hit_to_search_hit(hit: AstSearchHit, code_biased: boo
         hit.language.clone(),
         format!("lang:{}", hit.language),
     ];
-    if let Some(node_kind) = hit.node_kind.as_ref().map(|kind| kind.as_str()) {
+    if let Some(node_kind) = hit
+        .node_kind
+        .as_ref()
+        .map(crate::contracts::StudioContractNodeKind::as_str)
+    {
         tags.push(node_kind.to_string());
         tags.push(format!("kind:{node_kind}"));
     } else {
@@ -73,7 +77,7 @@ pub(super) fn compare_intent_hits(left: &SearchHit, right: &SearchHit) -> std::c
 }
 
 fn intent_hit_priority(hit: &SearchHit) -> u8 {
-    match hit.doc_type.as_ref().map(|doc_type| doc_type.as_ref()) {
+    match hit.doc_type.as_ref().map(AsRef::as_ref) {
         Some("symbol") => 3,
         Some("file") => 2,
         _ => 1,

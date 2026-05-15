@@ -1,0 +1,160 @@
+"""document_service test slice 3."""
+
+from __future__ import annotations
+
+import json
+
+from xiuxian_wendao_analyzer.pdf_ocr import (
+    HOSTED_VLM_OCR_BASE_URL_ENV,
+    HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV,
+    HOSTED_VLM_OCR_TRACE_PATH_ENV,
+    PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+)
+
+from .support import (
+    DoclingPdfOcrShardWorker,
+    Path,
+    _sample_pdf_ocr_input_table,
+    build_pdf_ocr_shard_result_table,
+    pa,
+)
+
+
+def _ocr2_region_marker(row: dict[str, object]) -> str:
+    return (
+        "<!-- xiuxian-wendao-hosted-vlm-region:"
+        f"{row['pageIndex']}:{row['regionIndex']}:{row['shardElementId']}"
+        " -->"
+    )
+
+
+def _write_ppm_image(path: Path, color: bytes = b"\x00\x00\x00") -> None:
+    path.write_bytes(b"P6\n2 2\n255\n" + color * 4)
+
+
+def _write_ocr2_region_scaffold_sidecar(
+    directory: Path,
+    rows: list[dict[str, object]],
+    *,
+    raster_sha256: str = "rasterhash",
+) -> None:
+    items = []
+    for row in rows:
+        items.append(
+            {
+                "scaffoldKind": "table_candidate",
+                "shardElementId": row["shardElementId"],
+                "parentShardElementId": row["parentShardElementId"],
+                "pageIndex": row["pageIndex"],
+                "regionIndex": row["regionIndex"],
+                "sourceContentHash": row["sourceContentHash"],
+                "rasterSha256": raster_sha256,
+                "renderDpi": row["renderDpi"],
+                "cropBox": {
+                    "left": row["cropLeft"],
+                    "bottom": row["cropBottom"],
+                    "right": row["cropRight"],
+                    "top": row["cropTop"],
+                },
+                "sourcePagePixelBox": {
+                    "left": row["sourcePagePixelLeft"],
+                    "top": row["sourcePagePixelTop"],
+                    "right": row["sourcePagePixelRight"],
+                    "bottom": row["sourcePagePixelBottom"],
+                },
+                "sourcePageProfile": None,
+            }
+        )
+    (directory / "_hosted_vlm_region_scaffolds.json").write_text(
+        json.dumps(
+            {
+                "schema": "xiuxian_wendao.hosted_vlm_region_scaffold.v1",
+                "mode": "region-table-json",
+                "items": items,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_docling_pdf_ocr_worker_shares_invalid_region_atlas_canary_state(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    region_images = [tmp_path / f"region-{index:05}.png" for index in range(4)]
+    for image in region_images:
+        _write_ppm_image(image)
+    request_kinds: list[str] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, content: str) -> None:
+            self._content = content
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": self._content}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        payload = json.loads(request.data.decode("utf-8"))
+        prompt_text = payload["messages"][0]["content"][0]["text"]
+        if "Atlas panel mapping" in prompt_text:
+            request_kinds.append("atlas")
+            return FakeResponse('{"regions":[]}')
+        request_kinds.append("single")
+        return FakeResponse(f"# fallback atlas region {len(request_kinds)}")
+
+    def input_table_for_page(page_index: int, offset: int) -> pa.Table:
+        return pa.concat_tables(
+            [
+                _sample_pdf_ocr_input_table(
+                    source_path=str(source),
+                    image_path=str(region_images[offset + index]),
+                    page_index=page_index,
+                    shard_element_id=f"region-{offset + index}",
+                    shard_type="region",
+                    region_index=index + 1,
+                    parent_shard_element_id=f"parent-page-{page_index}",
+                    reading_order_key=f"00000{page_index}.0{index + 1}0000",
+                    ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+                )
+                for index in range(2)
+            ]
+        )
+
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV, "2")
+    monkeypatch.setenv(HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV, "same-page-json")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(log_dir / "worker-0.jsonl"))
+    first = build_pdf_ocr_shard_result_table(
+        input_table_for_page(0, 0),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(log_dir / "worker-1.jsonl"))
+    second = build_pdf_ocr_shard_result_table(
+        input_table_for_page(1, 2),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert [row["status"] for row in first.to_pylist()] == ["succeeded"] * 2
+    assert [row["status"] for row in second.to_pylist()] == ["succeeded"] * 2
+    assert request_kinds == ["atlas", "single", "single", "single", "single"]

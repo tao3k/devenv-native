@@ -13,6 +13,21 @@ frontend-facing state. Those heavier gateway concerns live in
 - `transport`: exposes the runtime-owned Flight/gRPC route contracts, route
   provider traits, request validators, and `WendaoFlightService` facade.
 
+## Dataset Ontology Handoff
+
+The transport feature exposes `/ontology/dataset/materialize` as the
+dataset-to-ontology handoff route used by the Gateway-facing Flight service.
+The route carries only the admitted mapping manifest in Flight metadata:
+`x-wendao-dataset-ontology-contract-id`,
+`x-wendao-dataset-ontology-mapping-id`, and
+`x-wendao-dataset-ontology-manifest`.
+
+This crate owns the stable route constants, metadata validation, and provider
+trait seam. It does not execute DuckDB, parse raw CSV, mutate RDF, or read
+project configuration. A host such as `xiuxian-wendao-studio` must attach a
+`DatasetOntologyMaterializeFlightRouteProvider` that materializes already
+admitted read-model batches through the runtime-owned SQL/Arrow substrate.
+
 The default feature set is empty so downstream crates do not accidentally pull
 transport or domain dependencies.
 

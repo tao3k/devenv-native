@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::contracts::{StudioContractStatus, StudioContractToken};
 use thiserror::Error;
 
-/// Error raised while building a SearchStrategyFlow materialization receipt.
+/// Error raised while building a `SearchStrategyFlow` materialization receipt.
 #[derive(Debug, Error)]
 pub enum SearchStrategyFlowMaterializationError {
     /// Human-readable validation or transport error.
@@ -108,7 +108,7 @@ impl RouteDecodedPayloadReceipt {
     }
 }
 
-/// SearchStrategyFlow decoded materialization receipt emitted by Studio.
+/// `SearchStrategyFlow` decoded materialization receipt emitted by Studio.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchStrategyFlowMaterializationReceipt {

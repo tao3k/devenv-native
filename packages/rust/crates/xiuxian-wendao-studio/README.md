@@ -96,6 +96,215 @@ not expose a `/api/search/strategy-flow` REST route. Gateway REST or Flight is
 used after the query-understanding subagent and WendaoGraph.jl have selected
 concrete retrieval/materialization routes.
 
+## Dataset Ontology Flight Handoff
+
+Studio owns the Gateway host provider for the dataset-to-ontology Flight
+handoff route `/ontology/dataset/materialize`. The route contract and metadata
+validation live in `xiuxian-wendao-server`; DuckDB/Arrow-SQL materialization
+remains in Wendao runtime code. Studio attaches the provider to the same
+Gateway Flight service bundle as search, graph, VFS, analysis, and SQL routes.
+
+The current provider resolves admitted manifest table payload ids to
+cache-local Arrow IPC streams, loads the accepted Healthcare mapping SQL from
+the ontology source-contract tree, and delegates execution to the Wendao
+DuckDB materializer. Missing payloads, unsafe payload ids, source-content
+fingerprint mismatches, row-count mismatches, unsupported mappings, and
+materialization validation failures fail deterministically at the Studio
+provider boundary instead of falling back to Python, direct RDF mutation, or
+server-crate DuckDB execution. The response uses a stable Arrow envelope:
+the first batch is the compact materialization report, followed by
+`semantic_objects`, `semantic_relations`, and `semantic_projection_state`
+read-model rows encoded with their source table name and row JSON payload. This
+keeps the Flight stream schema stable while preserving the compiled ontology
+read-model facts for downstream graph/proof consumers.
+
+## Episteme Source Contract Admission
+
+The first episteme onboarding command writes a structure/TOC Org ledger:
+
+```bash
+wendao episteme structure write-toc \
+  --episteme-registry-id medical \
+  --corpus-root <corpus-root> \
+  --validation-mode metadata-only \
+  --run-id toc_seed
+```
+
+This command reads source file rows and writes ignored `toc.org` and
+`receipt.json` artifacts under `<episteme-root>/runs/structure/<run-id>/` by
+default. The Org ledger records file ids, source-relative paths, byte sizes,
+hashes, categories, languages, and extraction routes. The default
+`metadata-only` validation mode checks manifest shape, file presence, byte
+sizes, duplicate ids and paths, extension-route alignment, categories,
+language, and unlisted corpus files without reading file contents for sha256.
+Use `--validation-mode full-hash` when the run must prove source-content
+fingerprints. The TOC ledger does not embed raw corpus text, execute OCR,
+execute ASR, call LLMs, export SQL/RDF, or promote ontology truth.
+
+After TOC generation, callers can read one targeted evidence row by file id:
+
+```bash
+wendao episteme evidence read \
+  --episteme-registry-id medical \
+  --corpus-root <corpus-root> \
+  --file-id <source-contract-file-id>
+```
+
+This command resolves the selected source-contract row, checks the configured
+source boundary, and returns deterministic source metadata. Plain-text safe
+extensions can include a bounded UTF-8 preview controlled by
+`--max-preview-bytes`; binary documents, PDFs, images, and audio are returned
+as route references only. The command does not accept arbitrary source paths,
+copy raw private files, execute OCR/ASR/LLM extraction, export SQL/RDF, or
+promote ontology truth. Use `--validation-mode full-hash` when the read must
+prove source-content fingerprints before downstream extraction or promotion.
+
+After a human, agent, or LLM selects relevant source-contract ids from the TOC,
+Studio can write a deterministic evidence selection ledger:
+
+```bash
+wendao episteme evidence write-selection-plan \
+  --episteme-registry-id medical \
+  --run-id selection_seed \
+  --file-id <source-contract-file-id> \
+  --selection-reason "agent selected source files"
+```
+
+This command writes ignored `selection.org`, `selection.tsv`, and
+`receipt.json` artifacts under
+`<episteme-root>/runs/evidence-selection/<run-id>/` by default. It rejects
+duplicate or unknown `file_id` values, records only source-contract metadata
+and next-route hints, and never embeds raw corpus text or binary content. Use
+`--validation-mode full-hash` when the selection must prove source-content
+fingerprints before extractor planning. If the episteme repository provides
+`episteme.toml` with `[runtime].corpus_root`, `[runtime].evidence_selection_run_root`,
+`[runtime].structure_run_root`, or `[runtime].extraction_run_root`, Studio uses
+those values as defaults. Explicit CLI flags still override repository
+defaults.
+
+The `wendao` CLI exposes the episteme source-contract run-plan writer as:
+
+```bash
+wendao episteme source-contract plan-extraction-run \
+  --episteme-root <episteme-root> \
+  --run-id source_contract_seed \
+  --selection-run-id selection_seed \
+  --route document_text_evidence \
+  --limit 12
+```
+
+This command delegates to the Rust-owned episteme source-contract service in
+[`xiuxian-wendao`](../xiuxian-wendao/README.md), which consumes
+[`xiuxian-wendao-parsers`](../xiuxian-wendao-parsers/docs/episteme-source-contracts.md)
+DTOs. It writes ignored `tasks.tsv`, `receipt.json`, and `outputs/` run-plan
+artifacts only. It does not execute OCR, ASR, LLM extraction, or RDF promotion,
+and it does not promote raw content into ontology truth. Planning uses
+`contract_shape_only` validation, so it checks manifest and mapping-ledger
+shape, queue/file consistency, filters, and selected `file_id` coverage without
+walking or hashing the source corpus. Full sha256 proof remains on explicit
+validation, read-model, or promotion paths. When
+`--selection-run-id` is supplied, the planner reads
+`<episteme-root>/runs/evidence-selection/<selection-run-id>/selection.tsv` by
+default and treats its `file_id` values as a hard constraint. Every selected id
+must map to a pending queue row after any route/category filters; the planner
+fails instead of silently dropping selected evidence. `--selection-root` can
+point at a non-default selection artifact root.
+
+The selected source manifest and mapping ledger come from
+`<episteme-root>/ontology/manifest.toml`. Runtime defaults may come from
+`<episteme-root>/episteme.toml`; if no `[runtime].corpus_root` is configured and
+`--corpus-root` is omitted, Studio reads the selected source manifest's
+`corpus_root_env` field and resolves the corpus root from that environment
+variable. Studio does not hardcode customer repository names, domain names, or
+corpus environment variable names. A single-contract episteme repository can be
+selected automatically; multi-domain repositories must declare
+`[active_source_contract]`.
+
+`wendao.toml` may also declare episteme registries for user-owned or
+Wendao-owned topology repositories:
+
+```toml
+[episteme.registries.local_knowledge]
+path = ".data/local-episteme"
+
+[episteme.registries.remote_knowledge]
+url = "https://github.com/example/example-episteme.git"
+```
+
+The user-facing syntax is intentionally thin. `path` means local episteme
+repository; `url` means Git episteme repository. Rust infers the source kind,
+materializes managed Git checkouts through the repository substrate, and writes
+resolved revision/cache facts into receipts instead of requiring backend
+materialization fields in `wendao.toml`.
+When `epistemeRegistryId` is used, Studio loads the enabled registry entries
+from the same deployment config, asks the Wendao backend to validate the
+manifest reference graph, and only then selects the requested episteme root.
+That graph validation checks unique domain ids and manifest extension targets;
+it does not require additional user-facing registry syntax.
+
+The CLI can target a configured registry id:
+
+```bash
+wendao episteme source-contract plan-extraction-run \
+  --episteme-registry-id local_knowledge \
+  --corpus-root <corpus-root> \
+  --run-id source_contract_seed
+```
+
+Studio also exposes the same writer through a bounded operational Gateway
+endpoint:
+
+```http
+POST /api/episteme/source-contract/extraction-run-plan
+```
+
+The JSON body accepts either `epistemeRoot` or `epistemeRegistryId`, plus
+`corpusRoot`, `runRoot`, `selectionRunId`, `selectionRoot`, `runId`, `route`,
+`category`, and `limit`. Relative request paths resolve from the Gateway
+project root. Repository-owned `episteme.toml` values are used as defaults for
+the corpus root, extraction run root, and evidence-selection root before
+falling back to the selected source manifest's corpus-root environment
+variable. When `selectionRunId` is supplied, the Gateway reads that
+selection's `selection.tsv` and treats its `file_id` values as hard constraints,
+matching the CLI semantics without requiring a CLI process. This endpoint is a
+service-admission path only. It
+intentionally does not enter the stable OpenAPI route inventory in this slice,
+and it does not execute OCR, ASR, LLM extraction, or RDF promotion.
+
+Studio also exposes targeted source-contract evidence reads through the
+resident Gateway path:
+
+```http
+POST /api/episteme/evidence/read
+```
+
+The JSON body accepts either `epistemeRoot` or `epistemeRegistryId`, optional
+`corpusRoot`, required `fileId`, optional `maxPreviewBytes`, and optional
+`validationMode` (`metadata-only` or `full-hash`). Repository-owned
+`episteme.toml` supplies the corpus-root default when the request omits
+`corpusRoot`. The response is the Rust-owned targeted evidence read report: it
+can include bounded plain-text previews for text-like sources, returns binary
+sources as evidence references, and keeps `extractionExecuted=false` and
+`rawToRdfPromotionAllowed=false`. This operational Gateway path exists so
+agent/LLM workflows can move from TOC to selected `file_id` evidence without a
+CLI process; it does not run OCR, ASR, LLM extraction, or RDF promotion.
+
+The resident Gateway path can also write evidence-only selection plans:
+
+```http
+POST /api/episteme/evidence/selection-plan
+```
+
+The JSON body accepts either `epistemeRoot` or `epistemeRegistryId`, optional
+`corpusRoot`, optional `runRoot`, required `runId`, required `fileIds`,
+optional `selectionReason`, and optional `validationMode` (`metadata-only` or
+`full-hash`). Repository-owned `episteme.toml` supplies the corpus-root and
+evidence-selection run-root defaults when the request omits them. The response
+is the Rust-owned evidence selection write report, and the written
+`selection.tsv` can be consumed by the extraction run-plan endpoint through
+`selectionRunId`. This route writes a reviewable selection ledger only; it does
+not execute extraction, OCR, ASR, LLM inference, or RDF promotion.
+
 ## Polyglot Docling Scheduling
 
 The Polyglot Compute Orchestrator boundary is tracked in
@@ -109,6 +318,13 @@ adaptive pressure observations, queue wait observation, and the
 including source-range auto worker sizing from owner-supplied system facts.
 Studio consumes that plan through the attachment polyglot bridge while keeping
 live dispatch local to this crate.
+For audio shard execution, Studio owns the live Flight dispatch and merge gate
+over the analyzer `/analysis/audio-shards` route. Attachments supplies the
+model-neutral shard plans and Arrow rows; analyzer workers supply Docling or
+hosted transcript rows. Studio keeps backend selection as data/configuration,
+forwards `x-wendao-audio-workers` when it needs to bound analyzer parallelism,
+and merges results by `readingOrderKey` while surfacing failed, skipped,
+missing, or duplicate shard coverage to the precision gate.
 The current source-range auto policy targets seven source PDF pages per worker
 before clamping to the adaptive budget, machine cap, remaining permits, and
 shard count; diagnostic worker overrides remain benchmark-only.

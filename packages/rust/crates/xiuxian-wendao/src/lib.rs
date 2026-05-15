@@ -62,6 +62,8 @@
 // ---------------------------------------------------------------------------
 /// Public Wendao boundary.
 pub mod entity;
+/// Rust-owned episteme source-contract planning services.
+pub mod episteme;
 /// Domain-owned live Flight host for SearchStrategyFlow replay.
 #[cfg(feature = "search-runtime")]
 pub mod flight_host;

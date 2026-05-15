@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use crate::transport::{SEARCH_KNOWLEDGE_ROUTE, SEARCH_SYMBOLS_ROUTE, SearchFlightRouteProvider};
 
-use super::{StudioSearchFlightRouteProvider, first_string, make_gateway_state_with_search_routes};
+use crate::studio::search::handlers::flight::provider::StudioSearchFlightRouteProvider;
 use crate::studio::{GatewayState, StudioState};
+
+use super::{first_string, make_gateway_state_with_search_routes};
 
 #[tokio::test]
 async fn studio_search_flight_provider_dispatches_symbol_route() {

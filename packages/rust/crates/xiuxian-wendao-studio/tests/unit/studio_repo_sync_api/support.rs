@@ -129,7 +129,9 @@ pub(super) fn gateway_state_for_ui_config(
                 project_root.to_path_buf(),
                 SearchPlaneService::new(project_root.to_path_buf()),
             )),
-            local_corpus_scan_coalescing: Arc::new(RwLock::new(Default::default())),
+            local_corpus_scan_coalescing: Arc::new(RwLock::new(
+                crate::studio::router::LocalCorpusScanCoalescingState::default(),
+            )),
             search_plane: SearchPlaneService::new(project_root.to_path_buf()),
             vfs_scan: Arc::new(RwLock::new(None)),
             repo_index,
@@ -307,7 +309,9 @@ pub(super) fn gateway_state_for_project_with_options(
                 project_root.to_path_buf(),
                 SearchPlaneService::new(project_root.to_path_buf()),
             )),
-            local_corpus_scan_coalescing: Arc::new(RwLock::new(Default::default())),
+            local_corpus_scan_coalescing: Arc::new(RwLock::new(
+                crate::studio::router::LocalCorpusScanCoalescingState::default(),
+            )),
             search_plane: SearchPlaneService::new(project_root.to_path_buf()),
             vfs_scan: Arc::new(RwLock::new(None)),
             repo_index,

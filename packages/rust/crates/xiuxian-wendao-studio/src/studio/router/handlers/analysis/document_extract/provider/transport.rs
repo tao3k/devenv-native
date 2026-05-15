@@ -130,13 +130,15 @@ impl StudioDocumentExtractFlightRouteProvider {
         for (attempt_index, endpoint_url) in endpoint_urls.iter().enumerate() {
             match self
                 .request_python_document_extract_with_page_range_at_endpoint(
-                    endpoint_url,
-                    source_path,
-                    output_dir,
-                    force,
-                    error_row,
-                    profile,
-                    page_range,
+                    PythonDocumentExtractEndpointRequest {
+                        endpoint_url,
+                        source_path,
+                        output_dir,
+                        force,
+                        error_row,
+                        profile,
+                        page_range,
+                    },
                 )
                 .await
             {
@@ -162,15 +164,9 @@ impl StudioDocumentExtractFlightRouteProvider {
 
     async fn request_python_document_extract_with_page_range_at_endpoint(
         &self,
-        endpoint_url: &str,
-        source_path: &str,
-        output_dir: &str,
-        force: bool,
-        error_row: bool,
-        profile: &str,
-        page_range: Option<(u32, u32)>,
+        request: PythonDocumentExtractEndpointRequest<'_>,
     ) -> Result<Vec<EngineRecordBatch>, String> {
-        let channel = self.channel_for_endpoint(endpoint_url).await?;
+        let channel = self.channel_for_endpoint(request.endpoint_url).await?;
 
         let inner_client = TonicFlightServiceClient::new(channel)
             .max_encoding_message_size(DOCUMENT_EXTRACT_FLIGHT_MESSAGE_SIZE_BYTES)
@@ -180,27 +176,33 @@ impl StudioDocumentExtractFlightRouteProvider {
             .add_header(WENDAO_SCHEMA_VERSION_HEADER, "v2")
             .map_err(|error| format!("invalid schema version header: {error}"))?;
         client
-            .add_header(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, source_path)
+            .add_header(
+                WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+                request.source_path,
+            )
             .map_err(|error| format!("invalid source path header: {error}"))?;
         client
-            .add_header(WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, output_dir)
+            .add_header(
+                WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
+                request.output_dir,
+            )
             .map_err(|error| format!("invalid output dir header: {error}"))?;
         client
             .add_header(
                 WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
-                if force { "true" } else { "false" },
+                if request.force { "true" } else { "false" },
             )
             .map_err(|error| format!("invalid force header: {error}"))?;
         client
             .add_header(
                 WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
-                if error_row { "true" } else { "false" },
+                if request.error_row { "true" } else { "false" },
             )
             .map_err(|error| format!("invalid error-row header: {error}"))?;
         client
-            .add_header(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, profile)
+            .add_header(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, request.profile)
             .map_err(|error| format!("invalid profile header: {error}"))?;
-        if let Some((start, end)) = page_range {
+        if let Some((start, end)) = request.page_range {
             let value = format!("{start}:{end}");
             client
                 .add_header(WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, value.as_str())
@@ -253,6 +255,16 @@ impl StudioDocumentExtractFlightRouteProvider {
             .fetch_add(1, Ordering::Relaxed);
         document_extract_endpoint_attempt_order_for_request(request_index, endpoint_urls.as_slice())
     }
+}
+
+struct PythonDocumentExtractEndpointRequest<'a> {
+    endpoint_url: &'a str,
+    source_path: &'a str,
+    output_dir: &'a str,
+    force: bool,
+    error_row: bool,
+    profile: &'a str,
+    page_range: Option<(u32, u32)>,
 }
 
 pub(super) fn document_extract_default_endpoint_with_lookup(

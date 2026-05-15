@@ -1,6 +1,7 @@
 use super::{
-    ANALYSIS_DOCUMENT_EXTRACT_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE,
-    ANALYSIS_PDF_OCR_SHARDS_ROUTE, WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER,
+    ANALYSIS_AUDIO_SHARDS_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
+    ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_PDF_OCR_SHARDS_ROUTE,
+    WENDAO_AUDIO_WORKERS_HEADER, WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER,
     WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, WENDAO_PDF_OCR_WORKERS_HEADER,
@@ -65,6 +66,7 @@ fn document_extract_contract_uses_document_route_and_headers() {
         "/analysis/document-extract-status"
     );
     assert_eq!(ANALYSIS_PDF_OCR_SHARDS_ROUTE, "/analysis/pdf-ocr-shards");
+    assert_eq!(ANALYSIS_AUDIO_SHARDS_ROUTE, "/analysis/audio-shards");
     assert_eq!(
         WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
         "x-wendao-document-extract-mode"
@@ -78,6 +80,7 @@ fn document_extract_contract_uses_document_route_and_headers() {
         "x-wendao-document-extract-job-id"
     );
     assert_eq!(WENDAO_PDF_OCR_WORKERS_HEADER, "x-wendao-pdf-ocr-workers");
+    assert_eq!(WENDAO_AUDIO_WORKERS_HEADER, "x-wendao-audio-workers");
 }
 
 #[test]

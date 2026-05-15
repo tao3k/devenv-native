@@ -30,12 +30,17 @@ fn org_ontology_authoring_compiler_projects_real_org_into_schema_valid_dto() {
         "Object type body.\n",
     );
 
-    let document = compile_org_ontology_authoring_document(
+    let document = match compile_org_ontology_authoring_document(
         content,
         "wendao-episteme/ontology/software_engineering.org",
-    )
-    .expect("Org authoring fixture should compile");
-    let instance = serde_json::to_value(&document).expect("DTO should serialize");
+    ) {
+        Ok(document) => document,
+        Err(error) => panic!("Org authoring fixture should compile: {error}"),
+    };
+    let instance = match serde_json::to_value(&document) {
+        Ok(instance) => instance,
+        Err(error) => panic!("DTO should serialize: {error}"),
+    };
 
     assert_eq!(document.document_id, "org-authoring:software-engineering");
     assert_eq!(document.sections.len(), 2);
@@ -91,12 +96,17 @@ fn org_ontology_authoring_compiler_projects_dataset_mapping_tables_and_sql_artif
         "#+END_SRC\n",
     );
 
-    let document = compile_org_ontology_authoring_document(
+    let document = match compile_org_ontology_authoring_document(
         content,
         "wendao-episteme/ontology/30_Healthcare/mappings/healthcare_dataset_mapping.org",
-    )
-    .expect("dataset mapping Org fixture should compile");
-    let instance = serde_json::to_value(&document).expect("DTO should serialize");
+    ) {
+        Ok(document) => document,
+        Err(error) => panic!("dataset mapping Org fixture should compile: {error}"),
+    };
+    let instance = match serde_json::to_value(&document) {
+        Ok(instance) => instance,
+        Err(error) => panic!("DTO should serialize: {error}"),
+    };
     let section = &document.sections[0];
     let table_kinds = section
         .tables
@@ -130,14 +140,15 @@ fn org_ontology_authoring_compiler_projects_dataset_mapping_tables_and_sql_artif
 
 #[test]
 fn org_ontology_authoring_compiler_rejects_untyped_org_sections() {
-    let error = compile_org_ontology_authoring_document(
+    let Err(error) = compile_org_ontology_authoring_document(
         "* Untyped Section\nBody.\n",
         "wendao-episteme/ontology/broken.org",
-    )
-    .expect_err("missing ontology kind must fail before schema validation");
+    ) else {
+        panic!("missing ontology kind must fail before schema validation");
+    };
 
     assert!(matches!(
         error,
-        OrgOntologyAuthoringError::MissingAuthoringKind { .. }
+        OrgOntologyAuthoringError::EmptyAuthoringDocument
     ));
 }

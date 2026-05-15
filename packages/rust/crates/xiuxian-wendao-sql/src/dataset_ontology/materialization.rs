@@ -82,19 +82,49 @@ impl DatasetOntologySourceTable {
 #[derive(Debug, Clone)]
 pub struct DatasetOntologyMappingSql {
     /// Object observation projection SQL.
-    pub object_observations: String,
+    pub object_observations: DatasetOntologySelectSql,
     /// Link observation projection SQL.
-    pub link_observations: String,
+    pub link_observations: DatasetOntologySelectSql,
     /// Evidence projection SQL.
-    pub evidence: String,
+    pub evidence: DatasetOntologySelectSql,
     /// Semantic object read-model projection SQL.
-    pub semantic_objects: String,
+    pub semantic_objects: DatasetOntologySelectSql,
     /// Semantic relation read-model projection SQL.
-    pub semantic_relations: String,
+    pub semantic_relations: DatasetOntologySelectSql,
     /// Semantic projection-state projection SQL.
-    pub semantic_projection_state: String,
+    pub semantic_projection_state: DatasetOntologySelectSql,
     /// Domain validation rules to execute after compatibility views exist.
     pub validation_rules: Vec<DatasetOntologyValidationRule>,
+}
+
+/// Typed SELECT SQL text for dataset-to-ontology projection contracts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DatasetOntologySelectSql(String);
+
+impl DatasetOntologySelectSql {
+    /// Create one SELECT SQL wrapper.
+    #[must_use]
+    pub fn new(sql: impl Into<String>) -> Self {
+        Self(sql.into())
+    }
+
+    /// Borrow the wrapped SQL text.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl From<String> for DatasetOntologySelectSql {
+    fn from(sql: String) -> Self {
+        Self::new(sql)
+    }
+}
+
+impl From<&str> for DatasetOntologySelectSql {
+    fn from(sql: &str) -> Self {
+        Self::new(sql)
+    }
 }
 
 /// One named validation query.
@@ -199,19 +229,19 @@ pub async fn materialize_dataset_ontology_with_engine(
     let object_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME,
-        &mapping_sql.object_observations,
+        mapping_sql.object_observations.as_str(),
     )
     .await?;
     let link_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_LINK_OBSERVATION_TABLE_NAME,
-        &mapping_sql.link_observations,
+        mapping_sql.link_observations.as_str(),
     )
     .await?;
     let evidence_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_EVIDENCE_TABLE_NAME,
-        &mapping_sql.evidence,
+        mapping_sql.evidence.as_str(),
     )
     .await?;
     let entity_count = query_and_register(
@@ -230,19 +260,19 @@ pub async fn materialize_dataset_ontology_with_engine(
     let semantic_objects_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
-        &mapping_sql.semantic_objects,
+        mapping_sql.semantic_objects.as_str(),
     )
     .await?;
     let semantic_relations_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME,
-        &mapping_sql.semantic_relations,
+        mapping_sql.semantic_relations.as_str(),
     )
     .await?;
     let semantic_projection_state_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
-        &mapping_sql.semantic_projection_state,
+        mapping_sql.semantic_projection_state.as_str(),
     )
     .await?;
 

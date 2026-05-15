@@ -6,11 +6,14 @@ import sys
 from pathlib import Path
 
 from xiuxian_wendao_analyzer import document_service_cli
+from xiuxian_wendao_analyzer.audio_backend import manager as audio_manager
+from xiuxian_wendao_analyzer.audio_backend.manager import AudioBackendOptions
 from xiuxian_wendao_analyzer.document_service_cli import (
     build_document_extract_argument_parser,
+    resolve_audio_backend_action,
     resolve_ocr2_backend_action,
 )
-from xiuxian_wendao_analyzer.ocr2_backend import manager
+from xiuxian_wendao_analyzer.ocr2_backend import manager_launch
 from xiuxian_wendao_analyzer.ocr2_backend.manager import (
     DEFAULT_VLLM_PACKAGE,
     GENERIC_VLLM_REPO_ID,
@@ -81,6 +84,70 @@ def test_ocr2_backend_cli_flags_parse_as_actions() -> None:
     assert start_args.ocr2_backend_runner == "generic-vllm"
 
 
+def test_audio_backend_cli_flags_parse_as_actions() -> None:
+    parser = build_document_extract_argument_parser()
+    help_text = parser.format_help()
+
+    assert "--audio-probe-local-backend" in help_text
+    assert "--audio-start-backend" in help_text
+
+    probe_args = parser.parse_args(
+        ["--audio-probe-local-backend", "--audio-backend-runner", "qwen3-asr-mlx"]
+    )
+    assert resolve_audio_backend_action(probe_args) == "probe-local"
+    assert probe_args.audio_backend_runner == "qwen3-asr-mlx"
+
+    start_args = parser.parse_args(
+        [
+            "--audio-start-backend",
+            "--audio-backend-runner",
+            "qwen3-asr-mlx",
+            "--audio-backend-model-path",
+            "Qwen/Qwen3-ASR-1.7B",
+            "--audio-backend-host",
+            "127.0.0.1",
+            "--audio-backend-port",
+            "8010",
+        ]
+    )
+    assert resolve_audio_backend_action(start_args) == "start-backend"
+    assert start_args.audio_backend_model_path == "Qwen/Qwen3-ASR-1.7B"
+
+
+def test_audio_backend_launch_uses_qwen3_asr_adapter_on_macos(monkeypatch) -> None:
+    monkeypatch.setattr(audio_manager, "is_macos_apple_silicon", lambda: True)
+
+    launch = audio_manager.build_start_backend_launch(
+        AudioBackendOptions(
+            model_path="Qwen/Qwen3-ASR-1.7B",
+            backend_runner="qwen3-asr-mlx",
+            host="127.0.0.1",
+            port="8010",
+        )
+    )
+
+    assert launch.runner == "qwen3-asr-mlx"
+    command = " ".join(launch.command)
+    assert "uv run --no-project --with mlx-qwen3-asr" in command
+    assert "qwen3_asr_mlx_openai_adapter.py" in command
+    assert launch.env_updates["WENDAO_AUDIO_LOCAL_DEVICE"] == "metal"
+    assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL"] == "wendao-qwen3-asr-audio"
+    assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL_PATH"] == (
+        "Qwen/Qwen3-ASR-1.7B"
+    )
+
+
+def test_audio_backend_rejects_firered_as_metal_runner() -> None:
+    try:
+        audio_manager.build_start_backend_launch(
+            AudioBackendOptions(backend_runner="fireredasr2s")
+        )
+    except audio_manager.AudioBackendError as exc:
+        assert "CUDA-only" in str(exc)
+    else:
+        raise AssertionError("FireRedASR2S should not be a Metal audio backend")
+
+
 def test_ocr2_cli_action_runs_backend_manager_without_starting_service(
     monkeypatch,
 ) -> None:
@@ -119,8 +186,49 @@ def test_ocr2_cli_action_runs_backend_manager_without_starting_service(
     ]
 
 
+def test_audio_cli_action_runs_backend_manager_without_starting_service(
+    monkeypatch,
+) -> None:
+    calls: list[tuple[str, AudioBackendOptions]] = []
+
+    def fake_run(action: str, options: AudioBackendOptions) -> int:
+        calls.append((action, options))
+        return 43
+
+    monkeypatch.setattr(document_service_cli, "run_audio_backend_action", fake_run)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wendao-document-extract",
+            "--audio-start-backend",
+            "--audio-backend-runner",
+            "qwen3-asr-mlx",
+            "--audio-backend-model-path",
+            "Qwen/Qwen3-ASR-1.7B",
+            "--audio-backend-host",
+            "127.0.0.1",
+            "--audio-backend-port",
+            "8010",
+        ],
+    )
+
+    assert document_service_cli.document_extract_service_main() == 43
+    assert calls == [
+        (
+            "start-backend",
+            AudioBackendOptions(
+                model_path="Qwen/Qwen3-ASR-1.7B",
+                backend_runner="qwen3-asr-mlx",
+                host="127.0.0.1",
+                port="8010",
+            ),
+        )
+    ]
+
+
 def test_ocr2_manager_keeps_backend_contract_defaults(monkeypatch) -> None:
-    monkeypatch.setattr(manager.shutil, "which", lambda name: None)
+    monkeypatch.setattr(manager_launch.shutil, "which", lambda name: None)
 
     launch = build_start_backend_launch(
         Ocr2BackendOptions(
@@ -167,15 +275,16 @@ def test_ocr2_backend_modules_replace_root_scripts() -> None:
         encoding="utf-8"
     )
     manager_source = (package_dir / "manager.py").read_text(encoding="utf-8")
+    launch_source = (package_dir / "manager_launch.py").read_text(encoding="utf-8")
 
     assert "from mlx_vlm import generate, load" in mlx_adapter
     assert "apply_chat_template" in mlx_adapter
     assert "trust_remote_code=False" in mlx_adapter
     assert "lifespan=_lifespan" in mlx_adapter
     assert 'ModelRegistry.register_model("DeepseekOCR2ForCausalLM"' in official_adapter
-    assert (
-        'python", str(_module_path("official_vllm_openai_adapter.py"))'
-        in manager_source
-    )
-    assert 'str(_module_path("mlx_vlm_openai_adapter.py"))' in manager_source
+    assert "from ..local_backend import (" in launch_source
+    assert "exec_backend_launch" in launch_source
+    assert 'module_path(__file__, "official_vllm_openai_adapter.py")' in launch_source
+    assert 'module_path(__file__, "mlx_vlm_openai_adapter.py")' in launch_source
     assert "vllm-omni" not in manager_source
+    assert "vllm-omni" not in launch_source

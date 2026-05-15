@@ -1,0 +1,235 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://xiuxian.local/schemas/wendao/org-reasoning-property-contract.draft.schema.json",
+  "title": "Wendao Org Reasoning Property Contract",
+  "description": "Draft parser-owned contract for schema-governed Org property drawer records used by Wendao ontology reasoning. Org remains the authoring syntax; this schema validates compiled property records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "documentId",
+    "sourcePath",
+    "sourceHash",
+    "sectionId",
+    "headingPath",
+    "properties",
+    "sourceSpan"
+  ],
+  "properties": {
+    "schema": {
+      "const": "xiuxian_wendao.org_reasoning_property.v0.draft"
+    },
+    "documentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourcePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceHash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sectionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "headingPath": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "properties": {
+      "$ref": "#/$defs/reasoningProperties"
+    },
+    "sourceSpan": {
+      "$ref": "#/$defs/sourceSpan"
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^(sha256:)?[0-9a-fA-F]{64}$"
+    },
+    "confidence": {
+      "type": "string",
+      "pattern": "^(0(\\.\\d+)?|1(\\.0+)?)$"
+    },
+    "sourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startLine", "startColumn", "endLine", "endColumn"],
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "startColumn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endColumn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "reasoningProperties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ID", "WENDAO_KIND"],
+      "properties": {
+        "AUTHORING_KIND": {
+          "type": "string",
+          "minLength": 1
+        },
+        "CONFIDENCE": {
+          "$ref": "#/$defs/confidence"
+        },
+        "CREATED_AT": {
+          "type": "string",
+          "minLength": 1
+        },
+        "DOMAIN": {
+          "type": "string",
+          "minLength": 1
+        },
+        "EVIDENCE_ID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ID": {
+          "$ref": "#/$defs/uuid"
+        },
+        "KIND": {
+          "type": "string",
+          "minLength": 1
+        },
+        "LIFECYCLE_STATE": {
+          "type": "string",
+          "minLength": 1
+        },
+        "MAPPING_ID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "MODEL_ID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "NOTES": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ONTOLOGY_KIND": {
+          "type": "string",
+          "minLength": 1
+        },
+        "PRIMARY_LANGUAGE": {
+          "type": "string",
+          "minLength": 1
+        },
+        "PROMOTION_STATE": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "candidate",
+            "validated",
+            "promoted",
+            "rejected",
+            "blocked"
+          ]
+        },
+        "REVIEWER": {
+          "type": "string",
+          "minLength": 1
+        },
+        "SOURCE_HANDLE": {
+          "type": "string",
+          "minLength": 1
+        },
+        "SOURCE_SHA256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "STATE": {
+          "type": "string",
+          "minLength": 1
+        },
+        "STATUS": {
+          "type": "string",
+          "minLength": 1
+        },
+        "UPDATED_AT": {
+          "type": "string",
+          "minLength": 1
+        },
+        "VALIDATION_TARGET": {
+          "type": "string",
+          "minLength": 1
+        },
+        "WENDAO_KEY": {
+          "type": "string",
+          "minLength": 1
+        },
+        "WENDAO_KIND": {
+          "type": "string",
+          "enum": [
+            "ontology_mapping",
+            "evidence_summary",
+            "validation_feedback"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "WENDAO_KIND": {
+                "const": "ontology_mapping"
+              }
+            }
+          },
+          "then": {
+            "required": ["PROMOTION_STATE"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "WENDAO_KIND": {
+                "const": "evidence_summary"
+              }
+            }
+          },
+          "then": {
+            "required": ["SOURCE_HANDLE"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "WENDAO_KIND": {
+                "const": "validation_feedback"
+              }
+            }
+          },
+          "then": {
+            "required": ["VALIDATION_TARGET"]
+          }
+        }
+      ]
+    }
+  }
+}

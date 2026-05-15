@@ -161,6 +161,9 @@ def test_readme_records_beta_readiness_and_known_gaps() -> None:
     assert "audio_shards.json" in readme
     assert "xiuxian_wendao.audio_shards.v1" in readme
     assert "materialize normalized shard media in parallel with local" in readme
+    assert "/analysis/audio-shards" in readme
+    assert "xiuxian_wendao.audio_shard_input.v1" in readme
+    assert "xiuxian_wendao.audio_shard_result.v1" in readme
     assert "tests/scripts/fireredasr2s_local_setup.py" in readme
     assert "OPENROUTER_API_KEY" in readme
     assert "environment-provided diagnostic backend" in readme
