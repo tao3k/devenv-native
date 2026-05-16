@@ -197,6 +197,14 @@ the helper returns no recovery plan instead of blindly invoking an audio model
 on low-speech spans. Analyzer code still owns backend invocation and audio
 model choice.
 
+For full-source transcript evidence, attachments can also render a canonical
+Org ledger after the normal merge gate passes. The ledger records source and
+shard fingerprints, timing metadata, merged transcript text, and one standard
+Org `attachment:` link per materialized shard under a section `DIR` property.
+This keeps Org as the reviewable evidence artifact while parser/orgize remains
+responsible for attachment parsing, linting, and derived Markdown or HTML
+exports.
+
 ## PDFium Runtime
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium

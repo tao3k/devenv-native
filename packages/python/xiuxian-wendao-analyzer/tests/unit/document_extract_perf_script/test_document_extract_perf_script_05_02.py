@@ -90,9 +90,11 @@ def test_audio_transcript_org_export_reads_resource_arrow(tmp_path: Path) -> Non
         "timelineMarkerCount": 2,
     }
     text = org_path.read_text(encoding="utf-8")
-    assert "#+TITLE: Audio Transcript" in text
+    assert "#+TITLE: Audio Transcript Timeline" in text
     assert ":RESOURCE_TYPE: audio-transcript" in text
-    assert "[00:30.000-01:00.000] world" in text
+    assert "* 00:00:30.000 -- 00:01:00.000 sample.mp3 chunk 0001" in text
+    assert ":START_SECONDS: 30.000" in text
+    assert "world" in text
 
 
 def test_audio_transcript_reference_draft_export_splits_timeline_segments(

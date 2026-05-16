@@ -46,6 +46,7 @@ pub(crate) fn build_error_resource_batch(
     .map_err(|error| format!("build document extract error batch: {error}"))
 }
 
+#[cfg(test)]
 pub(crate) fn build_audio_transcript_resource_batch(
     source_path: &str,
     output_dir: &str,
@@ -67,6 +68,29 @@ pub(crate) fn build_audio_transcript_resource_batch(
         ],
     )
     .map_err(|error| format!("build audio transcript resource batch: {error}"))
+}
+
+pub(crate) fn build_audio_transcript_with_org_resource_batch(
+    source_path: &str,
+    output_dir: &str,
+    transcript: &str,
+    org_ledger: &str,
+) -> Result<RecordBatch, String> {
+    RecordBatch::try_new(
+        document_resource_schema(),
+        vec![
+            string_column([source_path, source_path]),
+            string_column(["audio-transcript", "audio-transcript-ledger"]),
+            string_column([output_dir, output_dir]),
+            Arc::new(Int32Array::from(vec![0, 0])) as ArrayRef,
+            string_column(["audio transcript", "audio transcript Org ledger"]),
+            string_column([transcript, org_ledger]),
+            string_column(["text/plain", "text/org"]),
+            string_column(["ok", "ok"]),
+            string_column(["_audio_transcript", "_audio_transcript_org"]),
+        ],
+    )
+    .map_err(|error| format!("build audio transcript with Org resource batch: {error}"))
 }
 
 pub(crate) fn build_status_batch(status: &DocumentExtractJobStatus) -> Result<RecordBatch, String> {

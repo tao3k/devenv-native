@@ -478,7 +478,7 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, Vec<AudioShardMaterialized
         context: &mut AudioShardRecoveryWorkflowContext,
         input: Vec<AudioShardMaterializedItem>,
     ) -> Result<Self::Output, String> {
-        build_prepared_inputs(input, &context.profile)
+        build_prepared_inputs(input.as_slice(), &context.profile)
     }
 }
 
@@ -510,7 +510,7 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, Vec<AudioShardMaterialized
         context: &mut AudioShardRecoveryWorkflowContext,
         input: Vec<AudioShardMaterializedItem>,
     ) -> Result<Self::Output, String> {
-        build_prepared_inputs(input, &context.profile)
+        build_prepared_inputs(input.as_slice(), &context.profile)
     }
 }
 
@@ -679,10 +679,10 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardRecoveryMergeSta
 }
 
 fn build_prepared_inputs(
-    materialized_shards: Vec<AudioShardMaterializedItem>,
+    materialized_shards: &[AudioShardMaterializedItem],
     profile: &AudioShardWorkerProfile,
 ) -> Result<AudioShardPreparedInputs, String> {
-    let inputs = build_audio_shard_inputs(materialized_shards.as_slice(), profile);
+    let inputs = build_audio_shard_inputs(materialized_shards, profile);
     let input_batch = build_audio_shard_input_batch(inputs.as_slice())?;
     Ok(AudioShardPreparedInputs {
         inputs,

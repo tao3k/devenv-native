@@ -72,20 +72,17 @@ fn parse_audio_speech_segment_value(
     let start_ms = millis_field(object, "startMs")
         .or_else(|| seconds_field(object, "startSeconds"))
         .ok_or_else(|| format!("audio speech segment {offset} missing start time"))??;
-    let duration_ms = match millis_field(object, "durationMs")
-        .or_else(|| seconds_field(object, "durationSeconds"))
+    let duration_ms = if let Some(duration_ms) =
+        millis_field(object, "durationMs").or_else(|| seconds_field(object, "durationSeconds"))
     {
-        Some(duration_ms) => duration_ms?,
-        None => {
-            let end_ms = millis_field(object, "endMs")
-                .or_else(|| seconds_field(object, "endSeconds"))
-                .ok_or_else(|| {
-                    format!("audio speech segment {offset} missing duration or end")
-                })??;
-            end_ms.checked_sub(start_ms).ok_or_else(|| {
-                format!("audio speech segment {offset} end time is before start time")
-            })?
-        }
+        duration_ms?
+    } else {
+        let end_ms = millis_field(object, "endMs")
+            .or_else(|| seconds_field(object, "endSeconds"))
+            .ok_or_else(|| format!("audio speech segment {offset} missing duration or end"))??;
+        end_ms
+            .checked_sub(start_ms)
+            .ok_or_else(|| format!("audio speech segment {offset} end time is before start time"))?
     };
     if duration_ms == 0 {
         return Err(format!(
@@ -122,6 +119,9 @@ fn seconds_field(
         if !seconds.is_finite() || seconds < 0.0 {
             return Err(format!("{key} must be a finite non-negative second value"));
         }
-        Ok((seconds * 1000.0).round() as u64)
+        let duration = std::time::Duration::try_from_secs_f64(seconds + 0.000_5)
+            .map_err(|_| format!("{key} must fit in u64 milliseconds"))?;
+        u64::try_from(duration.as_millis())
+            .map_err(|_| format!("{key} must fit in u64 milliseconds"))
     })
 }

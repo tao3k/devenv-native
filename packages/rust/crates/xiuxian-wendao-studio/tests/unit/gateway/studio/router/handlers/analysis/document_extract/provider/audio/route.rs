@@ -146,13 +146,23 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
         .batches
         .first()
         .ok_or_else(|| "expected document resource response batch".to_owned())?;
-    assert_eq!(batch.num_rows(), 1);
+    assert_eq!(batch.num_rows(), 2);
     assert_eq!(
         string_column(batch, "resourceType")?.value(0),
         "audio-transcript"
     );
+    assert_eq!(
+        string_column(batch, "resourceType")?.value(1),
+        "audio-transcript-ledger"
+    );
     assert_eq!(string_column(batch, "mimeType")?.value(0), "text/plain");
+    assert_eq!(string_column(batch, "mimeType")?.value(1), "text/org");
     assert!(!string_column(batch, "content")?.value(0).trim().is_empty());
+    assert!(
+        string_column(batch, "content")?
+            .value(1)
+            .contains("[[attachment:")
+    );
 
     let cached_response = provider
         .audio_shards_document_extract_batch_with_config(
@@ -172,10 +182,14 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
         .batches
         .first()
         .ok_or_else(|| "expected cached document resource response batch".to_owned())?;
-    assert_eq!(cached_batch.num_rows(), 1);
+    assert_eq!(cached_batch.num_rows(), 2);
     assert_eq!(
         string_column(cached_batch, "content")?.value(0),
         string_column(batch, "content")?.value(0)
+    );
+    assert_eq!(
+        string_column(cached_batch, "content")?.value(1),
+        string_column(batch, "content")?.value(1)
     );
     let observed_requests = observed_requests
         .lock()

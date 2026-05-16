@@ -105,7 +105,8 @@ def write_transcript_timeline_org(path: Path, rows: Sequence[QualityRow]) -> Non
             [
                 f"* {start} -- {end} {source} chunk {chunk_index:04d}",
                 ":PROPERTIES:",
-                f":BACKEND: {segment['backend']}",
+                f":MODEL: {segment['model']}",
+                f":INVOCATION_BACKEND: {segment['backend']}",
                 f":SOURCE: {source}",
                 f":CHUNK_INDEX: {chunk_index}",
                 f":START_SECONDS: {start_seconds:.3f}",
@@ -163,6 +164,7 @@ def _timeline_rows_from_segments(
     return [
         {
             "backend": row.backend,
+            "model": row.model,
             "source": Path(row.source).name,
             "chunkIndex": row.chunk_index,
             "startSeconds": segment["startSeconds"],
@@ -178,6 +180,7 @@ def _timeline_rows_from_segments(
 def _timeline_row_from_shard(row: QualityRow) -> dict[str, object]:
     return {
         "backend": row.backend,
+        "model": row.model,
         "source": Path(row.source).name,
         "chunkIndex": row.chunk_index,
         "startSeconds": row.start_seconds,

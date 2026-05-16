@@ -6,9 +6,11 @@ mod mirror;
 mod names;
 mod schema;
 
+#[cfg(test)]
+pub(super) use batches::build_audio_transcript_resource_batch;
 pub(super) use batches::{
-    build_audio_transcript_resource_batch, build_error_resource_batch, build_job_resource_batch,
-    build_status_batch,
+    build_audio_transcript_with_org_resource_batch, build_error_resource_batch,
+    build_job_resource_batch, build_status_batch,
 };
 pub(super) use io::{read_arrow_file, write_arrow_file};
 pub(super) use mirror::{

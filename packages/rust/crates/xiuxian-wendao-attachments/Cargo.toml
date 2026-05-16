@@ -42,6 +42,7 @@ tar = { workspace = true, optional = true }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator" }
 
 [dev-dependencies]
+orgize = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 

@@ -2,15 +2,18 @@
 
 use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchCandidate, AudioRecoveryPatchDecisionKind, AudioRecoveryPatchGateOptions,
-    AudioResultCacheInput, AudioShardInput, AudioShardMaterializationInput, AudioShardPlan,
-    AudioShardPlannerInput, AudioShardRequestMetric, AudioShardResult, AudioShardStrategy,
+    AudioResultCacheInput, AudioRiskParentSelectionOptions, AudioShardInput,
+    AudioShardMaterializationInput, AudioShardPlan, AudioShardPlannerInput,
+    AudioShardRequestMetric, AudioShardResult, AudioShardResultStatus, AudioShardStrategy,
     AudioSourceIdentity, AudioSpeechSegment, AudioSpeechWindowPlannerInput,
-    DEFAULT_AUDIO_SHARD_PROFILE, audio_result_cache_key, build_audio_recovery_patch_candidates,
-    build_audio_recovery_speech_window_plan_for_inputs, build_audio_recovery_split_plan,
-    build_audio_recovery_split_plan_for_inputs, build_audio_shard_plan,
-    build_audio_speech_window_plan, gate_audio_recovery_patches, materialize_audio_shards,
-    merge_audio_shard_results, merge_audio_shard_results_with_recovery_patches,
-    parse_audio_speech_segments_sidecar, plan_audio_shards, select_audio_risk_parent_shards,
+    AudioTranscriptOrgLedgerOptions, DEFAULT_AUDIO_SHARD_PROFILE,
+    apply_audio_recovery_patch_decisions, audio_result_cache_key,
+    build_audio_recovery_patch_candidates, build_audio_recovery_speech_window_plan_for_inputs,
+    build_audio_recovery_split_plan, build_audio_recovery_split_plan_for_inputs,
+    build_audio_shard_plan, build_audio_speech_window_plan, build_audio_transcript_org_ledger,
+    gate_audio_recovery_patches, materialize_audio_shards, merge_audio_shard_results,
+    merge_audio_shard_results_with_recovery_patches, parse_audio_speech_segments_sidecar,
+    plan_audio_shards, select_audio_risk_parent_shards,
 };
 
 #[cfg(feature = "audio-shard-arrow")]
@@ -443,7 +446,7 @@ fn audio_risk_parent_selection_uses_rust_text_and_latency_facts() -> Result<(), 
         inputs.as_slice(),
         results.as_slice(),
         request_metrics.as_slice(),
-        Default::default(),
+        AudioRiskParentSelectionOptions::default(),
     )?;
 
     assert_eq!(
@@ -759,6 +762,83 @@ fn audio_shard_result_merge_rejects_hash_mismatch() -> Result<(), String> {
 }
 
 #[test]
+fn audio_transcript_org_ledger_uses_org_attachment_links() -> Result<(), String> {
+    let tempdir = tempfile::tempdir().map_err(error_to_string)?;
+    let shard_dir = tempdir.path().join("audio_shards");
+    std::fs::create_dir_all(&shard_dir).map_err(error_to_string)?;
+    let first_path = shard_dir.join("audio_000000_first.wav");
+    let second_path = shard_dir.join("audio_000001_second.wav");
+    std::fs::write(&first_path, b"first").map_err(error_to_string)?;
+    std::fs::write(&second_path, b"second").map_err(error_to_string)?;
+
+    let mut first = sample_audio_input("first", "000000.000000000000");
+    first.shard_path = first_path.to_string_lossy().into_owned();
+    let mut second = sample_audio_input("second", "000001.000000030000");
+    second.shard_path = second_path.to_string_lossy().into_owned();
+    second.start_ms = 30_000;
+    let results = vec![
+        AudioShardResult::succeeded(&first, "First audio segment.", 0.91),
+        AudioShardResult::succeeded(&second, "Second audio segment.", 0.92),
+    ];
+
+    let ledger = build_audio_transcript_org_ledger(
+        &[first, second],
+        &results,
+        &AudioTranscriptOrgLedgerOptions::new("Forum transcript", "audio_shards"),
+    )?;
+
+    assert!(ledger.contains(":WENDAO_SCHEMA: xiuxian_wendao.audio_transcript_org_ledger.v1"));
+    assert!(ledger.contains(":DIR: audio_shards"));
+    assert!(ledger.contains("[[attachment:audio_000000_first.wav][normalized audio shard]]"));
+    assert!(ledger.contains("*** 00:00:00.000 -- 00:00:30.000 source.mp3 shard 000000"));
+    assert!(ledger.contains(":START_SECONDS: 0.000"));
+    assert!(ledger.contains("First audio segment."));
+    assert!(!ledger.contains("** Merged Transcript"));
+    assert!(ledger.contains(":WENDAO_SHARD_ELEMENT_ID: second"));
+
+    let lint_options = orgize::lint::LintOptions {
+        attachment_base_dir: Some(tempdir.path().to_path_buf()),
+        ..orgize::lint::LintOptions::default()
+    };
+    let report = orgize::lint::lint_org_with_options(&ledger, &lint_options);
+    assert!(
+        report
+            .findings
+            .iter()
+            .all(|finding| finding.code != "ORG016"),
+        "attachment lint should be clean: {:#?}",
+        report.findings
+    );
+
+    let parsed = orgize::Org::parse(&ledger).document();
+    let attachment_links = parsed
+        .section_index_records()
+        .into_iter()
+        .flat_map(|section| section.links)
+        .filter(|link| link.attachment.is_some())
+        .count();
+    assert_eq!(attachment_links, 2);
+    Ok(())
+}
+
+#[test]
+fn audio_transcript_org_ledger_rejects_incomplete_success_coverage() -> Result<(), String> {
+    let first = sample_audio_input("first", "000000.000000000000");
+    let result = AudioShardResult::failed(&first, "model failed");
+
+    let Err(error) = build_audio_transcript_org_ledger(
+        std::slice::from_ref(&first),
+        &[result],
+        &AudioTranscriptOrgLedgerOptions::default(),
+    ) else {
+        return Err("incomplete audio ledger coverage unexpectedly succeeded".to_owned());
+    };
+
+    assert!(error.contains("complete success coverage"));
+    Ok(())
+}
+
+#[test]
 fn audio_recovery_patch_gate_accepts_short_window_precision_gain() -> Result<(), String> {
     let parent = sample_audio_input("parent", "000000.000000000000");
     let recovery_a = sample_audio_input("recovery-a", "000000.000000000000");
@@ -795,6 +875,32 @@ fn audio_recovery_patch_gate_accepts_short_window_precision_gain() -> Result<(),
         "家装行业论坛今天讨论供应链\n主持人介绍长春市场案例"
     );
     assert!(merge_report.has_complete_success_coverage());
+    Ok(())
+}
+
+#[test]
+fn audio_recovery_patch_decisions_build_final_base_rows_for_ledger() -> Result<(), String> {
+    let parent = sample_audio_input("parent", "000000.000000000000");
+    let recovery = sample_audio_input("recovery", "000000.000000000000");
+    let base_result = AudioShardResult::failed(&parent, "audio transcript quality gate failed");
+    let recovery_result = AudioShardResult::succeeded(&recovery, "recovered transcript", 0.9);
+    let candidates = vec![AudioRecoveryPatchCandidate {
+        parent_shard_element_id: "parent".to_owned(),
+        recovery_shard_element_ids: vec!["recovery".to_owned()],
+    }];
+    let gate_report = gate_audio_recovery_patches(
+        std::slice::from_ref(&base_result),
+        &[recovery_result],
+        &candidates,
+        AudioRecoveryPatchGateOptions::default(),
+    )?;
+
+    let patched = apply_audio_recovery_patch_decisions(&[base_result], &gate_report);
+
+    assert_eq!(patched.len(), 1);
+    assert_eq!(patched[0].status, AudioShardResultStatus::Succeeded);
+    assert_eq!(patched[0].text.as_deref(), Some("recovered transcript"));
+    assert_eq!(patched[0].error_message, None);
     Ok(())
 }
 

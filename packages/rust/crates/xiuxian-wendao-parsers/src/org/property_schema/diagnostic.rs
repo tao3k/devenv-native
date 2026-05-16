@@ -2,9 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::super::ontology::OrgOntologySourceSpan;
+use crate::org::ontology::OrgOntologySourceSpan;
 
-/// Parser-owned diagnostic for schema-governed Org reasoning properties.
+/// Raw DTO boundary: parser-owned diagnostic for schema-governed Org reasoning properties.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrgReasoningPropertyDiagnostic {

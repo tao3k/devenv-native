@@ -123,7 +123,7 @@ pub fn decode_document_extract_source_path_utf8_hex(encoded: &str) -> Result<Str
     if encoded.is_empty() {
         return Err("document extract encoded source path must not be blank".to_string());
     }
-    if encoded.len() % 2 != 0 {
+    if !encoded.len().is_multiple_of(2) {
         return Err("document extract encoded source path must have even length".to_string());
     }
     let mut bytes = Vec::with_capacity(encoded.len() / 2);

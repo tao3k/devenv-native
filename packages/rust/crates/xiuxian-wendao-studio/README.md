@@ -375,10 +375,13 @@ The Gateway document-extract route now has an explicit opt-in
 `audio-shards` mode. In this mode Studio probes the source duration, builds a
 full-timeline Rust audio shard plan, materializes normalized shard files,
 calls analyzer `/analysis/audio-shards`, runs the recovery workflow, and
-returns a single `audio-transcript` document resource row only when shard
-coverage is complete. The mode is model-neutral: backend identity comes from
-configuration, while concrete local or hosted model invocation remains inside
-the analyzer worker registry.
+returns the existing `audio-transcript` `text/plain` document resource row plus
+a parallel `audio-transcript-ledger` `text/org` evidence resource row only when
+shard coverage is complete. The Org ledger uses standard `attachment:` links to
+the materialized shard files so downstream Org tooling can export Markdown or
+HTML without changing the audio Arrow shard schemas. The mode is model-neutral:
+backend identity comes from configuration, while concrete local or hosted model
+invocation remains inside the analyzer worker registry.
 The document-extract benchmark harness can now exercise this same route with
 `--flight-mode audio-shards`. Local provider and Gateway benchmark starts add
 the `document-extract-audio-shards` feature automatically for this mode and

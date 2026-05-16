@@ -2,9 +2,9 @@
 
 use uuid::Uuid;
 
-use super::super::ontology::OrgOntologyAuthoringDocument;
 use super::diagnostic::OrgReasoningPropertyDiagnostic;
 use super::records::{OrgReasoningPropertyRecord, compile_org_reasoning_property_records};
+use crate::org::ontology::OrgOntologyAuthoringDocument;
 
 /// Missing required property.
 pub const ORG_PROP_MISSING_REQUIRED: &str = "ORG-PROP-001";

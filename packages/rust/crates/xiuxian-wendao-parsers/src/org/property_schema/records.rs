@@ -4,13 +4,13 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::super::ontology::{OrgOntologyAuthoringDocument, OrgOntologySourceSpan};
+use crate::org::ontology::{OrgOntologyAuthoringDocument, OrgOntologySourceSpan};
 
 /// Draft schema id for Org reasoning property drawer records.
 pub const ORG_REASONING_PROPERTY_SCHEMA_ID: &str = "xiuxian_wendao.org_reasoning_property.v0.draft";
 
-/// A compiled Org property drawer record selected for Wendao reasoning
-/// property validation.
+/// Raw DTO boundary: compiled Org property drawer record selected for Wendao
+/// reasoning property validation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrgReasoningPropertyRecord {

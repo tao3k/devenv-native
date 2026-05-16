@@ -220,16 +220,49 @@ def _write_reference_draft_tsv(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def _render_audio_transcript_org(rows: list[dict[str, Any]]) -> str:
     lines = [
-        "#+TITLE: Audio Transcript",
+        "#+TITLE: Audio Transcript Timeline",
         "#+OPTIONS: toc:nil",
         "",
     ]
+    chunk_index = 0
     for index, row in enumerate(rows, start=1):
         element_id = _row_string(row, "elementId") or f"audio-transcript-{index}"
         source_path = _row_string(row, "sourcePath")
+        source_name = _source_basename(source_path)
         status = _row_string(row, "status")
         mime_type = _row_string(row, "mimeType")
         content = _row_string(row, "content").strip()
+        segments = _timeline_segments(content)
+        if segments:
+            for segment in segments:
+                start_seconds = float(segment["startSeconds"])
+                end_seconds = float(segment["endSeconds"])
+                text = str(segment["text"]).strip()
+                lines.extend(
+                    [
+                        (
+                            f"* {_format_org_timestamp(start_seconds)} -- "
+                            f"{_format_org_timestamp(end_seconds)} "
+                            f"{source_name} chunk {chunk_index:04d}"
+                        ),
+                        ":PROPERTIES:",
+                        f":ELEMENT_ID: {_org_property_value(element_id)}",
+                        f":RESOURCE_TYPE: {AUDIO_TRANSCRIPT_RESOURCE_TYPE}",
+                        f":SOURCE: {_org_property_value(source_name)}",
+                        f":SOURCE_PATH: {_org_property_value(source_path)}",
+                        f":CHUNK_INDEX: {chunk_index}",
+                        f":START_SECONDS: {start_seconds:.3f}",
+                        f":END_SECONDS: {end_seconds:.3f}",
+                        f":STATUS: {_org_property_value(status)}",
+                        f":MIME_TYPE: {_org_property_value(mime_type)}",
+                        ":END:",
+                        "",
+                        text,
+                        "",
+                    ]
+                )
+                chunk_index += 1
+            continue
         lines.extend(
             [
                 f"* Transcript {index}",
@@ -261,6 +294,15 @@ def _org_property_value(value: str) -> str:
 
 def _source_basename(source_path: str) -> str:
     return source_path.rsplit("/", 1)[-1] if source_path else ""
+
+
+def _format_org_timestamp(seconds: float) -> str:
+    milliseconds = round(seconds * 1000)
+    hours = milliseconds // 3_600_000
+    minutes = (milliseconds % 3_600_000) // 60_000
+    seconds_part = (milliseconds % 60_000) // 1000
+    millis = milliseconds % 1000
+    return f"{hours:02}:{minutes:02}:{seconds_part:02}.{millis:03}"
 
 
 def _timeline_marker_count(content: str) -> int:

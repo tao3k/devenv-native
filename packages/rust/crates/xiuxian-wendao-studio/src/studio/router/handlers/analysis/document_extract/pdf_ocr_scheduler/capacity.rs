@@ -13,7 +13,7 @@ const PRESSURE_LATENCY_MS: u64 = 60_000;
 const PRESSURE_QUEUE_WAIT_MS: u64 = 15_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum OcrSchedulerLane {
+pub(crate) enum OcrSchedulerLane {
     SourcePdfPageRange,
     RenderedPage,
     RenderedRegion,

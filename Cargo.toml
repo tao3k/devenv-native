@@ -82,7 +82,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "99cb5bdb2042ab34b89b7f0572a035cca90b31b2" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "3416ca6d4859a878fdf809796324f8b624f40741" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"
@@ -176,7 +176,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "7f359a988861ad8529612d4970ea528ee6697989" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "acf9295ef9ef03caeb7ffa85c5e0b2389abe7d67" }
 
 
 # Performance optimization - Thin LTO for reduced memory

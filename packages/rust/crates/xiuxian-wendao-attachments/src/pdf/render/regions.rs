@@ -9,7 +9,7 @@ pub fn page_region_render_request_chunks_by_page(
     regions: &[PdfPageRegionRenderRequest],
 ) -> Vec<Vec<PdfPageRegionRenderRequest>> {
     let sorted_regions = sorted_region_requests(regions);
-    page_region_render_request_chunks_by_sorted_page(sorted_regions)
+    page_region_render_request_chunks_by_sorted_page(&sorted_regions)
 }
 
 /// Render all region requests in one deterministic chunk.
@@ -45,7 +45,7 @@ fn sorted_region_requests(
 }
 
 fn page_region_render_request_chunks_by_sorted_page(
-    sorted_regions: Vec<PdfPageRegionRenderRequest>,
+    sorted_regions: &[PdfPageRegionRenderRequest],
 ) -> Vec<Vec<PdfPageRegionRenderRequest>> {
     sorted_regions
         .chunk_by(|left, right| left.page_index == right.page_index)
@@ -136,7 +136,7 @@ pub fn page_region_render_request_chunks_by_region_seed_page(
     let seed = remaining_regions.remove(seed_index);
     let mut chunks = vec![vec![seed]];
     chunks.extend(page_region_render_request_chunks_by_sorted_page(
-        remaining_regions,
+        &remaining_regions,
     ));
     chunks
 }

@@ -5,6 +5,7 @@ use std::sync::atomic::Ordering;
 
 use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchGateOptions, AudioRiskParentSelectionOptions, AudioShardWorkerProfile,
+    apply_audio_recovery_patch_decisions,
 };
 use xiuxian_wendao_server::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
@@ -15,7 +16,7 @@ use super::plan::{
     audio_materialization_input, build_full_coverage_audio_plan, probe_audio_duration_ms,
     source_sha256_hex,
 };
-use super::response::build_audio_transcript_batch;
+use super::response::build_audio_transcript_with_org_batch;
 use super::speech::recovery_speech_window_input_from_config;
 use crate::studio::document_extract_audio_client::{
     AudioShardFlightClient, AudioShardRecoveryWorkflowRequest,
@@ -83,10 +84,16 @@ impl StudioDocumentExtractFlightRouteProvider {
             })
             .await?;
         let output_string = output.to_string_lossy().to_string();
-        let batch = build_audio_transcript_batch(
+        let final_base_results = apply_audio_recovery_patch_decisions(
+            execution.base_response.results.as_slice(),
+            &execution.patch_gate_report,
+        );
+        let batch = build_audio_transcript_with_org_batch(
             request.source_path.as_str(),
             output_string.as_str(),
             &execution.merge_report,
+            execution.base_inputs.as_slice(),
+            final_base_results.as_slice(),
         )?;
         std::fs::create_dir_all(output.as_path()).map_err(|error| {
             format!(

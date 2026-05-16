@@ -185,7 +185,12 @@ def test_transcript_timeline_outputs_timestamped_formats(tmp_path: Path) -> None
     timeline_row = json.loads((tmp_path / "timeline.jsonl").read_text(encoding="utf-8"))
     assert timeline_row["startSeconds"] == 90.0
     assert timeline_row["endSeconds"] == 120.0
+    assert timeline_row["backend"] == "local-openai-audio"
+    assert timeline_row["model"] == "wendao-local-audio"
     org_content = (tmp_path / "timeline.org").read_text(encoding="utf-8")
     assert "* 00:01:30.000 -- 00:02:00.000 forum.MP3 chunk 0003" in org_content
+    assert ":MODEL: wendao-local-audio" in org_content
+    assert ":INVOCATION_BACKEND: local-openai-audio" in org_content
+    assert ":BACKEND: local-openai-audio" not in org_content
     assert ":CHUNK_INDEX: 3" in org_content
     assert "时间线文本" in org_content

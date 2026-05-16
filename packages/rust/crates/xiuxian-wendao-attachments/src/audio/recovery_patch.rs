@@ -181,6 +181,20 @@ pub fn merge_audio_shard_results_with_recovery_patches(
 > {
     let gate_report =
         gate_audio_recovery_patches(base_results, recovery_results, candidates, options)?;
+    let patched_results = apply_audio_recovery_patch_decisions(base_results, &gate_report);
+    let merge_report = merge_audio_shard_results(base_inputs, patched_results.as_slice())?;
+    Ok((merge_report, gate_report))
+}
+
+/// Apply accepted recovery patch decisions to base audio result rows.
+///
+/// This helper is pure and does not re-run patch gating. Use it only with a
+/// gate report produced for the same base result set.
+#[must_use]
+pub fn apply_audio_recovery_patch_decisions(
+    base_results: &[AudioShardResult],
+    gate_report: &AudioRecoveryPatchGateReport,
+) -> Vec<AudioShardResult> {
     let accepted_text_by_parent = gate_report
         .decisions
         .iter()
@@ -192,7 +206,7 @@ pub fn merge_audio_shard_results_with_recovery_patches(
             )
         })
         .collect::<HashMap<_, _>>();
-    let patched_results = base_results
+    base_results
         .iter()
         .map(|result| {
             if let Some(recovery_text) =
@@ -207,9 +221,7 @@ pub fn merge_audio_shard_results_with_recovery_patches(
                 result.clone()
             }
         })
-        .collect::<Vec<_>>();
-    let merge_report = merge_audio_shard_results(base_inputs, patched_results.as_slice())?;
-    Ok((merge_report, gate_report))
+        .collect()
 }
 
 fn unique_parent_for_recovery<'a>(
@@ -281,8 +293,8 @@ fn gate_candidate(
         if chinese_drop > options.max_chinese_ratio_drop {
             reasons.push("chinese-ratio-drop".to_owned());
         }
-        let char_ratio = recovery_metrics.transcript_chars as f64
-            / parent_metrics.transcript_chars.max(1) as f64;
+        let char_ratio = count_to_f64(recovery_metrics.transcript_chars)
+            / count_to_f64(parent_metrics.transcript_chars.max(1));
         if char_ratio < options.min_char_ratio {
             reasons.push("char-collapse".to_owned());
         }
@@ -436,7 +448,7 @@ fn chinese_ratio(text: &str) -> f64 {
     if chars == 0 {
         0.0
     } else {
-        chinese as f64 / chars as f64
+        count_to_f64(chinese) / count_to_f64(chars)
     }
 }
 
@@ -464,6 +476,10 @@ fn repeated_ngram_ratio(text: &str) -> f64 {
     if total == 0 {
         0.0
     } else {
-        repeated as f64 / total as f64
+        count_to_f64(repeated) / count_to_f64(total)
     }
+}
+
+fn count_to_f64(value: usize) -> f64 {
+    f64::from(u32::try_from(value).unwrap_or(u32::MAX))
 }

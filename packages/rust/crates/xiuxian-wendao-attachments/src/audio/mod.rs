@@ -6,6 +6,7 @@ mod cache;
 mod identity;
 mod materialize;
 mod merge;
+mod org_ledger;
 mod plan;
 mod recovery_patch;
 mod recovery_select;
@@ -20,6 +21,10 @@ pub use batches::{
 pub use cache::audio_result_cache_key;
 pub use materialize::materialize_audio_shards;
 pub use merge::{AudioShardMergeReport, merge_audio_shard_results};
+pub use org_ledger::{
+    AUDIO_TRANSCRIPT_ORG_LEDGER_SCHEMA, AudioTranscriptOrgLedgerOptions,
+    build_audio_transcript_org_ledger,
+};
 pub use plan::{
     build_audio_recovery_speech_window_plan_for_inputs, build_audio_recovery_split_plan,
     build_audio_recovery_split_plan_for_inputs, build_audio_shard_plan,
@@ -28,8 +33,8 @@ pub use plan::{
 pub use recovery_patch::{
     AudioRecoveryPatchCandidate, AudioRecoveryPatchDecision, AudioRecoveryPatchDecisionKind,
     AudioRecoveryPatchGateOptions, AudioRecoveryPatchGateReport, AudioRecoveryPatchTextMetrics,
-    build_audio_recovery_patch_candidates, gate_audio_recovery_patches,
-    merge_audio_shard_results_with_recovery_patches,
+    apply_audio_recovery_patch_decisions, build_audio_recovery_patch_candidates,
+    gate_audio_recovery_patches, merge_audio_shard_results_with_recovery_patches,
 };
 pub use recovery_select::{
     AudioRiskParentSelection, AudioRiskParentSelectionOptions, AudioShardRequestMetric,

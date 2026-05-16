@@ -6670,7 +6670,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=99cb5bdb2042ab34b89b7f0572a035cca90b31b2#99cb5bdb2042ab34b89b7f0572a035cca90b31b2"
+source = "git+https://github.com/tao3k/orgize?rev=3416ca6d4859a878fdf809796324f8b624f40741#3416ca6d4859a878fdf809796324f8b624f40741"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -8051,7 +8051,7 @@ dependencies = [
 [[package]]
 name = "rust-lang-project-harness"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=7f359a988861ad8529612d4970ea528ee6697989#7f359a988861ad8529612d4970ea528ee6697989"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=acf9295ef9ef03caeb7ffa85c5e0b2389abe7d67#acf9295ef9ef03caeb7ffa85c5e0b2389abe7d67"
 dependencies = [
  "cargo_toml",
  "proc-macro2",
@@ -11484,6 +11484,7 @@ dependencies = [
  "image",
  "lopdf",
  "num-traits",
+ "orgize",
  "pdfium-render",
  "rayon",
  "rust-lang-project-harness",

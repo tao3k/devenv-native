@@ -101,7 +101,7 @@ pub fn select_audio_risk_parent_shards(
         let metrics = audio_recovery_text_metrics(transcript);
         let chars_per_minute = chars_per_minute(metrics.transcript_chars, input.duration_ms);
         let reasons = risk_reasons(
-            result.status.clone(),
+            &result.status,
             metrics,
             chars_per_minute,
             wall_ms,
@@ -176,7 +176,7 @@ fn select_with_boundary_reservation(
 }
 
 fn risk_reasons(
-    status: AudioShardResultStatus,
+    status: &AudioShardResultStatus,
     metrics: AudioRecoveryPatchTextMetrics,
     chars_per_minute: f64,
     wall_ms: Option<u64>,
@@ -223,16 +223,16 @@ fn risk_score(
     reasons: &[String],
     options: AudioRiskParentSelectionOptions,
 ) -> f64 {
-    let mut score = reasons.len() as f64;
+    let mut score = count_to_f64(reasons.len());
     score += ((metrics.repeated_ngram_ratio - options.min_repeated_ngram_ratio) * 10.0).max(0.0);
     score += (options.max_chinese_ratio - metrics.chinese_ratio).max(0.0);
     score += ((options.max_chars_per_minute - chars_per_minute)
         / options.max_chars_per_minute.max(1.0))
     .max(0.0);
     if let Some(wall_ms) = wall_ms {
-        score += ((wall_ms.saturating_sub(options.min_latency_ms)) as f64
-            / (options.min_latency_ms.max(1) as f64))
-            .max(0.0);
+        score += (millis_to_f64(wall_ms.saturating_sub(options.min_latency_ms))
+            / millis_to_f64(options.min_latency_ms.max(1)))
+        .max(0.0);
     }
     score
 }
@@ -241,7 +241,15 @@ fn chars_per_minute(transcript_chars: usize, duration_ms: u64) -> f64 {
     if duration_ms == 0 {
         return 0.0;
     }
-    transcript_chars as f64 / (duration_ms as f64 / 60_000.0)
+    count_to_f64(transcript_chars) / (millis_to_f64(duration_ms) / 60_000.0)
+}
+
+fn count_to_f64(value: usize) -> f64 {
+    f64::from(u32::try_from(value).unwrap_or(u32::MAX))
+}
+
+fn millis_to_f64(value: u64) -> f64 {
+    f64::from(u32::try_from(value).unwrap_or(u32::MAX))
 }
 
 fn unique_result_index(

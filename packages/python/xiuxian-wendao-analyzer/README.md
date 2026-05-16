@@ -196,6 +196,9 @@ that runner. `qwen3-asr-mlx` is an explicit Apple Silicon candidate through
 `mlx-qwen3-asr`; it is useful for local Chinese ASR
 experiments, but it is not promoted by default and must pass the same transcript
 truth/CER and repetition gates as every other backend.
+`local-openai-audio` is only the invocation channel for a local
+OpenAI-compatible audio endpoint; diagnostics and Org timelines record the
+actual model separately through `model` / `:MODEL:`.
 
 Promotion is gated by a curated Chinese transcript truth set, not only by
 agreement between Docling and hosted models. Reports should keep character
@@ -325,13 +328,14 @@ direnv exec . uv run wendao-document-extract \
 ```
 
 Then point `audio_asr_diagnostic.py --backend local-openai-audio` at
-`http://127.0.0.1:8013/v1/chat/completions`. A May 15, 2026 private five-minute
-diagnostic kept `Qwen/Qwen3-ASR-1.7B` as the current local Mandarin precision
-candidate by proxy: zero failed rows, zero weak rows, stable Chinese output, and
-low repetition after warmup. It is still not promoted until a curated reference
-transcript supplies CER and critical entity/number checks. Do not use
-`mlx-community/*-8bit` weights with this adapter; the current runner expects
-the `mlx-qwen3-asr` model layout.
+`http://127.0.0.1:8013/v1/chat/completions`; keep `local-openai-audio` as the
+channel label and use the configured Qwen3-ASR model id as the model label. A
+May 15, 2026 private five-minute diagnostic kept `Qwen/Qwen3-ASR-1.7B` as the
+current local Mandarin precision candidate by proxy: zero failed rows, zero
+weak rows, stable Chinese output, and low repetition after warmup. It is still
+not promoted until a curated reference transcript supplies CER and critical
+entity/number checks. Do not use `mlx-community/*-8bit` weights with this
+adapter; the current runner expects the `mlx-qwen3-asr` model layout.
 
 Docling is the parsing authority. The analyzer does not maintain a runtime
 allowlist; it exposes known common Docling formats and suffixes for downstream
