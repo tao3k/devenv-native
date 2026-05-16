@@ -63,6 +63,7 @@ def build_speech_window_plan_report(
             {
                 "minWindowSeconds": min_window_seconds,
                 "chunks": len(windows),
+                "windows": _window_rows(windows),
                 "coverageSeconds": coverage_seconds,
                 "coverageExpansionSeconds": coverage_seconds - raw_duration_seconds,
                 "averageWindowSeconds": (
@@ -90,3 +91,16 @@ def build_speech_window_plan_report(
         "limitChunks": limit_chunks,
         "candidates": candidates,
     }
+
+
+def _window_rows(windows: Sequence[tuple[float, float]]) -> list[dict[str, object]]:
+    return [
+        {
+            "index": index,
+            "startSeconds": start_seconds,
+            "durationSeconds": duration_seconds,
+            "startMs": round(start_seconds * 1000),
+            "durationMs": round(duration_seconds * 1000),
+        }
+        for index, (start_seconds, duration_seconds) in enumerate(windows)
+    ]

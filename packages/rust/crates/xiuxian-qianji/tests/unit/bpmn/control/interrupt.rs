@@ -1,9 +1,10 @@
+#[cfg(feature = "duckdb")]
+use super::support::QianjiBpmnWorkflowResumeRequest;
 use super::support::{
     BpmnAdvanceOutcome, QianjiBpmnHostBridge, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowInterruptRequest,
-    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartRequest, QianjiRuntimeEnv,
-    SchedulerAgentIdentity, TempDir, TestValkey, json, ok_of, unique_instance_id,
-    write_wait_bundle,
+    QianjiBpmnWorkflowStartRequest, QianjiRuntimeEnv, SchedulerAgentIdentity, TempDir, TestValkey,
+    json, ok_of, unique_instance_id, write_wait_bundle,
 };
 
 #[cfg(feature = "duckdb")]

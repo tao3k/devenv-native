@@ -10,7 +10,11 @@ from .common import (
     textwrap,
 )
 from .constants import OCR_SHARD_CACHE_ROOT_ENV
-from .features import cargo_features_for_provider_mode, normalize_render_selection
+from .features import (
+    cargo_features_for_provider_mode,
+    cargo_features_with_feature,
+    normalize_render_selection,
+)
 from .pdf_render import build_hybrid_pdf_render_region_env, resolve_pdfium_library_path
 from .processes import start_logged_process
 from .runtime import resolve_project_root, rust_process_env
@@ -265,6 +269,45 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] = ocr_endpoint_pool
 
 
+def apply_rust_audio_env(args: argparse.Namespace, env: dict[str, str]) -> None:
+    mappings = {
+        "rust_audio_backend_profile": "WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE",
+        "rust_audio_chunk_ms": "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS",
+        "rust_audio_context_before_ms": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS"
+        ),
+        "rust_audio_context_after_ms": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS"
+        ),
+        "rust_audio_recovery_split_ms": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS"
+        ),
+        "rust_audio_sample_rate_hz": "WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ",
+        "rust_audio_channels": "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS",
+        "rust_audio_format": "WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT",
+        "rust_audio_base_workers": "WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS",
+        "rust_audio_recovery_workers": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS"
+        ),
+        "rust_audio_speech_segments_jsonl": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL"
+        ),
+        "rust_audio_speech_merge_gap_ms": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MERGE_GAP_MS"
+        ),
+        "rust_audio_speech_min_window_ms": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS"
+        ),
+        "rust_audio_speech_limit_chunks": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS"
+        ),
+    }
+    for attr, key in mappings.items():
+        value = getattr(args, attr, None)
+        if value is not None:
+            env[key] = str(value)
+
+
 def start_rust_provider_server(
     args: argparse.Namespace,
     *,
@@ -303,6 +346,7 @@ def start_rust_provider_server(
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     apply_rust_pdf_ocr_env(args, env)
+    apply_rust_audio_env(args, env)
     rust_provider_bin = getattr(args, "rust_provider_bin", None)
     provider_args = [
         f"{rust_host}:{rust_port}",
@@ -313,6 +357,10 @@ def start_rust_provider_server(
     if rust_provider_bin is not None:
         command = [str(rust_provider_bin), *provider_args]
     else:
+        provider_features = cargo_features_with_feature(
+            cargo_features_for_provider_mode(args.rust_provider_features, args),
+            "flight-server-bin-support",
+        )
         command = [
             args.cargo,
             "run",
@@ -320,7 +368,7 @@ def start_rust_provider_server(
             "xiuxian-wendao-studio",
             "--no-default-features",
             "--features",
-            cargo_features_for_provider_mode(args.rust_provider_features, args),
+            provider_features,
             "--bin",
             "wendao_search_flight_server",
             "--",
@@ -409,6 +457,7 @@ def start_gateway_server(
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
     apply_rust_pdf_ocr_env(args, env)
+    apply_rust_audio_env(args, env)
     gateway_args = [
         "--conf",
         str(config_path),

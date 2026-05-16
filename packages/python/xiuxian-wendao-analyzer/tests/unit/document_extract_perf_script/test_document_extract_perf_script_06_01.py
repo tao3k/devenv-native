@@ -16,6 +16,7 @@ from .support import (
         ("sync", True, True),
         ("async", False, True),
         ("hybrid-page-ocr", False, True),
+        ("audio-shards", False, True),
     ],
 )
 def test_artifact_registry_reuse_probe_routes_through_rust_provider(
@@ -57,6 +58,10 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         rust_pdf_local_fast_text="rust-lopdf",
         rust_pdf_fast_text_source_range_split="single-page",
         rust_pdf_backend_text_topup="disabled",
+        rust_audio_speech_segments_jsonl=tmp_path / "speech.jsonl",
+        rust_audio_speech_merge_gap_ms=500,
+        rust_audio_speech_min_window_ms=5_000,
+        rust_audio_speech_limit_chunks=24,
         rust_document_extract_endpoint=[],
         rust_pdf_ocr_endpoint=[],
         structure_baseline_root=None,
@@ -116,6 +121,10 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
     assert payload["rustPdfFastTextSourceRangeSplit"] == "single-page"
     assert payload["rustPdfFastTextEndpointAffinity"] == "disabled"
     assert payload["rustPdfBackendTextTopup"] == "disabled"
+    assert payload["rustAudioSpeechSegmentsJsonl"] == str(tmp_path / "speech.jsonl")
+    assert payload["rustAudioSpeechMergeGapMs"] == 500
+    assert payload["rustAudioSpeechMinWindowMs"] == 5_000
+    assert payload["rustAudioSpeechLimitChunks"] == 24
 
 
 def test_report_gate_rejects_structure_parity_failures() -> None:

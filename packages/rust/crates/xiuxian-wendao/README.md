@@ -175,7 +175,8 @@ Use `xiuxian-wendao` for:
   planning, promotion, or backend orchestration. The current operator
   entrypoints are the Studio-owned
   `wendao episteme structure write-toc` CLI command, which writes an
-  evidence-only Org TOC ledger from source-contract file rows, and
+  evidence-only Org TOC ledger from source-contract file rows with
+  route/category summaries ahead of the full file table, and
   `wendao episteme evidence write-selection-plan`, which writes an
   evidence-only selection ledger from chosen `file_id` values before any
   extractor execution, and `wendao episteme source-contract plan-extraction-run`

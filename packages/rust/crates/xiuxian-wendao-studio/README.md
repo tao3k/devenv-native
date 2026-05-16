@@ -132,8 +132,9 @@ wendao episteme structure write-toc \
 
 This command reads source file rows and writes ignored `toc.org` and
 `receipt.json` artifacts under `<episteme-root>/runs/structure/<run-id>/` by
-default. The Org ledger records file ids, source-relative paths, byte sizes,
-hashes, categories, languages, and extraction routes. The default
+default. The Org ledger records route/category summary tables first, then file
+ids, source-relative paths, byte sizes, hashes, categories, languages, and
+extraction routes. The default
 `metadata-only` validation mode checks manifest shape, file presence, byte
 sizes, duplicate ids and paths, extension-route alignment, categories,
 language, and unlisted corpus files without reading file contents for sha256.
@@ -325,6 +326,71 @@ hosted transcript rows. Studio keeps backend selection as data/configuration,
 forwards `x-wendao-audio-workers` when it needs to bound analyzer parallelism,
 and merges results by `readingOrderKey` while surfacing failed, skipped,
 missing, or duplicate shard coverage to the precision gate.
+Studio can start from attachment-owned speech-segment timing facts, build the
+Rust speech-window plan, materialize normalized shards, and submit the stable
+audio shard input rows over Flight. Python/analyzer remains the model invocation
+and result normalization boundary, not the owner of shard timing or cache
+identity.
+The same optional speech timing facts can now constrain recovery planning:
+`execute_recovery_split` accepts model-neutral speech windows, clips them to
+selected failed parent shards, and skips the second Flight pass when no speech
+fact intersects the failed span. The production route can load those facts from
+`WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL`, with optional
+`WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MERGE_GAP_MS`,
+`WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS`, and
+`WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS` controls. When the sidecar
+is unset, default audio behavior is unchanged.
+For short-window audio recovery, Studio consumes attachment-owned recovery
+candidate mapping and patch gates. A base analyzer response can be merged with a
+second recovery analyzer response only after Rust maps every recovery window to
+exactly one parent logical shard and the attachment gate accepts the text
+quality delta. Failed base rows from analyzer transcript quality gates are also
+eligible recovery parents, so unsafe hosted responses become local short-window
+retry work instead of merged transcript text. This keeps recovery scheduling and
+final precision promotion in Rust while Python remains a model adapter. Studio
+can also derive the recovery split plan from the base response, request latency
+facts, and attachment-owned risk selection thresholds before sending the second
+Flight request. The typed `execute_recovery_split` client path performs the full
+base Flight request,
+Rust recovery selection/split, recovery Flight request, and Rust patch merge
+without depending on analyzer diagnostic CLI artifacts. It is bound to a Qianji
+workflow topology and records same-process Arrow memory checkpoints for both
+base and recovery input/result batches.
+The audio shard client also exposes a Qianji Rust-native workflow-kernel proof
+that runs the same plan, materialization, Arrow row construction, Flight
+exchange, and merge gate as one typed execution report. The proof returns the
+plan, materialized shards, input rows, analyzer response, merge report, and
+workflow trace without changing `/analysis/audio-shards` or the audio shard
+Arrow schemas. Qianji owns the typed workflow kernel; Studio keeps the live
+dispatch and precision boundary. The proof binds an explicit Qianji
+`WorkflowTopology` before execution, so missing required stages or out-of-order
+stage edges are rejected before the audio merge report can be treated as a
+promotion candidate.
+The single-pass and recovery workflow proofs register in-process memory
+checkpoints for audio shard input and result Arrow batches. Those checkpoints
+keep same-process `RecordBatch` buffers available for retry or precision
+rechecks, while the wire contract, analyzer boundary, and durable checkpoint
+ownership stay unchanged.
+The Gateway document-extract route now has an explicit opt-in
+`audio-shards` mode. In this mode Studio probes the source duration, builds a
+full-timeline Rust audio shard plan, materializes normalized shard files,
+calls analyzer `/analysis/audio-shards`, runs the recovery workflow, and
+returns a single `audio-transcript` document resource row only when shard
+coverage is complete. The mode is model-neutral: backend identity comes from
+configuration, while concrete local or hosted model invocation remains inside
+the analyzer worker registry.
+The document-extract benchmark harness can now exercise this same route with
+`--flight-mode audio-shards`. Local provider and Gateway benchmark starts add
+the `document-extract-audio-shards` feature automatically for this mode and
+forward `--rust-audio-*` controls into model-neutral Studio environment
+variables for chunk duration, context windows, materialization format,
+base-worker budget, recovery-worker budget, and optional speech-timestamp
+recovery planning. `--rust-audio-speech-segments-jsonl` and its merge,
+minimum-window, and chunk-limit companions are forwarded to the same Studio
+environment variables used by production startup, so benchmark evidence covers
+the Rust-owned speech-window recovery path. Analyzer backend selection still
+comes from the Python worker flags such as `--audio-worker hosted` or
+`--audio-worker docling`.
 The current source-range auto policy targets seven source PDF pages per worker
 before clamping to the adaptive budget, machine cap, remaining permits, and
 shard count; diagnostic worker overrides remain benchmark-only.

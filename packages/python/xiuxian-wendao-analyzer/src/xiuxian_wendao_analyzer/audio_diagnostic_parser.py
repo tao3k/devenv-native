@@ -20,6 +20,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_runner import (
     DEFAULT_LOCAL_LANGUAGE,
     DEFAULT_OPENROUTER_MODEL,
     DEFAULT_OPENROUTER_URL,
+    DEFAULT_PRIMARY_LANGUAGE,
     DEFAULT_PROMPT,
 )
 
@@ -72,8 +73,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit-chunks", type=int, default=1)
     parser.add_argument(
         "--sample-strategy",
-        choices=["head", "uniform", "speech-segments"],
+        choices=[
+            "head",
+            "uniform",
+            "full-coverage",
+            "speech-segments",
+            "explicit-windows",
+        ],
         default="head",
+        help=(
+            "Audio shard selection strategy. full-coverage emits contiguous "
+            "windows and clamps only the final chunk to the media tail; "
+            "explicit-windows runs a caller-provided risk/review plan."
+        ),
     )
     parser.add_argument("--start-offset-seconds", type=float, default=0.0)
     parser.add_argument("--chunk-context-seconds", type=float, default=0.0)
@@ -96,6 +108,17 @@ def build_parser() -> argparse.ArgumentParser:
             "Optional VAD/planner JSONL sidecar used with "
             "--sample-strategy speech-segments. Rows accept source/sourceId, "
             "startSeconds or startMs, and durationSeconds/durationMs or endSeconds/endMs."
+        ),
+    )
+    parser.add_argument(
+        "--explicit-windows-json",
+        type=Path,
+        default=None,
+        help=(
+            "Optional explicit risk/review window JSON used with "
+            "--sample-strategy explicit-windows. Accepts a JSON array or an "
+            "object with rows containing startSeconds/startMs and "
+            "durationSeconds/durationMs or endSeconds/endMs."
         ),
     )
     parser.add_argument(
@@ -164,6 +187,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--openrouter-base-url", default=DEFAULT_OPENROUTER_URL)
     parser.add_argument("--local-asr-model", default=DEFAULT_LOCAL_ASR_MODEL)
     parser.add_argument("--local-language", default=DEFAULT_LOCAL_LANGUAGE)
+    parser.add_argument(
+        "--primary-language",
+        default=os.environ.get(
+            "WENDAO_AUDIO_PRIMARY_LANGUAGE",
+            DEFAULT_PRIMARY_LANGUAGE,
+        ),
+        help=(
+            "Model-neutral primary spoken language hint used to shape prompts. "
+            "Use unknown to omit language guidance."
+        ),
+    )
     parser.add_argument("--fireredasr2s-command", default=DEFAULT_FIREREDASR2S_COMMAND)
     parser.add_argument("--prompt", default=DEFAULT_PROMPT)
     parser.add_argument(
@@ -260,6 +294,105 @@ def build_parser() -> argparse.ArgumentParser:
             "Select high-value rows from a reference_draft.jsonl for manual CER "
             "curation without running ASR."
         ),
+    )
+    parser.add_argument(
+        "--build-risk-recovery-plan-quality-json",
+        type=Path,
+        default=None,
+        help=(
+            "Build a timestamp-based short-window recovery plan from saved "
+            "quality.json without running ASR."
+        ),
+    )
+    parser.add_argument(
+        "--risk-recovery-results-json",
+        type=Path,
+        default=None,
+        help=(
+            "Optional results.json used by --build-risk-recovery-plan-quality-json "
+            "for latency-based risk signals."
+        ),
+    )
+    parser.add_argument(
+        "--risk-recovery-output-json",
+        type=Path,
+        default=None,
+        help="Optional output path for the generated risk recovery plan JSON.",
+    )
+    parser.add_argument(
+        "--risk-recovery-split-seconds",
+        type=float,
+        default=30.0,
+        help="Short-window duration for risk recovery plan rows.",
+    )
+    parser.add_argument(
+        "--risk-recovery-limit-parents",
+        type=int,
+        default=20,
+        help="Maximum parent windows selected for short-window recovery.",
+    )
+    parser.add_argument(
+        "--build-risk-recovery-patch-gate-base-quality-json",
+        type=Path,
+        default=None,
+        help=(
+            "Build parent-level accept/reject decisions for short-window "
+            "recovery patches from saved diagnostic evidence without running ASR."
+        ),
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-base-results-json",
+        type=Path,
+        default=None,
+        help="Base full-window results.json used by recovery patch gating.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-recovery-quality-json",
+        type=Path,
+        default=None,
+        help="Short-window recovery quality.json used by recovery patch gating.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-recovery-results-json",
+        type=Path,
+        default=None,
+        help="Short-window recovery results.json used by recovery patch gating.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-plan-json",
+        type=Path,
+        default=None,
+        help="Recovery plan JSON that maps short-window rows to parent rows.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-output-json",
+        type=Path,
+        default=None,
+        help="Optional output path for the recovery patch gate report JSON.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-max-chinese-ratio-drop",
+        type=float,
+        default=0.03,
+        help="Maximum accepted Chinese-ratio drop for a recovery patch.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-min-char-ratio",
+        type=float,
+        default=0.65,
+        help="Minimum recovery/base transcript character ratio for patch acceptance.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-max-char-ratio",
+        type=float,
+        default=1.40,
+        help="Maximum recovery/base transcript character ratio for patch acceptance.",
+    )
+    parser.add_argument(
+        "--risk-recovery-patch-max-part-repeat",
+        type=float,
+        default=0.35,
+        help="Maximum repeated n-gram ratio allowed on any short-window part.",
     )
     parser.add_argument(
         "--reference-selection-limit",

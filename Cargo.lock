@@ -11720,6 +11720,7 @@ dependencies = [
  "xiuxian-git-repo",
  "xiuxian-io",
  "xiuxian-logging",
+ "xiuxian-qianji",
  "xiuxian-wendao",
  "xiuxian-wendao-attachments",
  "xiuxian-wendao-builtin",

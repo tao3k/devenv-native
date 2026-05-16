@@ -14,6 +14,11 @@ from .artifact_summary import (
     summarize_artifact_reports,
 )
 from .attachment_classes import classify_attachment
+from .audio_transcript_org import (
+    DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
+    export_audio_transcript_org,
+    export_audio_transcript_reference_drafts,
+)
 from .common import (
     Any,
     Path,
@@ -280,6 +285,18 @@ def run_fixture_probe(
         concurrency=args.concurrency,
         report_path=output_dir / "cache.json",
     )
+    audio_transcript_org = export_audio_transcript_org_for_fixture(
+        args,
+        fixture_name,
+        output_dir,
+    )
+    audio_transcript_reference_draft = (
+        export_audio_transcript_reference_draft_for_fixture(
+            args,
+            fixture_name,
+            output_dir,
+        )
+    )
     cached_latencies = cached_report["latenciesMs"]
     request_count = cached_report["requestCount"]
     row_count = cached_report["rowCount"]
@@ -495,6 +512,27 @@ def run_fixture_probe(
         "arrowIpcBytes": cached_report["arrowIpcBytes"],
         "resourcesArrowExists": artifact_summary["resourcesArrowExists"],
         "resourcesRows": artifact_summary["resourcesRows"],
+        "audioTranscriptChars": artifact_summary["audioTranscriptChars"],
+        "audioTranscriptTimelineMarkerCount": artifact_summary[
+            "audioTranscriptTimelineMarkerCount"
+        ],
+        "audioTranscriptTimelineMarkedRows": artifact_summary[
+            "audioTranscriptTimelineMarkedRows"
+        ],
+        "audioTranscriptOrgPath": audio_transcript_org["path"],
+        "audioTranscriptOrgRows": audio_transcript_org["rows"],
+        "audioTranscriptOrgChars": audio_transcript_org["chars"],
+        "audioTranscriptOrgTimelineMarkerCount": audio_transcript_org[
+            "timelineMarkerCount"
+        ],
+        "audioTranscriptReferenceDraftJsonlPath": audio_transcript_reference_draft[
+            "jsonlPath"
+        ],
+        "audioTranscriptReferenceDraftTsvPath": audio_transcript_reference_draft[
+            "tsvPath"
+        ],
+        "audioTranscriptReferenceDraftRows": audio_transcript_reference_draft["rows"],
+        "audioTranscriptReferenceDraftChars": audio_transcript_reference_draft["chars"],
         "structureArrowExists": artifact_summary["structureArrowExists"],
         "structureRows": artifact_summary["structureRows"],
         "structureOcrPageBlocks": artifact_summary["structureOcrPageBlocks"],
@@ -648,6 +686,51 @@ def run_fixture_probe(
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
         "cacheSpeedup": force_refresh_ms / max(percentile(cached_latencies, 50), 0.001),
     }
+
+
+def export_audio_transcript_org_for_fixture(
+    args: argparse.Namespace,
+    fixture_name: str,
+    output_dir: Path,
+) -> dict[str, Any]:
+    if not getattr(args, "export_audio_transcript_org", False):
+        return {
+            "path": None,
+            "rows": 0,
+            "chars": 0,
+            "timelineMarkerCount": 0,
+        }
+    report_dir = Path(
+        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
+    )
+    org_path = report_dir / "audio-transcripts" / f"{fixture_name}.org"
+    return export_audio_transcript_org(
+        output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
+        org_path,
+    )
+
+
+def export_audio_transcript_reference_draft_for_fixture(
+    args: argparse.Namespace,
+    fixture_name: str,
+    output_dir: Path,
+) -> dict[str, Any]:
+    if not getattr(args, "export_audio_transcript_org", False):
+        return {
+            "jsonlPath": None,
+            "tsvPath": None,
+            "rows": 0,
+            "chars": 0,
+        }
+    report_dir = Path(
+        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
+    )
+    draft_dir = report_dir / "audio-transcripts"
+    return export_audio_transcript_reference_drafts(
+        output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
+        draft_dir / f"{fixture_name}.reference_draft.jsonl",
+        draft_dir / f"{fixture_name}.reference_draft.tsv",
+    )
 
 
 def hybrid_page_ocr_fallback_reasons_by_run(

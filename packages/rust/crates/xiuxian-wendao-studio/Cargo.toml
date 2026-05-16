@@ -129,6 +129,8 @@ document-extract-pdf-source-range = [
 ]
 document-extract-audio-shards = [
   "studio",
+  "dep:sha2",
+  "dep:xiuxian-qianji",
   "dep:xiuxian-wendao-attachments",
   "xiuxian-wendao-attachments/audio-shard-arrow",
 ]
@@ -186,6 +188,7 @@ xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }
 xiuxian-io = { path = "../xiuxian-io", optional = true }
+xiuxian-qianji = { path = "../xiuxian-qianji", default-features = false, optional = true }
 
 anyhow = { workspace = true, optional = true }
 arrow = { workspace = true, optional = true }

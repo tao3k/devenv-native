@@ -21,6 +21,7 @@ from .support import (
     WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
     DocumentExtractFlightServer,
     FakeDoclingConverter,
@@ -56,6 +57,29 @@ def test_document_extract_table_uses_document_headers(tmp_path: Path) -> None:
     assert row["sourcePath"] == str(source)
     assert row["resourcePath"] == str(output_dir / "manual.md")
     assert row["content"] == "# Manual\n"
+
+
+def test_document_extract_table_accepts_utf8_hex_source_path_header(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "private-\u97f3\u9891.mp3"
+    source.write_bytes(b"audio fixture")
+    output_dir = tmp_path / "out"
+    converter = FakeDoclingConverter("transcript\n")
+
+    table = build_document_extract_table(
+        {
+            WENDAO_SCHEMA_VERSION_HEADER: EXPECTED_SCHEMA_VERSION,
+            WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER: (
+                str(source).encode("utf-8").hex()
+            ),
+            WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER: str(output_dir),
+        },
+        converter=converter,
+    )
+
+    assert converter.calls == [source]
+    assert table.to_pylist()[0]["sourcePath"] == str(source)
 
 
 def test_document_extract_table_uses_fast_text_profile_header(

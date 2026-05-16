@@ -42,6 +42,28 @@ def test_hybrid_source_range_features_do_not_pull_pdfium() -> None:
     )
 
 
+def test_audio_shards_perf_probe_keeps_studio_feature_out_of_core_probe() -> None:
+    benchmark = _load_benchmark_module()
+
+    assert (
+        benchmark.cargo_features_for_flight_mode("performance studio", "audio-shards")
+        == "performance studio"
+    )
+
+
+def test_audio_shards_provider_mode_enables_studio_audio_feature() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(flight_mode="audio-shards")
+
+    assert (
+        benchmark.cargo_features_for_provider_mode(
+            "cli-bin-support,zhenfa-router,duckdb",
+            args,
+        )
+        == "performance,cli-bin-support,zhenfa-router,duckdb,document-extract-audio-shards"
+    )
+
+
 def test_normalize_render_selection_accepts_cli_spelling() -> None:
     benchmark = _load_benchmark_module()
 

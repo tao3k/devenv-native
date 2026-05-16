@@ -14,8 +14,8 @@ from .document_service_routes import (
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
+    document_extract_source_path_from_headers,
 )
 from .documents import extract_document_table
 
@@ -43,7 +43,7 @@ def build_document_extract_table(
     if schema_version != EXPECTED_SCHEMA_VERSION:
         raise ValueError(f"Unexpected schema version: {schema_version}")
 
-    source_path = headers.get(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, "")
+    source_path = document_extract_source_path_from_headers(headers)
     if not source_path:
         raise ValueError("Missing document source path header")
 

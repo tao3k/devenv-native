@@ -28,7 +28,6 @@ pub(crate) use document_extract_pdf_ocr_client::PdfOcrShardSchedulerTrace;
 /// Feature-gated audio shard Flight client proof helpers.
 #[cfg(feature = "document-extract-audio-shards")]
 #[doc(hidden)]
-#[path = "document_extract_audio_client.rs"]
 pub mod document_extract_audio_client;
 
 #[cfg(feature = "zhenfa-router")]

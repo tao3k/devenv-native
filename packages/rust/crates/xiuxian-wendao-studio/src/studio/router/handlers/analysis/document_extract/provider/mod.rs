@@ -1,5 +1,7 @@
 //! Flight provider facade for document extraction routing.
 
+#[cfg(feature = "document-extract-audio-shards")]
+mod audio;
 mod core;
 #[cfg(feature = "document-extract-pdf-source-range")]
 #[path = "hybrid/mod.rs"]

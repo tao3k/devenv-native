@@ -170,6 +170,33 @@ boundaries, and reports failed, skipped, missing, and duplicate shard coverage
 for Studio precision gates. Backend model names remain analyzer configuration,
 not attachment identity.
 
+Attachments also owns the model-neutral recovery selection, planning, and patch
+gate. After a base transcript pass, Rust can select risky parent shards using
+transcript length, Chinese character ratio, repeated n-gram ratio, observed
+request latency, boundary policy, and failed base result rows such as
+analyzer-side transcript quality gate failures. It can then split selected
+parent shard windows into a `risk-recovery-split` plan, materialize those short
+windows through the normal shard substrate, map recovery rows back to exactly
+one parent logical shard, and compare the parent result with recovery result
+rows using the same precision signals. Accepted recovery text is written into a
+cloned parent result before the normal merge helper runs, including when the
+base parent row failed but the recovery row passes. This keeps the stable audio
+Arrow input/result schemas unchanged while allowing Python backends to remain
+pure model invocation and normalization adapters.
+
+The same Rust substrate also mirrors the analyzer's speech-segment window
+packing contract. VAD or other upstream segment rows remain model-neutral timing
+facts; Rust can pack them into bounded audio shard windows, preserve uncapped
+Python semantics when no hard maximum window is configured, and keep per-window
+durations in shard identity. Attachments accepts those facts as JSONL or a JSON
+array using millisecond or second timestamp fields, then normalizes them into
+`AudioSpeechSegment` rows. For failed-row recovery, Rust can also clip those
+speech timing facts to the selected failed parent windows before materializing
+recovery shards. If no speech timing fact intersects a failed parent window,
+the helper returns no recovery plan instead of blindly invoking an audio model
+on low-speech spans. Analyzer code still owns backend invocation and audio
+model choice.
+
 ## PDFium Runtime
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium

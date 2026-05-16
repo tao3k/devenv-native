@@ -1,7 +1,7 @@
 //! Studio Gateway handlers for episteme service admission.
 
-mod common;
 mod source_contract;
+mod source_contract_support;
 
 pub(crate) use source_contract::{
     EPISTEME_EVIDENCE_READ_ROUTE, EPISTEME_EVIDENCE_SELECTION_PLAN_ROUTE,

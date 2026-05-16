@@ -263,6 +263,12 @@ fn episteme_structure_toc_writes_org_ledger_without_raw_text()
     let toc = fs::read_to_string(&report.toc_org_path)?;
     assert!(toc.contains(":WENDAO_KIND: episteme_structure_toc"));
     assert!(toc.contains(":ONTOLOGY_KIND: source_structure_toc"));
+    assert!(toc.contains("** Extraction route summary"));
+    assert!(toc.contains("| document_text_evidence | 1 |"));
+    assert!(toc.contains("| image_ocr_evidence | 1 |"));
+    assert!(toc.contains("** Category summary"));
+    assert!(toc.contains("| synthetic_policy_category | 1 |"));
+    assert!(toc.contains("| synthetic_case_category | 1 |"));
     assert!(toc.contains("episteme.file.a"));
     assert!(toc.contains("docs/a.docx"));
     assert!(toc.contains("document_text_evidence"));

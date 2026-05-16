@@ -54,6 +54,12 @@ pub struct AudioShardPlan {
     pub chunk_duration_ms: u64,
     /// Planned shard start offsets in milliseconds.
     pub start_offsets_ms: Vec<u64>,
+    /// Optional per-shard logical durations in milliseconds.
+    ///
+    /// Empty means every shard uses `chunk_duration_ms`, preserving the fixed
+    /// window contract used by `head` and `uniform` plans.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub window_durations_ms: Vec<u64>,
     /// Context included before each logical shard when materializing media.
     pub context_before_ms: u64,
     /// Context included after each logical shard when materializing media.
@@ -86,6 +92,63 @@ pub struct AudioShardPlannerInput {
     pub start_offset_ms: u64,
     /// Selection strategy.
     pub strategy: AudioShardStrategy,
+    /// Context included before each logical shard when materializing media.
+    pub context_before_ms: u64,
+    /// Context included after each logical shard when materializing media.
+    pub context_after_ms: u64,
+    /// Output sample rate for normalized shard media.
+    pub sample_rate_hz: u32,
+    /// Number of output channels.
+    pub channels: u8,
+    /// Normalized audio container or codec token, such as `wav` or `flac`.
+    pub audio_format: String,
+}
+
+/// Raw DTO boundary for one detected speech segment.
+///
+/// Segment rows are model-neutral timing facts from VAD or another upstream
+/// detector. They are converted into bounded Rust-owned audio shard windows
+/// before Python model invocation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioSpeechSegment {
+    /// Stable segment index in source timeline order.
+    pub index: u32,
+    /// Segment start offset in milliseconds.
+    pub start_ms: u64,
+    /// Segment duration in milliseconds.
+    pub duration_ms: u64,
+}
+
+/// Raw DTO boundary for speech-window audio planning.
+///
+/// This is the Rust mirror of analyzer speech-window planning. It is not tied
+/// to ASR or any specific model family.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioSpeechWindowPlannerInput {
+    /// Contract/profile id used for identity construction.
+    pub profile: String,
+    /// Input source identity.
+    pub source: AudioSourceIdentity,
+    /// Nominal logical shard duration in milliseconds.
+    pub chunk_duration_ms: u64,
+    /// Maximum number of windows to materialize after packing.
+    pub limit_chunks: u32,
+    /// Speech segments to pack into shard windows.
+    pub speech_segments: Vec<AudioSpeechSegment>,
+    /// Merge adjacent segments separated by at most this gap.
+    pub merge_gap_ms: u64,
+    /// Expand or merge short windows until they reach this duration when safe.
+    pub min_window_ms: u64,
+    /// Extra merge allowance for short windows. Defaults to `min_window_ms`.
+    pub short_merge_gap_ms: Option<u64>,
+    /// Optional hard maximum packed window duration.
+    ///
+    /// `None` preserves analyzer semantics and allows a speech segment window
+    /// to exceed `chunk_duration_ms` when the caller has not requested a hard
+    /// cap.
+    pub max_window_ms: Option<u64>,
     /// Context included before each logical shard when materializing media.
     pub context_before_ms: u64,
     /// Context included after each logical shard when materializing media.

@@ -16,6 +16,10 @@ from xiuxian_wendao_analyzer.audio_diagnostic_reference_inputs import (
 from xiuxian_wendao_analyzer.audio_diagnostic_reference_validation import (
     validate_reference_jsonl,
 )
+from xiuxian_wendao_analyzer.audio_language import (
+    normalize_primary_language,
+    prompt_with_primary_language,
+)
 
 __all__ = [
     "REFERENCE_STATUS_CANDIDATE_DRAFT",
@@ -24,7 +28,9 @@ __all__ = [
     "curated_reference_rows_from_tsv",
     "load_reference_transcripts",
     "load_term_list",
+    "normalize_primary_language",
     "prompt_with_domain_terms",
+    "prompt_with_primary_language",
     "read_transcript",
     "reference_candidate_draft_row_count",
     "validate_reference_jsonl",

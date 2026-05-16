@@ -2,7 +2,9 @@ use crate::transport::{
     ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_SYNC_ROUTE, DocumentExtractMode,
     WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, is_search_family_route,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+    encode_document_extract_source_path_utf8_hex, is_search_family_route,
     validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
     validate_markdown_analysis_request_metadata, validate_repo_doc_coverage_request_metadata,
     validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
@@ -61,6 +63,31 @@ fn validate_document_extract_request_metadata_accepts_latest_request() {
     assert_eq!(request.profile, "full");
     assert_eq!(request.mode, DocumentExtractMode::Sync);
     assert_eq!(request.wait_ms, 0);
+}
+
+#[test]
+fn validate_document_extract_request_metadata_accepts_utf8_hex_source_path() {
+    let source_path = "fixtures/private-\u{97f3}\u{9891}.mp3";
+    let mut metadata = build_document_extract_metadata(
+        "legacy-placeholder",
+        Some(".cache/document-extract"),
+        None,
+        None,
+    );
+    metadata.remove(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER);
+    let encoded = encode_document_extract_source_path_utf8_hex(source_path);
+    metadata.insert(
+        WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER,
+        tonic::metadata::MetadataValue::try_from(encoded.as_str())
+            .expect("encoded source path metadata should parse"),
+    );
+
+    let request = must_ok(
+        validate_document_extract_request_metadata(&metadata),
+        "UTF-8 hex source path metadata should validate",
+    );
+
+    assert_eq!(request.source_path, source_path);
 }
 
 #[test]

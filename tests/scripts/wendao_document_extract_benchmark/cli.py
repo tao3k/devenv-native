@@ -43,6 +43,7 @@ from .providers import (
 from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
 from .runtime import wait_for_document_extract_flight_endpoint, wait_for_port
 from .workers import (
+    audio_worker_process_env,
     hosted_vlm_ocr_process_env,
     resolve_document_extract_full_threads,
     resolve_document_extract_prewarm_page_ranges,
@@ -85,6 +86,7 @@ def main() -> int:
 
     report_dir = Path(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
+    args.report_dir_path = report_dir
     args.structure_baseline_root = resolve_structure_baseline_root(args, report_dir)
 
     if args.pdf_render_shard_audit:
@@ -150,9 +152,12 @@ def main() -> int:
                 converter_count_path=converter_count_path,
                 pdf_ocr_worker=args.pdf_ocr_worker,
                 pdf_ocr_workers=args.pdf_ocr_workers,
+                audio_worker=args.audio_worker,
+                audio_workers=args.audio_workers,
                 python_uv_package=args.python_uv_package,
                 python_uv_extras=args.python_uv_extra,
                 hosted_vlm_ocr_env=hosted_vlm_ocr_process_env(args),
+                audio_worker_env=audio_worker_process_env(args),
                 pdf_ocr_prewarm_endpoint_count=args.pdf_ocr_prewarm_endpoint_count,
                 log_dir=process_log_dir,
             )
@@ -318,6 +323,8 @@ def build_report_payload(
         "waitMs": args.wait_ms,
         "pdfOcrWorker": args.pdf_ocr_worker,
         "pdfOcrWorkers": args.pdf_ocr_workers,
+        "audioWorker": getattr(args, "audio_worker", "skip"),
+        "audioWorkers": getattr(args, "audio_workers", "auto"),
         "pdfOcrPrewarmProfiles": list(getattr(args, "pdf_ocr_prewarm_profile", [])),
         "pdfOcrPrewarmSourcePath": getattr(args, "pdf_ocr_prewarm_source_path", None),
         "pdfOcrPrewarmPageIndex": getattr(args, "pdf_ocr_prewarm_page_index", None),
@@ -356,6 +363,35 @@ def build_report_payload(
         "localPythonOcrEndpointCount": args.local_python_ocr_endpoint_count,
         "rustPdfOcrWorkers": args.rust_pdf_ocr_workers,
         "rustPdfOcrSourceRangeWorkers": args.rust_pdf_ocr_source_range_workers,
+        "rustAudioBackendProfile": getattr(args, "rust_audio_backend_profile", None),
+        "rustAudioChunkMs": getattr(args, "rust_audio_chunk_ms", None),
+        "rustAudioContextBeforeMs": getattr(args, "rust_audio_context_before_ms", None),
+        "rustAudioContextAfterMs": getattr(args, "rust_audio_context_after_ms", None),
+        "rustAudioRecoverySplitMs": getattr(args, "rust_audio_recovery_split_ms", None),
+        "rustAudioSampleRateHz": getattr(args, "rust_audio_sample_rate_hz", None),
+        "rustAudioChannels": getattr(args, "rust_audio_channels", None),
+        "rustAudioFormat": getattr(args, "rust_audio_format", None),
+        "rustAudioBaseWorkers": getattr(args, "rust_audio_base_workers", None),
+        "rustAudioRecoveryWorkers": getattr(args, "rust_audio_recovery_workers", None),
+        "rustAudioSpeechSegmentsJsonl": (
+            str(path)
+            if (path := getattr(args, "rust_audio_speech_segments_jsonl", None))
+            is not None
+            else None
+        ),
+        "rustAudioSpeechMergeGapMs": getattr(
+            args, "rust_audio_speech_merge_gap_ms", None
+        ),
+        "rustAudioSpeechMinWindowMs": getattr(
+            args,
+            "rust_audio_speech_min_window_ms",
+            None,
+        ),
+        "rustAudioSpeechLimitChunks": getattr(
+            args,
+            "rust_audio_speech_limit_chunks",
+            None,
+        ),
         "rustPdfDoclingPageRangeChunkPlan": getattr(
             args,
             "rust_pdf_docling_page_range_chunk_plan",
@@ -486,6 +522,18 @@ def build_report_payload(
                 getattr(args, "hosted_vlm_ocr_request_trace_log_dir", None)
             ),
         },
+        "hostedAudio": {
+            "backend": "openai-compatible-audio",
+            "provider": getattr(args, "audio_hosted_provider", None),
+            "baseUrl": getattr(args, "audio_hosted_base_url", None),
+            "model": getattr(args, "audio_hosted_model", None),
+            "apiKeyConfigured": bool(getattr(args, "audio_hosted_api_key", None))
+            or bool(os.environ.get("OPENROUTER_API_KEY")),
+            "timeoutSeconds": getattr(args, "audio_hosted_timeout_seconds", None),
+            "requestConcurrency": getattr(
+                args, "audio_hosted_request_concurrency", None
+            ),
+        },
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
         "artifactRegistryReuseProbe": args.artifact_registry_reuse_probe,
         "ocrShardCache": ocr_shard_cache_summary
@@ -503,7 +551,7 @@ def build_report_payload(
 
 
 def should_start_local_rust_provider(args) -> bool:
-    return args.flight_mode in {"async", "hybrid-page-ocr"} or bool(
+    return args.flight_mode in {"async", "hybrid-page-ocr", "audio-shards"} or bool(
         args.artifact_registry_reuse_probe
     )
 

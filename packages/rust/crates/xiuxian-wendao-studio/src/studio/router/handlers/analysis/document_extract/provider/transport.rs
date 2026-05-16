@@ -14,7 +14,9 @@ use xiuxian_wendao_server::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
+    encode_document_extract_source_path_utf8_hex,
 };
 
 use super::{
@@ -175,12 +177,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         client
             .add_header(WENDAO_SCHEMA_VERSION_HEADER, "v2")
             .map_err(|error| format!("invalid schema version header: {error}"))?;
-        client
-            .add_header(
-                WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-                request.source_path,
-            )
-            .map_err(|error| format!("invalid source path header: {error}"))?;
+        add_source_path_headers(&mut client, request.source_path)?;
         client
             .add_header(
                 WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
@@ -332,6 +329,22 @@ pub(super) fn is_retryable_document_extract_endpoint_error(error: &str) -> bool 
         || error.contains("The service is currently unavailable")
         || error.contains("tcp connect error")
         || error.contains("Connection refused")
+}
+
+fn add_source_path_headers(client: &mut FlightClient, source_path: &str) -> Result<(), String> {
+    let encoded = encode_document_extract_source_path_utf8_hex(source_path);
+    client
+        .add_header(
+            WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER,
+            encoded.as_str(),
+        )
+        .map_err(|error| format!("invalid encoded source path header: {error}"))?;
+    if source_path.is_ascii() {
+        client
+            .add_header(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, source_path)
+            .map_err(|error| format!("invalid source path header: {error}"))?;
+    }
+    Ok(())
 }
 
 fn normalize_endpoint(endpoint: &str) -> Option<String> {

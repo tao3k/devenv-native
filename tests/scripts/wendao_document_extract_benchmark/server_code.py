@@ -16,6 +16,8 @@ def real_docling_server_code(
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
     pdf_ocr_workers: str = "auto",
+    audio_worker: str = "skip",
+    audio_workers: str = "auto",
 ) -> str:
     fixture_root_text = str(fixture_root) if fixture_root is not None else ""
     count_path_text = (
@@ -45,6 +47,7 @@ def real_docling_server_code(
             document_extract_full_threads_from_env,
         )
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
+        from xiuxian_wendao_analyzer.audio_shards import build_audio_shard_worker
         from xiuxian_wendao_analyzer.pdf_ocr import (
             DoclingPdfOcrShardWorker,
             PDF_OCR_BACKEND_TEXT_PROFILE,
@@ -237,10 +240,15 @@ def real_docling_server_code(
                 converter_factory=make_converter,
                 max_workers={pdf_ocr_workers!r},
             )
+        audio_worker = build_audio_shard_worker(
+            {audio_worker!r},
+            max_workers={audio_workers!r},
+        )
         server = DocumentExtractFlightServer(
             "grpc://{host}:{port}",
             converter=converter,
             ocr_worker=ocr_worker,
+            audio_worker=audio_worker,
             converter_factory=make_converter,
         )
         server.serve()
@@ -254,6 +262,8 @@ def fixture_server_code(
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
     pdf_ocr_workers: str = "auto",
+    audio_worker: str = "skip",
+    audio_workers: str = "auto",
 ) -> str:
     count_path_text = (
         str(converter_count_path) if converter_count_path is not None else ""
@@ -263,6 +273,7 @@ def fixture_server_code(
         from pathlib import Path
         from threading import Lock
         import time
+        from xiuxian_wendao_analyzer.audio_shards import build_audio_shard_worker
         from xiuxian_wendao_analyzer.document_service import DocumentExtractFlightServer
         from xiuxian_wendao_analyzer.pdf_ocr import succeeded_pdf_ocr_shard_result
 
@@ -319,10 +330,15 @@ def fixture_server_code(
                 ]
 
         ocr_worker = FixtureOcrWorker() if {pdf_ocr_worker!r} == "fixture" else None
+        audio_worker = build_audio_shard_worker(
+            {audio_worker!r},
+            max_workers={audio_workers!r},
+        )
         server = DocumentExtractFlightServer(
             "grpc://{host}:{port}",
             converter=Converter(),
             ocr_worker=ocr_worker,
+            audio_worker=audio_worker,
         )
         server.serve()
         """

@@ -42,6 +42,9 @@ pub(crate) struct ArtifactReport {
     pub(crate) resources_row_count: usize,
     pub(crate) resource_type_counts: BTreeMap<String, usize>,
     pub(crate) resource_status_counts: BTreeMap<String, usize>,
+    pub(crate) audio_transcript_chars: usize,
+    pub(crate) audio_transcript_timeline_marker_count: usize,
+    pub(crate) audio_transcript_timeline_marked_rows: usize,
     pub(crate) structure_arrow_exists: bool,
     pub(crate) structure_arrow_bytes: u64,
     pub(crate) structure_row_count: usize,
@@ -136,6 +139,9 @@ fn inspect_artifact_dir(
         resources_row_count: 0,
         resource_type_counts: BTreeMap::new(),
         resource_status_counts: BTreeMap::new(),
+        audio_transcript_chars: 0,
+        audio_transcript_timeline_marker_count: 0,
+        audio_transcript_timeline_marked_rows: 0,
         structure_arrow_exists: false,
         structure_arrow_bytes: 0,
         structure_row_count: 0,
@@ -220,6 +226,7 @@ fn populate_artifact_report(
         report.resources_row_count = batches.iter().map(RecordBatch::num_rows).sum();
         report.resource_type_counts = string_counts(&batches, "resourceType")?;
         report.resource_status_counts = string_counts(&batches, "status")?;
+        populate_audio_transcript_metrics(report, &batches)?;
     }
 
     let structure_path = output_dir.join(DOCUMENT_STRUCTURE_ARROW_CACHE_NAME);
@@ -288,6 +295,68 @@ fn populate_artifact_report(
             .unwrap_or_default();
     }
     Ok(())
+}
+
+fn populate_audio_transcript_metrics(
+    report: &mut ArtifactReport,
+    batches: &[RecordBatch],
+) -> Result<(), String> {
+    for batch in batches {
+        let Some(resource_type_column) = batch.column_by_name("resourceType") else {
+            continue;
+        };
+        let Some(content_column) = batch.column_by_name("content") else {
+            continue;
+        };
+        let Some(resource_types) = resource_type_column.as_any().downcast_ref::<StringArray>()
+        else {
+            return Err("document resource `resourceType` column is not utf8".to_string());
+        };
+        let Some(contents) = content_column.as_any().downcast_ref::<StringArray>() else {
+            return Err("document resource `content` column is not utf8".to_string());
+        };
+        for row in 0..batch.num_rows() {
+            if resource_types.is_null(row)
+                || contents.is_null(row)
+                || resource_types.value(row) != "audio-transcript"
+            {
+                continue;
+            }
+            let content = contents.value(row);
+            let marker_count = audio_transcript_timeline_marker_count(content);
+            report.audio_transcript_chars = report
+                .audio_transcript_chars
+                .saturating_add(content.chars().count());
+            report.audio_transcript_timeline_marker_count = report
+                .audio_transcript_timeline_marker_count
+                .saturating_add(marker_count);
+            if marker_count > 0 {
+                report.audio_transcript_timeline_marked_rows = report
+                    .audio_transcript_timeline_marked_rows
+                    .saturating_add(1);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn audio_transcript_timeline_marker_count(content: &str) -> usize {
+    content
+        .lines()
+        .filter(|line| is_audio_timeline_marker_line(line.trim_start()))
+        .count()
+}
+
+fn is_audio_timeline_marker_line(line: &str) -> bool {
+    let Some(marker_end) = line.find(']') else {
+        return false;
+    };
+    let marker = &line[..=marker_end];
+    marker.starts_with('[')
+        && marker.contains('-')
+        && marker[..marker_end]
+            .split('-')
+            .all(|part| part.contains(':'))
 }
 
 fn populate_hybrid_page_ocr_fallback_reason(

@@ -169,6 +169,118 @@ def test_uniform_chunk_offsets_cover_document_surface() -> None:
     assert offsets == [10.0, 140.0, 270.0]
 
 
+def test_full_coverage_chunk_windows_clamp_tail_without_overlap() -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+
+    windows = diagnostic.chunk_windows(
+        duration_seconds=185.0,
+        chunk_seconds=60,
+        limit_chunks=4,
+        sample_strategy="full-coverage",
+        start_offset_seconds=0.0,
+        speech_segments=[],
+    )
+
+    assert windows == [(0.0, 60.0), (60.0, 60.0), (120.0, 60.0), (180.0, 5.0)]
+
+
+def test_full_coverage_chunk_windows_reject_under_budget_limit() -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+
+    try:
+        diagnostic.chunk_windows(
+            duration_seconds=185.0,
+            chunk_seconds=60,
+            limit_chunks=3,
+            sample_strategy="full-coverage",
+            start_offset_seconds=0.0,
+            speech_segments=[],
+        )
+    except ValueError as exc:
+        assert "increase limit_chunks" in str(exc)
+    else:
+        raise AssertionError("full coverage should reject truncated chunk budgets")
+
+
+def test_explicit_windows_load_risk_plan_json(tmp_path: Path) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    source = tmp_path / "forum.mp3"
+    source.write_bytes(b"mp3")
+    plan = tmp_path / "risk-plan.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "schema": "xiuxian_wendao.audio_full_run_risk_rerun_plan.v1",
+                "rows": [
+                    {
+                        "chunkIndex": 7,
+                        "startSeconds": 418.2848016666667,
+                        "durationSeconds": 60.0,
+                        "reasons": ["high-repetition", "low-text-density"],
+                    },
+                    {
+                        "source": "other.mp3",
+                        "chunkIndex": 8,
+                        "startSeconds": 478.0,
+                        "durationSeconds": 60.0,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    windows = diagnostic.load_explicit_windows(plan, source=source)
+
+    assert [
+        (row.index, row.start_seconds, row.duration_seconds) for row in windows
+    ] == [(7, 418.2848016666667, 60.0)]
+    assert windows[0].label == "high-repetition,low-text-density"
+
+
+def test_explicit_windows_sampling_requires_budget() -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    windows = [
+        diagnostic.SpeechSegment(
+            source="forum.mp3",
+            index=0,
+            start_seconds=10.0,
+            duration_seconds=20.0,
+        ),
+        diagnostic.SpeechSegment(
+            source="forum.mp3",
+            index=1,
+            start_seconds=40.0,
+            duration_seconds=30.0,
+        ),
+    ]
+
+    assert diagnostic.chunk_windows(
+        duration_seconds=120.0,
+        chunk_seconds=60,
+        limit_chunks=2,
+        sample_strategy="explicit-windows",
+        start_offset_seconds=0.0,
+        speech_segments=[],
+        explicit_windows=windows,
+    ) == [(10.0, 20.0), (40.0, 30.0)]
+
+    try:
+        diagnostic.chunk_windows(
+            duration_seconds=120.0,
+            chunk_seconds=60,
+            limit_chunks=1,
+            sample_strategy="explicit-windows",
+            start_offset_seconds=0.0,
+            speech_segments=[],
+            explicit_windows=windows,
+        )
+    except ValueError as exc:
+        assert "increase limit_chunks" in str(exc)
+    else:
+        raise AssertionError("explicit windows should reject truncated budgets")
+
+
 def test_ensure_ffmpeg_on_path_links_imageio_binary(
     tmp_path: Path, monkeypatch
 ) -> None:

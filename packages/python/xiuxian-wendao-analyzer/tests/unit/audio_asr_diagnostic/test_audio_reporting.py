@@ -62,6 +62,18 @@ def test_prompt_with_domain_terms_appends_glossary() -> None:
     assert "智能家居、Matter" in prompt
 
 
+def test_prompt_with_primary_language_adds_model_neutral_hint() -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+
+    prompt = diagnostic.prompt_with_primary_language("transcribe", "zh-CN")
+
+    assert "PRIMARY_LANGUAGE=zh-cn" in prompt
+    assert "Infer the actual spoken language from the audio" in prompt
+    assert diagnostic.prompt_with_primary_language("transcribe", "unknown") == (
+        "transcribe"
+    )
+
+
 def test_quality_review_tsv_contains_chunk_and_status(tmp_path: Path) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     row = diagnostic.QualityRow(
@@ -162,6 +174,7 @@ def test_transcript_timeline_outputs_timestamped_formats(tmp_path: Path) -> None
     diagnostic.write_transcript_timeline_vtt(tmp_path / "timeline.vtt", [row])
     diagnostic.write_transcript_timeline_srt(tmp_path / "timeline.srt", [row])
     diagnostic.write_transcript_timeline_jsonl(tmp_path / "timeline.jsonl", [row])
+    diagnostic.write_transcript_timeline_org(tmp_path / "timeline.org", [row])
 
     assert "00:01:30.000 --> 00:02:00.000" in (tmp_path / "timeline.vtt").read_text(
         encoding="utf-8"
@@ -172,3 +185,7 @@ def test_transcript_timeline_outputs_timestamped_formats(tmp_path: Path) -> None
     timeline_row = json.loads((tmp_path / "timeline.jsonl").read_text(encoding="utf-8"))
     assert timeline_row["startSeconds"] == 90.0
     assert timeline_row["endSeconds"] == 120.0
+    org_content = (tmp_path / "timeline.org").read_text(encoding="utf-8")
+    assert "* 00:01:30.000 -- 00:02:00.000 forum.MP3 chunk 0003" in org_content
+    assert ":CHUNK_INDEX: 3" in org_content
+    assert "时间线文本" in org_content

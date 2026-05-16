@@ -29,6 +29,42 @@ We believe that an Agent should not just "execute code"—it should **"Cultivate
 
 Based on `petgraph::StableGraph`, the Iron Frame provides the physical structure. It supports millions of nodes with near-zero traversal overhead and utilizes **LTL (Linear Temporal Logic)** guards to ensure that no Agent falls into an "Infinite Loop" (the Zen of Termination).
 
+### 2.1.1 Rust-Native Workflow Kernel
+
+Qianji also exposes a Rust-native workflow kernel for hot-path package
+pipelines that need typed stage execution rather than generic host-work
+dispatch. The kernel records stage order, typed or Arrow-backed edge facts,
+latency, item counts, and failure traces while keeping execution close to
+direct Rust function calls.
+
+Both `petgraph` DAGs and a bounded BPMN subset can be native front ends for
+this kernel. The architectural boundary is not graph notation versus code; the
+boundary is whether the chosen notation compiles into strongly typed Rust
+stages and edge contracts. Visual, BPMN, or manifest layers may describe the
+control flow, but shard hot paths should still execute over Rust-owned types
+and Arrow-compatible row contracts.
+
+The front-end-neutral `WorkflowTopology` contract is the shared handoff point:
+BPMN and `petgraph` adapters declare required stages and dependency edges, and
+`WorkflowRun` can bind that topology before typed execution. A checked finish
+rejects missing required stages, undeclared stages, duplicate successful
+stages, and edge-order violations, giving promotion gates a deterministic
+structure guard before any higher-level adapter reports success.
+
+The same kernel now supports in-process memory checkpoints for stage edges.
+Checkpoint metadata is stored in Qianji traces, while the retained payload is a
+typed Rust handle owned by the producer. This lets Arrow-backed consumers keep
+same-process `RecordBatch` buffers available for retry, fan-out, and precision
+rechecks without making Qianji depend on Arrow or replacing durable BPMN
+checkpoint stores.
+
+For homogeneous shard work, `WorkflowRun` provides bounded fan-out/fan-in with
+order-preserving output collection. The helper enforces a caller-supplied
+concurrency cap, records one workflow stage trace, reports failed item indices,
+and still honors topology declarations. This is the lightweight scheduling
+primitive for later audio, OCR, and graph-search shard execution; domain crates
+still own the shard payloads, cache rules, and precision gates.
+
 ### 2.2 The Divine Logic (Scheduling)
 
 - **Probabilistic MDP Routing:** Decisions are not binary. Edges carry weights influenced by **Omega's Confidence**, allowing the system to explore multiple paths based on probability.

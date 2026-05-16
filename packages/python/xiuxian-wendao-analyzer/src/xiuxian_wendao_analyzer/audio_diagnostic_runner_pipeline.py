@@ -6,6 +6,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING
 
 from xiuxian_wendao_analyzer.audio_diagnostic_backends import run_backend
+from xiuxian_wendao_analyzer.audio_diagnostic_explicit_windows import (
+    load_explicit_windows,
+)
 from xiuxian_wendao_analyzer.audio_diagnostic_identity import (
     AUDIO_MATERIALIZATION_NATIVE_RATE_WAV,
     AUDIO_MATERIALIZATION_SOURCE_DIRECT,
@@ -62,18 +65,22 @@ def materialize_diagnostic_sources(
     *,
     sources: list[Path],
     output_dir: Path,
-) -> tuple[list[AudioChunk], int]:
+) -> tuple[list[AudioChunk], int, int]:
     """Materialize audio chunks for all diagnostic sources."""
 
     manifest_chunks: list[AudioChunk] = []
     speech_segment_row_count = 0
+    explicit_window_row_count = 0
     for source in sources:
         duration = None
         source_sample_rate_hz = None
         source_channels = None
-        if args.sample_strategy in {"uniform", "speech-segments"} or (
-            args.audio_materialization_mode == AUDIO_MATERIALIZATION_SOURCE_DIRECT
-        ):
+        if args.sample_strategy in {
+            "uniform",
+            "full-coverage",
+            "speech-segments",
+            "explicit-windows",
+        } or (args.audio_materialization_mode == AUDIO_MATERIALIZATION_SOURCE_DIRECT):
             duration = audio_duration_seconds(source)
         if args.audio_materialization_mode in {
             AUDIO_MATERIALIZATION_NATIVE_RATE_WAV,
@@ -83,6 +90,9 @@ def materialize_diagnostic_sources(
         speech_segments_jsonl = getattr(args, "speech_segments_jsonl", None)
         speech_segments = load_speech_segments(speech_segments_jsonl, source=source)
         speech_segment_row_count += len(speech_segments)
+        explicit_windows_json = getattr(args, "explicit_windows_json", None)
+        explicit_windows = load_explicit_windows(explicit_windows_json, source=source)
+        explicit_window_row_count += len(explicit_windows)
         manifest_chunks.extend(
             materialize_audio_chunks(
                 source,
@@ -96,6 +106,7 @@ def materialize_diagnostic_sources(
                 start_offset_seconds=args.start_offset_seconds,
                 source_duration_seconds=duration,
                 speech_segments=speech_segments,
+                explicit_windows=explicit_windows,
                 speech_segment_merge_gap_seconds=(
                     getattr(args, "speech_segment_merge_gap_seconds", 0.0)
                 ),
@@ -114,7 +125,7 @@ def materialize_diagnostic_sources(
                 force=args.force,
             )
         )
-    return manifest_chunks, speech_segment_row_count
+    return manifest_chunks, speech_segment_row_count, explicit_window_row_count
 
 
 def run_diagnostic_backends(

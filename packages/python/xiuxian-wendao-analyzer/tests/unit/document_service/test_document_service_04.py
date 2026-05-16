@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from xiuxian_wendao_analyzer.audio_shard_worker_config import (
+    hosted_audio_config_from_env,
+)
 from xiuxian_wendao_analyzer.document_service_cli import (
     build_audio_worker,
     build_document_extract_argument_parser,
@@ -219,6 +222,32 @@ def test_hosted_audio_worker_builds_openai_compatible_payload(tmp_path) -> None:
     assert content[1]["input_audio"]["data"] == "YWJj"
 
 
+def test_hosted_audio_worker_payload_accepts_primary_language_hint(tmp_path) -> None:
+    shard = tmp_path / "chunk.wav"
+    shard.write_bytes(b"abc")
+    input_row = _sample_audio_shard_input_table(str(shard)).to_pylist()[0]
+
+    payload = hosted_audio_payload(input_row, "audio-model", primary_language="zh")
+
+    content = payload["messages"][0]["content"]
+    assert "PRIMARY_LANGUAGE=zh" in content[0]["text"]
+    assert "Infer the actual spoken language from the audio" in content[0]["text"]
+
+
+def test_hosted_audio_config_strips_wrapping_quotes_from_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WENDAO_AUDIO_HOSTED_PROVIDER", '"openrouter"')
+    monkeypatch.setenv("WENDAO_AUDIO_HOSTED_MODEL", '"xiaomi/mimo-v2.5"')
+    monkeypatch.setenv("OPENROUTER_API_KEY", '"or-key"')
+
+    config = hosted_audio_config_from_env()
+
+    assert config.provider == "openrouter"
+    assert config.model == "xiaomi/mimo-v2.5"
+    assert config.api_key == "or-key"
+
+
 def test_hosted_audio_worker_normalizes_successful_response(tmp_path) -> None:
     shard = tmp_path / "chunk.wav"
     shard.write_bytes(b"abc")
@@ -246,6 +275,40 @@ def test_hosted_audio_worker_normalizes_successful_response(tmp_path) -> None:
     assert row["text"] == "云端转写"
 
 
+def test_hosted_audio_worker_retries_transient_request_failure(tmp_path) -> None:
+    shard = tmp_path / "chunk.wav"
+    shard.write_bytes(b"abc")
+    input_table = _sample_audio_shard_input_table(str(shard))
+    calls = 0
+
+    def request_sender(_config, _payload):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("temporary upstream failure")
+        return {"choices": [{"message": {"content": "重试文本"}}]}
+
+    worker = HostedAudioShardWorker(
+        config=HostedAudioConfig(
+            provider="openai-compatible",
+            base_url="https://example.test/v1",
+            model="audio-model",
+            api_key="key",
+            timeout_seconds=5.0,
+            request_concurrency=1,
+            max_attempts=2,
+        ),
+        request_sender=request_sender,
+    )
+
+    result = build_audio_shard_result_table(input_table, worker=worker)
+
+    row = result.to_pylist()[0]
+    assert row["status"] == "succeeded"
+    assert row["text"] == "重试文本"
+    assert calls == 2
+
+
 def test_hosted_audio_worker_uses_configured_flight_request_concurrency(
     tmp_path,
 ) -> None:
@@ -271,7 +334,7 @@ def test_hosted_audio_worker_uses_configured_flight_request_concurrency(
         with seen_lock:
             seen.append(audio_bytes)
         barrier.wait(timeout=1.0)
-        return {"choices": [{"message": {"content": f"transcript-{len(seen)}"}}]}
+        return {"choices": [{"message": {"content": f"转写-{len(seen)}"}}]}
 
     worker = HostedAudioShardWorker(
         config=HostedAudioConfig(
@@ -323,7 +386,7 @@ def test_hosted_audio_worker_caps_concurrency_by_flight_budget(tmp_path) -> None
         time.sleep(0.05)
         with seen_lock:
             active_count -= 1
-        return {"choices": [{"message": {"content": "transcript"}}]}
+        return {"choices": [{"message": {"content": "转写文本"}}]}
 
     worker = HostedAudioShardWorker(
         config=HostedAudioConfig(

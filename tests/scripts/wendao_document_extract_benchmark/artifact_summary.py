@@ -24,6 +24,18 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             bool(report.get("resourcesArrowExists")) for report in reports
         ),
         "resourcesRows": _sum_int_report_values(reports, "resourcesRowCount"),
+        "audioTranscriptChars": _sum_int_report_values(
+            reports,
+            "audioTranscriptChars",
+        ),
+        "audioTranscriptTimelineMarkerCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptTimelineMarkerCount",
+        ),
+        "audioTranscriptTimelineMarkedRows": _sum_int_report_values(
+            reports,
+            "audioTranscriptTimelineMarkedRows",
+        ),
         "structureArrowExists": any(
             bool(report.get("structureArrowExists")) for report in reports
         ),

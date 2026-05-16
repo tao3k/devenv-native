@@ -7,10 +7,16 @@ import urllib.request
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .audio_language import (
+    PRIMARY_LANGUAGE_UNKNOWN,
+    normalize_primary_language,
+    prompt_with_primary_language,
+)
 from .audio_openai_protocol import (
     build_chat_audio_payload,
     extract_openai_message_content,
 )
+from .audio_shard_quality import audio_transcript_quality_failure
 from .audio_shard_results import failed_audio_shard_result, succeeded_audio_shard_result
 from .audio_shard_worker_common import (
     map_audio_rows,
@@ -73,26 +79,42 @@ class HostedAudioShardWorker:
         input_row: Mapping[str, Any],
         config: HostedAudioConfig,
     ) -> Mapping[str, Any]:
-        try:
-            payload = hosted_audio_payload(input_row, config.model)
-            response = self._request_sender(config, payload)
-            text = extract_openai_message_content(response).strip()
-        except Exception as exc:
-            return failed_audio_shard_result(
-                input_row,
-                f"Hosted audio worker failed: {short_error_message(exc)}",
-            )
-        if not text:
-            return failed_audio_shard_result(
-                input_row,
-                "Hosted audio worker returned empty text",
-            )
-        return succeeded_audio_shard_result(input_row, text, 1.0)
+        payload = hosted_audio_payload(
+            input_row,
+            config.model,
+            primary_language=_effective_primary_language(input_row, config),
+        )
+        last_error = "Hosted audio worker returned empty text"
+        for _attempt in range(max(1, config.max_attempts)):
+            try:
+                response = self._request_sender(config, payload)
+                text = extract_openai_message_content(response).strip()
+            except Exception as exc:
+                last_error = f"Hosted audio worker failed: {short_error_message(exc)}"
+                continue
+            if text:
+                quality_failure = audio_transcript_quality_failure(
+                    input_row,
+                    text,
+                    primary_language=_effective_primary_language(input_row, config),
+                    options=config.quality_options,
+                )
+                if quality_failure is not None:
+                    last_error = quality_failure
+                    continue
+                return succeeded_audio_shard_result(input_row, text, 1.0)
+            last_error = "Hosted audio worker returned empty text"
+        return failed_audio_shard_result(
+            input_row,
+            last_error,
+        )
 
 
 def hosted_audio_payload(
     input_row: Mapping[str, Any],
     model: str,
+    *,
+    primary_language: str = PRIMARY_LANGUAGE_UNKNOWN,
 ) -> dict[str, Any]:
     """Build an OpenAI-compatible audio input chat completion payload."""
 
@@ -102,7 +124,10 @@ def hosted_audio_payload(
         model=model,
         audio_path=audio_path,
         audio_format=audio_format,
-        prompt=AUDIO_HOSTED_DEFAULT_PROMPT,
+        prompt=prompt_with_primary_language(
+            AUDIO_HOSTED_DEFAULT_PROMPT,
+            primary_language,
+        ),
     )
 
 
@@ -123,3 +148,13 @@ def send_hosted_audio_request(
     )
     with urllib.request.urlopen(request, timeout=config.timeout_seconds) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def _effective_primary_language(
+    input_row: Mapping[str, Any],
+    config: HostedAudioConfig,
+) -> str:
+    configured = normalize_primary_language(config.primary_language)
+    if configured != PRIMARY_LANGUAGE_UNKNOWN:
+        return configured
+    return normalize_primary_language(str(input_row.get("preferredLanguages") or ""))

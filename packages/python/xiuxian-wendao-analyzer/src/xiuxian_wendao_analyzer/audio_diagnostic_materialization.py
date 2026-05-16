@@ -27,6 +27,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_media_probe import (
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_windows import (
     chunk_windows,
+    explicit_audio_windows,
     media_window_for_chunk,
 )
 
@@ -46,6 +47,7 @@ def materialize_audio_chunks(
     start_offset_seconds: float = 0.0,
     source_duration_seconds: float | None = None,
     speech_segments: Sequence[SpeechSegment] | None = None,
+    explicit_windows: Sequence[SpeechSegment] | None = None,
     speech_segment_merge_gap_seconds: float = 0.0,
     speech_segment_min_window_seconds: float = 0.0,
     speech_segment_short_merge_gap_seconds: float | None = None,
@@ -115,19 +117,36 @@ def materialize_audio_chunks(
         else sample_rate
     )
     target_audio_format = "wav"
-    windows = chunk_windows(
-        duration_seconds=source_duration_seconds,
-        chunk_seconds=chunk_seconds,
-        limit_chunks=limit_chunks,
-        sample_strategy=sample_strategy,
-        start_offset_seconds=start_offset_seconds,
-        speech_segments=speech_segments,
-        speech_segment_merge_gap_seconds=speech_segment_merge_gap_seconds,
-        speech_segment_min_window_seconds=speech_segment_min_window_seconds,
-        speech_segment_short_merge_gap_seconds=speech_segment_short_merge_gap_seconds,
-        speech_segment_max_window_seconds=speech_segment_max_window_seconds,
-    )
-    for index, (start_seconds, logical_duration_seconds) in enumerate(windows):
+    if sample_strategy == "explicit-windows" and explicit_windows is not None:
+        explicit_audio_windows(explicit_windows, limit_windows=limit_chunks)
+        indexed_windows = [
+            (window.index, window.start_seconds, window.duration_seconds)
+            for window in explicit_windows
+        ]
+    else:
+        indexed_windows = [
+            (index, start_seconds, logical_duration_seconds)
+            for index, (start_seconds, logical_duration_seconds) in enumerate(
+                chunk_windows(
+                    duration_seconds=source_duration_seconds,
+                    chunk_seconds=chunk_seconds,
+                    limit_chunks=limit_chunks,
+                    sample_strategy=sample_strategy,
+                    start_offset_seconds=start_offset_seconds,
+                    speech_segments=speech_segments,
+                    explicit_windows=explicit_windows,
+                    speech_segment_merge_gap_seconds=speech_segment_merge_gap_seconds,
+                    speech_segment_min_window_seconds=speech_segment_min_window_seconds,
+                    speech_segment_short_merge_gap_seconds=(
+                        speech_segment_short_merge_gap_seconds
+                    ),
+                    speech_segment_max_window_seconds=(
+                        speech_segment_max_window_seconds
+                    ),
+                )
+            )
+        ]
+    for index, start_seconds, logical_duration_seconds in indexed_windows:
         (
             media_start_seconds,
             media_duration_seconds,

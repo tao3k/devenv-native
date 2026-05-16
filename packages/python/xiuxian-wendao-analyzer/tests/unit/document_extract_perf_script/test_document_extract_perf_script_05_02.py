@@ -43,6 +43,188 @@ def test_structure_order_consistency_compares_force_cache_and_shard_reuse() -> N
     assert mismatch["structureOrderMismatchCount"] == 1
 
 
+def test_artifact_summary_carries_audio_timeline_metrics() -> None:
+    benchmark = _load_benchmark_module()
+
+    summary = benchmark.summarize_artifact_reports(
+        [
+            {
+                "resourcesRowCount": 1,
+                "audioTranscriptChars": 128,
+                "audioTranscriptTimelineMarkerCount": 3,
+                "audioTranscriptTimelineMarkedRows": 1,
+            }
+        ]
+    )
+
+    assert summary["audioTranscriptChars"] == 128
+    assert summary["audioTranscriptTimelineMarkerCount"] == 3
+    assert summary["audioTranscriptTimelineMarkedRows"] == 1
+
+
+def test_audio_transcript_org_export_reads_resource_arrow(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    resources_path = tmp_path / "_resources.arrow"
+    org_path = tmp_path / "report" / "audio-transcripts" / "meeting.org"
+    _write_resource_arrow(
+        resources_path,
+        [
+            ("sample.mp3", "document", "", "text/markdown", "ok", "_document"),
+            (
+                "sample.mp3",
+                "audio-transcript",
+                "[00:00.000-00:30.000] hello\n[00:30.000-01:00.000] world",
+                "text/plain",
+                "ok",
+                "_audio_transcript",
+            ),
+        ],
+    )
+
+    report = benchmark.export_audio_transcript_org(resources_path, org_path)
+
+    assert report == {
+        "path": str(org_path),
+        "rows": 1,
+        "chars": 55,
+        "timelineMarkerCount": 2,
+    }
+    text = org_path.read_text(encoding="utf-8")
+    assert "#+TITLE: Audio Transcript" in text
+    assert ":RESOURCE_TYPE: audio-transcript" in text
+    assert "[00:30.000-01:00.000] world" in text
+
+
+def test_audio_transcript_reference_draft_export_splits_timeline_segments(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    resources_path = tmp_path / "_resources.arrow"
+    jsonl_path = tmp_path / "meeting.reference_draft.jsonl"
+    tsv_path = tmp_path / "meeting.reference_draft.tsv"
+    _write_resource_arrow(
+        resources_path,
+        [
+            (
+                "/private/sample.mp3",
+                "audio-transcript",
+                (
+                    "[00:00.000-00:30.000] first line\n"
+                    "continued first line\n"
+                    "[00:30.000-01:00.000] second line"
+                ),
+                "text/plain",
+                "ok",
+                "_audio_transcript",
+            ),
+        ],
+    )
+
+    report = benchmark.export_audio_transcript_reference_drafts(
+        resources_path,
+        jsonl_path,
+        tsv_path,
+    )
+
+    rows = [
+        benchmark.json.loads(line)
+        for line in jsonl_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert report["rows"] == 2
+    assert rows[0]["source"] == "sample.mp3"
+    assert rows[0]["sourceId"] == "/private/sample.mp3"
+    assert rows[0]["chunkIndex"] == 0
+    assert rows[0]["startSeconds"] == 0.0
+    assert rows[0]["durationSeconds"] == 30.0
+    assert rows[0]["referenceStatus"] == "candidate-draft"
+    assert rows[0]["text"] == "first line\ncontinued first line"
+    assert rows[1]["chunkIndex"] == 1
+    assert tsv_path.read_text(encoding="utf-8").startswith("source\tsourceId\t")
+
+
+def test_run_fixture_probe_exports_audio_transcript_org(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+
+    def fake_run_cargo_perf_test(
+        args,
+        source,
+        output_dir,
+        *,
+        force,
+        iterations,
+        concurrency,
+        report_path,
+        **_kwargs,
+    ):
+        _write_resource_arrow(
+            output_dir / "_resources.arrow",
+            [
+                (
+                    str(source),
+                    "audio-transcript",
+                    "[00:00.000-00:30.000] segment",
+                    "text/plain",
+                    "ok",
+                    "_audio_transcript",
+                )
+            ],
+        )
+        return {
+            "latenciesMs": [10.0 if force else 1.0],
+            "requestCount": 1,
+            "rowCount": 1,
+            "batchCount": 1,
+            "arrowIpcBytes": 1,
+            "errorRowCount": 0,
+            "statusCounts": {"ok": 1},
+            "wallTimeMs": 1.0,
+            "concurrency": concurrency,
+            "artifactReports": [],
+        }
+
+    monkeypatch.setattr(benchmark, "run_cargo_perf_test", fake_run_cargo_perf_test)
+    args = benchmark.argparse.Namespace(
+        duplicate_miss_concurrency=0,
+        fail_on_error_rows=True,
+        fail_on_duplicate_conversions=False,
+        fail_on_missing_ocr_metrics=False,
+        fail_on_structure_order_mismatch=True,
+        fail_on_docling_groundtruth_mismatch=False,
+        compare_docling_groundtruth=False,
+        docling_groundtruth_root=None,
+        docling_groundtruth_min_char_coverage=0.98,
+        docling_groundtruth_min_similarity=0.98,
+        iterations=1,
+        concurrency=1,
+        shard_cache_reuse_probe=False,
+        artifact_registry_reuse_probe=False,
+        export_audio_transcript_org=True,
+        report_dir_path=tmp_path / "report",
+    )
+
+    result = benchmark.run_fixture_probe(
+        args,
+        "meeting",
+        tmp_path / "meeting.mp3",
+        tmp_path / "out",
+    )
+
+    org_path = tmp_path / "report" / "audio-transcripts" / "meeting.org"
+    assert result["audioTranscriptOrgPath"] == str(org_path)
+    assert result["audioTranscriptOrgRows"] == 1
+    assert result["audioTranscriptOrgTimelineMarkerCount"] == 1
+    assert org_path.exists()
+    draft_path = (
+        tmp_path / "report" / "audio-transcripts" / "meeting.reference_draft.jsonl"
+    )
+    assert result["audioTranscriptReferenceDraftJsonlPath"] == str(draft_path)
+    assert result["audioTranscriptReferenceDraftRows"] == 1
+    assert draft_path.exists()
+
+
 def test_cargo_perf_probe_uses_minimal_feature_set(monkeypatch, tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     report_path = tmp_path / "report.json"
@@ -138,3 +320,39 @@ def test_cargo_perf_probe_adds_pdf_source_range_for_hybrid_page_ocr(
     assert commands[0][commands[0].index("--features") + 1] == (
         "performance,studio,zhenfa-router,duckdb,document-extract-pdf-source-range"
     )
+
+
+def _write_resource_arrow(
+    path: Path,
+    rows: list[tuple[str, str, str, str, str, str]],
+) -> None:
+    import pyarrow as pa
+    import pyarrow.ipc as ipc
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    batch = pa.record_batch(
+        [
+            pa.array([row[0] for row in rows], type=pa.string()),
+            pa.array([row[1] for row in rows], type=pa.string()),
+            pa.array(["" for _row in rows], type=pa.string()),
+            pa.array([None for _row in rows], type=pa.int32()),
+            pa.array(["" for _row in rows], type=pa.string()),
+            pa.array([row[2] for row in rows], type=pa.string()),
+            pa.array([row[3] for row in rows], type=pa.string()),
+            pa.array([row[4] for row in rows], type=pa.string()),
+            pa.array([row[5] for row in rows], type=pa.string()),
+        ],
+        names=[
+            "sourcePath",
+            "resourceType",
+            "resourcePath",
+            "pageIndex",
+            "caption",
+            "content",
+            "mimeType",
+            "status",
+            "elementId",
+        ],
+    )
+    with path.open("wb") as handle, ipc.new_file(handle, batch.schema) as writer:
+        writer.write_batch(batch)

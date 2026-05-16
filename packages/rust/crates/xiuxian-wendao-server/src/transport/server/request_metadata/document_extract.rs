@@ -8,18 +8,15 @@ use crate::transport::query_contract::{
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER,
     WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, normalize_document_extract_profile,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+    decode_document_extract_source_path_utf8_hex, normalize_document_extract_profile,
     validate_document_extract_request,
 };
 
 pub(crate) fn validate_document_extract_request_metadata(
     metadata: &MetadataMap,
 ) -> Result<DocumentExtractFlightRequest, Status> {
-    let source_path = metadata
-        .get(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default()
-        .to_string();
+    let source_path = document_extract_source_path(metadata)?;
     validate_document_extract_request(source_path.as_str()).map_err(Status::invalid_argument)?;
     let output_dir = metadata
         .get(WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER)
@@ -64,6 +61,22 @@ pub(crate) fn validate_document_extract_request_metadata(
         mode,
         wait_ms,
     })
+}
+
+fn document_extract_source_path(metadata: &MetadataMap) -> Result<String, Status> {
+    if let Some(encoded) = metadata
+        .get(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .filter(|value| !value.trim().is_empty())
+    {
+        return decode_document_extract_source_path_utf8_hex(encoded)
+            .map_err(Status::invalid_argument);
+    }
+    Ok(metadata
+        .get(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_string())
 }
 
 fn optional_document_extract_bool(

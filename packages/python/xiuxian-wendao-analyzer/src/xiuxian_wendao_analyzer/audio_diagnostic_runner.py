@@ -21,6 +21,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_quality_inputs import (
     load_reference_transcripts,
     load_term_list,
     prompt_with_domain_terms,
+    prompt_with_primary_language,
     reference_candidate_draft_row_count,
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_quality_summary import (
@@ -42,11 +43,12 @@ from xiuxian_wendao_analyzer.audio_diagnostic_runner_report import (
 )
 
 DEFAULT_PROMPT = (
-    "Please transcribe this audio verbatim as Simplified Chinese. "
+    "Please transcribe this audio verbatim. "
     "Do not summarize, translate, or complete inaudible content. "
     "Preserve English technical terms, model names, code names, and person names. "
     "Mark inaudible spans as [inaudible]. Output only the transcript text."
 )
+DEFAULT_PRIMARY_LANGUAGE = "zh"
 DEFAULT_OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_OPENROUTER_MODEL = "xiaomi/mimo-v2.5"
 DEFAULT_LOCAL_ASR_MODEL = "WHISPER_TINY"
@@ -76,7 +78,11 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
     api_key = resolve_openrouter_api_key(os.environ, env_file=args.env_file)
     domain_terms = load_term_list(args.domain_terms_file)
     required_terms = load_term_list(args.required_terms_file)
-    prompt = prompt_with_domain_terms(args.prompt, domain_terms)
+    primary_language = getattr(args, "primary_language", DEFAULT_PRIMARY_LANGUAGE)
+    prompt = prompt_with_domain_terms(
+        prompt_with_primary_language(args.prompt, primary_language),
+        domain_terms,
+    )
     result_cache_dir = (
         None
         if args.no_result_cache
@@ -84,9 +90,11 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
     )
     backends = selected_audio_backends(args.backend)
     hosted_audio_enabled, openai_compatible_audio_enabled = backend_flags(backends)
-    manifest_chunks, speech_segment_row_count = materialize_diagnostic_sources(
-        args, sources=sources, output_dir=output_dir
-    )
+    (
+        manifest_chunks,
+        speech_segment_row_count,
+        explicit_window_row_count,
+    ) = materialize_diagnostic_sources(args, sources=sources, output_dir=output_dir)
     results = run_diagnostic_backends(
         args,
         chunks=manifest_chunks,
@@ -123,6 +131,7 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
         api_key=api_key,
         result_cache_dir=result_cache_dir,
         speech_segment_row_count=speech_segment_row_count,
+        explicit_window_row_count=explicit_window_row_count,
         truth_template_path=output_dir / "truth_template.jsonl",
         references_configured=bool(references),
         domain_terms_count=len(domain_terms),
@@ -134,7 +143,8 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
         },
         timeline_summary=summarize_timeline_structure(
             quality_rows,
-            allow_planned_gaps=args.sample_strategy == "speech-segments",
+            allow_planned_gaps=args.sample_strategy
+            in {"speech-segments", "explicit-windows"},
         ),
         precision_summary=summarize_precision_gate(
             quality_rows,

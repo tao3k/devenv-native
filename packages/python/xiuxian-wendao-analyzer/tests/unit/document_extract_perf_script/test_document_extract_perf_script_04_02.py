@@ -43,6 +43,8 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         converter_count_path=tmp_path / "counts",
         pdf_ocr_worker="fixture",
         pdf_ocr_workers="auto",
+        audio_worker="hosted",
+        audio_workers="2",
         python_uv_package="xiuxian-wendao-analyzer",
         python_uv_extras=[],
         hosted_vlm_ocr_env={
@@ -51,6 +53,10 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
             "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH": "tests/fixtures/document.pdf",
             "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES": "5,11",
             "WENDAO_PDF_OCR_PREWARM_PAGE_INDEX": "5",
+        },
+        audio_worker_env={
+            "WENDAO_AUDIO_HOSTED_PROVIDER": "openrouter",
+            "WENDAO_AUDIO_HOSTED_MODEL": "qwen/qwen3-asr-1.7b",
         },
         pdf_ocr_prewarm_endpoint_count=1,
         log_dir=tmp_path / "logs",
@@ -102,6 +108,26 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "python-worker-0.hosted-vlm-ocr.jsonl",
         "python-worker-1.hosted-vlm-ocr.jsonl",
         "python-worker-2.hosted-vlm-ocr.jsonl",
+    ]
+    assert [call[2]["audio_worker"] for call in calls] == [
+        "hosted",
+        "hosted",
+        "hosted",
+    ]
+    assert [call[2]["audio_workers"] for call in calls] == ["2", "2", "2"]
+    assert [
+        call[2]["audio_worker_env"]["WENDAO_AUDIO_HOSTED_PROVIDER"] for call in calls
+    ] == [
+        "openrouter",
+        "openrouter",
+        "openrouter",
+    ]
+    assert [
+        call[2]["audio_worker_env"]["WENDAO_AUDIO_HOSTED_MODEL"] for call in calls
+    ] == [
+        "qwen/qwen3-asr-1.7b",
+        "qwen/qwen3-asr-1.7b",
+        "qwen/qwen3-asr-1.7b",
     ]
 
 

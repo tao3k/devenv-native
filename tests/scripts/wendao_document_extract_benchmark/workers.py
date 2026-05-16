@@ -137,9 +137,12 @@ def start_server_pool(
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
     pdf_ocr_workers: str = "auto",
+    audio_worker: str = "skip",
+    audio_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
     hosted_vlm_ocr_env: dict[str, str] | None = None,
+    audio_worker_env: dict[str, str] | None = None,
     pdf_ocr_prewarm_endpoint_count: int | None = None,
     log_dir: Path | None = None,
 ) -> list[PythonWorkerServer]:
@@ -175,6 +178,8 @@ def start_server_pool(
             converter_count_path=worker_count_path,
             pdf_ocr_worker=pdf_ocr_worker,
             pdf_ocr_workers=pdf_ocr_workers,
+            audio_worker=audio_worker,
+            audio_workers=audio_workers,
             python_uv_package=python_uv_package,
             python_uv_extras=python_uv_extras,
             hosted_vlm_ocr_env=hosted_vlm_ocr_env_for_worker(
@@ -184,6 +189,7 @@ def start_server_pool(
                 log_dir=log_dir,
                 process_name=name,
             ),
+            audio_worker_env=audio_worker_env,
             log_dir=log_dir,
             process_name=name,
         )
@@ -223,9 +229,12 @@ def start_server(
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
     pdf_ocr_workers: str = "auto",
+    audio_worker: str = "skip",
+    audio_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
     hosted_vlm_ocr_env: dict[str, str] | None = None,
+    audio_worker_env: dict[str, str] | None = None,
     log_dir: Path | None = None,
     process_name: str = "python-worker",
 ) -> subprocess.Popen[str]:
@@ -241,6 +250,8 @@ def start_server(
                 converter_count_path,
                 pdf_ocr_worker,
                 pdf_ocr_workers,
+                audio_worker,
+                audio_workers,
             ),
             uv_package=python_uv_package,
             uv_extras=python_uv_extras,
@@ -253,6 +264,8 @@ def start_server(
                 converter_count_path,
                 pdf_ocr_worker,
                 pdf_ocr_workers,
+                audio_worker,
+                audio_workers,
             ),
             uv_package=python_uv_package,
             uv_extras=python_uv_extras,
@@ -267,9 +280,10 @@ def start_server(
         process_name=process_name,
     )
     process_env = None
-    if worker_hosted_vlm_ocr_env:
+    worker_env = {**worker_hosted_vlm_ocr_env, **(audio_worker_env or {})}
+    if worker_env:
         process_env = os.environ.copy()
-        process_env.update(worker_hosted_vlm_ocr_env)
+        process_env.update(worker_env)
     return start_logged_process(
         command,
         log_dir=effective_log_dir,
@@ -376,6 +390,23 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         env["WENDAO_OPENROUTER_MODEL"] = OPENROUTER_OCR_SMOKE_MODEL
     if env.get("WENDAO_HOSTED_VLM_OCR_PROVIDER") == "openrouter":
         forward_legacy_openrouter_api_key(env)
+    return env
+
+
+def audio_worker_process_env(args: object) -> dict[str, str]:
+    env = {}
+    mappings = {
+        "audio_hosted_provider": "WENDAO_AUDIO_HOSTED_PROVIDER",
+        "audio_hosted_base_url": "WENDAO_AUDIO_HOSTED_BASE_URL",
+        "audio_hosted_model": "WENDAO_AUDIO_HOSTED_MODEL",
+        "audio_hosted_api_key": "WENDAO_AUDIO_HOSTED_API_KEY",
+        "audio_hosted_timeout_seconds": "WENDAO_AUDIO_HOSTED_TIMEOUT_SECONDS",
+        "audio_hosted_request_concurrency": ("WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY"),
+    }
+    for attr, key in mappings.items():
+        value = getattr(args, attr, None)
+        if value is not None:
+            env[key] = str(value)
     return env
 
 

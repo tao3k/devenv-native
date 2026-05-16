@@ -151,6 +151,10 @@ model-neutral: each JSONL row may include `source` or `sourceId`,
 materialization, or any future hosted speech detector provide precise speech
 windows without coupling the analyzer to one ASR model. The resulting shard
 manifest still uses the same `xiuxian_wendao.audio_shards.v1` identity surface.
+The production Rust document-extract route can consume the same sidecar through
+`WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL` and use it only for
+failed-row recovery planning. Python still receives unchanged audio shard Arrow
+rows and remains the backend invocation adapter.
 
 The document extraction Flight service uses the same model-neutral audio
 contract for real backend calls. Start the service with `--audio-worker skip`,
@@ -165,8 +169,16 @@ parallelism inside the Rust-owned shard budget. Hosted audio uses
 `WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY`; when the provider is `openrouter`,
 `OPENROUTER_API_KEY` is accepted as the public key fallback. The analyzer
 returns failed rows for missing configuration, malformed hosted responses,
-empty transcript text, and backend request errors so Rust can keep precision
-and coverage gates deterministic.
+empty transcript text, backend request errors, and unsafe transcript content so
+Rust can keep precision and coverage gates deterministic. The hosted worker's
+content gate is model-neutral: it rejects excessive characters per minute,
+high repeated character n-gram ratio, hosted refusal text,
+no-transcribable-speech meta responses, and high Latin text ratio when the
+shard is configured for Chinese. The gate is enabled by default and can be
+tuned with `WENDAO_AUDIO_TRANSCRIPT_QUALITY_GATE`,
+`WENDAO_AUDIO_TRANSCRIPT_MAX_CHARS_PER_MINUTE`,
+`WENDAO_AUDIO_TRANSCRIPT_MAX_REPEATED_NGRAM_RATIO`, and
+`WENDAO_AUDIO_TRANSCRIPT_MAX_LATIN_RATIO_FOR_CHINESE`.
 
 Local model automation uses a shared analyzer `local_backend` substrate for
 device probes, launch descriptors, environment resolution, project cache/data
@@ -426,6 +438,16 @@ cache identity, or backend scheduling. The default worker returns explicit
 remain `text/plain`; higher-level transcript formatting is a separate merge or
 export concern.
 
+Hosted audio workers normalize quoted environment values before building
+OpenAI-compatible requests, so `.env` values such as
+`OPENROUTER_API_KEY="..."` and `WENDAO_AUDIO_HOSTED_MODEL="..."` are accepted.
+The worker also retries transient hosted request or response failures through
+`WENDAO_AUDIO_HOSTED_MAX_ATTEMPTS`, which defaults to `2`. If all attempts fail,
+the worker still returns failed result rows and Rust precision gates reject
+incomplete coverage. The same retry loop also retries hosted responses that
+fail the transcript quality gate; if every attempt is still unsafe, the row is
+returned as `failed` so Rust recovery can retry only that shard span.
+
 The built-in strategy is intentionally small:
 
 1. `score_rank`
@@ -526,6 +548,21 @@ benchmark configures the bundled `imageio-ffmpeg` executable for media
 conversion. Pass
 `--python-uv-extra documents` for real Docling document OCR and
 `--python-uv-extra documents-audio` for real audio ASR worker starts.
+For the production audio-shard path, run the same harness with
+`--flight-mode audio-shards` so the Rust provider or Gateway plans and
+materializes timeline shards, sends `xiuxian_wendao.audio_shard_input.v1`
+batches over `/analysis/audio-shards`, and merges
+`xiuxian_wendao.audio_shard_result.v1` rows through the Rust precision gate.
+Use `--audio-worker docling` or `--audio-worker hosted` to select the analyzer
+backend, `--audio-workers` to cap analyzer-side request concurrency, and the
+`--rust-audio-*` flags to profile model-neutral Rust chunking, materialization,
+base/recovery worker budgets, and optional speech-timestamp recovery controls.
+When a VAD or speech-density sidecar exists, pass
+`--rust-audio-speech-segments-jsonl <segments.jsonl>` with optional
+`--rust-audio-speech-merge-gap-ms`, `--rust-audio-speech-min-window-ms`, and
+`--rust-audio-speech-limit-chunks`; the harness forwards them to the Rust
+provider or Gateway, which constrains failed-row recovery planning before the
+unchanged `/analysis/audio-shards` Flight call.
 Use `--only-fixture audio` or another fixture name for targeted real fixture
 diagnostics. Use `--docling-source-root` only when you already have a prepared
 Docling fixture checkout. Use `--concurrency` to stress the Rust-to-Python

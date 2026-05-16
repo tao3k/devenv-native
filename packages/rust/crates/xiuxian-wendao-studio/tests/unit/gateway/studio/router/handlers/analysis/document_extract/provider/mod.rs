@@ -39,6 +39,8 @@ use super::{
     validate_successful_ocr_results, write_hybrid_document_resource_artifacts,
 };
 
+#[cfg(feature = "document-extract-audio-shards")]
+mod audio;
 mod config;
 mod routing;
 mod runtime;

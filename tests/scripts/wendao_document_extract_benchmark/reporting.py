@@ -351,6 +351,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     hosted_vlm_promotion = payload.get("hostedVlmPromotionGate") or {}
     candidate_taxonomy = payload.get("candidateTaxonomy") or {}
     hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
+    hosted_audio = payload.get("hostedAudio") or {}
     hosted_vlm_ocr_requests = hosted_vlm_ocr.get("requestSummary") or {}
     page_range_chunk_summary = (
         payload["summary"].get("pageRangeDoclingFallbackChunkSummary") or {}
@@ -388,6 +389,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Wait ms: `{payload['waitMs']}`",
         f"- PDF OCR worker: `{payload['pdfOcrWorker']}`",
         f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
+        f"- Audio worker: `{payload.get('audioWorker')}`",
+        f"- Audio workers: `{payload.get('audioWorkers')}`",
         f"- PDF OCR prewarm profiles: `{payload.get('pdfOcrPrewarmProfiles')}`",
         f"- PDF OCR prewarm source path: `{payload.get('pdfOcrPrewarmSourcePath')}`",
         f"- PDF OCR prewarm page index: `{payload.get('pdfOcrPrewarmPageIndex')}`",
@@ -403,6 +406,20 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Local Python OCR endpoints: `{payload.get('localPythonOcrEndpointCount', 1)}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
+        f"- Rust audio backend profile: `{payload.get('rustAudioBackendProfile')}`",
+        f"- Rust audio chunk ms: `{payload.get('rustAudioChunkMs')}`",
+        f"- Rust audio context before ms: `{payload.get('rustAudioContextBeforeMs')}`",
+        f"- Rust audio context after ms: `{payload.get('rustAudioContextAfterMs')}`",
+        f"- Rust audio recovery split ms: `{payload.get('rustAudioRecoverySplitMs')}`",
+        f"- Rust audio sample rate Hz: `{payload.get('rustAudioSampleRateHz')}`",
+        f"- Rust audio channels: `{payload.get('rustAudioChannels')}`",
+        f"- Rust audio format: `{payload.get('rustAudioFormat')}`",
+        f"- Rust audio base workers: `{payload.get('rustAudioBaseWorkers')}`",
+        f"- Rust audio recovery workers: `{payload.get('rustAudioRecoveryWorkers')}`",
+        f"- Rust audio speech segments JSONL: `{payload.get('rustAudioSpeechSegmentsJsonl')}`",
+        f"- Rust audio speech merge gap ms: `{payload.get('rustAudioSpeechMergeGapMs')}`",
+        f"- Rust audio speech min window ms: `{payload.get('rustAudioSpeechMinWindowMs')}`",
+        f"- Rust audio speech limit chunks: `{payload.get('rustAudioSpeechLimitChunks')}`",
         "- Rust PDF Docling page-range chunk plan: "
         f"`{payload.get('rustPdfDoclingPageRangeChunkPlan')}`",
         "- Rust PDF Docling page-range profile: "
@@ -446,6 +463,13 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "- Hosted VLM/OCR speculative retry delay seconds: "
         f"`{hosted_vlm_ocr.get('speculativeRetryDelaySeconds')}`",
         f"- Hosted VLM/OCR page window size: `{hosted_vlm_ocr.get('pageWindowSize')}`",
+        f"- Hosted audio backend: `{hosted_audio.get('backend')}`",
+        f"- Hosted audio provider: `{hosted_audio.get('provider')}`",
+        f"- Hosted audio base URL: `{hosted_audio.get('baseUrl')}`",
+        f"- Hosted audio model: `{hosted_audio.get('model')}`",
+        f"- Hosted audio key configured: `{hosted_audio.get('apiKeyConfigured')}`",
+        f"- Hosted audio timeout seconds: `{hosted_audio.get('timeoutSeconds')}`",
+        f"- Hosted audio request concurrency: `{hosted_audio.get('requestConcurrency')}`",
         "- Hosted VLM/OCR requests: "
         f"`count={hosted_vlm_ocr_requests.get('requestCount')}, "
         f"httpAttempts={hosted_vlm_ocr_requests.get('httpAttemptCountTotal')}, "

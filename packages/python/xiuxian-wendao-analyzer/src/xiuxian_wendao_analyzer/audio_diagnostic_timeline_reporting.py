@@ -85,6 +85,42 @@ def write_transcript_timeline_srt(path: Path, rows: Sequence[QualityRow]) -> Non
     write_text(path, "\n".join(lines))
 
 
+def write_transcript_timeline_org(path: Path, rows: Sequence[QualityRow]) -> None:
+    """Write an Org-mode transcript timeline."""
+
+    lines = [
+        "#+TITLE: Audio Transcript Timeline",
+        "#+OPTIONS: toc:nil",
+        "",
+    ]
+    for segment in timeline_review_rows(rows):
+        start_seconds = float(segment["startSeconds"])
+        end_seconds = float(segment["endSeconds"])
+        start = format_vtt_timestamp(start_seconds)
+        end = format_vtt_timestamp(end_seconds)
+        source = str(segment["source"])
+        chunk_index = int(segment["chunkIndex"])
+        text = str(segment["text"]).strip()
+        lines.extend(
+            [
+                f"* {start} -- {end} {source} chunk {chunk_index:04d}",
+                ":PROPERTIES:",
+                f":BACKEND: {segment['backend']}",
+                f":SOURCE: {source}",
+                f":CHUNK_INDEX: {chunk_index}",
+                f":START_SECONDS: {start_seconds:.3f}",
+                f":END_SECONDS: {end_seconds:.3f}",
+                f":STATUS: {segment['status']}",
+                f":REVIEW_STATUS: {segment['reviewStatus']}",
+                ":END:",
+                "",
+                text,
+                "",
+            ]
+        )
+    write_text(path, "\n".join(lines))
+
+
 def _read_segment_rows(row: QualityRow) -> list[dict[str, object]]:
     path = Path(row.segments_path)
     if not path.exists():

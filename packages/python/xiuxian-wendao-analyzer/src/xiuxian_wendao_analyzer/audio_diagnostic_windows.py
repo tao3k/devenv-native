@@ -152,6 +152,7 @@ def chunk_windows(
     sample_strategy: str,
     start_offset_seconds: float,
     speech_segments: Sequence[SpeechSegment] | None,
+    explicit_windows: Sequence[SpeechSegment] | None = None,
     speech_segment_merge_gap_seconds: float = 0.0,
     speech_segment_min_window_seconds: float = 0.0,
     speech_segment_short_merge_gap_seconds: float | None = None,
@@ -159,6 +160,13 @@ def chunk_windows(
 ) -> list[tuple[float, float]]:
     """Return logical audio windows for fixed or speech-segment sampling."""
 
+    if sample_strategy == "full-coverage":
+        return full_coverage_chunk_windows(
+            duration_seconds=duration_seconds,
+            chunk_seconds=chunk_seconds,
+            limit_chunks=limit_chunks,
+            start_offset_seconds=start_offset_seconds,
+        )
     if sample_strategy == "speech-segments":
         if not speech_segments:
             raise ValueError("speech-segments sampling requires speech segment rows")
@@ -170,6 +178,13 @@ def chunk_windows(
             short_merge_gap_seconds=speech_segment_short_merge_gap_seconds,
             max_window_seconds=speech_segment_max_window_seconds,
         )
+    if sample_strategy == "explicit-windows":
+        if not explicit_windows:
+            raise ValueError("explicit-windows sampling requires explicit window rows")
+        return explicit_audio_windows(
+            explicit_windows,
+            limit_windows=limit_chunks,
+        )
     return [
         (offset, float(chunk_seconds))
         for offset in chunk_start_offsets(
@@ -179,6 +194,59 @@ def chunk_windows(
             strategy=sample_strategy,
             start_offset_seconds=start_offset_seconds,
         )
+    ]
+
+
+def full_coverage_chunk_windows(
+    *,
+    duration_seconds: float | None,
+    chunk_seconds: int,
+    limit_chunks: int,
+    start_offset_seconds: float,
+) -> list[tuple[float, float]]:
+    """Return contiguous windows that cover the source without overlap."""
+
+    if duration_seconds is None:
+        raise ValueError("full-coverage sampling requires duration_seconds")
+    if limit_chunks <= 0:
+        raise ValueError("limit_chunks must be positive")
+    if chunk_seconds <= 0:
+        raise ValueError("chunk_seconds must be positive")
+    if start_offset_seconds < 0:
+        raise ValueError("start_offset_seconds cannot be negative")
+    if start_offset_seconds >= duration_seconds:
+        raise ValueError("start_offset_seconds must be before the source end")
+    windows: list[tuple[float, float]] = []
+    start = start_offset_seconds
+    while start < duration_seconds:
+        duration = min(float(chunk_seconds), duration_seconds - start)
+        windows.append((start, duration))
+        start += chunk_seconds
+    if len(windows) > limit_chunks:
+        raise ValueError(
+            "full-coverage sampling needs "
+            f"{len(windows)} chunks; increase limit_chunks from {limit_chunks}"
+        )
+    return windows
+
+
+def explicit_audio_windows(
+    windows: Sequence[SpeechSegment],
+    *,
+    limit_windows: int,
+) -> list[tuple[float, float]]:
+    """Return caller-selected windows without VAD packing or resampling."""
+
+    if limit_windows <= 0:
+        raise ValueError("limit_windows must be positive")
+    if len(windows) > limit_windows:
+        raise ValueError(
+            "explicit-windows sampling needs "
+            f"{len(windows)} chunks; increase limit_chunks from {limit_windows}"
+        )
+    return [
+        (float(window.start_seconds), float(window.duration_seconds))
+        for window in windows
     ]
 
 

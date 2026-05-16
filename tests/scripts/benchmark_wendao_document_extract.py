@@ -17,6 +17,9 @@ _args = importlib.import_module("wendao_document_extract_benchmark.args")
 _artifact_summary = importlib.import_module(
     "wendao_document_extract_benchmark.artifact_summary"
 )
+_audio_transcript_org = importlib.import_module(
+    "wendao_document_extract_benchmark.audio_transcript_org"
+)
 _attachment_classes = importlib.import_module(
     "wendao_document_extract_benchmark.attachment_classes"
 )
@@ -54,6 +57,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _constants,
     _docling_groundtruth,
     _args,
+    _audio_transcript_org,
     _fixtures,
     _fake_fixtures,
     _attachment_classes,

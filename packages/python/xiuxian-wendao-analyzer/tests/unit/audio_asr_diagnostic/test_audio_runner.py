@@ -129,6 +129,7 @@ def test_run_diagnostic_writes_summary_and_results(tmp_path: Path, monkeypatch) 
     assert (tmp_path / "out" / "review.tsv").exists()
     assert (tmp_path / "out" / "transcript_review.tsv").exists()
     assert (tmp_path / "out" / "transcript_timeline.jsonl").exists()
+    assert (tmp_path / "out" / "transcript.org").exists()
     assert (tmp_path / "out" / "transcript_timeline.vtt").exists()
     assert (tmp_path / "out" / "transcript_timeline.srt").exists()
     assert (tmp_path / "out" / "reference_draft.jsonl").exists()
@@ -141,6 +142,7 @@ def test_run_diagnostic_writes_summary_and_results(tmp_path: Path, monkeypatch) 
     assert report["audioMaterializationMode"] == "normalized-16k-wav"
     assert report["inputPrivacy"] == "shareable"
     assert report["requestedBackends"] == ["local-docling", "openrouter-chat-audio"]
+    assert report["primaryLanguage"] == "zh"
     assert report["openAiCompatibleAudioEnabled"] is True
     assert report["hostedAudioEnabled"] is True
     assert report["hostedAudioApiKeyConfigured"] is True

@@ -18,6 +18,9 @@ from xiuxian_wendao_analyzer.audio_diagnostic_candidate_compare import (
     compare_audio_candidate_summaries,
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_docling import transcribe_local_docling
+from xiuxian_wendao_analyzer.audio_diagnostic_explicit_windows import (
+    load_explicit_windows,
+)
 from xiuxian_wendao_analyzer.audio_diagnostic_firered import transcribe_fireredasr2s
 from xiuxian_wendao_analyzer.audio_diagnostic_identity import (
     AUDIO_MATERIALIZATION_NATIVE_RATE_WAV,
@@ -72,7 +75,9 @@ from xiuxian_wendao_analyzer.audio_diagnostic_quality_inputs import (
     curated_reference_rows_from_tsv,
     load_reference_transcripts,
     load_term_list,
+    normalize_primary_language,
     prompt_with_domain_terms,
+    prompt_with_primary_language,
     reference_candidate_draft_row_count,
     validate_reference_jsonl,
 )
@@ -83,6 +88,10 @@ from xiuxian_wendao_analyzer.audio_diagnostic_quality_summary import (
     summarize_precision_gate,
     summarize_quality,
     summarize_reference_subset,
+)
+from xiuxian_wendao_analyzer.audio_diagnostic_recovery_patch import (
+    AudioRecoveryPatchGateOptions,
+    build_recovery_patch_gate_report,
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_reference_pack import (
     materialize_reference_selection_pack,
@@ -100,6 +109,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_reporting import (
     write_reference_draft_tsv,
     write_transcript_review_tsv,
     write_transcript_timeline_jsonl,
+    write_transcript_timeline_org,
     write_transcript_timeline_srt,
     write_transcript_timeline_vtt,
 )
@@ -112,6 +122,12 @@ from xiuxian_wendao_analyzer.audio_diagnostic_results import (
     write_json,
     write_result_cache,
 )
+from xiuxian_wendao_analyzer.audio_diagnostic_risk_recovery import (
+    AudioRiskRecoveryOptions,
+    build_risk_recovery_plan_report,
+    build_short_window_rows,
+    select_audio_risk_parent_rows,
+)
 from xiuxian_wendao_analyzer.audio_diagnostic_runner import run_diagnostic
 from xiuxian_wendao_analyzer.audio_diagnostic_window_plan import (
     build_speech_window_plan_report,
@@ -120,15 +136,18 @@ from xiuxian_wendao_analyzer.audio_diagnostic_window_plan import (
 from xiuxian_wendao_analyzer.audio_diagnostic_windows import (
     chunk_start_offsets,
     chunk_windows,
+    explicit_audio_windows,
+    full_coverage_chunk_windows,
     load_speech_segments,
 )
 
 DEFAULT_PROMPT = (
-    "Please transcribe this audio verbatim as Simplified Chinese. "
+    "Please transcribe this audio verbatim. "
     "Do not summarize, translate, or complete inaudible content. "
     "Preserve English technical terms, model names, code names, and person names. "
     "Mark inaudible spans as [inaudible]. Output only the transcript text."
 )
+DEFAULT_PRIMARY_LANGUAGE = "zh"
 DEFAULT_OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_OPENROUTER_MODEL = "xiaomi/mimo-v2.5"
 DEFAULT_LOCAL_ASR_MODEL = "WHISPER_TINY"
@@ -142,6 +161,7 @@ __all__ = [
     "AUDIO_MATERIALIZATION_SOURCE_DIRECT",
     "AUDIO_SHARD_MANIFEST_SCHEMA",
     "DEFAULT_AUDIO_SHARD_PROFILE",
+    "DEFAULT_PRIMARY_LANGUAGE",
     "OPENAI_COMPATIBLE_AUDIO_BACKENDS",
     "PRIVATE_INPUT_PRIVACY",
     "REFERENCE_STATUS_CANDIDATE_DRAFT",
@@ -150,6 +170,8 @@ __all__ = [
     "SUPPORTED_AUDIO_MATERIALIZATION_MODES",
     "AsrResult",
     "AudioChunk",
+    "AudioRecoveryPatchGateOptions",
+    "AudioRiskRecoveryOptions",
     "QualityRow",
     "SpeechSegment",
     "audio_result_cache_key",
@@ -158,6 +180,9 @@ __all__ = [
     "backend_config_hash",
     "build_audio_shard_manifest_item",
     "build_openrouter_payload",
+    "build_recovery_patch_gate_report",
+    "build_risk_recovery_plan_report",
+    "build_short_window_rows",
     "build_speech_window_plan_report",
     "chunk_start_offsets",
     "chunk_windows",
@@ -166,18 +191,24 @@ __all__ = [
     "curated_reference_rows_from_tsv",
     "discover_audio_sources",
     "ensure_ffmpeg_on_path",
+    "explicit_audio_windows",
     "extract_openrouter_segments",
     "extract_openrouter_transcript",
+    "full_coverage_chunk_windows",
+    "load_explicit_windows",
     "load_reference_transcripts",
     "load_speech_segments",
     "materialize_audio_chunks",
     "materialize_reference_selection_pack",
+    "normalize_primary_language",
     "parse_window_min_candidates",
+    "prompt_with_primary_language",
     "recheck_quality_summary",
     "reference_candidate_draft_row_count",
     "reference_draft_rows",
     "resolve_openrouter_api_key",
     "run_diagnostic",
+    "select_audio_risk_parent_rows",
     "select_reference_draft_report",
     "select_reference_rows",
     "summarize_reference_subset",
@@ -193,6 +224,7 @@ __all__ = [
     "write_reference_draft_jsonl",
     "write_reference_draft_tsv",
     "write_result_cache",
+    "write_transcript_timeline_org",
 ]
 
 
@@ -233,6 +265,49 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             if args.reference_selection_report_json is not None:
                 write_json(args.reference_selection_report_json, report)
+            print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            return 0
+        if args.build_risk_recovery_plan_quality_json is not None:
+            report = build_risk_recovery_plan_report(
+                quality_json=args.build_risk_recovery_plan_quality_json,
+                results_json=args.risk_recovery_results_json,
+                output_json=args.risk_recovery_output_json,
+                options=AudioRiskRecoveryOptions(
+                    split_seconds=args.risk_recovery_split_seconds,
+                    limit_parents=args.risk_recovery_limit_parents,
+                ),
+            )
+            print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            return 0
+        if args.build_risk_recovery_patch_gate_base_quality_json is not None:
+            if args.risk_recovery_patch_recovery_quality_json is None:
+                parser.error(
+                    "--risk-recovery-patch-recovery-quality-json is required with "
+                    "--build-risk-recovery-patch-gate-base-quality-json"
+                )
+            if args.risk_recovery_patch_plan_json is None:
+                parser.error(
+                    "--risk-recovery-patch-plan-json is required with "
+                    "--build-risk-recovery-patch-gate-base-quality-json"
+                )
+            report = build_recovery_patch_gate_report(
+                base_quality_json=args.build_risk_recovery_patch_gate_base_quality_json,
+                base_results_json=args.risk_recovery_patch_base_results_json,
+                recovery_quality_json=args.risk_recovery_patch_recovery_quality_json,
+                recovery_results_json=args.risk_recovery_patch_recovery_results_json,
+                recovery_plan_json=args.risk_recovery_patch_plan_json,
+                output_json=args.risk_recovery_patch_output_json,
+                options=AudioRecoveryPatchGateOptions(
+                    max_chinese_ratio_drop=(
+                        args.risk_recovery_patch_max_chinese_ratio_drop
+                    ),
+                    min_char_ratio=args.risk_recovery_patch_min_char_ratio,
+                    max_char_ratio=args.risk_recovery_patch_max_char_ratio,
+                    max_part_repeated_ngram_ratio=(
+                        args.risk_recovery_patch_max_part_repeat
+                    ),
+                ),
+            )
             print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
             return 0
         if args.materialize_reference_selection_jsonl is not None:

@@ -264,6 +264,29 @@ def test_speech_window_plan_report_compares_minimum_candidates() -> None:
     assert report["shortMergeGapSeconds"] is None
     assert report["candidates"][0]["minWindowSeconds"] == 0.0
     assert report["candidates"][0]["chunks"] == 3
+    assert report["candidates"][0]["windows"] == [
+        {
+            "index": 0,
+            "startSeconds": 0.0,
+            "durationSeconds": 4.0,
+            "startMs": 0,
+            "durationMs": 4000,
+        },
+        {
+            "index": 1,
+            "startSeconds": 9.0,
+            "durationSeconds": 3.0,
+            "startMs": 9000,
+            "durationMs": 3000,
+        },
+        {
+            "index": 2,
+            "startSeconds": 25.0,
+            "durationSeconds": 10.0,
+            "startMs": 25000,
+            "durationMs": 10000,
+        },
+    ]
     assert report["candidates"][1]["minWindowSeconds"] == 8.0
     assert report["candidates"][1]["chunks"] == 2
     assert report["candidates"][1]["coverageExpansionSeconds"] == 5.0
@@ -300,6 +323,10 @@ def test_speech_window_plan_report_accepts_short_merge_gap() -> None:
     assert report["shortMergeGapSeconds"] == 3.0
     assert report["candidates"][0]["chunks"] == 2
     assert report["candidates"][0]["coverageExpansionSeconds"] == 0.0
+    assert [
+        (window["startMs"], window["durationMs"])
+        for window in report["candidates"][0]["windows"]
+    ] == [(0, 4000), (9000, 3000)]
 
 
 def test_materialize_audio_chunks_invokes_ffmpeg_with_offsets(
@@ -370,6 +397,90 @@ def test_materialize_audio_chunks_can_include_context_window(
     assert chunks[0].media_start_seconds == 8.0
     assert chunks[0].context_before_seconds == 2.0
     assert chunks[0].context_after_seconds == 2.0
+
+
+def test_materialize_audio_chunks_full_coverage_clamps_final_chunk(
+    tmp_path: Path, monkeypatch
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    source = tmp_path / "forum.MP3"
+    source.write_bytes(b"mp3")
+    calls: list[list[str]] = []
+
+    def fake_run(command, *, check, capture_output, text):
+        calls.append(command)
+        Path(command[-1]).write_bytes(b"wav")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(audio_diagnostic_materialization.subprocess, "run", fake_run)
+
+    chunks = diagnostic.materialize_audio_chunks(
+        source,
+        chunk_dir=tmp_path / "chunks",
+        chunk_seconds=60,
+        limit_chunks=4,
+        sample_rate=16000,
+        audio_format="wav",
+        sample_strategy="full-coverage",
+        source_duration_seconds=185.0,
+        ffmpeg_path="/fake/ffmpeg",
+    )
+
+    assert [chunk.start_seconds for chunk in chunks] == [0.0, 60.0, 120.0, 180.0]
+    assert [chunk.duration_seconds for chunk in chunks] == [60.0, 60.0, 60.0, 5.0]
+    assert calls[-1][calls[-1].index("-ss") + 1] == "180.000"
+    assert calls[-1][calls[-1].index("-t") + 1] == "5.000"
+
+
+def test_materialize_audio_chunks_uses_explicit_windows(
+    tmp_path: Path, monkeypatch
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    source = tmp_path / "forum.MP3"
+    source.write_bytes(b"mp3")
+    calls: list[list[str]] = []
+
+    def fake_run(command, *, check, capture_output, text):
+        calls.append(command)
+        Path(command[-1]).write_bytes(b"wav")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(audio_diagnostic_materialization.subprocess, "run", fake_run)
+
+    chunks = diagnostic.materialize_audio_chunks(
+        source,
+        chunk_dir=tmp_path / "chunks",
+        chunk_seconds=60,
+        limit_chunks=2,
+        sample_rate=16000,
+        audio_format="wav",
+        sample_strategy="explicit-windows",
+        explicit_windows=[
+            diagnostic.SpeechSegment(
+                source="forum.MP3",
+                index=7,
+                start_seconds=418.2848016666667,
+                duration_seconds=20.0,
+            ),
+            diagnostic.SpeechSegment(
+                source="forum.MP3",
+                index=8,
+                start_seconds=478.03977333333336,
+                duration_seconds=30.0,
+            ),
+        ],
+        source_duration_seconds=600.0,
+        ffmpeg_path="/fake/ffmpeg",
+    )
+
+    assert [chunk.start_seconds for chunk in chunks] == [
+        418.2848016666667,
+        478.03977333333336,
+    ]
+    assert [chunk.index for chunk in chunks] == [7, 8]
+    assert [chunk.duration_seconds for chunk in chunks] == [20.0, 30.0]
+    assert calls[0][calls[0].index("-ss") + 1] == "418.285"
+    assert calls[0][calls[0].index("-t") + 1] == "20.000"
 
 
 def test_materialize_audio_chunks_can_preserve_native_sample_rate(

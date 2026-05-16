@@ -24,9 +24,11 @@ pub use analysis::{
     WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, WENDAO_PDF_OCR_WORKERS_HEADER,
-    normalize_document_extract_profile, validate_code_ast_analysis_request,
-    validate_document_extract_request, validate_markdown_analysis_request,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+    WENDAO_PDF_OCR_WORKERS_HEADER, decode_document_extract_source_path_utf8_hex,
+    encode_document_extract_source_path_utf8_hex, normalize_document_extract_profile,
+    validate_code_ast_analysis_request, validate_document_extract_request,
+    validate_markdown_analysis_request,
 };
 pub use graph::{
     GRAPH_NEIGHBORS_DEFAULT_HOPS, GRAPH_NEIGHBORS_DEFAULT_LIMIT, GRAPH_NEIGHBORS_ROUTE,

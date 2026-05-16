@@ -36,6 +36,8 @@ def cargo_features_for_flight_mode(features: str, flight_mode: str) -> str:
 
 def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) -> str:
     flight_mode = getattr(args, "flight_mode", "sync")
+    if flight_mode == "audio-shards":
+        return cargo_features_with_feature(features, "document-extract-audio-shards")
     if flight_mode != "hybrid-page-ocr":
         return features
     profile_planner = str(getattr(args, "rust_pdf_ocr_profile_planner", "")).replace(
@@ -62,6 +64,10 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
 
 
 def cargo_features_with_pdf_feature(features: str, feature: str) -> str:
+    return cargo_features_with_feature(features, feature)
+
+
+def cargo_features_with_feature(features: str, feature: str) -> str:
     parts = [
         part.strip()
         for chunk in features.split(",")

@@ -13,7 +13,7 @@ use xiuxian_wendao::episteme::{
     write_episteme_evidence_selection_plan, write_episteme_extraction_run_plan,
 };
 
-use super::common::{
+use super::source_contract_support::{
     EpistemeRootRequest, load_runtime_config, map_episteme_source_contract_error,
     resolve_corpus_root, resolve_episteme_root, resolve_run_root, trimmed_optional,
     trimmed_required,

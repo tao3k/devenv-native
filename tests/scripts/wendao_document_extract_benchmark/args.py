@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--flight-mode",
-        choices=("sync", "async", "hybrid-page-ocr"),
+        choices=("sync", "async", "hybrid-page-ocr", "audio-shards"),
         default="sync",
         help="Document extraction Flight mode header sent by the Rust probe.",
     )
@@ -50,6 +50,33 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Local Python Docling OCR worker budget when Rust does not send "
             "x-wendao-pdf-ocr-workers. Use `auto` for CPU-adaptive sizing."
+        ),
+    )
+    parser.add_argument(
+        "--audio-worker",
+        choices=("skip", "docling", "hosted"),
+        default="skip",
+        help=(
+            "Audio worker started by the local Python service for "
+            "/analysis/audio-shards. `hosted` uses the configured "
+            "OpenAI-compatible audio endpoint; `docling` uses Docling audio "
+            "as a baseline."
+        ),
+    )
+    parser.add_argument(
+        "--audio-workers",
+        default="auto",
+        help=(
+            "Local Python audio shard worker budget when Rust does not send x-wendao-audio-workers."
+        ),
+    )
+    parser.add_argument(
+        "--export-audio-transcript-org",
+        action="store_true",
+        help=(
+            "Export audio-transcript resource rows from _resources.arrow into "
+            "timestamped Org files under the benchmark report directory. This "
+            "is opt-in because transcripts can contain private source content."
         ),
     )
     parser.add_argument(
@@ -209,6 +236,104 @@ def parse_args() -> argparse.Namespace:
             "Optional Rust provider override for "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS. Use this "
             "only for source-PDF page-range benchmark profiling."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-backend-profile",
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE. Keep this "
+            "model-neutral; the analyzer maps backend profile to a concrete "
+            "Docling, hosted, or local model worker."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-chunk-ms",
+        type=int,
+        help="Audio shard duration forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS.",
+    )
+    parser.add_argument(
+        "--rust-audio-context-before-ms",
+        type=int,
+        help=(
+            "Leading overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-context-after-ms",
+        type=int,
+        help=(
+            "Trailing overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-recovery-split-ms",
+        type=int,
+        help=(
+            "Recovery shard duration forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-sample-rate-hz",
+        type=int,
+        help=(
+            "Audio materialization sample rate forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-channels",
+        type=int,
+        help="Audio materialization channels forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS.",
+    )
+    parser.add_argument(
+        "--rust-audio-format",
+        help="Audio materialization format forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT.",
+    )
+    parser.add_argument(
+        "--rust-audio-base-workers",
+        help=(
+            "Base audio shard worker budget forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-recovery-workers",
+        help=(
+            "Recovery audio shard worker budget forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-segments-jsonl",
+        help=(
+            "Optional speech timestamp sidecar forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL for "
+            "Rust-owned recovery shard planning."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-merge-gap-ms",
+        type=int,
+        help=(
+            "Speech segment merge gap forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MERGE_GAP_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-min-window-ms",
+        type=int,
+        help=(
+            "Minimum speech recovery window forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-limit-chunks",
+        type=int,
+        help=(
+            "Maximum speech recovery chunks forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS."
         ),
     )
     parser.add_argument(
@@ -580,6 +705,41 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--openrouter-title",
         help="Optional OpenRouter X-OpenRouter-Title attribution header.",
+    )
+    parser.add_argument(
+        "--audio-hosted-provider",
+        choices=("openai-compatible", "openrouter"),
+        help=(
+            "Hosted audio provider preset forwarded to "
+            "WENDAO_AUDIO_HOSTED_PROVIDER for local Python audio workers."
+        ),
+    )
+    parser.add_argument(
+        "--audio-hosted-base-url",
+        help="OpenAI-compatible audio base URL forwarded to WENDAO_AUDIO_HOSTED_BASE_URL.",
+    )
+    parser.add_argument(
+        "--audio-hosted-model",
+        help="Hosted audio model id forwarded to WENDAO_AUDIO_HOSTED_MODEL.",
+    )
+    parser.add_argument(
+        "--audio-hosted-api-key",
+        help=(
+            "Hosted audio API key forwarded to WENDAO_AUDIO_HOSTED_API_KEY. "
+            "For OpenRouter, the analyzer still falls back to OPENROUTER_API_KEY."
+        ),
+    )
+    parser.add_argument(
+        "--audio-hosted-timeout-seconds",
+        type=float,
+        help="Hosted audio request timeout forwarded to WENDAO_AUDIO_HOSTED_TIMEOUT_SECONDS.",
+    )
+    parser.add_argument(
+        "--audio-hosted-request-concurrency",
+        type=int,
+        help=(
+            "Hosted audio request concurrency forwarded to WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY."
+        ),
     )
     parser.add_argument(
         "--rust-pdf-ocr-endpoint",

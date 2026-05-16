@@ -8,6 +8,9 @@ use std::collections::{HashMap, HashSet};
 pub struct AudioShardMergeReport {
     /// Text merged from successful shard rows in listening order.
     pub text: String,
+    /// Text merged from successful shard rows with stable source timeline
+    /// markers.
+    pub timeline_text: String,
     /// Number of successful shard rows accepted into `text`.
     pub succeeded_count: usize,
     /// Number of failed shard rows observed.
@@ -47,6 +50,7 @@ pub fn merge_audio_shard_results(
 ) -> Result<AudioShardMergeReport, String> {
     let indexed_results = index_results(results);
     let mut text = String::new();
+    let mut timeline_text = String::new();
     let mut succeeded_count = 0;
     let mut failed_shard_element_ids = Vec::new();
     let mut skipped_shard_element_ids = Vec::new();
@@ -72,7 +76,11 @@ pub fn merge_audio_shard_results(
                     failed_shard_element_ids.push(input.shard_element_id.clone());
                     continue;
                 }
-                append_with_boundary_dedupe(&mut text, result_text);
+                let (deduped_text, boundary_overlap) =
+                    boundary_deduped_text(text.as_str(), result_text);
+                let deduped_text = deduped_text.to_owned();
+                append_text_part(&mut text, deduped_text.as_str(), boundary_overlap);
+                append_timeline_text_part(&mut timeline_text, input, deduped_text.as_str());
                 succeeded_count += 1;
             }
             AudioShardResultStatus::Failed => {
@@ -86,6 +94,7 @@ pub fn merge_audio_shard_results(
 
     Ok(AudioShardMergeReport {
         text,
+        timeline_text,
         succeeded_count,
         failed_count: failed_shard_element_ids.len(),
         skipped_count: skipped_shard_element_ids.len(),
@@ -153,16 +162,57 @@ fn index_results(results: &[AudioShardResult]) -> IndexedAudioResults<'_> {
     IndexedAudioResults { unique, duplicates }
 }
 
-fn append_with_boundary_dedupe(output: &mut String, next: &str) {
+fn boundary_deduped_text<'a>(left: &str, right: &'a str) -> (&'a str, usize) {
+    if left.is_empty() {
+        return (right, 0);
+    }
+    let overlap = largest_boundary_overlap(left, right);
+    (&right[overlap..], overlap)
+}
+
+fn append_text_part(output: &mut String, next: &str, boundary_overlap: usize) {
+    if next.is_empty() {
+        return;
+    }
     if output.is_empty() {
         output.push_str(next);
         return;
     }
-    let overlap = largest_boundary_overlap(output, next);
-    if !output.ends_with('\n') && overlap == 0 {
+    if !output.ends_with('\n') && boundary_overlap == 0 {
         output.push('\n');
     }
-    output.push_str(&next[overlap..]);
+    output.push_str(next);
+}
+
+fn append_timeline_text_part(output: &mut String, input: &AudioShardInput, next: &str) {
+    let next = next.trim();
+    if next.is_empty() {
+        return;
+    }
+    if !output.is_empty() {
+        output.push('\n');
+    }
+    output.push_str(format_audio_time_range(input).as_str());
+    output.push(' ');
+    output.push_str(next);
+}
+
+fn format_audio_time_range(input: &AudioShardInput) -> String {
+    let start_ms = input.start_ms;
+    let end_ms = input.start_ms.saturating_add(input.duration_ms);
+    format!(
+        "[{}-{}]",
+        format_audio_offset(start_ms),
+        format_audio_offset(end_ms)
+    )
+}
+
+fn format_audio_offset(offset_ms: u64) -> String {
+    let total_seconds = offset_ms / 1_000;
+    let minutes = total_seconds / 60;
+    let seconds = total_seconds % 60;
+    let millis = offset_ms % 1_000;
+    format!("{minutes:02}:{seconds:02}.{millis:03}")
 }
 
 fn largest_boundary_overlap(left: &str, right: &str) -> usize {

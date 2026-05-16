@@ -31,6 +31,12 @@ pub(crate) fn read_cached_document_batches(
     read_arrow_file(resources_path.as_path()).map(Some)
 }
 
+pub(crate) fn mark_document_extract_cache_complete(output_dir: &Path) -> Result<(), String> {
+    File::create(output_dir.join("_complete.marker"))
+        .map_err(|error| format!("touch document extract complete marker: {error}"))?;
+    Ok(())
+}
+
 pub(crate) fn mirror_artifact_to_output(
     artifact_dir: &Path,
     output_dir: &Path,
@@ -61,9 +67,7 @@ pub(crate) fn mirror_document_extract_cache(
             .collect::<Result<Vec<_>, _>>()?;
         write_arrow_file(resources_path.as_path(), &rewritten)?;
     }
-    File::create(target_dir.join("_complete.marker"))
-        .map_err(|error| format!("touch document extract complete marker: {error}"))?;
-    Ok(())
+    mark_document_extract_cache_complete(target_dir)
 }
 
 fn mirror_artifact_entries(artifact_dir: &Path, output_dir: &Path) -> Result<(), String> {

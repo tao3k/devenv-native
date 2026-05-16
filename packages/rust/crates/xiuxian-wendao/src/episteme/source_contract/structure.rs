@@ -316,17 +316,42 @@ fn write_toc_org(
         path: path.to_path_buf(),
         source,
     })?;
-    write_line(
+    write_toc_header(file.by_ref(), path, receipt)?;
+    write_source_manifest_summary(file.by_ref(), path, receipt, source_manifest_path)?;
+    write_count_summary(
         file.by_ref(),
+        path,
+        "Extraction route summary",
+        "extraction_route",
+        &receipt.route_counts,
+    )?;
+    write_count_summary(
+        file.by_ref(),
+        path,
+        "Category summary",
+        "category",
+        &receipt.category_counts,
+    )?;
+    write_source_files_table(file.by_ref(), path, files)?;
+    Ok(())
+}
+
+fn write_toc_header(
+    mut writer: impl Write,
+    path: &Path,
+    receipt: &EpistemeStructureTocReceipt,
+) -> Result<(), EpistemeError> {
+    write_line(
+        writer.by_ref(),
         path,
         "#+TITLE: Episteme Source Structure TOC",
     )?;
-    write_line(file.by_ref(), path, "#+OPTIONS: toc:nil")?;
-    write_line(file.by_ref(), path, "")?;
-    write_line(file.by_ref(), path, "* Source structure TOC")?;
-    write_line(file.by_ref(), path, ":PROPERTIES:")?;
+    write_line(writer.by_ref(), path, "#+OPTIONS: toc:nil")?;
+    write_line(writer.by_ref(), path, "")?;
+    write_line(writer.by_ref(), path, "* Source structure TOC")?;
+    write_line(writer.by_ref(), path, ":PROPERTIES:")?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
         path,
         format!(
             ":ID: {}",
@@ -334,57 +359,82 @@ fn write_toc_org(
         )
         .as_str(),
     )?;
-    write_line(file.by_ref(), path, ":WENDAO_KIND: episteme_structure_toc")?;
-    write_line(file.by_ref(), path, ":ONTOLOGY_KIND: source_structure_toc")?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
+        path,
+        ":WENDAO_KIND: episteme_structure_toc",
+    )?;
+    write_line(
+        writer.by_ref(),
+        path,
+        ":ONTOLOGY_KIND: source_structure_toc",
+    )?;
+    write_line(
+        writer.by_ref(),
         path,
         format!(":RUN_ID: {}", receipt.run_id).as_str(),
     )?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
         path,
         format!(":DOMAIN: {}", receipt.domain).as_str(),
     )?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
         path,
         format!(":PRIMARY_LANGUAGE: {}", receipt.primary_language).as_str(),
     )?;
-    write_line(file.by_ref(), path, ":PROMOTION_STATE: evidence_only")?;
-    write_line(file.by_ref(), path, ":LIFECYCLE_STATE: generated")?;
-    write_line(file.by_ref(), path, ":END:")?;
-    write_line(file.by_ref(), path, "")?;
+    write_line(writer.by_ref(), path, ":PROMOTION_STATE: evidence_only")?;
+    write_line(writer.by_ref(), path, ":LIFECYCLE_STATE: generated")?;
+    write_line(writer.by_ref(), path, ":END:")?;
+    write_line(writer.by_ref(), path, "")?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
         path,
         "This ledger records source structure facts only. It does not embed raw corpus text, execute extraction, or promote RDF truth.",
     )?;
-    write_line(file.by_ref(), path, "")?;
-    write_line(file.by_ref(), path, "** Source manifest")?;
-    write_line(file.by_ref(), path, "| key | value |")?;
-    write_line(file.by_ref(), path, "|---+---|")?;
+    Ok(())
+}
+
+fn write_source_manifest_summary(
+    mut writer: impl Write,
+    path: &Path,
+    receipt: &EpistemeStructureTocReceipt,
+    source_manifest_path: &str,
+) -> Result<(), EpistemeError> {
+    write_line(writer.by_ref(), path, "")?;
+    write_line(writer.by_ref(), path, "** Source manifest")?;
+    write_line(writer.by_ref(), path, "| key | value |")?;
+    write_line(writer.by_ref(), path, "|---+---|")?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
         path,
         format!("| source_manifest | {} |", org_cell(source_manifest_path)).as_str(),
     )?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
         path,
         format!("| file_count | {} |", receipt.file_count).as_str(),
     )?;
-    write_line(file.by_ref(), path, "")?;
-    write_line(file.by_ref(), path, "** Source files")?;
+    Ok(())
+}
+
+fn write_source_files_table(
+    mut writer: impl Write,
+    path: &Path,
+    files: &[EpistemeFileRow],
+) -> Result<(), EpistemeError> {
+    write_line(writer.by_ref(), path, "")?;
+    write_line(writer.by_ref(), path, "** Source files")?;
     write_line(
-        file.by_ref(),
+        writer.by_ref(),
         path,
         "| file_id | relative_path | extension | byte_size | sha256 | category | language | extraction_route |",
     )?;
-    write_line(file.by_ref(), path, "|---+---+---+---+---+---+---+---|")?;
+    write_line(writer.by_ref(), path, "|---+---+---+---+---+---+---+---|")?;
     for source in files {
         write_line(
-            file.by_ref(),
+            writer.by_ref(),
             path,
             format!(
                 "| {} | {} | {} | {} | {} | {} | {} | {} |",
@@ -398,6 +448,31 @@ fn write_toc_org(
                 org_cell(&source.extraction_route),
             )
             .as_str(),
+        )?;
+    }
+    Ok(())
+}
+
+fn write_count_summary(
+    mut writer: impl Write,
+    path: &Path,
+    title: &str,
+    key_label: &str,
+    counts: &BTreeMap<String, usize>,
+) -> Result<(), EpistemeError> {
+    write_line(writer.by_ref(), path, "")?;
+    write_line(writer.by_ref(), path, format!("** {title}").as_str())?;
+    write_line(
+        writer.by_ref(),
+        path,
+        format!("| {key_label} | file_count |").as_str(),
+    )?;
+    write_line(writer.by_ref(), path, "|---+---|")?;
+    for (key, count) in counts {
+        write_line(
+            writer.by_ref(),
+            path,
+            format!("| {} | {count} |", org_cell(key)).as_str(),
         )?;
     }
     Ok(())

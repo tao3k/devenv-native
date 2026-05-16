@@ -43,6 +43,21 @@ impl StudioDocumentExtractFlightRouteProvider {
         }
     }
 
+    #[cfg(test)]
+    pub(super) fn from_registry_with_document_extract_endpoint(
+        registry: Result<DocumentExtractJobRegistry, String>,
+        conversion_limit: usize,
+        endpoint: impl Into<String>,
+    ) -> Self {
+        Self {
+            runtime: Arc::new(DocumentExtractProviderRuntime::new(
+                registry,
+                conversion_limit,
+            )),
+            configured_default_endpoint: Some(endpoint.into()),
+        }
+    }
+
     #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
     pub(super) fn from_registry_with_pdf_ocr_worker_limit(
         registry: Result<DocumentExtractJobRegistry, String>,
@@ -173,6 +188,19 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
                 {
                     Err(
                         "`hybrid-page-ocr` document extraction requires the `document-extract-pdf-source-range` feature"
+                            .to_string(),
+                    )
+                }
+            }
+            DocumentExtractMode::AudioShards => {
+                #[cfg(feature = "document-extract-audio-shards")]
+                {
+                    self.audio_shards_document_extract_batch(request).await
+                }
+                #[cfg(not(feature = "document-extract-audio-shards"))]
+                {
+                    Err(
+                        "`audio-shards` document extraction requires the `document-extract-audio-shards` feature"
                             .to_string(),
                     )
                 }
