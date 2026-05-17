@@ -90,7 +90,9 @@ async fn valkey_hot_state_rejects_zero_lease_ttl_before_connecting() -> Result<(
         capabilities: Vec::new(),
         metadata: serde_json::json!({}),
     };
-    let error = store.acquire_lease(worker, 100, 0).await.unwrap_err();
+    let Err(error) = store.acquire_lease(worker, 100, 0).await else {
+        panic!("expected zero lease ttl to fail before connecting");
+    };
 
     assert!(matches!(
         error,
@@ -112,7 +114,10 @@ async fn valkey_hot_state_rejects_expired_heartbeat_before_connecting() -> Resul
         expires_at_ms: 100,
         metadata: serde_json::json!({}),
     };
-    let error = store.heartbeat(heartbeat).await.unwrap_err();
+    let error = match store.heartbeat(heartbeat).await {
+        Ok(()) => panic!("expected expired heartbeat to fail before connecting"),
+        Err(error) => error,
+    };
 
     assert!(matches!(
         error,
@@ -135,7 +140,9 @@ async fn valkey_hot_state_rejects_zero_renew_ttl_before_connecting() -> Result<(
         acquired_at_ms: 10,
         expires_at_ms: 20,
     };
-    let error = store.renew_lease(&lease, 20, 0).await.unwrap_err();
+    let Err(error) = store.renew_lease(&lease, 20, 0).await else {
+        panic!("expected zero renew ttl to fail before connecting");
+    };
 
     assert!(matches!(
         error,
