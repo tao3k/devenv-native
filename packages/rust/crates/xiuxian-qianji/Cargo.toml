@@ -83,6 +83,7 @@ xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-llm = { path = "../xiuxian-llm", optional = true }
 xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
+xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
 
 [dev-dependencies]
 criterion = { workspace = true }

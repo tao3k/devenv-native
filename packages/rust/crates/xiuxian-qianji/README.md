@@ -65,6 +65,14 @@ and still honors topology declarations. This is the lightweight scheduling
 primitive for later audio, OCR, and graph-search shard execution; domain crates
 still own the shard payloads, cache rules, and precision gates.
 
+Workflow traces can also be projected into the independent Qianji control
+plane through the workflow-kernel control adapter. The adapter maps
+`WorkflowTrace` rows into `xiuxian-qianji-control` events for replay,
+evidence, cost, lease, and recovery management. This is a one-way boundary:
+Qianji still owns workflow/BPMN/Flowhub semantics, while
+[`xiuxian-qianji-control`](../xiuxian-qianji-control/README.md) owns generic
+run and step control state.
+
 ### 2.2 The Divine Logic (Scheduling)
 
 - **Probabilistic MDP Routing:** Decisions are not binary. Edges carry weights influenced by **Omega's Confidence**, allowing the system to explore multiple paths based on probability.

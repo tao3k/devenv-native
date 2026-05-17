@@ -11319,6 +11319,7 @@ dependencies = [
  "xiuxian-logging",
  "xiuxian-macros",
  "xiuxian-qianhuan",
+ "xiuxian-qianji-control",
  "xiuxian-wendao",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",

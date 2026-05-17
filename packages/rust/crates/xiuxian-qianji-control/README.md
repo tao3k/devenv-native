@@ -31,6 +31,10 @@ The intended split is:
 - Qianji workflow/BPMN/Flowhub: domain execution semantics
 - Agent workers: leased executors that attach evidence and observations
 
+Qianji workflow traces are projected into control events by
+[`xiuxian-qianji`](../xiuxian-qianji/README.md). This crate does not depend on
+Qianji workflow types.
+
 ## Current Surface
 
 - `ControlEvent` and `ControlEventRecord`
