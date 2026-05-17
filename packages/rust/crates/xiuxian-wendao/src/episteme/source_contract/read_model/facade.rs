@@ -1,23 +1,38 @@
 //! Episteme source-contract read-model seed materialization.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
-use std::sync::Arc;
 
-use arrow::array::{Array, ArrayRef, Float64Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::array::{Array, StringArray};
 use arrow::record_batch::RecordBatch;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 #[cfg(feature = "julia")]
 use xiuxian_wendao_julia::integration_support::WendaoGraphOntologyReadModelQualityRequestBatches;
+use xiuxian_wendao_parsers::{EpistemeExtractionQueueRow, EpistemeFileRow, EpistemeSourceManifest};
 
-use super::{
-    EpistemeError, EpistemeExtractionQueueRow, EpistemeFileRow,
-    EpistemeRegistryReferenceGraphReceipt, EpistemeSourceManifest,
-    EpistemeValidationHashCacheReport, read_files_tsv, read_mapping_ledger_raw, read_queue_tsv,
-    read_source_manifest, source_contract_paths, validate_episteme_source_contract,
+use crate::episteme::source_contract::facade::{
+    EpistemeError, EpistemeRegistryReferenceGraphReceipt, EpistemeValidationHashCacheReport,
+    read_files_tsv, read_mapping_ledger_raw, read_queue_tsv, read_source_manifest,
+    source_contract_paths, validate_episteme_source_contract,
     validate_episteme_source_contract_with_hash_cache,
+};
+
+#[path = "audio/mod.rs"]
+mod audio;
+#[path = "tables.rs"]
+mod tables;
+
+pub use audio::{
+    EpistemeAudioEvidenceReadModelRequest, EpistemeAudioEvidenceSegmentRow,
+    EpistemeAudioEvidenceSourceRow, EpistemeAudioReviewedClaimObjectKind,
+    EpistemeAudioReviewedClaimReadModelRequest, EpistemeAudioReviewedClaimRow,
+    materialize_episteme_audio_evidence_review_seed,
+    materialize_episteme_audio_reviewed_claim_seed,
+};
+
+use tables::{
+    object_ids, semantic_objects_batch, semantic_projection_state_batch, semantic_relations_batch,
 };
 
 const OBJECTS_TABLE: &str = "semantic_objects";
@@ -205,6 +220,9 @@ pub fn materialize_episteme_registry_reference_graph_read_model_seed(
     })
 }
 
+/// Compile audio transcript evidence rows into graph-readable
+/// review-required semantic read-model seed batches.
+///
 fn materialize_validated_episteme_source_contract_read_model_seed(
     request: &EpistemeReadModelRequest,
 ) -> Result<EpistemeReadModelMaterialization, EpistemeError> {
@@ -640,142 +658,6 @@ where
         .map_err(|error| EpistemeError::ReadModel(error.to_string()))
 }
 
-fn semantic_objects_batch(rows: &[SemanticObjectRow]) -> Result<RecordBatch, EpistemeError> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("id", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("title", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("confidence_score", DataType::Float64, false),
-        Field::new("confidence_source", DataType::Utf8, false),
-        Field::new("owner_count", DataType::Int64, false),
-        Field::new("owners_json", DataType::Utf8, false),
-        Field::new("provenance_source", DataType::Utf8, false),
-        Field::new("provenance_recorded_by", DataType::Utf8, false),
-        Field::new("provenance_recorded_at", DataType::Utf8, false),
-        Field::new("verification_required_json", DataType::Utf8, false),
-        Field::new("verification_evidence_json", DataType::Utf8, false),
-        Field::new("relation_count", DataType::Int64, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]));
-    record_batch(
-        schema,
-        vec![
-            strings(rows.iter().map(|row| row.id.as_str())),
-            strings(rows.iter().map(|row| row.kind)),
-            strings(rows.iter().map(|row| row.title.as_str())),
-            strings(rows.iter().map(|row| row.status)),
-            Arc::new(Float64Array::from_iter_values(
-                rows.iter().map(|row| row.confidence_score),
-            )) as ArrayRef,
-            strings(rows.iter().map(|row| row.confidence_source)),
-            Arc::new(Int64Array::from_iter_values(
-                rows.iter().map(|row| row.owner_count),
-            )) as ArrayRef,
-            strings(rows.iter().map(|row| row.owners_json.as_str())),
-            strings(rows.iter().map(|row| row.provenance_source.as_str())),
-            strings(rows.iter().map(|row| row.provenance_recorded_by)),
-            strings(rows.iter().map(|row| row.provenance_recorded_at)),
-            strings(
-                rows.iter()
-                    .map(|row| row.verification_required_json.as_str()),
-            ),
-            strings(
-                rows.iter()
-                    .map(|row| row.verification_evidence_json.as_str()),
-            ),
-            Arc::new(Int64Array::from_iter_values(
-                rows.iter().map(|row| row.relation_count),
-            )) as ArrayRef,
-            strings(rows.iter().map(|row| row.source_path.as_str())),
-            strings(
-                rows.iter()
-                    .map(|row| row.read_model_source_revision.as_str()),
-            ),
-            strings(rows.iter().map(|row| row.read_model_projection_revision)),
-            strings(rows.iter().map(|row| row.read_model_projection_staleness)),
-        ],
-        OBJECTS_TABLE,
-    )
-}
-
-fn semantic_relations_batch(rows: &[SemanticRelationRow]) -> Result<RecordBatch, EpistemeError> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("source", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("target", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]));
-    record_batch(
-        schema,
-        vec![
-            strings(rows.iter().map(|row| row.source.as_str())),
-            strings(rows.iter().map(|row| row.kind)),
-            strings(rows.iter().map(|row| row.target.as_str())),
-            strings(rows.iter().map(|row| row.source_path.as_str())),
-            strings(
-                rows.iter()
-                    .map(|row| row.read_model_source_revision.as_str()),
-            ),
-            strings(rows.iter().map(|row| row.read_model_projection_revision)),
-            strings(rows.iter().map(|row| row.read_model_projection_staleness)),
-        ],
-        RELATIONS_TABLE,
-    )
-}
-
-fn semantic_projection_state_batch(
-    rows: &[SemanticProjectionStateRow],
-) -> Result<RecordBatch, EpistemeError> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("projection", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("source_revision", DataType::Utf8, false),
-        Field::new("current_source_revision", DataType::Utf8, false),
-        Field::new("projection_revision", DataType::Utf8, false),
-        Field::new("staleness", DataType::Utf8, false),
-        Field::new("source_object_count", DataType::Int64, false),
-        Field::new("source_objects_json", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-    ]));
-    record_batch(
-        schema,
-        vec![
-            strings(rows.iter().map(|row| row.projection)),
-            strings(rows.iter().map(|row| row.status)),
-            strings(rows.iter().map(|row| row.source_revision.as_str())),
-            strings(rows.iter().map(|row| row.current_source_revision.as_str())),
-            strings(rows.iter().map(|row| row.projection_revision)),
-            strings(rows.iter().map(|row| row.staleness)),
-            Arc::new(Int64Array::from_iter_values(
-                rows.iter().map(|row| row.source_object_count),
-            )) as ArrayRef,
-            strings(rows.iter().map(|row| row.source_objects_json.as_str())),
-            strings(rows.iter().map(|row| row.source_path.as_str())),
-        ],
-        PROJECTION_STATE_TABLE,
-    )
-}
-
-fn strings<'a>(values: impl Iterator<Item = &'a str>) -> ArrayRef {
-    Arc::new(StringArray::from_iter_values(values)) as ArrayRef
-}
-
-fn record_batch(
-    schema: Arc<Schema>,
-    columns: Vec<ArrayRef>,
-    table_name: &str,
-) -> Result<RecordBatch, EpistemeError> {
-    RecordBatch::try_new(schema, columns)
-        .map_err(|error| EpistemeError::ReadModel(format!("build `{table_name}`: {error}")))
-}
-
 #[cfg(feature = "julia")]
 fn read_model_batch(
     materialization: &EpistemeReadModelMaterialization,
@@ -787,17 +669,6 @@ fn read_model_batch(
         .find(|table| table.table_name() == table_name)
         .map(|table| table.batch().clone())
         .ok_or_else(|| EpistemeError::ReadModel(format!("missing {table_name}")))
-}
-
-fn object_ids(rows: &RecordBatch) -> BTreeSet<String> {
-    rows.column_by_name("id")
-        .and_then(|column| column.as_any().downcast_ref::<StringArray>())
-        .map(|array| {
-            (0..array.len())
-                .map(|index| array.value(index).to_string())
-                .collect()
-        })
-        .unwrap_or_default()
 }
 
 /// Validate that all relation endpoints reference emitted objects.

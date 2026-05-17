@@ -1,3 +1,8 @@
+//! Episteme extraction run-plan artifact writer.
+//!
+//! This module persists cache-only `tasks.tsv` and receipt JSON artifacts from
+//! validated source-contract run plans without executing extraction.
+
 use std::{
     fs,
     io::Write,

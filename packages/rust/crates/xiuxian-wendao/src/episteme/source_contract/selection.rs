@@ -105,6 +105,8 @@ impl EpistemeEvidenceSelectionPlanRequest {
     }
 }
 
+/// Raw DTO boundary and stringly state boundary for evidence selection rows.
+///
 /// One source-contract file selected for downstream evidence work.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -247,18 +249,26 @@ pub fn read_episteme_evidence_selection_file_ids(
         source,
     })?;
     let rows = parse_selection_tsv(path, raw.as_str())?;
-    let mut seen = BTreeSet::new();
-    let mut file_ids = Vec::new();
-    let mut errors = Vec::new();
-    for row in rows {
-        if !seen.insert(row.file_id.clone()) {
-            errors.push(format!("duplicate selected file_id: {}", row.file_id));
-        }
-        file_ids.push(row.file_id);
-    }
+    let file_ids = selected_file_ids_from_rows(rows)?;
     if file_ids.is_empty() {
         return Err(EpistemeError::EmptySelection);
     }
+    Ok(file_ids)
+}
+
+fn selected_file_ids_from_rows(
+    rows: Vec<EpistemeEvidenceSelectionRow>,
+) -> Result<Vec<String>, EpistemeError> {
+    let (file_ids, (_, errors)) = rows.into_iter().fold(
+        (Vec::new(), (BTreeSet::new(), Vec::new())),
+        |(mut file_ids, (mut seen, mut errors)), row| {
+            if !seen.insert(row.file_id.clone()) {
+                errors.push(format!("duplicate selected file_id: {}", row.file_id));
+            }
+            file_ids.push(row.file_id);
+            (file_ids, (seen, errors))
+        },
+    );
     if errors.is_empty() {
         Ok(file_ids)
     } else {

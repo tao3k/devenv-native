@@ -80,7 +80,9 @@ impl EpistemeEvidenceReadRequest {
     }
 }
 
-/// Source row metadata resolved for a targeted evidence read.
+/// Raw DTO boundary and stringly state boundary for targeted evidence rows.
+///
+/// Source row metadata resolved from `files.tsv` for a targeted evidence read.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EpistemeEvidenceSourceRef {
@@ -144,6 +146,8 @@ pub enum EpistemeEvidenceSha256Status {
     NotChecked,
 }
 
+/// Raw DTO boundary and stringly state boundary for targeted evidence reads.
+///
 /// Report emitted after reading one targeted source evidence row.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -2,7 +2,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs,
+    fmt, fs,
     path::{Component, Path, PathBuf},
 };
 
@@ -18,6 +18,8 @@ const REGISTRY_REFERENCE_GRAPH_SCHEMA_VERSION: &str =
 const ONTOLOGY_MANIFEST_RELATIVE_PATH: &str = "ontology/manifest.toml";
 const DEFAULT_SUBDIR: &str = ".";
 
+/// Raw DTO boundary and stringly state boundary for operator registry entries.
+///
 /// User-declared episteme registry entry.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct EpistemeRegistryEntry {
@@ -160,6 +162,85 @@ pub struct EpistemeRegistryReferenceGraphLink {
     pub target_registry: String,
 }
 
+/// Payload for a failed Git-backed episteme registry materialization.
+#[derive(Debug, Error)]
+#[error("failed to materialize Git episteme registry `{id}` from `{url}`: {source}")]
+pub struct EpistemeRegistryGitMaterializationError {
+    /// Registry id.
+    pub id: String,
+    /// Git URL.
+    pub url: String,
+    /// Repository substrate error.
+    #[source]
+    pub source: RepoError,
+}
+
+/// Payload for an invalid domain id declared by an episteme registry manifest.
+#[derive(Debug, Error)]
+#[error("episteme registry `{id}` manifest declares invalid domain id `{domain_id}`")]
+pub struct EpistemeRegistryInvalidDomainId {
+    /// Registry id.
+    pub id: String,
+    /// Rejected domain id.
+    pub domain_id: String,
+}
+
+/// Episteme domain id carried by registry diagnostics.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct EpistemeRegistryDomainId(String);
+
+impl From<String> for EpistemeRegistryDomainId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl fmt::Display for EpistemeRegistryDomainId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.0.as_str())
+    }
+}
+
+/// Episteme registry id carried by registry diagnostics.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct EpistemeRegistryId(String);
+
+impl From<String> for EpistemeRegistryId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl fmt::Display for EpistemeRegistryId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.0.as_str())
+    }
+}
+
+/// Payload for a duplicate domain id across episteme registry entries.
+#[derive(Debug, Error)]
+#[error(
+    "episteme domain `{domain}` is declared by both registry `{first_registry}` and `{duplicate_registry}`"
+)]
+pub struct EpistemeRegistryDuplicateDomainId {
+    /// Duplicate domain id.
+    pub domain: EpistemeRegistryDomainId,
+    /// First registry id that declared the domain.
+    pub first_registry: EpistemeRegistryId,
+    /// Later registry id that declared the same domain.
+    pub duplicate_registry: EpistemeRegistryId,
+}
+
+/// Payload for an extension target missing from the loaded episteme registry graph.
+#[derive(Debug, Error)]
+#[error("episteme registry `{id}` extends `{target_domain_id}`, but no loaded registry owns it")]
+pub struct EpistemeRegistryMissingExtensionTarget {
+    /// Registry id.
+    pub id: String,
+    /// Missing target domain id.
+    pub target_domain_id: String,
+}
+
 /// Error returned by episteme registry loading.
 #[derive(Debug, Error)]
 pub enum EpistemeRegistryError {
@@ -197,16 +278,8 @@ pub enum EpistemeRegistryError {
         root: PathBuf,
     },
     /// A Git-backed entry could not be materialized.
-    #[error("failed to materialize Git episteme registry `{id}` from `{url}`: {source}")]
-    GitMaterialization {
-        /// Registry id.
-        id: String,
-        /// Git URL.
-        url: String,
-        /// Repository substrate error.
-        #[source]
-        source: RepoError,
-    },
+    #[error(transparent)]
+    GitMaterialization(#[from] EpistemeRegistryGitMaterializationError),
     /// A loaded registry manifest could not be read.
     #[error("failed to read episteme registry `{id}` manifest `{path}`: {source}")]
     ManifestRead {
@@ -236,35 +309,14 @@ pub enum EpistemeRegistryError {
         id: String,
     },
     /// A loaded registry manifest declares an invalid domain id.
-    #[error("episteme registry `{id}` manifest declares invalid domain id `{domain_id}`")]
-    InvalidDomainId {
-        /// Registry id.
-        id: String,
-        /// Rejected domain id.
-        domain_id: String,
-    },
+    #[error(transparent)]
+    InvalidDomainId(#[from] EpistemeRegistryInvalidDomainId),
     /// Two loaded registry entries declare the same domain id.
-    #[error(
-        "episteme domain `{domain_id}` is declared by both registry `{first_registry_id}` and `{duplicate_registry_id}`"
-    )]
-    DuplicateDomainId {
-        /// Duplicate domain id.
-        domain_id: String,
-        /// First registry id that declared the domain.
-        first_registry_id: String,
-        /// Later registry id that declared the same domain.
-        duplicate_registry_id: String,
-    },
+    #[error(transparent)]
+    DuplicateDomainId(#[from] EpistemeRegistryDuplicateDomainId),
     /// An extension target is not owned by any loaded registry entry.
-    #[error(
-        "episteme registry `{id}` extends `{target_domain_id}`, but no loaded registry owns it"
-    )]
-    MissingExtensionTarget {
-        /// Registry id.
-        id: String,
-        /// Missing target domain id.
-        target_domain_id: String,
-    },
+    #[error(transparent)]
+    MissingExtensionTarget(#[from] EpistemeRegistryMissingExtensionTarget),
 }
 
 /// Load all enabled episteme registry entries with normal ensure semantics.
@@ -328,11 +380,12 @@ pub fn validate_episteme_registry_reference_graph(
             if let Some(first_registry_id) =
                 domain_owner.insert(domain_id.clone(), loaded.id.clone())
             {
-                return Err(EpistemeRegistryError::DuplicateDomainId {
-                    domain_id: domain_id.clone(),
-                    first_registry_id,
-                    duplicate_registry_id: loaded.id.clone(),
-                });
+                return Err(EpistemeRegistryDuplicateDomainId {
+                    domain: domain_id.clone().into(),
+                    first_registry: first_registry_id.into(),
+                    duplicate_registry: loaded.id.clone().into(),
+                }
+                .into());
             }
         }
         graph_entries.push(EpistemeRegistryReferenceGraphEntry {
@@ -347,10 +400,11 @@ pub fn validate_episteme_registry_reference_graph(
     for entry in &graph_entries {
         for target_domain_id in &entry.extension_targets {
             let Some(target_registry_id) = domain_owner.get(target_domain_id) else {
-                return Err(EpistemeRegistryError::MissingExtensionTarget {
+                return Err(EpistemeRegistryMissingExtensionTarget {
                     id: entry.registry_id.clone(),
                     target_domain_id: target_domain_id.clone(),
-                });
+                }
+                .into());
             };
             reference_links.push(EpistemeRegistryReferenceGraphLink {
                 source_registry: entry.registry_id.clone(),
@@ -427,11 +481,11 @@ fn load_git_entry(
         refresh: RepoRefreshPolicy::Fetch,
     };
     let materialized = resolve_repository_source(&spec, project_root, mode).map_err(|source| {
-        EpistemeRegistryError::GitMaterialization {
+        EpistemeRegistryError::from(EpistemeRegistryGitMaterializationError {
             id: id.clone(),
             url: url.clone(),
             source,
-        }
+        })
     })?;
     let episteme_root = apply_subdir(materialized.checkout_root.as_path(), subdir);
     ensure_manifest(&id, episteme_root.as_path())?;
@@ -590,21 +644,26 @@ fn normalized_manifest_domain_ids(
     if domains.is_empty() {
         return Err(EpistemeRegistryError::MissingDomains { id: id.to_string() });
     }
-    let mut seen = BTreeSet::new();
-    let mut domain_ids = Vec::new();
-    for domain in domains {
-        let domain_id = domain.id.trim();
-        if domain_id.is_empty() {
-            return Err(EpistemeRegistryError::InvalidDomainId {
-                id: id.to_string(),
-                domain_id: domain.id,
-            });
-        }
-        if seen.insert(domain_id.to_string()) {
-            domain_ids.push(domain_id.to_string());
-        }
-    }
-    Ok(domain_ids)
+    domains
+        .into_iter()
+        .try_fold(
+            (BTreeSet::new(), Vec::new()),
+            |(mut seen, mut domain_ids), domain| {
+                let domain_id = domain.id.trim();
+                if domain_id.is_empty() {
+                    return Err(EpistemeRegistryInvalidDomainId {
+                        id: id.to_string(),
+                        domain_id: domain.id,
+                    }
+                    .into());
+                }
+                if seen.insert(domain_id.to_string()) {
+                    domain_ids.push(domain_id.to_string());
+                }
+                Ok((seen, domain_ids))
+            },
+        )
+        .map(|(_, domain_ids)| domain_ids)
 }
 
 fn normalized_extension_targets(extends: Option<RegistryManifestExtends>) -> Vec<String> {

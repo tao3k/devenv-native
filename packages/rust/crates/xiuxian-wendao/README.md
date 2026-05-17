@@ -192,11 +192,37 @@ Use `xiuxian-wendao` for:
   manifests, mapping ledger shape, queue/file consistency, filters, and selected
   `file_id` coverage without traversing or hashing the source corpus. Full
   sha256 proof remains the validation/read-model/promotion boundary, not the
-  no-execution planning boundary.
+  no-execution planning boundary. Image evidence enters this same admission
+  path through the explicit `image_ocr_evidence` route: the planner writes
+  cache-only planned OCR tasks and preserves `raw_to_rdf_promotion_allowed =
+false`, while actual OCR execution remains a later Gateway/analyzer
+  extraction step.
   The same source-contract service also exposes targeted evidence reads by
   `file_id`, returning bounded metadata and plain-text previews without
-  arbitrary path reads, extractor execution, or ontology promotion. Studio
-  can also load episteme repositories from thin deployment registry entries:
+  arbitrary path reads, extractor execution, or ontology promotion.
+  Full-audio transcript ledgers can enter this same graph-quality lane through
+  `materialize_episteme_audio_evidence_review_seed`: the API accepts
+  model-neutral audio evidence source and segment rows, emits review-required
+  `semantic_objects`, `semantic_relations`, and `semantic_projection_state`
+  batches, and validates source hashes, shard ids, transcript hashes, timing,
+  and duplicate segment identity. Raw transcript text is validated as evidence
+  input but is not embedded into emitted semantic objects, and the output is a
+  review queue for WendaoGraph quality checks rather than RDF materialization
+  or ontology truth promotion. Human-accepted audio claims can then enter the
+  same read-model contract through
+  `materialize_episteme_audio_reviewed_claim_seed`: reviewed claim rows must
+  reference known audio evidence segment ids, carry reviewer and evidence-hash
+  provenance, and emit promotion-candidate semantic objects plus
+  claim-to-evidence relations for graph-quality review. This second gate still
+  does not write ontology source files or promote transcript text directly to
+  RDF truth. Accepted reviewed claims can also be written to local proposal
+  artifacts with `write_episteme_audio_claim_promotion_proposal`, which emits
+  deterministic reviewed-claim TSV and receipt JSON files for human or
+  source-contract promotion review. These proposal artifacts carry ontology
+  triple intent and evidence hashes only; they do not materialize RDF, mutate
+  ontology source files, or include raw transcript text.
+  Studio can also load episteme repositories from
+  thin deployment registry entries:
   local entries use `path = "..."`, Git entries use `url = "..."`, and Rust
   owns source-kind inference, managed checkout materialization, resolved
   revision receipts, and cache paths. The primary user config does not require

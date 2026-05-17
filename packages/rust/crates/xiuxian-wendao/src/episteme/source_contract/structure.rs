@@ -136,6 +136,34 @@ pub fn write_episteme_structure_toc(
     run_root: impl AsRef<Path>,
 ) -> Result<EpistemeStructureTocWriteReport, EpistemeError> {
     safe_run_id(request.run_id.as_str())?;
+    let (files, receipt, source_manifest_relative_path) = structure_toc_inputs(request)?;
+    let paths = EpistemeStructureTocOutputPaths::new(run_root.as_ref(), request.run_id.as_str());
+
+    create_dir_all(paths.run_dir.as_path())?;
+    write_toc_org(
+        paths.toc_org_path.as_path(),
+        &receipt,
+        &files,
+        source_manifest_relative_path.as_str(),
+    )?;
+    write_receipt_json(paths.receipt_path.as_path(), &receipt)?;
+
+    Ok(EpistemeStructureTocWriteReport {
+        schema_version: TOC_WRITE_REPORT_SCHEMA_VERSION,
+        run_id: request.run_id.clone(),
+        run_dir: paths.run_dir,
+        toc_org_path: paths.toc_org_path,
+        receipt_path: paths.receipt_path,
+        file_count: receipt.file_count,
+        extraction_executed: false,
+        raw_to_rdf_promotion_allowed: false,
+        validation_mode: request.validation_mode,
+    })
+}
+
+fn structure_toc_inputs(
+    request: &EpistemeStructureTocRequest,
+) -> Result<(Vec<EpistemeFileRow>, EpistemeStructureTocReceipt, String), EpistemeError> {
     let manifest = read_source_manifest(&request.episteme_root)?;
     let paths = source_contract_paths(&request.episteme_root)?;
     let corpus_dir = paths.corpus_dir(&request.episteme_root)?;
@@ -154,29 +182,28 @@ pub fn write_episteme_structure_toc(
         validation_mode: request.validation_mode,
     };
 
-    let run_dir = run_root.as_ref().join(&request.run_id);
-    let toc_org_path = run_dir.join(TOC_ORG);
-    let receipt_path = run_dir.join(RECEIPT_JSON);
-    create_dir_all(run_dir.as_path())?;
-    write_toc_org(
-        toc_org_path.as_path(),
-        &receipt,
-        &files,
-        paths.source_manifest_relative_path(),
-    )?;
-    write_receipt_json(receipt_path.as_path(), &receipt)?;
+    Ok((
+        files,
+        receipt,
+        paths.source_manifest_relative_path().to_string(),
+    ))
+}
 
-    Ok(EpistemeStructureTocWriteReport {
-        schema_version: TOC_WRITE_REPORT_SCHEMA_VERSION,
-        run_id: request.run_id.clone(),
-        run_dir,
-        toc_org_path,
-        receipt_path,
-        file_count: receipt.file_count,
-        extraction_executed: false,
-        raw_to_rdf_promotion_allowed: false,
-        validation_mode: request.validation_mode,
-    })
+struct EpistemeStructureTocOutputPaths {
+    run_dir: PathBuf,
+    toc_org_path: PathBuf,
+    receipt_path: PathBuf,
+}
+
+impl EpistemeStructureTocOutputPaths {
+    fn new(run_root: &Path, run_id: &str) -> Self {
+        let run_dir = run_root.join(run_id);
+        Self {
+            toc_org_path: run_dir.join(TOC_ORG),
+            receipt_path: run_dir.join(RECEIPT_JSON),
+            run_dir,
+        }
+    }
 }
 
 fn validate_for_mode(

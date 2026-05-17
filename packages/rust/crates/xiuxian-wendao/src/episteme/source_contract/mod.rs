@@ -1,12 +1,14 @@
-//! Wendao-owned episteme source-contract services.
+//! Episteme source-contract planning, validation, and read-model facades.
+//!
+//! This branch keeps raw corpus rows as evidence, validates them through
+//! parser-owned contracts, and exposes Rust-owned run-plan, registry, and
+//! read-model surfaces for downstream `WendaoGraph` quality checks.
 
-mod source_contract;
-
-pub use xiuxian_wendao_parsers::EpistemeFileRow;
+mod facade;
 
 #[cfg(feature = "julia")]
-pub use source_contract::build_episteme_wendaograph_quality_request_batches;
-pub use source_contract::{
+pub use facade::build_episteme_wendaograph_quality_request_batches;
+pub use facade::{
     EpistemeAudioClaimPromotionProposalReport, EpistemeAudioClaimPromotionProposalRequest,
     EpistemeAudioEvidenceReadModelRequest, EpistemeAudioEvidenceSegmentRow,
     EpistemeAudioEvidenceSourceRow, EpistemeAudioReviewedClaimObjectKind,
