@@ -1,6 +1,119 @@
 //! Workflow kernel data model.
 
+use std::fmt;
+
 use super::{WorkflowCheckpointRef, WorkflowMemoryCheckpointStore};
+
+/// Stable workflow identifier.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct WorkflowId(String);
+
+impl WorkflowId {
+    /// Creates one workflow id.
+    #[must_use]
+    pub fn new(workflow_id: impl Into<String>) -> Self {
+        Self(workflow_id.into())
+    }
+
+    /// Borrows the workflow id string.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl fmt::Display for WorkflowId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl From<String> for WorkflowId {
+    fn from(workflow_id: String) -> Self {
+        Self::new(workflow_id)
+    }
+}
+
+impl From<&str> for WorkflowId {
+    fn from(workflow_id: &str) -> Self {
+        Self::new(workflow_id)
+    }
+}
+
+/// Stable workflow stage identifier.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct WorkflowStageId(String);
+
+impl WorkflowStageId {
+    /// Creates one workflow stage id.
+    #[must_use]
+    pub fn new(stage_id: impl Into<String>) -> Self {
+        Self(stage_id.into())
+    }
+
+    /// Borrows the stage id string.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl fmt::Display for WorkflowStageId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl From<String> for WorkflowStageId {
+    fn from(stage_id: String) -> Self {
+        Self::new(stage_id)
+    }
+}
+
+impl From<&str> for WorkflowStageId {
+    fn from(stage_id: &str) -> Self {
+        Self::new(stage_id)
+    }
+}
+
+/// Stable workflow checkpoint identifier.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct WorkflowCheckpointId(String);
+
+impl WorkflowCheckpointId {
+    /// Creates one workflow checkpoint id.
+    #[must_use]
+    pub fn new(checkpoint_id: impl Into<String>) -> Self {
+        Self(checkpoint_id.into())
+    }
+
+    /// Borrows the checkpoint id string.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl fmt::Display for WorkflowCheckpointId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl From<String> for WorkflowCheckpointId {
+    fn from(checkpoint_id: String) -> Self {
+        Self::new(checkpoint_id)
+    }
+}
+
+impl From<&str> for WorkflowCheckpointId {
+    fn from(checkpoint_id: &str) -> Self {
+        Self::new(checkpoint_id)
+    }
+}
 
 /// Describes the payload kind carried across one workflow stage boundary.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

@@ -7,19 +7,23 @@ mod stage;
 mod topology;
 
 #[cfg(test)]
+#[path = "../../tests/unit/workflow_kernel/mod.rs"]
 mod tests;
 
 pub use checkpoint::{
     WorkflowCheckpointError, WorkflowCheckpointRef, WorkflowCheckpointStorageKind,
-    WorkflowMemoryCheckpointStore,
+    WorkflowMemoryCheckpointStore, WorkflowStageCheckpointMiss,
 };
 pub use model::{
-    WorkflowEdgeKind, WorkflowExecutionReport, WorkflowStageFacts, WorkflowStageStatus,
-    WorkflowStageTrace, WorkflowTrace,
+    WorkflowCheckpointId, WorkflowEdgeKind, WorkflowExecutionReport, WorkflowId,
+    WorkflowStageFacts, WorkflowStageId, WorkflowStageStatus, WorkflowStageTrace, WorkflowTrace,
 };
-pub use run::{WorkflowExecutionError, WorkflowRun};
+pub use run::{
+    WorkflowBoundedFanoutStageRequest, WorkflowExecutionError, WorkflowMemoryCheckpointRecord,
+    WorkflowRun,
+};
 pub use stage::WorkflowStage;
 pub use topology::{
-    WorkflowCompletionError, WorkflowStageBinding, WorkflowTopology, WorkflowTopologyEdge,
-    WorkflowTopologyError,
+    WorkflowCompletionError, WorkflowDuplicateStage, WorkflowMissingEdgeStage,
+    WorkflowStageBinding, WorkflowTopology, WorkflowTopologyEdge, WorkflowTopologyError,
 };

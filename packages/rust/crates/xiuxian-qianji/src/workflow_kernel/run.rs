@@ -10,10 +10,10 @@ use std::{
 use futures::{StreamExt, stream};
 
 use super::{
-    WorkflowCheckpointError, WorkflowCheckpointRef, WorkflowCompletionError,
-    WorkflowExecutionReport, WorkflowMemoryCheckpointStore, WorkflowStage, WorkflowStageFacts,
-    WorkflowStageStatus, WorkflowStageTrace, WorkflowTopology, WorkflowTopologyError,
-    WorkflowTrace,
+    WorkflowCheckpointError, WorkflowCheckpointId, WorkflowCheckpointRef, WorkflowCompletionError,
+    WorkflowExecutionReport, WorkflowMemoryCheckpointStore, WorkflowStage,
+    WorkflowStageCheckpointMiss, WorkflowStageFacts, WorkflowStageId, WorkflowStageStatus,
+    WorkflowStageTrace, WorkflowTopology, WorkflowTopologyError, WorkflowTrace,
 };
 
 /// Error returned when a workflow stage fails.
@@ -28,6 +28,36 @@ pub struct WorkflowExecutionError {
     pub message: String,
     /// Trace captured through the failed stage.
     pub trace: WorkflowTrace,
+}
+
+/// Request object for bounded fan-out workflow stages.
+pub struct WorkflowBoundedFanoutStageRequest<I, OutputFacts, F> {
+    /// Stable stage identifier.
+    pub stage_id: WorkflowStageId,
+    /// Input items in desired output order.
+    pub inputs: Vec<I>,
+    /// Maximum number of concurrently executing item futures.
+    pub max_concurrency: usize,
+    /// Facts attached to the fan-out input edge.
+    pub input_facts: WorkflowStageFacts,
+    /// Facts builder for the ordered output edge.
+    pub output_facts: OutputFacts,
+    /// Per-item operation.
+    pub operation: F,
+}
+
+/// Request object for memory checkpoint recording.
+pub struct WorkflowMemoryCheckpointRecord<T> {
+    /// Stage that produced the checkpoint.
+    pub stage_id: WorkflowStageId,
+    /// Stable checkpoint identifier.
+    pub checkpoint_id: WorkflowCheckpointId,
+    /// Facts attached to the checkpointed edge.
+    pub facts: WorkflowStageFacts,
+    /// Optional producer-supplied fingerprint.
+    pub content_fingerprint: Option<String>,
+    /// Same-process payload handle.
+    pub payload: Arc<T>,
 }
 
 /// Mutable state for one Rust-native workflow execution.
@@ -113,8 +143,9 @@ impl WorkflowRun {
         let input_facts = stage.input_facts(&input);
         let started_unix_ms = unix_millis_now();
         let started = Instant::now();
+        let typed_stage_id = WorkflowStageId::new(stage_id);
         if let Some(topology) = &self.topology
-            && !topology.contains_stage(stage_id)
+            && !topology.contains_stage(&typed_stage_id)
         {
             let message = format!("stage `{stage_id}` is not declared by workflow topology");
             self.trace.stages.push(failure_trace(
@@ -176,12 +207,7 @@ impl WorkflowRun {
     /// trace.
     pub async fn run_bounded_fanout_stage<I, O, E, F, Fut, OutputFacts>(
         &mut self,
-        stage_id: &'static str,
-        inputs: Vec<I>,
-        max_concurrency: usize,
-        input_facts: WorkflowStageFacts,
-        output_facts: OutputFacts,
-        operation: F,
+        request: WorkflowBoundedFanoutStageRequest<I, OutputFacts, F>,
     ) -> Result<Vec<O>, WorkflowExecutionError>
     where
         I: Send,
@@ -191,47 +217,38 @@ impl WorkflowRun {
         Fut: Future<Output = Result<O, E>> + Send,
         OutputFacts: Fn(&[O]) -> WorkflowStageFacts,
     {
+        let stage_id = request.stage_id;
+        let input_facts = request.input_facts;
         let started_unix_ms = unix_millis_now();
         let started = Instant::now();
         if let Some(topology) = &self.topology
-            && !topology.contains_stage(stage_id)
+            && !topology.contains_stage(&stage_id)
         {
             let message = format!("stage `{stage_id}` is not declared by workflow topology");
             self.trace.stages.push(failure_trace(
-                stage_id,
+                stage_id.as_str(),
                 started_unix_ms,
                 started.elapsed(),
-                input_facts,
+                input_facts.clone(),
                 message.clone(),
             ));
             return Err(WorkflowExecutionError {
                 workflow_id: self.workflow_id.clone(),
-                stage_id: stage_id.to_owned(),
+                stage_id: stage_id.as_str().to_owned(),
                 message,
                 trace: self.trace.clone(),
             });
         }
 
-        let concurrency = max_concurrency.max(1);
-        let mut indexed_outputs = Vec::new();
-        let mut stream = stream::iter(inputs.into_iter().enumerate().map(|(index, input)| {
-            let future = operation(index, input);
-            async move {
-                future
-                    .await
-                    .map(|output| (index, output))
-                    .map_err(|error| (index, error))
-            }
-        }))
-        .buffer_unordered(concurrency);
-
-        while let Some(result) = stream.next().await {
-            match result {
-                Ok(indexed_output) => indexed_outputs.push(indexed_output),
+        let outputs =
+            match run_ordered_fanout(request.inputs, request.max_concurrency, request.operation)
+                .await
+            {
+                Ok(outputs) => outputs,
                 Err((index, error)) => {
                     let message = format!("fan-out item `{index}` failed: {error}");
                     self.trace.stages.push(failure_trace(
-                        stage_id,
+                        stage_id.as_str(),
                         started_unix_ms,
                         started.elapsed(),
                         input_facts,
@@ -239,22 +256,15 @@ impl WorkflowRun {
                     ));
                     return Err(WorkflowExecutionError {
                         workflow_id: self.workflow_id.clone(),
-                        stage_id: stage_id.to_owned(),
+                        stage_id: stage_id.as_str().to_owned(),
                         message,
                         trace: self.trace.clone(),
                     });
                 }
-            }
-        }
-
-        indexed_outputs.sort_by_key(|(index, _)| *index);
-        let outputs = indexed_outputs
-            .into_iter()
-            .map(|(_, output)| output)
-            .collect::<Vec<_>>();
-        let output_facts = output_facts(outputs.as_slice());
+            };
+        let output_facts = (request.output_facts)(outputs.as_slice());
         self.trace.stages.push(success_trace(
-            stage_id,
+            stage_id.as_str(),
             started_unix_ms,
             started.elapsed(),
             input_facts,
@@ -298,37 +308,74 @@ impl WorkflowRun {
     /// already exists in this run.
     pub fn record_memory_checkpoint<T>(
         &mut self,
-        stage_id: &str,
-        checkpoint_id: impl Into<String>,
-        facts: WorkflowStageFacts,
-        content_fingerprint: Option<String>,
-        payload: Arc<T>,
+        request: WorkflowMemoryCheckpointRecord<T>,
     ) -> Result<WorkflowCheckpointRef, WorkflowCheckpointError>
     where
         T: Any + Send + Sync + 'static,
     {
-        let checkpoint_id = checkpoint_id.into();
+        let stage_id = request.stage_id;
+        let checkpoint_id = request.checkpoint_id;
         let stage_index = self
             .trace
             .stages
             .iter()
             .rposition(|trace| {
-                trace.stage_id == stage_id && trace.status == WorkflowStageStatus::Succeeded
+                trace.stage_id == stage_id.as_str()
+                    && trace.status == WorkflowStageStatus::Succeeded
             })
-            .ok_or_else(|| WorkflowCheckpointError::StageNotSucceeded {
-                stage_id: stage_id.to_owned(),
-                checkpoint_id: checkpoint_id.clone(),
+            .ok_or_else(|| {
+                WorkflowCheckpointError::StageNotSucceeded(WorkflowStageCheckpointMiss {
+                    stage_id: stage_id.clone(),
+                    checkpoint_id: checkpoint_id.clone(),
+                })
             })?;
-        let mut checkpoint_ref = WorkflowCheckpointRef::memory(&checkpoint_id, stage_id, facts);
-        if let Some(content_fingerprint) = content_fingerprint {
+        let mut checkpoint_ref =
+            WorkflowCheckpointRef::memory(checkpoint_id.as_str(), stage_id.as_str(), request.facts);
+        if let Some(content_fingerprint) = request.content_fingerprint {
             checkpoint_ref = checkpoint_ref.with_content_fingerprint(content_fingerprint);
         }
-        let checkpoint_ref = self.memory_checkpoints.insert(checkpoint_ref, payload)?;
+        let checkpoint_ref = self
+            .memory_checkpoints
+            .insert(checkpoint_ref, request.payload)?;
         self.trace.stages[stage_index]
             .checkpoints
             .push(checkpoint_ref.clone());
         Ok(checkpoint_ref)
     }
+}
+
+async fn run_ordered_fanout<I, O, E, F, Fut>(
+    inputs: Vec<I>,
+    max_concurrency: usize,
+    operation: F,
+) -> Result<Vec<O>, (usize, E)>
+where
+    I: Send,
+    O: Send,
+    E: std::fmt::Display + Send + Sync + 'static,
+    F: Fn(usize, I) -> Fut + Send + Sync,
+    Fut: Future<Output = Result<O, E>> + Send,
+{
+    let mut indexed_outputs = Vec::new();
+    let mut stream = stream::iter(inputs.into_iter().enumerate().map(|(index, input)| {
+        let future = operation(index, input);
+        async move {
+            future
+                .await
+                .map(|output| (index, output))
+                .map_err(|error| (index, error))
+        }
+    }))
+    .buffer_unordered(max_concurrency.max(1));
+
+    while let Some(result) = stream.next().await {
+        indexed_outputs.push(result?);
+    }
+    indexed_outputs.sort_by_key(|(index, _)| *index);
+    Ok(indexed_outputs
+        .into_iter()
+        .map(|(_, output)| output)
+        .collect())
 }
 
 fn success_trace(

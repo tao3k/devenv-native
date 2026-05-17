@@ -11329,6 +11329,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "xiuxian-qianji-control"
+version = "0.1.1"
+dependencies = [
+ "async-trait",
+ "rust-lang-project-harness",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
 name = "xiuxian-sandbox"
 version = "0.1.1"
 dependencies = [

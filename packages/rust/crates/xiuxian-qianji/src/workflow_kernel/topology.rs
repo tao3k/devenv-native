@@ -1,8 +1,11 @@
 //! Front-end-neutral workflow topology contract.
 
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::{self, Display},
+};
 
-use super::{WorkflowEdgeKind, WorkflowStageStatus, WorkflowTrace};
+use super::{WorkflowEdgeKind, WorkflowId, WorkflowStageId, WorkflowStageStatus, WorkflowTrace};
 
 /// Declares one stage that may be executed by a workflow run.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -142,7 +145,11 @@ impl WorkflowTopology {
 
     /// Returns whether this topology declares the supplied stage id.
     #[must_use]
-    pub fn contains_stage(&self, stage_id: &str) -> bool {
+    pub fn contains_stage(&self, stage_id: &WorkflowStageId) -> bool {
+        self.contains_stage_str(stage_id.as_str())
+    }
+
+    fn contains_stage_str(&self, stage_id: &str) -> bool {
         self.stages.iter().any(|stage| stage.stage_id == stage_id)
     }
 
@@ -160,6 +167,11 @@ impl WorkflowTopology {
     ///
     /// Returns an error when the topology is invalid.
     pub fn topological_stage_ids(&self) -> Result<Vec<String>, WorkflowTopologyError> {
+        let stage_index = self.validated_stage_index()?;
+        WorkflowTopologyGraph::from_topology(self, &stage_index)?.topological_stage_ids(self)
+    }
+
+    fn validated_stage_index(&self) -> Result<HashMap<&str, usize>, WorkflowTopologyError> {
         if self.workflow_id.trim().is_empty() {
             return Err(WorkflowTopologyError::EmptyWorkflowId);
         }
@@ -177,60 +189,16 @@ impl WorkflowTopology {
                 });
             }
             if stage_index.insert(stage.stage_id.as_str(), index).is_some() {
-                return Err(WorkflowTopologyError::DuplicateStage {
-                    workflow_id: self.workflow_id.clone(),
-                    stage_id: stage.stage_id.clone(),
-                });
+                return Err(WorkflowTopologyError::DuplicateStage(
+                    WorkflowDuplicateStage {
+                        workflow_id: self.workflow_id.clone().into(),
+                        stage_id: stage.stage_id.clone().into(),
+                    },
+                ));
             }
         }
 
-        let mut adjacency = vec![Vec::new(); self.stages.len()];
-        let mut indegree = vec![0_usize; self.stages.len()];
-        for edge in &self.edges {
-            let Some(from_index) = stage_index.get(edge.from_stage_id.as_str()).copied() else {
-                return Err(WorkflowTopologyError::MissingEdgeStage {
-                    workflow_id: self.workflow_id.clone(),
-                    from_stage_id: edge.from_stage_id.clone(),
-                    to_stage_id: edge.to_stage_id.clone(),
-                    missing_stage_id: edge.from_stage_id.clone(),
-                });
-            };
-            let Some(to_index) = stage_index.get(edge.to_stage_id.as_str()).copied() else {
-                return Err(WorkflowTopologyError::MissingEdgeStage {
-                    workflow_id: self.workflow_id.clone(),
-                    from_stage_id: edge.from_stage_id.clone(),
-                    to_stage_id: edge.to_stage_id.clone(),
-                    missing_stage_id: edge.to_stage_id.clone(),
-                });
-            };
-            adjacency[from_index].push(to_index);
-            indegree[to_index] += 1;
-        }
-
-        let mut ready = indegree
-            .iter()
-            .enumerate()
-            .filter_map(|(index, degree)| (*degree == 0).then_some(index))
-            .collect::<VecDeque<_>>();
-        let mut ordered = Vec::with_capacity(self.stages.len());
-
-        while let Some(index) = ready.pop_front() {
-            ordered.push(self.stages[index].stage_id.clone());
-            for next_index in &adjacency[index] {
-                indegree[*next_index] -= 1;
-                if indegree[*next_index] == 0 {
-                    ready.push_back(*next_index);
-                }
-            }
-        }
-
-        if ordered.len() != self.stages.len() {
-            return Err(WorkflowTopologyError::Cycle {
-                workflow_id: self.workflow_id.clone(),
-            });
-        }
-
-        Ok(ordered)
+        Ok(stage_index)
     }
 
     /// Validates an execution trace against this topology.
@@ -243,10 +211,10 @@ impl WorkflowTopology {
     pub fn validate_trace(&self, trace: &WorkflowTrace) -> Result<(), WorkflowCompletionError> {
         let mut successful_indices = HashMap::new();
         for (index, stage_trace) in trace.stages.iter().enumerate() {
-            if !self.contains_stage(stage_trace.stage_id.as_str()) {
+            if !self.contains_stage_str(stage_trace.stage_id.as_str()) {
                 return Err(WorkflowCompletionError::UndeclaredStage {
-                    workflow_id: self.workflow_id.clone(),
-                    stage_id: stage_trace.stage_id.clone(),
+                    workflow_id: self.workflow_id.clone().into(),
+                    stage_id: stage_trace.stage_id.clone().into(),
                     trace: trace.clone(),
                 });
             }
@@ -256,8 +224,8 @@ impl WorkflowTopology {
                     .is_some()
             {
                 return Err(WorkflowCompletionError::DuplicateSuccessfulStage {
-                    workflow_id: self.workflow_id.clone(),
-                    stage_id: stage_trace.stage_id.clone(),
+                    workflow_id: self.workflow_id.clone().into(),
+                    stage_id: stage_trace.stage_id.clone().into(),
                     trace: trace.clone(),
                 });
             }
@@ -285,9 +253,9 @@ impl WorkflowTopology {
             };
             if from_index >= to_index {
                 return Err(WorkflowCompletionError::EdgeOrderViolation {
-                    workflow_id: self.workflow_id.clone(),
-                    from_stage_id: edge.from_stage_id.clone(),
-                    to_stage_id: edge.to_stage_id.clone(),
+                    workflow_id: self.workflow_id.clone().into(),
+                    from_stage_id: edge.from_stage_id.clone().into(),
+                    to_stage_id: edge.to_stage_id.clone().into(),
                     trace: trace.clone(),
                 });
             }
@@ -295,6 +263,103 @@ impl WorkflowTopology {
 
         Ok(())
     }
+}
+
+struct WorkflowTopologyGraph {
+    adjacency: Vec<Vec<usize>>,
+    indegree: Vec<usize>,
+}
+
+impl WorkflowTopologyGraph {
+    fn from_topology(
+        topology: &WorkflowTopology,
+        stage_index: &HashMap<&str, usize>,
+    ) -> Result<Self, WorkflowTopologyError> {
+        let mut graph = Self {
+            adjacency: vec![Vec::new(); topology.stages.len()],
+            indegree: vec![0; topology.stages.len()],
+        };
+        for edge in &topology.edges {
+            graph.push_edge(topology, stage_index, edge)?;
+        }
+        Ok(graph)
+    }
+
+    fn push_edge(
+        &mut self,
+        topology: &WorkflowTopology,
+        stage_index: &HashMap<&str, usize>,
+        edge: &WorkflowTopologyEdge,
+    ) -> Result<(), WorkflowTopologyError> {
+        let from_index = edge_stage_index(topology, stage_index, edge, &edge.from_stage_id)?;
+        let to_index = edge_stage_index(topology, stage_index, edge, &edge.to_stage_id)?;
+        self.adjacency[from_index].push(to_index);
+        self.indegree[to_index] += 1;
+        Ok(())
+    }
+
+    fn topological_stage_ids(
+        mut self,
+        topology: &WorkflowTopology,
+    ) -> Result<Vec<String>, WorkflowTopologyError> {
+        let mut ready = self.ready_stage_indices();
+        let mut ordered = Vec::with_capacity(topology.stages.len());
+
+        while let Some(index) = ready.pop_front() {
+            ordered.push(topology.stages[index].stage_id.clone());
+            self.release_downstream_stages(index, &mut ready);
+        }
+
+        if ordered.len() != topology.stages.len() {
+            return Err(WorkflowTopologyError::Cycle {
+                workflow_id: topology.workflow_id.clone(),
+            });
+        }
+
+        Ok(ordered)
+    }
+
+    fn ready_stage_indices(&self) -> VecDeque<usize> {
+        self.indegree
+            .iter()
+            .enumerate()
+            .filter_map(|(index, degree)| (*degree == 0).then_some(index))
+            .collect()
+    }
+
+    fn release_downstream_stages(&mut self, index: usize, ready: &mut VecDeque<usize>) {
+        for next_index in &self.adjacency[index] {
+            self.indegree[*next_index] -= 1;
+            if self.indegree[*next_index] == 0 {
+                ready.push_back(*next_index);
+            }
+        }
+    }
+}
+
+fn edge_stage_index(
+    topology: &WorkflowTopology,
+    stage_index: &HashMap<&str, usize>,
+    edge: &WorkflowTopologyEdge,
+    stage_id: &str,
+) -> Result<usize, WorkflowTopologyError> {
+    stage_index
+        .get(stage_id)
+        .copied()
+        .ok_or_else(|| missing_edge_stage(topology, edge, stage_id))
+}
+
+fn missing_edge_stage(
+    topology: &WorkflowTopology,
+    edge: &WorkflowTopologyEdge,
+    stage_id: &str,
+) -> WorkflowTopologyError {
+    WorkflowTopologyError::MissingEdgeStage(WorkflowMissingEdgeStage {
+        workflow_id: topology.workflow_id.clone().into(),
+        from_stage: edge.from_stage_id.clone().into(),
+        to_stage: edge.to_stage_id.clone().into(),
+        missing_stage: stage_id.to_owned().into(),
+    })
 }
 
 /// Error returned when a topology contract is invalid.
@@ -316,33 +381,59 @@ pub enum WorkflowTopologyError {
         workflow_id: String,
     },
     /// A stage id appears more than once.
-    #[error("workflow topology `{workflow_id}` declares duplicate stage `{stage_id}`")]
-    DuplicateStage {
-        /// Stable workflow identifier.
-        workflow_id: String,
-        /// Duplicate stage id.
-        stage_id: String,
-    },
+    #[error("{0}")]
+    DuplicateStage(WorkflowDuplicateStage),
     /// A dependency edge references a stage that is not declared.
-    #[error(
-        "workflow topology `{workflow_id}` edge `{from_stage_id}` -> `{to_stage_id}` references missing stage `{missing_stage_id}`"
-    )]
-    MissingEdgeStage {
-        /// Stable workflow identifier.
-        workflow_id: String,
-        /// Upstream stage id from the invalid edge.
-        from_stage_id: String,
-        /// Downstream stage id from the invalid edge.
-        to_stage_id: String,
-        /// Missing stage id.
-        missing_stage_id: String,
-    },
+    #[error("{0}")]
+    MissingEdgeStage(WorkflowMissingEdgeStage),
     /// The dependency graph contains a cycle.
     #[error("workflow topology `{workflow_id}` contains a dependency cycle")]
     Cycle {
         /// Stable workflow identifier.
         workflow_id: String,
     },
+}
+
+/// Duplicate stage coordinates in a workflow topology.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowDuplicateStage {
+    /// Stable workflow identifier.
+    pub workflow_id: WorkflowId,
+    /// Duplicate stage id.
+    pub stage_id: WorkflowStageId,
+}
+
+impl Display for WorkflowDuplicateStage {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "workflow topology `{}` declares duplicate stage `{}`",
+            self.workflow_id, self.stage_id
+        )
+    }
+}
+
+/// Missing edge endpoint coordinates in a workflow topology.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowMissingEdgeStage {
+    /// Stable workflow identifier.
+    pub workflow_id: WorkflowId,
+    /// Upstream stage from the invalid edge.
+    pub from_stage: WorkflowStageId,
+    /// Downstream stage from the invalid edge.
+    pub to_stage: WorkflowStageId,
+    /// Missing edge endpoint stage.
+    pub missing_stage: WorkflowStageId,
+}
+
+impl Display for WorkflowMissingEdgeStage {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "workflow topology `{}` edge `{}` -> `{}` references missing stage `{}`",
+            self.workflow_id, self.from_stage, self.to_stage, self.missing_stage
+        )
+    }
 }
 
 /// Error returned when a completed trace violates its bound topology.
@@ -352,9 +443,9 @@ pub enum WorkflowCompletionError {
     #[error("workflow `{workflow_id}` executed undeclared stage `{stage_id}`")]
     UndeclaredStage {
         /// Stable workflow identifier.
-        workflow_id: String,
+        workflow_id: WorkflowId,
         /// Undeclared stage id.
-        stage_id: String,
+        stage_id: WorkflowStageId,
         /// Trace captured through validation.
         trace: WorkflowTrace,
     },
@@ -362,9 +453,9 @@ pub enum WorkflowCompletionError {
     #[error("workflow `{workflow_id}` executed stage `{stage_id}` successfully more than once")]
     DuplicateSuccessfulStage {
         /// Stable workflow identifier.
-        workflow_id: String,
+        workflow_id: WorkflowId,
         /// Duplicate stage id.
-        stage_id: String,
+        stage_id: WorkflowStageId,
         /// Trace captured through validation.
         trace: WorkflowTrace,
     },
@@ -382,11 +473,11 @@ pub enum WorkflowCompletionError {
     #[error("workflow `{workflow_id}` violated edge order `{from_stage_id}` -> `{to_stage_id}`")]
     EdgeOrderViolation {
         /// Stable workflow identifier.
-        workflow_id: String,
+        workflow_id: WorkflowId,
         /// Upstream stage id.
-        from_stage_id: String,
+        from_stage_id: WorkflowStageId,
         /// Downstream stage id.
-        to_stage_id: String,
+        to_stage_id: WorkflowStageId,
         /// Trace captured through validation.
         trace: WorkflowTrace,
     },

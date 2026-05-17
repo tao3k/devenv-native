@@ -1,0 +1,21 @@
+[package]
+name = "xiuxian-qianji-control"
+version.workspace = true
+edition.workspace = true
+description = "Workflow-neutral Qianji control-plane contracts and in-memory runtime"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+async-trait = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true

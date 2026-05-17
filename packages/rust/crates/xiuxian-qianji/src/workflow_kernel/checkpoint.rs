@@ -3,11 +3,11 @@
 use std::{
     any::{Any, type_name},
     collections::HashMap,
-    fmt,
+    fmt::{self, Display},
     sync::Arc,
 };
 
-use super::{WorkflowEdgeKind, WorkflowStageFacts};
+use super::{WorkflowCheckpointId, WorkflowEdgeKind, WorkflowStageFacts, WorkflowStageId};
 
 /// Storage class for a workflow checkpoint reference.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -111,8 +111,8 @@ impl WorkflowMemoryCheckpointStore {
 
     /// Returns true when the store contains the supplied checkpoint id.
     #[must_use]
-    pub fn contains(&self, checkpoint_id: &str) -> bool {
-        self.entries.contains_key(checkpoint_id)
+    pub fn contains(&self, checkpoint_id: &WorkflowCheckpointId) -> bool {
+        self.entries.contains_key(checkpoint_id.as_str())
     }
 
     /// Returns checkpoint references in stable id order.
@@ -133,18 +133,21 @@ impl WorkflowMemoryCheckpointStore {
     ///
     /// Returns an error when the checkpoint is missing or the requested type
     /// does not match the retained payload type.
-    pub fn get<T>(&self, checkpoint_id: &str) -> Result<Arc<T>, WorkflowCheckpointError>
+    pub fn get<T>(
+        &self,
+        checkpoint_id: &WorkflowCheckpointId,
+    ) -> Result<Arc<T>, WorkflowCheckpointError>
     where
         T: Any + Send + Sync + 'static,
     {
-        let entry = self.entries.get(checkpoint_id).ok_or_else(|| {
+        let entry = self.entries.get(checkpoint_id.as_str()).ok_or_else(|| {
             WorkflowCheckpointError::MissingCheckpoint {
-                checkpoint_id: checkpoint_id.to_owned(),
+                checkpoint_id: checkpoint_id.as_str().to_owned(),
             }
         })?;
         Arc::clone(&entry.payload).downcast::<T>().map_err(|_| {
             WorkflowCheckpointError::PayloadTypeMismatch {
-                checkpoint_id: checkpoint_id.to_owned(),
+                checkpoint_id: checkpoint_id.as_str().to_owned(),
                 expected_type_name: type_name::<T>().to_owned(),
                 actual_type_name: entry.reference.payload_type_name.clone(),
             }
@@ -203,11 +206,25 @@ pub enum WorkflowCheckpointError {
         actual_type_name: Option<String>,
     },
     /// A checkpoint was requested for a stage that has not succeeded.
-    #[error("workflow stage `{stage_id}` has no successful trace for checkpoint `{checkpoint_id}`")]
-    StageNotSucceeded {
-        /// Stage id.
-        stage_id: String,
-        /// Checkpoint id.
-        checkpoint_id: String,
-    },
+    #[error("{0}")]
+    StageNotSucceeded(WorkflowStageCheckpointMiss),
+}
+
+/// Stage/checkpoint pair that could not be materialized.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowStageCheckpointMiss {
+    /// Stage id.
+    pub stage_id: WorkflowStageId,
+    /// Checkpoint id.
+    pub checkpoint_id: WorkflowCheckpointId,
+}
+
+impl Display for WorkflowStageCheckpointMiss {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "workflow stage `{}` has no successful trace for checkpoint `{}`",
+            self.stage_id, self.checkpoint_id
+        )
+    }
 }
