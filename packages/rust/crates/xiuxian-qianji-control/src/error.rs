@@ -20,8 +20,8 @@ pub enum ControlError {
         /// Replay diagnostic.
         message: String,
     },
-    /// A memory store mutex was poisoned.
-    #[error("in-memory control store lock `{lock_name}` was poisoned: {message}")]
+    /// A control store mutex was poisoned.
+    #[error("control store lock `{lock_name}` was poisoned: {message}")]
     LockPoisoned {
         /// Internal lock name.
         lock_name: &'static str,
@@ -35,5 +35,21 @@ pub enum ControlError {
         lease_id: LeaseId,
         /// Worker id.
         worker_id: WorkerId,
+    },
+    /// An event payload could not be encoded or decoded.
+    #[error("control codec operation `{operation}` failed: {message}")]
+    Codec {
+        /// Failing codec operation.
+        operation: &'static str,
+        /// Backend diagnostic.
+        message: String,
+    },
+    /// A durable or hot-state storage operation failed.
+    #[error("control storage operation `{operation}` failed: {message}")]
+    Storage {
+        /// Failing storage operation.
+        operation: &'static str,
+        /// Backend diagnostic.
+        message: String,
     },
 }

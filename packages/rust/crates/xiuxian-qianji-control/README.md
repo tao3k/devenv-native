@@ -14,8 +14,9 @@ manages what is happening:
 - recovery attempts
 - hot scheduling leases and worker heartbeats
 
-The first slice intentionally ships only Rust contracts plus in-memory stores.
-DuckDB and Valkey adapters are later slices.
+The core slice ships Rust contracts plus in-memory stores. The `duckdb`
+feature adds the durable append-only ledger adapter. The `valkey` feature adds
+the hot-state adapter for queues, leases, and worker heartbeats.
 
 ## Boundary
 
@@ -39,3 +40,5 @@ The intended split is:
 - `InMemoryHotStateStore`
 - `RunView` and `StepView`
 - `RequiredEvidenceGate`
+- `DuckDbControlLedger` behind the `duckdb` feature
+- `ValkeyHotStateStore` behind the `valkey` feature

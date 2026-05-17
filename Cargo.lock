@@ -11333,9 +11333,12 @@ name = "xiuxian-qianji-control"
 version = "0.1.1"
 dependencies = [
  "async-trait",
+ "duckdb",
+ "redis",
  "rust-lang-project-harness",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
 ]
