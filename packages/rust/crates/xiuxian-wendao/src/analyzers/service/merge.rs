@@ -1,5 +1,7 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 
+use crate::analyzers::DocRecord;
 use crate::analyzers::RegisteredRepository;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::RepositoryRecord;
@@ -25,9 +27,19 @@ pub(super) fn merge_repository_analysis(
     base.symbols.append(&mut overlay.symbols);
     base.imports.append(&mut overlay.imports);
     base.examples.append(&mut overlay.examples);
-    base.docs.append(&mut overlay.docs);
+    append_unique_docs_by_id(&mut base.docs, &mut overlay.docs);
     base.relations.append(&mut overlay.relations);
     base.diagnostics.append(&mut overlay.diagnostics);
+}
+
+fn append_unique_docs_by_id(base: &mut Vec<DocRecord>, overlay: &mut Vec<DocRecord>) {
+    let mut docs = Vec::with_capacity(base.len() + overlay.len());
+    docs.append(base);
+    docs.append(overlay);
+
+    let mut seen = BTreeSet::new();
+    docs.retain(|doc| seen.insert(doc.doc_id.to_string()));
+    *base = docs;
 }
 
 pub(super) fn merge_repository_record(
@@ -35,29 +47,29 @@ pub(super) fn merge_repository_record(
     overlay: RepositoryRecord,
 ) -> RepositoryRecord {
     RepositoryRecord {
-        repo_id: if overlay.repo_id.is_empty() {
-            base.repo_id
-        } else {
+        repo_id: if base.repo_id.is_empty() {
             overlay.repo_id
-        },
-        name: if overlay.name.is_empty() {
-            base.name
         } else {
+            base.repo_id
+        },
+        name: if base.name.is_empty() {
             overlay.name
-        },
-        path: if overlay.path.is_empty() {
-            base.path
         } else {
+            base.name
+        },
+        path: if base.path.is_empty() {
             overlay.path
-        },
-        url: overlay.url.or(base.url),
-        revision: overlay.revision.or(base.revision),
-        version: overlay.version.or(base.version),
-        uuid: overlay.uuid.or(base.uuid),
-        dependencies: if overlay.dependencies.is_empty() {
-            base.dependencies
         } else {
+            base.path
+        },
+        url: base.url.or(overlay.url),
+        revision: base.revision.or(overlay.revision),
+        version: base.version.or(overlay.version),
+        uuid: base.uuid.or(overlay.uuid),
+        dependencies: if base.dependencies.is_empty() {
             overlay.dependencies
+        } else {
+            base.dependencies
         },
     }
 }

@@ -338,6 +338,7 @@ fn empty_text_extractor(
     _path: &Path,
     page_indexes: &[u32],
 ) -> Result<Vec<Result<String, String>>, String> {
+    reject_empty_test_text_extractor_pages(page_indexes)?;
     Ok(page_indexes.iter().map(|_| Ok(String::new())).collect())
 }
 
@@ -346,6 +347,7 @@ fn error_text_extractor(
     _path: &Path,
     page_indexes: &[u32],
 ) -> Result<Vec<Result<String, String>>, String> {
+    reject_empty_test_text_extractor_pages(page_indexes)?;
     Ok(page_indexes
         .iter()
         .map(|_| Err("synthetic lopdf failure".to_string()))
@@ -357,6 +359,7 @@ fn partial_error_text_extractor(
     _path: &Path,
     page_indexes: &[u32],
 ) -> Result<Vec<Result<String, String>>, String> {
+    reject_empty_test_text_extractor_pages(page_indexes)?;
     Ok(page_indexes
         .iter()
         .map(|page_index| {
@@ -367,4 +370,12 @@ fn partial_error_text_extractor(
             }
         })
         .collect())
+}
+
+#[cfg(test)]
+fn reject_empty_test_text_extractor_pages(page_indexes: &[u32]) -> Result<(), String> {
+    if page_indexes.is_empty() {
+        return Err("test text extractor requires at least one page".to_string());
+    }
+    Ok(())
 }

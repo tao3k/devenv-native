@@ -10,18 +10,23 @@ use std::collections::HashSet;
 #[cfg(feature = "julia")]
 use xiuxian_wendao::{
     LinkGraphAgenticCandidatePair, LinkGraphAgenticExpansionPlan, LinkGraphAgenticWorkerPlan,
-    LinkGraphIndex, RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy,
+    LinkGraphIndex, RegisteredRepository, RepoIntelligenceError, RepositoryPluginConfig,
+    RepositoryRefreshPolicy,
 };
 #[cfg(feature = "julia")]
 use xiuxian_wendao_builtin::{
     GraphStructuralRawConnectedPairCollectionCandidateInputs, GraphStructuralRerankScoreRow,
-    build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
     build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_raw_candidates,
-    build_graph_structural_keyword_overlap_query_inputs,
-    build_graph_structural_keyword_overlap_raw_candidate_inputs,
-    build_graph_structural_keyword_tag_query_context,
-    build_graph_structural_raw_connected_pair_collection_candidate_inputs_from_raw_tuples,
     fetch_graph_structural_generic_topology_rerank_rows_for_repository_from_raw_connected_pair_collections,
+};
+#[cfg(feature = "julia")]
+use xiuxian_wendao_julia::{
+    GraphStructuralKeywordOverlapCandidateMetadataInput,
+    GraphStructuralKeywordOverlapCandidateMetadataInputs, GraphStructuralKeywordOverlapQueryInput,
+    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInput,
+    GraphStructuralKeywordOverlapRawCandidateInputs, GraphStructuralKeywordTagQueryContextInput,
+    GraphStructuralQueryContext, GraphStructuralRawConnectedPairCollectionRawTupleInput,
+    JuliaContractKind,
 };
 
 #[cfg(feature = "julia")]
@@ -181,6 +186,82 @@ pub(super) fn build_pair_rerank_request_batch(
 }
 
 #[cfg(feature = "julia")]
+pub(super) fn build_graph_structural_keyword_overlap_query_inputs(
+    query_id: impl Into<String>,
+    retrieval_layer: i32,
+    query_max_layers: i32,
+    keyword_anchors: Vec<String>,
+    edge_constraint_kinds: Vec<String>,
+) -> GraphStructuralKeywordOverlapQueryInputs {
+    xiuxian_wendao_builtin::build_graph_structural_keyword_overlap_query_inputs(
+        GraphStructuralKeywordOverlapQueryInput {
+            query_id: query_id.into(),
+            retrieval_layer,
+            query_max_layers,
+            keyword_anchors,
+            edge_constraint_kinds,
+        },
+    )
+}
+
+#[cfg(feature = "julia")]
+pub(super) fn build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs(
+    left_id: impl Into<String>,
+    right_id: impl Into<String>,
+    edge_kinds: Vec<String>,
+    left_tags: Vec<String>,
+    right_tags: Vec<String>,
+) -> GraphStructuralKeywordOverlapCandidateMetadataInputs {
+    xiuxian_wendao_builtin::build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs(
+        GraphStructuralKeywordOverlapCandidateMetadataInput {
+            left_id: left_id.into(),
+            right_id: right_id.into(),
+            edge_kinds,
+            left_tags,
+            right_tags,
+        },
+    )
+}
+
+#[cfg(feature = "julia")]
+pub(super) fn build_graph_structural_keyword_overlap_raw_candidate_inputs(
+    metadata_inputs: GraphStructuralKeywordOverlapCandidateMetadataInputs,
+    semantic_score: f64,
+    dependency_score: f64,
+    keyword_match: bool,
+) -> GraphStructuralKeywordOverlapRawCandidateInputs {
+    xiuxian_wendao_builtin::build_graph_structural_keyword_overlap_raw_candidate_inputs(
+        GraphStructuralKeywordOverlapRawCandidateInput {
+            metadata_inputs,
+            semantic_score,
+            dependency_score,
+            keyword_match,
+        },
+    )
+}
+
+#[cfg(feature = "julia")]
+pub(super) fn build_graph_structural_keyword_tag_query_context(
+    query_id: impl Into<String>,
+    retrieval_layer: i32,
+    query_max_layers: i32,
+    keyword_anchors: Vec<String>,
+    tag_anchors: Vec<String>,
+    edge_constraint_kinds: Vec<String>,
+) -> Result<GraphStructuralQueryContext, RepoIntelligenceError> {
+    xiuxian_wendao_builtin::build_graph_structural_keyword_tag_query_context(
+        GraphStructuralKeywordTagQueryContextInput {
+            query_id: query_id.into(),
+            retrieval_layer,
+            query_max_layers,
+            keyword_anchors,
+            tag_anchors,
+            edge_constraint_kinds,
+        },
+    )
+}
+
+#[cfg(feature = "julia")]
 fn pair_collection_shape(pair_collection: &[LinkGraphAgenticCandidatePair]) -> (usize, usize) {
     let mut node_ids = HashSet::<String>::new();
     let mut normalized_edges = HashSet::<(String, String)>::new();
@@ -204,16 +285,18 @@ pub(super) fn build_raw_connected_pair_collection_candidate_from_pairs(
     tag_score: f64,
 ) -> Result<GraphStructuralRawConnectedPairCollectionCandidateInputs, Box<dyn std::error::Error>> {
     Ok(
-        build_graph_structural_raw_connected_pair_collection_candidate_inputs_from_raw_tuples(
-            candidate_id,
-            pair_collection
-                .iter()
-                .map(|pair| (pair.left_id.clone(), pair.right_id.clone(), pair.priority))
-                .collect::<Vec<_>>(),
-            fallback_edge_kind,
-            dependency_score,
-            keyword_score,
-            tag_score,
+        xiuxian_wendao_builtin::build_graph_structural_raw_connected_pair_collection_candidate_inputs_from_raw_tuples(
+            GraphStructuralRawConnectedPairCollectionRawTupleInput {
+                candidate_id: candidate_id.into(),
+                pair_candidates: pair_collection
+                    .iter()
+                    .map(|pair| (pair.left_id.clone(), pair.right_id.clone(), pair.priority))
+                    .collect::<Vec<_>>(),
+                fallback_edge_kind: JuliaContractKind::from(fallback_edge_kind.into()),
+                dependency_score,
+                keyword_score,
+                tag_score,
+            },
         )?,
     )
 }

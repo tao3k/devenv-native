@@ -66,7 +66,7 @@ fn test_saliency_decay_sweep_with_valkey() -> Result<(), String> {
 fn seed_touch(node_id: &str, prefix: &str, now_unix: i64) -> Result<(), String> {
     valkey_saliency_touch_with_valkey(
         LinkGraphSaliencyTouchRequest {
-            node_id: node_id.to_string().into(),
+            node_id: node_id.to_string(),
             activation_delta: 1,
             saliency_base: Some(5.0),
             alpha: Some(0.5),

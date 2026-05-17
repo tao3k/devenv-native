@@ -120,75 +120,9 @@ fn ontology_read_model_quality_accepts_sql_materializer_record_batches() -> io::
 
 #[test]
 fn ontology_read_model_quality_accepts_gateway_dataset_ontology_envelope() -> io::Result<()> {
-    let report_batch = dataset_ontology_envelope_batch(
-        "materialization_report",
-        "materialization_report",
-        &[r#"{"passed":true}"#.to_string()],
-    );
-    let objects_batch = dataset_ontology_envelope_batch(
-        "semantic_read_model",
-        "semantic_objects",
-        &[serde_json::json!({
-            "id": "healthcare.patient.patient-001",
-            "kind": "healthcare.patient",
-            "title": "Synthetic Patient 001",
-            "status": "active",
-            "confidence_score": 1.0,
-            "confidence_source": "duckdb_mapping",
-            "owner_count": 1,
-            "owners_json": "[{\"scope\":\"wendao-episteme\",\"role\":\"dataset_mapping\"}]",
-            "provenance_source": "ontology/30_Healthcare/mappings/org/synthetic_care_delivery.org",
-            "provenance_recorded_by": "dataset-to-ontology-contract",
-            "provenance_recorded_at": "2026-05-05",
-            "verification_required_json": "[\"dataset_mapping_manifest\"]",
-            "verification_evidence_json": "[\"patients.csv#patient-001\"]",
-            "relation_count": 1,
-            "source_path": "ontology/30_Healthcare/fixtures/patients.csv",
-            "read_model_source_revision": "fixture-revision",
-            "read_model_projection_revision": "dataset-ontology-v1",
-            "read_model_projection_staleness": "fresh"
-        })
-        .to_string()],
-    );
-    let relations_batch = dataset_ontology_envelope_batch(
-        "semantic_read_model",
-        "semantic_relations",
-        &[serde_json::json!({
-            "source": "healthcare.encounter.enc-001",
-            "kind": "healthcare.encounter.has_patient",
-            "target": "healthcare.patient.patient-001",
-            "source_path": "ontology/30_Healthcare/fixtures/encounters.csv",
-            "read_model_source_revision": "fixture-revision",
-            "read_model_projection_revision": "dataset-ontology-v1",
-            "read_model_projection_staleness": "fresh"
-        })
-        .to_string()],
-    );
-    let projection_batch = dataset_ontology_envelope_batch(
-        "semantic_read_model",
-        "semantic_projection_state",
-        &[serde_json::json!({
-            "projection": "healthcare_synthetic_care_delivery",
-            "status": "active",
-            "source_revision": "fixture-revision",
-            "current_source_revision": "fixture-revision",
-            "projection_revision": "dataset-ontology-v1",
-            "staleness": "fresh",
-            "source_object_count": 1,
-            "source_objects_json": "[\"healthcare.patient.patient-001\"]",
-            "source_path": "ontology/30_Healthcare/mappings/org/synthetic_care_delivery.org"
-        })
-        .to_string()],
-    );
-
     let request_batches =
         build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope(
-            &[
-                report_batch,
-                objects_batch,
-                relations_batch,
-                projection_batch,
-            ],
+            &valid_gateway_dataset_ontology_envelope_batches(),
         )
         .map_err(io::Error::other)?;
 
@@ -257,14 +191,93 @@ fn ontology_read_model_quality_rejects_incomplete_gateway_dataset_ontology_envel
         .to_string()],
     );
 
-    let error =
+    let Err(error) =
         build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope(
             &[objects_batch],
         )
-        .expect_err("incomplete Gateway envelope should be rejected");
+    else {
+        panic!("incomplete Gateway envelope should be rejected");
+    };
 
     assert!(
         error.contains("semantic_relations"),
         "unexpected error: {error}"
     );
+}
+
+fn valid_gateway_dataset_ontology_envelope_batches() -> Vec<arrow::record_batch::RecordBatch> {
+    vec![
+        dataset_ontology_envelope_batch(
+            "materialization_report",
+            "materialization_report",
+            &[r#"{"passed":true}"#.to_string()],
+        ),
+        dataset_ontology_envelope_batch(
+            "semantic_read_model",
+            "semantic_objects",
+            &[valid_gateway_dataset_ontology_object_row()],
+        ),
+        dataset_ontology_envelope_batch(
+            "semantic_read_model",
+            "semantic_relations",
+            &[valid_gateway_dataset_ontology_relation_row()],
+        ),
+        dataset_ontology_envelope_batch(
+            "semantic_read_model",
+            "semantic_projection_state",
+            &[valid_gateway_dataset_ontology_projection_row()],
+        ),
+    ]
+}
+
+fn valid_gateway_dataset_ontology_object_row() -> String {
+    serde_json::json!({
+        "id": "healthcare.patient.patient-001",
+        "kind": "healthcare.patient",
+        "title": "Synthetic Patient 001",
+        "status": "active",
+        "confidence_score": 1.0,
+        "confidence_source": "duckdb_mapping",
+        "owner_count": 1,
+        "owners_json": "[{\"scope\":\"wendao-episteme\",\"role\":\"dataset_mapping\"}]",
+        "provenance_source": "ontology/30_Healthcare/mappings/org/synthetic_care_delivery.org",
+        "provenance_recorded_by": "dataset-to-ontology-contract",
+        "provenance_recorded_at": "2026-05-05",
+        "verification_required_json": "[\"dataset_mapping_manifest\"]",
+        "verification_evidence_json": "[\"patients.csv#patient-001\"]",
+        "relation_count": 1,
+        "source_path": "ontology/30_Healthcare/fixtures/patients.csv",
+        "read_model_source_revision": "fixture-revision",
+        "read_model_projection_revision": "dataset-ontology-v1",
+        "read_model_projection_staleness": "fresh"
+    })
+    .to_string()
+}
+
+fn valid_gateway_dataset_ontology_relation_row() -> String {
+    serde_json::json!({
+        "source": "healthcare.encounter.enc-001",
+        "kind": "healthcare.encounter.has_patient",
+        "target": "healthcare.patient.patient-001",
+        "source_path": "ontology/30_Healthcare/fixtures/encounters.csv",
+        "read_model_source_revision": "fixture-revision",
+        "read_model_projection_revision": "dataset-ontology-v1",
+        "read_model_projection_staleness": "fresh"
+    })
+    .to_string()
+}
+
+fn valid_gateway_dataset_ontology_projection_row() -> String {
+    serde_json::json!({
+        "projection": "healthcare_synthetic_care_delivery",
+        "status": "active",
+        "source_revision": "fixture-revision",
+        "current_source_revision": "fixture-revision",
+        "projection_revision": "dataset-ontology-v1",
+        "staleness": "fresh",
+        "source_object_count": 1,
+        "source_objects_json": "[\"healthcare.patient.patient-001\"]",
+        "source_path": "ontology/30_Healthcare/mappings/org/synthetic_care_delivery.org"
+    })
+    .to_string()
 }

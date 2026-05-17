@@ -61,7 +61,7 @@ fn test_ppr_weight_precision_impact() -> Result<(), Box<dyn std::error::Error>> 
 
         valkey_saliency_touch_with_valkey(
             LinkGraphSaliencyTouchRequest {
-                node_id: "zeta-seed".to_string().into(),
+                node_id: "zeta-seed".to_string(),
                 activation_delta: 64,
                 saliency_base: Some(128.0),
                 alpha: Some(0.75),

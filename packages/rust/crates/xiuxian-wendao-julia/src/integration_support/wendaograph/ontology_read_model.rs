@@ -216,6 +216,24 @@ pub fn build_wendaograph_ontology_read_model_quality_arrow_request(
 pub fn build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope(
     batches: &[RecordBatch],
 ) -> Result<WendaoGraphOntologyReadModelQualityRequestBatches, String> {
+    let envelope = collect_semantic_read_model_envelope_rows(batches)?;
+
+    Ok(WendaoGraphOntologyReadModelQualityRequestBatches::new(
+        semantic_objects_batch(&envelope.objects)?,
+        semantic_relations_batch(&envelope.relations)?,
+        semantic_projection_state_batch(&envelope.projection_state)?,
+    ))
+}
+
+struct DatasetOntologySemanticReadModelEnvelopeRows {
+    objects: Vec<Map<String, Value>>,
+    relations: Vec<Map<String, Value>>,
+    projection_state: Vec<Map<String, Value>>,
+}
+
+fn collect_semantic_read_model_envelope_rows(
+    batches: &[RecordBatch],
+) -> Result<DatasetOntologySemanticReadModelEnvelopeRows, String> {
     let mut semantic_objects = Vec::new();
     let mut semantic_relations = Vec::new();
     let mut semantic_projection_state = Vec::new();
@@ -270,11 +288,11 @@ pub fn build_wendaograph_ontology_read_model_quality_request_batches_from_datase
         );
     }
 
-    Ok(WendaoGraphOntologyReadModelQualityRequestBatches::new(
-        semantic_objects_batch(&semantic_objects)?,
-        semantic_relations_batch(&semantic_relations)?,
-        semantic_projection_state_batch(&semantic_projection_state)?,
-    ))
+    Ok(DatasetOntologySemanticReadModelEnvelopeRows {
+        objects: semantic_objects,
+        relations: semantic_relations,
+        projection_state: semantic_projection_state,
+    })
 }
 
 /// Build the single-table Arrow Flight request bundle for ontology quality scoring.

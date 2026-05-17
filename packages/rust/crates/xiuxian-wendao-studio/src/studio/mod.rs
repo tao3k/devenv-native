@@ -22,7 +22,10 @@ pub use xiuxian_wendao_attachments::pdf::ocr as document_extract_pdf_ocr;
 #[doc(hidden)]
 #[path = "document_extract_pdf_ocr_client.rs"]
 pub mod document_extract_pdf_ocr_client;
-#[cfg(feature = "document-extract-pdf-source-range")]
+#[cfg(all(
+    feature = "document-extract-pdf-source-range",
+    feature = "zhenfa-router"
+))]
 pub(crate) use document_extract_pdf_ocr_client::PdfOcrShardSchedulerTrace;
 
 /// Feature-gated audio shard Flight client proof helpers.

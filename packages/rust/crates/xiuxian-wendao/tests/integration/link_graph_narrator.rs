@@ -12,7 +12,7 @@ fn test_narrate_single_hit() {
     let hit = LinkGraphHit {
         stem: "node_a".to_string(),
         title: "Node A".to_string(),
-        path: "a.md".to_string(),
+        path: "a.md".to_string().into(),
         doc_type: None,
         tags: vec!["doc".to_string()],
         score: 1.0,

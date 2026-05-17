@@ -1,3 +1,5 @@
+//! Dataset ontology Flight provider contracts for `Wendao` runtime hosts.
+
 use arrow_array::RecordBatch;
 use async_trait::async_trait;
 

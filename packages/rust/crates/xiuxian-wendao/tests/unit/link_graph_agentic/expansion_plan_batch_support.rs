@@ -13,13 +13,13 @@ use xiuxian_wendao_builtin::{
     GraphStructuralRawConnectedPairCollectionCandidateInputs, GraphStructuralRerankScoreRow,
     build_graph_structural_generic_topology_filter_request_batch_from_raw_connected_pair_collections,
     build_graph_structural_generic_topology_rerank_request_batch_from_raw_connected_pair_collections,
-    build_graph_structural_keyword_tag_query_context,
     fetch_graph_structural_generic_topology_filter_rows_for_repository_from_raw_connected_pair_collections,
     fetch_graph_structural_generic_topology_rerank_rows_for_repository_from_raw_connected_pair_collections,
 };
 
 #[cfg(feature = "julia")]
 use super::expansion_support::{
+    build_graph_structural_keyword_tag_query_context,
     build_raw_connected_pair_collection_candidate_from_pairs, worker_partition_pair_groups,
 };
 

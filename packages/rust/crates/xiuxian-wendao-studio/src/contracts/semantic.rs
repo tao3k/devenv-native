@@ -144,6 +144,12 @@ macro_rules! numeric_carrier {
             }
         }
 
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(formatter)
+            }
+        }
+
         impl PartialEq<$inner> for $name {
             fn eq(&self, other: &$inner) -> bool {
                 self.0 == *other

@@ -4,18 +4,19 @@ use arrow::record_batch::RecordBatch as EngineRecordBatch;
 use xiuxian_qianji::workflow_kernel::WorkflowCheckpointId;
 
 use super::support::{
-    ObservedAudioShardWindow, error_to_string, make_executable, sample_input,
-    spawn_audio_shard_sequence_service, spawn_audio_shard_service,
+    ObservedAudioShardRequest, ObservedAudioShardWindow, error_to_string, make_executable,
+    sample_input, spawn_audio_shard_sequence_service, spawn_audio_shard_service,
 };
 use crate::studio::document_extract_audio_client::{
     AudioShardFlightClient, AudioShardFlightResponse, AudioShardRecoveryPlanRequest,
-    AudioShardRecoveryWorkflowRequest,
+    AudioShardRecoveryWorkflowExecution, AudioShardRecoveryWorkflowRequest,
 };
 use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchDecisionKind, AudioRecoveryPatchGateOptions, AudioRiskParentSelectionOptions,
-    AudioShardMaterializationInput, AudioShardPlan, AudioShardRequestMetric, AudioShardResult,
-    AudioShardWorkerProfile, AudioSourceIdentity, build_audio_recovery_split_plan,
-    build_audio_shard_inputs, build_audio_shard_result_batch, materialize_audio_shards,
+    AudioShardInput, AudioShardMaterializationInput, AudioShardPlan, AudioShardRequestMetric,
+    AudioShardResult, AudioShardWorkerProfile, AudioSourceIdentity,
+    build_audio_recovery_split_plan, build_audio_shard_inputs, build_audio_shard_result_batch,
+    materialize_audio_shards,
 };
 
 #[tokio::test]
@@ -278,61 +279,13 @@ async fn audio_shard_response_plans_recovery_split_from_base_quality() -> Result
 #[tokio::test]
 async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), String> {
     let tempdir = tempfile::tempdir().map_err(error_to_string)?;
-    let source_path = tempdir.path().join("source.mp3");
-    std::fs::write(source_path.as_path(), b"source").map_err(error_to_string)?;
-    let ffmpeg_path = tempdir.path().join("fake_ffmpeg.sh");
-    std::fs::write(
-        ffmpeg_path.as_path(),
-        "#!/bin/sh\nlast=''\nfor arg in \"$@\"; do last=\"$arg\"; done\nprintf cached > \"$last\"\n",
-    )
-    .map_err(error_to_string)?;
-    make_executable(ffmpeg_path.as_path())?;
-
-    let parent_plan = AudioShardPlan {
-        profile: "audio-shards-v1".to_owned(),
-        source: AudioSourceIdentity {
-            source_id: "/tmp/source.mp3".to_owned(),
-            source_sha256: "sourcehash".to_owned(),
-            duration_ms: Some(180_000),
-        },
-        chunk_duration_ms: 60_000,
-        start_offsets_ms: vec![0, 60_000, 120_000],
-        window_durations_ms: Vec::new(),
-        context_before_ms: 0,
-        context_after_ms: 0,
-        sample_rate_hz: 16_000,
-        channels: 1,
-        audio_format: "wav".to_owned(),
-        strategy: "full-coverage".to_owned(),
-    };
-    let materialization = AudioShardMaterializationInput {
-        source_path,
-        output_dir: tempdir.path().join("chunks"),
-        ffmpeg_path,
-        force: true,
-    };
+    let parent_plan = two_pass_parent_audio_plan();
+    let materialization = two_pass_materialization(&tempdir)?;
     let profile = AudioShardWorkerProfile::transcription("hosted-audio-transcript-v1");
-    let base_materialized = materialize_audio_shards(&parent_plan, &materialization)?;
-    let base_inputs = build_audio_shard_inputs(base_materialized.as_slice(), &profile);
-    let base_results = vec![
-        AudioShardResult::succeeded(&base_inputs[0], "开场介绍", 0.90),
-        AudioShardResult::succeeded(
-            &base_inputs[1],
-            "重复重复重复重复重复重复通用测试会议",
-            0.80,
-        ),
-        AudioShardResult::succeeded(&base_inputs[2], "结束总结", 0.90),
-    ];
-    let base_batch = build_audio_shard_result_batch(base_results.as_slice())?;
+    let base_batch = two_pass_base_batch(&parent_plan, &materialization, &profile)?;
 
     let recovery_plan = build_audio_recovery_split_plan(&parent_plan, &[1], 30_000)?;
-    let recovery_materialized = materialize_audio_shards(&recovery_plan, &materialization)?;
-    let recovery_inputs = build_audio_shard_inputs(recovery_materialized.as_slice(), &profile);
-    let recovery_results = vec![
-        AudioShardResult::succeeded(&recovery_inputs[0], "通用会议讨论流程", 0.92),
-        AudioShardResult::succeeded(&recovery_inputs[1], "主持人介绍测试案例", 0.92),
-    ];
-    let recovery_batch = build_audio_shard_result_batch(recovery_results.as_slice())?;
+    let recovery_batch = two_pass_recovery_batch(&recovery_plan, &materialization, &profile)?;
     let cached_materialization = AudioShardMaterializationInput {
         force: false,
         ..materialization
@@ -340,7 +293,10 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
     let observed = Arc::new(Mutex::new(None));
     let observed_requests = Arc::new(Mutex::new(Vec::new()));
     let (endpoint, server_handle) = spawn_audio_shard_sequence_service(
-        vec![base_batch, recovery_batch],
+        vec![
+            base_batch.response_batch.clone(),
+            recovery_batch.response_batch.clone(),
+        ],
         Arc::clone(&observed),
         Arc::clone(&observed_requests),
     )
@@ -353,7 +309,7 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
             materialization: &cached_materialization,
             profile: &profile,
             request_metrics: &[AudioShardRequestMetric {
-                shard_element_id: base_inputs[1].shard_element_id.clone(),
+                shard_element_id: base_batch.inputs[1].shard_element_id.clone(),
                 wall_ms: 60_000,
             }],
             selection_options: AudioRiskParentSelectionOptions {
@@ -370,23 +326,124 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
         })
         .await?;
 
+    assert_two_pass_recovery_execution(&execution, &base_batch.results, &recovery_batch.results)?;
+    assert_two_pass_trace(&execution)?;
+    assert_two_pass_observed_requests(&observed_requests)?;
+
+    server_handle.abort();
+    Ok(())
+}
+
+struct AudioShardTestBatch {
+    inputs: Vec<AudioShardInput>,
+    results: Vec<AudioShardResult>,
+    response_batch: EngineRecordBatch,
+}
+
+fn two_pass_parent_audio_plan() -> AudioShardPlan {
+    AudioShardPlan {
+        profile: "audio-shards-v1".to_owned(),
+        source: AudioSourceIdentity {
+            source_id: "/tmp/source.mp3".to_owned(),
+            source_sha256: "sourcehash".to_owned(),
+            duration_ms: Some(180_000),
+        },
+        chunk_duration_ms: 60_000,
+        start_offsets_ms: vec![0, 60_000, 120_000],
+        window_durations_ms: Vec::new(),
+        context_before_ms: 0,
+        context_after_ms: 0,
+        sample_rate_hz: 16_000,
+        channels: 1,
+        audio_format: "wav".to_owned(),
+        strategy: "full-coverage".to_owned(),
+    }
+}
+
+fn two_pass_materialization(
+    tempdir: &tempfile::TempDir,
+) -> Result<AudioShardMaterializationInput, String> {
+    let source_path = tempdir.path().join("source.mp3");
+    std::fs::write(source_path.as_path(), b"source").map_err(error_to_string)?;
+    let ffmpeg_path = tempdir.path().join("fake_ffmpeg.sh");
+    std::fs::write(
+        ffmpeg_path.as_path(),
+        "#!/bin/sh\nlast=''\nfor arg in \"$@\"; do last=\"$arg\"; done\nprintf cached > \"$last\"\n",
+    )
+    .map_err(error_to_string)?;
+    make_executable(ffmpeg_path.as_path())?;
+
+    Ok(AudioShardMaterializationInput {
+        source_path,
+        output_dir: tempdir.path().join("chunks"),
+        ffmpeg_path,
+        force: true,
+    })
+}
+
+fn two_pass_base_batch(
+    parent_plan: &AudioShardPlan,
+    materialization: &AudioShardMaterializationInput,
+    profile: &AudioShardWorkerProfile,
+) -> Result<AudioShardTestBatch, String> {
+    let materialized = materialize_audio_shards(parent_plan, materialization)?;
+    let inputs = build_audio_shard_inputs(materialized.as_slice(), profile);
+    let results = vec![
+        AudioShardResult::succeeded(&inputs[0], "开场介绍", 0.90),
+        AudioShardResult::succeeded(&inputs[1], "重复重复重复重复重复重复通用测试会议", 0.80),
+        AudioShardResult::succeeded(&inputs[2], "结束总结", 0.90),
+    ];
+    let response_batch = build_audio_shard_result_batch(results.as_slice())?;
+
+    Ok(AudioShardTestBatch {
+        inputs,
+        results,
+        response_batch,
+    })
+}
+
+fn two_pass_recovery_batch(
+    recovery_plan: &AudioShardPlan,
+    materialization: &AudioShardMaterializationInput,
+    profile: &AudioShardWorkerProfile,
+) -> Result<AudioShardTestBatch, String> {
+    let materialized = materialize_audio_shards(recovery_plan, materialization)?;
+    let inputs = build_audio_shard_inputs(materialized.as_slice(), profile);
+    let results = vec![
+        AudioShardResult::succeeded(&inputs[0], "通用会议讨论流程", 0.92),
+        AudioShardResult::succeeded(&inputs[1], "主持人介绍测试案例", 0.92),
+    ];
+    let response_batch = build_audio_shard_result_batch(results.as_slice())?;
+
+    Ok(AudioShardTestBatch {
+        inputs,
+        results,
+        response_batch,
+    })
+}
+
+fn assert_two_pass_recovery_execution(
+    execution: &AudioShardRecoveryWorkflowExecution,
+    base_results: &[AudioShardResult],
+    recovery_results: &[AudioShardResult],
+) -> Result<(), String> {
     assert_eq!(execution.base_inputs.len(), 3);
     assert_eq!(execution.base_response.results, base_results);
     assert_eq!(execution.recovery_inputs.len(), 2);
-    assert_eq!(
-        execution
-            .recovery_response
-            .as_ref()
-            .expect("recovery response")
-            .results,
-        recovery_results
-    );
+    let Some(recovery_response) = execution.recovery_response.as_ref() else {
+        return Err("expected recovery response".to_owned());
+    };
+    assert_eq!(recovery_response.results, recovery_results);
     assert_eq!(execution.patch_gate_report.accepted_count, 1);
     assert_eq!(
         execution.merge_report.text,
         "开场介绍\n通用会议讨论流程\n主持人介绍测试案例\n结束总结"
     );
     assert!(execution.merge_report.has_complete_success_coverage());
+    Ok(())
+}
+
+fn assert_two_pass_trace(execution: &AudioShardRecoveryWorkflowExecution) -> Result<(), String> {
     assert_eq!(
         execution
             .trace
@@ -451,6 +508,12 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
         ))
         .map_err(error_to_string)?;
     assert_eq!(recovery_result_batch.num_rows(), 2);
+    Ok(())
+}
+
+fn assert_two_pass_observed_requests(
+    observed_requests: &Arc<Mutex<Vec<ObservedAudioShardRequest>>>,
+) -> Result<(), String> {
     let observed_requests = observed_requests
         .lock()
         .map_err(|_| "observed request sequence lock poisoned".to_owned())?
@@ -485,7 +548,5 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
             },
         ]
     );
-
-    server_handle.abort();
     Ok(())
 }

@@ -1,9 +1,13 @@
 use std::path::Path;
 
+use crate::analyzers::DocRecord;
 use crate::analyzers::PluginRegistry;
+use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::RepositoryRecord;
 use crate::analyzers::service::analysis::analyze_registered_repository_bundle_with_registry;
-use crate::analyzers::service::merge::{hydrate_repository_record, merge_repository_record};
+use crate::analyzers::service::merge::{
+    hydrate_repository_record, merge_repository_analysis, merge_repository_record,
+};
 use crate::analyzers::{RefineEntityDocRequest, RefineEntityDocResponse};
 use crate::analyzers::{RegisteredRepository, RepositoryRefreshPolicy};
 use crate::analyzers::{RepoIntelligenceError, RepositoryPluginConfig};
@@ -27,7 +31,7 @@ fn test_refine_contract_serialization() {
 }
 
 #[test]
-fn merge_repository_record_prefers_overlay_metadata() {
+fn merge_repository_record_keeps_first_authority_and_fills_missing_metadata() {
     let base = RepositoryRecord {
         repo_id: "demo".to_string().into(),
         name: "demo".to_string(),
@@ -51,12 +55,53 @@ fn merge_repository_record_prefers_overlay_metadata() {
 
     let merged = merge_repository_record(base, overlay);
 
-    assert_eq!(merged.name, "DemoPkg");
+    assert_eq!(merged.name, "demo");
     assert_eq!(merged.url.as_deref(), Some("https://base.invalid/demo.git"));
     assert_eq!(merged.revision.as_deref(), Some("base-rev"));
     assert_eq!(merged.version.as_deref(), Some("0.1.0"));
     assert_eq!(merged.uuid.as_deref(), Some("uuid-demo"));
     assert_eq!(merged.dependencies, vec!["LinearAlgebra".to_string()]);
+}
+
+#[test]
+fn merge_repository_analysis_keeps_first_doc_for_duplicate_doc_ids() {
+    let doc_id = "repo:sample:doc:README.md";
+    let mut base = RepositoryAnalysisOutput {
+        docs: vec![test_doc_record("sample", doc_id, "README", "README.md")],
+        ..RepositoryAnalysisOutput::default()
+    };
+    let overlay = RepositoryAnalysisOutput {
+        docs: vec![
+            test_doc_record("sample", doc_id, "Projectionica", "README.md"),
+            test_doc_record(
+                "sample",
+                "repo:sample:doc:docs/guide.md",
+                "Guide",
+                "docs/guide.md",
+            ),
+        ],
+        ..RepositoryAnalysisOutput::default()
+    };
+
+    merge_repository_analysis(&mut base, overlay);
+
+    let titles = base
+        .docs
+        .iter()
+        .map(|doc| doc.title.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(titles, vec!["README", "Guide"]);
+}
+
+fn test_doc_record(repo_id: &str, doc_id: &str, title: &str, path: &str) -> DocRecord {
+    DocRecord {
+        repo_id: repo_id.to_string().into(),
+        doc_id: doc_id.to_string().into(),
+        title: title.to_string(),
+        path: path.to_string().into(),
+        format: Some("md".to_string()),
+        doc_target: None,
+    }
 }
 
 #[test]

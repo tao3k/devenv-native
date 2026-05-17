@@ -61,15 +61,18 @@ fn image_ocr_cache_bridge_command_spec_preserves_no_promotion_bridge() {
 }
 
 #[test]
-fn image_ocr_command_paths_are_absolute_for_episteme_current_dir() {
-    let current_dir = std::env::current_dir().expect("current directory");
+fn image_ocr_command_paths_are_absolute_for_episteme_current_dir() -> Result<(), String> {
+    let current_dir = std::env::current_dir().map_err(|error| error.to_string())?;
 
     assert_eq!(
-        absolute_runtime_path(Path::new("episteme/runs/tasks.tsv")).expect("relative path"),
+        absolute_runtime_path(Path::new("episteme/runs/tasks.tsv"))
+            .map_err(|error| error.to_string())?,
         current_dir.join("episteme/runs/tasks.tsv")
     );
     assert_eq!(
-        absolute_runtime_path(Path::new("/episteme/runs/tasks.tsv")).expect("absolute path"),
+        absolute_runtime_path(Path::new("/episteme/runs/tasks.tsv"))
+            .map_err(|error| error.to_string())?,
         Path::new("/episteme/runs/tasks.tsv")
     );
+    Ok(())
 }

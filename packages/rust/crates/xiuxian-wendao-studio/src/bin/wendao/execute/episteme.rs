@@ -97,6 +97,20 @@ struct EpistemeImageOcrCacheExecutionReport {
     cache_bridge: EpistemeExternalCommandReport,
 }
 
+struct EpistemeImageOcrCacheRunContext {
+    episteme_root: PathBuf,
+    corpus_root: PathBuf,
+    run_root: PathBuf,
+    request: EpistemeRunPlanRequest,
+}
+
+struct EpistemeImageOcrCacheCommands {
+    tasks_tsv: PathBuf,
+    ocr_results_jsonl: PathBuf,
+    analyzer: EpistemeExternalCommandSpec,
+    cache_bridge: EpistemeExternalCommandSpec,
+}
+
 fn write_episteme_evidence_selection_plan_command(
     cli: &Cli,
     args: &EpistemeWriteEvidenceSelectionPlanArgs,
@@ -198,6 +212,43 @@ fn plan_episteme_source_contract(cli: &Cli, args: &EpistemePlanExtractionRunArgs
 }
 
 fn run_episteme_image_ocr_cache(cli: &Cli, args: &EpistemeRunImageOcrCacheArgs) -> Result<()> {
+    let context = image_ocr_cache_run_context(cli, args)?;
+    let plan = write_episteme_extraction_run_plan(&context.request, &context.run_root)?;
+    let commands = image_ocr_cache_commands(args, &context)?;
+    let analyzer_exit_code =
+        run_external_command_if_needed(args.dry_run, &commands.analyzer, "image OCR analyzer")?;
+    let cache_bridge_exit_code = run_external_command_if_needed(
+        args.dry_run,
+        &commands.cache_bridge,
+        "image OCR cache bridge",
+    )?;
+    let report = EpistemeImageOcrCacheExecutionReport {
+        schema_version: EPISTEME_IMAGE_OCR_WRAPPER_SCHEMA,
+        run_id: args.run_id.clone(),
+        route: EPISTEME_IMAGE_OCR_ROUTE,
+        dry_run: args.dry_run,
+        tasks_tsv: path_display(&commands.tasks_tsv),
+        ocr_results_jsonl: path_display(&commands.ocr_results_jsonl),
+        raw_to_rdf_promotion_allowed: false,
+        plan: serde_json::to_value(&plan).context("failed to serialize image OCR run plan")?,
+        analyzer: EpistemeExternalCommandReport {
+            command: commands.analyzer,
+            skipped: args.dry_run,
+            exit_code: analyzer_exit_code,
+        },
+        cache_bridge: EpistemeExternalCommandReport {
+            command: commands.cache_bridge,
+            skipped: args.dry_run,
+            exit_code: cache_bridge_exit_code,
+        },
+    };
+    emit(&report, cli.output_or_json())
+}
+
+fn image_ocr_cache_run_context(
+    cli: &Cli,
+    args: &EpistemeRunImageOcrCacheArgs,
+) -> Result<EpistemeImageOcrCacheRunContext> {
     let episteme_root = resolve_episteme_root(
         cli,
         &args.episteme_root,
@@ -240,9 +291,19 @@ fn run_episteme_image_ocr_cache(cli: &Cli, args: &EpistemeRunImageOcrCacheArgs) 
         let selected_file_ids = read_episteme_evidence_selection_file_ids(selection_tsv_path)?;
         request = request.with_selected_file_ids(selected_file_ids);
     }
+    Ok(EpistemeImageOcrCacheRunContext {
+        episteme_root,
+        corpus_root,
+        run_root,
+        request,
+    })
+}
 
-    let plan = write_episteme_extraction_run_plan(&request, &run_root)?;
-    let run_dir = run_root.join(&args.run_id);
+fn image_ocr_cache_commands(
+    args: &EpistemeRunImageOcrCacheArgs,
+    context: &EpistemeImageOcrCacheRunContext,
+) -> Result<EpistemeImageOcrCacheCommands> {
+    let run_dir = context.run_root.join(&args.run_id);
     let tasks_path = run_dir.join("tasks.tsv");
     let ocr_results_jsonl = args
         .ocr_results_jsonl
@@ -251,10 +312,10 @@ fn run_episteme_image_ocr_cache(cli: &Cli, args: &EpistemeRunImageOcrCacheArgs) 
     let cache_bridge_script = args
         .cache_bridge_script
         .clone()
-        .unwrap_or_else(|| episteme_root.join("tools/run_extraction_plan.py"));
-    let episteme_root_for_command = absolute_runtime_path(&episteme_root)?;
+        .unwrap_or_else(|| context.episteme_root.join("tools/run_extraction_plan.py"));
+    let episteme_root_for_command = absolute_runtime_path(&context.episteme_root)?;
     let tasks_path_for_command = absolute_runtime_path(&tasks_path)?;
-    let corpus_root_for_command = absolute_runtime_path(&corpus_root)?;
+    let corpus_root_for_command = absolute_runtime_path(&context.corpus_root)?;
     let ocr_results_jsonl_for_command = absolute_runtime_path(&ocr_results_jsonl)?;
     let cache_bridge_script_for_command = absolute_runtime_path(&cache_bridge_script)?;
     let analyzer_command = image_ocr_analyzer_command_spec(
@@ -272,43 +333,12 @@ fn run_episteme_image_ocr_cache(cli: &Cli, args: &EpistemeRunImageOcrCacheArgs) 
         &corpus_root_for_command,
         &ocr_results_jsonl_for_command,
     );
-    let analyzer_exit_code = if args.dry_run {
-        None
-    } else {
-        Some(run_external_command(
-            &analyzer_command,
-            "image OCR analyzer",
-        )?)
-    };
-    let cache_bridge_exit_code = if args.dry_run {
-        None
-    } else {
-        Some(run_external_command(
-            &cache_bridge_command,
-            "image OCR cache bridge",
-        )?)
-    };
-    let report = EpistemeImageOcrCacheExecutionReport {
-        schema_version: EPISTEME_IMAGE_OCR_WRAPPER_SCHEMA,
-        run_id: args.run_id.clone(),
-        route: EPISTEME_IMAGE_OCR_ROUTE,
-        dry_run: args.dry_run,
-        tasks_tsv: path_display(&tasks_path_for_command),
-        ocr_results_jsonl: path_display(&ocr_results_jsonl_for_command),
-        raw_to_rdf_promotion_allowed: false,
-        plan: serde_json::to_value(&plan).context("failed to serialize image OCR run plan")?,
-        analyzer: EpistemeExternalCommandReport {
-            command: analyzer_command,
-            skipped: args.dry_run,
-            exit_code: analyzer_exit_code,
-        },
-        cache_bridge: EpistemeExternalCommandReport {
-            command: cache_bridge_command,
-            skipped: args.dry_run,
-            exit_code: cache_bridge_exit_code,
-        },
-    };
-    emit(&report, cli.output_or_json())
+    Ok(EpistemeImageOcrCacheCommands {
+        tasks_tsv: tasks_path_for_command,
+        ocr_results_jsonl: ocr_results_jsonl_for_command,
+        analyzer: analyzer_command,
+        cache_bridge: cache_bridge_command,
+    })
 }
 
 fn write_episteme_structure_toc_command(
@@ -501,6 +531,17 @@ pub(crate) fn image_ocr_cache_bridge_command_spec(
         ],
         current_dir: Some(path_display(episteme_root)),
     }
+}
+
+fn run_external_command_if_needed(
+    dry_run: bool,
+    spec: &EpistemeExternalCommandSpec,
+    label: &str,
+) -> Result<Option<i32>> {
+    if dry_run {
+        return Ok(None);
+    }
+    run_external_command(spec, label).map(Some)
 }
 
 fn run_external_command(spec: &EpistemeExternalCommandSpec, label: &str) -> Result<i32> {

@@ -22,7 +22,7 @@ fn test_saliency_store_auto_repairs_invalid_payload() -> Result<(), String> {
 
     let _ = valkey_saliency_touch_with_valkey(
         LinkGraphSaliencyTouchRequest {
-            node_id: "note-b".to_string().into(),
+            node_id: "note-b".to_string(),
             activation_delta: 1,
             saliency_base: Some(5.0),
             decay_rate: Some(0.01),

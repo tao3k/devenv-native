@@ -29,7 +29,7 @@ async fn ontology_read_model_quality_roundtrip_uses_runtime_flight_exchange() {
     )
     .await
     .unwrap_or_else(|error| panic!("ontology quality roundtrip should succeed: {error:?}"))
-    .expect("binding should negotiate a runtime transport");
+    .unwrap_or_else(|| panic!("binding should negotiate a runtime transport"));
 
     assert_eq!(
         roundtrip.selection.selected_transport,

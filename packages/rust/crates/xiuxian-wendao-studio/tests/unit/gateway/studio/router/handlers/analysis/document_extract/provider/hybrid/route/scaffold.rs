@@ -1,12 +1,11 @@
 #[test]
-fn ocr2_region_scaffold_payload_is_disabled_by_default() -> Result<(), String> {
+fn ocr2_region_scaffold_payload_is_disabled_by_default() {
     let region = sample_region_input();
 
     let payload =
         ocr2_region_scaffold_payload(Path::new("/tmp/source.pdf"), &[region], false, &|_key| None);
 
     assert!(payload.is_none());
-    Ok(())
 }
 
 #[test]
@@ -76,4 +75,3 @@ fn ocr2_region_candidate_detection_requires_direct_page_profile() {
     input.ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
     assert!(has_ocr2_recovery_page_candidates(&[input]));
 }
-

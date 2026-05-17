@@ -14,6 +14,8 @@ fn server_manifest_owns_only_transport_dependencies() -> Result<(), Box<dyn std:
         "async-trait",
         "base64",
         "futures",
+        "serde",
+        "serde_json",
         "tokio",
         "tokio-stream",
         "tonic",

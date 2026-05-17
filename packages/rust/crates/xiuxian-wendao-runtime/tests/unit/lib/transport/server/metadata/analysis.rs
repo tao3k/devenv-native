@@ -79,7 +79,7 @@ fn validate_document_extract_request_metadata_accepts_utf8_hex_source_path() {
     metadata.insert(
         WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER,
         tonic::metadata::MetadataValue::try_from(encoded.as_str())
-            .expect("encoded source path metadata should parse"),
+            .unwrap_or_else(|error| panic!("encoded source path metadata should parse: {error}")),
     );
 
     let request = must_ok(

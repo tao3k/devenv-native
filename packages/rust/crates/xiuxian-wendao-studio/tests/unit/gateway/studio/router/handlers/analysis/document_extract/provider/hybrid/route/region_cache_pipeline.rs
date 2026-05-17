@@ -156,9 +156,8 @@ fn ocr2_region_pipeline_batch_result_telemetry_splits_base_and_region() {
     assert_eq!(stats.pipeline_base_result_shard_count, 21);
     assert_eq!(stats.pipeline_region_result_count, 2);
     assert_eq!(stats.pipeline_region_result_shard_count, 5);
-    assert_eq!(phases["regionPipelineFirstBaseResult"], 1_250.0);
-    assert_eq!(phases["regionPipelineLastBaseResult"], 1_250.0);
-    assert_eq!(phases["regionPipelineFirstRegionResult"], 2_500.0);
-    assert_eq!(phases["regionPipelineLastRegionResult"], 3_000.0);
+    assert!((phases["regionPipelineFirstBaseResult"] - 1_250.0).abs() < f64::EPSILON);
+    assert!((phases["regionPipelineLastBaseResult"] - 1_250.0).abs() < f64::EPSILON);
+    assert!((phases["regionPipelineFirstRegionResult"] - 2_500.0).abs() < f64::EPSILON);
+    assert!((phases["regionPipelineLastRegionResult"] - 3_000.0).abs() < f64::EPSILON);
 }
-

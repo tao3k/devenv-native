@@ -83,15 +83,15 @@ fn hybrid_page_ocr_region_context_ratio_accepts_zero_override() -> Result<(), St
             }
         })?;
 
-    assert_eq!(regions[0].region_box.left, 72.0);
-    assert_eq!(regions[0].region_box.bottom, 72.0);
-    assert_eq!(regions[0].region_box.right, 144.0);
-    assert_eq!(regions[0].region_box.top, 144.0);
-    assert_eq!(
+    assert_close(regions[0].region_box.left, 72.0);
+    assert_close(regions[0].region_box.bottom, 72.0);
+    assert_close(regions[0].region_box.right, 144.0);
+    assert_close(regions[0].region_box.top, 144.0);
+    assert_close(
         hybrid_page_ocr_region_context_ratio_with_lookup(&|key| {
             (key == DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV).then(|| "1.8".to_string())
         }),
-        1.0
+        1.0,
     );
     Ok(())
 }

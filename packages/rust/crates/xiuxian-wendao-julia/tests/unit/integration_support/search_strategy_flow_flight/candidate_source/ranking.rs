@@ -196,7 +196,7 @@ fn candidate_discovery_can_seed_exact_markdown_path_after_empty_gateway_rows() {
         query: "Docling OCR shard provenance page index".to_owned(),
         path_prefix: "packages/rust/crates/xiuxian-wendao-attachments/README.md".to_owned(),
     })
-    .expect("exact Markdown path should produce a bounded seed candidate");
+    .unwrap_or_else(|| panic!("exact Markdown path should produce a bounded seed candidate"));
 
     assert_eq!(
         seed.relative_path,

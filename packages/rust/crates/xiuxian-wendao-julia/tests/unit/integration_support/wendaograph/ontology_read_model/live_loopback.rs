@@ -79,7 +79,9 @@ async fn ontology_read_model_quality_live_loopback_uses_real_wendaograph_service
         roundtrip_wendaograph_ontology_read_model_quality_with_binding(&binding, &request_batches)
             .await
             .map_err(|error| io::Error::other(format!("{error:?}")))?
-            .expect("live ontology quality Flight binding should negotiate a runtime transport");
+            .unwrap_or_else(|| {
+                panic!("live ontology quality Flight binding should negotiate a runtime transport")
+            });
 
     assert_eq!(
         roundtrip.selection.selected_transport,

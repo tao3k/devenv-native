@@ -218,28 +218,31 @@ fn test_build_file_reports() {
             severity: "error".to_string(),
             issue_type: "dead_link".to_string(),
             doc: "doc1.md".to_string(),
-            node_id: "node1".to_string().into(),
+            node_id: "node1".to_string(),
             message: "Test error".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         },
         SemanticIssue {
             severity: "warning".to_string(),
             issue_type: "legacy_syntax".to_string(),
             doc: "doc1.md".to_string(),
-            node_id: "node2".to_string().into(),
+            node_id: "node2".to_string(),
             message: "Test warning".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         },
         SemanticIssue {
             severity: "error".to_string(),
             issue_type: "dead_link".to_string(),
             doc: "doc2.md".to_string(),
-            node_id: "node3".to_string().into(),
+            node_id: "node3".to_string(),
             message: "Another error".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         },
     ];
 
@@ -269,10 +272,11 @@ fn test_health_score_bounds() {
             severity: "error".to_string(),
             issue_type: "dead_link".to_string(),
             doc: "doc.md".to_string(),
-            node_id: "node".to_string().into(),
+            node_id: "node".to_string(),
             message: "Error".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         })
         .collect();
 

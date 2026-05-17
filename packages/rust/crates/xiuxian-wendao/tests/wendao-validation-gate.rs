@@ -221,6 +221,10 @@ mod repo_projected_retrieval_hit;
 mod link_graph_agentic;
 
 #[cfg(all(not(feature = "performance"), feature = "test-support"))]
+#[path = "unit/link_graph_saliency/mod.rs"]
+mod link_graph_saliency;
+
+#[cfg(all(not(feature = "performance"), feature = "test-support"))]
 #[path = "integration/repo_projection_inputs.rs"]
 mod repo_projection_inputs;
 
@@ -251,6 +255,10 @@ mod performance;
 #[cfg(feature = "performance-stress")]
 #[path = "performance/stress/mod.rs"]
 mod performance_stress;
+
+#[cfg(all(not(feature = "performance"), feature = "test-support"))]
+#[path = "unit/semantic_check.rs"]
+mod semantic_check;
 
 #[path = "support/relative_visibility_gate.rs"]
 mod relative_visibility_gate;

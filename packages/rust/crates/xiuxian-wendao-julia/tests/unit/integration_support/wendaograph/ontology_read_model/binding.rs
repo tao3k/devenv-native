@@ -54,15 +54,16 @@ fn ontology_read_model_quality_flight_binding_targets_runtime_negotiation() {
 
 #[test]
 fn ontology_read_model_quality_flight_binding_rejects_blank_base_url() {
-    let error = build_wendaograph_ontology_read_model_quality_flight_binding(
+    let Err(error) = build_wendaograph_ontology_read_model_quality_flight_binding(
         WendaoGraphOntologyReadModelQualityFlightBindingOptions {
             base_url: " ".to_string(),
             health_route: None,
             timeout_secs: None,
             max_in_flight_requests: None,
         },
-    )
-    .expect_err("blank base URL should be rejected");
+    ) else {
+        panic!("blank base URL should be rejected");
+    };
 
     assert!(error.contains("base URL"));
 }
@@ -80,7 +81,9 @@ fn ontology_read_model_quality_flight_binding_negotiates_runtime_client() {
     .unwrap_or_else(|error| panic!("build ontology quality Flight binding: {error}"));
     let negotiated = negotiate_flight_transport_client_from_bindings(&[binding])
         .unwrap_or_else(|error| panic!("negotiate ontology quality Flight binding: {error}"))
-        .expect("ontology quality Flight binding should negotiate a runtime client");
+        .unwrap_or_else(|| {
+            panic!("ontology quality Flight binding should negotiate a runtime client")
+        });
 
     assert_eq!(
         negotiated.flight_route(),

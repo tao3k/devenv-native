@@ -161,10 +161,10 @@ pub(crate) struct EpistemeRunImageOcrCacheArgs {
     /// Python command used to run the private cache bridge script.
     #[arg(long, default_value = "python")]
     pub python_command: String,
-    /// Private cache bridge script. Defaults to <episteme-root>/tools/run_extraction_plan.py.
+    /// Private cache bridge script. Defaults to `<episteme-root>/tools/run_extraction_plan.py`.
     #[arg(long, value_name = "FILE")]
     pub cache_bridge_script: Option<PathBuf>,
-    /// OCR JSONL path. Defaults to <run-root>/<run-id>/ocr_results.jsonl.
+    /// OCR JSONL path. Defaults to `<run-root>/<run-id>/ocr_results.jsonl`.
     #[arg(long, value_name = "FILE")]
     pub ocr_results_jsonl: Option<PathBuf>,
     /// Write the run plan and print command specs without executing Python commands.

@@ -24,7 +24,7 @@ fn semantic_scope_batches_convert_to_ontology_registry_tsv() {
             Arc::new(StringArray::from(vec![Some("[\"postTransaction\"]")])),
         ],
     )
-    .expect("semantic scope fixture batch should build");
+    .unwrap_or_else(|error| panic!("semantic scope fixture batch should build: {error}"));
 
     let tsv = semantic_scope_batches_to_ontology_registry_tsv(&[batch]);
     let rows = tsv.lines().collect::<Vec<_>>();
@@ -48,7 +48,7 @@ fn semantic_scope_batches_skip_empty_object_ids() {
             Arc::new(StringArray::from(vec![Some("task")])),
         ],
     )
-    .expect("empty object fixture batch should build");
+    .unwrap_or_else(|error| panic!("empty object fixture batch should build: {error}"));
 
     assert!(semantic_scope_batches_to_ontology_registry_tsv(&[batch]).is_empty());
 }

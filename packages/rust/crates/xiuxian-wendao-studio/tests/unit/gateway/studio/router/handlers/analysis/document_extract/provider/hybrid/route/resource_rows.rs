@@ -57,7 +57,7 @@ fn docling_page_range_fallback_phase_is_not_reported_as_scheduler() -> Result<()
 
     record_ocr_scheduler_or_docling_fallback_phase(&mut phases, &batch, Instant::now());
 
-    assert_eq!(phases["ocrScheduler"], 0.0);
+    assert!((phases["ocrScheduler"] - 0.0).abs() < f64::EPSILON);
     assert!(phases.contains_key("doclingPageRangeFallback"));
     Ok(())
 }
@@ -85,14 +85,71 @@ fn docling_page_range_fallback_with_kept_ocr_reports_both_phases() -> Result<(),
 
     record_ocr_scheduler_or_docling_fallback_phase(&mut phases, &batch, Instant::now());
 
-    assert_eq!(phases["ocrScheduler"], 42.0);
+    assert!((phases["ocrScheduler"] - 42.0).abs() < f64::EPSILON);
     assert!(phases.contains_key("doclingPageRangeFallback"));
     Ok(())
 }
 
 #[test]
 fn docling_page_range_fallback_chunk_summary_tracks_longest_chunk() {
-    let chunks = vec![
+    let chunks = sample_page_range_docling_fallback_chunks();
+
+    let summary = page_range_docling_fallback_chunk_summary(chunks.as_slice());
+
+    assert_eq!(summary["chunkCount"], 2);
+    assert_eq!(summary["resourceRows"], 21);
+    assert_eq!(summary["longestPageStart"], 3);
+    assert_eq!(summary["longestPageEnd"], 5);
+    assert_eq!(summary["longestResourceRows"], 12);
+    assert_eq!(summary["hedgedChunkCount"], 1);
+    assert_eq!(summary["attemptCountTotal"], 3);
+    assert_eq!(summary["elapsedMsMax"], serde_json::json!(3400.0));
+    assert_eq!(summary["elapsedMsMin"], serde_json::json!(1200.0));
+    assert_eq!(summary["elapsedMsMean"], serde_json::json!(2300.0));
+    assert_eq!(summary["elapsedMsSpread"], serde_json::json!(2200.0));
+    assert_eq!(
+        summary["elapsedMsMaxToMeanRatio"],
+        serde_json::json!(3400.0 / 2300.0)
+    );
+    assert_eq!(summary["elapsedMsTotal"], serde_json::json!(4600.0));
+    assert_eq!(
+        summary["documentTimingTotalElapsedMs"],
+        serde_json::json!(4300.0)
+    );
+    assert_eq!(
+        summary["documentTimingPhaseElapsedMs"]["doclingConvert"],
+        serde_json::json!(3900.0)
+    );
+    assert_eq!(summary["documentExtractProfileCounts"]["full"], 1);
+    assert_eq!(
+        summary["documentExtractProfileCounts"]["structure-text"],
+        1
+    );
+    assert_eq!(
+        summary["longestDocumentTimingTotalElapsedMs"],
+        serde_json::json!(3200.0)
+    );
+    assert_eq!(
+        summary["longestDocumentTimingPhaseElapsedMs"]["doclingConvert"],
+        serde_json::json!(3000.0)
+    );
+    assert_eq!(summary["sourceProfilePageCount"], 6);
+    assert_eq!(summary["sourceProfileEstimatedWeightTotal"], 90);
+    assert_eq!(summary["sourceProfileEstimatedStructureCostTotal"], 390);
+    assert_eq!(summary["sourceProfileEstimatedStructureCostMax"], 120);
+    assert_eq!(summary["sourceProfileStructureAuthorityRequiredCount"], 3);
+    assert_eq!(summary["sourceProfileFastProfileRiskCount"], 1);
+    assert_eq!(summary["sourceProfileBackendTextTopupCount"], 1);
+    assert_eq!(summary["longestSourceProfile"]["estimatedWeightTotal"], 60);
+    assert_eq!(
+        summary["longestSourceProfile"]["estimatedStructureCostTotal"],
+        260
+    );
+    assert_eq!(summary["longestSourceProfile"]["fastProfileRiskCount"], 1);
+}
+
+fn sample_page_range_docling_fallback_chunks() -> Vec<PageRangeDoclingFallbackChunkTiming> {
+    vec![
         PageRangeDoclingFallbackChunkTiming {
             page_start: 0,
             page_end: 2,
@@ -159,51 +216,7 @@ fn docling_page_range_fallback_chunk_summary_tracks_longest_chunk() {
                 backend_text_topup_count: 1,
             }),
         },
-    ];
-
-    let summary = page_range_docling_fallback_chunk_summary(chunks.as_slice());
-
-    assert_eq!(summary["chunkCount"], 2);
-    assert_eq!(summary["resourceRows"], 21);
-    assert_eq!(summary["longestPageStart"], 3);
-    assert_eq!(summary["longestPageEnd"], 5);
-    assert_eq!(summary["longestResourceRows"], 12);
-    assert_eq!(summary["hedgedChunkCount"], 1);
-    assert_eq!(summary["attemptCountTotal"], 3);
-    assert_eq!(summary["elapsedMsMax"], 3400.0);
-    assert_eq!(summary["elapsedMsMin"], 1200.0);
-    assert_eq!(summary["elapsedMsMean"], 2300.0);
-    assert_eq!(summary["elapsedMsSpread"], 2200.0);
-    assert_eq!(summary["elapsedMsMaxToMeanRatio"], 3400.0 / 2300.0);
-    assert_eq!(summary["elapsedMsTotal"], 4600.0);
-    assert_eq!(summary["documentTimingTotalElapsedMs"], 4300.0);
-    assert_eq!(
-        summary["documentTimingPhaseElapsedMs"]["doclingConvert"],
-        3900.0
-    );
-    assert_eq!(summary["documentExtractProfileCounts"]["full"], 1);
-    assert_eq!(
-        summary["documentExtractProfileCounts"]["structure-text"],
-        1
-    );
-    assert_eq!(summary["longestDocumentTimingTotalElapsedMs"], 3200.0);
-    assert_eq!(
-        summary["longestDocumentTimingPhaseElapsedMs"]["doclingConvert"],
-        3000.0
-    );
-    assert_eq!(summary["sourceProfilePageCount"], 6);
-    assert_eq!(summary["sourceProfileEstimatedWeightTotal"], 90);
-    assert_eq!(summary["sourceProfileEstimatedStructureCostTotal"], 390);
-    assert_eq!(summary["sourceProfileEstimatedStructureCostMax"], 120);
-    assert_eq!(summary["sourceProfileStructureAuthorityRequiredCount"], 3);
-    assert_eq!(summary["sourceProfileFastProfileRiskCount"], 1);
-    assert_eq!(summary["sourceProfileBackendTextTopupCount"], 1);
-    assert_eq!(summary["longestSourceProfile"]["estimatedWeightTotal"], 60);
-    assert_eq!(
-        summary["longestSourceProfile"]["estimatedStructureCostTotal"],
-        260
-    );
-    assert_eq!(summary["longestSourceProfile"]["fastProfileRiskCount"], 1);
+    ]
 }
 
 #[test]

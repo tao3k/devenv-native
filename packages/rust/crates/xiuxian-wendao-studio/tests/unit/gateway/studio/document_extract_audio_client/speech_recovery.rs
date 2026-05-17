@@ -106,39 +106,8 @@ async fn audio_shard_response_plans_recovery_from_speech_timing_facts() -> Resul
 async fn audio_shard_client_skips_recovery_when_speech_facts_miss_failed_parent()
 -> Result<(), String> {
     let tempdir = tempfile::tempdir().map_err(error_to_string)?;
-    let source_path = tempdir.path().join("source.mp3");
-    std::fs::write(source_path.as_path(), b"source").map_err(error_to_string)?;
-    let ffmpeg_path = tempdir.path().join("fake_ffmpeg.sh");
-    std::fs::write(
-        ffmpeg_path.as_path(),
-        "#!/bin/sh\nlast=''\nfor arg in \"$@\"; do last=\"$arg\"; done\nprintf cached > \"$last\"\n",
-    )
-    .map_err(error_to_string)?;
-    make_executable(ffmpeg_path.as_path())?;
-
-    let parent_plan = AudioShardPlan {
-        profile: "audio-shards-v1".to_owned(),
-        source: AudioSourceIdentity {
-            source_id: "/tmp/source.mp3".to_owned(),
-            source_sha256: "sourcehash".to_owned(),
-            duration_ms: Some(120_000),
-        },
-        chunk_duration_ms: 60_000,
-        start_offsets_ms: vec![0, 60_000],
-        window_durations_ms: Vec::new(),
-        context_before_ms: 0,
-        context_after_ms: 0,
-        sample_rate_hz: 16_000,
-        channels: 1,
-        audio_format: "wav".to_owned(),
-        strategy: "full-coverage".to_owned(),
-    };
-    let materialization = AudioShardMaterializationInput {
-        source_path,
-        output_dir: tempdir.path().join("chunks"),
-        ffmpeg_path,
-        force: true,
-    };
+    let parent_plan = missing_speech_parent_audio_plan();
+    let materialization = missing_speech_materialization(&tempdir)?;
     let profile = AudioShardWorkerProfile::transcription("hosted-audio-transcript-v1");
     let base_materialized = materialize_audio_shards(&parent_plan, &materialization)?;
     let base_inputs = build_audio_shard_inputs(base_materialized.as_slice(), &profile);
@@ -233,4 +202,45 @@ async fn audio_shard_client_skips_recovery_when_speech_facts_miss_failed_parent(
 
     server_handle.abort();
     Ok(())
+}
+
+fn missing_speech_parent_audio_plan() -> AudioShardPlan {
+    AudioShardPlan {
+        profile: "audio-shards-v1".to_owned(),
+        source: AudioSourceIdentity {
+            source_id: "/tmp/source.mp3".to_owned(),
+            source_sha256: "sourcehash".to_owned(),
+            duration_ms: Some(120_000),
+        },
+        chunk_duration_ms: 60_000,
+        start_offsets_ms: vec![0, 60_000],
+        window_durations_ms: Vec::new(),
+        context_before_ms: 0,
+        context_after_ms: 0,
+        sample_rate_hz: 16_000,
+        channels: 1,
+        audio_format: "wav".to_owned(),
+        strategy: "full-coverage".to_owned(),
+    }
+}
+
+fn missing_speech_materialization(
+    tempdir: &tempfile::TempDir,
+) -> Result<AudioShardMaterializationInput, String> {
+    let source_path = tempdir.path().join("source.mp3");
+    std::fs::write(source_path.as_path(), b"source").map_err(error_to_string)?;
+    let ffmpeg_path = tempdir.path().join("fake_ffmpeg.sh");
+    std::fs::write(
+        ffmpeg_path.as_path(),
+        "#!/bin/sh\nlast=''\nfor arg in \"$@\"; do last=\"$arg\"; done\nprintf cached > \"$last\"\n",
+    )
+    .map_err(error_to_string)?;
+    make_executable(ffmpeg_path.as_path())?;
+
+    Ok(AudioShardMaterializationInput {
+        source_path,
+        output_dir: tempdir.path().join("chunks"),
+        ffmpeg_path,
+        force: true,
+    })
 }

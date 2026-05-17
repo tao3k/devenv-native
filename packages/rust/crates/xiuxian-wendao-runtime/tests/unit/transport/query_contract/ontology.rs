@@ -36,9 +36,9 @@ fn dataset_ontology_flight_manifest_roundtrips_as_json_metadata() {
     let manifest = healthcare_manifest();
 
     let encoded = encode_dataset_ontology_manifest_header(&manifest)
-        .expect("valid dataset ontology manifest should encode");
+        .unwrap_or_else(|error| panic!("valid dataset ontology manifest should encode: {error}"));
     let decoded = decode_dataset_ontology_manifest_header(&encoded)
-        .expect("valid dataset ontology manifest should decode");
+        .unwrap_or_else(|error| panic!("valid dataset ontology manifest should decode: {error}"));
 
     assert_eq!(decoded, manifest);
 }
