@@ -45,6 +45,39 @@ pub(super) struct ScheduledOcrBatch {
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
+struct Ocr2RegionPipelineDrainRequest<'a> {
+    source_path: &'a Path,
+    page_count: u32,
+    render_profile: &'a PdfPageRenderProfile,
+    region_chunks: &'a [Vec<PdfPageRegionRenderRequest>],
+    parent_page_shards: &'a BTreeMap<u32, String>,
+    explicit_regions: bool,
+    pdf_ocr_scheduler: &'a PdfOcrWorkerScheduler,
+    endpoint_urls: &'a [String],
+    render_ahead_limit: usize,
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+struct Ocr2RegionPipelineDrainState<'a> {
+    phase_elapsed_ms: &'a mut BTreeMap<String, f64>,
+    stats: &'a mut Ocr2RegionMaterializationStats,
+    all_inputs: Vec<PdfOcrShardInput>,
+    all_results: Vec<PdfOcrShardResult>,
+    scheduler_trace: Vec<PdfOcrShardSchedulerTrace>,
+    pending_ocr: FuturesUnordered<BoxFuture<'a, Result<ScheduledOcrBatch, String>>>,
+    active_renders:
+        FuturesUnordered<tokio::task::JoinHandle<Result<Ocr2RegionRenderChunk, String>>>,
+    chunk_index: usize,
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+struct Ocr2RegionPipelineDrainOutput {
+    all_inputs: Vec<PdfOcrShardInput>,
+    all_results: Vec<PdfOcrShardResult>,
+    scheduler_trace: Vec<PdfOcrShardSchedulerTrace>,
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Ocr2RegionPipelineBatchKind {
     Base,
@@ -61,7 +94,6 @@ pub(super) async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipel
     let source_path = Path::new(render_report.source_path.as_str()).to_path_buf();
     let mut phase_elapsed_ms = BTreeMap::new();
     let mut stats = Ocr2RegionMaterializationStats::default();
-
     let phase_started = Instant::now();
     let (explicit_regions, regions) =
         ocr2_recovery_region_requests_for_inputs(source_path.as_path(), inputs.as_slice())?;
@@ -73,26 +105,16 @@ pub(super) async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipel
     );
 
     if regions.is_empty() {
-        let phase_started = Instant::now();
-        let inputs = materialize_ocr2_recovery_page_images(render_report, inputs).await?;
-        record_phase_elapsed(&mut phase_elapsed_ms, "pageMaterialize", phase_started);
-
-        let phase_started = Instant::now();
-        let resource_batch = materialize_hybrid_page_ocr_resource_batch(
+        return materialize_regionless_ocr2_pipeline_batch(
             render_report,
             inputs,
             pdf_ocr_scheduler,
             provider,
             output,
-        )
-        .await?;
-        record_phase_elapsed(&mut phase_elapsed_ms, "ocrScheduler", phase_started);
-        return Ok(Ocr2RegionPipelineBatch {
-            resource_batch,
-            stats,
             phase_elapsed_ms,
-            scheduler_trace: Vec::new(),
-        });
+            stats,
+        )
+        .await;
     }
 
     let region_pages = regions
@@ -106,7 +128,6 @@ pub(super) async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipel
     let phase_started = Instant::now();
     let base_inputs = materialize_ocr2_recovery_page_images(render_report, base_inputs).await?;
     record_phase_elapsed(&mut phase_elapsed_ms, "pageMaterialize", phase_started);
-
     let endpoint_url = std::env::var("WENDAO_DOCUMENT_EXTRACT_ENDPOINT")
         .unwrap_or_else(|_| DEFAULT_DOCUMENT_EXTRACT_ENDPOINT.to_string());
     let endpoint_urls = pdf_ocr_endpoint_urls(endpoint_url.as_str());
@@ -119,132 +140,239 @@ pub(super) async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipel
         ocr2_region_render_ahead_limit_with_lookup(region_chunks.len(), &|key| {
             std::env::var(key).ok()
         });
-    let mut chunk_index = 0usize;
-    let mut pending_ocr: FuturesUnordered<BoxFuture<'_, Result<ScheduledOcrBatch, String>>> =
-        FuturesUnordered::new();
-    let mut active_renders: FuturesUnordered<
-        tokio::task::JoinHandle<Result<Ocr2RegionRenderChunk, String>>,
-    > = FuturesUnordered::new();
-    let mut all_inputs = base_inputs.clone();
-    let mut all_results = Vec::new();
-    let mut scheduler_trace = Vec::new();
     let scheduler_started = Instant::now();
-
-    if !base_inputs.is_empty() {
-        phase_elapsed_ms.insert(
-            "regionPipelineBaseDispatch".to_string(),
-            scheduler_started.elapsed().as_secs_f64() * 1000.0,
-        );
-        pending_ocr.push(schedule_ocr_input_batch(
+    let drain_output = drain_ocr2_region_pipeline(
+        Ocr2RegionPipelineDrainRequest {
+            source_path: source_path.as_path(),
+            page_count: render_report.page_count,
+            render_profile: &render_profile,
+            region_chunks: region_chunks.as_slice(),
+            parent_page_shards: &parent_page_shards,
+            explicit_regions,
             pdf_ocr_scheduler,
-            endpoint_urls.as_slice(),
-            Ocr2RegionPipelineBatchKind::Base,
-            base_inputs,
-        ));
-    }
-    fill_ocr2_region_render_ahead(
-        source_path.as_path(),
-        render_report.page_count,
-        &render_profile,
-        region_chunks.as_slice(),
-        &mut chunk_index,
-        render_ahead_limit,
-        &mut active_renders,
-    );
-
-    while !active_renders.is_empty() || !pending_ocr.is_empty() {
-        tokio::select! {
-            render_join = active_renders.next(), if !active_renders.is_empty() => {
-                let render_join = render_join
-                    .ok_or_else(|| "hosted VLM/OCR region pipeline render queue ended unexpectedly".to_string())?;
-                let render_chunk = render_join
-                    .map_err(|error| format!("join hosted VLM/OCR region pipeline render task: {error}"))??;
-                let render_ready_elapsed_ms =
-                    scheduler_started.elapsed().as_secs_f64() * 1000.0;
-                stats.pipeline_render_chunk_count =
-                    stats.pipeline_render_chunk_count.saturating_add(1);
-                if stats.pipeline_render_chunk_count == 1 {
-                    phase_elapsed_ms.insert(
-                        "regionPipelineFirstRegionReady".to_string(),
-                        render_ready_elapsed_ms,
-                    );
-                }
-                phase_elapsed_ms.insert(
-                    "regionPipelineLastRegionReady".to_string(),
-                    render_ready_elapsed_ms,
-                );
-                let region_inputs = decode_ocr2_region_render_chunk(
-                    source_path.as_path(),
-                    &render_chunk,
-                    &parent_page_shards,
-                    explicit_regions,
-                    &mut stats,
-                )?;
-                if !region_inputs.is_empty() {
-                    all_inputs.extend(region_inputs.clone());
-                    let dispatch_elapsed_ms =
-                        scheduler_started.elapsed().as_secs_f64() * 1000.0;
-                    stats.pipeline_region_dispatch_count = stats
-                        .pipeline_region_dispatch_count
-                        .saturating_add(1);
-                    if stats.pipeline_region_dispatch_count == 1 {
-                        phase_elapsed_ms.insert(
-                            "regionPipelineFirstRegionDispatch".to_string(),
-                            dispatch_elapsed_ms,
-                        );
-                    }
-                    phase_elapsed_ms.insert(
-                        "regionPipelineLastRegionDispatch".to_string(),
-                        dispatch_elapsed_ms,
-                    );
-                    pending_ocr.push(schedule_ocr_input_batch(
-                        pdf_ocr_scheduler,
-                        endpoint_urls.as_slice(),
-                        Ocr2RegionPipelineBatchKind::Region,
-                        region_inputs,
-                    ));
-                }
-                fill_ocr2_region_render_ahead(
-                    source_path.as_path(),
-                    render_report.page_count,
-                    &render_profile,
-                    region_chunks.as_slice(),
-                    &mut chunk_index,
-                    render_ahead_limit,
-                    &mut active_renders,
-                );
-            }
-            scheduled = pending_ocr.next(), if !pending_ocr.is_empty() => {
-                let scheduled = scheduled
-                    .ok_or_else(|| "hosted VLM/OCR region pipeline request queue ended unexpectedly".to_string())??;
-                let completed_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
-                record_ocr2_region_pipeline_batch_result(
-                    &mut phase_elapsed_ms,
-                    &mut stats,
-                    scheduled.kind,
-                    scheduled.inputs.len(),
-                    completed_elapsed_ms,
-                );
-                collect_scheduled_ocr_batch(&mut all_results, &mut scheduler_trace, scheduled)?;
-            }
-        }
-    }
-
+            endpoint_urls: endpoint_urls.as_slice(),
+            render_ahead_limit,
+        },
+        base_inputs,
+        &mut phase_elapsed_ms,
+        &mut stats,
+        scheduler_started,
+    )
+    .await?;
     let scheduler_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
     phase_elapsed_ms.insert("ocrScheduler".to_string(), scheduler_elapsed_ms);
+    let mut all_inputs = drain_output.all_inputs;
     all_inputs.sort_by(|left, right| left.reading_order_key.cmp(&right.reading_order_key));
     let resource_batch = materialize_hybrid_page_ocr_resource_batch_from_results(
         render_report,
         all_inputs,
-        all_results,
+        drain_output.all_results,
         scheduler_elapsed_ms,
     )?;
     Ok(Ocr2RegionPipelineBatch {
         resource_batch,
         stats,
         phase_elapsed_ms,
-        scheduler_trace,
+        scheduler_trace: drain_output.scheduler_trace,
     })
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+async fn materialize_regionless_ocr2_pipeline_batch(
+    render_report: &PdfPageRenderShardReport,
+    inputs: Vec<PdfOcrShardInput>,
+    pdf_ocr_scheduler: &PdfOcrWorkerScheduler,
+    provider: &StudioDocumentExtractFlightRouteProvider,
+    output: &Path,
+    mut phase_elapsed_ms: BTreeMap<String, f64>,
+    stats: Ocr2RegionMaterializationStats,
+) -> Result<Ocr2RegionPipelineBatch, String> {
+    let phase_started = Instant::now();
+    let inputs = materialize_ocr2_recovery_page_images(render_report, inputs).await?;
+    record_phase_elapsed(&mut phase_elapsed_ms, "pageMaterialize", phase_started);
+
+    let phase_started = Instant::now();
+    let resource_batch = materialize_hybrid_page_ocr_resource_batch(
+        render_report,
+        inputs,
+        pdf_ocr_scheduler,
+        provider,
+        output,
+    )
+    .await?;
+    record_phase_elapsed(&mut phase_elapsed_ms, "ocrScheduler", phase_started);
+    Ok(Ocr2RegionPipelineBatch {
+        resource_batch,
+        stats,
+        phase_elapsed_ms,
+        scheduler_trace: Vec::new(),
+    })
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+async fn drain_ocr2_region_pipeline<'a>(
+    request: Ocr2RegionPipelineDrainRequest<'a>,
+    base_inputs: Vec<PdfOcrShardInput>,
+    phase_elapsed_ms: &'a mut BTreeMap<String, f64>,
+    materialization_stats: &'a mut Ocr2RegionMaterializationStats,
+    scheduler_started: Instant,
+) -> Result<Ocr2RegionPipelineDrainOutput, String> {
+    let mut drain_state = Ocr2RegionPipelineDrainState {
+        phase_elapsed_ms,
+        stats: materialization_stats,
+        all_inputs: base_inputs.clone(),
+        all_results: Vec::new(),
+        scheduler_trace: Vec::new(),
+        pending_ocr: FuturesUnordered::new(),
+        active_renders: FuturesUnordered::new(),
+        chunk_index: 0,
+    };
+    dispatch_base_ocr_batch(&request, &mut drain_state, base_inputs, scheduler_started);
+    fill_region_render_queue(&request, &mut drain_state);
+    while !drain_state.active_renders.is_empty() || !drain_state.pending_ocr.is_empty() {
+        tokio::select! {
+            render_join = drain_state.active_renders.next(), if !drain_state.active_renders.is_empty() => {
+                let render_join = render_join
+                    .ok_or_else(|| "hosted VLM/OCR region pipeline render queue ended unexpectedly".to_string())?;
+                let render_chunk = render_join
+                    .map_err(|error| format!("join hosted VLM/OCR region pipeline render task: {error}"))??;
+                handle_ready_region_render(&request, &mut drain_state, &render_chunk, scheduler_started)?;
+            }
+            scheduled = drain_state.pending_ocr.next(), if !drain_state.pending_ocr.is_empty() => {
+                let scheduled = scheduled
+                    .ok_or_else(|| "hosted VLM/OCR region pipeline request queue ended unexpectedly".to_string())??;
+                handle_completed_ocr_batch(&mut drain_state, scheduled, scheduler_started)?;
+            }
+        }
+    }
+    Ok(Ocr2RegionPipelineDrainOutput {
+        all_inputs: drain_state.all_inputs,
+        all_results: drain_state.all_results,
+        scheduler_trace: drain_state.scheduler_trace,
+    })
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn dispatch_base_ocr_batch<'a>(
+    request: &Ocr2RegionPipelineDrainRequest<'a>,
+    state: &mut Ocr2RegionPipelineDrainState<'a>,
+    base_inputs: Vec<PdfOcrShardInput>,
+    scheduler_started: Instant,
+) {
+    if base_inputs.is_empty() {
+        return;
+    }
+    state.phase_elapsed_ms.insert(
+        "regionPipelineBaseDispatch".to_string(),
+        scheduler_started.elapsed().as_secs_f64() * 1000.0,
+    );
+    state.pending_ocr.push(schedule_ocr_input_batch(
+        request.pdf_ocr_scheduler,
+        request.endpoint_urls,
+        Ocr2RegionPipelineBatchKind::Base,
+        base_inputs,
+    ));
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn fill_region_render_queue<'a>(
+    request: &Ocr2RegionPipelineDrainRequest<'a>,
+    state: &mut Ocr2RegionPipelineDrainState<'a>,
+) {
+    fill_ocr2_region_render_ahead(
+        request.source_path,
+        request.page_count,
+        request.render_profile,
+        request.region_chunks,
+        &mut state.chunk_index,
+        request.render_ahead_limit,
+        &mut state.active_renders,
+    );
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn handle_ready_region_render<'a>(
+    request: &Ocr2RegionPipelineDrainRequest<'a>,
+    state: &mut Ocr2RegionPipelineDrainState<'a>,
+    render_chunk: &Ocr2RegionRenderChunk,
+    scheduler_started: Instant,
+) -> Result<(), String> {
+    let render_ready_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
+    state.stats.pipeline_render_chunk_count =
+        state.stats.pipeline_render_chunk_count.saturating_add(1);
+    if state.stats.pipeline_render_chunk_count == 1 {
+        state.phase_elapsed_ms.insert(
+            "regionPipelineFirstRegionReady".to_string(),
+            render_ready_elapsed_ms,
+        );
+    }
+    state.phase_elapsed_ms.insert(
+        "regionPipelineLastRegionReady".to_string(),
+        render_ready_elapsed_ms,
+    );
+    let region_inputs = decode_ocr2_region_render_chunk(
+        request.source_path,
+        render_chunk,
+        request.parent_page_shards,
+        request.explicit_regions,
+        state.stats,
+    )?;
+    dispatch_region_ocr_batch(request, state, region_inputs, scheduler_started);
+    fill_region_render_queue(request, state);
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn dispatch_region_ocr_batch<'a>(
+    request: &Ocr2RegionPipelineDrainRequest<'a>,
+    state: &mut Ocr2RegionPipelineDrainState<'a>,
+    region_inputs: Vec<PdfOcrShardInput>,
+    scheduler_started: Instant,
+) {
+    if region_inputs.is_empty() {
+        return;
+    }
+    state.all_inputs.extend(region_inputs.clone());
+    let dispatch_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
+    state.stats.pipeline_region_dispatch_count =
+        state.stats.pipeline_region_dispatch_count.saturating_add(1);
+    if state.stats.pipeline_region_dispatch_count == 1 {
+        state.phase_elapsed_ms.insert(
+            "regionPipelineFirstRegionDispatch".to_string(),
+            dispatch_elapsed_ms,
+        );
+    }
+    state.phase_elapsed_ms.insert(
+        "regionPipelineLastRegionDispatch".to_string(),
+        dispatch_elapsed_ms,
+    );
+    state.pending_ocr.push(schedule_ocr_input_batch(
+        request.pdf_ocr_scheduler,
+        request.endpoint_urls,
+        Ocr2RegionPipelineBatchKind::Region,
+        region_inputs,
+    ));
+}
+
+#[cfg(feature = "document-extract-pdf-render")]
+fn handle_completed_ocr_batch(
+    state: &mut Ocr2RegionPipelineDrainState<'_>,
+    scheduled: ScheduledOcrBatch,
+    scheduler_started: Instant,
+) -> Result<(), String> {
+    let completed_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
+    record_ocr2_region_pipeline_batch_result(
+        state.phase_elapsed_ms,
+        state.stats,
+        scheduled.kind,
+        scheduled.inputs.len(),
+        completed_elapsed_ms,
+    );
+    collect_scheduled_ocr_batch(
+        &mut state.all_results,
+        &mut state.scheduler_trace,
+        scheduled,
+    )
 }
 
 #[cfg(feature = "document-extract-pdf-render")]

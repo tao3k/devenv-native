@@ -4,6 +4,7 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
 
 use sha2::Digest;
 use xiuxian_wendao_attachments::audio::{
@@ -54,7 +55,14 @@ pub(crate) fn parse_ffprobe_duration_ms(value: &str) -> Result<u64, String> {
             "audio duration probe returned non-positive duration `{value}`"
         ));
     }
-    Ok((seconds * 1000.0).ceil() as u64)
+    let duration = Duration::try_from_secs_f64(seconds)
+        .map_err(|_| format!("audio duration probe returned invalid duration `{value}`"))?;
+    let base_ms = u64::try_from(duration.as_millis())
+        .map_err(|_| format!("audio duration probe returned too large duration `{value}`"))?;
+    let has_fractional_ms = duration.subsec_nanos() % 1_000_000 != 0;
+    base_ms
+        .checked_add(u64::from(has_fractional_ms))
+        .ok_or_else(|| format!("audio duration probe returned too large duration `{value}`"))
 }
 
 pub(super) fn source_sha256_hex(path: &Path) -> Result<String, String> {
@@ -88,10 +96,10 @@ pub(crate) fn build_full_coverage_audio_plan(
     let mut start_ms = 0_u64;
     while start_ms < duration_ms {
         let remaining_ms = duration_ms.saturating_sub(start_ms);
-        let window_duration_ms = remaining_ms.min(config.chunk_duration_ms);
+        let shard_window_ms = remaining_ms.min(config.chunk_duration_ms);
         start_offsets_ms.push(start_ms);
-        window_durations_ms.push(window_duration_ms);
-        start_ms = start_ms.saturating_add(window_duration_ms);
+        window_durations_ms.push(shard_window_ms);
+        start_ms = start_ms.saturating_add(shard_window_ms);
     }
     Ok(AudioShardPlan {
         profile: DEFAULT_AUDIO_SHARD_PROFILE.to_owned(),

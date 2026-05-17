@@ -255,7 +255,7 @@ candidate:
 direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-file> \
   --backend local-openai-audio \
   --openrouter-base-url http://127.0.0.1:8013/v1/chat/completions \
-  --openrouter-model wendao-qwen3-asr-audio \
+  --openrouter-model qwen3-asr-1.7b-mlx \
   --limit-files 1 \
   --limit-chunks 5 \
   --chunk-seconds 60 \
@@ -336,6 +336,9 @@ weak rows, stable Chinese output, and low repetition after warmup. It is still
 not promoted until a curated reference transcript supplies CER and critical
 entity/number checks. Do not use `mlx-community/*-8bit` weights with this
 adapter; the current runner expects the `mlx-qwen3-asr` model layout.
+The adapter serves `qwen3-asr-1.7b-mlx` by default and requests timestamp
+chunks by default so VTT/SRT/Org review outputs can use model-provided segment
+times when the local runner returns them.
 
 Docling is the parsing authority. The analyzer does not maintain a runtime
 allowlist; it exposes known common Docling formats and suffixes for downstream
@@ -395,6 +398,15 @@ models by accident. Passing `--pdf-ocr-worker docling` enables the opt-in
 Docling image worker for rendered shards; failed or empty shard OCR rows remain
 table-shaped failures so the Rust hybrid provider can fall back to full Docling
 when coverage is incomplete.
+
+For source-contract image evidence tasks that are not PDF page shards, the
+package also exposes `wendao-image-ocr-jsonl`. It reads a Rust-written
+`tasks.tsv`, sends only `image_ocr_evidence` rows to the configured
+OpenAI-compatible Hosted VLM/OCR endpoint, and writes queue-keyed OCR JSONL
+rows for downstream cache bridges. This is an analyzer-side adapter, not a
+public Gateway route and not an ontology promotion path. Downstream private
+episteme runners must still enforce review-required and no-RDF-promotion
+semantics before accepting the text as cache evidence.
 
 Docling shard OCR is bounded and adaptive. The service accepts
 `--pdf-ocr-workers auto|N` as a direct local default, but the Rust provider may

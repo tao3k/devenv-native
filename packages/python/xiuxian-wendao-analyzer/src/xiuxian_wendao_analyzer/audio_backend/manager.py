@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 from dataclasses import dataclass
 from typing import Literal
@@ -16,11 +17,12 @@ from ..local_backend import (
     module_path,
     probe_local_devices,
 )
+from .qwen3_asr_mlx_openai_adapter import DEFAULT_QWEN3_ASR_SERVED_MODEL
 
 AudioBackendAction = Literal["probe-local", "start-backend"]
 AudioBackendRunner = Literal["auto", "qwen3-asr-mlx", "fireredasr2s"]
 
-DEFAULT_AUDIO_MODEL_NAME = "wendao-local-audio"
+DEFAULT_AUDIO_MODEL_NAME = DEFAULT_QWEN3_ASR_SERVED_MODEL
 DEFAULT_QWEN3_ASR_PACKAGE = "mlx-qwen3-asr"
 
 
@@ -163,6 +165,12 @@ def _build_qwen3_asr_mlx_launch(options: AudioBackendOptions) -> BackendLaunch:
         raise AudioBackendError(
             "Qwen3-ASR MLX audio runner requires macOS on Apple Silicon."
         )
+    if shutil.which("ffmpeg") is None:
+        raise AudioBackendError(
+            "Qwen3-ASR MLX audio runner requires ffmpeg on PATH. Run through "
+            "the project direnv/devenv environment so the adapter process can "
+            "resample audio before MLX inference."
+        )
     host = env_value("WENDAO_AUDIO_LOCAL_HOST", options.host or "127.0.0.1")
     port = env_value("WENDAO_AUDIO_LOCAL_PORT", options.port or "8010")
     model_path = env_value("WENDAO_AUDIO_LOCAL_MODEL_PATH", options.model_path)
@@ -188,7 +196,7 @@ def _build_qwen3_asr_mlx_launch(options: AudioBackendOptions) -> BackendLaunch:
             "WENDAO_AUDIO_LOCAL_PORT": port,
             "WENDAO_AUDIO_LOCAL_MODEL": env_value(
                 "WENDAO_AUDIO_LOCAL_MODEL",
-                "wendao-qwen3-asr-audio",
+                DEFAULT_AUDIO_MODEL_NAME,
             ),
             "WENDAO_AUDIO_LOCAL_MODEL_PATH": model_path,
             "WENDAO_AUDIO_LOCAL_DEVICE": "metal",

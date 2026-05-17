@@ -4,11 +4,12 @@ use std::collections::HashMap;
 
 use super::AudioShardFlightResponse;
 use xiuxian_wendao_attachments::audio::{
-    AudioRecoveryPatchGateOptions, AudioRecoveryPatchGateReport, AudioRiskParentSelection,
-    AudioRiskParentSelectionOptions, AudioShardInput, AudioShardMergeReport, AudioShardPlan,
-    AudioShardRequestMetric, AudioSpeechWindowPlannerInput, build_audio_recovery_patch_candidates,
-    build_audio_recovery_speech_window_plan_for_inputs, build_audio_recovery_split_plan_for_inputs,
-    merge_audio_shard_results_with_recovery_patches, select_audio_risk_parent_shards,
+    AudioRecoveryPatchGateOptions, AudioRecoveryPatchGateReport, AudioRecoveryPatchMergeRequest,
+    AudioRiskParentSelection, AudioRiskParentSelectionOptions, AudioShardInput,
+    AudioShardMergeReport, AudioShardPlan, AudioShardRequestMetric, AudioSpeechWindowPlannerInput,
+    build_audio_recovery_patch_candidates, build_audio_recovery_speech_window_plan_for_inputs,
+    build_audio_recovery_split_plan_for_inputs, merge_audio_shard_results_with_recovery_patches,
+    select_audio_risk_parent_shards,
 };
 
 /// Rust-planned short-window recovery work derived from a base response.
@@ -110,13 +111,13 @@ impl AudioShardFlightResponse {
         options: AudioRecoveryPatchGateOptions,
     ) -> Result<(AudioShardMergeReport, AudioRecoveryPatchGateReport), String> {
         let candidates = build_audio_recovery_patch_candidates(inputs, recovery_inputs)?;
-        merge_audio_shard_results_with_recovery_patches(
-            inputs,
-            self.results.as_slice(),
-            recovery_response.results.as_slice(),
-            candidates.as_slice(),
+        merge_audio_shard_results_with_recovery_patches(AudioRecoveryPatchMergeRequest {
+            base_inputs: inputs,
+            base_results: self.results.as_slice(),
+            recovery_results: recovery_response.results.as_slice(),
+            candidates: candidates.as_slice(),
             options,
-        )
+        })
     }
 }
 

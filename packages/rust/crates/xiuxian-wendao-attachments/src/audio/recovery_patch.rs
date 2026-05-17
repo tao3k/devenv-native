@@ -87,6 +87,21 @@ pub struct AudioRecoveryPatchGateReport {
     pub rejected_count: usize,
 }
 
+/// Request object for parent-result recovery patch merge.
+#[derive(Debug, Clone, Copy)]
+pub struct AudioRecoveryPatchMergeRequest<'a> {
+    /// Parent shard inputs that own the final reading order.
+    pub base_inputs: &'a [AudioShardInput],
+    /// Parent result rows before recovery patching.
+    pub base_results: &'a [AudioShardResult],
+    /// Short-window recovery result rows.
+    pub recovery_results: &'a [AudioShardResult],
+    /// Parent-to-recovery candidate mapping.
+    pub candidates: &'a [AudioRecoveryPatchCandidate],
+    /// Precision gate options.
+    pub options: AudioRecoveryPatchGateOptions,
+}
+
 /// Gate short-window recovery rows before they can patch parent transcript rows.
 ///
 /// # Errors
@@ -167,11 +182,7 @@ pub fn build_audio_recovery_patch_candidates(
 /// Returns an error when recovery patch gating fails or the final audio result
 /// merge fails.
 pub fn merge_audio_shard_results_with_recovery_patches(
-    base_inputs: &[AudioShardInput],
-    base_results: &[AudioShardResult],
-    recovery_results: &[AudioShardResult],
-    candidates: &[AudioRecoveryPatchCandidate],
-    options: AudioRecoveryPatchGateOptions,
+    request: AudioRecoveryPatchMergeRequest<'_>,
 ) -> Result<
     (
         super::merge::AudioShardMergeReport,
@@ -179,10 +190,14 @@ pub fn merge_audio_shard_results_with_recovery_patches(
     ),
     String,
 > {
-    let gate_report =
-        gate_audio_recovery_patches(base_results, recovery_results, candidates, options)?;
-    let patched_results = apply_audio_recovery_patch_decisions(base_results, &gate_report);
-    let merge_report = merge_audio_shard_results(base_inputs, patched_results.as_slice())?;
+    let gate_report = gate_audio_recovery_patches(
+        request.base_results,
+        request.recovery_results,
+        request.candidates,
+        request.options,
+    )?;
+    let patched_results = apply_audio_recovery_patch_decisions(request.base_results, &gate_report);
+    let merge_report = merge_audio_shard_results(request.base_inputs, patched_results.as_slice())?;
     Ok((merge_report, gate_report))
 }
 
@@ -267,17 +282,8 @@ fn gate_candidate(
         .get(candidate.parent_shard_element_id.as_str())
         .copied();
     let (parent_text, parent_has_usable_text) = parent_text_for_gate(parent_result, &mut reasons);
-    let mut recovery_parts = Vec::new();
-    let mut max_part_repeated_ngram_ratio = 0.0_f64;
-    for recovery_id in &candidate.recovery_shard_element_ids {
-        let recovery_result = recovery_index.get(recovery_id.as_str()).copied();
-        let recovery_text = result_text(recovery_result, "recovery", &mut reasons);
-        if !recovery_text.is_empty() {
-            max_part_repeated_ngram_ratio = max_part_repeated_ngram_ratio
-                .max(audio_recovery_text_metrics(recovery_text).repeated_ngram_ratio);
-            recovery_parts.push(recovery_text.to_owned());
-        }
-    }
+    let (recovery_parts, max_part_repeated_ngram_ratio) =
+        recovery_parts_for_candidate(candidate, recovery_index, &mut reasons);
     let recovery_text = merge_text_parts(recovery_parts.as_slice());
     let parent_metrics = audio_recovery_text_metrics(parent_text);
     let recovery_metrics = audio_recovery_text_metrics(recovery_text.as_str());
@@ -323,6 +329,33 @@ fn gate_candidate(
         recovery_metrics,
         recovery_text,
     }
+}
+
+fn recovery_parts_for_candidate(
+    candidate: &AudioRecoveryPatchCandidate,
+    recovery_index: &HashMap<&str, &AudioShardResult>,
+    reasons: &mut Vec<String>,
+) -> (Vec<String>, f64) {
+    candidate
+        .recovery_shard_element_ids
+        .iter()
+        .filter_map(|recovery_id| {
+            let recovery_result = recovery_index.get(recovery_id.as_str()).copied();
+            let recovery_text = result_text(recovery_result, "recovery", reasons);
+            (!recovery_text.is_empty()).then(|| {
+                (
+                    recovery_text.to_owned(),
+                    audio_recovery_text_metrics(recovery_text).repeated_ngram_ratio,
+                )
+            })
+        })
+        .fold(
+            (Vec::new(), 0.0_f64),
+            |(mut parts, max_ratio), (text, ratio)| {
+                parts.push(text);
+                (parts, max_ratio.max(ratio))
+            },
+        )
 }
 
 fn result_text<'a>(
@@ -437,14 +470,15 @@ pub(crate) fn audio_recovery_text_metrics(text: &str) -> AudioRecoveryPatchTextM
 }
 
 fn chinese_ratio(text: &str) -> f64 {
-    let mut chars = 0_usize;
-    let mut chinese = 0_usize;
-    for character in text.chars().filter(|character| !character.is_whitespace()) {
-        chars += 1;
-        if ('\u{4e00}'..='\u{9fff}').contains(&character) {
-            chinese += 1;
-        }
-    }
+    let (chars, chinese) = text
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .fold((0_usize, 0_usize), |(chars, chinese), character| {
+            (
+                chars + 1,
+                chinese + usize::from(('\u{4e00}'..='\u{9fff}').contains(&character)),
+            )
+        });
     if chars == 0 {
         0.0
     } else {
@@ -461,13 +495,14 @@ fn repeated_ngram_ratio(text: &str) -> f64 {
     if normalized.len() < 3 {
         return 0.0;
     }
-    let mut counts: HashMap<[char; 3], usize> = HashMap::new();
-    let mut total = 0_usize;
-    for window in normalized.windows(3) {
-        let key = [window[0], window[1], window[2]];
-        *counts.entry(key).or_insert(0) += 1;
-        total += 1;
-    }
+    let counts = normalized.windows(3).map(trigram_key).fold(
+        HashMap::<[char; 3], usize>::new(),
+        |mut counts, key| {
+            *counts.entry(key).or_insert(0) += 1;
+            counts
+        },
+    );
+    let total = normalized.len().saturating_sub(2);
     let repeated = counts
         .values()
         .filter(|count| **count > 1)
@@ -478,6 +513,10 @@ fn repeated_ngram_ratio(text: &str) -> f64 {
     } else {
         count_to_f64(repeated) / count_to_f64(total)
     }
+}
+
+fn trigram_key(window: &[char]) -> [char; 3] {
+    [window[0], window[1], window[2]]
 }
 
 fn count_to_f64(value: usize) -> f64 {

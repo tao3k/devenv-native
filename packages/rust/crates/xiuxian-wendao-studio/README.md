@@ -209,7 +209,31 @@ validation, read-model, or promotion paths. When
 default and treats its `file_id` values as a hard constraint. Every selected id
 must map to a pending queue row after any route/category filters; the planner
 fails instead of silently dropping selected evidence. `--selection-root` can
-point at a non-default selection artifact root.
+point at a non-default selection artifact root. Image OCR admission uses the
+same command with `--route image_ocr_evidence`; this only writes planned
+cache-only OCR tasks and still performs no OCR, ASR, LLM extraction, or RDF
+promotion.
+
+When a private episteme wants the current image OCR cache bridge to run through
+one Rust-owned entry point, use:
+
+```bash
+wendao episteme source-contract run-image-ocr-cache \
+  --episteme-root <episteme-root> \
+  --run-id image_ocr_seed \
+  --limit 12
+```
+
+This command first writes an `image_ocr_evidence` run plan, then invokes the
+configured analyzer command, defaulting to `wendao-image-ocr-jsonl`, and finally
+invokes the private episteme cache bridge script, defaulting to
+`<episteme-root>/tools/run_extraction_plan.py`. `--dry-run` prints the resolved
+commands without calling the analyzer or cache bridge. The wrapper is an
+execution convenience only: Rust owns source-contract selection, cache
+identity, and report emission; Python remains the OCR adapter boundary; OCR
+text is written only to the private ignored evidence cache as
+review-required, promotion-blocked material. The command does not add a public
+Gateway/OpenAPI route and does not promote raw OCR output into RDF truth.
 
 The selected source manifest and mapping ledger come from
 `<episteme-root>/ontology/manifest.toml`. Runtime defaults may come from

@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
+use xiuxian_qianji::workflow_kernel::WorkflowCheckpointId;
 
 use super::support::{
     error_to_string, make_executable, sample_variable_window_plan, spawn_audio_shard_service,
@@ -92,12 +93,12 @@ async fn audio_shard_flight_client_executes_plan_as_typed_workflow() -> Result<(
     );
     let input_batch = execution
         .memory_checkpoints
-        .get::<EngineRecordBatch>("audio.arrow.input_batch.v1")
+        .get::<EngineRecordBatch>(&WorkflowCheckpointId::new("audio.arrow.input_batch.v1"))
         .map_err(error_to_string)?;
     assert_eq!(input_batch.num_rows(), 1);
     let result_batches = execution
         .memory_checkpoints
-        .get::<Vec<EngineRecordBatch>>("audio.arrow.result_batches.v1")
+        .get::<Vec<EngineRecordBatch>>(&WorkflowCheckpointId::new("audio.arrow.result_batches.v1"))
         .map_err(error_to_string)?;
     assert_eq!(result_batches.len(), 1);
     assert_eq!(result_batches[0].num_rows(), 1);

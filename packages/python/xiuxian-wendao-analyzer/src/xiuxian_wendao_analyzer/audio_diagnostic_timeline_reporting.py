@@ -161,6 +161,27 @@ def _timeline_rows_from_segments(
     row: QualityRow,
     segment_rows: Sequence[Mapping[str, object]],
 ) -> list[dict[str, object]]:
+    transcript = read_transcript(row.transcript_path).strip()
+    if transcript and _looks_like_character_timestamps(
+        segment_rows, transcript=transcript
+    ):
+        return [
+            {
+                "backend": row.backend,
+                "model": row.model,
+                "source": Path(row.source).name,
+                "chunkIndex": row.chunk_index,
+                "startSeconds": min(
+                    float(segment["startSeconds"]) for segment in segment_rows
+                ),
+                "endSeconds": max(
+                    float(segment["endSeconds"]) for segment in segment_rows
+                ),
+                "status": row.status,
+                "reviewStatus": row.review_status,
+                "text": transcript,
+            }
+        ]
     return [
         {
             "backend": row.backend,
@@ -175,6 +196,32 @@ def _timeline_rows_from_segments(
         }
         for segment in segment_rows
     ]
+
+
+def _looks_like_character_timestamps(
+    segment_rows: Sequence[Mapping[str, object]],
+    *,
+    transcript: str,
+) -> bool:
+    if len(segment_rows) < 5:
+        return False
+    short_rows = 0
+    segment_text_parts: list[str] = []
+    for segment in segment_rows:
+        text = str(segment.get("text", "")).strip()
+        if text:
+            segment_text_parts.append(text)
+        if 0 < len(text) <= 2:
+            short_rows += 1
+    if short_rows / len(segment_rows) < 0.8:
+        return False
+    segment_text = _normalize_timeline_text("".join(segment_text_parts))
+    transcript_text = _normalize_timeline_text(transcript)
+    return bool(segment_text) and segment_text in transcript_text
+
+
+def _normalize_timeline_text(value: str) -> str:
+    return "".join(value.split())
 
 
 def _timeline_row_from_shard(row: QualityRow) -> dict[str, object]:

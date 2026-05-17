@@ -43,7 +43,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, feature = "document-extract-audio-shards"))]
     pub(super) fn from_registry_with_document_extract_endpoint(
         registry: Result<DocumentExtractJobRegistry, String>,
         conversion_limit: usize,

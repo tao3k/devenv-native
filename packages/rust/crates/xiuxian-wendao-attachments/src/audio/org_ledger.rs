@@ -56,11 +56,32 @@ pub fn build_audio_transcript_org_ledger(
     results: &[AudioShardResult],
     options: &AudioTranscriptOrgLedgerOptions,
 ) -> Result<String, String> {
+    validate_audio_transcript_org_ledger_request(inputs, results, options)?;
+    let indexed_results = index_results(results);
+    let ordered_inputs = ordered_audio_inputs(inputs);
+    let source = first_audio_input(ordered_inputs.as_slice())?;
     let attachment_dir = options.attachment_dir.trim();
-    if attachment_dir.is_empty() {
+
+    let mut output = String::new();
+    push_header(&mut output, options);
+    push_root_section(&mut output, source, attachment_dir);
+    push_shards_section(
+        &mut output,
+        ordered_inputs.as_slice(),
+        &indexed_results,
+        attachment_dir,
+    )?;
+    Ok(output)
+}
+
+fn validate_audio_transcript_org_ledger_request(
+    inputs: &[AudioShardInput],
+    results: &[AudioShardResult],
+    options: &AudioTranscriptOrgLedgerOptions,
+) -> Result<(), String> {
+    if options.attachment_dir.trim().is_empty() {
         return Err("audio transcript Org ledger attachment dir must not be empty".to_owned());
     }
-
     let merge_report = merge_audio_shard_results(inputs, results)?;
     if !merge_report.has_complete_success_coverage() {
         return Err(format!(
@@ -74,29 +95,26 @@ pub fn build_audio_transcript_org_ledger(
     if merge_report.text.trim().is_empty() {
         return Err("audio transcript Org ledger merge produced empty text".to_owned());
     }
+    Ok(())
+}
 
-    let indexed_results = index_results(results);
+fn ordered_audio_inputs(inputs: &[AudioShardInput]) -> Vec<&AudioShardInput> {
     let mut ordered_inputs = inputs.iter().collect::<Vec<_>>();
     ordered_inputs.sort_by(|left, right| {
         left.reading_order_key
             .cmp(&right.reading_order_key)
             .then_with(|| left.shard_element_id.cmp(&right.shard_element_id))
     });
+    ordered_inputs
+}
 
-    let source = ordered_inputs
+fn first_audio_input<'a>(
+    ordered_inputs: &'a [&'a AudioShardInput],
+) -> Result<&'a AudioShardInput, String> {
+    ordered_inputs
         .first()
-        .ok_or_else(|| "audio transcript Org ledger requires at least one input row".to_owned())?;
-
-    let mut output = String::new();
-    push_header(&mut output, options);
-    push_root_section(&mut output, source, attachment_dir);
-    push_shards_section(
-        &mut output,
-        ordered_inputs.as_slice(),
-        &indexed_results,
-        attachment_dir,
-    )?;
-    Ok(output)
+        .copied()
+        .ok_or_else(|| "audio transcript Org ledger requires at least one input row".to_owned())
 }
 
 fn push_header(output: &mut String, options: &AudioTranscriptOrgLedgerOptions) {

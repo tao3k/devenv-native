@@ -103,6 +103,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_reference_selection import (
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_reporting import (
     reference_draft_rows,
+    timeline_review_rows,
     write_jsonl,
     write_quality_tsv,
     write_reference_draft_jsonl,
@@ -213,6 +214,7 @@ __all__ = [
     "select_reference_rows",
     "summarize_reference_subset",
     "summarize_results",
+    "timeline_review_rows",
     "transcribe_fireredasr2s",
     "transcribe_local_docling",
     "transcribe_openrouter",

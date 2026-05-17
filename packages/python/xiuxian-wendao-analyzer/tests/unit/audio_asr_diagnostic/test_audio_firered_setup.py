@@ -24,7 +24,7 @@ def test_fireredasr2s_adapter_extracts_cli_jsonl_text(
         outdir = Path(command[command.index("--outdir") + 1])
         outdir.mkdir(parents=True, exist_ok=True)
         (outdir / "result.jsonl").write_text(
-            json.dumps({"text": "智能家居论坛"}, ensure_ascii=False) + "\n",
+            json.dumps({"text": "通用测试会议"}, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
         return subprocess.CompletedProcess(command, 0, "", "")
@@ -44,7 +44,7 @@ def test_fireredasr2s_adapter_extracts_cli_jsonl_text(
         command="python -m fireredasr2s_cli",
     )
 
-    assert text == "智能家居论坛"
+    assert text == "通用测试会议"
     assert calls[0][:3] == ["python", "-m", "fireredasr2s_cli"]
     assert "--wav_paths" in calls[0]
 

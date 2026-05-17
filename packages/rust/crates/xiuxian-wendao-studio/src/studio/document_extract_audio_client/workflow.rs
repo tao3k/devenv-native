@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
+use xiuxian_qianji::workflow_kernel::WorkflowMemoryCheckpointRecord;
 use xiuxian_qianji::{
     WorkflowMemoryCheckpointStore, WorkflowRun, WorkflowStage, WorkflowStageBinding,
     WorkflowStageFacts, WorkflowTopology, WorkflowTopologyEdge, WorkflowTrace,
@@ -377,13 +378,14 @@ fn record_recovery_workflow_checkpoint<T>(
 where
     T: std::any::Any + Send + Sync + 'static,
 {
-    run.record_memory_checkpoint(
-        stage_id,
-        checkpoint_id,
-        WorkflowStageFacts::arrow_record_batch(schema_name, "v1").with_item_count(item_count),
-        None,
+    run.record_memory_checkpoint(WorkflowMemoryCheckpointRecord {
+        stage_id: stage_id.into(),
+        checkpoint_id: checkpoint_id.into(),
+        facts: WorkflowStageFacts::arrow_record_batch(schema_name, "v1")
+            .with_item_count(item_count),
+        content_fingerprint: None,
         payload,
-    )
+    })
     .map(|_| ())
     .map_err(|error| error.to_string())
 }

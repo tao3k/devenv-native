@@ -6,6 +6,7 @@ use super::{
     pdf_source_page_is_fast_profile_risk, pdf_source_page_requires_structure_authority,
     source_pdf_page_profiles_cached,
 };
+use num_traits::ToPrimitive;
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::Read;
@@ -298,9 +299,10 @@ fn chunk_count_for_range(start: u32, end: u32, max_chunk_pages: usize) -> usize 
 }
 
 fn points_to_pixels(points: f64) -> u32 {
-    ((points / 72.0) * f64::from(SYNTHETIC_SOURCE_PAGE_DPI))
+    let value = ((points / 72.0) * f64::from(SYNTHETIC_SOURCE_PAGE_DPI))
         .round()
-        .max(1.0) as u32
+        .max(1.0);
+    value.to_u32().unwrap_or(u32::MAX)
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {

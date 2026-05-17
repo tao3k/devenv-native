@@ -220,30 +220,34 @@ pub fn build_audio_recovery_speech_window_plan_for_inputs(
     selected_parent_inputs: &[AudioShardInput],
     speech_window_input: &AudioSpeechWindowPlannerInput,
 ) -> Result<Option<AudioShardPlan>, String> {
+    let input = recovery_speech_window_plan_inputs(
+        parent_plan,
+        selected_parent_inputs,
+        speech_window_input,
+    )?;
+    input
+        .as_ref()
+        .map(build_recovery_speech_window_plan)
+        .transpose()
+}
+
+struct AudioRecoverySpeechWindowPlanInput<'a> {
+    parent_plan: &'a AudioShardPlan,
+    speech_window_input: &'a AudioSpeechWindowPlannerInput,
+    recovery_windows: Vec<AudioShardWindow>,
+}
+
+fn recovery_speech_window_plan_inputs<'a>(
+    parent_plan: &'a AudioShardPlan,
+    selected_parent_inputs: &[AudioShardInput],
+    speech_window_input: &'a AudioSpeechWindowPlannerInput,
+) -> Result<Option<AudioRecoverySpeechWindowPlanInput<'a>>, String> {
     if selected_parent_inputs.is_empty() {
         return Ok(None);
     }
-    validate_plan(parent_plan)?;
-    validate_speech_window_input(speech_window_input)?;
-    if speech_window_input.source != parent_plan.source {
-        return Err("audio recovery speech-window source must match parent plan".to_owned());
-    }
-    let parent_windows = planned_windows(parent_plan)?;
-    let selected_indices = selected_parent_inputs
-        .iter()
-        .map(|input| parent_window_index(parent_windows.as_slice(), input))
-        .collect::<Result<Vec<_>, _>>()?;
-    validate_unique_parent_indices(selected_indices.as_slice())?;
-    let selected_windows = selected_indices
-        .iter()
-        .map(|index| {
-            parent_windows
-                .get(*index as usize)
-                .copied()
-                .ok_or_else(|| "audio recovery parent index is out of range".to_owned())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut recovery_windows = packed_speech_windows_for_selected_windows(
+    validate_recovery_speech_window_request(parent_plan, speech_window_input)?;
+    let selected_windows = selected_parent_windows(parent_plan, selected_parent_inputs)?;
+    let recovery_windows = capped_recovery_speech_windows(
         speech_window_input.speech_segments.as_slice(),
         selected_windows.as_slice(),
         speech_window_input,
@@ -251,18 +255,78 @@ pub fn build_audio_recovery_speech_window_plan_for_inputs(
     if recovery_windows.is_empty() {
         return Ok(None);
     }
+    Ok(Some(AudioRecoverySpeechWindowPlanInput {
+        parent_plan,
+        speech_window_input,
+        recovery_windows,
+    }))
+}
+
+fn validate_recovery_speech_window_request(
+    parent_plan: &AudioShardPlan,
+    speech_window_input: &AudioSpeechWindowPlannerInput,
+) -> Result<(), String> {
+    validate_plan(parent_plan)?;
+    validate_speech_window_input(speech_window_input)?;
+    if speech_window_input.source != parent_plan.source {
+        return Err("audio recovery speech-window source must match parent plan".to_owned());
+    }
+    Ok(())
+}
+
+fn selected_parent_windows(
+    parent_plan: &AudioShardPlan,
+    selected_parent_inputs: &[AudioShardInput],
+) -> Result<Vec<AudioShardWindow>, String> {
+    let parent_windows = planned_windows(parent_plan)?;
+    let selected_indices = selected_parent_inputs
+        .iter()
+        .map(|input| parent_window_index(parent_windows.as_slice(), input))
+        .collect::<Result<Vec<_>, _>>()?;
+    validate_unique_parent_indices(selected_indices.as_slice())?;
+    selected_indices
+        .iter()
+        .map(|index| {
+            parent_windows
+                .get(*index as usize)
+                .copied()
+                .ok_or_else(|| "audio recovery parent index is out of range".to_owned())
+        })
+        .collect()
+}
+
+fn capped_recovery_speech_windows(
+    segments: &[AudioSpeechSegment],
+    selected_windows: &[AudioShardWindow],
+    speech_window_input: &AudioSpeechWindowPlannerInput,
+) -> Result<Vec<AudioShardWindow>, String> {
+    let mut recovery_windows = packed_speech_windows_for_selected_windows(
+        segments,
+        selected_windows,
+        speech_window_input,
+    )?;
     if recovery_windows.len() > speech_window_input.limit_chunks as usize {
         recovery_windows.truncate(speech_window_input.limit_chunks as usize);
     }
+    Ok(recovery_windows)
+}
+
+fn build_recovery_speech_window_plan(
+    input: &AudioRecoverySpeechWindowPlanInput<'_>,
+) -> Result<AudioShardPlan, String> {
+    let parent_plan = input.parent_plan;
+    let speech_window_input = input.speech_window_input;
     let plan = AudioShardPlan {
         profile: parent_plan.profile.clone(),
         source: parent_plan.source.clone(),
         chunk_duration_ms: speech_window_input.chunk_duration_ms,
-        start_offsets_ms: recovery_windows
+        start_offsets_ms: input
+            .recovery_windows
             .iter()
             .map(|window| window.start_ms)
             .collect(),
-        window_durations_ms: recovery_windows
+        window_durations_ms: input
+            .recovery_windows
             .iter()
             .map(|window| window.duration_ms)
             .collect(),
@@ -274,7 +338,7 @@ pub fn build_audio_recovery_speech_window_plan_for_inputs(
         strategy: "speech-segments".to_owned(),
     };
     validate_plan(&plan)?;
-    Ok(Some(plan))
+    Ok(plan)
 }
 
 fn uniform_offsets_ms(input: &AudioShardPlannerInput) -> Result<Vec<u64>, String> {
@@ -500,53 +564,82 @@ fn pack_speech_segment_windows(
     let mut sorted_segments = segments.to_vec();
     sorted_segments.sort_by_key(|segment| (segment.start_ms, segment.index));
 
-    let mut expanded_segments = Vec::new();
-    for segment in sorted_segments {
-        if segment.duration_ms == 0 {
-            return Err("audio speech segment duration must be positive".to_owned());
-        }
-        let mut remaining_ms = segment.duration_ms;
-        let mut start_ms = segment.start_ms;
-        while remaining_ms > 0 {
-            let duration_ms = max_window_ms.map_or(remaining_ms, |max_window_ms| {
-                remaining_ms.min(max_window_ms)
-            });
-            expanded_segments.push(AudioShardWindow {
-                start_ms,
-                duration_ms,
-            });
-            remaining_ms -= duration_ms;
-            start_ms = start_ms
-                .checked_add(duration_ms)
-                .ok_or_else(|| "audio speech segment exceeds u64::MAX".to_owned())?;
-        }
-    }
+    let expanded_segments = sorted_segments
+        .iter()
+        .map(|segment| expand_speech_segment_windows(segment, max_window_ms))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
 
+    expanded_segments
+        .into_iter()
+        .try_fold(Vec::new(), |windows, segment| {
+            merge_packed_speech_window(
+                windows,
+                segment,
+                merge_gap_ms,
+                min_window_ms,
+                short_merge_gap_ms,
+                max_window_ms,
+            )
+        })
+}
+
+fn merge_packed_speech_window(
+    mut windows: Vec<AudioShardWindow>,
+    segment: AudioShardWindow,
+    merge_gap_ms: u64,
+    min_window_ms: u64,
+    short_merge_gap_ms: u64,
+    max_window_ms: Option<u64>,
+) -> Result<Vec<AudioShardWindow>, String> {
+    let Some(current) = windows.last_mut() else {
+        windows.push(segment);
+        return Ok(windows);
+    };
+    let current_end_ms = checked_window_end(*current)?;
+    let segment_end_ms = checked_window_end(segment)?;
+    let gap_ms = segment.start_ms.saturating_sub(current_end_ms);
+    let merged_end_ms = current_end_ms.max(segment_end_ms);
+    let merged_duration_ms = merged_end_ms.saturating_sub(current.start_ms);
+    let current_is_short = current.duration_ms < min_window_ms;
+    let segment_is_short = segment.duration_ms < min_window_ms;
+    let can_short_merge = (current_is_short || segment_is_short) && gap_ms <= short_merge_gap_ms;
+    let within_max_window =
+        max_window_ms.is_none_or(|max_window_ms| merged_duration_ms <= max_window_ms);
+    let can_merge = (gap_ms <= merge_gap_ms || can_short_merge) && within_max_window;
+    if can_merge {
+        current.duration_ms = merged_duration_ms;
+    } else {
+        windows.push(segment);
+    }
+    Ok(windows)
+}
+
+fn expand_speech_segment_windows(
+    segment: &AudioSpeechSegment,
+    max_window_ms: Option<u64>,
+) -> Result<Vec<AudioShardWindow>, String> {
+    if segment.duration_ms == 0 {
+        return Err("audio speech segment duration must be positive".to_owned());
+    }
     let mut windows = Vec::new();
-    for segment in expanded_segments {
-        let Some(current) = windows.last_mut() else {
-            windows.push(segment);
-            continue;
-        };
-        let current_end_ms = checked_window_end(*current)?;
-        let segment_end_ms = checked_window_end(segment)?;
-        let gap_ms = segment.start_ms.saturating_sub(current_end_ms);
-        let merged_end_ms = current_end_ms.max(segment_end_ms);
-        let merged_duration_ms = merged_end_ms.saturating_sub(current.start_ms);
-        let current_is_short = current.duration_ms < min_window_ms;
-        let segment_is_short = segment.duration_ms < min_window_ms;
-        let can_short_merge =
-            (current_is_short || segment_is_short) && gap_ms <= short_merge_gap_ms;
-        let within_max_window =
-            max_window_ms.is_none_or(|max_window_ms| merged_duration_ms <= max_window_ms);
-        let can_merge = (gap_ms <= merge_gap_ms || can_short_merge) && within_max_window;
-        if can_merge {
-            current.duration_ms = merged_duration_ms;
-        } else {
-            windows.push(segment);
-        }
+    let mut remaining_ms = segment.duration_ms;
+    let mut start_ms = segment.start_ms;
+    while remaining_ms > 0 {
+        let duration_ms = max_window_ms.map_or(remaining_ms, |max_window_ms| {
+            remaining_ms.min(max_window_ms)
+        });
+        windows.push(AudioShardWindow {
+            start_ms,
+            duration_ms,
+        });
+        remaining_ms -= duration_ms;
+        start_ms = start_ms
+            .checked_add(duration_ms)
+            .ok_or_else(|| "audio speech segment exceeds u64::MAX".to_owned())?;
     }
-
     Ok(windows)
 }
 

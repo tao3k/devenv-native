@@ -43,7 +43,7 @@ pub struct AudioShardRequestMetric {
     pub wall_ms: u64,
 }
 
-/// One selected parent shard that should be recovered with shorter windows.
+/// Raw DTO boundary for one selected parent shard that should be recovered with shorter windows.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AudioRiskParentSelection {
     /// Stable shard element id from the base input row.
@@ -75,66 +75,97 @@ pub fn select_audio_risk_parent_shards(
     request_metrics: &[AudioShardRequestMetric],
     options: AudioRiskParentSelectionOptions,
 ) -> Result<Vec<AudioRiskParentSelection>, String> {
+    validate_risk_parent_selection_options(options)?;
+    let candidates = risk_parent_candidates(inputs, results, request_metrics, options)?;
+    let mut selected = select_with_boundary_reservation(candidates, options.limit_parents);
+    for selection in &mut selected {
+        selection.score = 0.0;
+    }
+    Ok(selected)
+}
+
+fn validate_risk_parent_selection_options(
+    options: AudioRiskParentSelectionOptions,
+) -> Result<(), String> {
     if options.limit_parents == 0 {
         return Err("audio risk parent selection limit must be positive".to_owned());
     }
+    Ok(())
+}
+
+fn risk_parent_candidates(
+    inputs: &[AudioShardInput],
+    results: &[AudioShardResult],
+    request_metrics: &[AudioShardRequestMetric],
+    options: AudioRiskParentSelectionOptions,
+) -> Result<Vec<AudioRiskParentSelection>, String> {
     let result_index = unique_result_index(results)?;
     let metric_index = unique_metric_index(request_metrics)?;
+    let ordered_inputs = ordered_audio_inputs(inputs);
+    let last_index = ordered_inputs.len().saturating_sub(1);
+    Ok(ordered_inputs
+        .iter()
+        .enumerate()
+        .filter_map(|(offset, input)| {
+            risk_parent_candidate(
+                input,
+                offset == 0 || offset == last_index,
+                &result_index,
+                &metric_index,
+                options,
+            )
+        })
+        .collect())
+}
+
+fn ordered_audio_inputs(inputs: &[AudioShardInput]) -> Vec<&AudioShardInput> {
     let mut ordered_inputs = inputs.iter().collect::<Vec<_>>();
     ordered_inputs.sort_by(|left, right| {
         left.reading_order_key
             .cmp(&right.reading_order_key)
             .then_with(|| left.shard_element_id.cmp(&right.shard_element_id))
     });
+    ordered_inputs
+}
 
-    let last_index = ordered_inputs.len().saturating_sub(1);
-    let mut candidates = Vec::new();
-    for (offset, input) in ordered_inputs.iter().enumerate() {
-        let Some(result) = result_index.get(input.shard_element_id.as_str()).copied() else {
-            continue;
-        };
-        let wall_ms = metric_index
-            .get(input.shard_element_id.as_str())
-            .map(|metric| metric.wall_ms);
-        let is_boundary = offset == 0 || offset == last_index;
-        let transcript = result.text.as_deref().unwrap_or_default().trim();
-        let metrics = audio_recovery_text_metrics(transcript);
-        let chars_per_minute = chars_per_minute(metrics.transcript_chars, input.duration_ms);
-        let reasons = risk_reasons(
-            &result.status,
-            metrics,
-            chars_per_minute,
-            wall_ms,
-            is_boundary,
-            options,
-        );
-        if reasons.is_empty() {
-            continue;
-        }
-        let score = risk_score(
+fn risk_parent_candidate(
+    input: &AudioShardInput,
+    is_boundary: bool,
+    result_index: &HashMap<&str, &AudioShardResult>,
+    metric_index: &HashMap<&str, &AudioShardRequestMetric>,
+    options: AudioRiskParentSelectionOptions,
+) -> Option<AudioRiskParentSelection> {
+    let result = result_index.get(input.shard_element_id.as_str()).copied()?;
+    let wall_ms = metric_index
+        .get(input.shard_element_id.as_str())
+        .map(|metric| metric.wall_ms);
+    let transcript = result.text.as_deref().unwrap_or_default().trim();
+    let metrics = audio_recovery_text_metrics(transcript);
+    let chars_per_minute = chars_per_minute(metrics.transcript_chars, input.duration_ms);
+    let reasons = risk_reasons(
+        &result.status,
+        metrics,
+        chars_per_minute,
+        wall_ms,
+        is_boundary,
+        options,
+    );
+    (!reasons.is_empty()).then(|| AudioRiskParentSelection {
+        shard_element_id: input.shard_element_id.clone(),
+        start_ms: input.start_ms,
+        duration_ms: input.duration_ms,
+        metrics,
+        chars_per_minute,
+        wall_ms,
+        score: risk_score(
             metrics,
             chars_per_minute,
             wall_ms,
             reasons.as_slice(),
             options,
-        );
-        candidates.push(AudioRiskParentSelection {
-            shard_element_id: input.shard_element_id.clone(),
-            start_ms: input.start_ms,
-            duration_ms: input.duration_ms,
-            metrics,
-            chars_per_minute,
-            wall_ms,
-            reasons,
-            score,
-        });
-    }
-
-    let mut selected = select_with_boundary_reservation(candidates, options.limit_parents);
-    for selection in &mut selected {
-        selection.score = 0.0;
-    }
-    Ok(selected)
+        ),
+        reasons,
+    })
 }
 
 fn select_with_boundary_reservation(

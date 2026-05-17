@@ -32,9 +32,9 @@ pub(crate) use docs::{
 pub(crate) use episteme::{
     EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
     EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
-    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
-    EpistemeWriteStructureTocArgs,
+    EpistemeReadEvidenceArgs, EpistemeRunImageOcrCacheArgs, EpistemeSourceContractCommand,
+    EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
+    EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs,
 };
 pub(crate) use fix::FixArgs;
 #[cfg(feature = "zhenfa-router")]

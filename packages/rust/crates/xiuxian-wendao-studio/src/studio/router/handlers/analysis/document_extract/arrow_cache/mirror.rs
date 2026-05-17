@@ -60,14 +60,23 @@ pub(crate) fn mirror_document_extract_cache(
 
     let resources_path = target_dir.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
     if resources_path.exists() {
-        let batches = read_arrow_file(resources_path.as_path())?;
-        let rewritten = batches
-            .iter()
-            .map(|batch| rewrite_resource_paths(batch, source_dir, target_dir))
-            .collect::<Result<Vec<_>, _>>()?;
-        write_arrow_file(resources_path.as_path(), &rewritten)?;
+        rewrite_document_extract_resource_paths(target_dir, source_dir, target_dir)?;
     }
     mark_document_extract_cache_complete(target_dir)
+}
+
+pub(crate) fn rewrite_document_extract_resource_paths(
+    cache_dir: &Path,
+    source_prefix: &Path,
+    target_prefix: &Path,
+) -> Result<(), String> {
+    let resources_path = cache_dir.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
+    let batches = read_arrow_file(resources_path.as_path())?;
+    let rewritten = batches
+        .iter()
+        .map(|batch| rewrite_resource_paths(batch, source_prefix, target_prefix))
+        .collect::<Result<Vec<_>, _>>()?;
+    write_arrow_file(resources_path.as_path(), &rewritten)
 }
 
 fn mirror_artifact_entries(artifact_dir: &Path, output_dir: &Path) -> Result<(), String> {

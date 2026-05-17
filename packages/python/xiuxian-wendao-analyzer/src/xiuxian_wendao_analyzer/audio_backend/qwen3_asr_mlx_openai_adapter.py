@@ -23,6 +23,7 @@ except ImportError:
     )
 
 DEFAULT_QWEN3_ASR_MODEL = "Qwen/Qwen3-ASR-1.7B"
+DEFAULT_QWEN3_ASR_SERVED_MODEL = "qwen3-asr-1.7b-mlx"
 
 
 class AudioAdapterRequestError(ValueError):
@@ -80,7 +81,7 @@ def complete_chat_audio(
         raise AudioAdapterRequestError(str(exc)) from exc
     context = _context_from_request(extract_text_prompt(messages))
     model_path = _model_path()
-    with tempfile.TemporaryDirectory(prefix="wendao-qwen3-asr-audio-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="qwen3-asr-mlx-audio-") as tmpdir:
         audio_path = Path(tmpdir) / f"input.{audio_input.format}"
         audio_path.write_bytes(audio_input.data)
         text, segments = _transcribe_audio(
@@ -108,8 +109,8 @@ def _transcribe_audio(
         model=model_path,
         context=context,
         language=os.environ.get("WENDAO_AUDIO_LOCAL_LANGUAGE", "zh"),
-        return_timestamps=_env_bool("WENDAO_AUDIO_QWEN3_RETURN_TIMESTAMPS", False),
-        return_chunks=_env_bool("WENDAO_AUDIO_QWEN3_RETURN_CHUNKS", False),
+        return_timestamps=_env_bool("WENDAO_AUDIO_QWEN3_RETURN_TIMESTAMPS", True),
+        return_chunks=_env_bool("WENDAO_AUDIO_QWEN3_RETURN_CHUNKS", True),
         max_new_tokens=_env_optional_int("WENDAO_AUDIO_QWEN3_MAX_NEW_TOKENS"),
         verbose=False,
     )
@@ -233,7 +234,7 @@ def _model_path() -> str:
 
 
 def _served_model_name() -> str:
-    return os.environ.get("WENDAO_AUDIO_LOCAL_MODEL") or "wendao-qwen3-asr-audio"
+    return os.environ.get("WENDAO_AUDIO_LOCAL_MODEL") or DEFAULT_QWEN3_ASR_SERVED_MODEL
 
 
 def main() -> None:

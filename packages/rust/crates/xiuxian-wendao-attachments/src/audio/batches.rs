@@ -106,7 +106,7 @@ pub fn build_audio_shard_result_batch(results: &[AudioShardResult]) -> Result<Re
                     .map(|result| result.text.as_deref())
                     .collect::<Vec<_>>(),
             )),
-            result_string_column(results, |result| result.text_mime_type.clone()),
+            result_string_column(results, |result| result.text_mime_type.as_str().to_owned()),
             Arc::new(Float64Array::from(
                 results
                     .iter()
@@ -229,7 +229,7 @@ fn decode_audio_shard_result_row(
             required_string(columns.status, row, "status")?.as_str(),
         )?,
         text: optional_string(columns.text, row),
-        text_mime_type: required_string(columns.text_mime_type, row, "textMimeType")?,
+        text_mime_type: required_string(columns.text_mime_type, row, "textMimeType")?.into(),
         confidence: optional_f64(columns.confidence, row),
         error_message: optional_string(columns.error_message, row),
         shard_element_id: required_string(columns.shard_element_id, row, "shardElementId")?,

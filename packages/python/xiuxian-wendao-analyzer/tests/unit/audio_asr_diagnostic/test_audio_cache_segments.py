@@ -118,7 +118,7 @@ def test_openai_compatible_backend_writes_segment_timeline(
         chunk,
         output_dir=tmp_path / "out",
         openrouter_api_key=None,
-        openrouter_model="wendao-local-audio",
+        openrouter_model="qwen3-asr-1.7b-mlx",
         openrouter_base_url="http://127.0.0.1:8012/v1/chat/completions",
         local_asr_model=diagnostic.DEFAULT_LOCAL_ASR_MODEL,
         local_language=diagnostic.DEFAULT_LOCAL_LANGUAGE,

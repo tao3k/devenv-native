@@ -17,7 +17,7 @@ def test_compare_audio_candidate_summaries_prefers_lower_cer(
         qwen_summary,
         _summary_payload(
             backend="local-openai-audio",
-            model="wendao-qwen3-asr-audio",
+            model="qwen3-asr-1.7b-mlx",
             precision_passed=True,
             max_cer=0.04,
             wall_seconds=90.0,
@@ -42,9 +42,9 @@ def test_compare_audio_candidate_summaries_prefers_lower_cer(
     assert report["eligibleTimelineCandidateCount"] == 2
     assert report["eligibleQualityCandidateCount"] == 2
     assert report["eligiblePromotionCandidateCount"] == 2
-    assert report["promotionCandidate"] == ("local-openai-audio:wendao-qwen3-asr-audio")
+    assert report["promotionCandidate"] == ("local-openai-audio:qwen3-asr-1.7b-mlx")
     assert report["rankedCandidates"] == [
-        "local-openai-audio:wendao-qwen3-asr-audio",
+        "local-openai-audio:qwen3-asr-1.7b-mlx",
         "openrouter-chat-audio:xiaomi/mimo-v2.5",
     ]
 
@@ -84,7 +84,7 @@ def test_compare_audio_candidate_summaries_prefers_diagnostic_wall_time(
         qwen_summary,
         _summary_payload(
             backend="local-openai-audio",
-            model="wendao-qwen3-asr-audio",
+            model="qwen3-asr-1.7b-mlx",
             precision_passed=True,
             max_cer=0.04,
             wall_seconds=200.0,
@@ -108,7 +108,7 @@ def test_compare_audio_candidate_summaries_prefers_diagnostic_wall_time(
     )
     candidate = report["candidates"][0]
 
-    assert report["promotionCandidate"] == "local-openai-audio:wendao-qwen3-asr-audio"
+    assert report["promotionCandidate"] == "local-openai-audio:qwen3-asr-1.7b-mlx"
     assert candidate["wallSeconds"] == 25.0
     assert candidate["requestWallSeconds"] == 200.0
 
@@ -182,7 +182,7 @@ def test_compare_audio_candidate_summaries_reports_short_utterance_rows(
         summary_path,
         _summary_payload(
             backend="local-openai-audio",
-            model="wendao-qwen3-asr-audio",
+            model="qwen3-asr-1.7b-mlx",
             precision_passed=True,
             max_cer=0.03,
             wall_seconds=20.0,

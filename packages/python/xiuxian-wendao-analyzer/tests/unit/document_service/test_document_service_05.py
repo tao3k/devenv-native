@@ -116,6 +116,7 @@ def test_audio_backend_cli_flags_parse_as_actions() -> None:
 
 def test_audio_backend_launch_uses_qwen3_asr_adapter_on_macos(monkeypatch) -> None:
     monkeypatch.setattr(audio_manager, "is_macos_apple_silicon", lambda: True)
+    monkeypatch.setattr(audio_manager.shutil, "which", lambda name: "/usr/bin/ffmpeg")
 
     launch = audio_manager.build_start_backend_launch(
         AudioBackendOptions(
@@ -131,10 +132,27 @@ def test_audio_backend_launch_uses_qwen3_asr_adapter_on_macos(monkeypatch) -> No
     assert "uv run --no-project --with mlx-qwen3-asr" in command
     assert "qwen3_asr_mlx_openai_adapter.py" in command
     assert launch.env_updates["WENDAO_AUDIO_LOCAL_DEVICE"] == "metal"
-    assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL"] == "wendao-qwen3-asr-audio"
+    assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL"] == "qwen3-asr-1.7b-mlx"
     assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL_PATH"] == (
         "Qwen/Qwen3-ASR-1.7B"
     )
+
+
+def test_audio_backend_launch_requires_ffmpeg_for_qwen3_asr_mlx(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(audio_manager, "is_macos_apple_silicon", lambda: True)
+    monkeypatch.setattr(audio_manager.shutil, "which", lambda name: None)
+
+    try:
+        audio_manager.build_start_backend_launch(
+            AudioBackendOptions(backend_runner="qwen3-asr-mlx")
+        )
+    except audio_manager.AudioBackendError as exc:
+        assert "requires ffmpeg on PATH" in str(exc)
+        assert "direnv/devenv" in str(exc)
+    else:
+        raise AssertionError("Qwen3-ASR MLX launch should require ffmpeg")
 
 
 def test_audio_backend_rejects_firered_as_metal_runner() -> None:

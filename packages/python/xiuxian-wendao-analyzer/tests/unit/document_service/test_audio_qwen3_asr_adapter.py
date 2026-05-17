@@ -80,16 +80,16 @@ def test_transcribe_audio_calls_mlx_qwen3_asr(monkeypatch, tmp_path):
     text, segments = adapter._transcribe_audio(
         audio_path,
         model_path="Qwen/Qwen3-ASR-1.7B",
-        context="居家行业论坛",
+        context="通用中文会议",
     )
 
     assert text == "中文转写"
     assert segments == [{"startSeconds": 0.0, "endSeconds": 1.25, "text": "中文"}]
     assert calls[0]["model"] == "Qwen/Qwen3-ASR-1.7B"
-    assert calls[0]["context"] == "居家行业论坛"
+    assert calls[0]["context"] == "通用中文会议"
     assert calls[0]["language"] == "zh"
-    assert calls[0]["return_timestamps"] is False
-    assert calls[0]["return_chunks"] is False
+    assert calls[0]["return_timestamps"] is True
+    assert calls[0]["return_chunks"] is True
     assert calls[0]["max_new_tokens"] == 256
 
 

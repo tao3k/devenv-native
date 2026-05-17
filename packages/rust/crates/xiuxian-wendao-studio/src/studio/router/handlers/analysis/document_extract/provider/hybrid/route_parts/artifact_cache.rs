@@ -7,6 +7,7 @@ use xiuxian_wendao_server::transport::DocumentExtractFlightRouteResponse;
 
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, mirror_document_extract_cache, read_arrow_file,
+    rewrite_document_extract_resource_paths,
 };
 
 const FULL_ARTIFACT_CACHE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_PDF_FULL_ARTIFACT_CACHE";
@@ -157,6 +158,11 @@ fn store_hybrid_page_ocr_artifact_cache_with_lookup(
             artifact_dir.display()
         )
     })?;
+    rewrite_document_extract_resource_paths(
+        artifact_dir.as_path(),
+        temp_dir.as_path(),
+        artifact_dir.as_path(),
+    )?;
     Ok(true)
 }
 
@@ -203,13 +209,11 @@ fn hybrid_page_ocr_artifact_cache_key(
 }
 
 fn hybrid_page_ocr_artifact_cache_enabled(lookup: &dyn Fn(&str) -> Option<String>) -> bool {
-    lookup(FULL_ARTIFACT_CACHE_ENV)
-        .map(|value| {
-            value
-                .trim()
-                .eq_ignore_ascii_case(FULL_ARTIFACT_CACHE_ENABLED)
-        })
-        .unwrap_or(false)
+    lookup(FULL_ARTIFACT_CACHE_ENV).is_some_and(|value| {
+        value
+            .trim()
+            .eq_ignore_ascii_case(FULL_ARTIFACT_CACHE_ENABLED)
+    })
 }
 
 fn hybrid_page_ocr_artifact_cache_root(
@@ -240,7 +244,7 @@ fn sha256_file(path: &Path) -> Result<String, String> {
         )
     })?;
     let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; 1024 * 1024];
+    let mut buffer = vec![0_u8; 1024 * 1024].into_boxed_slice();
     loop {
         let read = file.read(&mut buffer).map_err(|error| {
             format!(

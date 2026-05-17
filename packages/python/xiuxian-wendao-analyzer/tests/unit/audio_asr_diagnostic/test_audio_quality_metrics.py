@@ -14,9 +14,7 @@ from .support import Path, _load_audio_asr_diagnostic
 def test_quality_rows_classify_reference_and_proxy_statuses(tmp_path: Path) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     good_transcript = tmp_path / "good.txt"
-    good_transcript.write_text(
-        "这是一个中文转写,包含智能家居论坛内容。", encoding="utf-8"
-    )
+    good_transcript.write_text("这是一个中文转写,包含通用会议内容", encoding="utf-8")
     noisy_transcript = tmp_path / "noisy.txt"
     noisy_transcript.write_text("[inaudible] [inaudible] ok", encoding="utf-8")
     results = [
@@ -52,7 +50,7 @@ def test_quality_rows_classify_reference_and_proxy_statuses(tmp_path: Path) -> N
 
     rows = diagnostic.build_quality_rows(
         results,
-        references={("forum.MP3", 0): "这是一个中文转写,包含智能家居论坛内容。"},
+        references={("forum.MP3", 0): "这是一个中文转写,包含通用会议内容"},
         max_reference_cer=0.15,
         required_terms=[],
         min_required_term_recall=1.0,
@@ -86,7 +84,7 @@ def test_summarize_results_reports_latency_percentiles() -> None:
             chunk_index=index,
             start_seconds=float(index * 30),
             duration_seconds=30.0,
-            model="wendao-local-audio",
+            model="qwen3-asr-1.7b-mlx",
             status="ok",
             wall_seconds=wall_seconds,
             transcript_chars=10,
@@ -115,7 +113,7 @@ def test_timeline_structure_reports_contiguous_timestamp_coverage() -> None:
             duration_seconds=30.0,
             status="ok",
             review_status="review-needed",
-            model="wendao-local-audio",
+            model="qwen3-asr-1.7b-mlx",
             transcript_chars=80,
             chinese_ratio=0.9,
             inaudible_count=0,
@@ -262,7 +260,7 @@ def test_timeline_structure_allows_planned_speech_segment_gaps() -> None:
 def test_required_terms_mark_precision_failure(tmp_path: Path) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     transcript = tmp_path / "transcript.txt"
-    transcript.write_text("这里讨论智能家居。", encoding="utf-8")
+    transcript.write_text("这里讨论通用术语", encoding="utf-8")
     result = diagnostic.AsrResult(
         backend="openrouter-chat-audio",
         source="/tmp/forum.MP3",
@@ -282,7 +280,7 @@ def test_required_terms_mark_precision_failure(tmp_path: Path) -> None:
         [result],
         references={},
         max_reference_cer=0.15,
-        required_terms=["智能家居", "长春"],
+        required_terms=["通用术语", "测试地点"],
         min_required_term_recall=1.0,
         min_chars_per_minute=20.0,
         min_chinese_ratio=0.35,
@@ -292,7 +290,7 @@ def test_required_terms_mark_precision_failure(tmp_path: Path) -> None:
 
     assert rows[0].review_status == "required-term-miss"
     assert rows[0].required_term_recall == 0.5
-    assert rows[0].missing_required_terms == "长春"
+    assert rows[0].missing_required_terms == "测试地点"
     summary = diagnostic.summarize_quality(rows)
     assert summary["qualityByBackend"]["openrouter-chat-audio"]["requiredTermMiss"] == 1
 
@@ -308,7 +306,7 @@ def test_repetition_marks_weak_precision_row(tmp_path: Path) -> None:
         chunk_index=0,
         start_seconds=0.0,
         duration_seconds=30.0,
-        model="wendao-local-audio",
+        model="qwen3-asr-1.7b-mlx",
         status="ok",
         wall_seconds=1.0,
         transcript_chars=transcript.stat().st_size,
@@ -343,7 +341,7 @@ def test_natural_short_utterance_is_review_not_weak(tmp_path: Path) -> None:
         chunk_index=0,
         start_seconds=302.88,
         duration_seconds=10.82,
-        model="wendao-local-audio",
+        model="qwen3-asr-1.7b-mlx",
         status="ok",
         wall_seconds=1.0,
         transcript_chars=transcript.stat().st_size,
@@ -394,7 +392,7 @@ def test_recheck_quality_summary_reuses_saved_results(tmp_path: Path) -> None:
                 chunk_index=0,
                 start_seconds=302.88,
                 duration_seconds=10.82,
-                model="wendao-local-audio",
+                model="qwen3-asr-1.7b-mlx",
                 status="ok",
                 wall_seconds=1.0,
                 transcript_chars=transcript.stat().st_size,
@@ -429,7 +427,7 @@ def test_recheck_quality_summary_reuses_saved_results(tmp_path: Path) -> None:
 def test_precision_gate_requires_reference_coverage(tmp_path: Path) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     transcript = tmp_path / "transcript.txt"
-    transcript.write_text("智能家居论坛", encoding="utf-8")
+    transcript.write_text("通用测试会议", encoding="utf-8")
     result = diagnostic.AsrResult(
         backend="local-openai-audio",
         source="/tmp/forum.MP3",
@@ -437,7 +435,7 @@ def test_precision_gate_requires_reference_coverage(tmp_path: Path) -> None:
         chunk_index=0,
         start_seconds=0.0,
         duration_seconds=30.0,
-        model="wendao-local-audio",
+        model="qwen3-asr-1.7b-mlx",
         status="ok",
         wall_seconds=1.0,
         transcript_chars=transcript.stat().st_size,
@@ -473,7 +471,7 @@ def test_precision_gate_passes_with_reference_and_required_terms(
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     transcript = tmp_path / "transcript.txt"
-    transcript.write_text("智能家居论坛长春", encoding="utf-8")
+    transcript.write_text("通用术语测试地点", encoding="utf-8")
     result = diagnostic.AsrResult(
         backend="local-openai-audio",
         source="/tmp/forum.MP3",
@@ -481,7 +479,7 @@ def test_precision_gate_passes_with_reference_and_required_terms(
         chunk_index=0,
         start_seconds=0.0,
         duration_seconds=30.0,
-        model="wendao-local-audio",
+        model="qwen3-asr-1.7b-mlx",
         status="ok",
         wall_seconds=1.0,
         transcript_chars=transcript.stat().st_size,
@@ -490,9 +488,9 @@ def test_precision_gate_passes_with_reference_and_required_terms(
     )
     rows = diagnostic.build_quality_rows(
         [result],
-        references={("forum.MP3", 0): "智能家居论坛长春"},
+        references={("forum.MP3", 0): "通用术语测试地点"},
         max_reference_cer=0.15,
-        required_terms=["智能家居", "长春"],
+        required_terms=["通用术语", "测试地点"],
         min_required_term_recall=1.0,
         min_chars_per_minute=20.0,
         min_chinese_ratio=0.35,

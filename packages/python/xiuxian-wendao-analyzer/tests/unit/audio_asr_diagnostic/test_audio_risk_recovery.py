@@ -17,7 +17,7 @@ def _quality_row(
     return {
         "source": "forum.mp3",
         "backend": "local-openai-audio",
-        "model": "wendao-qwen3-asr-audio",
+        "model": "qwen3-asr-1.7b-mlx",
         "chunk_index": index,
         "start_seconds": float(index * 60),
         "duration_seconds": 60.0,

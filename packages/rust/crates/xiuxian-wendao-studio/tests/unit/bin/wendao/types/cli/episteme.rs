@@ -1,52 +1,8 @@
-use super::Cli;
-use crate::bin_support::wendao::types::{
-    Command, EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
+use super::{
+    Cli, Command, EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
     EpistemeEvidenceSelectionValidationModeArg, EpistemeSourceContractCommand,
-    EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
+    EpistemeStructureCommand, EpistemeStructureTocValidationModeArg, Parser,
 };
-use clap::Parser;
-
-#[test]
-fn parses_embedded_client_lint_command() {
-    let cli = Cli::parse_from(["wendao", "lint", "markdown", "README.md"]);
-    assert!(matches!(cli.command, Command::Client(_)));
-}
-
-#[test]
-fn parses_get_toc_command() {
-    let cli = Cli::parse_from(["wendao", "get", "toc", "docs/guides"]);
-    assert!(matches!(cli.command, Command::Client(_)));
-}
-
-#[test]
-fn parses_get_page_index_command() {
-    let cli = Cli::parse_from(["wendao", "get", "page-index"]);
-    assert!(matches!(cli.command, Command::Client(_)));
-}
-
-#[test]
-fn parses_audit_load_episteme_command() {
-    let cli = Cli::parse_from(["wendao", "audit", "--load", "wendao-episteme", "docs"]);
-
-    let Command::Audit(args) = cli.command else {
-        panic!("expected audit command");
-    };
-
-    assert_eq!(args.target, "docs");
-    assert_eq!(args.load.as_deref(), Some("wendao-episteme"));
-}
-
-#[test]
-fn parses_audit_template_command() {
-    let cli = Cli::parse_from(["wendao", "audit", "--template", "johnny-decimal"]);
-
-    let Command::Audit(args) = cli.command else {
-        panic!("expected audit command");
-    };
-
-    assert_eq!(args.target, ".");
-    assert_eq!(args.template.as_deref(), Some("johnny-decimal"));
-}
 
 #[test]
 fn parses_episteme_source_contract_plan_extraction_run_selection_run_id_command() {
@@ -79,7 +35,9 @@ fn parses_episteme_source_contract_plan_extraction_run_selection_run_id_command(
     let EpistemeCommand::SourceContract { command } = command else {
         panic!("expected episteme source-contract command");
     };
-    let EpistemeSourceContractCommand::PlanExtractionRun(args) = command;
+    let EpistemeSourceContractCommand::PlanExtractionRun(args) = command else {
+        panic!("expected episteme source-contract plan-extraction-run command");
+    };
     assert_eq!(
         args.episteme_root,
         std::path::PathBuf::from("source-contract")
@@ -102,6 +60,88 @@ fn parses_episteme_source_contract_plan_extraction_run_selection_run_id_command(
             "source-contract/runs/evidence-selection"
         ))
     );
+}
+
+#[test]
+fn parses_episteme_source_contract_run_image_ocr_cache_command() {
+    let cli = Cli::parse_from([
+        "wendao",
+        "episteme",
+        "source-contract",
+        "run-image-ocr-cache",
+        "--episteme-root",
+        "source-contract",
+        "--episteme-registry-id",
+        "configured-source",
+        "--corpus-root",
+        "corpus-root",
+        "--run-id",
+        "ltc_image_ocr_seed",
+        "--category",
+        "wechat_image",
+        "--limit",
+        "4",
+        "--selection-run-id",
+        "selection_seed",
+        "--selection-root",
+        "source-contract/runs/evidence-selection",
+        "--analyzer-command",
+        "wendao-image-ocr-jsonl",
+        "--python-command",
+        "python3",
+        "--cache-bridge-script",
+        "source-contract/tools/run_extraction_plan.py",
+        "--ocr-results-jsonl",
+        "source-contract/runs/extraction/ltc_image_ocr_seed/ocr_results.jsonl",
+        "--dry-run",
+    ]);
+
+    let Command::Episteme { command } = cli.command else {
+        panic!("expected episteme command");
+    };
+    let EpistemeCommand::SourceContract { command } = command else {
+        panic!("expected episteme source-contract command");
+    };
+    let EpistemeSourceContractCommand::RunImageOcrCache(args) = command else {
+        panic!("expected episteme source-contract run-image-ocr-cache command");
+    };
+    assert_eq!(
+        args.episteme_root,
+        std::path::PathBuf::from("source-contract")
+    );
+    assert_eq!(
+        args.episteme_registry_id.as_deref(),
+        Some("configured-source")
+    );
+    assert_eq!(
+        args.corpus_root,
+        Some(std::path::PathBuf::from("corpus-root"))
+    );
+    assert_eq!(args.run_id, "ltc_image_ocr_seed");
+    assert_eq!(args.category.as_deref(), Some("wechat_image"));
+    assert_eq!(args.limit, 4);
+    assert_eq!(args.selection_run_id.as_deref(), Some("selection_seed"));
+    assert_eq!(
+        args.selection_root,
+        Some(std::path::PathBuf::from(
+            "source-contract/runs/evidence-selection"
+        ))
+    );
+    assert_eq!(args.analyzer_command, "wendao-image-ocr-jsonl");
+    assert_eq!(args.python_command, "python3");
+    assert_eq!(
+        args.cache_bridge_script,
+        Some(std::path::PathBuf::from(
+            "source-contract/tools/run_extraction_plan.py"
+        ))
+    );
+    assert_eq!(
+        args.ocr_results_jsonl,
+        Some(std::path::PathBuf::from(
+            "source-contract/runs/extraction/ltc_image_ocr_seed/ocr_results.jsonl"
+        ))
+    );
+    assert!(args.dry_run);
 }
 
 #[test]

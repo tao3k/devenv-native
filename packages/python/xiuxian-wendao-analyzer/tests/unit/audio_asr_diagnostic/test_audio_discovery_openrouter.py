@@ -67,10 +67,10 @@ def test_extract_openrouter_segments_from_structured_responses() -> None:
     diagnostic = _load_audio_asr_diagnostic()
 
     direct = {
-        "text": "first segment second segment",
+        "text": "第一段 第二段",
         "segments": [
-            {"start": 0.0, "end": 1.2, "text": "first segment"},
-            {"startMs": 1200, "durationMs": 800, "text": "second segment"},
+            {"start": 0.0, "end": 1.2, "text": "第一段"},
+            {"startMs": 1200, "durationMs": 800, "text": "第二段"},
         ],
     }
     chat_json = {
@@ -79,12 +79,12 @@ def test_extract_openrouter_segments_from_structured_responses() -> None:
                 "message": {
                     "content": json.dumps(
                         {
-                            "transcript": "third segment",
+                            "transcript": "第三段",
                             "segments": [
                                 {
                                     "startSeconds": "2.0",
                                     "endSeconds": "2.7",
-                                    "text": "third segment",
+                                    "text": "第三段",
                                 }
                             ],
                         },
@@ -94,15 +94,12 @@ def test_extract_openrouter_segments_from_structured_responses() -> None:
         ]
     }
 
-    assert (
-        diagnostic.extract_openrouter_transcript(direct)
-        == "first segment second segment"
-    )
+    assert diagnostic.extract_openrouter_transcript(direct) == "第一段 第二段"
     assert diagnostic.extract_openrouter_segments(direct) == [
-        {"startSeconds": 0.0, "endSeconds": 1.2, "text": "first segment"},
-        {"startSeconds": 1.2, "endSeconds": 2.0, "text": "second segment"},
+        {"startSeconds": 0.0, "endSeconds": 1.2, "text": "第一段"},
+        {"startSeconds": 1.2, "endSeconds": 2.0, "text": "第二段"},
     ]
-    assert diagnostic.extract_openrouter_transcript(chat_json) == "third segment"
+    assert diagnostic.extract_openrouter_transcript(chat_json) == "第三段"
     assert diagnostic.extract_openrouter_segments(chat_json) == [
-        {"startSeconds": 2.0, "endSeconds": 2.7, "text": "third segment"}
+        {"startSeconds": 2.0, "endSeconds": 2.7, "text": "第三段"}
     ]

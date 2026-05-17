@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
+use xiuxian_qianji::workflow_kernel::WorkflowCheckpointId;
 
 use super::support::{
     ObservedAudioShardWindow, error_to_string, make_executable, sample_input,
@@ -157,14 +158,14 @@ async fn audio_shard_response_merges_accepted_recovery_patch() -> Result<(), Str
     let base_response = AudioShardFlightResponse {
         results: vec![AudioShardResult::succeeded(
             &base_input,
-            "重复重复重复重复重复重复重复家装论坛",
+            "重复重复重复重复重复重复重复通用会议",
             0.80,
         )],
     };
     let recovery_response = AudioShardFlightResponse {
         results: vec![
-            AudioShardResult::succeeded(&first_recovery_input, "家装论坛讨论供应链", 0.92),
-            AudioShardResult::succeeded(&second_recovery_input, "主持人介绍长春案例", 0.92),
+            AudioShardResult::succeeded(&first_recovery_input, "通用会议讨论流程", 0.92),
+            AudioShardResult::succeeded(&second_recovery_input, "主持人介绍测试案例", 0.92),
         ],
     };
 
@@ -180,7 +181,7 @@ async fn audio_shard_response_merges_accepted_recovery_patch() -> Result<(), Str
         gate_report.decisions[0].decision,
         AudioRecoveryPatchDecisionKind::AcceptPatch
     );
-    assert_eq!(merge_report.text, "家装论坛讨论供应链\n主持人介绍长春案例");
+    assert_eq!(merge_report.text, "通用会议讨论流程\n主持人介绍测试案例");
     assert!(merge_report.has_complete_success_coverage());
     Ok(())
 }
@@ -221,7 +222,7 @@ async fn audio_shard_response_plans_recovery_split_from_base_quality() -> Result
     let response = AudioShardFlightResponse {
         results: vec![
             AudioShardResult::succeeded(&first, "开场介绍", 0.9),
-            AudioShardResult::succeeded(&second, "重复重复重复重复重复重复家装行业论坛", 0.9),
+            AudioShardResult::succeeded(&second, "重复重复重复重复重复重复通用测试会议", 0.9),
             AudioShardResult::succeeded(&third, "结束总结", 0.9),
         ],
     };
@@ -317,7 +318,7 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
         AudioShardResult::succeeded(&base_inputs[0], "开场介绍", 0.90),
         AudioShardResult::succeeded(
             &base_inputs[1],
-            "重复重复重复重复重复重复家装行业论坛",
+            "重复重复重复重复重复重复通用测试会议",
             0.80,
         ),
         AudioShardResult::succeeded(&base_inputs[2], "结束总结", 0.90),
@@ -328,8 +329,8 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
     let recovery_materialized = materialize_audio_shards(&recovery_plan, &materialization)?;
     let recovery_inputs = build_audio_shard_inputs(recovery_materialized.as_slice(), &profile);
     let recovery_results = vec![
-        AudioShardResult::succeeded(&recovery_inputs[0], "家装论坛讨论供应链", 0.92),
-        AudioShardResult::succeeded(&recovery_inputs[1], "主持人介绍长春案例", 0.92),
+        AudioShardResult::succeeded(&recovery_inputs[0], "通用会议讨论流程", 0.92),
+        AudioShardResult::succeeded(&recovery_inputs[1], "主持人介绍测试案例", 0.92),
     ];
     let recovery_batch = build_audio_shard_result_batch(recovery_results.as_slice())?;
     let cached_materialization = AudioShardMaterializationInput {
@@ -383,7 +384,7 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
     assert_eq!(execution.patch_gate_report.accepted_count, 1);
     assert_eq!(
         execution.merge_report.text,
-        "开场介绍\n家装论坛讨论供应链\n主持人介绍长春案例\n结束总结"
+        "开场介绍\n通用会议讨论流程\n主持人介绍测试案例\n结束总结"
     );
     assert!(execution.merge_report.has_complete_success_coverage());
     assert_eq!(
@@ -438,12 +439,16 @@ async fn audio_shard_client_executes_two_pass_recovery_split() -> Result<(), Str
     );
     let base_input_batch = execution
         .memory_checkpoints
-        .get::<EngineRecordBatch>("audio.base.arrow.input_batch.v1")
+        .get::<EngineRecordBatch>(&WorkflowCheckpointId::new(
+            "audio.base.arrow.input_batch.v1",
+        ))
         .map_err(error_to_string)?;
     assert_eq!(base_input_batch.num_rows(), 3);
     let recovery_result_batch = execution
         .memory_checkpoints
-        .get::<EngineRecordBatch>("audio.recovery.arrow.result_batch.v1")
+        .get::<EngineRecordBatch>(&WorkflowCheckpointId::new(
+            "audio.recovery.arrow.result_batch.v1",
+        ))
         .map_err(error_to_string)?;
     assert_eq!(recovery_result_batch.num_rows(), 2);
     let observed_requests = observed_requests

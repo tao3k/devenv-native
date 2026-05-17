@@ -11705,6 +11705,7 @@ dependencies = [
  "log",
  "notify",
  "notify-debouncer-full",
+ "num-traits",
  "prost",
  "reqwest 0.13.3",
  "rust-lang-project-harness",

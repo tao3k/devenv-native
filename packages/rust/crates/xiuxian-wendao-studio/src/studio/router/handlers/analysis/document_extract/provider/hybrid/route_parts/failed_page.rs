@@ -71,8 +71,8 @@ pub(super) async fn recover_failed_page_ocr_results(
         order_ocr_results_by_inputs(recovery_inputs.as_slice(), response.results)?;
     for ((position, recovery_input), recovery_result) in positions
         .into_iter()
-        .zip(recovery_inputs.into_iter())
-        .zip(recovery_results.into_iter())
+        .zip(recovery_inputs)
+        .zip(recovery_results)
     {
         inputs[position] = recovery_input;
         results[position] = recovery_result;

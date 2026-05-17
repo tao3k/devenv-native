@@ -14,10 +14,10 @@ pub(crate) use commands::{
     DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs, EpistemeCommand,
     EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
     EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
-    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
-    EpistemeWriteStructureTocArgs, FixArgs, HmasCommand, SaliencyCommand, SentinelArgs,
-    SentinelCommand, SentinelWatchArgs,
+    EpistemeReadEvidenceArgs, EpistemeRunImageOcrCacheArgs, EpistemeSourceContractCommand,
+    EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
+    EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs, FixArgs, HmasCommand,
+    SaliencyCommand, SentinelArgs, SentinelCommand, SentinelWatchArgs,
 };
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use commands::{

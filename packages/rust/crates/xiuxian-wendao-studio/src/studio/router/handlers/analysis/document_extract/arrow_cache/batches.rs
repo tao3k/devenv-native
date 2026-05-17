@@ -46,7 +46,7 @@ pub(crate) fn build_error_resource_batch(
     .map_err(|error| format!("build document extract error batch: {error}"))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-audio-shards"))]
 pub(crate) fn build_audio_transcript_resource_batch(
     source_path: &str,
     output_dir: &str,
@@ -70,6 +70,7 @@ pub(crate) fn build_audio_transcript_resource_batch(
     .map_err(|error| format!("build audio transcript resource batch: {error}"))
 }
 
+#[cfg(feature = "document-extract-audio-shards")]
 pub(crate) fn build_audio_transcript_with_org_resource_batch(
     source_path: &str,
     output_dir: &str,

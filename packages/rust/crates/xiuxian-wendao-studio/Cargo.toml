@@ -123,6 +123,7 @@ flight-server-bin-support = [
 ]
 document-extract-pdf-source-range = [
   "local-runtime",
+  "dep:num-traits",
   "dep:xiuxian-wendao-attachments",
   "xiuxian-wendao/document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-source-range",
@@ -206,6 +207,7 @@ globset = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 notify = { workspace = true, optional = true }
 notify-debouncer-full = { workspace = true, optional = true }
+num-traits = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }
@@ -231,6 +233,7 @@ walkdir = { workspace = true, optional = true }
 insta = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, features = ["test-support"] }
 
 [build-dependencies]
 rust-lang-project-harness = { workspace = true }

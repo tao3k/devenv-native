@@ -3,17 +3,19 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    process::Command as ProcessCommand,
 };
 
 use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{
     Cli, Command, EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
     EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
-    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
-    EpistemeWriteStructureTocArgs,
+    EpistemeReadEvidenceArgs, EpistemeRunImageOcrCacheArgs, EpistemeSourceContractCommand,
+    EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
+    EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs,
 };
 use anyhow::{Context, Result};
+use serde::Serialize;
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao::episteme::{
     EpistemeEvidenceReadRequest, EpistemeEvidenceReadValidationMode,
@@ -31,6 +33,11 @@ use crate::studio::router::{
     load_episteme_registry_from_wendao_toml, load_episteme_registry_from_wendao_toml_path,
 };
 
+const EPISTEME_IMAGE_OCR_ROUTE: &str = "image_ocr_evidence";
+const EPISTEME_IMAGE_OCR_RESULTS_JSONL: &str = "ocr_results.jsonl";
+const EPISTEME_IMAGE_OCR_WRAPPER_SCHEMA: &str =
+    "xiuxian_wendao.episteme_image_ocr_cache_execution.v1";
+
 pub(super) fn handle(cli: &Cli) -> Result<()> {
     let Command::Episteme { command } = &cli.command else {
         unreachable!("episteme handler must be called with episteme command");
@@ -47,6 +54,9 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
             EpistemeSourceContractCommand::PlanExtractionRun(args) => {
                 plan_episteme_source_contract(cli, args)
             }
+            EpistemeSourceContractCommand::RunImageOcrCache(args) => {
+                run_episteme_image_ocr_cache(cli, args)
+            }
         },
         EpistemeCommand::Structure { command } => match command {
             EpistemeStructureCommand::WriteToc(args) => {
@@ -54,6 +64,37 @@ pub(super) fn handle(cli: &Cli) -> Result<()> {
             }
         },
     }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct EpistemeExternalCommandSpec {
+    program: String,
+    args: Vec<String>,
+    current_dir: Option<String>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EpistemeExternalCommandReport {
+    command: EpistemeExternalCommandSpec,
+    skipped: bool,
+    exit_code: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EpistemeImageOcrCacheExecutionReport {
+    schema_version: &'static str,
+    run_id: String,
+    route: &'static str,
+    dry_run: bool,
+    tasks_tsv: String,
+    ocr_results_jsonl: String,
+    raw_to_rdf_promotion_allowed: bool,
+    plan: serde_json::Value,
+    analyzer: EpistemeExternalCommandReport,
+    cache_bridge: EpistemeExternalCommandReport,
 }
 
 fn write_episteme_evidence_selection_plan_command(
@@ -153,6 +194,120 @@ fn plan_episteme_source_contract(cli: &Cli, args: &EpistemePlanExtractionRunArgs
     }
 
     let report = write_episteme_extraction_run_plan(&request, run_root)?;
+    emit(&report, cli.output_or_json())
+}
+
+fn run_episteme_image_ocr_cache(cli: &Cli, args: &EpistemeRunImageOcrCacheArgs) -> Result<()> {
+    let episteme_root = resolve_episteme_root(
+        cli,
+        &args.episteme_root,
+        args.episteme_registry_id.as_deref(),
+    )?;
+    let config = load_runtime_config(episteme_root.as_path())?;
+    let corpus_root = resolve_corpus_root(
+        args.corpus_root.as_ref(),
+        episteme_root.as_path(),
+        config.as_ref(),
+    )?;
+    let run_root = resolve_run_root(
+        args.run_root.as_ref(),
+        config
+            .as_ref()
+            .and_then(|config| config.extraction_runs.as_ref()),
+        || episteme_root.join("runs/extraction"),
+    );
+    let mut request = EpistemeRunPlanRequest::new(
+        episteme_root.clone(),
+        corpus_root.clone(),
+        args.run_id.clone(),
+    )
+    .with_limit(args.limit)
+    .with_route(EPISTEME_IMAGE_OCR_ROUTE);
+    if let Some(category) = &args.category {
+        request = request.with_category(category.as_str());
+    }
+    if let Some(selection_run_id) = &args.selection_run_id {
+        let selection_root = args
+            .selection_root
+            .clone()
+            .or_else(|| {
+                config
+                    .as_ref()
+                    .and_then(|config| config.evidence_selection_runs.clone())
+            })
+            .unwrap_or_else(|| episteme_root.join("runs/evidence-selection"));
+        let selection_tsv_path = selection_root.join(selection_run_id).join("selection.tsv");
+        let selected_file_ids = read_episteme_evidence_selection_file_ids(selection_tsv_path)?;
+        request = request.with_selected_file_ids(selected_file_ids);
+    }
+
+    let plan = write_episteme_extraction_run_plan(&request, &run_root)?;
+    let run_dir = run_root.join(&args.run_id);
+    let tasks_path = run_dir.join("tasks.tsv");
+    let ocr_results_jsonl = args
+        .ocr_results_jsonl
+        .clone()
+        .unwrap_or_else(|| run_dir.join(EPISTEME_IMAGE_OCR_RESULTS_JSONL));
+    let cache_bridge_script = args
+        .cache_bridge_script
+        .clone()
+        .unwrap_or_else(|| episteme_root.join("tools/run_extraction_plan.py"));
+    let episteme_root_for_command = absolute_runtime_path(&episteme_root)?;
+    let tasks_path_for_command = absolute_runtime_path(&tasks_path)?;
+    let corpus_root_for_command = absolute_runtime_path(&corpus_root)?;
+    let ocr_results_jsonl_for_command = absolute_runtime_path(&ocr_results_jsonl)?;
+    let cache_bridge_script_for_command = absolute_runtime_path(&cache_bridge_script)?;
+    let analyzer_command = image_ocr_analyzer_command_spec(
+        &args.analyzer_command,
+        &episteme_root_for_command,
+        &tasks_path_for_command,
+        &corpus_root_for_command,
+        &ocr_results_jsonl_for_command,
+    );
+    let cache_bridge_command = image_ocr_cache_bridge_command_spec(
+        &args.python_command,
+        &episteme_root_for_command,
+        &cache_bridge_script_for_command,
+        &tasks_path_for_command,
+        &corpus_root_for_command,
+        &ocr_results_jsonl_for_command,
+    );
+    let analyzer_exit_code = if args.dry_run {
+        None
+    } else {
+        Some(run_external_command(
+            &analyzer_command,
+            "image OCR analyzer",
+        )?)
+    };
+    let cache_bridge_exit_code = if args.dry_run {
+        None
+    } else {
+        Some(run_external_command(
+            &cache_bridge_command,
+            "image OCR cache bridge",
+        )?)
+    };
+    let report = EpistemeImageOcrCacheExecutionReport {
+        schema_version: EPISTEME_IMAGE_OCR_WRAPPER_SCHEMA,
+        run_id: args.run_id.clone(),
+        route: EPISTEME_IMAGE_OCR_ROUTE,
+        dry_run: args.dry_run,
+        tasks_tsv: path_display(&tasks_path_for_command),
+        ocr_results_jsonl: path_display(&ocr_results_jsonl_for_command),
+        raw_to_rdf_promotion_allowed: false,
+        plan: serde_json::to_value(&plan).context("failed to serialize image OCR run plan")?,
+        analyzer: EpistemeExternalCommandReport {
+            command: analyzer_command,
+            skipped: args.dry_run,
+            exit_code: analyzer_exit_code,
+        },
+        cache_bridge: EpistemeExternalCommandReport {
+            command: cache_bridge_command,
+            skipped: args.dry_run,
+            exit_code: cache_bridge_exit_code,
+        },
+    };
     emit(&report, cli.output_or_json())
 }
 
@@ -303,3 +458,80 @@ fn resolve_run_root(
         .or_else(|| configured.cloned())
         .unwrap_or_else(fallback)
 }
+
+pub(crate) fn image_ocr_analyzer_command_spec(
+    analyzer_command: &str,
+    episteme_root: &Path,
+    tasks_path: &Path,
+    corpus_root: &Path,
+    ocr_results_jsonl: &Path,
+) -> EpistemeExternalCommandSpec {
+    EpistemeExternalCommandSpec {
+        program: analyzer_command.to_string(),
+        args: vec![
+            "--tasks".to_string(),
+            path_display(tasks_path),
+            "--corpus-root".to_string(),
+            path_display(corpus_root),
+            "--output-jsonl".to_string(),
+            path_display(ocr_results_jsonl),
+        ],
+        current_dir: Some(path_display(episteme_root)),
+    }
+}
+
+pub(crate) fn image_ocr_cache_bridge_command_spec(
+    python_command: &str,
+    episteme_root: &Path,
+    cache_bridge_script: &Path,
+    tasks_path: &Path,
+    corpus_root: &Path,
+    ocr_results_jsonl: &Path,
+) -> EpistemeExternalCommandSpec {
+    EpistemeExternalCommandSpec {
+        program: python_command.to_string(),
+        args: vec![
+            path_display(cache_bridge_script),
+            "--corpus-root".to_string(),
+            path_display(corpus_root),
+            "--tasks".to_string(),
+            path_display(tasks_path),
+            "--ocr-results-jsonl".to_string(),
+            path_display(ocr_results_jsonl),
+        ],
+        current_dir: Some(path_display(episteme_root)),
+    }
+}
+
+fn run_external_command(spec: &EpistemeExternalCommandSpec, label: &str) -> Result<i32> {
+    let mut command = ProcessCommand::new(&spec.program);
+    command.args(&spec.args);
+    if let Some(current_dir) = &spec.current_dir {
+        command.current_dir(current_dir);
+    }
+    let status = command
+        .status()
+        .with_context(|| format!("failed to start {label} command `{}`", spec.program))?;
+    let exit_code = status.code().unwrap_or(1);
+    if !status.success() {
+        anyhow::bail!("{label} command failed with exit code {exit_code}");
+    }
+    Ok(exit_code)
+}
+
+fn absolute_runtime_path(path: &Path) -> Result<PathBuf> {
+    if path.is_absolute() {
+        return Ok(path.to_path_buf());
+    }
+    env::current_dir()
+        .map(|current_dir| current_dir.join(path))
+        .context("failed to resolve current directory for image OCR command paths")
+}
+
+fn path_display(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
+}
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/bin/wendao/execute/episteme.rs"]
+mod tests;

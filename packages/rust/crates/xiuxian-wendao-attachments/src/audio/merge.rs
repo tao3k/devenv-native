@@ -130,7 +130,9 @@ fn validate_audio_result_matches_input(
             input.shard_element_id
         ));
     }
-    if result.status == AudioShardResultStatus::Succeeded && result.text_mime_type != "text/plain" {
+    if result.status == AudioShardResultStatus::Succeeded
+        && result.text_mime_type.as_str() != "text/plain"
+    {
         return Err(format!(
             "audio result text MIME type mismatch for shard {}",
             input.shard_element_id

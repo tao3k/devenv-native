@@ -355,6 +355,37 @@ impl AudioShardResultStatus {
     }
 }
 
+/// Stable MIME type catalog for audio transcript text payloads.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AudioShardTextMimeType(String);
+
+impl AudioShardTextMimeType {
+    /// Plain text transcript MIME type.
+    #[must_use]
+    pub fn plain_text() -> Self {
+        Self("text/plain".to_owned())
+    }
+
+    /// Return the stable MIME string.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl From<String> for AudioShardTextMimeType {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for AudioShardTextMimeType {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
 /// Raw DTO boundary for one audio shard worker result row.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -380,7 +411,7 @@ pub struct AudioShardResult {
     /// Recognized or generated text for successful rows.
     pub text: Option<String>,
     /// MIME type of `text`.
-    pub text_mime_type: String,
+    pub text_mime_type: AudioShardTextMimeType,
     /// Optional worker confidence score.
     pub confidence: Option<f64>,
     /// Optional failure or skip reason.
@@ -446,7 +477,7 @@ impl AudioShardResult {
             backend_profile: input.backend_profile.clone(),
             status,
             text,
-            text_mime_type: "text/plain".to_owned(),
+            text_mime_type: AudioShardTextMimeType::plain_text(),
             confidence,
             error_message,
             shard_element_id: input.shard_element_id.clone(),

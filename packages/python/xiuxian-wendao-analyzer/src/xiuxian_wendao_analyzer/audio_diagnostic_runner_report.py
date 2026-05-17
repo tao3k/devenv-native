@@ -129,7 +129,7 @@ def build_diagnostic_report(
         ),
         "openRouterModel": args.openrouter_model,
         "openRouterApiKeyConfigured": bool(api_key) if hosted_audio_enabled else False,
-        "localAsrModel": args.local_asr_model,
+        "localAsrModel": (args.local_asr_model if "local-docling" in backends else ""),
         "localLanguage": args.local_language,
         "primaryLanguage": getattr(args, "primary_language", "zh"),
         "fireRedAsr2sCommand": args.fireredasr2s_command,

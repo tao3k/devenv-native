@@ -33,6 +33,7 @@ build-backend = "hatchling.build"
 [project.scripts]
 xiuxian-wendao-document-extract = "xiuxian_wendao_analyzer.document_service_cli:document_extract_service_main"
 wendao-document-extract = "xiuxian_wendao_analyzer.document_service_cli:document_extract_service_main"
+wendao-image-ocr-jsonl = "xiuxian_wendao_analyzer.image_ocr_jsonl:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xiuxian_wendao_analyzer"]

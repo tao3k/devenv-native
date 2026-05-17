@@ -160,7 +160,7 @@ pub(super) async fn materialize_ocr2_recovery_region_images(
             )?;
             materialization.inputs = merged_inputs;
             materialization.record_phase_elapsed("regionMaterializeScaffold", phase_started);
-            return Ok(materialization);
+            Ok(materialization)
         }
     }
 

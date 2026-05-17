@@ -143,6 +143,7 @@ def test_run_diagnostic_writes_summary_and_results(tmp_path: Path, monkeypatch) 
     assert report["inputPrivacy"] == "shareable"
     assert report["requestedBackends"] == ["local-docling", "openrouter-chat-audio"]
     assert report["primaryLanguage"] == "zh"
+    assert report["localAsrModel"] == diagnostic.DEFAULT_LOCAL_ASR_MODEL
     assert report["openAiCompatibleAudioEnabled"] is True
     assert report["hostedAudioEnabled"] is True
     assert report["hostedAudioApiKeyConfigured"] is True
@@ -207,7 +208,7 @@ def test_run_diagnostic_local_openai_audio_is_not_hosted(
         audio_materialization_mode=diagnostic.AUDIO_MATERIALIZATION_NORMALIZED_16K_WAV,
         sample_rate=16000,
         audio_format="wav",
-        openrouter_model="wendao-local-audio",
+        openrouter_model="qwen3-asr-1.7b-mlx",
         openrouter_base_url="http://127.0.0.1:8012/v1/chat/completions",
         local_asr_model=diagnostic.DEFAULT_LOCAL_ASR_MODEL,
         local_language=diagnostic.DEFAULT_LOCAL_LANGUAGE,
@@ -238,3 +239,4 @@ def test_run_diagnostic_local_openai_audio_is_not_hosted(
     assert report["hostedAudioEnabled"] is False
     assert report["hostedAudioApiKeyConfigured"] is False
     assert report["openRouterApiKeyConfigured"] is False
+    assert report["localAsrModel"] == ""

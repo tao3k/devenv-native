@@ -61,7 +61,10 @@ pub(super) fn page_range_docling_fallback_chunk_summary(
         .iter()
         .map(|chunk| chunk.elapsed_ms)
         .min_by(f64::total_cmp);
-    let elapsed_ms_mean = (!chunks.is_empty()).then(|| elapsed_ms_total / chunks.len() as f64);
+    let elapsed_ms_mean = (!chunks.is_empty()).then(|| {
+        let chunk_count = u32::try_from(chunks.len()).map_or(f64::from(u32::MAX), f64::from);
+        elapsed_ms_total / chunk_count
+    });
     let elapsed_ms_max = longest.map(|chunk| chunk.elapsed_ms);
     json!({
         "chunkCount": chunks.len(),

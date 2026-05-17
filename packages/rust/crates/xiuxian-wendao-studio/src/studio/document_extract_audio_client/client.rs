@@ -9,6 +9,7 @@ use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServiceClient;
 use futures::{TryStreamExt, stream};
 use tonic::transport::{Channel, Endpoint};
+use xiuxian_qianji::workflow_kernel::WorkflowMemoryCheckpointRecord;
 use xiuxian_qianji::{
     WorkflowMemoryCheckpointStore, WorkflowRun, WorkflowStage, WorkflowStageFacts,
     WorkflowTopology, WorkflowTrace,
@@ -287,14 +288,14 @@ impl AudioShardFlightClient {
             )
             .await
             .map_err(|error| error.to_string())?;
-        run.record_memory_checkpoint(
-            AUDIO_BUILD_ROWS_STAGE_ID,
-            AUDIO_INPUT_BATCH_CHECKPOINT_ID,
-            WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_input", "v1")
+        run.record_memory_checkpoint(WorkflowMemoryCheckpointRecord {
+            stage_id: AUDIO_BUILD_ROWS_STAGE_ID.into(),
+            checkpoint_id: AUDIO_INPUT_BATCH_CHECKPOINT_ID.into(),
+            facts: WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_input", "v1")
                 .with_item_count(prepared_inputs.input_batch.num_rows()),
-            None,
-            Arc::new(prepared_inputs.input_batch.clone()),
-        )
+            content_fingerprint: None,
+            payload: Arc::new(prepared_inputs.input_batch.clone()),
+        })
         .map_err(|error| error.to_string())?;
         let exchange = run
             .run_stage(
@@ -304,14 +305,17 @@ impl AudioShardFlightClient {
             )
             .await
             .map_err(|error| error.to_string())?;
-        run.record_memory_checkpoint(
-            AUDIO_CALL_FLIGHT_STAGE_ID,
-            AUDIO_RESULT_BATCHES_CHECKPOINT_ID,
-            WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_result", "v1")
-                .with_item_count(exchange.response.results.len()),
-            None,
-            Arc::new(exchange.response_batches.clone()),
-        )
+        run.record_memory_checkpoint(WorkflowMemoryCheckpointRecord {
+            stage_id: AUDIO_CALL_FLIGHT_STAGE_ID.into(),
+            checkpoint_id: AUDIO_RESULT_BATCHES_CHECKPOINT_ID.into(),
+            facts: WorkflowStageFacts::arrow_record_batch(
+                "xiuxian_wendao.audio_shard_result",
+                "v1",
+            )
+            .with_item_count(exchange.response.results.len()),
+            content_fingerprint: None,
+            payload: Arc::new(exchange.response_batches.clone()),
+        })
         .map_err(|error| error.to_string())?;
         let merge_report = run
             .run_stage(

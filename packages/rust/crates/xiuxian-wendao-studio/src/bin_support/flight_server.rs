@@ -317,9 +317,8 @@ fn collect_configured_repo_content_documents(repo_root: &Path) -> Result<Vec<Rep
 fn collect_git_tracked_configured_repo_content_documents(
     repo_root: &Path,
 ) -> Result<Option<Vec<RepoCodeDocument>>> {
-    let tracked_paths = match list_tracked_file_paths(repo_root) {
-        Ok(paths) => paths,
-        Err(_) => return Ok(None),
+    let Ok(tracked_paths) = list_tracked_file_paths(repo_root) else {
+        return Ok(None);
     };
 
     let mut documents = Vec::new();

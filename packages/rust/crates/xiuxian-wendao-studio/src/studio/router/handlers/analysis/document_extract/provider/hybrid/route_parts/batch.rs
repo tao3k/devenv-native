@@ -333,17 +333,17 @@ pub(super) async fn materialize_docling_page_range_resource_batch(
         docling_page_range_hedge_delay_ms_with_lookup(&|key| std::env::var(key).ok());
     let page_range_profile =
         docling_page_range_fallback_profile_with_lookup(&|key| std::env::var(key).ok());
-    let (mut page_range_batches, chunk_timings) = collect_docling_page_range_fallback_chunks(
+    let request = DoclingPageRangeFallbackRequest {
         provider,
         output,
         render_report,
-        page_ranges.as_slice(),
-        source_profiles.as_slice(),
+        source_profiles: source_profiles.as_slice(),
         chunk_concurrency,
         hedge_delay_ms,
         page_range_profile,
-    )
-    .await?;
+    };
+    let (mut page_range_batches, chunk_timings) =
+        collect_docling_page_range_fallback_chunks(&request, page_ranges.as_slice()).await?;
     resource_batches.append(&mut page_range_batches);
 
     let metrics = kept_results
@@ -373,15 +373,19 @@ pub(super) async fn materialize_docling_page_range_resource_batch(
     .with_page_range_docling_fallback_plan(page_range_plan))
 }
 
-async fn collect_docling_page_range_fallback_chunks(
-    provider: &StudioDocumentExtractFlightRouteProvider,
-    output: &Path,
-    render_report: &PdfPageRenderShardReport,
-    page_ranges: &[(u32, u32)],
-    source_profiles: &[PdfSourcePageProfile],
+struct DoclingPageRangeFallbackRequest<'a> {
+    provider: &'a StudioDocumentExtractFlightRouteProvider,
+    output: &'a Path,
+    render_report: &'a PdfPageRenderShardReport,
+    source_profiles: &'a [PdfSourcePageProfile],
     chunk_concurrency: usize,
     hedge_delay_ms: Option<u64>,
     page_range_profile: String,
+}
+
+async fn collect_docling_page_range_fallback_chunks(
+    request: &DoclingPageRangeFallbackRequest<'_>,
+    page_ranges: &[(u32, u32)],
 ) -> Result<
     (
         Vec<EngineRecordBatch>,
@@ -391,30 +395,34 @@ async fn collect_docling_page_range_fallback_chunks(
 > {
     let mut resource_batches = Vec::new();
     let mut chunk_timings = Vec::with_capacity(page_ranges.len());
-    for page_range_wave in page_ranges.chunks(chunk_concurrency) {
+    for page_range_wave in page_ranges.chunks(request.chunk_concurrency) {
         let page_range_futures = page_range_wave
             .iter()
             .copied()
             .map(|(start_page, end_page)| {
-                let page_range_profile = page_range_profile.clone();
-                let source_profile =
-                    page_range_source_profile_summary(source_profiles, start_page, end_page);
+                let page_range_profile = request.page_range_profile.clone();
+                let source_profile = page_range_source_profile_summary(
+                    request.source_profiles,
+                    start_page,
+                    end_page,
+                );
                 async move {
                     let one_based_start = start_page.saturating_add(1);
                     let one_based_end = end_page.saturating_add(1);
-                    let page_output = output
+                    let page_output = request
+                        .output
                         .join("_docling_page_fallback")
                         .join(format!("pages-{start_page:05}-{end_page:05}"));
                     let page_output_string = page_output.to_string_lossy().to_string();
                     let chunk_started = Instant::now();
                     let (page_batches, hedged, attempt_count) = request_docling_page_range_chunk(
-                        provider,
-                        render_report.source_path.as_str(),
+                        request.provider,
+                        request.render_report.source_path.as_str(),
                         page_output_string.as_str(),
                         one_based_start,
                         one_based_end,
                         page_range_profile.as_str(),
-                        hedge_delay_ms,
+                        request.hedge_delay_ms,
                     )
                     .await?;
                     let document_timing =
@@ -429,7 +437,7 @@ async fn collect_docling_page_range_fallback_chunks(
                         document_extract_profile: page_range_profile,
                         hedged,
                         attempt_count,
-                        hedge_delay_ms,
+                        hedge_delay_ms: request.hedge_delay_ms,
                         document_timing_total_elapsed_ms: document_timing.total_elapsed_ms,
                         document_timing_phase_elapsed_ms: document_timing.phase_elapsed_ms,
                         source_profile,

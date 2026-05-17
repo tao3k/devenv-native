@@ -205,6 +205,16 @@ This keeps Org as the reviewable evidence artifact while parser/orgize remains
 responsible for attachment parsing, linting, and derived Markdown or HTML
 exports.
 
+The crate also exposes a conservative evidence projection for generated audio
+transcript Org ledgers. This projection compiles the ledger root and shard
+property drawers into typed evidence source and evidence segment rows, and can
+build Arrow batches for those rows when `audio-shard-arrow` is enabled. The
+projection preserves source and shard hashes, shard/result ids, timestamps,
+reading order, backend profile, transcript hashes, and transcript text as
+evidence. It is not an ontology promotion path: candidate claim extraction,
+reviewed semantic read models, WendaoGraph quality checks, and RDF
+materialization remain separate downstream gates.
+
 ## PDFium Runtime
 
 The `pdf-render` feature uses `pdfium-render`, which binds to a native PDFium
