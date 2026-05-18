@@ -110,7 +110,7 @@ fn semantic_preflight_read_model_materialization_runs_ready_smoke_query() -> Res
     assert_eq!(status, Some(0), "stdout:\n{stdout}\nstderr:\n{stderr}");
     assert!(
         stdout.contains(
-            "Semantic read-model materialization preflight ready: target duckdb, execution datafusion"
+            "Semantic read-model materialization preflight ready: target duckdb, execution duckdb"
         ),
         "preflight should be ready: {stdout}"
     );
@@ -127,7 +127,7 @@ fn semantic_preflight_read_model_materialization_runs_ready_smoke_query() -> Res
         "smoke query result should be rendered: {stdout}"
     );
     assert!(
-        stdout.contains("semantic_objects: 1 row(s), 18 column(s), materialized via datafusion_request_scoped_arrow"),
+        stdout.contains("semantic_objects: 1 row(s), 18 column(s), materialized via duckdb_materialized_arrow_staging"),
         "table preflight should be rendered: {stdout}"
     );
     assert!(

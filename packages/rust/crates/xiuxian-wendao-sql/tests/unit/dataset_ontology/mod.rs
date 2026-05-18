@@ -4,7 +4,7 @@ use arrow::array::StringArray;
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 
-use crate::DataFusionLocalRelationEngine;
+use crate::DuckDbLocalRelationEngine;
 use crate::dataset_ontology::{
     DATASET_ONTOLOGY_LINK_OBSERVATION_TABLE_NAME, DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME,
     DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,

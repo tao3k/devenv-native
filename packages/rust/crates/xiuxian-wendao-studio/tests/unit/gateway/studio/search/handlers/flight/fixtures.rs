@@ -1,11 +1,15 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(feature = "julia")]
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::studio::arrow_types::{
     LanceDataType, LanceField, LanceFloat64Array, LanceRecordBatch, LanceSchema, LanceStringArray,
 };
+#[cfg(feature = "julia")]
 use crate::studio::studio_repo_sync_api_tests::support::prime_local_julia_fixture_analysis_cache;
+#[cfg(feature = "julia")]
 use crate::studio::test_support::{add_git_remote, commit_all, init_git_repository};
 use crate::transport::{
     AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
@@ -26,7 +30,9 @@ use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::search::handlers::tests::test_studio_state;
 use crate::studio::{GatewayState, StudioState};
 use crate::studio::{build_ast_index, search::build_symbol_index};
+#[cfg(feature = "julia")]
 use xiuxian_wendao::repo_index::RepoCodeDocument;
+#[cfg(feature = "julia")]
 use xiuxian_wendao::search::SearchPlaneService;
 
 pub(super) struct GatewayStateFixture {
@@ -34,7 +40,7 @@ pub(super) struct GatewayStateFixture {
     pub(super) state: Arc<GatewayState>,
 }
 
-fn write_fixture_files(root: &std::path::Path, files: &[(&str, &str)], context: &str) {
+fn write_fixture_files(root: &Path, files: &[(&str, &str)], context: &str) {
     for (path, contents) in files {
         let full_path = root.join(path);
         if let Some(parent) = full_path.parent() {
@@ -171,6 +177,7 @@ pub(super) async fn make_gateway_state_with_search_routes() -> GatewayStateFixtu
     gateway_state_fixture(temp_dir, studio)
 }
 
+#[cfg(feature = "julia")]
 pub(super) async fn make_gateway_state_with_search_strategy_flow_routes() -> GatewayStateFixture {
     let temp_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     write_fixture_files(
@@ -231,6 +238,7 @@ refresh = "manual"
     gateway_state_fixture(temp_dir, studio)
 }
 
+#[cfg(feature = "julia")]
 fn create_gateway_sync_julia_repo(base: &Path) -> PathBuf {
     let repo_dir = base.join("gatewaysyncpkg");
     write_fixture_files(

@@ -39,13 +39,27 @@ Package positioning:
    or scoring runtime.
 7. new semantics should be owned by Rust first and then surfaced here as thin
    typed transport helpers.
+8. deterministic Python helpers for user/source-contract repositories may live
+   here only for offline compatibility checks, snapshot rendering, and
+   development workflows that should not live inside source artifact
+   repositories.
+9. those helper modules are not Episteme authority. Rust remains the production
+   owner for source-contract selection, validation, scheduling, cache identity,
+   materialization, and promotion gates.
 
 Related package-boundary RFC:
 
 - [Python Wendao Analyzer Package Boundary](../../../docs/rfcs/2026-03-31-python-wendao-analyzer-package-rfc.md)
 
+Related source-contract repository:
+
+- [Wendao Episteme](../../../wendao-episteme/README.md)
+
 Transitional note:
 
+- `wendao_core_lib.episteme_contracts` is a transitional compatibility and
+  development-helper namespace for deterministic source-contract checks. It
+  must not grow into a Python-owned ontology runtime.
 - the current `analyzer.py`, `plugin.py`, and `scaffold.py` surfaces remain
   available for authoring compatibility, but new Python-local analyzer
   strategy work should move toward the planned `xiuxian-wendao-analyzer`

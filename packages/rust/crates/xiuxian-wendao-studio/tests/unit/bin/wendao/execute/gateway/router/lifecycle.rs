@@ -1,6 +1,8 @@
+#[cfg(feature = "julia")]
+use super::GATEWAY_FLIGHT_SERVICE_AXUM_PATH;
 use super::{
-    Body, CONTENT_TYPE, GATEWAY_FLIGHT_SERVICE_AXUM_PATH, Request, Router, ServiceExt, SocketAddr,
-    StatusCode, app_state, build_gateway_router, to_bytes,
+    Body, CONTENT_TYPE, Request, Router, ServiceExt, SocketAddr, StatusCode, app_state,
+    build_gateway_router, to_bytes,
 };
 
 #[tokio::test]

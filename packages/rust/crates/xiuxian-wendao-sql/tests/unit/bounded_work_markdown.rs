@@ -3,12 +3,12 @@ use std::path::Path;
 
 use tempfile::tempdir;
 
-use crate::DataFusionLocalRelationEngine;
 use crate::bounded_work_markdown::{
     BOUNDED_WORK_MARKDOWN_TABLE_NAME, bootstrap_bounded_work_markdown_query_engine,
     build_bounded_work_markdown_rows, query_bounded_work_markdown_payload,
     register_bounded_work_markdown_table,
 };
+use crate::{DuckDbLocalRelationEngine, LocalRelationEngine};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -66,19 +66,16 @@ async fn registers_bounded_work_markdown_rows_into_sql_surface() -> TestResult {
         "expected a normalized heading_path row for plan implement section"
     );
 
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory().map_err(std::io::Error::other)?;
     let registered_rows =
         register_bounded_work_markdown_table(&query_engine, root).map_err(std::io::Error::other)?;
     assert_eq!(registered_rows.len(), rows.len());
 
     let batches = query_engine
-        .session()
-        .sql(
+        .query_batches(
             "select path, surface, heading_path, title, level, skeleton \
              from markdown order by path, heading_path",
         )
-        .await?
-        .collect()
         .await?;
     let rendered = format!("{batches:?}");
     assert!(rendered.contains("blueprint/blueprint.md"));
@@ -87,13 +84,10 @@ async fn registers_bounded_work_markdown_rows_into_sql_surface() -> TestResult {
     assert!(rendered.contains("Plan/Implement"));
 
     let skeleton_batches = query_engine
-        .session()
-        .sql(
+        .query_batches(
             "select skeleton from markdown \
              where path = 'plan/tasks.md' and heading_path = 'Plan/Implement'",
         )
-        .await?
-        .collect()
         .await?;
     let skeleton_rendered = format!("{skeleton_batches:?}");
     assert!(skeleton_rendered.contains("## Implement"));
@@ -101,12 +95,9 @@ async fn registers_bounded_work_markdown_rows_into_sql_surface() -> TestResult {
     assert!(skeleton_rendered.contains("- [ ] Add test"));
 
     let table_batches = query_engine
-        .session()
-        .sql(&format!(
+        .query_batches(&format!(
             "select count(*) as row_count from {BOUNDED_WORK_MARKDOWN_TABLE_NAME}"
         ))
-        .await?
-        .collect()
         .await?;
     assert!(format!("{table_batches:?}").contains("row_count"));
     Ok(())
@@ -132,13 +123,10 @@ async fn bootstraps_bounded_work_markdown_query_engine() -> TestResult {
     );
 
     let batches = query_engine
-        .session()
-        .sql(
+        .query_batches(
             "select path, heading_path from markdown \
              where surface = 'plan' order by path, heading_path",
         )
-        .await?
-        .collect()
         .await?;
     let rendered = format!("{batches:?}");
     assert!(rendered.contains("plan/steps.md"));
@@ -272,9 +260,12 @@ async fn queries_bounded_work_markdown_payload() -> TestResult {
     assert_eq!(payload.metadata.local_temp_storage_peak_bytes, None);
     assert_eq!(
         payload.metadata.local_relation_engine.as_deref(),
-        Some("datafusion")
+        Some("duckdb")
     );
-    assert_eq!(payload.metadata.duckdb_registration_strategy, None);
+    assert_eq!(
+        payload.metadata.duckdb_registration_strategy.as_deref(),
+        Some("duckdb_materialized_arrow_staging")
+    );
     assert_eq!(payload.metadata.registered_input_batch_count, Some(1));
     assert!(
         payload

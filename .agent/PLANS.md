@@ -1,6 +1,9 @@
 # Execution Plan Policy
 
-This repository uses ExecPlans for work that is large, uncertain, or cross cutting.
+This repository uses ExecPlans for work that is large, uncertain, or cross
+cutting. Active agent task state, scheduling, deadlines, and implementation
+continuity are tracked in Org files under `$PRJ_CACHE_HOME/agent/org/`.
+This repository uses Org as the agent tracking surface.
 
 ## Blueprint Adherence (Mandatory)
 
@@ -11,8 +14,10 @@ A blueprint is the durable architectural contract for a workstream. The ExecPlan
 1.  **Reference the Blueprint**: Explicitly link to the relevant blueprint file.
 2.  **Strict Adherence**: The plan's architectural decisions, data models, and protocols must be derived directly from the blueprint.
 3.  **Audit Alignment**: The `Reflection and Quality Audit` section must explicitly state how the implementation complies with the blueprint's mandates.
-4.  **No-Blueprint Case**: If no blueprint applies, state that explicitly in the plan and record why the task is outside blueprint governance.
-5.  **Archive Discipline**: Keep active blueprints under `$PRJ_CACHE_HOME/agent/blueprints/` and move them to `$PRJ_CACHE_HOME/agent/blueprints/archives/` only when the governed workstream is complete. Keep active ExecPlans under `$PRJ_CACHE_HOME/agent/execplans/` and move them to `$PRJ_CACHE_HOME/agent/execplans/archives/` once the slice is DONE and validated.
+4.  **Org Alignment**: The plan must cite the active Org task record that owns
+    current lifecycle state and timing markers for the slice.
+5.  **No-Blueprint Case**: If no blueprint applies, state that explicitly in the plan and record why the task is outside blueprint governance.
+6.  **Archive Discipline**: Keep active blueprints under `$PRJ_CACHE_HOME/agent/blueprints/` and move them to `$PRJ_CACHE_HOME/agent/blueprints/archives/` only when the governed workstream is complete. Keep active ExecPlans under `$PRJ_CACHE_HOME/agent/execplans/` and move them to `$PRJ_CACHE_HOME/agent/execplans/archives/` once the slice is DONE and validated. Mark the Org task `DONE`, record `CLOSED`, and either keep it as a lane index or move it to `$PRJ_CACHE_HOME/agent/org/archives/YYYY.org`.
 
 Deviations from a blueprint are only allowed if explicitly requested by the Sovereign or if the blueprint itself is updated first.
 
@@ -32,6 +37,35 @@ Before any file reads, searches, or command execution (including tests), you mus
 2. ExecPlan
    Details: For multi step, cross crate or package, or risky work. Must be stored as a plan file and kept current.
 
+## Org Task Tracking
+
+Org is the authoritative active task-management surface for agents.
+
+1. Active task ledger: `$PRJ_CACHE_HOME/agent/org/agenda.org`.
+2. Lane-specific task files: `$PRJ_CACHE_HOME/agent/org/<slug>.org`, allowed
+   when the main agenda links or includes them.
+3. Template: `$PRJ_ROOT/.agent/org/_task_template.org`.
+
+Each active implementation heading should use native Org syntax:
+
+1. Lifecycle keyword: `TODO`, `NEXT`, `WAITING`, `DONE`, or `CANCELLED`.
+2. Planning timestamps: `SCHEDULED`, `DEADLINE`, and `CLOSED` when applicable.
+3. A `:PROPERTIES:` drawer with relevant fields such as `BLUEPRINT`,
+   `EXECPLAN`, `STABLE_REF`, `PACKAGE`, `SLICE`, `STATUS`, and `EVIDENCE`.
+4. Progress cookies such as `[1/3]` and `[33%]` on headings that contain
+   direct checklists, direct TODO/DONE child headings, or both.
+5. Native checkbox items such as `- [ ]` and `- [X]` for task-local work.
+6. `COOKIE_DATA: direct` in the property drawer when a heading mixes direct
+   TODO/DONE child headings and direct checkbox progress. This keeps the cookie
+   heading-local and does not count checklists inside child headings.
+7. No empty property values in templates; use explicit placeholders such as
+   `<execplan-path>` or `none`.
+8. Short log entries under the heading for implementation checkpoints,
+   validation runs, and handoff notes.
+
+Use `.agent/org/README.org` as the workflow reference for active recovery,
+completion, archive, and achievement queries.
+
 ## When an ExecPlan Is Required
 
 1. The task spans multiple crates, packages, or subsystems.
@@ -44,32 +78,36 @@ Small, isolated fixes do not require a full ExecPlan.
 ## Where Plans Live
 
 1. Policy file: `.agent/PLANS.md` (this file).
-2. Template file: `.agent/execplans/_template.md`.
-3. Active plans: `$PRJ_CACHE_HOME/agent/execplans/<slug>.md`.
-4. Archived DONE plans: `$PRJ_CACHE_HOME/agent/execplans/archives/<slug>.md`.
+2. Template file: `.agent/execplans/_template.org`.
+3. Active plans: `$PRJ_CACHE_HOME/agent/execplans/<slug>.org`.
+4. Archived DONE plans: `$PRJ_CACHE_HOME/agent/execplans/archives/<slug>.org`.
+5. Active Org task ledger: `$PRJ_CACHE_HOME/agent/org/agenda.org`.
+6. Org task template: `.agent/org/_task_template.org`.
 
 ## Required Plan Structure
 
-Each plan file should contain these sections:
+Each ExecPlan Org file should contain these headings:
 
-1. `# Title`
-2. `## Purpose / Big Picture`
-3. `## Scope and Boundaries`
-4. `## Plan Self Check`
-5. `## Context and Orientation`
-6. `## Plan of Work`
-7. `## Concrete Steps`
-8. `## Validation and Acceptance`
-9. `## Reflection and Quality Audit`
-10. `## Final Validation Gate`
-11. `## Idempotence and Recovery`
-12. `## Interfaces and Dependencies`
-13. `## Progress`
-14. `## Decision Log`
-15. `## Surprises & Discoveries`
-16. `## Artifacts and Notes`
-17. `## Outcomes & Retrospective`
-18. `## Change Log`
+1. `#+TITLE: ExecPlan Title`
+2. `* TODO ExecPlan Title [0/N] [0%]` with `COOKIE_DATA: direct`
+3. `** Purpose / Big Picture`
+4. `** Scope and Boundaries`
+5. `** Plan Self Check`
+6. `** Context and Orientation`
+7. `** Plan of Work`
+8. `** Concrete Steps`
+9. `** Validation and Acceptance`
+10. `** Reflection and Quality Audit`
+11. `** Final Validation Gate`
+12. `** Idempotence and Recovery`
+13. `** Interfaces and Dependencies`
+14. `** Progress`
+15. `** Decision Log`
+16. `** Surprises & Discoveries`
+17. `** Artifacts and Notes`
+18. `** Outcomes & Retrospective`
+19. `** Change Log`
+20. `** Recovery Commands`
 
 ## Scope and Boundaries (Required Detail)
 
@@ -86,24 +124,83 @@ Any activity outside this scope requires a plan update and reacknowledgement.
 
 This section must include:
 
-1. Scope matches the request and risk level.
-2. Files or dirs to read are complete and minimal.
-3. Commands or tools to run are complete and safe.
-4. Expected outputs are concrete and testable.
-5. Stop conditions are clear.
-6. Dependencies and constraints are recorded.
-7. Validation plan is adequate for risk.
-8. Plan type is correct.
+1. A progress cookie on the heading, for example `[0/8] [0%]`.
+2. Native Org checkbox items for each self-check item.
+3. `COOKIE_DATA: direct` when the heading also has direct TODO/DONE children.
+4. Scope matches the request and risk level.
+5. Files or dirs to read are complete and minimal.
+6. Commands or tools to run are complete and safe.
+7. Expected outputs are concrete and testable.
+8. Stop conditions are clear.
+9. Dependencies and constraints are recorded.
+10. Validation plan is adequate for risk.
+11. Plan type is correct.
 
 Work must not proceed until this self check is complete.
 
 ## Authoring Rules
 
 1. Keep the plan self contained so a new contributor can execute it without prior context.
-2. Update `## Progress`, `## Decision Log`, and `## Change Log` as work advances.
+2. Update `** Progress`, `** Decision Log`, `** Change Log`, and the paired
+   Org task heading as work advances.
 3. Prefer concrete checkpoints over vague statements.
-4. Include exact verification commands in `## Validation and Acceptance`.
-5. Record rollback or retry behavior in `## Idempotence and Recovery`.
+4. Include exact verification commands in `** Validation and Acceptance`.
+5. Record rollback or retry behavior in `** Idempotence and Recovery`.
+
+## Orgize Validation
+
+Agent tracking files are native Org documents. When changing files under
+`$PRJ_CACHE_HOME/agent/org/`, `$PRJ_CACHE_HOME/agent/blueprints/`, or
+`$PRJ_CACHE_HOME/agent/execplans/`, prefer the orgize-backed project entrypoint
+for lint and query checks before marking tracking work complete. Install or
+refresh the client with `direnv exec . just install-wendao-client`, then run:
+`wendao-client orgize lint --format compact <path>`.
+
+Use native Org agenda semantics for schedule/task lookup:
+`wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
+
+Use native Org sparse-tree semantics for task-local search:
+`wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.
+
+Use the DuckDB-backed Org task list for active recovery:
+`wendao-client orgize task-list [--text TEXT] [--tag TAG] <path>`.
+
+Use the DuckDB-backed Org task report for archive and achievement summaries:
+`wendao-client orgize task-report [--text TEXT] [--tag TAG] <path>`.
+
+Use the DuckDB-backed Org task archive command for plan-first physical
+archival. Omit `--apply` for read-only planning:
+`wendao-client orgize task-archive [--apply] [--text TEXT] [--tag TAG] <path>`.
+
+## Resume and Archive Commands
+
+Recover active tasks:
+
+`wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org`.
+
+Recover scheduled tasks:
+
+`wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org`.
+
+Recover one lane or package:
+
+`wendao-client orgize task-list --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
+
+Review completed achievements:
+
+`wendao-client orgize task-list --tag achievement --include-done $PRJ_CACHE_HOME/agent/org`.
+
+Review archive candidates and repeating task counts:
+
+`wendao-client orgize task-report $PRJ_CACHE_HOME/agent/org`.
+
+Plan physical archival:
+
+`wendao-client orgize task-archive $PRJ_CACHE_HOME/agent/org`.
+
+Use sparse-tree when full source context is needed:
+
+`wendao-client orgize sparse-tree --match '+agent+achievement' $PRJ_CACHE_HOME/agent/org`.
 
 ## Reflection and Quality Audit (Required)
 
@@ -117,12 +214,15 @@ This section must include:
 
 This section must be the last checkpoint before marking work DONE.
 
-1. Confirm `## Validation and Acceptance` is complete.
-2. Confirm `## Reflection and Quality Audit` is recorded.
+1. Confirm `** Validation and Acceptance` is complete.
+2. Confirm `** Reflection and Quality Audit` is recorded.
 3. State a final go or no go decision with rationale.
 
 ## Quick Start
 
-1. Copy `.agent/execplans/_template.md` to `$PRJ_CACHE_HOME/codex/execplans/<slug>.md`.
-2. Fill `Purpose`, `Scope and Boundaries`, `Context`, and `Plan of Work` before coding.
-3. Keep the plan current until the initiative is complete.
+1. Copy `.agent/execplans/_template.org` to `$PRJ_CACHE_HOME/agent/execplans/<slug>.org`.
+2. Create or update the paired Org heading in `$PRJ_CACHE_HOME/agent/org/agenda.org` using `.agent/org/_task_template.org`.
+3. Fill `Purpose`, `Scope and Boundaries`, `Context`, and `Plan of Work` before coding.
+4. Record `NEXT_ACTION` and `RESUME_QUERY` before leaving a turn.
+5. Keep the ExecPlan and Org task heading current until the initiative is complete.
+6. At completion, mark the task `DONE`, add `CLOSED`, record evidence, and archive the ExecPlan.

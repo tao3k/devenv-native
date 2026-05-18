@@ -32,8 +32,8 @@ pub(crate) use docs::{
 pub(crate) use episteme::{
     EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
     EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeRunImageOcrCacheArgs, EpistemeSourceContractCommand,
-    EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
+    EpistemeReadEvidenceArgs, EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
+    EpistemeSourceContractCommand, EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
     EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs,
 };
 pub(crate) use fix::FixArgs;

@@ -77,7 +77,9 @@ The current beta exports:
 29. `DoclingPdfOcrShardWorker` for opt-in page-shard OCR
 30. `/analysis/audio-shards` as the internal Flight/Arrow route for Rust-owned
     audio shard processing
-31. summary helpers over the same rows, table, query, and repo-search runs
+31. `wendao-image-ocr-jsonl` and `wendao-docling-document-jsonl` as
+    queue-keyed source-contract evidence adapters
+32. summary helpers over the same rows, table, query, and repo-search runs
 
 Docling is optional through the `documents` extra. That extra includes
 Docling's XBRL support so the documented XML/XBRL coverage is real, not only a
@@ -403,10 +405,24 @@ For source-contract image evidence tasks that are not PDF page shards, the
 package also exposes `wendao-image-ocr-jsonl`. It reads a Rust-written
 `tasks.tsv`, sends only `image_ocr_evidence` rows to the configured
 OpenAI-compatible Hosted VLM/OCR endpoint, and writes queue-keyed OCR JSONL
-rows for downstream cache bridges. This is an analyzer-side adapter, not a
-public Gateway route and not an ontology promotion path. Downstream private
-episteme runners must still enforce review-required and no-RDF-promotion
-semantics before accepting the text as cache evidence.
+rows for downstream cache bridges. Task paths are resolved relative to the
+configured corpus root and path escapes are rejected before any source read or
+network request. This is an analyzer-side adapter, not a public Gateway route
+and not an ontology promotion path. Downstream private episteme runners must
+still enforce review-required and no-RDF-promotion semantics before accepting
+the text as cache evidence.
+
+For source-contract document evidence tasks, the package exposes
+`wendao-docling-document-jsonl`. It reads the same Rust-written `tasks.tsv`,
+selects only `document_text_evidence` rows with Docling-supported modern
+document extensions in this slice (`pdf`, `docx`, `pptx`, and `xlsx`), runs the
+configured Docling profile, and writes queue-keyed Markdown JSONL rows for
+downstream private cache bridges. Legacy binary Office inputs such as `.doc`,
+`.ppt`, and `.xls` are intentionally skipped by this adapter until a separate
+conversion contract produces a supported source. Task paths are confined to
+the configured corpus root before Docling is invoked. The adapter is not a
+public Gateway route, does not mutate ontology state, and does not make
+extracted text eligible for RDF promotion by itself.
 
 Docling shard OCR is bounded and adaptive. The service accepts
 `--pdf-ocr-workers auto|N` as a direct local default, but the Rust provider may
@@ -492,6 +508,7 @@ returned rows or table into `analyze_rows(...)` or `analyze_table(...)`.
 | PDF attachment search then analyze the returned table | `attachment_search_request(...)` + `WendaoArrowSession.attachment_search(...)` + `run_table_analysis(...)` | downstream user code                       | scripted by default, endpoint optional | local covered     |
 | Wendao document extraction service                    | `wendao-document-extract` + `/analysis/document-extract`                                                   | analyzer package service adapter           | Arrow Flight                           | local covered     |
 | Local multi-format document parsing into Arrow rows   | `extract_document_table(...)` or `extract_document_resources(...)` with the optional `documents` extra     | Docling-backed document extraction helpers | none                                   | local covered     |
+| Source-contract Docling document evidence sidecar     | `wendao-docling-document-jsonl` over a Rust-written `tasks.tsv`                                            | Docling-backed JSONL adapter               | Rust cache bridge consumes JSONL       | local covered     |
 
 | Repo search with built-in ranking | `run_repo_analysis(...)` + `summarize_repo_analysis(...)` | built-in `score_rank` | real `wendao_search_flight_server` | real-host covered |
 | Repo search with a custom Python analyzer | `run_repo_analysis(...)` + `summarize_repo_analysis(...)` + `analyzer=<your analyzer object>` | downstream user code | real `wendao_search_flight_server` | real-host covered |

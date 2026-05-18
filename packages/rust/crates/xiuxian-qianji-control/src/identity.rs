@@ -70,6 +70,23 @@ macro_rules! control_id {
 
 control_id!(RunId, "run_id");
 control_id!(StepId, "step_id");
+control_id!(ActivityId, "activity_id");
+control_id!(ActivityType, "activity_type");
+control_id!(TaskQueue, "task_queue");
+control_id!(IdempotencyKey, "idempotency_key");
+control_id!(ErrorCode, "error_code");
+control_id!(LlmModelId, "llm_model_id");
+control_id!(ApprovalRequestId, "approval_request_id");
+control_id!(ApproverId, "approver_id");
+control_id!(AgentProposalId, "agent_proposal_id");
+control_id!(AgentDecisionId, "agent_decision_id");
+control_id!(DecisionReasonCode, "decision_reason_code");
+control_id!(TokenId, "token_id");
+control_id!(ToolName, "tool_name");
+control_id!(PermissionScope, "permission_scope");
+control_id!(SignalName, "signal_name");
+control_id!(TimerId, "timer_id");
+control_id!(VersionKey, "version_key");
 control_id!(WorkerId, "worker_id");
 control_id!(LeaseId, "lease_id");
 control_id!(EvidenceId, "evidence_id");

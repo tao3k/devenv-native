@@ -1,8 +1,9 @@
 //! Append-only control event model.
 
 use crate::{
-    ArtifactRef, Budget, CostObservation, EvidenceRef, GateResult, RecoveryPolicy, RunId, StepId,
-    StepLease, WaitReason, WorkerHeartbeat,
+    ActivityFailure, ActivityId, ActivityResult, ActivityTask, AgentDecision, AgentProposal,
+    ArtifactRef, Budget, CostObservation, EvidenceRef, GateResult, RecoveryPolicy, RunId,
+    SignalRecord, StepId, StepLease, TimerId, TimerRecord, VersionPin, WaitReason, WorkerHeartbeat,
 };
 
 /// Stored control event with a ledger-assigned sequence.
@@ -121,6 +122,65 @@ pub enum ControlEventKind {
         /// Extension metadata.
         #[serde(default)]
         metadata: serde_json::Value,
+    },
+    /// An Agent proposal was recorded.
+    AgentProposalRecorded {
+        /// Agent proposal payload.
+        proposal: AgentProposal,
+    },
+    /// A deterministic Agent decision was recorded.
+    AgentDecisionRecorded {
+        /// Agent decision payload.
+        decision: AgentDecision,
+    },
+    /// An external side-effect activity was scheduled.
+    ActivityScheduled {
+        /// Scheduled activity task.
+        task: ActivityTask,
+    },
+    /// An activity worker started an attempt.
+    ActivityStarted {
+        /// Activity id.
+        activity_id: ActivityId,
+        /// Worker that started the attempt, when known.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        worker_id: Option<crate::WorkerId>,
+        /// Attempt number, starting at one.
+        attempt: u32,
+    },
+    /// An activity completed successfully.
+    ActivityCompleted {
+        /// Activity id.
+        activity_id: ActivityId,
+        /// Completion result.
+        result: ActivityResult,
+    },
+    /// An activity failed.
+    ActivityFailed {
+        /// Activity id.
+        activity_id: ActivityId,
+        /// Failure payload.
+        failure: ActivityFailure,
+    },
+    /// An external signal was received.
+    SignalReceived {
+        /// Signal payload and metadata.
+        signal: SignalRecord,
+    },
+    /// A durable timer was scheduled.
+    TimerScheduled {
+        /// Scheduled timer.
+        timer: TimerRecord,
+    },
+    /// A durable timer fired.
+    TimerFired {
+        /// Timer id.
+        timer_id: TimerId,
+    },
+    /// A deterministic version or schema fact was pinned.
+    VersionPinned {
+        /// Version pin.
+        pin: VersionPin,
     },
     /// An artifact was attached.
     ArtifactAttached {

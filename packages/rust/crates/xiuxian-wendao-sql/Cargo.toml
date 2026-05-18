@@ -11,9 +11,10 @@ publish = false
 arrow = { workspace = true }
 async-trait = { workspace = true }
 blake3 = { workspace = true }
-datafusion = { workspace = true }
+duckdb = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sqlparser = { workspace = true }
 tokio = { workspace = true }
 walkdir = { workspace = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }

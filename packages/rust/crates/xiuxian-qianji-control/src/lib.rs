@@ -18,6 +18,11 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
     }
 );
 
+mod activity_journal;
+mod admission;
+mod agent;
+mod agent_journal;
+mod approval;
 #[cfg(feature = "duckdb")]
 mod duckdb_ledger;
 mod error;
@@ -26,25 +31,69 @@ mod gate;
 mod identity;
 mod memory;
 mod model;
+mod policy;
+mod recovery;
+mod recovery_plan;
+mod recovery_snapshot;
+mod tool;
 mod traits;
 #[cfg(feature = "valkey")]
 mod valkey_hot_state;
 mod view;
 
+pub use activity_journal::{
+    ActivityCompletedJournalRecord, ActivityFailedJournalRecord, ActivityJournalScope,
+    ActivityJournalWriteOutcome, ActivityJournalWriteStatus, ActivityStartedJournalRecord,
+    record_activity_completed, record_activity_completed_idempotent, record_activity_failed,
+    record_activity_failed_idempotent, record_activity_started, record_activity_started_idempotent,
+};
+pub use activity_journal::{
+    AdmittedActivityScheduleRecord, record_admitted_activity_schedule,
+    record_admitted_activity_schedule_idempotent,
+};
+pub use admission::ToolActivityAdmission;
+pub use agent::{AgentDecision, AgentDecisionOutcome, AgentProposal};
+pub use agent_journal::{
+    AgentDecisionJournalRecord, AgentJournalScope, AgentProposalJournalRecord,
+    record_agent_decision, record_agent_proposal,
+};
+pub use approval::{
+    HumanApprovalDecision, HumanApprovalDecisionStatus, HumanApprovalRequest,
+    HumanApprovalResolution,
+};
 #[cfg(feature = "duckdb")]
 pub use duckdb_ledger::DuckDbControlLedger;
 pub use error::{ControlError, ControlResult};
 pub use event::{ControlEvent, ControlEventKind, ControlEventRecord, RecoveryAttempt};
 pub use gate::RequiredEvidenceGate;
 pub use identity::{
-    ArtifactId, ArtifactKind, EvidenceId, GateName, LeaseId, RunId, StepId, WorkerId,
+    ActivityId, ActivityType, AgentDecisionId, AgentProposalId, ApprovalRequestId, ApproverId,
+    ArtifactId, ArtifactKind, DecisionReasonCode, ErrorCode, EvidenceId, GateName, IdempotencyKey,
+    LeaseId, LlmModelId, PermissionScope, RunId, SignalName, StepId, TaskQueue, TimerId, TokenId,
+    ToolName, VersionKey, WorkerId,
 };
 pub use memory::{InMemoryControlLedger, InMemoryHotStateStore};
 pub use model::{
-    ArtifactRef, Budget, CostObservation, EvidenceRef, GateResult, RecoveryPolicy, RunStatus,
-    RunnableStep, StepLease, StepStatus, WaitReason, WorkerHeartbeat, WorkerRef,
+    ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,
+    ActivityRetryStopReason, ActivityTask, ArtifactRef, Budget, CostObservation, EvidenceRef,
+    GateResult, LlmActivityRequest, LlmActivityTask, RecoveryPolicy, RunStatus, RunnableStep,
+    SignalRecord, StepLease, StepStatus, TimerRecord, VersionPin, WaitReason, WorkerHeartbeat,
+    WorkerRef,
+};
+pub use policy::{AgentPolicyReason, ToolPolicyReduction, ToolPolicyReductionRequest};
+pub use recovery::{
+    ActivityRecoveryItem, AgentDecisionRecoveryItem, FailedActivityRecoveryItem, LeaseRecoveryItem,
+    RecoveryItemScope, RunRecoveryView, StepRecoveryItem, TimerRecoveryItem,
+};
+pub use recovery_plan::{RecoveryPlanAction, RunRecoveryPlan, RunRecoveryPlanSummary};
+pub use recovery_snapshot::RunRecoverySnapshot;
+pub use tool::{
+    ToolActivityContract, ToolAuthorizationDecision, ToolPermissionDecision, ToolPermissionMode,
+    ToolRiskLevel,
 };
 pub use traits::{ControlLedger, EvidenceGate, HotStateStore};
 #[cfg(feature = "valkey")]
 pub use valkey_hot_state::{ValkeyHotStateConfig, ValkeyHotStateStore, ValkeyKeyNamespace};
-pub use view::{RunView, StepView, replay_run_view};
+pub use view::{
+    ActivityStatus, ActivityView, RunView, StepView, TimerStatus, TimerView, replay_run_view,
+};

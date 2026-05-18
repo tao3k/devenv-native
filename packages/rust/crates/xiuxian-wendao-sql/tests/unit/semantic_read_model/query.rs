@@ -34,7 +34,7 @@ async fn semantic_read_model_query_exposes_registered_tables() -> TestResult {
     assert_eq!(payload.metadata.registered_table_count, 3);
     assert_eq!(
         payload.metadata.local_relation_engine.as_deref(),
-        Some("datafusion")
+        Some("duckdb")
     );
     assert!(
         payload

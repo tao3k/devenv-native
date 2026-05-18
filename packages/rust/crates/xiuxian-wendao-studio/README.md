@@ -194,8 +194,11 @@ wendao episteme source-contract plan-extraction-run \
   --limit 12
 ```
 
-This command delegates to the Rust-owned episteme source-contract service in
-[`xiuxian-wendao`](../xiuxian-wendao/README.md), which consumes
+This command delegates to Rust-owned Episteme source-contract services. New
+implementation surfaces belong in
+[`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md), while
+existing migration surfaces may still be reached through
+[`xiuxian-wendao`](../xiuxian-wendao/README.md). The implementation consumes
 [`xiuxian-wendao-parsers`](../xiuxian-wendao-parsers/docs/episteme-source-contracts.md)
 DTOs. It writes ignored `tasks.tsv`, `receipt.json`, and `outputs/` run-plan
 artifacts only. It does not execute OCR, ASR, LLM extraction, or RDF promotion,
@@ -225,15 +228,17 @@ wendao episteme source-contract run-image-ocr-cache \
 ```
 
 This command first writes an `image_ocr_evidence` run plan, then invokes the
-configured analyzer command, defaulting to `wendao-image-ocr-jsonl`, and finally
-invokes the private episteme cache bridge script, defaulting to
-`<episteme-root>/tools/run_extraction_plan.py`. `--dry-run` prints the resolved
-commands without calling the analyzer or cache bridge. The wrapper is an
-execution convenience only: Rust owns source-contract selection, cache
-identity, and report emission; Python remains the OCR adapter boundary; OCR
-text is written only to the private ignored evidence cache as
-review-required, promotion-blocked material. The command does not add a public
-Gateway/OpenAPI route and does not promote raw OCR output into RDF truth.
+configured analyzer command, defaulting to `wendao-image-ocr-jsonl`. Cache
+materialization is delegated to
+[`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md), which
+validates the queue-keyed JSONL and writes ignored evidence cache outputs.
+`--dry-run` prints the resolved analyzer command without calling external OCR
+or writing cache outputs. The wrapper is an execution convenience only: Studio
+owns CLI orchestration; the Episteme crate owns source-contract cache identity,
+cache writes, and report emission; Python remains the OCR adapter boundary.
+OCR text is written only to the ignored evidence cache as review-required,
+promotion-blocked material. The command does not add a public Gateway/OpenAPI
+route and does not promote raw OCR output into RDF truth.
 
 The selected source manifest and mapping ledger come from
 `<episteme-root>/ontology/manifest.toml`. Runtime defaults may come from

@@ -10,6 +10,8 @@ use std::fs;
 
 use xiuxian_git_repo::{MaterializedRepo, RepoSourceKind, SyncMode, discover_checkout_metadata};
 
+#[cfg(feature = "search-runtime")]
+use crate::analyzers::PluginAnalysisOutput;
 use crate::analyzers::PluginRegistry;
 use crate::analyzers::RegisteredRepository;
 use crate::analyzers::RepoIntelligenceError;
@@ -23,8 +25,7 @@ use crate::analyzers::cache::{
 use crate::analyzers::resolve_registered_repository_source;
 use crate::analyzers::skeptic;
 use crate::analyzers::{
-    AnalysisContext, PluginAnalysisOutput, PluginLinkContext, RepoIntelligencePlugin,
-    RepositoryAnalysisOutput,
+    AnalysisContext, PluginLinkContext, RepoIntelligencePlugin, RepositoryAnalysisOutput,
 };
 #[cfg(feature = "search-runtime")]
 use crate::analyzers::{RelationKind, RelationRecord};
@@ -236,7 +237,8 @@ fn prepare_bundle_analysis_context(
 }
 
 fn cached_repository_analysis(
-    cache_key: RepositoryAnalysisCacheKey,
+    #[cfg(feature = "search-runtime")] cache_key: RepositoryAnalysisCacheKey,
+    #[cfg(not(feature = "search-runtime"))] _cache_key: RepositoryAnalysisCacheKey,
     analysis: RepositoryAnalysisOutput,
 ) -> CachedRepositoryAnalysis {
     CachedRepositoryAnalysis {

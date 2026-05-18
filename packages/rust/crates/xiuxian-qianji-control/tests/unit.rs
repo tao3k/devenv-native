@@ -1,6 +1,6 @@
 //! Unit test aggregate for `xiuxian-qianji-control`.
 
-#[path = "unit/control.rs"]
+#[path = "unit/control/mod.rs"]
 mod control;
 
 #[cfg(feature = "duckdb")]

@@ -17,7 +17,7 @@ mod payload;
 pub mod semantic_read_model;
 
 pub use local_relation::{
-    DataFusionLocalRelationEngine, LocalRelationEngine, LocalRelationEngineKind,
+    DuckDbLocalRelationEngine, LocalRelationEngine, LocalRelationEngineKind,
     LocalRelationMaterializationState, LocalRelationRegistrationHint,
 };
 pub use xiuxian_wendao_core::{

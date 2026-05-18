@@ -1,9 +1,9 @@
-//! Local relation engine abstraction and `DataFusion` implementation.
+//! Local relation engine abstraction and implementations.
 
-mod datafusion;
+mod duckdb;
 mod types;
 
-pub use datafusion::DataFusionLocalRelationEngine;
+pub use duckdb::DuckDbLocalRelationEngine;
 pub use types::{
     LocalRelationEngine, LocalRelationEngineKind, LocalRelationMaterializationState,
     LocalRelationRegistrationHint,

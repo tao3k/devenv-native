@@ -71,7 +71,43 @@ plane through the workflow-kernel control adapter. The adapter maps
 evidence, cost, lease, and recovery management. This is a one-way boundary:
 Qianji still owns workflow/BPMN/Flowhub semantics, while
 [`xiuxian-qianji-control`](../xiuxian-qianji-control/README.md) owns generic
-run and step control state.
+run and step control state. Explicit recording returns the normal workflow
+report, the appended control records, and the ledger-replayed run view so
+callers can inspect recoverable management state without making recording the
+default finish path. Topology-bound callers can use checked control recording
+to validate required stages and dependency order before any control events are
+appended. Callers that must retain typed workflow output after a control ledger
+failure can use the recoverable recording path, which returns the completed
+workflow report with the control error for retry or manual recovery. The
+checked recoverable path combines both protections for topology-bound runs:
+validate structure first, then preserve the report if only control persistence
+fails. Recoverable control failures are directly retryable from the retained
+report, so retrying persistence does not require rerunning workflow stages.
+Retry callers can also opt into reusing an already-recorded control run, which
+returns the existing replay view with zero appended events instead of writing a
+duplicate event sequence. Workflow recovery controllers can append
+run-scoped or step-scoped recovery attempts into the same control ledger,
+making retry state visible in replayed run views without changing trace
+recording defaults. Controllers can also attach step-scoped evidence
+references after recording, allowing deterministic gates and audits to inspect
+the exact artifacts or routes that justified a workflow step. Run-scoped and
+step-scoped cost observations can be recorded through the same adapter, keeping
+cost monitoring auditable without adding provider-specific cost policy to the
+workflow kernel. Step-scoped gate results can also be recorded after evidence
+or policy evaluation, keeping promotion and recovery decisions replayable
+without making the workflow kernel execute the gate itself. For callers that
+need to persist a complete stage decision, the managed decision helper records
+evidence, gate results, and cost observations in a stable order and returns the
+replayed control view for inspection. The managed recovery decision helper
+extends that order with a final recovery attempt and requires a failed gate
+result, keeping lifecycle mutation explicit and gate-driven.
+Internally, the adapter is split into recording, projection, and decision
+modules so the public control surface can grow without flattening unrelated
+responsibilities.
+Workflow callers can also opt into required-evidence projection when recording
+a trace. The default projection keeps `StepCreated.required_evidence` empty,
+while the opt-in contract lets a caller attach deterministic stage evidence
+keys before later evidence attachment or gate evaluation.
 
 ### 2.2 The Divine Logic (Scheduling)
 
@@ -152,6 +188,11 @@ gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
 that the effective Valkey checkpoint backend responds to `PING`. Local
 no-server CLI/control workflow state uses the configured DuckDB path by
 default; HTTP remains Valkey-only.
+The generic Qianji control ledger has its own read-only operator surface:
+`qianji control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms>
+[--json]`. It reads the `xiuxian-qianji-control` DuckDB event ledger and
+returns the replay-derived recovery view, ordered recovery plan, and compact
+summary without executing recovery actions or touching hot scheduler state.
 
 ```toml
 name = "artifact_refining_pipeline"

@@ -9,6 +9,7 @@ pub enum LintCommand {
     /// Lint Markdown files for syntax-oriented failures.
     Markdown(MarkdownLintArgs),
     /// Lint repo-native semantic SSOT artifacts.
+    #[cfg(feature = "semantic-sql")]
     Semantic(SemanticLintArgs),
 }
 
@@ -27,6 +28,7 @@ pub struct MarkdownLintArgs {
 }
 
 /// CLI arguments for repo-native semantic SSOT linting.
+#[cfg(feature = "semantic-sql")]
 #[derive(Args, Debug)]
 pub struct SemanticLintArgs {
     /// Validation-only semantic lint options.
@@ -44,6 +46,7 @@ pub struct SemanticLintArgs {
 }
 
 /// Validation-only semantic lint options.
+#[cfg(feature = "semantic-sql")]
 #[derive(Args, Debug)]
 pub struct SemanticLintValidationArgs {
     /// Render advisory semantic read-model row and table counts.
@@ -64,6 +67,7 @@ pub struct SemanticLintValidationArgs {
 }
 
 /// Validation-only semantic projection options.
+#[cfg(feature = "semantic-sql")]
 #[derive(Args, Debug)]
 pub struct SemanticLintProjectionValidationArgs {
     /// Render a read-only projection metadata refresh plan.
@@ -76,6 +80,7 @@ pub struct SemanticLintProjectionValidationArgs {
 }
 
 /// Explicit semantic metadata or lifecycle writeback options.
+#[cfg(feature = "semantic-sql")]
 #[derive(Args, Debug)]
 pub struct SemanticLintWritebackArgs {
     /// Refresh semantic projection source revisions before reporting lint results.

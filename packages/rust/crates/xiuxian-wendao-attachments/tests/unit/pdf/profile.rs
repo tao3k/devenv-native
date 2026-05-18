@@ -1,9 +1,11 @@
 use std::path::Path;
 
 use super::{
-    PdfSourcePageProfile, classify_pdf_source_page, pdf_source_page_is_backend_text_topup_profile,
+    PdfSourcePageProfile, SOURCE_PROFILE_CACHE_SCHEMA, SourcePdfPageProfileDiskCache,
+    classify_pdf_source_page, pdf_source_page_is_backend_text_topup_profile,
     pdf_source_page_is_fast_profile_risk, pdf_source_page_is_text_table_candidate,
     pdf_source_page_requires_structure_authority, pdf_source_page_structure_cost,
+    source_pdf_page_profile_cache_key, source_pdf_page_profile_disk_cache_key,
     source_pdf_page_profiles, source_pdf_page_profiles_cached,
 };
 
@@ -124,6 +126,55 @@ fn structure_cost_prioritizes_structural_pages_over_dense_text() {
         pdf_source_page_structure_cost(&structure_risk)
             > pdf_source_page_structure_cost(&dense_text)
     );
+}
+
+#[test]
+fn source_pdf_page_profile_disk_cache_key_changes_with_file_state() -> Result<(), String> {
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let pdf_path = temp_dir.path().join("source.pdf");
+    std::fs::write(pdf_path.as_path(), b"%PDF-1.7\nfirst").map_err(|error| error.to_string())?;
+    let first_key = source_pdf_page_profile_cache_key(pdf_path.as_path())
+        .ok_or_else(|| "expected profile cache key for temp PDF".to_string())?;
+    let first_disk_key = source_pdf_page_profile_disk_cache_key(&first_key);
+
+    std::fs::write(pdf_path.as_path(), b"%PDF-1.7\nfirst\nsecond")
+        .map_err(|error| error.to_string())?;
+    let second_key = source_pdf_page_profile_cache_key(pdf_path.as_path())
+        .ok_or_else(|| "expected updated profile cache key for temp PDF".to_string())?;
+    let second_disk_key = source_pdf_page_profile_disk_cache_key(&second_key);
+
+    assert_eq!(first_disk_key.len(), 64);
+    assert_ne!(first_disk_key, second_disk_key);
+    Ok(())
+}
+
+#[test]
+fn source_pdf_page_profile_disk_cache_payload_matches_only_exact_file_state() -> Result<(), String>
+{
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let pdf_path = temp_dir.path().join("source.pdf");
+    std::fs::write(pdf_path.as_path(), b"%PDF-1.7\nstable").map_err(|error| error.to_string())?;
+    let key = source_pdf_page_profile_cache_key(pdf_path.as_path())
+        .ok_or_else(|| "expected profile cache key for temp PDF".to_string())?;
+    let profiles = vec![sample_profile(0, 16, 0, 0, 0, 32)];
+
+    let cache = SourcePdfPageProfileDiskCache::new(&key, profiles.as_slice());
+    let bytes = serde_json::to_vec(&cache).map_err(|error| error.to_string())?;
+    let decoded: SourcePdfPageProfileDiskCache =
+        serde_json::from_slice(bytes.as_slice()).map_err(|error| error.to_string())?;
+
+    assert_eq!(decoded.schema, SOURCE_PROFILE_CACHE_SCHEMA);
+    assert!(decoded.matches(&key));
+    assert_eq!(decoded.profiles, profiles);
+
+    let mut wrong_schema = decoded;
+    wrong_schema.schema = "xiuxian_wendao.pdf_source_page_profiles.v0".to_string();
+    assert!(!wrong_schema.matches(&key));
+
+    let mut wrong_len = SourcePdfPageProfileDiskCache::new(&key, profiles.as_slice());
+    wrong_len.len = wrong_len.len.saturating_add(1);
+    assert!(!wrong_len.matches(&key));
+    Ok(())
 }
 
 fn sample_profile(

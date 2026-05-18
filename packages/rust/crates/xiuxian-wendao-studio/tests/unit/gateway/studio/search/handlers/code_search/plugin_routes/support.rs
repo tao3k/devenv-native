@@ -1,15 +1,19 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(feature = "julia")]
 use std::sync::Arc;
 
 use crate::studio::test_support::{commit_all, init_git_repository};
+#[cfg(feature = "julia")]
 use xiuxian_wendao::analyzers::RepositoryAnalysisOutput;
+#[cfg(feature = "julia")]
 use xiuxian_wendao::repo_index::{
     RepoCodeDocument, RepoIndexEntryStatus, RepoIndexPhase, RepoIndexSnapshot,
 };
 
 use super::build_code_search_response;
 
+#[cfg(feature = "julia")]
 pub(super) async fn publish_repository_snapshot(
     studio: &crate::studio::StudioState,
     repo_id: &str,
@@ -44,6 +48,7 @@ pub(super) async fn publish_repository_snapshot(
     });
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn repo_code_document(
     repo_root: &Path,
     file_path: impl AsRef<Path>,
@@ -64,6 +69,7 @@ pub(super) fn repo_code_document(
     })
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn create_sample_julia_repo(
     base: &Path,
     package_name: &str,
@@ -98,6 +104,7 @@ end
     Ok(repo_dir)
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn create_sample_modelica_repo(
     base: &Path,
     package_name: &str,

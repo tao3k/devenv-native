@@ -6670,7 +6670,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=3416ca6d4859a878fdf809796324f8b624f40741#3416ca6d4859a878fdf809796324f8b624f40741"
+source = "git+https://github.com/tao3k/orgize?rev=19ee5369c50a5c4fe1c01bda0bee621869a428df#19ee5369c50a5c4fe1c01bda0bee621869a428df"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -11483,6 +11483,7 @@ dependencies = [
  "xiuxian-wendao-builtin",
  "xiuxian-wendao-client",
  "xiuxian-wendao-core",
+ "xiuxian-wendao-episteme",
  "xiuxian-wendao-julia",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
@@ -11546,6 +11547,7 @@ dependencies = [
  "toml 0.8.23",
  "walkdir",
  "xiuxian-config-core",
+ "xiuxian-db-store",
  "xiuxian-logging",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-sql",
@@ -11565,6 +11567,21 @@ dependencies = [
  "thiserror 2.0.18",
  "toml 0.8.23",
  "xiuxian-types",
+]
+
+[[package]]
+name = "xiuxian-wendao-episteme"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "rust-lang-project-harness",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.18",
+ "toml 0.8.23",
+ "xiuxian-wendao-parsers",
 ]
 
 [[package]]
@@ -11677,10 +11694,11 @@ dependencies = [
  "arrow",
  "async-trait",
  "blake3",
- "datafusion",
+ "duckdb",
  "rust-lang-project-harness",
  "serde",
  "serde_json",
+ "sqlparser",
  "tempfile",
  "tokio",
  "walkdir",
@@ -11744,6 +11762,7 @@ dependencies = [
  "xiuxian-wendao-builtin",
  "xiuxian-wendao-client",
  "xiuxian-wendao-core",
+ "xiuxian-wendao-episteme",
  "xiuxian-wendao-julia",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",

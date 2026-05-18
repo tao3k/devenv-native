@@ -42,7 +42,7 @@ required_validations:
   - direnv exec . cargo test -p xiuxian-wendao-sql semantic_read_model_catalog -- --nocapture
   - direnv exec . cargo test -p xiuxian-wendao-sql semantic_read_model_snapshot -- --nocapture
   - direnv exec . cargo test -p xiuxian-qianji scheduler_preflight -- --nocapture
-  - CARGO_TARGET_DIR=.cache/cargo-target/semantic-ssot direnv exec . cargo run -p xiuxian-wendao-client --bin wendao-client -- lint semantic
+  - wendao-client lint semantic
 projections_to_refresh:
   - llm_compression
 candidate_suggestions: []

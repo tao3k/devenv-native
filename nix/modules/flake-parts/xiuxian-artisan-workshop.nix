@@ -1,4 +1,4 @@
-{ workspaceRoot, inputs, ... }:
+{ workspaceRoot, inputs, self, ... }:
 {
   perSystem =
     {
@@ -181,5 +181,6 @@
           config.nci.outputs."xiuxian-core-rs".packages.release.config.rust-cargo-vendor.vendoredSources;
         version = config.nci.outputs."xiuxian-core-rs".packages.release.config.version;
       };
+      packages.xiuxian-wendao-client = config.nci.outputs."xiuxian-wendao-client".packages.release;
     };
 }

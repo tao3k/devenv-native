@@ -2,7 +2,10 @@
 
 use std::path::Path;
 
-use super::{ExternalSymbol, SymbolKind};
+use super::ExternalSymbol;
+#[cfg(feature = "search-runtime")]
+use super::SymbolKind;
+#[cfg(feature = "search-runtime")]
 use xiuxian_code_intelligence::{
     CodeLanguageId, SymbolKind as CodeSymbolKind, extract_code_dependency_symbols,
 };
@@ -12,6 +15,7 @@ use xiuxian_code_intelligence::{
 /// # Errors
 ///
 /// Returns I/O errors when reading `path`.
+#[cfg(feature = "search-runtime")]
 pub fn extract_symbols(path: &Path, lang: &str) -> Result<Vec<ExternalSymbol>, std::io::Error> {
     use std::fs::read_to_string;
     let content = read_to_string(path)?;
@@ -29,6 +33,20 @@ pub fn extract_symbols(path: &Path, lang: &str) -> Result<Vec<ExternalSymbol>, s
     )
 }
 
+/// Extract symbols from a source file (synchronous).
+///
+/// # Errors
+///
+/// Returns an unsupported-feature error when `search-runtime` is not enabled.
+#[cfg(not(feature = "search-runtime"))]
+pub fn extract_symbols(_path: &Path, _lang: &str) -> Result<Vec<ExternalSymbol>, std::io::Error> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "dependency symbol extraction requires the search-runtime feature",
+    ))
+}
+
+#[cfg(feature = "search-runtime")]
 fn map_symbol_kind(kind: &CodeSymbolKind) -> SymbolKind {
     match kind {
         CodeSymbolKind::Struct | CodeSymbolKind::Class => SymbolKind::Struct,

@@ -81,7 +81,7 @@ async fn semantic_read_model_materialization_preflight_registers_and_smokes_tabl
     let execution = ready
         .execution
         .ok_or_else(|| std::io::Error::other("ready preflight should execute"))?;
-    assert_eq!(execution.execution_engine, "datafusion");
+    assert_eq!(execution.execution_engine, "duckdb");
     assert_eq!(execution.registered_table_count, 3);
     assert_eq!(execution.registered_input_batch_count, 3);
     assert_eq!(execution.registered_input_row_count, 4);
@@ -99,7 +99,7 @@ async fn semantic_read_model_materialization_preflight_registers_and_smokes_tabl
     assert_eq!(objects.materialization_state, "materialized");
     assert_eq!(
         objects.registration_strategy,
-        "datafusion_request_scoped_arrow"
+        "duckdb_materialized_arrow_staging"
     );
 
     let blocked = semantic_read_model_materialization_preflight(

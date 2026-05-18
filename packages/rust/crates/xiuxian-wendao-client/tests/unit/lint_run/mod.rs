@@ -7,6 +7,7 @@ mod directory_style;
 mod fragments;
 mod json_output;
 mod obsidian;
+#[cfg(feature = "semantic-sql")]
 mod semantic;
 mod syntax;
 mod targets;
@@ -39,6 +40,7 @@ pub(super) fn run_markdown_lint_with_output(
     Ok((output.status.code(), stdout))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_lint(
     temp: &TempDir,
     scope: Option<&str>,
@@ -46,6 +48,7 @@ pub(super) fn run_semantic_lint(
     run_semantic_lint_with_args(temp, scope, &[])
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_lint_with_args(
     temp: &TempDir,
     scope: Option<&str>,
@@ -66,6 +69,7 @@ pub(super) fn run_semantic_lint_with_args(
     Ok((output.status.code(), stdout))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_refresh_projections(
     temp: &TempDir,
     scope: Option<&str>,
@@ -73,6 +77,7 @@ pub(super) fn run_semantic_refresh_projections(
     run_semantic_refresh_projections_with_args(temp, scope, &[])
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_refresh_projections_with_args(
     temp: &TempDir,
     scope: Option<&str>,
@@ -83,6 +88,7 @@ pub(super) fn run_semantic_refresh_projections_with_args(
     Ok((status, stdout))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_refresh_projections_with_args_and_stderr(
     temp: &TempDir,
     scope: Option<&str>,
@@ -104,6 +110,7 @@ pub(super) fn run_semantic_refresh_projections_with_args_and_stderr(
     Ok((output.status.code(), stdout, stderr))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_describe_read_model(
     temp: &TempDir,
     scope: Option<&str>,
@@ -120,6 +127,7 @@ pub(super) fn run_semantic_describe_read_model(
     Ok((output.status.code(), stdout))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_snapshot_read_model(
     temp: &TempDir,
     scope: Option<&str>,
@@ -136,6 +144,7 @@ pub(super) fn run_semantic_snapshot_read_model(
     Ok((output.status.code(), stdout))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_check_read_model_snapshot_with_args(
     temp: &TempDir,
     scope: Option<&str>,
@@ -157,6 +166,7 @@ pub(super) fn run_semantic_check_read_model_snapshot_with_args(
     Ok((output.status.code(), stdout, stderr))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_plan_read_model_materialization_with_args(
     temp: &TempDir,
     scope: Option<&str>,
@@ -180,6 +190,7 @@ pub(super) fn run_semantic_plan_read_model_materialization_with_args(
     Ok((output.status.code(), stdout, stderr))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_preflight_read_model_materialization_with_args(
     temp: &TempDir,
     scope: Option<&str>,
@@ -203,6 +214,7 @@ pub(super) fn run_semantic_preflight_read_model_materialization_with_args(
     Ok((output.status.code(), stdout, stderr))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_query_read_model_with_args(
     temp: &TempDir,
     scope: Option<&str>,
@@ -213,6 +225,7 @@ pub(super) fn run_semantic_query_read_model_with_args(
     Ok((status, stdout))
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(super) fn run_semantic_query_read_model_with_args_and_stderr(
     temp: &TempDir,
     scope: Option<&str>,

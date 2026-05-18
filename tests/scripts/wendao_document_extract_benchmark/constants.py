@@ -21,7 +21,7 @@ OPENROUTER_API_KEY_ENVS = (
     *OPENROUTER_STANDARD_API_KEY_ENVS,
     OPENROUTER_LEGACY_PUBLIC_API_KEY_ENV,
 )
-PDFIUM_BINARIES_RELEASE = "chromium/7543"
+PDFIUM_BINARIES_RELEASE = "chromium/7834"
 PDFIUM_BINARIES_BASE_URL = (
     "https://github.com/bblanchon/pdfium-binaries/releases/download"
 )

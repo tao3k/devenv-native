@@ -156,8 +156,13 @@ Use `xiuxian-wendao` for:
   customer-owned domain extensions. Source-contract parse and DTO shape are
   parser-owned in
   [`xiuxian-wendao-parsers`](../xiuxian-wendao-parsers/docs/episteme-source-contracts.md);
-  this crate selects the active source manifest and mapping ledger from
-  `ontology/manifest.toml`, then owns source hash validation, queue selection,
+  Rust Episteme implementation now belongs in
+  [`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md), which
+  validates the ontology source contract and selects the active source
+  manifest and mapping ledger from `ontology/manifest.toml`. During migration,
+  this crate may consume or
+  re-export Episteme services, but it should not remain the long-term
+  implementation home. Rust owns source hash validation, queue selection,
   persisted run-plan receipts, scheduling, cache identity, and compiled
   read-model seed materialization into `semantic_objects`,
   `semantic_relations`, and `semantic_projection_state` Arrow batches. Customer
@@ -170,10 +175,10 @@ Use `xiuxian-wendao` for:
   text or promote raw rows to RDF truth. When the `julia` feature is enabled,
   the compiled seed can be packaged into the existing WendaoGraph ontology
   read-model quality request shape, still as accepted read-model batches rather
-  than TSV, RDF, or corpus parsing by Julia. Python tools in an episteme
-  repository are diagnostic or analyzer adapters only; they do not own
-  planning, promotion, or backend orchestration. The current operator
-  entrypoints are the Studio-owned
+  than TSV, RDF, or corpus parsing by Julia. Analyzer adapters live in
+  package-owned analyzer crates; user or private episteme repositories should
+  not own runtime tools, planning, promotion, or backend orchestration. The
+  current operator entrypoints are the Studio-owned
   `wendao episteme structure write-toc` CLI command, which writes an
   evidence-only Org TOC ledger from source-contract file rows with
   route/category summaries ahead of the full file table, and

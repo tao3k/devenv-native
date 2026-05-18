@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeSet,
     fs,
     io::Write,
     path::{Path, PathBuf},
@@ -10,7 +9,7 @@ use std::{
 use std::io::Cursor;
 #[cfg(feature = "julia")]
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     env,
     net::TcpListener,
     process::{Child, Stdio},
@@ -280,7 +279,7 @@ without embedding customer source content in Rust tests.
 ";
 
 pub(super) fn table<'a>(
-    materialization: &'a xiuxian_wendao::episteme::EpistemeReadModelMaterialization,
+    materialization: &'a EpistemeReadModelMaterialization,
     table_name: &str,
 ) -> &'a RecordBatch {
     materialization

@@ -8,6 +8,9 @@ manages what is happening:
 
 - run and step lifecycle events
 - deterministic replay views
+- durable execution journal events for activities, signals, timers, and
+  version pins
+- Agent proposal and decision journal facts
 - evidence and artifact references
 - budget and cost observations
 - gate results
@@ -35,10 +38,153 @@ Qianji workflow traces are projected into control events by
 [`xiuxian-qianji`](../xiuxian-qianji/README.md). This crate does not depend on
 Qianji workflow types.
 
+Execution history is represented by the same append-only `ControlLedger`.
+Checkpoint or workflow-specific state should be treated as a materialized view
+or replay accelerator; the durable audit authority remains the ledger event
+stream.
+
+`RunView::recovery_view` derives a read-only recovery summary from replayed
+history. It classifies scheduled and in-flight activities, retryable and
+terminal activity failures, pending and fireable timers, approval-required
+Agent decisions, human waits, blocked steps, and active or expired step
+leases. The view is an inspection and planner input surface only: it does not
+append events, mutate Valkey hot state, enqueue work, execute retries, or
+materialize workflow-specific approval objects.
+`RunRecoveryView::recovery_plan` projects those facts into ordered recovery
+actions such as reclaiming expired leases, firing ready timers, retrying
+eligible activities, escalating terminal failures, waiting for human approval,
+and preserving active leases. The plan is still declarative and side-effect
+free; a workflow runtime may consume it, but this crate does not execute it.
+`ControlLedger::load_recovery_plan` exposes the same replay, recovery view,
+and recovery plan chain as one durable query helper for runtime callers.
+`RunRecoveryPlan::summary` derives compact management counters over the
+ordered plan actions so gateway, CLI, or UI surfaces can show recovery state
+without reimplementing action classification.
+`ControlLedger::load_recovery_snapshot` packages the replay-derived recovery
+view, ordered plan, and summary into one read-only management response.
+
+Activity journal fields use typed identities for activity ids, activity types,
+task queues, idempotency keys, and error codes while preserving string-shaped
+serialization.
+
+Activity retry policies expose deterministic constructors and validation so
+zero attempts, zero backoff multipliers, inverted retry intervals, and zero
+activity timeouts fail before a Worker adapter executes them.
+They also provide a pure retry decision contract over `ActivityFailure`, so the
+control plane can decide stop reasons, next attempts, and capped backoff
+without executing retry work itself.
+
+LLM calls are represented as governed activity payloads. `LlmActivityRequest`
+records model, prompt, context, tool-schema, response-schema, token, and budget
+metadata through claim-check references, while `LlmActivityTask` binds that
+payload to an `llm.*` activity type and task queue. Provider adapters should
+disable provider-client retries and let `ActivityRetryPolicy` control retry
+behavior.
+
+Agent planner output is represented as `AgentProposal`; Qianji reducer output
+is represented as `AgentDecision`. Accepted decisions must name the scheduled
+activity, while rejected or approval-required decisions cannot smuggle an
+activity into execution.
+
+Tool access is represented by `ToolActivityContract`, which maps an
+agent-visible tool name to an activity type, task queue, risk level, permission
+mode, permission scope, and schema hashes. `ToolPermissionDecision` returns
+allowed, approval-required, or denied outcomes without executing the tool.
+
+Human approval waits are represented by `HumanApprovalRequest`. It binds an
+approval-required tool decision to an expected signal name, optional payload
+claim-check, optional expected payload hash, and optional timeout timer.
+Signal and timer matching returns deterministic `HumanApprovalResolution`
+values; this crate does not wait, notify, schedule, or execute approvals.
+Matched approval signals can be interpreted as `HumanApprovalDecision` values
+when compact metadata contains `decision = approved` or `decision = rejected`.
+Those decisions are audit facts only; a later reducer must still decide
+whether any activity may be scheduled.
+
+Tool authorization is represented by `ToolAuthorizationDecision`. It resolves
+tool permissions, approval decisions, and timeout resolutions into authorized,
+waiting-approval, rejected, denied, or timed-out facts without creating an
+`ActivityTask` or `AgentDecision`.
+
+Authorized tool activity admission is represented by `ToolActivityAdmission`.
+It validates that a caller-supplied `ActivityTask` matches the authorized
+activity type, task queue, and proposal input reference before a later
+scheduler may enqueue it. An admitted tool activity can also construct a
+validated accepted `AgentDecision` that names the admitted activity id without
+appending ledger events or enqueueing work.
+`ToolPolicyReductionRequest` is the first built-in deterministic policy
+reducer. It composes an `AgentProposal`, a `ToolAuthorizationDecision`, an
+optional `ActivityTask`, and an optional `GateResult` into one
+`AgentDecision`. Authorized tools require an admitted activity; approval,
+denial, rejection, timeout, and failed-gate outcomes cannot carry scheduled
+activity ids. The reducer is side-effect free: it does not append ledger
+events, enqueue hot-state work, acquire leases, run retries, or execute
+Workers.
+`record_admitted_activity_schedule` records an already admitted tool activity
+as an `ActivityScheduled` journal fact. This creates durable scheduled
+activity state on replay, but it does not enqueue hot-state work, acquire
+leases, start workers, or execute providers.
+`record_admitted_activity_schedule_idempotent` is the checked Worker-facing
+variant. It returns the already stored event for exact duplicate schedules and
+rejects conflicting schedules for the same activity id.
+`record_activity_started`, `record_activity_completed`, and
+`record_activity_failed` record activity lifecycle facts after scheduling.
+They append durable journal events only; retry decisions, worker execution,
+and queue mutation remain separate control-plane seams.
+`record_activity_started_idempotent`,
+`record_activity_completed_idempotent`, and
+`record_activity_failed_idempotent` add replay-backed guards for live Worker
+integration. Exact duplicate lifecycle facts return the original record;
+completion must follow a started activity, failures cannot rewrite completed
+activities, and retry starts must advance beyond the failed attempt.
+
+Agent proposals and deterministic Agent decisions can be recorded as control
+journal events and replay into run or step views. Recording an Agent decision
+does not create activity lifecycle state; `ActivityScheduled` remains the
+separate scheduling fact.
+
+`record_agent_proposal` and `record_agent_decision` are explicit journal
+helpers for persisting those Agent facts to a `ControlLedger`.
+`AgentProposalJournalRecord` and `AgentDecisionJournalRecord` carry the named
+request fields, including run scope or step scope. The helpers only append
+durable control events; they do not admit tools, schedule activities, enqueue
+hot-state work, lease steps, or execute workers.
+
 ## Current Surface
 
 - `ControlEvent` and `ControlEventRecord`
+- `AgentProposal` and `AgentDecision`
+- `AgentJournalScope`, `AgentProposalJournalRecord`,
+  `AgentDecisionJournalRecord`, `record_agent_proposal`, and
+  `record_agent_decision`
+- `ToolActivityContract` and `ToolPermissionDecision`
+- `ToolAuthorizationDecision`
+- `ToolActivityAdmission`
+- `ToolPolicyReductionRequest`, `ToolPolicyReduction`, and
+  `AgentPolicyReason`
+- `AdmittedActivityScheduleRecord` and `record_admitted_activity_schedule`
+- `record_admitted_activity_schedule_idempotent`
+- `ActivityJournalScope`, `ActivityStartedJournalRecord`,
+  `ActivityCompletedJournalRecord`, `ActivityFailedJournalRecord`,
+  `record_activity_started`, `record_activity_completed`, and
+  `record_activity_failed`
+- `ActivityJournalWriteOutcome`, `ActivityJournalWriteStatus`,
+  `record_activity_started_idempotent`,
+  `record_activity_completed_idempotent`, and
+  `record_activity_failed_idempotent`
+- `HumanApprovalRequest`, `HumanApprovalResolution`, and
+  `HumanApprovalDecision`
+- `ActivityTask`, `ActivityRetryDecision`, `LlmActivityRequest`,
+  `LlmActivityTask`, `SignalRecord`, `TimerRecord`, and `VersionPin`
 - `ControlLedger`
+- `ControlLedger::load_run_view`
+- `ControlLedger::load_recovery_plan`
+- `RunRecoveryView`, `RecoveryItemScope`, `ActivityRecoveryItem`,
+  `FailedActivityRecoveryItem`, `TimerRecoveryItem`,
+  `AgentDecisionRecoveryItem`, `StepRecoveryItem`, and `LeaseRecoveryItem`
+- `RunRecoveryPlan` and `RecoveryPlanAction`
+- `RunRecoveryPlanSummary`
+- `RunRecoverySnapshot`
 - `HotStateStore`
 - `InMemoryControlLedger`
 - `InMemoryHotStateStore`

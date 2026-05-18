@@ -6,9 +6,14 @@ use std::sync::{Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
 
 use lopdf::{Document as LopdfDocument, ObjectId, content::Operation};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+const SOURCE_PROFILE_CACHE_SCHEMA: &str = "xiuxian_wendao.pdf_source_page_profiles.v1";
+const SOURCE_PROFILE_CACHE_DIR_NAME: &str = "pdf-source-page-profiles";
 
 /// Lightweight facts derived from one source PDF page content stream.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct PdfSourcePageProfile {
     /// Zero-based page index.
     pub page_index: u32,
@@ -166,9 +171,14 @@ pub fn source_pdf_page_profiles_cached(path: &Path) -> Result<Vec<PdfSourcePageP
     if let Some(profiles) = lock_profile_cache(cache).get(&key).cloned() {
         return Ok(profiles);
     }
+    if let Some(profiles) = read_source_pdf_page_profile_disk_cache(&key) {
+        lock_profile_cache(cache).insert(key, profiles.clone());
+        return Ok(profiles);
+    }
 
     let profiles = source_pdf_page_profiles(path)?;
-    lock_profile_cache(cache).insert(key, profiles.clone());
+    lock_profile_cache(cache).insert(key.clone(), profiles.clone());
+    write_source_pdf_page_profile_disk_cache(&key, profiles.as_slice());
     Ok(profiles)
 }
 
@@ -237,6 +247,38 @@ struct SourcePdfPageProfileCacheKey {
     modified_nanos: u32,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SourcePdfPageProfileDiskCache {
+    schema: String,
+    path: String,
+    len: u64,
+    modified_secs: u64,
+    modified_nanos: u32,
+    profiles: Vec<PdfSourcePageProfile>,
+}
+
+impl SourcePdfPageProfileDiskCache {
+    fn new(key: &SourcePdfPageProfileCacheKey, profiles: &[PdfSourcePageProfile]) -> Self {
+        Self {
+            schema: SOURCE_PROFILE_CACHE_SCHEMA.to_string(),
+            path: key.path.to_string_lossy().to_string(),
+            len: key.len,
+            modified_secs: key.modified_secs,
+            modified_nanos: key.modified_nanos,
+            profiles: profiles.to_vec(),
+        }
+    }
+
+    fn matches(&self, key: &SourcePdfPageProfileCacheKey) -> bool {
+        self.schema == SOURCE_PROFILE_CACHE_SCHEMA
+            && self.path == key.path.to_string_lossy()
+            && self.len == key.len
+            && self.modified_secs == key.modified_secs
+            && self.modified_nanos == key.modified_nanos
+    }
+}
+
 type SourcePdfPageProfileCache =
     Mutex<BTreeMap<SourcePdfPageProfileCacheKey, Vec<PdfSourcePageProfile>>>;
 
@@ -258,6 +300,67 @@ fn source_pdf_page_profile_cache_key(path: &Path) -> Option<SourcePdfPageProfile
 fn source_pdf_page_profile_cache() -> &'static SourcePdfPageProfileCache {
     static CACHE: OnceLock<SourcePdfPageProfileCache> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn read_source_pdf_page_profile_disk_cache(
+    key: &SourcePdfPageProfileCacheKey,
+) -> Option<Vec<PdfSourcePageProfile>> {
+    let path = source_pdf_page_profile_disk_cache_path(key)?;
+    let bytes = std::fs::read(path).ok()?;
+    let cache = serde_json::from_slice::<SourcePdfPageProfileDiskCache>(bytes.as_slice()).ok()?;
+    cache.matches(key).then_some(cache.profiles)
+}
+
+fn write_source_pdf_page_profile_disk_cache(
+    key: &SourcePdfPageProfileCacheKey,
+    profiles: &[PdfSourcePageProfile],
+) {
+    let Some(path) = source_pdf_page_profile_disk_cache_path(key) else {
+        return;
+    };
+    let Some(parent) = path.parent() else {
+        return;
+    };
+    if std::fs::create_dir_all(parent).is_err() {
+        return;
+    }
+    let cache = SourcePdfPageProfileDiskCache::new(key, profiles);
+    let Ok(bytes) = serde_json::to_vec(&cache) else {
+        return;
+    };
+    let tmp_path = path.with_extension(format!("{}.tmp", std::process::id()));
+    if std::fs::write(tmp_path.as_path(), bytes).is_err() {
+        return;
+    }
+    if std::fs::rename(tmp_path.as_path(), path.as_path()).is_err() {
+        let _ = std::fs::remove_file(tmp_path);
+    }
+}
+
+fn source_pdf_page_profile_disk_cache_path(key: &SourcePdfPageProfileCacheKey) -> Option<PathBuf> {
+    Some(source_pdf_page_profile_disk_cache_root()?.join(format!(
+        "{}.json",
+        source_pdf_page_profile_disk_cache_key(key)
+    )))
+}
+
+fn source_pdf_page_profile_disk_cache_root() -> Option<PathBuf> {
+    std::env::var_os("PRJ_CACHE_HOME")
+        .map(PathBuf::from)
+        .map(|root| {
+            root.join("wendao-document-extract")
+                .join(SOURCE_PROFILE_CACHE_DIR_NAME)
+        })
+}
+
+fn source_pdf_page_profile_disk_cache_key(key: &SourcePdfPageProfileCacheKey) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(key.path.to_string_lossy().as_bytes());
+    hasher.update([0]);
+    hasher.update(key.len.to_le_bytes());
+    hasher.update(key.modified_secs.to_le_bytes());
+    hasher.update(key.modified_nanos.to_le_bytes());
+    format!("{:x}", hasher.finalize())
 }
 
 fn lock_profile_cache(

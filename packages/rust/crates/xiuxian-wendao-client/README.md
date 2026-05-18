@@ -1,6 +1,7 @@
 # xiuxian-wendao-client
 
-`xiuxian-wendao-client` is the lightweight Wendao user CLI surface.
+`xiuxian-wendao-client` is the Wendao user CLI surface for local document
+tooling and read-model operations.
 
 Current scope:
 
@@ -14,6 +15,23 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
+wendao-client orgize fmt [--check] [PATH]...
+wendao-client orgize lint [--format compact|text|json] [--json] [PATH]...
+wendao-client orgize agent-planning --date YYYY-MM-DD [--end YYYY-MM-DD] [--include-done] [--include-archived] [--include-comments] [--match EXPR] [PATH]...
+wendao-client orgize read-model [PATH]...
+wendao-client orgize task-list [--text TEXT] [--tag TAG]... [--include-done] [--include-archived] [--limit N] [PATH]...
+wendao-client orgize task-report [--text TEXT] [--tag TAG]... [--include-archived] [--limit N] [PATH]...
+wendao-client orgize task-archive [--apply] [--text TEXT] [--tag TAG]... [--limit N] [PATH]...
+wendao-client orgize sparse-tree [--text TEXT] [--match EXPR] [--exclude-done] [--exclude-archived] [--include-comments] [--explain-skips] [PATH]...
+wendao-client get toc [TARGET] [--ignore DIR]...
+wendao-client get page-index [TARGET] [--ignore DIR]...
+```
+
+The semantic SQL command surface remains feature-gated and is not part of the
+default installed client. When enabled, it uses the `xiuxian-wendao-sql`
+DuckDB/Arrow local relation API.
+
+```text
 wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan]
 wendao-client lint semantic [--read-model-summary] [--semantic-sql-guard] [--projection-refresh-plan] [--require-fresh-projections] [--refresh-projections] [--lifecycle-plan] [--apply-lifecycle-plan] [PATH]...
 wendao-client semantic describe-read-model [PATH]
@@ -23,8 +41,6 @@ wendao-client semantic plan-read-model-materialization [--expect-snapshot SNAPSH
 wendao-client semantic preflight-read-model-materialization [--expect-snapshot SNAPSHOT_REVISION] [PATH]
 wendao-client semantic query-read-model --query SQL [PATH]
 wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs RUNS] [--require-clean-worktree] [PATH]...
-wendao-client get toc [TARGET] [--ignore DIR]...
-wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
 
 Behavior:
@@ -76,7 +92,7 @@ Behavior:
     explicit Obsidian note links and standard Markdown note links
 22. when a directory style mismatch is found, emits a precise rewrite for the
     offending link instead of a style-only hint
-23. validates repo-native semantic SSOT roots with `lint semantic`, defaulting
+23. in `semantic-sql` builds, validates repo-native semantic SSOT roots with `lint semantic`, defaulting
     to `semantic/` when no path is supplied. Explicit `[PATH]...` arguments are
     only needed for custom semantic roots. The command fails on invalid object
     frontmatter, duplicate IDs,
@@ -167,8 +183,38 @@ Behavior:
     global output option. The registered tables are `semantic_objects`,
     `semantic_relations`, and `semantic_projection_state`; query results are
     evidence only and do not mutate semantic artifacts. The SQL crate admits
-    exactly one read-only query statement and rejects blank, multi-statement,
-    or mutation SQL before table registration
+    exactly one DuckDB-dialect read-only query statement and rejects blank,
+    multi-statement, or mutation SQL before table registration. The local
+    relation engine is DuckDB.
+37. exposes upstream Orgize tooling through `orgize fmt`, `orgize lint`,
+    `orgize agent-planning`, `orgize read-model`, `orgize task-list`,
+    `orgize task-report`, `orgize task-archive`, and `orgize sparse-tree`.
+    Formatting and linting use parser-owned Orgize adapters from
+    `xiuxian-wendao-parsers`; planning and sparse-tree commands render compact
+    cards derived from native Org agenda and sparse-tree semantics. The
+    `read-model` command materializes agent-tagged Org tasks into DuckDB by
+    default and does not expose a `--duckdb` runtime selector. The `task-list`
+    command refreshes the same DuckDB read model and renders active task rows
+    for agent recovery, with optional text/tag filtering and explicit
+    DONE/archive inclusion flags. The `task-report` command summarizes the
+    same snapshot for active rows, completed achievements, archive candidates,
+    repeating rows, and tag counts. The `task-archive` command renders an
+    archive plan by default and only mutates Org source when `--apply` is
+    passed; applied tasks are moved to their `ARCHIVE_TARGET` or the default
+    agent archive file and receive the native `ARCHIVE` tag. Native Org
+    repeater cookies on `SCHEDULED` or `DEADLINE` timestamps are preserved and
+    rendered as `repeat:` metadata so recurring profile, benchmark, or audit
+    tasks remain visible without a custom schedule DSL. When no source path is
+    supplied, read-model commands read from `$PRJ_CACHE_HOME/agent/org`; the default database is
+    `$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb`. Optional
+    path/runtime overrides belong in `wendao.toml`:
+
+    ```toml
+    [agent.org_read_model]
+    database_path = "$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb"
+    temp_directory = "$PRJ_CACHE_HOME/agent/readmodels/duckdb-tmp"
+    threads = 4
+    ```
 
 Diagnostic rendering is split deliberately:
 
@@ -230,8 +276,17 @@ The `get` commands stay local and parser-owned by design:
    reimplementing execution logic in `xiuxian-wendao`
 
 The standalone binary is named `wendao-client`, while the reusable command
-tree remains small enough to embed into the main `wendao` CLI without pulling
-`xiuxian-wendao` back into the client crate.
+tree remains separate from the main `wendao` CLI so execution logic does not
+have to be reimplemented there.
+
+For repeated local use, install the binary once instead of invoking
+`cargo run` for each command:
+
+```text
+direnv exec . just install-wendao-client
+wendao-client orgize lint --format compact .agent/org/agenda.org
+wendao-client orgize task-list --text '<lane-or-package>'
+```
 
 ## Project Policy Gate
 

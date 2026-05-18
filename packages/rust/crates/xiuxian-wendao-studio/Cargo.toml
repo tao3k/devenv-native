@@ -82,6 +82,7 @@ local-runtime = [
   "dep:xiuxian-wendao",
   "dep:xiuxian-wendao-builtin",
   "dep:xiuxian-wendao-core",
+  "dep:xiuxian-wendao-episteme",
   "dep:xiuxian-wendao-parsers",
   "dep:xiuxian-wendao-sql",
   "dep:xiuxian-zhenfa",
@@ -112,11 +113,11 @@ test-support = [
   "xiuxian-wendao/test-support",
 ]
 cli-bin-support = [
-  "studio",
+  "zhenfa-router",
   "dep:clap",
   "dep:xiuxian-logging",
   "dep:xiuxian-wendao-client",
-  "xiuxian-zhenfa/gateway",
+  "xiuxian-wendao-client/semantic-sql",
 ]
 flight-server-bin-support = [
   "zhenfa-router",
@@ -177,6 +178,7 @@ xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features 
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
+xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }

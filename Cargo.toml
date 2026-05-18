@@ -12,6 +12,7 @@ members = [
   "packages/rust/crates/xiuxian-git-repo",
   "packages/rust/crates/xiuxian-wendao-attachments",
   "packages/rust/crates/xiuxian-wendao-parsers",
+  "packages/rust/crates/xiuxian-wendao-episteme",
   "packages/rust/crates/xiuxian-wendao",
   "packages/rust/crates/xiuxian-wendao-builtin",
   "packages/rust/crates/xiuxian-wendao-core",
@@ -83,7 +84,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "3416ca6d4859a878fdf809796324f8b624f40741" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "19ee5369c50a5c4fe1c01bda0bee621869a428df" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"
@@ -149,6 +150,7 @@ arrow-schema = { version = "58.1.0", features = ["ffi"] }
 arrow-string = "58.1.0"
 parquet = "58.1.0"
 datafusion = "53.0.0"
+sqlparser = "0.61.0"
 
 # Redis cache and session backend
 redis = { version = "1.0.3", default-features = false }

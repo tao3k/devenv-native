@@ -2,18 +2,21 @@
 
 use std::{
     any::Any,
+    fmt,
     future::Future,
     sync::Arc,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use futures::{StreamExt, stream};
+use xiuxian_qianji_control::{ControlError, ControlResult};
 
 use super::{
     WorkflowCheckpointError, WorkflowCheckpointId, WorkflowCheckpointRef, WorkflowCompletionError,
-    WorkflowExecutionReport, WorkflowMemoryCheckpointStore, WorkflowStage,
-    WorkflowStageCheckpointMiss, WorkflowStageFacts, WorkflowStageId, WorkflowStageStatus,
-    WorkflowStageTrace, WorkflowTopology, WorkflowTopologyError, WorkflowTrace,
+    WorkflowControlRecorder, WorkflowControlRecordingOutcome, WorkflowExecutionReport,
+    WorkflowMemoryCheckpointStore, WorkflowStage, WorkflowStageCheckpointMiss, WorkflowStageFacts,
+    WorkflowStageId, WorkflowStageStatus, WorkflowStageTrace, WorkflowTopology,
+    WorkflowTopologyError, WorkflowTrace,
 };
 
 /// Error returned when a workflow stage fails.
@@ -28,6 +31,121 @@ pub struct WorkflowExecutionError {
     pub message: String,
     /// Trace captured through the failed stage.
     pub trace: WorkflowTrace,
+}
+
+/// Control-recording failure that preserves the completed workflow report.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowControlRecordingFailure<T> {
+    /// Normal workflow execution report produced before recording failed.
+    pub workflow: Box<WorkflowExecutionReport<T>>,
+    /// Control-plane recording error.
+    pub source: ControlError,
+}
+
+impl<T> fmt::Display for WorkflowControlRecordingFailure<T> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "workflow control recording failed after workflow completion: {}",
+            self.source
+        )
+    }
+}
+
+impl<T: fmt::Debug> std::error::Error for WorkflowControlRecordingFailure<T> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.source)
+    }
+}
+
+impl<T> WorkflowControlRecordingFailure<T> {
+    /// Retries control recording from the retained workflow report.
+    ///
+    /// # Errors
+    ///
+    /// Returns another recoverable control-recording failure when the supplied
+    /// recorder also rejects or cannot persist the retained workflow trace.
+    pub fn retry_control_recording(
+        self,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> Result<WorkflowControlRecordedReport<T>, Self> {
+        (*self.workflow).record_control_recoverable(recorder)
+    }
+}
+
+/// Error returned by topology-checked recoverable control recording.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WorkflowCheckedControlRecordingFailure<T> {
+    /// The workflow trace failed the bound topology completion gate.
+    Completion {
+        /// Topology completion error.
+        source: Box<WorkflowCompletionError>,
+    },
+    /// The workflow trace passed completion but control recording failed.
+    Control {
+        /// Recoverable control-recording failure.
+        failure: Box<WorkflowControlRecordingFailure<T>>,
+    },
+}
+
+impl<T> fmt::Display for WorkflowCheckedControlRecordingFailure<T> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Completion { source } => {
+                write!(
+                    formatter,
+                    "workflow completion validation failed before control recording: {source}"
+                )
+            }
+            Self::Control { failure } => failure.fmt(formatter),
+        }
+    }
+}
+
+impl<T: fmt::Debug + 'static> std::error::Error for WorkflowCheckedControlRecordingFailure<T> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Completion { source } => Some(source.as_ref()),
+            Self::Control { failure } => Some(failure.as_ref()),
+        }
+    }
+}
+
+impl<T> WorkflowCheckedControlRecordingFailure<T> {
+    /// Retries control recording when topology validation has already passed.
+    ///
+    /// # Errors
+    ///
+    /// Returns the original completion failure when topology validation failed
+    /// before control recording. Returns another control failure when the
+    /// supplied recorder also rejects or cannot persist the retained workflow
+    /// trace.
+    pub fn retry_control_recording(
+        self,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> Result<WorkflowControlRecordedReport<T>, Self> {
+        match self {
+            Self::Completion { source } => Err(Self::Completion { source }),
+            Self::Control { failure } => {
+                failure
+                    .retry_control_recording(recorder)
+                    .map_err(|failure| Self::Control {
+                        failure: Box::new(failure),
+                    })
+            }
+        }
+    }
+}
+
+/// Error returned by topology-checked control recording.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum WorkflowCheckedControlRecordingError {
+    /// The workflow trace failed the bound topology completion gate.
+    #[error(transparent)]
+    Completion(#[from] WorkflowCompletionError),
+    /// The workflow trace passed completion but control recording failed.
+    #[error(transparent)]
+    Control(#[from] ControlError),
 }
 
 /// Request object for bounded fan-out workflow stages.
@@ -58,6 +176,15 @@ pub struct WorkflowMemoryCheckpointRecord<T> {
     pub content_fingerprint: Option<String>,
     /// Same-process payload handle.
     pub payload: Arc<T>,
+}
+
+/// Workflow report paired with a control-plane recording outcome.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WorkflowControlRecordedReport<T> {
+    /// Normal workflow execution report.
+    pub workflow: WorkflowExecutionReport<T>,
+    /// Control-plane recording outcome.
+    pub control: WorkflowControlRecordingOutcome,
 }
 
 /// Mutable state for one Rust-native workflow execution.
@@ -283,6 +410,42 @@ impl WorkflowRun {
         }
     }
 
+    /// Finishes this workflow execution and records the trace through a
+    /// caller-supplied control recorder.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when the recorder rejects or cannot persist
+    /// the workflow trace. Use [`WorkflowExecutionReport::record_control`] on
+    /// an already finished report when the caller must retain the workflow
+    /// report after a recording error.
+    pub fn finish_with_control_recording<T>(
+        self,
+        output: T,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> ControlResult<WorkflowControlRecordedReport<T>> {
+        let workflow = self.finish(output);
+        let control = workflow.record_control(recorder)?;
+        Ok(WorkflowControlRecordedReport { workflow, control })
+    }
+
+    /// Finishes this workflow execution and attempts to record the trace while
+    /// preserving the completed report if recording fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns a recoverable control-recording failure when the recorder
+    /// rejects or cannot persist the workflow trace. The error carries the
+    /// normal workflow report so callers can retry recording or preserve the
+    /// typed output.
+    pub fn finish_with_recoverable_control_recording<T>(
+        self,
+        output: T,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> Result<WorkflowControlRecordedReport<T>, WorkflowControlRecordingFailure<T>> {
+        self.finish(output).record_control_recoverable(recorder)
+    }
+
     /// Finishes this workflow execution after validating the bound topology.
     ///
     /// # Errors
@@ -298,6 +461,54 @@ impl WorkflowRun {
             topology.validate_trace(&self.trace)?;
         }
         Ok(self.finish(output))
+    }
+
+    /// Finishes this workflow execution after validating the bound topology,
+    /// then records the trace through a caller-supplied control recorder.
+    ///
+    /// # Errors
+    ///
+    /// Returns a completion error when the bound topology rejects the trace.
+    /// Returns a control error when validation passes but the recorder rejects
+    /// or cannot persist the workflow trace.
+    pub fn finish_checked_with_control_recording<T>(
+        self,
+        output: T,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> Result<WorkflowControlRecordedReport<T>, WorkflowCheckedControlRecordingError> {
+        if let Some(topology) = &self.topology {
+            topology.validate_trace(&self.trace)?;
+        }
+        let workflow = self.finish(output);
+        let control = workflow.record_control(recorder)?;
+        Ok(WorkflowControlRecordedReport { workflow, control })
+    }
+
+    /// Finishes this workflow execution after validating the bound topology,
+    /// then attempts recoverable control recording.
+    ///
+    /// # Errors
+    ///
+    /// Returns a completion failure when the bound topology rejects the trace.
+    /// Returns a recoverable control-recording failure when validation passes
+    /// but the recorder rejects or cannot persist the workflow trace.
+    pub fn finish_checked_with_recoverable_control_recording<T>(
+        self,
+        output: T,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> Result<WorkflowControlRecordedReport<T>, WorkflowCheckedControlRecordingFailure<T>> {
+        if let Some(topology) = &self.topology {
+            topology.validate_trace(&self.trace).map_err(|source| {
+                WorkflowCheckedControlRecordingFailure::Completion {
+                    source: Box::new(source),
+                }
+            })?;
+        }
+        self.finish(output)
+            .record_control_recoverable(recorder)
+            .map_err(|failure| WorkflowCheckedControlRecordingFailure::Control {
+                failure: Box::new(failure),
+            })
     }
 
     /// Records a same-process memory checkpoint for a successful stage.
@@ -341,6 +552,45 @@ impl WorkflowRun {
             .checkpoints
             .push(checkpoint_ref.clone());
         Ok(checkpoint_ref)
+    }
+}
+
+impl<T> WorkflowExecutionReport<T> {
+    /// Records this completed workflow report through a caller-supplied
+    /// control recorder.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when the recorder rejects or cannot persist
+    /// the workflow trace.
+    pub fn record_control(
+        &self,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> ControlResult<WorkflowControlRecordingOutcome> {
+        recorder.record_trace(&self.trace)
+    }
+
+    /// Records this completed workflow report while preserving the report if
+    /// control recording fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns a recoverable control-recording failure when the recorder
+    /// rejects or cannot persist the workflow trace.
+    pub fn record_control_recoverable(
+        self,
+        recorder: WorkflowControlRecorder<'_>,
+    ) -> Result<WorkflowControlRecordedReport<T>, WorkflowControlRecordingFailure<T>> {
+        match recorder.record_trace(&self.trace) {
+            Ok(control) => Ok(WorkflowControlRecordedReport {
+                workflow: self,
+                control,
+            }),
+            Err(source) => Err(WorkflowControlRecordingFailure {
+                workflow: Box::new(self),
+                source,
+            }),
+        }
     }
 }
 

@@ -19,10 +19,7 @@ async fn semantic_sql_guard_projection_freshness_reports_stale_projection() -> T
     assert_eq!(evidence.findings.len(), 1);
     assert_eq!(evidence.findings[0].projection, "llm_compression");
     assert_eq!(evidence.findings[0].staleness, "stale");
-    assert_eq!(
-        evidence.local_relation_engine.as_deref(),
-        Some("datafusion")
-    );
+    assert_eq!(evidence.local_relation_engine.as_deref(), Some("duckdb"));
     assert!(evidence.query_text.contains("semantic_projection_state"));
     assert!(evidence.message.contains("requires review"));
     Ok(())

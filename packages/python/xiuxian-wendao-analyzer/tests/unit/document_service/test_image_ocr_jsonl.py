@@ -95,7 +95,7 @@ def test_image_ocr_jsonl_adapter_writes_queue_keyed_sidecar(tmp_path: Path) -> N
                 "payload": payload,
             }
         )
-        return 200, {"choices": [{"message": {"content": "\n# OCR 文本\n"}}]}
+        return 200, {"choices": [{"message": {"content": "\n# OCR text\n"}}]}
 
     report = run_image_ocr_jsonl_tasks(
         tasks_path=tasks_path,
@@ -109,7 +109,7 @@ def test_image_ocr_jsonl_adapter_writes_queue_keyed_sidecar(tmp_path: Path) -> N
     assert report["succeeded_count"] == 1
     row = json.loads(output_jsonl.read_text(encoding="utf-8"))
     assert row["queue_id"] == "ltc.extract.image.001"
-    assert row["text"] == "# OCR 文本"
+    assert row["text"] == "# OCR text"
     assert row["ocr_profile"] == "hosted-vlm-direct-ocr-v1"
     assert row["text_mime_type"] == "text/markdown"
     assert row["model"] == "test/ocr-model"
@@ -152,4 +152,77 @@ def test_image_ocr_jsonl_adapter_blocks_source_hash_drift(tmp_path: Path) -> Non
     assert report["succeeded_count"] == 0
     assert report["failed_count"] == 1
     assert "sha256 drift" in report["errors"][0]
+    assert output_jsonl.read_text(encoding="utf-8") == ""
+
+
+def test_image_ocr_jsonl_adapter_blocks_corpus_path_escape(tmp_path: Path) -> None:
+    corpus_root = tmp_path / "corpus"
+    outside_path = tmp_path / "outside" / "a.jpg"
+    outside_path.parent.mkdir(parents=True)
+    image_bytes = b"\xff\xd8outside-jpeg\xff\xd9"
+    outside_path.write_bytes(image_bytes)
+    tasks_path = tmp_path / "run" / "tasks.tsv"
+    _write_tasks(
+        tasks_path,
+        source_sha256=hashlib.sha256(image_bytes).hexdigest(),
+        relative_path="../outside/a.jpg",
+    )
+    output_jsonl = tmp_path / "run" / "ocr_results.jsonl"
+
+    def unexpected_sender(
+        completion_url: str,
+        headers: dict[str, str],
+        timeout_seconds: float,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        raise AssertionError("OCR request should not be sent on path escape")
+
+    report = run_image_ocr_jsonl_tasks(
+        tasks_path=tasks_path,
+        corpus_root=corpus_root,
+        output_jsonl_path=output_jsonl,
+        config=_config(),
+        send_request=unexpected_sender,
+    )
+
+    assert report["passed"] is False
+    assert report["succeeded_count"] == 0
+    assert "escapes corpus root" in report["errors"][0]
+    assert output_jsonl.read_text(encoding="utf-8") == ""
+
+
+def test_image_ocr_jsonl_adapter_blocks_corpus_path_escape(tmp_path: Path) -> None:
+    corpus_root = tmp_path / "corpus"
+    outside_path = tmp_path / "outside" / "a.jpg"
+    outside_path.parent.mkdir(parents=True)
+    image_bytes = b"\xff\xd8outside-jpeg\xff\xd9"
+    outside_path.write_bytes(image_bytes)
+    tasks_path = tmp_path / "run" / "tasks.tsv"
+    _write_tasks(
+        tasks_path,
+        source_sha256=hashlib.sha256(image_bytes).hexdigest(),
+        relative_path="../outside/a.jpg",
+    )
+    output_jsonl = tmp_path / "run" / "ocr_results.jsonl"
+
+    def unexpected_sender(
+        completion_url: str,
+        headers: dict[str, str],
+        timeout_seconds: float,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        raise AssertionError("OCR request should not be sent on path escape")
+
+    report = run_image_ocr_jsonl_tasks(
+        tasks_path=tasks_path,
+        corpus_root=corpus_root,
+        output_jsonl_path=output_jsonl,
+        config=_config(),
+        send_request=unexpected_sender,
+    )
+
+    assert report["passed"] is False
+    assert report["succeeded_count"] == 0
+    assert report["failed_count"] == 1
+    assert "escapes corpus root" in report["errors"][0]
     assert output_jsonl.read_text(encoding="utf-8") == ""

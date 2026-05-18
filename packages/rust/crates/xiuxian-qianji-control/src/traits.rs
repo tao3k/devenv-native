@@ -1,8 +1,9 @@
 //! Storage and gate traits for the control plane.
 
 use crate::{
-    ControlEvent, ControlEventRecord, ControlResult, GateResult, RunId, RunView, RunnableStep,
-    StepLease, StepView, WorkerHeartbeat, WorkerId, WorkerRef,
+    ControlEvent, ControlEventRecord, ControlResult, GateResult, RunId, RunRecoveryPlan,
+    RunRecoverySnapshot, RunView, RunnableStep, StepLease, StepView, WorkerHeartbeat, WorkerId,
+    WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -29,6 +30,35 @@ pub trait ControlLedger: Send + Sync {
     /// Returns a control error when records cannot be loaded or replayed.
     fn load_run_view(&self, run_id: &RunId) -> ControlResult<RunView> {
         crate::replay_run_view(self.load_events(run_id)?)
+    }
+
+    /// Loads and projects one run recovery plan from durable history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded, replayed, or
+    /// projected through recovery retry-policy evaluation.
+    fn load_recovery_plan(&self, run_id: &RunId, now_ms: u64) -> ControlResult<RunRecoveryPlan> {
+        Ok(self
+            .load_run_view(run_id)?
+            .recovery_view(now_ms)?
+            .recovery_plan())
+    }
+
+    /// Loads one run recovery snapshot from durable history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded, replayed, or
+    /// projected through recovery retry-policy evaluation.
+    fn load_recovery_snapshot(
+        &self,
+        run_id: &RunId,
+        now_ms: u64,
+    ) -> ControlResult<RunRecoverySnapshot> {
+        Ok(RunRecoverySnapshot::from_view(
+            self.load_run_view(run_id)?.recovery_view(now_ms)?,
+        ))
     }
 }
 

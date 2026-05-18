@@ -3,9 +3,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    ArtifactRef, Budget, ControlError, ControlEventKind, ControlEventRecord, ControlResult,
-    CostObservation, EvidenceRef, GateResult, RecoveryAttempt, RunId, RunStatus, StepId, StepLease,
-    StepStatus, WaitReason,
+    ActivityFailure, ActivityId, ActivityResult, ActivityTask, AgentDecision, AgentDecisionId,
+    AgentProposal, AgentProposalId, ArtifactRef, Budget, ControlError, ControlEventKind,
+    ControlEventRecord, ControlResult, CostObservation, EvidenceRef, GateResult, RecoveryAttempt,
+    RunId, RunStatus, SignalRecord, StepId, StepLease, StepStatus, TimerId, TimerRecord,
+    VersionKey, VersionPin, WaitReason, WorkerId,
 };
 
 /// Current replayed view of one run.
@@ -30,9 +32,129 @@ pub struct RunView {
     /// Run-level cost observations.
     #[serde(default)]
     pub cost_observations: Vec<CostObservation>,
+    /// Run-scoped activities by activity id.
+    #[serde(default)]
+    pub activities: BTreeMap<ActivityId, ActivityView>,
+    /// Run-scoped Agent proposals by proposal id.
+    #[serde(default)]
+    pub agent_proposals: BTreeMap<AgentProposalId, AgentProposal>,
+    /// Run-scoped Agent decisions by decision id.
+    #[serde(default)]
+    pub agent_decisions: BTreeMap<AgentDecisionId, AgentDecision>,
+    /// Run-scoped received signals.
+    #[serde(default)]
+    pub signals: Vec<SignalRecord>,
+    /// Run-scoped timers by timer id.
+    #[serde(default)]
+    pub timers: BTreeMap<TimerId, TimerView>,
+    /// Run-scoped deterministic version pins.
+    #[serde(default)]
+    pub version_pins: BTreeMap<VersionKey, VersionPin>,
     /// Last update timestamp.
     #[serde(default)]
     pub updated_at_ms: u64,
+}
+
+/// Activity lifecycle status reconstructed from journal events.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ActivityStatus {
+    /// Activity has not been scheduled.
+    #[default]
+    Pending,
+    /// Activity task was scheduled.
+    Scheduled,
+    /// Activity worker started an attempt.
+    Started,
+    /// Activity completed successfully.
+    Completed,
+    /// Activity failed.
+    Failed,
+}
+
+/// Replayed view of one activity.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ActivityView {
+    /// Activity id.
+    pub activity_id: ActivityId,
+    /// Activity lifecycle status.
+    pub status: ActivityStatus,
+    /// Scheduled task details, when known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task: Option<ActivityTask>,
+    /// Worker that started the latest attempt, when known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worker_id: Option<WorkerId>,
+    /// Latest observed attempt number.
+    #[serde(default)]
+    pub attempt: u32,
+    /// Successful result, when completed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<ActivityResult>,
+    /// Failure payload, when failed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure: Option<ActivityFailure>,
+    /// Last update timestamp.
+    #[serde(default)]
+    pub updated_at_ms: u64,
+}
+
+impl ActivityView {
+    fn new(activity_id: ActivityId) -> Self {
+        Self {
+            activity_id,
+            status: ActivityStatus::Pending,
+            task: None,
+            worker_id: None,
+            attempt: 0,
+            result: None,
+            failure: None,
+            updated_at_ms: 0,
+        }
+    }
+}
+
+/// Timer lifecycle status reconstructed from journal events.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TimerStatus {
+    /// Timer has not been scheduled.
+    #[default]
+    Pending,
+    /// Timer is waiting to fire.
+    Scheduled,
+    /// Timer fired.
+    Fired,
+}
+
+/// Replayed view of one durable timer.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct TimerView {
+    /// Timer id.
+    pub timer_id: TimerId,
+    /// Timer lifecycle status.
+    pub status: TimerStatus,
+    /// Scheduled timer details, when known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timer: Option<TimerRecord>,
+    /// Fire timestamp, when fired.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fired_at_ms: Option<u64>,
+    /// Last update timestamp.
+    #[serde(default)]
+    pub updated_at_ms: u64,
+}
+
+impl TimerView {
+    fn new(timer_id: TimerId) -> Self {
+        Self {
+            timer_id,
+            status: TimerStatus::Pending,
+            timer: None,
+            fired_at_ms: None,
+            updated_at_ms: 0,
+        }
+    }
 }
 
 /// Current replayed view of one step.
@@ -66,6 +188,24 @@ pub struct StepView {
     /// Cost observations.
     #[serde(default)]
     pub cost_observations: Vec<CostObservation>,
+    /// Step-scoped activities by activity id.
+    #[serde(default)]
+    pub activities: BTreeMap<ActivityId, ActivityView>,
+    /// Step-scoped Agent proposals by proposal id.
+    #[serde(default)]
+    pub agent_proposals: BTreeMap<AgentProposalId, AgentProposal>,
+    /// Step-scoped Agent decisions by decision id.
+    #[serde(default)]
+    pub agent_decisions: BTreeMap<AgentDecisionId, AgentDecision>,
+    /// Step-scoped received signals.
+    #[serde(default)]
+    pub signals: Vec<SignalRecord>,
+    /// Step-scoped timers by timer id.
+    #[serde(default)]
+    pub timers: BTreeMap<TimerId, TimerView>,
+    /// Step-scoped deterministic version pins.
+    #[serde(default)]
+    pub version_pins: BTreeMap<VersionKey, VersionPin>,
     /// Gate results.
     #[serde(default)]
     pub gate_results: Vec<GateResult>,
@@ -93,6 +233,12 @@ impl StepView {
             evidence: Vec::new(),
             artifacts: Vec::new(),
             cost_observations: Vec::new(),
+            activities: BTreeMap::new(),
+            agent_proposals: BTreeMap::new(),
+            agent_decisions: BTreeMap::new(),
+            signals: Vec::new(),
+            timers: BTreeMap::new(),
+            version_pins: BTreeMap::new(),
             gate_results: Vec::new(),
             recovery_attempts: Vec::new(),
             last_error: None,
@@ -131,6 +277,12 @@ impl RunView {
             steps: BTreeMap::new(),
             artifacts: Vec::new(),
             cost_observations: Vec::new(),
+            activities: BTreeMap::new(),
+            agent_proposals: BTreeMap::new(),
+            agent_decisions: BTreeMap::new(),
+            signals: Vec::new(),
+            timers: BTreeMap::new(),
+            version_pins: BTreeMap::new(),
             updated_at_ms: 0,
         }
     }
@@ -203,6 +355,56 @@ fn apply_run_event(view: &mut RunView, kind: ControlEventKind) -> ControlResult<
         }
         ControlEventKind::RunAdmitted => view.status = RunStatus::Admitted,
         ControlEventKind::PlanRecorded { .. } => view.status = RunStatus::Planned,
+        ControlEventKind::ActivityScheduled { task } => {
+            apply_activity_scheduled(&mut view.activities, task, view.updated_at_ms);
+        }
+        ControlEventKind::AgentProposalRecorded { proposal } => {
+            view.agent_proposals
+                .insert(proposal.proposal_id.clone(), proposal);
+        }
+        ControlEventKind::AgentDecisionRecorded { decision } => {
+            view.agent_decisions
+                .insert(decision.decision_id.clone(), decision);
+        }
+        ControlEventKind::ActivityStarted {
+            activity_id,
+            worker_id,
+            attempt,
+        } => apply_activity_started(
+            &mut view.activities,
+            activity_id,
+            worker_id,
+            attempt,
+            view.updated_at_ms,
+        ),
+        ControlEventKind::ActivityCompleted {
+            activity_id,
+            result,
+        } => apply_activity_completed(
+            &mut view.activities,
+            activity_id,
+            result,
+            view.updated_at_ms,
+        ),
+        ControlEventKind::ActivityFailed {
+            activity_id,
+            failure,
+        } => apply_activity_failed(
+            &mut view.activities,
+            activity_id,
+            failure,
+            view.updated_at_ms,
+        ),
+        ControlEventKind::SignalReceived { signal } => view.signals.push(signal),
+        ControlEventKind::TimerScheduled { timer } => {
+            apply_timer_scheduled(&mut view.timers, timer, view.updated_at_ms);
+        }
+        ControlEventKind::TimerFired { timer_id } => {
+            apply_timer_fired(&mut view.timers, timer_id, view.updated_at_ms);
+        }
+        ControlEventKind::VersionPinned { pin } => {
+            view.version_pins.insert(pin.version_key.clone(), pin);
+        }
         ControlEventKind::ArtifactAttached { artifact } => view.artifacts.push(artifact),
         ControlEventKind::CostObserved { observation } => view.cost_observations.push(observation),
         ControlEventKind::RecoveryStarted { .. } => view.status = RunStatus::Recovering,
@@ -242,18 +444,60 @@ fn apply_step_event(step: &mut StepView, kind: ControlEventKind) {
             step.status = StepStatus::Queued;
         }
         ControlEventKind::StepStarted => step.status = StepStatus::Running,
-        ControlEventKind::StepWaiting { reason } => {
-            step.wait_reason = Some(reason);
-            step.status = StepStatus::Waiting;
-        }
+        ControlEventKind::StepWaiting { reason } => apply_step_waiting(step, reason),
         ControlEventKind::ArtifactAttached { artifact } => step.artifacts.push(artifact),
         ControlEventKind::EvidenceAttached { evidence } => step.evidence.push(evidence),
         ControlEventKind::CostObserved { observation } => step.cost_observations.push(observation),
-        ControlEventKind::GateEvaluated { result } => step.gate_results.push(result),
-        ControlEventKind::RecoveryStarted { attempt } => {
-            step.recovery_attempts.push(attempt);
-            step.status = StepStatus::Recovering;
+        ControlEventKind::ActivityScheduled { task } => {
+            apply_activity_scheduled(&mut step.activities, task, step.updated_at_ms);
         }
+        ControlEventKind::AgentProposalRecorded { proposal } => {
+            record_step_agent_proposal(step, proposal);
+        }
+        ControlEventKind::AgentDecisionRecorded { decision } => {
+            record_step_agent_decision(step, decision);
+        }
+        ControlEventKind::ActivityStarted {
+            activity_id,
+            worker_id,
+            attempt,
+        } => apply_activity_started(
+            &mut step.activities,
+            activity_id,
+            worker_id,
+            attempt,
+            step.updated_at_ms,
+        ),
+        ControlEventKind::ActivityCompleted {
+            activity_id,
+            result,
+        } => apply_activity_completed(
+            &mut step.activities,
+            activity_id,
+            result,
+            step.updated_at_ms,
+        ),
+        ControlEventKind::ActivityFailed {
+            activity_id,
+            failure,
+        } => apply_activity_failed(
+            &mut step.activities,
+            activity_id,
+            failure,
+            step.updated_at_ms,
+        ),
+        ControlEventKind::SignalReceived { signal } => step.signals.push(signal),
+        ControlEventKind::TimerScheduled { timer } => {
+            apply_timer_scheduled(&mut step.timers, timer, step.updated_at_ms);
+        }
+        ControlEventKind::TimerFired { timer_id } => {
+            apply_timer_fired(&mut step.timers, timer_id, step.updated_at_ms);
+        }
+        ControlEventKind::VersionPinned { pin } => {
+            step.version_pins.insert(pin.version_key.clone(), pin);
+        }
+        ControlEventKind::GateEvaluated { result } => step.gate_results.push(result),
+        ControlEventKind::RecoveryStarted { attempt } => apply_step_recovery_started(step, attempt),
         ControlEventKind::StepSucceeded => step.status = StepStatus::Succeeded,
         ControlEventKind::StepFailed { message, .. } => {
             step.last_error = Some(message);
@@ -277,4 +521,117 @@ fn apply_step_event(step: &mut StepView, kind: ControlEventKind) {
         | ControlEventKind::RunBlocked { .. }
         | ControlEventKind::RunAborted { .. } => {}
     }
+}
+
+fn apply_step_waiting(step: &mut StepView, reason: WaitReason) {
+    step.wait_reason = Some(reason);
+    step.status = StepStatus::Waiting;
+}
+
+fn record_step_agent_proposal(step: &mut StepView, proposal: AgentProposal) {
+    step.agent_proposals
+        .insert(proposal.proposal_id.clone(), proposal);
+}
+
+fn record_step_agent_decision(step: &mut StepView, decision: AgentDecision) {
+    step.agent_decisions
+        .insert(decision.decision_id.clone(), decision);
+}
+
+fn apply_step_recovery_started(step: &mut StepView, attempt: RecoveryAttempt) {
+    step.recovery_attempts.push(attempt);
+    step.status = StepStatus::Recovering;
+}
+
+fn apply_activity_scheduled(
+    activities: &mut BTreeMap<ActivityId, ActivityView>,
+    task: ActivityTask,
+    occurred_at_ms: u64,
+) {
+    let activity = activities
+        .entry(task.activity_id.clone())
+        .or_insert_with(|| ActivityView::new(task.activity_id.clone()));
+    activity.task = Some(task);
+    activity.status = ActivityStatus::Scheduled;
+    activity.worker_id = None;
+    activity.attempt = 0;
+    activity.result = None;
+    activity.failure = None;
+    activity.updated_at_ms = activity.updated_at_ms.max(occurred_at_ms);
+}
+
+fn apply_activity_started(
+    activities: &mut BTreeMap<ActivityId, ActivityView>,
+    activity_id: ActivityId,
+    worker_id: Option<WorkerId>,
+    attempt: u32,
+    occurred_at_ms: u64,
+) {
+    let activity = activities
+        .entry(activity_id.clone())
+        .or_insert_with(|| ActivityView::new(activity_id));
+    activity.status = ActivityStatus::Started;
+    activity.worker_id = worker_id;
+    activity.attempt = attempt;
+    activity.result = None;
+    activity.failure = None;
+    activity.updated_at_ms = activity.updated_at_ms.max(occurred_at_ms);
+}
+
+fn apply_activity_completed(
+    activities: &mut BTreeMap<ActivityId, ActivityView>,
+    activity_id: ActivityId,
+    result: ActivityResult,
+    occurred_at_ms: u64,
+) {
+    let activity = activities
+        .entry(activity_id.clone())
+        .or_insert_with(|| ActivityView::new(activity_id));
+    activity.status = ActivityStatus::Completed;
+    activity.result = Some(result);
+    activity.failure = None;
+    activity.updated_at_ms = activity.updated_at_ms.max(occurred_at_ms);
+}
+
+fn apply_activity_failed(
+    activities: &mut BTreeMap<ActivityId, ActivityView>,
+    activity_id: ActivityId,
+    failure: ActivityFailure,
+    occurred_at_ms: u64,
+) {
+    let activity = activities
+        .entry(activity_id.clone())
+        .or_insert_with(|| ActivityView::new(activity_id));
+    activity.status = ActivityStatus::Failed;
+    activity.attempt = failure.attempt;
+    activity.result = None;
+    activity.failure = Some(failure);
+    activity.updated_at_ms = activity.updated_at_ms.max(occurred_at_ms);
+}
+
+fn apply_timer_scheduled(
+    timers: &mut BTreeMap<TimerId, TimerView>,
+    timer: TimerRecord,
+    occurred_at_ms: u64,
+) {
+    let timer_view = timers
+        .entry(timer.timer_id.clone())
+        .or_insert_with(|| TimerView::new(timer.timer_id.clone()));
+    timer_view.timer = Some(timer);
+    timer_view.status = TimerStatus::Scheduled;
+    timer_view.fired_at_ms = None;
+    timer_view.updated_at_ms = timer_view.updated_at_ms.max(occurred_at_ms);
+}
+
+fn apply_timer_fired(
+    timers: &mut BTreeMap<TimerId, TimerView>,
+    timer_id: TimerId,
+    occurred_at_ms: u64,
+) {
+    let timer_view = timers
+        .entry(timer_id.clone())
+        .or_insert_with(|| TimerView::new(timer_id));
+    timer_view.status = TimerStatus::Fired;
+    timer_view.fired_at_ms = Some(occurred_at_ms);
+    timer_view.updated_at_ms = timer_view.updated_at_ms.max(occurred_at_ms);
 }

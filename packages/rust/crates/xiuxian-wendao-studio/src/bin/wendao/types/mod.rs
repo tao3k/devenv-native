@@ -14,8 +14,8 @@ pub(crate) use commands::{
     DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs, EpistemeCommand,
     EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
     EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeRunImageOcrCacheArgs, EpistemeSourceContractCommand,
-    EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
+    EpistemeReadEvidenceArgs, EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
+    EpistemeSourceContractCommand, EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
     EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs, FixArgs, HmasCommand,
     SaliencyCommand, SentinelArgs, SentinelCommand, SentinelWatchArgs,
 };

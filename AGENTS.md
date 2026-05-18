@@ -36,7 +36,7 @@ As a deeply pragmatic, effective software engineer, you are guided by:
   notes MUST NOT link to hidden workspace paths such as `$PRJ_DATA_HOME/*`,
   `$PRJ_CACHE_HOME/*`, or `$PRJ_RUNTIME_DIR/*`. Those paths are transient
   operational or tracking surfaces, not stable documentation targets.
-- **Tracking-surface exception**: ExecPlans, daily GTD entries, and similar task-tracking records may mention active blueprint or ExecPlan paths for continuity, but canonical docs must point to stable RFC, package-doc, or README surfaces instead.
+- **Tracking-surface exception**: ExecPlans, Org agenda/task entries, and similar task-tracking records may mention active blueprint or ExecPlan paths for continuity, but canonical docs must point to stable RFC, package-doc, or README surfaces instead.
 - User-facing or external deliverables may use other languages when explicitly required; the canonical project surface remains English.
 
 ## 3. Incremental Evolution Protocol (循序渐进演化协议)
@@ -100,8 +100,8 @@ text.
 
 When no dedicated `PRJ_*` variable exists for a repository surface, derive the
 path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
-`$PRJ_ROOT/.agent/PLANS.md`, `$PRJ_ROOT/.agent/blueprints/_template.md`,
-`$PRJ_CACHE_HOME/agent/GTD/DAILY_YYYY_MM_DD.md`, and
+`$PRJ_ROOT/.agent/PLANS.md`, `$PRJ_ROOT/.agent/blueprints/_template.org`,
+`$PRJ_CACHE_HOME/agent/org/agenda.org`, and
 `$PRJ_ROOT/packages/<scope>/<package>/docs/`.
 
 ## 7. Protocol Hygiene & Message Integrity
@@ -160,10 +160,26 @@ path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
 - **[TIER-2: HEARTBEAT]** (`cargo check`, `pyright`): Primary coding-phase verification.
 - **[TIER-3: GATE]** (`cargo clippy --all-targets --all-features -- -D warnings`, `cargo nextest`): High-energy industrial audit, executed only for `[DONE]`/fully landed features.
 
-# ExecPlans
+# ExecPlans and Org Task Tracking
 
 When writing complex features or significant refactors, use an ExecPlan (as
 described in `$PRJ_ROOT/.agent/PLANS.md`) from design to implementation.
+
+Org is the authoritative active task-management surface for agents. Use native
+Org syntax for implementation state:
+
+1. `TODO`, `NEXT`, `WAITING`, `DONE`, and `CANCELLED` lifecycle keywords.
+2. `SCHEDULED`, `DEADLINE`, and `CLOSED` planning timestamps when timing
+   matters.
+3. `:PROPERTIES:` drawers for machine-readable links to the governing
+   blueprint, ExecPlan, stable RFC/doc references, package scope, evidence
+   paths, and current slice.
+
+The default active ledger is `$PRJ_CACHE_HOME/agent/org/agenda.org`. Larger
+lanes MAY use `$PRJ_CACHE_HOME/agent/org/<slug>.org` when the main agenda links
+or includes the lane file.
+Do not create GTD or DAILY tracking files. Use native Org timestamps and
+task-local recovery queries instead.
 
 ## Blueprint Adherence
 
@@ -172,11 +188,14 @@ MUST have both:
 
 1. an active strategic blueprint under `$PRJ_CACHE_HOME/agent/blueprints/`
 2. an active ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/`
+3. an active Org task record under `$PRJ_CACHE_HOME/agent/org/`
 
 The blueprint is the durable architectural contract for the lane. The ExecPlan
 is the task-local execution record for one bounded slice under that contract.
+The Org task record is the live schedule/status surface for the active agent
+work item.
 Agents MUST create the blueprint first when no matching blueprint exists yet,
-then create the ExecPlan for the current slice.
+then create the ExecPlan and Org task record for the current slice.
 
 - **Relationship Rule**: A blueprint and an ExecPlan are paired artifacts for
   complex work. Every active ExecPlan MUST cite its governing blueprint path.
@@ -185,49 +204,106 @@ then create the ExecPlan for the current slice.
   blueprint first.
 - **Governance Location**: Blueprint governance and templates belong under
   `$PRJ_ROOT/.agent/`. ExecPlan governance lives in
-  `$PRJ_ROOT/.agent/PLANS.md`, and the blueprint template lives at
-  `$PRJ_ROOT/.agent/blueprints/_template.md`.
-- **Template-Governed Adaptation Rule**: `$PRJ_ROOT/.agent/blueprints/_template.md` is
-  the normative blueprint specification. Every newly created blueprint MUST
-  start from that template and then be enhanced, tightened, or extended for the
-  specific task. Agents MAY add task-specific sections, decision records,
-  evidence requirements, or boundary clarifications, but MUST preserve the
-  template's architecture-design intent and core required sections. Do not use
-  the template as a rigid copy exercise, and do not invent ad hoc blueprint
-  formats that bypass it.
+  `$PRJ_ROOT/.agent/PLANS.md`, and the tracking templates live at
+  `$PRJ_ROOT/.agent/blueprints/_template.org`,
+  `$PRJ_ROOT/.agent/execplans/_template.org`, and
+  `$PRJ_ROOT/.agent/org/_task_template.org`.
+- **Template-Governed Adaptation Rule**: `$PRJ_ROOT/.agent/blueprints/_template.org`
+  and `$PRJ_ROOT/.agent/execplans/_template.org` are the normative Org
+  tracking specifications. Every newly created blueprint and ExecPlan MUST
+  start from the corresponding Org template and then be enhanced, tightened, or
+  extended for the specific task. Agents MAY add task-specific sections,
+  decision records, evidence requirements, or boundary clarifications, but MUST
+  preserve the template's architecture-design intent and core required
+  sections. Do not use the template as a rigid copy exercise, and do not invent
+  ad hoc tracking formats that bypass it.
 - **Tracking Location**: Generated or actively maintained blueprint files
   belong under `$PRJ_CACHE_HOME/agent/blueprints/` for ongoing architectural
   tracking. Active ExecPlans stay under `$PRJ_CACHE_HOME/agent/execplans/`.
+  Active Org task records stay under `$PRJ_CACHE_HOME/agent/org/`.
 - **Lifecycle Rule**: Active blueprints stay under `$PRJ_CACHE_HOME/agent/blueprints/`.
   Once a blueprint's governed workstream is fully implemented and accepted,
   move it to `$PRJ_CACHE_HOME/agent/blueprints/archives/`. Active ExecPlans stay under
   `$PRJ_CACHE_HOME/agent/execplans/`. Once an ExecPlan's slice is `[DONE]` and
-  validated, move it to `$PRJ_CACHE_HOME/agent/execplans/archives/`.
+  validated, move it to `$PRJ_CACHE_HOME/agent/execplans/archives/`. Once an
+  Org task is complete, mark the heading `DONE`, record `CLOSED`, and record
+  validation evidence. Completed task headings may remain in the ledger as
+  lane index entries, but routine completed headings should move to
+  `$PRJ_CACHE_HOME/agent/org/archives/YYYY.org` so active recovery stays small.
 - **Selection Rule**: The applicable blueprint is task-scoped. Agents MUST
   identify the relevant blueprint file under `$PRJ_CACHE_HOME/agent/blueprints/`.
   If none exists for the lane, Agents MUST create one before opening the
-  ExecPlan and record that path in the ExecPlan or other tracking record, not
-  in canonical docs.
+  ExecPlan and record that path in the ExecPlan and Org task record, not in
+  canonical docs.
 - **Canonical Documentation Boundary**: Persistent documentation may describe the governing blueprint or ExecPlan conceptually, but it MUST NOT link directly to hidden tracking paths. Use stable RFC or package-doc references in canonical docs and keep the exact hidden-path reference in the active tracking record.
 
 ## Holistic Evolution Workflow
 
-All structural changes must follow the **Triple-Sync Protocol**:
+All structural changes must follow the **Blueprint / Org / ExecPlan Sync
+Protocol**:
 
 1.  **Blueprint Check**: Verify if the task falls under an active strategic blueprint.
     Record the exact blueprint path in the ExecPlan. If multiple blueprints
     apply, record the primary blueprint and the bounded secondary references.
     If no blueprint exists yet for the lane, create the blueprint first from
-    `$PRJ_ROOT/.agent/blueprints/_template.md` under
+    `$PRJ_ROOT/.agent/blueprints/_template.org` under
     `$PRJ_CACHE_HOME/agent/blueprints/`, adapt it to the architecture and
     risks of the current task, then record that new blueprint path in the
     ExecPlan before implementation.
-2.  **GTD + Package Docs Synchronization**: Update the daily GTD file
-    (`$PRJ_CACHE_HOME/agent/GTD/DAILY_YYYY_MM_DD.md`) and synchronize progress in the
-    corresponding package docs (for example
+2.  **Org Task Synchronization**: Create or update the active Org task record
+    under `$PRJ_CACHE_HOME/agent/org/`. The Org heading owns current task
+    lifecycle state, timing markers, and task-local metadata. Use property
+    drawer fields such as `BLUEPRINT`, `EXECPLAN`, `STABLE_REF`, `PACKAGE`,
+    `SLICE`, `STATUS`, and `EVIDENCE` when they apply.
+3.  **ExecPlan Creation**: Create a formal ExecPlan
+    (`$PRJ_CACHE_HOME/agent/execplans/<slug>.org`) that explicitly references
+    the governing blueprint path and active Org task path, defines the current
+    slice, and records any bounded deviations before implementation.
+4.  **Package Docs Synchronization**: Synchronize durable status in the
+    corresponding package docs when the implementation changes package
+    ownership, public behavior, or operator workflow (for example
     `$PRJ_ROOT/packages/<scope>/<package>/docs/` or the package
     `$PRJ_ROOT/packages/<scope>/<package>/README.md`) so package-level
     documentation tracks real implementation status.
-3.  **ExecPlan Creation**: Create a formal ExecPlan (`$PRJ_CACHE_HOME/agent/execplans/<slug>.md`) that explicitly references the governing blueprint path, defines the current slice, and records any bounded deviations before implementation.
-4.  **Implementation**: Execute implementation and validation steps as defined in the plan.
-    When the slice reaches `[DONE]` and validation is complete, archive the completed ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/archives/`. Archive the blueprint under `$PRJ_CACHE_HOME/agent/blueprints/archives/` only when its full governed workstream is complete.
+5.  **Implementation**: Execute implementation and validation steps as defined in the plan.
+    When the slice reaches `[DONE]` and validation is complete, archive the completed ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/archives/`. Archive the blueprint under `$PRJ_CACHE_HOME/agent/blueprints/archives/` only when its full governed workstream is complete. Mark the Org task `DONE`, add `CLOSED`, and either keep it as a lane index or move it to the Org archive file for the year.
+
+## Org Recovery and Archive Protocol
+
+At the start of a resumed Codex turn, recover active work from Org before
+depending on chat history:
+
+`wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
+
+For calendar-oriented recovery, use:
+
+`wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org`.
+
+For one lane or package, use:
+
+`wendao-client orgize sparse-tree --text '<lane-or-package>' --exclude-done $PRJ_CACHE_HOME/agent/org`.
+
+When a slice is completed, record evidence in the Org heading, update the
+paired ExecPlan outcome, and keep active queries clean by relying on
+`--exclude-done` or moving the task to
+`$PRJ_CACHE_HOME/agent/org/archives/YYYY.org`. Completed achievements that
+should remain queryable should carry an `achievement` tag and can be reviewed
+with:
+
+`wendao-client orgize sparse-tree --match '+agent+achievement' --include-archived --include-done $PRJ_CACHE_HOME/agent/org`.
+
+## Orgize Validation
+
+Agent tracking files use native Org syntax so they can be linted and queried
+through the installed Wendao client from the project environment. Install or
+refresh the client with `direnv exec . just install-wendao-client`. The stable
+project entrypoint is `wendao-client`.
+When an agent changes files under `$PRJ_CACHE_HOME/agent/org/`,
+`$PRJ_CACHE_HOME/agent/blueprints/`, or `$PRJ_CACHE_HOME/agent/execplans/`, it
+SHOULD run the relevant orgize-backed lint or query command before marking the
+tracking change complete. For syntax validation, use:
+`wendao-client orgize lint --format compact <path>`.
+For task schedule lookup, use:
+`wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
+For task-local sparse-tree lookup, use:
+`wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.

@@ -1,12 +1,7 @@
-use std::path::Path;
-
 use super::{
-    absolute_runtime_path, image_ocr_analyzer_command_spec, image_ocr_cache_bridge_command_spec,
+    Path, absolute_runtime_path, docling_document_analyzer_command_spec, expected_args,
+    image_ocr_analyzer_command_spec,
 };
-
-fn expected_args(values: &[&str]) -> Vec<String> {
-    values.iter().map(|value| (*value).to_string()).collect()
-}
 
 #[test]
 fn image_ocr_analyzer_command_spec_is_queue_keyed_jsonl() {
@@ -34,34 +29,35 @@ fn image_ocr_analyzer_command_spec_is_queue_keyed_jsonl() {
 }
 
 #[test]
-fn image_ocr_cache_bridge_command_spec_preserves_no_promotion_bridge() {
-    let spec = image_ocr_cache_bridge_command_spec(
-        "python",
+fn docling_document_analyzer_command_spec_is_queue_keyed_jsonl() {
+    let spec = docling_document_analyzer_command_spec(
+        "wendao-docling-document-jsonl",
         Path::new("/episteme"),
-        Path::new("/episteme/tools/run_extraction_plan.py"),
         Path::new("/episteme/runs/extraction/seed/tasks.tsv"),
         Path::new("/corpus"),
-        Path::new("/episteme/runs/extraction/seed/ocr_results.jsonl"),
+        Path::new("/episteme/runs/extraction/seed/document_results.jsonl"),
+        "full",
     );
 
-    assert_eq!(spec.program, "python");
+    assert_eq!(spec.program, "wendao-docling-document-jsonl");
     assert_eq!(spec.current_dir.as_deref(), Some("/episteme"));
     assert_eq!(
         spec.args,
         expected_args(&[
-            "/episteme/tools/run_extraction_plan.py",
-            "--corpus-root",
-            "/corpus",
             "--tasks",
             "/episteme/runs/extraction/seed/tasks.tsv",
-            "--ocr-results-jsonl",
-            "/episteme/runs/extraction/seed/ocr_results.jsonl",
+            "--corpus-root",
+            "/corpus",
+            "--output-jsonl",
+            "/episteme/runs/extraction/seed/document_results.jsonl",
+            "--profile",
+            "full",
         ])
     );
 }
 
 #[test]
-fn image_ocr_command_paths_are_absolute_for_episteme_current_dir() -> Result<(), String> {
+fn command_paths_are_absolute_for_episteme_current_dir() -> Result<(), String> {
     let current_dir = std::env::current_dir().map_err(|error| error.to_string())?;
 
     assert_eq!(

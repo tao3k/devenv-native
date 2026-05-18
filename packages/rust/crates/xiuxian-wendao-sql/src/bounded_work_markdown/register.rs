@@ -2,13 +2,13 @@
 
 use std::path::Path;
 
-use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};
+use crate::local_relation::{DuckDbLocalRelationEngine, LocalRelationEngine};
 
 use super::discovery::discover_bounded_work_markdown_files;
 use super::rows::{BoundedWorkMarkdownRow, build_rows_for_file};
 use super::schema::{bounded_work_markdown_schema, build_markdown_record_batch};
 
-/// The default `DataFusion` table name for bounded-work markdown retrieval.
+/// The default local relation table name for bounded-work markdown retrieval.
 pub const BOUNDED_WORK_MARKDOWN_TABLE_NAME: &str = "markdown";
 
 pub(super) struct BoundedWorkMarkdownRegistration {
@@ -75,8 +75,8 @@ pub(super) fn register_bounded_work_markdown_table_with_stats(
 /// query engine.
 pub fn bootstrap_bounded_work_markdown_query_engine(
     root: &Path,
-) -> Result<(DataFusionLocalRelationEngine, Vec<BoundedWorkMarkdownRow>), String> {
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+) -> Result<(DuckDbLocalRelationEngine, Vec<BoundedWorkMarkdownRow>), String> {
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory()?;
     let rows = register_bounded_work_markdown_table(&query_engine, root)?;
     Ok((query_engine, rows))
 }

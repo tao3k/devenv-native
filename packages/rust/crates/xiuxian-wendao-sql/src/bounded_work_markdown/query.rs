@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use arrow::record_batch::RecordBatch;
 
-use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};
+use crate::local_relation::{DuckDbLocalRelationEngine, LocalRelationEngine};
 use crate::payload::sql_query_payload_from_record_batches;
 use crate::{SqlQueryMetadata, SqlQueryPayload};
 
@@ -51,7 +51,7 @@ pub async fn query_bounded_work_markdown_payload(
     root: &Path,
     query_text: &str,
 ) -> Result<SqlQueryPayload, String> {
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory()?;
     query_bounded_work_markdown_payload_with_engine(root, query_text, &query_engine).await
 }
 

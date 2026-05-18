@@ -22,6 +22,9 @@ pub(crate) use super::contract_feedback_cli::{
     run_deterministic_rest_docs_contract_feedback, run_scaffold_rest_docs_contract_feedback,
     sanitize_prj_cache_home,
 };
+pub(crate) use super::control_cli::{
+    ControlCliCommand, parse_control_command, run_control_command,
+};
 pub(crate) use super::dir_cli::{
     DirCliCommand, MaterializeCliTarget, ShowCliTarget, parse_dir_command, run_dir_command,
 };

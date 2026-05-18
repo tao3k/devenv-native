@@ -1,8 +1,11 @@
 //! Command runners that coordinate Markdown and semantic lint owners.
 
+#[cfg(feature = "semantic-sql")]
+use crate::lint::SemanticLintArgs;
 use crate::lint::contract::diagnostic_contract;
 use crate::lint::diagnostic::{DiagnosticContext, DiagnosticFacts};
 use crate::lint::discovery::{collect_markdown_files, display_path};
+#[cfg(feature = "semantic-sql")]
 use crate::lint::lifecycle::{
     SemanticLifecyclePlanReport, apply_semantic_lifecycle_plan, semantic_lifecycle_plan_report,
 };
@@ -10,28 +13,38 @@ use crate::lint::policy::{
     collect_file_link_style_facts, lint_directory_link_style_policy, lint_local_target_existence,
     lint_local_target_fragments,
 };
+#[cfg(feature = "semantic-sql")]
 use crate::lint::projection_policy::{
     SemanticProjectionFreshnessPolicyReport, semantic_projection_freshness_policy_report,
 };
 use crate::lint::text_output::render_markdown_lint_text_report;
-use crate::lint::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport, SemanticLintArgs};
+use crate::lint::{MarkdownLintArgs, MarkdownLintFileReport, MarkdownLintReport};
 use crate::{ClientContext, CommandOutcome, OutputFormat};
-use anyhow::{Context, Result, bail};
+#[cfg(feature = "semantic-sql")]
+use anyhow::bail;
+use anyhow::{Context, Result};
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+#[cfg(feature = "semantic-sql")]
+use std::path::Path;
+#[cfg(feature = "semantic-sql")]
+use std::path::PathBuf;
+use xiuxian_wendao_parsers::lint_markdown_syntax_with_path;
+#[cfg(feature = "semantic-sql")]
 use xiuxian_wendao_parsers::{
     SemanticProjectionRefreshPlanReport, SemanticProjectionStaleness, SemanticValidationIssue,
-    lint_markdown_syntax_with_path, load_semantic_repository,
-    semantic_projection_refresh_plan_report, semantic_projection_source_revision,
-    split_frontmatter_raw,
+    load_semantic_repository, semantic_projection_refresh_plan_report,
+    semantic_projection_source_revision, split_frontmatter_raw,
 };
-use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
+#[cfg(feature = "semantic-sql")]
+use xiuxian_wendao_sql::DuckDbLocalRelationEngine;
+#[cfg(feature = "semantic-sql")]
 use xiuxian_wendao_sql::semantic_read_model::{
     SEMANTIC_OBJECTS_TABLE_NAME, SEMANTIC_PROJECTION_STATE_TABLE_NAME,
     SEMANTIC_RELATIONS_TABLE_NAME, SemanticReadModelRows, SemanticSqlGuardEvidence,
     build_semantic_read_model_rows, run_semantic_sql_projection_freshness_guard_with_engine,
 };
 
+#[cfg(feature = "semantic-sql")]
 #[derive(serde::Serialize)]
 pub(crate) struct SemanticLintRootReport {
     pub(crate) root: PathBuf,
@@ -48,6 +61,7 @@ pub(crate) struct SemanticLintRootReport {
     pub(crate) sql_guard: Option<SemanticLintSqlGuardReport>,
 }
 
+#[cfg(feature = "semantic-sql")]
 #[derive(serde::Serialize)]
 pub(crate) struct SemanticLintReport {
     pub(crate) checked_roots: usize,
@@ -64,6 +78,7 @@ pub(crate) struct SemanticLintReport {
     pub(crate) roots: Vec<SemanticLintRootReport>,
 }
 
+#[cfg(feature = "semantic-sql")]
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SemanticLintSqlGuardReport {
@@ -75,6 +90,7 @@ pub(crate) struct SemanticLintSqlGuardReport {
     pub(crate) local_relation_engine: Option<String>,
 }
 
+#[cfg(feature = "semantic-sql")]
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SemanticReadModelSummaryReport {
@@ -165,6 +181,7 @@ pub(crate) fn run_markdown_lint(
     })
 }
 
+#[cfg(feature = "semantic-sql")]
 pub(crate) fn run_semantic_lint(
     args: &SemanticLintArgs,
     context: &ClientContext,
@@ -226,6 +243,7 @@ pub(crate) fn run_semantic_lint(
     )
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_lint_root_report(
     root: &Path,
     args: &SemanticLintArgs,
@@ -266,6 +284,7 @@ fn semantic_lint_root_report(
     })
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_lifecycle_plan_for_lint(
     args: &SemanticLintArgs,
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
@@ -276,6 +295,7 @@ fn semantic_lifecycle_plan_for_lint(
         .then(|| semantic_lifecycle_plan_report(repository))
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_projection_refresh_plan_for_lint(
     args: &SemanticLintArgs,
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
@@ -285,6 +305,7 @@ fn semantic_projection_refresh_plan_for_lint(
     .then(|| semantic_projection_refresh_plan_report(repository))
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_projection_policy_for_lint(
     args: &SemanticLintArgs,
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
@@ -294,6 +315,7 @@ fn semantic_projection_policy_for_lint(
         .then(|| semantic_projection_freshness_policy_report(repository))
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_sql_guard_for_lint(
     args: &SemanticLintArgs,
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
@@ -305,6 +327,7 @@ fn semantic_sql_guard_for_lint(
     Ok(None)
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_read_model_summary_for_lint(
     args: &SemanticLintArgs,
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
@@ -316,6 +339,7 @@ fn semantic_read_model_summary_for_lint(
     Ok(None)
 }
 
+#[cfg(feature = "semantic-sql")]
 fn refresh_semantic_projection_sources(root: &Path) -> Result<usize> {
     let repository = load_semantic_repository(root);
     ensure_projection_refreshable(&repository.report.issues).with_context(|| {
@@ -335,11 +359,13 @@ fn refresh_semantic_projection_sources(root: &Path) -> Result<usize> {
         })
 }
 
+#[cfg(feature = "semantic-sql")]
 struct ProjectionRefresh {
     path: std::path::PathBuf,
     revision: String,
 }
 
+#[cfg(feature = "semantic-sql")]
 fn stale_projection_refresh(
     root: &Path,
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
@@ -354,6 +380,7 @@ fn stale_projection_refresh(
     })
 }
 
+#[cfg(feature = "semantic-sql")]
 fn ensure_projection_refreshable(issues: &[SemanticValidationIssue]) -> Result<()> {
     let blocking_issues = issues
         .iter()
@@ -378,6 +405,7 @@ fn ensure_projection_refreshable(issues: &[SemanticValidationIssue]) -> Result<(
     bail!("semantic repository has non-refreshable issue(s): {rendered}")
 }
 
+#[cfg(feature = "semantic-sql")]
 fn projection_refresh_plan_renderable(issues: &[SemanticValidationIssue]) -> bool {
     issues.iter().all(|issue| {
         issue
@@ -386,6 +414,7 @@ fn projection_refresh_plan_renderable(issues: &[SemanticValidationIssue]) -> boo
     })
 }
 
+#[cfg(feature = "semantic-sql")]
 fn refresh_projection_file(path: &Path, current_revision: &str) -> Result<()> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("failed to read semantic projection `{}`", path.display()))?;
@@ -413,6 +442,7 @@ fn refresh_projection_file(path: &Path, current_revision: &str) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "semantic-sql")]
 fn ensure_projection_frontmatter_mapping(frontmatter: &serde_yaml::Value) -> Result<()> {
     if !frontmatter.is_mapping() {
         bail!("semantic projection frontmatter must be a YAML mapping");
@@ -420,6 +450,7 @@ fn ensure_projection_frontmatter_mapping(frontmatter: &serde_yaml::Value) -> Res
     Ok(())
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_projection_staleness_token(staleness: &SemanticProjectionStaleness) -> &'static str {
     match staleness {
         SemanticProjectionStaleness::Fresh => "fresh",
@@ -427,6 +458,7 @@ fn semantic_projection_staleness_token(staleness: &SemanticProjectionStaleness) 
     }
 }
 
+#[cfg(feature = "semantic-sql")]
 fn render_projection_document_with_updated_frontmatter(
     frontmatter: &str,
     body: &str,
@@ -462,6 +494,7 @@ fn render_projection_document_with_updated_frontmatter(
     )
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_sql_guard_report(
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
 ) -> Result<SemanticLintSqlGuardReport> {
@@ -469,7 +502,7 @@ fn semantic_sql_guard_report(
         .enable_all()
         .build()
         .context("failed to create semantic SQL guard runtime")?;
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory().map_err(anyhow::Error::msg)?;
     let evidence = runtime
         .block_on(run_semantic_sql_projection_freshness_guard_with_engine(
             repository,
@@ -480,6 +513,7 @@ fn semantic_sql_guard_report(
     Ok(semantic_sql_guard_report_from_evidence(&evidence))
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_read_model_summary_report(
     repository: &xiuxian_wendao_parsers::semantic_ssot::SemanticRepository,
 ) -> Result<SemanticReadModelSummaryReport> {
@@ -489,6 +523,7 @@ fn semantic_read_model_summary_report(
     Ok(semantic_read_model_summary_report_from_rows(&rows))
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_read_model_summary_report_from_rows(
     rows: &SemanticReadModelRows,
 ) -> SemanticReadModelSummaryReport {
@@ -512,6 +547,7 @@ fn semantic_read_model_summary_report_from_rows(
     }
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_read_model_table_names() -> Vec<String> {
     vec![
         SEMANTIC_OBJECTS_TABLE_NAME.to_string(),
@@ -520,6 +556,7 @@ fn semantic_read_model_table_names() -> Vec<String> {
     ]
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_sql_guard_report_from_evidence(
     evidence: &SemanticSqlGuardEvidence,
 ) -> SemanticLintSqlGuardReport {
@@ -588,6 +625,7 @@ fn render_json_report(report: &MarkdownLintReport, pretty: bool) -> Result<Strin
     Ok(format!("{rendered}\n"))
 }
 
+#[cfg(feature = "semantic-sql")]
 fn semantic_lint_roots(args: &SemanticLintArgs, context_root: &Path) -> Vec<PathBuf> {
     if args.paths.is_empty() {
         return vec![context_root.join("semantic")];
@@ -604,11 +642,13 @@ fn semantic_lint_roots(args: &SemanticLintArgs, context_root: &Path) -> Vec<Path
         .collect()
 }
 
+#[cfg(feature = "semantic-sql")]
 fn display_semantic_root(root: &Path, context_root: &Path) -> PathBuf {
     root.strip_prefix(context_root)
         .map_or_else(|_| root.to_path_buf(), std::path::Path::to_path_buf)
 }
 
+#[cfg(feature = "semantic-sql")]
 fn emit_semantic_report(report: &SemanticLintReport, output: OutputFormat) -> Result<()> {
     let rendered = match output {
         OutputFormat::Text => super::semantic_render::render_semantic_text_report(report),

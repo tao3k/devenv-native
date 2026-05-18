@@ -7,8 +7,6 @@ use async_trait::async_trait;
 /// Stable internal engine kinds for bounded local relation execution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalRelationEngineKind {
-    /// Request-scoped `DataFusion` execution.
-    DataFusion,
     /// DuckDB-backed execution.
     DuckDb,
 }
@@ -18,7 +16,6 @@ impl LocalRelationEngineKind {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::DataFusion => "datafusion",
             Self::DuckDb => "duckdb",
         }
     }

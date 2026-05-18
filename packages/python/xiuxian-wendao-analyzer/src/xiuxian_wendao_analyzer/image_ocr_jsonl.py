@@ -19,6 +19,7 @@ from .pdf_ocr_ocr2.http import (
     send_completion_request,
 )
 from .pdf_ocr_ocr2.payloads import request_payload
+from .source_contract_paths import resolve_corpus_relative_path
 
 IMAGE_OCR_JSONL_RUN_SCHEMA_VERSION = "xiuxian_wendao.image_ocr_jsonl_run.v1"
 IMAGE_OCR_JSONL_TASK_ROUTE = "image_ocr_evidence"
@@ -54,8 +55,12 @@ def run_image_ocr_jsonl_tasks(
     headers = hosted_vlm_headers(resolved_config)
     for row in tasks:
         queue_id = row["queue_id"]
-        source_path = corpus_root / row["relative_path"]
         try:
+            source_path = resolve_corpus_relative_path(
+                corpus_root=corpus_root,
+                relative_path=row["relative_path"],
+                task_label=f"image OCR task {queue_id}",
+            )
             if not source_path.is_file():
                 raise ValueError(f"source image does not exist: {source_path}")
             source_sha256 = sha256_file(source_path)

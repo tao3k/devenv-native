@@ -67,6 +67,9 @@ pub(crate) fn print_qianji_usage() {
     eprintln!("  Construct: qianji [-v|--log-verbose] construct index [--json]");
     eprintln!("             qianji [-v|--log-verbose] construct show <id> [--json]");
     eprintln!(
+        "  Control:   qianji [-v|--log-verbose] control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms> [--json]"
+    );
+    eprintln!(
         "  Contract:  qianji [-v|--log-verbose] contract-feedback rest-docs <openapi_path> [--workspace-root PATH] [--storage-path PATH] [--table-name NAME] [--role ROLE]... [--no-persist] [--live-advisory] [--model MODEL] [--temperature FLOAT] [--cognitive-threshold FLOAT]"
     );
 }

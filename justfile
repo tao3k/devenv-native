@@ -52,6 +52,10 @@ wendaograph_notebook_html_max_concurrent_runs := env_var_or_default("WENDAOGRAPH
 # Core Commands
 # ==============================================================================
 
+# Install Wendao client into the active Cargo bin directory.
+install-wendao-client:
+    cargo install --path packages/rust/crates/xiuxian-wendao-client --locked --force
+
 # Build WendaoGraph Pluto notebooks as static HTML.
 wendaograph-notebooks-html *args:
     #!/usr/bin/env bash

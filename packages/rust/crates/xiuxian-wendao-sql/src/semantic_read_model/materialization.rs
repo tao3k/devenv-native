@@ -7,7 +7,7 @@ use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
 use xiuxian_wendao_parsers::semantic_ssot::{SemanticRepository, load_semantic_repository};
 
-use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};
+use crate::local_relation::{DuckDbLocalRelationEngine, LocalRelationEngine};
 
 use super::register::{
     SemanticReadModelRegistration, register_semantic_read_model_tables_with_stats,
@@ -325,7 +325,7 @@ pub async fn semantic_read_model_materialization_preflight(
     repository: &SemanticRepository,
     expected_snapshot_revision: Option<&str>,
 ) -> Result<SemanticReadModelMaterializationPreflightReport, String> {
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory()?;
     semantic_read_model_materialization_preflight_with_engine(
         repository,
         expected_snapshot_revision,

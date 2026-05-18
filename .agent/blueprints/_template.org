@@ -1,29 +1,49 @@
-# Blueprint Title
+#+TITLE: Blueprint Title
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:blueprint:
 
-> This file is an architecture blueprint template.
->
-> A blueprint captures the durable architectural design for a workstream: the
-> target shape, governing boundaries, invariants, and approved direction for
-> the next 1-3 slices.
->
-> A blueprint is not an ExecPlan, not a task checklist, and not a change log.
-> If a detail is slice-local, command-oriented, or validation-log oriented, it
-> belongs in `$PRJ_CACHE_HOME/agent/execplans/`, not here.
+* TODO Blueprint Title [0/1] [0%] :blueprint:
+:PROPERTIES:
+:OWNER: <owner-or-team>
+:STATUS: draft
+:WORKSTREAM: name/of/lane_or_architecture_theme
+:GOVERNS: path/or/package
+:TIME_HORIZON: next 1-3 implementation slices only
+:GOVERNING_EXECPLANS: none
+:STABLE_REFS: <repo-relative-stable-reference>
+:COOKIE_DATA: direct
+:NEXT_ACTION: <next-architecture-decision-or-slice>
+:RESUME_QUERY: <blueprint-lane-query>
+:ARCHIVE_TARGET: <archive-target-path>
+:END:
+SCHEDULED: <YYYY-MM-DD Day>
 
-- Owner:
-- Status: draft
-- Workstream:
-  - `name/of/lane_or_architecture_theme`
-- Governs:
-  - `path/or/package`
-- Time horizon:
-  - next 1-3 implementation slices only
-- Governing ExecPlans:
-  - `relative/path/to/active_execplan.md`
-- Related stable references:
-  - `relative/path/to/rfc_or_doc.md`
+This file is an architecture blueprint template.
 
-## 1. Architectural Objective
+A blueprint captures the durable architectural design for a workstream: the
+target shape, governing boundaries, invariants, and approved direction for the
+next 1-3 slices.
+
+A blueprint is not an ExecPlan, not a task checklist, and not a change log. If
+a detail is slice-local, command-oriented, or validation-log oriented, it
+belongs in an ExecPlan under =$PRJ_CACHE_HOME/agent/execplans/=.
+
+** TODO Blueprint Authoring Checklist [0/9] [0%]
+:PROPERTIES:
+:COOKIE_DATA: direct
+:END:
+
+- [ ] Architectural objective is explicit.
+- [ ] Current reality and design drivers are recorded.
+- [ ] Target architecture is concrete.
+- [ ] Responsibilities and ownership are named.
+- [ ] Interfaces and data contracts are stated.
+- [ ] Non-goals prevent scope drift.
+- [ ] Next 1-3 slices are bounded.
+- [ ] Required evidence is testable.
+- [ ] Alignment audit rules are checkable.
+
+** Architectural Objective
 
 Describe the architectural problem this blueprint governs and the durable
 outcome it is meant to secure.
@@ -34,14 +54,14 @@ Record:
 2. what architectural condition must become true
 3. why this belongs in a blueprint instead of only in an ExecPlan
 
-## 2. System Context and Design Drivers
+** System Context and Design Drivers
 
-### 2.1 Current Reality
+*** Current Reality
 
 Describe the current architecture, pain points, or constraints that make this
 blueprint necessary.
 
-### 2.2 Design Drivers
+*** Design Drivers
 
 List the forces that should shape the design. Examples:
 
@@ -49,73 +69,73 @@ List the forces that should shape the design. Examples:
 2. package ownership boundaries
 3. protocol or interface stability
 4. runtime or operational requirements
-5. migration pressure from legacy surfaces
+5. migration pressure from older surfaces
 
-## 3. Target Architecture
+** Target Architecture
 
-### 3.1 Target Shape
+*** Target Shape
 
 Describe the intended architectural shape in durable terms.
 
-### 3.2 Responsibilities and Ownership
+*** Responsibilities and Ownership
 
 State which package, subsystem, or layer owns each major responsibility.
 
-### 3.3 Interfaces and Data Contracts
+*** Interfaces and Data Contracts
 
 Record the stable interfaces, data boundaries, or protocol contracts this
 blueprint expects.
 
-### 3.4 Failure Model and Operational Expectations
+*** Failure Model and Operational Expectations
 
 State the expected failure handling, fallback model, observability, or runtime
 behavior that must remain coherent with the architecture.
 
-## 4. Design Principles and Invariants
+** Design Principles and Invariants
 
 List the non-negotiable architectural rules that every ExecPlan under this
 blueprint must preserve.
 
-### 4.1 Principle / Invariant
+*** Principle / Invariant
 
 State one durable rule and explain why it must remain true.
 
-## 5. Governed Boundaries
+** Governed Boundaries
 
 List what this blueprint explicitly governs.
 
-### 5.1 Ownership Boundaries
+*** Ownership Boundaries
 
 State which team, crate, package, or layer owns which concern.
 
-### 5.2 Protocol Boundaries
+*** Protocol Boundaries
 
 State which interfaces, schemas, or transport surfaces are in scope.
 
-### 5.3 Package or Subsystem Boundaries
+*** Package or Subsystem Boundaries
 
 State the concrete package, module, or service edges that must stay explicit.
 
-### 5.4 Non-Goals
+*** Non-Goals
 
 List what this blueprint does not attempt to solve so later ExecPlans do not
 silently widen scope.
 
-## 6. Key Decisions and Rejected Alternatives
+** Key Decisions and Rejected Alternatives
 
-### 6.1 Chosen Direction
+*** Chosen Direction
 
 Record the primary architectural decision.
 
-### 6.2 Rejected or Deferred Alternatives
+*** Rejected or Deferred Alternatives
 
 Record the main alternatives considered and why they were rejected or deferred.
 
-### 6.3 Revisit Triggers
+*** Revisit Triggers
 
 State the conditions that would justify revisiting the design.
 
-## 7. Immediate Evolution Slices
+** Immediate Evolution Slices
 
 Define the next 1-3 slices this blueprint authorizes.
 
@@ -127,14 +147,14 @@ For each slice, record:
 
 Do not turn this section into a step-by-step execution script.
 
-## 8. Risks, Unknowns, and Required Evidence
+** Risks, Unknowns, and Required Evidence
 
-### 8.1 Risks and Unknowns
+*** Risks and Unknowns
 
 List the architectural risks, open questions, or assumptions that still need
 proof.
 
-### 8.2 Required Evidence
+*** Required Evidence
 
 Record the evidence needed before the architecture can be considered stable.
 
@@ -146,7 +166,7 @@ Examples:
 4. failure-mode validation
 5. package-doc updates
 
-## 9. Alignment Audit Rules
+** Alignment Audit Rules
 
 Record the conditions that must remain true when an ExecPlan or implementation
 claims alignment to this blueprint.
