@@ -188,11 +188,13 @@ gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
 that the effective Valkey checkpoint backend responds to `PING`. Local
 no-server CLI/control workflow state uses the configured DuckDB path by
 default; HTTP remains Valkey-only.
-The generic Qianji control ledger has its own read-only operator surface:
-`qianji control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms>
-[--json]`. It reads the `xiuxian-qianji-control` DuckDB event ledger and
-returns the replay-derived recovery view, ordered recovery plan, and compact
-summary without executing recovery actions or touching hot scheduler state.
+The generic Qianji control ledger has its own read-only operator surfaces.
+`qianji control history --ledger <path> --run-id <id> [--json]` renders the
+append-only event timeline for one run. `qianji control recovery-snapshot
+--ledger <path> --run-id <id> --now-ms <ms> [--json]` reads the same
+`xiuxian-qianji-control` DuckDB event ledger and returns the replay-derived
+recovery view, ordered recovery plan, and compact summary without executing
+recovery actions or touching hot scheduler state.
 
 ```toml
 name = "artifact_refining_pipeline"

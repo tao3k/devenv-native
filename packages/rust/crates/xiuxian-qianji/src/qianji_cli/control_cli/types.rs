@@ -2,6 +2,11 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ControlCliCommand {
+    History {
+        ledger_path: PathBuf,
+        run_id: String,
+        json: bool,
+    },
     RecoverySnapshot {
         ledger_path: PathBuf,
         run_id: String,

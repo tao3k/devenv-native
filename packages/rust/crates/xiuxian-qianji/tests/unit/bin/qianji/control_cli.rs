@@ -7,6 +7,33 @@ use xiuxian_qianji_control::{
 };
 
 #[test]
+fn parse_control_history_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "history",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--json",
+                ])),
+                "control history parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::History {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            json: true,
+        },
+    );
+}
+
+#[test]
 fn parse_control_recovery_snapshot_command() {
     assert_eq!(
         must_some(
@@ -34,6 +61,56 @@ fn parse_control_recovery_snapshot_command() {
             json: true,
         },
     );
+}
+
+#[test]
+fn run_control_history_renders_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_empty_control_run(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::History {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            json: true,
+        }),
+        "control history json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "history output should be valid json",
+    );
+
+    assert_eq!(json.as_array().map(Vec::len), Some(1));
+    assert_eq!(json[0]["sequence"], 1);
+    assert_eq!(json[0]["event"]["run_id"], "run-control-cli");
+    assert_eq!(json[0]["event"]["kind"]["event"], "run_created");
+    Ok(())
+}
+
+#[test]
+fn run_control_history_renders_text_timeline() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_empty_control_run(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::History {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            json: false,
+        }),
+        "control history text should render",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control History"));
+    assert!(output.rendered.contains("- Run: `run-control-cli`"));
+    assert!(output.rendered.contains("- Events: `1`"));
+    assert!(output.rendered.contains("- #1 @1 [run] `run_created`"));
+    Ok(())
 }
 
 #[test]
