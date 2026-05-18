@@ -51,7 +51,9 @@ fn rejects_ambiguous_multiple_source_contracts() -> Result<(), Box<dyn std::erro
         ambiguous_multi_domain_manifest(),
     )?;
 
-    let error = source_contract_paths(temp.path()).expect_err("ambiguous manifest must fail");
+    let Err(error) = source_contract_paths(temp.path()) else {
+        return Err("ambiguous manifest must fail".into());
+    };
 
     assert!(
         matches!(error, EpistemeError::InvalidEpistemeManifest(message) if message.contains("active_source_contract"))
@@ -68,7 +70,9 @@ fn rejects_unsafe_source_manifest_path() -> Result<(), Box<dyn std::error::Error
         unsafe_path_manifest(),
     )?;
 
-    let error = source_contract_paths(temp.path()).expect_err("unsafe manifest must fail");
+    let Err(error) = source_contract_paths(temp.path()) else {
+        return Err("unsafe manifest must fail".into());
+    };
 
     assert!(
         matches!(error, EpistemeError::InvalidEpistemeManifest(message) if message.contains("safe paths relative to ontology"))
@@ -85,8 +89,9 @@ fn rejects_selected_source_manifest_domain_mismatch() -> Result<(), Box<dyn std:
         "episteme://other",
     )?;
 
-    let error = configured_episteme_corpus_root_env(temp.path())
-        .expect_err("source manifest domain mismatch must fail");
+    let Err(error) = configured_episteme_corpus_root_env(temp.path()) else {
+        return Err("source manifest domain mismatch must fail".into());
+    };
 
     assert!(
         matches!(error, EpistemeError::InvalidEpistemeManifest(message) if message.contains("does not match selected manifest domain"))

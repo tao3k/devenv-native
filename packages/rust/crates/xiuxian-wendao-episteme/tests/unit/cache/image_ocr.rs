@@ -79,9 +79,11 @@ fn image_ocr_cache_materializer_rejects_output_path_escape() -> Result<(), Strin
         "../escape.json",
     )];
 
-    let error = write_image_ocr_cache_outputs(&tasks, &results_path, &run_dir, &corpus_root)
-        .expect_err("output path escape should be rejected")
-        .to_string();
+    let Err(error) = write_image_ocr_cache_outputs(&tasks, &results_path, &run_dir, &corpus_root)
+    else {
+        return Err("output path escape should be rejected".to_string());
+    };
+    let error = error.to_string();
 
     assert!(error.contains("clean relative path"));
     assert!(!temp.path().join("escape.json").exists());

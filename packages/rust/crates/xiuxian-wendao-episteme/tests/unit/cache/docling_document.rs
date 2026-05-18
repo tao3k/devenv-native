@@ -56,9 +56,10 @@ fn docling_document_cache_materializer_rejects_output_path_escape() -> Result<()
         "../escape.json",
     )];
 
-    let error = write_docling_document_cache_outputs(&tasks, &results_path, run_dir)
-        .expect_err("output path escape should be rejected")
-        .to_string();
+    let Err(error) = write_docling_document_cache_outputs(&tasks, &results_path, run_dir) else {
+        return Err("output path escape should be rejected".to_string());
+    };
+    let error = error.to_string();
 
     assert!(error.contains("clean relative path"));
     assert!(!temp.path().join("escape.json").exists());
