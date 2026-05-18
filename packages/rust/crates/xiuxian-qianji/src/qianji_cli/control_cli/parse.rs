@@ -16,11 +16,12 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
     match args.get(2).map(String::as_str) {
         Some("history") => parse_history(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
+        Some("view") => parse_view(args).map(Some),
         Some(other) => Err(invalid_input(format!(
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `history` or `recovery-snapshot`",
+            "missing `control` subcommand; expected `history`, `recovery-snapshot`, or `view`",
         )),
     }
 }
@@ -106,6 +107,43 @@ fn parse_recovery_snapshot(args: &[String]) -> io::Result<ControlCliCommand> {
         now_ms: now_ms.ok_or_else(|| {
             invalid_input("missing `--now-ms <ms>` for `control recovery-snapshot`")
         })?,
+        json,
+    })
+}
+
+fn parse_view(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control view` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::View {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control view`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control view`"))?,
         json,
     })
 }

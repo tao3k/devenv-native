@@ -13,6 +13,11 @@ pub(crate) enum ControlCliCommand {
         now_ms: u64,
         json: bool,
     },
+    View {
+        ledger_path: PathBuf,
+        run_id: String,
+        json: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

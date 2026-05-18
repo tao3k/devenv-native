@@ -3,7 +3,7 @@ use super::{
     to_args,
 };
 use xiuxian_qianji_control::{
-    ControlEvent, ControlEventKind, ControlLedger, DuckDbControlLedger, RunId,
+    ControlEvent, ControlEventKind, ControlLedger, DuckDbControlLedger, RunId, StepId,
 };
 
 #[test]
@@ -64,6 +64,33 @@ fn parse_control_recovery_snapshot_command() {
 }
 
 #[test]
+fn parse_control_view_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "view",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--json",
+                ])),
+                "control view parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::View {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            json: true,
+        },
+    );
+}
+
+#[test]
 fn run_control_history_renders_json() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -110,6 +137,64 @@ fn run_control_history_renders_text_timeline() -> Result<(), String> {
     assert!(output.rendered.contains("- Run: `run-control-cli`"));
     assert!(output.rendered.contains("- Events: `1`"));
     assert!(output.rendered.contains("- #1 @1 [run] `run_created`"));
+    Ok(())
+}
+
+#[test]
+fn run_control_view_renders_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::View {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            json: true,
+        }),
+        "control view json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "view output should be valid json",
+    );
+
+    assert_eq!(json["run_id"], "run-control-cli");
+    assert_eq!(json["status"], "draft");
+    assert_eq!(json["steps"].as_object().map(|steps| steps.len()), Some(1));
+    assert_eq!(
+        json["steps"]["run-control-step"]["title"],
+        "Review durable state"
+    );
+    Ok(())
+}
+
+#[test]
+fn run_control_view_renders_text_summary() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::View {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            json: false,
+        }),
+        "control view text should render",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control View"));
+    assert!(output.rendered.contains("- Run: `run-control-cli`"));
+    assert!(output.rendered.contains("- Status: `draft`"));
+    assert!(output.rendered.contains("- Steps: `1`"));
+    assert!(
+        output
+            .rendered
+            .contains("`run-control-step` [pending] Review durable state")
+    );
     Ok(())
 }
 
@@ -185,6 +270,32 @@ fn append_empty_control_run(ledger_path: &std::path::Path) -> RunId {
             },
         )),
         "should append run-created event",
+    );
+    run_id
+}
+
+fn append_control_run_with_step(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_empty_control_run(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            2,
+            ControlEventKind::StepCreated {
+                title: "Review durable state".to_string(),
+                required_evidence: vec!["history_visible".to_string()],
+                budget: None,
+            },
+        )),
+        "should append step-created event",
     );
     run_id
 }

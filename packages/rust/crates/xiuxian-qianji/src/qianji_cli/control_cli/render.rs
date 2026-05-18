@@ -1,6 +1,8 @@
 use std::io;
 
-use xiuxian_qianji_control::{ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot};
+use xiuxian_qianji_control::{
+    ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot, RunView, StepView,
+};
 
 pub(super) fn render_control_history_text(
     run_id: &RunId,
@@ -67,6 +69,82 @@ pub(super) fn render_recovery_snapshot_text(snapshot: &RunRecoverySnapshot) -> S
 
 pub(super) fn render_recovery_snapshot_json(snapshot: &RunRecoverySnapshot) -> io::Result<String> {
     serde_json::to_string_pretty(snapshot).map_err(io::Error::other)
+}
+
+pub(super) fn render_run_view_text(view: &RunView) -> String {
+    let step_activity_count = view
+        .steps
+        .values()
+        .map(|step| step.activities.len())
+        .sum::<usize>();
+    let step_timer_count = view
+        .steps
+        .values()
+        .map(|step| step.timers.len())
+        .sum::<usize>();
+    let mut output = format!(
+        concat!(
+            "# Qianji Control View\n\n",
+            "- Run: `{}`\n",
+            "- Status: `{}`\n",
+            "- Updated at ms: `{}`\n",
+            "- Steps: `{}`\n",
+            "- Run activities: `{}`\n",
+            "- Step activities: `{}`\n",
+            "- Run timers: `{}`\n",
+            "- Step timers: `{}`\n",
+            "- Signals: `{}`\n",
+            "- Total cost usd micros: `{}`\n"
+        ),
+        view.run_id.as_str(),
+        serde_status(&view.status),
+        view.updated_at_ms,
+        view.steps.len(),
+        view.activities.len(),
+        step_activity_count,
+        view.timers.len(),
+        step_timer_count,
+        view.signals.len(),
+        view.total_cost_usd_micros()
+    );
+
+    if !view.steps.is_empty() {
+        output.push_str("\n## Steps\n\n");
+        for step in view.steps.values() {
+            render_step_summary(&mut output, step);
+        }
+    }
+
+    output
+}
+
+pub(super) fn render_run_view_json(view: &RunView) -> io::Result<String> {
+    serde_json::to_string_pretty(view).map_err(io::Error::other)
+}
+
+fn render_step_summary(output: &mut String, step: &StepView) {
+    let title = step.title.as_deref().unwrap_or("<untitled>");
+    output.push_str(&format!(
+        "- `{}` [{}] {} evidence `{}/{}` activities `{}` gates `{}` updated `{}`\n",
+        step.step_id.as_str(),
+        serde_status(&step.status),
+        title,
+        step.covered_required_evidence().len(),
+        step.required_evidence.len(),
+        step.activities.len(),
+        step.gate_results.len(),
+        step.updated_at_ms
+    ));
+}
+
+fn serde_status<T>(status: &T) -> String
+where
+    T: serde::Serialize,
+{
+    serde_json::to_string(status)
+        .unwrap_or_else(|_| "\"unknown\"".to_string())
+        .trim_matches('"')
+        .to_string()
 }
 
 fn control_event_kind_label(kind: &ControlEventKind) -> &'static str {
