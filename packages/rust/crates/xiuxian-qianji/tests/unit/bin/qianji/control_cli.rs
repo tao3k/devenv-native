@@ -91,6 +91,36 @@ fn parse_control_view_command() {
 }
 
 #[test]
+fn parse_control_step_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "step",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--step-id",
+                    "run-control-step",
+                    "--json",
+                ])),
+                "control step parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Step {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: "run-control-step".to_string(),
+            json: true,
+        },
+    );
+}
+
+#[test]
 fn run_control_history_renders_json() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -194,6 +224,82 @@ fn run_control_view_renders_text_summary() -> Result<(), String> {
         output
             .rendered
             .contains("`run-control-step` [pending] Review durable state")
+    );
+    Ok(())
+}
+
+#[test]
+fn run_control_step_renders_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Step {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: "run-control-step".to_string(),
+            json: true,
+        }),
+        "control step json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "step output should be valid json",
+    );
+
+    assert_eq!(json["step_id"], "run-control-step");
+    assert_eq!(json["status"], "pending");
+    assert_eq!(json["title"], "Review durable state");
+    assert_eq!(json["required_evidence"].as_array().map(Vec::len), Some(1));
+    Ok(())
+}
+
+#[test]
+fn run_control_step_renders_text_summary() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Step {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: "run-control-step".to_string(),
+            json: false,
+        }),
+        "control step text should render",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control Step"));
+    assert!(output.rendered.contains("- Step: `run-control-step`"));
+    assert!(output.rendered.contains("- Status: `pending`"));
+    assert!(output.rendered.contains("- Required evidence: `1`"));
+    assert!(output.rendered.contains("- Covered evidence: `0`"));
+    Ok(())
+}
+
+#[test]
+fn run_control_step_rejects_missing_step() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step(&ledger_path);
+
+    let error = run_control_command(&ControlCliCommand::Step {
+        ledger_path,
+        run_id: run_id.as_str().to_string(),
+        step_id: "missing-step".to_string(),
+        json: false,
+    })
+    .expect_err("missing step should fail");
+
+    assert!(
+        error
+            .to_string()
+            .contains("could not find step `missing-step`")
     );
     Ok(())
 }

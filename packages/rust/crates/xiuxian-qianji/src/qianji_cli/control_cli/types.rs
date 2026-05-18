@@ -18,6 +18,12 @@ pub(crate) enum ControlCliCommand {
         run_id: String,
         json: bool,
     },
+    Step {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: String,
+        json: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

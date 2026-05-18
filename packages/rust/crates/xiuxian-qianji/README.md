@@ -192,10 +192,13 @@ The generic Qianji control ledger has its own read-only operator surfaces.
 `qianji control history --ledger <path> --run-id <id> [--json]` renders the
 append-only event timeline for one run. `qianji control view --ledger <path>
 --run-id <id> [--json]` renders the deterministic replayed run state. `qianji
-control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms> [--json]`
-reads the same `xiuxian-qianji-control` DuckDB event ledger and returns the
-replay-derived recovery view, ordered recovery plan, and compact summary
-without executing recovery actions or touching hot scheduler state.
+control step --ledger <path> --run-id <id> --step-id <id> [--json]` renders one
+replayed step view for step-local evidence, gate, Agent, activity, timer, and
+signal inspection. `qianji control recovery-snapshot --ledger <path> --run-id
+<id> --now-ms <ms> [--json]` reads the same `xiuxian-qianji-control` DuckDB
+event ledger and returns the replay-derived recovery view, ordered recovery
+plan, and compact summary without executing recovery actions or touching hot
+scheduler state.
 
 ```toml
 name = "artifact_refining_pipeline"

@@ -5,6 +5,7 @@ use crate::qianji_cli::invalid_input;
 use super::render::{
     render_control_history_json, render_control_history_text, render_recovery_snapshot_json,
     render_recovery_snapshot_text, render_run_view_json, render_run_view_text,
+    render_step_view_json, render_step_view_text,
 };
 use super::types::{ControlCliCommand, ControlCliOutput};
 
@@ -28,6 +29,12 @@ pub(super) fn run_control_command_impl(
             run_id,
             json,
         } => run_view_command(ledger_path, run_id, *json),
+        ControlCliCommand::Step {
+            ledger_path,
+            run_id,
+            step_id,
+            json,
+        } => run_step_command(ledger_path, run_id, step_id, *json),
     }
 }
 
@@ -104,6 +111,48 @@ fn run_view_command(
         render_run_view_text(&view)
     };
     Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(feature = "duckdb")]
+fn run_step_command(
+    ledger_path: &std::path::Path,
+    run_id: &str,
+    step_id: &str,
+    json: bool,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{ControlLedger, DuckDbControlLedger, RunId, StepId};
+
+    let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| control_error(&error))?;
+    let run_id = RunId::new(run_id).map_err(|error| control_error(&error))?;
+    let step_id = StepId::new(step_id).map_err(|error| control_error(&error))?;
+    let view = ledger
+        .load_run_view(&run_id)
+        .map_err(|error| control_error(&error))?;
+    let step = view.steps.get(&step_id).ok_or_else(|| {
+        invalid_input(format!(
+            "`control step` could not find step `{}` in run `{}`",
+            step_id.as_str(),
+            run_id.as_str()
+        ))
+    })?;
+    let rendered = if json {
+        render_step_view_json(step)?
+    } else {
+        render_step_view_text(step)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn run_step_command(
+    _ledger_path: &std::path::Path,
+    _run_id: &str,
+    _step_id: &str,
+    _json: bool,
+) -> io::Result<ControlCliOutput> {
+    Err(invalid_input(
+        "`control step` requires the `duckdb` feature",
+    ))
 }
 
 #[cfg(not(feature = "duckdb"))]
