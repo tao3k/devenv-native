@@ -1,5 +1,11 @@
 use std::process::Command;
 
+#[cfg(feature = "orgize-agent-read-model")]
+use std::{
+    path::{Path, PathBuf},
+    process::Output,
+};
+
 #[test]
 fn standalone_orgize_agent_planning_renders_org_cards() {
     let temp = tempdir_or_panic();
@@ -404,9 +410,30 @@ fn standalone_orgize_task_report_summarizes_archive_and_repeating_rows() {
 #[test]
 fn standalone_orgize_task_archive_plans_and_applies_completed_rows() {
     let temp = tempdir_or_panic();
-    let agenda = temp.path().join("agenda.org");
-    let archive_path = temp
-        .path()
+    let fixture = write_archive_fixture(temp.path());
+
+    assert_archive_plan(temp.path(), &fixture);
+    assert_archive_apply(temp.path(), &fixture);
+    assert_archive_report(temp.path());
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+struct ArchiveFixture {
+    agenda: PathBuf,
+    archive_path: PathBuf,
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+struct CliOutput {
+    stdout: String,
+    stderr: String,
+    status_code: Option<i32>,
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+fn write_archive_fixture(root: &Path) -> ArchiveFixture {
+    let agenda = root.join("agenda.org");
+    let archive_path = root
         .join(".cache")
         .join("agent")
         .join("org")
@@ -426,110 +453,126 @@ fn standalone_orgize_task_archive_plans_and_applies_completed_rows() {
         ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));
+    ArchiveFixture {
+        agenda,
+        archive_path,
+    }
+}
 
-    let plan = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
-        .env_remove("PRJ_CACHE_HOME")
-        .arg("--root")
-        .arg(temp.path())
-        .arg("orgize")
-        .arg("task-archive")
-        .arg("agenda.org")
-        .output()
-        .unwrap_or_else(|error| panic!("run orgize task-archive plan: {error}"));
-
-    let plan_stdout =
-        String::from_utf8(plan.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
-    let plan_stderr =
-        String::from_utf8(plan.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
-    assert_eq!(
-        plan.status.code(),
-        Some(0),
-        "stdout: {plan_stdout}\nstderr: {plan_stderr}"
-    );
-    assert!(plan_stdout.contains("mode: plan"), "stdout: {plan_stdout}");
+#[cfg(feature = "orgize-agent-read-model")]
+fn assert_archive_plan(root: &Path, fixture: &ArchiveFixture) {
+    let plan = run_orgize(root, &["task-archive", "agenda.org"], "task-archive plan");
+    assert_cli_success(&plan);
     assert!(
-        plan_stdout.contains("candidates: 1"),
-        "stdout: {plan_stdout}"
+        plan.stdout.contains("mode: plan"),
+        "stdout: {}",
+        plan.stdout
     );
     assert!(
-        plan_stdout.contains("[ARCHIVE001] Completed slice"),
-        "stdout: {plan_stdout}"
+        plan.stdout.contains("candidates: 1"),
+        "stdout: {}",
+        plan.stdout
     );
-    assert!(!archive_path.exists());
     assert!(
-        std::fs::read_to_string(&agenda)
+        plan.stdout.contains("[ARCHIVE001] Completed slice"),
+        "stdout: {}",
+        plan.stdout
+    );
+    assert!(!fixture.archive_path.exists());
+    assert!(
+        std::fs::read_to_string(&fixture.agenda)
             .unwrap_or_else(|error| panic!("read agenda after plan: {error}"))
             .contains("Completed slice")
     );
+}
 
-    let apply = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
-        .env_remove("PRJ_CACHE_HOME")
-        .arg("--root")
-        .arg(temp.path())
-        .arg("orgize")
-        .arg("task-archive")
-        .arg("--apply")
-        .arg("agenda.org")
-        .output()
-        .unwrap_or_else(|error| panic!("run orgize task-archive apply: {error}"));
-
-    let apply_stdout =
-        String::from_utf8(apply.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
-    let apply_stderr =
-        String::from_utf8(apply.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
-    assert_eq!(
-        apply.status.code(),
-        Some(0),
-        "stdout: {apply_stdout}\nstderr: {apply_stderr}"
+#[cfg(feature = "orgize-agent-read-model")]
+fn assert_archive_apply(root: &Path, fixture: &ArchiveFixture) {
+    let apply = run_orgize(
+        root,
+        &["task-archive", "--apply", "agenda.org"],
+        "task-archive apply",
+    );
+    assert_cli_success(&apply);
+    assert!(
+        apply.stdout.contains("mode: apply"),
+        "stdout: {}",
+        apply.stdout
     );
     assert!(
-        apply_stdout.contains("mode: apply"),
-        "stdout: {apply_stdout}"
+        apply.stdout.contains("applied: 1"),
+        "stdout: {}",
+        apply.stdout
     );
-    assert!(
-        apply_stdout.contains("applied: 1"),
-        "stdout: {apply_stdout}"
-    );
-    let agenda_after =
-        std::fs::read_to_string(&agenda).unwrap_or_else(|error| panic!("read agenda: {error}"));
+    let agenda_after = std::fs::read_to_string(&fixture.agenda)
+        .unwrap_or_else(|error| panic!("read agenda: {error}"));
     assert!(!agenda_after.contains("Completed slice"));
     assert!(agenda_after.contains("Active task"));
-    let archive_after = std::fs::read_to_string(&archive_path)
+    let archive_after = std::fs::read_to_string(&fixture.archive_path)
         .unwrap_or_else(|error| panic!("read archive: {error}"));
     assert!(archive_after.contains("#+FILETAGS: :ARCHIVE:"));
     assert!(
         archive_after.contains("* DONE Completed slice :agent:achievement:ARCHIVE:"),
         "archive: {archive_after}"
     );
-    assert!(archive_after.contains("Evidence remains with the archived subtree."));
+    assert!(
+        archive_after.contains("Evidence remains with the archived subtree."),
+        "archive: {archive_after}"
+    );
+}
 
-    let report = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+#[cfg(feature = "orgize-agent-read-model")]
+fn assert_archive_report(root: &Path) {
+    let report = run_orgize(
+        root,
+        &["task-report", "--include-archived", "."],
+        "task-report",
+    );
+    assert_cli_success(&report);
+    assert!(
+        report.stdout.contains("archived: 1"),
+        "stdout: {}",
+        report.stdout
+    );
+    assert!(
+        report.stdout.contains("archive-candidates: 0"),
+        "stdout: {}",
+        report.stdout
+    );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+fn run_orgize(root: &Path, args: &[&str], context: &str) -> CliOutput {
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
         .env_remove("PRJ_CACHE_HOME")
         .arg("--root")
-        .arg(temp.path())
+        .arg(root)
         .arg("orgize")
-        .arg("task-report")
-        .arg("--include-archived")
-        .arg(".")
+        .args(args)
         .output()
-        .unwrap_or_else(|error| panic!("run orgize task-report after archive: {error}"));
+        .unwrap_or_else(|error| panic!("run orgize {context}: {error}"));
+    cli_output(output)
+}
 
-    let report_stdout =
-        String::from_utf8(report.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
-    let report_stderr =
-        String::from_utf8(report.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+#[cfg(feature = "orgize-agent-read-model")]
+fn cli_output(output: Output) -> CliOutput {
+    CliOutput {
+        stdout: String::from_utf8(output.stdout)
+            .unwrap_or_else(|error| panic!("stdout utf8: {error}")),
+        stderr: String::from_utf8(output.stderr)
+            .unwrap_or_else(|error| panic!("stderr utf8: {error}")),
+        status_code: output.status.code(),
+    }
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+fn assert_cli_success(output: &CliOutput) {
     assert_eq!(
-        report.status.code(),
+        output.status_code,
         Some(0),
-        "stdout: {report_stdout}\nstderr: {report_stderr}"
-    );
-    assert!(
-        report_stdout.contains("archived: 1"),
-        "stdout: {report_stdout}"
-    );
-    assert!(
-        report_stdout.contains("archive-candidates: 0"),
-        "stdout: {report_stdout}"
+        "stdout: {}\nstderr: {}",
+        output.stdout,
+        output.stderr
     );
 }
 
