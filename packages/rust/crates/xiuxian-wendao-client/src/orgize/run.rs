@@ -4,15 +4,16 @@
 use crate::orgize::read_model::{run_read_model, run_task_archive, run_task_list, run_task_report};
 use crate::orgize::{
     OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
-    OrgizeSparseTreeArgs,
+    OrgizeSddCommand, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
 };
 use crate::{ClientContext, CommandOutcome};
 use anyhow::Result;
 use std::path::PathBuf;
 use xiuxian_wendao_parsers::{
     OrgizeAgentPlanningRequest, OrgizeFormatRequest, OrgizeLintOutputFormat, OrgizeLintRequest,
-    OrgizeSparseTreeRenderOptions, OrgizeSparseTreeRequest, OrgizeSparseTreeVisibility,
-    format_org_files, lint_org_files, render_agent_planning, render_sparse_tree,
+    OrgizeSddStatusRequest, OrgizeSparseTreeRenderOptions, OrgizeSparseTreeRequest,
+    OrgizeSparseTreeVisibility, format_org_files, lint_org_files, render_agent_planning,
+    render_sdd_status, render_sparse_tree,
 };
 
 /// Run one Orgize-backed client command.
@@ -37,6 +38,7 @@ pub(crate) fn run_command(
         #[cfg(feature = "orgize-agent-read-model")]
         OrgizeCommand::TaskArchive(args) => run_task_archive(args, context),
         OrgizeCommand::SparseTree(args) => run_sparse_tree(args, context),
+        OrgizeCommand::Sdd { command } => run_sdd(command, context),
     }
 }
 
@@ -108,6 +110,20 @@ fn run_sparse_tree(args: &OrgizeSparseTreeArgs, context: &ClientContext) -> Resu
         render: OrgizeSparseTreeRenderOptions {
             explain_skips: args.render.explain_skips,
         },
+    })?;
+    print!("{rendered}");
+    Ok(CommandOutcome::success())
+}
+
+fn run_sdd(command: &OrgizeSddCommand, context: &ClientContext) -> Result<CommandOutcome> {
+    match command {
+        OrgizeSddCommand::Status(args) => run_sdd_status(args, context),
+    }
+}
+
+fn run_sdd_status(args: &OrgizeSddStatusArgs, context: &ClientContext) -> Result<CommandOutcome> {
+    let rendered = render_sdd_status(&OrgizeSddStatusRequest {
+        paths: resolve_paths(&args.paths, context),
     })?;
     print!("{rendered}");
     Ok(CommandOutcome::success())

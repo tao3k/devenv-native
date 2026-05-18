@@ -1,0 +1,93 @@
+#+TITLE: Org-native SDD Architecture Template
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:sdd:architecture:
+
+* System SDD Title :sdd:system:
+:PROPERTIES:
+:ID: 00000000-0000-7000-8000-000000000001
+:SDD_KIND: system
+:SDD_STATUS: draft
+:SDD_CONCERN: System boundary, core quality attributes, and design drift risks.
+:SDD_SLUG: system-sdd-title
+:END:
+
+** Capability SDD Title :sdd:capability:
+:PROPERTIES:
+:ID: 00000000-0000-7000-8000-000000000002
+:SDD_KIND: capability
+:SDD_PARENT: [[id:00000000-0000-7000-8000-000000000001][System SDD Title]]
+:SDD_CAPABILITY: capability-name
+:SDD_STATUS: draft
+:SDD_SLUG: capability-sdd-title
+:END:
+
+*** Requirement: Architecture calibration
+The system SHALL keep implementation plans linked to accepted design decisions
+and explicit architecture concerns.
+
+**** Scenario: Agent inspects design drift
+- WHEN an Agent queries SDD status
+- THEN the SDD SHALL expose architecture nodes, parent edges, concerns,
+  viewpoints, and rationale without implementation task progress.
+
+** Runtime View Title :sdd:view:
+:PROPERTIES:
+:ID: 00000000-0000-7000-8000-000000000003
+:SDD_KIND: view
+:SDD_PARENT: [[id:00000000-0000-7000-8000-000000000002][Capability SDD Title]]
+:SDD_VIEWPOINT: runtime
+:SDD_CONCERN: Scheduling, routing, fallback, and ownership boundaries.
+:SDD_QUALITY: latency, precision, determinism
+:SDD_STATUS: draft
+:SDD_SLUG: runtime-view-title
+:END:
+
+*** View Description
+Describe the architecture view, its participating components, and its
+interaction or data-flow boundary.
+
+#+begin_src mermaid
+flowchart LR
+  Rust["Rust control plane"] --> Python["Python analyzer boundary"]
+  Rust --> Store["Arrow/DuckDB evidence boundary"]
+#+end_src
+
+** Design Decision Title :sdd:decision:
+:PROPERTIES:
+:ID: 00000000-0000-7000-8000-000000000004
+:SDD_KIND: decision
+:SDD_PARENT: [[id:00000000-0000-7000-8000-000000000003][Runtime View Title]]
+:SDD_STATUS: draft
+:SDD_RATIONALE: Record the design rationale, tradeoff, and rejected alternatives.
+:SDD_SLUG: design-decision-title
+:END:
+
+*** Decision
+State the chosen architecture direction and the alternatives rejected.
+
+*** Consequences
+- Consequence: describe a durable design constraint.
+- Risk: describe how future plans might drift from the design.
+
+** Architecture Audit Title :sdd:audit:
+:PROPERTIES:
+:ID: 00000000-0000-7000-8000-000000000005
+:SDD_KIND: audit
+:SDD_PARENT: [[id:00000000-0000-7000-8000-000000000002][Capability SDD Title]]
+:SDD_STATUS: draft
+:SDD_CONCERN: Evidence required before implementation can be considered aligned.
+:SDD_QUALITY: correctness, performance, maintainability
+:SDD_SLUG: architecture-audit-title
+:END:
+
+*** Audit Questions
+- Question: Does the implementation preserve the documented ownership boundary?
+- Question: Does the evidence prove the target quality attribute?
+
+*** Fitness Criteria
+- Gate: record the measurable condition for accepting an implementation plan.
+- Gate: record the rollback or follow-up condition if evidence regresses.
+
+*** Linked Implementation
+Implementation work belongs in an Org task or ExecPlan that links back to this
+SDD through =SDD= or =SDD_REF= properties.

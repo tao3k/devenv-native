@@ -23,6 +23,7 @@ wendao-client orgize task-list [--text TEXT] [--tag TAG]... [--include-done] [--
 wendao-client orgize task-report [--text TEXT] [--tag TAG]... [--include-archived] [--limit N] [PATH]...
 wendao-client orgize task-archive [--apply] [--text TEXT] [--tag TAG]... [--limit N] [PATH]...
 wendao-client orgize sparse-tree [--text TEXT] [--match EXPR] [--exclude-done] [--exclude-archived] [--include-comments] [--explain-skips] [PATH]...
+wendao-client orgize sdd status [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -45,30 +46,30 @@ wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs
 
 Behavior:
 
-1. walks Markdown files under the provided paths, or when no paths are given,
-   loads local writable `link_graph.projects.*.root` entries from
-   `wendao.toml` before falling back to the configured root
-2. treats `link_graph.projects.<id>.read_only = true` as the canonical way to
-   exclude a configured project root from default lint discovery
-3. honors `link_graph.projects.<id>.read_only = false` even when the project
-   also declares `url`, so writable mirrors can still be linted by default
-4. keeps `url`-based managed-remote detection only as a backward-compatible
-   readonly inference when `read_only` is omitted
-5. skips transient/generated directories such as `.cache`, `.data`, `.run`,
-   `.config`, `.bin`, `node_modules`, and `target` during default markdown
-   discovery
-6. classifies diagnostics as `official_syntax` or `repo_authoring_policy`
-7. requires document-level YAML frontmatter and validates the primary
-   frontmatter identity field for the current document surface:
-   - ordinary Markdown documents require a non-empty `title`
-   - `SKILL.md` files or `kind: SKILL.md` documents must satisfy the
-     parser-owned SKILL.md frontmatter contract: top-level `type: skill`,
-     `name`, and `description`; top-level `metadata`; non-empty
-     `metadata.author`, `metadata.version`, `metadata.source`; and a
-     non-empty `metadata.routing_keywords` array; optional
-     `metadata.intents` must still be a non-empty string array when present
-8. reports invalid YAML frontmatter
-9. reports unclosed frontmatter blocks
+1.  walks Markdown files under the provided paths, or when no paths are given,
+    loads local writable `link_graph.projects.*.root` entries from
+    `wendao.toml` before falling back to the configured root
+2.  treats `link_graph.projects.<id>.read_only = true` as the canonical way to
+    exclude a configured project root from default lint discovery
+3.  honors `link_graph.projects.<id>.read_only = false` even when the project
+    also declares `url`, so writable mirrors can still be linted by default
+4.  keeps `url`-based managed-remote detection only as a backward-compatible
+    readonly inference when `read_only` is omitted
+5.  skips transient/generated directories such as `.cache`, `.data`, `.run`,
+    `.config`, `.bin`, `node_modules`, and `target` during default markdown
+    discovery
+6.  classifies diagnostics as `official_syntax` or `repo_authoring_policy`
+7.  requires document-level YAML frontmatter and validates the primary
+    frontmatter identity field for the current document surface:
+    - ordinary Markdown documents require a non-empty `title`
+    - `SKILL.md` files or `kind: SKILL.md` documents must satisfy the
+      parser-owned SKILL.md frontmatter contract: top-level `type: skill`,
+      `name`, and `description`; top-level `metadata`; non-empty
+      `metadata.author`, `metadata.version`, `metadata.source`; and a
+      non-empty `metadata.routing_keywords` array; optional
+      `metadata.intents` must still be a non-empty string array when present
+8.  reports invalid YAML frontmatter
+9.  reports unclosed frontmatter blocks
 10. reports unclosed fenced code blocks
 11. fails when a local Markdown link, wikilink, or attachment target does not
     resolve to an existing in-scope file
@@ -188,14 +189,18 @@ Behavior:
     relation engine is DuckDB.
 37. exposes upstream Orgize tooling through `orgize fmt`, `orgize lint`,
     `orgize agent-planning`, `orgize read-model`, `orgize task-list`,
-    `orgize task-report`, `orgize task-archive`, and `orgize sparse-tree`.
+    `orgize task-report`, `orgize task-archive`, `orgize sparse-tree`, and
+    `orgize sdd status`.
     Formatting and linting use parser-owned Orgize adapters from
     `xiuxian-wendao-parsers`; planning and sparse-tree commands render compact
-    cards derived from native Org agenda and sparse-tree semantics. The
-    `read-model` command materializes agent-tagged Org tasks into DuckDB by
-    default and does not expose a `--duckdb` runtime selector. The `task-list`
-    command refreshes the same DuckDB read model and renders active task rows
-    for agent recovery, with optional text/tag filtering and explicit
+    cards derived from native Org agenda and sparse-tree semantics. The `sdd
+status` command renders Org-native SDD
+    system/capability/view/decision/audit architecture status and parent edges
+    from upstream Orgize SDD parsing. The `read-model` command materializes
+    agent-tagged Org tasks into DuckDB by default and does not expose a
+    `--duckdb` runtime selector. The `task-list` command refreshes the same
+    DuckDB read model and renders active task rows for agent recovery, with
+    optional text/tag filtering and explicit
     DONE/archive inclusion flags. The `task-report` command summarizes the
     same snapshot for active rows, completed achievements, archive candidates,
     repeating rows, and tag counts. The `task-archive` command renders an
@@ -205,16 +210,11 @@ Behavior:
     repeater cookies on `SCHEDULED` or `DEADLINE` timestamps are preserved and
     rendered as `repeat:` metadata so recurring profile, benchmark, or audit
     tasks remain visible without a custom schedule DSL. When no source path is
-    supplied, read-model commands read from `$PRJ_CACHE_HOME/agent/org`; the default database is
+    supplied, read-model commands read from `$PRJ_CACHE_HOME/agent/org`; the
+    default database is
     `$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb`. Optional
-    path/runtime overrides belong in `wendao.toml`:
-
-    ```toml
-    [agent.org_read_model]
-    database_path = "$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb"
-    temp_directory = "$PRJ_CACHE_HOME/agent/readmodels/duckdb-tmp"
-    threads = 4
-    ```
+    path/runtime overrides belong in the `wendao.toml` `[agent.org_read_model]`
+    table through `database_path`, `temp_directory`, and `threads`.
 
 Diagnostic rendering is split deliberately:
 

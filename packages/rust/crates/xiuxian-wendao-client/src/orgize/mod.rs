@@ -7,7 +7,7 @@ mod run;
 
 pub use command::{
     OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
-    OrgizeSparseTreeArgs,
+    OrgizeSddCommand, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
 };
 #[cfg(feature = "orgize-agent-read-model")]
 pub use command::{

@@ -14,6 +14,9 @@ use tera::{Context, Tera};
 use crate::error::{IoError, Result};
 use xiuxian_tokenizer::count_tokens;
 
+#[cfg(feature = "assembler")]
+type SkillReferenceRead = (PathBuf, std::io::Result<String>);
+
 /// Result of assembling skill context.
 #[derive(Debug, Clone)]
 pub struct AssemblyResult {
@@ -93,7 +96,7 @@ fn assemble_skill_impl(
 fn read_skill_inputs(
     main_path: &Path,
     ref_paths: &[PathBuf],
-) -> Result<(String, Vec<(PathBuf, std::io::Result<String>)>)> {
+) -> Result<(String, Vec<SkillReferenceRead>)> {
     let (main_res, refs_res) = rayon::join(
         || std::fs::read_to_string(main_path),
         || {

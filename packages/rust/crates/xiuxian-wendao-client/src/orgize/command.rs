@@ -26,6 +26,12 @@ pub enum OrgizeCommand {
     TaskArchive(OrgizeTaskArchiveArgs),
     /// Render sparse-tree cards from Org match/text predicates.
     SparseTree(OrgizeSparseTreeArgs),
+    /// Work with Org-native SDD projections.
+    Sdd {
+        /// SDD-oriented subcommand selection.
+        #[command(subcommand)]
+        command: OrgizeSddCommand,
+    },
 }
 
 /// CLI arguments for Org source formatting.
@@ -250,4 +256,19 @@ pub struct OrgizeSparseTreeRenderArgs {
     /// Render skipped section receipts.
     #[arg(long = "explain-skips")]
     pub explain_skips: bool,
+}
+
+/// Org-native SDD subcommands.
+#[derive(Subcommand, Debug)]
+pub enum OrgizeSddCommand {
+    /// Render Org-native SDD status cards.
+    Status(OrgizeSddStatusArgs),
+}
+
+/// CLI arguments for Org-native SDD status cards.
+#[derive(Args, Debug)]
+pub struct OrgizeSddStatusArgs {
+    /// Org files or directories to inspect. When omitted, walks the client root.
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
 }

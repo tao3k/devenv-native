@@ -6670,7 +6670,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=19ee5369c50a5c4fe1c01bda0bee621869a428df#19ee5369c50a5c4fe1c01bda0bee621869a428df"
+source = "git+https://github.com/tao3k/orgize?rev=f9f0d2fce8e09c6d5e3fa8ffd40756566b758483#f9f0d2fce8e09c6d5e3fa8ffd40756566b758483"
 dependencies = [
  "bytecount",
  "cfg-if",

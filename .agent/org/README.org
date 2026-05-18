@@ -9,15 +9,18 @@ queries.
 
 ** Tracking Surfaces
 
-Use three separate surfaces:
+Use SDD plus task surfaces:
 
-1. Blueprint: durable architecture direction under =$PRJ_CACHE_HOME/agent/blueprints/=.
-2. ExecPlan: one bounded implementation slice under =$PRJ_CACHE_HOME/agent/execplans/=.
+1. SDD: durable system/capability/view/decision/audit direction under =$PRJ_CACHE_HOME/agent/sdd/=.
+2. ExecPlan: optional detailed execution log under =$PRJ_CACHE_HOME/agent/execplans/=.
 3. Org task ledger: current task state under =$PRJ_CACHE_HOME/agent/org/=.
+4. Blueprint: legacy compatibility direction under =$PRJ_CACHE_HOME/agent/blueprints/=.
 
 The Org task ledger owns task lifecycle state, schedule markers, recovery
-queries, and evidence pointers. The ExecPlan owns execution details and
-validation logs. Package docs own durable public behavior.
+queries, and evidence pointers. The SDD owns architecture description, design
+rationale, audit concerns, and parent/child design edges. The ExecPlan owns
+detailed execution logs when a slice needs them. Package docs own durable
+public behavior.
 
 ** Task Lifecycle
 
@@ -54,6 +57,12 @@ Recover active work without reading chat history first:
 
 #+begin_src text
 wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Recover SDD system/capability/view/decision/audit status:
+
+#+begin_src text
+wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd
 #+end_src
 
 The task-list command refreshes the DuckDB read model, excludes DONE and
@@ -101,6 +110,13 @@ Use sparse-tree when the full source subtree context is useful:
 
 #+begin_src text
 wendao-client orgize sparse-tree --match '+agent+achievement' $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Lint SDD and task tracking files before marking a tracking slice complete:
+
+#+begin_src text
+wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/sdd
+wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Define repeated performance/profile checks with native Org timestamps:

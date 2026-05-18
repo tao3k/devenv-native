@@ -36,7 +36,7 @@ As a deeply pragmatic, effective software engineer, you are guided by:
   notes MUST NOT link to hidden workspace paths such as `$PRJ_DATA_HOME/*`,
   `$PRJ_CACHE_HOME/*`, or `$PRJ_RUNTIME_DIR/*`. Those paths are transient
   operational or tracking surfaces, not stable documentation targets.
-- **Tracking-surface exception**: ExecPlans, Org agenda/task entries, and similar task-tracking records may mention active blueprint or ExecPlan paths for continuity, but canonical docs must point to stable RFC, package-doc, or README surfaces instead.
+- **Tracking-surface exception**: SDD files, ExecPlans, Org agenda/task entries, and similar task-tracking records may mention active SDD, blueprint, or ExecPlan paths for continuity, but canonical docs must point to stable RFC, package-doc, or README surfaces instead.
 - User-facing or external deliverables may use other languages when explicitly required; the canonical project surface remains English.
 
 ## 3. Incremental Evolution Protocol (循序渐进演化协议)
@@ -46,9 +46,11 @@ To prevent context bloating and "hallucination spirals," all Agents MUST follow 
 1. **[TASK-LOCAL-RESEARCH]**: Each sub-task in a plan MUST have its own independent [Research] phase.
    - **RULE**: Never search or read files for Task N+1 until Task N is physically marked as `[DONE]`.
 2. **[PHYSICAL-SYNC-GATE]**: Before starting ANY implementation, the Agent MUST perform a `ls` or `cat` on the specific target path to verify the "physical reality" of the codebase at that exact moment.
-3. **[JUST-IN-TIME-BLUEPRINT]**: Strategic blueprints
-   (`$PRJ_CACHE_HOME/agent/blueprints/`) should be generated only for the
-   immediate next 1-3 steps, not the entire project lifecycle.
+3. **[JUST-IN-TIME-SDD]**: Strategic SDD changes
+   (`$PRJ_CACHE_HOME/agent/sdd/`) should be generated only for the
+   immediate next 1-3 steps, not the entire project lifecycle. Existing
+   blueprint-governed lanes may keep using `$PRJ_CACHE_HOME/agent/blueprints/`
+   until they are converted.
 4. **[CHECKPOINT-SIGN-OFF]**: After each atomic code change, the Agent MUST update or add the relevant unit tests for the affected project/package and then run those tests. Only after tests complete successfully may the Agent ask the Sovereign for a "Pulse Check".
 
 ## 4. Context & Exploration Protocol
@@ -100,7 +102,8 @@ text.
 
 When no dedicated `PRJ_*` variable exists for a repository surface, derive the
 path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
-`$PRJ_ROOT/.agent/PLANS.md`, `$PRJ_ROOT/.agent/blueprints/_template.org`,
+`$PRJ_ROOT/.agent/PLANS.md`, `$PRJ_ROOT/.agent/sdd/_architecture_template.org`,
+`$PRJ_CACHE_HOME/agent/sdd/<slug>.org`,
 `$PRJ_CACHE_HOME/agent/org/agenda.org`, and
 `$PRJ_ROOT/packages/<scope>/<package>/docs/`.
 
@@ -162,8 +165,10 @@ path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
 
 # ExecPlans and Org Task Tracking
 
-When writing complex features or significant refactors, use an ExecPlan (as
-described in `$PRJ_ROOT/.agent/PLANS.md`) from design to implementation.
+When writing complex features or significant refactors, use an Org-native SDD
+architecture description as the durable design, rationale, and audit contract.
+Use an ExecPlan (as described in `$PRJ_ROOT/.agent/PLANS.md`) only when the
+slice needs detailed execution logs beyond the SDD.
 
 Org is the authoritative active task-management surface for agents. Use native
 Org syntax for implementation state:
@@ -172,8 +177,8 @@ Org syntax for implementation state:
 2. `SCHEDULED`, `DEADLINE`, and `CLOSED` planning timestamps when timing
    matters.
 3. `:PROPERTIES:` drawers for machine-readable links to the governing
-   blueprint, ExecPlan, stable RFC/doc references, package scope, evidence
-   paths, and current slice.
+   SDD, blueprint, ExecPlan, stable RFC/doc references, package scope,
+   evidence paths, and current slice.
 
 The default active ledger is `$PRJ_CACHE_HOME/agent/org/agenda.org`. Larger
 lanes MAY use `$PRJ_CACHE_HOME/agent/org/<slug>.org` when the main agenda links
@@ -181,84 +186,71 @@ or includes the lane file.
 Do not create GTD or DAILY tracking files. Use native Org timestamps and
 task-local recovery queries instead.
 
-## Blueprint Adherence
+## Org-native SDD Adherence
 
 Every complex migration lane, architectural refactor, or multi-slice workstream
 MUST have both:
 
-1. an active strategic blueprint under `$PRJ_CACHE_HOME/agent/blueprints/`
-2. an active ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/`
-3. an active Org task record under `$PRJ_CACHE_HOME/agent/org/`
+1. an active SDD architecture description under `$PRJ_CACHE_HOME/agent/sdd/`
+2. an active Org task record under `$PRJ_CACHE_HOME/agent/org/`
 
-The blueprint is the durable architectural contract for the lane. The ExecPlan
-is the task-local execution record for one bounded slice under that contract.
-The Org task record is the live schedule/status surface for the active agent
-work item.
-Agents MUST create the blueprint first when no matching blueprint exists yet,
-then create the ExecPlan and Org task record for the current slice.
+The SDD is the durable architecture, rationale, and audit contract for the
+system or capability. The Org task record is the live schedule/status surface
+for the active agent work item. An ExecPlan is optional and should be added only
+when the slice needs a detailed execution log beyond the SDD.
 
-- **Relationship Rule**: A blueprint and an ExecPlan are paired artifacts for
-  complex work. Every active ExecPlan MUST cite its governing blueprint path.
-  Recording "no blueprint applies" is not allowed for a complex migration,
-  architecture, or multi-slice implementation lane; create the missing
-  blueprint first.
-- **Governance Location**: Blueprint governance and templates belong under
-  `$PRJ_ROOT/.agent/`. ExecPlan governance lives in
-  `$PRJ_ROOT/.agent/PLANS.md`, and the tracking templates live at
-  `$PRJ_ROOT/.agent/blueprints/_template.org`,
+- **Relationship Rule**: Each SDD node MUST have an `ID`, `SDD_KIND`,
+  `SDD_STATUS`, and a semantic `SDD_PARENT` `id:` link to its governing
+  system, capability, or architecture view when it is not the root system SDD.
+  `SDD_KIND` is `system`, `capability`, `view`, `decision`, or `audit`. If an
+  ExecPlan exists, it MUST cite the SDD and active Org task path.
+- **Governance Location**: SDD governance and templates belong under
+  `$PRJ_ROOT/.agent/`. The tracking templates live at
+  `$PRJ_ROOT/.agent/sdd/_architecture_template.org`,
   `$PRJ_ROOT/.agent/execplans/_template.org`, and
   `$PRJ_ROOT/.agent/org/_task_template.org`.
-- **Template-Governed Adaptation Rule**: `$PRJ_ROOT/.agent/blueprints/_template.org`
-  and `$PRJ_ROOT/.agent/execplans/_template.org` are the normative Org
-  tracking specifications. Every newly created blueprint and ExecPlan MUST
-  start from the corresponding Org template and then be enhanced, tightened, or
-  extended for the specific task. Agents MAY add task-specific sections,
-  decision records, evidence requirements, or boundary clarifications, but MUST
-  preserve the template's architecture-design intent and core required
-  sections. Do not use the template as a rigid copy exercise, and do not invent
-  ad hoc tracking formats that bypass it.
-- **Tracking Location**: Generated or actively maintained blueprint files
-  belong under `$PRJ_CACHE_HOME/agent/blueprints/` for ongoing architectural
-  tracking. Active ExecPlans stay under `$PRJ_CACHE_HOME/agent/execplans/`.
-  Active Org task records stay under `$PRJ_CACHE_HOME/agent/org/`.
-- **Lifecycle Rule**: Active blueprints stay under `$PRJ_CACHE_HOME/agent/blueprints/`.
-  Once a blueprint's governed workstream is fully implemented and accepted,
-  move it to `$PRJ_CACHE_HOME/agent/blueprints/archives/`. Active ExecPlans stay under
-  `$PRJ_CACHE_HOME/agent/execplans/`. Once an ExecPlan's slice is `[DONE]` and
-  validated, move it to `$PRJ_CACHE_HOME/agent/execplans/archives/`. Once an
-  Org task is complete, mark the heading `DONE`, record `CLOSED`, and record
-  validation evidence. Completed task headings may remain in the ledger as
-  lane index entries, but routine completed headings should move to
-  `$PRJ_CACHE_HOME/agent/org/archives/YYYY.org` so active recovery stays small.
-- **Selection Rule**: The applicable blueprint is task-scoped. Agents MUST
-  identify the relevant blueprint file under `$PRJ_CACHE_HOME/agent/blueprints/`.
-  If none exists for the lane, Agents MUST create one before opening the
-  ExecPlan and record that path in the ExecPlan and Org task record, not in
-  canonical docs.
-- **Canonical Documentation Boundary**: Persistent documentation may describe the governing blueprint or ExecPlan conceptually, but it MUST NOT link directly to hidden tracking paths. Use stable RFC or package-doc references in canonical docs and keep the exact hidden-path reference in the active tracking record.
+- **Template-Governed Adaptation Rule**: `$PRJ_ROOT/.agent/sdd/_architecture_template.org`
+  is the normative SDD tracking specification for new complex work. Every new
+  SDD file MUST start from the template, replace placeholder IDs with stable
+  UUID/ULID values, set parent links, and then be tightened for the specific
+  architecture. SDD headings MUST NOT carry TODO state, progress cookies, or
+  implementation checklists; those belong in Org task or ExecPlan headings.
+- **Tracking Location**: Active SDD files belong under
+  `$PRJ_CACHE_HOME/agent/sdd/`. Active ExecPlans stay under
+  `$PRJ_CACHE_HOME/agent/execplans/`. Active Org task records stay under
+  `$PRJ_CACHE_HOME/agent/org/`.
+- **Lifecycle Rule**: Active SDD files stay under `$PRJ_CACHE_HOME/agent/sdd/`.
+  SDD status moves through `draft`, `review`, `accepted`, and `superseded`.
+  Archive an SDD only when the design is superseded or retired. When an
+  implementation task is complete, mark the Org task `DONE`, record `CLOSED`,
+  and record validation evidence. If an ExecPlan exists, move it to
+  `$PRJ_CACHE_HOME/agent/execplans/archives/`.
+- **Blueprint Compatibility Rule**: Existing blueprint-governed lanes may keep
+  citing `$PRJ_CACHE_HOME/agent/blueprints/`. Do not create new blueprints for
+  fresh SDD-governed work unless a legacy workflow explicitly requires one.
+- **Canonical Documentation Boundary**: Persistent documentation may describe the governing SDD, blueprint, or ExecPlan conceptually, but it MUST NOT link directly to hidden tracking paths. Use stable RFC or package-doc references in canonical docs and keep the exact hidden-path reference in the active tracking record.
 
 ## Holistic Evolution Workflow
 
-All structural changes must follow the **Blueprint / Org / ExecPlan Sync
+All structural changes must follow the **SDD / Org / ExecPlan Sync
 Protocol**:
 
-1.  **Blueprint Check**: Verify if the task falls under an active strategic blueprint.
-    Record the exact blueprint path in the ExecPlan. If multiple blueprints
-    apply, record the primary blueprint and the bounded secondary references.
-    If no blueprint exists yet for the lane, create the blueprint first from
-    `$PRJ_ROOT/.agent/blueprints/_template.org` under
-    `$PRJ_CACHE_HOME/agent/blueprints/`, adapt it to the architecture and
-    risks of the current task, then record that new blueprint path in the
-    ExecPlan before implementation.
+1.  **SDD Check**: Verify if the task falls under an active system,
+    capability, view, decision, or audit SDD. If no SDD exists yet for the
+    architecture surface, create it first from
+    `$PRJ_ROOT/.agent/sdd/_architecture_template.org` under
+    `$PRJ_CACHE_HOME/agent/sdd/`, replace placeholder IDs, and record the
+    parent `id:` edge before implementation.
 2.  **Org Task Synchronization**: Create or update the active Org task record
     under `$PRJ_CACHE_HOME/agent/org/`. The Org heading owns current task
     lifecycle state, timing markers, and task-local metadata. Use property
-    drawer fields such as `BLUEPRINT`, `EXECPLAN`, `STABLE_REF`, `PACKAGE`,
-    `SLICE`, `STATUS`, and `EVIDENCE` when they apply.
-3.  **ExecPlan Creation**: Create a formal ExecPlan
-    (`$PRJ_CACHE_HOME/agent/execplans/<slug>.org`) that explicitly references
-    the governing blueprint path and active Org task path, defines the current
-    slice, and records any bounded deviations before implementation.
+    drawer fields such as `SDD`, `BLUEPRINT`, `EXECPLAN`, `STABLE_REF`,
+    `PACKAGE`, `SLICE`, `STATUS`, and `EVIDENCE` when they apply.
+3.  **ExecPlan Creation When Needed**: Create a formal ExecPlan
+    (`$PRJ_CACHE_HOME/agent/execplans/<slug>.org`) only when the SDD is
+    not detailed enough for execution. The ExecPlan must explicitly reference
+    the governing SDD and active Org task path, define the current slice, and
+    record any bounded deviations before implementation.
 4.  **Package Docs Synchronization**: Synchronize durable status in the
     corresponding package docs when the implementation changes package
     ownership, public behavior, or operator workflow (for example
@@ -266,7 +258,7 @@ Protocol**:
     `$PRJ_ROOT/packages/<scope>/<package>/README.md`) so package-level
     documentation tracks real implementation status.
 5.  **Implementation**: Execute implementation and validation steps as defined in the plan.
-    When the slice reaches `[DONE]` and validation is complete, archive the completed ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/archives/`. Archive the blueprint under `$PRJ_CACHE_HOME/agent/blueprints/archives/` only when its full governed workstream is complete. Mark the Org task `DONE`, add `CLOSED`, and either keep it as a lane index or move it to the Org archive file for the year.
+    When the slice reaches `[DONE]` and validation is complete, update the SDD evidence or audit notes if the design contract changed. Archive the completed ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/archives/` if one exists. Mark the Org task `DONE`, add `CLOSED`, and either keep it as a lane index or move it to the Org archive file for the year.
 
 ## Org Recovery and Archive Protocol
 
@@ -274,6 +266,10 @@ At the start of a resumed Codex turn, recover active work from Org before
 depending on chat history:
 
 `wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
+
+For SDD-oriented recovery, use:
+
+`wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd`.
 
 For calendar-oriented recovery, use:
 
@@ -284,8 +280,8 @@ For one lane or package, use:
 `wendao-client orgize sparse-tree --text '<lane-or-package>' --exclude-done $PRJ_CACHE_HOME/agent/org`.
 
 When a slice is completed, record evidence in the Org heading, update the
-paired ExecPlan outcome, and keep active queries clean by relying on
-`--exclude-done` or moving the task to
+paired SDD and ExecPlan outcome when present, and keep active queries
+clean by relying on `--exclude-done` or moving the task to
 `$PRJ_CACHE_HOME/agent/org/archives/YYYY.org`. Completed achievements that
 should remain queryable should carry an `achievement` tag and can be reviewed
 with:
@@ -299,10 +295,13 @@ through the installed Wendao client from the project environment. Install or
 refresh the client with `direnv exec . just install-wendao-client`. The stable
 project entrypoint is `wendao-client`.
 When an agent changes files under `$PRJ_CACHE_HOME/agent/org/`,
-`$PRJ_CACHE_HOME/agent/blueprints/`, or `$PRJ_CACHE_HOME/agent/execplans/`, it
+`$PRJ_CACHE_HOME/agent/sdd/`, `$PRJ_CACHE_HOME/agent/blueprints/`, or
+`$PRJ_CACHE_HOME/agent/execplans/`, it
 SHOULD run the relevant orgize-backed lint or query command before marking the
 tracking change complete. For syntax validation, use:
 `wendao-client orgize lint --format compact <path>`.
+For SDD status recovery, use:
+`wendao-client orgize sdd status <path>`.
 For task schedule lookup, use:
 `wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
 For task-local sparse-tree lookup, use:

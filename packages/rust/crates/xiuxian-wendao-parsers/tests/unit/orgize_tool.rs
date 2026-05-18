@@ -1,7 +1,7 @@
 use xiuxian_wendao_parsers::{
-    OrgizeAgentPlanningRequest, OrgizeAgentTaskReadModelRequest, OrgizeSparseTreeRenderOptions,
-    OrgizeSparseTreeRequest, OrgizeSparseTreeVisibility, collect_agent_task_rows,
-    render_agent_planning, render_sparse_tree,
+    OrgizeAgentPlanningRequest, OrgizeAgentTaskReadModelRequest, OrgizeSddStatusRequest,
+    OrgizeSparseTreeRenderOptions, OrgizeSparseTreeRequest, OrgizeSparseTreeVisibility,
+    collect_agent_task_rows, render_agent_planning, render_sdd_status, render_sparse_tree,
 };
 
 #[test]
@@ -76,6 +76,55 @@ fn render_sparse_tree_can_filter_done_tasks() {
         "rendered: {rendered}"
     );
     assert!(!rendered.contains("Retired memory"), "rendered: {rendered}");
+}
+
+#[test]
+fn render_sdd_status_uses_org_native_parent_edges() {
+    let temp = tempdir_or_panic();
+    let path = temp.path().join("sdd.org");
+    std::fs::write(
+        &path,
+        concat!(
+            "* System SDD :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Agent planning architecture boundaries.\n",
+            ":END:\n",
+            "** Runtime View :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-55a2-70c0-98db-7ac2c4d80d78\n",
+            ":SDD_KIND: view\n",
+            ":SDD_PARENT: [[id:018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11][System SDD]]\n",
+            ":SDD_VIEWPOINT: runtime\n",
+            ":SDD_CONCERN: Recovery query and design-governance flow.\n",
+            ":SDD_STATUS: review\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write sdd org: {error}"));
+
+    let rendered = render_sdd_status(&OrgizeSddStatusRequest { paths: vec![path] })
+        .unwrap_or_else(|error| panic!("render sdd status: {error}"));
+
+    assert!(rendered.contains("[SDD]"), "rendered: {rendered}");
+    assert!(
+        rendered.contains("architecture nodes: 2"),
+        "rendered: {rendered}"
+    );
+    assert!(
+        rendered.contains("- view review: Runtime View"),
+        "rendered: {rendered}"
+    );
+    assert!(
+        rendered.contains("parent: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11 (System SDD)"),
+        "rendered: {rendered}"
+    );
+    assert!(
+        rendered.contains("viewpoint: runtime"),
+        "rendered: {rendered}"
+    );
 }
 
 #[test]

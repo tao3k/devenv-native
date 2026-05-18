@@ -234,6 +234,13 @@ pub struct OrgizeSparseTreeRenderOptions {
     pub explain_skips: bool,
 }
 
+/// Options for Org-native SDD status projections.
+#[derive(Clone, Debug)]
+pub struct OrgizeSddStatusRequest {
+    /// Files or directories to inspect.
+    pub paths: Vec<PathBuf>,
+}
+
 /// Options for extracting source-grounded agent task rows from Org files.
 #[derive(Clone, Debug)]
 pub struct OrgizeAgentTaskReadModelRequest {
@@ -471,6 +478,29 @@ pub fn render_sparse_tree(request: &OrgizeSparseTreeRequest) -> Result<String, O
         rendered.push(projection.to_compact_text(&path.display().to_string()));
     }
     Ok(join_projection_text(rendered, "[ok] orgize sparse tree\n"))
+}
+
+/// Renders Org-native SDD status cards.
+///
+/// # Errors
+///
+/// Returns an error when a path cannot be read.
+pub fn render_sdd_status(request: &OrgizeSddStatusRequest) -> Result<String, OrgizeToolError> {
+    let files = collect_org_paths(&request.paths)?;
+    let mut rendered = Vec::new();
+    for path in files {
+        let source = read_to_string(&path)?;
+        let document = Org::parse(&source).document();
+        rendered.push(
+            document
+                .sdd_status()
+                .to_compact_text(&path.display().to_string()),
+        );
+    }
+    Ok(join_projection_text(
+        rendered,
+        "[ok] orgize sdd status: no SDD nodes\n",
+    ))
 }
 
 /// Collect source-grounded Org agent task rows for read-model materialization.

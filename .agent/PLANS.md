@@ -5,7 +5,44 @@ cutting. Active agent task state, scheduling, deadlines, and implementation
 continuity are tracked in Org files under `$PRJ_CACHE_HOME/agent/org/`.
 This repository uses Org as the agent tracking surface.
 
-## Blueprint Adherence (Mandatory)
+## Org-native SDD Governance (Preferred)
+
+New complex architecture, migration, or multi-slice work SHOULD start from an
+Org-native SDD architecture description instead of a new blueprint. The SDD
+graph is:
+
+1. System SDD: durable system boundary, quality attributes, and design concerns.
+2. Capability SDD: behavior contract for one capability or bounded context.
+3. View SDD: architecture viewpoint such as runtime, data, deployment, or integration.
+4. Decision SDD: design decision, tradeoff, and rationale.
+5. Audit SDD: architecture fitness criteria and drift checks.
+
+The default SDD template lives at `.agent/sdd/_architecture_template.org`.
+Active SDD work belongs under `$PRJ_CACHE_HOME/agent/sdd/`, with superseded
+design descriptions archived under `$PRJ_CACHE_HOME/agent/sdd/archives/YYYY.org`
+or another reviewed archive file.
+
+SDD nodes use native Org properties:
+
+1. `ID` is the stable UUID/ULID machine identity.
+2. `SDD_KIND` is `system`, `capability`, `view`, `decision`, or `audit`.
+3. `SDD_PARENT` is a semantic Org `id:` link to the parent SDD.
+4. `SDD_CAPABILITY`, `SDD_VIEWPOINT`, `SDD_CONCERN`, `SDD_QUALITY`,
+   `SDD_RATIONALE`, `SDD_SLUG`, and tags provide search dimensions.
+5. SDD headings do not carry `TODO`, progress cookies, or task checklists;
+   implementation state belongs in Org task or ExecPlan headings.
+
+Validate SDD files with:
+`wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/sdd`.
+
+Recover SDD status with:
+`wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd`.
+
+Blueprints remain a compatibility surface for existing lanes until they are
+converted. Do not create new blueprints for fresh SDD-governed work unless a
+legacy workflow explicitly requires one.
+
+## Blueprint Adherence (Compatibility)
 
 If a task falls under the scope of an existing strategic blueprint (located in `$PRJ_CACHE_HOME/agent/blueprints/`, repo-relative default `.cache/agent/blueprints/`), the ExecPlan MUST:
 
@@ -50,7 +87,7 @@ Each active implementation heading should use native Org syntax:
 
 1. Lifecycle keyword: `TODO`, `NEXT`, `WAITING`, `DONE`, or `CANCELLED`.
 2. Planning timestamps: `SCHEDULED`, `DEADLINE`, and `CLOSED` when applicable.
-3. A `:PROPERTIES:` drawer with relevant fields such as `BLUEPRINT`,
+3. A `:PROPERTIES:` drawer with relevant fields such as `SDD`, `BLUEPRINT`,
    `EXECPLAN`, `STABLE_REF`, `PACKAGE`, `SLICE`, `STATUS`, and `EVIDENCE`.
 4. Progress cookies such as `[1/3]` and `[33%]` on headings that contain
    direct checklists, direct TODO/DONE child headings, or both.
@@ -78,11 +115,13 @@ Small, isolated fixes do not require a full ExecPlan.
 ## Where Plans Live
 
 1. Policy file: `.agent/PLANS.md` (this file).
-2. Template file: `.agent/execplans/_template.org`.
-3. Active plans: `$PRJ_CACHE_HOME/agent/execplans/<slug>.org`.
-4. Archived DONE plans: `$PRJ_CACHE_HOME/agent/execplans/archives/<slug>.org`.
-5. Active Org task ledger: `$PRJ_CACHE_HOME/agent/org/agenda.org`.
-6. Org task template: `.agent/org/_task_template.org`.
+2. SDD template file: `.agent/sdd/_architecture_template.org`.
+3. Active SDD files: `$PRJ_CACHE_HOME/agent/sdd/<slug>.org`.
+4. Template file: `.agent/execplans/_template.org`.
+5. Active plans: `$PRJ_CACHE_HOME/agent/execplans/<slug>.org`.
+6. Archived DONE plans: `$PRJ_CACHE_HOME/agent/execplans/archives/<slug>.org`.
+7. Active Org task ledger: `$PRJ_CACHE_HOME/agent/org/agenda.org`.
+8. Org task template: `.agent/org/_task_template.org`.
 
 ## Required Plan Structure
 
@@ -150,10 +189,11 @@ Work must not proceed until this self check is complete.
 ## Orgize Validation
 
 Agent tracking files are native Org documents. When changing files under
-`$PRJ_CACHE_HOME/agent/org/`, `$PRJ_CACHE_HOME/agent/blueprints/`, or
-`$PRJ_CACHE_HOME/agent/execplans/`, prefer the orgize-backed project entrypoint
-for lint and query checks before marking tracking work complete. Install or
-refresh the client with `direnv exec . just install-wendao-client`, then run:
+`$PRJ_CACHE_HOME/agent/org/`, `$PRJ_CACHE_HOME/agent/sdd/`,
+`$PRJ_CACHE_HOME/agent/blueprints/`, or `$PRJ_CACHE_HOME/agent/execplans/`,
+prefer the orgize-backed project entrypoint for lint and query checks before
+marking tracking work complete. Install or refresh the client with
+`direnv exec . just install-wendao-client`, then run:
 `wendao-client orgize lint --format compact <path>`.
 
 Use native Org agenda semantics for schedule/task lookup:
@@ -161,6 +201,9 @@ Use native Org agenda semantics for schedule/task lookup:
 
 Use native Org sparse-tree semantics for task-local search:
 `wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.
+
+Use Org-native SDD status for system/capability/view/decision/audit recovery:
+`wendao-client orgize sdd status <path>`.
 
 Use the DuckDB-backed Org task list for active recovery:
 `wendao-client orgize task-list [--text TEXT] [--tag TAG] <path>`.
@@ -220,9 +263,10 @@ This section must be the last checkpoint before marking work DONE.
 
 ## Quick Start
 
-1. Copy `.agent/execplans/_template.org` to `$PRJ_CACHE_HOME/agent/execplans/<slug>.org`.
-2. Create or update the paired Org heading in `$PRJ_CACHE_HOME/agent/org/agenda.org` using `.agent/org/_task_template.org`.
-3. Fill `Purpose`, `Scope and Boundaries`, `Context`, and `Plan of Work` before coding.
-4. Record `NEXT_ACTION` and `RESUME_QUERY` before leaving a turn.
-5. Keep the ExecPlan and Org task heading current until the initiative is complete.
-6. At completion, mark the task `DONE`, add `CLOSED`, record evidence, and archive the ExecPlan.
+1. Copy `.agent/sdd/_architecture_template.org` to `$PRJ_CACHE_HOME/agent/sdd/<slug>.org` for new complex work.
+2. Replace template IDs with real UUID/ULID values and set `SDD_PARENT` links.
+3. Create or update the paired Org heading in `$PRJ_CACHE_HOME/agent/org/agenda.org` using `.agent/org/_task_template.org`.
+4. Use `.agent/execplans/_template.org` only when the slice still needs detailed execution logging beyond the SDD architecture description.
+5. Record `NEXT_ACTION` and `RESUME_QUERY` before leaving a turn.
+6. Keep the SDD and Org task heading current until the initiative is complete.
+7. At completion, mark the task `DONE`, add `CLOSED`, record evidence, and archive the ExecPlan if one exists. Archive the SDD only when the design is superseded or retired.

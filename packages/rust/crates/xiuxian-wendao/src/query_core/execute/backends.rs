@@ -185,6 +185,9 @@ fn retrieval_row_from_search_hit(hit: &SearchHit, repo_id: &str) -> xiuxian_db_s
         score: Some(hit.score),
         source: "legacy-search-plane".to_string(),
         snippet: hit.best_section.clone(),
+        #[cfg(feature = "vector-store")]
+        doc_type: hit.doc_type.clone(),
+        #[cfg(not(feature = "vector-store"))]
         doc_type: hit.doc_type.clone().map(Into::into),
         match_reason: hit.match_reason.clone(),
         best_section: hit.best_section.clone(),
