@@ -167,6 +167,28 @@ impl HotStateStore for InMemoryHotStateStore {
         Ok(true)
     }
 
+    async fn reclaim_expired_lease(&self, lease: &StepLease, now_ms: u64) -> ControlResult<bool> {
+        let mut guard = lock(&self.state, "hot_state")?;
+        let key = step_key(lease);
+        let Some(active) = guard.leases.get(&key) else {
+            return Ok(false);
+        };
+        if active.lease.lease_id != lease.lease_id || active.lease.worker_id != lease.worker_id {
+            return Err(ControlError::LeaseNotOwned {
+                lease_id: lease.lease_id.clone(),
+                worker_id: lease.worker_id.clone(),
+            });
+        }
+        if active.lease.is_active_at(now_ms) {
+            return Ok(false);
+        }
+        let Some(expired) = guard.leases.remove(&key) else {
+            return Ok(false);
+        };
+        guard.queue.push(expired.step);
+        Ok(true)
+    }
+
     async fn heartbeat(&self, heartbeat: WorkerHeartbeat) -> ControlResult<()> {
         let mut guard = lock(&self.state, "hot_state")?;
         guard

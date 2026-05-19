@@ -30,6 +30,7 @@ mod event;
 mod gate;
 mod heartbeat_journal;
 mod identity;
+mod lease_journal;
 mod memory;
 mod model;
 mod policy;
@@ -79,6 +80,7 @@ pub use identity::{
     LeaseId, LlmModelId, PermissionScope, RunId, SignalName, StepId, TaskQueue, TimerId, TokenId,
     ToolName, VersionKey, WorkerId,
 };
+pub use lease_journal::{StepLeaseReleaseJournalRecord, record_step_lease_released};
 pub use memory::{InMemoryControlLedger, InMemoryHotStateStore};
 pub use model::{
     ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,

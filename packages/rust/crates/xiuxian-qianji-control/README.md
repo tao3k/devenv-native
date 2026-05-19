@@ -149,11 +149,15 @@ recovery appliers can share the same queue mirror contract without executing
 Workers.
 `record_timer_fired` records a durable `TimerFired` fact for a run-scoped or
 step-scoped timer. It does not poll timers, wait, notify, or enqueue work.
+`record_step_lease_released` records a durable `StepLeaseReleased` fact after
+hot-state lease ownership has been handled by the caller.
 `apply_recovery_action` is the first bounded recovery applier. It applies only
 step-scoped `RetryActivity` actions by queueing the owning step after the
 retry backoff and recording `StepQueued`, and `FireTimer` actions by recording
-`TimerFired`; run-scoped retries and other action kinds return
-`NotApplicable` without side effects.
+`TimerFired`. It also applies `ReclaimExpiredLease` by validating the replayed
+lease, reclaiming the expired hot lease back into the runnable queue, and
+recording `StepLeaseReleased`; run-scoped retries and other action kinds
+return `NotApplicable` without side effects.
 
 Agent proposals and deterministic Agent decisions can be recorded as control
 journal events and replay into run or step views. Recording an Agent decision
@@ -191,6 +195,7 @@ hot-state work, lease steps, or execute workers.
   `record_activity_failed_idempotent`
 - `WorkerHeartbeatJournalRecord`, `record_worker_heartbeat`, and
   `record_worker_heartbeat_with_hot_state`
+- `StepLeaseReleaseJournalRecord` and `record_step_lease_released`
 - `StepQueueJournalRecord`, `record_step_queued`, and
   `record_step_queued_with_hot_state`
 - `TimerFireJournalRecord` and `record_timer_fired`

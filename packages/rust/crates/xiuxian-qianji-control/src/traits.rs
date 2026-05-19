@@ -103,6 +103,13 @@ pub trait HotStateStore: Send + Sync {
     /// Returns a store-specific control error when release fails.
     async fn release_lease(&self, lease: &StepLease) -> ControlResult<bool>;
 
+    /// Reclaims an expired lease and makes the step runnable again.
+    ///
+    /// # Errors
+    ///
+    /// Returns a store-specific control error when reclaim fails.
+    async fn reclaim_expired_lease(&self, lease: &StepLease, now_ms: u64) -> ControlResult<bool>;
+
     /// Records one worker heartbeat.
     ///
     /// # Errors

@@ -2,8 +2,9 @@
 
 use crate::{
     ActivityRetryDecision, ControlEventRecord, ControlLedger, ControlResult, HotStateStore,
-    RecoveryItemScope, RecoveryPlanAction, RunId, RunnableStep, StepQueueJournalRecord,
-    TimerFireJournalRecord, record_step_queued_with_hot_state, record_timer_fired,
+    RecoveryItemScope, RecoveryPlanAction, RunId, RunnableStep, StepId, StepLease,
+    StepLeaseReleaseJournalRecord, StepQueueJournalRecord, TimerFireJournalRecord,
+    record_step_lease_released, record_step_queued_with_hot_state, record_timer_fired,
 };
 
 /// Request for applying one recovery action.
@@ -54,6 +55,13 @@ pub enum RecoveryActionApplication {
         /// Durable timer event.
         record: Box<ControlEventRecord>,
     },
+    /// A hot lease was released and recorded.
+    AppliedLeaseReclaim {
+        /// Reclaimed lease.
+        lease: StepLease,
+        /// Durable lease release event.
+        record: Box<ControlEventRecord>,
+    },
     /// The action is not handled by this bounded applier.
     NotApplicable {
         /// Stable reason code.
@@ -69,6 +77,14 @@ pub enum RecoveryActionApplicationReason {
     UnsupportedAction,
     /// The retry action is run-scoped and cannot identify a step to enqueue.
     RunScopedRetry,
+    /// Durable replay does not contain a lease for the requested step.
+    MissingReplayLease,
+    /// Durable replay contains a different active lease than the action names.
+    LeaseMismatch,
+    /// Hot state no longer contains the replayed lease.
+    HotLeaseMissing,
+    /// The replayed lease is still active at the application timestamp.
+    LeaseStillActive,
 }
 
 /// Applies one bounded recovery action.
@@ -131,10 +147,58 @@ where
                 record: Box::new(record),
             })
         }
+        RecoveryPlanAction::ReclaimExpiredLease { step_id, lease_id } => {
+            let Some(lease) = replayed_step_lease(ledger, &run_id, &step_id)? else {
+                return Ok(RecoveryActionApplication::NotApplicable {
+                    reason: RecoveryActionApplicationReason::MissingReplayLease,
+                });
+            };
+            if lease.lease_id != lease_id {
+                return Ok(RecoveryActionApplication::NotApplicable {
+                    reason: RecoveryActionApplicationReason::LeaseMismatch,
+                });
+            }
+            if lease.is_active_at(occurred_at_ms) {
+                return Ok(RecoveryActionApplication::NotApplicable {
+                    reason: RecoveryActionApplicationReason::LeaseStillActive,
+                });
+            }
+            if !hot_state
+                .reclaim_expired_lease(&lease, occurred_at_ms)
+                .await?
+            {
+                return Ok(RecoveryActionApplication::NotApplicable {
+                    reason: RecoveryActionApplicationReason::HotLeaseMissing,
+                });
+            }
+            let record = record_step_lease_released(
+                ledger,
+                StepLeaseReleaseJournalRecord::new(lease.clone(), occurred_at_ms),
+            )?;
+            Ok(RecoveryActionApplication::AppliedLeaseReclaim {
+                lease,
+                record: Box::new(record),
+            })
+        }
         _ => Ok(RecoveryActionApplication::NotApplicable {
             reason: RecoveryActionApplicationReason::UnsupportedAction,
         }),
     }
+}
+
+fn replayed_step_lease<L>(
+    ledger: &L,
+    run_id: &RunId,
+    step_id: &StepId,
+) -> ControlResult<Option<StepLease>>
+where
+    L: ControlLedger + ?Sized,
+{
+    Ok(ledger
+        .load_run_view(run_id)?
+        .steps
+        .get(step_id)
+        .and_then(|step| step.active_lease.clone()))
 }
 
 struct StepRetryApplication {

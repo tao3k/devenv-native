@@ -115,6 +115,35 @@ redis.call('DEL', lease_key)
 redis.call('ZREM', lease_deadlines_key, entry_id)
 return 1
 ";
+const RECLAIM_EXPIRED_LEASE_LUA: &str = r"
+local pending_key = KEYS[1]
+local lease_key = KEYS[2]
+local lease_deadlines_key = KEYS[3]
+local payload_key = KEYS[4]
+local lease_id = ARGV[1]
+local worker_id = ARGV[2]
+local entry_id = ARGV[3]
+local now_ms = tonumber(ARGV[4])
+
+if redis.call('EXISTS', lease_key) == 0 then
+  return 0
+end
+if redis.call('HGET', lease_key, 'lease_id') ~= lease_id or redis.call('HGET', lease_key, 'worker_id') ~= worker_id then
+  return -1
+end
+local active_expires_at_ms = tonumber(redis.call('HGET', lease_key, 'expires_at_ms') or '0')
+if active_expires_at_ms > now_ms then
+  return 0
+end
+local priority_score = redis.call('HGET', payload_key, 'priority_score')
+if not priority_score then
+  return 0
+end
+redis.call('DEL', lease_key)
+redis.call('ZREM', lease_deadlines_key, entry_id)
+redis.call('ZADD', pending_key, priority_score, entry_id)
+return 1
+";
 
 /// Valkey key namespace for Qianji control hot state.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -460,6 +489,32 @@ impl HotStateStore for ValkeyHotStateStore {
                     .arg(lease.lease_id.as_str())
                     .arg(lease.worker_id.as_str())
                     .arg(&entry_id);
+                command
+            })
+            .await?;
+        lease_script_result(result, lease)
+    }
+
+    async fn reclaim_expired_lease(&self, lease: &StepLease, now_ms: u64) -> ControlResult<bool> {
+        let pending_queue_key = self.config.pending_queue_key();
+        let lease_key = self.config.lease_key(&lease.run_id, &lease.step_id);
+        let lease_deadlines_key = self.config.lease_deadlines_key();
+        let payload_key = self.config.step_payload_key(&lease.run_id, &lease.step_id);
+        let entry_id = step_entry_id(&lease.run_id, &lease.step_id);
+        let result: i64 = self
+            .run_command("valkey_hot_state_reclaim_expired_lease", || {
+                let mut command = redis::cmd("EVAL");
+                command
+                    .arg(RECLAIM_EXPIRED_LEASE_LUA)
+                    .arg(4)
+                    .arg(&pending_queue_key)
+                    .arg(&lease_key)
+                    .arg(&lease_deadlines_key)
+                    .arg(&payload_key)
+                    .arg(lease.lease_id.as_str())
+                    .arg(lease.worker_id.as_str())
+                    .arg(&entry_id)
+                    .arg(now_ms.to_string());
                 command
             })
             .await?;
