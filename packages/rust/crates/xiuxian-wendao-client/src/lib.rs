@@ -45,7 +45,7 @@ pub use lint::{
 pub use orgize::OrgizeReadModelArgs;
 pub use orgize::{
     OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
-    OrgizeSparseTreeArgs,
+    OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
 };
 pub use output::OutputFormat;
 #[cfg(feature = "semantic-sql")]

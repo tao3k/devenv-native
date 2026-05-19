@@ -212,6 +212,439 @@ fn standalone_orgize_sdd_status_renders_child_edges() {
     );
 }
 
+#[test]
+fn standalone_orgize_sdd_status_reports_missing_path_recovery() {
+    let temp = tempdir_or_panic();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("status")
+        .arg("agent/sdd")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize missing sdd status: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert!(stdout.contains("missing-path"), "stdout: {stdout}");
+    assert!(
+        stdout.contains("copy `.agent/sdd/_architecture_template.org`"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn standalone_orgize_sdd_status_defaults_to_agent_sdd_cache() {
+    let temp = tempdir_or_panic();
+    let sdd_dir = temp.path().join(".cache").join("agent").join("sdd");
+    std::fs::create_dir_all(&sdd_dir).unwrap_or_else(|error| panic!("create sdd dir: {error}"));
+    std::fs::write(
+        sdd_dir.join("default.org"),
+        concat!(
+            "* System SDD :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Default active SDD lookup.\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write default sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .env_remove("PRJ_CACHE_HOME")
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("status")
+        .output()
+        .unwrap_or_else(|error| panic!("run default orgize sdd status: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert!(stdout.contains("architecture nodes: 1"), "stdout: {stdout}");
+    assert!(
+        stdout.contains("Default active SDD lookup"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn standalone_orgize_sdd_status_renders_json_contract() {
+    let temp = tempdir_or_panic();
+    std::fs::write(
+        temp.path().join("sdd.org"),
+        concat!(
+            "* System SDD :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: JSON SDD status contract.\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write json sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("status")
+        .arg("--json")
+        .arg("sdd.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize sdd status json: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    let payload: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|error| panic!("json parse: {error}"));
+    assert_eq!(payload["format"], "orgize.sdd.status.v1");
+    assert_eq!(payload["files"][0]["architectureNodes"], 1);
+    assert_eq!(payload["files"][0]["summary"]["issues"], 0);
+}
+
+#[test]
+fn standalone_orgize_sdd_status_filters_issues_only_text() {
+    let temp = tempdir_or_panic();
+    std::fs::write(
+        temp.path().join("clean.org"),
+        concat!(
+            "* Clean System :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Clean status should be filtered.\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write clean sdd org: {error}"));
+    std::fs::write(
+        temp.path().join("drifted.org"),
+        concat!(
+            "* Drifted View :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-55a2-70c0-98db-7ac2c4d80d78\n",
+            ":SDD_KIND: view\n",
+            ":SDD_STATUS: review\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write drifted sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("status")
+        .arg("--issues-only")
+        .arg(".")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize sdd status issues-only: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert!(!stdout.contains("Clean System"), "stdout: {stdout}");
+    assert!(stdout.contains("Drifted View"), "stdout: {stdout}");
+    assert!(stdout.contains("[missing-parent]"), "stdout: {stdout}");
+    assert!(!stdout.contains("tree:"), "stdout: {stdout}");
+}
+
+#[test]
+fn standalone_orgize_sdd_status_filters_issues_only_json() {
+    let temp = tempdir_or_panic();
+    std::fs::write(
+        temp.path().join("clean.org"),
+        concat!(
+            "* Clean System :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Clean status should be filtered.\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write clean sdd org: {error}"));
+    std::fs::write(
+        temp.path().join("drifted.org"),
+        concat!(
+            "* Drifted View :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-55a2-70c0-98db-7ac2c4d80d78\n",
+            ":SDD_KIND: view\n",
+            ":SDD_STATUS: review\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write drifted sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("status")
+        .arg("--json")
+        .arg("--issues-only")
+        .arg(".")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize sdd status json issues-only: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    let payload: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|error| panic!("json parse: {error}"));
+    assert_eq!(payload["files"].as_array().map(Vec::len), Some(1));
+    assert_eq!(payload["files"][0]["nodes"][0]["title"], "Drifted View");
+    assert!(
+        payload["files"][0]["summary"]["issues"]
+            .as_u64()
+            .unwrap_or(0)
+            > 0
+    );
+}
+
+#[test]
+fn standalone_orgize_sdd_status_fail_on_issues_returns_failure() {
+    let temp = tempdir_or_panic();
+    std::fs::write(
+        temp.path().join("drifted.org"),
+        concat!(
+            "* Drifted View :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-55a2-70c0-98db-7ac2c4d80d78\n",
+            ":SDD_KIND: view\n",
+            ":SDD_STATUS: review\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write drifted sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("status")
+        .arg("--fail-on-issues")
+        .arg("drifted.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize sdd status fail-on-issues: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert!(stdout.contains("[missing-parent]"), "stdout: {stdout}");
+}
+
+#[test]
+fn standalone_orgize_sdd_status_fail_on_issues_accepts_clean_status() {
+    let temp = tempdir_or_panic();
+    std::fs::write(
+        temp.path().join("clean.org"),
+        concat!(
+            "* Clean System :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Clean gate should pass.\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write clean sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("status")
+        .arg("--fail-on-issues")
+        .arg("clean.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run clean orgize sdd status fail-on-issues: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert!(
+        stdout.contains("diagnostics:\n- no issues"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn standalone_orgize_sdd_graph_diff_renders_aligned_edges() {
+    let temp = tempdir_or_panic();
+    std::fs::write(
+        temp.path().join("sdd.org"),
+        concat!(
+            "* System SDD :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Graph diff runtime alignment.\n",
+            ":END:\n",
+            "** Runtime View :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-55a2-70c0-98db-7ac2c4d80d78\n",
+            ":SDD_KIND: view\n",
+            ":SDD_PARENT: [[id:018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11][System SDD]]\n",
+            ":SDD_VIEWPOINT: runtime\n",
+            ":SDD_CONCERN: Parent edge matches outline nesting.\n",
+            ":SDD_STATUS: review\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write aligned graph sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("graph-diff")
+        .arg("--fail-on-drift")
+        .arg("sdd.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize sdd graph-diff: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert!(stdout.contains("[SDD-GRAPH]"), "stdout: {stdout}");
+    assert!(stdout.contains("drift=0"), "stdout: {stdout}");
+    assert!(
+        stdout.contains("- aligned: Runtime View"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn standalone_orgize_sdd_graph_diff_fail_on_drift_returns_failure() {
+    let temp = tempdir_or_panic();
+    std::fs::write(
+        temp.path().join("sdd.org"),
+        concat!(
+            "* System A :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-8d3e-7b2a-9c91-4f5b2e7a2c11\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Physical outline parent.\n",
+            ":END:\n",
+            "** Runtime View :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-55a2-70c0-98db-7ac2c4d80d78\n",
+            ":SDD_KIND: view\n",
+            ":SDD_PARENT: [[id:018f3f9c-4c78-7f24-bc2c-e1aa0d7cb881][System B]]\n",
+            ":SDD_VIEWPOINT: runtime\n",
+            ":SDD_CONCERN: Semantic parent differs from outline parent.\n",
+            ":SDD_STATUS: review\n",
+            ":END:\n",
+            "* System B :sdd:\n",
+            ":PROPERTIES:\n",
+            ":ID: 018f3f9c-4c78-7f24-bc2c-e1aa0d7cb881\n",
+            ":SDD_KIND: system\n",
+            ":SDD_STATUS: review\n",
+            ":SDD_CONCERN: Semantic parent.\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write moved graph sdd org: {error}"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .arg("--root")
+        .arg(temp.path())
+        .arg("orgize")
+        .arg("sdd")
+        .arg("graph-diff")
+        .arg("--fail-on-drift")
+        .arg("sdd.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run drift orgize sdd graph-diff: {error}"));
+
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    assert!(
+        stdout.contains("- semantic-move: Runtime View"),
+        "stdout: {stdout}"
+    );
+    assert!(stdout.contains("semantic: System B"), "stdout: {stdout}");
+    assert!(stdout.contains("outline: System A"), "stdout: {stdout}");
+}
+
 #[cfg(feature = "orgize-agent-read-model")]
 #[test]
 fn standalone_orgize_read_model_materializes_default_duckdb_snapshot() {

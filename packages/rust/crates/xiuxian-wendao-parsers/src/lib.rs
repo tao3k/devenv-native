@@ -92,9 +92,11 @@ pub use orgize_tool::{
     OrgizeAgentPlanningRequest, OrgizeAgentTaskProperty, OrgizeAgentTaskReadModelReport,
     OrgizeAgentTaskReadModelRequest, OrgizeAgentTaskRepeater, OrgizeAgentTaskRow,
     OrgizeFormatReport, OrgizeFormatRequest, OrgizeLintFileReport, OrgizeLintOutputFormat,
-    OrgizeLintRequest, OrgizeLintRunReport, OrgizeSddStatusRequest, OrgizeSparseTreeRenderOptions,
-    OrgizeSparseTreeRequest, OrgizeSparseTreeVisibility, OrgizeToolError, collect_agent_task_rows,
-    format_org_files, lint_org_files, render_agent_planning, render_sdd_status, render_sparse_tree,
+    OrgizeLintRequest, OrgizeLintRunReport, OrgizeSddGraphDiffRequest, OrgizeSddStatusRequest,
+    OrgizeSparseTreeRenderOptions, OrgizeSparseTreeRequest, OrgizeSparseTreeVisibility,
+    OrgizeToolError, collect_agent_task_rows, count_sdd_graph_drift, count_sdd_status_issues,
+    format_org_files, lint_org_files, render_agent_planning, render_sdd_graph_diff,
+    render_sdd_status, render_sdd_status_json, render_sparse_tree,
 };
 pub use reference_core::ReferenceCore;
 pub use references::{

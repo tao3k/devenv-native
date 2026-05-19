@@ -4,16 +4,18 @@
 use crate::orgize::read_model::{run_read_model, run_task_archive, run_task_list, run_task_report};
 use crate::orgize::{
     OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
-    OrgizeSddCommand, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
+    OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
 };
 use crate::{ClientContext, CommandOutcome};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::PathBuf;
+use xiuxian_config_core::resolve_cache_home;
 use xiuxian_wendao_parsers::{
     OrgizeAgentPlanningRequest, OrgizeFormatRequest, OrgizeLintOutputFormat, OrgizeLintRequest,
-    OrgizeSddStatusRequest, OrgizeSparseTreeRenderOptions, OrgizeSparseTreeRequest,
-    OrgizeSparseTreeVisibility, format_org_files, lint_org_files, render_agent_planning,
-    render_sdd_status, render_sparse_tree,
+    OrgizeSddGraphDiffRequest, OrgizeSddStatusRequest, OrgizeSparseTreeRenderOptions,
+    OrgizeSparseTreeRequest, OrgizeSparseTreeVisibility, count_sdd_graph_drift,
+    count_sdd_status_issues, format_org_files, lint_org_files, render_agent_planning,
+    render_sdd_graph_diff, render_sdd_status, render_sdd_status_json, render_sparse_tree,
 };
 
 /// Run one Orgize-backed client command.
@@ -118,15 +120,51 @@ fn run_sparse_tree(args: &OrgizeSparseTreeArgs, context: &ClientContext) -> Resu
 fn run_sdd(command: &OrgizeSddCommand, context: &ClientContext) -> Result<CommandOutcome> {
     match command {
         OrgizeSddCommand::Status(args) => run_sdd_status(args, context),
+        OrgizeSddCommand::GraphDiff(args) => run_sdd_graph_diff(args, context),
+    }
+}
+
+fn run_sdd_graph_diff(
+    args: &OrgizeSddGraphDiffArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let request = OrgizeSddGraphDiffRequest {
+        paths: resolve_sdd_paths(&args.paths, context)?,
+    };
+    let rendered = render_sdd_graph_diff(&request)?;
+    print!("{rendered}");
+    if args.fail_on_drift && count_sdd_graph_drift(&request)? > 0 {
+        Ok(CommandOutcome::failure(1))
+    } else {
+        Ok(CommandOutcome::success())
     }
 }
 
 fn run_sdd_status(args: &OrgizeSddStatusArgs, context: &ClientContext) -> Result<CommandOutcome> {
-    let rendered = render_sdd_status(&OrgizeSddStatusRequest {
-        paths: resolve_paths(&args.paths, context),
-    })?;
+    let request = OrgizeSddStatusRequest {
+        paths: resolve_sdd_paths(&args.paths, context)?,
+        issues_only: args.issues_only,
+    };
+    let rendered = if args.json {
+        render_sdd_status_json(&request)?
+    } else {
+        render_sdd_status(&request)?
+    };
     print!("{rendered}");
-    Ok(CommandOutcome::success())
+    if args.fail_on_issues && count_sdd_status_issues(&request)? > 0 {
+        Ok(CommandOutcome::failure(1))
+    } else {
+        Ok(CommandOutcome::success())
+    }
+}
+
+fn resolve_sdd_paths(paths: &[PathBuf], context: &ClientContext) -> Result<Vec<PathBuf>> {
+    if paths.is_empty() {
+        let cache_home = resolve_cache_home(Some(context.root()))
+            .with_context(|| "failed to resolve PRJ_CACHE_HOME for SDD status")?;
+        return Ok(vec![cache_home.join("agent").join("sdd")]);
+    }
+    Ok(resolve_paths(paths, context))
 }
 
 fn resolve_paths(paths: &[PathBuf], context: &ClientContext) -> Vec<PathBuf> {
