@@ -38,6 +38,7 @@ mod recovery_applier;
 mod recovery_plan;
 mod recovery_snapshot;
 mod step_queue_journal;
+mod timer_journal;
 mod tool;
 mod traits;
 #[cfg(feature = "valkey")]
@@ -100,6 +101,7 @@ pub use recovery_snapshot::RunRecoverySnapshot;
 pub use step_queue_journal::{
     StepQueueJournalRecord, record_step_queued, record_step_queued_with_hot_state,
 };
+pub use timer_journal::{TimerFireJournalRecord, record_timer_fired};
 pub use tool::{
     ToolActivityContract, ToolAuthorizationDecision, ToolPermissionDecision, ToolPermissionMode,
     ToolRiskLevel,

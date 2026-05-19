@@ -3,7 +3,7 @@
 use crate::{
     ActivityRetryDecision, ControlEventRecord, ControlLedger, ControlResult, HotStateStore,
     RecoveryItemScope, RecoveryPlanAction, RunId, RunnableStep, StepQueueJournalRecord,
-    record_step_queued_with_hot_state,
+    TimerFireJournalRecord, record_step_queued_with_hot_state, record_timer_fired,
 };
 
 /// Request for applying one recovery action.
@@ -49,6 +49,11 @@ pub enum RecoveryActionApplication {
         /// Durable queue event.
         record: Box<ControlEventRecord>,
     },
+    /// A timer fire fact was recorded.
+    AppliedTimerFire {
+        /// Durable timer event.
+        record: Box<ControlEventRecord>,
+    },
     /// The action is not handled by this bounded applier.
     NotApplicable {
         /// Stable reason code.
@@ -87,20 +92,79 @@ where
         occurred_at_ms,
         priority,
     } = request;
-    let RecoveryPlanAction::RetryActivity {
+    match action {
+        RecoveryPlanAction::RetryActivity {
+            scope,
+            activity_id,
+            retry_decision:
+                ActivityRetryDecision::Retry {
+                    next_attempt,
+                    backoff_ms,
+                },
+        } => {
+            apply_step_retry(
+                ledger,
+                hot_state,
+                StepRetryApplication {
+                    run_id,
+                    occurred_at_ms,
+                    priority,
+                    scope,
+                    activity_id,
+                    next_attempt,
+                    backoff_ms,
+                },
+            )
+            .await
+        }
+        RecoveryPlanAction::FireTimer {
+            scope,
+            timer_id,
+            fire_at_ms,
+        } => {
+            let event_time_ms = fire_at_ms.unwrap_or(occurred_at_ms);
+            let record = record_timer_fired(
+                ledger,
+                TimerFireJournalRecord::new(run_id, scope, timer_id, event_time_ms),
+            )?;
+            Ok(RecoveryActionApplication::AppliedTimerFire {
+                record: Box::new(record),
+            })
+        }
+        _ => Ok(RecoveryActionApplication::NotApplicable {
+            reason: RecoveryActionApplicationReason::UnsupportedAction,
+        }),
+    }
+}
+
+struct StepRetryApplication {
+    run_id: RunId,
+    occurred_at_ms: u64,
+    priority: i64,
+    scope: RecoveryItemScope,
+    activity_id: crate::ActivityId,
+    next_attempt: u32,
+    backoff_ms: u64,
+}
+
+async fn apply_step_retry<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    request: StepRetryApplication,
+) -> ControlResult<RecoveryActionApplication>
+where
+    L: ControlLedger + ?Sized,
+    H: HotStateStore + ?Sized,
+{
+    let StepRetryApplication {
+        run_id,
+        occurred_at_ms,
+        priority,
         scope,
         activity_id,
-        retry_decision:
-            ActivityRetryDecision::Retry {
-                next_attempt,
-                backoff_ms,
-            },
-    } = action
-    else {
-        return Ok(RecoveryActionApplication::NotApplicable {
-            reason: RecoveryActionApplicationReason::UnsupportedAction,
-        });
-    };
+        next_attempt,
+        backoff_ms,
+    } = request;
     let RecoveryItemScope::Step { step_id } = scope else {
         return Ok(RecoveryActionApplication::NotApplicable {
             reason: RecoveryActionApplicationReason::RunScopedRetry,
