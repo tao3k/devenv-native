@@ -28,6 +28,7 @@ mod duckdb_ledger;
 mod error;
 mod event;
 mod gate;
+mod heartbeat_journal;
 mod identity;
 mod memory;
 mod model;
@@ -66,6 +67,9 @@ pub use duckdb_ledger::DuckDbControlLedger;
 pub use error::{ControlError, ControlResult};
 pub use event::{ControlEvent, ControlEventKind, ControlEventRecord, RecoveryAttempt};
 pub use gate::RequiredEvidenceGate;
+pub use heartbeat_journal::{
+    WorkerHeartbeatJournalRecord, record_worker_heartbeat, record_worker_heartbeat_with_hot_state,
+};
 pub use identity::{
     ActivityId, ActivityType, AgentDecisionId, AgentProposalId, ApprovalRequestId, ApproverId,
     ArtifactId, ArtifactKind, DecisionReasonCode, ErrorCode, EvidenceId, GateName, IdempotencyKey,
