@@ -34,6 +34,7 @@ mod memory;
 mod model;
 mod policy;
 mod recovery;
+mod recovery_applier;
 mod recovery_plan;
 mod recovery_snapshot;
 mod step_queue_journal;
@@ -89,6 +90,10 @@ pub use policy::{AgentPolicyReason, ToolPolicyReduction, ToolPolicyReductionRequ
 pub use recovery::{
     ActivityRecoveryItem, AgentDecisionRecoveryItem, FailedActivityRecoveryItem, LeaseRecoveryItem,
     RecoveryItemScope, RunRecoveryView, StepRecoveryItem, TimerRecoveryItem,
+};
+pub use recovery_applier::{
+    RecoveryActionApplication, RecoveryActionApplicationReason, RecoveryActionApplicationRequest,
+    apply_recovery_action,
 };
 pub use recovery_plan::{RecoveryPlanAction, RunRecoveryPlan, RunRecoveryPlanSummary};
 pub use recovery_snapshot::RunRecoverySnapshot;

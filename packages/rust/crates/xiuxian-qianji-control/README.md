@@ -147,6 +147,10 @@ audit state through one governed helper.
 `HotStateStore` and then appends durable history, so scheduling and later
 recovery appliers can share the same queue mirror contract without executing
 Workers.
+`apply_recovery_action` is the first bounded recovery applier. It applies only
+step-scoped `RetryActivity` actions by queueing the owning step after the
+retry backoff and recording `StepQueued`; run-scoped retries and other action
+kinds return `NotApplicable` without side effects.
 
 Agent proposals and deterministic Agent decisions can be recorded as control
 journal events and replay into run or step views. Recording an Agent decision
@@ -186,6 +190,8 @@ hot-state work, lease steps, or execute workers.
   `record_worker_heartbeat_with_hot_state`
 - `StepQueueJournalRecord`, `record_step_queued`, and
   `record_step_queued_with_hot_state`
+- `RecoveryActionApplicationRequest`, `RecoveryActionApplication`,
+  `RecoveryActionApplicationReason`, and `apply_recovery_action`
 - `HumanApprovalRequest`, `HumanApprovalResolution`, and
   `HumanApprovalDecision`
 - `ActivityTask`, `ActivityRetryDecision`, `LlmActivityRequest`,
