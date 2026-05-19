@@ -3,9 +3,10 @@ use super::{
     to_args,
 };
 use xiuxian_qianji_control::{
-    ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, ControlEvent,
-    ControlEventKind, ControlLedger, DuckDbControlLedger, ErrorCode, IdempotencyKey, RunId, StepId,
-    TaskQueue, WorkerId,
+    ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, AgentDecision,
+    AgentDecisionId, AgentDecisionOutcome, AgentProposalId, ControlEvent, ControlEventKind,
+    ControlLedger, DecisionReasonCode, DuckDbControlLedger, ErrorCode, GateName, GateResult,
+    IdempotencyKey, RunId, StepId, TaskQueue, WorkerId,
 };
 
 #[test]
@@ -66,6 +67,69 @@ fn parse_control_activity_command_without_step_scope() {
             run_id: "run-control".to_string(),
             step_id: None,
             activity_id: "activity-run".to_string(),
+            json: false,
+        },
+    );
+}
+
+#[test]
+fn parse_control_decision_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "decision",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--step-id",
+                    "run-control-step",
+                    "--decision-id",
+                    "decision-doc",
+                    "--json",
+                ])),
+                "control decision parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Decision {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: Some("run-control-step".to_string()),
+            decision_id: "decision-doc".to_string(),
+            json: true,
+        },
+    );
+}
+
+#[test]
+fn parse_control_decision_command_without_step_scope() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "decision",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--decision-id",
+                    "decision-run",
+                ])),
+                "control decision parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Decision {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: None,
+            decision_id: "decision-run".to_string(),
             json: false,
         },
     );
@@ -437,19 +501,114 @@ fn run_control_activity_rejects_missing_activity() -> Result<(), String> {
     let ledger_path = temp_dir.path().join("control.duckdb");
     let run_id = append_control_run_with_run_activity(&ledger_path);
 
-    let error = run_control_command(&ControlCliCommand::Activity {
+    let Err(error) = run_control_command(&ControlCliCommand::Activity {
         ledger_path,
         run_id: run_id.as_str().to_string(),
         step_id: None,
         activity_id: "missing-activity".to_string(),
         json: false,
-    })
-    .expect_err("missing activity should fail");
+    }) else {
+        return Err("missing activity should fail".to_string());
+    };
 
     assert!(
         error
             .to_string()
             .contains("could not find activity `missing-activity`")
+    );
+    Ok(())
+}
+
+#[test]
+fn run_control_decision_renders_run_scope_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_run_decision(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Decision {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: None,
+            decision_id: "decision-run-search".to_string(),
+            json: true,
+        }),
+        "control decision json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "decision output should be valid json",
+    );
+
+    assert_eq!(json["decision_id"], "decision-run-search");
+    assert_eq!(json["proposal_id"], "proposal-run-search");
+    assert_eq!(json["outcome"], "accepted");
+    assert_eq!(json["reason_code"], "authorized");
+    assert_eq!(json["scheduled_activity_id"], "activity-run-search");
+    assert_eq!(json["checkpoint_seq"], 7);
+    Ok(())
+}
+
+#[test]
+fn run_control_decision_renders_step_scope_text_summary() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step_decision(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Decision {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: Some("run-control-step".to_string()),
+            decision_id: "decision-step-approval".to_string(),
+            json: false,
+        }),
+        "control decision text should render",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control Decision"));
+    assert!(
+        output
+            .rendered
+            .contains("- Decision: `decision-step-approval`")
+    );
+    assert!(output.rendered.contains("- Proposal: `proposal-step-llm`"));
+    assert!(output.rendered.contains("- Outcome: `approval_required`"));
+    assert!(
+        output
+            .rendered
+            .contains("- Reason code: `approval_required`")
+    );
+    assert!(output.rendered.contains("- Scheduled activity: `<none>`"));
+    assert!(output.rendered.contains("- Gate: `required-evidence`"));
+    assert!(output.rendered.contains("- Gate passed: `false`"));
+    assert!(output.rendered.contains("- Gate missing evidence: `1`"));
+    Ok(())
+}
+
+#[test]
+fn run_control_decision_rejects_missing_decision() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_run_decision(&ledger_path);
+
+    let Err(error) = run_control_command(&ControlCliCommand::Decision {
+        ledger_path,
+        run_id: run_id.as_str().to_string(),
+        step_id: None,
+        decision_id: "missing-decision".to_string(),
+        json: false,
+    }) else {
+        return Err("missing decision should fail".to_string());
+    };
+
+    assert!(
+        error
+            .to_string()
+            .contains("could not find decision `missing-decision`")
     );
     Ok(())
 }
@@ -654,6 +813,103 @@ fn append_control_run_with_step_activity(ledger_path: &std::path::Path) -> RunId
             },
         )),
         "should append step activity failure",
+    );
+    run_id
+}
+
+fn append_control_run_with_run_decision(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_empty_control_run(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let decision_id = must_ok(
+        AgentDecisionId::new("decision-run-search"),
+        "should build run decision id",
+    );
+    let proposal_id = must_ok(
+        AgentProposalId::new("proposal-run-search"),
+        "should build run proposal id",
+    );
+    let reason_code = must_ok(
+        DecisionReasonCode::new("authorized"),
+        "should build decision reason code",
+    );
+    let activity_id = must_ok(
+        ActivityId::new("activity-run-search"),
+        "should build scheduled activity id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            2,
+            ControlEventKind::AgentDecisionRecorded {
+                decision: AgentDecision::new(
+                    decision_id,
+                    proposal_id,
+                    AgentDecisionOutcome::Accepted,
+                    reason_code,
+                )
+                .with_scheduled_activity_id(activity_id)
+                .with_checkpoint_seq(7),
+            },
+        )),
+        "should append run decision",
+    );
+    run_id
+}
+
+fn append_control_run_with_step_decision(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let decision_id = must_ok(
+        AgentDecisionId::new("decision-step-approval"),
+        "should build step decision id",
+    );
+    let proposal_id = must_ok(
+        AgentProposalId::new("proposal-step-llm"),
+        "should build step proposal id",
+    );
+    let reason_code = must_ok(
+        DecisionReasonCode::new("approval_required"),
+        "should build step decision reason code",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            3,
+            ControlEventKind::AgentDecisionRecorded {
+                decision: AgentDecision::new(
+                    decision_id,
+                    proposal_id,
+                    AgentDecisionOutcome::ApprovalRequired,
+                    reason_code,
+                )
+                .with_gate_result(GateResult {
+                    gate_name: must_ok(
+                        GateName::new("required-evidence"),
+                        "should build gate name",
+                    ),
+                    passed: false,
+                    required_evidence_covered: false,
+                    selected_required_evidence: vec!["history_visible".to_string()],
+                    missing_required_evidence: vec!["approval_signal".to_string()],
+                    reasons: vec!["human approval required".to_string()],
+                    metadata: serde_json::Value::Null,
+                }),
+            },
+        )),
+        "should append step decision",
     );
     run_id
 }

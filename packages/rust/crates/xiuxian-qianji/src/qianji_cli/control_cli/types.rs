@@ -9,6 +9,13 @@ pub(crate) enum ControlCliCommand {
         activity_id: String,
         json: bool,
     },
+    Decision {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: Option<String>,
+        decision_id: String,
+        json: bool,
+    },
     History {
         ledger_path: PathBuf,
         run_id: String,

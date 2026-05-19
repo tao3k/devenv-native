@@ -15,6 +15,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
 
     match args.get(2).map(String::as_str) {
         Some("activity") => parse_activity(args).map(Some),
+        Some("decision") => parse_decision(args).map(Some),
         Some("history") => parse_history(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
         Some("step") => parse_step(args).map(Some),
@@ -23,7 +24,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `history`, `recovery-snapshot`, `step`, or `view`",
+            "missing `control` subcommand; expected `activity`, `decision`, `history`, `recovery-snapshot`, `step`, or `view`",
         )),
     }
 }
@@ -72,6 +73,54 @@ fn parse_activity(args: &[String]) -> io::Result<ControlCliCommand> {
         step_id,
         activity_id: activity_id
             .ok_or_else(|| invalid_input("missing `--activity-id <id>` for `control activity`"))?,
+        json,
+    })
+}
+
+fn parse_decision(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut step_id = None;
+    let mut decision_id = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--step-id" => {
+                step_id = Some(parse_flag_value(args, &mut index, "--step-id")?);
+            }
+            "--decision-id" => {
+                decision_id = Some(parse_flag_value(args, &mut index, "--decision-id")?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control decision` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::Decision {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control decision`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control decision`"))?,
+        step_id,
+        decision_id: decision_id
+            .ok_or_else(|| invalid_input("missing `--decision-id <id>` for `control decision`"))?,
         json,
     })
 }

@@ -3,9 +3,10 @@ use std::io;
 use crate::qianji_cli::invalid_input;
 
 use super::render::{
-    render_activity_view_json, render_activity_view_text, render_control_history_json,
-    render_control_history_text, render_recovery_snapshot_json, render_recovery_snapshot_text,
-    render_run_view_json, render_run_view_text, render_step_view_json, render_step_view_text,
+    render_activity_view_json, render_activity_view_text, render_agent_decision_json,
+    render_agent_decision_text, render_control_history_json, render_control_history_text,
+    render_recovery_snapshot_json, render_recovery_snapshot_text, render_run_view_json,
+    render_run_view_text, render_step_view_json, render_step_view_text,
 };
 use super::types::{ControlCliCommand, ControlCliOutput};
 
@@ -20,6 +21,13 @@ pub(super) fn run_control_command_impl(
             activity_id,
             json,
         } => run_activity_command(ledger_path, run_id, step_id.as_deref(), activity_id, *json),
+        ControlCliCommand::Decision {
+            ledger_path,
+            run_id,
+            step_id,
+            decision_id,
+            json,
+        } => run_decision_command(ledger_path, run_id, step_id.as_deref(), decision_id, *json),
         ControlCliCommand::History {
             ledger_path,
             run_id,
@@ -43,6 +51,66 @@ pub(super) fn run_control_command_impl(
             json,
         } => run_step_command(ledger_path, run_id, step_id, *json),
     }
+}
+
+#[cfg(feature = "duckdb")]
+fn run_decision_command(
+    ledger_path: &std::path::Path,
+    run_id: &str,
+    step_id: Option<&str>,
+    decision_id: &str,
+    json: bool,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{
+        AgentDecisionId, ControlLedger, DuckDbControlLedger, RunId, StepId,
+    };
+
+    let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| control_error(&error))?;
+    let run_id = RunId::new(run_id).map_err(|error| control_error(&error))?;
+    let decision_id = AgentDecisionId::new(decision_id).map_err(|error| control_error(&error))?;
+    let view = ledger
+        .load_run_view(&run_id)
+        .map_err(|error| control_error(&error))?;
+    let decision = if let Some(step_id) = step_id {
+        let step_id = StepId::new(step_id).map_err(|error| control_error(&error))?;
+        let step = view.steps.get(&step_id).ok_or_else(|| {
+            invalid_input(format!(
+                "`control decision` could not find step `{}` in run `{}`",
+                step_id.as_str(),
+                run_id.as_str()
+            ))
+        })?;
+        step.agent_decisions.get(&decision_id)
+    } else {
+        view.agent_decisions.get(&decision_id)
+    }
+    .ok_or_else(|| {
+        invalid_input(format!(
+            "`control decision` could not find decision `{}` in run `{}`",
+            decision_id.as_str(),
+            run_id.as_str()
+        ))
+    })?;
+
+    let rendered = if json {
+        render_agent_decision_json(decision)?
+    } else {
+        render_agent_decision_text(decision)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn run_decision_command(
+    _ledger_path: &std::path::Path,
+    _run_id: &str,
+    _step_id: Option<&str>,
+    _decision_id: &str,
+    _json: bool,
+) -> io::Result<ControlCliOutput> {
+    Err(invalid_input(
+        "`control decision` requires the `duckdb` feature",
+    ))
 }
 
 #[cfg(feature = "duckdb")]
