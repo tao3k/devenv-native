@@ -142,6 +142,11 @@ validating heartbeat TTL. `record_worker_heartbeat_with_hot_state` first
 mirrors the heartbeat into a `HotStateStore` and then appends the durable
 ledger event, so Worker integration can update Valkey liveness and durable
 audit state through one governed helper.
+`record_step_queued` records a durable `StepQueued` fact.
+`record_step_queued_with_hot_state` first enqueues the `RunnableStep` in a
+`HotStateStore` and then appends durable history, so scheduling and later
+recovery appliers can share the same queue mirror contract without executing
+Workers.
 
 Agent proposals and deterministic Agent decisions can be recorded as control
 journal events and replay into run or step views. Recording an Agent decision
@@ -179,6 +184,8 @@ hot-state work, lease steps, or execute workers.
   `record_activity_failed_idempotent`
 - `WorkerHeartbeatJournalRecord`, `record_worker_heartbeat`, and
   `record_worker_heartbeat_with_hot_state`
+- `StepQueueJournalRecord`, `record_step_queued`, and
+  `record_step_queued_with_hot_state`
 - `HumanApprovalRequest`, `HumanApprovalResolution`, and
   `HumanApprovalDecision`
 - `ActivityTask`, `ActivityRetryDecision`, `LlmActivityRequest`,

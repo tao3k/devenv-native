@@ -36,6 +36,7 @@ mod policy;
 mod recovery;
 mod recovery_plan;
 mod recovery_snapshot;
+mod step_queue_journal;
 mod tool;
 mod traits;
 #[cfg(feature = "valkey")]
@@ -91,6 +92,9 @@ pub use recovery::{
 };
 pub use recovery_plan::{RecoveryPlanAction, RunRecoveryPlan, RunRecoveryPlanSummary};
 pub use recovery_snapshot::RunRecoverySnapshot;
+pub use step_queue_journal::{
+    StepQueueJournalRecord, record_step_queued, record_step_queued_with_hot_state,
+};
 pub use tool::{
     ToolActivityContract, ToolAuthorizationDecision, ToolPermissionDecision, ToolPermissionMode,
     ToolRiskLevel,
