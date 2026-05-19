@@ -18,6 +18,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("decision") => parse_decision(args).map(Some),
         Some("heartbeat") => super::heartbeat::parse(args).map(Some),
         Some("history") => parse_history(args).map(Some),
+        Some("hot-state") => parse_hot_state(args).map(Some),
         Some("query") => parse_query(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
         Some("signal") => parse_signal(args).map(Some),
@@ -28,9 +29,51 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `decision`, `heartbeat`, `history`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
+            "missing `control` subcommand; expected `activity`, `decision`, `heartbeat`, `history`, `hot-state`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
         )),
     }
+}
+
+fn parse_hot_state(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut valkey_url = None;
+    let mut namespace = None;
+    let mut now_ms = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--valkey-url" => {
+                valkey_url = Some(parse_flag_value(args, &mut index, "--valkey-url")?);
+            }
+            "--namespace" => {
+                namespace = Some(parse_flag_value(args, &mut index, "--namespace")?);
+            }
+            "--now-ms" => {
+                now_ms = Some(parse_hot_state_now_ms(&parse_flag_value(
+                    args, &mut index, "--now-ms",
+                )?)?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control hot-state` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::HotState {
+        valkey_url: valkey_url
+            .ok_or_else(|| invalid_input("missing `--valkey-url <url>` for `control hot-state`"))?,
+        namespace,
+        now_ms: now_ms
+            .ok_or_else(|| invalid_input("missing `--now-ms <ms>` for `control hot-state`"))?,
+        json,
+    })
 }
 
 fn parse_query(args: &[String]) -> io::Result<ControlCliCommand> {
@@ -481,6 +524,14 @@ fn parse_query_now_ms(value: &str) -> io::Result<u64> {
     value.parse::<u64>().map_err(|error| {
         invalid_input(format!(
             "invalid `--now-ms` value `{value}` for `control query`: {error}"
+        ))
+    })
+}
+
+fn parse_hot_state_now_ms(value: &str) -> io::Result<u64> {
+    value.parse::<u64>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--now-ms` value `{value}` for `control hot-state`: {error}"
         ))
     })
 }

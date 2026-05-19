@@ -217,6 +217,11 @@ the existing control event schema remains unchanged.
 [--json]` reads the same `xiuxian-qianji-control` DuckDB event ledger and
 returns the replay-derived recovery view, ordered recovery plan, and compact
 summary without executing recovery actions or touching hot scheduler state.
+`qianji control hot-state --valkey-url <url> --now-ms <ms> [--namespace <ns>]
+[--json]` reads the Valkey hot scheduling state directly and renders pending
+steps, leased steps, lease expiry state, and worker heartbeat visibility. This
+is an operator snapshot for live queue debugging; it does not mutate the
+append-only control ledger and requires the `valkey` feature.
 
 ```toml
 name = "artifact_refining_pipeline"

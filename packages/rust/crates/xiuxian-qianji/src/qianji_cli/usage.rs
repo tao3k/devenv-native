@@ -1,9 +1,20 @@
 pub(crate) fn print_qianji_usage() {
     eprintln!("Usage:");
+    print_execution_usage();
+    print_bpmn_usage();
+    print_surface_usage();
+    print_control_usage();
+    print_contract_usage();
+}
+
+fn print_execution_usage() {
     eprintln!(
         "  Execution: qianji [-v|--log-verbose] <repo_path> <manifest_path> <context_json> [session_id]"
     );
     eprintln!("  Graph:     qianji [-v|--log-verbose] graph <manifest_path> <output_path>");
+}
+
+fn print_bpmn_usage() {
     eprintln!(
         "  BPMN:      qianji [-v|--log-verbose] bpmn start --bpmn <path> --process <id> --instance-id <id> [--context-json JSON] [--dmn <path>]... [--host-fixture <path>] [--event-fixture <path>] [--trace-stream] [--external-host] [--continue-until-human-boundary] [--checkpoint-runtime]"
     );
@@ -47,6 +58,9 @@ pub(crate) fn print_qianji_usage() {
     eprintln!(
         "             qianji [-v|--log-verbose] bpmn interrupt|stop --instance-id <id> [--checkpoint-runtime]"
     );
+}
+
+fn print_surface_usage() {
     eprintln!("  Show:      qianji [-v|--log-verbose] show --dir <path>");
     eprintln!("             qianji [-v|--log-verbose] show --graph <path>");
     eprintln!("             qianji [-v|--log-verbose] show --contract <id>");
@@ -66,8 +80,14 @@ pub(crate) fn print_qianji_usage() {
     eprintln!("             qianji [-v|--log-verbose] template --semantic-guard-route");
     eprintln!("  Construct: qianji [-v|--log-verbose] construct index [--json]");
     eprintln!("             qianji [-v|--log-verbose] construct show <id> [--json]");
+}
+
+fn print_control_usage() {
     eprintln!(
         "  Control:   qianji [-v|--log-verbose] control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms> [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control hot-state --valkey-url <url> --now-ms <ms> [--namespace <ns>] [--json]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control query --ledger <path> --run-id <id> --state --now-ms <ms> [--json]"
@@ -96,6 +116,9 @@ pub(crate) fn print_qianji_usage() {
     eprintln!(
         "             qianji [-v|--log-verbose] control timer --ledger <path> --run-id <id> --timer-id <id> [--step-id <id>] [--json]"
     );
+}
+
+fn print_contract_usage() {
     eprintln!(
         "  Contract:  qianji [-v|--log-verbose] contract-feedback rest-docs <openapi_path> [--workspace-root PATH] [--storage-path PATH] [--table-name NAME] [--role ROLE]... [--no-persist] [--live-advisory] [--model MODEL] [--temperature FLOAT] [--cognitive-threshold FLOAT]"
     );

@@ -30,6 +30,12 @@ pub(crate) enum ControlCliCommand {
         metadata: Option<String>,
         json: bool,
     },
+    HotState {
+        valkey_url: String,
+        namespace: Option<String>,
+        now_ms: u64,
+        json: bool,
+    },
     QueryState {
         ledger_path: PathBuf,
         run_id: String,

@@ -1,5 +1,7 @@
-use std::io;
+use std::{fmt, io};
 
+#[cfg(any(feature = "valkey", test))]
+use xiuxian_qianji_control::HotStateSnapshot;
 use xiuxian_qianji_control::{
     ActivityView, AgentDecision, ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot,
     RunView, StepView, TimerView,
@@ -84,6 +86,84 @@ pub(super) fn render_recovery_snapshot_text(snapshot: &RunRecoverySnapshot) -> S
 }
 
 pub(super) fn render_recovery_snapshot_json(snapshot: &RunRecoverySnapshot) -> io::Result<String> {
+    serde_json::to_string_pretty(snapshot).map_err(io::Error::other)
+}
+
+#[cfg(any(feature = "valkey", test))]
+pub(super) fn render_hot_state_snapshot_text(snapshot: &HotStateSnapshot) -> String {
+    let mut output = format!(
+        concat!(
+            "# Qianji Control Hot State\n\n",
+            "- Observed at ms: `{}`\n",
+            "- Pending steps: `{}`\n",
+            "- Leased steps: `{}`\n",
+            "- Active leases: `{}`\n",
+            "- Expired leases: `{}`\n",
+            "- Worker heartbeats: `{}`\n",
+            "- Live worker heartbeats: `{}`\n"
+        ),
+        snapshot.observed_at_ms,
+        snapshot.pending_steps.len(),
+        snapshot.leased_steps.len(),
+        snapshot.active_lease_count(),
+        snapshot.expired_lease_count(),
+        snapshot.worker_heartbeats.len(),
+        snapshot.live_heartbeat_count()
+    );
+
+    if !snapshot.pending_steps.is_empty() {
+        output.push_str("\n## Pending Steps\n\n");
+        for step in &snapshot.pending_steps {
+            push_fmt(
+                &mut output,
+                format_args!(
+                    "- `{}` step `{}` priority `{}` not-before `{}`\n",
+                    step.run_id.as_str(),
+                    step.step_id.as_str(),
+                    step.priority,
+                    step.not_before_ms
+                ),
+            );
+        }
+    }
+
+    if !snapshot.leased_steps.is_empty() {
+        output.push_str("\n## Leased Steps\n\n");
+        for leased in &snapshot.leased_steps {
+            push_fmt(
+                &mut output,
+                format_args!(
+                    "- `{}` step `{}` lease `{}` worker `{}` expires `{}`\n",
+                    leased.lease.run_id.as_str(),
+                    leased.lease.step_id.as_str(),
+                    leased.lease.lease_id.as_str(),
+                    leased.lease.worker_id.as_str(),
+                    leased.lease.expires_at_ms
+                ),
+            );
+        }
+    }
+
+    if !snapshot.worker_heartbeats.is_empty() {
+        output.push_str("\n## Worker Heartbeats\n\n");
+        for heartbeat in &snapshot.worker_heartbeats {
+            push_fmt(
+                &mut output,
+                format_args!(
+                    "- `{}` observed `{}` expires `{}`\n",
+                    heartbeat.worker_id.as_str(),
+                    heartbeat.observed_at_ms,
+                    heartbeat.expires_at_ms
+                ),
+            );
+        }
+    }
+
+    output
+}
+
+#[cfg(any(feature = "valkey", test))]
+pub(super) fn render_hot_state_snapshot_json(snapshot: &HotStateSnapshot) -> io::Result<String> {
     serde_json::to_string_pretty(snapshot).map_err(io::Error::other)
 }
 
@@ -456,6 +536,13 @@ pub(super) fn render_timer_view_json(timer: &TimerView) -> io::Result<String> {
     serde_json::to_string_pretty(timer).map_err(io::Error::other)
 }
 
+#[cfg(any(feature = "valkey", test))]
+fn push_fmt(output: &mut String, args: fmt::Arguments<'_>) {
+    if fmt::write(output, args).is_err() {
+        unreachable!("writing to a String cannot fail");
+    }
+}
+
 fn render_step_summary(output: &mut String, step: &StepView) {
     let title = step.title.as_deref().unwrap_or("<untitled>");
     output.push_str("- `");
@@ -524,5 +611,35 @@ fn control_event_kind_label(kind: &ControlEventKind) -> &'static str {
         ControlEventKind::RunFailed { .. } => "run_failed",
         ControlEventKind::RunBlocked { .. } => "run_blocked",
         ControlEventKind::RunAborted { .. } => "run_aborted",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use xiuxian_qianji_control::HotStateSnapshot;
+
+    use super::{render_hot_state_snapshot_json, render_hot_state_snapshot_text};
+
+    #[test]
+    fn hot_state_text_renderer_reports_empty_snapshot_counts() {
+        let snapshot = HotStateSnapshot::new(42);
+        let rendered = render_hot_state_snapshot_text(&snapshot);
+
+        assert!(rendered.contains("# Qianji Control Hot State"));
+        assert!(rendered.contains("- Observed at ms: `42`"));
+        assert!(rendered.contains("- Pending steps: `0`"));
+        assert!(rendered.contains("- Active leases: `0`"));
+        assert!(rendered.contains("- Live worker heartbeats: `0`"));
+    }
+
+    #[test]
+    fn hot_state_json_renderer_preserves_observation_time() {
+        let snapshot = HotStateSnapshot::new(77);
+        let rendered = match render_hot_state_snapshot_json(&snapshot) {
+            Ok(rendered) => rendered,
+            Err(error) => panic!("hot-state JSON render should succeed: {error}"),
+        };
+
+        assert!(rendered.contains(r#""observed_at_ms": 77"#));
     }
 }

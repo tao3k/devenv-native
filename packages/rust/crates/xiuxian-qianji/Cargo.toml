@@ -16,6 +16,7 @@ duckdb = [
 ]
 llm = ["dep:xiuxian-llm"]
 performance = []
+valkey = ["xiuxian-qianji-control/valkey"]
 qianji-full = [
   "duckdb",
   "llm",

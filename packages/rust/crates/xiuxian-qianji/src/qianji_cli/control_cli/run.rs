@@ -10,6 +10,8 @@ use super::render::{
     render_run_view_text, render_signal_append_json, render_signal_append_text,
     render_step_view_json, render_step_view_text, render_timer_view_json, render_timer_view_text,
 };
+#[cfg(feature = "valkey")]
+use super::render::{render_hot_state_snapshot_json, render_hot_state_snapshot_text};
 use super::types::{ControlCliCommand, ControlCliOutput};
 
 pub(super) fn run_control_command_impl(
@@ -52,6 +54,12 @@ pub(super) fn run_control_command_impl(
             metadata.as_ref(),
             *json,
         ),
+        ControlCliCommand::HotState {
+            valkey_url,
+            namespace,
+            now_ms,
+            json,
+        } => run_hot_state_command(valkey_url, namespace.as_deref(), *now_ms, *json),
         ControlCliCommand::QueryState {
             ledger_path,
             run_id,
@@ -100,6 +108,52 @@ pub(super) fn run_control_command_impl(
             json,
         } => run_timer_command(ledger_path, run_id, step_id.as_deref(), timer_id, *json),
     }
+}
+
+#[cfg(feature = "valkey")]
+fn run_hot_state_command(
+    valkey_url: &str,
+    namespace: Option<&str>,
+    now_ms: u64,
+    json: bool,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{HotStateStore, ValkeyHotStateConfig, ValkeyHotStateStore};
+
+    let config =
+        ValkeyHotStateConfig::new(valkey_url.to_string()).map_err(|error| control_error(&error))?;
+    let config = if let Some(namespace) = namespace {
+        config
+            .with_namespace(namespace)
+            .map_err(|error| control_error(&error))?
+    } else {
+        config
+    };
+    let store = ValkeyHotStateStore::new(config);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(io::Error::other)?;
+    let snapshot = runtime
+        .block_on(store.load_snapshot(now_ms))
+        .map_err(|error| control_error(&error))?;
+    let rendered = if json {
+        render_hot_state_snapshot_json(&snapshot)?
+    } else {
+        render_hot_state_snapshot_text(&snapshot)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(not(feature = "valkey"))]
+fn run_hot_state_command(
+    _valkey_url: &str,
+    _namespace: Option<&str>,
+    _now_ms: u64,
+    _json: bool,
+) -> io::Result<ControlCliOutput> {
+    Err(invalid_input(
+        "`control hot-state` requires the `valkey` feature",
+    ))
 }
 
 #[cfg(feature = "duckdb")]
