@@ -3,8 +3,9 @@ use std::io;
 use crate::qianji_cli::invalid_input;
 
 use super::render::{
-    render_activity_view_json, render_activity_view_text, render_agent_decision_json,
-    render_agent_decision_text, render_control_history_json, render_control_history_text,
+    ControlStateQueryView, render_activity_view_json, render_activity_view_text,
+    render_agent_decision_json, render_agent_decision_text, render_control_history_json,
+    render_control_history_text, render_control_state_query_json, render_control_state_query_text,
     render_recovery_snapshot_json, render_recovery_snapshot_text, render_run_view_json,
     render_run_view_text, render_signal_append_json, render_signal_append_text,
     render_step_view_json, render_step_view_text, render_timer_view_json, render_timer_view_text,
@@ -34,6 +35,12 @@ pub(super) fn run_control_command_impl(
             run_id,
             json,
         } => run_history_command(ledger_path, run_id, *json),
+        ControlCliCommand::QueryState {
+            ledger_path,
+            run_id,
+            now_ms,
+            json,
+        } => run_query_state_command(ledger_path, run_id, *now_ms, *json),
         ControlCliCommand::RecoverySnapshot {
             ledger_path,
             run_id,
@@ -76,6 +83,53 @@ pub(super) fn run_control_command_impl(
             json,
         } => run_timer_command(ledger_path, run_id, step_id.as_deref(), timer_id, *json),
     }
+}
+
+#[cfg(feature = "duckdb")]
+fn run_query_state_command(
+    ledger_path: &std::path::Path,
+    run_id: &str,
+    now_ms: u64,
+    json: bool,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{
+        ControlLedger, DuckDbControlLedger, RunId, RunRecoverySnapshot, replay_run_view,
+    };
+
+    let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| control_error(&error))?;
+    let run_id = RunId::new(run_id).map_err(|error| control_error(&error))?;
+    let records = ledger
+        .load_events(&run_id)
+        .map_err(|error| control_error(&error))?;
+    let event_count = records.len();
+    let view = replay_run_view(records).map_err(|error| control_error(&error))?;
+    let recovery_snapshot = RunRecoverySnapshot::from_view(
+        view.recovery_view(now_ms)
+            .map_err(|error| control_error(&error))?,
+    );
+    let state = ControlStateQueryView {
+        event_count,
+        run_view: &view,
+        recovery_snapshot: &recovery_snapshot,
+    };
+    let rendered = if json {
+        render_control_state_query_json(&state)?
+    } else {
+        render_control_state_query_text(&state)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn run_query_state_command(
+    _ledger_path: &std::path::Path,
+    _run_id: &str,
+    _now_ms: u64,
+    _json: bool,
+) -> io::Result<ControlCliOutput> {
+    Err(invalid_input(
+        "`control query --state` requires the `duckdb` feature",
+    ))
 }
 
 #[cfg(feature = "duckdb")]

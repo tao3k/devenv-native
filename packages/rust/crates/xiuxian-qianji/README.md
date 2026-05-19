@@ -192,6 +192,9 @@ The generic Qianji control ledger has its own read-only operator surfaces.
 `qianji control history --ledger <path> --run-id <id> [--json]` renders the
 append-only event timeline for one run. `qianji control view --ledger <path>
 --run-id <id> [--json]` renders the deterministic replayed run state. `qianji
+control query --ledger <path> --run-id <id> --state --now-ms <ms> [--json]`
+returns a compact read-only state package with event count, replayed run view,
+and recovery snapshot. `qianji
 control step --ledger <path> --run-id <id> --step-id <id> [--json]` renders
 one replayed step view for step-local evidence, gate, Agent, activity, timer,
 and signal inspection. `qianji control activity --ledger <path> --run-id <id>

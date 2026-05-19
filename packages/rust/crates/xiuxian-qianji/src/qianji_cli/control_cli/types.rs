@@ -21,6 +21,12 @@ pub(crate) enum ControlCliCommand {
         run_id: String,
         json: bool,
     },
+    QueryState {
+        ledger_path: PathBuf,
+        run_id: String,
+        now_ms: u64,
+        json: bool,
+    },
     RecoverySnapshot {
         ledger_path: PathBuf,
         run_id: String,

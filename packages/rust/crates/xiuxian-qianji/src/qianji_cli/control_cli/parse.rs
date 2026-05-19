@@ -17,6 +17,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("activity") => parse_activity(args).map(Some),
         Some("decision") => parse_decision(args).map(Some),
         Some("history") => parse_history(args).map(Some),
+        Some("query") => parse_query(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
         Some("signal") => parse_signal(args).map(Some),
         Some("step") => parse_step(args).map(Some),
@@ -26,9 +27,64 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `decision`, `history`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
+            "missing `control` subcommand; expected `activity`, `decision`, `history`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
         )),
     }
+}
+
+fn parse_query(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut now_ms = None;
+    let mut state = false;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--now-ms" => {
+                now_ms = Some(parse_query_now_ms(&parse_flag_value(
+                    args, &mut index, "--now-ms",
+                )?)?);
+            }
+            "--state" => {
+                state = true;
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control query` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    if !state {
+        return Err(invalid_input(
+            "missing `--state` for `control query`; no other query type is supported yet",
+        ));
+    }
+
+    Ok(ControlCliCommand::QueryState {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control query`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control query`"))?,
+        now_ms: now_ms
+            .ok_or_else(|| invalid_input("missing `--now-ms <ms>` for `control query`"))?,
+        json,
+    })
 }
 
 fn parse_signal(args: &[String]) -> io::Result<ControlCliCommand> {
@@ -416,6 +472,14 @@ fn parse_signal_ms(value: &str) -> io::Result<u64> {
     value.parse::<u64>().map_err(|error| {
         invalid_input(format!(
             "invalid `--received-at-ms` value `{value}` for `control signal`: {error}"
+        ))
+    })
+}
+
+fn parse_query_now_ms(value: &str) -> io::Result<u64> {
+    value.parse::<u64>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--now-ms` value `{value}` for `control query`: {error}"
         ))
     })
 }
