@@ -6,7 +6,7 @@ use xiuxian_qianji_control::{
     ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, AgentDecision,
     AgentDecisionId, AgentDecisionOutcome, AgentProposalId, ControlEvent, ControlEventKind,
     ControlLedger, DecisionReasonCode, DuckDbControlLedger, ErrorCode, GateName, GateResult,
-    IdempotencyKey, RunId, StepId, TaskQueue, WorkerId,
+    IdempotencyKey, RunId, StepId, TaskQueue, TimerId, TimerRecord, WorkerId,
 };
 
 #[test]
@@ -130,6 +130,69 @@ fn parse_control_decision_command_without_step_scope() {
             run_id: "run-control".to_string(),
             step_id: None,
             decision_id: "decision-run".to_string(),
+            json: false,
+        },
+    );
+}
+
+#[test]
+fn parse_control_timer_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "timer",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--step-id",
+                    "run-control-step",
+                    "--timer-id",
+                    "timer-doc",
+                    "--json",
+                ])),
+                "control timer parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Timer {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: Some("run-control-step".to_string()),
+            timer_id: "timer-doc".to_string(),
+            json: true,
+        },
+    );
+}
+
+#[test]
+fn parse_control_timer_command_without_step_scope() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "timer",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--timer-id",
+                    "timer-run",
+                ])),
+                "control timer parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Timer {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: None,
+            timer_id: "timer-run".to_string(),
             json: false,
         },
     );
@@ -614,6 +677,90 @@ fn run_control_decision_rejects_missing_decision() -> Result<(), String> {
 }
 
 #[test]
+fn run_control_timer_renders_run_scope_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_run_timer(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Timer {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: None,
+            timer_id: "timer-run-wakeup".to_string(),
+            json: true,
+        }),
+        "control timer json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "timer output should be valid json",
+    );
+
+    assert_eq!(json["timer_id"], "timer-run-wakeup");
+    assert_eq!(json["status"], "fired");
+    assert_eq!(json["timer"]["fire_at_ms"], 10_000);
+    assert_eq!(json["fired_at_ms"], 10_250);
+    Ok(())
+}
+
+#[test]
+fn run_control_timer_renders_step_scope_text_summary() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step_timer(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Timer {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: Some("run-control-step".to_string()),
+            timer_id: "timer-step-approval-timeout".to_string(),
+            json: false,
+        }),
+        "control timer text should render",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control Timer"));
+    assert!(
+        output
+            .rendered
+            .contains("- Timer: `timer-step-approval-timeout`")
+    );
+    assert!(output.rendered.contains("- Status: `scheduled`"));
+    assert!(output.rendered.contains("- Fire at ms: `20000`"));
+    assert!(output.rendered.contains("- Fired at ms: `<none>`"));
+    Ok(())
+}
+
+#[test]
+fn run_control_timer_rejects_missing_timer() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_run_timer(&ledger_path);
+
+    let Err(error) = run_control_command(&ControlCliCommand::Timer {
+        ledger_path,
+        run_id: run_id.as_str().to_string(),
+        step_id: None,
+        timer_id: "missing-timer".to_string(),
+        json: false,
+    }) else {
+        return Err("missing timer should fail".to_string());
+    };
+
+    assert!(
+        error
+            .to_string()
+            .contains("could not find timer `missing-timer`")
+    );
+    Ok(())
+}
+
+#[test]
 fn run_control_recovery_snapshot_renders_json() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -910,6 +1057,75 @@ fn append_control_run_with_step_decision(ledger_path: &std::path::Path) -> RunId
             },
         )),
         "should append step decision",
+    );
+    run_id
+}
+
+fn append_control_run_with_run_timer(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_empty_control_run(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let timer_id = must_ok(
+        TimerId::new("timer-run-wakeup"),
+        "should build run timer id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            2,
+            ControlEventKind::TimerScheduled {
+                timer: TimerRecord {
+                    timer_id: timer_id.clone(),
+                    fire_at_ms: 10_000,
+                    metadata: serde_json::Value::Null,
+                },
+            },
+        )),
+        "should append run timer schedule",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            10_250,
+            ControlEventKind::TimerFired { timer_id },
+        )),
+        "should append run timer fire",
+    );
+    run_id
+}
+
+fn append_control_run_with_step_timer(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let timer_id = must_ok(
+        TimerId::new("timer-step-approval-timeout"),
+        "should build step timer id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            3,
+            ControlEventKind::TimerScheduled {
+                timer: TimerRecord {
+                    timer_id,
+                    fire_at_ms: 20_000,
+                    metadata: serde_json::Value::Null,
+                },
+            },
+        )),
+        "should append step timer schedule",
     );
     run_id
 }

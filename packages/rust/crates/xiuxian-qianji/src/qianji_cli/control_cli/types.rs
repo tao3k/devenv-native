@@ -38,6 +38,13 @@ pub(crate) enum ControlCliCommand {
         step_id: String,
         json: bool,
     },
+    Timer {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: Option<String>,
+        timer_id: String,
+        json: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

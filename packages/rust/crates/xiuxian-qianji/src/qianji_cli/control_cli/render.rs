@@ -2,7 +2,7 @@ use std::io;
 
 use xiuxian_qianji_control::{
     ActivityView, AgentDecision, ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot,
-    RunView, StepView,
+    RunView, StepView, TimerView,
 };
 
 pub(super) fn render_control_history_text(
@@ -307,6 +307,34 @@ pub(super) fn render_step_view_text(step: &StepView) -> String {
 
 pub(super) fn render_step_view_json(step: &StepView) -> io::Result<String> {
     serde_json::to_string_pretty(step).map_err(io::Error::other)
+}
+
+pub(super) fn render_timer_view_text(timer: &TimerView) -> String {
+    let scheduled_ms = timer
+        .timer
+        .as_ref()
+        .map(|record| record.fire_at_ms.to_string());
+    let completed_ms = timer.fired_at_ms.map(|fired_at| fired_at.to_string());
+
+    format!(
+        concat!(
+            "# Qianji Control Timer\n\n",
+            "- Timer: `{}`\n",
+            "- Status: `{}`\n",
+            "- Fire at ms: `{}`\n",
+            "- Fired at ms: `{}`\n",
+            "- Updated at ms: `{}`\n"
+        ),
+        timer.timer_id.as_str(),
+        serde_status(&timer.status),
+        scheduled_ms.as_deref().unwrap_or("<none>"),
+        completed_ms.as_deref().unwrap_or("<none>"),
+        timer.updated_at_ms
+    )
+}
+
+pub(super) fn render_timer_view_json(timer: &TimerView) -> io::Result<String> {
+    serde_json::to_string_pretty(timer).map_err(io::Error::other)
 }
 
 fn render_step_summary(output: &mut String, step: &StepView) {

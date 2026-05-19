@@ -19,12 +19,13 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("history") => parse_history(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
         Some("step") => parse_step(args).map(Some),
+        Some("timer") => parse_timer(args).map(Some),
         Some("view") => parse_view(args).map(Some),
         Some(other) => Err(invalid_input(format!(
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `decision`, `history`, `recovery-snapshot`, `step`, or `view`",
+            "missing `control` subcommand; expected `activity`, `decision`, `history`, `recovery-snapshot`, `step`, `timer`, or `view`",
         )),
     }
 }
@@ -286,6 +287,54 @@ fn parse_step(args: &[String]) -> io::Result<ControlCliCommand> {
             .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control step`"))?,
         step_id: step_id
             .ok_or_else(|| invalid_input("missing `--step-id <id>` for `control step`"))?,
+        json,
+    })
+}
+
+fn parse_timer(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut step_id = None;
+    let mut timer_id = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--step-id" => {
+                step_id = Some(parse_flag_value(args, &mut index, "--step-id")?);
+            }
+            "--timer-id" => {
+                timer_id = Some(parse_flag_value(args, &mut index, "--timer-id")?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control timer` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::Timer {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control timer`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control timer`"))?,
+        step_id,
+        timer_id: timer_id
+            .ok_or_else(|| invalid_input("missing `--timer-id <id>` for `control timer`"))?,
         json,
     })
 }

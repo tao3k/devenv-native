@@ -200,6 +200,9 @@ view for lifecycle, task, attempt, worker, result, and failure inspection.
 `qianji control decision --ledger <path> --run-id <id> --decision-id <id>
 [--step-id <id>] [--json]` renders one replayed agent decision for proposal,
 outcome, reason, scheduled activity, checkpoint, and gate inspection.
+`qianji control timer --ledger <path> --run-id <id> --timer-id <id>
+[--step-id <id>] [--json]` renders one replayed durable timer for scheduled
+fire time, fired time, and status inspection.
 `qianji control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms>
 [--json]` reads the same `xiuxian-qianji-control` DuckDB event ledger and
 returns the replay-derived recovery view, ordered recovery plan, and compact
