@@ -8,9 +8,11 @@ use crate::local_relation::{
     DuckDbLocalRelationEngine, LocalRelationEngine, LocalRelationMaterializationState,
 };
 
+type TestResult = Result<(), Box<dyn std::error::Error>>;
+
 #[tokio::test]
-async fn duckdb_engine_materializes_arrow_batches_and_queries_results() {
-    let engine = DuckDbLocalRelationEngine::new_in_memory().expect("open DuckDB");
+async fn duckdb_engine_materializes_arrow_batches_and_queries_results() -> TestResult {
+    let engine = DuckDbLocalRelationEngine::new_in_memory()?;
     let schema = Arc::new(Schema::new(vec![
         Field::new("id", DataType::Int64, false),
         Field::new("name", DataType::Utf8, false),
@@ -21,12 +23,9 @@ async fn duckdb_engine_materializes_arrow_batches_and_queries_results() {
             Arc::new(Int64Array::from(vec![2_i64, 1_i64])),
             Arc::new(StringArray::from(vec!["beta", "alpha"])),
         ],
-    )
-    .expect("build batch");
+    )?;
 
-    engine
-        .register_record_batches("items", schema, vec![batch])
-        .expect("register table");
+    engine.register_record_batches("items", schema, vec![batch])?;
 
     assert_eq!(
         engine.relation_registration_strategy("items"),
@@ -38,8 +37,8 @@ async fn duckdb_engine_materializes_arrow_batches_and_queries_results() {
     );
     let batches = engine
         .query_batches("select name from items order by id")
-        .await
-        .expect("query rows");
+        .await?;
     assert_eq!(batches.iter().map(RecordBatch::num_rows).sum::<usize>(), 2);
     assert!(format!("{batches:?}").contains("alpha"));
+    Ok(())
 }
