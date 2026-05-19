@@ -1,6 +1,7 @@
 //! `qianji control` command surface.
 
 mod api;
+mod heartbeat;
 mod parse;
 mod render;
 mod run;

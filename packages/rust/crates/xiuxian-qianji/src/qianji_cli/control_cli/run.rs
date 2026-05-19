@@ -35,6 +35,23 @@ pub(super) fn run_control_command_impl(
             run_id,
             json,
         } => run_history_command(ledger_path, run_id, *json),
+        ControlCliCommand::Heartbeat {
+            ledger_path,
+            run_id,
+            worker_id,
+            observed_at_ms,
+            expires_at_ms,
+            metadata,
+            json,
+        } => super::heartbeat::run(
+            ledger_path,
+            run_id,
+            worker_id,
+            *observed_at_ms,
+            *expires_at_ms,
+            metadata.as_ref(),
+            *json,
+        ),
         ControlCliCommand::QueryState {
             ledger_path,
             run_id,

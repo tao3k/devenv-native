@@ -190,8 +190,11 @@ no-server CLI/control workflow state uses the configured DuckDB path by
 default; HTTP remains Valkey-only.
 The generic Qianji control ledger has its own read-only operator surfaces.
 `qianji control history --ledger <path> --run-id <id> [--json]` renders the
-append-only event timeline for one run. `qianji control view --ledger <path>
---run-id <id> [--json]` renders the deterministic replayed run state. `qianji
+append-only event timeline for one run. `qianji control heartbeat --ledger
+<path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms
+<ms> [--metadata <json>] [--json]` records a durable Worker liveness audit
+fact without mutating hot queues or leases. `qianji control view --ledger
+<path> --run-id <id> [--json]` renders the deterministic replayed run state. `qianji
 control query --ledger <path> --run-id <id> --state --now-ms <ms> [--json]`
 returns a compact read-only state package with event count, replayed run view,
 and recovery snapshot. `qianji

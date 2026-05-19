@@ -21,6 +21,15 @@ pub(crate) enum ControlCliCommand {
         run_id: String,
         json: bool,
     },
+    Heartbeat {
+        ledger_path: PathBuf,
+        run_id: String,
+        worker_id: String,
+        observed_at_ms: u64,
+        expires_at_ms: u64,
+        metadata: Option<String>,
+        json: bool,
+    },
     QueryState {
         ledger_path: PathBuf,
         run_id: String,

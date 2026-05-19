@@ -85,6 +85,9 @@ pub(crate) fn print_qianji_usage() {
         "             qianji [-v|--log-verbose] control history --ledger <path> --run-id <id> [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control heartbeat --ledger <path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms <ms> [--metadata <json>] [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control view --ledger <path> --run-id <id> [--json]"
     );
     eprintln!(
