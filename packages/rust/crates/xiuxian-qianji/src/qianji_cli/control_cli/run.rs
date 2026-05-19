@@ -3,9 +3,9 @@ use std::io;
 use crate::qianji_cli::invalid_input;
 
 use super::render::{
-    render_control_history_json, render_control_history_text, render_recovery_snapshot_json,
-    render_recovery_snapshot_text, render_run_view_json, render_run_view_text,
-    render_step_view_json, render_step_view_text,
+    render_activity_view_json, render_activity_view_text, render_control_history_json,
+    render_control_history_text, render_recovery_snapshot_json, render_recovery_snapshot_text,
+    render_run_view_json, render_run_view_text, render_step_view_json, render_step_view_text,
 };
 use super::types::{ControlCliCommand, ControlCliOutput};
 
@@ -13,6 +13,13 @@ pub(super) fn run_control_command_impl(
     command: &ControlCliCommand,
 ) -> io::Result<ControlCliOutput> {
     match command {
+        ControlCliCommand::Activity {
+            ledger_path,
+            run_id,
+            step_id,
+            activity_id,
+            json,
+        } => run_activity_command(ledger_path, run_id, step_id.as_deref(), activity_id, *json),
         ControlCliCommand::History {
             ledger_path,
             run_id,
@@ -111,6 +118,64 @@ fn run_view_command(
         render_run_view_text(&view)
     };
     Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(feature = "duckdb")]
+fn run_activity_command(
+    ledger_path: &std::path::Path,
+    run_id: &str,
+    step_id: Option<&str>,
+    activity_id: &str,
+    json: bool,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{ActivityId, ControlLedger, DuckDbControlLedger, RunId, StepId};
+
+    let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| control_error(&error))?;
+    let run_id = RunId::new(run_id).map_err(|error| control_error(&error))?;
+    let activity_id = ActivityId::new(activity_id).map_err(|error| control_error(&error))?;
+    let view = ledger
+        .load_run_view(&run_id)
+        .map_err(|error| control_error(&error))?;
+    let activity = if let Some(step_id) = step_id {
+        let step_id = StepId::new(step_id).map_err(|error| control_error(&error))?;
+        let step = view.steps.get(&step_id).ok_or_else(|| {
+            invalid_input(format!(
+                "`control activity` could not find step `{}` in run `{}`",
+                step_id.as_str(),
+                run_id.as_str()
+            ))
+        })?;
+        step.activities.get(&activity_id)
+    } else {
+        view.activities.get(&activity_id)
+    }
+    .ok_or_else(|| {
+        invalid_input(format!(
+            "`control activity` could not find activity `{}` in run `{}`",
+            activity_id.as_str(),
+            run_id.as_str()
+        ))
+    })?;
+
+    let rendered = if json {
+        render_activity_view_json(activity)?
+    } else {
+        render_activity_view_text(activity)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn run_activity_command(
+    _ledger_path: &std::path::Path,
+    _run_id: &str,
+    _step_id: Option<&str>,
+    _activity_id: &str,
+    _json: bool,
+) -> io::Result<ControlCliOutput> {
+    Err(invalid_input(
+        "`control activity` requires the `duckdb` feature",
+    ))
 }
 
 #[cfg(feature = "duckdb")]

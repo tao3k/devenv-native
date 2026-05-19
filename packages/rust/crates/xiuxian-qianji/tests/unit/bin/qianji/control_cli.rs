@@ -3,8 +3,73 @@ use super::{
     to_args,
 };
 use xiuxian_qianji_control::{
-    ControlEvent, ControlEventKind, ControlLedger, DuckDbControlLedger, RunId, StepId,
+    ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, ControlEvent,
+    ControlEventKind, ControlLedger, DuckDbControlLedger, ErrorCode, IdempotencyKey, RunId, StepId,
+    TaskQueue, WorkerId,
 };
+
+#[test]
+fn parse_control_activity_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "activity",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--step-id",
+                    "run-control-step",
+                    "--activity-id",
+                    "activity-doc",
+                    "--json",
+                ])),
+                "control activity parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Activity {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: Some("run-control-step".to_string()),
+            activity_id: "activity-doc".to_string(),
+            json: true,
+        },
+    );
+}
+
+#[test]
+fn parse_control_activity_command_without_step_scope() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "activity",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--activity-id",
+                    "activity-run",
+                ])),
+                "control activity parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Activity {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: None,
+            activity_id: "activity-run".to_string(),
+            json: false,
+        },
+    );
+}
 
 #[test]
 fn parse_control_history_command() {
@@ -306,6 +371,90 @@ fn run_control_step_rejects_missing_step() -> Result<(), String> {
 }
 
 #[test]
+fn run_control_activity_renders_run_scope_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_run_activity(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Activity {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: None,
+            activity_id: "activity-run-search".to_string(),
+            json: true,
+        }),
+        "control activity json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity output should be valid json",
+    );
+
+    assert_eq!(json["activity_id"], "activity-run-search");
+    assert_eq!(json["status"], "completed");
+    assert_eq!(json["task"]["activity_type"], "wendao.search");
+    assert_eq!(json["worker_id"], "worker-search");
+    assert_eq!(json["attempt"], 1);
+    assert_eq!(json["result"]["output_hash"], "sha256:run-search-output");
+    Ok(())
+}
+
+#[test]
+fn run_control_activity_renders_step_scope_text_summary() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step_activity(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Activity {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            step_id: Some("run-control-step".to_string()),
+            activity_id: "activity-step-llm".to_string(),
+            json: false,
+        }),
+        "control activity text should render",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control Activity"));
+    assert!(output.rendered.contains("- Activity: `activity-step-llm`"));
+    assert!(output.rendered.contains("- Status: `failed`"));
+    assert!(output.rendered.contains("- Activity type: `llm.plan`"));
+    assert!(output.rendered.contains("- Task queue: `llm.openai`"));
+    assert!(output.rendered.contains("- Attempt: `2`"));
+    assert!(output.rendered.contains("- Failure code: `rate_limited`"));
+    assert!(output.rendered.contains("- Failure retryable: `true`"));
+    Ok(())
+}
+
+#[test]
+fn run_control_activity_rejects_missing_activity() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_run_activity(&ledger_path);
+
+    let error = run_control_command(&ControlCliCommand::Activity {
+        ledger_path,
+        run_id: run_id.as_str().to_string(),
+        step_id: None,
+        activity_id: "missing-activity".to_string(),
+        json: false,
+    })
+    .expect_err("missing activity should fail");
+
+    assert!(
+        error
+            .to_string()
+            .contains("could not find activity `missing-activity`")
+    );
+    Ok(())
+}
+
+#[test]
 fn run_control_recovery_snapshot_renders_json() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -405,4 +554,122 @@ fn append_control_run_with_step(ledger_path: &std::path::Path) -> RunId {
         "should append step-created event",
     );
     run_id
+}
+
+fn append_control_run_with_run_activity(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_empty_control_run(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let activity_id = must_ok(
+        ActivityId::new("activity-run-search"),
+        "should build run activity id",
+    );
+    let worker_id = must_ok(WorkerId::new("worker-search"), "should build worker id");
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            2,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(activity_id.clone(), "wendao.search", "wendao.search"),
+            },
+        )),
+        "should append run activity schedule",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            3,
+            ControlEventKind::ActivityStarted {
+                activity_id: activity_id.clone(),
+                worker_id: Some(worker_id),
+                attempt: 1,
+            },
+        )),
+        "should append run activity start",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            4,
+            ControlEventKind::ActivityCompleted {
+                activity_id,
+                result: ActivityResult {
+                    output_ref: None,
+                    output_hash: Some("sha256:run-search-output".to_string()),
+                    metadata: serde_json::Value::Null,
+                },
+            },
+        )),
+        "should append run activity completion",
+    );
+    run_id
+}
+
+fn append_control_run_with_step_activity(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let activity_id = must_ok(
+        ActivityId::new("activity-step-llm"),
+        "should build step activity id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id.clone(),
+            3,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(activity_id.clone(), "llm.plan", "llm.openai"),
+            },
+        )),
+        "should append step activity schedule",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            4,
+            ControlEventKind::ActivityFailed {
+                activity_id,
+                failure: ActivityFailure {
+                    error_code: must_ok(
+                        ErrorCode::new("rate_limited"),
+                        "should build activity error code",
+                    ),
+                    message: "provider rejected request".to_string(),
+                    retryable: true,
+                    attempt: 2,
+                    metadata: serde_json::Value::Null,
+                },
+            },
+        )),
+        "should append step activity failure",
+    );
+    run_id
+}
+
+fn activity_task(activity_id: ActivityId, activity_type: &str, task_queue: &str) -> ActivityTask {
+    ActivityTask::new(
+        activity_id,
+        must_ok(
+            ActivityType::new(activity_type),
+            "should build activity type",
+        ),
+        must_ok(TaskQueue::new(task_queue), "should build task queue"),
+        must_ok(
+            IdempotencyKey::new("activity-idempotency-key"),
+            "should build idempotency key",
+        ),
+    )
+    .with_timeout_ms(30_000)
 }

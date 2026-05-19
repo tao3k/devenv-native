@@ -1,7 +1,8 @@
 use std::io;
 
 use xiuxian_qianji_control::{
-    ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot, RunView, StepView,
+    ActivityView, ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot, RunView,
+    StepView,
 };
 
 pub(super) fn render_control_history_text(
@@ -71,6 +72,79 @@ pub(super) fn render_recovery_snapshot_text(snapshot: &RunRecoverySnapshot) -> S
 
 pub(super) fn render_recovery_snapshot_json(snapshot: &RunRecoverySnapshot) -> io::Result<String> {
     serde_json::to_string_pretty(snapshot).map_err(io::Error::other)
+}
+
+pub(super) fn render_activity_view_text(activity: &ActivityView) -> String {
+    let task_type = activity
+        .task
+        .as_ref()
+        .map_or("<unknown>", |task| task.activity_type.as_str());
+    let task_queue = activity
+        .task
+        .as_ref()
+        .map_or("<unknown>", |task| task.task_queue.as_str());
+    let idempotency_key = activity
+        .task
+        .as_ref()
+        .map_or("<unknown>", |task| task.idempotency_key.as_str());
+    let timeout_ms = activity
+        .task
+        .as_ref()
+        .and_then(|task| task.timeout_ms)
+        .map_or_else(|| "<none>".to_string(), |timeout| timeout.to_string());
+    let worker = activity
+        .worker_id
+        .as_ref()
+        .map_or("<none>", |worker| worker.as_str());
+    let result_hash = activity
+        .result
+        .as_ref()
+        .and_then(|result| result.output_hash.as_deref())
+        .unwrap_or("<none>");
+    let failure_code = activity
+        .failure
+        .as_ref()
+        .map_or("<none>", |failure| failure.error_code.as_str());
+    let failure_retryable = activity
+        .failure
+        .as_ref()
+        .map_or("<none>".to_string(), |failure| {
+            failure.retryable.to_string()
+        });
+
+    format!(
+        concat!(
+            "# Qianji Control Activity\n\n",
+            "- Activity: `{}`\n",
+            "- Status: `{}`\n",
+            "- Updated at ms: `{}`\n",
+            "- Activity type: `{}`\n",
+            "- Task queue: `{}`\n",
+            "- Idempotency key: `{}`\n",
+            "- Timeout ms: `{}`\n",
+            "- Attempt: `{}`\n",
+            "- Worker: `{}`\n",
+            "- Result hash: `{}`\n",
+            "- Failure code: `{}`\n",
+            "- Failure retryable: `{}`\n"
+        ),
+        activity.activity_id.as_str(),
+        serde_status(&activity.status),
+        activity.updated_at_ms,
+        task_type,
+        task_queue,
+        idempotency_key,
+        timeout_ms,
+        activity.attempt,
+        worker,
+        result_hash,
+        failure_code,
+        failure_retryable
+    )
+}
+
+pub(super) fn render_activity_view_json(activity: &ActivityView) -> io::Result<String> {
+    serde_json::to_string_pretty(activity).map_err(io::Error::other)
 }
 
 pub(super) fn render_run_view_text(view: &RunView) -> String {

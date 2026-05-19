@@ -70,6 +70,9 @@ pub(crate) fn print_qianji_usage() {
         "  Control:   qianji [-v|--log-verbose] control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms> [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control activity --ledger <path> --run-id <id> --activity-id <id> [--step-id <id>] [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control history --ledger <path> --run-id <id> [--json]"
     );
     eprintln!(

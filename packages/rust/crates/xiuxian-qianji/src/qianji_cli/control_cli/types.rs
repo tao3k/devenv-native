@@ -2,6 +2,13 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ControlCliCommand {
+    Activity {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: Option<String>,
+        activity_id: String,
+        json: bool,
+    },
     History {
         ledger_path: PathBuf,
         run_id: String,
