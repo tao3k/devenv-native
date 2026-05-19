@@ -1,4 +1,4 @@
-//! Tests for semantic_check module (Blueprint v2.2).
+//! Tests for `semantic_check` module (Blueprint v2.2).
 //!
 //! Tests the semantic sentinel functionality:
 //! - Dead link detection

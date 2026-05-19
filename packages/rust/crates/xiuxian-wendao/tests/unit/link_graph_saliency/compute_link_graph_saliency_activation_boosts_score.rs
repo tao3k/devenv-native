@@ -15,8 +15,8 @@ fn test_compute_link_graph_saliency_activation_boosts_score() -> Result<(), Stri
     let with_activation = compute_link_graph_saliency(5.0, 0.02, 8, 2.0, policy);
 
     let snapshot = ActivationBoostSnapshot {
-        without_activation: format!("{:.6}", without_activation),
-        with_activation: format!("{:.6}", with_activation),
+        without_activation: format!("{without_activation:.6}"),
+        with_activation: format!("{with_activation:.6}"),
     };
     let actual = format!(
         "{}\n",

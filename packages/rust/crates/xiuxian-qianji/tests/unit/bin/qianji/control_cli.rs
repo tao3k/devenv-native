@@ -192,7 +192,7 @@ fn run_control_view_renders_json() -> Result<(), String> {
 
     assert_eq!(json["run_id"], "run-control-cli");
     assert_eq!(json["status"], "draft");
-    assert_eq!(json["steps"].as_object().map(|steps| steps.len()), Some(1));
+    assert_eq!(json["steps"].as_object().map(serde_json::Map::len), Some(1));
     assert_eq!(
         json["steps"]["run-control-step"]["title"],
         "Review durable state"
@@ -288,13 +288,14 @@ fn run_control_step_rejects_missing_step() -> Result<(), String> {
     let ledger_path = temp_dir.path().join("control.duckdb");
     let run_id = append_control_run_with_step(&ledger_path);
 
-    let error = run_control_command(&ControlCliCommand::Step {
+    let Err(error) = run_control_command(&ControlCliCommand::Step {
         ledger_path,
         run_id: run_id.as_str().to_string(),
         step_id: "missing-step".to_string(),
         json: false,
-    })
-    .expect_err("missing step should fail");
+    }) else {
+        return Err("missing step should fail".to_string());
+    };
 
     assert!(
         error

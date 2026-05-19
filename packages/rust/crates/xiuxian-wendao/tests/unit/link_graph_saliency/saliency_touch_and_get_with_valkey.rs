@@ -38,8 +38,7 @@ fn test_saliency_touch_and_get_with_valkey() -> Result<(), String> {
         },
         TEST_VALKEY_URL,
         Some(&prefix),
-    )
-    .map_err(|err| err.to_string())?;
+    )?;
 
     let second = valkey_saliency_touch_with_valkey(
         LinkGraphSaliencyTouchRequest {
@@ -54,11 +53,9 @@ fn test_saliency_touch_and_get_with_valkey() -> Result<(), String> {
         },
         TEST_VALKEY_URL,
         Some(&prefix),
-    )
-    .map_err(|err| err.to_string())?;
+    )?;
 
-    let fetched = valkey_saliency_get_with_valkey("note-a", TEST_VALKEY_URL, Some(&prefix))
-        .map_err(|err| err.to_string())?;
+    let fetched = valkey_saliency_get_with_valkey("note-a", TEST_VALKEY_URL, Some(&prefix))?;
     let state = fetched.ok_or_else(|| "missing saliency state after touch".to_string())?;
 
     let snapshot = SaliencyTouchSnapshot {
