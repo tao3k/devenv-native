@@ -74,6 +74,43 @@ pub(super) fn render_recovery_snapshot_json(snapshot: &RunRecoverySnapshot) -> i
     serde_json::to_string_pretty(snapshot).map_err(io::Error::other)
 }
 
+pub(super) fn render_signal_append_text(record: &ControlEventRecord) -> String {
+    let (signal_name, metadata) = match &record.event.kind {
+        ControlEventKind::SignalReceived { signal } => (
+            signal.signal_name.as_str(),
+            serde_json::to_string(&signal.metadata).unwrap_or_else(|_| "null".to_string()),
+        ),
+        _ => ("<unknown>", "null".to_string()),
+    };
+    let scope = record
+        .event
+        .step_id
+        .as_ref()
+        .map_or("run", |step_id| step_id.as_str());
+
+    format!(
+        concat!(
+            "# Qianji Control Signal\n\n",
+            "- Event sequence: `{}`\n",
+            "- Run: `{}`\n",
+            "- Scope: `{}`\n",
+            "- Signal: `{}`\n",
+            "- Received at ms: `{}`\n",
+            "- Payload metadata: `{}`\n"
+        ),
+        record.sequence,
+        record.event.run_id.as_str(),
+        scope,
+        signal_name,
+        record.event.occurred_at_ms,
+        metadata
+    )
+}
+
+pub(super) fn render_signal_append_json(record: &ControlEventRecord) -> io::Result<String> {
+    serde_json::to_string_pretty(record).map_err(io::Error::other)
+}
+
 pub(super) fn render_activity_view_text(activity: &ActivityView) -> String {
     let task_type = activity
         .task

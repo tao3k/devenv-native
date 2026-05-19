@@ -203,6 +203,10 @@ outcome, reason, scheduled activity, checkpoint, and gate inspection.
 `qianji control timer --ledger <path> --run-id <id> --timer-id <id>
 [--step-id <id>] [--json]` renders one replayed durable timer for scheduled
 fire time, fired time, and status inspection.
+`qianji control signal --ledger <path> --run-id <id> --signal-name <name>
+--payload <json> --received-at-ms <ms> [--step-id <id>] [--json]` appends one
+durable external signal event. The payload JSON is stored in signal metadata so
+the existing control event schema remains unchanged.
 `qianji control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms>
 [--json]` reads the same `xiuxian-qianji-control` DuckDB event ledger and
 returns the replay-derived recovery view, ordered recovery plan, and compact

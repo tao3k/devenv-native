@@ -18,6 +18,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("decision") => parse_decision(args).map(Some),
         Some("history") => parse_history(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
+        Some("signal") => parse_signal(args).map(Some),
         Some("step") => parse_step(args).map(Some),
         Some("timer") => parse_timer(args).map(Some),
         Some("view") => parse_view(args).map(Some),
@@ -25,9 +26,73 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `decision`, `history`, `recovery-snapshot`, `step`, `timer`, or `view`",
+            "missing `control` subcommand; expected `activity`, `decision`, `history`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
         )),
     }
+}
+
+fn parse_signal(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut step_id = None;
+    let mut signal_name = None;
+    let mut payload = None;
+    let mut received_at_ms = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--step-id" => {
+                step_id = Some(parse_flag_value(args, &mut index, "--step-id")?);
+            }
+            "--signal-name" => {
+                signal_name = Some(parse_flag_value(args, &mut index, "--signal-name")?);
+            }
+            "--payload" => {
+                payload = Some(parse_flag_value(args, &mut index, "--payload")?);
+            }
+            "--received-at-ms" => {
+                received_at_ms = Some(parse_signal_ms(&parse_flag_value(
+                    args,
+                    &mut index,
+                    "--received-at-ms",
+                )?)?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control signal` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::Signal {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control signal`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control signal`"))?,
+        step_id,
+        signal_name: signal_name
+            .ok_or_else(|| invalid_input("missing `--signal-name <name>` for `control signal`"))?,
+        payload: payload
+            .ok_or_else(|| invalid_input("missing `--payload <json>` for `control signal`"))?,
+        received_at_ms: received_at_ms
+            .ok_or_else(|| invalid_input("missing `--received-at-ms <ms>` for `control signal`"))?,
+        json,
+    })
 }
 
 fn parse_activity(args: &[String]) -> io::Result<ControlCliCommand> {
@@ -343,6 +408,14 @@ fn parse_now_ms(value: &str) -> io::Result<u64> {
     value.parse::<u64>().map_err(|error| {
         invalid_input(format!(
             "invalid `--now-ms` value `{value}` for `control recovery-snapshot`: {error}"
+        ))
+    })
+}
+
+fn parse_signal_ms(value: &str) -> io::Result<u64> {
+    value.parse::<u64>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--received-at-ms` value `{value}` for `control signal`: {error}"
         ))
     })
 }

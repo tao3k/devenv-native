@@ -6,7 +6,7 @@ use xiuxian_qianji_control::{
     ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, AgentDecision,
     AgentDecisionId, AgentDecisionOutcome, AgentProposalId, ControlEvent, ControlEventKind,
     ControlLedger, DecisionReasonCode, DuckDbControlLedger, ErrorCode, GateName, GateResult,
-    IdempotencyKey, RunId, StepId, TaskQueue, TimerId, TimerRecord, WorkerId,
+    IdempotencyKey, RunId, SignalName, StepId, TaskQueue, TimerId, TimerRecord, WorkerId,
 };
 
 #[test]
@@ -193,6 +193,81 @@ fn parse_control_timer_command_without_step_scope() {
             run_id: "run-control".to_string(),
             step_id: None,
             timer_id: "timer-run".to_string(),
+            json: false,
+        },
+    );
+}
+
+#[test]
+fn parse_control_signal_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "signal",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--step-id",
+                    "run-control-step",
+                    "--signal-name",
+                    "human.approval",
+                    "--payload",
+                    r#"{"approved":true}"#,
+                    "--received-at-ms",
+                    "12345",
+                    "--json",
+                ])),
+                "control signal parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Signal {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: Some("run-control-step".to_string()),
+            signal_name: "human.approval".to_string(),
+            payload: r#"{"approved":true}"#.to_string(),
+            received_at_ms: 12_345,
+            json: true,
+        },
+    );
+}
+
+#[test]
+fn parse_control_signal_command_without_step_scope() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "signal",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--signal-name",
+                    "run.refresh",
+                    "--payload",
+                    r#"{"reason":"manual"}"#,
+                    "--received-at-ms",
+                    "54321",
+                ])),
+                "control signal parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Signal {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: None,
+            signal_name: "run.refresh".to_string(),
+            payload: r#"{"reason":"manual"}"#.to_string(),
+            received_at_ms: 54_321,
             json: false,
         },
     );
@@ -757,6 +832,145 @@ fn run_control_timer_rejects_missing_timer() -> Result<(), String> {
             .to_string()
             .contains("could not find timer `missing-timer`")
     );
+    Ok(())
+}
+
+#[test]
+fn run_control_signal_appends_run_scope_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_empty_control_run(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Signal {
+            ledger_path: ledger_path.clone(),
+            run_id: run_id.as_str().to_string(),
+            step_id: None,
+            signal_name: "run.refresh".to_string(),
+            payload: r#"{"reason":"manual"}"#.to_string(),
+            received_at_ms: 11_000,
+            json: true,
+        }),
+        "control signal json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "signal output should be valid json",
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let view = must_ok(
+        ledger.load_run_view(&run_id),
+        "signal append should replay into run view",
+    );
+
+    assert_eq!(json["sequence"], 2);
+    assert_eq!(json["event"]["run_id"], "run-control-cli");
+    assert_eq!(json["event"]["kind"]["event"], "signal_received");
+    assert_eq!(
+        json["event"]["kind"]["signal"]["signal_name"],
+        "run.refresh"
+    );
+    assert_eq!(
+        json["event"]["kind"]["signal"]["metadata"]["reason"],
+        "manual"
+    );
+    assert_eq!(view.signals.len(), 1);
+    assert_eq!(
+        view.signals[0].signal_name,
+        must_ok(SignalName::new("run.refresh"), "should build signal name")
+    );
+    Ok(())
+}
+
+#[test]
+fn run_control_signal_appends_step_scope_text_and_replays() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_step(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Signal {
+            ledger_path: ledger_path.clone(),
+            run_id: run_id.as_str().to_string(),
+            step_id: Some("run-control-step".to_string()),
+            signal_name: "human.approval".to_string(),
+            payload: r#"{"approved":true,"approver":"operator"}"#.to_string(),
+            received_at_ms: 12_000,
+            json: false,
+        }),
+        "control signal text should render",
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let view = must_ok(
+        ledger.load_run_view(&run_id),
+        "signal append should replay into run view",
+    );
+    let step = must_some(
+        view.steps.get(&must_ok(
+            StepId::new("run-control-step"),
+            "should build step id",
+        )),
+        "step signal should replay into step view",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control Signal"));
+    assert!(output.rendered.contains("- Run: `run-control-cli`"));
+    assert!(output.rendered.contains("- Scope: `run-control-step`"));
+    assert!(output.rendered.contains("- Signal: `human.approval`"));
+    assert!(output.rendered.contains("- Received at ms: `12000`"));
+    assert_eq!(step.signals.len(), 1);
+    assert_eq!(
+        step.signals[0].signal_name,
+        must_ok(
+            SignalName::new("human.approval"),
+            "should build signal name"
+        )
+    );
+    assert_eq!(step.signals[0].metadata["approved"], true);
+    Ok(())
+}
+
+#[test]
+fn run_control_signal_rejects_invalid_payload_without_append() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_empty_control_run(&ledger_path);
+
+    let Err(error) = run_control_command(&ControlCliCommand::Signal {
+        ledger_path: ledger_path.clone(),
+        run_id: run_id.as_str().to_string(),
+        step_id: None,
+        signal_name: "run.refresh".to_string(),
+        payload: "{not-json".to_string(),
+        received_at_ms: 11_000,
+        json: false,
+    }) else {
+        return Err("invalid signal payload should fail".to_string());
+    };
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let records = must_ok(
+        ledger.load_events(&run_id),
+        "invalid payload should not append an event",
+    );
+
+    assert!(
+        error
+            .to_string()
+            .contains("invalid `--payload` JSON for `control signal`")
+    );
+    assert_eq!(records.len(), 1);
     Ok(())
 }
 

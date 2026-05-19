@@ -27,6 +27,15 @@ pub(crate) enum ControlCliCommand {
         now_ms: u64,
         json: bool,
     },
+    Signal {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: Option<String>,
+        signal_name: String,
+        payload: String,
+        received_at_ms: u64,
+        json: bool,
+    },
     View {
         ledger_path: PathBuf,
         run_id: String,
