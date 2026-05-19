@@ -797,3 +797,65 @@ pub struct WorkerHeartbeat {
     #[serde(default)]
     pub metadata: serde_json::Value,
 }
+
+/// Read-only snapshot of hot scheduling state.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct HotStateSnapshot {
+    /// Timestamp used by the caller to interpret expiry state.
+    pub observed_at_ms: u64,
+    /// Steps currently waiting in the runnable queue.
+    #[serde(default)]
+    pub pending_steps: Vec<RunnableStep>,
+    /// Steps currently protected by active or expired leases.
+    #[serde(default)]
+    pub leased_steps: Vec<HotStateLeasedStep>,
+    /// Worker heartbeat payloads still visible in hot state.
+    #[serde(default)]
+    pub worker_heartbeats: Vec<WorkerHeartbeat>,
+}
+
+impl HotStateSnapshot {
+    /// Creates an empty snapshot observed at `observed_at_ms`.
+    #[must_use]
+    pub const fn new(observed_at_ms: u64) -> Self {
+        Self {
+            observed_at_ms,
+            pending_steps: Vec::new(),
+            leased_steps: Vec::new(),
+            worker_heartbeats: Vec::new(),
+        }
+    }
+
+    /// Returns active lease count at the snapshot timestamp.
+    #[must_use]
+    pub fn active_lease_count(&self) -> usize {
+        self.leased_steps
+            .iter()
+            .filter(|leased| leased.lease.is_active_at(self.observed_at_ms))
+            .count()
+    }
+
+    /// Returns expired lease count at the snapshot timestamp.
+    #[must_use]
+    pub fn expired_lease_count(&self) -> usize {
+        self.leased_steps.len() - self.active_lease_count()
+    }
+
+    /// Returns live heartbeat count at the snapshot timestamp.
+    #[must_use]
+    pub fn live_heartbeat_count(&self) -> usize {
+        self.worker_heartbeats
+            .iter()
+            .filter(|heartbeat| self.observed_at_ms < heartbeat.expires_at_ms)
+            .count()
+    }
+}
+
+/// One leased hot-state step plus its original runnable payload.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct HotStateLeasedStep {
+    /// Original runnable step payload.
+    pub step: RunnableStep,
+    /// Current lease payload.
+    pub lease: StepLease,
+}

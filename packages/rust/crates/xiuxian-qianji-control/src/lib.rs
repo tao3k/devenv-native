@@ -87,9 +87,9 @@ pub use memory::{InMemoryControlLedger, InMemoryHotStateStore};
 pub use model::{
     ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,
     ActivityRetryStopReason, ActivityTask, ArtifactRef, Budget, CostObservation, EvidenceRef,
-    GateResult, LlmActivityRequest, LlmActivityTask, RecoveryPolicy, RunStatus, RunnableStep,
-    SignalRecord, StepLease, StepStatus, TimerRecord, VersionPin, WaitReason, WorkerHeartbeat,
-    WorkerRef,
+    GateResult, HotStateLeasedStep, HotStateSnapshot, LlmActivityRequest, LlmActivityTask,
+    RecoveryPolicy, RunStatus, RunnableStep, SignalRecord, StepLease, StepStatus, TimerRecord,
+    VersionPin, WaitReason, WorkerHeartbeat, WorkerRef,
 };
 pub use policy::{AgentPolicyReason, ToolPolicyReduction, ToolPolicyReductionRequest};
 pub use recovery::{

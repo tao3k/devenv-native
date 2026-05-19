@@ -1,9 +1,9 @@
 //! Storage and gate traits for the control plane.
 
 use crate::{
-    ControlEvent, ControlEventRecord, ControlResult, GateResult, RunId, RunRecoveryPlan,
-    RunRecoverySnapshot, RunView, RunnableStep, StepLease, StepView, WorkerHeartbeat, WorkerId,
-    WorkerRef,
+    ControlEvent, ControlEventRecord, ControlResult, GateResult, HotStateSnapshot, RunId,
+    RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableStep, StepLease, StepView,
+    WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -123,6 +123,13 @@ pub trait HotStateStore: Send + Sync {
     ///
     /// Returns a store-specific control error when load fails.
     async fn load_heartbeat(&self, worker_id: &WorkerId) -> ControlResult<Option<WorkerHeartbeat>>;
+
+    /// Loads a read-only snapshot of hot queue, lease, and heartbeat state.
+    ///
+    /// # Errors
+    ///
+    /// Returns a store-specific control error when snapshot loading fails.
+    async fn load_snapshot(&self, observed_at_ms: u64) -> ControlResult<HotStateSnapshot>;
 }
 
 /// Deterministic evidence gate.

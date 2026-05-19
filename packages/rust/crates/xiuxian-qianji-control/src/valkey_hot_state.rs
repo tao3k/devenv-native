@@ -7,8 +7,8 @@ use redis::FromRedisValue;
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
-    ControlError, ControlResult, HotStateStore, LeaseId, RunId, RunnableStep, StepId, StepLease,
-    WorkerHeartbeat, WorkerId, WorkerRef,
+    ControlError, ControlResult, HotStateLeasedStep, HotStateSnapshot, HotStateStore, LeaseId,
+    RunId, RunnableStep, StepId, StepLease, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 const DEFAULT_KEY_NAMESPACE: &str = "xiuxian:qianji:control";
@@ -272,6 +272,18 @@ impl ValkeyHotStateConfig {
 
     fn lease_prefix(&self) -> String {
         format!("{}:lease:", self.namespace.as_str())
+    }
+
+    fn step_payload_key_for_entry(&self, entry_id: &str) -> String {
+        format!("{}{entry_id}", self.step_payload_prefix())
+    }
+
+    fn lease_key_for_entry(&self, entry_id: &str) -> String {
+        format!("{}{entry_id}", self.lease_prefix())
+    }
+
+    fn heartbeat_key_pattern(&self) -> String {
+        format!("{}:heartbeat:*", self.namespace.as_str())
     }
 }
 
@@ -555,6 +567,108 @@ impl HotStateStore for ValkeyHotStateStore {
             .map(|payload| decode_heartbeat(&payload))
             .transpose()
     }
+
+    async fn load_snapshot(&self, observed_at_ms: u64) -> ControlResult<HotStateSnapshot> {
+        let pending_entries: Vec<String> = self
+            .run_command("valkey_hot_state_snapshot_pending_entries", || {
+                let mut command = redis::cmd("ZRANGE");
+                command.arg(self.config.pending_queue_key()).arg(0).arg(-1);
+                command
+            })
+            .await?;
+        let lease_entries: Vec<String> = self
+            .run_command("valkey_hot_state_snapshot_lease_entries", || {
+                let mut command = redis::cmd("ZRANGE");
+                command
+                    .arg(self.config.lease_deadlines_key())
+                    .arg(0)
+                    .arg(-1);
+                command
+            })
+            .await?;
+        let heartbeat_keys: Vec<String> = self
+            .run_command("valkey_hot_state_snapshot_heartbeat_keys", || {
+                let mut command = redis::cmd("KEYS");
+                command.arg(self.config.heartbeat_key_pattern());
+                command
+            })
+            .await?;
+
+        let mut snapshot = HotStateSnapshot::new(observed_at_ms);
+        for entry_id in pending_entries {
+            if let Some(step) = self.load_step_payload_by_entry(&entry_id).await? {
+                snapshot.pending_steps.push(step);
+            }
+        }
+        for entry_id in lease_entries {
+            let Some(step) = self.load_step_payload_by_entry(&entry_id).await? else {
+                continue;
+            };
+            let lease_key = self.config.lease_key_for_entry(&entry_id);
+            let lease_hash: Vec<(String, String)> = self
+                .run_command("valkey_hot_state_snapshot_lease_hash", || {
+                    let mut command = redis::cmd("HGETALL");
+                    command.arg(&lease_key);
+                    command
+                })
+                .await?;
+            if let Some(lease) = decode_lease_hash(&step, &lease_hash)? {
+                snapshot
+                    .leased_steps
+                    .push(HotStateLeasedStep { step, lease });
+            }
+        }
+        for heartbeat_key in heartbeat_keys {
+            let payload_json: Option<String> = self
+                .run_command("valkey_hot_state_snapshot_heartbeat", || {
+                    let mut command = redis::cmd("GET");
+                    command.arg(&heartbeat_key);
+                    command
+                })
+                .await?;
+            if let Some(payload_json) = payload_json {
+                snapshot
+                    .worker_heartbeats
+                    .push(decode_heartbeat(&payload_json)?);
+            }
+        }
+        snapshot
+            .pending_steps
+            .sort_by(|left, right| hot_step_order(left).cmp(&hot_step_order(right)));
+        snapshot.leased_steps.sort_by(|left, right| {
+            hot_step_order(&left.step)
+                .cmp(&hot_step_order(&right.step))
+                .then_with(|| {
+                    left.lease
+                        .lease_id
+                        .as_str()
+                        .cmp(right.lease.lease_id.as_str())
+                })
+        });
+        snapshot
+            .worker_heartbeats
+            .sort_by(|left, right| left.worker_id.as_str().cmp(right.worker_id.as_str()));
+        Ok(snapshot)
+    }
+}
+
+impl ValkeyHotStateStore {
+    async fn load_step_payload_by_entry(
+        &self,
+        entry_id: &str,
+    ) -> ControlResult<Option<RunnableStep>> {
+        let payload_key = self.config.step_payload_key_for_entry(entry_id);
+        let payload_json: Option<String> = self
+            .run_command("valkey_hot_state_snapshot_step_payload", || {
+                let mut command = redis::cmd("HGET");
+                command.arg(&payload_key).arg("payload");
+                command
+            })
+            .await?;
+        payload_json
+            .map(|payload| decode_runnable_step(&payload))
+            .transpose()
+    }
 }
 
 fn encode_runnable_step(step: &RunnableStep) -> ControlResult<String> {
@@ -585,6 +699,49 @@ fn decode_heartbeat(payload: &str) -> ControlResult<WorkerHeartbeat> {
     })
 }
 
+fn decode_lease_hash(
+    step: &RunnableStep,
+    lease_hash: &[(String, String)],
+) -> ControlResult<Option<StepLease>> {
+    if lease_hash.is_empty() {
+        return Ok(None);
+    }
+    let value = |key: &str| {
+        lease_hash
+            .iter()
+            .find(|(candidate, _)| candidate == key)
+            .map(|(_, value)| value.as_str())
+    };
+    let lease_id = LeaseId::new(required_hash_value(value("lease_id"), "lease_id")?)?;
+    let worker_id = WorkerId::new(required_hash_value(value("worker_id"), "worker_id")?)?;
+    let acquired_at_ms = parse_hash_u64(value("acquired_at_ms"), "acquired_at_ms")?;
+    let expires_at_ms = parse_hash_u64(value("expires_at_ms"), "expires_at_ms")?;
+    Ok(Some(StepLease {
+        lease_id,
+        run_id: step.run_id.clone(),
+        step_id: step.step_id.clone(),
+        worker_id,
+        acquired_at_ms,
+        expires_at_ms,
+    }))
+}
+
+fn required_hash_value<'a>(value: Option<&'a str>, field: &'static str) -> ControlResult<&'a str> {
+    value.ok_or_else(|| ControlError::Codec {
+        operation: "decode_valkey_step_lease_hash",
+        message: format!("missing lease hash field `{field}`"),
+    })
+}
+
+fn parse_hash_u64(value: Option<&str>, field: &'static str) -> ControlResult<u64> {
+    required_hash_value(value, field)?
+        .parse()
+        .map_err(|error: std::num::ParseIntError| ControlError::Codec {
+            operation: "decode_valkey_step_lease_hash",
+            message: format!("invalid `{field}`: {error}"),
+        })
+}
+
 fn lease_script_result(result: i64, lease: &StepLease) -> ControlResult<bool> {
     match result {
         1 => Ok(true),
@@ -606,6 +763,10 @@ fn step_entry_id(run_id: &RunId, step_id: &StepId) -> String {
 
 fn priority_score(priority: i64) -> i64 {
     priority.saturating_neg()
+}
+
+fn hot_step_order(step: &RunnableStep) -> (&str, &str) {
+    (step.run_id.as_str(), step.step_id.as_str())
 }
 
 fn validate_positive_ttl(operation: &'static str, ttl_ms: u64) -> ControlResult<()> {

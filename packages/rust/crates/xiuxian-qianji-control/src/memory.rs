@@ -4,8 +4,9 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use crate::{
-    ControlError, ControlEvent, ControlEventRecord, ControlLedger, ControlResult, HotStateStore,
-    LeaseId, RunId, RunnableStep, StepId, StepLease, WorkerHeartbeat, WorkerId, WorkerRef,
+    ControlError, ControlEvent, ControlEventRecord, ControlLedger, ControlResult,
+    HotStateLeasedStep, HotStateSnapshot, HotStateStore, LeaseId, RunId, RunnableStep, StepId,
+    StepLease, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 /// In-memory append-only event ledger.
@@ -201,6 +202,38 @@ impl HotStateStore for InMemoryHotStateStore {
         let guard = lock(&self.state, "hot_state")?;
         Ok(guard.heartbeats.get(worker_id).cloned())
     }
+
+    async fn load_snapshot(&self, observed_at_ms: u64) -> ControlResult<HotStateSnapshot> {
+        let guard = lock(&self.state, "hot_state")?;
+        let mut snapshot = HotStateSnapshot::new(observed_at_ms);
+        snapshot.pending_steps.extend(guard.queue.iter().cloned());
+        snapshot.leased_steps = guard
+            .leases
+            .values()
+            .map(|active| HotStateLeasedStep {
+                step: active.step.clone(),
+                lease: active.lease.clone(),
+            })
+            .collect();
+        snapshot.worker_heartbeats = guard.heartbeats.values().cloned().collect();
+        snapshot
+            .pending_steps
+            .sort_by(|left, right| hot_step_order(left).cmp(&hot_step_order(right)));
+        snapshot.leased_steps.sort_by(|left, right| {
+            hot_step_order(&left.step)
+                .cmp(&hot_step_order(&right.step))
+                .then_with(|| {
+                    left.lease
+                        .lease_id
+                        .as_str()
+                        .cmp(right.lease.lease_id.as_str())
+                })
+        });
+        snapshot
+            .worker_heartbeats
+            .sort_by(|left, right| left.worker_id.as_str().cmp(right.worker_id.as_str()));
+        Ok(snapshot)
+    }
 }
 
 fn remove_expired_leases(state: &mut HotState, now_ms: u64) {
@@ -224,6 +257,10 @@ fn next_runnable_index(queue: &[RunnableStep], now_ms: u64) -> Option<usize> {
         .filter(|(_, step)| step.not_before_ms <= now_ms)
         .max_by_key(|(index, step)| (step.priority, std::cmp::Reverse(*index)))
         .map(|(index, _)| index)
+}
+
+fn hot_step_order(step: &RunnableStep) -> (&str, &str) {
+    (step.run_id.as_str(), step.step_id.as_str())
 }
 
 fn step_key(lease: &StepLease) -> StepKey {

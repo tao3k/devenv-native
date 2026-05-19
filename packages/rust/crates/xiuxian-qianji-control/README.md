@@ -147,6 +147,10 @@ audit state through one governed helper.
 `HotStateStore` and then appends durable history, so scheduling and later
 recovery appliers can share the same queue mirror contract without executing
 Workers.
+`HotStateStore::load_snapshot` is a read-only operator query over hot queues,
+leases, and worker heartbeats. It reports `HotStateSnapshot` facts without
+reclaiming leases, reordering queues, renewing heartbeats, appending ledger
+events, or executing Workers.
 `record_timer_fired` records a durable `TimerFired` fact for a run-scoped or
 step-scoped timer. It does not poll timers, wait, notify, or enqueue work.
 `record_step_lease_released` records a durable `StepLeaseReleased` fact after
@@ -214,6 +218,7 @@ hot-state work, lease steps, or execute workers.
   `HumanApprovalDecision`
 - `ActivityTask`, `ActivityRetryDecision`, `LlmActivityRequest`,
   `LlmActivityTask`, `SignalRecord`, `TimerRecord`, and `VersionPin`
+- `HotStateSnapshot` and `HotStateLeasedStep`
 - `ControlLedger`
 - `ControlLedger::load_run_view`
 - `ControlLedger::load_recovery_plan`
