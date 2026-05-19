@@ -91,6 +91,9 @@ pub enum OrgizeLintFormatArg {
 }
 
 /// CLI arguments for agent planning cards.
+///
+/// Raw DTO boundary: these flags mirror CLI query toggles and are not stored
+/// as a long-lived domain model.
 #[derive(Args, Debug)]
 pub struct OrgizeAgentPlanningArgs {
     /// Inclusive start date in `YYYY-MM-DD` form.
