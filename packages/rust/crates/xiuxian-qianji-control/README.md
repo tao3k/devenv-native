@@ -151,6 +151,8 @@ Workers.
 step-scoped timer. It does not poll timers, wait, notify, or enqueue work.
 `record_step_lease_released` records a durable `StepLeaseReleased` fact after
 hot-state lease ownership has been handled by the caller.
+`record_recovery_started` records a durable `RecoveryStarted` fact for a run
+or step before a recovery loop applies, inspects, or escalates recovery work.
 `apply_recovery_action` is the first bounded recovery applier. It applies only
 step-scoped `RetryActivity` actions by queueing the owning step after the
 retry backoff and recording `StepQueued`, and `FireTimer` actions by recording
@@ -199,6 +201,7 @@ hot-state work, lease steps, or execute workers.
 - `StepQueueJournalRecord`, `record_step_queued`, and
   `record_step_queued_with_hot_state`
 - `TimerFireJournalRecord` and `record_timer_fired`
+- `RecoveryStartedJournalRecord` and `record_recovery_started`
 - `RecoveryActionApplicationRequest`, `RecoveryActionApplication`,
   `RecoveryActionApplicationReason`, and `apply_recovery_action`
 - `HumanApprovalRequest`, `HumanApprovalResolution`, and

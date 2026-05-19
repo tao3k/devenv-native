@@ -36,6 +36,7 @@ mod model;
 mod policy;
 mod recovery;
 mod recovery_applier;
+mod recovery_journal;
 mod recovery_plan;
 mod recovery_snapshot;
 mod step_queue_journal;
@@ -98,6 +99,7 @@ pub use recovery_applier::{
     RecoveryActionApplication, RecoveryActionApplicationReason, RecoveryActionApplicationRequest,
     apply_recovery_action,
 };
+pub use recovery_journal::{RecoveryStartedJournalRecord, record_recovery_started};
 pub use recovery_plan::{RecoveryPlanAction, RunRecoveryPlan, RunRecoveryPlanSummary};
 pub use recovery_snapshot::RunRecoverySnapshot;
 pub use step_queue_journal::{
