@@ -16,6 +16,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
     match args.get(2).map(String::as_str) {
         Some("activity") => parse_activity(args).map(Some),
         Some("activity-queue") => parse_activity_queue(args).map(Some),
+        Some("activity-start") => super::activity_start::parse(args).map(Some),
         Some("apply-recovery-plan") => parse_apply_recovery_plan(args).map(Some),
         Some("decision") => parse_decision(args).map(Some),
         Some("heartbeat") => super::heartbeat::parse(args).map(Some),
@@ -31,7 +32,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `activity-queue`, `apply-recovery-plan`, `decision`, `heartbeat`, `history`, `hot-state`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
+            "missing `control` subcommand; expected `activity`, `activity-queue`, `activity-start`, `apply-recovery-plan`, `decision`, `heartbeat`, `history`, `hot-state`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
         )),
     }
 }

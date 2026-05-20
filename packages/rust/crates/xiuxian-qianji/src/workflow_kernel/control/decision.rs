@@ -1,3 +1,5 @@
+//! Records workflow-stage decision facts into the Qianji control ledger.
+
 use xiuxian_qianji_control::{
     ControlError, ControlEvent, ControlEventKind, ControlEventRecord, ControlLedger, ControlResult,
     CostObservation, EvidenceRef, GateResult, RecoveryAttempt, RunId, RunView, StepId,
@@ -48,6 +50,34 @@ pub struct WorkflowStageDecisionRecordingOutcome {
     pub run_view: RunView,
 }
 
+/// Request for recording stage-level workflow decision facts.
+pub struct WorkflowStageDecisionRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control events.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Control-plane step id for the workflow stage.
+    pub step_id: StepId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Decision facts to append.
+    pub decision: WorkflowStageDecisionRecord,
+}
+
+/// Request for recording a gate-driven workflow stage recovery decision.
+pub struct WorkflowStageRecoveryDecisionRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control events.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Control-plane step id for the workflow stage.
+    pub step_id: StepId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Recovery decision facts to append.
+    pub recovery: WorkflowStageRecoveryDecisionRecord,
+}
+
 /// Records managed workflow stage decision facts into an injected control ledger.
 ///
 /// Events are appended in deterministic evidence, gate-result, then cost order.
@@ -58,14 +88,15 @@ pub struct WorkflowStageDecisionRecordingOutcome {
 /// decision contains no facts, or when the ledger rejects an event append or
 /// replay.
 pub fn record_workflow_stage_decision(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    stage_id: &str,
-    occurred_at_ms: u64,
-    decision: WorkflowStageDecisionRecord,
+    request: WorkflowStageDecisionRecordingRequest<'_>,
 ) -> ControlResult<WorkflowStageDecisionRecordingOutcome> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
-    let step_id = StepId::new(stage_id.to_owned())?;
+    let WorkflowStageDecisionRecordingRequest {
+        ledger,
+        run_id,
+        step_id,
+        occurred_at_ms,
+        decision,
+    } = request;
     if decision.is_empty() {
         return Err(ControlError::InvalidEventSequence {
             message: "workflow stage decision contains no control facts".to_owned(),
@@ -114,14 +145,15 @@ pub fn record_workflow_stage_decision(
 /// decision contains no failed gate result, or when the ledger rejects an event
 /// append or replay.
 pub fn record_workflow_stage_recovery_decision(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    stage_id: &str,
-    occurred_at_ms: u64,
-    recovery: WorkflowStageRecoveryDecisionRecord,
+    request: WorkflowStageRecoveryDecisionRecordingRequest<'_>,
 ) -> ControlResult<WorkflowStageDecisionRecordingOutcome> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
-    let step_id = StepId::new(stage_id.to_owned())?;
+    let WorkflowStageRecoveryDecisionRecordingRequest {
+        ledger,
+        run_id,
+        step_id,
+        occurred_at_ms,
+        recovery,
+    } = request;
     if !recovery
         .decision
         .gate_results

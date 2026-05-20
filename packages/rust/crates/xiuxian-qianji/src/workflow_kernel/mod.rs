@@ -18,7 +18,8 @@ pub use checkpoint::{
 pub use control::{
     WorkflowControlEvidenceRequirements, WorkflowControlRecorder, WorkflowControlRecordingOutcome,
     WorkflowControlRecordingPolicy, WorkflowStageDecisionRecord,
-    WorkflowStageDecisionRecordingOutcome, WorkflowStageRecoveryDecisionRecord,
+    WorkflowStageDecisionRecordingOutcome, WorkflowStageDecisionRecordingRequest,
+    WorkflowStageRecoveryDecisionRecord, WorkflowStageRecoveryDecisionRecordingRequest,
     record_workflow_run_cost_observation, record_workflow_run_recovery_attempt,
     record_workflow_stage_cost_observation, record_workflow_stage_decision,
     record_workflow_stage_evidence, record_workflow_stage_gate_result,
@@ -28,6 +29,11 @@ pub use control::{
     workflow_trace_to_control_event_records,
     workflow_trace_to_control_event_records_with_required_evidence,
     workflow_trace_to_control_events, workflow_trace_to_control_events_with_required_evidence,
+};
+pub use control::{
+    WorkflowRunCostObservationRecordingRequest, WorkflowRunRecoveryAttemptRecordingRequest,
+    WorkflowStageCostObservationRecordingRequest, WorkflowStageEvidenceRecordingRequest,
+    WorkflowStageGateResultRecordingRequest, WorkflowStageRecoveryAttemptRecordingRequest,
 };
 pub use model::{
     WorkflowCheckpointId, WorkflowEdgeKind, WorkflowExecutionReport, WorkflowId,

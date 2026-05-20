@@ -6,10 +6,14 @@ mod recording;
 
 pub use decision::{
     WorkflowStageDecisionRecord, WorkflowStageDecisionRecordingOutcome,
-    WorkflowStageRecoveryDecisionRecord, record_workflow_stage_decision,
+    WorkflowStageDecisionRecordingRequest, WorkflowStageRecoveryDecisionRecord,
+    WorkflowStageRecoveryDecisionRecordingRequest, record_workflow_stage_decision,
     record_workflow_stage_recovery_decision,
 };
 pub use projection::{
+    WorkflowRunCostObservationRecordingRequest, WorkflowRunRecoveryAttemptRecordingRequest,
+    WorkflowStageCostObservationRecordingRequest, WorkflowStageEvidenceRecordingRequest,
+    WorkflowStageGateResultRecordingRequest, WorkflowStageRecoveryAttemptRecordingRequest,
     record_workflow_run_cost_observation, record_workflow_run_recovery_attempt,
     record_workflow_stage_cost_observation, record_workflow_stage_evidence,
     record_workflow_stage_gate_result, record_workflow_stage_recovery_attempt,

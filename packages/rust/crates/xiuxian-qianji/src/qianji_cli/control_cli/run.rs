@@ -22,6 +22,25 @@ pub(super) fn run_control_command_impl(
 ) -> io::Result<ControlCliOutput> {
     match command {
         ControlCliCommand::Activity { .. } => run_activity_from_command(command),
+        ControlCliCommand::ActivityStart {
+            ledger_path,
+            run_id,
+            step_id,
+            activity_id,
+            worker_id,
+            started_at_ms,
+            attempt,
+            json,
+        } => super::activity_start::run(super::activity_start::ActivityStartRunRequest {
+            ledger_path,
+            run_id,
+            step_id: step_id.as_deref(),
+            activity_id,
+            worker_id,
+            started_at_ms: *started_at_ms,
+            attempt: *attempt,
+            json: *json,
+        }),
         ControlCliCommand::ActivityQueue {
             ledger_path,
             run_id,

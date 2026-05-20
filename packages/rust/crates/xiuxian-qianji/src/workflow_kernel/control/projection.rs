@@ -1,7 +1,89 @@
+//! Projects targeted workflow control observations into the Qianji ledger.
+
 use xiuxian_qianji_control::{
     ControlEvent, ControlEventKind, ControlEventRecord, ControlLedger, ControlResult,
     CostObservation, EvidenceRef, GateResult, RecoveryAttempt, RunId, StepId,
 };
+
+/// Request for recording a run-level recovery attempt.
+pub struct WorkflowRunRecoveryAttemptRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control event.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Recovery attempt to append.
+    pub attempt: RecoveryAttempt,
+}
+
+/// Request for recording a run-level cost observation.
+pub struct WorkflowRunCostObservationRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control event.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Cost observation to append.
+    pub observation: CostObservation,
+}
+
+/// Request for recording a stage-level recovery attempt.
+pub struct WorkflowStageRecoveryAttemptRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control event.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Control-plane step id for the workflow stage.
+    pub step_id: StepId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Recovery attempt to append.
+    pub attempt: RecoveryAttempt,
+}
+
+/// Request for recording stage-level evidence.
+pub struct WorkflowStageEvidenceRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control event.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Control-plane step id for the workflow stage.
+    pub step_id: StepId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Evidence reference to append.
+    pub evidence: EvidenceRef,
+}
+
+/// Request for recording a stage-level cost observation.
+pub struct WorkflowStageCostObservationRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control event.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Control-plane step id for the workflow stage.
+    pub step_id: StepId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Cost observation to append.
+    pub observation: CostObservation,
+}
+
+/// Request for recording a stage-level gate result.
+pub struct WorkflowStageGateResultRecordingRequest<'ledger> {
+    /// Ledger that owns the appended control event.
+    pub ledger: &'ledger dyn ControlLedger,
+    /// Control-plane run id for the workflow.
+    pub run_id: RunId,
+    /// Control-plane step id for the workflow stage.
+    pub step_id: StepId,
+    /// Event timestamp in Unix milliseconds.
+    pub occurred_at_ms: u64,
+    /// Gate result to append.
+    pub result: GateResult,
+}
 
 /// Records a workflow run recovery attempt into an injected control ledger.
 ///
@@ -10,12 +92,14 @@ use xiuxian_qianji_control::{
 /// Returns a control error when the workflow id is blank, or when the ledger
 /// rejects the recovery event append.
 pub fn record_workflow_run_recovery_attempt(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    occurred_at_ms: u64,
-    attempt: RecoveryAttempt,
+    request: WorkflowRunRecoveryAttemptRecordingRequest<'_>,
 ) -> ControlResult<ControlEventRecord> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
+    let WorkflowRunRecoveryAttemptRecordingRequest {
+        ledger,
+        run_id,
+        occurred_at_ms,
+        attempt,
+    } = request;
     ledger.append_event(ControlEvent::run(
         run_id,
         occurred_at_ms,
@@ -30,12 +114,14 @@ pub fn record_workflow_run_recovery_attempt(
 /// Returns a control error when the workflow id is blank, or when the ledger
 /// rejects the cost event append.
 pub fn record_workflow_run_cost_observation(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    occurred_at_ms: u64,
-    observation: CostObservation,
+    request: WorkflowRunCostObservationRecordingRequest<'_>,
 ) -> ControlResult<ControlEventRecord> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
+    let WorkflowRunCostObservationRecordingRequest {
+        ledger,
+        run_id,
+        occurred_at_ms,
+        observation,
+    } = request;
     ledger.append_event(ControlEvent::run(
         run_id,
         occurred_at_ms,
@@ -50,14 +136,15 @@ pub fn record_workflow_run_cost_observation(
 /// Returns a control error when the workflow id or stage id is blank, or when
 /// the ledger rejects the recovery event append.
 pub fn record_workflow_stage_recovery_attempt(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    stage_id: &str,
-    occurred_at_ms: u64,
-    attempt: RecoveryAttempt,
+    request: WorkflowStageRecoveryAttemptRecordingRequest<'_>,
 ) -> ControlResult<ControlEventRecord> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
-    let step_id = StepId::new(stage_id.to_owned())?;
+    let WorkflowStageRecoveryAttemptRecordingRequest {
+        ledger,
+        run_id,
+        step_id,
+        occurred_at_ms,
+        attempt,
+    } = request;
     ledger.append_event(ControlEvent::step(
         run_id,
         step_id,
@@ -73,14 +160,15 @@ pub fn record_workflow_stage_recovery_attempt(
 /// Returns a control error when the workflow id or stage id is blank, or when
 /// the ledger rejects the evidence event append.
 pub fn record_workflow_stage_evidence(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    stage_id: &str,
-    occurred_at_ms: u64,
-    evidence: EvidenceRef,
+    request: WorkflowStageEvidenceRecordingRequest<'_>,
 ) -> ControlResult<ControlEventRecord> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
-    let step_id = StepId::new(stage_id.to_owned())?;
+    let WorkflowStageEvidenceRecordingRequest {
+        ledger,
+        run_id,
+        step_id,
+        occurred_at_ms,
+        evidence,
+    } = request;
     ledger.append_event(ControlEvent::step(
         run_id,
         step_id,
@@ -96,14 +184,15 @@ pub fn record_workflow_stage_evidence(
 /// Returns a control error when the workflow id or stage id is blank, or when
 /// the ledger rejects the cost event append.
 pub fn record_workflow_stage_cost_observation(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    stage_id: &str,
-    occurred_at_ms: u64,
-    observation: CostObservation,
+    request: WorkflowStageCostObservationRecordingRequest<'_>,
 ) -> ControlResult<ControlEventRecord> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
-    let step_id = StepId::new(stage_id.to_owned())?;
+    let WorkflowStageCostObservationRecordingRequest {
+        ledger,
+        run_id,
+        step_id,
+        occurred_at_ms,
+        observation,
+    } = request;
     ledger.append_event(ControlEvent::step(
         run_id,
         step_id,
@@ -119,14 +208,15 @@ pub fn record_workflow_stage_cost_observation(
 /// Returns a control error when the workflow id or stage id is blank, or when
 /// the ledger rejects the gate event append.
 pub fn record_workflow_stage_gate_result(
-    ledger: &dyn ControlLedger,
-    workflow_id: &str,
-    stage_id: &str,
-    occurred_at_ms: u64,
-    result: GateResult,
+    request: WorkflowStageGateResultRecordingRequest<'_>,
 ) -> ControlResult<ControlEventRecord> {
-    let run_id = RunId::new(workflow_id.to_owned())?;
-    let step_id = StepId::new(stage_id.to_owned())?;
+    let WorkflowStageGateResultRecordingRequest {
+        ledger,
+        run_id,
+        step_id,
+        occurred_at_ms,
+        result,
+    } = request;
     ledger.append_event(ControlEvent::step(
         run_id,
         step_id,

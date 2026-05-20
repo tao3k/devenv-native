@@ -15,6 +15,16 @@ pub(crate) enum ControlCliCommand {
         task_queue: Option<String>,
         json: bool,
     },
+    ActivityStart {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: Option<String>,
+        activity_id: String,
+        worker_id: String,
+        started_at_ms: u64,
+        attempt: u32,
+        json: bool,
+    },
     ApplyRecoveryPlan {
         ledger_path: PathBuf,
         valkey_url: String,

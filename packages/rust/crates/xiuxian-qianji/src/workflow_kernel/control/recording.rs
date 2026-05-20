@@ -1,3 +1,5 @@
+//! Projects complete workflow traces into replayable Qianji control events.
+
 use std::collections::BTreeMap;
 
 use serde_json::json;
@@ -465,19 +467,34 @@ where
     I: IntoIterator<Item = S>,
     S: Into<String>,
 {
-    let mut normalized = Vec::new();
-    for key in required_evidence {
-        let key = key.into().trim().to_owned();
-        if key.is_empty() {
-            return Err(ControlError::BlankId {
-                field: "required_evidence",
-            });
-        }
-        if !normalized.iter().any(|existing| existing == &key) {
-            normalized.push(key);
-        }
+    required_evidence
+        .into_iter()
+        .try_fold(Vec::new(), |normalized, key| {
+            Ok(append_unique_required_evidence_key(
+                normalized,
+                normalize_required_evidence_key(key)?,
+            ))
+        })
+}
+
+fn normalize_required_evidence_key<S>(key: S) -> ControlResult<String>
+where
+    S: Into<String>,
+{
+    let key = key.into().trim().to_owned();
+    if key.is_empty() {
+        return Err(ControlError::BlankId {
+            field: "required_evidence",
+        });
     }
-    Ok(normalized)
+    Ok(key)
+}
+
+fn append_unique_required_evidence_key(mut normalized: Vec<String>, key: String) -> Vec<String> {
+    if !normalized.iter().any(|existing| existing == &key) {
+        normalized.push(key);
+    }
+    normalized
 }
 
 fn validate_required_evidence_trace_coverage(
