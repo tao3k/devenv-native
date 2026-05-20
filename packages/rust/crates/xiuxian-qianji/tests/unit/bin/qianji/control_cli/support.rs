@@ -1,9 +1,9 @@
 use xiuxian_qianji_control::{
     ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, AgentDecision,
     AgentDecisionId, AgentDecisionOutcome, AgentProposalId, ControlEvent, ControlEventKind,
-    ControlLedger, DecisionReasonCode, DuckDbControlLedger, ErrorCode, GateName, GateResult,
-    IdempotencyKey, LeaseId, RunId, SignalName, StepId, StepLease, TaskQueue, TimerId, TimerRecord,
-    WorkerId,
+    ControlLedger, CostObservation, DecisionReasonCode, DuckDbControlLedger, ErrorCode, GateName,
+    GateResult, IdempotencyKey, LeaseId, RunId, SignalName, StepId, StepLease, TaskQueue, TimerId,
+    TimerRecord, WorkerId,
 };
 
 pub(super) fn to_args(values: &[&str]) -> Vec<String> {
@@ -435,6 +435,52 @@ pub(super) fn append_control_run_with_step_timer(ledger_path: &std::path::Path) 
     run_id
 }
 
+pub(super) fn append_control_run_with_run_and_step_timers(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_run_timer(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let timer_id = must_ok(
+        TimerId::new("timer-step-approval-timeout"),
+        "should build step timer id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id.clone(),
+            11_000,
+            ControlEventKind::StepCreated {
+                title: "Wait for approval".to_string(),
+                required_evidence: vec!["approval_signal".to_string()],
+                budget: None,
+            },
+        )),
+        "should append step-created event",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            12_000,
+            ControlEventKind::TimerScheduled {
+                timer: TimerRecord {
+                    timer_id,
+                    fire_at_ms: 20_000,
+                    metadata: serde_json::Value::Null,
+                },
+            },
+        )),
+        "should append step timer schedule",
+    );
+    run_id
+}
+
 pub(super) fn append_control_run_with_step_signal_and_timer(
     ledger_path: &std::path::Path,
 ) -> RunId {
@@ -468,6 +514,189 @@ pub(super) fn append_control_run_with_step_signal_and_timer(
         "should append step signal",
     );
     run_id
+}
+
+pub(super) fn append_control_run_with_run_and_step_signals(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            11_000,
+            ControlEventKind::SignalReceived {
+                signal: xiuxian_qianji_control::SignalRecord {
+                    signal_name: must_ok(
+                        SignalName::new("run.refresh"),
+                        "should build run signal name",
+                    ),
+                    payload_ref: None,
+                    payload_hash: None,
+                    metadata: serde_json::json!({"reason": "manual"}),
+                },
+            },
+        )),
+        "should append run signal",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            12_000,
+            ControlEventKind::SignalReceived {
+                signal: xiuxian_qianji_control::SignalRecord {
+                    signal_name: must_ok(
+                        SignalName::new("human.approval"),
+                        "should build step signal name",
+                    ),
+                    payload_ref: None,
+                    payload_hash: None,
+                    metadata: serde_json::json!({"approved": true}),
+                },
+            },
+        )),
+        "should append step signal",
+    );
+    run_id
+}
+
+pub(super) fn append_control_run_with_run_and_step_costs(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            11_000,
+            ControlEventKind::CostObserved {
+                observation: cost_observation("llm.openai", Some("gpt-test"), 10, 20, 100, 1_000),
+            },
+        )),
+        "should append run cost",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            12_000,
+            ControlEventKind::CostObserved {
+                observation: cost_observation("tool.github", None, 5, 7, 30, 250),
+            },
+        )),
+        "should append step cost",
+    );
+    run_id
+}
+
+pub(super) fn append_control_run_with_operator_summary_facts(
+    ledger_path: &std::path::Path,
+) -> RunId {
+    let run_id = append_control_run_with_active_step_lease(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let activity_id = must_ok(
+        ActivityId::new("activity-summary-scheduled"),
+        "should build summary activity id",
+    );
+    let timer_id = must_ok(
+        TimerId::new("timer-summary-expired"),
+        "should build summary timer id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            11_000,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(activity_id, "llm.plan", "llm.openai"),
+            },
+        )),
+        "should append summary activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id.clone(),
+            12_000,
+            ControlEventKind::TimerScheduled {
+                timer: TimerRecord {
+                    timer_id,
+                    fire_at_ms: 13_000,
+                    metadata: serde_json::Value::Null,
+                },
+            },
+        )),
+        "should append summary timer",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            12_500,
+            ControlEventKind::SignalReceived {
+                signal: xiuxian_qianji_control::SignalRecord {
+                    signal_name: must_ok(
+                        SignalName::new("human.approval"),
+                        "should build summary signal name",
+                    ),
+                    payload_ref: None,
+                    payload_hash: None,
+                    metadata: serde_json::json!({"approved": true}),
+                },
+            },
+        )),
+        "should append summary signal",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            12_750,
+            ControlEventKind::CostObserved {
+                observation: cost_observation("llm.openai", Some("gpt-test"), 10, 20, 100, 1_250),
+            },
+        )),
+        "should append summary cost",
+    );
+    run_id
+}
+
+fn cost_observation(
+    provider: &str,
+    model: Option<&str>,
+    prompt_tokens: u64,
+    completion_tokens: u64,
+    cost_usd_micros: u64,
+    latency_ms: u64,
+) -> CostObservation {
+    CostObservation {
+        provider: provider.to_owned(),
+        model: model.map(str::to_owned),
+        prompt_tokens,
+        completion_tokens,
+        total_tokens: None,
+        cost_usd_micros,
+        latency_ms: Some(latency_ms),
+    }
 }
 
 pub(super) fn activity_task(

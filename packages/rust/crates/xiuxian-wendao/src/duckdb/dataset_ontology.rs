@@ -201,6 +201,58 @@ impl DatasetOntologyRuntimeMaterializationReport {
     }
 }
 
+/// Compact promotion evidence summary for `WendaoGraph` ontology proof rows.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatasetOntologyWendaoGraphProofEvidence {
+    /// Total proof rows returned by `WendaoGraph`.
+    pub row_count: usize,
+    /// Number of proof rows with status `pass`.
+    pub pass_count: usize,
+    /// Number of proof rows with status other than `pass`.
+    pub failure_count: usize,
+    /// Number of rows marked as warning severity.
+    pub warning_count: usize,
+    /// Required proof checks that were present in the response.
+    pub required_checks_present: Vec<String>,
+    /// Required proof checks missing from the response.
+    pub missing_required_checks: Vec<String>,
+    /// Whether proof evidence is complete enough to feed a promotion gate.
+    pub promotion_candidate: bool,
+}
+
+impl DatasetOntologyWendaoGraphProofEvidence {
+    /// Whether `WendaoGraph` proof rows satisfy the promotion evidence gate.
+    #[must_use]
+    pub fn passed(&self) -> bool {
+        self.promotion_candidate
+    }
+}
+
+/// Flight application metadata envelope for dataset ontology materialization.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatasetOntologyRuntimeAppMetadata {
+    /// Metadata schema identifier.
+    pub schema_version: String,
+    /// Runtime materialization report.
+    pub materialization: DatasetOntologyRuntimeMaterializationReport,
+    /// Optional `WendaoGraph` proof evidence summary.
+    pub wendaograph_proof: Option<DatasetOntologyWendaoGraphProofEvidence>,
+}
+
+impl DatasetOntologyRuntimeAppMetadata {
+    /// Whether the materialization and optional proof evidence passed.
+    #[must_use]
+    pub fn passed(&self) -> bool {
+        self.materialization.passed()
+            && self
+                .wendaograph_proof
+                .as_ref()
+                .is_none_or(DatasetOntologyWendaoGraphProofEvidence::passed)
+    }
+}
+
 /// Materialized read-model table emitted by the runtime materializer.
 pub struct DatasetOntologyRuntimeReadModelTable {
     table_name: String,
@@ -306,6 +358,116 @@ pub fn build_dataset_ontology_wendaograph_extension_proof_request_batches(
         parent_link_types,
         read_model,
     ))
+}
+
+/// Summarize `WendaoGraph` ontology extension proof rows for Rust-owned
+/// promotion/report evidence.
+///
+/// # Errors
+///
+/// Returns an error when the proof response does not expose UTF-8 `check_id`,
+/// `status`, or `severity` columns.
+#[cfg(feature = "julia")]
+pub fn summarize_dataset_ontology_wendaograph_extension_proof_response(
+    response: &RecordBatch,
+) -> Result<DatasetOntologyWendaoGraphProofEvidence, String> {
+    summarize_dataset_ontology_wendaograph_response(
+        response,
+        &[
+            "extension_read_model_relation_type_consistent",
+            "extension_new_link_evidence_anchored",
+        ],
+    )
+}
+
+/// Summarize `WendaoGraph` read-model quality rows for Rust-owned
+/// promotion/report evidence.
+///
+/// # Errors
+///
+/// Returns an error when the quality response does not expose UTF-8
+/// `check_id`, `status`, or `severity` columns.
+#[cfg(feature = "julia")]
+pub fn summarize_dataset_ontology_wendaograph_quality_response(
+    response: &RecordBatch,
+) -> Result<DatasetOntologyWendaoGraphProofEvidence, String> {
+    summarize_dataset_ontology_wendaograph_response(
+        response,
+        &[
+            "semantic_objects_present",
+            "semantic_relation_source_known",
+            "semantic_relation_target_known",
+            "semantic_projection_state_present",
+        ],
+    )
+}
+
+#[cfg(feature = "julia")]
+fn summarize_dataset_ontology_wendaograph_response(
+    response: &RecordBatch,
+    required_checks: &[&str],
+) -> Result<DatasetOntologyWendaoGraphProofEvidence, String> {
+    let check_ids = string_column(response, "check_id", "ontology proof rows")?;
+    let statuses = string_column(response, "status", "ontology proof rows")?;
+    let severities = string_column(response, "severity", "ontology proof rows")?;
+    let mut seen_checks = BTreeSet::new();
+    let mut pass_count = 0;
+    let mut failure_count = 0;
+    let mut warning_count = 0;
+
+    for row_index in 0..response.num_rows() {
+        seen_checks.insert(check_ids.value(row_index).to_owned());
+        if statuses.value(row_index) == "pass" {
+            pass_count += 1;
+        } else {
+            failure_count += 1;
+        }
+        if severities.value(row_index) == "warning" {
+            warning_count += 1;
+        }
+    }
+
+    let mut required_checks_present = Vec::new();
+    let mut missing_required_checks = Vec::new();
+    for check_id in required_checks {
+        if seen_checks.contains(*check_id) {
+            required_checks_present.push((*check_id).to_string());
+        } else {
+            missing_required_checks.push((*check_id).to_string());
+        }
+    }
+
+    Ok(DatasetOntologyWendaoGraphProofEvidence {
+        row_count: response.num_rows(),
+        pass_count,
+        failure_count,
+        warning_count,
+        promotion_candidate: failure_count == 0 && missing_required_checks.is_empty(),
+        required_checks_present,
+        missing_required_checks,
+    })
+}
+
+/// Build stable JSON `FlightInfo.app_metadata` for dataset ontology
+/// materialization and optional `WendaoGraph` proof evidence.
+///
+/// # Errors
+///
+/// Returns an error when the metadata envelope cannot be serialized as JSON.
+pub fn encode_dataset_ontology_materialization_app_metadata(
+    report: &DatasetOntologyRuntimeMaterializationReport,
+    wendaograph_proof: Option<&DatasetOntologyWendaoGraphProofEvidence>,
+) -> Result<Vec<u8>, String> {
+    let metadata = DatasetOntologyRuntimeAppMetadata {
+        schema_version: "xiuxian_wendao.dataset_ontology_materialization_app_metadata.v1"
+            .to_string(),
+        materialization: report.clone(),
+        wendaograph_proof: wendaograph_proof.cloned(),
+    };
+
+    serde_json::to_vec(&metadata).map_err(|error| {
+        format!("serialize dataset ontology materialization app metadata: {error}")
+    })
 }
 
 /// DuckDB-backed dataset-to-ontology materializer owned by `xiuxian-wendao`.

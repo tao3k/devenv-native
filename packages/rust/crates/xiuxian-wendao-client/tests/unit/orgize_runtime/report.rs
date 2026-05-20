@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use crate::orgize_runtime::support::tempdir_or_panic;
+use crate::orgize_runtime::support::{assert_cli_success, run_orgize, tempdir_or_panic};
 
 #[cfg(feature = "orgize-agent-read-model")]
 #[test]
@@ -74,4 +74,81 @@ fn standalone_orgize_task_report_summarizes_archive_and_repeating_rows() {
         stdout.contains("repeat: scheduled ++1d (catchUp)"),
         "stdout: {stdout}"
     );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_report_named_views_limit_summary_scope() {
+    let temp = tempdir_or_panic();
+    write_task_report_named_views_fixture(temp.path());
+
+    assert_task_report_view(
+        temp.path(),
+        "archive-candidate",
+        &[
+            "view: archive-candidate",
+            "rows: 2",
+            "archive-candidates: 2",
+            "Achievements: 1",
+        ],
+        &["Performance cadence"],
+    );
+    assert_task_report_view(
+        temp.path(),
+        "closure-needed",
+        &[
+            "view: closure-needed",
+            "rows: 1",
+            "closure-needed: 1",
+            "Completed but not closed",
+        ],
+        &[],
+    );
+    assert_task_report_view(
+        temp.path(),
+        "repeating",
+        &[
+            "view: repeating",
+            "rows: 1",
+            "repeating: 1",
+            "Performance cadence",
+        ],
+        &[],
+    );
+}
+
+fn write_task_report_named_views_fixture(root: &std::path::Path) {
+    std::fs::write(
+        root.join("agenda.org"),
+        concat!(
+            "* TODO Performance cadence :agent:performance:\n",
+            "SCHEDULED: <2026-05-18 Mon ++1d>\n",
+            "* TODO Completed but not closed [3/3] [100%] :agent:\n",
+            "- [X] Scope\n",
+            "- [X] Implementation\n",
+            "- [X] Validation\n",
+            "* DONE Completed slice :agent:achievement:\n",
+            "CLOSED: [2026-05-17 Sun]\n",
+            "* DONE Archive candidate :agent:\n",
+            "CLOSED: [2026-05-17 Sun]\n",
+            "* DONE Archived slice :agent:achievement:ARCHIVE:\n",
+            "CLOSED: [2026-05-16 Sat]\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write agenda: {error}"));
+}
+
+fn assert_task_report_view(root: &std::path::Path, view: &str, expected: &[&str], absent: &[&str]) {
+    let output = run_orgize(
+        root,
+        &["task-report", "--view", view, "agenda.org"],
+        &format!("task-report {view} view"),
+    );
+    assert_cli_success(&output);
+    for needle in expected {
+        assert!(output.stdout.contains(needle), "stdout: {}", output.stdout);
+    }
+    for needle in absent {
+        assert!(!output.stdout.contains(needle), "stdout: {}", output.stdout);
+    }
 }

@@ -197,7 +197,11 @@ fact without mutating hot queues or leases. `qianji control view --ledger
 <path> --run-id <id> [--json]` renders the deterministic replayed run state. `qianji
 control query --ledger <path> --run-id <id> --state --now-ms <ms> [--json]`
 returns a compact read-only state package with event count, replayed run view,
-and recovery snapshot. `qianji
+and recovery snapshot. `qianji control summary --ledger <path> --run-id <id>
+--now-ms <ms> [--json]` renders a compact operator summary across event count,
+run status, steps, active leases, activity lifecycle counts, timer counts,
+signal counts, cost totals, and recovery counters without executing recovery
+or mutating hot state. `qianji
 control step --ledger <path> --run-id <id> --step-id <id> [--json]` renders
 one replayed step view for step-local evidence, gate, Agent, activity, timer,
 and signal inspection. `qianji control lease --ledger <path> --run-id <id>
@@ -213,6 +217,10 @@ view for lifecycle, task, attempt, worker, result, and failure inspection.
 tasks from durable replay, optionally filtered by task queue, without claiming
 work or mutating hot scheduler state. The same projection includes lifecycle
 summary counts for scheduled, in-flight, completed, and failed activities.
+`qianji control costs --ledger <path> --run-id <id> [--json]` renders durable
+run and step cost observations with event sequence, observed timestamp, token
+counts, latency, and USD micros totals, without appending observations or
+mutating hot state.
 `qianji control activity-start --ledger <path> --run-id <id> --activity-id
 <id> --worker-id <id> --started-at-ms <ms> --attempt <n> [--step-id <id>]
 [--json]` records an idempotent durable `ActivityStarted` fact through the
@@ -231,11 +239,17 @@ started state.
 outcome, reason, scheduled activity, checkpoint, and gate inspection.
 `qianji control timer --ledger <path> --run-id <id> --timer-id <id>
 [--step-id <id>] [--json]` renders one replayed durable timer for scheduled
-fire time, fired time, and status inspection.
+fire time, fired time, and status inspection. `qianji control timers --ledger
+<path> --run-id <id> [--json]` renders the replayed run and step timer
+inventory with pending, scheduled, and fired counts, without firing timers,
+enqueueing work, or mutating hot scheduler state.
 `qianji control signal --ledger <path> --run-id <id> --signal-name <name>
 --payload <json> --received-at-ms <ms> [--step-id <id>] [--json]` appends one
 durable external signal event. The payload JSON is stored in signal metadata so
-the existing control event schema remains unchanged.
+the existing control event schema remains unchanged. `qianji control signals
+--ledger <path> --run-id <id> [--json]` renders the replayed run and step
+signal inventory with event sequence, received timestamp, and scope counts,
+without appending signals or mutating hot state.
 `qianji control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms>
 [--json]` reads the same `xiuxian-qianji-control` DuckDB event ledger and
 returns the replay-derived recovery view, ordered recovery plan, and compact

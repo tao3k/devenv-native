@@ -7,6 +7,8 @@ use arrow::array::{
     Array, ArrayRef, BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array,
     LargeStringArray, StringArray, UInt32Array, UInt64Array,
 };
+#[cfg(feature = "julia")]
+use arrow::compute::concat_batches;
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use async_trait::async_trait;
@@ -15,7 +17,19 @@ use xiuxian_wendao::duckdb::{
     DatasetOntologyArrowIpcSourceTableSpec, DatasetOntologyDuckDbMaterializer,
     DatasetOntologyRuntimeMaterialization, DatasetOntologyRuntimeMaterializationReport,
     DatasetOntologyRuntimeMaterializationRequest, DatasetOntologyRuntimeReadModelTable,
-    DuckDbDatabasePath, SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,
+    DatasetOntologyWendaoGraphProofEvidence, DuckDbDatabasePath, SearchDuckDbExecutionConfig,
+    SearchDuckDbRuntimeConfig, encode_dataset_ontology_materialization_app_metadata,
+};
+#[cfg(feature = "julia")]
+use xiuxian_wendao::duckdb::{
+    build_dataset_ontology_wendaograph_quality_request_batches,
+    summarize_dataset_ontology_wendaograph_quality_response,
+};
+#[cfg(feature = "julia")]
+use xiuxian_wendao_julia::integration_support::{
+    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
+    build_wendaograph_ontology_read_model_quality_flight_binding,
+    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
 };
 use xiuxian_wendao_runtime::config::{
     DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
@@ -31,11 +45,19 @@ use xiuxian_wendao_sql::dataset_ontology::{
 };
 
 use crate::studio::GatewayState;
+#[cfg(feature = "julia")]
+use crate::studio::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 
 const HEALTHCARE_CONTRACT_ID: &str = "healthcare.synthetic_care_delivery.contract.v1";
 const HEALTHCARE_MAPPING_ID: &str = "healthcare.synthetic_care_delivery.v1";
 const DATASET_ONTOLOGY_PAYLOAD_CACHE_RELATIVE_DIR: &[&str] =
     &[".cache", "ontology", "dataset-payloads"];
+#[cfg(feature = "julia")]
+const WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_BASE_URL_ENV: &str =
+    "WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_BASE_URL";
+#[cfg(feature = "julia")]
+const WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_TIMEOUT_SECONDS_ENV: &str =
+    "WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_TIMEOUT_SECONDS";
 
 /// Studio-owned dataset ontology materialization provider for the Gateway
 /// Flight service.
@@ -102,9 +124,13 @@ impl DatasetOntologyMaterializeFlightRouteProvider
             ));
         }
         let batches = materialization_result_batches(&materialization)?;
-        let app_metadata = serde_json::to_vec(&materialization.report).map_err(|error| {
-            format!("failed to encode dataset ontology report metadata: {error}")
-        })?;
+        let wendaograph_proof = dataset_ontology_wendaograph_proof_evidence(
+            self.state.studio.config_root.as_path(),
+            &materialization,
+        )
+        .await?;
+        let app_metadata =
+            dataset_ontology_app_metadata(&materialization.report, wendaograph_proof.as_ref())?;
         Ok(
             DatasetOntologyMaterializeFlightRouteResponse::from_batches(batches)
                 .with_app_metadata(app_metadata),
@@ -340,6 +366,94 @@ fn row_count_for_table(
         .iter()
         .find(|count| count.table_name == table_name)
         .map(|count| count.row_count as u64)
+}
+
+fn dataset_ontology_app_metadata(
+    report: &DatasetOntologyRuntimeMaterializationReport,
+    wendaograph_proof: Option<&DatasetOntologyWendaoGraphProofEvidence>,
+) -> Result<Vec<u8>, String> {
+    encode_dataset_ontology_materialization_app_metadata(report, wendaograph_proof)
+}
+
+#[cfg(feature = "julia")]
+async fn dataset_ontology_wendaograph_proof_evidence(
+    config_root: &Path,
+    materialization: &DatasetOntologyRuntimeMaterialization,
+) -> Result<Option<DatasetOntologyWendaoGraphProofEvidence>, String> {
+    let config =
+        load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml(config_root);
+    let base_url = config
+        .as_ref()
+        .map(|entry| entry.base_url.clone())
+        .or_else(|| optional_env(WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_BASE_URL_ENV));
+    let Some(base_url) = base_url else {
+        return Ok(None);
+    };
+    let binding = build_wendaograph_ontology_read_model_quality_flight_binding(
+        WendaoGraphOntologyReadModelQualityFlightBindingOptions {
+            base_url,
+            health_route: None,
+            timeout_secs: config.as_ref().and_then(|entry| entry.timeout_seconds).or(
+                optional_u64_env(WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_TIMEOUT_SECONDS_ENV)?,
+            ),
+            max_in_flight_requests: config
+                .as_ref()
+                .and_then(|entry| entry.max_in_flight_requests)
+                .or(Some(1)),
+        },
+    )?;
+    let batches = build_dataset_ontology_wendaograph_quality_request_batches(materialization)?;
+    let Some(roundtrip) =
+        roundtrip_wendaograph_ontology_read_model_quality_with_binding(&binding, &batches)
+            .await
+            .map_err(|error| {
+                format!("dataset ontology WendaoGraph quality proof roundtrip failed: {error:?}")
+            })?
+    else {
+        return Ok(None);
+    };
+    let response = proof_response_batch(&roundtrip.response_batches)?;
+    summarize_dataset_ontology_wendaograph_quality_response(&response).map(Some)
+}
+
+#[cfg(not(feature = "julia"))]
+async fn dataset_ontology_wendaograph_proof_evidence(
+    _project_root: &Path,
+    _materialization: &DatasetOntologyRuntimeMaterialization,
+) -> Result<Option<DatasetOntologyWendaoGraphProofEvidence>, String> {
+    Ok(None)
+}
+
+#[cfg(feature = "julia")]
+fn optional_env(name: &str) -> Option<String> {
+    std::env::var(name)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+#[cfg(feature = "julia")]
+fn optional_u64_env(name: &str) -> Result<Option<u64>, String> {
+    optional_env(name)
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .map_err(|error| format!("invalid `{name}` value `{value}`: {error}"))
+        })
+        .transpose()
+}
+
+#[cfg(feature = "julia")]
+fn proof_response_batch(batches: &[RecordBatch]) -> Result<RecordBatch, String> {
+    let Some(first) = batches.first() else {
+        return Err("dataset ontology WendaoGraph proof response returned no batches".to_string());
+    };
+    if batches.len() == 1 {
+        return Ok(first.clone());
+    }
+    concat_batches(&first.schema(), batches).map_err(|error| {
+        format!("dataset ontology WendaoGraph proof response batches did not concatenate: {error}")
+    })
 }
 
 fn materialization_result_batches(

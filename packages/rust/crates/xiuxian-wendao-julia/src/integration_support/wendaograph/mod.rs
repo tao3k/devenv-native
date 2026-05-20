@@ -85,6 +85,7 @@ pub(crate) use ontology_read_model::{
     build_wendaograph_ontology_read_model_quality_flight_descriptor,
     build_wendaograph_ontology_read_model_quality_flight_request_batch,
     build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope,
+    roundtrip_wendaograph_ontology_extension_proof_with_binding,
     roundtrip_wendaograph_ontology_read_model_quality_with_binding,
     wendaograph_ontology_read_model_quality_provider_selector,
 };

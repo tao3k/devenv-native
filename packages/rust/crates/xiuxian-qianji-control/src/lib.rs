@@ -24,6 +24,7 @@ mod admission;
 mod agent;
 mod agent_journal;
 mod approval;
+mod cost_inventory;
 #[cfg(feature = "duckdb")]
 mod duckdb_ledger;
 mod error;
@@ -34,6 +35,7 @@ mod identity;
 mod lease_journal;
 mod memory;
 mod model;
+mod operator_summary;
 mod policy;
 mod recovery;
 mod recovery_applier;
@@ -41,7 +43,9 @@ mod recovery_journal;
 mod recovery_loop;
 mod recovery_plan;
 mod recovery_snapshot;
+mod signal_inventory;
 mod step_queue_journal;
+mod timer_inventory;
 mod timer_journal;
 mod tool;
 mod traits;
@@ -49,77 +53,83 @@ mod traits;
 mod valkey_hot_state;
 mod view;
 
-pub use activity_journal::{
-    ActivityCompletedJournalRecord, ActivityFailedJournalRecord, ActivityJournalScope,
-    ActivityJournalWriteOutcome, ActivityJournalWriteStatus, ActivityStartedJournalRecord,
-    record_activity_completed, record_activity_completed_idempotent, record_activity_failed,
-    record_activity_failed_idempotent, record_activity_started, record_activity_started_idempotent,
-};
-pub use activity_journal::{
-    AdmittedActivityScheduleRecord, record_admitted_activity_schedule,
-    record_admitted_activity_schedule_idempotent,
-};
-pub use activity_queue::{ActivityQueueItem, ActivityQueueProjection};
-pub use admission::ToolActivityAdmission;
-pub use agent::{AgentDecision, AgentDecisionOutcome, AgentProposal};
-pub use agent_journal::{
-    AgentDecisionJournalRecord, AgentJournalScope, AgentProposalJournalRecord,
-    record_agent_decision, record_agent_proposal,
-};
-pub use approval::{
-    HumanApprovalDecision, HumanApprovalDecisionStatus, HumanApprovalRequest,
-    HumanApprovalResolution,
-};
 #[cfg(feature = "duckdb")]
 pub use duckdb_ledger::DuckDbControlLedger;
-pub use error::{ControlError, ControlResult};
-pub use event::{ControlEvent, ControlEventKind, ControlEventRecord, RecoveryAttempt};
-pub use gate::RequiredEvidenceGate;
-pub use heartbeat_journal::{
-    WorkerHeartbeatJournalRecord, record_worker_heartbeat, record_worker_heartbeat_with_hot_state,
-};
-pub use identity::{
-    ActivityId, ActivityType, AgentDecisionId, AgentProposalId, ApprovalRequestId, ApproverId,
-    ArtifactId, ArtifactKind, DecisionReasonCode, ErrorCode, EvidenceId, GateName, IdempotencyKey,
-    LeaseId, LlmModelId, PermissionScope, RunId, SignalName, StepId, TaskQueue, TimerId, TokenId,
-    ToolName, VersionKey, WorkerId,
-};
-pub use lease_journal::{StepLeaseReleaseJournalRecord, record_step_lease_released};
-pub use memory::{InMemoryControlLedger, InMemoryHotStateStore};
-pub use model::{
-    ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,
-    ActivityRetryStopReason, ActivityTask, ArtifactRef, Budget, CostObservation, EvidenceRef,
-    GateResult, HotStateLeasedStep, HotStateSnapshot, LlmActivityRequest, LlmActivityTask,
-    RecoveryPolicy, RunStatus, RunnableStep, SignalRecord, StepLease, StepStatus, TimerRecord,
-    VersionPin, WaitReason, WorkerHeartbeat, WorkerRef,
-};
-pub use policy::{AgentPolicyReason, ToolPolicyReduction, ToolPolicyReductionRequest};
-pub use recovery::{
-    ActivityRecoveryItem, AgentDecisionRecoveryItem, FailedActivityRecoveryItem, LeaseRecoveryItem,
-    RecoveryItemScope, RunRecoveryView, StepRecoveryItem, TimerRecoveryItem,
-};
-pub use recovery_applier::{
-    RecoveryActionApplication, RecoveryActionApplicationReason, RecoveryActionApplicationRequest,
-    apply_recovery_action,
-};
-pub use recovery_journal::{RecoveryStartedJournalRecord, record_recovery_started};
-pub use recovery_loop::{
-    RecoveryLoopActionApplication, RecoveryLoopApplication, RecoveryLoopApplicationRequest,
-    apply_recovery_plan,
-};
-pub use recovery_plan::{RecoveryPlanAction, RunRecoveryPlan, RunRecoveryPlanSummary};
-pub use recovery_snapshot::RunRecoverySnapshot;
-pub use step_queue_journal::{
-    StepQueueJournalRecord, record_step_queued, record_step_queued_with_hot_state,
-};
-pub use timer_journal::{TimerFireJournalRecord, record_timer_fired};
-pub use tool::{
-    ToolActivityContract, ToolAuthorizationDecision, ToolPermissionDecision, ToolPermissionMode,
-    ToolRiskLevel,
-};
-pub use traits::{ControlLedger, EvidenceGate, HotStateStore};
 #[cfg(feature = "valkey")]
 pub use valkey_hot_state::{ValkeyHotStateConfig, ValkeyHotStateStore, ValkeyKeyNamespace};
-pub use view::{
-    ActivityStatus, ActivityView, RunView, StepView, TimerStatus, TimerView, replay_run_view,
+pub use {
+    activity_journal::{
+        ActivityCompletedJournalRecord, ActivityFailedJournalRecord, ActivityJournalScope,
+        ActivityJournalWriteOutcome, ActivityJournalWriteStatus, ActivityStartedJournalRecord,
+        AdmittedActivityScheduleRecord, record_activity_completed,
+        record_activity_completed_idempotent, record_activity_failed,
+        record_activity_failed_idempotent, record_activity_started,
+        record_activity_started_idempotent, record_admitted_activity_schedule,
+        record_admitted_activity_schedule_idempotent,
+    },
+    activity_queue::{ActivityQueueItem, ActivityQueueProjection, ActivityQueueSummary},
+    admission::ToolActivityAdmission,
+    agent::{AgentDecision, AgentDecisionOutcome, AgentProposal},
+    agent_journal::{
+        AgentDecisionJournalRecord, AgentJournalScope, AgentProposalJournalRecord,
+        record_agent_decision, record_agent_proposal,
+    },
+    approval::{
+        HumanApprovalDecision, HumanApprovalDecisionStatus, HumanApprovalRequest,
+        HumanApprovalResolution,
+    },
+    cost_inventory::{CostInventoryItem, CostInventoryProjection, CostInventorySummary},
+    error::{ControlError, ControlResult},
+    event::{ControlEvent, ControlEventKind, ControlEventRecord, RecoveryAttempt},
+    gate::RequiredEvidenceGate,
+    heartbeat_journal::{
+        WorkerHeartbeatJournalRecord, record_worker_heartbeat,
+        record_worker_heartbeat_with_hot_state,
+    },
+    identity::{
+        ActivityId, ActivityType, AgentDecisionId, AgentProposalId, ApprovalRequestId, ApproverId,
+        ArtifactId, ArtifactKind, DecisionReasonCode, ErrorCode, EvidenceId, GateName,
+        IdempotencyKey, LeaseId, LlmModelId, PermissionScope, RunId, SignalName, StepId, TaskQueue,
+        TimerId, TokenId, ToolName, VersionKey, WorkerId,
+    },
+    lease_journal::{StepLeaseReleaseJournalRecord, record_step_lease_released},
+    memory::{InMemoryControlLedger, InMemoryHotStateStore},
+    model::{
+        ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,
+        ActivityRetryStopReason, ActivityTask, ArtifactRef, Budget, CostObservation, EvidenceRef,
+        GateResult, HotStateLeasedStep, HotStateSnapshot, LlmActivityRequest, LlmActivityTask,
+        RecoveryPolicy, RunStatus, RunnableStep, SignalRecord, StepLease, StepStatus, TimerRecord,
+        VersionPin, WaitReason, WorkerHeartbeat, WorkerRef,
+    },
+    operator_summary::RunOperatorSummary,
+    policy::{AgentPolicyReason, ToolPolicyReduction, ToolPolicyReductionRequest},
+    recovery::{
+        ActivityRecoveryItem, AgentDecisionRecoveryItem, FailedActivityRecoveryItem,
+        LeaseRecoveryItem, RecoveryItemScope, RunRecoveryView, StepRecoveryItem, TimerRecoveryItem,
+    },
+    recovery_applier::{
+        RecoveryActionApplication, RecoveryActionApplicationReason,
+        RecoveryActionApplicationRequest, apply_recovery_action,
+    },
+    recovery_journal::{RecoveryStartedJournalRecord, record_recovery_started},
+    recovery_loop::{
+        RecoveryLoopActionApplication, RecoveryLoopApplication, RecoveryLoopApplicationRequest,
+        apply_recovery_plan,
+    },
+    recovery_plan::{RecoveryPlanAction, RunRecoveryPlan, RunRecoveryPlanSummary},
+    recovery_snapshot::RunRecoverySnapshot,
+    signal_inventory::{SignalInventoryItem, SignalInventoryProjection, SignalInventorySummary},
+    step_queue_journal::{
+        StepQueueJournalRecord, record_step_queued, record_step_queued_with_hot_state,
+    },
+    timer_inventory::{TimerInventoryItem, TimerInventoryProjection, TimerInventorySummary},
+    timer_journal::{TimerFireJournalRecord, record_timer_fired},
+    tool::{
+        ToolActivityContract, ToolAuthorizationDecision, ToolPermissionDecision,
+        ToolPermissionMode, ToolRiskLevel,
+    },
+    traits::{ControlLedger, EvidenceGate, HotStateStore},
+    view::{
+        ActivityStatus, ActivityView, RunView, StepView, TimerStatus, TimerView, replay_run_view,
+    },
 };

@@ -260,7 +260,12 @@ Protocol**:
 At the start of a resumed Codex turn, recover active work from Org before
 depending on chat history:
 
-`wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org`.
+
+Use an authoritative refresh after editing Org files, after a failed cached
+lookup, or when the cache may be stale:
+
+`wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org`.
 
 For SDD-oriented recovery, use:
 
@@ -272,7 +277,7 @@ For calendar-oriented recovery, use:
 
 For one lane or package, use:
 
-`wendao-client orgize sparse-tree --text '<lane-or-package>' --exclude-done $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
 
 When a slice is completed, record evidence in the Org heading, update the
 paired SDD and ExecPlan outcome when present, and keep active queries
@@ -281,7 +286,11 @@ clean by relying on `--exclude-done` or moving the task to
 should remain queryable should carry an `achievement` tag and can be reviewed
 with:
 
-`wendao-client orgize sparse-tree --match '+agent+achievement' --include-archived --include-done $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org`.
+
+Use sparse-tree only when the full source subtree context is needed:
+
+`wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
 
 ## Orgize Validation
 
@@ -298,5 +307,7 @@ For SDD status recovery, use:
 `wendao-client orgize sdd status <path>`.
 For task schedule lookup, use:
 `wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
+For fast task recovery from an existing DuckDB snapshot, use:
+`wendao-client orgize task-list --cached <path>`.
 For task-local sparse-tree lookup, use:
 `wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.

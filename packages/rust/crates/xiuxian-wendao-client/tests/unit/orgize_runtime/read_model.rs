@@ -133,6 +133,88 @@ fn standalone_orgize_task_list_lists_active_rows_from_duckdb_snapshot() {
 
 #[cfg(feature = "orgize-agent-read-model")]
 #[test]
+fn standalone_orgize_task_list_named_views_select_control_rows() {
+    let temp = tempdir_or_panic();
+    write_task_list_named_views_fixture(temp.path());
+
+    assert_task_list_view(
+        temp.path(),
+        "achievement",
+        &["view: achievement", "[TASK001] Achievement slice"],
+        &["Archived achievement"],
+    );
+    assert_task_list_view(
+        temp.path(),
+        "archive-candidate",
+        &[
+            "view: archive-candidate",
+            "Achievement slice",
+            "Archive candidate",
+        ],
+        &["Performance cadence"],
+    );
+    assert_task_list_view(
+        temp.path(),
+        "closure-needed",
+        &["view: closure-needed", "Completed but open"],
+        &["Active task"],
+    );
+    assert_task_list_view(
+        temp.path(),
+        "repeating",
+        &[
+            "view: repeating",
+            "Performance cadence",
+            "repeat: scheduled ++1d (catchUp)",
+        ],
+        &[],
+    );
+    assert_task_list_view(
+        temp.path(),
+        "archived",
+        &["view: archived", "Archived achievement"],
+        &["Achievement slice"],
+    );
+}
+
+fn write_task_list_named_views_fixture(root: &std::path::Path) {
+    std::fs::write(
+        root.join("agenda.org"),
+        concat!(
+            "* TODO Active task :agent:\n",
+            "* TODO Completed but open [2/2] [100%] :agent:\n",
+            "- [X] Implementation\n",
+            "- [X] Validation\n",
+            "* TODO Performance cadence :agent:performance:\n",
+            "SCHEDULED: <2026-05-18 Mon ++1d>\n",
+            "* DONE Achievement slice :agent:achievement:\n",
+            "CLOSED: [2026-05-18 Mon]\n",
+            "* DONE Archive candidate :agent:\n",
+            "CLOSED: [2026-05-18 Mon]\n",
+            "* DONE Archived achievement :agent:achievement:ARCHIVE:\n",
+            "CLOSED: [2026-05-17 Sun]\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write agenda: {error}"));
+}
+
+fn assert_task_list_view(root: &std::path::Path, view: &str, expected: &[&str], absent: &[&str]) {
+    let output = run_orgize(
+        root,
+        &["task-list", "--view", view, "agenda.org"],
+        &format!("task-list {view} view"),
+    );
+    assert_cli_success(&output);
+    for needle in expected {
+        assert!(output.stdout.contains(needle), "stdout: {}", output.stdout);
+    }
+    for needle in absent {
+        assert!(!output.stdout.contains(needle), "stdout: {}", output.stdout);
+    }
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
 fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() {
     let temp = tempdir_or_panic();
     let agenda = temp.path().join("agenda.org");
@@ -162,6 +244,121 @@ fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() 
         list.stdout.contains("[TASK001] Agent task"),
         "stdout: {}",
         list.stdout
+    );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_list_cached_reuses_existing_snapshot() {
+    let temp = tempdir_or_panic();
+    let agenda = temp.path().join("agenda.org");
+    std::fs::write(&agenda, "* TODO Cached task :agent:\n")
+        .unwrap_or_else(|error| panic!("write agenda: {error}"));
+
+    let first_refresh = run_orgize(temp.path(), &["read-model", "agenda.org"], "read-model");
+    assert_cli_success(&first_refresh);
+    std::fs::write(
+        &agenda,
+        concat!(
+            "* TODO Cached task :agent:\n",
+            "* TODO New task after snapshot :agent:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("rewrite agenda: {error}"));
+
+    let cached = run_orgize(
+        temp.path(),
+        &["task-list", "--cached", "agenda.org"],
+        "task-list cached",
+    );
+    assert_cli_success(&cached);
+    assert!(
+        cached.stdout.contains("snapshot: cached"),
+        "stdout: {}",
+        cached.stdout
+    );
+    assert!(
+        cached.stdout.contains("rows: 1"),
+        "stdout: {}",
+        cached.stdout
+    );
+    assert!(
+        cached.stdout.contains("Cached task"),
+        "stdout: {}",
+        cached.stdout
+    );
+    assert!(
+        !cached.stdout.contains("New task after snapshot"),
+        "stdout: {}",
+        cached.stdout
+    );
+
+    let refreshed = run_orgize(
+        temp.path(),
+        &["task-list", "agenda.org"],
+        "task-list refreshed",
+    );
+    assert_cli_success(&refreshed);
+    assert!(
+        refreshed.stdout.contains("snapshot: refreshed"),
+        "stdout: {}",
+        refreshed.stdout
+    );
+    assert!(
+        refreshed.stdout.contains("rows: 2"),
+        "stdout: {}",
+        refreshed.stdout
+    );
+    assert!(
+        refreshed.stdout.contains("New task after snapshot"),
+        "stdout: {}",
+        refreshed.stdout
+    );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_list_cached_respects_requested_source_path() {
+    let temp = tempdir_or_panic();
+    let first = temp.path().join("first.org");
+    let second = temp.path().join("second.org");
+    std::fs::write(&first, "* TODO First cached task :agent:\n")
+        .unwrap_or_else(|error| panic!("write first agenda: {error}"));
+    std::fs::write(&second, "* TODO Second cached task :agent:\n")
+        .unwrap_or_else(|error| panic!("write second agenda: {error}"));
+
+    let first_refresh = run_orgize(
+        temp.path(),
+        &["read-model", "first.org", "second.org"],
+        "read-model",
+    );
+    assert_cli_success(&first_refresh);
+
+    let cached = run_orgize(
+        temp.path(),
+        &["task-list", "--cached", "second.org"],
+        "task-list cached second",
+    );
+    assert_cli_success(&cached);
+    assert!(
+        cached.stdout.contains("snapshot: cached"),
+        "stdout: {}",
+        cached.stdout
+    );
+    assert!(
+        cached.stdout.contains("rows: 1"),
+        "stdout: {}",
+        cached.stdout
+    );
+    assert!(
+        cached.stdout.contains("Second cached task"),
+        "stdout: {}",
+        cached.stdout
+    );
+    assert!(
+        !cached.stdout.contains("First cached task"),
+        "stdout: {}",
+        cached.stdout
     );
 }
 

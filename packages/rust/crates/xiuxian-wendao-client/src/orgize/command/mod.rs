@@ -12,7 +12,8 @@ pub use basic::{OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg};
 pub use planning::OrgizeAgentPlanningArgs;
 #[cfg(feature = "orgize-agent-read-model")]
 pub use read_model::{
-    OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs,
+    OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskListView,
+    OrgizeTaskReportArgs,
 };
 pub use root::OrgizeCommand;
 pub use sdd::{OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs};

@@ -62,6 +62,11 @@ pub(crate) enum ControlCliCommand {
         priority: i64,
         json: bool,
     },
+    Costs {
+        ledger_path: PathBuf,
+        run_id: String,
+        json: bool,
+    },
     Decision {
         ledger_path: PathBuf,
         run_id: String,
@@ -112,6 +117,12 @@ pub(crate) enum ControlCliCommand {
         now_ms: u64,
         json: bool,
     },
+    Summary {
+        ledger_path: PathBuf,
+        run_id: String,
+        now_ms: u64,
+        json: bool,
+    },
     Signal {
         ledger_path: PathBuf,
         run_id: String,
@@ -119,6 +130,11 @@ pub(crate) enum ControlCliCommand {
         signal_name: String,
         payload: String,
         received_at_ms: u64,
+        json: bool,
+    },
+    Signals {
+        ledger_path: PathBuf,
+        run_id: String,
         json: bool,
     },
     View {
@@ -137,6 +153,11 @@ pub(crate) enum ControlCliCommand {
         run_id: String,
         step_id: Option<String>,
         timer_id: String,
+        json: bool,
+    },
+    Timers {
+        ledger_path: PathBuf,
+        run_id: String,
         json: bool,
     },
 }

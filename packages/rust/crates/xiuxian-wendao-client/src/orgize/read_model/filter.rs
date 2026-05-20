@@ -2,7 +2,9 @@
 
 use xiuxian_wendao_parsers::OrgizeAgentTaskRepeater;
 
-use crate::orgize::{OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs};
+use crate::orgize::{
+    OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskListView, OrgizeTaskReportArgs,
+};
 
 use super::model::AgentOrgTaskListRow;
 
@@ -18,14 +20,55 @@ pub(super) fn filter_task_rows<'a>(
         .filter(|tag| !tag.is_empty())
         .collect::<Vec<_>>();
     rows.iter()
-        .filter(|row| args.include_done || !row.is_done)
-        .filter(|row| args.include_archived || !row.archived)
+        .filter(|row| {
+            task_row_matches_list_visibility(
+                row,
+                args.view,
+                args.include_done,
+                args.include_archived,
+            )
+        })
+        .filter(|row| task_row_matches_view(row, args.view))
         .filter(|row| tags.iter().all(|tag| task_row_has_tag(row, tag)))
         .filter(|row| {
             text.as_ref()
                 .is_none_or(|text| task_row_matches_text(row, text))
         })
         .collect()
+}
+
+fn task_row_matches_list_visibility(
+    row: &AgentOrgTaskListRow,
+    view: Option<OrgizeTaskListView>,
+    include_done: bool,
+    include_archived: bool,
+) -> bool {
+    match view {
+        Some(OrgizeTaskListView::Active) | None => {
+            (include_done || !row.is_done) && (include_archived || !row.archived)
+        }
+        Some(OrgizeTaskListView::Done) => !row.archived,
+        Some(OrgizeTaskListView::Archived) => true,
+        Some(
+            OrgizeTaskListView::Achievement
+            | OrgizeTaskListView::ArchiveCandidate
+            | OrgizeTaskListView::ClosureNeeded
+            | OrgizeTaskListView::Repeating,
+        ) => include_archived || !row.archived,
+    }
+}
+
+fn task_row_matches_view(row: &AgentOrgTaskListRow, view: Option<OrgizeTaskListView>) -> bool {
+    match view {
+        None => true,
+        Some(OrgizeTaskListView::Active) => !row.is_done && !row.archived,
+        Some(OrgizeTaskListView::Done) => row.is_done && !row.archived,
+        Some(OrgizeTaskListView::Archived) => row.archived,
+        Some(OrgizeTaskListView::Achievement) => task_row_has_tag(row, "achievement"),
+        Some(OrgizeTaskListView::ArchiveCandidate) => task_row_is_archive_candidate(row),
+        Some(OrgizeTaskListView::ClosureNeeded) => task_row_is_closure_needed(row),
+        Some(OrgizeTaskListView::Repeating) => task_row_is_repeating(row),
+    }
 }
 
 pub(super) fn filter_report_rows<'a>(
@@ -41,6 +84,7 @@ pub(super) fn filter_report_rows<'a>(
         .collect::<Vec<_>>();
     rows.iter()
         .filter(|row| args.include_archived || !row.archived)
+        .filter(|row| task_row_matches_view(row, args.view))
         .filter(|row| tags.iter().all(|tag| task_row_has_tag(row, tag)))
         .filter(|row| {
             text.as_ref()

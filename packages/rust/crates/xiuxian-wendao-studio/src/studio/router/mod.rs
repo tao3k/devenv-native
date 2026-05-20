@@ -29,6 +29,7 @@ pub(crate) use code_ast::resolve_code_ast_repository_and_path;
 pub(crate) use config::load_episteme_registry_from_wendao_toml_path;
 pub(crate) use config::{
     load_document_extract_endpoint_from_wendao_toml, load_episteme_registry_from_wendao_toml,
+    load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml,
 };
 pub use config::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,

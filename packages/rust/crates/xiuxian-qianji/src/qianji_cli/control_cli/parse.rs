@@ -20,6 +20,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("activity-queue") => parse_activity_queue(args).map(Some),
         Some("activity-start") => super::activity_start::parse(args).map(Some),
         Some("apply-recovery-plan") => parse_apply_recovery_plan(args).map(Some),
+        Some("costs") => parse_costs(args).map(Some),
         Some("decision") => parse_decision(args).map(Some),
         Some("heartbeat") => super::heartbeat::parse(args).map(Some),
         Some("history") => parse_history(args).map(Some),
@@ -28,15 +29,18 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("leases") => parse_leases(args).map(Some),
         Some("query") => parse_query(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
+        Some("summary") => parse_summary(args).map(Some),
         Some("signal") => parse_signal(args).map(Some),
+        Some("signals") => parse_signals(args).map(Some),
         Some("step") => parse_step(args).map(Some),
         Some("timer") => parse_timer(args).map(Some),
+        Some("timers") => parse_timers(args).map(Some),
         Some("view") => parse_view(args).map(Some),
         Some(other) => Err(invalid_input(format!(
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `activity-complete`, `activity-fail`, `activity-queue`, `activity-start`, `apply-recovery-plan`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
+            "missing `control` subcommand; expected `activity`, `activity-complete`, `activity-fail`, `activity-queue`, `activity-start`, `apply-recovery-plan`, `costs`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `query`, `recovery-snapshot`, `summary`, `signal`, `signals`, `step`, `timer`, `timers`, or `view`",
         )),
     }
 }
@@ -80,6 +84,43 @@ fn parse_activity_queue(args: &[String]) -> io::Result<ControlCliCommand> {
         run_id: run_id
             .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control activity-queue`"))?,
         task_queue,
+        json,
+    })
+}
+
+fn parse_costs(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control costs` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::Costs {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control costs`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control costs`"))?,
         json,
     })
 }
@@ -160,6 +201,43 @@ fn parse_leases(args: &[String]) -> io::Result<ControlCliCommand> {
             .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control leases`"))?,
         run_id: run_id
             .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control leases`"))?,
+        json,
+    })
+}
+
+fn parse_timers(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control timers` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::Timers {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control timers`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control timers`"))?,
         json,
     })
 }
@@ -628,6 +706,88 @@ fn parse_recovery_snapshot(args: &[String]) -> io::Result<ControlCliCommand> {
     })
 }
 
+fn parse_summary(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut now_ms = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--now-ms" => {
+                now_ms = Some(parse_summary_now_ms(&parse_flag_value(
+                    args, &mut index, "--now-ms",
+                )?)?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control summary` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::Summary {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control summary`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control summary`"))?,
+        now_ms: now_ms
+            .ok_or_else(|| invalid_input("missing `--now-ms <ms>` for `control summary`"))?,
+        json,
+    })
+}
+
+fn parse_signals(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control signals` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::Signals {
+        ledger_path: ledger_path
+            .ok_or_else(|| invalid_input("missing `--ledger <path>` for `control signals`"))?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control signals`"))?,
+        json,
+    })
+}
+
 fn parse_view(args: &[String]) -> io::Result<ControlCliCommand> {
     let mut ledger_path = None;
     let mut run_id = None;
@@ -760,6 +920,14 @@ fn parse_now_ms(value: &str) -> io::Result<u64> {
     value.parse::<u64>().map_err(|error| {
         invalid_input(format!(
             "invalid `--now-ms` value `{value}` for `control recovery-snapshot`: {error}"
+        ))
+    })
+}
+
+fn parse_summary_now_ms(value: &str) -> io::Result<u64> {
+    value.parse::<u64>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--now-ms` value `{value}` for `control summary`: {error}"
         ))
     })
 }

@@ -63,6 +63,8 @@ pub(crate) mod symbol_index;
 #[path = "vfs/mod.rs"]
 mod vfs;
 
+#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
+pub(crate) use router::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 #[cfg(feature = "zhenfa-router")]
 pub use router::{
     GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,

@@ -178,17 +178,28 @@ marking tracking work complete. Install or refresh the client with
 Use native Org agenda semantics for schedule/task lookup:
 `wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
 
-Use native Org sparse-tree semantics for task-local search:
+Use native Org sparse-tree semantics when the full source subtree context is
+needed:
 `wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.
 
 Use Org-native SDD status for system/capability/view/decision/audit recovery:
 `wendao-client orgize sdd status <path>`.
 
-Use the DuckDB-backed Org task list for active recovery:
-`wendao-client orgize task-list [--text TEXT] [--tag TAG] <path>`.
+Use the DuckDB-backed Org task list for active recovery. Add `--cached` for
+fast Codex turn-start recovery from an existing snapshot; omit it when the
+query must refresh from Org source files first:
+`wendao-client orgize task-list [--cached] [--text TEXT] [--tag TAG] <path>`.
+Use named task-list views for common recovery and archive control surfaces:
+`wendao-client orgize task-list --cached --view closure-needed <path>`,
+`wendao-client orgize task-list --cached --view archive-candidate <path>`,
+`wendao-client orgize task-list --cached --view achievement <path>`, and
+`wendao-client orgize task-list --cached --view repeating <path>`.
 
 Use the DuckDB-backed Org task report for archive and achievement summaries:
-`wendao-client orgize task-report [--text TEXT] [--tag TAG] <path>`.
+`wendao-client orgize task-report [--cached] [--text TEXT] [--tag TAG] <path>`.
+The same named views apply when a focused summary is more useful than the full
+report:
+`wendao-client orgize task-report --cached --view archive-candidate <path>`.
 
 Use the DuckDB-backed Org task archive command for plan-first physical
 archival. Omit `--apply` for read-only planning:
@@ -198,6 +209,10 @@ archival. Omit `--apply` for read-only planning:
 
 Recover active tasks:
 
+`wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org`.
+
+Refresh active tasks after editing Org files:
+
 `wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org`.
 
 Recover scheduled tasks:
@@ -206,15 +221,15 @@ Recover scheduled tasks:
 
 Recover one lane or package:
 
-`wendao-client orgize task-list --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
 
 Review completed achievements:
 
-`wendao-client orgize task-list --tag achievement --include-done $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org`.
 
 Review archive candidates and repeating task counts:
 
-`wendao-client orgize task-report $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-report --cached $PRJ_CACHE_HOME/agent/org`.
 
 Plan physical archival:
 

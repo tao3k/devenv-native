@@ -1,8 +1,8 @@
 //! CLI command flows for Orgize read-model commands.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use xiuxian_wendao_parsers::{
     OrgizeAgentTaskReadModelRequest, OrgizeAgentTaskRow, collect_agent_task_rows,
 };
@@ -21,7 +21,8 @@ use super::model::{
     AGENT_ORG_TASKS_TABLE, AgentOrgReadModelMaterializationReport, ResolvedReadModelSettings,
 };
 use super::render::{
-    render_archive_plan_row, render_report_section, render_tag_counts, render_task_list_row,
+    render_archive_plan_row, render_archive_target_summary, render_report_section,
+    render_tag_counts, render_task_list_row,
 };
 use super::settings::{resolve_read_model_settings, resolve_source_paths};
 use super::store::{
@@ -60,13 +61,16 @@ pub(crate) fn run_task_list(
     args: &OrgizeTaskListArgs,
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
-    let snapshot = open_task_query_snapshot(&args.paths, context)?;
+    let snapshot = open_task_query_snapshot(&args.paths, context, args.cached)?;
     let filtered = filter_task_rows(&snapshot.rows, args);
     let limit = args.limit;
     let shown = filtered.iter().take(limit).collect::<Vec<_>>();
 
     println!("orgize agent task-list");
     println!("backend: duckdb");
+    if let Some(view) = args.view {
+        println!("view: {}", view_label(view));
+    }
     render_snapshot_header(&snapshot);
     println!("table: {AGENT_ORG_TASKS_TABLE}");
     println!("rows: {}", filtered.len());
@@ -92,11 +96,23 @@ pub(crate) fn run_task_list(
     Ok(CommandOutcome::success())
 }
 
+fn view_label(view: crate::orgize::OrgizeTaskListView) -> &'static str {
+    match view {
+        crate::orgize::OrgizeTaskListView::Active => "active",
+        crate::orgize::OrgizeTaskListView::Done => "done",
+        crate::orgize::OrgizeTaskListView::Archived => "archived",
+        crate::orgize::OrgizeTaskListView::Achievement => "achievement",
+        crate::orgize::OrgizeTaskListView::ArchiveCandidate => "archive-candidate",
+        crate::orgize::OrgizeTaskListView::ClosureNeeded => "closure-needed",
+        crate::orgize::OrgizeTaskListView::Repeating => "repeating",
+    }
+}
+
 pub(crate) fn run_task_report(
     args: &OrgizeTaskReportArgs,
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
-    let snapshot = open_task_query_snapshot(&args.paths, context)?;
+    let snapshot = open_task_query_snapshot(&args.paths, context, args.cached)?;
     let filtered = filter_report_rows(&snapshot.rows, args);
     let limit = args.limit;
     let active_rows = filtered
@@ -137,6 +153,9 @@ pub(crate) fn run_task_report(
 
     println!("orgize agent task-report");
     println!("backend: duckdb");
+    if let Some(view) = args.view {
+        println!("view: {}", view_label(view));
+    }
     render_snapshot_header(&snapshot);
     println!("table: {AGENT_ORG_TASKS_TABLE}");
     println!("rows: {}", filtered.len());
@@ -162,9 +181,33 @@ pub(crate) fn run_task_archive(
     let snapshot = if args.apply {
         open_fresh_task_query_snapshot(&args.paths, context)?
     } else {
-        open_task_query_snapshot(&args.paths, context)?
+        open_task_query_snapshot(&args.paths, context, false)?
     };
-    let candidates = filter_archive_rows(&snapshot.rows, args);
+    let target = args.target.as_ref().map(|target| target.to_lowercase());
+    let closed_before = args
+        .closed_before
+        .as_deref()
+        .map(parse_iso_date_filter)
+        .transpose()?;
+    let candidates = filter_archive_rows(&snapshot.rows, args)
+        .into_iter()
+        .filter(|row| {
+            target.as_ref().is_none_or(|target| {
+                super::archive::archive_target_for_row(row, &snapshot.settings, context)
+                    .to_string_lossy()
+                    .to_lowercase()
+                    .contains(target)
+            })
+        })
+        .filter(|row| {
+            closed_before.is_none_or(|closed_before| {
+                row.closed
+                    .as_deref()
+                    .and_then(timestamp_iso_date)
+                    .is_some_and(|closed| closed < closed_before)
+            })
+        })
+        .collect::<Vec<_>>();
     let selected = candidates
         .iter()
         .take(args.limit)
@@ -176,8 +219,15 @@ pub(crate) fn run_task_archive(
     println!("mode: {}", if args.apply { "apply" } else { "plan" });
     render_snapshot_header(&snapshot);
     println!("table: {AGENT_ORG_TASKS_TABLE}");
+    if let Some(target) = args.target.as_deref() {
+        println!("target-filter: {target}");
+    }
+    if let Some(closed_before) = args.closed_before.as_deref() {
+        println!("closed-before: {closed_before}");
+    }
     println!("candidates: {}", candidates.len());
     println!("selected: {}", selected.len());
+    render_archive_target_summary(&selected, &snapshot.settings, context);
     for (index, row) in selected.iter().enumerate() {
         render_archive_plan_row(index + 1, row, &snapshot.settings, context);
     }
@@ -190,10 +240,38 @@ pub(crate) fn run_task_archive(
     Ok(CommandOutcome::success())
 }
 
+fn parse_iso_date_filter(value: &str) -> Result<&str> {
+    let valid = value.len() == 10
+        && value.as_bytes()[4] == b'-'
+        && value.as_bytes()[7] == b'-'
+        && value
+            .chars()
+            .enumerate()
+            .all(|(index, value)| index == 4 || index == 7 || value.is_ascii_digit());
+    anyhow::ensure!(
+        valid,
+        "closed-before must be formatted as YYYY-MM-DD, got `{value}`"
+    );
+    Ok(value)
+}
+
+fn timestamp_iso_date(value: &str) -> Option<&str> {
+    let start = value.find(|candidate: char| candidate.is_ascii_digit())?;
+    let date = value.get(start..start + 10)?;
+    parse_iso_date_filter(date)
+        .with_context(|| "timestamp date is not an ISO date")
+        .ok()
+}
+
 fn open_task_query_snapshot(
     paths: &[PathBuf],
     context: &ClientContext,
+    cached: bool,
 ) -> Result<TaskQuerySnapshot> {
+    if cached && let Some(snapshot) = open_cached_task_query_snapshot(paths, context)? {
+        return Ok(snapshot);
+    }
+
     match open_fresh_task_query_snapshot(paths, context) {
         Ok(snapshot) => Ok(snapshot),
         Err(error) if is_duckdb_lock_error(&error) => {
@@ -201,6 +279,29 @@ fn open_task_query_snapshot(
         }
         Err(error) => Err(error),
     }
+}
+
+fn open_cached_task_query_snapshot(
+    paths: &[PathBuf],
+    context: &ClientContext,
+) -> Result<Option<TaskQuerySnapshot>> {
+    let settings = resolve_read_model_settings(context)?;
+    let Some(connection) = open_read_model_read_only_connection(&settings)? else {
+        return Ok(None);
+    };
+    let source_paths = resolve_source_paths(paths, context, settings.cache_home.as_path());
+    let rows = filter_snapshot_rows_by_source_paths(
+        query_agent_org_task_rows(&connection)?,
+        &source_paths,
+    );
+    Ok(Some(TaskQuerySnapshot {
+        settings,
+        source_paths,
+        materialized: None,
+        snapshot_label: "cached",
+        refresh_warning: None,
+        rows,
+    }))
 }
 
 fn open_fresh_task_query_snapshot(
@@ -231,7 +332,10 @@ fn open_read_only_snapshot_after_refresh_lock(
         .ok()
         .flatten()
     {
-        let rows = query_agent_org_task_rows(&connection)?;
+        let rows = filter_snapshot_rows_by_source_paths(
+            query_agent_org_task_rows(&connection)?,
+            &source_paths,
+        );
         return Ok(TaskQuerySnapshot {
             settings,
             source_paths,
@@ -261,6 +365,28 @@ fn open_read_only_snapshot_after_refresh_lock(
         refresh_warning: Some(refresh_error),
         rows,
     })
+}
+
+fn filter_snapshot_rows_by_source_paths(
+    rows: Vec<super::model::AgentOrgTaskListRow>,
+    source_paths: &[PathBuf],
+) -> Vec<super::model::AgentOrgTaskListRow> {
+    rows.into_iter()
+        .filter(|row| {
+            source_paths
+                .iter()
+                .any(|source_path| row_matches_source_path(row.source_path.as_str(), source_path))
+        })
+        .collect()
+}
+
+fn row_matches_source_path(row_source_path: &str, source_path: &Path) -> bool {
+    let row_source_path = Path::new(row_source_path);
+    if source_path.is_dir() {
+        row_source_path.starts_with(source_path)
+    } else {
+        row_source_path == source_path
+    }
 }
 
 fn open_snapshot_connection(

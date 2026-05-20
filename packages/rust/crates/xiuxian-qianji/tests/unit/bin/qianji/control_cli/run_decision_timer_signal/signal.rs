@@ -1,6 +1,7 @@
 use crate::qianji_cli::test_exports::{ControlCliCommand, run_control_command};
 use crate::qianji_cli::tests::control_cli::support::{
-    append_control_run_with_step, append_empty_control_run, must_ok, must_some,
+    append_control_run_with_run_and_step_signals, append_control_run_with_step,
+    append_empty_control_run, must_ok, must_some,
 };
 use tempfile::TempDir;
 use xiuxian_qianji_control::{ControlLedger, DuckDbControlLedger, SignalName, StepId};
@@ -141,5 +142,65 @@ fn run_control_signal_rejects_invalid_payload_without_append() -> Result<(), Str
             .contains("invalid `--payload` JSON for `control signal`")
     );
     assert_eq!(records.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn run_control_signals_renders_json_inventory() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_run_and_step_signals(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Signals {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            json: true,
+        }),
+        "control signals json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "signals output should be valid json",
+    );
+    let items = json["items"]
+        .as_array()
+        .ok_or_else(|| "signals output should include item array".to_string())?;
+
+    assert_eq!(json["summary"]["total"], 2);
+    assert_eq!(json["summary"]["run_scoped"], 1);
+    assert_eq!(json["summary"]["step_scoped"], 1);
+    assert_eq!(items[0]["signal"]["signal_name"], "run.refresh");
+    assert_eq!(items[0]["scope"]["scope"], "run");
+    assert_eq!(items[1]["signal"]["signal_name"], "human.approval");
+    assert_eq!(items[1]["scope"]["scope"], "step");
+    assert_eq!(items[1]["scope"]["step_id"], "run-control-step");
+    assert_eq!(items[1]["received_at_ms"], 12_000);
+    Ok(())
+}
+
+#[test]
+fn run_control_signals_renders_empty_text_inventory() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_empty_control_run(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::Signals {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            json: false,
+        }),
+        "control signals text should render",
+    );
+
+    assert!(output.rendered.starts_with("# Qianji Control Signals"));
+    assert!(
+        output
+            .rendered
+            .contains("- Signals: total `0`, run `0`, step `0`")
+    );
     Ok(())
 }

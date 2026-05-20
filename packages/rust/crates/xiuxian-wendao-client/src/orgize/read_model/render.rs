@@ -108,3 +108,25 @@ pub(super) fn render_archive_plan_row(
         println!("tags: {}", row.effective_tags.join(":"));
     }
 }
+
+pub(super) fn render_archive_target_summary(
+    rows: &[&AgentOrgTaskListRow],
+    settings: &ResolvedReadModelSettings,
+    context: &ClientContext,
+) {
+    let mut counts = BTreeMap::<String, usize>::new();
+    for row in rows {
+        let target = archive_target_for_row(row, settings, context);
+        let target = display_source_path(target.to_string_lossy().as_ref(), context);
+        *counts.entry(target).or_default() += 1;
+    }
+    if counts.is_empty() {
+        return;
+    }
+
+    println!();
+    println!("Archive Targets");
+    for (target, count) in counts {
+        println!("{target}: {count}");
+    }
+}

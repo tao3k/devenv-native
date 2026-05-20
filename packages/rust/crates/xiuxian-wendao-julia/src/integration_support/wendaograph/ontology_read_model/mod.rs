@@ -33,6 +33,7 @@ pub use envelope::build_wendaograph_ontology_read_model_quality_request_batches_
 pub use flight::{
     build_wendaograph_ontology_read_model_quality_flight_binding,
     build_wendaograph_ontology_read_model_quality_flight_descriptor,
+    roundtrip_wendaograph_ontology_extension_proof_with_binding,
     roundtrip_wendaograph_ontology_read_model_quality_with_binding,
     wendaograph_ontology_read_model_quality_provider_selector,
 };

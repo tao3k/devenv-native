@@ -1,9 +1,10 @@
 //! Storage and gate traits for the control plane.
 
 use crate::{
-    ActivityQueueProjection, ControlEvent, ControlEventRecord, ControlResult, GateResult,
-    HotStateSnapshot, RunId, RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableStep,
-    StepLease, StepView, TaskQueue, WorkerHeartbeat, WorkerId, WorkerRef,
+    ActivityQueueProjection, ControlEvent, ControlEventRecord, ControlResult,
+    CostInventoryProjection, GateResult, HotStateSnapshot, RunId, RunOperatorSummary,
+    RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableStep, SignalInventoryProjection,
+    StepLease, StepView, TaskQueue, TimerInventoryProjection, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -76,6 +77,67 @@ pub trait ControlLedger: Send + Sync {
             &self.load_run_view(run_id)?,
             task_queue,
         ))
+    }
+
+    /// Loads a read-only durable timer inventory projection from durable
+    /// history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded or replayed.
+    fn load_timer_inventory_projection(
+        &self,
+        run_id: &RunId,
+    ) -> ControlResult<TimerInventoryProjection> {
+        Ok(TimerInventoryProjection::from_view(
+            &self.load_run_view(run_id)?,
+        ))
+    }
+
+    /// Loads a read-only durable signal inventory projection from durable
+    /// history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded.
+    fn load_signal_inventory_projection(
+        &self,
+        run_id: &RunId,
+    ) -> ControlResult<SignalInventoryProjection> {
+        Ok(SignalInventoryProjection::from_records(
+            run_id.clone(),
+            &self.load_events(run_id)?,
+        ))
+    }
+
+    /// Loads a read-only durable cost inventory projection from durable
+    /// history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded.
+    fn load_cost_inventory_projection(
+        &self,
+        run_id: &RunId,
+    ) -> ControlResult<CostInventoryProjection> {
+        Ok(CostInventoryProjection::from_records(
+            run_id.clone(),
+            &self.load_events(run_id)?,
+        ))
+    }
+
+    /// Loads a compact operator summary from durable history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded, replayed, or
+    /// projected through recovery retry-policy evaluation.
+    fn load_operator_summary(
+        &self,
+        run_id: &RunId,
+        observed_at_ms: u64,
+    ) -> ControlResult<RunOperatorSummary> {
+        RunOperatorSummary::from_records(run_id.clone(), &self.load_events(run_id)?, observed_at_ms)
     }
 }
 

@@ -11,6 +11,7 @@ pub use command::{
 };
 #[cfg(feature = "orgize-agent-read-model")]
 pub use command::{
-    OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs,
+    OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskListView,
+    OrgizeTaskReportArgs,
 };
 pub(crate) use run::run_command;

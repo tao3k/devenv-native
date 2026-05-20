@@ -14,7 +14,7 @@ use tonic::{Code, Request};
 use crate::transport::{ONTOLOGY_DATASET_MATERIALIZE_ROUTE, flight_descriptor_path};
 
 use super::{
-    collect_route_batches, first_string, make_gateway_state_with_search_routes,
+    collect_route_batches, fetch_flight_info, first_string, make_gateway_state_with_search_routes,
     populate_dataset_ontology_headers,
 };
 
@@ -59,6 +59,7 @@ async fn studio_gateway_flight_rejects_missing_dataset_ontology_payloads() {
 #[tokio::test]
 async fn studio_gateway_flight_materializes_dataset_ontology_arrow_payloads() {
     let fixture = make_gateway_state_with_search_routes().await;
+    write_optional_wendaograph_quality_config(fixture.state.studio.config_root.as_path());
     write_healthcare_source_contract(fixture.state.studio.project_root.as_path());
     write_healthcare_arrow_payloads(fixture.state.studio.project_root.as_path());
 
@@ -105,6 +106,52 @@ async fn studio_gateway_flight_materializes_dataset_ontology_arrow_payloads() {
         first_string(&batches[1], "payloadJson").contains("\"id\""),
         "semantic object payload should include row fields"
     );
+
+    let (_, flight_info) = fetch_flight_info(
+        &service,
+        ONTOLOGY_DATASET_MATERIALIZE_ROUTE,
+        populate_dataset_ontology_headers,
+    )
+    .await;
+    let app_metadata: serde_json::Value = serde_json::from_slice(&flight_info.app_metadata)
+        .unwrap_or_else(|error| panic!("dataset ontology app metadata should decode: {error}"));
+    assert_eq!(
+        app_metadata["schemaVersion"],
+        "xiuxian_wendao.dataset_ontology_materialization_app_metadata.v1"
+    );
+    assert_eq!(
+        app_metadata["materialization"]["contractId"],
+        "healthcare.synthetic_care_delivery.contract.v1"
+    );
+    assert_eq!(app_metadata["materialization"]["sourceTableCount"], 4);
+    if std::env::var("WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_TEST_CONFIG_URL")
+        .or_else(|_| std::env::var("WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_BASE_URL"))
+        .ok()
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        assert_eq!(app_metadata["wendaographProof"]["promotionCandidate"], true);
+        assert_eq!(app_metadata["wendaographProof"]["failureCount"], 0);
+    } else {
+        assert!(app_metadata["wendaographProof"].is_null());
+    }
+}
+
+fn write_optional_wendaograph_quality_config(config_root: &Path) {
+    let Ok(base_url) = std::env::var("WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_TEST_CONFIG_URL")
+    else {
+        return;
+    };
+    if base_url.trim().is_empty() {
+        return;
+    }
+    fs::write(
+        config_root.join("wendao.toml"),
+        format!(
+            "[wendaograph.ontology_read_model_quality]\nbase_url = {:?}\ntimeout_seconds = 30\nmax_in_flight_requests = 1\n",
+            base_url.trim()
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write WendaoGraph ontology quality test config: {error}"));
 }
 
 fn assert_bool(batch: &RecordBatch, column: &str, expected: bool) {

@@ -2,7 +2,9 @@ use std::fs;
 
 use crate::studio::router::{
     load_document_extract_endpoint_from_wendao_toml, load_episteme_registry_from_wendao_toml,
-    load_ui_config_from_wendao_toml, studio_wendao_overlay_toml_path, studio_wendao_toml_path,
+    load_ui_config_from_wendao_toml,
+    load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml,
+    studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -139,6 +141,30 @@ endpoint = "http://127.0.0.1:50051/"
         load_document_extract_endpoint_from_wendao_toml(temp.path()).as_deref(),
         Some("http://127.0.0.1:50051")
     );
+    Ok(())
+}
+
+#[test]
+fn load_wendaograph_ontology_quality_endpoint_from_wendao_toml_reads_effective_config() -> TestResult
+{
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        studio_wendao_toml_path(temp.path()),
+        r#"[wendaograph.ontology_read_model_quality]
+base_url = "http://127.0.0.1:19091/"
+timeout_seconds = 30
+max_in_flight_requests = 2
+"#,
+    )?;
+
+    let Some(config) =
+        load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml(temp.path())
+    else {
+        panic!("WendaoGraph ontology quality endpoint config should load");
+    };
+    assert_eq!(config.base_url, "http://127.0.0.1:19091");
+    assert_eq!(config.timeout_seconds, Some(30));
+    assert_eq!(config.max_in_flight_requests, Some(2));
     Ok(())
 }
 

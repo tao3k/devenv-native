@@ -17,6 +17,8 @@ pub(crate) struct WendaoTomlConfig {
     pub(crate) link_graph: WendaoTomlLinkGraphConfig,
     #[serde(default, flatten)]
     pub(crate) extra: BTreeMap<String, toml::Value>,
+    #[serde(default)]
+    pub(crate) wendaograph: WendaoTomlWendaoGraphConfig,
 }
 
 /// Episteme repository registry configuration.
@@ -59,6 +61,36 @@ pub(crate) struct WendaoTomlDocumentExtractConfig {
     pub(crate) endpoint: Option<String>,
     #[serde(default, flatten)]
     pub(crate) extra: BTreeMap<String, toml::Value>,
+}
+
+/// `WendaoGraph` service configuration.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub(crate) struct WendaoTomlWendaoGraphConfig {
+    #[serde(default)]
+    pub(crate) ontology_read_model_quality: WendaoTomlWendaoGraphOntologyReadModelQualityConfig,
+    #[serde(default, flatten)]
+    pub(crate) extra: BTreeMap<String, toml::Value>,
+}
+
+/// `WendaoGraph` ontology read-model quality Flight service configuration.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub(crate) struct WendaoTomlWendaoGraphOntologyReadModelQualityConfig {
+    #[serde(default)]
+    pub(crate) base_url: Option<String>,
+    #[serde(default)]
+    pub(crate) timeout_seconds: Option<u64>,
+    #[serde(default)]
+    pub(crate) max_in_flight_requests: Option<u64>,
+    #[serde(default, flatten)]
+    pub(crate) extra: BTreeMap<String, toml::Value>,
+}
+
+/// Normalized `WendaoGraph` ontology read-model quality endpoint settings.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct WendaoGraphOntologyReadModelQualityEndpointConfig {
+    pub(crate) base_url: String,
+    pub(crate) timeout_seconds: Option<u64>,
+    pub(crate) max_in_flight_requests: Option<u64>,
 }
 
 /// Link graph configuration.

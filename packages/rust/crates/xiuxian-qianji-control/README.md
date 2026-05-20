@@ -162,6 +162,26 @@ Replay-derived `StepView` records the current active `StepLease`, which lets
 read-only operator surfaces inspect lease ownership without touching hot state.
 Run-level replay also supports lease inventory views by collecting active
 `StepLease` records from the deterministic step map.
+`TimerInventoryProjection` derives run-scoped and step-scoped durable timer
+state from replayed history. It is a read-only wait-state management view and
+does not fire timers, enqueue steps, append events, or mutate Valkey hot state.
+The projection reports pending, scheduled, and fired timer counts so operators
+can audit durable waits without loading the full run view.
+`SignalInventoryProjection` derives run-scoped and step-scoped durable signal
+state directly from event records so event sequence and received timestamp stay
+visible. It is a read-only external-event management view and does not append
+signals, resolve approvals, enqueue work, or mutate hot state.
+`CostInventoryProjection` derives run-scoped and step-scoped durable cost
+observations directly from event records so sequence, observed timestamp,
+provider/model, token counts, latency, and USD micros remain auditable. It is a
+read-only budget management view and does not append observations or mutate hot
+state.
+`RunOperatorSummary` combines durable event count, replayed run status, step
+count, active lease count, activity lifecycle counters, timer counters, signal
+counters, cost totals, and recovery counters into one compact management view.
+It is assembled from the append-only ledger and remains a read-only projection;
+it does not execute recovery, fire timers, claim activities, append signals, or
+mutate hot state.
 `record_timer_fired` records a durable `TimerFired` fact for a run-scoped or
 step-scoped timer. It does not poll timers, wait, notify, or enqueue work.
 `record_step_lease_released` records a durable `StepLeaseReleased` fact after
@@ -220,6 +240,10 @@ hot-state work, lease steps, or execute workers.
 - `StepLeaseReleaseJournalRecord` and `record_step_lease_released`
 - `StepQueueJournalRecord`, `record_step_queued`, and
   `record_step_queued_with_hot_state`
+- `SignalInventoryProjection`, `SignalInventoryItem`, and
+  `SignalInventorySummary`
+- `TimerInventoryProjection`, `TimerInventoryItem`, and
+  `TimerInventorySummary`
 - `TimerFireJournalRecord` and `record_timer_fired`
 - `RecoveryStartedJournalRecord` and `record_recovery_started`
 - `RecoveryLoopApplicationRequest`, `RecoveryLoopApplication`,
@@ -228,12 +252,17 @@ hot-state work, lease steps, or execute workers.
   `RecoveryActionApplicationReason`, and `apply_recovery_action`
 - `HumanApprovalRequest`, `HumanApprovalResolution`, and
   `HumanApprovalDecision`
+- `CostInventoryProjection`, `CostInventoryItem`, and
+  `CostInventorySummary`
 - `ActivityTask`, `ActivityRetryDecision`, `LlmActivityRequest`,
   `LlmActivityTask`, `SignalRecord`, `TimerRecord`, and `VersionPin`
 - `HotStateSnapshot` and `HotStateLeasedStep`
 - `ControlLedger`
 - `ControlLedger::load_run_view`
 - `ControlLedger::load_activity_queue_projection`
+- `ControlLedger::load_cost_inventory_projection`
+- `ControlLedger::load_signal_inventory_projection`
+- `ControlLedger::load_timer_inventory_projection`
 - `ControlLedger::load_recovery_plan`
 - `RunRecoveryView`, `RecoveryItemScope`, `ActivityRecoveryItem`,
   `FailedActivityRecoveryItem`, `TimerRecoveryItem`,

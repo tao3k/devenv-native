@@ -15,10 +15,13 @@ use super::constants::{
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION,
 };
 use super::ipc::{
+    build_wendaograph_ontology_extension_proof_arrow_request,
+    build_wendaograph_ontology_extension_proof_flight_request_batch,
     build_wendaograph_ontology_read_model_quality_arrow_request,
     build_wendaograph_ontology_read_model_quality_flight_request_batch,
 };
 use super::types::{
+    WendaoGraphOntologyExtensionProofRequestBatches,
     WendaoGraphOntologyReadModelQualityFlightBindingOptions,
     WendaoGraphOntologyReadModelQualityRequestBatches,
     WendaoGraphOntologyReadModelQualityRoundtrip,
@@ -101,6 +104,61 @@ pub async fn roundtrip_wendaograph_ontology_read_model_quality_with_binding(
         &request,
     )
     .map_err(|error| WendaoGraphOntologyReadModelQualityRoundtripError {
+        selection: None,
+        error,
+    })?;
+    let Some(transport) = negotiate_flight_transport_client_from_bindings(std::slice::from_ref(
+        binding,
+    ))
+    .map_err(|error| WendaoGraphOntologyReadModelQualityRoundtripError {
+        selection: None,
+        error,
+    })?
+    else {
+        return Ok(None);
+    };
+
+    let selection = transport.selection().clone();
+    let response_batches = transport
+        .process_batch(&request_batch)
+        .await
+        .map_err(|error| WendaoGraphOntologyReadModelQualityRoundtripError {
+            selection: Some(selection.clone()),
+            error,
+        })?;
+
+    Ok(Some(WendaoGraphOntologyReadModelQualityRoundtrip {
+        selection,
+        response_batches,
+    }))
+}
+
+/// Run one ontology extension proof exchange through the shared runtime Flight transport.
+///
+/// # Errors
+///
+/// Returns [`WendaoGraphOntologyReadModelQualityRoundtripError`] when request
+/// packaging, transport negotiation, or the Flight exchange fails.
+pub async fn roundtrip_wendaograph_ontology_extension_proof_with_binding(
+    binding: &PluginCapabilityBinding,
+    batches: &WendaoGraphOntologyExtensionProofRequestBatches,
+    extension_domain_prefix: &str,
+    rdf_namespace: &str,
+) -> Result<
+    Option<WendaoGraphOntologyReadModelQualityRoundtrip>,
+    WendaoGraphOntologyReadModelQualityRoundtripError,
+> {
+    let request = build_wendaograph_ontology_extension_proof_arrow_request(
+        batches,
+        extension_domain_prefix,
+        rdf_namespace,
+    )
+    .map_err(|error| WendaoGraphOntologyReadModelQualityRoundtripError {
+        selection: None,
+        error,
+    })?;
+    let request_batch = build_wendaograph_ontology_extension_proof_flight_request_batch(&request)
+        .map_err(|error| WendaoGraphOntologyReadModelQualityRoundtripError {
         selection: None,
         error,
     })?;

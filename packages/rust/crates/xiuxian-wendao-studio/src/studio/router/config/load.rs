@@ -11,7 +11,7 @@ use super::paths::studio_effective_wendao_toml_path;
 use super::sanitize::{
     sanitize_path_like, sanitize_path_list, sanitize_projects, sanitize_repo_projects,
 };
-use super::types::WendaoTomlConfig;
+use super::types::{WendaoGraphOntologyReadModelQualityEndpointConfig, WendaoTomlConfig};
 
 const DEFAULT_MARKDOWN_PARSER_PLUGIN_ID: &str = "markdown-parser";
 
@@ -85,6 +85,34 @@ pub(crate) fn load_episteme_registry_from_wendao_toml_path(
 
     let parsed = load_wendao_toml_config(config_path)?;
     Ok(episteme_registry_entries_from_wendao_toml(parsed))
+}
+
+#[must_use]
+pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml(
+    config_root: &Path,
+) -> Option<WendaoGraphOntologyReadModelQualityEndpointConfig> {
+    let config_path = studio_effective_wendao_toml_path(config_root);
+    load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml_path(
+        config_path.as_path(),
+    )
+}
+
+#[must_use]
+pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml_path(
+    config_path: &Path,
+) -> Option<WendaoGraphOntologyReadModelQualityEndpointConfig> {
+    if !config_path.is_file() {
+        return None;
+    }
+
+    let parsed = load_wendao_toml_config(config_path).ok()?;
+    let config = parsed.wendaograph.ontology_read_model_quality;
+    let base_url = normalize_endpoint(config.base_url.as_deref())?;
+    Some(WendaoGraphOntologyReadModelQualityEndpointConfig {
+        base_url,
+        timeout_seconds: config.timeout_seconds.filter(|value| *value > 0),
+        max_in_flight_requests: config.max_in_flight_requests.filter(|value| *value > 0),
+    })
 }
 
 fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {

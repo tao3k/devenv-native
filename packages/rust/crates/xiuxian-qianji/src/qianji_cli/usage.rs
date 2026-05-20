@@ -99,6 +99,9 @@ fn print_control_usage() {
         "             qianji [-v|--log-verbose] control signal --ledger <path> --run-id <id> --signal-name <name> --payload <json> --received-at-ms <ms> [--step-id <id>] [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control signals --ledger <path> --run-id <id> [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control activity --ledger <path> --run-id <id> --activity-id <id> [--step-id <id>] [--json]"
     );
     eprintln!(
@@ -112,6 +115,9 @@ fn print_control_usage() {
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control activity-start --ledger <path> --run-id <id> --activity-id <id> --worker-id <id> --started-at-ms <ms> --attempt <n> [--step-id <id>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control costs --ledger <path> --run-id <id> [--json]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control lease --ledger <path> --run-id <id> --step-id <id> [--json]"
@@ -136,6 +142,9 @@ fn print_control_usage() {
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control timer --ledger <path> --run-id <id> --timer-id <id> [--step-id <id>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control timers --ledger <path> --run-id <id> [--json]"
     );
 }
 
