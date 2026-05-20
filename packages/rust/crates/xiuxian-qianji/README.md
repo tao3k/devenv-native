@@ -212,6 +212,14 @@ work or mutating hot scheduler state.
 [--json]` records an idempotent durable `ActivityStarted` fact through the
 control crate's replay guards. It does not complete, fail, execute, or lease
 the activity.
+`qianji control activity-complete --ledger <path> --run-id <id> --activity-id
+<id> --completed-at-ms <ms> [--step-id <id>] [--output-hash <hash>]
+[--metadata <json>] [--json]` and `qianji control activity-fail --ledger
+<path> --run-id <id> --activity-id <id> --failed-at-ms <ms> --error-code
+<code> --message <text> --retryable <true|false> --attempt <n> [--step-id
+<id>] [--metadata <json>] [--json]` record idempotent durable terminal
+activity lifecycle facts after replay verifies that the target activity is in a
+started state.
 `qianji control decision --ledger <path> --run-id <id> --decision-id <id>
 [--step-id <id>] [--json]` renders one replayed agent decision for proposal,
 outcome, reason, scheduled activity, checkpoint, and gate inspection.

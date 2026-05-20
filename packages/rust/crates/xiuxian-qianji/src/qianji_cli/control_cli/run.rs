@@ -22,6 +22,8 @@ pub(super) fn run_control_command_impl(
 ) -> io::Result<ControlCliOutput> {
     match command {
         ControlCliCommand::Activity { .. } => run_activity_from_command(command),
+        ControlCliCommand::ActivityComplete { .. } => run_activity_complete_from_command(command),
+        ControlCliCommand::ActivityFail { .. } => run_activity_fail_from_command(command),
         ControlCliCommand::ActivityStart {
             ledger_path,
             run_id,
@@ -192,6 +194,64 @@ fn run_activity_from_command(command: &ControlCliCommand) -> io::Result<ControlC
         unreachable!("activity runner received a non-activity command");
     };
     run_activity_command(ledger_path, run_id, step_id.as_deref(), activity_id, *json)
+}
+
+fn run_activity_complete_from_command(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {
+    let ControlCliCommand::ActivityComplete {
+        ledger_path,
+        run_id,
+        step_id,
+        activity_id,
+        completed_at_ms,
+        output_hash,
+        metadata,
+        json,
+    } = command
+    else {
+        unreachable!("activity-complete runner received a non-activity-complete command");
+    };
+    super::activity_finish::run_complete(super::activity_finish::ActivityCompleteRunRequest {
+        ledger_path,
+        run_id,
+        step_id: step_id.as_deref(),
+        activity_id,
+        completed_at_ms: *completed_at_ms,
+        output_hash: output_hash.as_deref(),
+        metadata: metadata.as_deref(),
+        json: *json,
+    })
+}
+
+fn run_activity_fail_from_command(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {
+    let ControlCliCommand::ActivityFail {
+        ledger_path,
+        run_id,
+        step_id,
+        activity_id,
+        failed_at_ms,
+        error_code,
+        message,
+        retryable,
+        attempt,
+        metadata,
+        json,
+    } = command
+    else {
+        unreachable!("activity-fail runner received a non-activity-fail command");
+    };
+    super::activity_finish::run_fail(super::activity_finish::ActivityFailRunRequest {
+        ledger_path,
+        run_id,
+        step_id: step_id.as_deref(),
+        activity_id,
+        failed_at_ms: *failed_at_ms,
+        error_code,
+        message,
+        retryable: *retryable,
+        attempt: *attempt,
+        metadata: metadata.as_deref(),
+        json: *json,
+    })
 }
 
 fn run_apply_recovery_plan_from_command(

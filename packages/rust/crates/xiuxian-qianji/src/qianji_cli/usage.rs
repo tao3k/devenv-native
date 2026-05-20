@@ -102,6 +102,12 @@ fn print_control_usage() {
         "             qianji [-v|--log-verbose] control activity --ledger <path> --run-id <id> --activity-id <id> [--step-id <id>] [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control activity-complete --ledger <path> --run-id <id> --activity-id <id> --completed-at-ms <ms> [--step-id <id>] [--output-hash <hash>] [--metadata <json>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-fail --ledger <path> --run-id <id> --activity-id <id> --failed-at-ms <ms> --error-code <code> --message <text> --retryable <true|false> --attempt <n> [--step-id <id>] [--metadata <json>] [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control activity-queue --ledger <path> --run-id <id> [--task-queue <queue>] [--json]"
     );
     eprintln!(

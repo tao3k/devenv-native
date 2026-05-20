@@ -1,5 +1,6 @@
 //! `qianji control` command surface.
 
+mod activity_finish;
 mod activity_start;
 mod api;
 mod heartbeat;
