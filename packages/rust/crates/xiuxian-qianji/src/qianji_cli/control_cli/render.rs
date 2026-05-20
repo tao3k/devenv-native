@@ -6,6 +6,10 @@ use xiuxian_qianji_control::{
     ActivityView, AgentDecision, ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot,
     RunView, StepView, TimerView,
 };
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+use xiuxian_qianji_control::{
+    RecoveryActionApplication, RecoveryLoopApplication, RecoveryPlanAction,
+};
 
 pub(super) struct ControlStateQueryView<'a> {
     pub(super) event_count: usize,
@@ -165,6 +169,52 @@ pub(super) fn render_hot_state_snapshot_text(snapshot: &HotStateSnapshot) -> Str
 #[cfg(any(feature = "valkey", test))]
 pub(super) fn render_hot_state_snapshot_json(snapshot: &HotStateSnapshot) -> io::Result<String> {
     serde_json::to_string_pretty(snapshot).map_err(io::Error::other)
+}
+
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+pub(super) fn render_recovery_loop_text(application: &RecoveryLoopApplication) -> String {
+    let applied_count = application
+        .action_results
+        .iter()
+        .filter(|result| recovery_application_applied(&result.result))
+        .count();
+    let skipped_count = application.action_results.len() - applied_count;
+    let mut output = format!(
+        concat!(
+            "# Qianji Control Recovery Application\n\n",
+            "- Attempt event sequence: `{}`\n",
+            "- Actions: `{}`\n",
+            "- Applied actions: `{}`\n",
+            "- Skipped actions: `{}`\n"
+        ),
+        application.attempt_record.sequence,
+        application.action_results.len(),
+        applied_count,
+        skipped_count
+    );
+
+    if !application.action_results.is_empty() {
+        output.push_str("\n## Actions\n\n");
+        for action in &application.action_results {
+            push_fmt(
+                &mut output,
+                format_args!(
+                    "- `{}` -> `{}`\n",
+                    recovery_action_label(&action.action),
+                    recovery_application_label(&action.result)
+                ),
+            );
+        }
+    }
+
+    output
+}
+
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+pub(super) fn render_recovery_loop_json(
+    application: &RecoveryLoopApplication,
+) -> io::Result<String> {
+    serde_json::to_string_pretty(application).map_err(io::Error::other)
 }
 
 pub(super) fn render_control_state_query_text(state: &ControlStateQueryView<'_>) -> String {
@@ -540,6 +590,39 @@ pub(super) fn render_timer_view_json(timer: &TimerView) -> io::Result<String> {
 fn push_fmt(output: &mut String, args: fmt::Arguments<'_>) {
     if fmt::write(output, args).is_err() {
         unreachable!("writing to a String cannot fail");
+    }
+}
+
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+fn recovery_application_applied(application: &RecoveryActionApplication) -> bool {
+    !matches!(application, RecoveryActionApplication::NotApplicable { .. })
+}
+
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+fn recovery_application_label(application: &RecoveryActionApplication) -> &'static str {
+    match application {
+        RecoveryActionApplication::AppliedStepRetry { .. } => "applied_step_retry",
+        RecoveryActionApplication::AppliedTimerFire { .. } => "applied_timer_fire",
+        RecoveryActionApplication::AppliedLeaseReclaim { .. } => "applied_lease_reclaim",
+        RecoveryActionApplication::NotApplicable { .. } => "not_applicable",
+    }
+}
+
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+fn recovery_action_label(action: &RecoveryPlanAction) -> &'static str {
+    match action {
+        RecoveryPlanAction::ReclaimExpiredLease { .. } => "reclaim_expired_lease",
+        RecoveryPlanAction::FireTimer { .. } => "fire_timer",
+        RecoveryPlanAction::RetryActivity { .. } => "retry_activity",
+        RecoveryPlanAction::ReviewRetryableActivity { .. } => "review_retryable_activity",
+        RecoveryPlanAction::EscalateTerminalActivity { .. } => "escalate_terminal_activity",
+        RecoveryPlanAction::ReconcileScheduledActivity { .. } => "reconcile_scheduled_activity",
+        RecoveryPlanAction::InspectInFlightActivity { .. } => "inspect_in_flight_activity",
+        RecoveryPlanAction::AwaitHumanApproval { .. } => "await_human_approval",
+        RecoveryPlanAction::AwaitHumanInput { .. } => "await_human_input",
+        RecoveryPlanAction::InspectBlockedStep { .. } => "inspect_blocked_step",
+        RecoveryPlanAction::PreserveActiveLease { .. } => "preserve_active_lease",
+        RecoveryPlanAction::AwaitTimer { .. } => "await_timer",
     }
 }
 

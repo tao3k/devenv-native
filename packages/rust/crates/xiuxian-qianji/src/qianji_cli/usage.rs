@@ -87,6 +87,9 @@ fn print_control_usage() {
         "  Control:   qianji [-v|--log-verbose] control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms> [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control apply-recovery-plan --ledger <path> --valkey-url <url> --run-id <id> --now-ms <ms> --attempt <n> --reason <text> --max-attempts <n> [--namespace <ns>] [--backoff-ms <ms>] [--require-human-approval] [--priority <n>] [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control hot-state --valkey-url <url> --now-ms <ms> [--namespace <ns>] [--json]"
     );
     eprintln!(

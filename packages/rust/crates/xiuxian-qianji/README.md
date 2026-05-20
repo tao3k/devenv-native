@@ -217,6 +217,14 @@ the existing control event schema remains unchanged.
 [--json]` reads the same `xiuxian-qianji-control` DuckDB event ledger and
 returns the replay-derived recovery view, ordered recovery plan, and compact
 summary without executing recovery actions or touching hot scheduler state.
+`qianji control apply-recovery-plan --ledger <path> --valkey-url <url>
+--run-id <id> --now-ms <ms> --attempt <n> --reason <text> --max-attempts <n>
+[--namespace <ns>] [--backoff-ms <ms>] [--require-human-approval]
+[--priority <n>] [--json]` records a recovery-start fact and applies the
+current bounded recovery plan through `xiuxian-qianji-control` against the
+Valkey hot-state mirror. The command only executes recovery action kinds that
+the control crate already supports; unsupported actions are reported as skipped
+results.
 `qianji control hot-state --valkey-url <url> --now-ms <ms> [--namespace <ns>]
 [--json]` reads the Valkey hot scheduling state directly and renders pending
 steps, leased steps, lease expiry state, and worker heartbeat visibility. This

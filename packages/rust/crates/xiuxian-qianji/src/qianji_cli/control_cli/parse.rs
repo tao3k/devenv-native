@@ -15,6 +15,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
 
     match args.get(2).map(String::as_str) {
         Some("activity") => parse_activity(args).map(Some),
+        Some("apply-recovery-plan") => parse_apply_recovery_plan(args).map(Some),
         Some("decision") => parse_decision(args).map(Some),
         Some("heartbeat") => super::heartbeat::parse(args).map(Some),
         Some("history") => parse_history(args).map(Some),
@@ -29,8 +30,130 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `decision`, `heartbeat`, `history`, `hot-state`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
+            "missing `control` subcommand; expected `activity`, `apply-recovery-plan`, `decision`, `heartbeat`, `history`, `hot-state`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
         )),
+    }
+}
+
+fn parse_apply_recovery_plan(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut parsed = ApplyRecoveryPlanArgs::default();
+    let mut index = 3;
+    while index < args.len() {
+        parsed.parse_flag(args, &mut index)?;
+        index += 1;
+    }
+    parsed.into_command()
+}
+
+#[derive(Default)]
+struct ApplyRecoveryPlanArgs {
+    ledger_path: Option<PathBuf>,
+    valkey_url: Option<String>,
+    namespace: Option<String>,
+    run_id: Option<String>,
+    now_ms: Option<u64>,
+    attempt: Option<u32>,
+    reason: Option<String>,
+    max_attempts: Option<u32>,
+    backoff_ms: u64,
+    require_human_approval: bool,
+    priority: i64,
+    json: bool,
+}
+
+impl ApplyRecoveryPlanArgs {
+    fn parse_flag(&mut self, args: &[String], index: &mut usize) -> io::Result<()> {
+        match args[*index].as_str() {
+            "--ledger" => {
+                self.ledger_path = Some(PathBuf::from(parse_flag_value(args, index, "--ledger")?));
+            }
+            "--valkey-url" => {
+                self.valkey_url = Some(parse_flag_value(args, index, "--valkey-url")?);
+            }
+            "--namespace" => {
+                self.namespace = Some(parse_flag_value(args, index, "--namespace")?);
+            }
+            "--run-id" => {
+                self.run_id = Some(parse_flag_value(args, index, "--run-id")?);
+            }
+            "--now-ms" => {
+                self.now_ms = Some(parse_apply_recovery_plan_now_ms(&parse_flag_value(
+                    args, index, "--now-ms",
+                )?)?);
+            }
+            "--attempt" => {
+                self.attempt = Some(parse_apply_recovery_plan_attempt(&parse_flag_value(
+                    args,
+                    index,
+                    "--attempt",
+                )?)?);
+            }
+            "--reason" => {
+                self.reason = Some(parse_flag_value(args, index, "--reason")?);
+            }
+            "--max-attempts" => {
+                self.max_attempts = Some(parse_apply_recovery_plan_max_attempts(
+                    &parse_flag_value(args, index, "--max-attempts")?,
+                )?);
+            }
+            "--backoff-ms" => {
+                self.backoff_ms = parse_apply_recovery_plan_backoff_ms(&parse_flag_value(
+                    args,
+                    index,
+                    "--backoff-ms",
+                )?)?;
+            }
+            "--require-human-approval" => {
+                self.require_human_approval = true;
+            }
+            "--priority" => {
+                self.priority = parse_apply_recovery_plan_priority(&parse_flag_value(
+                    args,
+                    index,
+                    "--priority",
+                )?)?;
+            }
+            "--json" => {
+                self.json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control apply-recovery-plan` does not accept argument `{other}`"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn into_command(self) -> io::Result<ControlCliCommand> {
+        Ok(ControlCliCommand::ApplyRecoveryPlan {
+            ledger_path: self.ledger_path.ok_or_else(|| {
+                invalid_input("missing `--ledger <path>` for `control apply-recovery-plan`")
+            })?,
+            valkey_url: self.valkey_url.ok_or_else(|| {
+                invalid_input("missing `--valkey-url <url>` for `control apply-recovery-plan`")
+            })?,
+            namespace: self.namespace,
+            run_id: self.run_id.ok_or_else(|| {
+                invalid_input("missing `--run-id <id>` for `control apply-recovery-plan`")
+            })?,
+            now_ms: self.now_ms.ok_or_else(|| {
+                invalid_input("missing `--now-ms <ms>` for `control apply-recovery-plan`")
+            })?,
+            attempt: self.attempt.ok_or_else(|| {
+                invalid_input("missing `--attempt <n>` for `control apply-recovery-plan`")
+            })?,
+            reason: self.reason.ok_or_else(|| {
+                invalid_input("missing `--reason <text>` for `control apply-recovery-plan`")
+            })?,
+            max_attempts: self.max_attempts.ok_or_else(|| {
+                invalid_input("missing `--max-attempts <n>` for `control apply-recovery-plan`")
+            })?,
+            backoff_ms: self.backoff_ms,
+            require_human_approval: self.require_human_approval,
+            priority: self.priority,
+            json: self.json,
+        })
     }
 }
 
@@ -532,6 +655,46 @@ fn parse_hot_state_now_ms(value: &str) -> io::Result<u64> {
     value.parse::<u64>().map_err(|error| {
         invalid_input(format!(
             "invalid `--now-ms` value `{value}` for `control hot-state`: {error}"
+        ))
+    })
+}
+
+fn parse_apply_recovery_plan_now_ms(value: &str) -> io::Result<u64> {
+    value.parse::<u64>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--now-ms` value `{value}` for `control apply-recovery-plan`: {error}"
+        ))
+    })
+}
+
+fn parse_apply_recovery_plan_attempt(value: &str) -> io::Result<u32> {
+    value.parse::<u32>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--attempt` value `{value}` for `control apply-recovery-plan`: {error}"
+        ))
+    })
+}
+
+fn parse_apply_recovery_plan_max_attempts(value: &str) -> io::Result<u32> {
+    value.parse::<u32>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--max-attempts` value `{value}` for `control apply-recovery-plan`: {error}"
+        ))
+    })
+}
+
+fn parse_apply_recovery_plan_backoff_ms(value: &str) -> io::Result<u64> {
+    value.parse::<u64>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--backoff-ms` value `{value}` for `control apply-recovery-plan`: {error}"
+        ))
+    })
+}
+
+fn parse_apply_recovery_plan_priority(value: &str) -> io::Result<i64> {
+    value.parse::<i64>().map_err(|error| {
+        invalid_input(format!(
+            "invalid `--priority` value `{value}` for `control apply-recovery-plan`: {error}"
         ))
     })
 }
