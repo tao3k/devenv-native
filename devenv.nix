@@ -148,7 +148,7 @@ in
     rustfmt.enable = true;
     clippy.enable = true;
     prettier.enable = true;
-    clippy.packageOverrides.cargo = config.languages.rust.toolchain.cargo;
+    clippy.packageOverrides.cargo = config.languages.rust.toolchainPackage;
     clippy.packageOverrides.clippy = config.languages.rust.toolchainPackage;
     clippy.settings.allFeatures = true;
     oxlint.enable = true;
