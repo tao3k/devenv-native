@@ -287,6 +287,23 @@ jobs:
           done
           echo "$(brew --prefix libxml2)/bin" >> "$GITHUB_PATH"
 
+      - name: Bootstrap macOS rustup
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          set -euo pipefail
+          rustup_path="${HOME}/.cargo/bin/rustup"
+          cargo_path="${HOME}/.cargo/bin/cargo"
+          rustup_version=""
+          if [[ -x "${rustup_path}" ]]; then
+            rustup_version="$("${rustup_path}" --version 2>/dev/null || true)"
+          fi
+          if [[ ${rustup_version} != rustup\ * || ! -x "${cargo_path}" ]]; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- -y --profile minimal --default-toolchain none
+          fi
+          echo "${HOME}/.cargo/bin" >> "${GITHUB_PATH}"
+          "${HOME}/.cargo/bin/rustup" --version
+
       - name: Export Rust build environment
         run: |
           set -euo pipefail

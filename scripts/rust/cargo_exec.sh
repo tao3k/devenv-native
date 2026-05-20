@@ -35,6 +35,10 @@ _pick_rustup_toolchain() {
     || printf '%s\n' "stable"
 }
 
+if [[ -z ${RUSTUP_TOOLCHAIN:-} ]]; then
+  export RUSTUP_TOOLCHAIN="$(_pick_rustup_toolchain)"
+fi
+
 _pick_python() {
   local candidate=""
   for candidate in "${PYO3_PYTHON:-}" "${PYTHON:-}"; do
