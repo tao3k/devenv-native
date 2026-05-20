@@ -54,6 +54,10 @@ use crate::link_graph_agentic::graph_structural_fake::{
     FakeGraphStructuralServiceGuard, spawn_fake_graph_structural_service,
 };
 
+#[cfg(feature = "julia")]
+const RUN_REAL_WENDAOSEARCH_SOLVER_DEMO_ENV: &str =
+    "RUN_WENDAO_LINK_GRAPH_AGENTIC_REAL_SOLVER_DEMO";
+
 pub(super) type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 pub(super) struct AgenticIndexFixture {
@@ -143,6 +147,9 @@ pub(super) async fn linked_builtin_spawn_wendaosearch_solver_demo_multi_route_se
 
 #[cfg(feature = "julia")]
 fn wendaosearch_solver_demo_available() -> bool {
+    if env::var_os(RUN_REAL_WENDAOSEARCH_SOLVER_DEMO_ENV).is_none() {
+        return false;
+    }
     if env::var("WENDAOSEARCH_SOLVER_DEMO_BASE_URL").is_ok_and(|value| !value.is_empty()) {
         return true;
     }

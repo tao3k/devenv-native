@@ -410,32 +410,30 @@ fn summarize_dataset_ontology_wendaograph_response(
     let check_ids = string_column(response, "check_id", "ontology proof rows")?;
     let statuses = string_column(response, "status", "ontology proof rows")?;
     let severities = string_column(response, "severity", "ontology proof rows")?;
-    let mut seen_checks = BTreeSet::new();
-    let mut pass_count = 0;
-    let mut failure_count = 0;
-    let mut warning_count = 0;
-
-    for row_index in 0..response.num_rows() {
-        seen_checks.insert(check_ids.value(row_index).to_owned());
-        if statuses.value(row_index) == "pass" {
-            pass_count += 1;
-        } else {
-            failure_count += 1;
-        }
-        if severities.value(row_index) == "warning" {
-            warning_count += 1;
-        }
-    }
-
-    let mut required_checks_present = Vec::new();
-    let mut missing_required_checks = Vec::new();
-    for check_id in required_checks {
-        if seen_checks.contains(*check_id) {
-            required_checks_present.push((*check_id).to_string());
-        } else {
-            missing_required_checks.push((*check_id).to_string());
-        }
-    }
+    let row_indices = 0..response.num_rows();
+    let seen_checks = row_indices
+        .clone()
+        .map(|row_index| check_ids.value(row_index).to_owned())
+        .collect::<BTreeSet<_>>();
+    let pass_count = row_indices
+        .clone()
+        .filter(|row_index| statuses.value(*row_index) == "pass")
+        .count();
+    let failure_count = response.num_rows() - pass_count;
+    let warning_count = row_indices
+        .clone()
+        .filter(|row_index| severities.value(*row_index) == "warning")
+        .count();
+    let required_checks_present = required_checks
+        .iter()
+        .filter(|check_id| seen_checks.contains(**check_id))
+        .map(|check_id| (*check_id).to_string())
+        .collect::<Vec<_>>();
+    let missing_required_checks = required_checks
+        .iter()
+        .filter(|check_id| !seen_checks.contains(**check_id))
+        .map(|check_id| (*check_id).to_string())
+        .collect::<Vec<_>>();
 
     Ok(DatasetOntologyWendaoGraphProofEvidence {
         row_count: response.num_rows(),
