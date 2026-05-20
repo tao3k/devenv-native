@@ -27,12 +27,80 @@ _pick_python() {
 
 _is_real_cargo() {
   local candidate="${1:-}"
+  local resolved=""
   local version=""
   if [[ -z ${candidate} || ! -x ${candidate} ]]; then
     return 1
   fi
+  if [[ $(basename "${candidate}") == "rustup-init" || $(basename "${candidate}") == "rustup-init.exe" ]]; then
+    return 1
+  fi
+  resolved="$(command -v greadlink >/dev/null 2>&1 && greadlink -f "${candidate}" 2>/dev/null || true)"
+  if [[ -z ${resolved} ]]; then
+    resolved="$(readlink -f "${candidate}" 2>/dev/null || true)"
+  fi
+  if [[ -n ${resolved} && ( $(basename "${resolved}") == "rustup-init" || $(basename "${resolved}") == "rustup-init.exe" ) ]]; then
+    return 1
+  fi
   version="$("${candidate}" --version 2>/dev/null || true)"
-  [[ ${version} == cargo\ * ]]
+  [[ ${version} == cargo\ * ]] && _has_real_rustc "${candidate}"
+}
+
+_is_real_rustc() {
+  local candidate="${1:-}"
+  local resolved=""
+  local version=""
+  if [[ -z ${candidate} || ! -x ${candidate} ]]; then
+    return 1
+  fi
+  if [[ $(basename "${candidate}") == "rustup-init" || $(basename "${candidate}") == "rustup-init.exe" ]]; then
+    return 1
+  fi
+  resolved="$(command -v greadlink >/dev/null 2>&1 && greadlink -f "${candidate}" 2>/dev/null || true)"
+  if [[ -z ${resolved} ]]; then
+    resolved="$(readlink -f "${candidate}" 2>/dev/null || true)"
+  fi
+  if [[ -n ${resolved} && ( $(basename "${resolved}") == "rustup-init" || $(basename "${resolved}") == "rustup-init.exe" ) ]]; then
+    return 1
+  fi
+  version="$("${candidate}" --version 2>/dev/null || true)"
+  [[ ${version} == rustc\ * ]]
+}
+
+_has_real_rustc() {
+  local cargo_candidate="${1:-}"
+  local rustc_candidate=""
+  for rustc_candidate in \
+    "${RUSTC:-}" \
+    "$(dirname "${cargo_candidate}")/rustc" \
+    "$(command -v rustc 2>/dev/null || true)"
+  do
+    if _is_real_rustc "${rustc_candidate}"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+_is_real_rustup() {
+  local candidate="${1:-}"
+  local resolved=""
+  local version=""
+  if [[ -z ${candidate} || ! -x ${candidate} ]]; then
+    return 1
+  fi
+  if [[ $(basename "${candidate}") == "rustup-init" || $(basename "${candidate}") == "rustup-init.exe" ]]; then
+    return 1
+  fi
+  resolved="$(command -v greadlink >/dev/null 2>&1 && greadlink -f "${candidate}" 2>/dev/null || true)"
+  if [[ -z ${resolved} ]]; then
+    resolved="$(readlink -f "${candidate}" 2>/dev/null || true)"
+  fi
+  if [[ -n ${resolved} && ( $(basename "${resolved}") == "rustup-init" || $(basename "${resolved}") == "rustup-init.exe" ) ]]; then
+    return 1
+  fi
+  version="$("${candidate}" --version 2>/dev/null || true)"
+  [[ ${version} == rustup\ * ]]
 }
 
 _pick_cargo() {
@@ -95,8 +163,14 @@ fi
 
 # Prefer the system Clang toolchain on macOS for crates that compile C/C++ code.
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  export CC="${CC:-/usr/bin/clang}"
-  export CXX="${CXX:-/usr/bin/clang++}"
+  if [[ -z ${CC:-} || ${CC} == "clang" ]]; then
+    export CC="/usr/bin/clang"
+  fi
+  if [[ -z ${CXX:-} || ${CXX} == "clang++" ]]; then
+    export CXX="/usr/bin/clang++"
+  fi
+  export CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="${CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER:-/usr/bin/clang}"
+  export CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER="${CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER:-/usr/bin/clang}"
 fi
 
 # Prefer precompiled Metal kernels on local macOS builds.
@@ -108,11 +182,17 @@ if [[ "$(uname -s)" == "Darwin" && -z ${MISTRALRS_METAL_PRECOMPILE:-} ]]; then
 fi
 
 if cargo_bin="$(_pick_cargo)"; then
+  cargo_bin_dir="$(dirname "${cargo_bin}")"
+  case ":${PATH:-}:" in
+    *":${cargo_bin_dir}:"*) ;;
+    *) export PATH="${cargo_bin_dir}:${PATH:-}" ;;
+  esac
   exec "${cargo_bin}" "$@"
 fi
 
-if command -v rustup >/dev/null 2>&1 && rustup --version 2>/dev/null | grep -q '^rustup '; then
-  exec rustup run "${RUSTUP_TOOLCHAIN:-stable}" cargo "$@"
+rustup_bin="$(command -v rustup 2>/dev/null || true)"
+if _is_real_rustup "${rustup_bin}"; then
+  exec "${rustup_bin}" run "${RUSTUP_TOOLCHAIN:-stable}" cargo "$@"
 fi
 
 printf 'error: usable cargo executable was not found; PATH cargo may be rustup-init without an installed Rust toolchain\n' >&2

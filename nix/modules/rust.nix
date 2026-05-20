@@ -47,8 +47,14 @@ let
       fi
 
       # Prefer the system Clang toolchain on macOS for crates that compile C/C++ code.
-      export CC="''${CC:-/usr/bin/clang}"
-      export CXX="''${CXX:-/usr/bin/clang++}"
+      if [[ -z "''${CC:-}" || "''${CC}" == "clang" ]]; then
+        export CC="/usr/bin/clang"
+      fi
+      if [[ -z "''${CXX:-}" || "''${CXX}" == "clang++" ]]; then
+        export CXX="/usr/bin/clang++"
+      fi
+      export CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="''${CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER:-/usr/bin/clang}"
+      export CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER="''${CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER:-/usr/bin/clang}"
 
       # Prefer precompiled Metal kernels on local macOS builds.
       # In isolated environments where `metal` is unavailable (common in CI/Nix),
