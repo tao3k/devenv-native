@@ -11063,6 +11063,7 @@ name = "xiuxian-core-rs"
 version = "0.1.1"
 dependencies = [
  "pyo3",
+ "pyo3-build-config",
  "xiuxian-wendao",
 ]
 

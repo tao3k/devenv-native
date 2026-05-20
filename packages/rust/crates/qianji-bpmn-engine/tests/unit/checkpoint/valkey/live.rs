@@ -7,6 +7,23 @@ use qianji_bpmn_engine::{
     save_checkpoint_as_owner, try_acquire_checkpoint_lease,
 };
 use serde_json::json;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+static LIVE_CHECKPOINT_INSTANCE_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+fn unique_checkpoint_instance_id(prefix: &str) -> String {
+    let counter = LIVE_CHECKPOINT_INSTANCE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let epoch_nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |duration| duration.as_nanos());
+    format!(
+        "{prefix}_{}_{}_{}",
+        std::process::id(),
+        epoch_nanos,
+        counter
+    )
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn checkpoint_live_round_trip_when_valkey_is_available() {
@@ -16,11 +33,11 @@ async fn checkpoint_live_round_trip_when_valkey_is_available() {
     else {
         return;
     };
-    let instance_id = "wf_checkpoint_live_round_trip";
+    let instance_id = unique_checkpoint_instance_id("wf_checkpoint_live_round_trip");
     let checkpoint =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 1, json!({ "amount": 7 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 1, json!({ "amount": 7 }));
     let newer =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 2, json!({ "amount": 9 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 2, json!({ "amount": 9 }));
 
     save_checkpoint(&checkpoint, valkey.url())
         .await
@@ -28,7 +45,7 @@ async fn checkpoint_live_round_trip_when_valkey_is_available() {
     save_checkpoint(&newer, valkey.url())
         .await
         .must("newer checkpoint should replace older state");
-    let loaded = load_checkpoint(instance_id, valkey.url())
+    let loaded = load_checkpoint(&instance_id, valkey.url())
         .await
         .must("checkpoint should load from valkey")
         .must("checkpoint should exist after save");
@@ -46,13 +63,13 @@ async fn checkpoint_live_rejects_stale_sequences_when_valkey_is_available() {
     else {
         return;
     };
-    let instance_id = "wf_checkpoint_live_rejects_stale_sequences";
+    let instance_id = unique_checkpoint_instance_id("wf_checkpoint_live_rejects_stale_sequences");
     let current =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 5, json!({ "amount": 11 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 5, json!({ "amount": 11 }));
     let equal =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 5, json!({ "amount": 13 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 5, json!({ "amount": 13 }));
     let older =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 4, json!({ "amount": 3 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 4, json!({ "amount": 3 }));
 
     save_checkpoint(&current, valkey.url())
         .await
@@ -64,7 +81,7 @@ async fn checkpoint_live_rejects_stale_sequences_when_valkey_is_available() {
     assert_eq!(
         equal_error,
         BpmnEngineError::StaleCheckpointWrite {
-            instance_id: (instance_id.to_string()).into(),
+            instance_id: instance_id.clone().into(),
             attempted_sequence: 5,
             stored_sequence: 5,
         }
@@ -76,13 +93,13 @@ async fn checkpoint_live_rejects_stale_sequences_when_valkey_is_available() {
     assert_eq!(
         older_error,
         BpmnEngineError::StaleCheckpointWrite {
-            instance_id: (instance_id.to_string()).into(),
+            instance_id: instance_id.clone().into(),
             attempted_sequence: 4,
             stored_sequence: 5,
         }
     );
 
-    let loaded = load_checkpoint(instance_id, valkey.url())
+    let loaded = load_checkpoint(&instance_id, valkey.url())
         .await
         .must("checkpoint should remain loadable after stale-write rejection")
         .must("checkpoint should still exist");
@@ -98,9 +115,9 @@ async fn checkpoint_live_delete_removes_state_when_valkey_is_available() {
     else {
         return;
     };
-    let instance_id = "wf_checkpoint_live_delete";
+    let instance_id = unique_checkpoint_instance_id("wf_checkpoint_live_delete");
     let checkpoint =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 3, json!({ "amount": 17 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 3, json!({ "amount": 17 }));
 
     save_checkpoint(&checkpoint, valkey.url())
         .await
@@ -109,7 +126,7 @@ async fn checkpoint_live_delete_removes_state_when_valkey_is_available() {
         .await
         .must("checkpoint delete should succeed");
 
-    let loaded = load_checkpoint(instance_id, valkey.url())
+    let loaded = load_checkpoint(&instance_id, valkey.url())
         .await
         .must("checkpoint load should succeed after delete");
     assert!(loaded.is_none());
@@ -127,40 +144,40 @@ async fn checkpoint_lease_live_acquire_renew_release_when_valkey_is_available() 
     else {
         return;
     };
-    let instance_id = "wf_checkpoint_live_lease";
+    let instance_id = unique_checkpoint_instance_id("wf_checkpoint_live_lease");
 
     assert!(
-        try_acquire_checkpoint_lease(instance_id, "owner-a", 30_000, valkey.url())
+        try_acquire_checkpoint_lease(&instance_id, "owner-a", 30_000, valkey.url())
             .await
             .must("owner-a should acquire the lease")
     );
     assert!(
-        !try_acquire_checkpoint_lease(instance_id, "owner-b", 30_000, valkey.url())
+        !try_acquire_checkpoint_lease(&instance_id, "owner-b", 30_000, valkey.url())
             .await
             .must("owner-b should lose the lease race")
     );
     assert!(
-        renew_checkpoint_lease(instance_id, "owner-a", 30_000, valkey.url())
+        renew_checkpoint_lease(&instance_id, "owner-a", 30_000, valkey.url())
             .await
             .must("owner-a renewal should succeed")
     );
     assert!(
-        !renew_checkpoint_lease(instance_id, "owner-b", 30_000, valkey.url())
+        !renew_checkpoint_lease(&instance_id, "owner-b", 30_000, valkey.url())
             .await
             .must("owner-b renewal should fail")
     );
     assert!(
-        !release_checkpoint_lease(instance_id, "owner-b", valkey.url())
+        !release_checkpoint_lease(&instance_id, "owner-b", valkey.url())
             .await
             .must("owner-b release should fail")
     );
     assert!(
-        release_checkpoint_lease(instance_id, "owner-a", valkey.url())
+        release_checkpoint_lease(&instance_id, "owner-a", valkey.url())
             .await
             .must("owner-a release should succeed")
     );
     assert!(
-        try_acquire_checkpoint_lease(instance_id, "owner-b", 30_000, valkey.url())
+        try_acquire_checkpoint_lease(&instance_id, "owner-b", 30_000, valkey.url())
             .await
             .must("owner-b should acquire the lease after release")
     );
@@ -174,14 +191,15 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     else {
         return;
     };
-    let instance_id = "wf_checkpoint_live_owner_guarded_save";
+    let instance_id = unique_checkpoint_instance_id("wf_checkpoint_live_owner_guarded_save");
     let owner_a = "owner-a";
     let owner_b = "owner-b";
     let first =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 1, json!({ "amount": 7 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 1, json!({ "amount": 7 }));
     let stale =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 1, json!({ "amount": 8 }));
-    let next = sample_checkpoint_for_instance_with_sequence(instance_id, 2, json!({ "amount": 9 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 1, json!({ "amount": 8 }));
+    let next =
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 2, json!({ "amount": 9 }));
 
     let missing_lease = save_checkpoint_as_owner(&first, owner_a, valkey.url())
         .await
@@ -189,12 +207,12 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     assert_eq!(
         missing_lease,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: (instance_id.to_string()).into(),
+            instance_id: instance_id.clone().into(),
         }
     );
 
     assert!(
-        try_acquire_checkpoint_lease(instance_id, owner_a, 30_000, valkey.url())
+        try_acquire_checkpoint_lease(&instance_id, owner_a, 30_000, valkey.url())
             .await
             .must("owner-a should acquire the lease")
     );
@@ -208,7 +226,7 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     assert_eq!(
         wrong_owner,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: (instance_id.to_string()).into(),
+            instance_id: instance_id.clone().into(),
         }
     );
 
@@ -218,7 +236,7 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     assert_eq!(
         stale_error,
         BpmnEngineError::StaleCheckpointWrite {
-            instance_id: (instance_id.to_string()).into(),
+            instance_id: instance_id.clone().into(),
             attempted_sequence: 1,
             stored_sequence: 1,
         }
@@ -227,7 +245,7 @@ async fn checkpoint_live_owner_guarded_save_requires_lease_when_valkey_is_availa
     save_checkpoint_as_owner(&next, owner_a, valkey.url())
         .await
         .must("newer sequence should save for the current owner");
-    let loaded = load_checkpoint(instance_id, valkey.url())
+    let loaded = load_checkpoint(&instance_id, valkey.url())
         .await
         .must("owner-guarded save should remain readable")
         .must("checkpoint should still exist");
@@ -243,54 +261,54 @@ async fn checkpoint_live_owner_guarded_delete_requires_lease_when_valkey_is_avai
     else {
         return;
     };
-    let instance_id = "wf_checkpoint_live_owner_guarded_delete";
+    let instance_id = unique_checkpoint_instance_id("wf_checkpoint_live_owner_guarded_delete");
     let owner_a = "owner-a";
     let owner_b = "owner-b";
     let checkpoint =
-        sample_checkpoint_for_instance_with_sequence(instance_id, 3, json!({ "amount": 7 }));
+        sample_checkpoint_for_instance_with_sequence(&instance_id, 3, json!({ "amount": 7 }));
 
     save_checkpoint(&checkpoint, valkey.url())
         .await
         .must("checkpoint should save before delete ownership checks");
 
-    let missing_lease = delete_checkpoint_as_owner(instance_id, owner_a, valkey.url())
+    let missing_lease = delete_checkpoint_as_owner(&instance_id, owner_a, valkey.url())
         .await
         .must_err("owner-guarded delete should require a lease");
     assert_eq!(
         missing_lease,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: (instance_id.to_string()).into(),
+            instance_id: instance_id.clone().into(),
         }
     );
 
     assert!(
-        try_acquire_checkpoint_lease(instance_id, owner_a, 30_000, valkey.url())
+        try_acquire_checkpoint_lease(&instance_id, owner_a, 30_000, valkey.url())
             .await
             .must("owner-a should acquire the lease")
     );
 
-    let wrong_owner = delete_checkpoint_as_owner(instance_id, owner_b, valkey.url())
+    let wrong_owner = delete_checkpoint_as_owner(&instance_id, owner_b, valkey.url())
         .await
         .must_err("owner-b should not delete without the lease");
     assert_eq!(
         wrong_owner,
         BpmnEngineError::CheckpointLeaseNotOwned {
-            instance_id: (instance_id.to_string()).into(),
+            instance_id: instance_id.clone().into(),
         }
     );
 
-    let still_present = load_checkpoint(instance_id, valkey.url())
+    let still_present = load_checkpoint(&instance_id, valkey.url())
         .await
         .must("checkpoint should remain after failed delete")
         .must("checkpoint should still exist");
     assert_eq!(still_present.sequence, checkpoint.sequence);
     assert_eq!(still_present.state, checkpoint.state);
 
-    delete_checkpoint_as_owner(instance_id, owner_a, valkey.url())
+    delete_checkpoint_as_owner(&instance_id, owner_a, valkey.url())
         .await
         .must("owner-a should delete while holding the lease");
 
-    let loaded = load_checkpoint(instance_id, valkey.url())
+    let loaded = load_checkpoint(&instance_id, valkey.url())
         .await
         .must("deleted checkpoint should load cleanly");
     assert!(loaded.is_none());
