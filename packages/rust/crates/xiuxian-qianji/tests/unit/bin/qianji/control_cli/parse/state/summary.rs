@@ -43,9 +43,12 @@ fn parse_control_summary_rejects_missing_now_ms() {
         "run-control",
     ]));
 
+    let error = match result {
+        Ok(command) => panic!("summary without now-ms should fail, parsed {command:?}"),
+        Err(error) => error,
+    };
     assert!(
-        result
-            .expect_err("summary without now-ms should fail")
+        error
             .to_string()
             .contains("missing `--now-ms <ms>` for `control summary`")
     );

@@ -31,6 +31,7 @@ jobs:
             exit 1
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "RUSTUP_TOOLCHAIN=${channel}" >> "$GITHUB_ENV"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -74,6 +75,7 @@ jobs:
             exit 1
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "RUSTUP_TOOLCHAIN=${channel}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |
@@ -257,6 +259,7 @@ jobs:
             exit 1
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "RUSTUP_TOOLCHAIN=${channel}" >> "$GITHUB_ENV"
 
       - name: Install Linux build dependencies
         if: ${{ runner.os == 'Linux' }}
@@ -322,6 +325,9 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Verify Rust cargo wrapper
+        run: scripts/rust/cargo_exec.sh --version
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2

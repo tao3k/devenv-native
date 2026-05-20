@@ -1,6 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+_repo_root() {
+  local script_dir=""
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cd "${script_dir}/../.." && pwd
+}
+
+_rust_toolchain_from_file() {
+  local file=""
+  local channel=""
+  for file in "$@"; do
+    if [[ -f ${file} ]]; then
+      channel="$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/ { print $2; exit }' "${file}")"
+      if [[ -n ${channel} ]]; then
+        printf '%s\n' "${channel}"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
+_pick_rustup_toolchain() {
+  local root=""
+  if [[ -n ${RUSTUP_TOOLCHAIN:-} ]]; then
+    printf '%s\n' "${RUSTUP_TOOLCHAIN}"
+    return 0
+  fi
+  root="$(_repo_root)"
+  _rust_toolchain_from_file \
+    "${root}/packages/rust/rust-toolchain.toml" \
+    "${root}/rust-toolchain.toml" \
+    || printf '%s\n' "stable"
+}
+
 _pick_python() {
   local candidate=""
   for candidate in "${PYO3_PYTHON:-}" "${PYTHON:-}"; do
@@ -105,6 +139,9 @@ _is_real_rustup() {
 
 _pick_cargo() {
   local candidate=""
+  local rustup_bin=""
+  local rustup_cargo=""
+  local rustup_toolchain=""
   for candidate in \
     "${CARGO:-}" \
     "${DEVENV_PROFILE:-}/bin/cargo" \
@@ -120,6 +157,16 @@ _pick_cargo() {
   if _is_real_cargo "${candidate}"; then
     printf '%s\n' "${candidate}"
     return 0
+  fi
+
+  rustup_bin="$(command -v rustup 2>/dev/null || true)"
+  if _is_real_rustup "${rustup_bin}"; then
+    rustup_toolchain="$(_pick_rustup_toolchain)"
+    rustup_cargo="$("${rustup_bin}" which --toolchain "${rustup_toolchain}" cargo 2>/dev/null || true)"
+    if _is_real_cargo "${rustup_cargo}"; then
+      printf '%s\n' "${rustup_cargo}"
+      return 0
+    fi
   fi
 
   return 1
@@ -192,7 +239,8 @@ fi
 
 rustup_bin="$(command -v rustup 2>/dev/null || true)"
 if _is_real_rustup "${rustup_bin}"; then
-  exec "${rustup_bin}" run "${RUSTUP_TOOLCHAIN:-stable}" cargo "$@"
+  rustup_toolchain="$(_pick_rustup_toolchain)"
+  exec "${rustup_bin}" run "${rustup_toolchain}" cargo "$@"
 fi
 
 printf 'error: usable cargo executable was not found; PATH cargo may be rustup-init without an installed Rust toolchain\n' >&2

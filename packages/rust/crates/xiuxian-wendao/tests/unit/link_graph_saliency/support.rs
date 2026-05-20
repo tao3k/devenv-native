@@ -8,8 +8,7 @@ pub(super) const TEST_VALKEY_URL: &str = "redis://127.0.0.1:6379/0";
 pub(super) fn unique_prefix() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|value| value.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |value| value.as_nanos());
     format!("omni:test:saliency:{nanos}")
 }
 

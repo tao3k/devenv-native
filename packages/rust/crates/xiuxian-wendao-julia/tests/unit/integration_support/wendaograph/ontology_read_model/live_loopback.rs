@@ -240,7 +240,19 @@ fn assert_response_contains_extension_proof_check(batch: &RecordBatch) {
 
 fn ltc_extension_proof_request_batches()
 -> io::Result<WendaoGraphOntologyExtensionProofRequestBatches> {
-    let parent_object_types = RecordBatch::try_new(
+    Ok(WendaoGraphOntologyExtensionProofRequestBatches::new(
+        ltc_parent_object_type_batch()?,
+        ltc_parent_link_type_batch()?,
+        WendaoGraphOntologyReadModelQualityRequestBatches::new(
+            ltc_semantic_object_batch()?,
+            ltc_semantic_relation_batch()?,
+            ltc_semantic_projection_state_batch()?,
+        ),
+    ))
+}
+
+fn ltc_parent_object_type_batch() -> io::Result<RecordBatch> {
+    RecordBatch::try_new(
         Arc::new(Schema::new(vec![
             Field::new("api_name", DataType::Utf8, false),
             Field::new("domain", DataType::Utf8, false),
@@ -258,8 +270,11 @@ fn ltc_extension_proof_request_batches()
             ])),
         ],
     )
-    .map_err(io::Error::other)?;
-    let parent_link_types = RecordBatch::try_new(
+    .map_err(io::Error::other)
+}
+
+fn ltc_parent_link_type_batch() -> io::Result<RecordBatch> {
+    RecordBatch::try_new(
         Arc::new(Schema::new(vec![
             Field::new("api_name", DataType::Utf8, false),
             Field::new("domain", DataType::Utf8, false),
@@ -277,8 +292,11 @@ fn ltc_extension_proof_request_batches()
             Arc::new(StringArray::from(vec!["Encounter"])),
         ],
     )
-    .map_err(io::Error::other)?;
-    let semantic_objects = RecordBatch::try_new(
+    .map_err(io::Error::other)
+}
+
+fn ltc_semantic_object_batch() -> io::Result<RecordBatch> {
+    RecordBatch::try_new(
         Arc::new(Schema::new(vec![
             Field::new("id", DataType::Utf8, false),
             Field::new("object_type", DataType::Utf8, false),
@@ -310,8 +328,11 @@ fn ltc_extension_proof_request_batches()
             Arc::new(StringArray::from(vec!["accepted", "accepted", "accepted"])),
         ],
     )
-    .map_err(io::Error::other)?;
-    let semantic_relations = RecordBatch::try_new(
+    .map_err(io::Error::other)
+}
+
+fn ltc_semantic_relation_batch() -> io::Result<RecordBatch> {
+    RecordBatch::try_new(
         Arc::new(Schema::new(vec![
             Field::new("source", DataType::Utf8, false),
             Field::new("target", DataType::Utf8, false),
@@ -340,8 +361,11 @@ fn ltc_extension_proof_request_batches()
             Arc::new(StringArray::from(vec!["fresh", "fresh"])),
         ],
     )
-    .map_err(io::Error::other)?;
-    let semantic_projection_state = RecordBatch::try_new(
+    .map_err(io::Error::other)
+}
+
+fn ltc_semantic_projection_state_batch() -> io::Result<RecordBatch> {
+    RecordBatch::try_new(
         Arc::new(Schema::new(vec![
             Field::new("projection", DataType::Utf8, false),
             Field::new("status", DataType::Utf8, false),
@@ -353,15 +377,5 @@ fn ltc_extension_proof_request_batches()
             Arc::new(StringArray::from(vec!["fresh"])),
         ],
     )
-    .map_err(io::Error::other)?;
-
-    Ok(WendaoGraphOntologyExtensionProofRequestBatches::new(
-        parent_object_types,
-        parent_link_types,
-        WendaoGraphOntologyReadModelQualityRequestBatches::new(
-            semantic_objects,
-            semantic_relations,
-            semantic_projection_state,
-        ),
-    ))
+    .map_err(io::Error::other)
 }
