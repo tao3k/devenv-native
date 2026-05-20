@@ -6,15 +6,23 @@ use xiuxian_wendao_sql::semantic_read_model::build_semantic_read_model_record_ba
 
 use super::support::{
     assert_binary_column_matches, dataset_ontology_envelope_batch, decode_single_batch,
-    sample_request_batches, string_column_value, write_semantic_read_model_fixture,
+    parent_registry_batches, sample_request_batches, string_column_value,
+    write_semantic_read_model_fixture,
 };
 use super::{
+    WENDAO_GRAPH_ONTOLOGY_EXTENSION_DOMAIN_PREFIX_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_PARENT_LINK_TYPES_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_PARENT_OBJECT_TYPES_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_RDF_NAMESPACE_COLUMN,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_FLIGHT_DESCRIPTOR_PATH,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE,
     WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
     WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
     WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
+    WendaoGraphOntologyExtensionProofRequestBatches,
     WendaoGraphOntologyReadModelQualityRequestBatches,
+    build_wendaograph_ontology_extension_proof_arrow_request,
+    build_wendaograph_ontology_extension_proof_flight_request_batch,
     build_wendaograph_ontology_read_model_quality_arrow_request,
     build_wendaograph_ontology_read_model_quality_flight_descriptor,
     build_wendaograph_ontology_read_model_quality_flight_request_batch,
@@ -69,6 +77,90 @@ fn ontology_read_model_quality_flight_request_batch_bundles_three_payloads() {
         &batch,
         WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
         request.semantic_projection_state_payload.as_slice(),
+    );
+}
+
+#[test]
+fn ontology_extension_proof_flight_request_batch_bundles_parent_registry_payloads() {
+    let (parent_object_types, parent_link_types) = parent_registry_batches();
+    let batches = WendaoGraphOntologyExtensionProofRequestBatches::new(
+        parent_object_types,
+        parent_link_types,
+        sample_request_batches(),
+    );
+    let request = build_wendaograph_ontology_extension_proof_arrow_request(
+        &batches,
+        "episteme://30_Healthcare/10_LongTermCare",
+        "",
+    )
+    .unwrap_or_else(|error| panic!("build ontology extension proof request: {error}"));
+    let batch = build_wendaograph_ontology_extension_proof_flight_request_batch(&request)
+        .unwrap_or_else(|error| panic!("build ontology extension proof Flight batch: {error}"));
+
+    assert_eq!(batch.num_rows(), 1);
+    assert_eq!(batch.num_columns(), 7);
+    assert_eq!(
+        batch
+            .schema()
+            .metadata()
+            .get("wendao.table")
+            .map(String::as_str),
+        Some(WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE)
+    );
+    assert_binary_column_matches(
+        &batch,
+        WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
+        request.semantic_objects_payload.as_slice(),
+    );
+    assert_binary_column_matches(
+        &batch,
+        WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
+        request.semantic_relations_payload.as_slice(),
+    );
+    assert_binary_column_matches(
+        &batch,
+        WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
+        request.semantic_projection_state_payload.as_slice(),
+    );
+    assert_binary_column_matches(
+        &batch,
+        WENDAO_GRAPH_ONTOLOGY_PARENT_OBJECT_TYPES_PAYLOAD_COLUMN,
+        request.parent_object_types_payload.as_slice(),
+    );
+    assert_binary_column_matches(
+        &batch,
+        WENDAO_GRAPH_ONTOLOGY_PARENT_LINK_TYPES_PAYLOAD_COLUMN,
+        request.parent_link_types_payload.as_slice(),
+    );
+    assert_eq!(
+        string_column_value(
+            &batch,
+            WENDAO_GRAPH_ONTOLOGY_EXTENSION_DOMAIN_PREFIX_COLUMN,
+            0
+        ),
+        "episteme://30_Healthcare/10_LongTermCare"
+    );
+    assert_eq!(
+        string_column_value(&batch, WENDAO_GRAPH_ONTOLOGY_RDF_NAMESPACE_COLUMN, 0),
+        ""
+    );
+
+    let parent_objects = decode_single_batch(
+        request.parent_object_types_payload.as_slice(),
+        "parent_object_types",
+    );
+    let parent_links = decode_single_batch(
+        request.parent_link_types_payload.as_slice(),
+        "parent_link_types",
+    );
+
+    assert_eq!(
+        string_column_value(&parent_objects, "api_name", 0),
+        "Patient"
+    );
+    assert_eq!(
+        string_column_value(&parent_links, "from_object_type", 0),
+        "Patient"
     );
 }
 

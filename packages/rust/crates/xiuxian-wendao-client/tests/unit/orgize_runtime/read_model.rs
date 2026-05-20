@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use crate::orgize_runtime::support::tempdir_or_panic;
+use crate::orgize_runtime::support::{assert_cli_success, run_orgize, tempdir_or_panic};
 
 #[cfg(feature = "orgize-agent-read-model")]
 #[test]
@@ -130,6 +130,41 @@ fn standalone_orgize_task_list_lists_active_rows_from_duckdb_snapshot() {
     assert!(!stdout.contains("Closed task"), "stdout: {stdout}");
     assert!(!stdout.contains("Evidence"), "stdout: {stdout}");
 }
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() {
+    let temp = tempdir_or_panic();
+    let agenda = temp.path().join("agenda.org");
+    std::fs::write(&agenda, "* TODO Agent task :agent:\n")
+        .unwrap_or_else(|error| panic!("write agenda: {error}"));
+
+    let first_refresh = run_orgize(temp.path(), &["read-model", "agenda.org"], "read-model");
+    assert_cli_success(&first_refresh);
+    let database_path = temp
+        .path()
+        .join(".cache")
+        .join("agent")
+        .join("readmodels")
+        .join("org_agent_tasks.duckdb");
+    let _writer_lock = xiuxian_db_store::duckdb_crate::Connection::open(&database_path)
+        .unwrap_or_else(|error| panic!("open writer lock: {error}"));
+
+    let list = run_orgize(temp.path(), &["task-list", "agenda.org"], "task-list");
+
+    assert_cli_success(&list);
+    assert!(
+        list.stdout.contains("snapshot: in-memory-fallback"),
+        "stdout: {}",
+        list.stdout
+    );
+    assert!(
+        list.stdout.contains("[TASK001] Agent task"),
+        "stdout: {}",
+        list.stdout
+    );
+}
+
 #[cfg(feature = "orgize-agent-read-model")]
 #[test]
 fn standalone_orgize_read_model_uses_wendao_toml_path_overrides() {

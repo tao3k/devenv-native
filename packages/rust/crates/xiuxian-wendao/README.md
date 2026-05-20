@@ -174,8 +174,10 @@ Use `xiuxian-wendao` for:
   source-contract facts and provenance only; it does not embed source corpus
   text or promote raw rows to RDF truth. When the `julia` feature is enabled,
   the compiled seed can be packaged into the existing WendaoGraph ontology
-  read-model quality request shape, still as accepted read-model batches rather
-  than TSV, RDF, or corpus parsing by Julia. Analyzer adapters live in
+  read-model quality request shape, or combined with caller-supplied compiled
+  parent object/link registry batches for extension proof. The handoff remains
+  accepted read-model batches rather than TSV, RDF, `registry.json`, or
+  `wendao.toml` parsing by Julia. Analyzer adapters live in
   package-owned analyzer crates; user or private episteme repositories should
   not own runtime tools, planning, promotion, or backend orchestration. The
   current operator entrypoints are the Studio-owned

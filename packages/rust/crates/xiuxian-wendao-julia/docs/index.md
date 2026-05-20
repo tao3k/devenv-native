@@ -115,6 +115,15 @@ Polyglot boundary:
    WendaoGraph ontology quality runner and sends the same bundle through the
    runtime Flight client; it is not part of the default test path because it
    launches a real Julia service process.
+   The extension-proof caller fixture builds on the same service contract:
+   `build_wendaograph_ontology_extension_proof_arrow_request(...)` packages
+   compiled parent object/link registry tables with the semantic read-model
+   tables, and
+   `build_wendaograph_ontology_extension_proof_flight_request_batch(...)`
+   emits the single request-bundle table accepted by the WendaoGraph service.
+   The older three-payload quality request remains unchanged, so extension
+   proof is explicit opt-in caller behavior rather than a new Gateway route or
+   Julia-side config reader.
    The bridge also adds `rustProjectedEvidenceRows` to the JSON trace as
    additive research metadata over candidates, frontier selection, planner
    materialization, and planned route counts. That projection is a bridge

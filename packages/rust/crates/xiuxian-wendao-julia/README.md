@@ -232,6 +232,17 @@ needs a feature-gated second plugin bundle for these languages.
   the current private LTC seed; cold-path optimization belongs in upstream
   source-contract materialization and service lifecycle policy, not in Julia
   parsing of private source files.
+- The bridge also exposes an explicit ontology extension proof request builder
+  for callers that already hold compiled parent object/link registry
+  `RecordBatch` tables. `build_wendaograph_ontology_extension_proof_arrow_request(...)`
+  packages those parent registry tables together with `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state`, and
+  `build_wendaograph_ontology_extension_proof_flight_request_batch(...)` wraps
+  all five Arrow IPC payloads plus the extension domain prefix into the existing
+  WendaoGraph ontology service request-bundle table. The legacy three-payload
+  quality builder is unchanged; extension proof is an explicit caller choice
+  and still does not make this crate parse RDF, raw private corpus files, or
+  `wendao.toml`.
 - Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
   reports can show both the narrowed Julia input count and the runtime
   promotion denominator. This prevents a fast Markdown replay subset from being

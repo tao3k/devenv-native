@@ -33,6 +33,11 @@ pub use dataset_ontology::{
     DatasetOntologyRuntimeMaterializationRequest, DatasetOntologyRuntimeReadModelTable,
     read_dataset_ontology_arrow_ipc_source_table,
 };
+#[cfg(all(feature = "duckdb", feature = "julia"))]
+pub use dataset_ontology::{
+    build_dataset_ontology_wendaograph_extension_proof_request_batches,
+    build_dataset_ontology_wendaograph_quality_request_batches,
+};
 #[cfg(feature = "duckdb")]
 pub use engine::DuckDbLocalRelationEngine;
 #[cfg(all(feature = "duckdb", test))]

@@ -36,7 +36,7 @@ As a deeply pragmatic, effective software engineer, you are guided by:
   notes MUST NOT link to hidden workspace paths such as `$PRJ_DATA_HOME/*`,
   `$PRJ_CACHE_HOME/*`, or `$PRJ_RUNTIME_DIR/*`. Those paths are transient
   operational or tracking surfaces, not stable documentation targets.
-- **Tracking-surface exception**: SDD files, ExecPlans, Org agenda/task entries, and similar task-tracking records may mention active SDD, blueprint, or ExecPlan paths for continuity, but canonical docs must point to stable RFC, package-doc, or README surfaces instead.
+- **Tracking-surface exception**: SDD files, ExecPlans, Org agenda/task entries, and similar task-tracking records may mention active SDD or ExecPlan paths for continuity, but canonical docs must point to stable RFC, package-doc, or README surfaces instead.
 - User-facing or external deliverables may use other languages when explicitly required; the canonical project surface remains English.
 
 ## 3. Incremental Evolution Protocol (循序渐进演化协议)
@@ -48,9 +48,7 @@ To prevent context bloating and "hallucination spirals," all Agents MUST follow 
 2. **[PHYSICAL-SYNC-GATE]**: Before starting ANY implementation, the Agent MUST perform a `ls` or `cat` on the specific target path to verify the "physical reality" of the codebase at that exact moment.
 3. **[JUST-IN-TIME-SDD]**: Strategic SDD changes
    (`$PRJ_CACHE_HOME/agent/sdd/`) should be generated only for the
-   immediate next 1-3 steps, not the entire project lifecycle. Existing
-   blueprint-governed lanes may keep using `$PRJ_CACHE_HOME/agent/blueprints/`
-   until they are converted.
+   immediate next 1-3 steps, not the entire project lifecycle.
 4. **[CHECKPOINT-SIGN-OFF]**: After each atomic code change, the Agent MUST update or add the relevant unit tests for the affected project/package and then run those tests. Only after tests complete successfully may the Agent ask the Sovereign for a "Pulse Check".
 
 ## 4. Context & Exploration Protocol
@@ -177,7 +175,7 @@ Org syntax for implementation state:
 2. `SCHEDULED`, `DEADLINE`, and `CLOSED` planning timestamps when timing
    matters.
 3. `:PROPERTIES:` drawers for machine-readable links to the governing
-   SDD, blueprint, ExecPlan, stable RFC/doc references, package scope,
+   SDD, ExecPlan, stable RFC/doc references, package scope,
    evidence paths, and current slice.
 
 The default active ledger is `$PRJ_CACHE_HOME/agent/org/agenda.org`. Larger
@@ -225,10 +223,7 @@ when the slice needs a detailed execution log beyond the SDD.
   implementation task is complete, mark the Org task `DONE`, record `CLOSED`,
   and record validation evidence. If an ExecPlan exists, move it to
   `$PRJ_CACHE_HOME/agent/execplans/archives/`.
-- **Blueprint Compatibility Rule**: Existing blueprint-governed lanes may keep
-  citing `$PRJ_CACHE_HOME/agent/blueprints/`. Do not create new blueprints for
-  fresh SDD-governed work unless a legacy workflow explicitly requires one.
-- **Canonical Documentation Boundary**: Persistent documentation may describe the governing SDD, blueprint, or ExecPlan conceptually, but it MUST NOT link directly to hidden tracking paths. Use stable RFC or package-doc references in canonical docs and keep the exact hidden-path reference in the active tracking record.
+- **Canonical Documentation Boundary**: Persistent documentation may describe the governing SDD or ExecPlan conceptually, but it MUST NOT link directly to hidden tracking paths. Use stable RFC or package-doc references in canonical docs and keep the exact hidden-path reference in the active tracking record.
 
 ## Holistic Evolution Workflow
 
@@ -244,7 +239,7 @@ Protocol**:
 2.  **Org Task Synchronization**: Create or update the active Org task record
     under `$PRJ_CACHE_HOME/agent/org/`. The Org heading owns current task
     lifecycle state, timing markers, and task-local metadata. Use property
-    drawer fields such as `SDD`, `BLUEPRINT`, `EXECPLAN`, `STABLE_REF`,
+    drawer fields such as `SDD`, `EXECPLAN`, `STABLE_REF`,
     `PACKAGE`, `SLICE`, `STATUS`, and `EVIDENCE` when they apply.
 3.  **ExecPlan Creation When Needed**: Create a formal ExecPlan
     (`$PRJ_CACHE_HOME/agent/execplans/<slug>.org`) only when the SDD is
@@ -295,8 +290,7 @@ through the installed Wendao client from the project environment. Install or
 refresh the client with `direnv exec . just install-wendao-client`. The stable
 project entrypoint is `wendao-client`.
 When an agent changes files under `$PRJ_CACHE_HOME/agent/org/`,
-`$PRJ_CACHE_HOME/agent/sdd/`, `$PRJ_CACHE_HOME/agent/blueprints/`, or
-`$PRJ_CACHE_HOME/agent/execplans/`, it
+`$PRJ_CACHE_HOME/agent/sdd/`, or `$PRJ_CACHE_HOME/agent/execplans/`, it
 SHOULD run the relevant orgize-backed lint or query command before marking the
 tracking change complete. For syntax validation, use:
 `wendao-client orgize lint --format compact <path>`.

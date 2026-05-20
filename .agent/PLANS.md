@@ -8,8 +8,7 @@ This repository uses Org as the agent tracking surface.
 ## Org-native SDD Governance (Preferred)
 
 New complex architecture, migration, or multi-slice work SHOULD start from an
-Org-native SDD architecture description instead of a new blueprint. The SDD
-graph is:
+Org-native SDD architecture description. The SDD graph is:
 
 1. System SDD: durable system boundary, quality attributes, and design concerns.
 2. Capability SDD: behavior contract for one capability or bounded context.
@@ -37,26 +36,6 @@ Validate SDD files with:
 
 Recover SDD status with:
 `wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd`.
-
-Blueprints remain a compatibility surface for existing lanes until they are
-converted. Do not create new blueprints for fresh SDD-governed work unless a
-legacy workflow explicitly requires one.
-
-## Blueprint Adherence (Compatibility)
-
-If a task falls under the scope of an existing strategic blueprint (located in `$PRJ_CACHE_HOME/agent/blueprints/`, repo-relative default `.cache/agent/blueprints/`), the ExecPlan MUST:
-
-A blueprint is the durable architectural contract for a workstream. The ExecPlan is the task-local execution record for one bounded implementation slice under that contract.
-
-1.  **Reference the Blueprint**: Explicitly link to the relevant blueprint file.
-2.  **Strict Adherence**: The plan's architectural decisions, data models, and protocols must be derived directly from the blueprint.
-3.  **Audit Alignment**: The `Reflection and Quality Audit` section must explicitly state how the implementation complies with the blueprint's mandates.
-4.  **Org Alignment**: The plan must cite the active Org task record that owns
-    current lifecycle state and timing markers for the slice.
-5.  **No-Blueprint Case**: If no blueprint applies, state that explicitly in the plan and record why the task is outside blueprint governance.
-6.  **Archive Discipline**: Keep active blueprints under `$PRJ_CACHE_HOME/agent/blueprints/` and move them to `$PRJ_CACHE_HOME/agent/blueprints/archives/` only when the governed workstream is complete. Keep active ExecPlans under `$PRJ_CACHE_HOME/agent/execplans/` and move them to `$PRJ_CACHE_HOME/agent/execplans/archives/` once the slice is DONE and validated. Mark the Org task `DONE`, record `CLOSED`, and either keep it as a lane index or move it to `$PRJ_CACHE_HOME/agent/org/archives/YYYY.org`.
-
-Deviations from a blueprint are only allowed if explicitly requested by the Sovereign or if the blueprint itself is updated first.
 
 ## Plan First Gate (Mandatory)
 
@@ -87,7 +66,7 @@ Each active implementation heading should use native Org syntax:
 
 1. Lifecycle keyword: `TODO`, `NEXT`, `WAITING`, `DONE`, or `CANCELLED`.
 2. Planning timestamps: `SCHEDULED`, `DEADLINE`, and `CLOSED` when applicable.
-3. A `:PROPERTIES:` drawer with relevant fields such as `SDD`, `BLUEPRINT`,
+3. A `:PROPERTIES:` drawer with relevant fields such as `SDD`,
    `EXECPLAN`, `STABLE_REF`, `PACKAGE`, `SLICE`, `STATUS`, and `EVIDENCE`.
 4. Progress cookies such as `[1/3]` and `[33%]` on headings that contain
    direct checklists, direct TODO/DONE child headings, or both.
@@ -190,7 +169,7 @@ Work must not proceed until this self check is complete.
 
 Agent tracking files are native Org documents. When changing files under
 `$PRJ_CACHE_HOME/agent/org/`, `$PRJ_CACHE_HOME/agent/sdd/`,
-`$PRJ_CACHE_HOME/agent/blueprints/`, or `$PRJ_CACHE_HOME/agent/execplans/`,
+or `$PRJ_CACHE_HOME/agent/execplans/`,
 prefer the orgize-backed project entrypoint for lint and query checks before
 marking tracking work complete. Install or refresh the client with
 `direnv exec . just install-wendao-client`, then run:

@@ -37,7 +37,7 @@ fn standalone_orgize_lint_accepts_agent_progress_cookie_template() {
             "\n",
             "* TODO Agent slice [0/4] [0%] :agent:\n",
             ":PROPERTIES:\n",
-            ":BLUEPRINT: <blueprint-path-or-none>\n",
+            ":SDD: <sdd-path-or-none>\n",
             ":EXECPLAN: <execplan-path>\n",
             ":STATUS: active\n",
             ":COOKIE_DATA: direct\n",

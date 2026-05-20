@@ -117,6 +117,9 @@ fn print_control_usage() {
         "             qianji [-v|--log-verbose] control lease --ledger <path> --run-id <id> --step-id <id> [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control leases --ledger <path> --run-id <id> [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control decision --ledger <path> --run-id <id> --decision-id <id> [--step-id <id>] [--json]"
     );
     eprintln!(

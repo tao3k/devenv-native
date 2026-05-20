@@ -41,3 +41,49 @@ fn render_sparse_tree_can_filter_done_tasks() {
     );
     assert!(!rendered.contains("Retired memory"), "rendered: {rendered}");
 }
+
+#[test]
+fn render_sparse_tree_exclude_done_hides_child_headings_under_done_parent() {
+    let temp = tempdir_or_panic();
+    let path = temp.path().join("active_filter.org");
+    std::fs::write(
+        &path,
+        concat!(
+            "* DONE Completed slice :agent:\n",
+            "** Context\n",
+            "completed context should not leak into active recovery.\n",
+            "* TODO Active slice :agent:\n",
+            "** Context\n",
+            "active context should remain visible.\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write active filter org: {error}"));
+
+    let rendered = render_sparse_tree(&OrgizeSparseTreeRequest {
+        paths: vec![path],
+        text: Some("context".to_string()),
+        match_expression: Some("+agent".to_string()),
+        visibility: OrgizeSparseTreeVisibility {
+            exclude_done: true,
+            exclude_archived: false,
+        },
+        include_comments: false,
+        render: OrgizeSparseTreeRenderOptions {
+            explain_skips: false,
+        },
+    })
+    .unwrap_or_else(|error| panic!("render sparse tree: {error}"));
+
+    assert!(
+        rendered.contains("active context should remain visible"),
+        "rendered: {rendered}"
+    );
+    assert!(
+        !rendered.contains("Completed slice"),
+        "rendered: {rendered}"
+    );
+    assert!(
+        !rendered.contains("completed context should not leak"),
+        "rendered: {rendered}"
+    );
+}

@@ -39,6 +39,9 @@ fn write_archive_fixture(root: &Path) -> ArchiveFixture {
             ":ARCHIVE_TARGET: $PRJ_CACHE_HOME/agent/org/archives/completed.org\n",
             ":END:\n",
             "Evidence remains with the archived subtree.\n",
+            "* DONE Repeating cadence :agent:\n",
+            "SCHEDULED: <2026-05-18 Mon ++1d>\n",
+            "CLOSED: [2026-05-18 Mon]\n",
         ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));
@@ -97,6 +100,7 @@ fn assert_archive_apply(root: &Path, fixture: &ArchiveFixture) {
         .unwrap_or_else(|error| panic!("read agenda: {error}"));
     assert!(!agenda_after.contains("Completed slice"));
     assert!(agenda_after.contains("Active task"));
+    assert!(agenda_after.contains("Repeating cadence"));
     let archive_after = std::fs::read_to_string(&fixture.archive_path)
         .unwrap_or_else(|error| panic!("read archive: {error}"));
     assert!(archive_after.contains("#+FILETAGS: :ARCHIVE:"));

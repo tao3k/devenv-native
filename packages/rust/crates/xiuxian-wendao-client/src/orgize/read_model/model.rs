@@ -22,6 +22,7 @@ SELECT
     deadline,
     deadline_repeater_json,
     closed,
+    level,
     outline_path_json,
     properties_json
 FROM agent_org_tasks
@@ -60,6 +61,7 @@ pub(super) struct AgentOrgTaskListRow {
     pub(super) source_line: u64,
     pub(super) source_range_start: u64,
     pub(super) source_range_end: u64,
+    pub(super) level: u64,
     pub(super) title: String,
     pub(super) todo_state: Option<String>,
     pub(super) is_done: bool,

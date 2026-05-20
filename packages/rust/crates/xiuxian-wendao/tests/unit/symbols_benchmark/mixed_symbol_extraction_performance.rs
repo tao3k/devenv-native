@@ -2,7 +2,7 @@ use std::io::Write;
 use std::time::{Duration, Instant};
 
 use tempfile::NamedTempFile;
-use xiuxian_wendao::dependency_indexer::extract_symbols;
+use xiuxian_wendao::dependency_indexer::extract_dependency_symbols;
 
 use super::{generate_python_test_file, generate_rust_test_file};
 
@@ -20,7 +20,7 @@ fn test_mixed_symbol_extraction_performance() -> Result<(), Box<dyn std::error::
         let mut file = NamedTempFile::new()?;
         file.write_all(content.as_bytes())?;
         let path = file.path().to_path_buf();
-        let symbols = extract_symbols(&path, "rust")?;
+        let symbols = extract_dependency_symbols(&path, "rust")?;
         all_symbols.extend(symbols);
     }
 
@@ -30,7 +30,7 @@ fn test_mixed_symbol_extraction_performance() -> Result<(), Box<dyn std::error::
         let mut file = NamedTempFile::new()?;
         file.write_all(content.as_bytes())?;
         let path = file.path().to_path_buf();
-        let symbols = extract_symbols(&path, "python")?;
+        let symbols = extract_dependency_symbols(&path, "python")?;
         all_symbols.extend(symbols);
     }
 

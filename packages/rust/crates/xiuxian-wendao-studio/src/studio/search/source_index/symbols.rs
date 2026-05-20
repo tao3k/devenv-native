@@ -4,7 +4,7 @@ use walkdir::WalkDir;
 
 use crate::studio::types::AstSearchHit;
 use crate::studio::types::UiProjectConfig;
-use xiuxian_wendao::dependency_indexer::extract_symbols;
+use xiuxian_wendao::dependency_indexer::extract_dependency_symbols;
 use xiuxian_wendao::unified_symbol::{UnifiedSymbol, UnifiedSymbolIndex};
 
 use super::filters::should_skip_entry;
@@ -40,7 +40,7 @@ fn symbols_for_file(project_root: &Path, path: &Path) -> Option<Vec<UnifiedSymbo
     let language = source_language_label(path)?;
     let normalized_path = index_path_for_entry(project_root, path);
     let crate_name = infer_crate_name(Path::new(normalized_path.as_str()));
-    let symbols = extract_symbols(path, language).ok()?;
+    let symbols = extract_dependency_symbols(path, language).ok()?;
     Some(
         symbols
             .into_iter()

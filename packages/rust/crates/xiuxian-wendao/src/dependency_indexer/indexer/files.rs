@@ -98,7 +98,7 @@ pub(super) fn extract_symbols_from_crate(
     source_path: &Path,
     crate_name: &str,
 ) -> Vec<ExternalSymbol> {
-    use crate::dependency_indexer::symbols::extract_symbols;
+    use crate::dependency_indexer::symbols::extract_dependency_symbols;
 
     let mut all_symbols = Vec::new();
 
@@ -106,7 +106,7 @@ pub(super) fn extract_symbols_from_crate(
     let rs_files = find_rs_files(source_path);
 
     for rs_file in &rs_files {
-        match extract_symbols(rs_file, "rust") {
+        match extract_dependency_symbols(rs_file, "rust") {
             Ok(mut symbols) => {
                 for sym in &mut symbols {
                     sym.crate_name = crate_name.to_string();

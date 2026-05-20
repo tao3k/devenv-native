@@ -18,6 +18,10 @@ pub(super) fn sample_request_batches() -> WendaoGraphOntologyReadModelQualityReq
     )
 }
 
+pub(super) fn parent_registry_batches() -> (RecordBatch, RecordBatch) {
+    (parent_object_types_batch(), parent_link_types_batch())
+}
+
 pub(super) fn decode_single_batch(payload: &[u8], table_name: &str) -> RecordBatch {
     let reader = StreamReader::try_new(Cursor::new(payload), None)
         .unwrap_or_else(|error| panic!("open `{table_name}` Arrow stream: {error}"));
@@ -218,6 +222,50 @@ fn projection_state_batch() -> RecordBatch {
         ],
     )
     .unwrap_or_else(|error| panic!("build projection state batch: {error}"))
+}
+
+fn parent_object_types_batch() -> RecordBatch {
+    RecordBatch::try_new(
+        Arc::new(Schema::new(vec![
+            Field::new("api_name", DataType::Utf8, false),
+            Field::new("domain", DataType::Utf8, false),
+            Field::new("rdf_class", DataType::Utf8, false),
+        ])),
+        vec![
+            Arc::new(StringArray::from(vec!["Patient", "Encounter"])),
+            Arc::new(StringArray::from(vec![
+                "episteme://30_Healthcare",
+                "episteme://30_Healthcare",
+            ])),
+            Arc::new(StringArray::from(vec![
+                "https://wendao.ai/ontology/healthcare#Patient",
+                "https://wendao.ai/ontology/healthcare#Encounter",
+            ])),
+        ],
+    )
+    .unwrap_or_else(|error| panic!("build parent object types batch: {error}"))
+}
+
+fn parent_link_types_batch() -> RecordBatch {
+    RecordBatch::try_new(
+        Arc::new(Schema::new(vec![
+            Field::new("api_name", DataType::Utf8, false),
+            Field::new("domain", DataType::Utf8, false),
+            Field::new("rdf_property", DataType::Utf8, false),
+            Field::new("from_object_type", DataType::Utf8, false),
+            Field::new("to_object_type", DataType::Utf8, false),
+        ])),
+        vec![
+            Arc::new(StringArray::from(vec!["Patient.encounters"])),
+            Arc::new(StringArray::from(vec!["episteme://30_Healthcare"])),
+            Arc::new(StringArray::from(vec![
+                "https://wendao.ai/ontology/healthcare#hasEncounter",
+            ])),
+            Arc::new(StringArray::from(vec!["Patient"])),
+            Arc::new(StringArray::from(vec!["Encounter"])),
+        ],
+    )
+    .unwrap_or_else(|error| panic!("build parent link types batch: {error}"))
 }
 
 fn write_file(path: &Path, body: &str) -> io::Result<()> {

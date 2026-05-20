@@ -14,7 +14,6 @@ Use SDD plus task surfaces:
 1. SDD: durable system/capability/view/decision/audit direction under =$PRJ_CACHE_HOME/agent/sdd/=.
 2. ExecPlan: optional detailed execution log under =$PRJ_CACHE_HOME/agent/execplans/=.
 3. Org task ledger: current task state under =$PRJ_CACHE_HOME/agent/org/=.
-4. Blueprint: legacy compatibility direction under =$PRJ_CACHE_HOME/agent/blueprints/=.
 
 The Org task ledger owns task lifecycle state, schedule markers, recovery
 queries, and evidence pointers. The SDD owns architecture description, design
@@ -171,8 +170,7 @@ conversation state; the Org ledger gives durable task state.
 ** Archive Discipline
 
 Archive only completed, validated slices. Do not archive active or blocked
-tasks. Do not archive a blueprint until the governed workstream is fully
-accepted.
+tasks.
 
 Archived tasks may remain queryable by omitting sparse-tree =--exclude-archived=
 and =--exclude-done= filters. They should not appear in active task-list

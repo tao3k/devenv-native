@@ -6,8 +6,18 @@ use crate::duckdb::{
     DatasetOntologyArrowIpcSourceTableSpec, DatasetOntologyDuckDbMaterializer,
     DatasetOntologyRuntimeMaterializationRequest,
 };
+#[cfg(feature = "julia")]
+use crate::duckdb::{
+    build_dataset_ontology_wendaograph_extension_proof_request_batches,
+    build_dataset_ontology_wendaograph_quality_request_batches,
+};
 use arrow::array::ArrayRef;
 use arrow::ipc::writer::StreamWriter;
+#[cfg(feature = "julia")]
+use xiuxian_wendao_julia::integration_support::{
+    build_wendaograph_ontology_extension_proof_arrow_request,
+    build_wendaograph_ontology_extension_proof_flight_request_batch,
+};
 use xiuxian_wendao_sql::dataset_ontology::{
     DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME, DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
     DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
@@ -190,6 +200,65 @@ async fn duckdb_runtime_materializer_returns_semantic_read_model_batches() -> Te
         DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME
     );
     assert_eq!(materialization.read_model_tables[2].row_count(), 1);
+    Ok(())
+}
+
+#[cfg(feature = "julia")]
+#[tokio::test]
+async fn duckdb_runtime_materializer_builds_wendaograph_extension_proof_request() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    let materializer = DatasetOntologyDuckDbMaterializer::from_runtime(
+        in_memory_search_duckdb_runtime(temp.path()),
+    )
+    .map_err(std::io::Error::other)?;
+
+    let request = DatasetOntologyRuntimeMaterializationRequest::new(
+        "healthcare.synthetic_care_delivery.contract.v1",
+        "healthcare.synthetic_care_delivery.v1",
+        healthcare_source_tables()?,
+        healthcare_contract_mapping_sql()?,
+    )
+    .map_err(std::io::Error::other)?;
+
+    let materialization = materializer
+        .materialize_with_read_model_batches(request)
+        .await
+        .map_err(std::io::Error::other)?;
+    let quality_batches =
+        build_dataset_ontology_wendaograph_quality_request_batches(&materialization)
+            .map_err(std::io::Error::other)?;
+
+    assert_eq!(quality_batches.row_counts(), [8, 6, 1]);
+
+    let (parent_object_types, parent_link_types) = healthcare_parent_registry_batches()?;
+    let extension_batches = build_dataset_ontology_wendaograph_extension_proof_request_batches(
+        &materialization,
+        parent_object_types,
+        parent_link_types,
+    )
+    .map_err(std::io::Error::other)?;
+
+    assert_eq!(extension_batches.row_counts(), [8, 6, 1, 4, 3]);
+
+    let arrow_request = build_wendaograph_ontology_extension_proof_arrow_request(
+        &extension_batches,
+        "episteme://30_Healthcare/10_LongTermCare",
+        "https://wendao.ai/ontology/ltc#",
+    )
+    .map_err(std::io::Error::other)?;
+    assert!(
+        arrow_request
+            .payload_byte_sizes()
+            .into_iter()
+            .all(|size| size > 0)
+    );
+
+    let flight_batch =
+        build_wendaograph_ontology_extension_proof_flight_request_batch(&arrow_request)
+            .map_err(std::io::Error::other)?;
+    assert_eq!(flight_batch.num_rows(), 1);
+    assert_eq!(flight_batch.num_columns(), 7);
+
     Ok(())
 }
 
@@ -406,6 +475,69 @@ fn healthcare_arrow_ipc_specs(
             ],
         )?,
     ])
+}
+
+#[cfg(feature = "julia")]
+fn healthcare_parent_registry_batches()
+-> Result<(RecordBatch, RecordBatch), Box<dyn std::error::Error>> {
+    let (_, parent_object_types) = string_record_batch(
+        &["api_name", "domain", "rdf_class"],
+        &[
+            &[
+                "Patient",
+                "episteme://30_Healthcare",
+                "https://wendao.ai/ontology/healthcare#Patient",
+            ],
+            &[
+                "CareProvider",
+                "episteme://30_Healthcare",
+                "https://wendao.ai/ontology/healthcare#CareProvider",
+            ],
+            &[
+                "Encounter",
+                "episteme://30_Healthcare",
+                "https://wendao.ai/ontology/healthcare#Encounter",
+            ],
+            &[
+                "MedicalCondition",
+                "episteme://30_Healthcare",
+                "https://wendao.ai/ontology/healthcare#MedicalCondition",
+            ],
+        ],
+    )?;
+    let (_, parent_link_types) = string_record_batch(
+        &[
+            "api_name",
+            "domain",
+            "rdf_property",
+            "from_object_type",
+            "to_object_type",
+        ],
+        &[
+            &[
+                "Patient.encounters",
+                "episteme://30_Healthcare",
+                "https://wendao.ai/ontology/healthcare#hasEncounter",
+                "Patient",
+                "Encounter",
+            ],
+            &[
+                "Patient.conditions",
+                "episteme://30_Healthcare",
+                "https://wendao.ai/ontology/healthcare#hasCondition",
+                "Patient",
+                "MedicalCondition",
+            ],
+            &[
+                "CareProvider.performsEncounter",
+                "episteme://30_Healthcare",
+                "https://wendao.ai/ontology/healthcare#performsEncounter",
+                "CareProvider",
+                "Encounter",
+            ],
+        ],
+    )?;
+    Ok((parent_object_types, parent_link_types))
 }
 
 fn write_string_table_ipc(

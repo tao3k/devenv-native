@@ -1,7 +1,6 @@
 * TODO Task title [0/6] [0%] :agent:
 :PROPERTIES:
 :SDD: <sdd-path-or-none>
-:BLUEPRINT: <blueprint-path-or-none>
 :EXECPLAN: <execplan-path>
 :STABLE_REF: <repo-relative-stable-reference>
 :PACKAGE: <package-or-subsystem>

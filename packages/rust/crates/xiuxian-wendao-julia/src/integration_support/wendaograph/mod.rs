@@ -54,6 +54,12 @@ pub(crate) use host::{
 };
 #[cfg(test)]
 pub(crate) use ontology_read_model::{
+    WENDAO_GRAPH_ONTOLOGY_EXTENSION_DOMAIN_PREFIX_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_EXTENSION_PROOF_REQUEST_TABLES,
+    WENDAO_GRAPH_ONTOLOGY_EXTENSION_PROOF_RESPONSE_TABLE,
+    WENDAO_GRAPH_ONTOLOGY_PARENT_LINK_TYPES_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_PARENT_OBJECT_TYPES_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_ONTOLOGY_RDF_NAMESPACE_COLUMN,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_ARROW_IPC_MIME,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_CAPABILITY_ID,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_FLIGHT_DESCRIPTOR_PATH,
@@ -68,9 +74,12 @@ pub(crate) use ontology_read_model::{
     WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
     WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
     WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
+    WendaoGraphOntologyExtensionProofArrowRequest, WendaoGraphOntologyExtensionProofRequestBatches,
     WendaoGraphOntologyReadModelQualityArrowRequest,
     WendaoGraphOntologyReadModelQualityFlightBindingOptions,
     WendaoGraphOntologyReadModelQualityRequestBatches,
+    build_wendaograph_ontology_extension_proof_arrow_request,
+    build_wendaograph_ontology_extension_proof_flight_request_batch,
     build_wendaograph_ontology_read_model_quality_arrow_request,
     build_wendaograph_ontology_read_model_quality_flight_binding,
     build_wendaograph_ontology_read_model_quality_flight_descriptor,

@@ -969,6 +969,14 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
     let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
     let output_dir = temp_dir.path().join("outputs").join("pdf");
     fs::create_dir_all(output_dir.as_path()).map_err(|error| error.to_string())?;
+    write_hybrid_page_ocr_timing_sidecar(output_dir.as_path())?;
+
+    let report = inspect_artifact_dir("fixture.pdf", output_dir.to_string_lossy().as_ref(), None);
+
+    assert_hybrid_page_ocr_timing_report(&report)
+}
+
+fn write_hybrid_page_ocr_timing_sidecar(output_dir: &Path) -> Result<(), String> {
     fs::write(
         output_dir
             .join(HYBRID_PAGE_OCR_TIMING_REPORT_NAME)
@@ -1058,9 +1066,10 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
         .map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
+    Ok(())
+}
 
-    let report = inspect_artifact_dir("fixture.pdf", output_dir.to_string_lossy().as_ref(), None);
-
+fn assert_hybrid_page_ocr_timing_report(report: &ArtifactReport) -> Result<(), String> {
     assert_eq!(report.artifact_error, None);
     assert!(report.hybrid_page_ocr_timing_report_bytes > 0);
     assert_eq!(report.hybrid_page_ocr_timing_ocr_shard_count, 27);

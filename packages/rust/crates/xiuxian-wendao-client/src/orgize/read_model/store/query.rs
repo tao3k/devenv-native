@@ -27,8 +27,9 @@ pub(in crate::orgize::read_model) fn query_agent_org_task_rows(
                 row.get::<_, Option<String>>(12)?,
                 row.get::<_, Option<String>>(13)?,
                 row.get::<_, Option<String>>(14)?,
-                row.get::<_, String>(15)?,
+                row.get::<_, u64>(15)?,
                 row.get::<_, String>(16)?,
+                row.get::<_, String>(17)?,
             ))
         })
         .with_context(|| "failed to query agent task-list rows")?;
@@ -51,6 +52,7 @@ pub(in crate::orgize::read_model) fn query_agent_org_task_rows(
             deadline,
             deadline_repeater_json,
             closed,
+            level,
             outline_path_json,
             properties_json,
         ) = row.with_context(|| "failed to read agent task-list row")?;
@@ -71,6 +73,7 @@ pub(in crate::orgize::read_model) fn query_agent_org_task_rows(
             source_line,
             source_range_start,
             source_range_end,
+            level,
             title,
             todo_state,
             is_done,

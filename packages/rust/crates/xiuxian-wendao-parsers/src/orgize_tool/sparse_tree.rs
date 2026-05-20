@@ -3,7 +3,8 @@
 use std::path::PathBuf;
 
 use orgize::Org;
-use orgize::ast::SparseTreeQuery;
+use orgize::ast::{SparseTreeCard, SparseTreeProjection};
+use orgize::ast::{SparseTreeQuery, TodoState};
 
 use super::OrgizeToolError;
 use super::io::{collect_org_paths, join_projection_text, read_to_string};
@@ -70,9 +71,73 @@ pub fn render_sparse_tree(request: &OrgizeSparseTreeRequest) -> Result<String, O
     for path in files {
         let source = read_to_string(&path)?;
         let document = Org::parse(&source).document();
-        let projection =
-            document.sparse_tree_projection(&query.clone().source_file(path.display().to_string()));
+        let source_file = path.display().to_string();
+        let projection = document.sparse_tree_projection(&query.clone().source_file(&source_file));
+        let excluded_ancestors = collect_excluded_ancestor_cards(
+            &document.sparse_tree_projection(
+                &SparseTreeQuery::new()
+                    .include_done(true)
+                    .include_archived(true)
+                    .include_comments(request.include_comments)
+                    .source_file(&source_file),
+            ),
+            &request.visibility,
+        );
+        let projection = filter_excluded_subtrees(projection, &excluded_ancestors);
         rendered.push(projection.to_compact_text(&path.display().to_string()));
     }
     Ok(join_projection_text(rendered, "[ok] orgize sparse tree\n"))
+}
+
+fn collect_excluded_ancestor_cards(
+    projection: &SparseTreeProjection,
+    visibility: &OrgizeSparseTreeVisibility,
+) -> Vec<SparseTreeCard> {
+    projection
+        .cards
+        .iter()
+        .filter(|card| {
+            (visibility.exclude_done && card_is_done(card))
+                || (visibility.exclude_archived && card.archive.archived)
+        })
+        .cloned()
+        .collect()
+}
+
+fn filter_excluded_subtrees(
+    projection: SparseTreeProjection,
+    excluded_ancestors: &[SparseTreeCard],
+) -> SparseTreeProjection {
+    if excluded_ancestors.is_empty() {
+        return projection;
+    }
+
+    let total_candidates = projection.total_candidates;
+    let skipped = projection.skipped;
+    let cards = projection
+        .cards
+        .into_iter()
+        .filter(|card| {
+            !excluded_ancestors
+                .iter()
+                .any(|ancestor| is_inside_excluded_ancestor(card, ancestor))
+        })
+        .collect::<Vec<_>>();
+
+    SparseTreeProjection {
+        total_candidates,
+        cards,
+        skipped,
+    }
+}
+
+fn card_is_done(card: &SparseTreeCard) -> bool {
+    card.todo
+        .as_ref()
+        .is_some_and(|todo| todo.state == TodoState::Done)
+}
+
+fn is_inside_excluded_ancestor(card: &SparseTreeCard, ancestor: &SparseTreeCard) -> bool {
+    ancestor.source.range_start < card.source.range_start
+        && ancestor.source.range_end >= card.source.range_end
 }

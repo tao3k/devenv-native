@@ -5,7 +5,7 @@ mod extract;
 mod index;
 mod model;
 
-pub use extract::extract_symbols;
+pub use extract::extract_dependency_symbols;
 pub use index::SymbolIndex;
 pub use model::{ExternalSymbol, SymbolKind};
 

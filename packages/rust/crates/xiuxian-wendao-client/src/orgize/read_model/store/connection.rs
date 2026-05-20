@@ -2,6 +2,7 @@ use anyhow::Result;
 use xiuxian_db_store::duckdb::{
     DuckDbDatabasePath, DuckDbExecutionConfig, DuckDbRuntimeConfig, open_duckdb_connection,
 };
+use xiuxian_db_store::duckdb_crate::{AccessMode, Config, Connection};
 
 use crate::orgize::read_model::model::ResolvedReadModelSettings;
 
@@ -23,4 +24,18 @@ pub(in crate::orgize::read_model) fn open_read_model_connection(
         materialize_threshold_rows: settings.materialize_threshold_rows,
     };
     open_duckdb_connection(&runtime).map_err(anyhow::Error::msg)
+}
+
+pub(in crate::orgize::read_model) fn open_read_model_read_only_connection(
+    settings: &ResolvedReadModelSettings,
+) -> Result<Option<Connection>> {
+    if !settings.database_path.exists() {
+        return Ok(None);
+    }
+    let config = Config::default()
+        .access_mode(AccessMode::ReadOnly)
+        .map_err(anyhow::Error::msg)?;
+    Connection::open_with_flags(&settings.database_path, config)
+        .map(Some)
+        .map_err(anyhow::Error::msg)
 }
