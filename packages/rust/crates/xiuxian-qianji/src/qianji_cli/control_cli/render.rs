@@ -409,14 +409,14 @@ pub(super) fn render_activity_queue_projection_text(
             "- Run: `{}`\n",
             "- Task queue: `{}`\n",
             "- Queue items: `{}`\n",
-            "- Activities: total `{}`, scheduled `{}`, started `{}`, completed `{}`, failed `{}`\n"
+            "- Activities: total `{}`, scheduled `{}`, in-flight `{}`, completed `{}`, failed `{}`\n"
         ),
         projection.run_id.as_str(),
         task_queue,
         projection.items.len(),
         projection.summary.total,
         projection.summary.scheduled,
-        projection.summary.started,
+        projection.summary.in_flight,
         projection.summary.completed,
         projection.summary.failed
     );

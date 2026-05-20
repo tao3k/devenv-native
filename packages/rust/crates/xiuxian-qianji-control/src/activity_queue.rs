@@ -18,8 +18,8 @@ pub struct ActivityQueueSummary {
     pub total: usize,
     /// Scheduled activities that have not started.
     pub scheduled: usize,
-    /// Activities that started and have not completed or failed.
-    pub started: usize,
+    /// Activities currently in flight.
+    pub in_flight: usize,
     /// Activities that completed successfully.
     pub completed: usize,
     /// Activities that failed.
@@ -31,7 +31,7 @@ impl ActivityQueueSummary {
         self.total += 1;
         match status {
             ActivityStatus::Scheduled => self.scheduled += 1,
-            ActivityStatus::Started => self.started += 1,
+            ActivityStatus::Started => self.in_flight += 1,
             ActivityStatus::Completed => self.completed += 1,
             ActivityStatus::Failed => self.failed += 1,
             ActivityStatus::Pending => {}

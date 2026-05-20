@@ -48,7 +48,7 @@ fn run_control_activity_start_appends_json_and_updates_queue() -> Result<(), Str
     assert_eq!(queue.items.len(), 1);
     assert_eq!(queue.summary.total, 3);
     assert_eq!(queue.summary.scheduled, 1);
-    assert_eq!(queue.summary.started, 2);
+    assert_eq!(queue.summary.in_flight, 2);
     assert_eq!(queue.summary.completed, 0);
     assert_eq!(queue.summary.failed, 0);
     assert_eq!(

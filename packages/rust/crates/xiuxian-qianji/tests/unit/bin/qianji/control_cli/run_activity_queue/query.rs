@@ -45,7 +45,7 @@ fn run_control_activity_queue_renders_json_without_appending() -> Result<(), Str
     assert_eq!(json["items"].as_array().map(Vec::len), Some(1));
     assert_eq!(json["summary"]["total"], 2);
     assert_eq!(json["summary"]["scheduled"], 1);
-    assert_eq!(json["summary"]["started"], 1);
+    assert_eq!(json["summary"]["in_flight"], 1);
     assert_eq!(json["summary"]["completed"], 0);
     assert_eq!(json["summary"]["failed"], 0);
     assert_eq!(
@@ -82,7 +82,7 @@ fn run_control_activity_queue_renders_text_summary() -> Result<(), String> {
     assert!(output.rendered.contains("- Task queue: `<all>`"));
     assert!(output.rendered.contains("- Queue items: `2`"));
     assert!(output.rendered.contains(
-        "- Activities: total `3`, scheduled `2`, started `1`, completed `0`, failed `0`"
+        "- Activities: total `3`, scheduled `2`, in-flight `1`, completed `0`, failed `0`"
     ));
     assert!(output.rendered.contains("`activity-run-scheduled` [run]"));
     assert!(

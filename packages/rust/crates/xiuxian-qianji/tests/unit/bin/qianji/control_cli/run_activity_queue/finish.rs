@@ -64,7 +64,7 @@ fn run_control_activity_complete_appends_json_and_is_idempotent() -> Result<(), 
     assert_eq!(queue.items.len(), 2);
     assert_eq!(queue.summary.total, 3);
     assert_eq!(queue.summary.scheduled, 2);
-    assert_eq!(queue.summary.started, 0);
+    assert_eq!(queue.summary.in_flight, 0);
     assert_eq!(queue.summary.completed, 1);
     assert_eq!(queue.summary.failed, 0);
     Ok(())
@@ -132,7 +132,7 @@ fn run_control_activity_fail_appends_json_after_start() -> Result<(), String> {
     assert_eq!(queue.items.len(), 1);
     assert_eq!(queue.summary.total, 3);
     assert_eq!(queue.summary.scheduled, 1);
-    assert_eq!(queue.summary.started, 1);
+    assert_eq!(queue.summary.in_flight, 1);
     assert_eq!(queue.summary.completed, 0);
     assert_eq!(queue.summary.failed, 1);
     Ok(())

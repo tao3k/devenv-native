@@ -17,7 +17,7 @@ fn activity_queue_projection_selects_only_scheduled_tasks() -> Result<(), Box<dy
     assert_eq!(projection.items.len(), 2);
     assert_eq!(projection.summary.total, 4);
     assert_eq!(projection.summary.scheduled, 2);
-    assert_eq!(projection.summary.started, 0);
+    assert_eq!(projection.summary.in_flight, 0);
     assert_eq!(projection.summary.completed, 1);
     assert_eq!(projection.summary.failed, 1);
     assert_eq!(
