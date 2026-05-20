@@ -203,6 +203,10 @@ one replayed step view for step-local evidence, gate, Agent, activity, timer,
 and signal inspection. `qianji control activity --ledger <path> --run-id <id>
 --activity-id <id> [--step-id <id>] [--json]` renders one replayed activity
 view for lifecycle, task, attempt, worker, result, and failure inspection.
+`qianji control activity-queue --ledger <path> --run-id <id>
+[--task-queue <queue>] [--json]` renders scheduled-but-not-started activity
+tasks from durable replay, optionally filtered by task queue, without claiming
+work or mutating hot scheduler state.
 `qianji control decision --ledger <path> --run-id <id> --decision-id <id>
 [--step-id <id>] [--json]` renders one replayed agent decision for proposal,
 outcome, reason, scheduled activity, checkpoint, and gate inspection.

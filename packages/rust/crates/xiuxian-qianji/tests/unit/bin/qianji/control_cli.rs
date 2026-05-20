@@ -73,6 +73,58 @@ fn parse_control_activity_command_without_step_scope() {
 }
 
 #[test]
+fn parse_control_activity_queue_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "activity-queue",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--task-queue",
+                    "llm.openai",
+                    "--json",
+                ])),
+                "control activity-queue parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::ActivityQueue {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            task_queue: Some("llm.openai".to_string()),
+            json: true,
+        },
+    );
+}
+
+#[test]
+fn parse_control_activity_queue_rejects_missing_ledger() {
+    let result = parse_control_command(&to_args(&[
+        "qianji",
+        "control",
+        "activity-queue",
+        "--run-id",
+        "run-control",
+    ]));
+    let error = match result {
+        Ok(value) => panic!("missing activity queue ledger should fail, got {value:?}"),
+        Err(error) => error,
+    };
+
+    assert!(
+        error
+            .to_string()
+            .contains("missing `--ledger <path>` for `control activity-queue`"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn parse_control_apply_recovery_plan_command() {
     assert_eq!(
         must_some(
@@ -884,6 +936,86 @@ fn run_control_activity_rejects_missing_activity() -> Result<(), String> {
 }
 
 #[test]
+fn run_control_activity_queue_renders_json_without_appending() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let before_count = must_ok(
+        ledger.load_events(&run_id),
+        "should load events before activity queue query",
+    )
+    .len();
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::ActivityQueue {
+            ledger_path: ledger_path.clone(),
+            run_id: run_id.as_str().to_string(),
+            task_queue: Some("llm.openai".to_string()),
+            json: true,
+        }),
+        "control activity queue json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity queue output should be valid json",
+    );
+    let after_count = must_ok(
+        ledger.load_events(&run_id),
+        "should load events after activity queue query",
+    )
+    .len();
+
+    assert_eq!(json["run_id"], "run-control-cli");
+    assert_eq!(json["task_queue"], "llm.openai");
+    assert_eq!(json["items"].as_array().map(Vec::len), Some(1));
+    assert_eq!(
+        json["items"][0]["activity"]["activity_id"],
+        "activity-run-scheduled"
+    );
+    assert_eq!(before_count, after_count);
+    Ok(())
+}
+
+#[test]
+fn run_control_activity_queue_renders_text_summary() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::ActivityQueue {
+            ledger_path,
+            run_id: run_id.as_str().to_string(),
+            task_queue: None,
+            json: false,
+        }),
+        "control activity queue text should render",
+    );
+
+    assert!(
+        output
+            .rendered
+            .starts_with("# Qianji Control Activity Queue")
+    );
+    assert!(output.rendered.contains("- Run: `run-control-cli`"));
+    assert!(output.rendered.contains("- Task queue: `<all>`"));
+    assert!(output.rendered.contains("- Scheduled activities: `2`"));
+    assert!(output.rendered.contains("`activity-run-scheduled` [run]"));
+    assert!(
+        output
+            .rendered
+            .contains("`activity-step-scheduled` [step:run-control-step]")
+    );
+    Ok(())
+}
+
+#[test]
 fn run_control_decision_renders_run_scope_json() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -1584,6 +1716,75 @@ fn append_control_run_with_step_activity(ledger_path: &std::path::Path) -> RunId
             },
         )),
         "should append step activity failure",
+    );
+    run_id
+}
+
+fn append_control_run_with_scheduled_activity_queue(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let scheduled_run_activity = must_ok(
+        ActivityId::new("activity-run-scheduled"),
+        "should build scheduled run activity id",
+    );
+    let started_activity = must_ok(
+        ActivityId::new("activity-run-started"),
+        "should build started run activity id",
+    );
+    let scheduled_step_activity = must_ok(
+        ActivityId::new("activity-step-scheduled"),
+        "should build scheduled step activity id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            3,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(scheduled_run_activity, "llm.plan", "llm.openai"),
+            },
+        )),
+        "should append scheduled run activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            4,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(started_activity.clone(), "llm.plan", "llm.openai"),
+            },
+        )),
+        "should append started run activity schedule",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            5,
+            ControlEventKind::ActivityStarted {
+                activity_id: started_activity,
+                worker_id: None,
+                attempt: 1,
+            },
+        )),
+        "should append started run activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            6,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(scheduled_step_activity, "tool.github", "tool.github"),
+            },
+        )),
+        "should append scheduled step activity",
     );
     run_id
 }

@@ -3,8 +3,8 @@ use std::{fmt, io};
 #[cfg(any(feature = "valkey", test))]
 use xiuxian_qianji_control::HotStateSnapshot;
 use xiuxian_qianji_control::{
-    ActivityView, AgentDecision, ControlEventKind, ControlEventRecord, RunId, RunRecoverySnapshot,
-    RunView, StepView, TimerView,
+    ActivityQueueProjection, ActivityView, AgentDecision, ControlEventKind, ControlEventRecord,
+    RecoveryItemScope, RunId, RunRecoverySnapshot, RunView, StepView, TimerView,
 };
 #[cfg(all(feature = "duckdb", feature = "valkey"))]
 use xiuxian_qianji_control::{
@@ -396,6 +396,53 @@ pub(super) fn render_activity_view_json(activity: &ActivityView) -> io::Result<S
     serde_json::to_string_pretty(activity).map_err(io::Error::other)
 }
 
+pub(super) fn render_activity_queue_projection_text(
+    projection: &ActivityQueueProjection,
+) -> String {
+    let task_queue = projection
+        .task_queue
+        .as_ref()
+        .map_or("<all>", |queue| queue.as_str());
+    let mut output = format!(
+        concat!(
+            "# Qianji Control Activity Queue\n\n",
+            "- Run: `{}`\n",
+            "- Task queue: `{}`\n",
+            "- Scheduled activities: `{}`\n"
+        ),
+        projection.run_id.as_str(),
+        task_queue,
+        projection.items.len()
+    );
+
+    if !projection.items.is_empty() {
+        output.push_str("\n## Activities\n\n");
+        for item in &projection.items {
+            let task = item.activity.task.as_ref();
+            let activity_type = task.map_or("<unknown>", |task| task.activity_type.as_str());
+            let queue = task.map_or("<unknown>", |task| task.task_queue.as_str());
+            push_fmt(
+                &mut output,
+                format_args!(
+                    "- `{}` [{}] type `{}` queue `{}`\n",
+                    item.activity.activity_id.as_str(),
+                    activity_scope_label(&item.scope),
+                    activity_type,
+                    queue
+                ),
+            );
+        }
+    }
+
+    output
+}
+
+pub(super) fn render_activity_queue_projection_json(
+    projection: &ActivityQueueProjection,
+) -> io::Result<String> {
+    serde_json::to_string_pretty(projection).map_err(io::Error::other)
+}
+
 pub(super) fn render_agent_decision_text(decision: &AgentDecision) -> String {
     let scheduled_activity = decision
         .scheduled_activity_id
@@ -586,10 +633,16 @@ pub(super) fn render_timer_view_json(timer: &TimerView) -> io::Result<String> {
     serde_json::to_string_pretty(timer).map_err(io::Error::other)
 }
 
-#[cfg(any(feature = "valkey", test))]
 fn push_fmt(output: &mut String, args: fmt::Arguments<'_>) {
     if fmt::write(output, args).is_err() {
         unreachable!("writing to a String cannot fail");
+    }
+}
+
+fn activity_scope_label(scope: &RecoveryItemScope) -> String {
+    match scope {
+        RecoveryItemScope::Run => "run".to_owned(),
+        RecoveryItemScope::Step { step_id } => format!("step:{}", step_id.as_str()),
     }
 }
 

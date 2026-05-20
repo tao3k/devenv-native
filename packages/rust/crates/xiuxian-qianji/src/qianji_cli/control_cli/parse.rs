@@ -15,6 +15,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
 
     match args.get(2).map(String::as_str) {
         Some("activity") => parse_activity(args).map(Some),
+        Some("activity-queue") => parse_activity_queue(args).map(Some),
         Some("apply-recovery-plan") => parse_apply_recovery_plan(args).map(Some),
         Some("decision") => parse_decision(args).map(Some),
         Some("heartbeat") => super::heartbeat::parse(args).map(Some),
@@ -30,9 +31,52 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `apply-recovery-plan`, `decision`, `heartbeat`, `history`, `hot-state`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
+            "missing `control` subcommand; expected `activity`, `activity-queue`, `apply-recovery-plan`, `decision`, `heartbeat`, `history`, `hot-state`, `query`, `recovery-snapshot`, `signal`, `step`, `timer`, or `view`",
         )),
     }
+}
+
+fn parse_activity_queue(args: &[String]) -> io::Result<ControlCliCommand> {
+    let mut ledger_path = None;
+    let mut run_id = None;
+    let mut task_queue = None;
+    let mut json = false;
+
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--ledger" => {
+                ledger_path = Some(PathBuf::from(parse_flag_value(
+                    args, &mut index, "--ledger",
+                )?));
+            }
+            "--run-id" => {
+                run_id = Some(parse_flag_value(args, &mut index, "--run-id")?);
+            }
+            "--task-queue" => {
+                task_queue = Some(parse_flag_value(args, &mut index, "--task-queue")?);
+            }
+            "--json" => {
+                json = true;
+            }
+            other => {
+                return Err(invalid_input(format!(
+                    "`control activity-queue` does not accept argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    Ok(ControlCliCommand::ActivityQueue {
+        ledger_path: ledger_path.ok_or_else(|| {
+            invalid_input("missing `--ledger <path>` for `control activity-queue`")
+        })?,
+        run_id: run_id
+            .ok_or_else(|| invalid_input("missing `--run-id <id>` for `control activity-queue`"))?,
+        task_queue,
+        json,
+    })
 }
 
 fn parse_apply_recovery_plan(args: &[String]) -> io::Result<ControlCliCommand> {

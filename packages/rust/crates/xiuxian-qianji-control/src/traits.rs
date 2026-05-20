@@ -1,9 +1,9 @@
 //! Storage and gate traits for the control plane.
 
 use crate::{
-    ControlEvent, ControlEventRecord, ControlResult, GateResult, HotStateSnapshot, RunId,
-    RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableStep, StepLease, StepView,
-    WorkerHeartbeat, WorkerId, WorkerRef,
+    ActivityQueueProjection, ControlEvent, ControlEventRecord, ControlResult, GateResult,
+    HotStateSnapshot, RunId, RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableStep,
+    StepLease, StepView, TaskQueue, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -58,6 +58,23 @@ pub trait ControlLedger: Send + Sync {
     ) -> ControlResult<RunRecoverySnapshot> {
         Ok(RunRecoverySnapshot::from_view(
             self.load_run_view(run_id)?.recovery_view(now_ms)?,
+        ))
+    }
+
+    /// Loads a read-only scheduled activity queue projection from durable
+    /// history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded or replayed.
+    fn load_activity_queue_projection(
+        &self,
+        run_id: &RunId,
+        task_queue: Option<&TaskQueue>,
+    ) -> ControlResult<ActivityQueueProjection> {
+        Ok(ActivityQueueProjection::from_view(
+            &self.load_run_view(run_id)?,
+            task_queue,
         ))
     }
 }

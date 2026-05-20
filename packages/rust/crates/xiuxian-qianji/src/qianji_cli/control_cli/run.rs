@@ -3,7 +3,8 @@ use std::io;
 use crate::qianji_cli::invalid_input;
 
 use super::render::{
-    ControlStateQueryView, render_activity_view_json, render_activity_view_text,
+    ControlStateQueryView, render_activity_queue_projection_json,
+    render_activity_queue_projection_text, render_activity_view_json, render_activity_view_text,
     render_agent_decision_json, render_agent_decision_text, render_control_history_json,
     render_control_history_text, render_control_state_query_json, render_control_state_query_text,
     render_recovery_snapshot_json, render_recovery_snapshot_text, render_run_view_json,
@@ -21,6 +22,12 @@ pub(super) fn run_control_command_impl(
 ) -> io::Result<ControlCliOutput> {
     match command {
         ControlCliCommand::Activity { .. } => run_activity_from_command(command),
+        ControlCliCommand::ActivityQueue {
+            ledger_path,
+            run_id,
+            task_queue,
+            json,
+        } => run_activity_queue_command(ledger_path, run_id, task_queue.as_deref(), *json),
         ControlCliCommand::ApplyRecoveryPlan { .. } => {
             run_apply_recovery_plan_from_command(command)
         }
@@ -73,6 +80,44 @@ pub(super) fn run_control_command_impl(
         } => run_recovery_snapshot_command(ledger_path, run_id, *now_ms, *json),
         _ => run_control_command_tail(command),
     }
+}
+
+#[cfg(feature = "duckdb")]
+fn run_activity_queue_command(
+    ledger_path: &std::path::Path,
+    run_id: &str,
+    task_queue: Option<&str>,
+    json: bool,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{ControlLedger, DuckDbControlLedger, RunId, TaskQueue};
+
+    let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| control_error(&error))?;
+    let run_id = RunId::new(run_id).map_err(|error| control_error(&error))?;
+    let task_queue = task_queue
+        .map(TaskQueue::new)
+        .transpose()
+        .map_err(|error| control_error(&error))?;
+    let projection = ledger
+        .load_activity_queue_projection(&run_id, task_queue.as_ref())
+        .map_err(|error| control_error(&error))?;
+    let rendered = if json {
+        render_activity_queue_projection_json(&projection)?
+    } else {
+        render_activity_queue_projection_text(&projection)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn run_activity_queue_command(
+    _ledger_path: &std::path::Path,
+    _run_id: &str,
+    _task_queue: Option<&str>,
+    _json: bool,
+) -> io::Result<ControlCliOutput> {
+    Err(invalid_input(
+        "`control activity-queue` requires the `duckdb` feature",
+    ))
 }
 
 fn run_control_command_tail(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {

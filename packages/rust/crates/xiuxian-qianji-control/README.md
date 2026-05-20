@@ -137,6 +137,10 @@ and queue mutation remain separate control-plane seams.
 integration. Exact duplicate lifecycle facts return the original record;
 completion must follow a started activity, failures cannot rewrite completed
 activities, and retry starts must advance beyond the failed attempt.
+`ActivityQueueProjection` derives scheduled-but-not-started activity tasks
+from replayed durable history, optionally filtered by task queue. It is a
+read-only worker management view and does not claim work, acquire leases,
+append lifecycle events, or mutate Valkey hot state.
 `record_worker_heartbeat` records a durable Worker liveness audit fact after
 validating heartbeat TTL. `record_worker_heartbeat_with_hot_state` first
 mirrors the heartbeat into a `HotStateStore` and then appends the durable
@@ -203,6 +207,7 @@ hot-state work, lease steps, or execute workers.
   `record_activity_started_idempotent`,
   `record_activity_completed_idempotent`, and
   `record_activity_failed_idempotent`
+- `ActivityQueueProjection` and `ActivityQueueItem`
 - `WorkerHeartbeatJournalRecord`, `record_worker_heartbeat`, and
   `record_worker_heartbeat_with_hot_state`
 - `StepLeaseReleaseJournalRecord` and `record_step_lease_released`
@@ -221,6 +226,7 @@ hot-state work, lease steps, or execute workers.
 - `HotStateSnapshot` and `HotStateLeasedStep`
 - `ControlLedger`
 - `ControlLedger::load_run_view`
+- `ControlLedger::load_activity_queue_projection`
 - `ControlLedger::load_recovery_plan`
 - `RunRecoveryView`, `RecoveryItemScope`, `ActivityRecoveryItem`,
   `FailedActivityRecoveryItem`, `TimerRecoveryItem`,

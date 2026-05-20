@@ -9,6 +9,12 @@ pub(crate) enum ControlCliCommand {
         activity_id: String,
         json: bool,
     },
+    ActivityQueue {
+        ledger_path: PathBuf,
+        run_id: String,
+        task_queue: Option<String>,
+        json: bool,
+    },
     ApplyRecoveryPlan {
         ledger_path: PathBuf,
         valkey_url: String,

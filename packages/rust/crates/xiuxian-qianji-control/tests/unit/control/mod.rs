@@ -1,3 +1,4 @@
+mod activity_queue;
 mod contracts;
 mod evidence;
 mod hot_state;

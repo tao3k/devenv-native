@@ -19,6 +19,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 );
 
 mod activity_journal;
+mod activity_queue;
 mod admission;
 mod agent;
 mod agent_journal;
@@ -58,6 +59,7 @@ pub use activity_journal::{
     AdmittedActivityScheduleRecord, record_admitted_activity_schedule,
     record_admitted_activity_schedule_idempotent,
 };
+pub use activity_queue::{ActivityQueueItem, ActivityQueueProjection};
 pub use admission::ToolActivityAdmission;
 pub use agent::{AgentDecision, AgentDecisionOutcome, AgentProposal};
 pub use agent_journal::{

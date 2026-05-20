@@ -102,6 +102,9 @@ fn print_control_usage() {
         "             qianji [-v|--log-verbose] control activity --ledger <path> --run-id <id> --activity-id <id> [--step-id <id>] [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control activity-queue --ledger <path> --run-id <id> [--task-queue <queue>] [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control decision --ledger <path> --run-id <id> --decision-id <id> [--step-id <id>] [--json]"
     );
     eprintln!(
