@@ -323,6 +323,32 @@ pub(super) fn render_signal_append_json(record: &ControlEventRecord) -> io::Resu
     serde_json::to_string_pretty(record).map_err(io::Error::other)
 }
 
+pub(super) fn render_step_lease_text(lease: &xiuxian_qianji_control::StepLease) -> String {
+    format!(
+        concat!(
+            "# Qianji Control Lease\n\n",
+            "- Run: `{}`\n",
+            "- Step: `{}`\n",
+            "- Lease: `{}`\n",
+            "- Worker: `{}`\n",
+            "- Acquired at ms: `{}`\n",
+            "- Expires at ms: `{}`\n"
+        ),
+        lease.run_id.as_str(),
+        lease.step_id.as_str(),
+        lease.lease_id.as_str(),
+        lease.worker_id.as_str(),
+        lease.acquired_at_ms,
+        lease.expires_at_ms
+    )
+}
+
+pub(super) fn render_step_lease_json(
+    lease: &xiuxian_qianji_control::StepLease,
+) -> io::Result<String> {
+    serde_json::to_string_pretty(lease).map_err(io::Error::other)
+}
+
 pub(super) fn render_activity_view_text(activity: &ActivityView) -> String {
     let task_type = activity
         .task

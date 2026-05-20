@@ -216,3 +216,33 @@ fn parse_control_step_command() {
         },
     );
 }
+
+#[test]
+fn parse_control_lease_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "lease",
+                    "--ledger",
+                    "control.duckdb",
+                    "--run-id",
+                    "run-control",
+                    "--step-id",
+                    "run-control-step",
+                    "--json",
+                ])),
+                "control lease parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::Lease {
+            ledger_path: "control.duckdb".into(),
+            run_id: "run-control".to_string(),
+            step_id: "run-control-step".to_string(),
+            json: true,
+        },
+    );
+}

@@ -83,6 +83,12 @@ pub(crate) enum ControlCliCommand {
         metadata: Option<String>,
         json: bool,
     },
+    Lease {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: String,
+        json: bool,
+    },
     HotState {
         valkey_url: String,
         namespace: Option<String>,

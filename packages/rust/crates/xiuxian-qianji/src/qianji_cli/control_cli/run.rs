@@ -9,7 +9,8 @@ use super::render::{
     render_control_history_text, render_control_state_query_json, render_control_state_query_text,
     render_recovery_snapshot_json, render_recovery_snapshot_text, render_run_view_json,
     render_run_view_text, render_signal_append_json, render_signal_append_text,
-    render_step_view_json, render_step_view_text, render_timer_view_json, render_timer_view_text,
+    render_step_lease_json, render_step_lease_text, render_step_view_json, render_step_view_text,
+    render_timer_view_json, render_timer_view_text,
 };
 #[cfg(feature = "valkey")]
 use super::render::{render_hot_state_snapshot_json, render_hot_state_snapshot_text};
@@ -87,6 +88,12 @@ pub(super) fn run_control_command_impl(
             now_ms,
             json,
         } => run_hot_state_command(valkey_url, namespace.as_deref(), *now_ms, *json),
+        ControlCliCommand::Lease {
+            ledger_path,
+            run_id,
+            step_id,
+            json,
+        } => run_lease_command(ledger_path, run_id, step_id, *json),
         ControlCliCommand::QueryState {
             ledger_path,
             run_id,
@@ -101,6 +108,55 @@ pub(super) fn run_control_command_impl(
         } => run_recovery_snapshot_command(ledger_path, run_id, *now_ms, *json),
         _ => run_control_command_tail(command),
     }
+}
+
+#[cfg(feature = "duckdb")]
+fn run_lease_command(
+    ledger_path: &std::path::Path,
+    run_id: &str,
+    step_id: &str,
+    json: bool,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{ControlLedger, DuckDbControlLedger, RunId, StepId};
+
+    let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| control_error(&error))?;
+    let run_id = RunId::new(run_id).map_err(|error| control_error(&error))?;
+    let step_id = StepId::new(step_id).map_err(|error| control_error(&error))?;
+    let view = ledger
+        .load_run_view(&run_id)
+        .map_err(|error| control_error(&error))?;
+    let step = view.steps.get(&step_id).ok_or_else(|| {
+        invalid_input(format!(
+            "could not find step `{}` in run `{}`",
+            step_id.as_str(),
+            run_id.as_str()
+        ))
+    })?;
+    let lease = step.active_lease.as_ref().ok_or_else(|| {
+        invalid_input(format!(
+            "step `{}` in run `{}` has no active lease",
+            step_id.as_str(),
+            run_id.as_str()
+        ))
+    })?;
+    let rendered = if json {
+        render_step_lease_json(lease)?
+    } else {
+        render_step_lease_text(lease)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn run_lease_command(
+    _ledger_path: &std::path::Path,
+    _run_id: &str,
+    _step_id: &str,
+    _json: bool,
+) -> io::Result<ControlCliOutput> {
+    Err(invalid_input(
+        "`control lease` requires the `duckdb` feature",
+    ))
 }
 
 #[cfg(feature = "duckdb")]

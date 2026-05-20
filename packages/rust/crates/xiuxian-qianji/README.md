@@ -200,8 +200,11 @@ returns a compact read-only state package with event count, replayed run view,
 and recovery snapshot. `qianji
 control step --ledger <path> --run-id <id> --step-id <id> [--json]` renders
 one replayed step view for step-local evidence, gate, Agent, activity, timer,
-and signal inspection. `qianji control activity --ledger <path> --run-id <id>
---activity-id <id> [--step-id <id>] [--json]` renders one replayed activity
+and signal inspection. `qianji control lease --ledger <path> --run-id <id>
+--step-id <id> [--json]` renders the current replayed active lease for one
+step without acquiring, renewing, releasing, reclaiming, or mutating hot
+state. `qianji control activity --ledger <path> --run-id <id> --activity-id
+<id> [--step-id <id>] [--json]` renders one replayed activity
 view for lifecycle, task, attempt, worker, result, and failure inspection.
 `qianji control activity-queue --ledger <path> --run-id <id>
 [--task-queue <queue>] [--json]` renders scheduled-but-not-started activity

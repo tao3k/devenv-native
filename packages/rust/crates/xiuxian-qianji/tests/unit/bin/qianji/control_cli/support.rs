@@ -2,7 +2,8 @@ use xiuxian_qianji_control::{
     ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, AgentDecision,
     AgentDecisionId, AgentDecisionOutcome, AgentProposalId, ControlEvent, ControlEventKind,
     ControlLedger, DecisionReasonCode, DuckDbControlLedger, ErrorCode, GateName, GateResult,
-    IdempotencyKey, RunId, SignalName, StepId, TaskQueue, TimerId, TimerRecord, WorkerId,
+    IdempotencyKey, LeaseId, RunId, SignalName, StepId, StepLease, TaskQueue, TimerId, TimerRecord,
+    WorkerId,
 };
 
 pub(super) fn to_args(values: &[&str]) -> Vec<String> {
@@ -60,6 +61,37 @@ pub(super) fn append_control_run_with_step(ledger_path: &std::path::Path) -> Run
             },
         )),
         "should append step-created event",
+    );
+    run_id
+}
+
+pub(super) fn append_control_run_with_active_step_lease(ledger_path: &std::path::Path) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let lease = StepLease {
+        lease_id: must_ok(LeaseId::new("lease-control-step"), "should build lease id"),
+        run_id: run_id.clone(),
+        step_id: step_id.clone(),
+        worker_id: must_ok(WorkerId::new("worker-control"), "should build worker id"),
+        acquired_at_ms: 10_000,
+        expires_at_ms: 20_000,
+    };
+
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            10_000,
+            ControlEventKind::StepLeaseAcquired { lease },
+        )),
+        "should append step lease acquired event",
     );
     run_id
 }

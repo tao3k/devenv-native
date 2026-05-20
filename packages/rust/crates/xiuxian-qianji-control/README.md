@@ -158,6 +158,8 @@ Workers.
 leases, and worker heartbeats. It reports `HotStateSnapshot` facts without
 reclaiming leases, reordering queues, renewing heartbeats, appending ledger
 events, or executing Workers.
+Replay-derived `StepView` records the current active `StepLease`, which lets
+read-only operator surfaces inspect lease ownership without touching hot state.
 `record_timer_fired` records a durable `TimerFired` fact for a run-scoped or
 step-scoped timer. It does not poll timers, wait, notify, or enqueue work.
 `record_step_lease_released` records a durable `StepLeaseReleased` fact after
