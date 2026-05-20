@@ -1,8 +1,9 @@
 use std::error::Error;
 
 use xiuxian_qianji_control::{
-    ActivityId, ActivityTask, ActivityType, ControlEvent, ControlEventKind, ControlLedger,
-    IdempotencyKey, InMemoryControlLedger, RecoveryItemScope, RunId, StepId, TaskQueue,
+    ActivityFailure, ActivityId, ActivityResult, ActivityTask, ActivityType, ControlEvent,
+    ControlEventKind, ControlLedger, ErrorCode, IdempotencyKey, InMemoryControlLedger,
+    RecoveryItemScope, RunId, StepId, TaskQueue,
 };
 
 #[test]
@@ -14,6 +15,11 @@ fn activity_queue_projection_selects_only_scheduled_tasks() -> Result<(), Box<dy
     assert_eq!(projection.run_id, run_id);
     assert_eq!(projection.task_queue, None);
     assert_eq!(projection.items.len(), 2);
+    assert_eq!(projection.summary.total, 4);
+    assert_eq!(projection.summary.scheduled, 2);
+    assert_eq!(projection.summary.started, 0);
+    assert_eq!(projection.summary.completed, 1);
+    assert_eq!(projection.summary.failed, 1);
     assert_eq!(
         projection.items[0].activity.activity_id,
         ActivityId::new("activity-run-scheduled")?
@@ -39,6 +45,10 @@ fn activity_queue_projection_filters_by_task_queue() -> Result<(), Box<dyn Error
 
     assert_eq!(projection.task_queue, Some(task_queue));
     assert_eq!(projection.items.len(), 1);
+    assert_eq!(projection.summary.total, 2);
+    assert_eq!(projection.summary.scheduled, 1);
+    assert_eq!(projection.summary.completed, 0);
+    assert_eq!(projection.summary.failed, 1);
     assert_eq!(
         projection.items[0].activity.activity_id,
         ActivityId::new("activity-step-scheduled")?
@@ -91,12 +101,57 @@ fn activity_queue_fixture() -> Result<InMemoryControlLedger, Box<dyn Error>> {
             attempt: 1,
         },
     ))?;
+    ledger.append_event(ControlEvent::run(
+        run_id.clone(),
+        6,
+        ControlEventKind::ActivityCompleted {
+            activity_id: ActivityId::new("activity-run-started")?,
+            result: ActivityResult {
+                output_ref: None,
+                output_hash: Some("sha256:activity-run-started".to_owned()),
+                metadata: serde_json::Value::Null,
+            },
+        },
+    ))?;
+    ledger.append_event(ControlEvent::step(
+        run_id.clone(),
+        StepId::new("step-activity-queue")?,
+        7,
+        ControlEventKind::ActivityScheduled {
+            task: activity_task("activity-step-scheduled", "tool.github", "tool.github")?,
+        },
+    ))?;
+    ledger.append_event(ControlEvent::step(
+        run_id.clone(),
+        StepId::new("step-activity-queue")?,
+        8,
+        ControlEventKind::ActivityScheduled {
+            task: activity_task("activity-step-failed", "tool.github", "tool.github")?,
+        },
+    ))?;
+    ledger.append_event(ControlEvent::step(
+        run_id.clone(),
+        StepId::new("step-activity-queue")?,
+        9,
+        ControlEventKind::ActivityStarted {
+            activity_id: ActivityId::new("activity-step-failed")?,
+            worker_id: None,
+            attempt: 1,
+        },
+    ))?;
     ledger.append_event(ControlEvent::step(
         run_id,
         StepId::new("step-activity-queue")?,
-        6,
-        ControlEventKind::ActivityScheduled {
-            task: activity_task("activity-step-scheduled", "tool.github", "tool.github")?,
+        10,
+        ControlEventKind::ActivityFailed {
+            activity_id: ActivityId::new("activity-step-failed")?,
+            failure: ActivityFailure {
+                error_code: ErrorCode::new("rate_limited")?,
+                message: "provider rejected request".to_owned(),
+                retryable: true,
+                attempt: 1,
+                metadata: serde_json::Value::Null,
+            },
         },
     ))?;
     Ok(ledger)

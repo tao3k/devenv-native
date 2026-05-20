@@ -408,11 +408,17 @@ pub(super) fn render_activity_queue_projection_text(
             "# Qianji Control Activity Queue\n\n",
             "- Run: `{}`\n",
             "- Task queue: `{}`\n",
-            "- Scheduled activities: `{}`\n"
+            "- Queue items: `{}`\n",
+            "- Activities: total `{}`, scheduled `{}`, started `{}`, completed `{}`, failed `{}`\n"
         ),
         projection.run_id.as_str(),
         task_queue,
-        projection.items.len()
+        projection.items.len(),
+        projection.summary.total,
+        projection.summary.scheduled,
+        projection.summary.started,
+        projection.summary.completed,
+        projection.summary.failed
     );
 
     if !projection.items.is_empty() {

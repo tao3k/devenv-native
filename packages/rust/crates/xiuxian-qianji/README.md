@@ -206,7 +206,8 @@ view for lifecycle, task, attempt, worker, result, and failure inspection.
 `qianji control activity-queue --ledger <path> --run-id <id>
 [--task-queue <queue>] [--json]` renders scheduled-but-not-started activity
 tasks from durable replay, optionally filtered by task queue, without claiming
-work or mutating hot scheduler state.
+work or mutating hot scheduler state. The same projection includes lifecycle
+summary counts for scheduled, started, completed, and failed activities.
 `qianji control activity-start --ledger <path> --run-id <id> --activity-id
 <id> --worker-id <id> --started-at-ms <ms> --attempt <n> [--step-id <id>]
 [--json]` records an idempotent durable `ActivityStarted` fact through the

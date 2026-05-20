@@ -140,7 +140,10 @@ activities, and retry starts must advance beyond the failed attempt.
 `ActivityQueueProjection` derives scheduled-but-not-started activity tasks
 from replayed durable history, optionally filtered by task queue. It is a
 read-only worker management view and does not claim work, acquire leases,
-append lifecycle events, or mutate Valkey hot state.
+append lifecycle events, or mutate Valkey hot state. The projection also
+reports replayed activity lifecycle counts so operators can see scheduled,
+started, completed, and failed activity state without loading the full run
+view.
 `record_worker_heartbeat` records a durable Worker liveness audit fact after
 validating heartbeat TTL. `record_worker_heartbeat_with_hot_state` first
 mirrors the heartbeat into a `HotStateStore` and then appends the durable
