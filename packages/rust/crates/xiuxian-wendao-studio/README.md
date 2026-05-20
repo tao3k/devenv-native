@@ -272,6 +272,24 @@ manifest reference graph, and only then selects the requested episteme root.
 That graph validation checks unique domain ids and manifest extension targets;
 it does not require additional user-facing registry syntax.
 
+Studio can also discover the optional WendaoGraph ontology quality proof
+service from the effective deployment `wendao.toml`:
+
+```toml
+[wendaograph.ontology_read_model_quality]
+base_url = "http://127.0.0.1:19091/"
+timeout_seconds = 30
+max_in_flight_requests = 2
+```
+
+When this table is present, the dataset ontology Flight provider sends the
+compiled semantic read-model rows to the runtime Arrow Flight binding and
+returns the advisory proof summary in `FlightInfo.app_metadata`. When it is
+absent, the provider keeps the materialization metadata stable and leaves the
+proof summary empty. Julia still receives only compiled read-model tables; it
+does not read `wendao.toml`, RDF files, raw corpus files, or private source
+manifests.
+
 The CLI can target a configured registry id:
 
 ```bash
