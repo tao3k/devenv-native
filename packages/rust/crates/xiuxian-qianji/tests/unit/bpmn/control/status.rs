@@ -23,8 +23,8 @@ async fn workflow_control_service_loads_checkpoint_status_from_duckdb_store() {
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: "wf_status".to_string(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: "wf_status".to_string().into(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
@@ -44,7 +44,7 @@ async fn workflow_control_service_loads_checkpoint_status_from_duckdb_store() {
     let status_report = ok_of(
         service
             .load_workflow_status(&crate::QianjiBpmnWorkflowStatusRequest {
-                instance_id: "wf_status".to_string(),
+                instance_id: "wf_status".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             })
             .await,

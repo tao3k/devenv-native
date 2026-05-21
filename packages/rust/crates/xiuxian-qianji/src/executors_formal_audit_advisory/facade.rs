@@ -1,3 +1,5 @@
+//! Facade surface for `xiuxian-qianji`.
+
 use std::sync::Arc;
 
 use crate::contract_feedback::{AdvisoryAuditExecutor, AdvisoryAuditRequest, RoleAuditFinding};

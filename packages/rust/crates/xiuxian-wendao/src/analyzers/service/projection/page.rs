@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::page` owns Wendao service projection page behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

@@ -10,6 +10,7 @@
 //! ├── lib.rs                # Re-exports (entry point)
 //! ├── re_exports.rs         # ast-grep re-exports
 //! ├── lang.rs               # Lang enum and language support
+//! ├── parser_registry.rs    # General AST baseline and parser override registry
 //! ├── match.rs              # Match struct
 //! ├── scan.rs               # Pattern utilities
 //! ├── python.rs             # Python-specific utilities
@@ -48,6 +49,7 @@ mod extract;
 mod fingerprint;
 mod item;
 mod lang;
+mod parser_registry;
 mod python;
 mod python_tree_sitter;
 mod re_exports;
@@ -66,6 +68,10 @@ pub use re_exports::{
 // Lang enum
 pub use lang::Lang;
 
+pub use parser_registry::{
+    AstParserPriority, AstParserRegistry, AstParserResolution, baseline_parser_name,
+};
+
 // Match struct
 pub use item::Match;
 
@@ -83,13 +89,17 @@ pub use python::{
 pub use security::{SecurityConfig, SecurityScanner, SecurityViolation};
 
 // Code extraction utilities
-pub use extract::{ExtractResult, extract_items, extract_skeleton, get_skeleton_patterns};
+pub use extract::{
+    ExtractResult, ExtractResultParts, extract_items, extract_items_for_patterns, extract_skeleton,
+    get_skeleton_patterns,
+};
 pub use fingerprint::{semantic_fingerprint, supports_semantic_fingerprint};
 
 // Code chunking utilities
-pub use chunk::{CodeChunk, chunk_code};
+pub use chunk::{ChunkCodeRequest, ChunkType, CodeChunk, chunk_code};
 
 // Tree-sitter based Python parser for robust decorator extraction
 pub use python_tree_sitter::{
-    DecoratedFunction, DecoratorArguments, DecoratorInfo, ParameterInfo, TreeSitterPythonParser,
+    DecoratedFunction, DecoratorArguments, DecoratorCategory, DecoratorInfo, ParameterInfo,
+    TreeSitterPythonParser,
 };

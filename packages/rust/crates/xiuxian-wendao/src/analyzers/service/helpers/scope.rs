@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::collections::BTreeSet;
 
 use crate::analyzers::RepositoryAnalysisOutput;
@@ -24,11 +25,11 @@ pub(crate) fn docs_in_scope(
     let mut docs = match scoped_module {
         None => analysis.docs.clone(),
         Some(module) => {
-            let mut target_ids = BTreeSet::from([module.module_id.clone()]);
+            let mut target_ids = BTreeSet::from([module.module_id.to_string()]);
             target_ids.extend(
                 symbols_in_scope(Some(module), &analysis.symbols)
                     .into_iter()
-                    .map(|symbol| symbol.symbol_id.clone()),
+                    .map(|symbol| symbol.symbol_id.to_string()),
             );
             let doc_ids = analysis
                 .relations
@@ -66,14 +67,14 @@ pub(crate) fn documented_symbol_ids(
 ) -> BTreeSet<String> {
     let scoped_symbol_ids = symbols_in_scope(scoped_module, symbols)
         .into_iter()
-        .map(|symbol| symbol.symbol_id.clone())
+        .map(|symbol| symbol.symbol_id.to_string())
         .collect::<BTreeSet<_>>();
 
     relations
         .iter()
         .filter(|relation| {
             relation.kind == RelationKind::Documents
-                && scoped_symbol_ids.contains(&relation.target_id)
+                && scoped_symbol_ids.contains(relation.target_id.as_str())
         })
         .map(|relation| relation.target_id.clone())
         .collect()

@@ -86,8 +86,8 @@ fn test_quantum_context_snapshot_roundtrip_with_valkey() -> Result<(), String> {
     let contexts = vec![
         QuantumContext {
             anchor_id: ANCHOR_ID_A.to_string(),
-            doc_id: DOC_A.to_string(),
-            path: PATH_A.to_string(),
+            doc_id: DOC_A.to_string().into(),
+            path: PATH_A.to_string().into(),
             semantic_path: vec![SEMANTIC_ROOT.to_string()],
             trace_label: Some(TRACE_LABEL.to_string()),
             related_clusters: vec![CLUSTER_A.to_string()],
@@ -97,8 +97,8 @@ fn test_quantum_context_snapshot_roundtrip_with_valkey() -> Result<(), String> {
         },
         QuantumContext {
             anchor_id: ANCHOR_ID_B.to_string(),
-            doc_id: DOC_B.to_string(),
-            path: PATH_B.to_string(),
+            doc_id: DOC_B.to_string().into(),
+            path: PATH_B.to_string().into(),
             semantic_path: vec![SEMANTIC_ROOT.to_string()],
             trace_label: Some(TRACE_LABEL.to_string()),
             related_clusters: vec![CLUSTER_B.to_string()],

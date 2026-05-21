@@ -4,7 +4,7 @@ use super::api::{
 };
 use crate::bpmn_model_api::{
     BpmnDataInputOutputSnapshot, BpmnDocumentSnapshot, BpmnGlobalTaskSnapshot,
-    BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot, BpmnProcessSnapshot,
+    BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot, BpmnProcessSnapshot, BpmnSnapshotFlag,
 };
 use crate::ir_node_api::BpmnSubProcessKind;
 use crate::ir_package_api::BpmnPackage;
@@ -58,11 +58,11 @@ fn process_callable_definition(
         callable_id: Arc::<str>::from(process_id.as_str()),
         kind: BpmnCallableKind::Process,
         name: optional_arc(process.name.as_deref()),
-        source_id: Arc::<str>::from(snapshot.source_id.as_str()),
-        is_executable: process.is_executable,
+        source_id: (Arc::<str>::from(snapshot.source_id.as_str())),
+        is_executable: process.is_executable.map(BpmnSnapshotFlag::get),
         runtime_available: package.find_process(process_id).is_some(),
         process_type: optional_arc(process.process_type.as_deref()),
-        is_closed: process.is_closed,
+        is_closed: process.is_closed.map(BpmnSnapshotFlag::get),
         implementation: None,
         script_language: None,
         script: None,
@@ -80,9 +80,9 @@ fn global_task_callable_definition(
     let task_id = task.task_id.as_ref()?;
     Some(BpmnCallableDefinition {
         callable_id: Arc::<str>::from(task_id.as_str()),
-        kind: BpmnCallableKind::from_global_task_tag(&task.task_kind)?,
+        kind: (BpmnCallableKind::from_global_task_tag(&task.task_kind)?),
         name: optional_arc(task.name.as_deref()),
-        source_id: Arc::<str>::from(snapshot.source_id.as_str()),
+        source_id: (Arc::<str>::from(snapshot.source_id.as_str())),
         is_executable: None,
         runtime_available: false,
         process_type: None,
@@ -120,8 +120,8 @@ fn call_activity_bindings_from_package(
                 continue;
             }
             bindings.push(BpmnCallActivityBinding {
-                process_id: Arc::clone(&process.key.process_id),
-                activity_id: Arc::clone(&node.bpmn_id),
+                process_id: (Arc::clone(&process.key.process_id)),
+                activity_id: (Arc::clone(&node.bpmn_id)),
                 target_id: Arc::clone(&target.callable_id),
                 target_kind: target.kind,
                 execution_policy: BpmnCallableBindingExecutionPolicy::BoundedProcessCall,
@@ -152,7 +152,7 @@ fn callable_data_ref(data: &BpmnDataInputOutputSnapshot) -> BpmnCallableDataRef 
         data_id: optional_arc(data.data_id.as_deref()),
         name: optional_arc(data.name.as_deref()),
         item_subject_ref: optional_arc(data.item_subject_ref.as_deref()),
-        is_collection: data.is_collection,
+        is_collection: data.is_collection.map(BpmnSnapshotFlag::get),
     }
 }
 

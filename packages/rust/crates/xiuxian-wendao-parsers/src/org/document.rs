@@ -2,10 +2,13 @@
 
 use std::collections::BTreeMap;
 
+use orgize::Org;
 use orgize::rowan::ast::AstNode;
-use orgize::{Org, ast::Headline};
+use orgize::syntax_ast::Headline;
 
-use crate::document::{DocumentCore, DocumentFormat, OrgDocument, OrgDocumentMetadata};
+use crate::document::{
+    DocumentCore, DocumentFormat, DocumentType, OrgDocument, OrgDocumentMetadata,
+};
 
 const LEAD_LIMIT: usize = 180;
 
@@ -54,7 +57,7 @@ fn extract_org_metadata(org: &Org) -> OrgDocumentMetadata {
     }
 
     let properties = org
-        .document()
+        .syntax_document()
         .properties()
         .map(|drawer| {
             drawer
@@ -81,7 +84,7 @@ fn normalize_property_pair(key: &str, value: &str) -> Option<(String, String)> {
 }
 
 fn first_headline_title(org: &Org) -> Option<String> {
-    org.document()
+    org.syntax_document()
         .syntax()
         .descendants()
         .find_map(Headline::cast)
@@ -92,10 +95,10 @@ fn first_headline_title(org: &Org) -> Option<String> {
 fn strip_leading_org_metadata(content: &str) -> String {
     let mut offset = 0usize;
     loop {
-        let Some(line) = content[offset..].lines().next() else {
+        let Some(line) = line_at_offset(content, offset) else {
             return String::new();
         };
-        let line_len = line.len() + line_ending_len(content, offset, line.len());
+        let line_len = source_line_len(content, offset, line);
         let trimmed = line.trim();
 
         if trimmed.is_empty() || is_org_keyword(trimmed) {
@@ -104,19 +107,7 @@ fn strip_leading_org_metadata(content: &str) -> String {
         }
 
         if trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
-            offset += line_len;
-            while offset < content.len() {
-                let Some(property_line) = content[offset..].lines().next() else {
-                    return String::new();
-                };
-                let property_line_len =
-                    property_line.len() + line_ending_len(content, offset, property_line.len());
-                let property_trimmed = property_line.trim();
-                offset += property_line_len;
-                if property_trimmed.eq_ignore_ascii_case(":END:") {
-                    break;
-                }
-            }
+            offset = skip_property_drawer(content, offset + line_len);
             continue;
         }
 
@@ -124,6 +115,28 @@ fn strip_leading_org_metadata(content: &str) -> String {
     }
 
     content[offset..].to_string()
+}
+
+fn line_at_offset(content: &str, offset: usize) -> Option<&str> {
+    content[offset..].lines().next()
+}
+
+fn source_line_len(content: &str, offset: usize, line: &str) -> usize {
+    line.len() + line_ending_len(content, offset, line.len())
+}
+
+fn skip_property_drawer(content: &str, mut offset: usize) -> usize {
+    while offset < content.len() {
+        let Some(property_line) = line_at_offset(content, offset) else {
+            return content.len();
+        };
+        let property_line_len = source_line_len(content, offset, property_line);
+        offset += property_line_len;
+        if property_line.trim().eq_ignore_ascii_case(":END:") {
+            break;
+        }
+    }
+    offset
 }
 
 fn line_ending_len(content: &str, line_offset: usize, line_len: usize) -> usize {
@@ -159,7 +172,7 @@ fn extract_document_tags(metadata: &OrgDocumentMetadata) -> Vec<String> {
     tags
 }
 
-fn extract_doc_type(metadata: &OrgDocumentMetadata) -> Option<String> {
+fn extract_doc_type(metadata: &OrgDocumentMetadata) -> Option<DocumentType> {
     metadata
         .properties
         .get("TYPE")
@@ -169,6 +182,7 @@ fn extract_doc_type(metadata: &OrgDocumentMetadata) -> Option<String> {
         .or_else(|| first_keyword_value(metadata, "KIND"))
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+        .map(DocumentType::new)
 }
 
 fn first_keyword_value(metadata: &OrgDocumentMetadata, key: &str) -> Option<String> {

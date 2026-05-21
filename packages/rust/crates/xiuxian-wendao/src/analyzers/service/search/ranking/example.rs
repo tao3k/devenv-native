@@ -1,3 +1,5 @@
+//! `analyzers::service::search::ranking::example` owns Wendao search ranking example behavior.
+
 use std::collections::{BTreeMap, HashSet};
 
 use crate::analyzers::ExampleRecord;
@@ -32,7 +34,7 @@ pub(crate) fn ranked_example_matches(
     {
         let lookup = examples
             .iter()
-            .map(|example| (example.example_id.clone(), example.clone()))
+            .map(|example| (example.example_id.to_string(), example.clone()))
             .collect::<BTreeMap<_, _>>();
         let Some(index) = build_search_document_index(examples.iter().map(|example| {
             let metadata = metadata_lookup
@@ -51,8 +53,9 @@ pub(crate) fn ranked_example_matches(
         ranked_example_matches_without_index(query, examples, metadata_lookup, limit)
     }
 }
-
+/// `ranked_example_matches_with_artifacts` public function boundary for Wendao.
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ranked_example_matches_with_artifacts(
     query: &str,
     examples: &[ExampleRecord],

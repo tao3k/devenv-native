@@ -13,7 +13,7 @@ use crate::swarm::{GlobalSwarmRegistry, RemotePossessionBus};
 use crate::telemetry::{SwarmEvent, unix_millis_now};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use xiuxian_window::SessionWindow;
+use xiuxian_window::{SessionWindow, SessionWindowCheckpointId};
 
 impl SwarmEngine {
     pub(in crate::swarm) fn spawn_worker_task(
@@ -47,7 +47,12 @@ impl SwarmEngine {
             format!("{session_id}:{}", identity.agent_id).as_str(),
             identity.window_size.max(32),
         );
-        window.append_turn("system", "swarm_worker_boot", 0, Some(&session_id));
+        window.append_turn(
+            "system",
+            "swarm_worker_boot",
+            0,
+            Some(SessionWindowCheckpointId::from(session_id.as_str())),
+        );
 
         let thread_id = format!("{:?}", std::thread::current().id());
         log::info!(
@@ -165,23 +170,33 @@ impl SwarmEngine {
     ) -> Result<SwarmAgentReport, QianjiError> {
         let context = match run_result {
             Ok(context) => {
-                window.append_turn("assistant", "swarm_worker_completed", 0, Some(session_id));
+                window.append_turn(
+                    "assistant",
+                    "swarm_worker_completed",
+                    0,
+                    Some(SessionWindowCheckpointId::from(session_id)),
+                );
                 context
             }
             Err(error) => {
-                window.append_turn("assistant", "swarm_worker_failed", 0, Some(session_id));
+                window.append_turn(
+                    "assistant",
+                    "swarm_worker_failed",
+                    0,
+                    Some(SessionWindowCheckpointId::from(session_id)),
+                );
                 return Err(error);
             }
         };
-        let (window_turns, window_tool_calls, _ring_len) = window.get_stats();
+        let stats = window.get_stats();
         Ok(SwarmAgentReport {
             agent_id: identity.agent_id,
             role_class: role,
             success: true,
             context: Some(context),
             error: None,
-            window_turns,
-            window_tool_calls,
+            window_turns: stats.total_turns,
+            window_tool_calls: stats.total_tool_calls,
         })
     }
 }

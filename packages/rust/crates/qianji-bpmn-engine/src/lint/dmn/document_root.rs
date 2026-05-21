@@ -4,7 +4,7 @@ use crate::lint_api::LintIssue;
 use serde_json::json;
 
 pub(super) fn invalid_dmn_xml_issue(source_id: &str, message: &str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.invalid_xml",
         "DMN XML is not well-formed",
         format!("Source '{source_id}' cannot be parsed as DMN XML: {message}"),
@@ -29,7 +29,7 @@ pub(super) fn missing_dmn_root_issue(
     source_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.missing_root_element",
         "DMN file has no root XML element",
         format!("Source '{source_id}' does not contain a root DMN XML element."),
@@ -57,7 +57,7 @@ pub(super) fn invalid_dmn_root_element_issue(
     element: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.invalid_root_element",
         "DMN document root must be `<definitions>`",
         format!(

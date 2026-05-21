@@ -1,3 +1,5 @@
+//! `link_graph::models::records::graph_rows` owns Wendao models records graph rows behavior.
+
 use crate::link_graph::models::query::LinkGraphDirection;
 use serde::{Deserialize, Serialize};
 

@@ -1,10 +1,13 @@
+//! Swarm possession model surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
-use super::possession_util::current_unix_millis;
+use super::possession_clock::current_unix_millis;
 use crate::contracts::QianjiOutput;
 
 /// One remote node-execution request published by a source cluster.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct RemoteNodeRequest {
     /// Unique request id.
     pub request_id: String,
@@ -27,6 +30,7 @@ pub struct RemoteNodeRequest {
 impl RemoteNodeRequest {
     /// Creates a request with generated id and timestamp.
     #[must_use]
+    /// Positional boundary: this compatibility API keeps the established public call shape.
     pub fn new(
         session_id: impl Into<String>,
         node_id: impl Into<String>,
@@ -53,6 +57,7 @@ impl RemoteNodeRequest {
 
 /// One remote execution response returned by a responder cluster.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct RemoteNodeResponse {
     /// Request id to correlate with caller.
     pub request_id: String,

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::audit_bridge::surgical` owns Wendao audit audit bridge surgical behavior.
+
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 

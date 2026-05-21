@@ -64,7 +64,12 @@ def discover(intent: str, limit: int = 5) -> str:
     // Verify decorator arguments
     let args = &decorator.arguments;
     assert_eq!(args.name, Some("discover".to_string()));
-    assert_eq!(args.category, Some("system".to_string()));
+    assert_eq!(
+        args.category
+            .as_ref()
+            .map(xiuxian_ast::DecoratorCategory::as_str),
+        Some("system")
+    );
 
     // The critical test: description should be extracted correctly
     let desc = some_ref_or_panic(args.description.as_ref(), "description");

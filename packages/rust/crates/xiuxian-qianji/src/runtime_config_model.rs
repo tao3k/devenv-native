@@ -1,3 +1,5 @@
+//! Runtime config model surface for `xiuxian-qianji`.
+
 use super::constants::{
     DEFAULT_MEMORY_PROMOTION_GRAPH_DIMENSION, DEFAULT_MEMORY_PROMOTION_GRAPH_SCOPE,
     DEFAULT_MEMORY_PROMOTION_PERSIST, DEFAULT_MEMORY_PROMOTION_PERSIST_BEST_EFFORT,
@@ -90,6 +92,7 @@ impl Default for QianjiRuntimeServerConfig {
 
 /// Explicit runtime environment used by the resolver (test-friendly).
 #[derive(Debug, Default, Clone)]
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct QianjiRuntimeEnv {
     /// Optional project root override.
     pub prj_root: Option<PathBuf>,

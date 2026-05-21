@@ -1,3 +1,5 @@
+//! Wendao SQL contract branch for model, rendering, and XML surfaces.
+
 #[path = "model.rs"]
 mod model;
 #[path = "xml.rs"]

@@ -1,4 +1,6 @@
-use std::collections::BTreeMap;
+//! Contracts manifest surface for `xiuxian-qianji`.
+
+use std::{collections::BTreeMap, fmt, ops::Deref};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -7,14 +9,48 @@ use crate::consensus::ConsensusPolicy;
 
 use super::{NodeLlmBinding, NodeQianhuanBinding};
 
+/// Typed manifest node task-kind token.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct NodeTaskType(String);
+
+impl NodeTaskType {
+    /// Build a typed task-kind token from manifest input.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Return the manifest spelling for this task kind.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl Deref for NodeTaskType {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+impl fmt::Display for NodeTaskType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Definition of a node in the declarative manifest.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct NodeDefinition {
     /// Unique identifier for the node.
     pub id: String,
     /// Type of task (e.g., knowledge, annotation).
     #[serde(alias = "kind")]
-    pub task_type: String,
+    pub task_type: NodeTaskType,
     /// Priority weight for scheduling.
     #[serde(default = "default_node_weight")]
     pub weight: f32,

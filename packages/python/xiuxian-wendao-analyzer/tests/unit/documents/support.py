@@ -122,9 +122,13 @@ class DocumentsFakeDoclingConverter:
         self.markdown = markdown
         self.document = document
         self.calls: list[Path] = []
+        self.kwargs_calls: list[dict[str, object]] = []
 
-    def convert(self, source: str | Path) -> DocumentsFakeDoclingResult:
+    def convert(
+        self, source: str | Path, **kwargs: object
+    ) -> DocumentsFakeDoclingResult:
         self.calls.append(Path(source))
+        self.kwargs_calls.append(dict(kwargs))
         return DocumentsFakeDoclingResult(self.markdown, self.document)
 
 

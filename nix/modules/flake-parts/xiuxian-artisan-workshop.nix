@@ -1,4 +1,4 @@
-{ workspaceRoot, inputs, ... }:
+{ workspaceRoot, inputs, self, ... }:
 {
   perSystem =
     {
@@ -107,10 +107,6 @@
           drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
           profiles.release.runTests = false;
         };
-        "xiuxian-daochang" = {
-          drvConfig.mkDerivation.nativeBuildInputs = [ pkgs.protobuf ];
-          profiles.release.runTests = false;
-        };
         "xiuxian-zhenfa" = {
           profiles.release.runTests = false;
           drvConfig.mkDerivation = {
@@ -185,5 +181,6 @@
           config.nci.outputs."xiuxian-core-rs".packages.release.config.rust-cargo-vendor.vendoredSources;
         version = config.nci.outputs."xiuxian-core-rs".packages.release.config.version;
       };
+      packages.xiuxian-wendao-client = config.nci.outputs."xiuxian-wendao-client".packages.release;
     };
 }

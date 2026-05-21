@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::semantic_check::docs_governance::collection::footer` owns Wendao docs governance collection footer behavior.
+
 use crate::parsers::docs_governance::{collect_lines, parse_footer_block};
 use crate::zhenfa_router::native::semantic_check::docs_governance::rendering::render_index_footer_with_values;
 use crate::zhenfa_router::native::semantic_check::docs_governance::types::{

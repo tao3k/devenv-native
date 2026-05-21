@@ -30,7 +30,12 @@ fn bpmn_snapshot_preserves_collaboration_metadata_item_catalog() {
         snapshot.root.item_definitions[0].item_kind.as_deref(),
         Some("Information")
     );
-    assert_eq!(snapshot.root.item_definitions[0].is_collection, Some(false));
+    assert_eq!(
+        snapshot.root.item_definitions[0]
+            .is_collection
+            .map(qianji_bpmn_engine::bpmn_model_api::BpmnSnapshotFlag::get),
+        Some(false)
+    );
     assert_eq!(snapshot.root.message_count, 1);
     assert_eq!(
         snapshot.root.messages[0].message_id.as_deref(),

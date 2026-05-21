@@ -1,10 +1,11 @@
 use crate::parsers::markdown::sections::{extract_property_drawers, parse_property_drawer};
+use xiuxian_wendao_parsers::sections::PropertyDrawerLine;
 
 #[test]
 fn test_parse_property_drawer_valid() {
     let line = ":ID: arch-v1";
     let result = parse_property_drawer(line);
-    assert_eq!(result, Some(("ID".to_string(), "arch-v1".to_string())));
+    assert_eq!(result, Some(PropertyDrawerLine::new("ID", "arch-v1")));
 }
 
 #[test]
@@ -13,7 +14,7 @@ fn test_parse_property_drawer_with_spaces() {
     let result = parse_property_drawer(line);
     assert_eq!(
         result,
-        Some(("TAGS".to_string(), "core, design".to_string()))
+        Some(PropertyDrawerLine::new("TAGS", "core, design"))
     );
 }
 

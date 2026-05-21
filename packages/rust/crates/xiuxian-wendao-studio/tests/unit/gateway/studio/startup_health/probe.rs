@@ -21,11 +21,14 @@ fn plugin_registry_probe_fails_when_no_plugins_are_registered() {
 
 #[test]
 fn plugin_registry_probe_reports_registered_plugin_ids() {
-    let check = probe_plugin_registry_with_ids(vec!["julia".to_string(), "modelica".to_string()]);
+    let check = probe_plugin_registry_with_ids(vec![
+        "julia-code-parser".to_string(),
+        "modelica".to_string(),
+    ]);
 
     assert_eq!(check.dependency, BUILTIN_PLUGIN_REGISTRY_DEPENDENCY);
     assert_eq!(check.status, GatewayStartupDependencyStatus::Connected);
-    assert_eq!(check.detail, "plugins=julia,modelica");
+    assert_eq!(check.detail, "plugins=julia-code-parser,modelica");
 }
 
 #[test]

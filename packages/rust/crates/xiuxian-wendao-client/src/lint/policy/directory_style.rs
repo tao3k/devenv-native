@@ -117,106 +117,158 @@ pub(crate) fn collect_file_link_style_facts(
 pub(crate) fn lint_directory_link_style_policy(
     files: &[MarkdownFileLinkStyleFacts],
 ) -> BTreeMap<String, Vec<MarkdownLintIssue>> {
-    let mut by_directory: BTreeMap<&str, Vec<&MarkdownFileLinkStyleFacts>> = BTreeMap::new();
-    for file in files {
-        by_directory
-            .entry(file.directory.as_str())
-            .or_default()
-            .push(file);
-    }
-
-    let mut issues_by_file = BTreeMap::new();
-
-    for (directory, directory_files) in by_directory {
-        let summary = summarize_directory_styles(&directory_files);
-        let styles_present = summary.files_per_style.len();
-        if styles_present < 2 {
-            continue;
-        }
-
-        if let Some(preferred_style) = preferred_directory_style(&summary) {
-            for file in directory_files {
-                let Some(occurrence) = file
-                    .occurrences
-                    .iter()
-                    .find(|occurrence| occurrence.style != preferred_style)
-                else {
-                    continue;
-                };
-                let issue = diagnostic_contract().render_issue(
-                    &DiagnosticFacts::directory_link_style_policy(
-                        DIRECTORY_LINK_STYLE_MISMATCH.to_string(),
-                        occurrence.line,
-                        occurrence.column,
-                        Some(occurrence.source.clone()),
-                        DynamicDiagnosticText {
-                            problem: format!(
-                                "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links."
-                            ),
-                            detail: format!(
-                                "Directory `{directory}` already prefers {} style across {} file(s); this file still uses {} style. Keep one note-link style per directory so LLM repair stays deterministic.",
-                                preferred_style.display_name(),
-                                summary
-                                    .files_per_style
-                                    .get(&preferred_style)
-                                    .map_or(0, BTreeSet::len),
-                                occurrence.style.display_name(),
-                            ),
-                            found: Some(occurrence.literal.clone()),
-                            expected: Some(rewrite_for_directory_style(
-                                occurrence,
-                                preferred_style,
-                                directory,
-                            )),
-                            tip: Some(directory_style_tip(&summary, preferred_style)),
-                        },
-                    ),
-                );
-                issues_by_file
-                    .entry(file.path.clone())
-                    .or_insert_with(Vec::new)
-                    .push(issue);
-            }
-            continue;
-        }
-
-        for file in directory_files {
-            let Some(occurrence) = file.occurrences.first() else {
-                continue;
-            };
-            let issue = diagnostic_contract().render_issue(
-                &DiagnosticFacts::directory_link_style_policy(
-                    DIRECTORY_LINK_STYLE_AMBIGUOUS.to_string(),
-                    occurrence.line,
-                    occurrence.column,
-                    Some(occurrence.source.clone()),
-                    DynamicDiagnosticText {
-                        problem: format!(
-                            "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links without a clear local contract."
-                        ),
-                        detail: format!(
-                            "Files in `{directory}` currently split between {} and {} with no dominant local style. Pick one style for this directory and rewrite the outliers consistently instead of mixing both.",
-                            DirectoryLinkStyle::Obsidian.display_name(),
-                            DirectoryLinkStyle::Markdown.display_name(),
-                        ),
-                        found: Some(occurrence.literal.clone()),
-                        expected: Some(format!(
-                            "Choose either {} or {} for directory `{directory}`, then rewrite files consistently.",
-                            DirectoryLinkStyle::Obsidian.canonical_example(),
-                            DirectoryLinkStyle::Markdown.canonical_example(),
-                        )),
-                        tip: Some(ambiguous_directory_tip(&summary)),
-                    },
-                ),
-            );
+    files_by_directory(files)
+        .into_iter()
+        .flat_map(|(directory, directory_files)| {
+            directory_link_style_issues(directory, &directory_files).into_iter()
+        })
+        .fold(BTreeMap::new(), |mut issues_by_file, (path, issue)| {
             issues_by_file
-                .entry(file.path.clone())
+                .entry(path)
                 .or_insert_with(Vec::new)
                 .push(issue);
-        }
-    }
+            issues_by_file
+        })
+}
 
-    issues_by_file
+fn files_by_directory(
+    files: &[MarkdownFileLinkStyleFacts],
+) -> BTreeMap<&str, Vec<&MarkdownFileLinkStyleFacts>> {
+    files
+        .iter()
+        .fold(BTreeMap::new(), |mut by_directory, file| {
+            by_directory
+                .entry(file.directory.as_str())
+                .or_insert_with(Vec::new)
+                .push(file);
+            by_directory
+        })
+}
+
+fn directory_link_style_issues(
+    directory: &str,
+    directory_files: &[&MarkdownFileLinkStyleFacts],
+) -> Vec<(String, MarkdownLintIssue)> {
+    let summary = summarize_directory_styles(directory_files);
+    if summary.files_per_style.len() < 2 {
+        return Vec::new();
+    }
+    match preferred_directory_style(&summary) {
+        Some(preferred_style) => {
+            preferred_directory_style_issues(directory, directory_files, &summary, preferred_style)
+        }
+        None => ambiguous_directory_style_issues(directory, directory_files, &summary),
+    }
+}
+
+fn preferred_directory_style_issues(
+    directory: &str,
+    directory_files: &[&MarkdownFileLinkStyleFacts],
+    summary: &DirectoryStyleSummary,
+    preferred_style: DirectoryLinkStyle,
+) -> Vec<(String, MarkdownLintIssue)> {
+    directory_files
+        .iter()
+        .filter_map(|file| {
+            file.occurrences
+                .iter()
+                .find(|occurrence| occurrence.style != preferred_style)
+                .map(|occurrence| {
+                    (
+                        file.path.clone(),
+                        render_preferred_directory_style_issue(
+                            directory,
+                            summary,
+                            preferred_style,
+                            occurrence,
+                        ),
+                    )
+                })
+        })
+        .collect()
+}
+
+fn ambiguous_directory_style_issues(
+    directory: &str,
+    directory_files: &[&MarkdownFileLinkStyleFacts],
+    summary: &DirectoryStyleSummary,
+) -> Vec<(String, MarkdownLintIssue)> {
+    directory_files
+        .iter()
+        .filter_map(|file| {
+            file.occurrences.first().map(|occurrence| {
+                (
+                    file.path.clone(),
+                    render_ambiguous_directory_style_issue(directory, summary, occurrence),
+                )
+            })
+        })
+        .collect()
+}
+
+fn render_preferred_directory_style_issue(
+    directory: &str,
+    summary: &DirectoryStyleSummary,
+    preferred_style: DirectoryLinkStyle,
+    occurrence: &LinkStyleOccurrence,
+) -> MarkdownLintIssue {
+    diagnostic_contract().render_issue(&DiagnosticFacts::directory_link_style_policy(
+        DIRECTORY_LINK_STYLE_MISMATCH.to_string(),
+        occurrence.line,
+        occurrence.column,
+        Some(occurrence.source.clone()),
+        DynamicDiagnosticText {
+            problem: format!(
+                "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links."
+            ),
+            detail: format!(
+                "Directory `{directory}` already prefers {} style across {} file(s); this file still uses {} style. Keep one note-link style per directory so LLM repair stays deterministic.",
+                preferred_style.display_name(),
+                summary
+                    .files_per_style
+                    .get(&preferred_style)
+                    .map_or(0, BTreeSet::len),
+                occurrence.style.display_name(),
+            ),
+            found: Some(occurrence.literal.clone()),
+            expected: Some(rewrite_for_directory_style(
+                occurrence,
+                preferred_style,
+                directory,
+            )),
+            tip: Some(directory_style_tip(summary, preferred_style)),
+        },
+    ))
+}
+
+fn render_ambiguous_directory_style_issue(
+    directory: &str,
+    summary: &DirectoryStyleSummary,
+    occurrence: &LinkStyleOccurrence,
+) -> MarkdownLintIssue {
+    diagnostic_contract().render_issue(&DiagnosticFacts::directory_link_style_policy(
+        DIRECTORY_LINK_STYLE_AMBIGUOUS.to_string(),
+        occurrence.line,
+        occurrence.column,
+        Some(occurrence.source.clone()),
+        DynamicDiagnosticText {
+            problem: format!(
+                "Directory `{directory}` mixes explicit Obsidian wikilinks and Markdown note links without a clear local contract."
+            ),
+            detail: format!(
+                "Files in `{directory}` currently split between {} and {} with no dominant local style. Pick one style for this directory and rewrite the outliers consistently instead of mixing both.",
+                DirectoryLinkStyle::Obsidian.display_name(),
+                DirectoryLinkStyle::Markdown.display_name(),
+            ),
+            found: Some(occurrence.literal.clone()),
+            expected: Some(format!(
+                "Choose either {} or {} for directory `{directory}`, then rewrite files consistently.",
+                DirectoryLinkStyle::Obsidian.canonical_example(),
+                DirectoryLinkStyle::Markdown.canonical_example(),
+            )),
+            tip: Some(ambiguous_directory_tip(summary)),
+        },
+    ))
 }
 
 fn summarize_directory_styles(files: &[&MarkdownFileLinkStyleFacts]) -> DirectoryStyleSummary {

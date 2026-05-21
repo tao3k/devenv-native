@@ -1,3 +1,5 @@
+//! `search::repo_search::orchestration` owns Wendao search repo search orchestration behavior.
+
 use crate::analyzers::RegisteredRepository;
 use crate::parsers::search::repo_code_query::ParsedRepoCodeSearchQuery;
 use crate::search::SearchPlaneService;
@@ -117,6 +119,7 @@ pub(crate) async fn search_repo_code_outcome(
 ///
 /// Returns a typed execution error when the selected AST or content backend
 /// cannot satisfy the query.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub async fn search_repo_code_outcome_for_query(
     search_plane: &SearchPlaneService,
     selected_repository: Option<&RegisteredRepository>,

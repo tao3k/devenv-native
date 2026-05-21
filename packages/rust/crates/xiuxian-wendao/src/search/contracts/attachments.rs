@@ -1,3 +1,5 @@
+//! `search::contracts::attachments` owns Wendao search contracts attachments behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -6,6 +8,8 @@ use super::StudioNavigationTarget;
 /// A hit representing an attachment or external resource.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct AttachmentSearchHit {
     /// Attachment filename.
     pub name: String,

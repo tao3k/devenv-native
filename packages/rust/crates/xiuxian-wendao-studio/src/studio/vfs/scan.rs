@@ -115,7 +115,7 @@ fn scan_directory(
         };
 
         entries.push(VfsScanEntry {
-            path: display_path.replace('\\', "/"),
+            path: display_path.replace('\\', "/").into(),
             name: entry.file_name().to_string_lossy().to_string(),
             is_dir,
             category: guess_category(entry.path()),

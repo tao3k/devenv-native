@@ -1,3 +1,5 @@
+//! `analyzers::projection` owns Wendao analyzers projection behavior.
+
 #[path = "builder/mod.rs"]
 mod builder;
 mod contracts;

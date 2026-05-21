@@ -36,6 +36,6 @@ pub use event::ZhenfaStreamingEvent;
 pub use gemini::GeminiStreamingParser;
 pub use pipeline::{
     CognitiveDistribution, ExternalSignal, PipelineError, PipelineOutput, StreamProvider,
-    ZhenfaPipeline,
+    ZhenfaPipeline, ZhenfaPipelineOptions,
 };
 pub use traits::{StreamingOutcome, StreamingTransmuter, TokenUsage};

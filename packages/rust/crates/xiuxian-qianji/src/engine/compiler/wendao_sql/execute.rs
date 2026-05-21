@@ -1,6 +1,6 @@
 use crate::contracts::NodeDefinition;
 
-use super::shared::{string_param, usize_param};
+use super::params::{string_param, usize_param};
 
 pub(in crate::engine::compiler) struct WendaoSqlExecuteMechanismConfig {
     pub(in crate::engine::compiler) sql_key: String,

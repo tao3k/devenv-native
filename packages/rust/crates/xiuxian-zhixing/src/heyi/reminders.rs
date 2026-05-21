@@ -1,12 +1,14 @@
 //! Reminder polling and metadata update behavior for Zhixing-Heyi.
 
-use super::ZhixingHeyi;
 use super::constants::{ATTR_TIMER_RECIPIENT, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED};
 use super::schedule_time::render_scheduled_time_local;
+use super::{ReminderQueueTask, ZhixingHeyi};
 use chrono::{DateTime, Duration, Utc};
+use chrono_tz::Tz;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
+use xiuxian_wendao::entity::Entity;
 
 /// Notification payload emitted by the timer watcher.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,6 +28,11 @@ pub struct ReminderSignal {
 const REMINDER_STATE_CONTEXT: &str = "SUCCESS_STREAK";
 const DEFAULT_PERSONA_NAME: &str = "Agenda Steward";
 const TASK_ENTITY_TYPE: &str = "TASK";
+
+struct GraphReminderCandidate {
+    signal: ReminderSignal,
+    updated_entity: Entity,
+}
 
 fn escape_markdown_v2_text(text: &str) -> String {
     text.chars()
@@ -125,41 +132,16 @@ impl ZhixingHeyi {
             return Ok(0);
         };
 
-        let mut enqueued = 0usize;
-        for entity in self.graph.get_entities_by_type(TASK_ENTITY_TYPE) {
-            let Some(scheduled_at) = entity
-                .metadata
-                .get(ATTR_TIMER_SCHEDULED)
-                .and_then(serde_json::Value::as_str)
-            else {
-                continue;
-            };
-            let reminded = entity
-                .metadata
-                .get(ATTR_TIMER_REMINDED)
-                .and_then(serde_json::Value::as_bool)
-                .unwrap_or(false);
-            if reminded {
-                continue;
-            }
-            let recipient = entity
-                .metadata
-                .get(ATTR_TIMER_RECIPIENT)
-                .and_then(serde_json::Value::as_str);
-            let task_brief = entity.description.trim();
-            reminder_queue
-                .enqueue_task(
-                    &entity.id,
-                    &entity.name,
-                    (!task_brief.is_empty()).then_some(task_brief),
-                    scheduled_at,
-                    recipient,
-                )
-                .map_err(crate::Error::Internal)?;
-            enqueued += 1;
-        }
-
-        Ok(enqueued)
+        self.graph
+            .get_entities_by_type(TASK_ENTITY_TYPE)
+            .into_iter()
+            .filter_map(backfill_candidate)
+            .try_fold(0usize, |enqueued, task| {
+                reminder_queue
+                    .enqueue_task(task)
+                    .map_err(crate::Error::Internal)?;
+                Ok(enqueued + 1)
+            })
     }
 
     /// Render a reminder notice using the live Zhixing manifestation template surface.
@@ -204,61 +186,118 @@ impl ZhixingHeyi {
             return reminders;
         }
 
-        let tasks = self.graph.get_entities_by_type(TASK_ENTITY_TYPE);
+        self.poll_graph_reminders()
+    }
+
+    fn poll_graph_reminders(&self) -> Vec<ReminderSignal> {
         let now_local = Utc::now().with_timezone(&self.time_zone);
-        let mut reminders = Vec::new();
-        let mut pending_updates = Vec::new();
+        let candidates = self
+            .graph
+            .get_entities_by_type(TASK_ENTITY_TYPE)
+            .into_iter()
+            .filter_map(|entity| graph_reminder_candidate(entity, &now_local, self.time_zone))
+            .collect::<Vec<_>>();
+        self.persist_graph_reminder_updates(
+            candidates
+                .iter()
+                .map(|candidate| candidate.updated_entity.clone()),
+        );
+        candidates
+            .into_iter()
+            .map(|candidate| candidate.signal)
+            .collect()
+    }
 
-        for entity in tasks {
-            let scheduled = entity
-                .metadata
-                .get(ATTR_TIMER_SCHEDULED)
-                .and_then(serde_json::Value::as_str);
-            let reminded = entity
-                .metadata
-                .get(ATTR_TIMER_REMINDED)
-                .and_then(serde_json::Value::as_bool)
-                .unwrap_or(false);
-            let recipient = entity
-                .metadata
-                .get(ATTR_TIMER_RECIPIENT)
-                .and_then(serde_json::Value::as_str)
-                .map(ToString::to_string);
-
-            let Some(scheduled) = scheduled else {
-                continue;
-            };
-            let Ok(scheduled_at_utc) = DateTime::parse_from_rfc3339(scheduled) else {
-                continue;
-            };
-
-            let scheduled_local = scheduled_at_utc.with_timezone(&self.time_zone);
-            let reminder_window_start = scheduled_local - Duration::minutes(15);
-            if !reminded && now_local >= reminder_window_start && now_local < scheduled_local {
-                reminders.push(ReminderSignal {
-                    task_id: entity.id.clone(),
-                    title: entity.name.clone(),
-                    task_brief: (!entity.description.trim().is_empty())
-                        .then(|| entity.description.clone()),
-                    scheduled_at: Some(scheduled.to_string()),
-                    recipient,
-                });
-                let mut updated = entity.clone();
-                updated
-                    .metadata
-                    .insert(ATTR_TIMER_REMINDED.to_string(), json!(true));
-                pending_updates.push(updated);
-            }
-        }
-
-        for updated in pending_updates {
+    fn persist_graph_reminder_updates(&self, updates: impl IntoIterator<Item = Entity>) {
+        updates.into_iter().for_each(|updated| {
             if let Err(error) = self.graph.add_entity(updated) {
                 log::warn!("Failed to update reminder state in graph: {error}");
             }
-        }
-
-        reminders
+        });
     }
+}
+
+fn graph_reminder_candidate(
+    entity: Entity,
+    now_local: &DateTime<Tz>,
+    time_zone: Tz,
+) -> Option<GraphReminderCandidate> {
+    let scheduled = entity
+        .metadata
+        .get(ATTR_TIMER_SCHEDULED)
+        .and_then(serde_json::Value::as_str)?
+        .to_string();
+    let reminded = entity
+        .metadata
+        .get(ATTR_TIMER_REMINDED)
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    if reminded {
+        return None;
+    }
+
+    let scheduled_at_utc = DateTime::parse_from_rfc3339(&scheduled).ok()?;
+    let scheduled_local = scheduled_at_utc.with_timezone(&time_zone);
+    if !is_inside_reminder_window(now_local, &scheduled_local) {
+        return None;
+    }
+
+    let signal = ReminderSignal {
+        task_id: entity.id.clone(),
+        title: entity.name.clone(),
+        task_brief: (!entity.description.trim().is_empty()).then(|| entity.description.clone()),
+        scheduled_at: Some(scheduled),
+        recipient: entity
+            .metadata
+            .get(ATTR_TIMER_RECIPIENT)
+            .and_then(serde_json::Value::as_str)
+            .map(ToString::to_string),
+    };
+    let mut updated_entity = entity;
+    updated_entity
+        .metadata
+        .insert(ATTR_TIMER_REMINDED.to_string(), json!(true));
+    Some(GraphReminderCandidate {
+        signal,
+        updated_entity,
+    })
+}
+
+fn is_inside_reminder_window(now_local: &DateTime<Tz>, scheduled_local: &DateTime<Tz>) -> bool {
+    let reminder_window_start = *scheduled_local - Duration::minutes(15);
+    now_local >= &reminder_window_start && now_local < scheduled_local
+}
+
+fn backfill_candidate(entity: Entity) -> Option<ReminderQueueTask> {
+    let scheduled_at = entity
+        .metadata
+        .get(ATTR_TIMER_SCHEDULED)
+        .and_then(serde_json::Value::as_str)?
+        .to_string();
+    let reminded = entity
+        .metadata
+        .get(ATTR_TIMER_REMINDED)
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    if reminded {
+        return None;
+    }
+
+    let task_brief = entity.description.trim();
+    let recipient = entity
+        .metadata
+        .get(ATTR_TIMER_RECIPIENT)
+        .and_then(serde_json::Value::as_str)
+        .map(ToString::to_string);
+
+    let mut task = ReminderQueueTask::new(entity.id, entity.name, scheduled_at);
+    if !task_brief.is_empty() {
+        task = task.with_task_brief(task_brief);
+    }
+    if let Some(recipient) = recipient {
+        task = task.with_recipient(recipient);
+    }
+    Some(task)
 }
 
 #[cfg(test)]

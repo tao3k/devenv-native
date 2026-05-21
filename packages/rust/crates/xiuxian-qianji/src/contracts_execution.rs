@@ -1,3 +1,5 @@
+//! Contracts execution surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Represents the execution status of a single mechanism node in the Qianji Box.

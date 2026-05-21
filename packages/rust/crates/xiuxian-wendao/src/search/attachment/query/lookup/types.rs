@@ -1,3 +1,5 @@
+//! `search::attachment::query::lookup::types` owns Wendao query lookup types behavior.
+
 use std::collections::HashSet;
 
 use crate::search::ranking::{RetainedWindow, StreamingRerankSource, StreamingRerankTelemetry};

@@ -1,12 +1,19 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
+use futures::future::try_join_all;
 use rand::seq::SliceRandom;
 
 use super::GlobalSwarmRegistry;
 use crate::swarm::discovery_model::ClusterNodeRecord;
 use crate::swarm::discovery_parse::{parse_record, role_matches};
 use crate::swarm::discovery_util::{REGISTRY_INDEX_KEY, normalize_optional_text};
+
+enum RegistryDiscoveryEntry {
+    Live(Box<ClusterNodeRecord>),
+    Stale(String),
+    Filtered,
+}
 
 impl GlobalSwarmRegistry {
     /// Discovers all live nodes from the global registry.
@@ -67,40 +74,66 @@ impl GlobalSwarmRegistry {
             return Ok(Vec::new());
         }
 
-        let mut records = Vec::new();
-        let mut stale = Vec::new();
-        for key in keys {
-            let fields: HashMap<String, String> = self
-                .run_command("swarm_registry_hgetall", || {
-                    let mut command = redis::cmd("HGETALL");
-                    command.arg(&key);
+        let entries = try_join_all(
+            keys.into_iter()
+                .map(|key| self.discover_registry_entry(role_filter, key)),
+        )
+        .await?;
+        let stale = entries
+            .iter()
+            .filter_map(|entry| match entry {
+                RegistryDiscoveryEntry::Stale(key) => Some(key.clone()),
+                RegistryDiscoveryEntry::Live(_) | RegistryDiscoveryEntry::Filtered => None,
+            })
+            .collect::<Vec<_>>();
+        let records = entries
+            .into_iter()
+            .filter_map(|entry| match entry {
+                RegistryDiscoveryEntry::Live(record) => Some(*record),
+                RegistryDiscoveryEntry::Stale(_) | RegistryDiscoveryEntry::Filtered => None,
+            })
+            .collect::<Vec<_>>();
+
+        self.prune_stale_registry_keys(stale).await?;
+
+        Ok(records)
+    }
+
+    async fn discover_registry_entry(
+        &self,
+        role_filter: Option<&str>,
+        key: String,
+    ) -> Result<RegistryDiscoveryEntry> {
+        let fields: HashMap<String, String> = self
+            .run_command("swarm_registry_hgetall", || {
+                let mut command = redis::cmd("HGETALL");
+                command.arg(&key);
+                command
+            })
+            .await?;
+        if fields.is_empty() {
+            return Ok(RegistryDiscoveryEntry::Stale(key));
+        }
+
+        Ok(parse_record(key, &fields)
+            .filter(|record| role_matches(role_filter, &record.identity.role_class))
+            .map_or(RegistryDiscoveryEntry::Filtered, |record| {
+                RegistryDiscoveryEntry::Live(Box::new(record))
+            }))
+    }
+
+    async fn prune_stale_registry_keys(&self, stale: Vec<String>) -> Result<()> {
+        try_join_all(stale.into_iter().map(|key| async move {
+            let _: i64 = self
+                .run_command("swarm_registry_prune_stale_index", || {
+                    let mut command = redis::cmd("SREM");
+                    command.arg(REGISTRY_INDEX_KEY).arg(&key);
                     command
                 })
                 .await?;
-            if fields.is_empty() {
-                stale.push(key);
-                continue;
-            }
-
-            if let Some(record) = parse_record(key, &fields)
-                && role_matches(role_filter, &record.identity.role_class)
-            {
-                records.push(record);
-            }
-        }
-
-        if !stale.is_empty() {
-            for key in stale {
-                let _: i64 = self
-                    .run_command("swarm_registry_prune_stale_index", || {
-                        let mut command = redis::cmd("SREM");
-                        command.arg(REGISTRY_INDEX_KEY).arg(&key);
-                        command
-                    })
-                    .await?;
-            }
-        }
-
-        Ok(records)
+            Ok(())
+        }))
+        .await
+        .map(|_: Vec<()>| ())
     }
 }

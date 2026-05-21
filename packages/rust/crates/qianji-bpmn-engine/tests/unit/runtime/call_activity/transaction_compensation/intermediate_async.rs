@@ -7,7 +7,6 @@ use crate::runtime::call_activity::{TRANSACTION_PROCESS_ID, node_index};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, PendingHostWorkResult, UserTaskOutcome, advance_instance,
-    apply_pending_host_work_result,
 };
 use serde_json::json;
 
@@ -54,7 +53,7 @@ async fn runtime_transaction_async_throw_compensation_intermediate_routes_forwar
         qianji_bpmn_engine::NodeRuntimeStatus::Completed
     );
 
-    let compensation_resumed = apply_pending_host_work_result(
+    let compensation_resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         compensation_pending[0].token_id,
@@ -137,7 +136,7 @@ async fn runtime_transaction_async_default_throw_compensation_intermediate_route
     );
     assert_eq!(instance.variables, expected_variables);
 
-    let second_compensation_resumed = apply_pending_host_work_result(
+    let second_compensation_resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         second_compensation_pending[0].token_id,

@@ -1,10 +1,10 @@
 use comrak::nodes::AstNode;
 
-use crate::studio::analysis::markdown::compile::types::{EdgeDraft, MarkdownCompiler};
-use crate::studio::analysis::markdown::compile::utils::{
+use crate::studio::analysis::markdown::compile::syntax::{
     current_section_context, line_end, line_start, make_edge, node_key, normalize_reference,
     slugify,
 };
+use crate::studio::analysis::markdown::compile::types::{EdgeDraft, MarkdownCompiler};
 use crate::studio::analysis::markdown::text::collect_plain_text;
 use crate::studio::types::{AnalysisEdgeKind, AnalysisNode, AnalysisNodeKind};
 

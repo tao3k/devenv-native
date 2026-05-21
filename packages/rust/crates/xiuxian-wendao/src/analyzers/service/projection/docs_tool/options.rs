@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::docs_tool::options` owns Wendao projection docs tool options behavior.
+
 use crate::analyzers::projection::ProjectionPageKind;
 
 /// Default related-page limit for docs capability calls.

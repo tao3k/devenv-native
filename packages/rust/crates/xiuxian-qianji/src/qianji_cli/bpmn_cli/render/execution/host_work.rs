@@ -33,13 +33,13 @@ pub(super) fn append_bpmn_pending_host_work(rendered: &mut String, session: &Qia
             bpmn_pending_host_work_kind_label(&work.kind)
         );
         if let Some(process_id) = work.process_id.as_ref() {
-            let _ = write!(line, " | process={process_id}");
+            let _ = write!(line, " | process={}", process_id.as_str());
         }
         if let Some(activity_id) = work.activity_id.as_ref() {
-            let _ = write!(line, " | activity={activity_id}");
+            let _ = write!(line, " | activity={}", activity_id.as_str());
         }
         if let Some(work_id) = work.work_id.as_ref() {
-            let _ = write!(line, " | work_id={work_id}");
+            let _ = write!(line, " | work_id={}", work_id.as_str());
         }
         if let Some(claim) = work.claim.as_ref() {
             let _ = write!(line, " | claim={}", claim.claimant);

@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::link_graph::index::LinkGraphDocument;
 
 pub(super) fn doc_contains_token(
@@ -39,15 +40,10 @@ pub(in crate::link_graph::index) fn token_match_ratio(
     if query_tokens.is_empty() {
         return 0.0;
     }
-    let mut matched = 0usize;
-    for token in query_tokens {
-        if token.is_empty() {
-            continue;
-        }
-        if haystack.contains(token) {
-            matched += 1;
-        }
-    }
+    let matched = query_tokens
+        .iter()
+        .filter(|token| !token.is_empty() && haystack.contains(token.as_str()))
+        .count();
     (usize_to_f64_saturating(matched) / usize_to_f64_saturating(query_tokens.len())).clamp(0.0, 1.0)
 }
 

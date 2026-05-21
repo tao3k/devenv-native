@@ -62,9 +62,9 @@ impl UnifiedSymbolIndex {
         let symbol = UnifiedSymbol {
             name: record.name.clone(),
             kind: kind_str.to_string(),
-            location: record.path.clone(),
+            location: record.path.to_string(),
             source,
-            crate_name: record.repo_id.clone(),
+            crate_name: record.repo_id.to_string(),
         };
         self.add_symbol(symbol);
     }

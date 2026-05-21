@@ -76,10 +76,13 @@ pub mod telemetry;
 /// Bounded work-surface parsing, validation, and CLI support helpers.
 #[cfg(feature = "qianji-full")]
 pub mod workdir;
+/// Low-overhead typed workflow execution substrate.
+pub mod workflow_kernel;
 
 #[cfg(feature = "qianji-full")]
 pub use app::{
-    MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp, RESEARCH_TRINITY_TOML, WENDAO_SQL_AUTHORING_V1_TOML,
+    MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp, QianjiManifestPipelineRequest,
+    QianjiPipelineDependencies, RESEARCH_TRINITY_TOML, WENDAO_SQL_AUTHORING_V1_TOML,
 };
 #[cfg(feature = "qianji-full")]
 pub use bootcamp::{
@@ -87,41 +90,43 @@ pub use bootcamp::{
     run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
 };
 pub use bpmn::{
-    BpmnAdapterError, BpmnOrchestrationError, DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS,
-    QianjiBpmnCheckpointStore, QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade,
-    QianjiBpmnExecutionMode, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,
-    QianjiBpmnExecutionScheduler, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder,
-    QianjiBpmnPendingHostCompletion, QianjiBpmnPendingHostWorkHttpResponse,
-    QianjiBpmnPreparedWorkflowResume, QianjiBpmnPreparedWorkflowStart,
-    QianjiBpmnSchedulerLeaseConfig, QianjiBpmnSession, QianjiBpmnWorkflowActionHttpRequest,
-    QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowCancelReport,
-    QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
-    QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowControlService,
-    QianjiBpmnWorkflowEventPollReport, QianjiBpmnWorkflowEventPollRequest,
-    QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowHttpErrorBody,
-    QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowInstanceSummary,
-    QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
-    QianjiBpmnWorkflowInterruptReport, QianjiBpmnWorkflowInterruptRequest,
-    QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest,
-    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
-    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStartReport,
-    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusHttpQuery,
-    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowStatusReport,
-    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimHttpPayload,
-    QianjiBpmnWorkflowTaskClaimHttpRequest, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskClaimPayload, QianjiBpmnWorkflowTaskClaimReport,
-    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
-    QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
-    QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
-    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
-    QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiBpmnWorkflowTaskReleasePayload,
-    QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
-    QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
-    QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
-    dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
-    load_bpmn_package_from_files, load_bpmn_package_from_files_with_options,
-    qianji_bpmn_workflow_router, resolve_pending_host_work, resolve_waiting_external_event,
+    BpmnAdapterError, BpmnOrchestrationError, BpmnUnsupportedStartNodeKind,
+    DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnActivityId, QianjiBpmnCheckpointStore,
+    QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
+    QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest, QianjiBpmnExecutionScheduler,
+    QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder, QianjiBpmnLeaseOwnerToken,
+    QianjiBpmnPackageId, QianjiBpmnPendingHostCompletion, QianjiBpmnPendingHostWorkHttpResponse,
+    QianjiBpmnPreparedWorkflowResume, QianjiBpmnPreparedWorkflowStart, QianjiBpmnProcessId,
+    QianjiBpmnSchedulerLeaseConfig, QianjiBpmnSession, QianjiBpmnStartAtNodeId,
+    QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
+    QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,
+    QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
+    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowEventPollReport,
+    QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowHttpCheckpointBackend,
+    QianjiBpmnWorkflowHttpErrorBody, QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowInstanceId,
+    QianjiBpmnWorkflowInstanceSummary, QianjiBpmnWorkflowInstancesReport,
+    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowInterruptReport,
+    QianjiBpmnWorkflowInterruptRequest, QianjiBpmnWorkflowResumeReport,
+    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowRunHttpResponse,
+    QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStartHttpRequest,
+    QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStartRequest,
+    QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowStatusHttpResponse,
+    QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
+    QianjiBpmnWorkflowTaskClaimHttpPayload, QianjiBpmnWorkflowTaskClaimHttpRequest,
+    QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskClaimPayload,
+    QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
+    QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
+    QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter, dispatch_pending_host_work_request,
+    dispatch_pending_host_work_requests, load_bpmn_package_from_files,
+    load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
+    resolve_pending_host_work, resolve_waiting_external_event,
 };
 #[cfg(feature = "duckdb")]
 pub use bpmn::{
@@ -161,6 +166,7 @@ pub use contracts::{
 };
 #[cfg(feature = "qianji-full")]
 pub use engine::{QianjiCompiler, QianjiEngine};
+pub use error::QianjiError;
 #[cfg(feature = "qianji-full")]
 pub use flowhub::{
     AnchoredMaterializedWorkdir, FlowhubCheckReport, FlowhubDiagnostic, FlowhubDirKind,
@@ -181,20 +187,23 @@ pub use llm_client::QianjiLlmClient;
 #[cfg(feature = "qianji-full")]
 pub use manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
 #[cfg(feature = "qianji-full")]
-pub use qianji_cli::run_qianji_cli;
-pub use qianji_server_cli::run_qianji_server_cli;
+pub use qianji_cli::{QianjiCliError, run_qianji_cli};
+pub use qianji_server_cli::{QianjiServerCliError, run_qianji_server_cli};
 #[cfg(feature = "qianji-full")]
 pub use safety::QianjiSafetyGuard;
 #[cfg(feature = "qianji-full")]
 pub use scheduler::QianjiScheduler;
 #[cfg(feature = "qianji-full")]
-pub use scheduler::{RoleAvailabilityRegistry, SchedulerExecutionPolicy};
+pub use scheduler_checkpoint::QianjiStateSnapshot;
 pub use scheduler_identity::SchedulerAgentIdentity;
+#[cfg(feature = "qianji-full")]
+pub use scheduler_policy::{RoleAvailabilityRegistry, SchedulerExecutionPolicy};
 #[cfg(feature = "qianji-full")]
 pub use swarm::{
     ClusterNodeIdentity, ClusterNodeRecord, GlobalSwarmRegistry, RemoteNodeRequest,
-    RemoteNodeResponse, RemotePossessionBus, SwarmAgentConfig, SwarmAgentReport, SwarmEngine,
-    SwarmExecutionOptions, SwarmExecutionReport, map_execution_error_to_response,
+    RemoteNodeResponse, RemotePossessionBus, RemotePossessionBusError, SwarmAgentConfig,
+    SwarmAgentReport, SwarmEngine, SwarmExecutionOptions, SwarmExecutionReport,
+    map_execution_error_to_response,
 };
 pub use telemetry::{
     ConsensusStatus, DEFAULT_PULSE_CHANNEL, NodeTransitionPhase, NoopPulseEmitter, PulseEmitter,
@@ -203,8 +212,9 @@ pub use telemetry::{
 #[cfg(feature = "qianji-full")]
 pub use workdir::{
     WorkdirAdvance, WorkdirCheckFollowUpQuery, WorkdirCheckReport, WorkdirDiagnostic,
-    WorkdirMarkdownSurface, WorkdirSemanticProjectionPolicySummary,
+    WorkdirMarkdownSurface, WorkdirSemanticEvidenceStatus, WorkdirSemanticProjectionPolicySummary,
     WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
+    WorkdirSemanticScopeObjectKind, WorkdirSemanticScopeObjectStatus,
     WorkdirSemanticScopeObjectSummary, WorkdirSemanticSqlGuardSummary, WorkdirShow,
     WorkdirVisibleSurface, WorkdirVisibleSurfaceKind, advance_workdir_step,
     build_workdir_check_follow_up_query, check_workdir, load_workdir_manifest,
@@ -214,6 +224,13 @@ pub use workdir::{
     trace_workdir_semantic_scope_bundle, trace_workdir_semantic_scope_bundle_with_evidence,
     trace_workdir_semantic_scope_bundle_with_sql_guard_evidence, trace_workdir_semantic_scope_json,
     workdir_semantic_scope_guard_trace_json,
+};
+pub use workflow_kernel::{
+    WorkflowCheckpointError, WorkflowCheckpointRef, WorkflowCheckpointStorageKind,
+    WorkflowCompletionError, WorkflowEdgeKind, WorkflowExecutionError, WorkflowExecutionReport,
+    WorkflowMemoryCheckpointStore, WorkflowRun, WorkflowStage, WorkflowStageBinding,
+    WorkflowStageFacts, WorkflowStageStatus, WorkflowStageTrace, WorkflowTopology,
+    WorkflowTopologyEdge, WorkflowTopologyError, WorkflowTrace,
 };
 
 #[cfg(test)]

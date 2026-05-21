@@ -16,7 +16,7 @@ async fn host_dispatch_send_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::SendTask,
         PendingHostWorkRequest::Send(SendTaskRequest {
-            instance_id: "wf_dispatch".to_string(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             message_reference: "invoice_dispatched".to_string(),
@@ -34,7 +34,7 @@ async fn host_dispatch_service_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::ServiceTask,
         PendingHostWorkRequest::Service(ServiceTaskRequest {
-            instance_id: "wf_dispatch".to_string(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             variables: json!({ "amount": 7 }),
@@ -51,7 +51,7 @@ async fn host_dispatch_script_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::ScriptTask,
         PendingHostWorkRequest::Script(ScriptTaskRequest {
-            instance_id: "wf_dispatch".to_string(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             script_format: Some("feel".to_string()),
@@ -70,11 +70,11 @@ async fn host_dispatch_user_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::UserTask,
         PendingHostWorkRequest::User(UserTaskRequest {
-            instance_id: "wf_dispatch".to_string(),
-            process_id: "dispatch".to_string(),
-            token_id: 0,
+            instance_id: "wf_dispatch".into(),
+            process_id: "dispatch".into(),
+            token_id: 0.into(),
             node_index: 1,
-            activity_id: "task".to_string(),
+            activity_id: "task".into(),
             variables: json!({ "amount": 7 }),
             inputs: json!({}),
             output_bindings: vec![],
@@ -138,11 +138,11 @@ async fn host_dispatch_manual_request_materializes_from_blocked_instance() {
     assert_dispatch_request(
         BpmnNodeKind::ManualTask,
         PendingHostWorkRequest::Manual(ManualTaskRequest {
-            instance_id: "wf_dispatch".to_string(),
-            process_id: "dispatch".to_string(),
-            token_id: 0,
+            instance_id: "wf_dispatch".into(),
+            process_id: "dispatch".into(),
+            token_id: 0.into(),
             node_index: 1,
-            activity_id: "task".to_string(),
+            activity_id: "task".into(),
             variables: json!({ "amount": 7 }),
             inputs: json!({}),
             output_bindings: vec![],
@@ -213,7 +213,7 @@ async fn host_dispatch_business_rule_request_materializes_from_blocked_instance(
     assert_dispatch_request(
         BpmnNodeKind::BusinessRuleTask,
         PendingHostWorkRequest::BusinessRule(BusinessRuleTaskRequest {
-            instance_id: "wf_dispatch".to_string(),
+            instance_id: ("wf_dispatch".to_string()),
             token_id: 0,
             node_index: 1,
             evaluation: DmnEvaluationRequest::new(
@@ -247,7 +247,7 @@ async fn host_dispatch_requires_pending_work() {
     assert_eq!(
         error,
         BpmnEngineError::MissingPendingHostWork {
-            instance_id: "wf_dispatch".to_string(),
+            instance_id: ("wf_dispatch".to_string()).into(),
         }
     );
 }

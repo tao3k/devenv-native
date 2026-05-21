@@ -31,10 +31,10 @@ use crate::compatibility::link_graph::{
 use crate::plugin::entry::JuliaRepoIntelligencePlugin;
 use crate::plugin::graph_structural::GraphStructuralRouteKind;
 use crate::plugin::graph_structural_transport::build_graph_structural_flight_transport_client;
-use crate::plugin::test_support::official_examples::{
+use crate::plugin::test_support::wendaosearch_services::{
     LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS, await_live_step,
-    reserve_real_service_port, spawn_real_wendaosearch_demo_capability_manifest_service,
-    wait_for_service_ready_with_attempts,
+    local_wendaosearch_package_available, reserve_real_service_port,
+    spawn_real_wendaosearch_demo_capability_manifest_service, wait_for_service_ready_with_attempts,
 };
 
 fn julia_plugin_capability_manifest_response_schema() -> Arc<Schema> {
@@ -96,7 +96,7 @@ fn configured_repository(options: serde_json::Value) -> RegisteredRepository {
     RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options,
         }],
         ..RegisteredRepository::default()
@@ -111,7 +111,7 @@ fn live_capability_manifest_repository(base_url: &str) -> RegisteredRepository {
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": base_url,

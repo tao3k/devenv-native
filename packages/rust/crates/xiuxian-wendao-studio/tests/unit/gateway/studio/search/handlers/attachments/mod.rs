@@ -142,7 +142,7 @@ async fn studio_attachment_search_response_cache_is_scoped_to_active_epoch() {
                 hit_count: 0,
                 selected_scope: "attachments-cache".to_string(),
                 partial: false,
-                indexing_state: Some("ready".to_string()),
+                indexing_state: Some("ready".to_string().into()),
                 index_error: None,
             },
         )

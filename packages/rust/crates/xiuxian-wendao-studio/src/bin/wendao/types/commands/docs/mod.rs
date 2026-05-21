@@ -1,3 +1,5 @@
+//! Coordinates the Studio types commands docs branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod command;
 mod context;
 mod navigation;

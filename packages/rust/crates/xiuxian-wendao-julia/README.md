@@ -28,7 +28,7 @@ needs a feature-gated second plugin bundle for these languages.
 - the graph-structural live proof surface has since been tightened again:
   the remaining `demo` and `solver_demo` pair or generic-topology live proofs
   now consolidate onto `multi_route` services, and the plugin test-support
-  launches the Julia example services through explicit `julia --project=...`
+  launches the managed Julia services through explicit `julia --project=...`
   commands rather than repo-level `direnv` wrappers
 - the remaining repeated `demo` capability-manifest live proofs are now also
   consolidated into one grouped test that covers manifest fetch, manifest
@@ -38,7 +38,7 @@ needs a feature-gated second plugin bundle for these languages.
   while preserving explicit transport, manifest-discovery, and grouped
   capability-manifest live coverage across the plugin lane
 - Julia and Modelica parser-summary transport discovery now also works with
-  plain repository plugin ids. `plugins = ["julia"]` and
+  plain repository plugin ids. `plugins = ["julia-code-parser"]` and
   `plugins = ["modelica"]` default to the standard
   `WendaoSearch.jl --config config/live/parser_summary.toml` base URL
   `http://127.0.0.1:41081` for parser-summary routes, while tests pin the same
@@ -73,12 +73,188 @@ needs a feature-gated second plugin bundle for these languages.
   self-spawning an in-process Julia service, so focused gateway search or
   code-AST proofs can exercise the same process-managed service shape that
   `process.nix` owns
+- SearchStrategyFlow Flight materialization now keeps route namespaces
+  explicit. Repo search resolves the candidate document, projected page-index
+  and retrieval-context routes use the resolved page and section node ids, and
+  graph-neighbor expansion uses a separate `resolvedGraphNodeId` based on the
+  Studio display path. This prevents page-index section ids from being sent as
+  link-graph node ids.
+- SearchStrategyFlow service-boundary work now aligns with the WendaoSearch
+  gRPC server stack. `WendaoGraph.jl` keeps `ArrowTypes.jl` as its explicit
+  table-contract dependency and uses the source-pinned `WendaoArrow.jl` plus
+  `gRPCServer.jl` transport line for the algorithm service. Its startup
+  contract now exposes the same health/reflection/max-message-size and Flight
+  admission kwargs shape as WendaoSearch while keeping raw `Arrow.jl` out of
+  the root `WendaoGraph.jl` dependency contract. The package-local runner is
+  `scripts/run_search_strategy_flow_service.jl` inside `WendaoGraph.jl`, and it
+  accepts host, port, flow id, and Flight admission parameters only. This crate
+  remains the Rust bridge client and validation surface for Studio-backed Flight
+  materialization; it does not own Gateway route registration or load
+  `wendao.toml` in the live client boundary.
+- SearchStrategyFlow Flight materialization now also treats a selected
+  `sourcePath` as the fallback structure contract. Repo search can strengthen a
+  route with doc-id evidence, but a later zero-row repo-search lookup no longer
+  blocks projected page-index, retrieval-context, or graph-neighbor execution
+  for an already selected source path. Executed route receipts expose
+  `repoSearchResolutionStatus` so live audits can distinguish repo-search
+  resolution from source-path fallback.
+- SearchStrategyFlow candidate ownership now distinguishes the full structured
+  inventory from the Markdown replay subset. The Rust bridge derives the
+  denominator at runtime from root `wendao.toml` plus git-tracked files; the
+  current repository scan reports `2851` candidates as `476` primary Markdown
+  candidates, `2194` Code-Intelligence downlink candidates, and `181` registry
+  authority candidates. Rust/DuckDB owns structured candidate retrieval; Julia
+  receives a narrowed candidate batch and owns strategy scoring,
+  required-evidence coverage, and frontier selection.
+- SearchStrategyFlow Flight candidate discovery now runs route-scoped authority
+  attempts before broad repo-search windows and ranks the merged result before
+  truncating the Julia input batch. Package-owned `xiuxian-wendao-julia`
+  README/docs rows, validation docs, and ownership RFC rows carry calibrated
+  evidence scores so Julia frontier scoring keeps authority, validation, and
+  ownership evidence ahead of generic LinkGraph mentions. The narrowed Flight
+  batch also keeps one best candidate per source path, so a single high-scoring
+  document cannot consume multiple frontier slots before required validation or
+  ownership evidence is considered.
+- SearchStrategyFlow Flight materialization treats graph-neighbor expansion as
+  direct relation evidence, not broad graph harvesting. The materializer sends a
+  one-hop compact graph budget and keeps route receipts as proof that the
+  relation path is reachable while avoiding two-hop neighborhood fanout in live
+  replay traces.
+- SearchStrategyFlow Flight receipts now include additive `elapsedMs` timing for
+  candidate discovery attempts and each executed materialization route. Candidate
+  discovery stops after the required attempt floor once the narrowed batch has
+  enough unique source paths, so live replays keep required evidence coverage
+  without spending the full broad-search window. The latest real-host replay
+  shows materialization routes in the millisecond range; the remaining wall time
+  is now outside Flight route execution and belongs to bridge/JIT/process
+  execution overhead.
+- The persistent SearchStrategyFlow batch host is now a formal
+  integration-support surface. It keeps one Julia process warm across
+  submissions while Rust still owns candidate discovery, TSV construction,
+  route enrichment, and materialization receipts.
+  `SearchStrategyFlowPersistentBatchHost::submit_with_flight_materialization`
+  is the warm-host entry point for real Flight-backed replay, and
+  `stabilize_with_flight_materialization` turns prewarm plus warm-submit
+  samples into a Rust admission report with `stable`,
+  `stability_reason`, `recommended_max_in_flight`, and a stable JSON evidence
+  object. The opt-in
+  materialized replay proof measured a 32-family replay with cold submits in
+  the `7774 ms-8907 ms` range and warm submits in the `48 ms-164 ms` range
+  while preserving selected frontier, route, and projected-row counts. That
+  evidence supports promoting a long-lived Rust-controlled Julia pod path
+  before adding lower-level transport changes.
+- SearchStrategyFlow now accepts Agent-produced branch judgement rows without
+  moving graph truth into the LLM. `pi-wendao` validates candidate-scoped
+  `branch_judgements`, serializes them as bridge TSV, and the Rust bridge
+  passes them into WendaoGraph frontier selection. WendaoGraph still owns
+  required-evidence coverage, blocked-branch pruning, context budgets, and the
+  final selected frontier.
+- The `wendaograph_search_strategy_flow` binary now exposes the same release
+  gate through `--persistent-warm-samples <count>` for real Flight-backed
+  profiling. Default trace output is unchanged; the flag switches the binary to
+  a stabilization report that records prewarm latency, warm min/median/p95/max,
+  stability reason, and recommended admission budget. The latest root-backed
+  Flight proof bootstrapped `7061` repo-content documents, measured direct
+  Rust bridge repeats at `15.01s` and `13.11s`, and measured the persistent
+  host path as `20.78s` total with `19363.439 ms` prewarm plus `54.343 ms` and
+  `145.905 ms` warm submits. The result keeps required evidence covered and
+  confirms that a long-lived graph host is the high-leverage optimization
+  boundary.
+- The same binary now also exposes `--serve-stdio` as a JSONL local-session
+  adapter for a long-lived Rust bridge process. Each input line is a JSON
+  object with `requestId` and `intent`; each output line records `ok`,
+  `elapsedMs`, and either the regular trace JSON or an error. This keeps the
+  production route authority unchanged while giving Gateway and `pi-wendao`
+  integration work a concrete non-spawning session contract. The first
+  root-backed two-request proof measured the warmup request at `20557.705 ms`
+  and the second request at `83.391 ms`, with required evidence still covered.
+- The JSONL local-session request may also include `ontologyRegistryTsv`.
+  This is an internal bridge field for Gateway-supplied accepted ontology
+  registry or read-model rows. It lets WendaoGraph derive ontology-backed
+  query-understanding anchors while Rust/Gateway keeps ownership of registry
+  compilation, source configuration, and admission policy. No user-facing CLI
+  flag is added for this field.
+- When the bridge runs with a SearchStrategyFlow Flight materialization
+  configuration and no explicit `ontologyRegistryTsv` is supplied, it asks the
+  Studio `/analysis/semantic-scope` Arrow Flight route for accepted semantic
+  scope rows and projects those rows into the same internal registry TSV. This
+  keeps Gateway/Studio as the source-admission owner while `WendaoGraph.jl`
+  only consumes accepted object, link, and validation names as graph-search
+  route hints.
+- The ontology read-model quality bridge now exposes
+  `build_wendaograph_ontology_read_model_quality_arrow_request(...)` for
+  callers that already hold accepted semantic read-model `RecordBatch` tables.
+  It packages `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` as Arrow IPC stream payloads for
+  `WendaoGraph.jl`'s `OntologyReadModelQuality` service contract. This crate
+  owns only the Rust bridge packaging; `xiuxian-wendao-sql` owns read-model
+  materialization, and `WendaoGraph.jl` owns advisory graph-quality scoring.
+  `build_wendaograph_ontology_read_model_quality_flight_request_batch(...)`
+  wraps those three payloads into the single Arrow request-bundle table used by
+  the WendaoGraph Flight route, and
+  `build_wendaograph_ontology_read_model_quality_flight_descriptor(...)` builds
+  the matching `FlightDescriptor` path.
+  `build_wendaograph_ontology_read_model_quality_flight_binding(...)` builds
+  the runtime-negotiable Arrow Flight binding for callers that want to use the
+  shared Wendao transport client, and
+  `roundtrip_wendaograph_ontology_read_model_quality_with_binding(...)` sends
+  the request bundle through that negotiated runtime-owned Flight client. The
+  unit smoke now exercises real
+  `xiuxian-wendao-sql` semantic read-model `RecordBatch` output before bridge
+  packaging, so this path is SQL-materializer-backed rather than registry JSON
+  backed. A live loopback can be run with
+  `RUN_WENDAOGRAPH_ONTOLOGY_QUALITY_LIVE_LOOPBACK_TEST=1 cargo test -p xiuxian-wendao-julia --lib ontology_read_model_quality_live_loopback -- --nocapture`;
+  it starts the WendaoGraph ontology quality runner and sends the same request
+  through the runtime Flight client. The bridge does not read `registry.json`
+  or promote Julia diagnostics into runtime authority.
+- The ontology read-model quality bridge also accepts the Gateway
+  dataset-ontology materialization envelope through
+  `build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope(...)`.
+  That adapter ignores materialization report rows, accepts only
+  `semantic_read_model` payload rows for `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state`, and rebuilds the
+  existing WendaoGraph request tables without loading raw fixture data, RDF, or
+  `wendao.toml`. Missing tables, malformed JSON payloads, unknown
+  read-model table names, or field type mismatches are rejected before a graph
+  quality request is packaged.
+- The same ontology read-model quality bridge now accepts private LTC
+  source-contract seed batches compiled by `xiuxian-wendao` when that crate's
+  `julia` feature is enabled. The proof keeps private LTC source admission,
+  hashing, and read-model seed materialization in the Wendao Rust backend, and
+  uses this crate only for the existing WendaoGraph Arrow request packaging.
+  Julia still consumes compiled `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` batches; it does not parse private TSV files,
+  RDF files, raw corpus files, or `wendao.toml`. The live private LTC
+  diagnostic is owned by the `xiuxian-wendao` test surface because it
+  materializes the private seed before calling this bridge; this crate remains
+  the reusable Arrow request and Flight binding owner. Repeated live benchmark
+  runs show warm ontology-quality Flight roundtrips are already sub-second for
+  the current private LTC seed; cold-path optimization belongs in upstream
+  source-contract materialization and service lifecycle policy, not in Julia
+  parsing of private source files.
+- The bridge also exposes an explicit ontology extension proof request builder
+  for callers that already hold compiled parent object/link registry
+  `RecordBatch` tables. `build_wendaograph_ontology_extension_proof_arrow_request(...)`
+  packages those parent registry tables together with `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state`, and
+  `build_wendaograph_ontology_extension_proof_flight_request_batch(...)` wraps
+  all five Arrow IPC payloads plus the extension domain prefix into the existing
+  WendaoGraph ontology service request-bundle table. The legacy three-payload
+  quality builder is unchanged; extension proof is an explicit caller choice
+  and still does not make this crate parse RDF, raw private corpus files, or
+  `wendao.toml`.
+- Enriched SearchStrategyFlow traces expose `candidateDiscoveryContract` so
+  reports can show both the narrowed Julia input count and the runtime
+  promotion denominator. This prevents a fast Markdown replay subset from being
+  mistaken for the total structured search surface. Code-Intelligence and
+  Flight-sourced batches also embed a candidate-discovery receipt with the Rust
+  route, transport, attempt count, per-attempt row counts, request limit, and
+  merged candidate count so live traces can prove which Rust path narrowed the
+  batch before Julia strategy selection.
 - Julia test support now lives under `tests/unit/plugin/` plus
   `tests/unit/memory/mod.rs` instead of production `src/` files, while
-  `src/lib.rs` mounts `tests/unit/lib_policy.rs` and `tests/unit_test.rs`
-  owns the root harness target so both `cargo test --lib` and
-  `cargo test --test unit_test` execute the shared
-  `rust-lang-project-harness` policy gate
+  `src/lib.rs` owns the root harness target so `cargo test --lib` executes the
+  shared `rust-lang-project-harness` policy gate
 - the process-managed `WendaoSearch.jl` background service now also has one
   opt-in Rust live proof under
   `RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1 cargo test -p xiuxian-wendao-julia plugin::graph_structural_exchange::tests::fetch_graph_structural_solver_demo_rows_for_repository_against_process_managed_wendaosearch_service -- --exact --nocapture`,
@@ -89,6 +265,42 @@ needs a feature-gated second plugin bundle for these languages.
   instead of trusting an inherited `PC_CONFIG_FILES` shell variable, so the
   same proof path also protects the managed-service log sink against stale
   generation reuse
+- the self-spawn `WendaoSearch.jl --mode solver_demo` graph-structural seam
+  now also has an opt-in communication profile under
+  `RUN_WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_TEST=1 cargo test -p xiuxian-wendao-julia graph_structural_live_perf -- --nocapture`.
+  That profile records startup, first-route, release-probe, sequential, and
+  concurrent rerank/filter timings while preserving the existing Flight routes,
+  Arrow schemas, Rust fallback boundary, and Julia execution ownership.
+- that same graph-structural profile now accepts
+  `WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_RUNS` and
+  `WENDAOSEARCH_GRAPH_STRUCTURAL_PERF_WARM_SAMPLES` to emit per-run samples
+  plus min, median, p95, max, and spread-ratio summaries. The latest single-run
+  macOS probes showed large cross-run variance, so the recorded numbers must
+  be treated as instability evidence rather than a stable promotion baseline.
+  A two-run, three-warm-sample probe kept release-prewarmed first explicit
+  rerank at median `3.880 ms` while the release probe itself measured median
+  `3868.476 ms`; however warm concurrent tails still reached `44.622 ms` with
+  release prewarm and `136.179 ms` without it. The supported architectural
+  direction is therefore Rust selecting and holding Julia pods until
+  owner-supplied route probes prove warm readiness, with future promotion gates
+  based on p95, max, and spread ratio rather than one observed latency. Julia
+  still owns JIT warmup, optional thread pinning, and internal numerical
+  scheduling.
+- the graph-structural release-prewarm owner bridge now also exposes
+  `stabilize_wendaosearch_solver_demo_graph_structural_routes(...)`. It runs
+  the all-route release probe, samples sequential and concurrent warm paths,
+  returns p95/max/spread summaries, and recommends an initial Rust
+  `max_in_flight` budget. This keeps performance and stability coupled at pod
+  release time: a warm Julia pod only receives a degraded admission budget when
+  p95 or max latency crosses the configured tail budget. Low millisecond-level
+  spread is recorded as scheduler evidence, not treated as user-visible
+  instability by itself. The report also includes an explicit stability reason
+  so downstream admission code can distinguish a true tail-budget overflow
+  from harmless low-latency spread. In the first short real validation after
+  this gate, the release gate reported `stable=true` and
+  `recommended_max_in_flight=4`; first explicit rerank after release was
+  `2.315 ms`, sequential warm p95 was `12.312 ms`, and concurrent warm p95 was
+  `11.097 ms`.
 - the current full crate pass is also green with that opt-in background lane
   enabled:
   `direnv exec . env RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1 cargo test -p xiuxian-wendao-julia`
@@ -161,6 +373,11 @@ needs a feature-gated second plugin bundle for these languages.
   attribute preservation, and projection of those attributes into
   `SymbolRecord` so downstream Studio consumers can render parser-backed
   structured detail without regex inference.
+- `xiuxian-wendao-julia` also owns the Rust-to-Julia
+  SearchStrategyFlow candidate-batch ABI. Rust remains the structured-index
+  owner, including the DuckDB-backed candidate search path where configured;
+  Julia does not open DuckDB or discover the full candidate inventory directly.
+  The Julia-facing boundary is a narrowed, provenance-bearing candidate batch.
 - The parser-summary boundary is Flight-only for the touched Julia cutover
   surface. `xiuxian-wendao-julia` does not keep a Rust-local
   Julia or Modelica AST fallback for repo-intelligence or the incremental
@@ -189,6 +406,227 @@ needs a feature-gated second plugin bundle for these languages.
   client construction, request or response validation dispatch, the bounded
   `max_in_flight_requests` admission-control bridge, roundtrip execution, and
   typed fetch helpers for the four staged memory profiles.
+- for
+  [RFC: Polyglot Compute Orchestrator](../../../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+  Phase 3 readiness evidence, `xiuxian-wendao-julia` owns the Julia-side
+  profile, schema, manifest, route-validation, warmup, benchmark, and
+  readiness-evidence boundary. Rust may gate requests by profile, route,
+  timeout, and in-flight budget, but this crate does not transfer Julia thread
+  scheduling to Rust. The approved `xiuxian-polyglot-orchestrator` crate may
+  define shared lane, admission, readiness, and snapshot contracts, but it must
+  reference Julia profile and readiness facts through this package boundary.
+- `xiuxian-wendao-julia` also owns the Julia profile schedule-plan projection
+  for WendaoGraph link evidence, WendaoSearch graph-structural routes, legacy
+  WendaoSearch rerank, and memory-family compute profiles. These helpers only
+  convert owner-supplied runtime stats, admission counters, fallback
+  availability, task shape, and latency constraints into inert
+  `JuliaSchedulePlan` values; they do not call Julia, mutate queues, or execute
+  Rust fallback algorithms.
+- `xiuxian-wendao-julia` also mirrors the WendaoGraph PageIndex reasoning
+  table contracts as a separate owner boundary from `/graph/link/evidence`.
+  The PageIndex request contract covers `page_index_nodes`, `page_index_edges`,
+  and `page_index_seeds`; the response contract covers those tables plus
+  `reasoning_frontier` and `disclosure_trace`. Host crates may build sidecar
+  batches against this mirror, but they must not widen the existing
+  link-evidence route with PageIndex reasoning tables.
+- the PageIndex reasoning mirror now has a git-stable host fixture under
+  `packages/rust/crates/xiuxian-wendao/tests/fixtures/wendaograph_page_index_reasoning_host`.
+  `xiuxian-wendao` compares that fixture against its Rust sidecar builder, and
+  WendaoGraph.jl can consume the same tables through its native PageIndex
+  reasoning test. This remains a fixture-level interop proof, not a Flight
+  transport change.
+- WendaoGraph.jl also exposes `page_index_reasoning_from_request(...)` for
+  host-owned PageIndex request objects. This keeps PageIndex reasoning
+  sidecars separate from `/graph/link/evidence` while letting host integration
+  tests exercise the native Julia pipeline directly.
+- the polyglot owner bridge now projects WendaoGraph PageIndex reasoning as
+  the `wendao_graph_page_index_reasoning` Julia profile using the
+  `WendaoGraph.page_index_reasoning_from_request` host entrypoint. The entry
+  is scheduling evidence only; it is not a live Flight route.
+- semantic SSOT-driven agent reasoning uses the same PageIndex owner boundary.
+  `xiuxian-wendao` may project parser-owned semantic-scope facts into
+  `page_index_nodes`, `page_index_edges`, and `page_index_seeds`; this package
+  continues to own only the Julia profile and table-contract mirror. SSOT
+  authority remains with the repo-native semantic artifacts and parser
+  validation described in
+  [`docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md`](../../../../docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md).
+- the same PageIndex host entrypoint now has an opt-in real Julia process
+  probe:
+  `RUN_WENDAOGRAPH_PAGE_INDEX_HOST_PROBE_TEST=1 WENDAOGRAPH_PACKAGE_DIR=<WendaoGraph.jl checkout> cargo test -p xiuxian-wendao-julia --lib wendaograph_page_index_host_probe -- --nocapture`.
+  The probe runs the host fixture through `page_index_reasoning_from_request`,
+  validates frontier and disclosure-trace counts, and prints first-call plus
+  warm-call timing evidence. It deliberately avoids creating a Flight service
+  or route before a later service-boundary ExecPlan approves one. Set
+  `WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS=1` on the same command to also
+  compute `page_index_planner_action_table(...)` from the returned frontier and
+  report planner action rows plus expand, compare, jump, and stop counts.
+- the PageIndex host-probe helpers also accept an explicit fixture directory.
+  This lets `xiuxian-wendao` materialize semantic SSOT projections as
+  temporary PageIndex TSV fixtures and validate them against the real
+  WendaoGraph.jl host entrypoint without mutating global environment state.
+- the PageIndex host-probe evidence also projects into the owner-side polyglot
+  readiness bridge for the existing `wendao_graph_page_index_reasoning` Julia
+  profile. The bridge maps warm median and p95 probe timings into
+  `JuliaRuntimeStats`, preserves positive sub-millisecond observations as
+  `1 ms` scheduler facts, and keeps planner action counts as validation
+  evidence rather than direct readiness gates.
+- the owner bridge also exposes an inert `WendaoGraph.jl` algorithm catalog.
+  The catalog maps LinkGraph structural, semantic-overlay, diffusion, and
+  frontier helpers; PageIndex frontier, disclosure-trace, and planner-action
+  helpers; SearchStrategyFlow candidate, transition, frontier, and table
+  helpers; and GNN feature, graph, score, and frontier helpers to their owning
+  Julia profile, Julia entrypoint, output table when applicable, and scheduler
+  complexity hint. Rust can use this as capability evidence for later
+  algorithm-aware planning, but the catalog does not call Julia, add a route,
+  widen a schema, or gate admission by itself.
+- the SearchStrategyFlow catalog entries mirror the graph-owned pure contract
+  in WendaoGraph.jl: `WendaoGraph.strategy_flow_candidate_rows`,
+  `WendaoGraph.strategy_flow_transition_rows`,
+  `WendaoGraph.strategy_flow_frontier_rows`, and
+  `WendaoGraph.strategy_flow_tables`. They intentionally reuse the existing
+  `wendao_graph_page_index_reasoning` profile until a live SearchStrategyFlow
+  route is proven; this is static owner evidence, not live Julia execution.
+- the Rust bridge for SearchStrategyFlow now builds real candidate inputs from
+  Markdown heading sections under the configured search root before invoking
+  Julia. Rust scores only task-local discovery evidence such as intent-term
+  coverage, path/title matches, section context cost, and edge-kind hints.
+  `WendaoGraph.jl` remains the owner of SearchStrategyFlow scoring, frontier
+  pruning, transition inference, and planner actions. The returned trace
+  records `candidateInputSource="rust-markdown-headings"` when the bridge is
+  using real search-root candidates instead of the fixed proof fallback.
+- when a SearchStrategyFlow Flight materialization endpoint is configured, the
+  bridge first asks the Studio `/search/repos/main` Arrow Flight route for
+  repo-native candidate rows and passes those rows to Julia with
+  `candidateInputSource="rust-code-intelligence-inventory"`. This keeps
+  section discovery on the indexed Rust/Studio side while Julia owns graph
+  strategy flow decisions. The local Markdown heading scan remains the
+  no-endpoint smoke path and is not a TypeScript or `pi-wendao` responsibility.
+  The same trace includes `candidateInputDiscovery` and folds that receipt into
+  `candidateDiscoveryContract.discoveryReceipt` without changing the
+  candidate TSV ABI.
+- the algorithm catalog now also exposes a relationship-search subset for
+  HNSW semantic fanout, MOC-style community grouping, PPR-like relatedness,
+  graph search ranking, and large object-graph traversal. These entries map to
+  Julia-owned `WendaoGraph.hnsw_neighbor_rows`,
+  `WendaoGraph.topology_community_rows`,
+  `WendaoGraph.multi_plane_diffusion_scores`,
+  `WendaoGraph.link_frontier_rows`, `WendaoGraph.sparse_adjacency`, and
+  `WendaoGraph.build_graph_snapshot` surfaces while preserving the existing
+  `wendao_graph_link_evidence` profile boundary. They are scheduling evidence
+  only and do not create a new Flight route or Arrow schema.
+- relationship-search algorithm ids can now also be projected from the
+  existing full structural LinkGraph host-probe report into per-algorithm
+  scheduling evidence. The projection records the backing probe table, observed
+  row count, warm p50/p95 stats, and the existing `JuliaSchedulePlan` result
+  for each relationship-search id. HNSW semantic fanout is backed by the
+  semantic-overlay probe surface, PPR-like relatedness by `diffusion_scores`,
+  ranking by `link_frontier` or `topology_candidates`, MOC-style grouping by
+  community tables, and large traversal by component or graph-metric evidence.
+  The projection is observational only; row counts do not become hard
+  readiness gates.
+- the same relationship-search evidence projection has an opt-in real
+  WendaoGraph host-process proof:
+  `RUN_WENDAOGRAPH_RELATIONSHIP_SEARCH_LIVE_PERF_TEST=1 WENDAOGRAPH_PACKAGE_DIR=<WendaoGraph.jl checkout> cargo test -p xiuxian-wendao-julia --lib wendaograph_relationship_search_live_perf -- --nocapture`.
+  The proof runs the full structural LinkGraph host probe, projects all
+  relationship-search ids, and prints compact evidence rows containing
+  algorithm id, backing probe table, row count, p50/p95, schedule action,
+  confidence, and selected batch size. The first local run against the small
+  host fixture projected all ten relationship-search ids to `Dispatch` with
+  p50/p95 `1 ms` scheduler facts and `batch_size=4`; those numbers are live
+  evidence for the fixture, not a large-graph promotion baseline.
+- that relationship-search proof can now drive an env-sized synthetic LinkGraph
+  workload through the same host-process entrypoint by setting
+  `WENDAO_GRAPH_LINK_GRAPH_HOST_PROBE_MODE=synthetic-large` plus
+  `WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_NODES`,
+  `WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_FANOUT`, and
+  `WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_SEMANTIC_NEIGHBORS`. The probe report
+  records the selected mode, input node count, input edge count, and semantic
+  neighbor count, and the relationship-search schedule evidence derives its
+  task shape from those observed counts.
+- the synthetic relationship-search proof now also has an opt-in repeated-run
+  stability mode:
+  `RUN_WENDAOGRAPH_RELATIONSHIP_SEARCH_SYNTHETIC_STABILITY_TEST=1 WENDAO_GRAPH_LINK_GRAPH_HOST_PROBE_MODE=synthetic-large WENDAOGRAPH_PACKAGE_DIR=<WendaoGraph.jl checkout> cargo test -p xiuxian-wendao-julia --lib wendaograph_relationship_search_synthetic_stability -- --nocapture`.
+  Set `WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_STABILITY_RUNS` to control the number
+  of repeated host-process probes. The proof prints run count, algorithm count,
+  action counts, latency p50/p95, warm max, warm spread ratio, selected batch
+  size, and observed graph size. It also writes a cache-local JSON receipt
+  under the project cache by default; set
+  `WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_STABILITY_RECEIPT` to redirect that
+  receipt for focused validation. The same proof now reads the receipt back and
+  emits a receipt-backed `Candidate` or `Reject` gate verdict from action
+  counts, row counts, latency p95, and warm spread ratio, so later automation
+  can consume the result without scraping stdout. The first receipt-backed
+  local run over 128 nodes and 512 edges projected all twenty evidence rows to
+  `Dispatch`, reported scheduler p50/p95 facts of `3/5 ms`, and emitted
+  `Candidate` with warm spread ratio `1.710`. These synthetic runs remain
+  local evidence probes rather than final promotion baselines until persisted
+  benchmark artifacts and p99 gates are added.
+- the relationship-search stability, receipt, promotion-gate, and opt-in live
+  proof tests now live under
+  `tests/unit/integration_support/wendaograph/relationship_search.rs`. The
+  parent `wendaograph.rs` test module keeps parser, PageIndex, and LinkGraph
+  host-probe contracts, so future p99 gate work can evolve without expanding
+  the mixed integration-support file. The live proof prints the receipt-backed
+  gate verdict by default; set
+  `WENDAO_GRAPH_LINK_GRAPH_SYNTHETIC_STABILITY_REQUIRE_CANDIDATE=1` when a
+  promotion run should fail unless the receipt is a `Candidate`.
+- the catalog now has a shape bridge: host code can provide a
+  `WendaoGraphAlgorithmWorkload` for a specific algorithm id and receive a
+  `JuliaComputeTaskShape` with the catalog complexity hint and a stable
+  profile/algorithm batchability key. A thin algorithm schedule-plan helper
+  routes known LinkGraph, PageIndex, SearchStrategyFlow, and GNN algorithm ids
+  through the existing profile-specific schedule helpers; unknown algorithm ids
+  return `None` rather than creating an admission rejection.
+- the WendaoGraph LinkGraph host-request entrypoint now has an opt-in real
+  Julia process probe:
+  `RUN_WENDAOGRAPH_LINK_GRAPH_HOST_PROBE_TEST=1 WENDAOGRAPH_PACKAGE_DIR=<WendaoGraph.jl checkout> cargo test -p xiuxian-wendao-julia --lib wendaograph_link_graph_host_probe -- --nocapture`.
+  The probe runs `link_graph_evidence_from_request(...)` with
+  `semantic_neighbors` by default. Set
+  `WENDAO_GRAPH_LINK_GRAPH_HOST_PROBE_MODE=semantic-overlay` to run the same
+  host-process probe with precomputed `semantic_overlay` rows instead. Both
+  modes validate the full 17-table LinkGraph response bundle and print
+  first-call plus warm-call timing evidence. The full structural probe report
+  records graph metrics, components, topology profile/candidate/bottleneck,
+  community, cover, core, boundary, transition, gateway, community summary,
+  community link, community frontier, semantic overlay, diffusion, and
+  link-frontier row counts. They remain host-process probes, not Flight routes.
+- the LinkGraph full structural probe evidence also projects into the
+  owner-side polyglot readiness bridge for the existing
+  `wendao_graph_link_evidence` Julia profile. The bridge maps warm median and
+  p95 probe timings into `JuliaRuntimeStats` and leaves the full structural row
+  counts as validation evidence. It does not add a Flight route, widen the
+  Arrow schema, or turn row counts into direct readiness gates.
+- the WendaoGraph GNN reasoning surface now has a separate opt-in real Julia
+  process probe:
+  `RUN_WENDAOGRAPH_GNN_HOST_PROBE_TEST=1 WENDAOGRAPH_PACKAGE_DIR=<WendaoGraph.jl checkout> cargo test -p xiuxian-wendao-julia --lib wendaograph_gnn_host_probe -- --nocapture`.
+  The probe builds a deterministic graph, computes topology-plus-embedding
+  node features, constructs the `GNNGraph`, runs seeded CPU GCN scores,
+  projects GNN frontier rows, and records backend diagnostics for Metal, CUDA,
+  and AMDGPU. Metal functionality is diagnostic only; unavailable Metal does
+  not fail the host probe. This remains a host-process proof, not a Flight
+  route.
+- the GNN probe evidence also projects into the owner-side polyglot readiness
+  bridge as the `wendao_graph_gnn_reasoning` Julia profile. The bridge maps
+  warm median and p95 probe timings into `JuliaRuntimeStats`, carries
+  Metal/CUDA/AMDGPU diagnostics as non-gating readiness evidence, and leaves
+  cold-start handling to Julia pod warmup or release policy. It does not add a
+  Flight route or move accelerator selection into Rust.
+- `xiuxian-wendao-julia` also owns the Julia-side warmup and thread-diagnostic
+  evidence seam for WendaoSearch and WendaoGraph profile readiness. Rust may
+  request pod-level prewarm and record `ThreadPinning.jl` availability or
+  policy diagnostics, but Julia remains the only owner of JIT warmup execution,
+  thread-pinning application, internal queues, and numerical work scheduling.
+- `xiuxian-wendao-julia` also exposes the owner-side
+  `prewarm_wendaosearch_solver_demo_graph_structural_routes(...)` helper for
+  process or pod release probes. The helper warms the stable WendaoSearch
+  solver-demo graph-structural route family through existing Flight contracts
+  and returns typed route-count, elapsed-time, and candidate-id evidence;
+  orchestration layers may consume that evidence but must not duplicate
+  WendaoSearch-specific request construction.
+- the active `rust-lang-project-harness` profile marks `src/polyglot/` as the
+  Julia polyglot bridge for readiness evidence projection. That profile records
+  Julia profile/schema/manifest/readiness ownership without moving live Julia
+  scheduling into Rust.
 - `xiuxian-wendao-julia` also owns the plugin-side memory-family composition
   seam under `src/memory/downcall/`, which combines `src/memory/host/` input
   staging with `src/memory/transport/` Flight execution so host consumers can
@@ -349,8 +787,7 @@ The transport builder consumes repository plugin entries that resolve to:
 [link_graph.projects.sample]
 root = "/path/to/repo"
 plugins = [
-  "julia",
-  { id = "julia", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", health_route = "/healthz", timeout_secs = 15, max_in_flight_requests = 32 } }
+  { id = "julia-code-parser", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", health_route = "/healthz", timeout_secs = 15, max_in_flight_requests = 32 } }
 ]
 ```
 
@@ -365,8 +802,7 @@ plugin option block so Search downcalls can stay Julia-plugin-owned as well:
 [link_graph.projects.sample]
 root = "/path/to/repo"
 plugins = [
-  "julia",
-  { id = "julia", graph_structural_transport = { base_url = "http://127.0.0.1:8815", max_in_flight_requests = 32, structural_rerank = { route = "/graph/structural/rerank", schema_version = "v0-draft" }, constraint_filter = { route = "/graph/structural/filter", timeout_secs = 20 } } }
+  { id = "julia-code-parser", graph_structural_transport = { base_url = "http://127.0.0.1:8815", max_in_flight_requests = 32, structural_rerank = { route = "/graph/structural/rerank", schema_version = "v0-draft" }, constraint_filter = { route = "/graph/structural/filter", timeout_secs = 20 } } }
 ]
 ```
 
@@ -393,8 +829,7 @@ the Arrow contract for a dedicated capability-manifest route:
 [link_graph.projects.sample]
 root = "/path/to/repo"
 plugins = [
-  "julia",
-  { id = "julia", capability_manifest_transport = { base_url = "http://127.0.0.1:8815", route = "/plugin/capabilities", health_route = "/healthz", schema_version = "v0-draft", timeout_secs = 15 } }
+  { id = "julia-code-parser", capability_manifest_transport = { base_url = "http://127.0.0.1:8815", route = "/plugin/capabilities", health_route = "/healthz", schema_version = "v0-draft", timeout_secs = 15 } }
 ]
 ```
 
@@ -405,8 +840,8 @@ When the block is configured, `JuliaRepoIntelligencePlugin::preflight_repository
 now also performs one plugin-owned live discovery roundtrip against
 `/plugin/capabilities` before repository layout analysis continues.
 
-The repository plugin config id remains `julia`, while the capability-manifest
-rows themselves advertise the canonical provider id
+The repository plugin config id is `julia-code-parser`, while the
+capability-manifest rows themselves advertise the canonical provider id
 `xiuxian-wendao-julia` so runtime provider selectors stay stable.
 
 The same ownership rule now applies to the typed Rust exchange helpers for
@@ -651,13 +1086,13 @@ That means:
 - `direnv exec . cargo test -p xiuxian-wendao --test wendao-validation-gate test_agentic_expansion_pair_uses_julia_graph_structural_fetch_helper`
 - `direnv exec . cargo check -p xiuxian-wendao --features julia --test wendao-validation-gate`
 
-The real loopback tests now speak only to the Flight examples. They spawn
+The real loopback tests now speak only to the managed Flight services. They spawn
 `.data/WendaoArrow.jl/scripts/run_stream_scoring_flight_server.sh` and
 `.data/WendaoArrow.jl/scripts/run_stream_metadata_flight_server.sh`, wait for the
 Flight socket to accept connections, then send the canonical request batches
 through the runtime-owned negotiated Flight client. Those fixtures now use the
-shared `julia_arrow_request_schema(...)` builder as well, so the official
-example roundtrip receives the full WendaoArrow `v1` request shape instead of a
+shared `julia_arrow_request_schema(...)` builder as well, so the managed
+roundtrip receives the full WendaoArrow `v1` request shape instead of a
 test-local reduced schema.
 
 There is also a metadata-aware real loopback that targets
@@ -679,7 +1114,7 @@ declared in
 `resources/integration_support/wendaoarrow_custom_service.toml` instead of
 being hard-coded into the helper itself. It no longer writes numbered scripts
 into the `WendaoArrow.jl` package git tree.
-That official-example layer now includes real `WendaoSearch.jl` structural
+That managed service layer now includes real `WendaoSearch.jl` structural
 launchers for both `demo` and `solver_demo`, so plugin-owned
 graph-structural fetch helpers can be proven against a live Search child
 service without moving route logic back into `xiuxian-wendao`.
@@ -694,8 +1129,7 @@ They now also keep the exchange implementation file lean by externalizing the
 remaining unit and live proof modules behind `#[cfg(test)] #[path = "..."]`
 without changing the green live baseline.
 The crate now also follows the canonical shared gate shape:
-`src/lib.rs -> tests/unit/lib_policy.rs` covers `cargo test --lib`, and
-`tests/unit_test.rs` covers the explicit Cargo test target. The former inline
-test debt in `src/integration_support/`, `src/memory/`, and `src/plugin/` is
-now fully externalized into canonical `tests/unit/...` mounts, so the shared
-crate test-policy harness passes without crate-local allowlists.
+`src/lib.rs` covers `cargo test --lib`. The former inline test debt in
+`src/integration_support/`, `src/memory/`, and `src/plugin/` is now fully
+externalized into canonical `tests/unit/...` mounts, so the shared crate
+test-policy harness passes without crate-local allowlists.

@@ -9,7 +9,7 @@ use crate::bin_support::wendao::execute::gateway::command::{
 use crate::bin_support::wendao::execute::gateway::config::{
     GatewayRuntimeTomlConfig, get_gateway_runtime_from_config,
 };
-use crate::bin_support::wendao::execute::gateway::shared::DEFAULT_PORT;
+use crate::bin_support::wendao::execute::gateway::state::DEFAULT_PORT;
 
 use super::support::{
     bootstrap_builtin_registry, remove_temp_gateway_config, write_temp_gateway_config,
@@ -226,7 +226,10 @@ studio_request_timeout_secs = 18
 #[test]
 fn test_gateway_startup_health_rejects_failed_dependencies() {
     let report = GatewayStartupHealthReport::new(vec![
-        GatewayStartupDependencyCheck::connected("builtin_plugin_registry", "plugins=julia"),
+        GatewayStartupDependencyCheck::connected(
+            "builtin_plugin_registry",
+            "plugins=julia-code-parser",
+        ),
         GatewayStartupDependencyCheck::failed("search_cache_valkey", "connection failed"),
     ]);
 
@@ -244,7 +247,10 @@ fn test_gateway_startup_health_rejects_failed_dependencies() {
 #[test]
 fn test_gateway_startup_health_accepts_ready_dependencies() {
     let report = GatewayStartupHealthReport::new(vec![
-        GatewayStartupDependencyCheck::connected("builtin_plugin_registry", "plugins=julia"),
+        GatewayStartupDependencyCheck::connected(
+            "builtin_plugin_registry",
+            "plugins=julia-code-parser",
+        ),
         GatewayStartupDependencyCheck::connected(
             "search_cache_valkey",
             "url=redis://127.0.0.1:6379/0 ping=PONG",
@@ -263,6 +269,6 @@ fn test_gateway_startup_health_accepts_ready_dependencies() {
 #[test]
 fn test_build_plugin_registry_bootstraps_builtin_plugins() {
     let registry = bootstrap_builtin_registry();
-    assert!(registry.plugin_ids().contains(&"julia"));
+    assert!(registry.plugin_ids().contains(&"julia-code-parser"));
     assert!(registry.plugin_ids().contains(&"modelica"));
 }

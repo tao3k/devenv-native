@@ -158,10 +158,10 @@ fn get_command_skips_hidden_project_runtime_dirs_by_default() {
 fn get_command_renders_toc_text_output_as_compact_markdown() {
     let path = display_test_path(Path::new("/tmp/README.md"));
     let result = DocsPageIndexDocumentsResult {
-        repo_id: "local".to_string(),
+        repo_id: "local".into(),
         documents: vec![ProjectedPageIndexDocument {
-            path: path.clone(),
-            doc_id: "README.md".to_string(),
+            path: path.clone().into(),
+            doc_id: "README.md".into(),
             title: "Demo".to_string(),
             sections: vec![
                 ProjectedPageIndexSection {
@@ -199,10 +199,10 @@ fn get_command_renders_toc_text_output_as_compact_markdown() {
 fn get_command_renders_page_index_text_output_as_compact_markdown() {
     let path = display_test_path(Path::new("/tmp/README.md"));
     let result = DocsPageIndexTreesResult {
-        repo_id: "local".to_string(),
+        repo_id: "local".into(),
         trees: vec![ProjectedPageIndexTree {
-            path: path.clone(),
-            doc_id: "README.md".to_string(),
+            path: path.clone().into(),
+            doc_id: "README.md".into(),
             title: "Demo".to_string(),
             root_count: 1,
             kind: ProjectionPageKind::Explanation,
@@ -217,7 +217,7 @@ fn get_command_renders_page_index_text_output_as_compact_markdown() {
                 text: "demo body".to_string(),
                 summary: None,
                 links: vec![ProjectedPageIndexLink {
-                    kind: "wiki_link".to_string(),
+                    kind: "wiki_link".into(),
                     target: "docs/guide.md#usage".to_string(),
                     surface: "[[docs/guide.md#usage|Guide]]".to_string(),
                 }],
@@ -233,12 +233,12 @@ fn get_command_renders_page_index_text_output_as_compact_markdown() {
                     summary: None,
                     links: vec![
                         ProjectedPageIndexLink {
-                            kind: "markdown_link".to_string(),
+                            kind: "markdown_link".into(),
                             target: "https://example.com".to_string(),
                             surface: "[API](https://example.com)".to_string(),
                         },
                         ProjectedPageIndexLink {
-                            kind: "markdown_image".to_string(),
+                            kind: "markdown_image".into(),
                             target: "assets/diagram.png".to_string(),
                             surface: "![Diagram](assets/diagram.png)".to_string(),
                         },

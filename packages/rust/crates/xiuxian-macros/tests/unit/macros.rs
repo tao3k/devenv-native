@@ -119,44 +119,44 @@ mod test_bench_case {
 
 mod test_project_config_paths {
     use std::path::PathBuf;
-    use std::sync::{Mutex, OnceLock};
+    use std::process::Command;
     use xiuxian_macros::project_config_paths;
 
-    struct EnvRestore {
-        key: &'static str,
-        previous: Option<String>,
-    }
+    fn run_child_test(test_name: &str, envs: &[(&str, &str)]) {
+        let current_exe = std::env::current_exe()
+            .unwrap_or_else(|error| panic!("resolve current xiuxian-macros test binary: {error}"));
+        let output = Command::new(current_exe)
+            .arg("--exact")
+            .arg(test_name)
+            .arg("--ignored")
+            .arg("--nocapture")
+            .envs(envs.iter().copied())
+            .output()
+            .unwrap_or_else(|error| panic!("run child xiuxian-macros test {test_name}: {error}"));
 
-    impl Drop for EnvRestore {
-        fn drop(&mut self) {
-            if let Some(value) = self.previous.take() {
-                std::env::set_var(self.key, value);
-            } else {
-                std::env::remove_var(self.key);
-            }
-        }
-    }
-
-    fn env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-    }
-
-    fn set_env_for_test(key: &'static str, value: &str) -> EnvRestore {
-        let previous = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        EnvRestore { key, previous }
+        assert!(
+            output.status.success(),
+            "child test {test_name} failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
     }
 
     #[test]
     fn test_project_config_paths_generates_layered_candidates() {
-        let _guard = env_lock()
-            .lock()
-            .unwrap_or_else(|_| panic!("failed to lock environment mutex for config path test"));
-        let _root = set_env_for_test("PRJ_ROOT", "/tmp/omni-macro-prj");
-        let _config_home = set_env_for_test("PRJ_CONFIG_HOME", "/tmp/omni-macro-conf");
-        let _explicit = set_env_for_test("QIANJI_CONFIG_PATH", "/tmp/custom/qianji.toml");
+        run_child_test(
+            "test_project_config_paths::child_project_config_paths_generates_layered_candidates",
+            &[
+                ("PRJ_ROOT", "/tmp/omni-macro-prj"),
+                ("PRJ_CONFIG_HOME", "/tmp/omni-macro-conf"),
+                ("QIANJI_CONFIG_PATH", "/tmp/custom/qianji.toml"),
+            ],
+        );
+    }
 
+    #[test]
+    #[ignore = "spawned by test_project_config_paths_generates_layered_candidates with isolated env"]
+    fn child_project_config_paths_generates_layered_candidates() {
         let paths = project_config_paths!("qianji.toml", "QIANJI_CONFIG_PATH");
         assert_eq!(paths.len(), 3);
         assert_eq!(
@@ -172,42 +172,40 @@ mod test_project_config_paths {
 }
 
 mod test_llm_env_macros {
-    use std::sync::{Mutex, OnceLock};
+    use std::process::Command;
     use xiuxian_macros::{env_non_empty, string_first_non_empty};
 
-    struct EnvRestore {
-        key: &'static str,
-        previous: Option<String>,
-    }
+    fn run_child_test(test_name: &str, envs: &[(&str, &str)]) {
+        let current_exe = std::env::current_exe()
+            .unwrap_or_else(|error| panic!("resolve current xiuxian-macros test binary: {error}"));
+        let output = Command::new(current_exe)
+            .arg("--exact")
+            .arg(test_name)
+            .arg("--ignored")
+            .arg("--nocapture")
+            .envs(envs.iter().copied())
+            .output()
+            .unwrap_or_else(|error| panic!("run child xiuxian-macros test {test_name}: {error}"));
 
-    impl Drop for EnvRestore {
-        fn drop(&mut self) {
-            if let Some(value) = self.previous.take() {
-                std::env::set_var(self.key, value);
-            } else {
-                std::env::remove_var(self.key);
-            }
-        }
-    }
-
-    fn env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-    }
-
-    fn set_env_for_test(key: &'static str, value: &str) -> EnvRestore {
-        let previous = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        EnvRestore { key, previous }
+        assert!(
+            output.status.success(),
+            "child test {test_name} failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
     }
 
     #[test]
     fn test_env_non_empty_trims_value() {
-        let _guard = env_lock()
-            .lock()
-            .unwrap_or_else(|_| panic!("failed to lock environment mutex for env_non_empty test"));
-        let _restore = set_env_for_test("OMNI_MACROS_TEST_KEY", "  test-key  ");
+        run_child_test(
+            "test_llm_env_macros::child_env_non_empty_trims_value",
+            &[("OMNI_MACROS_TEST_KEY", "  test-key  ")],
+        );
+    }
 
+    #[test]
+    #[ignore = "spawned by test_env_non_empty_trims_value with isolated env"]
+    fn child_env_non_empty_trims_value() {
         let value = env_non_empty!("OMNI_MACROS_TEST_KEY");
         assert_eq!(value.as_deref(), Some("test-key"));
     }

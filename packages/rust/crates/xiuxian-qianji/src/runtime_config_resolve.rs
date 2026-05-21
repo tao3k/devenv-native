@@ -1,3 +1,5 @@
+//! Runtime configuration resolution branch for root and override discovery.
+
 use super::loader::load_qianji_toml;
 use super::model::{
     QianjiRuntimeCheckpointConfig, QianjiRuntimeEnv, QianjiRuntimeLlmConfig,

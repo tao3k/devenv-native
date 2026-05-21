@@ -155,9 +155,10 @@ fn external_probe_s3_secret_config() -> Option<DuckDbS3SecretConfig> {
         optional_env("XIUXIAN_DUCKLAKE_EXTERNAL_S3_SECRET"),
     ) {
         (Some(key_id), Some(secret)) => DuckDbS3SecretProvider::Config {
-            key_id,
+            key_id: key_id.into(),
             secret,
-            session_token: optional_env("XIUXIAN_DUCKLAKE_EXTERNAL_S3_SESSION_TOKEN"),
+            session_token: optional_env("XIUXIAN_DUCKLAKE_EXTERNAL_S3_SESSION_TOKEN")
+                .map(Into::into),
         },
         _ => DuckDbS3SecretProvider::CredentialChain {
             chain: optional_env("XIUXIAN_DUCKLAKE_EXTERNAL_S3_CHAIN"),

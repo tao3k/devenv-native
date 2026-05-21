@@ -142,8 +142,8 @@ fn parser_transaction_shell_rejects_multi_error_end_when_one_error_lacks_boundar
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedTransactionConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "payment_tx".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("payment_tx".to_string()).into(),
             detail: "transaction_error_missing_boundary",
         }
     );

@@ -1,3 +1,5 @@
+//! `pybindings::unified_symbol_py::registration` owns Wendao pybindings unified symbol py registration behavior.
+
 use pyo3::types::{PyModule, PyModuleMethods};
 use pyo3::{Bound, PyResult};
 

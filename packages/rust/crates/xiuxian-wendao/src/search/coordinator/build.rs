@@ -1,7 +1,11 @@
-use crate::search::{SearchCorpusKind, SearchPlaneCoordinator, SearchPlanePhase};
+//! Build lease state transitions for the search plane coordinator.
+
+use crate::search::{
+    SearchCorpusKind, SearchCorpusStatus, SearchPlaneCoordinator, SearchPlanePhase,
+};
 
 use super::state::timestamp_now;
-use super::types::{BeginBuildDecision, SearchBuildLease};
+use super::types::{BeginBuildDecision, SearchBuildLease, SearchCorpusRuntime};
 
 impl SearchPlaneCoordinator {
     /// Attempt to start a new staging build for a corpus fingerprint.
@@ -24,29 +28,13 @@ impl SearchPlaneCoordinator {
         let runtime = state
             .entry(corpus)
             .or_insert_with(|| super::types::SearchCorpusRuntime::new(corpus));
-        let schema_matches = runtime.status.schema_version == schema_version;
-        if runtime.status.fingerprint.as_deref() == Some(fingerprint.as_str()) && schema_matches {
-            if matches!(runtime.status.phase, SearchPlanePhase::Ready)
-                && runtime.status.active_epoch.is_some()
-            {
-                return BeginBuildDecision::AlreadyReady(runtime.status.clone());
-            }
-            if matches!(runtime.status.phase, SearchPlanePhase::Indexing) {
-                return BeginBuildDecision::AlreadyIndexing(runtime.status.clone());
-            }
+        if let Some(decision) =
+            current_build_decision(runtime, fingerprint.as_str(), schema_version)
+        {
+            return decision;
         }
 
-        let epoch = runtime.next_epoch;
-        runtime.next_epoch = runtime.next_epoch.saturating_add(1);
-        runtime.status.phase = SearchPlanePhase::Indexing;
-        runtime.status.staging_epoch = Some(epoch);
-        runtime.status.schema_version = schema_version;
-        runtime.status.fingerprint = Some(fingerprint.clone());
-        runtime.status.progress = Some(0.0);
-        runtime.status.build_started_at = Some(now.clone());
-        runtime.status.build_finished_at = None;
-        runtime.status.updated_at = Some(now);
-        runtime.status.last_error = None;
+        let epoch = start_staging_build(runtime, fingerprint.as_str(), schema_version, now);
 
         BeginBuildDecision::Started(SearchBuildLease {
             corpus,
@@ -90,40 +78,27 @@ impl SearchPlaneCoordinator {
         let Some(runtime) = state.get_mut(&lease.corpus) else {
             return false;
         };
-        if runtime.status.staging_epoch != Some(lease.epoch)
-            || runtime.status.fingerprint.as_deref() != Some(lease.fingerprint.as_str())
-        {
+        if !lease_matches_staging_runtime(runtime, lease) {
             return false;
         }
 
         let now = timestamp_now();
-        let publish_count = if lease.corpus.supports_local_store_compaction() {
-            runtime
-                .status
-                .maintenance
-                .publish_count_since_compaction
-                .saturating_add(1)
-        } else {
-            0
-        };
-        runtime.status.phase = SearchPlanePhase::Ready;
-        runtime.status.active_epoch = Some(lease.epoch);
-        runtime.status.staging_epoch = None;
-        runtime.status.schema_version = lease.schema_version;
-        runtime.status.progress = None;
-        runtime.status.row_count = Some(row_count);
-        runtime.status.fragment_count = Some(fragment_count);
-        runtime.status.build_finished_at = Some(now.clone());
-        runtime.status.updated_at = Some(now);
-        runtime.status.last_error = None;
-        runtime.status.maintenance.publish_count_since_compaction = publish_count;
-        runtime.status.maintenance.compaction_pending =
-            lease.corpus.supports_local_store_compaction()
-                && self.maintenance_policy.should_compact(
-                    publish_count,
-                    runtime.last_compacted_row_count,
-                    row_count,
-                );
+        let publish_count = next_publish_count(runtime, lease.corpus);
+        let compaction_pending = lease.corpus.supports_local_store_compaction()
+            && self.maintenance_policy.should_compact(
+                publish_count,
+                runtime.last_compacted_row_count,
+                row_count,
+            );
+        publish_ready_status(
+            &mut runtime.status,
+            lease,
+            row_count,
+            fragment_count,
+            publish_count,
+            compaction_pending,
+            now,
+        );
         true
     }
 
@@ -151,4 +126,92 @@ impl SearchPlaneCoordinator {
         runtime.status.last_error = Some(error.into());
         true
     }
+}
+
+fn current_build_decision(
+    runtime: &SearchCorpusRuntime,
+    fingerprint: &str,
+    schema_version: u32,
+) -> Option<BeginBuildDecision> {
+    if !runtime_matches_requested_build(runtime, fingerprint, schema_version) {
+        return None;
+    }
+    match runtime.status.phase {
+        SearchPlanePhase::Ready if runtime.status.active_epoch.is_some() => {
+            Some(BeginBuildDecision::AlreadyReady(runtime.status.clone()))
+        }
+        SearchPlanePhase::Indexing => {
+            Some(BeginBuildDecision::AlreadyIndexing(runtime.status.clone()))
+        }
+        _ => None,
+    }
+}
+
+fn runtime_matches_requested_build(
+    runtime: &SearchCorpusRuntime,
+    fingerprint: &str,
+    schema_version: u32,
+) -> bool {
+    runtime.status.schema_version == schema_version
+        && runtime.status.fingerprint.as_deref() == Some(fingerprint)
+}
+
+fn start_staging_build(
+    runtime: &mut SearchCorpusRuntime,
+    fingerprint: &str,
+    schema_version: u32,
+    now: String,
+) -> u64 {
+    let epoch = runtime.next_epoch;
+    runtime.next_epoch = runtime.next_epoch.saturating_add(1);
+    runtime.status.phase = SearchPlanePhase::Indexing;
+    runtime.status.staging_epoch = Some(epoch);
+    runtime.status.schema_version = schema_version;
+    runtime.status.fingerprint = Some(fingerprint.to_string());
+    runtime.status.progress = Some(0.0);
+    runtime.status.build_started_at = Some(now.clone());
+    runtime.status.build_finished_at = None;
+    runtime.status.updated_at = Some(now);
+    runtime.status.last_error = None;
+    epoch
+}
+
+fn lease_matches_staging_runtime(runtime: &SearchCorpusRuntime, lease: &SearchBuildLease) -> bool {
+    runtime.status.staging_epoch == Some(lease.epoch)
+        && runtime.status.fingerprint.as_deref() == Some(lease.fingerprint.as_str())
+}
+
+fn next_publish_count(runtime: &SearchCorpusRuntime, corpus: SearchCorpusKind) -> u32 {
+    if corpus.supports_local_store_compaction() {
+        runtime
+            .status
+            .maintenance
+            .publish_count_since_compaction
+            .saturating_add(1)
+    } else {
+        0
+    }
+}
+
+fn publish_ready_status(
+    status: &mut SearchCorpusStatus,
+    lease: &SearchBuildLease,
+    row_count: u64,
+    fragment_count: u64,
+    publish_count: u32,
+    compaction_pending: bool,
+    now: String,
+) {
+    status.phase = SearchPlanePhase::Ready;
+    status.active_epoch = Some(lease.epoch);
+    status.staging_epoch = None;
+    status.schema_version = lease.schema_version;
+    status.progress = None;
+    status.row_count = Some(row_count);
+    status.fragment_count = Some(fragment_count);
+    status.build_finished_at = Some(now.clone());
+    status.updated_at = Some(now);
+    status.last_error = None;
+    status.maintenance.publish_count_since_compaction = publish_count;
+    status.maintenance.compaction_pending = compaction_pending;
 }

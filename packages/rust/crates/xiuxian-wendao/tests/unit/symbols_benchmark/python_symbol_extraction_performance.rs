@@ -2,7 +2,7 @@ use std::io::Write;
 use std::time::{Duration, Instant};
 
 use tempfile::NamedTempFile;
-use xiuxian_wendao::dependency_indexer::extract_symbols;
+use xiuxian_wendao::dependency_indexer::extract_dependency_symbols;
 
 use super::generate_python_test_file;
 
@@ -24,7 +24,7 @@ fn test_python_symbol_extraction_performance() -> Result<(), Box<dyn std::error:
         file.write_all(content.as_bytes())?;
         let path = file.path().to_path_buf();
 
-        let symbols = extract_symbols(&path, "python")?;
+        let symbols = extract_dependency_symbols(&path, "python")?;
         all_symbols.extend(symbols);
         temp_files.push(file);
     }

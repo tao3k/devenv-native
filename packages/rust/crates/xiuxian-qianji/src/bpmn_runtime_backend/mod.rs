@@ -1,6 +1,9 @@
+//! Checkpoint backend branch for BPMN runtime persistence.
+
 #[cfg(feature = "duckdb")]
 #[path = "duckdb.rs"]
 mod duckdb;
+#[cfg(feature = "duckdb")]
 pub(crate) use crate::BpmnOrchestrationError;
 #[path = "facade.rs"]
 mod facade;

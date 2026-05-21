@@ -1,6 +1,6 @@
 //! State persistence tests for `EpisodeStore`.
 
-use xiuxian_memory_engine::{Episode, EpisodeStore, StoreConfig};
+use xiuxian_memory_engine::{Episode, EpisodeDraft, EpisodeStore, StoreConfig};
 
 type TestResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
@@ -16,13 +16,14 @@ fn save_state_creates_parent_dirs_and_loads_roundtrip() -> TestResult {
     };
 
     let store = EpisodeStore::new(config.clone());
-    let episode = Episode::new(
-        "ep-1".to_string(),
-        "fix timeout".to_string(),
-        store.encoder().encode("fix timeout"),
-        "Raised timeout and retried".to_string(),
-        "success".to_string(),
-    );
+    let episode = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "fix timeout".to_string(),
+        intent_embedding: store.encoder().encode("fix timeout"),
+        experience: "Raised timeout and retried".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(episode)?;
     store.update_q("ep-1", 1.0);
 
@@ -52,13 +53,14 @@ fn save_state_uses_table_scoped_filenames() -> TestResult {
         embedding_dim: 128,
         table_name: "alpha".to_string(),
     });
-    alpha.store(Episode::new(
-        "alpha-1".to_string(),
-        "alpha task".to_string(),
-        alpha.encoder().encode("alpha task"),
-        "alpha experience".to_string(),
-        "success".to_string(),
-    ))?;
+    alpha.store(Episode::new(EpisodeDraft {
+        id: ("alpha-1".to_string()).into(),
+        intent: "alpha task".to_string(),
+        intent_embedding: alpha.encoder().encode("alpha task"),
+        experience: "alpha experience".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    }))?;
     alpha.save_state()?;
 
     let beta = EpisodeStore::new(StoreConfig {
@@ -66,13 +68,14 @@ fn save_state_uses_table_scoped_filenames() -> TestResult {
         embedding_dim: 128,
         table_name: "beta".to_string(),
     });
-    beta.store(Episode::new(
-        "beta-1".to_string(),
-        "beta task".to_string(),
-        beta.encoder().encode("beta task"),
-        "beta experience".to_string(),
-        "success".to_string(),
-    ))?;
+    beta.store(Episode::new(EpisodeDraft {
+        id: ("beta-1".to_string()).into(),
+        intent: "beta task".to_string(),
+        intent_embedding: beta.encoder().encode("beta task"),
+        experience: "beta experience".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    }))?;
     beta.save_state()?;
 
     assert!(root.join("alpha.episodes.json").exists());

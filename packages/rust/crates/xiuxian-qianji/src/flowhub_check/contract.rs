@@ -7,10 +7,10 @@ use crate::contracts::FlowhubStructureContract;
 use crate::error::QianjiError;
 use crate::flowhub::discover::FlowhubDiscoveredModule;
 
-use super::api::FlowhubDiagnostic;
 use super::filesystem::{
     count_root_glob_matches, discover_immediate_child_directories, is_glob_pattern,
 };
+use super::model::FlowhubDiagnostic;
 
 pub(super) fn validate_root_contract(
     root: &Path,

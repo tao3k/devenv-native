@@ -1,3 +1,5 @@
+//! `repo_index::state::coordinator` owns Wendao repo index state coordinator behavior.
+
 #[cfg(feature = "performance")]
 mod diagnostics;
 mod handle;

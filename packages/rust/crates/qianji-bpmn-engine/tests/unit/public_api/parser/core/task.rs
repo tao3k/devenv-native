@@ -223,8 +223,8 @@ fn parser_service_task_requires_single_outgoing_route() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id: "missing_task_route".to_string(),
-            node_id: "prepare_next".to_string(),
+            process_id: ("missing_task_route".to_string()).into(),
+            node_id: ("prepare_next".to_string()).into(),
             detail: "task_requires_single_outgoing",
         }
     );
@@ -240,8 +240,8 @@ fn parser_send_task_requires_one_message_binding() {
     assert_eq!(
         error,
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: "send_invoice_invalid".to_string(),
-            node_id: "send_invoice_message".to_string(),
+            process_id: ("send_invoice_invalid".to_string()).into(),
+            node_id: ("send_invoice_message".to_string()).into(),
             element: "message_binding",
         }
     );
@@ -257,8 +257,8 @@ fn parser_receive_task_rejects_multiple_message_binding_sources() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id: "await_invoice_invalid".to_string(),
-            node_id: "await_invoice_message".to_string(),
+            process_id: ("await_invoice_invalid".to_string()).into(),
+            node_id: ("await_invoice_message".to_string()).into(),
             detail: "multiple_task_message_bindings",
         }
     );
@@ -274,8 +274,8 @@ fn parser_receive_task_rejects_non_message_event_binding() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id: "await_invoice_invalid_signal".to_string(),
-            node_id: "await_invoice_message".to_string(),
+            process_id: ("await_invoice_invalid_signal".to_string()).into(),
+            node_id: ("await_invoice_message".to_string()).into(),
             detail: "unsupported_receive_task_event_kind",
         }
     );

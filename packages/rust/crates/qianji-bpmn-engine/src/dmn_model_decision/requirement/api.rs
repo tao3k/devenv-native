@@ -16,7 +16,7 @@ impl DmnInformationRequirementReference {
     #[must_use]
     pub fn new(reference_kind: impl AsRef<str>, href: Option<impl AsRef<str>>) -> Self {
         Self {
-            reference_kind: Arc::<str>::from(reference_kind.as_ref()),
+            reference_kind: (Arc::<str>::from(reference_kind.as_ref())),
             href: href.map(|value| Arc::<str>::from(value.as_ref())),
         }
     }
@@ -36,7 +36,7 @@ impl DmnKnowledgeRequirementReference {
     #[must_use]
     pub fn new(reference_kind: impl AsRef<str>, href: Option<impl AsRef<str>>) -> Self {
         Self {
-            reference_kind: Arc::<str>::from(reference_kind.as_ref()),
+            reference_kind: (Arc::<str>::from(reference_kind.as_ref())),
             href: href.map(|value| Arc::<str>::from(value.as_ref())),
         }
     }

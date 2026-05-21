@@ -1,3 +1,5 @@
+//! Owns the Studio studio startup health probe surface.
+
 use std::time::Duration;
 
 use crate::studio::startup_health::types::{

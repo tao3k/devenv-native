@@ -33,7 +33,7 @@ async fn test_host_uses_julia_graph_structural_fetch_helper_against_solver_demo_
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "graph_structural_transport": {
                     "base_url": server_base_url,
@@ -121,7 +121,7 @@ async fn test_host_uses_julia_graph_structural_fetch_helper_via_manifest_discove
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": server_base_url,
@@ -207,7 +207,7 @@ async fn test_host_uses_julia_graph_structural_filter_helper_via_manifest_discov
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "capability_manifest_transport": {
                     "base_url": server_base_url,
@@ -223,7 +223,7 @@ async fn test_host_uses_julia_graph_structural_filter_helper_via_manifest_discov
         candidate_id: "candidate-filter-live".to_string(),
         retrieval_layer: 0,
         query_max_layers: 2,
-        constraint_kind: "pin_assignment".to_string(),
+        constraint_kind: "pin_assignment".to_string().into(),
         required_boundary_size: 1,
         anchor_planes: vec!["semantic".to_string()],
         anchor_values: vec!["alpha".to_string()],

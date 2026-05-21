@@ -6,7 +6,7 @@ use xiuxian_config_core::resolve_project_root;
 use crate::contracts::FlowhubGraphSurfaceContract;
 use crate::flowhub::FlowhubScenarioIr;
 
-use super::api::{FlowhubGraphCheckSurface, FlowhubGraphShow};
+use super::model::{FlowhubGraphCheckSurface, FlowhubGraphShow};
 
 pub(super) fn render_check_surface_section_lines(show: &FlowhubGraphShow) -> Vec<String> {
     let mut lines = Vec::new();

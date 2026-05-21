@@ -96,8 +96,11 @@ fn test_suggest_pattern_fix_finds_renamed_symbol() {
         content: "fn process_records(data: Vec<u8>) -> Result<()> { todo!() }".to_string(),
     };
 
-    let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+    let suggestion = suggest_pattern_fix(
+        "fn process_data($$$)",
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+        &[source],
+    );
 
     let Some(s) = suggestion else {
         panic!("expected a fuzzy suggestion for a renamed symbol");
@@ -117,8 +120,11 @@ fn test_candidate_cache_stats_and_clear() {
         content: "fn process_records() { }".to_string(),
     };
 
-    let _suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+    let _suggestion = suggest_pattern_fix(
+        "fn process_data($$$)",
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+        &[source],
+    );
 
     let (file_count, candidate_count) = cache_stats();
     assert_eq!(file_count, 1);
@@ -135,8 +141,11 @@ fn test_suggest_pattern_fix_no_similar_code() {
         content: "struct Point { x: i32, y: i32 }".to_string(),
     };
 
-    let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+    let suggestion = suggest_pattern_fix(
+        "fn process_data($$$)",
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+        &[source],
+    );
 
     // Should return None because no similar function exists
     assert!(suggestion.is_none());

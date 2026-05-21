@@ -127,13 +127,14 @@ fn discover_crate_skill_roots(crates_root: &Path) -> Vec<PathBuf> {
 }
 
 fn dedup_paths(paths: &mut Vec<PathBuf>) {
-    let mut unique = Vec::new();
-    for path in std::mem::take(paths) {
-        if !unique.contains(&path) {
-            unique.push(path);
-        }
-    }
-    *paths = unique;
+    *paths = std::mem::take(paths)
+        .into_iter()
+        .fold(Vec::new(), |mut unique, path| {
+            if !unique.contains(&path) {
+                unique.push(path);
+            }
+            unique
+        });
 }
 
 pub(super) fn resolve_wendao_uri_text(uri: &str) -> Option<String> {

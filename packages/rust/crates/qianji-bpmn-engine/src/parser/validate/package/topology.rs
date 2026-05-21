@@ -58,8 +58,8 @@ fn validate_event_subprocesses(
         .collect::<Vec<_>>();
     if event_subprocesses.len() > 1 {
         return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: event_subprocesses[1].bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (event_subprocesses[1].bpmn_id.clone()).into(),
             detail: "multiple_event_subprocesses",
         });
     }
@@ -81,24 +81,24 @@ fn validate_event_subprocess_owner(
         .any(|flow| flow.source_ref == owner.bpmn_id || flow.target_ref == owner.bpmn_id)
     {
         return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "event_subprocess_sequence_flow",
         });
     }
 
     let called_process_id = owner.called_process_ref.as_ref().ok_or_else(|| {
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "missing_event_subprocess_body",
         }
     })?;
     let child = process_by_id
         .get(called_process_id.as_str())
         .ok_or_else(|| BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "missing_event_subprocess_body",
         })?;
     let start = child
@@ -106,28 +106,28 @@ fn validate_event_subprocess_owner(
         .iter()
         .find(|node| node.kind == BpmnNodeKind::StartEvent)
         .ok_or_else(|| BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "event_subprocess_start_event_count",
         })?;
     if !start.cancel_activity {
         return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "event_subprocess_non_interrupting",
         });
     }
     let Some(event) = start.event.as_ref() else {
         return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "event_subprocess_start_event_definition",
         });
     };
     if event.kind == BpmnEventKind::Compensation {
         return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "event_subprocess_compensation_deferred",
         });
     }
@@ -139,8 +139,8 @@ fn validate_event_subprocess_owner(
             | BpmnEventKind::Conditional
     ) {
         return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: owner.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (owner.bpmn_id.clone()).into(),
             detail: "event_subprocess_start_event_definition",
         });
     }
@@ -171,16 +171,16 @@ fn validate_transaction_cancel_path(
     } = &process.scope
     else {
         return Err(BpmnEngineError::UnsupportedTransactionConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: cancel_end_nodes[0].bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (cancel_end_nodes[0].bpmn_id.clone()).into(),
             detail: "cancel_end_requires_transaction_shell",
         });
     };
 
     if cancel_end_nodes.len() > 1 {
         return Err(BpmnEngineError::UnsupportedTransactionConfiguration {
-            process_id: owner_process_id.clone(),
-            node_id: owner_node_id.clone(),
+            process_id: (owner_process_id.clone()).into(),
+            node_id: (owner_node_id.clone()).into(),
             detail: "multiple_transaction_cancel_end_events",
         });
     }
@@ -202,8 +202,8 @@ fn validate_transaction_cancel_path(
     }
 
     Err(BpmnEngineError::UnsupportedTransactionConfiguration {
-        process_id: owner_process_id.clone(),
-        node_id: owner_node_id.clone(),
+        process_id: (owner_process_id.clone()).into(),
+        node_id: (owner_node_id.clone()).into(),
         detail: "transaction_cancel_missing_boundary",
     })
 }
@@ -217,8 +217,8 @@ fn validate_node_event_shape(process: &RawProcess, node: &RawNode) -> Result<()>
     ) && node.event.is_none()
     {
         return Err(BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             element: "event_definition",
         });
     }
@@ -231,8 +231,8 @@ fn validate_node_event_shape(process: &RawProcess, node: &RawNode) -> Result<()>
             .is_none_or(|timer| timer.expression.trim().is_empty())
     {
         return Err(BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             element: "timer_expression",
         });
     }
@@ -242,15 +242,15 @@ fn validate_node_event_shape(process: &RawProcess, node: &RawNode) -> Result<()>
     {
         let Some(condition_expression) = event.condition_expression.as_deref() else {
             return Err(BpmnEngineError::MissingRequiredNodeElement {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 element: "conditional_expression",
             });
         };
         if !is_supported_gateway_condition(condition_expression) {
             return Err(BpmnEngineError::UnsupportedEventConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: "unsupported_conditional_event_expression",
             });
         }
@@ -273,8 +273,8 @@ fn validate_message_task_shape(process: &RawProcess, node: &RawNode) -> Result<(
 
     if node.task_message_ref.is_some() && node.event.is_some() {
         return Err(BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "multiple_task_message_bindings",
         });
     }
@@ -287,8 +287,8 @@ fn validate_message_task_shape(process: &RawProcess, node: &RawNode) -> Result<(
     if let Some(event) = &node.event {
         if event.kind != BpmnEventKind::Message {
             return Err(BpmnEngineError::UnsupportedTaskConfiguration {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 detail: expected_detail,
             });
         }
@@ -299,8 +299,8 @@ fn validate_message_task_shape(process: &RawProcess, node: &RawNode) -> Result<(
             .filter(|binding| !binding.is_empty());
         if event_binding.is_none() {
             return Err(BpmnEngineError::MissingRequiredNodeElement {
-                process_id: process.process_id.clone(),
-                node_id: node.bpmn_id.clone(),
+                process_id: (process.process_id.clone()).into(),
+                node_id: (node.bpmn_id.clone()).into(),
                 element: "message_binding",
             });
         }
@@ -312,8 +312,8 @@ fn validate_message_task_shape(process: &RawProcess, node: &RawNode) -> Result<(
     }
 
     Err(BpmnEngineError::MissingRequiredNodeElement {
-        process_id: process.process_id.clone(),
-        node_id: node.bpmn_id.clone(),
+        process_id: (process.process_id.clone()).into(),
+        node_id: (node.bpmn_id.clone()).into(),
         element: "message_binding",
     })
 }
@@ -325,8 +325,8 @@ fn validate_called_process_reference(
 ) -> Result<()> {
     let called_process_id = node.called_process_ref.as_deref().ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             element: "called_process",
         }
     })?;
@@ -334,8 +334,8 @@ fn validate_called_process_reference(
         return Ok(());
     }
     Err(BpmnEngineError::UnknownCalledProcess {
-        process_id: process.process_id.clone(),
-        node_id: node.bpmn_id.clone(),
-        called_process_id: called_process_id.to_string(),
+        process_id: (process.process_id.clone()).into(),
+        node_id: (node.bpmn_id.clone()).into(),
+        called_process_id: (called_process_id.to_string()).into(),
     })
 }

@@ -69,6 +69,10 @@ def summarize_results(
     structure_order_stable = all_structure_order_stable(results)
     structure_order_mismatches = structure_order_mismatch_count(results)
     structure_parity_passed = all_structure_parity_passed(results)
+    docling_groundtruth_passed = all_docling_groundtruth_passed(results)
+    docling_groundtruth_failure_count = sum(
+        result.get("doclingGroundtruthFailureCount", 0) for result in results
+    )
     return {
         "fixtureCount": len(results),
         "attachmentClassSummary": attachment_class_summaries(results),
@@ -94,12 +98,76 @@ def summarize_results(
         ),
         "allStructureParityPassed": structure_parity_passed,
         "totalStructureParityErrors": structure_parity_error_count,
+        "doclingGroundtruthCheckedFixtures": sum(
+            1 for result in results if result.get("doclingGroundtruthChecked")
+        ),
+        "allDoclingGroundtruthPassed": docling_groundtruth_passed,
+        "totalDoclingGroundtruthMissing": sum(
+            result.get("doclingGroundtruthMissingCount", 0) for result in results
+        ),
+        "totalDoclingGroundtruthFailures": docling_groundtruth_failure_count,
+        "minDoclingGroundtruthMarkdownSimilarity": min(
+            (
+                value
+                for result in results
+                if isinstance(
+                    (value := result.get("doclingGroundtruthMinMarkdownSimilarity")),
+                    int | float,
+                )
+            ),
+            default=None,
+        ),
+        "minDoclingGroundtruthCharCoverageRatio": min(
+            (
+                value
+                for result in results
+                if isinstance(
+                    (value := result.get("doclingGroundtruthMinCharCoverageRatio")),
+                    int | float,
+                )
+            ),
+            default=None,
+        ),
         "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
         "totalMetricsResultChars": sum(
             result.get("metricsResultChars", 0) for result in results
         ),
         "totalMetricsBboxCount": sum(
             result.get("metricsBboxCount", 0) for result in results
+        ),
+        "structureAuthorityPages": sum(
+            result.get("structureAuthorityPages", 0) for result in results
+        ),
+        "textShortcutPages": sum(
+            result.get("textShortcutPages", 0) for result in results
+        ),
+        "ocrPatchRegions": sum(result.get("ocrPatchRegions", 0) for result in results),
+        "pageRangeDoclingFallbackPages": sum(
+            result.get("pageRangeDoclingFallbackPages", 0) for result in results
+        ),
+        "pageRangeDoclingFallbackChunkCount": sum(
+            result.get("pageRangeDoclingFallbackChunkCount", 0) for result in results
+        ),
+        "pageRangeDoclingFallbackPlanStrategies": _combine_string_counts(
+            (
+                plan.get("strategy")
+                if isinstance(
+                    (
+                        plan := result.get(
+                            "forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"
+                        )
+                    ),
+                    dict,
+                )
+                else None
+            )
+            for result in results
+        ),
+        "pageRangeDoclingFallbackChunkSummary": (
+            _combine_page_range_docling_fallback_chunk_summaries(results)
+        ),
+        "fullDoclingFallbackCount": sum(
+            result.get("fullDoclingFallbackCount", 0) for result in results
         ),
         "totalMetricsRustSchedulerElapsedMs": sum(
             result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
@@ -116,6 +184,34 @@ def summarize_results(
         "documentTimingPhaseElapsedMs": _combine_float_counts(
             result.get("documentTimingPhaseElapsedMs", {}) for result in results
         ),
+        "forceHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
+            result.get("forceHybridPageOcrTimingPhaseElapsedMs", {})
+            for result in results
+        ),
+        "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
+            result.get("shardCacheReuseHybridPageOcrTimingPhaseElapsedMs", {})
+            for result in results
+        ),
+        "maxShardCacheReuseMetricsRustSchedulerElapsedMs": max(
+            (
+                value
+                for result in results
+                if isinstance(
+                    (
+                        value := result.get(
+                            "shardCacheReuseMetricsRustSchedulerElapsedMs"
+                        )
+                    ),
+                    int | float,
+                )
+            ),
+            default=None,
+        ),
+        "hybridPageOcrFallbackReasons": [
+            reason
+            for result in results
+            for reason in result.get("hybridPageOcrFallbackReasons", [])
+        ],
         "imageAttachmentAuditCount": image_attachment_audit_count(results),
         "imageKnownDimensionCount": image_known_dimension_count(results),
         "imageFormatCounts": aggregate_image_audit_strings(results, "format"),
@@ -179,6 +275,8 @@ def summarize_results(
             structure_order_stable=structure_order_stable,
             structure_order_mismatch_count=structure_order_mismatches,
             structure_parity_passed=structure_parity_passed,
+            docling_groundtruth_passed=docling_groundtruth_passed,
+            docling_groundtruth_failure_count=docling_groundtruth_failure_count,
         ),
     }
 
@@ -191,6 +289,15 @@ def pdf_ocr_profile_label(args: argparse.Namespace) -> str:
     if args.flight_mode != "hybrid-page-ocr":
         return "docling-full-document"
     return "source-page-range-or-parallel-image"
+
+
+def all_docling_groundtruth_passed(results: list[dict[str, Any]]) -> bool | None:
+    values = [
+        result.get("doclingGroundtruthPassed")
+        for result in results
+        if result.get("doclingGroundtruthPassed") is not None
+    ]
+    return all(bool(value) for value in values) if values else None
 
 
 def _format_optional_float(value: Any) -> str:
@@ -240,6 +347,35 @@ def render_markdown(payload: dict[str, Any]) -> str:
     ocr_shard_cache = payload.get("ocrShardCache", {})
     structure_baseline = payload.get("structureBaseline") or {}
     precision_speed = payload["summary"].get("precisionSpeedSummary", {})
+    pdf_milestone = precision_speed.get("pdfOcrMilestoneGuard", {})
+    hosted_vlm_promotion = payload.get("hostedVlmPromotionGate") or {}
+    candidate_taxonomy = payload.get("candidateTaxonomy") or {}
+    hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
+    hosted_audio = payload.get("hostedAudio") or {}
+    hosted_vlm_ocr_requests = hosted_vlm_ocr.get("requestSummary") or {}
+    page_range_chunk_summary = (
+        payload["summary"].get("pageRangeDoclingFallbackChunkSummary") or {}
+    )
+    page_range_chunk_phases = (
+        phases
+        if isinstance(
+            (phases := page_range_chunk_summary.get("documentTimingPhaseElapsedMs")),
+            dict,
+        )
+        else {}
+    )
+    longest_page_range_chunk_phases = (
+        phases
+        if isinstance(
+            (
+                phases := page_range_chunk_summary.get(
+                    "longestDocumentTimingPhaseElapsedMs"
+                )
+            ),
+            dict,
+        )
+        else {}
+    )
     lines = [
         "# Wendao Document Extract Performance",
         "",
@@ -253,11 +389,110 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Wait ms: `{payload['waitMs']}`",
         f"- PDF OCR worker: `{payload['pdfOcrWorker']}`",
         f"- PDF OCR workers: `{payload['pdfOcrWorkers']}`",
+        f"- Audio worker: `{payload.get('audioWorker')}`",
+        f"- Audio workers: `{payload.get('audioWorkers')}`",
+        f"- PDF OCR prewarm profiles: `{payload.get('pdfOcrPrewarmProfiles')}`",
+        f"- PDF OCR prewarm source path: `{payload.get('pdfOcrPrewarmSourcePath')}`",
+        f"- PDF OCR prewarm page index: `{payload.get('pdfOcrPrewarmPageIndex')}`",
+        f"- PDF OCR prewarm page indices: `{payload.get('pdfOcrPrewarmPageIndices')}`",
+        f"- PDF OCR prewarm endpoint count: `{payload.get('pdfOcrPrewarmEndpointCount')}`",
+        "- Document extract prewarm source path: "
+        f"`{payload.get('documentExtractPrewarmSourcePath')}`",
+        "- Document extract prewarm page ranges: "
+        f"`{payload.get('documentExtractPrewarmPageRanges')}`",
+        "- Document extract prewarm page ranges resolved: "
+        f"`{payload.get('documentExtractPrewarmPageRangesResolved')}`",
+        f"- PDF OCR backend-text page fallback: `{payload.get('pdfOcrBackendTextPageFallback')}`",
         f"- Local Python OCR endpoints: `{payload.get('localPythonOcrEndpointCount', 1)}`",
         f"- Rust PDF OCR worker pool: `{payload['rustPdfOcrWorkers']}`",
         f"- Rust PDF OCR source-range workers: `{payload['rustPdfOcrSourceRangeWorkers']}`",
+        f"- Rust audio backend profile: `{payload.get('rustAudioBackendProfile')}`",
+        f"- Rust audio chunk ms: `{payload.get('rustAudioChunkMs')}`",
+        f"- Rust audio context before ms: `{payload.get('rustAudioContextBeforeMs')}`",
+        f"- Rust audio context after ms: `{payload.get('rustAudioContextAfterMs')}`",
+        f"- Rust audio recovery split ms: `{payload.get('rustAudioRecoverySplitMs')}`",
+        f"- Rust audio sample rate Hz: `{payload.get('rustAudioSampleRateHz')}`",
+        f"- Rust audio channels: `{payload.get('rustAudioChannels')}`",
+        f"- Rust audio format: `{payload.get('rustAudioFormat')}`",
+        f"- Rust audio base workers: `{payload.get('rustAudioBaseWorkers')}`",
+        f"- Rust audio recovery workers: `{payload.get('rustAudioRecoveryWorkers')}`",
+        f"- Rust audio speech segments JSONL: `{payload.get('rustAudioSpeechSegmentsJsonl')}`",
+        f"- Rust audio speech merge gap ms: `{payload.get('rustAudioSpeechMergeGapMs')}`",
+        f"- Rust audio speech min window ms: `{payload.get('rustAudioSpeechMinWindowMs')}`",
+        f"- Rust audio speech limit chunks: `{payload.get('rustAudioSpeechLimitChunks')}`",
+        "- Rust PDF Docling page-range chunk plan: "
+        f"`{payload.get('rustPdfDoclingPageRangeChunkPlan')}`",
+        "- Rust PDF Docling page-range profile: "
+        f"`{payload.get('rustPdfDoclingPageRangeProfile', 'full')}`",
+        "- Rust PDF Docling page-range hedge delay ms: "
+        f"`{payload.get('rustPdfDoclingPageRangeHedgeDelayMs')}`",
+        "- Rust PDF Docling page-range structure-cost budget: "
+        f"`{payload.get('rustPdfDoclingPageRangeStructureCostBudget')}`",
+        "- Rust PDF Docling text-shortcut promotion: "
+        f"`{payload.get('rustPdfDoclingTextShortcutPromotion', 'range-fill')}`",
+        f"- Rust PDF local backend text: `{payload.get('rustPdfLocalBackendText')}`",
+        "- Rust PDF local backend-text empty mode: "
+        f"`{payload.get('rustPdfLocalBackendTextEmpty')}`",
+        f"- Rust PDF local fast text: `{payload.get('rustPdfLocalFastText')}`",
+        "- Rust PDF fast-text source-range split: "
+        f"`{payload.get('rustPdfFastTextSourceRangeSplit')}`",
+        "- Rust PDF fast-text endpoint affinity: "
+        f"`{payload.get('rustPdfFastTextEndpointAffinity')}`",
+        f"- Rust PDF backend-text top-up: `{payload.get('rustPdfBackendTextTopup')}`",
+        f"- Rust PDF failed-page recovery: `{payload.get('rustPdfFailedPageRecovery')}`",
+        f"- Rust PDF OCR profile planner: `{payload.get('rustPdfOcrProfilePlanner')}`",
+        f"- Rust PDF Hosted VLM/OCR render DPI: `{payload.get('rustPdfHostedVlmRenderDpi')}`",
+        f"- Rust PDF Hosted VLM/OCR region planner: `{payload.get('rustPdfHostedVlmRegionPlanner')}`",
+        f"- Rust PDF Hosted VLM/OCR region pipeline: `{payload.get('rustPdfHostedVlmRegionPipeline')}`",
+        f"- Rust PDF Hosted VLM/OCR region render ahead: `{payload.get('rustPdfHostedVlmRegionRenderAhead')}`",
+        f"- Rust PDF Hosted VLM/OCR region render chunk: `{payload.get('rustPdfHostedVlmRegionRenderChunk')}`",
+        f"- Hosted VLM/OCR backend: `{hosted_vlm_ocr.get('backend')}`",
+        f"- Hosted VLM/OCR provider: `{hosted_vlm_ocr.get('provider')}`",
+        f"- Hosted VLM/OCR base URL: `{hosted_vlm_ocr.get('baseUrl')}`",
+        f"- Hosted VLM/OCR model: `{hosted_vlm_ocr.get('model')}`",
+        f"- OpenRouter model: `{hosted_vlm_ocr.get('openRouterModel')}`",
+        f"- OpenRouter key configured: `{hosted_vlm_ocr.get('openRouterApiKeyConfigured')}`",
+        f"- Hosted VLM/OCR max tokens: `{hosted_vlm_ocr.get('maxTokens')}`",
+        f"- Hosted VLM/OCR region max tokens: `{hosted_vlm_ocr.get('regionMaxTokens')}`",
+        f"- Hosted VLM/OCR region composite size: `{hosted_vlm_ocr.get('regionCompositeSize')}`",
+        f"- Hosted VLM/OCR region atlas mode: `{hosted_vlm_ocr.get('regionAtlasMode')}`",
+        "- Hosted VLM/OCR image optimization mode: "
+        f"`{hosted_vlm_ocr.get('imageOptimizationMode')}`",
+        f"- Hosted VLM/OCR timeout seconds: `{hosted_vlm_ocr.get('timeoutSeconds')}`",
+        f"- Hosted VLM/OCR request concurrency: `{hosted_vlm_ocr.get('requestConcurrency')}`",
+        "- Hosted VLM/OCR speculative retry delay seconds: "
+        f"`{hosted_vlm_ocr.get('speculativeRetryDelaySeconds')}`",
+        f"- Hosted VLM/OCR page window size: `{hosted_vlm_ocr.get('pageWindowSize')}`",
+        f"- Hosted audio backend: `{hosted_audio.get('backend')}`",
+        f"- Hosted audio provider: `{hosted_audio.get('provider')}`",
+        f"- Hosted audio base URL: `{hosted_audio.get('baseUrl')}`",
+        f"- Hosted audio model: `{hosted_audio.get('model')}`",
+        f"- Hosted audio key configured: `{hosted_audio.get('apiKeyConfigured')}`",
+        f"- Hosted audio timeout seconds: `{hosted_audio.get('timeoutSeconds')}`",
+        f"- Hosted audio request concurrency: `{hosted_audio.get('requestConcurrency')}`",
+        "- Hosted VLM/OCR requests: "
+        f"`count={hosted_vlm_ocr_requests.get('requestCount')}, "
+        f"httpAttempts={hosted_vlm_ocr_requests.get('httpAttemptCountTotal')}, "
+        f"pages={hosted_vlm_ocr_requests.get('pageCountTotal')}, "
+        f"shards={hosted_vlm_ocr_requests.get('shardCountTotal')}, "
+        f"regions={hosted_vlm_ocr_requests.get('regionShardCount')}, "
+        f"sourcePixels={hosted_vlm_ocr_requests.get('sourcePixelAreaTotal')}, "
+        f"success={hosted_vlm_ocr_requests.get('successCount')}, "
+        f"failed={hosted_vlm_ocr_requests.get('failureCount')}, "
+        f"p50Ms={_format_optional_float(hosted_vlm_ocr_requests.get('latencyMsP50'))}, "
+        f"p95Ms={_format_optional_float(hosted_vlm_ocr_requests.get('latencyMsP95'))}, "
+        f"maxMs={_format_optional_float(hosted_vlm_ocr_requests.get('latencyMsMax'))}, "
+        f"wallSpanMs={_format_optional_float(hosted_vlm_ocr_requests.get('requestWallSpanMs'))}, "
+        f"overlapRatio={_format_optional_float(hosted_vlm_ocr_requests.get('requestLatencyOverlapRatio'))}, "
+        f"chars={hosted_vlm_ocr_requests.get('charCountTotal')}, "
+        f"kinds={_format_counts(hosted_vlm_ocr_requests.get('requestKindCounts'))}, "
+        f"imageModes={_format_counts(hosted_vlm_ocr_requests.get('imageOptimizationModeCounts'))}, "
+        f"http={_format_counts(hosted_vlm_ocr_requests.get('httpStatusCounts'))}`",
         f"- Rust document extract endpoints: `{payload.get('rustDocumentExtractEndpoints', [])}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
+        "- Docling full-profile threads: "
+        f"`{payload.get('documentExtractFullThreads', 'auto')}` "
+        f"(resolved `{payload.get('documentExtractFullThreadsResolved')}`)",
         f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
         "- Shard-cache reuse probe: "
@@ -296,6 +531,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"latencyP95Ms={rust_status.get('maxPdfOcrLatencyP95Ms')}, "
         f"budgetUp={rust_status.get('maxPdfOcrBudgetIncreaseEvents')}, "
         f"budgetDown={rust_status.get('maxPdfOcrBudgetDecreaseEvents')}`",
+        "- Rust OCR source-range trace: "
+        f"`chunks={precision_speed.get('totalForceHybridPageOcrSourceRangeChunkCount')}, "
+        f"maxChunkMs={_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkMs'))}, "
+        f"longestPages={_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkPageStart'))}-"
+        f"{_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkPageEnd'))}, "
+        f"chars={precision_speed.get('totalForceHybridPageOcrSourceRangeTraceChars')}`",
         f"- Structure sidecar rows: `{payload['summary']['totalStructureRows']}`",
         "- Structure OCR blocks: "
         f"`page={payload['summary']['totalStructureOcrPageBlocks']}, "
@@ -313,12 +554,29 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`enabled={bool(structure_baseline.get('enabled'))}, "
         f"fixtures={structure_baseline.get('fixtureCount')}, "
         f"errors={structure_baseline.get('totalErrorRows')}`",
+        "- Docling upstream groundtruth: "
+        f"`root={payload.get('doclingGroundtruthRoot')}, "
+        f"checked={payload['summary'].get('doclingGroundtruthCheckedFixtures')}, "
+        f"passed={payload['summary'].get('allDoclingGroundtruthPassed')}, "
+        f"missing={payload['summary'].get('totalDoclingGroundtruthMissing')}, "
+        f"failures={payload['summary'].get('totalDoclingGroundtruthFailures')}, "
+        "minCoverage="
+        f"{_format_optional_percent(payload['summary'].get('minDoclingGroundtruthCharCoverageRatio'))}, "
+        "minSimilarity="
+        f"{_format_optional_percent(payload['summary'].get('minDoclingGroundtruthMarkdownSimilarity'))}`",
         "- Metrics sidecar: "
         f"`rows={payload['summary'].get('totalMetricsRows')}, "
         f"chars={payload['summary'].get('totalMetricsResultChars')}, "
         f"bbox={payload['summary'].get('totalMetricsBboxCount')}, "
         "rustSchedulerElapsedMs="
         f"{_format_optional_float(payload['summary'].get('totalMetricsRustSchedulerElapsedMs'))}`",
+        "- Docling-centered routing counts: "
+        f"`structureAuthorityPages={payload['summary'].get('structureAuthorityPages')}, "
+        f"textShortcutPages={payload['summary'].get('textShortcutPages')}, "
+        f"ocrPatchRegions={payload['summary'].get('ocrPatchRegions')}, "
+        f"pageRangeDoclingFallbackPages={payload['summary'].get('pageRangeDoclingFallbackPages')}, "
+        f"pageRangeDoclingFallbackChunks={payload['summary'].get('pageRangeDoclingFallbackChunkCount')}, "
+        f"fullDoclingFallbackCount={payload['summary'].get('fullDoclingFallbackCount')}`",
         "- Document timing sidecar: "
         f"`rows={payload['summary'].get('totalDocumentTimingRows')}, "
         "totalElapsedMs="
@@ -327,6 +585,33 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"{_format_optional_float(payload['summary'].get('totalDocumentTimingOverheadMs'))}, "
         "phases="
         f"{_format_float_counts(payload['summary'].get('documentTimingPhaseElapsedMs'))}`",
+        "- Hybrid OCR fallback reasons: "
+        f"`{'; '.join(payload['summary'].get('hybridPageOcrFallbackReasons', []))}`",
+        "- Hybrid OCR timing sidecar: "
+        "forcePhases="
+        f"`{_format_float_counts(payload['summary'].get('forceHybridPageOcrTimingPhaseElapsedMs'))}`, "
+        "shardReusePhases="
+        f"`{_format_float_counts(payload['summary'].get('shardCacheReuseHybridPageOcrTimingPhaseElapsedMs'))}`, "
+        "shardReuseSchedulerMs="
+        f"`{_format_optional_float(payload['summary'].get('maxShardCacheReuseMetricsRustSchedulerElapsedMs'))}`, "
+        "hostedLocalGapMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmLocalOverheadMs'))}`, "
+        "schedulerNonHostedMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmSchedulerNonRequestMs'))}`, "
+        "baseResultMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmRegionPipelineLastBaseResultMs'))}`, "
+        "regionResultMs="
+        f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmRegionPipelineLastRegionResultMs'))}`, "
+        "doclingChunkMaxMs="
+        f"`{_format_optional_float(page_range_chunk_summary.get('elapsedMsMax'))}`, "
+        "doclingChunkDoclingConvertMaxMs="
+        f"`{_format_optional_float(longest_page_range_chunk_phases.get('doclingConvert'))}`, "
+        "doclingChunkDoclingConvertTotalMs="
+        f"`{_format_optional_float(page_range_chunk_phases.get('doclingConvert'))}`, "
+        "doclingChunkProfiles="
+        f"`{_format_counts(page_range_chunk_summary.get('documentExtractProfileCounts'))}`, "
+        "doclingPlanStrategies="
+        f"`{_format_counts(payload['summary'].get('pageRangeDoclingFallbackPlanStrategies'))}`",
         "- Image audit summary: "
         f"`audits={payload['summary'].get('imageAttachmentAuditCount')}, "
         f"knownDims={payload['summary'].get('imageKnownDimensionCount')}, "
@@ -353,6 +638,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"orderSorted={precision_speed.get('structureReadingOrderSorted')}, "
         f"orderStable={precision_speed.get('structureOrderStable')}, "
         f"parityPassed={precision_speed.get('structureParityPassed')}, "
+        f"doclingGroundtruthPassed={precision_speed.get('doclingGroundtruthPassed')}, "
         f"maxForceMs={_format_optional_float(precision_speed.get('maxForceRefreshMs'))}, "
         "maxDoclingConvertMs="
         f"{_format_optional_float(precision_speed.get('maxDoclingConvertMs'))}, "
@@ -363,6 +649,20 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "maxBoundaryOverheadShare="
         f"{_format_optional_percent(precision_speed.get('maxDocumentTimingOverheadShare'))}, "
         f"maxCacheP95Ms={_format_optional_float(precision_speed.get('maxCacheHitP95Ms'))}`",
+        "- PDF OCR milestone guard: "
+        f"`checked={pdf_milestone.get('checked')}, "
+        f"passed={pdf_milestone.get('passed')}, "
+        f"reason={pdf_milestone.get('reason')}, "
+        f"regressions={len(pdf_milestone.get('regressions', []))}`",
+        "- Hosted VLM/OCR promotion gate: "
+        f"`checked={hosted_vlm_promotion.get('checked')}, "
+        f"passed={hosted_vlm_promotion.get('passed')}, "
+        f"reasons={len(hosted_vlm_promotion.get('reasons', []))}`",
+        "- Candidate taxonomy: "
+        f"`precisionCandidate={candidate_taxonomy.get('precisionCandidate')}, "
+        f"speedCandidate={candidate_taxonomy.get('speedCandidate')}, "
+        f"promotionCandidate={candidate_taxonomy.get('promotionCandidate')}, "
+        f"rejectedStructureLoss={candidate_taxonomy.get('rejectedStructureLoss')}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
         "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
@@ -515,3 +815,126 @@ def _combine_float_counts(values: Any) -> dict[str, float]:
             if isinstance(key, str) and isinstance(count, int | float):
                 totals[key] = totals.get(key, 0.0) + float(count)
     return dict(sorted(totals.items()))
+
+
+def _combine_string_counts(values: Any) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for value in values:
+        if isinstance(value, str) and value:
+            totals[value] = totals.get(value, 0) + 1
+    return dict(sorted(totals.items()))
+
+
+def _combine_int_counts(values: Any) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        for key, count in value.items():
+            if isinstance(key, str) and isinstance(count, int):
+                totals[key] = totals.get(key, 0) + count
+    return dict(sorted(totals.items()))
+
+
+def _combine_page_range_docling_fallback_chunk_summaries(
+    results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    summaries = [
+        summary
+        for result in results
+        if isinstance(
+            (
+                summary := result.get(
+                    "forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"
+                )
+            ),
+            dict,
+        )
+    ]
+    longest = max(
+        summaries,
+        key=lambda summary: float(summary.get("elapsedMsMax") or 0.0),
+        default={},
+    )
+    chunk_count = sum(
+        count
+        for summary in summaries
+        if isinstance((count := summary.get("chunkCount")), int)
+    )
+    elapsed_total = sum(
+        float(value)
+        for summary in summaries
+        if isinstance((value := summary.get("elapsedMsTotal")), int | float)
+    )
+    elapsed_max = (
+        float(longest["elapsedMsMax"])
+        if isinstance(longest.get("elapsedMsMax"), int | float)
+        else None
+    )
+    elapsed_min_values = [
+        float(value)
+        for summary in summaries
+        if isinstance((value := summary.get("elapsedMsMin")), int | float)
+    ]
+    elapsed_min = min(elapsed_min_values, default=None)
+    elapsed_mean = elapsed_total / chunk_count if chunk_count else None
+    document_timing_total = sum(
+        float(value)
+        for summary in summaries
+        if isinstance(
+            (value := summary.get("documentTimingTotalElapsedMs")), int | float
+        )
+    )
+    return {
+        "chunkCount": chunk_count,
+        "elapsedMsMax": elapsed_max,
+        "elapsedMsMin": elapsed_min,
+        "elapsedMsMean": elapsed_mean,
+        "elapsedMsSpread": (
+            elapsed_max - elapsed_min
+            if elapsed_max is not None and elapsed_min is not None
+            else None
+        ),
+        "elapsedMsMaxToMeanRatio": (
+            elapsed_max / elapsed_mean
+            if elapsed_max is not None and elapsed_mean is not None and elapsed_mean > 0
+            else None
+        ),
+        "elapsedMsTotal": elapsed_total,
+        "documentTimingTotalElapsedMs": document_timing_total,
+        "documentTimingPhaseElapsedMs": _combine_float_counts(
+            summary.get("documentTimingPhaseElapsedMs", {}) for summary in summaries
+        ),
+        "documentExtractProfileCounts": _combine_int_counts(
+            summary.get("documentExtractProfileCounts", {}) for summary in summaries
+        ),
+        "resourceRows": sum(
+            count
+            for summary in summaries
+            if isinstance((count := summary.get("resourceRows")), int)
+        ),
+        "sourceProfilePageCount": sum(
+            count
+            for summary in summaries
+            if isinstance((count := summary.get("sourceProfilePageCount")), int)
+        ),
+        "sourceProfileEstimatedWeightTotal": sum(
+            count
+            for summary in summaries
+            if isinstance(
+                (count := summary.get("sourceProfileEstimatedWeightTotal")), int
+            )
+        ),
+        "longestPageStart": longest.get("longestPageStart"),
+        "longestPageEnd": longest.get("longestPageEnd"),
+        "longestOneBasedStart": longest.get("longestOneBasedStart"),
+        "longestOneBasedEnd": longest.get("longestOneBasedEnd"),
+        "longestResourceRows": longest.get("longestResourceRows"),
+        "longestDocumentTimingTotalElapsedMs": longest.get(
+            "longestDocumentTimingTotalElapsedMs"
+        ),
+        "longestDocumentTimingPhaseElapsedMs": longest.get(
+            "longestDocumentTimingPhaseElapsedMs"
+        ),
+        "longestSourceProfile": longest.get("longestSourceProfile"),
+    }

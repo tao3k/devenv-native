@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::page_index_tree` owns Wendao native docs page index tree behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};

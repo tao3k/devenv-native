@@ -23,7 +23,7 @@
 //!
 //! let suggestion = suggest_pattern_fix(
 //!     "fn process_data($$$)",
-//!     xiuxian_ast::Lang::Rust,
+//!     &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
 //!     &[source],
 //! );
 //!

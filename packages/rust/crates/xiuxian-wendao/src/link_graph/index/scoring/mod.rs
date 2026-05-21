@@ -1,3 +1,5 @@
+//! `link_graph::index::scoring` owns Wendao link graph index scoring behavior.
+
 mod basics;
 mod exact;
 #[path = "lexical/mod.rs"]

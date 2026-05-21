@@ -1,3 +1,5 @@
+//! `gateway::openapi::paths::docs` owns Wendao openapi paths docs behavior.
+
 /// Axum runtime path for the docs projected-gap-report endpoint.
 pub const API_DOCS_PROJECTED_GAP_REPORT_AXUM_PATH: &str = "/api/docs/projected-gap-report";
 /// `OpenAPI` path for the docs projected-gap-report endpoint.

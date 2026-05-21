@@ -1,13 +1,13 @@
 use xiuxian_wendao_parsers::sections::{
-    SectionCore, SectionMetadata, extract_logbook_entries, extract_property_drawers,
-    extract_sections, parse_logbook_entry, parse_property_drawer,
+    PropertyDrawerLine, SectionCore, SectionMetadata, extract_logbook_entries,
+    extract_property_drawers, extract_sections, parse_logbook_entry, parse_property_drawer,
 };
 
 #[test]
 fn parse_property_drawer_valid() {
     let line = ":ID: arch-v1";
     let result = parse_property_drawer(line);
-    assert_eq!(result, Some(("ID".to_string(), "arch-v1".to_string())));
+    assert_eq!(result, Some(PropertyDrawerLine::new("ID", "arch-v1")));
 }
 
 #[test]

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs` owns Wendao zhenfa router native docs behavior.
+
 mod document;
 mod navigation;
 mod node;

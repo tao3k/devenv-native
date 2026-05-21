@@ -1,7 +1,7 @@
 //! Tests for Valkey-backed reminder due queue.
 
 use chrono::{Duration, Utc};
-use xiuxian_zhixing::{ReminderQueueSettings, ReminderQueueStore};
+use xiuxian_zhixing::{ReminderQueueSettings, ReminderQueueStore, ReminderQueueTask};
 
 #[test]
 fn reminder_queue_settings_apply_defaults() {
@@ -46,11 +46,9 @@ fn reminder_queue_round_trip_with_live_valkey()
     let store = ReminderQueueStore::new(settings, format!("scope-{}", Utc::now().timestamp()))?;
     let scheduled_at = (Utc::now() + Duration::minutes(5)).to_rfc3339();
     store.enqueue_task(
-        "task:test-round-trip",
-        "Round Trip Task",
-        Some("Review overnight agenda and execute first item"),
-        &scheduled_at,
-        Some("llm:test"),
+        ReminderQueueTask::new("task:test-round-trip", "Round Trip Task", &scheduled_at)
+            .with_task_brief("Review overnight agenda and execute first item")
+            .with_recipient("llm:test"),
     )?;
 
     let due = store.poll_due(Utc::now().timestamp())?;

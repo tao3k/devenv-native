@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
     from = "ConfigExternalDependencyHelper",
     into = "ConfigExternalDependencyHelper"
 )]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct ConfigExternalDependency {
     /// Package type: "rust" or "python"
     pub pkg_type: String,
@@ -47,6 +48,7 @@ impl From<ConfigExternalDependency> for ConfigExternalDependencyHelper {
     }
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Dependency configuration loaded from a TOML config file.
 #[derive(Debug, Clone, Default)]
 pub struct DependencyConfig {

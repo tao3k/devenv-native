@@ -21,16 +21,32 @@ use serde_json::{Value, json};
 #[cfg(feature = "provider-litellm")]
 use crate::llm::LlmResult;
 #[cfg(feature = "provider-litellm")]
-use crate::llm::multimodal::{Base64ImageSource, resolve_image_source_to_base64};
+use crate::llm::multimodal::{Base64ImageSource, ImageMediaType, resolve_image_source_to_base64};
 
 #[cfg(feature = "provider-litellm")]
-use super::http::send_anthropic_messages_json_with_retry;
+use super::http::{AnthropicMessagesHttpRequest, send_anthropic_messages_json_with_retry};
 #[cfg(feature = "provider-litellm")]
 use super::media::normalize_anthropic_image_media_type;
 #[cfg(feature = "provider-litellm")]
 use super::response::parse_anthropic_messages_response;
 #[cfg(feature = "provider-litellm")]
 use super::types::AnthropicParsedResponse;
+
+/// Execution input for Anthropic message conversion and transport.
+#[cfg(feature = "provider-litellm")]
+#[derive(Debug, Clone, Copy)]
+pub struct AnthropicMessagesExecutionRequest<'a> {
+    /// Shared HTTP client.
+    pub client: &'a reqwest::Client,
+    /// Provider endpoint URL.
+    pub endpoint: &'a str,
+    /// Provider API key.
+    pub api_key: &'a str,
+    /// `LiteLLM` chat request.
+    pub request: &'a LiteChatRequest,
+    /// Maximum transport attempts.
+    pub attempts: usize,
+}
 
 /// Build Anthropic `messages` request body from a `litellm-rs` chat request.
 #[cfg(feature = "provider-litellm")]
@@ -129,20 +145,11 @@ where
 /// Returns an error when request conversion, transport, or response parsing fails.
 #[cfg(feature = "provider-litellm")]
 pub async fn execute_anthropic_messages_from_litellm_request(
-    client: &reqwest::Client,
-    endpoint: &str,
-    api_key: &str,
-    request: &LiteChatRequest,
-    attempts: usize,
+    request: AnthropicMessagesExecutionRequest<'_>,
 ) -> LlmResult<AnthropicParsedResponse> {
-    execute_anthropic_messages_from_litellm_request_with_image_hook(
-        client,
-        endpoint,
-        api_key,
-        request,
-        attempts,
-        |_source| ready(None::<String>),
-    )
+    execute_anthropic_messages_from_litellm_request_with_image_hook(request, |_source| {
+        ready(None::<String>)
+    })
     .await
 }
 
@@ -155,11 +162,7 @@ pub async fn execute_anthropic_messages_from_litellm_request(
 /// Returns an error when request conversion, transport, or response parsing fails.
 #[cfg(feature = "provider-litellm")]
 pub async fn execute_anthropic_messages_from_litellm_request_with_image_hook<F, Fut>(
-    client: &reqwest::Client,
-    endpoint: &str,
-    api_key: &str,
-    request: &LiteChatRequest,
-    attempts: usize,
+    request: AnthropicMessagesExecutionRequest<'_>,
     image_text_hook: F,
 ) -> LlmResult<AnthropicParsedResponse>
 where
@@ -167,13 +170,19 @@ where
     Fut: Future<Output = Option<String>>,
 {
     let body = build_anthropic_messages_body_from_litellm_request_with_image_hook(
-        client,
-        request,
+        request.client,
+        request.request,
         image_text_hook,
     )
     .await?;
-    let payload =
-        send_anthropic_messages_json_with_retry(client, endpoint, api_key, &body, attempts).await?;
+    let payload = send_anthropic_messages_json_with_retry(AnthropicMessagesHttpRequest {
+        client: request.client,
+        endpoint: request.endpoint,
+        api_key: request.api_key,
+        body: &body,
+        attempts: request.attempts,
+    })
+    .await?;
     parse_anthropic_messages_response(&payload)
 }
 
@@ -183,37 +192,49 @@ where
 pub fn split_anthropic_system_messages(
     messages: &[LiteChatMessage],
 ) -> (Option<String>, Vec<LiteChatMessage>) {
-    let mut system_parts = Vec::new();
-    let mut others = Vec::new();
+    split_anthropic_system_messages_impl(messages)
+}
 
-    for message in messages {
-        if matches!(
-            message.role,
-            LiteMessageRole::System | LiteMessageRole::Developer
-        ) {
-            if let Some(content) = &message.content {
-                match content {
-                    LiteMessageContent::Text(text) => system_parts.push(text.clone()),
-                    LiteMessageContent::Parts(parts) => {
-                        for part in parts {
-                            if let LiteContentPart::Text { text } = part {
-                                system_parts.push(text.clone());
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            others.push(message.clone());
-        }
-    }
-
+#[cfg(feature = "provider-litellm")]
+fn split_anthropic_system_messages_impl(
+    messages: &[LiteChatMessage],
+) -> (Option<String>, Vec<LiteChatMessage>) {
+    let (system_messages, others): (Vec<_>, Vec<_>) = messages
+        .iter()
+        .partition(|message| is_system_message(message));
+    let system_parts = system_messages
+        .into_iter()
+        .flat_map(system_message_text_parts)
+        .collect::<Vec<_>>();
     let system = if system_parts.is_empty() {
         None
     } else {
         Some(system_parts.join("\n"))
     };
-    (system, others)
+    (system, others.into_iter().cloned().collect())
+}
+
+#[cfg(feature = "provider-litellm")]
+fn system_message_text_parts(message: &LiteChatMessage) -> Vec<String> {
+    match &message.content {
+        Some(LiteMessageContent::Text(text)) => vec![text.clone()],
+        Some(LiteMessageContent::Parts(parts)) => parts
+            .iter()
+            .filter_map(|part| match part {
+                LiteContentPart::Text { text } => Some(text.clone()),
+                _ => None,
+            })
+            .collect(),
+        None => Vec::new(),
+    }
+}
+
+#[cfg(feature = "provider-litellm")]
+fn is_system_message(message: &LiteChatMessage) -> bool {
+    matches!(
+        message.role,
+        LiteMessageRole::System | LiteMessageRole::Developer
+    )
 }
 
 /// Convert `litellm-rs` chat messages into Anthropic `messages` blocks.
@@ -225,6 +246,20 @@ pub fn split_anthropic_system_messages(
 /// Returns an error when an image URL part cannot be resolved into base64 payload.
 #[cfg(feature = "provider-litellm")]
 pub async fn convert_litellm_messages_to_anthropic_with_image_hook<F, Fut>(
+    client: &reqwest::Client,
+    messages: Vec<LiteChatMessage>,
+    image_text_hook: &mut F,
+) -> LlmResult<Vec<Value>>
+where
+    F: FnMut(Base64ImageSource) -> Fut,
+    Fut: Future<Output = Option<String>>,
+{
+    convert_litellm_messages_to_anthropic_with_image_hook_impl(client, messages, image_text_hook)
+        .await
+}
+
+#[cfg(feature = "provider-litellm")]
+async fn convert_litellm_messages_to_anthropic_with_image_hook_impl<F, Fut>(
     client: &reqwest::Client,
     messages: Vec<LiteChatMessage>,
     image_text_hook: &mut F,
@@ -351,7 +386,7 @@ where
                     }
                     LiteContentPart::Image { source, .. } => {
                         let base64_source = Base64ImageSource {
-                            media_type: source.media_type.clone(),
+                            media_type: ImageMediaType::new(source.media_type.clone()),
                             data: source.data.clone(),
                         };
                         if let Some(text) = image_text_hook(base64_source.clone()).await {
@@ -406,7 +441,7 @@ fn anthropic_image_content_part(source: &Base64ImageSource) -> Value {
         "type": "image",
         "source": {
             "type": "base64",
-            "media_type": source.media_type.clone(),
+            "media_type": source.media_type.to_string(),
             "data": source.data.clone(),
         }
     })

@@ -10,8 +10,18 @@ fn bpmn_snapshot_preserves_process_callable_metadata() {
         .must("process callable metadata should be indexed by id");
     assert_eq!(process.name.as_deref(), Some("Callable Metadata"));
     assert_eq!(process.process_type.as_deref(), Some("Public"));
-    assert_eq!(process.is_closed, Some(true));
-    assert_eq!(process.is_executable, Some(false));
+    assert_eq!(
+        process
+            .is_closed
+            .map(qianji_bpmn_engine::bpmn_model_api::BpmnSnapshotFlag::get),
+        Some(true)
+    );
+    assert_eq!(
+        process
+            .is_executable
+            .map(qianji_bpmn_engine::bpmn_model_api::BpmnSnapshotFlag::get),
+        Some(false)
+    );
     assert_eq!(
         process.definitional_collaboration_ref.as_deref(),
         Some("Collaboration_CallableMetadata")

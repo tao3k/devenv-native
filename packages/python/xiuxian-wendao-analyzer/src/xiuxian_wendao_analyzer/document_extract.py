@@ -6,22 +6,18 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .document_cache import (
-    _file_sha256,
     _new_docling_converter,
     _read_cached_resources,
     _read_cached_table,
-    _write_cached_resources,
-    _write_cached_structure,
-    _write_document_timing_sidecar,
 )
-from .document_metrics import DocumentTimingRecorder
+from .document_extract_inline import (
+    _document_extract_error_row,
+    _extract_document_resources_inline,
+    _should_isolate_document_extract,
+    _write_extract_error_timing,
+)
 from .document_profiles import (
     DOCUMENT_EXTRACT_FULL_PROFILE,
-    normalize_document_extract_profile,
-)
-from .document_structure import (
-    _document_structure_blocks,
-    _structured_document_resources,
 )
 from .document_types import (
     DocumentConverterProtocol,
@@ -33,6 +29,14 @@ from .document_types import (
 if TYPE_CHECKING:
     import pyarrow as pa
 
+__all__ = [
+    "_new_docling_converter",
+    "extract_document_resources",
+    "extract_document_table",
+    "extract_pdf_resources",
+    "extract_pdf_table",
+]
+
 
 def extract_document_table(
     source_path: str | Path,
@@ -42,6 +46,7 @@ def extract_document_table(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
+    page_range: tuple[int, int] | None = None,
 ) -> pa.Table:
     """Extract one document and return Arrow resource rows.
 
@@ -53,7 +58,7 @@ def extract_document_table(
     """
 
     source = Path(source_path)
-    if source.exists() and not force:
+    if source.exists() and not force and page_range is None:
         out = (
             Path(output_dir)
             if output_dir is not None
@@ -71,6 +76,7 @@ def extract_document_table(
             profile=profile,
             force=force,
             error_row=error_row,
+            page_range=page_range,
         )
     )
 
@@ -83,6 +89,7 @@ def extract_document_resources(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
+    page_range: tuple[int, int] | None = None,
 ) -> list[DocumentResourceRow]:
     """Extract one local document into Arrow-friendly resource rows.
 
@@ -111,12 +118,14 @@ def extract_document_resources(
     )
     out.mkdir(parents=True, exist_ok=True)
 
-    if not force:
+    if not force and page_range is None:
         cached = _read_cached_resources(source, out)
         if cached is not None:
             return cached
 
-    if _should_isolate_document_extract(converter=converter, profile=profile):
+    if page_range is None and _should_isolate_document_extract(
+        converter=converter, profile=profile
+    ):
         try:
             from .document_isolation import run_isolated_document_extract
 
@@ -144,120 +153,7 @@ def extract_document_resources(
         converter=converter,
         profile=profile,
         error_row=error_row,
-    )
-
-
-def _extract_document_resources_inline(
-    source: Path,
-    output_dir: Path,
-    *,
-    converter: DocumentConverterProtocol | None = None,
-    profile: str | None = None,
-    error_row: bool = False,
-) -> list[DocumentResourceRow]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    timing = DocumentTimingRecorder(source)
-    try:
-        if converter is not None:
-            resolved_converter = converter
-        else:
-            with timing.phase("doclingConverterInit"):
-                resolved_converter = _new_docling_converter(profile)
-        with timing.phase("doclingConvert"):
-            document = resolved_converter.convert(source).document
-        with timing.phase("doclingMarkdownExport"):
-            markdown_text = document.export_to_markdown()
-        markdown_path = output_dir / f"{source.stem}.md"
-        with timing.phase("writeMarkdown"):
-            markdown_path.write_text(markdown_text, encoding="utf-8")
-        with timing.phase("sourceHash"):
-            source_content_hash = _file_sha256(source)
-        resources = [
-            DocumentResourceRow(
-                sourcePath=str(source),
-                resourceType="document",
-                resourcePath=str(markdown_path),
-                pageIndex=0,
-                caption="",
-                content=markdown_text,
-                mimeType="text/markdown",
-                status="ok",
-                elementId="_main",
-            )
-        ]
-        with timing.phase("resourceRowsBuild"):
-            resources.extend(
-                _structured_document_resources(source, output_dir, document)
-            )
-        with timing.phase("structureRowsBuild"):
-            structure = _document_structure_blocks(
-                source,
-                document,
-                resources,
-                source_content_hash=source_content_hash,
-            )
-        with timing.phase("writeStructureArrow"):
-            _write_cached_structure(output_dir, structure)
-        with timing.phase("writeResourcesArrow"):
-            _write_cached_resources(output_dir, resources)
-        timing.finish(
-            status="ok",
-            resource_rows=len(resources),
-            structure_rows=len(structure),
-        )
-        _write_document_timing_sidecar(output_dir, timing)
-        return resources
-    except Exception as exc:
-        _finish_extract_error_timing(timing, output_dir, exc)
-        if not error_row:
-            raise
-        return [_document_extract_error_row(source, str(exc))]
-
-
-def _should_isolate_document_extract(
-    *,
-    converter: DocumentConverterProtocol | None,
-    profile: str | None,
-) -> bool:
-    if converter is not None:
-        return False
-    if normalize_document_extract_profile(profile) != DOCUMENT_EXTRACT_FULL_PROFILE:
-        return False
-
-    from .document_isolation import full_profile_isolation_enabled
-
-    return full_profile_isolation_enabled()
-
-
-def _write_extract_error_timing(
-    source: Path,
-    output_dir: Path,
-    exc: Exception,
-) -> None:
-    timing = DocumentTimingRecorder(source)
-    _finish_extract_error_timing(timing, output_dir, exc)
-
-
-def _finish_extract_error_timing(
-    timing: DocumentTimingRecorder,
-    output_dir: Path,
-    exc: Exception,
-) -> None:
-    timing.finish(status="error", detail=str(exc))
-    _write_document_timing_sidecar(output_dir, timing)
-
-
-def _document_extract_error_row(source: Path, content: str) -> DocumentResourceRow:
-    return DocumentResourceRow(
-        sourcePath=str(source),
-        resourceType="error",
-        resourcePath="",
-        pageIndex=0,
-        caption="",
-        content=content,
-        mimeType="text/plain",
-        status="error",
-        elementId="",
+        page_range=page_range,
     )
 
 

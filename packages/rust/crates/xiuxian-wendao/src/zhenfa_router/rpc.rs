@@ -1,3 +1,5 @@
+//! `zhenfa_router::rpc` owns Wendao zhenfa router rpc behavior.
+
 use std::path::PathBuf;
 
 use serde_json::{Value, json};

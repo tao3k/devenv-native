@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::deployment` owns Wendao zhenfa router native deployment behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use std::path::Path;
@@ -25,6 +27,7 @@ pub enum WendaoPluginArtifactOutputFormat {
 
 /// Arguments for exporting one resolved plugin artifact.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct WendaoPluginArtifactArgs {
     /// Plugin identifier that owns the artifact.
     pub plugin_id: String,

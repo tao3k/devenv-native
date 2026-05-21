@@ -126,7 +126,9 @@ def test_route_test_cli_json_validates_against_schema():
     raw = result.stdout or ""
     stripped = _strip_ansi(raw).strip()
     if not stripped:
-        pytest.skip("omni route test produced no JSON (empty stdout); check CLI and index")
+        pytest.skip(
+            "omni route test produced no JSON (empty stdout); check CLI and index"
+        )
     # CLI may emit log lines before JSON; use last line if it looks like JSON
     if stripped.startswith("{"):
         json_str = stripped
@@ -134,12 +136,16 @@ def test_route_test_cli_json_validates_against_schema():
         lines = [ln.strip() for ln in stripped.splitlines() if ln.strip()]
         json_str = lines[-1] if lines else ""
     if not json_str or not json_str.startswith("{"):
-        pytest.skip("omni route test stdout did not contain JSON; check CLI --json behavior")
+        pytest.skip(
+            "omni route test stdout did not contain JSON; check CLI --json behavior"
+        )
     payload = json.loads(json_str)
     schema = _load_schema("xiuxian.router.route_test.v1.schema.json")
     validator = Draft202012Validator(schema)
     errors = list(validator.iter_errors(payload))
-    assert not errors, "CLI JSON must match xiuxian.router.route_test.v1 schema: " + "; ".join(
+    assert (
+        not errors
+    ), "CLI JSON must match xiuxian.router.route_test.v1 schema: " + "; ".join(
         e.message for e in errors
     )
     assert payload.get("schema") == ROUTE_TEST_SCHEMA_V1
@@ -158,7 +164,7 @@ def test_route_test_canonical_snapshot_validates_against_schema():
     schema = _load_schema("xiuxian.router.route_test.v1.schema.json")
     schema_path = resolve_schema_file_path(
         "xiuxian.router.route_test.v1.schema.json",
-        preferred_crates=("xiuxian-daochang",),
+        preferred_crates=("xiuxian-wendao",),
     )
     canonical_path = schema_path.parent / "snapshots" / "route_test_canonical_v1.json"
     if not canonical_path.exists():
@@ -166,7 +172,9 @@ def test_route_test_canonical_snapshot_validates_against_schema():
     payload = json.loads(canonical_path.read_text(encoding="utf-8"))
     validator = Draft202012Validator(schema)
     errors = list(validator.iter_errors(payload))
-    assert not errors, "Canonical snapshot must match xiuxian.router.route_test.v1: " + "; ".join(
+    assert (
+        not errors
+    ), "Canonical snapshot must match xiuxian.router.route_test.v1: " + "; ".join(
         e.message for e in errors
     )
     assert payload.get("schema") == ROUTE_TEST_SCHEMA_V1

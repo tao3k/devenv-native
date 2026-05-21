@@ -52,7 +52,7 @@ fn resolve_graph_valkey_url_with_settings_and_lookup(
         lookup,
         &[GRAPH_VALKEY_URL_ENV, "VALKEY_URL"],
     )
-    .map(|(_, url)| url)
+    .map(|candidate| candidate.value)
     .ok_or_else(|| {
         GraphError::InvalidRelation(
             GRAPH_VALKEY_URL_SETTING.to_string(),
@@ -74,7 +74,7 @@ fn resolve_graph_key_prefix_with_settings_and_lookup(
             lookup,
             &[GRAPH_VALKEY_KEY_PREFIX_ENV],
         )
-        .map(|(_, value)| value)
+        .map(|candidate| candidate.value)
         .unwrap_or_default()
         .as_str(),
     )

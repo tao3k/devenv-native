@@ -2,6 +2,8 @@
 
 #[path = "analysis/mod.rs"]
 pub(crate) mod analysis;
+#[path = "analysis_support/mod.rs"]
+pub(super) mod analysis_support;
 #[path = "command_service.rs"]
 mod command_service;
 #[path = "family/mod.rs"]
@@ -20,5 +22,3 @@ pub(crate) mod query;
 pub(crate) mod refine;
 #[path = "retrieval/mod.rs"]
 pub(crate) mod retrieval;
-#[path = "shared/mod.rs"]
-pub(super) mod shared;

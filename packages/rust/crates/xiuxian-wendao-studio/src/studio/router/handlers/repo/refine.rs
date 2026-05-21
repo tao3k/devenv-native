@@ -1,3 +1,5 @@
+//! Owns the Studio handlers repo refine surface.
+
 use std::sync::Arc;
 
 use axum::{Json, extract::State};

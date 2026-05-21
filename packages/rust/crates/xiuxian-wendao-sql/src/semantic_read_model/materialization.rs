@@ -1,3 +1,5 @@
+//! Materialization planning and preflight for semantic read-model tables.
+
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -5,9 +7,11 @@ use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
 use xiuxian_wendao_parsers::semantic_ssot::{SemanticRepository, load_semantic_repository};
 
-use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};
+use crate::local_relation::{DuckDbLocalRelationEngine, LocalRelationEngine};
 
-use super::register::register_semantic_read_model_tables_with_stats;
+use super::register::{
+    SemanticReadModelRegistration, register_semantic_read_model_tables_with_stats,
+};
 use super::{
     SemanticReadModelSnapshot, semantic_read_model_snapshot, semantic_read_model_snapshot_check,
     semantic_read_model_snapshot_from_root,
@@ -34,6 +38,79 @@ pub const SEMANTIC_READ_MODEL_MATERIALIZATION_PREFLIGHT_SMOKE_QUERY: &str = "sel
      union all select 'semantic_relations' as table_name, count(*) as row_count from semantic_relations \
      union all select 'semantic_projection_state' as table_name, count(*) as row_count from semantic_projection_state \
      order by table_name";
+
+macro_rules! materialization_value_type {
+    ($name:ident, $inner:ty, $doc:literal, $getter:ident) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+        #[serde(transparent)]
+        pub struct $name($inner);
+
+        impl $name {
+            /// Borrows the inner value.
+            #[must_use]
+            pub const fn $getter(&self) -> $inner {
+                self.0
+            }
+        }
+
+        impl From<$inner> for $name {
+            fn from(value: $inner) -> Self {
+                Self(value)
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(formatter)
+            }
+        }
+    };
+}
+
+/// Runtime or planned materialization state token.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct SemanticReadModelMaterializationState(String);
+
+impl SemanticReadModelMaterializationState {
+    /// Borrows the stable state token.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SemanticReadModelMaterializationState {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for SemanticReadModelMaterializationState {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl PartialEq<&str> for SemanticReadModelMaterializationState {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+materialization_value_type!(
+    SemanticReadModelByteCount,
+    u64,
+    "Byte count observed during semantic read-model materialization.",
+    as_u64
+);
+materialization_value_type!(
+    SemanticReadModelDurationMs,
+    u64,
+    "Millisecond duration observed during semantic read-model materialization.",
+    as_u64
+);
 
 /// Read-only plan for future semantic read-model materialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,7 +176,7 @@ pub struct SemanticReadModelMaterializationTablePlan {
     /// Planned downstream registration strategy.
     pub planned_registration_strategy: String,
     /// Planned materialization state.
-    pub planned_materialization_state: String,
+    pub planned_materialization_state: SemanticReadModelMaterializationState,
 }
 
 /// Executable read-only materialization preflight report.
@@ -125,9 +202,9 @@ pub struct SemanticReadModelMaterializationExecutionReport {
     /// Number of projected rows registered as read-model input.
     pub registered_input_row_count: usize,
     /// Approximate registered Arrow input bytes.
-    pub registered_input_bytes: u64,
+    pub registered_input_bytes: SemanticReadModelByteCount,
     /// Registration wall-clock time in milliseconds.
-    pub registration_time_ms: u64,
+    pub registration_time_ms: SemanticReadModelDurationMs,
     /// Read-only smoke query executed after registration.
     pub smoke_query: String,
     /// Number of batches returned by the smoke query.
@@ -135,9 +212,9 @@ pub struct SemanticReadModelMaterializationExecutionReport {
     /// Number of rows returned by the smoke query.
     pub smoke_result_row_count: usize,
     /// Approximate smoke-query result bytes.
-    pub smoke_result_bytes: u64,
+    pub smoke_result_bytes: SemanticReadModelByteCount,
     /// Smoke-query wall-clock time in milliseconds.
-    pub smoke_query_time_ms: u64,
+    pub smoke_query_time_ms: SemanticReadModelDurationMs,
     /// Per-table runtime registration evidence.
     pub tables: Vec<SemanticReadModelMaterializationTablePreflight>,
 }
@@ -157,7 +234,7 @@ pub struct SemanticReadModelMaterializationTablePreflight {
     /// Runtime registration strategy.
     pub registration_strategy: String,
     /// Runtime materialization state.
-    pub materialization_state: String,
+    pub materialization_state: SemanticReadModelMaterializationState,
 }
 
 /// Build a read-only semantic read-model materialization plan from a semantic artifact root.
@@ -204,8 +281,7 @@ pub fn semantic_read_model_materialization_plan(
             row_revision: table.row_revision.clone(),
             planned_registration_strategy: SEMANTIC_READ_MODEL_PLANNED_REGISTRATION_STRATEGY
                 .to_string(),
-            planned_materialization_state: SEMANTIC_READ_MODEL_PLANNED_MATERIALIZATION_STATE
-                .to_string(),
+            planned_materialization_state: SEMANTIC_READ_MODEL_PLANNED_MATERIALIZATION_STATE.into(),
         })
         .collect::<Vec<_>>();
     Ok(SemanticReadModelMaterializationPlan {
@@ -249,7 +325,7 @@ pub async fn semantic_read_model_materialization_preflight(
     repository: &SemanticRepository,
     expected_snapshot_revision: Option<&str>,
 ) -> Result<SemanticReadModelMaterializationPreflightReport, String> {
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory()?;
     semantic_read_model_materialization_preflight_with_engine(
         repository,
         expected_snapshot_revision,
@@ -279,20 +355,73 @@ pub async fn semantic_read_model_materialization_preflight_with_engine(
         });
     }
 
-    let registration_started_at = Instant::now();
-    let registration = register_semantic_read_model_tables_with_stats(query_engine, repository)?;
-    let registration_time_ms = duration_millis_u64(registration_started_at.elapsed());
+    let registration = timed_semantic_read_model_registration(query_engine, repository)?;
+    let smoke = timed_materialization_smoke_query(query_engine).await?;
+    let tables = materialization_table_preflights(query_engine, &plan);
 
-    let smoke_query_started_at = Instant::now();
-    let smoke_batches = query_engine
+    Ok(SemanticReadModelMaterializationPreflightReport {
+        plan,
+        execution: Some(SemanticReadModelMaterializationExecutionReport {
+            execution_engine: query_engine.kind().as_str().to_string(),
+            registered_table_count: tables.len(),
+            registered_input_batch_count: registration.stats.input_batch_count,
+            registered_input_row_count: registration.stats.input_row_count,
+            registered_input_bytes: registration.stats.input_bytes.into(),
+            registration_time_ms: registration.elapsed_ms.into(),
+            smoke_query: SEMANTIC_READ_MODEL_MATERIALIZATION_PREFLIGHT_SMOKE_QUERY.to_string(),
+            smoke_result_batch_count: smoke.batch_count,
+            smoke_result_row_count: smoke.row_count,
+            smoke_result_bytes: smoke.result_bytes.into(),
+            smoke_query_time_ms: smoke.elapsed_ms.into(),
+            tables,
+        }),
+    })
+}
+
+struct TimedSemanticReadModelRegistration {
+    stats: SemanticReadModelRegistration,
+    elapsed_ms: u64,
+}
+
+fn timed_semantic_read_model_registration(
+    query_engine: &impl LocalRelationEngine,
+    repository: &SemanticRepository,
+) -> Result<TimedSemanticReadModelRegistration, String> {
+    let started_at = Instant::now();
+    let stats = register_semantic_read_model_tables_with_stats(query_engine, repository)?;
+    Ok(TimedSemanticReadModelRegistration {
+        stats,
+        elapsed_ms: duration_millis_u64(started_at.elapsed()),
+    })
+}
+
+struct MaterializationSmokeQueryReceipt {
+    batch_count: usize,
+    row_count: usize,
+    result_bytes: u64,
+    elapsed_ms: u64,
+}
+
+async fn timed_materialization_smoke_query(
+    query_engine: &impl LocalRelationEngine,
+) -> Result<MaterializationSmokeQueryReceipt, String> {
+    let started_at = Instant::now();
+    let batches = query_engine
         .query_batches(SEMANTIC_READ_MODEL_MATERIALIZATION_PREFLIGHT_SMOKE_QUERY)
         .await?;
-    let smoke_query_time_ms = duration_millis_u64(smoke_query_started_at.elapsed());
-    let smoke_result_batch_count = smoke_batches.len();
-    let smoke_result_row_count = smoke_batches.iter().map(RecordBatch::num_rows).sum();
-    let smoke_result_bytes = batches_array_bytes(&smoke_batches);
-    let tables = plan
-        .tables
+    Ok(MaterializationSmokeQueryReceipt {
+        batch_count: batches.len(),
+        row_count: batches.iter().map(RecordBatch::num_rows).sum(),
+        result_bytes: batches_array_bytes(&batches),
+        elapsed_ms: duration_millis_u64(started_at.elapsed()),
+    })
+}
+
+fn materialization_table_preflights(
+    query_engine: &impl LocalRelationEngine,
+    plan: &SemanticReadModelMaterializationPlan,
+) -> Vec<SemanticReadModelMaterializationTablePreflight> {
+    plan.tables
         .iter()
         .map(|table| SemanticReadModelMaterializationTablePreflight {
             name: table.name.clone(),
@@ -306,27 +435,10 @@ pub async fn semantic_read_model_materialization_preflight_with_engine(
             materialization_state: relation_materialization_state(
                 query_engine,
                 table.name.as_str(),
-            ),
+            )
+            .into(),
         })
-        .collect::<Vec<_>>();
-
-    Ok(SemanticReadModelMaterializationPreflightReport {
-        plan,
-        execution: Some(SemanticReadModelMaterializationExecutionReport {
-            execution_engine: query_engine.kind().as_str().to_string(),
-            registered_table_count: tables.len(),
-            registered_input_batch_count: registration.input_batch_count,
-            registered_input_row_count: registration.input_row_count,
-            registered_input_bytes: registration.input_bytes,
-            registration_time_ms,
-            smoke_query: SEMANTIC_READ_MODEL_MATERIALIZATION_PREFLIGHT_SMOKE_QUERY.to_string(),
-            smoke_result_batch_count,
-            smoke_result_row_count,
-            smoke_result_bytes,
-            smoke_query_time_ms,
-            tables,
-        }),
-    })
+        .collect()
 }
 
 fn materialization_required_steps(include_snapshot_gate: bool) -> Vec<String> {

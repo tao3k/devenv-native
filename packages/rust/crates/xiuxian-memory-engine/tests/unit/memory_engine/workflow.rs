@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::{
-    Episode, EpisodeStore, IntentEncoder, QTable, TestResult, TwoPhaseConfig, TwoPhaseSearch,
-    create_test_episodes, test_store,
+    Episode, EpisodeDraft, EpisodeStore, IntentEncoder, QTable, TestResult, TwoPhaseConfig,
+    TwoPhaseSearch, TwoPhaseSearchRequest, create_test_episodes, test_store,
 };
 
 #[test]
@@ -64,30 +64,39 @@ fn test_two_phase_search_with_config() {
     let search = TwoPhaseSearch::new(q_table.clone(), encoder.clone(), config);
 
     let episodes = vec![
-        Episode::new(
-            "ep-a".to_string(),
-            "python async programming".to_string(),
-            encoder.encode("python async programming"),
-            "Used asyncio".to_string(),
-            "success".to_string(),
-        ),
-        Episode::new(
-            "ep-b".to_string(),
-            "rust async programming".to_string(),
-            encoder.encode("rust async programming"),
-            "Used tokio".to_string(),
-            "success".to_string(),
-        ),
-        Episode::new(
-            "ep-c".to_string(),
-            "javascript callback hell".to_string(),
-            encoder.encode("javascript callback hell"),
-            "Refactored to promises".to_string(),
-            "failure".to_string(),
-        ),
+        Episode::new(EpisodeDraft {
+            id: ("ep-a".to_string()).into(),
+            intent: "python async programming".to_string(),
+            intent_embedding: encoder.encode("python async programming"),
+            experience: "Used asyncio".to_string(),
+            outcome: "success".to_string(),
+            scope: None,
+        }),
+        Episode::new(EpisodeDraft {
+            id: ("ep-b".to_string()).into(),
+            intent: "rust async programming".to_string(),
+            intent_embedding: encoder.encode("rust async programming"),
+            experience: "Used tokio".to_string(),
+            outcome: "success".to_string(),
+            scope: None,
+        }),
+        Episode::new(EpisodeDraft {
+            id: ("ep-c".to_string()).into(),
+            intent: "javascript callback hell".to_string(),
+            intent_embedding: encoder.encode("javascript callback hell"),
+            experience: "Refactored to promises".to_string(),
+            outcome: "failure".to_string(),
+            scope: None,
+        }),
     ];
 
-    let results = search.search(&episodes, "async code", None, None, None);
+    let results = search.search(TwoPhaseSearchRequest {
+        episodes: &episodes,
+        intent: "async code",
+        k1: None,
+        k2: None,
+        lambda: None,
+    });
     assert!(!results.is_empty());
 
     let results = search.quick_search(&episodes, "async code");

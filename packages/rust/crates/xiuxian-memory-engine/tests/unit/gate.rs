@@ -1,8 +1,9 @@
 //! Integration tests for 3-in-1 memory gate determinism and event shape.
 
 use xiuxian_memory_engine::{
-    Episode, MemoryGateEvent, MemoryGatePolicy, MemoryGateVerdict, MemoryLifecycleState,
-    MemoryPromotionTarget, MemoryUtilityLedger,
+    Episode, EpisodeDraft, MemoryGateEvent, MemoryGateEventInput, MemoryGateMemoryId,
+    MemoryGatePolicy, MemoryGateSessionId, MemoryGateTurnId, MemoryGateVerdict,
+    MemoryLifecycleState, MemoryPromotionTarget, MemoryUtilityLedger,
 };
 
 fn episode_with_stats(
@@ -12,13 +13,14 @@ fn episode_with_stats(
     success_count: u32,
     failure_count: u32,
 ) -> Episode {
-    let mut episode = Episode::new(
-        id.to_string(),
-        "intent".to_string(),
-        vec![0.1; 8],
-        "experience".to_string(),
-        outcome.to_string(),
-    );
+    let mut episode = Episode::new(EpisodeDraft {
+        id: (id.to_string()).into(),
+        intent: "intent".to_string(),
+        intent_embedding: vec![0.1; 8],
+        experience: "experience".to_string(),
+        outcome: outcome.to_string(),
+        scope: None,
+    });
     episode.q_value = q_value;
     episode.retrieval_count = success_count + failure_count;
     episode.success_count = success_count;
@@ -84,13 +86,13 @@ fn gate_event_matches_contract_shape() {
         vec!["graph:ref:1".to_string()],
         vec!["omega:factor:1".to_string()],
     );
-    let event = MemoryGateEvent::from_decision(
-        "telegram:1304799691:1304799691",
-        42,
-        &episode.id,
-        &ledger,
+    let event = MemoryGateEvent::from_decision(MemoryGateEventInput {
+        session_id: MemoryGateSessionId::from("telegram:1304799691:1304799691"),
+        turn_id: MemoryGateTurnId::from(42),
+        memory_id: MemoryGateMemoryId::from(episode.id.as_str()),
+        ledger: ledger.clone(),
         decision,
-    );
+    });
 
     let value = serde_json::to_value(&event).unwrap_or_else(|error| {
         panic!("serialize memory gate event: {error}");

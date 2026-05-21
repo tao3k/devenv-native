@@ -3,9 +3,12 @@ use arrow::record_batch::RecordBatch;
 use std::path::{Path, PathBuf};
 
 use crate::pdf::render::{
-    PdfPageBox, PdfPageRegion, PdfPageRegionShardManifestInput, PdfPageRenderProfile,
-    PdfPageShardManifest, PdfPageShardManifestInput, RenderedRasterIdentity,
-    build_region_shard_manifest, build_shard_manifest,
+    PdfPageBox, PdfPageRegion, PdfPageRegionRenderRequest, PdfPageRegionShardManifestInput,
+    PdfPageRenderProfile, PdfPageShardManifest, PdfPageShardManifestInput, RenderedRasterIdentity,
+    build_region_shard_manifest, build_shard_manifest, page_region_render_request_chunks_by_page,
+    page_region_render_request_chunks_by_page_area_desc,
+    page_region_render_request_chunks_by_page_max_area_desc,
+    page_region_render_request_chunks_by_region,
 };
 
 fn assert_close(actual: f64, expected: f64) {
@@ -97,3 +100,165 @@ use super::{
 mod arrows;
 mod artifacts;
 mod geometry;
+
+#[test]
+fn page_region_render_request_chunks_group_by_page_and_reading_order() {
+    let chunks = page_region_render_request_chunks_by_page(&[
+        PdfPageRegionRenderRequest::new(
+            2,
+            2,
+            PdfPageBox::new(0.0, 0.0, 1.0, 1.0),
+            Some("000002.000002".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            1,
+            1,
+            PdfPageBox::new(0.0, 0.0, 1.0, 1.0),
+            Some("000001.000001".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            2,
+            1,
+            PdfPageBox::new(0.0, 0.0, 1.0, 1.0),
+            Some("000002.000001".to_string()),
+        ),
+    ]);
+
+    assert_eq!(chunks.len(), 2);
+    assert_eq!(
+        chunks
+            .iter()
+            .map(|chunk| {
+                chunk
+                    .iter()
+                    .map(|region| (region.page_index, region.region_index))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>(),
+        vec![vec![(1, 1)], vec![(2, 1), (2, 2)]]
+    );
+}
+
+#[test]
+fn page_region_render_request_chunks_by_region_preserve_reading_order() {
+    let chunks = page_region_render_request_chunks_by_region(&[
+        PdfPageRegionRenderRequest::new(
+            2,
+            2,
+            PdfPageBox::new(0.0, 0.0, 1.0, 1.0),
+            Some("000002.000002".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            1,
+            1,
+            PdfPageBox::new(0.0, 0.0, 1.0, 1.0),
+            Some("000001.000001".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            2,
+            1,
+            PdfPageBox::new(0.0, 0.0, 1.0, 1.0),
+            Some("000002.000001".to_string()),
+        ),
+    ]);
+
+    assert_eq!(chunks.len(), 3);
+    assert_eq!(
+        chunks
+            .iter()
+            .map(|chunk| {
+                chunk
+                    .iter()
+                    .map(|region| (region.page_index, region.region_index))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>(),
+        vec![vec![(1, 1)], vec![(2, 1)], vec![(2, 2)]]
+    );
+}
+
+#[test]
+fn page_region_render_request_chunks_by_page_area_desc_prioritize_large_pages() {
+    let chunks = page_region_render_request_chunks_by_page_area_desc(&[
+        PdfPageRegionRenderRequest::new(
+            2,
+            1,
+            PdfPageBox::new(0.0, 0.0, 10.0, 10.0),
+            Some("000002.000001".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            1,
+            2,
+            PdfPageBox::new(0.0, 0.0, 15.0, 15.0),
+            Some("000001.000002".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            1,
+            1,
+            PdfPageBox::new(0.0, 0.0, 15.0, 15.0),
+            Some("000001.000001".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            3,
+            1,
+            PdfPageBox::new(0.0, 0.0, 8.0, 8.0),
+            Some("000003.000001".to_string()),
+        ),
+    ]);
+
+    assert_eq!(
+        chunks
+            .iter()
+            .map(|chunk| {
+                chunk
+                    .iter()
+                    .map(|region| (region.page_index, region.region_index))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>(),
+        vec![vec![(1, 1), (1, 2)], vec![(2, 1)], vec![(3, 1)]]
+    );
+}
+
+#[test]
+fn page_region_render_request_chunks_by_page_max_area_desc_prioritize_largest_region() {
+    let chunks = page_region_render_request_chunks_by_page_max_area_desc(&[
+        PdfPageRegionRenderRequest::new(
+            2,
+            1,
+            PdfPageBox::new(0.0, 0.0, 30.0, 30.0),
+            Some("000002.000001".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            1,
+            2,
+            PdfPageBox::new(0.0, 0.0, 25.0, 25.0),
+            Some("000001.000002".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            1,
+            1,
+            PdfPageBox::new(0.0, 0.0, 25.0, 25.0),
+            Some("000001.000001".to_string()),
+        ),
+        PdfPageRegionRenderRequest::new(
+            3,
+            1,
+            PdfPageBox::new(0.0, 0.0, 8.0, 8.0),
+            Some("000003.000001".to_string()),
+        ),
+    ]);
+
+    assert_eq!(
+        chunks
+            .iter()
+            .map(|chunk| {
+                chunk
+                    .iter()
+                    .map(|region| (region.page_index, region.region_index))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>(),
+        vec![vec![(2, 1)], vec![(1, 1), (1, 2)], vec![(3, 1)]]
+    );
+}

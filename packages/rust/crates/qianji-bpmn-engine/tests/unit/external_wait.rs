@@ -20,10 +20,10 @@ fn external_wait_builds_event_poll_request_from_blocked_instance() {
     assert_eq!(
         request,
         EventPollRequest {
-            instance_id: "wf_wait".to_string(),
+            instance_id: ("wf_wait".to_string()),
             gateway_node_index: None,
             waits: vec![WaitRegistration {
-                process_id: Some("wait_boundary".to_string()),
+                process_id: (Some("wait_boundary".to_string())),
                 node_index: 1,
                 blocking_node_index: None,
                 kind: WaitKind::ExternalEvent,
@@ -57,7 +57,7 @@ fn external_wait_requires_wait_registration() {
     assert_eq!(
         error,
         BpmnEngineError::MissingWaitRegistration {
-            instance_id: "wf_wait".to_string(),
+            instance_id: ("wf_wait".to_string()).into(),
         }
     );
 }
@@ -153,7 +153,7 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
     instance.node_states[0].status = qianji_bpmn_engine::NodeRuntimeStatus::Completed;
     instance.node_states[1].status = qianji_bpmn_engine::NodeRuntimeStatus::Executing;
     instance.waits.push(WaitRegistration {
-        process_id: Some("wait_boundary".to_string()),
+        process_id: (Some("wait_boundary".to_string())),
         node_index: 1,
         blocking_node_index: None,
         kind: WaitKind::ExternalEvent,

@@ -10,7 +10,7 @@ use crate::qianji_cli::bpmn_cli::{host, render};
 
 use super::request::build_bpmn_workflow_resume_request;
 use super::request::build_bpmn_workflow_task_complete_request;
-use crate::qianji_cli::bpmn_cli::run::shared::workflow_control_service;
+use crate::qianji_cli::bpmn_cli::run::control_service::workflow_control_service;
 
 pub(crate) async fn run_bpmn_resume_command(
     command: &BpmnResumeCliCommand,
@@ -146,7 +146,7 @@ fn build_bpmn_workflow_task_complete_resume_request(
     crate::qianji_cli::bpmn_cli::deps::QianjiBpmnWorkflowResumeRequest {
         bpmn_path: command.bpmn_path.clone(),
         dmn_paths: command.dmn_paths.clone(),
-        instance_id: command.instance_id.clone(),
+        instance_id: command.instance_id.clone().into(),
         checkpoint_backend: command.checkpoint_backend.clone(),
     }
 }

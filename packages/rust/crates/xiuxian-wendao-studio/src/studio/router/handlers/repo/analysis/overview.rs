@@ -1,3 +1,5 @@
+//! Owns the Studio repo analysis overview surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -6,7 +8,7 @@ use axum::{
 };
 
 use crate::studio::router::handlers::repo::analysis::service::overview::run_repo_overview;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::pages::RepoApiQuery;
 use crate::studio::router::{GatewayState, StudioApiError};
 

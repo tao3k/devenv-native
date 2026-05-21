@@ -461,27 +461,27 @@ the host crate while leaving Wendao-owned runtime behavior intact.
 
 ## Landed Slice: Julia Integration Support Ownership
 
-The next bounded plugin-first move retires the host-local Julia official
-example wrapper under `tests/integration/support/` and makes the plugin crate
+The next bounded plugin-first move retires the host-local Julia WendaoSearch
+service-fixture wrapper under `tests/integration/support/` and makes the plugin crate
 own that integration-support surface directly.
 
 `xiuxian-wendao-julia` now keeps:
 
-1. a bounded public `integration_support` surface for Julia-owned official
-   example services
-2. the official-example spawn helpers needed by Julia rerank and analyzer
+1. a bounded public `integration_support` surface for Julia-owned WendaoSearch
+   service fixtures
+2. the service-fixture spawn helpers needed by Julia rerank and analyzer
    integration tests
 3. the Julia-specific process guard and readiness polling logic for those
-   official examples
+   service fixtures
 
 `xiuxian-wendao` no longer keeps:
 
-1. `tests/integration/support/wendaoarrow_official_examples.rs` as a host-local
-   Julia wrapper module
-2. host-side imports for the four official-example planned-search integration
+1. the former host-local WendaoArrow service-fixture wrapper module under
+   `tests/integration/support/`
+2. host-side imports for the four service-fixture planned-search integration
    tests
 3. a support-mod declaration that exists only to surface Julia-specific
-   official examples from the host crate
+   service fixtures from the host crate
 
 This slice matters because plugin-first ownership now covers not only runtime
 and compatibility behavior, but also the Julia-specific integration-support
@@ -507,12 +507,12 @@ moves that custom service seam into `xiuxian-wendao-julia::integration_support`.
 
 `xiuxian-wendao-julia` now keeps:
 
-1. a folderized `integration_support::{common,official_examples,custom_service}`
+1. a folderized `integration_support::{common,wendaosearch_services,custom_service}`
    surface for Julia-specific integration services
 2. the custom scoring service helpers used by the Julia rerank planned-search
    tests
 3. the shared Julia integration-service guard, package-path resolution, and
-   readiness polling logic used by both official-example and custom-scoring
+   readiness polling logic used by both WendaoSearch service-fixture and custom-scoring
    service launch helpers
 
 `xiuxian-wendao` no longer keeps:
@@ -792,9 +792,9 @@ This slice matters because the host planned-search tests should validate
 retrieval behavior and rerank outcomes, while Julia-specific runtime-config
 fixture construction stays with the Julia plugin crate.
 
-## Queued Slice: Julia Planned-Search Official Example Fixture Reuse
+## Queued Slice: Julia Planned-Search WendaoSearch Service Fixture Reuse
 
-This slice will rewire the remaining official-example and analyzer-example
+This slice will rewire the remaining WendaoSearch service-fixture and analyzer-service
 planned-search tests that still inline the generic `vector-store` Julia rerank
 runtime-config TOML, so those host tests consume the existing
 `xiuxian-wendao-julia::integration_support::planned_search` helper instead of
@@ -809,7 +809,7 @@ The intended changes are:
 2. the slice should stay bounded to those three host tests plus the package
    roadmap, GTD, and ExecPlan tracking surfaces
 3. focused validation should cover the plugin-owned integration-support tests
-   and the three host official-example/analyzer-example planned-search tests
+   and the three host WendaoSearch service-fixture/analyzer-service planned-search tests
 
 ## Landed Slice: Search Query SQL Extraction From Gateway
 

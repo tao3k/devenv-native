@@ -10,9 +10,14 @@ use xiuxian_wendao_runtime::transport::{
     normalize_flight_route, validate_flight_schema_version, validate_flight_timeout_secs,
 };
 
+use crate::{
+    JuliaContractEnabled, JuliaContractId, JuliaContractRoute, JuliaContractSchemaVersion,
+    JuliaContractSecondsU64, JuliaContractTransport, JuliaContractUrl,
+};
+
 use super::contract::parse_transport_kind;
 
-pub(crate) const JULIA_PLUGIN_CONFIG_ID: &str = "julia";
+pub(crate) const JULIA_PLUGIN_CONFIG_ID: &str = "julia-code-parser";
 pub(crate) const CAPABILITY_MANIFEST_TRANSPORT_KEY: &str = "capability_manifest_transport";
 pub(crate) const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
 pub(crate) const ARROW_FLIGHT_TRANSPORT_KIND: &str = "arrow_flight";
@@ -78,38 +83,38 @@ pub const JULIA_PLUGIN_CAPABILITY_MANIFEST_RESPONSE_COLUMNS: [&str; 10] = [
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JuliaPluginCapabilityManifestRequestRow {
     /// Canonical plugin identifier being discovered.
-    pub plugin_id: String,
+    pub plugin_id: JuliaContractId,
     /// Repository identity attached to the discovery request.
-    pub repository_id: String,
+    pub repository_id: JuliaContractId,
     /// Optional capability-family filter.
-    pub capability_filter: Option<String>,
+    pub capability_filter: Option<JuliaContractId>,
     /// Whether disabled capabilities should be returned.
-    pub include_disabled: bool,
+    pub include_disabled: JuliaContractEnabled,
 }
 
 /// One decoded capability-manifest response row from the Julia plugin service.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JuliaPluginCapabilityManifestRow {
     /// Canonical plugin identifier returned by the discovery route.
-    pub plugin_id: String,
+    pub plugin_id: JuliaContractId,
     /// Stable capability identifier for the returned binding.
-    pub capability_id: String,
+    pub capability_id: JuliaContractId,
     /// Optional capability variant or operation tag.
-    pub capability_variant: Option<String>,
+    pub capability_variant: Option<JuliaContractId>,
     /// Transport kind required for this capability.
-    pub transport_kind: String,
+    pub transport_kind: JuliaContractTransport,
     /// Base URL for the capability service.
-    pub base_url: String,
+    pub base_url: JuliaContractUrl,
     /// Route for the capability service.
-    pub route: String,
+    pub route: JuliaContractRoute,
     /// Optional health-check route for the capability service.
-    pub health_route: Option<String>,
+    pub health_route: Option<JuliaContractRoute>,
     /// Schema version negotiated for this capability.
-    pub schema_version: String,
+    pub schema_version: JuliaContractSchemaVersion,
     /// Optional timeout in seconds.
-    pub timeout_secs: Option<u64>,
+    pub timeout_secs: Option<JuliaContractSecondsU64>,
     /// Whether this capability is enabled.
-    pub enabled: bool,
+    pub enabled: JuliaContractEnabled,
 }
 
 impl JuliaPluginCapabilityManifestRow {
@@ -117,8 +122,8 @@ impl JuliaPluginCapabilityManifestRow {
     #[must_use]
     pub fn selector(&self) -> PluginProviderSelector {
         PluginProviderSelector {
-            capability_id: CapabilityId(self.capability_id.clone()),
-            provider: PluginId(self.plugin_id.clone()),
+            capability_id: CapabilityId(self.capability_id.as_str().to_string()),
+            provider: PluginId(self.plugin_id.as_str().to_string()),
         }
     }
 
@@ -129,12 +134,12 @@ impl JuliaPluginCapabilityManifestRow {
     /// Returns [`RepoIntelligenceError`] when the row contains an unsupported
     /// transport kind or invalid transport settings.
     pub fn to_binding(&self) -> Result<Option<PluginCapabilityBinding>, RepoIntelligenceError> {
-        if !self.enabled {
+        if !self.enabled.value() {
             return Ok(None);
         }
 
-        let transport = parse_transport_kind(&self.transport_kind)?;
-        let route = normalize_flight_route(self.route.clone()).map_err(|error| {
+        let transport = parse_transport_kind(self.transport_kind.as_str())?;
+        let route = normalize_flight_route(self.route.as_str()).map_err(|error| {
             RepoIntelligenceError::AnalysisFailed {
                 message: format!(
                     "Julia capability-manifest row `{}` has invalid route `{}`: {error}",
@@ -142,7 +147,7 @@ impl JuliaPluginCapabilityManifestRow {
                 ),
             }
         })?;
-        let schema_version = validate_flight_schema_version(&self.schema_version).map_err(
+        let schema_version = validate_flight_schema_version(self.schema_version.as_str()).map_err(
             |error| RepoIntelligenceError::AnalysisFailed {
                 message: format!(
                     "Julia capability-manifest row `{}` has invalid schema version `{}`: {error}",
@@ -153,11 +158,12 @@ impl JuliaPluginCapabilityManifestRow {
         let timeout_secs = self
             .timeout_secs
             .map(|timeout| {
-                validate_flight_timeout_secs(timeout).map_err(|error| {
+                validate_flight_timeout_secs(timeout.value()).map_err(|error| {
                     RepoIntelligenceError::AnalysisFailed {
                         message: format!(
-                            "Julia capability-manifest row `{}` has invalid timeout `{timeout}`: {error}",
-                            self.capability_id
+                            "Julia capability-manifest row `{}` has invalid timeout `{}`: {error}",
+                            self.capability_id,
+                            timeout.value()
                         ),
                     }
                 })
@@ -167,7 +173,7 @@ impl JuliaPluginCapabilityManifestRow {
             .health_route
             .as_ref()
             .map(|route| {
-                normalize_flight_route(route.clone()).map_err(|error| {
+                normalize_flight_route(route.as_str()).map_err(|error| {
                     RepoIntelligenceError::AnalysisFailed {
                         message: format!(
                             "Julia capability-manifest row `{}` has invalid health route `{route}`: {error}",
@@ -181,7 +187,7 @@ impl JuliaPluginCapabilityManifestRow {
         Ok(Some(PluginCapabilityBinding {
             selector: self.selector(),
             endpoint: PluginTransportEndpoint {
-                base_url: Some(self.base_url.clone()),
+                base_url: Some(self.base_url.as_str().to_string()),
                 route: Some(route),
                 health_route,
                 timeout_secs,

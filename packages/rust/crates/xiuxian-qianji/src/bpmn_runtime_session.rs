@@ -1,11 +1,14 @@
+//! Bpmn runtime session surface for `xiuxian-qianji`.
+
 use super::backend::QianjiBpmnCheckpointStore;
-use super::error::BpmnOrchestrationError;
+use super::error::{BpmnOrchestrationError, BpmnUnsupportedStartNodeKind};
 use crate::bpmn::{resolve_pending_host_work, resolve_waiting_external_event};
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge,
     BpmnInstanceInit, BpmnInstanceState, BpmnNodeKind, BpmnPackage, InstanceLifecycle,
-    NodeRuntimeStatus, PendingHostWork, PendingHostWorkKind, PendingHostWorkResult, SuspendReason,
-    TokenRecord, advance_instance, apply_pending_host_work_result, create_instance,
+    NodeRuntimeStatus, PendingHostWork, PendingHostWorkApplyInput, PendingHostWorkKind,
+    PendingHostWorkResult, SuspendReason, TokenRecord, advance_instance,
+    apply_pending_host_work_result, create_instance,
 };
 use std::sync::Arc;
 
@@ -24,6 +27,7 @@ impl QianjiBpmnSession {
     ///
     /// Returns [`BpmnOrchestrationError`] when the target process does not
     /// exist in the provided package.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub fn new(
         package: Arc<BpmnPackage>,
         process_id: &str,
@@ -41,8 +45,8 @@ impl QianjiBpmnSession {
     ) -> Result<Self, BpmnOrchestrationError> {
         let process = package.find_process(process_id).ok_or_else(|| {
             BpmnOrchestrationError::StartAtNodeMissing {
-                process_id: process_id.to_string(),
-                node_id: node_id.to_string(),
+                process_id: process_id.into(),
+                node_id: node_id.into(),
             }
         })?;
         let node = process
@@ -50,14 +54,14 @@ impl QianjiBpmnSession {
             .iter()
             .find(|node| node.bpmn_id.as_ref() == node_id)
             .ok_or_else(|| BpmnOrchestrationError::StartAtNodeMissing {
-                process_id: process_id.to_string(),
-                node_id: node_id.to_string(),
+                process_id: process_id.into(),
+                node_id: node_id.into(),
             })?;
         if !start_at_node_kind_is_supported(&node.kind) {
             return Err(BpmnOrchestrationError::StartAtNodeUnsupported {
-                process_id: process_id.to_string(),
-                node_id: node_id.to_string(),
-                node_kind: start_at_node_kind_label(&node.kind).to_string(),
+                process_id: process_id.into(),
+                node_id: node_id.into(),
+                node_kind: BpmnUnsupportedStartNodeKind::new(start_at_node_kind_label(&node.kind)),
             });
         }
         let node_index = node.index;
@@ -100,6 +104,7 @@ impl QianjiBpmnSession {
     ///
     /// Returns [`BpmnOrchestrationError`] when checkpoint loading fails or when
     /// the loaded checkpoint drifts from the supplied BPMN package.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn load_from_store(
         package: Arc<BpmnPackage>,
         instance_id: &str,
@@ -236,6 +241,8 @@ impl QianjiBpmnSession {
     /// Returns [`BpmnOrchestrationError`] when the engine rejects the pending
     /// host-work result, when the host bridge cannot service later work, or
     /// when event polling fails.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
+    /// Positional boundary: this compatibility API keeps the established public call shape.
     pub async fn complete_pending_host_work_until_stable<H: BpmnHostBridge>(
         &mut self,
         token_id: u64,
@@ -252,13 +259,13 @@ impl QianjiBpmnSession {
             activity_id,
         )?;
         let completed_at_ms = self.instance.updated_at_ms;
-        let mut outcome = apply_pending_host_work_result(
-            self.package.as_ref(),
-            &mut self.instance,
-            token_id,
+        let mut outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+            package: self.package.as_ref(),
+            instance: &mut self.instance,
+            token_id: token_id.into(),
             result,
-            completed_at_ms,
-        )?;
+            completed_at_ms: completed_at_ms.into(),
+        })?;
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {
@@ -295,6 +302,8 @@ impl QianjiBpmnSession {
     ///
     /// Returns [`BpmnOrchestrationError`] when the engine rejects the pending
     /// host-work result or the runtime state.
+    /// Positional boundary: this compatibility API keeps the established public call shape.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn complete_pending_host_work_until_host_boundary<H: BpmnHostBridge>(
         &mut self,
         token_id: u64,
@@ -311,13 +320,13 @@ impl QianjiBpmnSession {
             activity_id,
         )?;
         let completed_at_ms = self.instance.updated_at_ms;
-        let mut outcome = apply_pending_host_work_result(
-            self.package.as_ref(),
-            &mut self.instance,
-            token_id,
+        let mut outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+            package: self.package.as_ref(),
+            instance: &mut self.instance,
+            token_id: token_id.into(),
             result,
-            completed_at_ms,
-        )?;
+            completed_at_ms: completed_at_ms.into(),
+        })?;
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {
@@ -341,6 +350,8 @@ impl QianjiBpmnSession {
     /// Returns [`BpmnOrchestrationError`] when the engine rejects the explicit
     /// result or when a non-human host task cannot be resolved by the supplied
     /// host bridge.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
+    /// Positional boundary: this compatibility API keeps the established public call shape.
     pub async fn complete_pending_host_work_until_human_boundary<H: BpmnHostBridge>(
         &mut self,
         token_id: u64,
@@ -357,13 +368,13 @@ impl QianjiBpmnSession {
             activity_id,
         )?;
         let completed_at_ms = self.instance.updated_at_ms;
-        let mut outcome = apply_pending_host_work_result(
-            self.package.as_ref(),
-            &mut self.instance,
-            token_id,
+        let mut outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+            package: self.package.as_ref(),
+            instance: &mut self.instance,
+            token_id: token_id.into(),
             result,
-            completed_at_ms,
-        )?;
+            completed_at_ms: completed_at_ms.into(),
+        })?;
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {
@@ -592,8 +603,8 @@ fn validate_pending_host_work_identity(
         .find(|work| work.token_id == token_id)
         .ok_or_else(
             || qianji_bpmn_engine::BpmnEngineError::MissingPendingHostWorkToken {
-                instance_id: instance.instance_id.to_string(),
-                token_id,
+                instance_id: instance.instance_id.to_string().into(),
+                token_id: token_id.into(),
             },
         )?;
 
@@ -667,7 +678,7 @@ fn validate_checkpoint_process_identity(
         package.find_process_position(instance.process.process_id.as_ref())
     else {
         return Err(BpmnOrchestrationError::CheckpointProcessMissing {
-            process_id: instance.process.process_id.to_string(),
+            process_id: instance.process.process_id.as_ref().into(),
         });
     };
 
@@ -675,10 +686,10 @@ fn validate_checkpoint_process_identity(
         || loaded_process.key.spec_digest_hex != instance.process.spec_digest_hex
     {
         return Err(BpmnOrchestrationError::CheckpointProcessIdentityDrift {
-            process_id: instance.process.process_id.to_string(),
-            checkpoint_package_id: instance.process.package_id.to_string(),
+            process_id: instance.process.process_id.as_ref().into(),
+            checkpoint_package_id: instance.process.package_id.as_ref().into(),
             checkpoint_spec_digest: instance.process.spec_digest_hex.to_string(),
-            loaded_package_id: loaded_process.key.package_id.to_string(),
+            loaded_package_id: loaded_process.key.package_id.as_ref().into(),
             loaded_spec_digest: loaded_process.key.spec_digest_hex.to_string(),
         });
     }

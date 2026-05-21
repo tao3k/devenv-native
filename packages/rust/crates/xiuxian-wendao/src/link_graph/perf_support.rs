@@ -1,3 +1,5 @@
+//! `link_graph::perf_support` owns Wendao link graph perf support behavior.
+
 use std::io::Cursor;
 use std::sync::Arc;
 

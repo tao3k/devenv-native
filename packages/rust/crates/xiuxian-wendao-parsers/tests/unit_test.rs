@@ -6,6 +6,8 @@ mod blocks;
 mod code_observation;
 #[path = "unit/document.rs"]
 mod document;
+#[path = "unit/episteme_contract/mod.rs"]
+mod episteme_contract;
 #[path = "unit/frontmatter.rs"]
 mod frontmatter;
 #[path = "unit/lib_policy.rs"]
@@ -14,8 +16,12 @@ mod lib_policy;
 mod lint;
 #[path = "unit/note.rs"]
 mod note;
+#[path = "unit/ontology_contract/mod.rs"]
+mod ontology_contract;
 #[path = "unit/org.rs"]
 mod org;
+#[path = "unit/orgize_tool/mod.rs"]
+mod orgize_tool;
 #[path = "unit/references.rs"]
 mod references;
 #[path = "unit/section_create.rs"]

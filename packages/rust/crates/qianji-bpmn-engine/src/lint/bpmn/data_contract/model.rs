@@ -49,7 +49,7 @@ impl ProcessContract {
             issues.push(undeclared_gateway_condition_output_issue(
                 UndeclaredGatewayConditionIssue {
                     source,
-                    process_id: &self.id,
+                    process_id: self.id.as_str(),
                     gateway_id: &flow.source_ref,
                     target_id: &flow.target_ref,
                     condition,

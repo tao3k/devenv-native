@@ -143,7 +143,7 @@ async fn test_agentic_expansion_pair_uses_julia_graph_structural_fetch_helper() 
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({}),
         }],
     };

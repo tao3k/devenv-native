@@ -13,6 +13,8 @@ pub(crate) mod document_extract_jobs;
 pub(crate) mod document_extract_resource;
 #[path = "document_extract_result.rs"]
 pub(crate) mod document_extract_result;
+#[path = "episteme/mod.rs"]
+pub(crate) mod episteme;
 #[path = "graph/mod.rs"]
 pub(crate) mod graph;
 #[path = "repo/mod.rs"]

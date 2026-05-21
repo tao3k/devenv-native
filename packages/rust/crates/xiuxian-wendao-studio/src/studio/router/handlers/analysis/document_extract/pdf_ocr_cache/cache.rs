@@ -49,27 +49,17 @@ impl PdfOcrShardCache {
     }
 
     pub(crate) fn resolve(&self, inputs: &[PdfOcrShardInput]) -> PdfOcrShardCacheResolution {
-        let mut slots = vec![None; inputs.len()];
-        let mut misses = Vec::new();
-        let mut miss_positions = Vec::new();
-        let mut hit_count = 0;
-
-        for (position, input) in inputs.iter().enumerate() {
-            if let Some(result) = self.read(input) {
-                slots[position] = Some(result);
-                hit_count += 1;
-            } else {
-                misses.push(input.clone());
-                miss_positions.push(position);
-            }
-        }
-
-        PdfOcrShardCacheResolution {
-            slots,
-            misses,
-            miss_positions,
-            hit_count,
-        }
+        inputs
+            .iter()
+            .enumerate()
+            .fold(
+                PdfOcrShardCacheResolutionBuilder::new(inputs.len()),
+                |mut builder, (position, input)| {
+                    builder.push(position, input, self.read(input));
+                    builder
+                },
+            )
+            .finish()
     }
 
     pub(crate) fn store_successful(
@@ -149,6 +139,48 @@ impl PdfOcrShardCache {
     fn cache_path(&self, input: &PdfOcrShardInput) -> PathBuf {
         let key = ocr_shard_cache_key(input);
         self.root.join(&key[0..2]).join(format!("{key}.arrow"))
+    }
+}
+
+struct PdfOcrShardCacheResolutionBuilder {
+    slots: Vec<Option<PdfOcrShardResult>>,
+    misses: Vec<PdfOcrShardInput>,
+    miss_positions: Vec<usize>,
+    hit_count: usize,
+}
+
+impl PdfOcrShardCacheResolutionBuilder {
+    fn new(input_count: usize) -> Self {
+        Self {
+            slots: vec![None; input_count],
+            misses: Vec::new(),
+            miss_positions: Vec::new(),
+            hit_count: 0,
+        }
+    }
+
+    fn push(
+        &mut self,
+        position: usize,
+        input: &PdfOcrShardInput,
+        result: Option<PdfOcrShardResult>,
+    ) {
+        if let Some(result) = result {
+            self.slots[position] = Some(result);
+            self.hit_count += 1;
+        } else {
+            self.misses.push(input.clone());
+            self.miss_positions.push(position);
+        }
+    }
+
+    fn finish(self) -> PdfOcrShardCacheResolution {
+        PdfOcrShardCacheResolution {
+            slots: self.slots,
+            misses: self.misses,
+            miss_positions: self.miss_positions,
+            hit_count: self.hit_count,
+        }
     }
 }
 

@@ -1,3 +1,5 @@
+//! Coordinates the Studio types commands query branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod command;
 mod graphql;
 mod rest;

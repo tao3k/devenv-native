@@ -1,3 +1,5 @@
+//! Flowhub discover surface for `xiuxian-qianji`.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -89,21 +91,26 @@ pub(super) fn module_candidate_from_dir(
 pub(super) fn discover_flowhub_top_level_candidates(
     root: &Path,
 ) -> Result<Vec<FlowhubModuleCandidate>, QianjiError> {
-    let mut candidates = Vec::new();
-    for candidate in discover_flowhub_module_candidates(root)? {
-        let Some(parent_dir) = candidate.module_dir.parent() else {
-            candidates.push(candidate);
-            continue;
-        };
-        if parent_dir == root {
-            candidates.push(candidate);
-            continue;
-        }
-        if !manifest_declares_module_contract(parent_dir.join("qianji.toml"))? {
-            candidates.push(candidate);
-        }
+    Ok(discover_flowhub_module_candidates(root)?
+        .into_iter()
+        .map(|candidate| top_level_module_candidate(root, candidate))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
+        .collect())
+}
+
+fn top_level_module_candidate(
+    root: &Path,
+    candidate: FlowhubModuleCandidate,
+) -> Result<Option<FlowhubModuleCandidate>, QianjiError> {
+    let Some(parent_dir) = candidate.module_dir.parent() else {
+        return Ok(Some(candidate));
+    };
+    if parent_dir == root || !manifest_declares_module_contract(parent_dir.join("qianji.toml"))? {
+        return Ok(Some(candidate));
     }
-    Ok(candidates)
+    Ok(None)
 }
 
 pub(super) fn discover_all_flowhub_module_refs(root: &Path) -> Result<Vec<String>, QianjiError> {

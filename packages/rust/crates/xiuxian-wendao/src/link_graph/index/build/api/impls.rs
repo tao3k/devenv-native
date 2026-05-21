@@ -13,9 +13,86 @@ use crate::link_graph::runtime_config::{
     LinkGraphCacheRuntimeConfig, resolve_link_graph_cache_runtime,
 };
 
-use super::build_context::prepare_build_cache_context;
+use super::build_context::{
+    BuildCacheContext, BuildCacheSlotContext, prepare_build_cache_context,
+    prepare_build_cache_slot_context,
+};
 use super::meta::build_cache_meta;
-use std::path::Path;
+use crate::link_graph::index::build::fingerprint::LinkGraphFingerprint;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ResidentLocalCacheKey {
+    cache_path: PathBuf,
+    slot_key: String,
+}
+
+#[derive(Debug, Clone)]
+struct ResidentLocalCacheEntry {
+    fingerprint: LinkGraphFingerprint,
+    index: Arc<LinkGraphIndex>,
+}
+
+type ResidentLocalCacheMap = HashMap<ResidentLocalCacheKey, ResidentLocalCacheEntry>;
+
+static RESIDENT_LOCAL_LINK_GRAPH_CACHE: OnceLock<Mutex<ResidentLocalCacheMap>> = OnceLock::new();
+
+fn resident_local_cache() -> &'static Mutex<ResidentLocalCacheMap> {
+    RESIDENT_LOCAL_LINK_GRAPH_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn lookup_resident_local_cache(
+    key: &ResidentLocalCacheKey,
+    fingerprint: &LinkGraphFingerprint,
+) -> Result<Option<Arc<LinkGraphIndex>>, String> {
+    let cache = resident_local_cache()
+        .lock()
+        .map_err(|error| format!("link-graph resident cache lock poisoned: {error}"))?;
+    Ok(cache
+        .get(key)
+        .filter(|entry| entry.fingerprint == *fingerprint)
+        .map(|entry| Arc::clone(&entry.index)))
+}
+
+fn lookup_prewarmed_resident_local_cache(
+    key: &ResidentLocalCacheKey,
+) -> Result<Option<Arc<LinkGraphIndex>>, String> {
+    let cache = resident_local_cache()
+        .lock()
+        .map_err(|error| format!("link-graph resident cache lock poisoned: {error}"))?;
+    Ok(cache.get(key).map(|entry| Arc::clone(&entry.index)))
+}
+
+fn store_resident_local_cache(
+    key: ResidentLocalCacheKey,
+    fingerprint: LinkGraphFingerprint,
+    index: Arc<LinkGraphIndex>,
+) -> Result<(), String> {
+    let mut cache = resident_local_cache()
+        .lock()
+        .map_err(|error| format!("link-graph resident cache lock poisoned: {error}"))?;
+    cache.insert(key, ResidentLocalCacheEntry { fingerprint, index });
+    Ok(())
+}
+
+fn invalidate_resident_local_cache(key: &ResidentLocalCacheKey) -> Result<bool, String> {
+    let mut cache = resident_local_cache()
+        .lock()
+        .map_err(|error| format!("link-graph resident cache lock poisoned: {error}"))?;
+    Ok(cache.remove(key).is_some())
+}
+
+fn resident_local_cache_key(
+    slot: &BuildCacheSlotContext,
+    cache_path: &Path,
+) -> ResidentLocalCacheKey {
+    ResidentLocalCacheKey {
+        cache_path: cache_path.to_path_buf(),
+        slot_key: slot.slot_key.clone(),
+    }
+}
 
 impl LinkGraphIndex {
     /// Build index from notebook root directory.
@@ -38,10 +115,10 @@ impl LinkGraphIndex {
         let context = prepare_build_cache_context(root_dir, include_dirs, excluded_dirs)?;
         let cache_lookup = load_cached_index_from_valkey(
             runtime,
-            &context.slot_key,
-            &context.root,
-            &context.normalized_include_dirs,
-            &context.normalized_excluded_dirs,
+            &context.slot.slot_key,
+            &context.slot.root,
+            &context.slot.normalized_include_dirs,
+            &context.slot.normalized_excluded_dirs,
             &context.fingerprint,
         )?;
         let miss_reason = match cache_lookup {
@@ -54,12 +131,12 @@ impl LinkGraphIndex {
         };
 
         let index = Self::build_with_filters(
-            &context.root,
-            &context.normalized_include_dirs,
-            &context.normalized_excluded_dirs,
+            &context.slot.root,
+            &context.slot.normalized_include_dirs,
+            &context.slot.normalized_excluded_dirs,
         )?;
         let _ = sync_graphmem_state_to_valkey(&index, runtime);
-        save_cached_index_to_valkey(&index, runtime, &context.slot_key, context.fingerprint)?;
+        save_cached_index_to_valkey(&index, runtime, &context.slot.slot_key, context.fingerprint)?;
         let meta = build_cache_meta("valkey", "miss", miss_reason);
         Ok((index, meta))
     }
@@ -71,13 +148,20 @@ impl LinkGraphIndex {
         cache_path: &Path,
     ) -> Result<(Self, LinkGraphCacheBuildMeta), String> {
         let context = prepare_build_cache_context(root_dir, include_dirs, excluded_dirs)?;
+        Self::build_with_local_cache_context_with_meta_impl(&context, cache_path)
+    }
+
+    fn build_with_local_cache_context_with_meta_impl(
+        context: &BuildCacheContext,
+        cache_path: &Path,
+    ) -> Result<(Self, LinkGraphCacheBuildMeta), String> {
         #[cfg(feature = "duckdb")]
         let mut miss_reason = match load_cached_index_from_duckdb(
             cache_path,
-            &context.slot_key,
-            &context.root,
-            &context.normalized_include_dirs,
-            &context.normalized_excluded_dirs,
+            &context.slot.slot_key,
+            &context.slot.root,
+            &context.slot.normalized_include_dirs,
+            &context.slot.normalized_excluded_dirs,
             &context.fingerprint,
         ) {
             Ok(CacheLookupOutcome::Hit(index)) => {
@@ -90,10 +174,10 @@ impl LinkGraphIndex {
         #[cfg(not(feature = "duckdb"))]
         let miss_reason = match load_cached_index_from_duckdb(
             cache_path,
-            &context.slot_key,
-            &context.root,
-            &context.normalized_include_dirs,
-            &context.normalized_excluded_dirs,
+            &context.slot.slot_key,
+            &context.slot.root,
+            &context.slot.normalized_include_dirs,
+            &context.slot.normalized_excluded_dirs,
             &context.fingerprint,
         ) {
             CacheLookupOutcome::Hit(index) => {
@@ -104,20 +188,49 @@ impl LinkGraphIndex {
         };
 
         let index = Self::build_with_filters(
-            &context.root,
-            &context.normalized_include_dirs,
-            &context.normalized_excluded_dirs,
+            &context.slot.root,
+            &context.slot.normalized_include_dirs,
+            &context.slot.normalized_excluded_dirs,
         )?;
         #[cfg(feature = "duckdb")]
-        if let Err(error) =
-            save_cached_index_to_duckdb(&index, cache_path, &context.slot_key, &context.fingerprint)
-            && miss_reason.is_none()
+        if let Err(error) = save_cached_index_to_duckdb(
+            &index,
+            cache_path,
+            &context.slot.slot_key,
+            &context.fingerprint,
+        ) && miss_reason.is_none()
         {
             miss_reason = Some(format!("duckdb_cache_save_failed: {error}"));
         }
         #[cfg(not(feature = "duckdb"))]
-        save_cached_index_to_duckdb(&index, cache_path, &context.slot_key, &context.fingerprint);
+        save_cached_index_to_duckdb(
+            &index,
+            cache_path,
+            &context.slot.slot_key,
+            &context.fingerprint,
+        );
         let meta = build_cache_meta("duckdb", "miss", miss_reason);
+        Ok((index, meta))
+    }
+
+    fn build_with_resident_local_cache_path_with_meta_impl(
+        root_dir: &Path,
+        include_dirs: &[String],
+        excluded_dirs: &[String],
+        cache_path: &Path,
+    ) -> Result<(Arc<Self>, LinkGraphCacheBuildMeta), String> {
+        let context = prepare_build_cache_context(root_dir, include_dirs, excluded_dirs)?;
+        let key = resident_local_cache_key(&context.slot, cache_path);
+        if let Some(index) = lookup_resident_local_cache(&key, &context.fingerprint)? {
+            let meta = build_cache_meta("resident", "hit", None);
+            return Ok((index, meta));
+        }
+
+        let fingerprint = context.fingerprint.clone();
+        let (index, meta) =
+            Self::build_with_local_cache_context_with_meta_impl(&context, cache_path)?;
+        let index = Arc::new(index);
+        store_resident_local_cache(key, fingerprint, Arc::clone(&index))?;
         Ok((index, meta))
     }
 
@@ -222,6 +335,102 @@ impl LinkGraphIndex {
         )
     }
 
+    /// Build index with an explicit local `DuckDB` cache file and a
+    /// fingerprint-gated in-process resident fast-path.
+    ///
+    /// Intended for long-lived runners that need to avoid repeated
+    /// `DuckDB`/Arrow snapshot loads while preserving fingerprint validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when index construction fails or the resident cache
+    /// lock is poisoned.
+    pub fn build_with_resident_local_cache_path_with_meta(
+        root_dir: &Path,
+        include_dirs: &[String],
+        excluded_dirs: &[String],
+        cache_path: &Path,
+    ) -> Result<(Arc<Self>, LinkGraphCacheBuildMeta), String> {
+        Self::build_with_resident_local_cache_path_with_meta_impl(
+            root_dir,
+            include_dirs,
+            excluded_dirs,
+            cache_path,
+        )
+    }
+
+    /// Prewarm the resident `LinkGraph` index for an explicit local `DuckDB`
+    /// cache file.
+    ///
+    /// This validates the current fingerprint, loads from resident/DuckDB or
+    /// rebuilds as needed, and stores the resulting index in the in-process
+    /// resident cache.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when index construction fails or the resident cache
+    /// lock is poisoned.
+    pub fn prewarm_resident_local_cache_path_with_meta(
+        root_dir: &Path,
+        include_dirs: &[String],
+        excluded_dirs: &[String],
+        cache_path: &Path,
+    ) -> Result<(Arc<Self>, LinkGraphCacheBuildMeta), String> {
+        Self::build_with_resident_local_cache_path_with_meta_impl(
+            root_dir,
+            include_dirs,
+            excluded_dirs,
+            cache_path,
+        )
+    }
+
+    /// Lookup a prewarmed resident `LinkGraph` index without revalidating the
+    /// filesystem fingerprint.
+    ///
+    /// This is intended for request paths where a surrounding lifecycle has
+    /// already run prewarm or invalidation. It returns a miss error when no
+    /// resident index is loaded for the cache slot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when slot normalization fails, no resident index is
+    /// loaded, or the resident cache lock is poisoned.
+    pub fn lookup_prewarmed_resident_local_cache_path_with_meta(
+        root_dir: &Path,
+        include_dirs: &[String],
+        excluded_dirs: &[String],
+        cache_path: &Path,
+    ) -> Result<(Arc<Self>, LinkGraphCacheBuildMeta), String> {
+        let slot = prepare_build_cache_slot_context(root_dir, include_dirs, excluded_dirs)?;
+        let key = resident_local_cache_key(&slot, cache_path);
+        let index = lookup_prewarmed_resident_local_cache(&key)?.ok_or_else(|| {
+            format!(
+                "link-graph resident cache miss for slot `{}`",
+                slot.slot_key
+            )
+        })?;
+        let meta = build_cache_meta("resident-prewarmed", "hit", None);
+        Ok((index, meta))
+    }
+
+    /// Invalidate a prewarmed resident `LinkGraph` index for an explicit local
+    /// `DuckDB` cache file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when slot normalization fails or the resident cache
+    /// lock is poisoned.
+    pub fn invalidate_resident_local_cache_path(
+        root_dir: &Path,
+        include_dirs: &[String],
+        excluded_dirs: &[String],
+        cache_path: &Path,
+    ) -> Result<bool, String> {
+        let slot = prepare_build_cache_slot_context(root_dir, include_dirs, excluded_dirs)?;
+        let key = resident_local_cache_key(&slot, cache_path);
+        invalidate_resident_local_cache(&key)
+    }
+
     /// Build index with an explicit `Valkey` cache runtime.
     ///
     /// Intended for tests and controlled runners that pass cache config directly.
@@ -229,6 +438,7 @@ impl LinkGraphIndex {
     /// # Errors
     ///
     /// Returns an error when `valkey_url` is invalid, cache I/O fails, or index build fails.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn build_with_cache_with_valkey(
         root_dir: &Path,
         include_dirs: &[String],
@@ -255,6 +465,7 @@ impl LinkGraphIndex {
     /// # Errors
     ///
     /// Returns an error when `valkey_url` is invalid, cache I/O fails, or index build fails.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn build_with_cache_with_valkey_with_meta(
         root_dir: &Path,
         include_dirs: &[String],

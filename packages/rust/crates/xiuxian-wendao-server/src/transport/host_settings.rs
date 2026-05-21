@@ -1,9 +1,9 @@
-//! Transport host setting resolution for Wendao Flight rerank services.
+//! Runtime host setting resolution for Wendao Flight rerank services.
 
 use super::RerankScoreWeights;
 use std::env;
 
-/// Effective transport host settings after precedence resolution.
+/// Effective runtime host settings after precedence resolution.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EffectiveRerankFlightHostSettings {
     /// Schema version expected by the host.
@@ -23,6 +23,23 @@ pub struct ParsedRerankFlightHostOverrides {
     pub rerank_dimension_override: Option<usize>,
     /// Remaining positional args after removing known flags.
     pub positional_args: Vec<String>,
+}
+
+/// Inputs used to resolve effective rerank Flight host settings.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EffectiveRerankFlightHostSettingsInput {
+    /// Explicit schema-version override from the command line.
+    pub schema_version_override: Option<String>,
+    /// Explicit rerank-dimension override from the command line.
+    pub rerank_dimension_override: Option<usize>,
+    /// Schema version supplied by file-backed configuration.
+    pub file_backed_schema_version: Option<String>,
+    /// Weights supplied by file-backed configuration.
+    pub file_backed_weights: Option<RerankScoreWeights>,
+    /// Fallback dimension supplied by env/default resolution.
+    pub fallback_dimension: usize,
+    /// Fallback weights supplied by env/default resolution.
+    pub fallback_weights: RerankScoreWeights,
 }
 
 /// Split optional explicit host-setting overrides from binary args.
@@ -82,7 +99,7 @@ where
     })
 }
 
-/// Resolve the effective transport host settings after applying precedence.
+/// Resolve the effective runtime host settings after applying precedence.
 ///
 /// Precedence:
 /// 1. explicit schema-version override
@@ -94,19 +111,17 @@ where
 /// 2. env/default fallback weights supplied by the caller
 #[must_use]
 pub fn resolve_effective_rerank_flight_host_settings(
-    schema_version_override: Option<String>,
-    rerank_dimension_override: Option<usize>,
-    file_backed_schema_version: Option<String>,
-    file_backed_weights: Option<RerankScoreWeights>,
-    fallback_dimension: usize,
-    fallback_weights: RerankScoreWeights,
+    input: EffectiveRerankFlightHostSettingsInput,
 ) -> EffectiveRerankFlightHostSettings {
     EffectiveRerankFlightHostSettings {
-        expected_schema_version: schema_version_override
-            .or(file_backed_schema_version)
+        expected_schema_version: input
+            .schema_version_override
+            .or(input.file_backed_schema_version)
             .unwrap_or_else(|| "v2".to_string()),
-        rerank_dimension: rerank_dimension_override.unwrap_or(fallback_dimension),
-        rerank_weights: file_backed_weights.unwrap_or(fallback_weights),
+        rerank_dimension: input
+            .rerank_dimension_override
+            .unwrap_or(input.fallback_dimension),
+        rerank_weights: input.file_backed_weights.unwrap_or(input.fallback_weights),
     }
 }
 
@@ -143,3 +158,7 @@ pub fn rerank_score_weights_from_env() -> Result<RerankScoreWeights, String> {
         .unwrap_or(RerankScoreWeights::default().semantic_weight);
     RerankScoreWeights::new(vector_weight, semantic_weight)
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/transport/host_settings.rs"]
+mod tests;

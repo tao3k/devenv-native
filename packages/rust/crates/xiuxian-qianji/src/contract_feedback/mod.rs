@@ -1,3 +1,5 @@
+//! Contract-feedback branch for advisory policy, evidence, and runner surfaces.
+
 mod advisory;
 mod model;
 #[path = "../contract_feedback_pipeline.rs"]

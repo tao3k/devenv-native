@@ -6,9 +6,9 @@ use super::GatewayArgs;
 #[cfg(feature = "zhenfa-router")]
 use super::QueryCommand;
 use super::{
-    AgenticCommand, AttachmentsArgs, AuditArgs, DocsCommand, FixArgs, HmasCommand, MetadataArgs,
-    NeighborsArgs, RelatedArgs, RepoCommand, ResolveArgs, SaliencyCommand, SearchArgs,
-    SentinelArgs, TocArgs,
+    AgenticCommand, AttachmentsArgs, AuditArgs, DocsCommand, EpistemeCommand, FixArgs, HmasCommand,
+    MetadataArgs, NeighborsArgs, RelatedArgs, RepoCommand, ResolveArgs, SaliencyCommand,
+    SearchArgs, SentinelArgs, TocArgs,
 };
 
 #[derive(Subcommand, Debug)]
@@ -40,6 +40,11 @@ pub(crate) enum Command {
     Hmas {
         #[command(subcommand)]
         command: HmasCommand,
+    },
+    /// Manage episteme source-contract workflows.
+    Episteme {
+        #[command(subcommand)]
+        command: EpistemeCommand,
     },
     /// Manage agentic suggested-link proposals and decision audit rows.
     Agentic {

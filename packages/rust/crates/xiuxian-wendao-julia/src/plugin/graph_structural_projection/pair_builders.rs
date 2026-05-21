@@ -3,10 +3,13 @@
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::core::{
-    GraphStructuralCandidateSubgraph, GraphStructuralQueryContext, GraphStructuralRerankSignals,
+    GraphStructuralCandidateSubgraph, GraphStructuralCandidateSubgraphInput,
+    GraphStructuralQueryContext, GraphStructuralRerankSignals,
 };
 use super::overlap::{
-    GraphStructuralFilterConstraint, build_graph_structural_keyword_tag_query_context,
+    GraphStructuralFilterConstraint, GraphStructuralKeywordTagMatchFlags,
+    GraphStructuralKeywordTagQueryContextInput, GraphStructuralKeywordTagRerankSignalInput,
+    build_graph_structural_keyword_tag_query_context,
     build_graph_structural_keyword_tag_rerank_signals,
 };
 use super::pair::{GraphStructuralKeywordTagQueryInputs, GraphStructuralPairCandidateInputs};
@@ -15,6 +18,45 @@ use super::rows::{
 };
 use super::support::{normalize_pair_endpoint_ids, stable_pair_candidate_id};
 use crate::{GraphStructuralFilterRequestRow, GraphStructuralRerankRequestRow};
+
+/// Named inputs for one pair-shaped graph-structural rerank request row.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralPairRerankRequestInput {
+    /// Query context shared by the request row.
+    pub query: GraphStructuralQueryContext,
+    /// Pair candidate data.
+    pub pair: GraphStructuralPairCandidateInputs,
+    /// Rerank signals for this pair.
+    pub signals: GraphStructuralRerankSignals,
+}
+
+/// Named inputs for one pair-shaped graph-structural filter request row.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralPairFilterRequestInput {
+    /// Query context shared by the request row.
+    pub query: GraphStructuralQueryContext,
+    /// Pair candidate data.
+    pub pair: GraphStructuralPairCandidateInputs,
+    /// Filter constraint for this pair.
+    pub constraint: GraphStructuralFilterConstraint,
+}
+
+/// Named inputs for one keyword-or-tag pair rerank request row.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralKeywordTagPairRerankRequestInput {
+    /// Raw query anchors and retrieval bounds.
+    pub query: GraphStructuralKeywordTagQueryInputs,
+    /// Pair candidate data.
+    pub pair: GraphStructuralPairCandidateInputs,
+    /// Semantic score before Julia rerank.
+    pub semantic_score: f64,
+    /// Dependency score before Julia rerank.
+    pub dependency_score: f64,
+    /// Whether the pair matched a keyword anchor.
+    pub keyword_match: bool,
+    /// Whether the pair matched a tag anchor.
+    pub tag_match: bool,
+}
 
 /// Build the stable candidate id used for one two-node graph-structural pair.
 ///
@@ -38,19 +80,18 @@ pub fn graph_structural_pair_candidate_id(
 /// normalization, both endpoints resolve to the same id, or any edge kind is
 /// blank.
 pub fn build_graph_structural_pair_candidate_subgraph(
-    left_id: impl Into<String>,
-    right_id: impl Into<String>,
-    edge_kinds: Vec<String>,
+    pair: GraphStructuralPairCandidateInputs,
 ) -> Result<GraphStructuralCandidateSubgraph, RepoIntelligenceError> {
-    let (left_id, right_id) = normalize_pair_endpoint_ids(left_id.into(), right_id.into())?;
+    let (left_id, right_id) = normalize_pair_endpoint_ids(pair.left_id, pair.right_id)?;
+    let edge_kinds = pair.edge_kinds;
     let edge_count = edge_kinds.len();
-    GraphStructuralCandidateSubgraph::new(
-        stable_pair_candidate_id(&left_id, &right_id),
-        vec![left_id.clone(), right_id.clone()],
-        vec![left_id; edge_count],
-        vec![right_id; edge_count],
+    GraphStructuralCandidateSubgraph::from_input(GraphStructuralCandidateSubgraphInput {
+        candidate_id: stable_pair_candidate_id(&left_id, &right_id),
+        node_ids: vec![left_id.clone(), right_id.clone()],
+        edge_sources: vec![left_id; edge_count],
+        edge_destinations: vec![right_id; edge_count],
         edge_kinds,
-    )
+    })
 }
 
 /// Build one staged structural-rerank request row from a two-node graph pair.
@@ -61,15 +102,13 @@ pub fn build_graph_structural_pair_candidate_subgraph(
 /// normalization, both endpoints resolve to the same id, or any edge kind is
 /// blank.
 pub fn build_graph_structural_pair_rerank_request_row(
-    query: &GraphStructuralQueryContext,
-    left_id: impl Into<String>,
-    right_id: impl Into<String>,
-    edge_kinds: Vec<String>,
-    signals: &GraphStructuralRerankSignals,
+    input: GraphStructuralPairRerankRequestInput,
 ) -> Result<GraphStructuralRerankRequestRow, RepoIntelligenceError> {
-    let candidate = build_graph_structural_pair_candidate_subgraph(left_id, right_id, edge_kinds)?;
+    let candidate = build_graph_structural_pair_candidate_subgraph(input.pair)?;
     Ok(build_graph_structural_rerank_request_row(
-        query, &candidate, signals,
+        &input.query,
+        &candidate,
+        &input.signals,
     ))
 }
 
@@ -81,15 +120,13 @@ pub fn build_graph_structural_pair_rerank_request_row(
 /// normalization, both endpoints resolve to the same id, or any edge kind is
 /// blank.
 pub fn build_graph_structural_pair_filter_request_row(
-    query: &GraphStructuralQueryContext,
-    left_id: impl Into<String>,
-    right_id: impl Into<String>,
-    edge_kinds: Vec<String>,
-    constraint: &GraphStructuralFilterConstraint,
+    input: GraphStructuralPairFilterRequestInput,
 ) -> Result<GraphStructuralFilterRequestRow, RepoIntelligenceError> {
-    let candidate = build_graph_structural_pair_candidate_subgraph(left_id, right_id, edge_kinds)?;
+    let candidate = build_graph_structural_pair_candidate_subgraph(input.pair)?;
     Ok(build_graph_structural_filter_request_row(
-        query, &candidate, constraint,
+        &input.query,
+        &candidate,
+        &input.constraint,
     ))
 }
 
@@ -106,32 +143,39 @@ pub fn build_graph_structural_pair_filter_request_row(
 /// endpoint, edge-kind, or score input fails the underlying Julia-owned
 /// normalization rules.
 pub fn build_graph_structural_keyword_tag_pair_rerank_request_row(
-    query_inputs: GraphStructuralKeywordTagQueryInputs,
-    pair_inputs: GraphStructuralPairCandidateInputs,
-    semantic_score: f64,
-    dependency_score: f64,
-    keyword_match: bool,
-    tag_match: bool,
+    input: GraphStructuralKeywordTagPairRerankRequestInput,
 ) -> Result<GraphStructuralRerankRequestRow, RepoIntelligenceError> {
-    let query = build_graph_structural_keyword_tag_query_context(
-        query_inputs.query_id,
-        query_inputs.retrieval_layer,
-        query_inputs.query_max_layers,
-        query_inputs.keyword_anchors,
-        query_inputs.tag_anchors,
-        query_inputs.edge_constraint_kinds,
-    )?;
-    let signals = build_graph_structural_keyword_tag_rerank_signals(
+    let GraphStructuralKeywordTagPairRerankRequestInput {
+        query,
+        pair,
         semantic_score,
         dependency_score,
         keyword_match,
         tag_match,
+    } = input;
+    let query = build_graph_structural_keyword_tag_query_context(
+        GraphStructuralKeywordTagQueryContextInput {
+            query_id: query.query_id,
+            retrieval_layer: query.retrieval_layer,
+            query_max_layers: query.query_max_layers,
+            keyword_anchors: query.keyword_anchors,
+            tag_anchors: query.tag_anchors,
+            edge_constraint_kinds: query.edge_constraint_kinds,
+        },
     )?;
-    build_graph_structural_pair_rerank_request_row(
-        &query,
-        pair_inputs.left_id,
-        pair_inputs.right_id,
-        pair_inputs.edge_kinds,
-        &signals,
-    )
+    let signals = build_graph_structural_keyword_tag_rerank_signals(
+        GraphStructuralKeywordTagRerankSignalInput {
+            semantic_score,
+            dependency_score,
+            matches: GraphStructuralKeywordTagMatchFlags {
+                keyword_match,
+                tag_match,
+            },
+        },
+    )?;
+    build_graph_structural_pair_rerank_request_row(GraphStructuralPairRerankRequestInput {
+        query,
+        pair,
+        signals,
+    })
 }

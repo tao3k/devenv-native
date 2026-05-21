@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "xiuxian.runtime.server_info.v1.schema.json",
+  "title": "Xiuxian Runtime server info (GET /sse, tool runtime) v1",
+  "description": "Canonical shape for tool-runtime server info returned on GET requests. Used by SSE transport for unified schema validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "version", "protocolVersion"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Server name (for example, lingchong-bot or an agent gateway)."
+    },
+    "version": {
+      "type": "string",
+      "description": "Server version (semver)."
+    },
+    "protocolVersion": {
+      "type": "string",
+      "description": "Tool-runtime protocol version (e.g. 2024-11-05)."
+    },
+    "message": {
+      "type": "string",
+      "description": "Optional hint (e.g. tool runtime uses POST; use /health for health checks)."
+    }
+  }
+}

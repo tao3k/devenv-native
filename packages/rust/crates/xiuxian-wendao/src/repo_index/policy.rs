@@ -1,3 +1,5 @@
+//! `repo_index::policy` owns Wendao repo index policy behavior.
+
 /// Effective repo-index runtime policy values for diagnostics and performance
 /// probes.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

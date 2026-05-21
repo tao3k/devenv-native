@@ -1,5 +1,7 @@
 //! Public dmn model document dmndi contracts for BPMN/DMN engine integration.
 
+use super::{DmnSnapshotFlag, DmnSnapshotId};
+
 /// Snapshot of one top-level DMN `dmndi:DMNDI` block.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnDmndiSnapshot {
@@ -28,13 +30,13 @@ pub struct DmnDiagramSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnShapeSnapshot {
     /// Optional stable DMN shape identifier.
-    pub shape_id: Option<String>,
+    pub shape_id: Option<DmnSnapshotId>,
     /// Optional referenced DMN element identifier.
     pub dmn_element_ref: Option<String>,
     /// Optional direct `isListedInputData` marker preserved for this bounded slice.
-    pub is_listed_input_data: Option<bool>,
+    pub is_listed_input_data: Option<DmnSnapshotFlag>,
     /// Optional direct `isCollapsed` marker preserved for this bounded slice.
-    pub is_collapsed: Option<bool>,
+    pub is_collapsed: Option<DmnSnapshotFlag>,
     /// Optional direct nested `dc:Bounds` placeholder preserved for this bounded slice.
     pub bounds: Option<DmnBoundsSnapshot>,
     /// Optional direct nested `DMNDecisionServiceDividerLine` placeholder preserved for this bounded slice.

@@ -14,7 +14,7 @@ use xiuxian_config_core::{
 };
 use xiuxian_zhenfa::WebhookConfig;
 
-use crate::bin_support::wendao::execute::gateway::shared::{DEFAULT_BIND_ADDR, DEFAULT_PORT};
+use crate::bin_support::wendao::execute::gateway::state::{DEFAULT_BIND_ADDR, DEFAULT_PORT};
 
 /// Resolve the effective config file from CLI override, local project file, or
 /// `PRJ_ROOT`.
@@ -108,12 +108,15 @@ pub(crate) fn resolve_webhook_config_with_lookup(
     }
 
     let url = first_non_empty_named_lookup(&["WENDAO_WEBHOOK_URL"], lookup);
-    if let Some((env_name, _)) = url.as_ref() {
-        info!("Gateway: Using webhook config from {env_name} env var");
+    if let Some(candidate) = url.as_ref() {
+        info!(
+            "Gateway: Using webhook config from {} env var",
+            candidate.source_name
+        );
     }
 
     WebhookConfig {
-        url: url.map(|(_, value)| value).unwrap_or_default(),
+        url: url.map(|candidate| candidate.value).unwrap_or_default(),
         secret: first_non_empty_lookup(&["WENDAO_WEBHOOK_SECRET"], lookup),
         timeout_secs: 10,
         retry_on_failure: true,

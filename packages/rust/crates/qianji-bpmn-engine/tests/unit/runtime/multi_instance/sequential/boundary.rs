@@ -5,7 +5,7 @@ use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnInstanceInit, BpmnNodeKind,
     BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BpmnRepeatSpec, BpmnSequentialMultiInstanceSpec,
     BpmnTimerKind, BpmnTimerSpec, ProcessKey, advance_instance, apply_event_poll_outcome,
-    apply_pending_host_work_result, create_instance,
+    create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -116,7 +116,7 @@ async fn runtime_sequential_multi_instance_handoff_keeps_non_interrupting_bounda
     assert_eq!(instance.waits[0].node_index, 2);
     assert_eq!(instance.waits[0].blocking_node_index, Some(1));
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[0].token_id,

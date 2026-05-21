@@ -1,3 +1,5 @@
+//! Owns the Studio search handlers index surface.
+
 use std::path::Path;
 
 use crate::studio::search::source_index;
@@ -15,6 +17,8 @@ pub fn build_ast_index(
     source_index::build_ast_index(project_root, config_root, projects)
 }
 
+/// Build Studio symbol search indices from configured project roots.
+#[must_use]
 pub fn build_symbol_index(
     project_root: &Path,
     config_root: &Path,

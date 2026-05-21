@@ -265,7 +265,7 @@ fn parser_bundle_snapshot_surfaces_invalid_dmn_sources() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: "invalid-unsupported-unary-test.dmn".to_string(),
+            source_id: ("invalid-unsupported-unary-test.dmn".to_string()).into(),
             expression: "duration(\"P1.5Y\")".to_string(),
         }
     );

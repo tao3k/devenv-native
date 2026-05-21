@@ -1,3 +1,5 @@
+//! `search::queries::flightsql::service` owns Wendao queries flightsql service behavior.
+
 use std::sync::{Arc, OnceLock};
 
 use arrow::datatypes::Schema;

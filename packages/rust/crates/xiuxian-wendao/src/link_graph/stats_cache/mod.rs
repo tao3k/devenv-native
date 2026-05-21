@@ -1,3 +1,5 @@
+//! `link_graph::stats_cache` owns Wendao link graph stats cache behavior.
+
 mod keys;
 mod payload;
 mod runtime;

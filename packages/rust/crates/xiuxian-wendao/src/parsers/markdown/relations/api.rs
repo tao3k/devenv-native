@@ -1,3 +1,5 @@
+//! `parsers::markdown::relations::api` owns Wendao markdown relations api behavior.
+
 use super::keys::{PROPERTY_RELATION_KEYS, map_property_relation_type};
 use super::targets::parse_relation_targets;
 use super::types::{ExplicitRelationSource, ExplicitSectionRelation};

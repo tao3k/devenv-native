@@ -1,3 +1,5 @@
+//! Authority resolver for skill runtime manifests and declared intent links.
+
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -18,9 +20,27 @@ use super::types::{
 pub fn resolve_skill_authority(
     runtime_root: &Path,
 ) -> Result<SkillAuthorityOutcome, SkillManifestError> {
+    let scan = scan_skill_authority(runtime_root)?;
+    let physical_uris = physical_manifest_uris(&scan.manifest_paths);
+    let authorized_uris = intersect_authorized_uris(&scan.intent_uris, &physical_uris);
+    let unauthorized_uris = subtract_unauthorized_uris(&physical_uris, &scan.intent_uris);
+    let authorized = load_authorized_manifests(&authorized_uris, &scan.manifest_paths)?;
+    let report = build_skill_authority_report(authorized_uris, scan.ghost_links, unauthorized_uris);
+
+    Ok(SkillAuthorityOutcome { report, authorized })
+}
+
+struct SkillAuthorityScan {
+    intent_uris: HashSet<String>,
+    ghost_links: HashSet<String>,
+    manifest_paths: HashMap<String, PathBuf>,
+}
+
+fn scan_skill_authority(runtime_root: &Path) -> Result<SkillAuthorityScan, SkillManifestError> {
     let mut intent_uris = HashSet::new();
     let mut ghost_links = HashSet::new();
     let mut manifest_paths = HashMap::new();
+
     let skills = discover_skill_docs(runtime_root);
     for skill_doc in &skills {
         let Some(skill_root) = skill_doc.parent() else {
@@ -36,18 +56,50 @@ pub fn resolve_skill_authority(
         }
     }
 
-    let physical_uris: HashSet<String> = manifest_paths.keys().cloned().collect();
-    let authorized_uris: HashSet<String> =
-        intent_uris.intersection(&physical_uris).cloned().collect();
-    let unauthorized_uris: HashSet<String> =
-        physical_uris.difference(&intent_uris).cloned().collect();
+    Ok(SkillAuthorityScan {
+        intent_uris,
+        ghost_links,
+        manifest_paths,
+    })
+}
+
+fn physical_manifest_uris(manifest_paths: &HashMap<String, PathBuf>) -> HashSet<String> {
+    manifest_paths.keys().cloned().collect()
+}
+
+fn intersect_authorized_uris(
+    intent_uris: &HashSet<String>,
+    physical_uris: &HashSet<String>,
+) -> HashSet<String> {
+    intent_uris.intersection(physical_uris).cloned().collect()
+}
+
+fn subtract_unauthorized_uris(
+    physical_uris: &HashSet<String>,
+    intent_uris: &HashSet<String>,
+) -> HashSet<String> {
+    physical_uris.difference(intent_uris).cloned().collect()
+}
+
+fn load_authorized_manifests(
+    authorized_uris: &HashSet<String>,
+    manifest_paths: &HashMap<String, PathBuf>,
+) -> Result<Vec<super::types::SkillManifest>, SkillManifestError> {
     let mut authorized_manifests = Vec::new();
-    for uri in &authorized_uris {
+    for uri in authorized_uris {
         if let Some(path) = manifest_paths.get(uri) {
             authorized_manifests.push(load_skill_manifest_from_path(path)?);
         }
     }
     authorized_manifests.sort_by(|left, right| left.tool_name.cmp(&right.tool_name));
+    Ok(authorized_manifests)
+}
+
+fn build_skill_authority_report(
+    authorized_uris: HashSet<String>,
+    ghost_links: HashSet<String>,
+    unauthorized_uris: HashSet<String>,
+) -> SkillAuthorityReport {
     let mut report = SkillAuthorityReport {
         authorized_manifests: authorized_uris.into_iter().collect(),
         ghost_links: ghost_links.into_iter().collect(),
@@ -56,10 +108,7 @@ pub fn resolve_skill_authority(
     report.authorized_manifests.sort();
     report.ghost_links.sort();
     report.unauthorized_manifests.sort();
-    Ok(SkillAuthorityOutcome {
-        report,
-        authorized: authorized_manifests,
-    })
+    report
 }
 
 fn discover_skill_docs(root: &Path) -> Vec<PathBuf> {

@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
 use std::fmt::{Display, Write};
-use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+#[cfg(feature = "performance-stress")]
+use std::future::Future;
+
+#[cfg(feature = "performance-stress")]
 use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 
@@ -215,6 +218,7 @@ where
     finalize_report(suite, case, "sync", config, started.elapsed(), metrics)
 }
 
+#[cfg(feature = "performance-stress")]
 pub(crate) async fn run_async_budget<T, E, Fut, F>(
     suite: &str,
     case: &str,
@@ -271,13 +275,18 @@ impl RunMetrics {
     }
 
     fn observe_result(&mut self, elapsed: Duration, timeout: Duration, failed: bool) {
-        self.observe_outcome(AsyncOutcome {
-            elapsed,
-            timed_out: elapsed > timeout,
-            failed,
-        });
+        self.total_ops = self.total_ops.saturating_add(1);
+        self.samples_ms.push(duration_to_ms(elapsed));
+        if elapsed > timeout {
+            self.timeout_ops = self.timeout_ops.saturating_add(1);
+        } else if failed {
+            self.error_ops = self.error_ops.saturating_add(1);
+        } else {
+            self.success_ops = self.success_ops.saturating_add(1);
+        }
     }
 
+    #[cfg(feature = "performance-stress")]
     fn observe_outcome(&mut self, outcome: AsyncOutcome) {
         self.total_ops = self.total_ops.saturating_add(1);
         self.samples_ms.push(duration_to_ms(outcome.elapsed));
@@ -291,6 +300,7 @@ impl RunMetrics {
     }
 }
 
+#[cfg(feature = "performance-stress")]
 #[derive(Clone, Copy)]
 struct AsyncOutcome {
     elapsed: Duration,
@@ -298,6 +308,7 @@ struct AsyncOutcome {
     failed: bool,
 }
 
+#[cfg(feature = "performance-stress")]
 async fn run_one_async<T, E, Fut>(future: Fut, timeout: Duration) -> AsyncOutcome
 where
     Fut: Future<Output = Result<T, E>>,

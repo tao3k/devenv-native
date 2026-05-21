@@ -237,10 +237,14 @@ pub fn build_memory_julia_episodic_recall_request_batch(
                     .collect::<Vec<_>>(),
             )),
             Arc::new(Int64Array::from(
-                rows.iter().map(|row| row.created_at_ms).collect::<Vec<_>>(),
+                rows.iter()
+                    .map(|row| row.created_at_ms.value())
+                    .collect::<Vec<_>>(),
             )),
             Arc::new(Int64Array::from(
-                rows.iter().map(|row| row.updated_at_ms).collect::<Vec<_>>(),
+                rows.iter()
+                    .map(|row| row.updated_at_ms.value())
+                    .collect::<Vec<_>>(),
             )),
             Arc::new(Float32Array::from(
                 rows.iter().map(|row| row.k1).collect::<Vec<_>>(),
@@ -269,6 +273,13 @@ pub fn build_memory_julia_episodic_recall_request_batch(
 ///
 /// Returns an error when the schema does not match the staged contract.
 pub fn validate_memory_julia_episodic_recall_request_schema(schema: &Schema) -> Result<(), String> {
+    validate_episodic_recall_request_text_schema(schema)?;
+    validate_episodic_recall_request_embedding_schema(schema)?;
+    validate_episodic_recall_request_history_schema(schema)?;
+    validate_episodic_recall_request_tuning_schema(schema)
+}
+
+fn validate_episodic_recall_request_text_schema(schema: &Schema) -> Result<(), String> {
     validate_utf8_field(schema, MEMORY_JULIA_EPISODIC_RECALL_QUERY_ID_COLUMN, false)?;
     validate_utf8_field(
         schema,
@@ -276,22 +287,28 @@ pub fn validate_memory_julia_episodic_recall_request_schema(schema: &Schema) -> 
         true,
     )?;
     validate_utf8_field(schema, MEMORY_JULIA_EPISODIC_RECALL_SCOPE_COLUMN, false)?;
+    validate_utf8_field(
+        schema,
+        MEMORY_JULIA_EPISODIC_RECALL_CANDIDATE_ID_COLUMN,
+        false,
+    )
+}
+
+fn validate_episodic_recall_request_embedding_schema(schema: &Schema) -> Result<(), String> {
     validate_utf8_field(schema, MEMORY_JULIA_EPISODIC_RECALL_QUERY_TEXT_COLUMN, true)?;
     validate_float32_list_field(
         schema,
         MEMORY_JULIA_EPISODIC_RECALL_QUERY_EMBEDDING_COLUMN,
         false,
     )?;
-    validate_utf8_field(
-        schema,
-        MEMORY_JULIA_EPISODIC_RECALL_CANDIDATE_ID_COLUMN,
-        false,
-    )?;
     validate_float32_list_field(
         schema,
         MEMORY_JULIA_EPISODIC_RECALL_INTENT_EMBEDDING_COLUMN,
         false,
-    )?;
+    )
+}
+
+fn validate_episodic_recall_request_history_schema(schema: &Schema) -> Result<(), String> {
     validate_primitive_field(
         schema,
         MEMORY_JULIA_EPISODIC_RECALL_Q_VALUE_COLUMN,
@@ -327,7 +344,10 @@ pub fn validate_memory_julia_episodic_recall_request_schema(schema: &Schema) -> 
         MEMORY_JULIA_EPISODIC_RECALL_UPDATED_AT_MS_COLUMN,
         &DataType::Int64,
         false,
-    )?;
+    )
+}
+
+fn validate_episodic_recall_request_tuning_schema(schema: &Schema) -> Result<(), String> {
     validate_primitive_field(
         schema,
         MEMORY_JULIA_EPISODIC_RECALL_K1_COLUMN,
@@ -351,8 +371,7 @@ pub fn validate_memory_julia_episodic_recall_request_schema(schema: &Schema) -> 
         MEMORY_JULIA_EPISODIC_RECALL_MIN_SCORE_COLUMN,
         &DataType::Float32,
         false,
-    )?;
-    Ok(())
+    )
 }
 
 /// Validate one staged episodic recall request batch.
@@ -369,6 +388,12 @@ pub fn validate_memory_julia_episodic_recall_request_batch(
         return Err("episodic recall request batch must contain at least one row".to_string());
     }
 
+    validate_episodic_recall_request_text_columns(batch)?;
+    validate_episodic_recall_request_score_columns(batch)?;
+    validate_episodic_recall_request_timestamp_columns(batch)
+}
+
+fn validate_episodic_recall_request_text_columns(batch: &RecordBatch) -> Result<(), String> {
     require_non_blank_utf8_column(batch, MEMORY_JULIA_EPISODIC_RECALL_QUERY_ID_COLUMN)?;
     require_non_blank_optional_utf8_column(
         batch,
@@ -384,16 +409,18 @@ pub fn validate_memory_julia_episodic_recall_request_batch(
     require_non_empty_float32_list_column(
         batch,
         MEMORY_JULIA_EPISODIC_RECALL_INTENT_EMBEDDING_COLUMN,
-    )?;
+    )
+}
+
+fn validate_episodic_recall_request_score_columns(batch: &RecordBatch) -> Result<(), String> {
     require_finite_float32_column(batch, MEMORY_JULIA_EPISODIC_RECALL_Q_VALUE_COLUMN)?;
     require_finite_non_negative_float32_column(batch, MEMORY_JULIA_EPISODIC_RECALL_K1_COLUMN)?;
     require_finite_non_negative_float32_column(batch, MEMORY_JULIA_EPISODIC_RECALL_K2_COLUMN)?;
     require_finite_non_negative_float32_column(batch, MEMORY_JULIA_EPISODIC_RECALL_LAMBDA_COLUMN)?;
-    require_finite_non_negative_float32_column(
-        batch,
-        MEMORY_JULIA_EPISODIC_RECALL_MIN_SCORE_COLUMN,
-    )?;
+    require_finite_non_negative_float32_column(batch, MEMORY_JULIA_EPISODIC_RECALL_MIN_SCORE_COLUMN)
+}
 
+fn validate_episodic_recall_request_timestamp_columns(batch: &RecordBatch) -> Result<(), String> {
     let created_at = int64_column(batch, MEMORY_JULIA_EPISODIC_RECALL_CREATED_AT_MS_COLUMN)
         .map_err(|error| error.to_string())?;
     let updated_at = int64_column(batch, MEMORY_JULIA_EPISODIC_RECALL_UPDATED_AT_MS_COLUMN)
@@ -566,8 +593,8 @@ pub fn decode_memory_julia_episodic_recall_score_rows(
 
         for row in 0..batch.num_rows() {
             rows.push(MemoryJuliaEpisodicRecallScoreRow {
-                query_id: query_id.value(row).to_string(),
-                candidate_id: candidate_id.value(row).to_string(),
+                query_id: query_id.value(row).into(),
+                candidate_id: candidate_id.value(row).into(),
                 semantic_score: semantic_score.value(row),
                 utility_score: utility_score.value(row),
                 final_score: final_score.value(row),
@@ -575,7 +602,7 @@ pub fn decode_memory_julia_episodic_recall_score_rows(
                 ranking_reason: (!ranking_reason.is_null(row))
                     .then(|| ranking_reason.value(row).to_string()),
                 retrieval_mode: (!retrieval_mode.is_null(row))
-                    .then(|| retrieval_mode.value(row).to_string()),
+                    .then(|| retrieval_mode.value(row).into()),
                 schema_version: schema_version.value(row).to_string(),
             });
         }

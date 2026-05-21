@@ -195,8 +195,8 @@ fn advance_detached_business_rule_handler(
         node.decision
             .clone()
             .ok_or_else(|| BpmnEngineError::MissingBusinessRuleDecisionRef {
-                process_id: process_key.process_id.to_string(),
-                node_id: node.bpmn_id.to_string(),
+                process_id: (process_key.process_id.to_string()).into(),
+                node_id: (node.bpmn_id.to_string()).into(),
             })?;
     if evaluate_dmn_package_binding_sync(package, &decision, &instance.variables)?.is_some() {
         return Ok(DetachedCompensationProgress::Continue);
@@ -229,7 +229,7 @@ fn resolve_detached_process<'a>(
         .filter(|process| process.key.process_id == process_key.process_id)
         .or_else(|| package.find_process(process_key.process_id.as_ref()))
         .ok_or_else(|| BpmnEngineError::MissingProcess {
-            process_id: process_key.process_id.to_string(),
+            process_id: (process_key.process_id.to_string()).into(),
         })
 }
 
@@ -244,10 +244,10 @@ fn enqueue_detached_host_work(
     let token_id = state::allocate_token_id(instance);
     let pending = PendingHostWork {
         token_id,
-        process_id: Some(process_id.to_string()),
+        process_id: (Some(process_id.into())),
         node_index,
-        activity_id: Some(activity_id.to_string()),
-        kind: spec.kind,
+        activity_id: (Some(activity_id.into())),
+        kind: (spec.kind),
         decision: spec.decision,
         lane: None,
         script_format: spec.script_format,

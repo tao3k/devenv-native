@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::api::item` owns Wendao planner api item behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -35,8 +37,8 @@ pub fn build_docs_planner_item(
         .into_iter()
         .find(|gap| gap.gap_id == query.gap_id)
         .ok_or_else(|| RepoIntelligenceError::UnknownProjectedGap {
-            repo_id: query.repo_id.clone(),
-            gap_id: query.gap_id.clone(),
+            repo_id: query.repo_id.clone().into(),
+            gap_id: query.gap_id.clone().into(),
         })?;
     let hit = build_docs_retrieval_hit(
         &crate::analyzers::DocsRetrievalHitQuery {

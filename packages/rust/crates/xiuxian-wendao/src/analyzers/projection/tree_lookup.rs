@@ -1,3 +1,5 @@
+//! `analyzers::projection::tree_lookup` owns Wendao analyzers projection tree lookup behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{RepoProjectedPageIndexTreeQuery, RepoProjectedPageIndexTreeResult};
@@ -18,8 +20,8 @@ pub fn build_projected_page_index_tree(
         .into_iter()
         .find(|tree| tree.page_id == query.page_id)
         .ok_or_else(|| RepoIntelligenceError::UnknownProjectedPage {
-            repo_id: query.repo_id.clone(),
-            page_id: query.page_id.clone(),
+            repo_id: query.repo_id.clone().into(),
+            page_id: query.page_id.clone().into(),
         })?;
 
     Ok(RepoProjectedPageIndexTreeResult {

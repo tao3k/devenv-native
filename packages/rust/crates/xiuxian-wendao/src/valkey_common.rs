@@ -1,3 +1,5 @@
+//! `valkey_common` owns Wendao valkey common behavior.
+
 #[cfg(any(feature = "studio", feature = "zhenfa-router"))]
 use std::time::Duration;
 

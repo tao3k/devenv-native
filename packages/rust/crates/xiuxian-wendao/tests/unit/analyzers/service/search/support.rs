@@ -45,9 +45,9 @@ fn sample_search_fixture_ids(repo_id: &str) -> SearchFixtureIds {
 
 fn sample_repository_record(repo_id: &str) -> RepositoryRecord {
     RepositoryRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         name: "ProjectionPkg".to_string(),
-        path: format!("/virtual/repos/{repo_id}"),
+        path: format!("/virtual/repos/{repo_id}").into(),
         url: None,
         revision: Some("fixture".to_string()),
         version: Some("0.1.0".to_string()),
@@ -58,23 +58,23 @@ fn sample_repository_record(repo_id: &str) -> RepositoryRecord {
 
 fn sample_module_record(repo_id: &str, module_id: &str) -> ModuleRecord {
     ModuleRecord {
-        repo_id: repo_id.to_string(),
-        module_id: module_id.to_string(),
+        repo_id: repo_id.to_string().into(),
+        module_id: module_id.to_string().into(),
         qualified_name: "ProjectionPkg".to_string(),
-        path: "src/ProjectionPkg.jl".to_string(),
+        path: "src/ProjectionPkg.jl".to_string().into(),
     }
 }
 
 fn sample_symbol_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<SymbolRecord> {
     vec![
         SymbolRecord {
-            repo_id: repo_id.to_string(),
-            symbol_id: ids.solve_symbol.clone(),
-            module_id: Some(ids.module.clone()),
+            repo_id: repo_id.to_string().into(),
+            symbol_id: ids.solve_symbol.clone().into(),
+            module_id: Some(ids.module.clone().into()),
             name: "solve".to_string(),
             qualified_name: "ProjectionPkg.solve".to_string(),
             kind: RepoSymbolKind::Function,
-            path: "src/ProjectionPkg.jl".to_string(),
+            path: "src/ProjectionPkg.jl".to_string().into(),
             line_start: None,
             line_end: None,
             signature: Some("solve(problem::Problem)".to_string()),
@@ -83,13 +83,13 @@ fn sample_symbol_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<SymbolRec
             attributes: BTreeMap::new(),
         },
         SymbolRecord {
-            repo_id: repo_id.to_string(),
-            symbol_id: ids.problem_symbol.clone(),
-            module_id: Some(ids.module.clone()),
+            repo_id: repo_id.to_string().into(),
+            symbol_id: ids.problem_symbol.clone().into(),
+            module_id: Some(ids.module.clone().into()),
             name: "Problem".to_string(),
             qualified_name: "ProjectionPkg.Problem".to_string(),
             kind: RepoSymbolKind::Type,
-            path: "src/ProjectionPkg.jl".to_string(),
+            path: "src/ProjectionPkg.jl".to_string().into(),
             line_start: None,
             line_end: None,
             signature: Some("struct Problem".to_string()),
@@ -102,25 +102,25 @@ fn sample_symbol_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<SymbolRec
 
 fn sample_import_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<ImportRecord> {
     vec![ImportRecord {
-        repo_id: repo_id.to_string(),
-        module_id: ids.module.clone(),
-        path: "src/ProjectionPkg.jl".to_string(),
+        repo_id: repo_id.to_string().into(),
+        module_id: ids.module.clone().into(),
+        path: "src/ProjectionPkg.jl".to_string().into(),
         import_name: "solve".to_string(),
         target_package: "SciMLBase".to_string(),
         source_module: "BaseModelica".to_string(),
         kind: ImportKind::Symbol,
         line_start: None,
-        resolved_id: Some(ids.solve_symbol.clone()),
+        resolved_id: Some(ids.solve_symbol.clone().into()),
         attributes: BTreeMap::new(),
     }]
 }
 
 fn sample_example_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<ExampleRecord> {
     vec![ExampleRecord {
-        repo_id: repo_id.to_string(),
-        example_id: ids.example.clone(),
+        repo_id: repo_id.to_string().into(),
+        example_id: ids.example.clone().into(),
         title: "basic".to_string(),
-        path: "examples/basic.jl".to_string(),
+        path: "examples/basic.jl".to_string().into(),
         summary: Some("Solve a projection problem end to end.".to_string()),
     }]
 }
@@ -128,26 +128,26 @@ fn sample_example_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<ExampleR
 fn sample_doc_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<DocRecord> {
     vec![
         DocRecord {
-            repo_id: repo_id.to_string(),
-            doc_id: ids.readme_doc.clone(),
+            repo_id: repo_id.to_string().into(),
+            doc_id: ids.readme_doc.clone().into(),
             title: "README.md".to_string(),
-            path: "README.md".to_string(),
+            path: "README.md".to_string().into(),
             format: Some("md".to_string()),
             doc_target: None,
         },
         DocRecord {
-            repo_id: repo_id.to_string(),
-            doc_id: ids.problem_doc.clone(),
+            repo_id: repo_id.to_string().into(),
+            doc_id: ids.problem_doc.clone().into(),
             title: "Problem".to_string(),
-            path: "src/ProjectionPkg.jl#symbol:Problem".to_string(),
+            path: "src/ProjectionPkg.jl#symbol:Problem".to_string().into(),
             format: Some("julia_docstring".to_string()),
             doc_target: None,
         },
         DocRecord {
-            repo_id: repo_id.to_string(),
-            doc_id: ids.solve_doc.clone(),
+            repo_id: repo_id.to_string().into(),
+            doc_id: ids.solve_doc.clone().into(),
             title: "solve".to_string(),
-            path: "src/ProjectionPkg.jl#symbol:solve".to_string(),
+            path: "src/ProjectionPkg.jl#symbol:solve".to_string().into(),
             format: Some("julia_docstring".to_string()),
             doc_target: None,
         },
@@ -157,31 +157,31 @@ fn sample_doc_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<DocRecord> {
 fn sample_relation_records(repo_id: &str, ids: &SearchFixtureIds) -> Vec<RelationRecord> {
     vec![
         RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             source_id: ids.readme_doc.clone(),
             target_id: ids.module.clone(),
             kind: RelationKind::Documents,
         },
         RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             source_id: ids.problem_doc.clone(),
             target_id: ids.problem_symbol.clone(),
             kind: RelationKind::Documents,
         },
         RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             source_id: ids.solve_doc.clone(),
             target_id: ids.solve_symbol.clone(),
             kind: RelationKind::Documents,
         },
         RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             source_id: ids.example.clone(),
             target_id: ids.module.clone(),
             kind: RelationKind::ExampleOf,
         },
         RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             source_id: ids.example.clone(),
             target_id: ids.solve_symbol.clone(),
             kind: RelationKind::ExampleOf,

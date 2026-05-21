@@ -12,7 +12,7 @@ fn thought_aggregator_creates_trace_with_intent() {
 
     let trace = aggregator.build();
     assert!(trace.trace_id.starts_with("trace-AuditNode-"));
-    assert_eq!(trace.session_id, Some("session-123".to_string()));
+    assert_eq!(trace.session_id.as_deref(), Some("session-123"));
     assert_eq!(trace.node_id, "AuditNode");
     assert_eq!(trace.intent, "Critique the agenda");
 }
@@ -221,7 +221,7 @@ fn thought_aggregator_builds_complete_trace() {
     let trace = aggregator.build();
 
     assert!(trace.trace_id.starts_with("trace-CompleteNode-"));
-    assert_eq!(trace.session_id, Some("session-complete".to_string()));
+    assert_eq!(trace.session_id.as_deref(), Some("session-complete"));
     assert_eq!(trace.node_id, "CompleteNode");
     assert_eq!(trace.intent, "Complete workflow");
     assert!(trace.reasoning.contains("[THOUGHT] Planning..."));

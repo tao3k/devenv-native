@@ -48,9 +48,10 @@ async fn runtime_business_rule_task_rejects_missing_input_decision_service_expos
         error,
         BpmnEngineError::MissingDmnDecisionServiceReferenceTarget {
             source_id: "versioned-missing-input-decision-service-exposure-runtime-20191111.dmn"
-                .to_string(),
-            decision_service_id: "DecisionService_credit".to_string(),
-            reference_kind: "inputDecision".to_string(),
+                .to_string()
+                .into(),
+            decision_service_id: ("DecisionService_credit".to_string()).into(),
+            reference_kind: ("inputDecision".to_string()).into(),
             href: "#Decision_missing".to_string(),
         }
     );
@@ -74,9 +75,10 @@ async fn runtime_business_rule_task_rejects_unsupported_input_data_exposure_href
         BpmnEngineError::UnsupportedDmnDecisionServiceReferenceHref {
             source_id:
                 "versioned-unsupported-input-data-decision-service-exposure-runtime-20191111.dmn"
-                    .to_string(),
-            decision_service_id: "DecisionService_credit".to_string(),
-            reference_kind: "inputData".to_string(),
+                    .to_string()
+                    .into(),
+            decision_service_id: ("DecisionService_credit".to_string()).into(),
+            reference_kind: ("inputData".to_string()).into(),
             href: "InputData_application".to_string(),
         }
     );
@@ -98,8 +100,10 @@ async fn runtime_business_rule_task_rejects_missing_decision_service_output_targ
     assert_eq!(
         error,
         BpmnEngineError::MissingDmnDecisionServiceOutputTarget {
-            source_id: "versioned-missing-output-decision-service-runtime-20191111.dmn".to_string(),
-            decision_service_id: "DecisionService_missing_output".to_string(),
+            source_id: ("versioned-missing-output-decision-service-runtime-20191111.dmn"
+                .to_string())
+            .into(),
+            decision_service_id: ("DecisionService_missing_output".to_string()).into(),
             href: "#Decision_missing".to_string(),
         }
     );

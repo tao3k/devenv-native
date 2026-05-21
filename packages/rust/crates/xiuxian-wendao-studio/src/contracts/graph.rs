@@ -3,25 +3,28 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::StudioNavigationTarget;
+use super::{
+    StudioContractCenterFlag, StudioContractId, StudioContractKind, StudioContractPath,
+    StudioNavigationTarget,
+};
 
 /// A single node in the link-graph visualization.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphNode {
     /// Global identifier for the node.
-    pub id: String,
+    pub id: StudioContractId,
     /// Display label.
     pub label: String,
     /// File path if the node represents a document.
-    pub path: String,
+    pub path: StudioContractPath,
     /// Display-ready navigation target.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub navigation_target: Option<StudioNavigationTarget>,
     /// Optional node type (e.g., "CORE", "FEATURE").
-    pub node_type: String,
+    pub node_type: StudioContractKind,
     /// Whether this is the focal node of the query.
-    pub is_center: bool,
+    pub is_center: StudioContractCenterFlag,
     /// Shortest-path distance from the center node.
     pub distance: usize,
 }
@@ -73,11 +76,11 @@ pub struct Topology3dPayload {
 #[serde(rename_all = "camelCase")]
 pub struct TopologyNode {
     /// Global identifier for the node.
-    pub id: String,
+    pub id: StudioContractId,
     /// Human-friendly node label.
     pub name: String,
     /// Node category.
-    pub node_type: String,
+    pub node_type: StudioContractKind,
     /// Initial 3D position.
     pub position: [f32; 3],
     /// Optional cluster identifier.

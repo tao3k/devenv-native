@@ -47,7 +47,7 @@ fn normalize_process(
     let compensation_handlers = normalize_compensation_handlers(raw, &index_by_id)?;
     let data_object_bindings = normalize_data_object_bindings(raw)?;
 
-    Ok(BpmnProcessSpec::new_with_compensation(
+    Ok(BpmnProcessSpec::from_parts(
         ProcessKey::new(package_id, &raw.process_id, digest_hex),
         nodes,
         edges,
@@ -118,8 +118,8 @@ fn normalize_data_object_bindings(raw: &RawProcess) -> Result<Vec<BpmnDataObject
     for reference in &raw.data_object_references {
         if !object_ids.contains(reference.data_object_ref.as_str()) {
             return Err(BpmnEngineError::UnknownDataObjectReference {
-                process_id: raw.process_id.clone(),
-                reference_id: reference.id.clone(),
+                process_id: (raw.process_id.clone()).into(),
+                reference_id: (reference.id.clone()).into(),
                 data_object_ref: reference.data_object_ref.clone(),
             });
         }

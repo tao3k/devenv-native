@@ -1,3 +1,5 @@
+//! `zhenfa_router` owns Wendao zhenfa router behavior.
+
 #[cfg(feature = "zhenfa-router")]
 #[path = "http.rs"]
 mod http;

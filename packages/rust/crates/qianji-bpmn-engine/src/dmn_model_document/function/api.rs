@@ -1,5 +1,7 @@
 //! Public dmn model document function contracts for BPMN/DMN engine integration.
 
+use super::DmnSnapshotKind;
+
 /// Snapshot of one direct function-definition parameter placeholder.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnFunctionDefinitionParameterSnapshot {
@@ -28,7 +30,7 @@ pub struct DmnFunctionDefinitionSnapshot {
     /// Optional stable function-definition identifier.
     pub function_definition_id: Option<String>,
     /// Optional DMN function kind, for example `FEEL`.
-    pub kind: Option<String>,
+    pub kind: Option<DmnSnapshotKind>,
     /// Direct formal parameters preserved in source order.
     pub parameters: Vec<DmnFunctionDefinitionParameterSnapshot>,
     /// Direct body literal-expression metadata when present.

@@ -1,3 +1,5 @@
+//! `search::coordinator` owns Wendao search coordinator behavior.
+
 mod build;
 mod maintenance;
 mod state;

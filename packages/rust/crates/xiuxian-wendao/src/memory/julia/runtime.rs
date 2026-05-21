@@ -1,3 +1,5 @@
+//! `memory::julia::runtime` owns Wendao memory julia runtime behavior.
+
 use crate::settings::merged_wendao_settings;
 use xiuxian_wendao_core::{
     capabilities::PluginCapabilityBinding, repo_intelligence::RepoIntelligenceError,

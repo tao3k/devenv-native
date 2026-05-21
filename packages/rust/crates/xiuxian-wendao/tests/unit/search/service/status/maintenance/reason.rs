@@ -1,4 +1,5 @@
-use crate::search::service::tests::support::{derive_status_reason, some_or_panic};
+use crate::search::service::helpers::derive_status_reason;
+use crate::search::service::tests::support::some_or_panic;
 use crate::search::{
     SearchCorpusKind, SearchCorpusStatus, SearchCorpusStatusAction, SearchCorpusStatusReasonCode,
     SearchCorpusStatusSeverity, SearchPlanePhase,

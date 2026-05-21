@@ -5,7 +5,7 @@ use crate::runtime::{
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnNodeKind, BpmnPackage, PendingHostWorkResult,
-    ServiceTaskOutcome, advance_instance, apply_pending_host_work_result, create_instance,
+    ServiceTaskOutcome, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -42,7 +42,7 @@ async fn runtime_sequential_multi_instance_data_binding_aggregates_array_output(
             .cloned()
             .must("data-binding iteration should register pending host work");
 
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending.token_id,

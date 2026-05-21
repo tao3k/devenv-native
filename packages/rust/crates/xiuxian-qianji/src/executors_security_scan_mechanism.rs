@@ -10,6 +10,7 @@ use std::fs;
 use xiuxian_ast::SecurityScanner;
 
 /// Mechanism responsible for statically analyzing code files for security violations.
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct SecurityScanMechanism {
     /// Context key containing a list of file paths to scan.
     pub files_key: String,

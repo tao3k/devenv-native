@@ -31,6 +31,24 @@ pub struct InMemoryHotReloadVersionBackend {
     versions: Mutex<BTreeMap<String, u64>>,
 }
 
+/// Hot-reload target identifier used by test and local synchronization helpers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HotReloadTargetId(String);
+
+impl HotReloadTargetId {
+    /// Creates a hot-reload target identifier.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+}
+
+impl AsRef<str> for HotReloadTargetId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl InMemoryHotReloadVersionBackend {
     /// Sets an explicit version value.
     ///
@@ -39,12 +57,12 @@ impl InMemoryHotReloadVersionBackend {
     /// # Errors
     ///
     /// Returns an error when the in-memory lock is poisoned.
-    pub fn set_version(&self, target_id: &str, version: u64) -> Result<()> {
+    pub fn set_version(&self, target_id: &HotReloadTargetId, version: u64) -> Result<()> {
         let mut guard = self
             .versions
             .lock()
             .map_err(|_| anyhow::anyhow!("hot reload version backend lock poisoned"))?;
-        guard.insert(target_id.to_string(), version);
+        guard.insert(target_id.as_ref().to_string(), version);
         Ok(())
     }
 }

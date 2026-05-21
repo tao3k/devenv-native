@@ -93,10 +93,10 @@ fn initialize_modelica_ast_query_analysis_output(
     let module_id = format!("repo:{repo_id}:module:{primary_name}");
     let output = RepositoryAnalysisOutput {
         modules: vec![ModuleRecord {
-            repo_id: repo_id.to_string(),
-            module_id: module_id.clone(),
+            repo_id: (repo_id.to_string()).into(),
+            module_id: (module_id.clone()).into(),
             qualified_name: primary_name,
-            path: source_id.to_string(),
+            path: (source_id.to_string()).into(),
         }],
         ..RepositoryAnalysisOutput::default()
     };
@@ -152,7 +152,7 @@ fn append_modelica_ast_query_import_row(
     let key = (
         import_record.source_module.clone(),
         import_record.import_name.clone(),
-        import_record.path.clone(),
+        import_record.path.to_string(),
         import_record
             .attributes
             .get("dependency_form")
@@ -189,13 +189,13 @@ fn append_modelica_ast_query_symbol_row(
 
     let qualified_name = ast_row_qualified_name(row, &name);
     output.symbols.push(SymbolRecord {
-        repo_id: repo_id.to_string(),
-        symbol_id: format!("repo:{repo_id}:symbol:{qualified_name}"),
-        module_id: Some(module_id.to_string()),
+        repo_id: (repo_id.to_string()).into(),
+        symbol_id: (format!("repo:{repo_id}:symbol:{qualified_name}")).into(),
+        module_id: Some((module_id.to_string()).into()),
         name,
         qualified_name,
         kind,
-        path: source_id.to_string(),
+        path: (source_id.to_string()).into(),
         line_start: ast_line_number(row.match_line_start)?,
         line_end: ast_line_number(row.match_line_end)?,
         signature: row
@@ -303,9 +303,9 @@ fn import_record_from_ast_row(
     insert_text_attribute(&mut attributes, "class_path", row.match_class_path.as_ref());
 
     Ok(Some(xiuxian_wendao_core::repo_intelligence::ImportRecord {
-        repo_id: repo_id.to_string(),
-        module_id: module_id.to_string(),
-        path: source_id.to_string(),
+        repo_id: (repo_id.to_string()).into(),
+        module_id: (module_id.to_string()).into(),
+        path: (source_id.to_string()).into(),
         import_name,
         target_package,
         source_module,

@@ -1,6 +1,6 @@
 //! Attachment search command execution.
 
-use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{Cli, Command};
 use anyhow::{Context, Result};
 use serde_json::json;

@@ -38,13 +38,13 @@ mod julia {
 
     fn julia_runtime_fixture() -> LinkGraphJuliaRerankRuntimeConfig {
         LinkGraphJuliaRerankRuntimeConfig {
-            base_url: Some("http://127.0.0.1:8815".to_string()),
-            route: Some("/rerank".to_string()),
-            health_route: Some("/healthz".to_string()),
-            schema_version: Some("v1".to_string()),
-            timeout_secs: Some(15),
-            service_mode: Some("stream".to_string()),
-            search_config_path: Some("examples/julia.toml".to_string()),
+            base_url: Some("http://127.0.0.1:8815".to_string().into()),
+            route: Some("/rerank".to_string().into()),
+            health_route: Some("/healthz".to_string().into()),
+            schema_version: Some("v1".to_string().into()),
+            timeout_secs: Some(15_u64.into()),
+            service_mode: Some("stream".to_string().into()),
+            search_config_path: Some("examples/julia.toml".to_string().into()),
             vector_weight: Some(0.2),
             similarity_weight: Some(0.8),
         }
@@ -135,9 +135,15 @@ mod julia {
             linked_builtin_julia_gateway_artifact_selected_transport(),
             julia_gateway_artifact_selected_transport()
         );
+        let linked_artifact_path = linked_builtin_julia_gateway_artifact_path();
+        let julia_artifact_path = julia_gateway_artifact_path();
         assert_eq!(
-            linked_builtin_julia_gateway_artifact_path(),
-            julia_gateway_artifact_path()
+            linked_artifact_path.plugin_id,
+            julia_artifact_path.plugin_id
+        );
+        assert_eq!(
+            linked_artifact_path.artifact_id,
+            julia_artifact_path.artifact_id
         );
         assert_eq!(
             linked_builtin_julia_gateway_artifact_route(),

@@ -142,21 +142,26 @@ fn push_di_edges(xml: &mut String, edges: &[EdgeLayout]) {
 pub fn generate_bpmn_xml(layout: &LayoutResult) -> String {
     let mut xml = String::new();
     push_header(&mut xml);
+    push_process_section(&mut xml, layout);
+    push_diagram_section(&mut xml, layout);
+    xml.push_str("</bpmn:definitions>");
+    xml
+}
 
+fn push_process_section(xml: &mut String, layout: &LayoutResult) {
     xml.push_str("  <bpmn:process id=\"Sovereign_Process\" isExecutable=\"false\">\n");
-    push_process_nodes(&mut xml, &layout.nodes);
-    push_process_edges(&mut xml, &layout.edges);
+    push_process_nodes(xml, &layout.nodes);
+    push_process_edges(xml, &layout.edges);
     xml.push_str("  </bpmn:process>\n");
+}
 
+fn push_diagram_section(xml: &mut String, layout: &LayoutResult) {
     xml.push_str("  <bpmndi:BPMNDiagram id=\"Sovereign_Diagram\">\n");
     xml.push_str(
         "    <bpmndi:BPMNPlane id=\"Sovereign_Plane\" bpmnElement=\"Sovereign_Process\">\n",
     );
-    push_di_nodes(&mut xml, &layout.nodes);
-    push_di_edges(&mut xml, &layout.edges);
+    push_di_nodes(xml, &layout.nodes);
+    push_di_edges(xml, &layout.edges);
     xml.push_str("    </bpmndi:BPMNPlane>\n");
     xml.push_str("  </bpmndi:BPMNDiagram>\n");
-    xml.push_str("</bpmn:definitions>");
-
-    xml
 }

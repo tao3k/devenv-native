@@ -86,8 +86,8 @@ async fn build_vfs_resolve_response_rejects_blank_path() {
 #[test]
 fn vfs_navigation_target_batch_preserves_project_metadata() {
     let batch = vfs_navigation_target_batch(&StudioNavigationTarget {
-        path: "kernel/docs/index.md".to_string(),
-        category: "file".to_string(),
+        path: "kernel/docs/index.md".to_string().into(),
+        category: "file".to_string().into(),
         project_name: Some("kernel".to_string()),
         root_label: Some("project".to_string()),
         line: Some(7),

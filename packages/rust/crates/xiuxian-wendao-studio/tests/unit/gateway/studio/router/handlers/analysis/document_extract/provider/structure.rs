@@ -34,6 +34,25 @@ fn hybrid_page_ocr_writes_structure_sidecar() -> Result<(), String> {
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 #[test]
+fn hybrid_page_ocr_structure_ignores_docling_json_wrapper_rows() -> Result<(), String> {
+    let resource_batch = HybridDocumentResourceBatch::native(test_resource_batch(&[
+        ("document", 0, "doc-main"),
+        ("docling_json", 0, "doc-json"),
+        ("table", 0, "table-1"),
+    ])?);
+
+    let blocks = hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
+    let block_types = blocks
+        .iter()
+        .map(|block| block.block_type.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(block_types, vec!["document", "table"]);
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
 fn hybrid_page_ocr_structure_sidecar_preserves_region_provenance() -> Result<(), String> {
     let mut input = sample_ocr_input(0, "region");
     input.crop_left = 72.0;
@@ -96,6 +115,11 @@ fn hybrid_page_ocr_structure_sidecar_preserves_region_provenance() -> Result<(),
             .value(1)
             .contains(r#""shardType":"region""#)
     );
+    assert!(
+        structure_string_column(&structure_batch, "provenance")?
+            .value(1)
+            .contains(r#""patchProtocol":"sentinel-sidecar-v1""#)
+    );
     Ok(())
 }
 
@@ -137,5 +161,54 @@ fn hybrid_precision_gate_requires_ocr_bbox_provenance() -> Result<(), String> {
     };
 
     assert!(error.contains("missing bbox provenance"));
+    Ok(())
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn hybrid_precision_gate_requires_region_sentinel_patch_protocol() -> Result<(), String> {
+    let parent = sample_ocr_input(0, "page");
+    let mut region = sample_ocr_input(0, "region");
+    region.shard_element_id = "region-shard-0".to_string();
+    region.parent_shard_element_id = parent.shard_element_id.clone();
+    let parent_result = sample_ocr_result(0, true);
+    let mut region_result = sample_ocr_result(0, true);
+    region_result.shard_element_id = region.shard_element_id.clone();
+    region_result.element_id = "region-result-0".to_string();
+    let batch = test_resource_batch(&[
+        ("ocr_text", 0, parent_result.element_id.as_str()),
+        ("ocr_text", 0, region_result.element_id.as_str()),
+    ])?;
+    let resource_batch = HybridDocumentResourceBatch::with_ocr(
+        batch.clone(),
+        vec![parent.clone(), region.clone()],
+        vec![parent_result.clone(), region_result.clone()],
+    );
+    let mut blocks =
+        hybrid_document_structure_blocks(&resource_batch, "sourcehash", "wendao-hybrid")?;
+    let region_block = blocks
+        .iter_mut()
+        .find(|block| block.block_type == "ocr_region")
+        .ok_or_else(|| "missing region block".to_string())?;
+    region_block.provenance = serde_json::json!({
+        "source": "pdf_ocr_shard",
+        "shardType": "region",
+        "shardElementId": region.shard_element_id.clone(),
+        "parentShardElementId": region.parent_shard_element_id.clone(),
+    })
+    .to_string();
+
+    let Err(error) = validate_hybrid_precision_gate(
+        1,
+        &[],
+        &batch,
+        blocks.as_slice(),
+        &[parent, region],
+        &[parent_result, region_result],
+    ) else {
+        panic!("expected precision gate to reject missing region patch protocol");
+    };
+
+    assert!(error.contains("missing sentinel patch protocol"));
     Ok(())
 }

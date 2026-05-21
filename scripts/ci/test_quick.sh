@@ -15,13 +15,13 @@ uv run pytest \
   scripts/test_llm_provider_smoke.py \
   scripts/test_no_inline_python_exec_patterns.py \
   scripts/test_run_real_metal_test.py \
-  scripts/channel/test_epoch_millis.py \
-  scripts/channel/test_config_resolver_compat.py \
-  scripts/channel/test_resolve_tool_port_from_settings.py \
-  scripts/channel/test_check_tool_health.py \
-  scripts/channel/test_generate_secret_token.py \
-  scripts/channel/test_read_telegram_setting.py \
-  scripts/channel/test_extract_ngrok_public_url.py \
+  scripts/runtime/test_epoch_millis.py \
+  scripts/runtime/test_config_resolver_compat.py \
+  scripts/runtime/test_resolve_tool_port_from_settings.py \
+  scripts/runtime/test_check_tool_health.py \
+  scripts/runtime/test_generate_secret_token.py \
+  scripts/runtime/test_read_telegram_setting.py \
+  scripts/runtime/test_extract_ngrok_public_url.py \
   scripts/rust/test_resolve_libpython_path.py \
   packages/ncl/scripts/test_print_skill_summary.py \
   -q --tb=short

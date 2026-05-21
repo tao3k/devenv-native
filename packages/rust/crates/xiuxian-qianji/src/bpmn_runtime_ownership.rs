@@ -1,3 +1,5 @@
+//! Bpmn runtime ownership surface for `xiuxian-qianji`.
+
 use super::error::BpmnOrchestrationError;
 use crate::scheduler_identity::SchedulerAgentIdentity;
 

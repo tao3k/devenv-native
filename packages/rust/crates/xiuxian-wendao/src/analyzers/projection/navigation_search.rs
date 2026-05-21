@@ -1,3 +1,5 @@
+//! `analyzers::projection::navigation_search` owns Wendao analyzers projection navigation search behavior.
+
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::ProjectedPageRecord;
 use crate::analyzers::projection::navigation_bundle::build_projected_page_navigation;
@@ -7,6 +9,7 @@ use crate::analyzers::{
     RepoProjectedPageNavigationSearchResult,
 };
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build repo projected-page navigation hits for a query string.
 ///
 /// # Errors

@@ -2,6 +2,7 @@ use std::path::Path;
 
 use duckdb::params;
 
+use super::artifacts::{artifact_ready, now_ms};
 use super::queries::{
     fetch_job_counts, fetch_last_finished_job, fetch_latest_succeeded_status_for_source,
     fetch_status,
@@ -9,7 +10,6 @@ use super::queries::{
 use super::types::{
     DocumentExtractJobRegistry, DocumentExtractJobRegistrySnapshot, DocumentExtractJobStatus,
 };
-use super::utils::{artifact_ready, now_ms};
 
 impl DocumentExtractJobRegistry {
     pub(crate) fn submit(

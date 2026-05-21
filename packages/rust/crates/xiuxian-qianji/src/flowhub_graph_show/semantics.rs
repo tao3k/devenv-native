@@ -1,3 +1,4 @@
+use crate::contracts::FlowhubGraphNodeKind;
 use crate::flowhub::FlowhubScenarioNodeIr;
 
 use super::render_surface::render_file_list;
@@ -6,10 +7,13 @@ pub(super) fn graph_node_semantics(
     module_ref: Option<&str>,
     label: &str,
     node_contract: Option<&FlowhubScenarioNodeIr>,
-) -> (Option<String>, String, String) {
+) -> (Option<FlowhubGraphNodeKind>, String, String) {
     if let Some(node_contract) = node_contract {
         return (
-            node_contract.kind.clone(),
+            node_contract
+                .kind
+                .as_ref()
+                .map(|kind| FlowhubGraphNodeKind::new(kind.as_str())),
             node_contract
                 .role
                 .clone()

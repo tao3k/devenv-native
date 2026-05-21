@@ -1,3 +1,5 @@
+//! Owns the Studio search definition resolve surface.
+
 use std::path::Path;
 
 use super::filters::{
@@ -48,7 +50,7 @@ impl Default for DefinitionResolveOptions {
 }
 
 /// Resolves the best definition hit from a list of AST hits.
-pub fn resolve_best_definition(
+pub(crate) fn resolve_best_definition(
     query_str: &str,
     ast_hits: &[AstSearchHit],
     project_root: &Path,

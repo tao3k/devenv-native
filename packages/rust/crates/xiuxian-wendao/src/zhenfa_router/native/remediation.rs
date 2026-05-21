@@ -176,6 +176,7 @@ impl RemediationWorker {
     /// Refresh the symbol cache for a specific document.
     ///
     /// This is the O(1) incremental update path that avoids full rebuilds.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub async fn refresh_symbol_cache(&self, doc_id: &str) -> RemediationResult {
         let started = Instant::now();
 

@@ -10,7 +10,7 @@ use xiuxian_wendao::analyzers::{
     RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord,
 };
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_all_parser_summary_service,
+    JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
 
 use super::repo_fixture;
@@ -26,7 +26,7 @@ struct RepoIntelligenceParserSummaryService {
 
 enum RepoIntelligenceParserSummaryGuard {
     Real {
-        _guard: JuliaExampleServiceGuard,
+        _guard: JuliaServiceGuard,
     },
     Fake {
         _guard: FakeParserSummaryServiceGuard,
@@ -68,7 +68,7 @@ pub fn write_repo_config(base: &Path, repo_dir: &Path, repo_id: &str) -> TestRes
             r#"[link_graph.projects.{repo_id}]
 root = "{}"
 plugins = [
-  {{ id = "julia", parser_summary_transport = {{ base_url = "{parser_summary_base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}
+  {{ id = "julia-code-parser", parser_summary_transport = {{ base_url = "{parser_summary_base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}
 ]
 "#,
             repo_dir.display(),
@@ -128,13 +128,13 @@ fn real_repo_intelligence_parser_summary_service_is_available() -> bool {
 }
 
 fn spawn_real_repo_intelligence_parser_summary_service()
--> Result<(String, JuliaExampleServiceGuard), String> {
+-> Result<(String, JuliaServiceGuard), String> {
     std::thread::spawn(|| {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .map_err(|error| error.to_string())?;
-        Ok::<(String, JuliaExampleServiceGuard), String>(
+        Ok::<(String, JuliaServiceGuard), String>(
             runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
         )
     })
@@ -154,9 +154,9 @@ pub fn sample_projection_analysis(repo_id: &str) -> RepositoryAnalysisOutput {
 
     RepositoryAnalysisOutput {
         repository: Some(RepositoryRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             name: "ProjectionPkg".to_string(),
-            path: format!("/virtual/repos/{repo_id}"),
+            path: format!("/virtual/repos/{repo_id}").into(),
             url: None,
             revision: Some("fixture".to_string()),
             version: Some("0.1.0".to_string()),
@@ -164,20 +164,20 @@ pub fn sample_projection_analysis(repo_id: &str) -> RepositoryAnalysisOutput {
             dependencies: Vec::new(),
         }),
         modules: vec![ModuleRecord {
-            repo_id: repo_id.to_string(),
-            module_id: module_id.clone(),
+            repo_id: repo_id.to_string().into(),
+            module_id: module_id.clone().into(),
             qualified_name: "ProjectionPkg".to_string(),
-            path: "src/ProjectionPkg.jl".to_string(),
+            path: "src/ProjectionPkg.jl".into(),
         }],
         symbols: vec![
             SymbolRecord {
-                repo_id: repo_id.to_string(),
-                symbol_id: solve_symbol_id.clone(),
-                module_id: Some(module_id.clone()),
+                repo_id: repo_id.to_string().into(),
+                symbol_id: solve_symbol_id.clone().into(),
+                module_id: Some(module_id.clone().into()),
                 name: "solve".to_string(),
                 qualified_name: "ProjectionPkg.solve".to_string(),
                 kind: RepoSymbolKind::Function,
-                path: "src/ProjectionPkg.jl".to_string(),
+                path: "src/ProjectionPkg.jl".into(),
                 line_start: None,
                 line_end: None,
                 signature: Some("solve(problem::Problem)".to_string()),
@@ -186,13 +186,13 @@ pub fn sample_projection_analysis(repo_id: &str) -> RepositoryAnalysisOutput {
                 attributes: BTreeMap::new(),
             },
             SymbolRecord {
-                repo_id: repo_id.to_string(),
-                symbol_id: problem_symbol_id.clone(),
-                module_id: Some(module_id.clone()),
+                repo_id: repo_id.to_string().into(),
+                symbol_id: problem_symbol_id.clone().into(),
+                module_id: Some(module_id.clone().into()),
                 name: "Problem".to_string(),
                 qualified_name: "ProjectionPkg.Problem".to_string(),
                 kind: RepoSymbolKind::Type,
-                path: "src/ProjectionPkg.jl".to_string(),
+                path: "src/ProjectionPkg.jl".into(),
                 line_start: None,
                 line_end: None,
                 signature: Some("struct Problem".to_string()),
@@ -205,45 +205,45 @@ pub fn sample_projection_analysis(repo_id: &str) -> RepositoryAnalysisOutput {
         examples: Vec::new(),
         docs: vec![
             DocRecord {
-                repo_id: repo_id.to_string(),
-                doc_id: readme_doc_id.clone(),
+                repo_id: repo_id.to_string().into(),
+                doc_id: readme_doc_id.clone().into(),
                 title: "README.md".to_string(),
-                path: "README.md".to_string(),
+                path: "README.md".into(),
                 format: Some("md".to_string()),
                 doc_target: None,
             },
             DocRecord {
-                repo_id: repo_id.to_string(),
-                doc_id: problem_doc_id.clone(),
+                repo_id: repo_id.to_string().into(),
+                doc_id: problem_doc_id.clone().into(),
                 title: "Problem".to_string(),
-                path: "src/ProjectionPkg.jl#symbol:Problem".to_string(),
+                path: "src/ProjectionPkg.jl#symbol:Problem".into(),
                 format: Some("julia_docstring".to_string()),
                 doc_target: None,
             },
             DocRecord {
-                repo_id: repo_id.to_string(),
-                doc_id: solve_doc_id.clone(),
+                repo_id: repo_id.to_string().into(),
+                doc_id: solve_doc_id.clone().into(),
                 title: "solve".to_string(),
-                path: "src/ProjectionPkg.jl#symbol:solve".to_string(),
+                path: "src/ProjectionPkg.jl#symbol:solve".into(),
                 format: Some("julia_docstring".to_string()),
                 doc_target: None,
             },
         ],
         relations: vec![
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: readme_doc_id,
                 target_id: module_id.clone(),
                 kind: RelationKind::Documents,
             },
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: problem_doc_id,
                 target_id: problem_symbol_id,
                 kind: RelationKind::Documents,
             },
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: solve_doc_id,
                 target_id: solve_symbol_id,
                 kind: RelationKind::Documents,

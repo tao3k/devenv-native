@@ -1,3 +1,5 @@
+//! `search::queries::core::service` owns Wendao queries core service behavior.
+
 use std::path::PathBuf;
 
 use crate::search::SearchPlaneService;

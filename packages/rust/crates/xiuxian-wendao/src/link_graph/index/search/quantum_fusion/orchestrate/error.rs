@@ -1,3 +1,5 @@
+//! `link_graph::index::search::quantum_fusion::orchestrate::error` owns Wendao quantum fusion orchestrate error behavior.
+
 use crate::link_graph::index::search::quantum_fusion::anchor_batch::QuantumAnchorBatchError;
 use arrow::datatypes::DataType;
 use arrow::error::ArrowError;

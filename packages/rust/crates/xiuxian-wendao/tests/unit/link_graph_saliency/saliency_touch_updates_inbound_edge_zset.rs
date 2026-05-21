@@ -41,8 +41,7 @@ fn test_saliency_touch_updates_inbound_edge_zset() -> Result<(), String> {
         },
         TEST_VALKEY_URL,
         Some(&prefix),
-    )
-    .map_err(|err| err.to_string())?;
+    )?;
 
     let zscore: Option<f64> = redis::cmd("ZSCORE")
         .arg(&out_key)
@@ -53,7 +52,7 @@ fn test_saliency_touch_updates_inbound_edge_zset() -> Result<(), String> {
 
     let snapshot = InboundEdgeSnapshot {
         current_saliency: format!("{:.6}", state.current_saliency),
-        zscore: format!("{:.6}", score),
+        zscore: format!("{score:.6}"),
     };
     let actual = format!(
         "{}\n",

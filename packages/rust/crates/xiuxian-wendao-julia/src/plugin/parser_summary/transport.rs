@@ -28,7 +28,7 @@ pub(crate) use super::route::ParserSummaryRouteKind;
 use crate::arrow_metadata::attach_record_batch_metadata;
 use crate::compatibility::link_graph::julia_parser_summary_provider_selector;
 
-const JULIA_PLUGIN_ID: &str = "julia";
+const JULIA_PLUGIN_ID: &str = "julia-code-parser";
 const PARSER_SUMMARY_TRANSPORT_KEY: &str = "parser_summary_transport";
 const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
 const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK: &str = "http://127.0.0.1:41081";

@@ -15,6 +15,7 @@ mod function;
 mod invocation;
 #[path = "root/api.rs"]
 mod root;
+mod types;
 
 pub use api::{
     DmnAssociationSnapshot, DmnBoundsSnapshot, DmnBusinessKnowledgeModelLiteralSnapshot,
@@ -30,3 +31,4 @@ pub use api::{
     DmnRequirementReferenceSnapshot, DmnRootSnapshot, DmnShapeSnapshot, DmnTextAnnotationSnapshot,
     DmnVariableSnapshot, DmnWaypointSnapshot,
 };
+pub use types::{DmnSnapshotFlag, DmnSnapshotId, DmnSnapshotKind, DmnSnapshotType};

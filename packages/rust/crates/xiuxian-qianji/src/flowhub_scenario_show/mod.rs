@@ -2,13 +2,13 @@
 
 #[path = "api.rs"]
 mod api;
+#[path = "model.rs"]
+mod model;
 #[path = "render.rs"]
 mod render;
 
-pub use api::{
-    FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview,
-    render_flowhub_scenario_show, show_flowhub_scenario,
-};
+pub use api::{render_flowhub_scenario_show, show_flowhub_scenario};
+pub use model::{FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview};
 
 #[cfg(test)]
 pub(crate) use render::{

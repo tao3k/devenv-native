@@ -9,20 +9,20 @@ fn test_compute_repository_saliency_basic() {
 
     // Setup: A hub module with two symbols
     analysis.modules.push(ModuleRecord {
-        repo_id: "test".to_string(),
-        module_id: "mod1".to_string(),
+        repo_id: "test".to_string().into(),
+        module_id: "mod1".to_string().into(),
         qualified_name: "Mod1".to_string(),
-        path: "src/Mod1.jl".to_string(),
+        path: "src/Mod1.jl".to_string().into(),
     });
 
     analysis.symbols.push(SymbolRecord {
-        repo_id: "test".to_string(),
-        symbol_id: "sym1".to_string(),
-        module_id: Some("mod1".to_string()),
+        repo_id: "test".to_string().into(),
+        symbol_id: "sym1".to_string().into(),
+        module_id: Some("mod1".to_string().into()),
         name: "sym1".to_string(),
         qualified_name: "Mod1.sym1".to_string(),
         kind: crate::analyzers::RepoSymbolKind::Function,
-        path: "src/Mod1.jl".to_string(),
+        path: "src/Mod1.jl".to_string().into(),
         line_start: None,
         line_end: None,
         signature: None,
@@ -33,7 +33,7 @@ fn test_compute_repository_saliency_basic() {
 
     // Relation: mod1 contains sym1
     analysis.relations.push(RelationRecord {
-        repo_id: "test".to_string(),
+        repo_id: "test".to_string().into(),
         source_id: "mod1".to_string(),
         target_id: "sym1".to_string(),
         kind: RelationKind::Contains,

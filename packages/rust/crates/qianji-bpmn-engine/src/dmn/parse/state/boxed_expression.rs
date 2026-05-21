@@ -20,7 +20,7 @@ impl TempLiteralExpression {
             .text
             .filter(|value| !value.trim().is_empty())
             .ok_or_else(|| BpmnEngineError::UnsupportedDmnLiteral {
-                source_id: source.source_id.clone(),
+                source_id: (source.source_id.clone()).into(),
                 literal: format!("{decision_id}:<literalExpression>"),
             })?;
         Ok(DmnLiteralExpression::new(

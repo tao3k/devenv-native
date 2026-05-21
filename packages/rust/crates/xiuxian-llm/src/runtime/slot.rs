@@ -64,14 +64,26 @@ impl ModelSlotId {
 
     /// Creates a new model slot ID from a string.
     #[must_use]
-    pub fn new(id: &str) -> Self {
-        Self(Arc::from(id.to_string()))
+    pub fn new(id: impl Into<Self>) -> Self {
+        id.into()
     }
 
     /// Returns the inner string reference.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl From<&str> for ModelSlotId {
+    fn from(id: &str) -> Self {
+        Self(Arc::from(id.to_string()))
+    }
+}
+
+impl From<String> for ModelSlotId {
+    fn from(id: String) -> Self {
+        Self(Arc::from(id))
     }
 }
 

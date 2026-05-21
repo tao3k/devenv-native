@@ -37,21 +37,12 @@ pub fn evaluate_alignment(anchors: &[String], evidence: &[String]) -> AuditVerdi
         };
     }
 
-    let mut matches = 0;
-    let mut missing = Vec::new();
-
-    for anchor in anchors {
-        let anchor_lower = anchor.to_lowercase();
-        let found = evidence
-            .iter()
-            .any(|e| e.to_lowercase().contains(&anchor_lower));
-
-        if found {
-            matches += 1;
-        } else {
-            missing.push(anchor.clone());
-        }
-    }
+    let missing = anchors
+        .iter()
+        .filter(|anchor| !evidence_contains_anchor(evidence, anchor))
+        .cloned()
+        .collect::<Vec<_>>();
+    let matches = anchors.len().saturating_sub(missing.len());
 
     let drift = 1.0 - bounded_ratio(matches, anchors.len()).max(0.0);
 
@@ -60,6 +51,13 @@ pub fn evaluate_alignment(anchors: &[String], evidence: &[String]) -> AuditVerdi
         is_aligned: drift < SYNAPSE_AUDIT_THRESHOLD,
         missing_anchors: missing,
     }
+}
+
+fn evidence_contains_anchor(evidence: &[String], anchor: &str) -> bool {
+    let anchor_lower = anchor.to_lowercase();
+    evidence
+        .iter()
+        .any(|candidate| candidate.to_lowercase().contains(&anchor_lower))
 }
 
 /// Audit search payload against provided anchors.

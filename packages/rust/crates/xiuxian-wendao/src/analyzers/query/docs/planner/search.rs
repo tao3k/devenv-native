@@ -1,3 +1,5 @@
+//! `analyzers::query::docs::planner::search` owns Wendao docs planner search behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

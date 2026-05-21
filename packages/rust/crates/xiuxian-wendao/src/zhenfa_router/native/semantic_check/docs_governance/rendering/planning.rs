@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::semantic_check::docs_governance::rendering::planning` owns Wendao docs governance rendering planning behavior.
+
 use crate::parsers::docs_governance::collect_lines;
 use crate::zhenfa_router::native::semantic_check::IssueLocation;
 use crate::zhenfa_router::native::semantic_check::docs_governance::rendering::footer::render_index_footer_with_values;

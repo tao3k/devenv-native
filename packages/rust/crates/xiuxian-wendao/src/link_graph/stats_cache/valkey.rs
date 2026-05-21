@@ -1,3 +1,5 @@
+//! `link_graph::stats_cache::valkey` owns Wendao link graph stats cache valkey behavior.
+
 use super::keys::stats_cache_key;
 use super::payload::decode_stats_payload_if_fresh;
 use super::runtime::{now_unix_f64, resolve_stats_cache_runtime};

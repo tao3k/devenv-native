@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `parsers::link_graph::query::helpers` owns Wendao link graph query helpers behavior.
+
 mod sort;
 mod strategy;
 mod tags;

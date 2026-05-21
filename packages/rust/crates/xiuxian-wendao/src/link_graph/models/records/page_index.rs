@@ -1,3 +1,5 @@
+//! `link_graph::models::records::page_index` owns Wendao models records page index behavior.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

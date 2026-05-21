@@ -102,11 +102,20 @@ pub fn default_valkey_state_key(prefix: &str, store_config: &StoreConfig) -> Str
 
 /// Build deterministic Valkey hash keys for episodes and Q-table fields.
 #[must_use]
-pub fn default_valkey_state_hash_keys(base_key: &str) -> (String, String) {
-    (
-        format!("{base_key}:episodes"),
-        format!("{base_key}:q_values"),
-    )
+pub fn default_valkey_state_hash_keys(base_key: &str) -> ValkeyStateHashKeys {
+    ValkeyStateHashKeys {
+        episodes: format!("{base_key}:episodes"),
+        q_values: format!("{base_key}:q_values"),
+    }
+}
+
+/// Deterministic Valkey hash keys for persisted memory state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValkeyStateHashKeys {
+    /// Hash key for serialized episodes.
+    pub episodes: String,
+    /// Hash key for Q-table values.
+    pub q_values: String,
 }
 
 /// Build deterministic Valkey hash key for session recall feedback bias values.

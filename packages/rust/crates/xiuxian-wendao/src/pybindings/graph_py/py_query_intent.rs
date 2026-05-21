@@ -1,3 +1,5 @@
+//! `pybindings::graph_py::py_query_intent` owns Wendao pybindings graph py py query intent behavior.
+
 use pyo3::{pyclass, pyfunction, pymethods};
 use serde_json::json;
 

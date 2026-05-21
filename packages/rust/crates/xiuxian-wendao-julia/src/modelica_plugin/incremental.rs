@@ -316,10 +316,10 @@ fn build_repo_owned_package_overlay(
     })?;
     Ok(PluginAnalysisOutput {
         modules: vec![ModuleRecord {
-            repo_id: context.repository.id.clone(),
-            module_id: incremental_context.module_id.clone(),
+            repo_id: (context.repository.id.clone()).into(),
+            module_id: (incremental_context.module_id.clone()).into(),
             qualified_name: incremental_context.module_qualified_name.clone(),
-            path: file.path.clone(),
+            path: (file.path.clone()).into(),
         }],
         symbols: Vec::new(),
         imports: build_import_records_without_resolution(
@@ -335,8 +335,8 @@ fn build_repo_owned_package_overlay(
             metadata.has_documentation_annotation,
         ),
         diagnostics: vec![DiagnosticRecord {
-            repo_id: context.repository.id.clone(),
-            path: file.path.clone(),
+            repo_id: (context.repository.id.clone()).into(),
+            path: (file.path.clone()).into(),
             line: 1,
             message:
                 "Modelica analysis is conservative and currently based on package layout plus lightweight declaration scanning."
@@ -522,13 +522,13 @@ fn build_repo_owned_modelica_symbol_record(
 ) -> SymbolRecord {
     let qualified_name = format!("{module_qualified_name}.{}", declaration.name);
     SymbolRecord {
-        repo_id: repo_id.to_string(),
-        symbol_id: format!("repo:{repo_id}:symbol:{qualified_name}"),
-        module_id: Some(module_id.to_string()),
+        repo_id: (repo_id.to_string()).into(),
+        symbol_id: (format!("repo:{repo_id}:symbol:{qualified_name}")).into(),
+        module_id: Some((module_id.to_string()).into()),
         name: declaration.name,
         qualified_name,
         kind: declaration.kind,
-        path: path.to_string(),
+        path: (path.to_string()).into(),
         line_start: declaration.line_start,
         line_end: declaration.line_end,
         signature: Some(declaration.signature),
@@ -548,10 +548,10 @@ fn build_package_doc_records(
     }
 
     vec![DocRecord {
-        repo_id: repo_id.to_string(),
-        doc_id: format!("repo:{repo_id}:doc:{record_path}#annotation.documentation"),
+        repo_id: (repo_id.to_string()).into(),
+        doc_id: (format!("repo:{repo_id}:doc:{record_path}#annotation.documentation")).into(),
         title: annotation_doc_title(record_path, &[]),
-        path: format!("{record_path}#annotation.documentation"),
+        path: (format!("{record_path}#annotation.documentation")).into(),
         format: Some("modelica_annotation".to_string()),
         doc_target: None,
     }]
@@ -609,9 +609,9 @@ fn build_import_records_from_parsed_imports(
             continue;
         }
         records.push(ImportRecord {
-            repo_id: repo_id.to_string(),
-            module_id: module_id.to_string(),
-            path: record_path.to_string(),
+            repo_id: (repo_id.to_string()).into(),
+            module_id: (module_id.to_string()).into(),
+            path: (record_path.to_string()).into(),
             import_name,
             target_package,
             source_module: source_module.clone(),

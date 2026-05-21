@@ -23,10 +23,10 @@ pub use client::{
     MessageContent, OpenAIClient, OpenAICompatibleClient, OpenAIWireApi,
 };
 pub(crate) use error::sanitize_user_visible;
-pub use error::{LlmError, LlmResult};
+pub use error::{HttpContentType, LlmError, LlmResult};
 pub use llm_backend::{LlmBackendKind, parse_llm_backend_kind};
 #[cfg(feature = "provider-litellm")]
-pub use multimodal::{Base64ImageSource, resolve_image_source_to_base64};
+pub use multimodal::{Base64ImageSource, ImageMediaType, resolve_image_source_to_base64};
 pub use runtime_profile::{
     LlmProviderProfileInput, LlmRuntimeDefaults, LlmRuntimeProfileEnv, LlmRuntimeProfileInput,
     ResolvedLlmRuntimeProfile, resolve_openai_runtime_profile,

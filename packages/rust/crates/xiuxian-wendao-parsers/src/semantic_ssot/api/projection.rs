@@ -3,8 +3,9 @@
 use super::hash::{semantic_object_by_id, semantic_projection_source_revision_from_map};
 use crate::semantic_ssot::types::{
     SemanticProjection, SemanticProjectionFreshnessPolicyEntry,
-    SemanticProjectionFreshnessPolicyReport, SemanticProjectionRefreshPlanEntry,
-    SemanticProjectionRefreshPlanReport, SemanticProjectionStaleness, SemanticRepository,
+    SemanticProjectionFreshnessPolicyReport, SemanticProjectionPolicyStatus,
+    SemanticProjectionRefreshPlanEntry, SemanticProjectionRefreshPlanReport,
+    SemanticProjectionRefreshPlanStatus, SemanticProjectionStaleness, SemanticRepository,
     SemanticStatus,
 };
 use std::collections::BTreeSet;
@@ -71,7 +72,7 @@ pub fn semantic_projection_freshness_policy_report(
     };
     SemanticProjectionFreshnessPolicyReport {
         policy_id: SEMANTIC_PROJECTION_FRESHNESS_POLICY_ID.to_string(),
-        status: status.to_string(),
+        status: SemanticProjectionPolicyStatus::new(status),
         failing_projection_count,
         message: message.to_string(),
         projections,
@@ -116,7 +117,7 @@ pub fn semantic_projection_refresh_plan_report(
         )
     };
     SemanticProjectionRefreshPlanReport {
-        status: status.to_string(),
+        status: SemanticProjectionRefreshPlanStatus::new(status),
         refreshable_projection_count,
         message: message.to_string(),
         projections,

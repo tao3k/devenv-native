@@ -1,6 +1,7 @@
 //! Shared lexical fuzzy-search utilities.
 
 mod buffers;
+mod case;
 mod distance;
 mod matcher;
 mod options;

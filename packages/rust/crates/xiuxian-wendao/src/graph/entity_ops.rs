@@ -58,6 +58,7 @@ impl KnowledgeGraph {
 
     /// Get an entity by ID.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_entity(&self, entity_id: &str) -> Option<Entity> {
         read_lock::<HashMap<String, Entity>>(&self.entities)
             .get(entity_id)
@@ -117,6 +118,7 @@ impl KnowledgeGraph {
     /// # Errors
     ///
     /// Returns [`GraphError::EntityNotFound`] if the entity ID is absent.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn remove_entity(&self, entity_id: &str) -> Result<(), GraphError> {
         let mut entities = write_lock::<HashMap<String, Entity>>(&self.entities);
         let mut entities_by_name = write_lock::<HashMap<String, String>>(&self.entities_by_name);

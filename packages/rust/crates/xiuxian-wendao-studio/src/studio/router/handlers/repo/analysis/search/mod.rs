@@ -1,3 +1,5 @@
+//! Coordinates the Studio repo analysis search branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "cache.rs"]
 mod cache;
 #[path = "example.rs"]

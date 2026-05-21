@@ -16,12 +16,14 @@ pub use identifiers::{PluginArrowProviderIdRef, PluginArrowTraceIdRef};
 pub use metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request_trace_id};
 #[cfg(feature = "vector-store")]
 pub use prepare::{
-    PluginArrowVectorStoreRequestBuildError, build_plugin_arrow_request_batch_from_vector_store,
+    PluginArrowVectorStoreRequestBatchInput, PluginArrowVectorStoreRequestBuildError,
+    build_plugin_arrow_request_batch_from_vector_store,
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,
     prepare_plugin_arrow_request_rows_from_vector_store,
 };
 pub use request::{
-    PluginArrowCandidateProjection, PluginArrowRequestBatchBuildError, PluginArrowRequestRow,
+    PluginArrowCandidateProjection, PluginArrowEmbeddingsRequestBatchInput,
+    PluginArrowRequestBatchBuildError, PluginArrowRequestMetadataInput, PluginArrowRequestRow,
     PluginArrowScoredCandidate, build_plugin_arrow_request_batch,
     build_plugin_arrow_request_batch_from_embeddings,
     build_plugin_arrow_request_batch_from_embeddings_with_metadata,

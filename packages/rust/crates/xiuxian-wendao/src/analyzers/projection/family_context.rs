@@ -1,3 +1,5 @@
+//! `analyzers::projection::family_context` owns Wendao analyzers projection family context behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{

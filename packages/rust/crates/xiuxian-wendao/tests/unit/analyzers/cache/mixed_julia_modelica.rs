@@ -45,7 +45,7 @@ fn build_repository_analysis_cache_key_reuses_mixed_julia_modelica_identity_for_
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Id("modelica".to_string()),
         ],
     };
@@ -120,7 +120,7 @@ fn build_repository_analysis_cache_key_reuses_mixed_julia_modelica_identity_for_
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![
-            RepositoryPluginConfig::Id("julia".to_string()),
+            RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Id("modelica".to_string()),
         ],
     };

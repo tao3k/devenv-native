@@ -1,3 +1,5 @@
+//! `search::manifest::keyspace` owns Wendao search manifest keyspace behavior.
+
 use crate::search::SearchCorpusKind;
 
 /// Valkey key namespace for search-plane manifests, leases, and caches.
@@ -35,6 +37,7 @@ impl SearchManifestKeyspace {
 
     /// Key that stores repo-scoped file-level fingerprints for one repo-backed corpus.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn repo_corpus_file_fingerprints_key(
         &self,
         corpus: SearchCorpusKind,
@@ -49,6 +52,7 @@ impl SearchManifestKeyspace {
 
     /// Key that stores the combined repo-backed corpus record for one repo/corpus pair.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn repo_corpus_record_key(&self, corpus: SearchCorpusKind, repo_id: &str) -> String {
         format!(
             "{}:repo-corpus:{corpus}:repo:{}",
@@ -59,6 +63,7 @@ impl SearchManifestKeyspace {
 
     /// Key that stores one repo-backed publication record for a specific source revision.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn repo_publication_revision_key(
         &self,
         corpus: SearchCorpusKind,
@@ -76,6 +81,7 @@ impl SearchManifestKeyspace {
 
     /// Key that stores the retained revision list for one repo-backed corpus.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn repo_publication_revision_index_key(
         &self,
         corpus: SearchCorpusKind,

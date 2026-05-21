@@ -1,3 +1,5 @@
+//! Dependency index build orchestration.
+
 use super::DependencyIndexer;
 use crate::dependency_indexer::indexer::files::find_files;
 use crate::dependency_indexer::indexer::{
@@ -5,6 +7,18 @@ use crate::dependency_indexer::indexer::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::PathBuf;
+
+struct ManifestWorkItem {
+    crate_name: String,
+    manifest_path: PathBuf,
+}
+
+struct ProcessedManifest {
+    crate_name: String,
+    version: String,
+    symbols: Vec<ExternalSymbol>,
+    error: Option<String>,
+}
 
 impl DependencyIndexer {
     /// Load the existing index from disk.
@@ -36,70 +50,58 @@ impl DependencyIndexer {
 
     /// Build the dependency index with parallel crate processing.
     pub fn build(&mut self, verbose: bool) -> DependencyIndexResult {
-        // Load configuration
-        let config_path = self.config_path.as_ref().map_or_else(
-            || "packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml".to_string(),
-            |path| path.to_string_lossy().to_string(),
-        );
+        let config = self.load_build_config(verbose);
+        let work_items = self.collect_manifest_work_items(&config);
+        log_manifest_count(verbose, work_items.len());
+        let results = process_manifest_work_items(work_items);
+        self.apply_manifest_results(results, verbose)
+    }
 
+    fn load_build_config(&self, verbose: bool) -> DependencyBuildConfig {
+        let config_path = self.config_path_string();
         let config = DependencyBuildConfig::load(&config_path);
-
         if verbose {
             log::info!(
                 "Loaded config with {} dependency configs",
                 config.manifests.len()
             );
         }
+        config
+    }
 
-        // Collect all manifest paths to process
-        let mut all_manifests: Vec<(String, PathBuf)> = Vec::new();
+    fn config_path_string(&self) -> String {
+        self.config_path.as_ref().map_or_else(
+            || "packages/rust/crates/xiuxian-wendao/resources/config/xiuxian.toml".to_string(),
+            |path| path.to_string_lossy().to_string(),
+        )
+    }
 
-        for ext_dep in &config.manifests {
-            if ext_dep.pkg_type != "rust" {
-                continue;
-            }
+    fn collect_manifest_work_items(&self, config: &DependencyBuildConfig) -> Vec<ManifestWorkItem> {
+        config
+            .manifests
+            .iter()
+            .filter(|ext_dep| ext_dep.pkg_type == "rust")
+            .flat_map(|ext_dep| {
+                ext_dep
+                    .manifests
+                    .iter()
+                    .flat_map(|pattern| self.collect_manifest_pattern_work_items(pattern))
+            })
+            .collect()
+    }
 
-            for pattern in &ext_dep.manifests {
-                let manifest_paths = find_files(pattern, &self.project_root);
-                for manifest_path in manifest_paths {
-                    // Extract crate name from path for ordering
-                    let crate_name = manifest_path
-                        .file_stem()
-                        .and_then(|name| name.to_str())
-                        .unwrap_or("unknown")
-                        .to_string();
-                    all_manifests.push((crate_name, manifest_path));
-                }
-            }
-        }
+    fn collect_manifest_pattern_work_items(&self, pattern: &str) -> Vec<ManifestWorkItem> {
+        find_files(pattern, &self.project_root)
+            .into_iter()
+            .map(manifest_work_item)
+            .collect()
+    }
 
-        if verbose {
-            log::info!("Found {} manifests to process", all_manifests.len());
-        }
-
-        // Process all manifests in parallel using rayon.
-        // Collect results directly without mutex contention.
-        let results: Vec<(String, String, PathBuf, Vec<ExternalSymbol>, bool, String)> =
-            all_manifests
-                .into_par_iter()
-                .map(|(crate_name, manifest_path)| {
-                    let result = Self::process_manifest_inner(&manifest_path);
-                    match result {
-                        Ok((name, version, path, symbols)) => {
-                            (name, version, path, symbols, false, String::new())
-                        }
-                        Err(error) => (
-                            crate_name,
-                            String::new(),
-                            manifest_path,
-                            Vec::new(),
-                            true,
-                            error,
-                        ),
-                    }
-                })
-                .collect();
-
+    fn apply_manifest_results(
+        &mut self,
+        results: Vec<ProcessedManifest>,
+        verbose: bool,
+    ) -> DependencyIndexResult {
         let mut result = DependencyIndexResult {
             files_processed: results.len(),
             total_symbols: 0,
@@ -108,21 +110,8 @@ impl DependencyIndexer {
             error_details: Vec::new(),
         };
 
-        for (crate_name, version, _source_path, symbols, is_error, error_msg) in results {
-            if is_error {
-                if verbose {
-                    log::warn!("Failed to process: {crate_name} - {error_msg}");
-                }
-                result.errors += 1;
-                result
-                    .error_details
-                    .push(format!("{crate_name}: {error_msg}"));
-            } else {
-                self.crate_versions.insert(crate_name.clone(), version);
-                self.symbol_index.add_symbols(&crate_name, &symbols);
-                result.total_symbols += symbols.len();
-                result.crates_indexed += 1;
-            }
+        for manifest in results {
+            self.apply_manifest_result(manifest, verbose, &mut result);
         }
 
         if verbose {
@@ -136,4 +125,76 @@ impl DependencyIndexer {
 
         result
     }
+
+    fn apply_manifest_result(
+        &mut self,
+        manifest: ProcessedManifest,
+        verbose: bool,
+        result: &mut DependencyIndexResult,
+    ) {
+        if let Some(error) = manifest.error {
+            record_manifest_error(result, verbose, &manifest.crate_name, &error);
+        } else {
+            self.crate_versions
+                .insert(manifest.crate_name.clone(), manifest.version);
+            self.symbol_index
+                .add_symbols(&manifest.crate_name, &manifest.symbols);
+            result.total_symbols += manifest.symbols.len();
+            result.crates_indexed += 1;
+        }
+    }
+}
+
+fn manifest_work_item(manifest_path: PathBuf) -> ManifestWorkItem {
+    ManifestWorkItem {
+        crate_name: manifest_path
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .unwrap_or("unknown")
+            .to_string(),
+        manifest_path,
+    }
+}
+
+fn log_manifest_count(verbose: bool, count: usize) {
+    if verbose {
+        log::info!("Found {count} manifests to process");
+    }
+}
+
+fn process_manifest_work_items(work_items: Vec<ManifestWorkItem>) -> Vec<ProcessedManifest> {
+    work_items
+        .into_par_iter()
+        .map(process_manifest_work_item)
+        .collect()
+}
+
+fn process_manifest_work_item(work_item: ManifestWorkItem) -> ProcessedManifest {
+    match DependencyIndexer::process_manifest_inner(&work_item.manifest_path) {
+        Ok((name, version, _path, symbols)) => ProcessedManifest {
+            crate_name: name,
+            version,
+            symbols,
+            error: None,
+        },
+        Err(error) => ProcessedManifest {
+            crate_name: work_item.crate_name,
+            version: String::new(),
+            symbols: Vec::new(),
+            error: Some(error),
+        },
+    }
+}
+
+fn record_manifest_error(
+    result: &mut DependencyIndexResult,
+    verbose: bool,
+    crate_name: &str,
+    error: &str,
+) {
+    if verbose {
+        log::warn!("Failed to process: {crate_name} - {error}");
+    }
+    result.errors += 1;
+    result.error_details.push(format!("{crate_name}: {error}"));
 }

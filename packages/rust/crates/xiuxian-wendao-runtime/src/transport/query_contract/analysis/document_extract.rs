@@ -6,10 +6,15 @@ pub const ANALYSIS_DOCUMENT_EXTRACT_ROUTE: &str = "/analysis/document-extract";
 pub const ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE: &str = "/analysis/document-extract-status";
 /// Internal route for page-shard OCR exchange with the Python analyzer worker.
 pub const ANALYSIS_PDF_OCR_SHARDS_ROUTE: &str = "/analysis/pdf-ocr-shards";
+/// Internal route for audio-shard exchange with the Python analyzer worker.
+pub const ANALYSIS_AUDIO_SHARDS_ROUTE: &str = "/analysis/audio-shards";
 
 /// Canonical document source-path metadata header for Wendao Flight requests.
 pub const WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER: &str =
     "x-wendao-document-extract-source-path";
+/// ASCII-safe UTF-8 hex source-path metadata header for Wendao Flight requests.
+pub const WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER: &str =
+    "x-wendao-document-extract-source-path-utf8-hex";
 /// Canonical document output-dir metadata header for Wendao Flight requests.
 pub const WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER: &str = "x-wendao-document-extract-output-dir";
 /// Canonical document force-refresh metadata header for Wendao Flight requests.
@@ -18,6 +23,8 @@ pub const WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER: &str = "x-wendao-document-extrac
 pub const WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER: &str = "x-wendao-document-extract-error-row";
 /// Canonical document extraction profile header for Python analyzer workers.
 pub const WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: &str = "x-wendao-document-extract-profile";
+/// Internal 1-based inclusive page-range header for Python analyzer workers.
+pub const WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER: &str = "x-wendao-document-extract-page-range";
 /// Canonical document extraction mode header for Rust-owned queueing.
 pub const WENDAO_DOCUMENT_EXTRACT_MODE_HEADER: &str = "x-wendao-document-extract-mode";
 /// Canonical async wait budget header in milliseconds.
@@ -26,6 +33,8 @@ pub const WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER: &str = "x-wendao-document-extr
 pub const WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER: &str = "x-wendao-document-extract-job-id";
 /// Internal PDF OCR worker budget header for Python shard OCR requests.
 pub const WENDAO_PDF_OCR_WORKERS_HEADER: &str = "x-wendao-pdf-ocr-workers";
+/// Internal audio worker budget header for Python audio shard requests.
+pub const WENDAO_AUDIO_WORKERS_HEADER: &str = "x-wendao-audio-workers";
 
 /// Full Docling document extraction profile.
 pub const DOCUMENT_EXTRACT_FULL_PROFILE: &str = "full";
@@ -89,6 +98,55 @@ pub fn validate_document_extract_request(source_path: &str) -> Result<(), String
         return Err("document extract source path must not be blank".to_string());
     }
     Ok(())
+}
+
+/// Encode a source path into an ASCII-safe UTF-8 hex metadata value.
+#[must_use]
+pub fn encode_document_extract_source_path_utf8_hex(source_path: &str) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(source_path.len() * 2);
+    for byte in source_path.as_bytes() {
+        encoded.push(HEX[(byte >> 4) as usize] as char);
+        encoded.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    encoded
+}
+
+/// Decode an ASCII-safe UTF-8 hex source-path metadata value.
+///
+/// # Errors
+///
+/// Returns an error when the encoded value is blank, has odd length, contains
+/// non-hex characters, or does not decode to valid UTF-8.
+pub fn decode_document_extract_source_path_utf8_hex(encoded: &str) -> Result<String, String> {
+    let encoded = encoded.trim();
+    if encoded.is_empty() {
+        return Err("document extract encoded source path must not be blank".to_string());
+    }
+    if !encoded.len().is_multiple_of(2) {
+        return Err("document extract encoded source path must have even length".to_string());
+    }
+    let mut bytes = Vec::with_capacity(encoded.len() / 2);
+    for pair in encoded.as_bytes().chunks_exact(2) {
+        let high = hex_nibble(pair[0]).ok_or_else(|| {
+            "document extract encoded source path contains a non-hex character".to_string()
+        })?;
+        let low = hex_nibble(pair[1]).ok_or_else(|| {
+            "document extract encoded source path contains a non-hex character".to_string()
+        })?;
+        bytes.push((high << 4) | low);
+    }
+    String::from_utf8(bytes)
+        .map_err(|_| "document extract encoded source path is not valid UTF-8".to_string())
+}
+
+fn hex_nibble(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
 }
 
 /// Normalize a document extraction profile for transport metadata.

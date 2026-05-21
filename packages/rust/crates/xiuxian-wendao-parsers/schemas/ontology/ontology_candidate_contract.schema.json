@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://xiuxian.local/schemas/wendao/ontology-candidate-contract.draft.schema.json",
+  "title": "Wendao Ontology Candidate Contract",
+  "description": "Draft parser-owned DTO contract for ontology candidates derived from validated Org authoring or trace projection rows.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "candidateId",
+    "candidateKind",
+    "lifecycleState",
+    "source",
+    "confidence",
+    "payload",
+    "evidence"
+  ],
+  "properties": {
+    "schema": {
+      "const": "xiuxian_wendao.ontology_candidate.v0.draft"
+    },
+    "candidateId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidateKind": {
+      "type": "string",
+      "enum": [
+        "object_type",
+        "link_type",
+        "action_type",
+        "query_type",
+        "interface_type",
+        "value_type",
+        "validation_rule"
+      ]
+    },
+    "lifecycleState": {
+      "type": "string",
+      "enum": ["draft", "candidate", "review", "accepted", "retired"]
+    },
+    "source": {
+      "$ref": "#/$defs/candidateSource"
+    },
+    "confidence": {
+      "$ref": "#/$defs/confidence"
+    },
+    "payload": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    }
+  },
+  "$defs": {
+    "sourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startLine", "endLine"],
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "startColumn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endColumn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "candidateSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourcePath", "sourceHash", "sourceSpan"],
+      "properties": {
+        "authoringDocumentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "traceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sectionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "traceSectionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceHash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/sourceSpan"
+        }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "source"],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "human_author",
+            "parser_contract",
+            "llm_candidate",
+            "subagent_trace",
+            "registry_replay",
+            "validation_gate"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceId", "kind", "text"],
+      "properties": {
+        "evidenceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "org_authoring_section",
+            "org_trace_section",
+            "property_drawer",
+            "table_row",
+            "source_block",
+            "validation_finding",
+            "registry_reference"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/sourceSpan"
+        }
+      }
+    }
+  }
+}

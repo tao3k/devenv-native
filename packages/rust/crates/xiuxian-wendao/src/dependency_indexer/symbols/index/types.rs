@@ -1,3 +1,5 @@
+//! `dependency_indexer::symbols::index::types` owns Wendao symbols index types behavior.
+
 use std::collections::HashMap;
 
 use crate::dependency_indexer::symbols::ExternalSymbol;

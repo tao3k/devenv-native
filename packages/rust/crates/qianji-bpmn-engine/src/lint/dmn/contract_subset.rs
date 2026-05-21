@@ -13,7 +13,7 @@ pub(super) fn issue_from_dmn_hit_policy_error(
             source_id,
             decision_id,
             hit_policy,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "dmn.unsupported_hit_policy",
             "DMN hit policy is outside the supported subset",
             format!(
@@ -46,7 +46,7 @@ pub(super) fn issue_from_dmn_expression_subset_error(
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> Option<LintIssue> {
     Some(match error {
-        BpmnEngineError::UnsupportedDmnLiteral { source_id, literal } => LintIssue::new(
+        BpmnEngineError::UnsupportedDmnLiteral { source_id, literal } => LintIssue::from_parts(
             "dmn.unsupported_literal",
             "DMN literal expression is outside the supported subset",
             format!("Source '{source_id}' uses unsupported literal expression '{literal}'."),
@@ -69,7 +69,7 @@ pub(super) fn issue_from_dmn_expression_subset_error(
         BpmnEngineError::UnsupportedDmnUnaryTest {
             source_id,
             expression,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "dmn.unsupported_unary_test",
             "DMN unary test is outside the supported subset",
             format!("Source '{source_id}' uses unsupported unary test '{expression}'."),
@@ -112,7 +112,7 @@ pub(super) fn issue_from_dmn_table_error(
             actual_inputs,
             expected_outputs,
             actual_outputs,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "dmn.invalid_rule_arity",
             "DMN rule entry count does not match the table clauses",
             format!(

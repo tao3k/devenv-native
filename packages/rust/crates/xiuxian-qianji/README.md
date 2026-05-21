@@ -29,6 +29,86 @@ We believe that an Agent should not just "execute code"—it should **"Cultivate
 
 Based on `petgraph::StableGraph`, the Iron Frame provides the physical structure. It supports millions of nodes with near-zero traversal overhead and utilizes **LTL (Linear Temporal Logic)** guards to ensure that no Agent falls into an "Infinite Loop" (the Zen of Termination).
 
+### 2.1.1 Rust-Native Workflow Kernel
+
+Qianji also exposes a Rust-native workflow kernel for hot-path package
+pipelines that need typed stage execution rather than generic host-work
+dispatch. The kernel records stage order, typed or Arrow-backed edge facts,
+latency, item counts, and failure traces while keeping execution close to
+direct Rust function calls.
+
+Both `petgraph` DAGs and a bounded BPMN subset can be native front ends for
+this kernel. The architectural boundary is not graph notation versus code; the
+boundary is whether the chosen notation compiles into strongly typed Rust
+stages and edge contracts. Visual, BPMN, or manifest layers may describe the
+control flow, but shard hot paths should still execute over Rust-owned types
+and Arrow-compatible row contracts.
+
+The front-end-neutral `WorkflowTopology` contract is the shared handoff point:
+BPMN and `petgraph` adapters declare required stages and dependency edges, and
+`WorkflowRun` can bind that topology before typed execution. A checked finish
+rejects missing required stages, undeclared stages, duplicate successful
+stages, and edge-order violations, giving promotion gates a deterministic
+structure guard before any higher-level adapter reports success.
+
+The same kernel now supports in-process memory checkpoints for stage edges.
+Checkpoint metadata is stored in Qianji traces, while the retained payload is a
+typed Rust handle owned by the producer. This lets Arrow-backed consumers keep
+same-process `RecordBatch` buffers available for retry, fan-out, and precision
+rechecks without making Qianji depend on Arrow or replacing durable BPMN
+checkpoint stores.
+
+For homogeneous shard work, `WorkflowRun` provides bounded fan-out/fan-in with
+order-preserving output collection. The helper enforces a caller-supplied
+concurrency cap, records one workflow stage trace, reports failed item indices,
+and still honors topology declarations. This is the lightweight scheduling
+primitive for later audio, OCR, and graph-search shard execution; domain crates
+still own the shard payloads, cache rules, and precision gates.
+
+Workflow traces can also be projected into the independent Qianji control
+plane through the workflow-kernel control adapter. The adapter maps
+`WorkflowTrace` rows into `xiuxian-qianji-control` events for replay,
+evidence, cost, lease, and recovery management. This is a one-way boundary:
+Qianji still owns workflow/BPMN/Flowhub semantics, while
+[`xiuxian-qianji-control`](../xiuxian-qianji-control/README.md) owns generic
+run and step control state. Explicit recording returns the normal workflow
+report, the appended control records, and the ledger-replayed run view so
+callers can inspect recoverable management state without making recording the
+default finish path. Topology-bound callers can use checked control recording
+to validate required stages and dependency order before any control events are
+appended. Callers that must retain typed workflow output after a control ledger
+failure can use the recoverable recording path, which returns the completed
+workflow report with the control error for retry or manual recovery. The
+checked recoverable path combines both protections for topology-bound runs:
+validate structure first, then preserve the report if only control persistence
+fails. Recoverable control failures are directly retryable from the retained
+report, so retrying persistence does not require rerunning workflow stages.
+Retry callers can also opt into reusing an already-recorded control run, which
+returns the existing replay view with zero appended events instead of writing a
+duplicate event sequence. Workflow recovery controllers can append
+run-scoped or step-scoped recovery attempts into the same control ledger,
+making retry state visible in replayed run views without changing trace
+recording defaults. Controllers can also attach step-scoped evidence
+references after recording, allowing deterministic gates and audits to inspect
+the exact artifacts or routes that justified a workflow step. Run-scoped and
+step-scoped cost observations can be recorded through the same adapter, keeping
+cost monitoring auditable without adding provider-specific cost policy to the
+workflow kernel. Step-scoped gate results can also be recorded after evidence
+or policy evaluation, keeping promotion and recovery decisions replayable
+without making the workflow kernel execute the gate itself. For callers that
+need to persist a complete stage decision, the managed decision helper records
+evidence, gate results, and cost observations in a stable order and returns the
+replayed control view for inspection. The managed recovery decision helper
+extends that order with a final recovery attempt and requires a failed gate
+result, keeping lifecycle mutation explicit and gate-driven.
+Internally, the adapter is split into recording, projection, and decision
+modules so the public control surface can grow without flattening unrelated
+responsibilities.
+Workflow callers can also opt into required-evidence projection when recording
+a trace. The default projection keeps `StepCreated.required_evidence` empty,
+while the opt-in contract lets a caller attach deterministic stage evidence
+keys before later evidence attachment or gate evaluation.
+
 ### 2.2 The Divine Logic (Scheduling)
 
 - **Probabilistic MDP Routing:** Decisions are not binary. Edges carry weights influenced by **Omega's Confidence**, allowing the system to explore multiple paths based on probability.
@@ -108,6 +188,85 @@ gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
 that the effective Valkey checkpoint backend responds to `PING`. Local
 no-server CLI/control workflow state uses the configured DuckDB path by
 default; HTTP remains Valkey-only.
+The generic Qianji control ledger has its own read-only operator surfaces.
+`qianji control history --ledger <path> --run-id <id> [--json]` renders the
+append-only event timeline for one run. `qianji control heartbeat --ledger
+<path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms
+<ms> [--metadata <json>] [--json]` records a durable Worker liveness audit
+fact without mutating hot queues or leases. `qianji control view --ledger
+<path> --run-id <id> [--json]` renders the deterministic replayed run state. `qianji
+control query --ledger <path> --run-id <id> --state --now-ms <ms> [--json]`
+returns a compact read-only state package with event count, replayed run view,
+and recovery snapshot. `qianji control summary --ledger <path> --run-id <id>
+--now-ms <ms> [--json]` renders a compact operator summary across event count,
+run status, steps, active leases, activity lifecycle counts, timer counts,
+signal counts, cost totals, and recovery counters without executing recovery
+or mutating hot state. `qianji
+control step --ledger <path> --run-id <id> --step-id <id> [--json]` renders
+one replayed step view for step-local evidence, gate, Agent, activity, timer,
+and signal inspection. `qianji control lease --ledger <path> --run-id <id>
+--step-id <id> [--json]` renders the current replayed active lease for one
+step without acquiring, renewing, releasing, reclaiming, or mutating hot
+state. `qianji control leases --ledger <path> --run-id <id> [--json]` renders
+the replayed active lease inventory for a run, including empty inventories,
+without mutating hot state. `qianji control activity --ledger <path> --run-id
+<id> --activity-id <id> [--step-id <id>] [--json]` renders one replayed activity
+view for lifecycle, task, attempt, worker, result, and failure inspection.
+`qianji control activity-queue --ledger <path> --run-id <id>
+[--task-queue <queue>] [--json]` renders scheduled-but-not-started activity
+tasks from durable replay, optionally filtered by task queue, without claiming
+work or mutating hot scheduler state. The same projection includes lifecycle
+summary counts for scheduled, in-flight, completed, and failed activities.
+`qianji control costs --ledger <path> --run-id <id> [--json]` renders durable
+run and step cost observations with event sequence, observed timestamp, token
+counts, latency, and USD micros totals, without appending observations or
+mutating hot state.
+`qianji control activity-start --ledger <path> --run-id <id> --activity-id
+<id> --worker-id <id> --started-at-ms <ms> --attempt <n> [--step-id <id>]
+[--json]` records an idempotent durable `ActivityStarted` fact through the
+control crate's replay guards. It does not complete, fail, execute, or lease
+the activity.
+`qianji control activity-complete --ledger <path> --run-id <id> --activity-id
+<id> --completed-at-ms <ms> [--step-id <id>] [--output-hash <hash>]
+[--metadata <json>] [--json]` and `qianji control activity-fail --ledger
+<path> --run-id <id> --activity-id <id> --failed-at-ms <ms> --error-code
+<code> --message <text> --retryable <true|false> --attempt <n> [--step-id
+<id>] [--metadata <json>] [--json]` record idempotent durable terminal
+activity lifecycle facts after replay verifies that the target activity is in a
+started state.
+`qianji control decision --ledger <path> --run-id <id> --decision-id <id>
+[--step-id <id>] [--json]` renders one replayed agent decision for proposal,
+outcome, reason, scheduled activity, checkpoint, and gate inspection.
+`qianji control timer --ledger <path> --run-id <id> --timer-id <id>
+[--step-id <id>] [--json]` renders one replayed durable timer for scheduled
+fire time, fired time, and status inspection. `qianji control timers --ledger
+<path> --run-id <id> [--json]` renders the replayed run and step timer
+inventory with pending, scheduled, and fired counts, without firing timers,
+enqueueing work, or mutating hot scheduler state.
+`qianji control signal --ledger <path> --run-id <id> --signal-name <name>
+--payload <json> --received-at-ms <ms> [--step-id <id>] [--json]` appends one
+durable external signal event. The payload JSON is stored in signal metadata so
+the existing control event schema remains unchanged. `qianji control signals
+--ledger <path> --run-id <id> [--json]` renders the replayed run and step
+signal inventory with event sequence, received timestamp, and scope counts,
+without appending signals or mutating hot state.
+`qianji control recovery-snapshot --ledger <path> --run-id <id> --now-ms <ms>
+[--json]` reads the same `xiuxian-qianji-control` DuckDB event ledger and
+returns the replay-derived recovery view, ordered recovery plan, and compact
+summary without executing recovery actions or touching hot scheduler state.
+`qianji control apply-recovery-plan --ledger <path> --valkey-url <url>
+--run-id <id> --now-ms <ms> --attempt <n> --reason <text> --max-attempts <n>
+[--namespace <ns>] [--backoff-ms <ms>] [--require-human-approval]
+[--priority <n>] [--json]` records a recovery-start fact and applies the
+current bounded recovery plan through `xiuxian-qianji-control` against the
+Valkey hot-state mirror. The command only executes recovery action kinds that
+the control crate already supports; unsupported actions are reported as skipped
+results.
+`qianji control hot-state --valkey-url <url> --now-ms <ms> [--namespace <ns>]
+[--json]` reads the Valkey hot scheduling state directly and renders pending
+steps, leased steps, lease expiry state, and worker heartbeat visibility. This
+is an operator snapshot for live queue debugging; it does not mutate the
+append-only control ledger and requires the `valkey` feature.
 
 ```toml
 name = "artifact_refining_pipeline"

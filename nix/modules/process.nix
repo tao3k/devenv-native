@@ -1,13 +1,12 @@
-{
-  __inputs__,
-  ...
+{ __inputs__
+, ...
 }:
 let
   processScript =
     processName: scriptName:
     ''
       ROOT_DIR="''${PRJ_ROOT:-''${DEVENV_ROOT:-$(pwd)}}"
-      exec bash "$ROOT_DIR/scripts/channel/processes/${processName}/${scriptName}.sh"
+      exec bash "$ROOT_DIR/scripts/runtime/processes/${processName}/${scriptName}.sh"
     '';
   processEntrypoint = processName: processScript processName "entrypoint";
   processHealthcheck = processName: processScript processName "healthcheck";
@@ -32,7 +31,6 @@ in
     };
 
     carfox.exec = processEntrypoint "carfox";
-    agent.exec = processEntrypoint "agent";
 
     # Wendao Phase 7.6 Integrated Services
     wendao-document-extract = {

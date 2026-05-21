@@ -1,6 +1,8 @@
 //! Command dispatch for Wendao client subcommands.
 
-use crate::{ClientCommand, ClientContext, LintCommand, get, lint, semantic};
+#[cfg(feature = "semantic-sql")]
+use crate::semantic;
+use crate::{ClientCommand, ClientContext, LintCommand, get, lint, orgize};
 use anyhow::Result;
 
 /// Stable process outcome for standalone and embedded command entrypoints.
@@ -38,13 +40,16 @@ pub fn run_command(command: &ClientCommand, context: &ClientContext) -> Result<C
     match command {
         ClientCommand::Get { command } => get::run_command(command, context),
         ClientCommand::Lint { command } => run_lint_command(command, context),
+        #[cfg(feature = "semantic-sql")]
         ClientCommand::Semantic { command } => semantic::run_command(command, context),
+        ClientCommand::Orgize { command } => orgize::run_command(command, context),
     }
 }
 
 fn run_lint_command(command: &LintCommand, context: &ClientContext) -> Result<CommandOutcome> {
     match command {
         LintCommand::Markdown(args) => lint::run_markdown_lint(args, context),
+        #[cfg(feature = "semantic-sql")]
         LintCommand::Semantic(args) => lint::run_semantic_lint(args, context),
     }
 }

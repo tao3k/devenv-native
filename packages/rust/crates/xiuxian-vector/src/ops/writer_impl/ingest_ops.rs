@@ -1,7 +1,14 @@
-use super::{Result, VectorStore, VectorStoreError, default_write_params, parse_metadata_value};
+use super::{
+    Result, VectorStore, VectorStoreError, default_write_params, parse_metadata_value,
+    validate_document_batch_inputs,
+};
 
 impl VectorStore {
     /// Batch add documents with vectors to a table.
+    ///
+    /// Positional boundary: this public writer API keeps the long-standing
+    /// document component surface where callers provide parallel id, vector,
+    /// content, and metadata arrays.
     ///
     /// # Errors
     ///
@@ -42,6 +49,9 @@ impl VectorStore {
     /// Add documents with rows grouped by a partition column so fragments align by partition
     /// (enables partition pruning at read). Partition value is read from each row's metadata JSON.
     ///
+    /// Positional boundary: partitioned ingest mirrors [`Self::add_documents`]
+    /// and adds only the explicit partition selector needed by Lance writes.
+    ///
     /// # Errors
     ///
     /// Returns an error when input validation fails, partitioned append fails,
@@ -55,49 +65,48 @@ impl VectorStore {
         contents: Vec<String>,
         metadatas: Vec<String>,
     ) -> Result<(), VectorStoreError> {
-        use lance::deps::arrow_array::RecordBatchIterator;
-        use std::collections::BTreeMap;
-
         if ids.is_empty() {
             return Ok(());
         }
-        if ids.len() != vectors.len() || ids.len() != contents.len() || ids.len() != metadatas.len()
-        {
-            return Err(VectorStoreError::General(
-                "Mismatched input lengths for ids/vectors/contents/metadatas".to_string(),
-            ));
-        }
-
-        let partition_values: Vec<String> = metadatas
-            .iter()
-            .map(|s| {
-                parse_metadata_value(s)
-                    .and_then(|v| {
-                        v.get(partition_by)
-                            .and_then(|x| x.as_str())
-                            .map(String::from)
-                    })
-                    .unwrap_or_else(|| "_unknown".to_string())
-            })
-            .collect();
-
-        let mut groups: BTreeMap<String, Vec<usize>> = BTreeMap::new();
-        for (i, pv) in partition_values.into_iter().enumerate() {
-            groups.entry(pv).or_default().push(i);
-        }
+        validate_document_batch_inputs(
+            ids.len(),
+            vectors.as_slice(),
+            contents.len(),
+            metadatas.len(),
+            self.dimension,
+        )?;
 
         let (mut dataset, _) = self.get_or_create_dataset(table_name, false, None).await?;
         let schema = self.create_schema();
+        let groups = partitioned_document_groups(partition_by, metadatas.as_slice());
+        self.append_partitioned_document_groups(
+            &mut dataset,
+            schema,
+            PartitionedDocumentColumns {
+                ids,
+                vectors,
+                contents,
+                metadatas,
+            },
+            groups,
+        )
+        .await?;
 
-        for (_partition_value, indices) in groups {
-            let part_ids: Vec<String> = indices.iter().map(|&i| ids[i].clone()).collect();
-            let part_vectors: Vec<Vec<f32>> = indices.iter().map(|&i| vectors[i].clone()).collect();
-            let part_contents: Vec<String> = indices.iter().map(|&i| contents[i].clone()).collect();
-            let part_metadatas: Vec<String> =
-                indices.iter().map(|&i| metadatas[i].clone()).collect();
+        self.invalidate_cached_table(table_name).await;
+        Ok(())
+    }
 
-            let (_, batch) =
-                self.build_document_batch(part_ids, part_vectors, part_contents, part_metadatas)?;
+    async fn append_partitioned_document_groups(
+        &self,
+        dataset: &mut lance::dataset::Dataset,
+        schema: std::sync::Arc<lance::deps::arrow_schema::Schema>,
+        columns: PartitionedDocumentColumns,
+        groups: std::collections::BTreeMap<String, Vec<usize>>,
+    ) -> Result<(), VectorStoreError> {
+        use lance::deps::arrow_array::RecordBatchIterator;
+
+        for indices in groups.into_values() {
+            let batch = self.partitioned_document_batch(&columns, indices.as_slice())?;
             let batches: Vec<Result<_, crate::error::ArrowError>> = vec![Ok(batch)];
             dataset
                 .append(
@@ -106,8 +115,65 @@ impl VectorStore {
                 )
                 .await?;
         }
-
-        self.invalidate_cached_table(table_name).await;
         Ok(())
     }
+
+    fn partitioned_document_batch(
+        &self,
+        columns: &PartitionedDocumentColumns,
+        indices: &[usize],
+    ) -> Result<lance::deps::arrow_array::RecordBatch, VectorStoreError> {
+        let part_ids = indices
+            .iter()
+            .map(|&index| columns.ids[index].clone())
+            .collect();
+        let part_vectors = indices
+            .iter()
+            .map(|&index| columns.vectors[index].clone())
+            .collect();
+        let part_contents = indices
+            .iter()
+            .map(|&index| columns.contents[index].clone())
+            .collect();
+        let part_metadatas = indices
+            .iter()
+            .map(|&index| columns.metadatas[index].clone())
+            .collect();
+        self.build_document_batch(part_ids, part_vectors, part_contents, part_metadatas)
+            .map(|(_, batch)| batch)
+    }
+}
+
+struct PartitionedDocumentColumns {
+    ids: Vec<String>,
+    vectors: Vec<Vec<f32>>,
+    contents: Vec<String>,
+    metadatas: Vec<String>,
+}
+
+fn partitioned_document_groups(
+    partition_by: &str,
+    metadatas: &[String],
+) -> std::collections::BTreeMap<String, Vec<usize>> {
+    metadatas.iter().enumerate().fold(
+        std::collections::BTreeMap::new(),
+        |mut groups, (index, metadata)| {
+            groups
+                .entry(partition_value(partition_by, metadata))
+                .or_default()
+                .push(index);
+            groups
+        },
+    )
+}
+
+fn partition_value(partition_by: &str, metadata: &str) -> String {
+    parse_metadata_value(metadata)
+        .and_then(|value| {
+            value
+                .get(partition_by)
+                .and_then(|field| field.as_str())
+                .map(String::from)
+        })
+        .unwrap_or_else(|| "_unknown".to_string())
 }

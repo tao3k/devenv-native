@@ -1,3 +1,5 @@
+//! `query_core::telemetry` owns Wendao query core telemetry behavior.
+
 use std::sync::{Arc, Mutex};
 
 use crate::query_core::types::{WendaoBackendKind, WendaoOperatorKind};

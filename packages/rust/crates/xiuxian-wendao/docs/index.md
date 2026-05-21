@@ -1,3 +1,23 @@
+---
+type: knowledge
+kind: index
+title: "Wendao DocOS Kernel Map of Content"
+category: "documentation"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Canonical map of content for Wendao package documentation."
+tags:
+  - wendao
+  - documentation
+  - index
+metadata:
+  title: "Wendao DocOS Kernel Map of Content"
+  retrieval:
+    saliency_base: 7.0
+    decay_rate: 0.03
+---
+
 # Wendao DocOS Kernel: Map of Content
 
 :PROPERTIES:
@@ -17,14 +37,14 @@ Standardized documentation repository for the Wendao DocOS Kernel, leveraging AS
 :END:
 
 - [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]]: Identity-based addressing.
-- [[01_core/102_atomic_mutation|descriptive label]]: Byte-level modification safety.
+- Atomic mutation: Reserved note slot for byte-level modification safety.
 - [[01_core/103_package_layering|Wendao Package Layering]]: Package ownership rules for `core`, `runtime`, `wendao`, and plugin crates.
 
 ## 📁 02_parser: Parser Architecture
 
-- [02_parser/index](02_parser/index.md): Canonical parser namespace, parser-family matrix, and parser-vs-helper rules.
-- [02_parser/wikilinks](02_parser/wikilinks.md): Obsidian-aligned ordinary body wikilink parsing, source-span preservation, and `link_graph_refs` consumer boundaries.
-- [02_parser/relation_semantics](02_parser/relation_semantics.md): Scoped relation semantics for `PROPERTIES`, global `[[...]]` topology links, and parser-owned target grammar.
+- [[02_parser/index.md|02_parser/index]]: Canonical parser namespace, parser-family matrix, and parser-vs-helper rules.
+- [[02_parser/wikilinks.md|02_parser/wikilinks]]: Obsidian-aligned ordinary body wikilink parsing, source-span preservation, and `link_graph_refs` consumer boundaries.
+- [[02_parser/relation_semantics.md|02_parser/relation_semantics]]: Scoped relation semantics for `PROPERTIES`, global `[[...]]` topology links, and parser-owned target grammar.
 
 ## 📁 03_features: Functional Ledger
 
@@ -34,7 +54,7 @@ Standardized documentation repository for the Wendao DocOS Kernel, leveraging AS
 :END:
 
 - [[03_features/201_property_drawers|Property Drawers]]: Metadata management.
-- [[03_features/202_block_addressing|descriptive label]]: Paragraph-level granularity.
+- Block addressing: Reserved note slot for paragraph-level granularity.
 - [[03_features/203_agentic_navigation|Agentic Navigation (wendao.agentic_nav)]]: Reasoning-driven discovery.
 - [[03_features/204_code_observation|Code Observation (:OBSERVE:)]]: Non-invasive sgrep binding.
 - [[03_features/205_semantic_auditor|Semantic Auditor (wendao audit)]]: Native sentinel engine.
@@ -48,6 +68,8 @@ Standardized documentation repository for the Wendao DocOS Kernel, leveraging AS
 - [[03_features/213_rest_query_surface|REST Query Surface]]: First thin REST-style request/response adapter over the shared query service.
 - [[03_features/214_config_import_overlay|Config Import Overlay]]: Canonical import-based config merge model for Wendao runtime settings, gateway startup config, and legacy Studio overlay compatibility.
 - [[03_features/215_vector_boundary_split|Wendao Vector Boundary Split]]: Explicit separation between lightweight Arrow/DataFusion substrate ownership and Lance-backed vector-store ownership.
+- [[03_features/216_real_repo_search_precision|Real Repository Search Precision]]: Opt-in real-repository precision harness, black-box profile comparison, and validation-derived search strategy reflection.
+- [[03_features/217_reasoning_tree_backend_frontier|Reasoning Tree Backend Frontier]]: Rust-controlled, Julia-rankable, subagent-judgable frontier contract for evidence-gated multi-agent beam search.
 
 ## 📁 05_research: Theoretical Hardening
 
@@ -55,6 +77,7 @@ Standardized documentation repository for the Wendao DocOS Kernel, leveraging AS
 - [[05_research/305_http_grpc_tower_performance_audit|HTTP, gRPC, and Tower Performance Audit]]: Audit of Wendao's Axum, Tonic, Tower, and Arrow Flight transport surfaces.
 - [[05_research/306_pdf_hybrid_ocr_implementation_report|PDF Hybrid OCR Implementation Report]]: Precision-preserving PDF routing, page OCR sharding, and Rust-side document extraction acceleration plan.
 - [[05_research/307_attachment_format_baseline|Attachment Format Precision And Speed Baseline]]: Non-PDF Docling fixture precision, structure-order, cache, and class-level latency evidence.
+- [[05_research/308_document_extract_pr_closing_report|Document Extraction PR Closing Report]]: PDF OCR milestone guard, auto-scheduler live evidence, and PR-closing validation record.
 
 ## 📁 06_roadmap: Future Evolution
 
@@ -88,12 +111,12 @@ from this canonical index. Use the RFC and roadmap notes above as the stable
 documentation surface.
 
 :RELATIONS:
-:LINKS: [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]], [[06_roadmap/401_project_sentinel|Project Sentinel: Semantic Consistency]], [[06_roadmap/402_repo_intelligence_mvp|Repo Intelligence MVP]], [[06_roadmap/403_document_projection_and_retrieval_enhancement|Document Projection and Retrieval Enhancement]], [[06_roadmap/404_repo_intelligence_for_sciml_and_msl|Repo Intelligence for SciML and MSL]], [[06_roadmap/405_large_rust_modularization|Large Rust File Modularization]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]]
+:LINKS: [[01_core/101_triple_a_protocol|Triple-A Addressing Protocol]], [[01_core/103_package_layering|Wendao Package Layering]], [[02_parser/index.md|02_parser/index]], [[02_parser/wikilinks.md|02_parser/wikilinks]], [[02_parser/relation_semantics.md|02_parser/relation_semantics]], [[03_features/201_property_drawers|Property Drawers]], [[03_features/203_agentic_navigation|Agentic Navigation (wendao.agentic_nav)]], [[03_features/204_code_observation|Code Observation (:OBSERVE:)]], [[03_features/205_semantic_auditor|Semantic Auditor (wendao audit)]], [[03_features/206_openai_semantic_ignition|OpenAI-Compatible Semantic Ignition]], [[03_features/207_gateway_openapi_contract_surface|Gateway OpenAPI Contract Surface]], [[03_features/208_performance_gate_v1|Wendao Performance Gate V1]], [[03_features/209_datafusion_sql_query_surface|DataFusion SQL Query Surface]], [[03_features/210_search_queries_architecture|Search Queries Architecture]], [[03_features/211_graphql_query_surface|GraphQL Query Surface]], [[03_features/212_flightsql_query_surface|FlightSQL Query Surface]], [[03_features/213_rest_query_surface|REST Query Surface]], [[03_features/214_config_import_overlay|Config Import Overlay]], [[03_features/215_vector_boundary_split|Wendao Vector Boundary Split]], [[03_features/216_real_repo_search_precision|Real Repository Search Precision]], [[03_features/217_reasoning_tree_backend_frontier|Reasoning Tree Backend Frontier]], [[05_research/301_research_papers|Research Index: Map of Content]], [[05_research/305_http_grpc_tower_performance_audit|HTTP, gRPC, and Tower Performance Audit]], [[05_research/306_pdf_hybrid_ocr_implementation_report|PDF Hybrid OCR Implementation Report]], [[05_research/307_attachment_format_baseline|Attachment Format Precision And Speed Baseline]], [[05_research/308_document_extract_pr_closing_report|Document Extraction PR Closing Report]], [[06_roadmap/401_project_sentinel|Project Sentinel: Semantic Consistency]], [[06_roadmap/402_repo_intelligence_mvp|Repo Intelligence MVP]], [[06_roadmap/403_document_projection_and_retrieval_enhancement|Document Projection and Retrieval Enhancement]], [[06_roadmap/404_repo_intelligence_for_sciml_and_msl|Repo Intelligence for SciML and MSL]], [[06_roadmap/405_large_rust_modularization|Large Rust File Modularization]], [[06_roadmap/409_core_runtime_plugin_surface_inventory|Wendao Core Runtime Plugin Surface Inventory]], [[06_roadmap/410_p1_generic_plugin_contract_staging|P1 Generic Plugin Contract Staging]], [[06_roadmap/411_p1_first_code_slice_plan|P1 First Code Slice Plan]], [[06_roadmap/412_core_runtime_plugin_program|Wendao Core Runtime Plugin Program]], [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]], [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]], [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]], [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]], [[06_roadmap/417_wendao_package_boundary_matrix|Wendao Package Boundary Matrix]], [[06_roadmap/418_julia_plugin_first_rollout|Julia Plugin-First Rollout]]
 :END:
 
 ---
 
 :FOOTER:
 :STANDARDS: v2.0
-:LAST_SYNC: 2026-04-06
+:LAST_SYNC: 2026-05-08
 :END:

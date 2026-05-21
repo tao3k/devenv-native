@@ -15,8 +15,8 @@ pub use episodic_recall::{
     build_episodic_recall_request_rows_from_projection,
 };
 pub use gate_score::{
-    MemoryGateScoreEvidenceRow, MemoryGateScoreMemoryId,
-    build_memory_gate_score_evidence_row_from_episode,
+    MemoryGateScoreEvidenceRow, MemoryGateScoreEvidenceSignals, MemoryGateScoreMemoryId,
+    MemoryGateScoreStoreEvidenceInput, build_memory_gate_score_evidence_row_from_episode,
     build_memory_gate_score_evidence_row_from_store,
     build_memory_gate_score_request_batch_from_evidence,
     build_memory_gate_score_request_rows_from_evidence,

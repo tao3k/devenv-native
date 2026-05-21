@@ -1,3 +1,5 @@
+//! `link_graph::models::records::passage` owns Wendao models records passage behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Represents a fine-grained content block (`Passage`) within a document.

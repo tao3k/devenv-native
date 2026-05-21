@@ -1,3 +1,5 @@
+//! `repo_index::state` owns Wendao repo index state behavior.
+
 mod collect;
 #[path = "coordinator/mod.rs"]
 mod coordinator;

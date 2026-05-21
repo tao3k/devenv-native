@@ -1,3 +1,5 @@
+//! Owns the Studio docs projection search surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -7,8 +9,8 @@ use axum::{
 
 use crate::studio::router::handlers::docs::service::projection::search::run_docs_search;
 use crate::studio::router::handlers::repo::parse::projection::parse_projection_page_kind;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::retrieval::RepoProjectedPageSearchApiQuery;
 use crate::studio::router::{GatewayState, StudioApiError};
 use xiuxian_wendao::analyzers::DocsSearchQuery;

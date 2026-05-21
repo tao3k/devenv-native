@@ -1,3 +1,5 @@
+//! `link_graph::index::search::plan::payload::quantum` owns Wendao plan payload quantum behavior.
+
 #[cfg(feature = "vector-store")]
 mod flow;
 #[cfg(not(feature = "vector-store"))]

@@ -25,7 +25,7 @@ use super::graph_structural::{
 use crate::arrow_metadata::attach_record_batch_metadata;
 use crate::compatibility::link_graph::julia_graph_structural_provider_selector;
 
-const JULIA_PLUGIN_ID: &str = "julia";
+const JULIA_PLUGIN_ID: &str = "julia-code-parser";
 const GRAPH_STRUCTURAL_TRANSPORT_KEY: &str = "graph_structural_transport";
 const STRUCTURAL_RERANK_TRANSPORT_KEY: &str = "structural_rerank";
 const CONSTRAINT_FILTER_TRANSPORT_KEY: &str = "constraint_filter";

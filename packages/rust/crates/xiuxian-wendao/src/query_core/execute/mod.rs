@@ -1,3 +1,5 @@
+//! `query_core::execute` owns Wendao query core execute behavior.
+
 mod backends;
 mod operations;
 

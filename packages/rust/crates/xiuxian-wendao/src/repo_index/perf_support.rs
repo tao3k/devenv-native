@@ -1,3 +1,5 @@
+//! `repo_index::perf_support` owns Wendao repo index perf support behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::path::PathBuf;

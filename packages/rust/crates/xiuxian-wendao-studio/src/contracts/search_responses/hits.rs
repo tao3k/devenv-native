@@ -3,7 +3,11 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::contracts::StudioNavigationTarget;
+use crate::contracts::{
+    StudioContractDocType, StudioContractId, StudioContractKind, StudioContractNodeKind,
+    StudioContractPath, StudioContractState, StudioContractStatus, StudioContractTag,
+    StudioNavigationTarget,
+};
 
 /// A hit representing an attachment or external resource.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -12,25 +16,25 @@ pub struct AttachmentSearchHit {
     /// Attachment filename.
     pub name: String,
     /// Relative path.
-    pub path: String,
+    pub path: StudioContractPath,
     /// Stable source document identifier.
-    pub source_id: String,
+    pub source_id: StudioContractId,
     /// Source document stem.
     pub source_stem: String,
     /// Source document title.
     pub source_title: String,
     /// Source document path.
-    pub source_path: String,
+    pub source_path: StudioContractPath,
     /// Stable attachment identifier.
-    pub attachment_id: String,
+    pub attachment_id: StudioContractId,
     /// Relative attachment path.
-    pub attachment_path: String,
+    pub attachment_path: StudioContractPath,
     /// Attachment display name.
     pub attachment_name: String,
     /// Lowercased attachment extension without leading dot.
     pub attachment_ext: String,
     /// Attachment kind label.
-    pub kind: String,
+    pub kind: StudioContractKind,
     /// Navigation target.
     pub navigation_target: StudioNavigationTarget,
     /// Relevance score.
@@ -62,7 +66,7 @@ pub struct AstSearchHit {
     pub root_label: Option<String>,
     /// Optional AST node kind for richer Markdown search presentation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub node_kind: Option<String>,
+    pub node_kind: Option<StudioContractNodeKind>,
     /// Optional owning Markdown section title/path for property-box derived hits.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner_title: Option<String>,
@@ -98,7 +102,7 @@ pub struct DefinitionSearchHit {
     pub root_label: Option<String>,
     /// Optional AST node kind for the resolved symbol.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub node_kind: Option<String>,
+    pub node_kind: Option<StudioContractNodeKind>,
     /// Optional owner title or containing symbol label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner_title: Option<String>,
@@ -161,7 +165,7 @@ pub struct ReferenceSearchHit {
 #[serde(rename_all = "camelCase")]
 pub struct KnowledgeSearchHit {
     /// Global node identifier.
-    pub id: String,
+    pub id: StudioContractId,
     /// Display label.
     pub label: String,
     /// File path.
@@ -185,10 +189,10 @@ pub struct SearchBacklinkItem {
     pub title: Option<String>,
     /// Optional source path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<String>,
+    pub path: Option<StudioContractPath>,
     /// Optional relation kind.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub kind: Option<String>,
+    pub kind: Option<StudioContractKind>,
 }
 
 /// Unified search hit consumed by the frontend search surface.
@@ -201,12 +205,12 @@ pub struct SearchHit {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// Repository-relative or workspace-relative path.
-    pub path: String,
+    pub path: StudioContractPath,
     /// Optional logical hit kind.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub doc_type: Option<String>,
+    pub doc_type: Option<StudioContractDocType>,
     /// Search-visible tags.
-    pub tags: Vec<String>,
+    pub tags: Vec<StudioContractTag>,
     /// Normalized score.
     pub score: f64,
     /// Optional best section or signature summary.
@@ -226,10 +230,10 @@ pub struct SearchHit {
     pub saliency_score: Option<f64>,
     /// Optional audit status.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audit_status: Option<String>,
+    pub audit_status: Option<StudioContractStatus>,
     /// Optional verification state.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verification_state: Option<String>,
+    pub verification_state: Option<StudioContractState>,
     /// Optional backlink identifiers.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub implicit_backlinks: Option<Vec<String>>,

@@ -21,11 +21,7 @@ pub(super) use xiuxian_wendao_builtin::{
     GRAPH_STRUCTURAL_QUERY_ID_COLUMN, GRAPH_STRUCTURAL_QUERY_MAX_LAYERS_COLUMN,
     GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN, GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN,
     GRAPH_STRUCTURAL_TAG_SCORE_COLUMN, GraphStructuralFilterRequestRow,
-    build_graph_structural_filter_request_batch,
-    build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
-    build_graph_structural_keyword_overlap_query_inputs,
-    build_graph_structural_keyword_overlap_raw_candidate_inputs,
-    fetch_graph_structural_filter_rows_for_repository,
+    build_graph_structural_filter_request_batch, fetch_graph_structural_filter_rows_for_repository,
     fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates,
 };
 #[cfg(feature = "julia")]
@@ -34,14 +30,17 @@ use xiuxian_wendao_builtin::{
     linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service as spawn_real_solver_demo_structural_rerank_service,
 };
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::JuliaExampleServiceGuard;
+use xiuxian_wendao_julia::integration_support::JuliaServiceGuard;
 
 #[cfg(feature = "julia")]
 pub(super) use crate::link_graph_agentic::expansion_support::{
     GenericTopologyCandidateBuildOptions, GenericTopologyCandidateScores,
     assert_solver_demo_generic_topology_row_basics,
     assert_solver_demo_generic_topology_row_infeasible,
-    assert_solver_demo_generic_topology_row_shape, build_pair_rerank_request_batch,
+    assert_solver_demo_generic_topology_row_shape,
+    build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs,
+    build_graph_structural_keyword_overlap_query_inputs,
+    build_graph_structural_keyword_overlap_raw_candidate_inputs, build_pair_rerank_request_batch,
     build_raw_connected_pair_collection_candidate_from_pairs,
     build_raw_connected_pair_collection_candidates_from_plan,
     build_raw_seed_centered_pair_collection_candidates_from_plan,
@@ -54,6 +53,10 @@ pub(super) use crate::link_graph_agentic::expansion_support::{
 use crate::link_graph_agentic::graph_structural_fake::{
     FakeGraphStructuralServiceGuard, spawn_fake_graph_structural_service,
 };
+
+#[cfg(feature = "julia")]
+const RUN_REAL_WENDAOSEARCH_SOLVER_DEMO_ENV: &str =
+    "RUN_WENDAO_LINK_GRAPH_AGENTIC_REAL_SOLVER_DEMO";
 
 pub(super) type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -101,7 +104,7 @@ pub(super) fn expansion_config(
 #[cfg(feature = "julia")]
 pub(super) enum GraphStructuralServiceGuard {
     Real {
-        guard: JuliaExampleServiceGuard,
+        guard: JuliaServiceGuard,
     },
     Fake {
         guard: FakeGraphStructuralServiceGuard,
@@ -144,6 +147,9 @@ pub(super) async fn linked_builtin_spawn_wendaosearch_solver_demo_multi_route_se
 
 #[cfg(feature = "julia")]
 fn wendaosearch_solver_demo_available() -> bool {
+    if env::var_os(RUN_REAL_WENDAOSEARCH_SOLVER_DEMO_ENV).is_none() {
+        return false;
+    }
     if env::var("WENDAOSEARCH_SOLVER_DEMO_BASE_URL").is_ok_and(|value| !value.is_empty()) {
         return true;
     }

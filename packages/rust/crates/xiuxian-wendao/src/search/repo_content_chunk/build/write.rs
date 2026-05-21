@@ -230,50 +230,73 @@ fn rewrite_touched_partitions(
     >,
     profile: &mut RepoContentChunkMutationWriteProfile,
 ) -> Result<bool, VectorStoreError> {
-    let mut wrote_partition = false;
-    for partition_id in touched_partitions {
-        let load_started = Instant::now();
-        let mut output_batches =
-            load_partitioned_repo_content_batches(base_root, partition_id.as_str())?;
-        profile.load_touched_elapsed += load_started.elapsed();
-        if let Some(replaced_paths) = partitioned_replaced_paths.get(partition_id.as_str()) {
-            let filter_started = Instant::now();
-            let mut filtered_batches = Vec::with_capacity(output_batches.len());
-            for batch in &output_batches {
-                if let Some(filtered) =
-                    filter_batch_excluding_paths(batch, path_column(), replaced_paths)?
-                {
-                    filtered_batches.push(filtered);
+    touched_partitions
+        .iter()
+        .try_fold(false, |wrote_partition, partition_id| {
+            rewrite_touched_partition(
+                base_root,
+                target_root,
+                partition_id,
+                partitioned_replaced_paths.get(partition_id.as_str()),
+                partitioned_changed_documents.get(partition_id.as_str()),
+                next_partition_stats,
+                profile,
+            )
+            .map(|partition_written| wrote_partition || partition_written)
+        })
+}
+
+fn rewrite_touched_partition(
+    base_root: &std::path::Path,
+    target_root: &std::path::Path,
+    partition_id: &str,
+    replaced_paths: Option<&BTreeSet<String>>,
+    changed_documents: Option<&Vec<RepoCodeDocument>>,
+    next_partition_stats: &mut Option<
+        std::collections::BTreeMap<String, RepoContentChunkPartitionStats>,
+    >,
+    profile: &mut RepoContentChunkMutationWriteProfile,
+) -> Result<bool, VectorStoreError> {
+    let load_started = Instant::now();
+    let mut output_batches = load_partitioned_repo_content_batches(base_root, partition_id)?;
+    profile.load_touched_elapsed += load_started.elapsed();
+    if let Some(replaced_paths) = replaced_paths {
+        let filter_started = Instant::now();
+        output_batches = output_batches
+            .iter()
+            .filter_map(|batch| {
+                match filter_batch_excluding_paths(batch, path_column(), replaced_paths) {
+                    Ok(Some(filtered)) => Some(Ok(filtered)),
+                    Ok(None) => None,
+                    Err(error) => Some(Err(error)),
                 }
-            }
-            output_batches = filtered_batches;
-            profile.filter_replaced_elapsed += filter_started.elapsed();
-        }
-        if let Some(changed_documents) = partitioned_changed_documents.get(partition_id.as_str()) {
-            let changed_started = Instant::now();
-            let changed_rows = rows_from_documents(changed_documents.as_slice());
-            let changed_batches = repo_content_chunk_batches(&changed_rows)?;
-            output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice()));
-            profile.changed_payload_elapsed += changed_started.elapsed();
-        }
-        if output_batches.is_empty() {
-            if let Some(partition_stats) = next_partition_stats.as_mut() {
-                partition_stats.remove(partition_id.as_str());
-            }
-            continue;
-        }
-        let write_started = Instant::now();
-        let partition_stats = write_normalized_repo_content_batches(
-            repo_content_chunk_partition_path(target_root, partition_id.as_str()).as_path(),
-            &output_batches,
-        )?;
-        profile.write_touched_elapsed += write_started.elapsed();
-        if let Some(next_partition_stats) = next_partition_stats.as_mut() {
-            next_partition_stats.insert(partition_id.clone(), partition_stats);
-        }
-        wrote_partition = true;
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        profile.filter_replaced_elapsed += filter_started.elapsed();
     }
-    Ok(wrote_partition)
+    if let Some(changed_documents) = changed_documents {
+        let changed_started = Instant::now();
+        let changed_rows = rows_from_documents(changed_documents.as_slice());
+        let changed_batches = repo_content_chunk_batches(&changed_rows)?;
+        output_batches.extend(lance_batches_to_engine_batches(changed_batches.as_slice()));
+        profile.changed_payload_elapsed += changed_started.elapsed();
+    }
+    if output_batches.is_empty() {
+        if let Some(partition_stats) = next_partition_stats.as_mut() {
+            partition_stats.remove(partition_id);
+        }
+        return Ok(false);
+    }
+    let write_started = Instant::now();
+    let partition_stats = write_normalized_repo_content_batches(
+        repo_content_chunk_partition_path(target_root, partition_id).as_path(),
+        &output_batches,
+    )?;
+    profile.write_touched_elapsed += write_started.elapsed();
+    if let Some(next_partition_stats) = next_partition_stats.as_mut() {
+        next_partition_stats.insert(partition_id.to_string(), partition_stats);
+    }
+    Ok(true)
 }
 
 fn rewrite_legacy_repo_content_publication_as_partitioned(
@@ -586,27 +609,25 @@ fn copy_untouched_partitions(
     if !base_root.is_dir() {
         return Ok(0);
     }
-    let mut copied_partition_count = 0;
-    for entry in std::fs::read_dir(base_root)? {
+    std::fs::read_dir(base_root)?.try_fold(0, |copied_partition_count, entry| {
         let entry = entry?;
         if !entry.file_type()?.is_file() {
-            continue;
+            return Ok(copied_partition_count);
         }
         let file_name = entry.file_name();
         let file_name = file_name.to_string_lossy();
         let Some(partition_id) = repo_content_chunk_partition_id_from_file_name(file_name.as_ref())
         else {
-            continue;
+            return Ok(copied_partition_count);
         };
         if touched_partitions.contains(partition_id.as_str()) {
-            continue;
+            return Ok(copied_partition_count);
         }
         let target_path = target_root.join(file_name.as_ref());
         materialize_untouched_partition_file(entry.path().as_path(), target_path.as_path())?;
         *wrote_partition = true;
-        copied_partition_count += 1;
-    }
-    Ok(copied_partition_count)
+        Ok(copied_partition_count + 1)
+    })
 }
 
 fn materialize_untouched_partition_file(

@@ -55,13 +55,14 @@ impl RepoIntelligencePlugin for TestPlugin {
 impl TestPlugin {
     fn repository_record(&self, repository: &RegisteredRepository) -> RepositoryRecord {
         RepositoryRecord {
-            repo_id: repository.id.clone(),
+            repo_id: repository.id.clone().into(),
             name: format!("{}-{}", self.plugin_id, repository.id),
             path: repository
                 .path
                 .as_ref()
                 .map(|path| path.display().to_string())
-                .unwrap_or_default(),
+                .unwrap_or_default()
+                .into(),
             url: repository.url.clone(),
             revision: None,
             version: None,
@@ -78,7 +79,7 @@ fn sample_repository() -> RegisteredRepository {
         url: Some("https://github.com/SciML/DifferentialEquations.jl.git".to_string()),
         git_ref: Some(RepositoryRef::Branch("main".to_string())),
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     }
 }
 
@@ -87,14 +88,14 @@ fn register_rejects_duplicate_plugin_ids() {
     let mut registry = PluginRegistry::new();
 
     let Ok(()) = registry.register(TestPlugin {
-        plugin_id: "julia",
+        plugin_id: "julia-code-parser",
         supported_repo: "sciml-diffeq",
     }) else {
         panic!("first registration should succeed");
     };
 
     let Err(error) = registry.register(TestPlugin {
-        plugin_id: "julia",
+        plugin_id: "julia-code-parser",
         supported_repo: "sciml-diffeq",
     }) else {
         panic!("duplicate registration should fail");
@@ -103,7 +104,7 @@ fn register_rejects_duplicate_plugin_ids() {
     assert_eq!(
         error,
         RepoIntelligenceError::DuplicatePlugin {
-            plugin_id: "julia".to_string(),
+            plugin_id: "julia-code-parser".into(),
         }
     );
 }
@@ -112,7 +113,7 @@ fn register_rejects_duplicate_plugin_ids() {
 fn resolve_for_repository_returns_matching_plugins() {
     let mut registry = PluginRegistry::new();
     let Ok(()) = registry.register(TestPlugin {
-        plugin_id: "julia",
+        plugin_id: "julia-code-parser",
         supported_repo: "sciml-diffeq",
     }) else {
         panic!("registration should succeed");
@@ -123,7 +124,7 @@ fn resolve_for_repository_returns_matching_plugins() {
     };
 
     assert_eq!(resolved.len(), 1);
-    assert_eq!(resolved[0].id(), "julia");
+    assert_eq!(resolved[0].id(), "julia-code-parser");
 }
 
 #[test]
@@ -137,7 +138,7 @@ fn resolve_for_repository_fails_when_plugin_is_missing() {
     assert_eq!(
         error,
         RepoIntelligenceError::MissingPlugin {
-            plugin_id: "julia".to_string(),
+            plugin_id: "julia-code-parser".into(),
         }
     );
 }
@@ -162,6 +163,10 @@ plugins = ["modelica"]
     registry.register(TestPlugin {
         plugin_id: "modelica",
         supported_repo: "external-sample",
+    })?;
+    registry.register(TestPlugin {
+        plugin_id: "markdown-parser",
+        supported_repo: "not-the-external-sample",
     })?;
 
     let overview = repo_overview_from_config_with_registry(

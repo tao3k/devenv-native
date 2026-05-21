@@ -1,3 +1,5 @@
+//! `search::fuzzy::matcher` owns Wendao search fuzzy matcher behavior.
+
 use std::cmp::Ordering;
 use std::convert::Infallible;
 

@@ -111,7 +111,7 @@ fn performance_probe_frontier_removal_lookup_compares_linear_scan_vs_shifted_cur
         .enumerate()
         .skip(usize::try_from(stable_prefix_count).must("stable prefix count should fit in usize"))
         .map(|(token_index, token)| BpmnFrontierExecutionProposal {
-            token_id: token.token_id,
+            token_id: (token.token_id),
             token_index,
             node_index: token.node_index,
             incoming_edge_index: token.incoming_edge_index,

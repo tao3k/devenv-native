@@ -17,7 +17,7 @@ async fn build_code_search_response_marks_partial_when_repo_wide_budget_expires(
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     publish_repo_entity_index(&studio, "valid", &sample_repo_analysis("valid")).await;

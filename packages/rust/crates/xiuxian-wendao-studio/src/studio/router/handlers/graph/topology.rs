@@ -1,3 +1,5 @@
+//! Owns the Studio handlers graph topology surface.
+
 use std::sync::Arc;
 
 use axum::Json;

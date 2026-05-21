@@ -1,3 +1,5 @@
+//! `link_graph::models::records::document` owns Wendao models records document behavior.
+
 use serde::{Deserialize, Serialize};
 
 fn default_doc_saliency_base() -> f64 {
@@ -10,6 +12,7 @@ fn default_doc_decay_rate() -> f64 {
 
 /// Indexed document row.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct LinkGraphDocument {
     /// Canonical ID (relative path without extension, '/' separator).
     pub id: String,

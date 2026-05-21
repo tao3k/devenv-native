@@ -30,6 +30,7 @@ zhenfa-router = [
   "search-runtime",
 ]
 julia = [
+  "dep:xiuxian-polyglot-orchestrator",
   "dep:xiuxian-wendao-julia",
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
@@ -47,6 +48,7 @@ search-runtime = [
   "repo-lexical-index",
   "dep:graphql-parser",
   "dep:xiuxian-ast",
+  "dep:xiuxian-code-intelligence",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/engine",
   "runtime-transport",
@@ -98,6 +100,10 @@ name = "wendao_performance"
 harness = false
 required-features = ["performance"]
 
+[[bin]]
+name = "wendao_repo_search_flight_server"
+required-features = ["search-runtime", "duckdb"]
+
 
 [dependencies]
 
@@ -128,15 +134,18 @@ xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, opt
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }
 xiuxian-llm = { path = "../xiuxian-llm" }
+xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client" }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
+xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
+xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 # Macro utilities

@@ -1,3 +1,5 @@
+//! `analyzers::query::docs::planner::queue` owns Wendao docs planner queue behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

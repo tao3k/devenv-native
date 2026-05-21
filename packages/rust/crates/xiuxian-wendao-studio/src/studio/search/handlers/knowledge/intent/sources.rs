@@ -1,9 +1,9 @@
-use crate::studio::search::handlers::knowledge::helpers::is_index_not_ready;
 #[cfg(test)]
 use crate::studio::search::handlers::knowledge::intent::types::configured_parquet_query_engine_label;
 use crate::studio::search::handlers::knowledge::intent::types::{
     IntentIndexState, IntentSourceHits,
 };
+use crate::studio::search::handlers::knowledge::intent_policy::is_index_not_ready;
 use crate::studio::{StudioApiError, StudioState};
 
 pub(crate) async fn search_intent_sources(

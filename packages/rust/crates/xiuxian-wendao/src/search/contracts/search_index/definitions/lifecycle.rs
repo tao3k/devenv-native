@@ -1,3 +1,5 @@
+//! `search::contracts::search_index::definitions::lifecycle` owns Wendao search index definitions lifecycle behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

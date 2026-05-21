@@ -1,3 +1,5 @@
+//! Coordinates the Studio handlers code search execution branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod repo_search;
 mod response;
 

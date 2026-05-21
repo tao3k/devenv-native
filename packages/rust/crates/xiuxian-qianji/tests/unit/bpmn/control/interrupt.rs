@@ -1,9 +1,10 @@
+#[cfg(feature = "duckdb")]
+use super::support::QianjiBpmnWorkflowResumeRequest;
 use super::support::{
     BpmnAdvanceOutcome, QianjiBpmnHostBridge, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowInterruptRequest,
-    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartRequest, QianjiRuntimeEnv,
-    SchedulerAgentIdentity, TempDir, TestValkey, json, ok_of, unique_instance_id,
-    write_wait_bundle,
+    QianjiBpmnWorkflowStartRequest, QianjiRuntimeEnv, SchedulerAgentIdentity, TempDir, TestValkey,
+    json, ok_of, unique_instance_id, write_wait_bundle,
 };
 
 #[cfg(feature = "duckdb")]
@@ -25,8 +26,8 @@ async fn workflow_control_service_interrupts_checkpointed_session_from_duckdb_st
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path: bpmn_path.clone(),
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: "wf_interrupt_duckdb".to_string(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: "wf_interrupt_duckdb".to_string().into(),
                     initial_variables: Some(json!({ "amount": 7 })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
@@ -45,7 +46,7 @@ async fn workflow_control_service_interrupts_checkpointed_session_from_duckdb_st
     let interrupt_report = ok_of(
         service
             .interrupt_workflow(&QianjiBpmnWorkflowInterruptRequest {
-                instance_id: "wf_interrupt_duckdb".to_string(),
+                instance_id: "wf_interrupt_duckdb".to_string().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
             })
             .await,
@@ -86,7 +87,7 @@ async fn workflow_control_service_interrupts_checkpointed_session_from_duckdb_st
                 &QianjiBpmnWorkflowResumeRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    instance_id: "wf_interrupt_duckdb".to_string(),
+                    instance_id: "wf_interrupt_duckdb".to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 },
                 &QianjiBpmnHostBridge::default(),
@@ -132,8 +133,8 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: instance_id.clone(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: instance_id.clone().into(),
                     initial_variables: Some(json!({ "risk": "high" })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey),
@@ -159,7 +160,7 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
     let interrupt_report = ok_of(
         service
             .interrupt_workflow(&QianjiBpmnWorkflowInterruptRequest {
-                instance_id: instance_id.clone(),
+                instance_id: instance_id.clone().into(),
                 checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
             })
             .await,

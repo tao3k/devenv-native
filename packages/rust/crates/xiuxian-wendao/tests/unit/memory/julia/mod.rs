@@ -155,15 +155,15 @@ async fn compute_client_fetches_episodic_recall_rows_from_resolved_runtime()
                 min_score: 0.1,
             },
             &[MemoryProjectionRow {
-                episode_id: "episode-1".to_string(),
+                episode_id: "episode-1".to_string().into(),
                 scope: "repo".to_string(),
                 intent_embedding: vec![0.1, 0.2, 0.3],
                 q_value: 0.7,
                 success_count: 3,
                 failure_count: 1,
                 retrieval_count: 4,
-                created_at_ms: 100,
-                updated_at_ms: 200,
+                created_at_ms: 100.into(),
+                updated_at_ms: 200.into(),
             }],
         )
         .await?;

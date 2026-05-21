@@ -42,29 +42,31 @@ pub(crate) fn collect_code_documents(
     root: &Path,
     mut is_cancelled: impl FnMut() -> bool,
 ) -> Option<Vec<RepoCodeDocument>> {
-    let mut documents = Vec::new();
-    for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
-        if is_cancelled() {
-            return None;
-        }
-        if !entry.file_type().is_file() {
-            continue;
-        }
-        let relative_path = entry.path().strip_prefix(root).ok().map_or_else(
-            || entry.path().to_string_lossy().replace('\\', "/"),
-            |path| path.to_string_lossy().replace('\\', "/"),
-        );
-        if is_excluded_code_path(relative_path.as_str())
-            || !is_supported_code_path(relative_path.as_str())
-        {
-            continue;
-        }
-        let Some(document) = collect_code_document(entry.path(), relative_path) else {
-            continue;
-        };
-        documents.push(document);
-    }
-    Some(documents)
+    WalkDir::new(root)
+        .into_iter()
+        .filter_map(Result::ok)
+        .try_fold(Vec::new(), |mut documents, entry| {
+            if is_cancelled() {
+                return None;
+            }
+            if !entry.file_type().is_file() {
+                return Some(documents);
+            }
+            let relative_path = entry.path().strip_prefix(root).ok().map_or_else(
+                || entry.path().to_string_lossy().replace('\\', "/"),
+                |path| path.to_string_lossy().replace('\\', "/"),
+            );
+            if is_excluded_code_path(relative_path.as_str())
+                || !is_supported_code_path(relative_path.as_str())
+            {
+                return Some(documents);
+            }
+            let Some(document) = collect_code_document(entry.path(), relative_path) else {
+                return Some(documents);
+            };
+            documents.push(document);
+            Some(documents)
+        })
 }
 
 pub(crate) fn collect_incremental_code_documents(
@@ -73,26 +75,28 @@ pub(crate) fn collect_incremental_code_documents(
     deleted_paths: &BTreeSet<String>,
     mut is_cancelled: impl FnMut() -> bool,
 ) -> Option<IncrementalCodeDocumentCollection> {
-    let mut changed_documents = Vec::new();
-    let mut current_deleted_paths = deleted_paths.clone();
-
-    for relative_path in changed_paths {
-        if is_cancelled() {
-            return None;
-        }
-        if is_excluded_code_path(relative_path.as_str())
-            || !is_supported_code_path(relative_path.as_str())
-        {
-            current_deleted_paths.insert(relative_path.clone());
-            continue;
-        }
-        let path = root.join(relative_path);
-        let Some(document) = collect_code_document(path.as_path(), relative_path.clone()) else {
-            current_deleted_paths.insert(relative_path.clone());
-            continue;
-        };
-        changed_documents.push(document);
-    }
+    let (changed_documents, current_deleted_paths) = changed_paths.iter().try_fold(
+        (Vec::new(), deleted_paths.clone()),
+        |(mut changed_documents, mut current_deleted_paths), relative_path| {
+            if is_cancelled() {
+                return None;
+            }
+            if is_excluded_code_path(relative_path.as_str())
+                || !is_supported_code_path(relative_path.as_str())
+            {
+                current_deleted_paths.insert(relative_path.clone());
+                return Some((changed_documents, current_deleted_paths));
+            }
+            let path = root.join(relative_path);
+            let Some(document) = collect_code_document(path.as_path(), relative_path.clone())
+            else {
+                current_deleted_paths.insert(relative_path.clone());
+                return Some((changed_documents, current_deleted_paths));
+            };
+            changed_documents.push(document);
+            Some((changed_documents, current_deleted_paths))
+        },
+    )?;
 
     Some(IncrementalCodeDocumentCollection {
         changed_documents,

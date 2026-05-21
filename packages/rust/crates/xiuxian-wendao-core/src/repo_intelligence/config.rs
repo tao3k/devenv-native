@@ -1,3 +1,5 @@
+//! Configuration records for repository-intelligence plugin execution.
+
 use std::path::PathBuf;
 
 use schemars::JsonSchema;

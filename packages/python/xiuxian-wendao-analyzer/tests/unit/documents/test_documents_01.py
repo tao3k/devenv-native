@@ -199,3 +199,32 @@ def test_extract_document_resources_emits_structured_docling_rows(
     assert table_row["pageIndex"] == 1
     assert table_row["confidence"] == 0.97
     assert table_row["resourceElementId"] == "tables-0"
+
+
+def test_extract_document_resources_page_range_prefixes_structure_rows(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "paper.pdf"
+    source.write_bytes(b"pdf fixture")
+    output_dir = tmp_path / "paper-output"
+    converter = DocumentsFakeDoclingConverter(document=FakeStructuredDoclingDocument())
+
+    rows = extract_document_resources(
+        source,
+        output_dir,
+        converter=converter,
+        page_range=(2, 3),
+    )
+
+    assert converter.kwargs_calls == [{"page_range": (2, 3)}]
+    assert rows[0].elementId == "page-range-00002-00003:_main"
+    assert rows[0].pageIndex == 1
+    table = next(row for row in rows if row.resourceType == "table")
+    assert table.elementId == "page-range-00002-00003:tables-0"
+    structure_path = output_dir / DOCUMENT_STRUCTURE_ARROW_CACHE_NAME
+    with documents.pa.ipc.open_file(structure_path) as reader:
+        structure_rows = reader.read_all().to_pylist()
+    assert structure_rows[0]["blockId"] == "page-range-00002-00003:docling-main"
+    assert structure_rows[0]["resourceElementId"] == "page-range-00002-00003:_main"
+    table_block = next(row for row in structure_rows if row["blockType"] == "table")
+    assert table_block["parentBlockId"] == "page-range-00002-00003:docling-main"

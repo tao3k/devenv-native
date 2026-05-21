@@ -47,8 +47,8 @@ pub(in crate::parser::import) fn handle_process_child_start_tag(
     }
     let process = current_process_mut(process_stack, "bpmn_process_child_without_process_frame")?;
     Err(BpmnEngineError::UnsupportedElement {
-        source_id: source.source_id.clone(),
-        process_id: process.process_id.clone(),
+        source_id: (source.source_id.clone()).into(),
+        process_id: (process.process_id.clone()).into(),
         element: tag.to_string(),
     })
 }

@@ -1,3 +1,5 @@
+//! `analyzers::cache::identity` owns Wendao analyzers cache identity behavior.
+
 mod classify;
 mod fingerprint;
 #[cfg(feature = "search-runtime")]

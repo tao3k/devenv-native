@@ -20,7 +20,7 @@ pub fn assert_repo_json_snapshot(name: &str, value: impl Serialize) {
 fn linked_julia_parser_summary_plugin_toml() -> Result<String, Box<dyn std::error::Error>> {
     let base_url = linked_parser_summary_base_url()?;
     Ok(format!(
-        r#"{{ id = "julia", parser_summary_transport = {{ base_url = "{base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}"#
+        r#"{{ id = "julia-code-parser", parser_summary_transport = {{ base_url = "{base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}"#
     ))
 }
 

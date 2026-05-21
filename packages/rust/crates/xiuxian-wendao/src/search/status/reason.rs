@@ -1,3 +1,5 @@
+//! `search::status::reason` owns Wendao search status reason behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// UI-friendly severity for one corpus status reason.

@@ -14,6 +14,19 @@ studio_request_timeout_secs = 30
 [document_extract]
 endpoint = "http://127.0.0.1:50051"
 
+[link_graph]
+include_dirs = [
+    "docs",
+    "semantic",
+    "packages/rust/crates/xiuxian-wendao",
+    "packages/rust/crates/xiuxian-wendao/src/link_graph",
+    "packages/python/wendao-knowledge-retrieval-benchmark",
+]
+exclude_dirs = [
+    "node_modules",
+    "target",
+]
+
 [link_graph.projects."ADTypes.jl"]
 dirs = []
 url = "https://github.com/SciML/ADTypes.jl.git"

@@ -1,9 +1,11 @@
+//! Bpmn adapter dispatch surface for `xiuxian-qianji`.
+
 use super::adapter_error::BpmnAdapterError;
 use futures::future::try_join_all;
 use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnHostBridge, BpmnInstanceState, BpmnPackage, PendingHostWorkRequest,
-    PendingHostWorkResult, advance_instance, apply_pending_host_work_result,
-    build_pending_host_work_requests,
+    BpmnAdvanceOutcome, BpmnHostBridge, BpmnInstanceState, BpmnPackage, PendingHostWorkApplyInput,
+    PendingHostWorkRequest, PendingHostWorkResult, advance_instance,
+    apply_pending_host_work_result, build_pending_host_work_requests,
 };
 
 /// Dispatches one typed pending-host-work request through the supplied host.
@@ -76,13 +78,13 @@ pub async fn resolve_pending_host_work<H: BpmnHostBridge>(
     let completed_at_ms = host.now_unix_ms();
 
     for (request, result) in requests.into_iter().zip(results) {
-        apply_pending_host_work_result(
+        apply_pending_host_work_result(PendingHostWorkApplyInput {
             package,
             instance,
-            request_token_id(&request),
+            token_id: request_token_id(&request).into(),
             result,
-            completed_at_ms,
-        )?;
+            completed_at_ms: completed_at_ms.into(),
+        })?;
     }
 
     advance_instance(package, instance, host)
@@ -95,8 +97,8 @@ fn request_token_id(request: &PendingHostWorkRequest) -> u64 {
         PendingHostWorkRequest::Send(request) => request.token_id,
         PendingHostWorkRequest::Service(request) => request.token_id,
         PendingHostWorkRequest::Script(request) => request.token_id,
-        PendingHostWorkRequest::User(request) => request.token_id,
-        PendingHostWorkRequest::Manual(request) => request.token_id,
+        PendingHostWorkRequest::User(request) => request.token_id.get(),
+        PendingHostWorkRequest::Manual(request) => request.token_id.get(),
         PendingHostWorkRequest::BusinessRule(request) => request.token_id,
     }
 }

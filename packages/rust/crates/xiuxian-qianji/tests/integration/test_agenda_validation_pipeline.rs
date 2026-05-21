@@ -19,8 +19,9 @@ use xiuxian_qianhuan::persona::PersonaProfile;
 use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_qianji::safety::logic::Invariant;
 use xiuxian_qianji::{
-    FlowInstruction, QianjiApp, QianjiEngine, QianjiManifest, QianjiMechanism, QianjiOutput,
-    QianjiScheduler, manifest_declares_qianhuan_bindings, manifest_requires_llm,
+    FlowInstruction, QianjiApp, QianjiEngine, QianjiManifest, QianjiManifestPipelineRequest,
+    QianjiMechanism, QianjiOutput, QianjiPipelineDependencies, QianjiScheduler,
+    manifest_declares_qianhuan_bindings, manifest_requires_llm,
 };
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 use xiuxian_wendao_runtime::artifacts::zhixing::embedded_resource_text_from_wendao_uri;
@@ -226,13 +227,12 @@ async fn agenda_validation_pipeline_compiles_and_runs_happy_path() {
     });
     let manifest_toml = agenda_validation_manifest_toml();
 
-    let scheduler = QianjiApp::create_pipeline_from_manifest(
+    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry)
+        .with_llm_client(Some(llm_client));
+    let scheduler = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
         manifest_toml,
-        index,
-        orchestrator,
-        registry,
-        Some(llm_client),
-    )
+        dependencies,
+    })
     .unwrap_or_else(|error| {
         panic!("agenda validation pipeline should compile successfully: {error}")
     });
@@ -321,13 +321,12 @@ async fn agenda_validation_pipeline_professor_prompt_stays_flattened() {
     });
     let manifest_toml = agenda_validation_manifest_toml();
 
-    let scheduler = QianjiApp::create_pipeline_from_manifest(
+    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry)
+        .with_llm_client(Some(llm_client));
+    let scheduler = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
         manifest_toml,
-        index,
-        orchestrator,
-        registry,
-        Some(llm_client),
-    )
+        dependencies,
+    })
     .unwrap_or_else(|error| {
         panic!("agenda validation pipeline should compile successfully: {error}")
     });
@@ -376,13 +375,11 @@ fn agenda_validation_pipeline_requires_llm_feature() {
     let registry = Arc::new(PersonaRegistry::with_builtins());
     let manifest_toml = agenda_validation_manifest_toml();
 
-    let error = QianjiApp::create_pipeline_from_manifest(
+    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry);
+    let error = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
         manifest_toml,
-        index,
-        orchestrator,
-        registry,
-        None,
-    )
+        dependencies,
+    })
     .err()
     .unwrap_or_else(|| panic!("agenda validation pipeline should fail without llm feature"));
     let message = error.to_string();

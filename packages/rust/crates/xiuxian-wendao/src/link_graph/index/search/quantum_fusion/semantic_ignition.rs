@@ -1,3 +1,5 @@
+//! `link_graph::index::search::quantum_fusion::semantic_ignition` owns Wendao search quantum fusion semantic ignition behavior.
+
 use super::orchestrate::QuantumContextBuildError;
 use crate::link_graph::index::LinkGraphIndex;
 use crate::link_graph::models::{
@@ -15,6 +17,7 @@ pub type QuantumSemanticIgnitionFuture<'a, E> =
 /// Error returned when semantic ignition or subsequent quantum-context
 /// orchestration fails.
 #[derive(Debug, Error)]
+/// Generic bound boundary: this public error type keeps derived trait bounds at the boundary.
 pub enum QuantumSemanticIgnitionError<E>
 where
     E: std::error::Error + 'static,
@@ -62,6 +65,7 @@ impl LinkGraphIndex {
     /// Returns [`QuantumSemanticIgnitionError::Backend`] when the semantic
     /// backend fails, or [`QuantumSemanticIgnitionError::Orchestration`] when
     /// Wendao cannot convert returned anchor hits into scored quantum contexts.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub async fn quantum_contexts_from_retrieval_plan<I>(
         &self,
         ignition: &I,

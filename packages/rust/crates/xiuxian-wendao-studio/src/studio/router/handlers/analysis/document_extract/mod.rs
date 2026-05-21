@@ -1,3 +1,5 @@
+//! Coordinates the Studio handlers analysis document extract branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "arrow_cache/mod.rs"]
 mod arrow_cache;
 #[cfg(feature = "document-extract-pdf-source-range")]
@@ -13,6 +15,8 @@ mod provider;
 #[path = "registry/mod.rs"]
 mod registry;
 
+#[cfg(feature = "document-extract-pdf-source-range")]
+pub(super) use pdf_ocr_order::order_ocr_results_by_inputs;
 pub(crate) use provider::{
     DocumentExtractRuntimeSnapshot, StudioDocumentExtractFlightRouteProvider,
 };

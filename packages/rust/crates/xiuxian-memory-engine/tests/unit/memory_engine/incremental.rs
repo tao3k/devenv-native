@@ -1,16 +1,17 @@
-use super::{Episode, TestResult, test_store};
+use super::{Episode, EpisodeDraft, TestResult, test_store};
 
 #[test]
 fn test_incremental_update_episode() -> TestResult {
     let store = test_store("test");
 
-    let mut ep = Episode::new(
-        "ep-1".to_string(),
-        "debug api".to_string(),
-        store.encoder().encode("debug api"),
-        "Solution v1".to_string(),
-        "failure".to_string(),
-    );
+    let mut ep = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "debug api".to_string(),
+        intent_embedding: store.encoder().encode("debug api"),
+        experience: "Solution v1".to_string(),
+        outcome: "failure".to_string(),
+        scope: None,
+    });
     ep.created_at = 123;
     ep.updated_at = 123;
     store.store(ep)?;
@@ -40,20 +41,22 @@ fn test_incremental_update_episode() -> TestResult {
 fn test_incremental_delete_episode() -> TestResult {
     let store = test_store("test");
 
-    let ep1 = Episode::new(
-        "ep-1".to_string(),
-        "debug api".to_string(),
-        store.encoder().encode("debug api"),
-        "Solution".to_string(),
-        "success".to_string(),
-    );
-    let ep2 = Episode::new(
-        "ep-2".to_string(),
-        "fix memory".to_string(),
-        store.encoder().encode("fix memory"),
-        "Solution".to_string(),
-        "success".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "debug api".to_string(),
+        intent_embedding: store.encoder().encode("debug api"),
+        experience: "Solution".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
+    let ep2 = Episode::new(EpisodeDraft {
+        id: ("ep-2".to_string()).into(),
+        intent: "fix memory".to_string(),
+        intent_embedding: store.encoder().encode("fix memory"),
+        experience: "Solution".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(ep1)?;
     store.store(ep2)?;
 
@@ -80,13 +83,14 @@ fn test_incremental_delete_episode() -> TestResult {
 fn test_incremental_mark_accessed() -> TestResult {
     let store = test_store("test");
 
-    let ep = Episode::new(
-        "ep-1".to_string(),
-        "debug api".to_string(),
-        store.encoder().encode("debug api"),
-        "Solution".to_string(),
-        "success".to_string(),
-    );
+    let ep = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "debug api".to_string(),
+        intent_embedding: store.encoder().encode("debug api"),
+        experience: "Solution".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(ep)?;
 
     let retrieved = store

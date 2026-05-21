@@ -17,6 +17,24 @@ pub struct MemoryPersonaRecord {
     pub content: String,
 }
 
+/// Persona identifier used for exact registry lookup.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PersonaId(String);
+
+impl PersonaId {
+    /// Creates a persona identifier.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+}
+
+impl AsRef<str> for PersonaId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl MemoryPersonaRecord {
     /// Creates an in-memory persona record.
     #[must_use]
@@ -163,7 +181,8 @@ impl PersonaRegistry {
 
     /// Fetches a persona profile by its unique ID.
     #[must_use]
-    pub fn get(&self, id: &str) -> Option<PersonaProfile> {
+    pub fn get(&self, id: impl AsRef<str>) -> Option<PersonaProfile> {
+        let id = id.as_ref();
         if let Some(existing) = {
             let personas = self.personas_read();
             personas.get(id).cloned()
@@ -218,7 +237,12 @@ impl PersonaRegistry {
     /// # Errors
     ///
     /// Returns an error when TOML parsing fails or required fields are missing.
-    pub fn register_from_memory_toml(&mut self, id: &str, persona_toml: &str) -> Result<()> {
+    pub fn register_from_memory_toml(
+        &mut self,
+        id: impl AsRef<str>,
+        persona_toml: &str,
+    ) -> Result<()> {
+        let id = id.as_ref();
         let mut payload: toml::Value = toml::from_str(persona_toml)
             .map_err(|error| anyhow!("failed to parse persona TOML for '{id}': {error}"))?;
         let table = payload
@@ -243,11 +267,9 @@ impl PersonaRegistry {
     where
         I: IntoIterator<Item = MemoryPersonaRecord>,
     {
-        let mut loaded = 0usize;
-        for record in records {
+        records.into_iter().try_fold(0usize, |loaded, record| {
             self.register_from_memory_toml(&record.id, &record.content)?;
-            loaded += 1;
-        }
-        Ok(loaded)
+            Ok(loaded + 1)
+        })
     }
 }

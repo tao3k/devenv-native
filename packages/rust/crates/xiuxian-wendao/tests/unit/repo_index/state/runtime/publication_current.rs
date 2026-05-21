@@ -25,10 +25,10 @@ async fn managed_remote_skips_reindex_when_repo_publications_already_match_revis
             "alpha/repo",
             &RepositoryAnalysisOutput {
                 modules: vec![crate::analyzers::ModuleRecord {
-                    repo_id: "alpha/repo".to_string(),
-                    module_id: "module:alpha".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
+                    module_id: "module:alpha".to_string().into(),
                     qualified_name: "Alpha".to_string(),
-                    path: "src/lib.rs".to_string(),
+                    path: "src/lib.rs".to_string().into(),
                 }],
                 ..RepositoryAnalysisOutput::default()
             },
@@ -135,10 +135,10 @@ async fn local_checkout_does_not_short_circuit_on_revision_match() {
             "alpha/repo",
             &RepositoryAnalysisOutput {
                 modules: vec![crate::analyzers::ModuleRecord {
-                    repo_id: "alpha/repo".to_string(),
-                    module_id: "module:alpha".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
+                    module_id: "module:alpha".to_string().into(),
                     qualified_name: "Alpha".to_string(),
-                    path: "src/lib.rs".to_string(),
+                    path: "src/lib.rs".to_string().into(),
                 }],
                 ..RepositoryAnalysisOutput::default()
             },

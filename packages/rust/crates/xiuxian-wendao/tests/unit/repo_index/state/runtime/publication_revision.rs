@@ -22,10 +22,10 @@ async fn managed_remote_reuses_revision_scoped_publications_after_latest_record_
     }];
     let analysis = RepositoryAnalysisOutput {
         modules: vec![crate::analyzers::ModuleRecord {
-            repo_id: "alpha/repo".to_string(),
-            module_id: "module:alpha".to_string(),
+            repo_id: "alpha/repo".to_string().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     };

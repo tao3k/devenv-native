@@ -12,11 +12,8 @@ REMOVED_SKILL_IMPORT = "skills._shared.cargo_subprocess_env"
 TARGETS = [
     "scripts/benchmark_wendao_related.py",
     "scripts/benchmark_wendao_search.py",
-    "scripts/channel/test_xiuxian_daochang_valkey_suite.py",
     "scripts/evaluate_wendao_retrieval.py",
     "scripts/rust/cargo_check_with_timeout.py",
-    "scripts/rust/xiuxian_daochang_embedding_role_perf_smoke.py",
-    "scripts/test_llm_proxy.py",
     "scripts/validate_wendao_gate_reports.py",
 ]
 

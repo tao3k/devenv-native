@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::semantic_check::docs_governance::rendering::landing` owns Wendao docs governance rendering landing behavior.
+
 use std::fmt::Write as _;
 use std::path::Path;
 

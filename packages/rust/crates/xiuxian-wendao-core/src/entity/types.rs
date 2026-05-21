@@ -1,3 +1,5 @@
+//! Entity and relation type labels used by extracted knowledge graphs.
+
 use std::convert::Infallible;
 use std::fmt;
 use std::str::FromStr;

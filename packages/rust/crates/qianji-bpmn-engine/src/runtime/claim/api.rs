@@ -19,7 +19,7 @@ pub(crate) fn claim_pending_human_task_impl(
 
     let pending_index = find_pending_human_work_index(
         instance,
-        request.token_id,
+        request.token_id.get(),
         request.process_id.as_str(),
         request.activity_id.as_str(),
     )?;
@@ -33,24 +33,24 @@ pub(crate) fn claim_pending_human_task_impl(
                 });
             }
             return Err(BpmnEngineError::PendingHostWorkAlreadyClaimed {
-                token_id: request.token_id,
+                token_id: (request.token_id.get()).into(),
                 claimed_by: existing.claimant.clone(),
             });
         }
 
         pending.claim = Some(PendingHostWorkClaim {
             claimant: claimant.to_string(),
-            claimed_at_ms: request.claimed_at_ms,
+            claimed_at_ms: request.claimed_at_ms.get(),
         });
         pending.clone()
     };
     instance.sequence += 1;
-    instance.updated_at_ms = request.claimed_at_ms;
+    instance.updated_at_ms = request.claimed_at_ms.get();
     crate::runtime::lifecycle::record_human_task_lifecycle_event(
         instance,
         BpmnHumanTaskLifecycleEventKind::Claimed,
         &pending_host_work,
-        request.claimed_at_ms,
+        request.claimed_at_ms.get(),
         Some(claimant.to_string()),
     );
 
@@ -72,7 +72,7 @@ pub(crate) fn release_pending_human_task_impl(
 
     let pending_index = find_pending_human_work_index(
         instance,
-        request.token_id,
+        request.token_id.get(),
         request.process_id.as_str(),
         request.activity_id.as_str(),
     )?;
@@ -80,12 +80,12 @@ pub(crate) fn release_pending_human_task_impl(
         let pending = &mut instance.pending_host_work[pending_index];
         let Some(existing) = pending.claim.as_ref() else {
             return Err(BpmnEngineError::PendingHostWorkNotClaimed {
-                token_id: request.token_id,
+                token_id: (request.token_id.get()).into(),
             });
         };
         if existing.claimant != claimant {
             return Err(BpmnEngineError::PendingHostWorkClaimReleaseMismatch {
-                token_id: request.token_id,
+                token_id: (request.token_id.get()).into(),
                 claimed_by: existing.claimant.clone(),
                 requested_by: claimant.to_string(),
             });
@@ -95,12 +95,12 @@ pub(crate) fn release_pending_human_task_impl(
         pending.clone()
     };
     instance.sequence += 1;
-    instance.updated_at_ms = request.released_at_ms;
+    instance.updated_at_ms = request.released_at_ms.get();
     crate::runtime::lifecycle::record_human_task_lifecycle_event(
         instance,
         BpmnHumanTaskLifecycleEventKind::Released,
         &pending_host_work,
-        request.released_at_ms,
+        request.released_at_ms.get(),
         Some(claimant.to_string()),
     );
 
@@ -123,12 +123,12 @@ fn find_pending_human_work_index(
         .ok_or_else(|| {
             if instance.pending_host_work.is_empty() {
                 return BpmnEngineError::MissingPendingHostWork {
-                    instance_id: instance.instance_id.to_string(),
+                    instance_id: (instance.instance_id.to_string()).into(),
                 };
             }
             BpmnEngineError::MissingPendingHostWorkToken {
-                instance_id: instance.instance_id.to_string(),
-                token_id,
+                instance_id: (instance.instance_id.to_string()).into(),
+                token_id: token_id.into(),
             }
         })?;
 
@@ -142,7 +142,7 @@ fn find_pending_human_work_index(
     let actual_activity_id = pending
         .activity_id
         .clone()
-        .unwrap_or_else(|| format!("node#{}", pending.node_index));
+        .unwrap_or_else(|| format!("node#{}", pending.node_index).into());
 
     if actual_process_id != expected_process_id || actual_activity_id != expected_activity_id {
         return Err(BpmnEngineError::pending_host_work_identity_mismatch(
@@ -151,7 +151,7 @@ fn find_pending_human_work_index(
             expected_process_id.to_string(),
             expected_activity_id.to_string(),
             actual_process_id,
-            actual_activity_id,
+            actual_activity_id.to_string(),
         ));
     }
     if !matches!(
@@ -159,9 +159,9 @@ fn find_pending_human_work_index(
         PendingHostWorkKind::User | PendingHostWorkKind::Manual
     ) {
         return Err(BpmnEngineError::PendingHostWorkNotHumanTask {
-            token_id,
+            token_id: token_id.into(),
             node_index: pending.node_index,
-            kind: pending_host_work_kind_name(&pending.kind).to_string(),
+            kind: (pending_host_work_kind_name(&pending.kind).to_string()).into(),
         });
     }
 

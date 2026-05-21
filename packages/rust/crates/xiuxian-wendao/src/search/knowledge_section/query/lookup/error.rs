@@ -1,3 +1,5 @@
+//! `search::knowledge_section::query::lookup::error` owns Wendao query lookup error behavior.
+
 #[derive(Debug, thiserror::Error)]
 /// Errors returned while querying the knowledge-section search index.
 pub enum KnowledgeSectionSearchError {

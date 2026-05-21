@@ -40,6 +40,8 @@ const REPO_QUERY_BENCH_DOC_COUNT: usize = 100_000;
 #[cfg(feature = "duckdb")]
 const EVENT_LAKE_BENCH_RECORDS: usize = 1_024;
 #[cfg(feature = "duckdb")]
+const EVENT_LAKE_BENCH_RECORD_LIMIT: u32 = 1_024;
+#[cfg(feature = "duckdb")]
 const EVENT_LAKE_BENCH_ROWS_PER_BATCH: usize = 256;
 
 fn note_id(i: usize) -> String {
@@ -380,7 +382,7 @@ fn bench_event_lake_append_chain(c: &mut Criterion) {
     let query_fixture = build_event_lake_query_fixture(records.as_slice());
     let query = WendaoEventQuery::for_case("tenant-a", "case-1")
         .with_event_type("tool.call")
-        .with_limit(EVENT_LAKE_BENCH_RECORDS as u32);
+        .with_limit(EVENT_LAKE_BENCH_RECORD_LIMIT);
     let mut group = c.benchmark_group("wendao_event_lake_append_chain");
     group.throughput(Throughput::Elements(EVENT_LAKE_BENCH_RECORDS as u64));
     group.bench_function("record_batch_builder", |bench| {
@@ -396,7 +398,7 @@ fn bench_event_lake_append_chain(c: &mut Criterion) {
             |fixture| {
                 let mut appender = WendaoEventLakeAppender::open(&fixture.connection, "memory")
                     .unwrap_or_else(|error| panic!("open event-lake benchmark appender: {error}"));
-                let appended = appender
+                let appended_count = appender
                     .append_events_chunked(
                         fixture.records.as_slice(),
                         EVENT_LAKE_BENCH_ROWS_PER_BATCH,
@@ -409,7 +411,7 @@ fn bench_event_lake_append_chain(c: &mut Criterion) {
                     .connection
                     .query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))
                     .unwrap_or_else(|error| panic!("count event-lake benchmark rows: {error}"));
-                black_box((appended, count));
+                black_box((appended_count, count));
             },
             BatchSize::LargeInput,
         );
@@ -497,6 +499,8 @@ fn build_event_lake_records(count: usize) -> Vec<WendaoEventRecord> {
         .unwrap_or_else(|| panic!("valid benchmark UTC timestamp"));
     (0..count)
         .map(|index| {
+            let elapsed_ms =
+                i64::try_from(index).unwrap_or_else(|_| panic!("benchmark index exceeds i64"));
             let payload = json!({
                 "index": index,
                 "tool": format!("tool-{}", index % 16),
@@ -511,7 +515,7 @@ fn build_event_lake_records(count: usize) -> Vec<WendaoEventRecord> {
                     _ => "bpmn.step",
                 },
                 &payload,
-                base + chrono::TimeDelta::milliseconds(index as i64),
+                base + chrono::TimeDelta::milliseconds(elapsed_ms),
             )
         })
         .collect()

@@ -1,12 +1,12 @@
 //! Runtime support for Wendao command binaries.
 
 /// Command-line interface runtime for the main `wendao` binary.
-#[cfg(all(feature = "studio", feature = "zhenfa-router"))]
+#[cfg(feature = "cli-bin-support")]
 #[path = "wendao.rs"]
 pub mod wendao;
 
 /// Runtime-backed Arrow Flight server entrypoint support.
-#[cfg(feature = "zhenfa-router")]
+#[cfg(feature = "flight-server-bin-support")]
 #[path = "flight_server.rs"]
 pub mod flight_server;
 

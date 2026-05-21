@@ -7,17 +7,18 @@ use anyhow::{Result, anyhow};
 use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb};
 use xiuxian_llm::llm::vision::{
     TextAnchor, VisibilityScrubPolicy, VisualAnchor, VisualCotInput, VisualCotMode,
-    VisualRefinement, build_semantic_overlay, build_visual_cot_prompt, build_visual_user_message,
-    build_visual_user_message_from_refinement, build_visual_user_message_with_ocr_truth,
-    fit_dimensions, prepare_image_for_ocr_runtime, preprocess_image, scrub_text_anchors,
+    VisualRefinement, VisualUserMessageRequest, build_semantic_overlay, build_visual_cot_prompt,
+    build_visual_user_message, build_visual_user_message_from_refinement,
+    build_visual_user_message_with_ocr_truth, fit_dimensions, prepare_image_for_ocr_runtime,
+    preprocess_image, scrub_text_anchors,
 };
 use xiuxian_llm::llm::{ContentPart, MessageContent};
 
 #[test]
 fn fit_dimensions_scales_by_long_edge() {
-    let (width, height, scale) = fit_dimensions(4_096, 1_024, 2_048);
-    assert_eq!((width, height), (2_048, 512));
-    assert!((scale - 0.5).abs() < f64::EPSILON);
+    let dimensions = fit_dimensions(4_096, 1_024, 2_048);
+    assert_eq!((dimensions.width, dimensions.height), (2_048, 512));
+    assert!((dimensions.scale - 0.5).abs() < f64::EPSILON);
 }
 
 #[test]
@@ -165,13 +166,13 @@ fn build_visual_user_message_rejects_empty_image_ref() {
 
 #[test]
 fn build_visual_user_message_with_ocr_truth_prepends_truth_block() -> Result<()> {
-    let message = build_visual_user_message_with_ocr_truth(
-        "Summarize this invoice.",
-        "https://example.com/invoice.png",
-        &[],
-        VisualCotMode::Assistive,
-        Some("# Invoice\n- Total: 120.00"),
-    )?;
+    let message = build_visual_user_message_with_ocr_truth(VisualUserMessageRequest {
+        user_message: "Summarize this invoice.",
+        image_url: "https://example.com/invoice.png",
+        anchors: &[],
+        mode: VisualCotMode::Assistive,
+        ocr_truth_markdown: Some("# Invoice\n- Total: 120.00"),
+    })?;
 
     let Some(MessageContent::Parts(parts)) = message.content else {
         return Err(anyhow!("visual user message should use multipart content"));

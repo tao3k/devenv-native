@@ -33,9 +33,9 @@ pub(crate) fn collect_relation_records(
                 &mut relations,
                 &mut relation_keys,
                 RelationRecord {
-                    repo_id: repo_id.to_string(),
-                    source_id: parent_module.module_id.clone(),
-                    target_id: module.module_id.clone(),
+                    repo_id: (repo_id.to_string()).into(),
+                    source_id: parent_module.module_id.clone().to_string(),
+                    target_id: module.module_id.clone().to_string(),
                     kind: RelationKind::Contains,
                 },
             );
@@ -48,9 +48,9 @@ pub(crate) fn collect_relation_records(
                 &mut relations,
                 &mut relation_keys,
                 RelationRecord {
-                    repo_id: repo_id.to_string(),
-                    source_id: module_id.clone(),
-                    target_id: symbol.symbol_id.clone(),
+                    repo_id: (repo_id.to_string()).into(),
+                    source_id: module_id.clone().to_string(),
+                    target_id: symbol.symbol_id.clone().to_string(),
                     kind: RelationKind::Declares,
                 },
             );
@@ -71,9 +71,9 @@ pub(crate) fn collect_relation_records(
                 &mut relations,
                 &mut relation_keys,
                 RelationRecord {
-                    repo_id: repo_id.to_string(),
-                    source_id: example.example_id.clone(),
-                    target_id,
+                    repo_id: (repo_id.to_string()).into(),
+                    source_id: example.example_id.clone().to_string(),
+                    target_id: target_id.to_string(),
                     kind: RelationKind::ExampleOf,
                 },
             );
@@ -86,8 +86,8 @@ pub(crate) fn collect_relation_records(
                 &mut relations,
                 &mut relation_keys,
                 RelationRecord {
-                    repo_id: repo_id.to_string(),
-                    source_id: doc.record.doc_id.clone(),
+                    repo_id: (repo_id.to_string()).into(),
+                    source_id: doc.record.doc_id.clone().to_string(),
                     target_id: target_id.clone(),
                     kind: RelationKind::Documents,
                 },
@@ -152,8 +152,8 @@ pub(crate) fn build_incremental_doc_relations(
                 &mut relations,
                 &mut relation_keys,
                 RelationRecord {
-                    repo_id: repo_id.to_string(),
-                    source_id: doc.doc_id.clone(),
+                    repo_id: (repo_id.to_string()).into(),
+                    source_id: doc.doc_id.clone().to_string(),
                     target_id,
                     kind: RelationKind::Documents,
                 },
@@ -244,12 +244,12 @@ pub(crate) fn doc_targets_for_annotation_doc(
         .collect();
     }
 
-    let mut target_ids = BTreeSet::new();
+    let mut target_ids: BTreeSet<String> = BTreeSet::new();
     if relative_path.ends_with("package.mo") {
         if let Some(module_qualified_name) = qualified_module_name(root_package_name, relative_path)
         {
             if let Some(module) = module_lookup.get(module_qualified_name.as_str()) {
-                target_ids.insert(module.module_id.clone());
+                target_ids.insert(module.module_id.to_string());
             }
         } else if let Some(root_module_id) = root_module_id {
             target_ids.insert(root_module_id.to_string());
@@ -265,14 +265,14 @@ pub(crate) fn doc_targets_for_annotation_doc(
             .iter()
             .find(|symbol| symbol.path == relative_path && symbol.name == file_stem)
     {
-        target_ids.insert(symbol.symbol_id.clone());
+        target_ids.insert(symbol.symbol_id.to_string());
     }
     if target_ids.is_empty()
         && let Some(module_qualified_name) =
             containing_module_name(root_package_name, relative_path)
         && let Some(module) = module_lookup.get(module_qualified_name.as_str())
     {
-        target_ids.insert(module.module_id.clone());
+        target_ids.insert(module.module_id.to_string());
     }
     target_ids.into_iter().collect()
 }
@@ -309,7 +309,7 @@ fn push_module_target(
     module_qualified_name: &str,
 ) {
     if let Some(module) = module_lookup.get(module_qualified_name) {
-        target_ids.insert(module.module_id.clone());
+        target_ids.insert(module.module_id.to_string());
     }
 }
 
@@ -370,16 +370,12 @@ fn users_guide_hierarchy_module_names(relative_path: &str, root_package_name: &s
         return Vec::new();
     };
     let module_components = &components[..components.len().saturating_sub(1)];
-    let mut names = Vec::new();
-    for end in (users_guide_index + 1)..=module_components.len() {
-        let mut qualified = root_package_name.to_string();
-        for component in &module_components[..end] {
-            qualified.push('.');
-            qualified.push_str(component);
-        }
-        names.push(qualified);
-    }
-    names
+    ((users_guide_index + 1)..=module_components.len())
+        .map(|end| {
+            let suffix = module_components[..end].join(".");
+            format!("{root_package_name}.{suffix}")
+        })
+        .collect()
 }
 
 #[cfg(test)]

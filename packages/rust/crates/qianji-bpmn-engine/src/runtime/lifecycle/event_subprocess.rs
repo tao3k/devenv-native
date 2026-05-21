@@ -180,6 +180,6 @@ fn event_subprocess_child<'a>(
     package
         .find_process_position(called_process_id.as_ref())
         .ok_or_else(|| BpmnEngineError::MissingProcess {
-            process_id: called_process_id.to_string(),
+            process_id: (called_process_id.to_string()).into(),
         })
 }

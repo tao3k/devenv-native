@@ -69,12 +69,16 @@ impl DenseCluster {
 
         // Count internal edges
         let member_set: HashSet<&String> = members.iter().collect();
-        let mut internal_edges = 0usize;
-        for member in &members {
-            if let Some(neighbors) = outgoing.get(member) {
-                internal_edges += neighbors.iter().filter(|n| member_set.contains(*n)).count();
-            }
-        }
+        let internal_edges = members
+            .iter()
+            .filter_map(|member| outgoing.get(member))
+            .map(|neighbors| {
+                neighbors
+                    .iter()
+                    .filter(|neighbor| member_set.contains(*neighbor))
+                    .count()
+            })
+            .sum::<usize>();
 
         // Edge density = actual_edges / possible_edges
         // possible_edges = n * (n-1) for directed graph
@@ -121,25 +125,49 @@ pub fn find_dense_clusters(
         return Vec::new();
     }
 
-    let high_set: HashSet<&String> = high_saliency_nodes.iter().collect();
-    let mut visited: HashSet<String> = HashSet::new();
-    let mut clusters: Vec<DenseCluster> = Vec::new();
+    let high_set = high_saliency_nodes.iter().collect::<HashSet<_>>();
+    let sorted_seeds = sorted_cluster_seeds(high_saliency_nodes, saliency_map);
+    let clusters = expand_valid_clusters(sorted_seeds, &high_set, outgoing, incoming, saliency_map);
+    sort_clusters_by_saliency(clusters)
+}
 
-    // Sort high-saliency nodes by saliency (descending)
-    let mut sorted_seeds: Vec<&String> = high_saliency_nodes.iter().collect();
-    sorted_seeds.sort_by(|a, b| {
-        let sa = saliency_map.get(*a).unwrap_or(&0.0);
-        let sb = saliency_map.get(*b).unwrap_or(&0.0);
-        sb.partial_cmp(sa).unwrap_or(std::cmp::Ordering::Equal)
-    });
+fn sorted_cluster_seeds<'a>(
+    high_saliency_nodes: &'a [String],
+    saliency_map: &HashMap<String, f64>,
+) -> Vec<&'a String> {
+    let mut sorted_seeds = high_saliency_nodes.iter().collect::<Vec<_>>();
+    sorted_seeds.sort_by(|a, b| compare_saliency_desc(a, b, saliency_map));
+    sorted_seeds
+}
 
-    // Greedy expansion from each seed
+fn compare_saliency_desc(
+    left: &str,
+    right: &str,
+    saliency_map: &HashMap<String, f64>,
+) -> std::cmp::Ordering {
+    let left_score = saliency_map.get(left).unwrap_or(&0.0);
+    let right_score = saliency_map.get(right).unwrap_or(&0.0);
+    right_score
+        .partial_cmp(left_score)
+        .unwrap_or(std::cmp::Ordering::Equal)
+}
+
+fn expand_valid_clusters(
+    sorted_seeds: Vec<&String>,
+    high_set: &HashSet<&String>,
+    outgoing: &HashMap<String, HashSet<String>>,
+    incoming: &HashMap<String, HashSet<String>>,
+    saliency_map: &HashMap<String, f64>,
+) -> Vec<DenseCluster> {
+    let mut visited = HashSet::<String>::new();
+    let mut clusters = Vec::<DenseCluster>::new();
+
     for seed in sorted_seeds {
         if visited.contains(seed) {
             continue;
         }
 
-        let cluster = expand_cluster(seed, &high_set, &visited, outgoing, incoming, saliency_map);
+        let cluster = expand_cluster(seed, high_set, &visited, outgoing, incoming, saliency_map);
 
         if cluster.members.len() >= MIN_CLUSTER_SIZE {
             // Mark all members as visited
@@ -153,13 +181,15 @@ pub fn find_dense_clusters(
         }
     }
 
-    // Sort by average saliency descending
+    clusters
+}
+
+fn sort_clusters_by_saliency(mut clusters: Vec<DenseCluster>) -> Vec<DenseCluster> {
     clusters.sort_by(|a, b| {
         b.avg_saliency
             .partial_cmp(&a.avg_saliency)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
-
     clusters
 }
 
@@ -175,54 +205,32 @@ fn expand_cluster(
     let mut members: HashSet<String> = HashSet::new();
     members.insert(seed.to_string());
 
-    // Get all neighbors that are high-saliency and not visited
-    let get_candidates = |members: &HashSet<String>| -> Vec<String> {
-        let mut candidates: HashSet<String> = HashSet::new();
-        for member in members {
-            // Check outgoing neighbors
-            if let Some(neighbors) = outgoing.get(member) {
-                for n in neighbors {
-                    if high_set.contains(&n) && !visited.contains(n) && !members.contains(n) {
-                        candidates.insert(n.clone());
-                    }
-                }
-            }
-            // Check incoming neighbors
-            if let Some(neighbors) = incoming.get(member) {
-                for n in neighbors {
-                    if high_set.contains(&n) && !visited.contains(n) && !members.contains(n) {
-                        candidates.insert(n.clone());
-                    }
-                }
-            }
-        }
-        candidates.into_iter().collect()
-    };
-
     // Greedy expansion: add candidate that maximizes density
     while members.len() < MAX_CLUSTER_SIZE {
-        let candidates = get_candidates(&members);
+        let candidates = cluster_candidates(&members, high_set, visited, outgoing, incoming);
         if candidates.is_empty() {
             break;
         }
 
         // Find best candidate (maintains highest density)
-        let mut best_candidate: Option<String> = None;
-        let mut best_density = 0.0;
-
-        for candidate in &candidates {
-            let mut test_members = members.clone();
-            test_members.insert(candidate.clone());
-
-            let density = compute_edge_density(&test_members, outgoing);
-            if density > best_density {
-                best_density = density;
-                best_candidate = Some(candidate.clone());
-            }
-        }
+        let best_candidate = candidates
+            .iter()
+            .map(|candidate| {
+                let mut test_members = members.clone();
+                test_members.insert(candidate.clone());
+                (
+                    candidate.clone(),
+                    compute_edge_density(&test_members, outgoing),
+                )
+            })
+            .max_by(|(_, left_density), (_, right_density)| {
+                left_density
+                    .partial_cmp(right_density)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
 
         // Add best candidate if it maintains minimum density
-        if let Some(candidate) = best_candidate {
+        if let Some((candidate, best_density)) = best_candidate {
             if best_density >= MIN_EDGE_DENSITY {
                 members.insert(candidate);
             } else {
@@ -236,6 +244,33 @@ fn expand_cluster(
     DenseCluster::new(members.into_iter().collect(), saliency_map, outgoing)
 }
 
+fn cluster_candidates(
+    members: &HashSet<String>,
+    high_set: &HashSet<&String>,
+    visited: &HashSet<String>,
+    outgoing: &HashMap<String, HashSet<String>>,
+    incoming: &HashMap<String, HashSet<String>>,
+) -> Vec<String> {
+    members
+        .iter()
+        .flat_map(|member| {
+            outgoing
+                .get(member)
+                .into_iter()
+                .chain(incoming.get(member))
+                .flat_map(|neighbors| neighbors.iter())
+        })
+        .filter(|neighbor| {
+            high_set.contains(neighbor)
+                && !visited.contains(*neighbor)
+                && !members.contains(*neighbor)
+        })
+        .cloned()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect()
+}
+
 /// Compute edge density within a member set.
 fn compute_edge_density(
     members: &HashSet<String>,
@@ -245,12 +280,11 @@ fn compute_edge_density(
         return 1.0;
     }
 
-    let mut internal_edges = 0usize;
-    for member in members {
-        if let Some(neighbors) = outgoing.get(member) {
-            internal_edges += neighbors.intersection(members).count();
-        }
-    }
+    let internal_edges = members
+        .iter()
+        .filter_map(|member| outgoing.get(member))
+        .map(|neighbors| neighbors.intersection(members).count())
+        .sum::<usize>();
 
     let n = members.len();
     let possible_edges = n * (n - 1);

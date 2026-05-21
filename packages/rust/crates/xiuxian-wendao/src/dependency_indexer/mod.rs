@@ -8,4 +8,4 @@ mod symbols;
 
 pub use config::{ConfigExternalDependency, DependencyConfig as DependencyBuildConfig};
 pub use indexer::{DependencyConfig, DependencyIndexResult, DependencyIndexer, DependencyStats};
-pub use symbols::{ExternalSymbol, SymbolIndex, SymbolKind, extract_symbols};
+pub use symbols::{ExternalSymbol, SymbolIndex, SymbolKind, extract_dependency_symbols};

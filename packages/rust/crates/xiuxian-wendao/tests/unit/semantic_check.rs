@@ -1,4 +1,4 @@
-//! Tests for semantic_check module (Blueprint v2.2).
+//! Tests for `semantic_check` module (Blueprint v2.2).
 //!
 //! Tests the semantic sentinel functionality:
 //! - Dead link detection
@@ -222,6 +222,7 @@ fn test_build_file_reports() {
             message: "Test error".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         },
         SemanticIssue {
             severity: "warning".to_string(),
@@ -231,6 +232,7 @@ fn test_build_file_reports() {
             message: "Test warning".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         },
         SemanticIssue {
             severity: "error".to_string(),
@@ -240,6 +242,7 @@ fn test_build_file_reports() {
             message: "Another error".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         },
     ];
 
@@ -273,6 +276,7 @@ fn test_health_score_bounds() {
             message: "Error".to_string(),
             location: None,
             suggestion: None,
+            fuzzy_suggestion: None,
         })
         .collect();
 

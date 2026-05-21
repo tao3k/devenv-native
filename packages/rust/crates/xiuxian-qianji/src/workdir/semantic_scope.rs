@@ -1,11 +1,56 @@
+//! Semantic-scope guard traces for bounded workdirs.
+//!
+//! This module converts Wendao semantic-scope bundle metadata into compact
+//! Qianji advisory traces, JSON receipts, and Markdown summaries.
+
 use std::fmt::Write as _;
 
+use serde::Serialize;
 use xiuxian_wendao_parsers::semantic_ssot::{
     SemanticObjectKind, SemanticProjectionFreshnessPolicyReport, SemanticProjectionStaleness,
     SemanticScopeBundle, SemanticStatus, parse_semantic_scope_metadata_envelope_json,
 };
 
 use crate::error::QianjiError;
+
+macro_rules! define_semantic_token {
+    ($name:ident) => {
+        #[doc = concat!("Typed semantic token for `", stringify!($name), "`.")]
+        #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Creates one typed semantic token.
+            #[must_use]
+            pub fn new(value: impl Into<String>) -> Self {
+                Self(value.into())
+            }
+
+            /// Returns the underlying token as `str`.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                self.0.as_str()
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+
+        impl PartialEq<&str> for $name {
+            fn eq(&self, other: &&str) -> bool {
+                self.as_str() == *other
+            }
+        }
+    };
+}
+
+define_semantic_token!(WorkdirSemanticScopeObjectKind);
+define_semantic_token!(WorkdirSemanticScopeObjectStatus);
+define_semantic_token!(WorkdirSemanticEvidenceStatus);
 
 /// Advisory status derived from a Wendao semantic-scope bundle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,9 +79,9 @@ pub struct WorkdirSemanticScopeObjectSummary {
     /// Stable semantic object id.
     pub id: String,
     /// Stable object kind token.
-    pub kind: String,
+    pub kind: WorkdirSemanticScopeObjectKind,
     /// Semantic lifecycle status token.
-    pub status: String,
+    pub status: WorkdirSemanticScopeObjectStatus,
     /// Human-readable object title.
     pub title: String,
 }
@@ -47,7 +92,7 @@ pub struct WorkdirSemanticSqlGuardSummary {
     /// Stable guard identifier.
     pub guard_id: String,
     /// Advisory guard status token.
-    pub status: String,
+    pub status: WorkdirSemanticEvidenceStatus,
     /// Count of rows that caused the guard to request review.
     pub failing_row_count: usize,
     /// Human-readable guard message.
@@ -60,7 +105,7 @@ pub struct WorkdirSemanticProjectionPolicySummary {
     /// Stable policy identifier.
     pub policy_id: String,
     /// Advisory policy status token.
-    pub status: String,
+    pub status: WorkdirSemanticEvidenceStatus,
     /// Count of projections that caused the policy to request review.
     pub failing_projection_count: usize,
     /// Human-readable policy message.
@@ -183,8 +228,10 @@ pub fn trace_workdir_semantic_scope_bundle_with_evidence(
             .iter()
             .map(|object| WorkdirSemanticScopeObjectSummary {
                 id: object.id.clone(),
-                kind: semantic_kind_token(&object.kind).to_string(),
-                status: semantic_status_token(&object.status).to_string(),
+                kind: WorkdirSemanticScopeObjectKind::new(semantic_kind_token(&object.kind)),
+                status: WorkdirSemanticScopeObjectStatus::new(semantic_status_token(
+                    &object.status,
+                )),
                 title: object.title.clone(),
             })
             .collect(),
@@ -268,6 +315,17 @@ pub fn workdir_semantic_scope_guard_trace_json(
 #[must_use]
 pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGuardTrace) -> String {
     let mut rendered = String::new();
+    push_semantic_trace_header(&mut rendered, trace);
+    push_semantic_trace_issues(&mut rendered, trace);
+    push_semantic_trace_objects(&mut rendered, trace);
+    push_semantic_trace_change_intents(&mut rendered, trace);
+    push_semantic_trace_sql_evidence(&mut rendered, trace);
+    push_semantic_trace_projection_policy(&mut rendered, trace);
+    push_semantic_trace_required_validations(&mut rendered, trace);
+    rendered
+}
+
+fn push_semantic_trace_header(rendered: &mut String, trace: &WorkdirSemanticScopeGuardTrace) {
     rendered.push_str("# Semantic Scope Guard Trace\n\n");
     let _ = writeln!(rendered, "Status: {}", trace.status.as_str());
     if let Some(task_id) = &trace.task_id {
@@ -279,14 +337,18 @@ pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGua
     }
     rendered.push('\n');
     let _ = writeln!(rendered, "Relations: {}", trace.relation_count);
+}
 
+fn push_semantic_trace_issues(rendered: &mut String, trace: &WorkdirSemanticScopeGuardTrace) {
     if !trace.issues.is_empty() {
         rendered.push_str("\n## Issues\n\n");
         for issue in &trace.issues {
             let _ = writeln!(rendered, "- {issue}");
         }
     }
+}
 
+fn push_semantic_trace_objects(rendered: &mut String, trace: &WorkdirSemanticScopeGuardTrace) {
     rendered.push_str("\n## Objects\n\n");
     for object in &trace.objects {
         let _ = writeln!(
@@ -295,14 +357,21 @@ pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGua
             object.id, object.kind, object.status, object.title
         );
     }
+}
 
+fn push_semantic_trace_change_intents(
+    rendered: &mut String,
+    trace: &WorkdirSemanticScopeGuardTrace,
+) {
     if !trace.change_intent_ids.is_empty() {
         rendered.push_str("\n## Change Intents\n\n");
         for change_intent_id in &trace.change_intent_ids {
             let _ = writeln!(rendered, "- {change_intent_id}");
         }
     }
+}
 
+fn push_semantic_trace_sql_evidence(rendered: &mut String, trace: &WorkdirSemanticScopeGuardTrace) {
     if !trace.sql_guard_evidence.is_empty() {
         rendered.push_str("\n## SQL Guard Evidence\n\n");
         for guard in &trace.sql_guard_evidence {
@@ -317,7 +386,12 @@ pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGua
             rendered.push('\n');
         }
     }
+}
 
+fn push_semantic_trace_projection_policy(
+    rendered: &mut String,
+    trace: &WorkdirSemanticScopeGuardTrace,
+) {
     if !trace.projection_policy_evidence.is_empty() {
         rendered.push_str("\n## Projection Policy Evidence\n\n");
         for policy in &trace.projection_policy_evidence {
@@ -332,15 +406,18 @@ pub fn render_workdir_semantic_scope_guard_trace(trace: &WorkdirSemanticScopeGua
             rendered.push('\n');
         }
     }
+}
 
+fn push_semantic_trace_required_validations(
+    rendered: &mut String,
+    trace: &WorkdirSemanticScopeGuardTrace,
+) {
     if !trace.required_validations.is_empty() {
         rendered.push_str("\n## Required Validations\n\n");
         for validation in &trace.required_validations {
             let _ = writeln!(rendered, "- {validation}");
         }
     }
-
-    rendered
 }
 
 fn workdir_semantic_scope_object_json(
@@ -401,7 +478,9 @@ fn semantic_sql_guard_summary_from_value(
 ) -> Result<WorkdirSemanticSqlGuardSummary, QianjiError> {
     Ok(WorkdirSemanticSqlGuardSummary {
         guard_id: semantic_sql_guard_string(value, "guardId", "guard_id")?,
-        status: semantic_sql_guard_string(value, "status", "status")?,
+        status: WorkdirSemanticEvidenceStatus::new(semantic_sql_guard_string(
+            value, "status", "status",
+        )?),
         failing_row_count: semantic_sql_guard_usize(value, "failingRowCount", "failing_row_count")?,
         message: semantic_sql_guard_string(value, "message", "message")?,
     })
@@ -448,7 +527,7 @@ fn semantic_projection_policy_summaries_from_report(
         .map(|report| {
             vec![WorkdirSemanticProjectionPolicySummary {
                 policy_id: report.policy_id.clone(),
-                status: report.status.clone(),
+                status: WorkdirSemanticEvidenceStatus::new(report.status.as_str()),
                 failing_projection_count: report.failing_projection_count,
                 message: report.message.clone(),
             }]

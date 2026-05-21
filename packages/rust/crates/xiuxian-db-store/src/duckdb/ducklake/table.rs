@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "duckdb")]
 use crate::duckdb::ensure_duckdb_identifier;
 
 /// Fully qualified table reference inside an attached `DuckLake` catalog.
@@ -40,6 +41,7 @@ impl DuckLakeTableRef {
         }
     }
 
+    #[cfg(feature = "duckdb")]
     pub(super) fn validate(&self) -> Result<(), String> {
         ensure_duckdb_identifier(&self.catalog_alias, "DuckLake catalog")?;
         ensure_duckdb_identifier(&self.schema_name, "DuckLake schema")?;

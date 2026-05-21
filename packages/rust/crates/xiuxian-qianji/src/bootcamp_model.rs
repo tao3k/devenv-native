@@ -1,3 +1,5 @@
+//! Runtime data contracts for `Qianji` bootcamp workflow execution.
+
 #[cfg(feature = "llm")]
 use crate::QianjiLlmClient;
 use crate::scheduler_preflight::RuntimeWendaoMount;
@@ -9,6 +11,10 @@ use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::Persona
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
 /// Runtime report returned by the Qianji laboratory API.
+///
+/// Raw DTO boundary: bootcamp reports preserve primitive transport fields so
+/// callers can serialize workflow URIs and millisecond timestamps without
+/// depending on scheduler-internal newtypes.
 #[derive(Debug, Clone)]
 pub struct WorkflowReport {
     /// Input canonical workflow URI.
@@ -31,6 +37,8 @@ pub struct WorkflowReport {
     pub final_context: Value,
 }
 
+/// Compatibility namespace boundary: this feature-gated enum keeps the same
+/// public name as the non-`llm` placeholder.
 /// LLM runtime mode for bootcamp workflow execution.
 #[cfg(feature = "llm")]
 #[derive(Clone, Default)]
@@ -52,6 +60,8 @@ pub enum BootcampLlmMode {
     External(Arc<QianjiLlmClient>),
 }
 
+/// Compatibility namespace boundary: this placeholder keeps the same public
+/// name when the `llm` feature is disabled.
 /// LLM runtime mode for bootcamp workflow execution.
 #[cfg(not(feature = "llm"))]
 #[derive(Debug, Clone, Copy, Default)]

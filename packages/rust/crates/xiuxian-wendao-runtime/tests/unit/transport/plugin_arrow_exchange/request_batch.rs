@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::transport::plugin_arrow_exchange::{
-    PluginArrowRequestBatchBuildError, PluginArrowRequestRow, PluginArrowScoredCandidate,
+    PluginArrowEmbeddingsRequestBatchInput, PluginArrowRequestBatchBuildError,
+    PluginArrowRequestMetadataInput, PluginArrowRequestRow, PluginArrowScoredCandidate,
     build_plugin_arrow_request_batch, build_plugin_arrow_request_batch_from_embeddings,
     build_plugin_arrow_request_batch_from_embeddings_with_metadata,
     project_plugin_arrow_scored_candidates,
@@ -153,15 +154,22 @@ fn project_plugin_arrow_scored_candidates_collects_doc_ids_and_scores() {
 #[test]
 fn build_plugin_arrow_request_batch_from_embeddings_with_metadata_sets_trace_id() {
     let batch = build_plugin_arrow_request_batch_from_embeddings_with_metadata(
-        &[PluginArrowScoredCandidate {
-            doc_id: "doc-1#alpha",
-            vector_score: 0.25,
-        }],
-        &BTreeMap::from([("doc-1#alpha".to_string(), vec![1.0, 2.0, 3.0])]),
-        &[9.0, 8.0, 7.0],
-        "xiuxian-wendao-julia",
-        "alpha signal",
-        "v1",
+        PluginArrowEmbeddingsRequestBatchInput {
+            candidates: &[PluginArrowScoredCandidate {
+                doc_id: "doc-1#alpha",
+                vector_score: 0.25,
+            }],
+            embeddings_by_doc_id: &BTreeMap::from([(
+                "doc-1#alpha".to_string(),
+                vec![1.0, 2.0, 3.0],
+            )]),
+            query_vector: &[9.0, 8.0, 7.0],
+            metadata: PluginArrowRequestMetadataInput {
+                provider_id: "xiuxian-wendao-julia",
+                query_text: "alpha signal",
+                schema_version: "v1",
+            },
+        },
     )
     .unwrap_or_else(|error| panic!("request batch with metadata should build: {error}"));
 

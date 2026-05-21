@@ -135,9 +135,9 @@ impl ThoughtAggregator {
         let outcome_arc = self.outcome.map(Arc::<str>::from);
 
         CognitiveTraceRecord {
-            trace_id: self.trace_id,
-            session_id: self.session_id,
-            node_id: self.node_id,
+            trace_id: self.trace_id.into(),
+            session_id: self.session_id.map(Into::into),
+            node_id: self.node_id.into(),
             intent: self.intent,
             reasoning: reasoning_arc,
             outcome: outcome_arc,

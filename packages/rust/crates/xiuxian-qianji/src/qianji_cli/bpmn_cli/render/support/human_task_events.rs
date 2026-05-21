@@ -20,8 +20,8 @@ pub(in crate::qianji_cli::bpmn_cli::render) fn append_bpmn_human_task_lifecycle_
         bpmn_human_task_lifecycle_event_kind_label(&event.kind),
         event.sequence,
         event.token_id,
-        event.process_id,
-        event.activity_id,
+        event.process_id.as_str(),
+        event.activity_id.as_str(),
         bpmn_pending_host_work_kind_label(&event.work_kind),
         event.occurred_at_ms,
     );

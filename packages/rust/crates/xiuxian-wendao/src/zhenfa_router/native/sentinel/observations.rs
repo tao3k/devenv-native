@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::sentinel::observations` owns Wendao native sentinel observations behavior.
+
 use std::fmt::Write as _;
 use std::sync::atomic::{AtomicU64, Ordering};
 

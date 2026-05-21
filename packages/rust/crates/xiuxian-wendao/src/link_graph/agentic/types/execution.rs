@@ -1,3 +1,5 @@
+//! `link_graph::agentic::types::execution` owns Wendao agentic types execution behavior.
+
 use super::config::LinkGraphAgenticExecutionConfig;
 use super::plan::LinkGraphAgenticExpansionPlan;
 use serde::{Deserialize, Serialize};
@@ -5,6 +7,7 @@ use serde::{Deserialize, Serialize};
 /// Runtime telemetry for one execution worker partition.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct LinkGraphAgenticWorkerPhase {
     /// Stable phase id (`worker.prepare|worker.dedupe|worker.persist|worker.total`).
     pub phase: String,

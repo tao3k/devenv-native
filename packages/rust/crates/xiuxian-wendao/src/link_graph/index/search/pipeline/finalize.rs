@@ -2,7 +2,10 @@ use crate::link_graph::index::search::{
     LinkGraphHit, LinkGraphIndex, LinkGraphSearchOptions, ScoredSearchRow,
     context::SearchExecutionContext, deterministic_random_key, sort_hits,
 };
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::collections::{HashMap, HashSet};
+
+const PARALLEL_SEARCH_DOC_THRESHOLD: usize = 256;
 
 impl LinkGraphIndex {
     #[allow(clippy::too_many_arguments)]
@@ -13,6 +16,16 @@ impl LinkGraphIndex {
         graph_candidates: Option<&HashSet<String>>,
     ) -> Vec<ScoredSearchRow> {
         let runtime_policy = Self::resolve_search_runtime_policy(options, context);
+        if self.docs_by_id.len() >= PARALLEL_SEARCH_DOC_THRESHOLD {
+            return self
+                .docs_by_id
+                .par_iter()
+                .flat_map_iter(|(_, doc)| {
+                    self.evaluate_doc_rows(doc, options, context, graph_candidates, &runtime_policy)
+                })
+                .collect();
+        }
+
         self.docs_by_id
             .values()
             .flat_map(|doc| {

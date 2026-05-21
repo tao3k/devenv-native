@@ -7,7 +7,7 @@ pub(super) fn unsupported_context_decision_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_context_decision",
         "DMN decision uses context logic outside the executable subset",
         format!(
@@ -36,7 +36,7 @@ pub(super) fn unsupported_invocation_decision_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_invocation_decision",
         "DMN decision uses invocation logic instead of a decision table",
         format!(
@@ -66,7 +66,7 @@ pub(super) fn unsupported_literal_expression_decision_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_literal_expression_decision",
         "DMN decision uses literal expression logic outside the executable subset",
         format!(
@@ -95,7 +95,7 @@ pub(super) fn unsupported_relation_decision_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_relation_decision",
         "DMN decision uses relation logic outside the executable subset",
         format!(
@@ -124,7 +124,7 @@ pub(super) fn unsupported_function_definition_decision_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_function_definition_decision",
         "DMN decision uses function definition logic instead of a decision table",
         format!(
@@ -154,7 +154,7 @@ pub(super) fn unsupported_list_decision_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_list_decision",
         "DMN decision uses list logic outside the executable subset",
         format!(

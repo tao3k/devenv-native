@@ -1,3 +1,5 @@
+//! `search::service::core::status` owns Wendao service core status behavior.
+
 mod compaction;
 mod helpers;
 mod repo;

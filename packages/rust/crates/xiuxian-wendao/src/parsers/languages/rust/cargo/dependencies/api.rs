@@ -1,5 +1,7 @@
-use super::CargoDependency;
+//! `parsers::languages::rust::cargo::dependencies::api` owns Wendao cargo dependencies api behavior.
+
 use super::regex::{RE_DEP_COMPLEX, RE_DEP_SIMPLE};
+use super::types::CargoDependency;
 use std::fs::read_to_string;
 use std::path::Path;
 

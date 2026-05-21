@@ -18,6 +18,8 @@ use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, write_arrow_file,
 };
 
+const OCR_REGION_PATCH_PROTOCOL: &str = "sentinel-sidecar-v1";
+
 pub(crate) fn write_hybrid_document_resource_artifacts(
     output: &Path,
     source: &Path,
@@ -63,6 +65,7 @@ pub(crate) fn hybrid_document_structure_blocks(
         source_content_hash,
         engine,
     )?;
+    blocks.retain(|block| block.block_type != "docling_json");
     if resource_batch.ocr_inputs.is_empty() {
         return Ok(blocks);
     }
@@ -101,6 +104,7 @@ pub(crate) fn hybrid_document_structure_blocks(
         block.bbox_top = Some(input.crop_top);
         block.bbox_right = Some(input.crop_right);
         block.bbox_bottom = Some(input.crop_bottom);
+        let patch_protocol = (input.shard_type == "region").then_some(OCR_REGION_PATCH_PROTOCOL);
         block.provenance = serde_json::json!({
             "source": "pdf_ocr_shard",
             "shardType": input.shard_type,
@@ -110,6 +114,7 @@ pub(crate) fn hybrid_document_structure_blocks(
             "readingOrderKey": input.reading_order_key,
             "rasterSha256": input.raster_sha256,
             "imagePath": input.image_path,
+            "patchProtocol": patch_protocol,
         })
         .to_string();
     }

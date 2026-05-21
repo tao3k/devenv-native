@@ -1,3 +1,5 @@
+//! `search::reference_occurrence::query::lookup` owns Wendao reference occurrence query lookup behavior.
+
 mod candidates;
 mod decode;
 mod helpers;

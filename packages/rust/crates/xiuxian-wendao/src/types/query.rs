@@ -1,3 +1,5 @@
+//! `types::query` owns Wendao types query behavior.
+
 use super::KnowledgeCategory;
 
 /// Search query for knowledge entries.

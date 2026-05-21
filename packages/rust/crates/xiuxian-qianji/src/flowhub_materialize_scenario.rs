@@ -1,7 +1,15 @@
+//! Flowhub scenario materialization.
+//!
+//! This module turns a scenario manifest into a compact bounded workdir by
+//! validating source modules, copying visible template surfaces, and writing
+//! the generated root `qianji.toml` plus `flowchart.mmd`.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::contracts::FlowhubScenarioManifest;
 use crate::error::QianjiError;
+use crate::flowhub::ResolvedFlowhubModule;
 use crate::{
     check_flowhub, check_workdir, load_flowhub_scenario_manifest, render_flowhub_check_markdown,
     render_workdir_check_markdown, resolve_flowhub_scenario_modules,
@@ -45,11 +53,38 @@ pub fn materialize_flowhub_scenario_workdir(
 ) -> Result<MaterializedWorkdir, QianjiError> {
     let flowhub_root = flowhub_root.as_ref();
     let output_dir = output_dir.as_ref();
+    let (manifest, resolved_modules) =
+        load_scenario_materialization_input(flowhub_root, scenario_manifest_path.as_ref())?;
+    ensure_output_dir_is_safe(output_dir)?;
+    let visible_modules = visible_scenario_modules(&manifest, &resolved_modules)?;
+    validate_resolved_flowhub_modules(&resolved_modules)?;
+    create_materialized_workdir(output_dir)?;
+
+    let visible_aliases = visible_aliases(&visible_modules);
+    copy_visible_template_dirs(output_dir, &visible_modules)?;
+    write_scenario_root_files(output_dir, &manifest, &visible_aliases)?;
+    validate_materialized_workdir(output_dir)?;
+
+    Ok(MaterializedWorkdir {
+        plan_name: manifest.planning.name,
+        output_dir: output_dir.to_path_buf(),
+        visible_aliases,
+    })
+}
+
+fn load_scenario_materialization_input(
+    flowhub_root: &Path,
+    scenario_manifest_path: &Path,
+) -> Result<(FlowhubScenarioManifest, Vec<ResolvedFlowhubModule>), QianjiError> {
     let manifest = load_flowhub_scenario_manifest(scenario_manifest_path)?;
     let resolved_modules = resolve_flowhub_scenario_modules(flowhub_root, &manifest)?;
+    Ok((manifest, resolved_modules))
+}
 
-    ensure_output_dir_is_safe(output_dir)?;
-
+fn visible_scenario_modules<'a>(
+    manifest: &FlowhubScenarioManifest,
+    resolved_modules: &'a [ResolvedFlowhubModule],
+) -> Result<Vec<&'a ResolvedFlowhubModule>, QianjiError> {
     let visible_modules = resolved_modules
         .iter()
         .filter(|module| module.manifest.template.is_none())
@@ -60,8 +95,13 @@ pub fn materialize_flowhub_scenario_workdir(
             manifest.planning.name
         )));
     }
+    Ok(visible_modules)
+}
 
-    for module in &resolved_modules {
+fn validate_resolved_flowhub_modules(
+    resolved_modules: &[ResolvedFlowhubModule],
+) -> Result<(), QianjiError> {
+    for module in resolved_modules {
         let report = check_flowhub(&module.module_dir)?;
         if !report.is_valid() {
             return Err(QianjiError::Topology(format!(
@@ -71,31 +111,46 @@ pub fn materialize_flowhub_scenario_workdir(
             )));
         }
     }
+    Ok(())
+}
 
+fn create_materialized_workdir(output_dir: &Path) -> Result<(), QianjiError> {
     fs::create_dir_all(output_dir).map_err(|error| {
         QianjiError::Topology(format!(
             "Failed to create materialized workdir `{}`: {error}",
             output_dir.display()
         ))
-    })?;
+    })
+}
 
-    let visible_aliases = visible_modules
+fn visible_aliases(visible_modules: &[&ResolvedFlowhubModule]) -> Vec<String> {
+    visible_modules
         .iter()
         .map(|module| module.alias.clone())
-        .collect::<Vec<_>>();
-    for module in &visible_modules {
+        .collect::<Vec<_>>()
+}
+
+fn copy_visible_template_dirs(
+    output_dir: &Path,
+    visible_modules: &[&ResolvedFlowhubModule],
+) -> Result<(), QianjiError> {
+    for module in visible_modules {
         copy_template_dir(
             &module.module_dir.join("template"),
             &output_dir.join(&module.alias),
         )?;
     }
+    Ok(())
+}
 
-    let flowchart_aliases = derive_flowchart_aliases(&manifest, &visible_aliases);
-    let root_manifest = render_root_manifest(
-        &manifest.planning.name,
-        &visible_aliases,
-        &flowchart_aliases,
-    )?;
+fn write_scenario_root_files(
+    output_dir: &Path,
+    manifest: &FlowhubScenarioManifest,
+    visible_aliases: &[String],
+) -> Result<(), QianjiError> {
+    let flowchart_aliases = derive_flowchart_aliases(manifest, visible_aliases);
+    let root_manifest =
+        render_root_manifest(&manifest.planning.name, visible_aliases, &flowchart_aliases)?;
     fs::write(output_dir.join("qianji.toml"), root_manifest).map_err(|error| {
         QianjiError::Topology(format!(
             "Failed to write materialized root manifest `{}`: {error}",
@@ -103,14 +158,17 @@ pub fn materialize_flowhub_scenario_workdir(
         ))
     })?;
 
-    let flowchart = render_flowchart(&manifest, &visible_aliases, &flowchart_aliases);
+    let flowchart = render_flowchart(manifest, visible_aliases, &flowchart_aliases);
     fs::write(output_dir.join("flowchart.mmd"), flowchart).map_err(|error| {
         QianjiError::Topology(format!(
             "Failed to write materialized flowchart `{}`: {error}",
             output_dir.join("flowchart.mmd").display()
         ))
     })?;
+    Ok(())
+}
 
+fn validate_materialized_workdir(output_dir: &Path) -> Result<(), QianjiError> {
     let report = check_workdir(output_dir)?;
     if !report.is_valid() {
         return Err(QianjiError::Topology(format!(
@@ -119,10 +177,5 @@ pub fn materialize_flowhub_scenario_workdir(
             render_workdir_check_markdown(&report)
         )));
     }
-
-    Ok(MaterializedWorkdir {
-        plan_name: manifest.planning.name,
-        output_dir: output_dir.to_path_buf(),
-        visible_aliases,
-    })
+    Ok(())
 }

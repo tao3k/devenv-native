@@ -72,11 +72,12 @@ pub use dirs::{PrjDirs, get_cache_home, get_config_home, get_data_home};
 pub use discover::{
     DiscoverOptions, count_files_in_dir, discover_files, discover_files_in_dir, should_skip_path,
 };
-pub use error::{IoError, Result};
+pub use error::{FileSizeLimit, IoError, Result};
 pub use sync::read_text_safe;
 #[cfg(feature = "notify")]
 pub use watcher::{
-    FileEvent, FileWatcherHandle, WatcherConfig, WatcherResult, start_file_watcher, watch_path,
+    FileEvent, FileEventError, FileEventPath, FileEventPathKind, FileWatcherHandle, WatcherConfig,
+    WatcherResult, start_file_watcher, watch_path,
 };
 
 // Re-export detection utilities for advanced use

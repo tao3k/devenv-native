@@ -1,3 +1,5 @@
+//! `search::fuzzy::scoring` owns Wendao search fuzzy scoring behavior.
+
 use crate::search::fuzzy::buffers::{
     collect_chars, collect_lowercase_chars, collect_lowercase_chars_and_shared_prefix,
     with_thread_local_buffers,

@@ -1,3 +1,5 @@
+//! Link-graph sorting terms for stable query result ordering.
+
 use super::enums::{LinkGraphSortField, LinkGraphSortOrder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

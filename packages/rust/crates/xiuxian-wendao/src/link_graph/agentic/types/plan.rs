@@ -1,3 +1,5 @@
+//! `link_graph::agentic::types::plan` owns Wendao agentic types plan behavior.
+
 use super::config::LinkGraphAgenticExpansionConfig;
 use serde::{Deserialize, Serialize};
 

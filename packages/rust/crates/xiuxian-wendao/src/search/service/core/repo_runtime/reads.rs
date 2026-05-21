@@ -3,6 +3,7 @@ use std::fs;
 
 use crate::search::service::core::types::{RepoRuntimeState, SearchPlaneService};
 use crate::search::{SearchCorpusKind, SearchRepoCorpusRecord};
+use futures::stream::{self, StreamExt};
 
 impl SearchPlaneService {
     #[cfg(any(test, feature = "test-support"))]
@@ -160,17 +161,24 @@ impl SearchPlaneService {
         &self,
         records: BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord>,
     ) -> BTreeMap<(SearchCorpusKind, String), SearchRepoCorpusRecord> {
-        let mut changed_records = Vec::new();
-        let mut reconciled = BTreeMap::new();
-        for (key, record) in records {
-            let (record, changed) = self
-                .recover_persisted_repo_corpus_record_for_reads(record)
-                .await;
-            if changed {
-                changed_records.push(record.clone());
-            }
-            reconciled.insert(key, record);
-        }
+        let reconciled_records = stream::iter(records)
+            .then(|(key, record)| async move {
+                let (record, changed) = self
+                    .recover_persisted_repo_corpus_record_for_reads(record)
+                    .await;
+                (key, record, changed)
+            })
+            .collect::<Vec<_>>()
+            .await;
+        let changed_records = reconciled_records
+            .iter()
+            .filter(|&(_, _record, changed)| *changed)
+            .map(|(_, record, _changed)| record.clone())
+            .collect::<Vec<_>>();
+        let reconciled = reconciled_records
+            .into_iter()
+            .map(|(key, record, _)| (key, record))
+            .collect::<BTreeMap<_, _>>();
         for record in &changed_records {
             self.persist_local_repo_corpus_record(record);
             self.cache.set_repo_corpus_record(record).await;
@@ -291,6 +299,7 @@ impl SearchPlaneService {
     }
 
     /// Return a repository corpus record reconciled for read-side consumers.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub async fn repo_corpus_record_for_reads(
         &self,
         corpus: SearchCorpusKind,

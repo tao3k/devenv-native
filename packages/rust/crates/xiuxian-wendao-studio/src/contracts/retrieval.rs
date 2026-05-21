@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use super::{StudioContractId, StudioContractSemanticType};
+
 /// Surface kind for a shared retrieval chunk.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -32,11 +34,11 @@ pub enum RetrievalChunkSurface {
 #[serde(rename_all = "camelCase")]
 pub struct RetrievalChunk {
     /// Owning node identifier.
-    pub owner_id: String,
+    pub owner_id: StudioContractId,
     /// Stable retrieval chunk identifier.
-    pub chunk_id: String,
+    pub chunk_id: StudioContractId,
     /// Semantic type for downstream retrieval / UI display.
-    pub semantic_type: String,
+    pub semantic_type: StudioContractSemanticType,
     /// Stable semantic fingerprint.
     pub fingerprint: String,
     /// Approximate token estimate.
@@ -86,9 +88,9 @@ impl From<xiuxian_wendao::search::contracts::RetrievalChunkSurface> for Retrieva
 impl From<xiuxian_wendao::search::contracts::RetrievalChunk> for RetrievalChunk {
     fn from(value: xiuxian_wendao::search::contracts::RetrievalChunk) -> Self {
         Self {
-            owner_id: value.owner_id,
-            chunk_id: value.chunk_id,
-            semantic_type: value.semantic_type,
+            owner_id: value.owner_id.into(),
+            chunk_id: value.chunk_id.into(),
+            semantic_type: value.semantic_type.into(),
             fingerprint: value.fingerprint,
             token_estimate: value.token_estimate,
             display_label: value.display_label,

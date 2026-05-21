@@ -1,3 +1,5 @@
+//! Flowhub scenario check surface for `xiuxian-qianji`.
+
 use std::path::{Path, PathBuf};
 
 use crate::contracts::FlowhubScenarioManifest;

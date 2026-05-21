@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::context` owns Wendao zhenfa router native context behavior.
+
 use std::sync::Arc;
 
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};

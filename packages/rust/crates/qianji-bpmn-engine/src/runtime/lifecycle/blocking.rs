@@ -14,8 +14,8 @@ pub(super) fn build_wait_registration(
     let node = &process.nodes[node_index as usize];
     let event = process.event_for_node(node_index).ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
             element: "event_definition",
         }
     })?;
@@ -51,7 +51,7 @@ pub(super) fn build_wait_registration(
     };
 
     Ok(WaitRegistration {
-        process_id: Some(process.key.process_id.to_string()),
+        process_id: (Some(process.key.process_id.to_string())),
         node_index,
         blocking_node_index,
         kind: wait_kind,
@@ -106,9 +106,9 @@ pub(super) fn block_on_host_work(
         .map(|node| node.bpmn_id.to_string());
     let pending = PendingHostWork {
         token_id,
-        process_id: Some(process.key.process_id.to_string()),
+        process_id: (Some(process.key.process_id.as_ref().into())),
         node_index,
-        activity_id,
+        activity_id: (activity_id.map(Into::into)),
         kind,
         decision: None,
         lane,
@@ -147,12 +147,12 @@ pub(super) fn block_on_business_rule_work(
         })?;
     let pending = PendingHostWork {
         token_id,
-        process_id: Some(process.key.process_id.to_string()),
+        process_id: (Some(process.key.process_id.as_ref().into())),
         node_index,
         activity_id: process
             .nodes
             .get(node_index as usize)
-            .map(|node| node.bpmn_id.to_string()),
+            .map(|node| node.bpmn_id.as_ref().into()),
         kind: PendingHostWorkKind::BusinessRule,
         decision: Some(decision),
         lane: process
@@ -198,8 +198,8 @@ fn arm_boundary_wait(
 
     let event = process.event_for_node(boundary.index).ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.key.process_id.to_string(),
-            node_id: boundary.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (boundary.bpmn_id.to_string()).into(),
             element: "event_definition",
         }
     })?;
@@ -214,8 +214,8 @@ fn arm_boundary_wait(
             | BpmnEventKind::Conditional
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: boundary.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (boundary.bpmn_id.to_string()).into(),
             detail: "unsupported_boundary_event_kind",
         });
     }
@@ -263,8 +263,8 @@ fn send_task_event_reference(
     let node = &process.nodes[node_index as usize];
     let event = process.event_for_node(node_index).ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
             element: "event_definition",
         }
     })?;
@@ -282,8 +282,8 @@ fn send_task_event_name(
     let node = &process.nodes[node_index as usize];
     let event = process.event_for_node(node_index).ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
             element: "event_definition",
         }
     })?;

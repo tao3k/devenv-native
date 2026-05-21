@@ -9,10 +9,17 @@ publish = false
 
 [features]
 default = ["duckdb", "llm", "qianji-full"]
-duckdb = ["dep:xiuxian-db-store", "xiuxian-db-store/qianji-bpmn-workflow-state"]
+duckdb = [
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/qianji-bpmn-workflow-state",
+  "xiuxian-qianji-control/duckdb",
+]
 llm = ["dep:xiuxian-llm"]
 performance = []
+valkey = ["xiuxian-qianji-control/valkey"]
 qianji-full = [
+  "duckdb",
+  "llm",
   "dep:globset",
   "dep:include_dir",
   "dep:jsonschema",
@@ -30,6 +37,7 @@ qianji-full = [
   "dep:xiuxian-logging",
   "dep:xiuxian-qianhuan",
   "dep:xiuxian-wendao",
+  "xiuxian-wendao/search-runtime",
   "dep:xiuxian-wendao-sql",
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-runtime",
@@ -80,6 +88,7 @@ xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-llm = { path = "../xiuxian-llm", optional = true }
 xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
+xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
 
 [dev-dependencies]
 criterion = { workspace = true }

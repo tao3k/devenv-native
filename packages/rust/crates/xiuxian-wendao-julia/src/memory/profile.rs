@@ -30,17 +30,17 @@ const MEMORY_JULIA_COMPUTE_CALIBRATION_RESPONSE_SCHEMA_ID: &str = "memory.calibr
 
 /// Family-level profile metadata for one staged memory Julia compute profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MemoryJuliaComputeProfileContract {
+pub(crate) struct MemoryJuliaComputeProfileContract {
     /// Stable capability family id.
-    pub family: &'static str,
+    pub(crate) family: &'static str,
     /// Stable capability id used by the host binding.
-    pub capability_id: &'static str,
+    pub(crate) capability_id: &'static str,
     /// Stable profile id carried by family-aware manifests.
-    pub profile_id: &'static str,
+    pub(crate) profile_id: &'static str,
     /// Stable request schema id for semantic versioning.
-    pub request_schema_id: &'static str,
+    pub(crate) request_schema_id: &'static str,
     /// Stable response schema id for semantic versioning.
-    pub response_schema_id: &'static str,
+    pub(crate) response_schema_id: &'static str,
 }
 
 /// Ordered staged profiles for the memory-family Julia compute ABI.
@@ -107,7 +107,7 @@ impl MemoryJuliaComputeProfile {
 
     /// Return the staged semantic contract metadata for this profile.
     #[must_use]
-    pub fn contract(self) -> MemoryJuliaComputeProfileContract {
+    pub(crate) fn contract(self) -> MemoryJuliaComputeProfileContract {
         match self {
             Self::EpisodicRecall => MemoryJuliaComputeProfileContract {
                 family: MEMORY_JULIA_COMPUTE_FAMILY_ID,

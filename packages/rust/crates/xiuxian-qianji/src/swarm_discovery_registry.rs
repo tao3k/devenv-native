@@ -1,3 +1,5 @@
+//! Swarm discovery registry branch for Valkey-backed cluster membership.
+
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -60,6 +62,7 @@ impl GlobalSwarmRegistry {
     /// # Errors
     ///
     /// Returns an error when Valkey access fails.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn pick_candidate(
         &self,
         role_class: &str,

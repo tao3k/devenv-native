@@ -41,7 +41,7 @@ fn wendao_verification_profile_hints_bind_active_skill_tasks() {
     );
     assert_bound_task(
         &plan,
-        "src/search/perf_support.rs",
+        "src/search/perf_support/mod.rs",
         RustVerificationTaskKind::Performance,
         "rust-verification-performance@criterion",
     );
@@ -198,7 +198,7 @@ fn query_service_performance_hint() -> RustVerificationProfileHint {
 
 fn search_perf_support_hint() -> RustVerificationProfileHint {
     RustVerificationProfileHint::new(
-        "src/search/perf_support.rs",
+        "src/search/perf_support/mod.rs",
         [RustOwnerResponsibility::LatencySensitive],
     )
     .with_task_kinds([RustVerificationTaskKind::Performance])

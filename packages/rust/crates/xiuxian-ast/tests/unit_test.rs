@@ -8,6 +8,8 @@ mod extract;
 mod lang;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
+#[path = "unit/parser_registry.rs"]
+mod parser_registry;
 #[path = "unit/python.rs"]
 mod python;
 #[path = "unit/python_tree_sitter.rs"]

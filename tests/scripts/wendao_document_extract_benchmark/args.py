@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--flight-mode",
-        choices=("sync", "async", "hybrid-page-ocr"),
+        choices=("sync", "async", "hybrid-page-ocr", "audio-shards"),
         default="sync",
         help="Document extraction Flight mode header sent by the Rust probe.",
     )
@@ -53,12 +53,155 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--local-python-ocr-endpoint-count",
+        "--audio-worker",
+        choices=("skip", "docling", "hosted"),
+        default="skip",
+        help=(
+            "Audio worker started by the local Python service for "
+            "/analysis/audio-shards. `hosted` uses the configured "
+            "OpenAI-compatible audio endpoint; `docling` uses Docling audio "
+            "as a baseline."
+        ),
+    )
+    parser.add_argument(
+        "--audio-workers",
+        default="auto",
+        help=(
+            "Local Python audio shard worker budget when Rust does not send x-wendao-audio-workers."
+        ),
+    )
+    parser.add_argument(
+        "--export-audio-transcript-org",
+        action="store_true",
+        help=(
+            "Export audio-transcript resource rows from _resources.arrow into "
+            "timestamped Org files under the benchmark report directory. This "
+            "is opt-in because transcripts can contain private source content."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-profile",
+        action="append",
+        default=[],
+        choices=(
+            "docling-compatible-page-ocr-v1",
+            "docling-fast-text-ocr",
+            "docling-backend-text-ocr-v1",
+        ),
+        help=(
+            "Pre-initialize a local Python Docling OCR converter before the worker "
+            "listens. This shifts daemon readiness cost out of force-refresh timing "
+            "without changing OCR output."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-source-path",
+        default=None,
+        help=(
+            "Optional PDF path converted once during Docling OCR worker startup "
+            "for each --pdf-ocr-prewarm-profile. This triggers lazy model warmup "
+            "before force-refresh timing."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-page-index",
         type=int,
-        default=1,
+        default=None,
+        help=(
+            "Zero-based page index used with --pdf-ocr-prewarm-source-path. "
+            "Defaults to page 0 when a source path is supplied."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-page-indices",
+        default=None,
+        help=(
+            "Comma-separated zero-based page indices used with "
+            "--pdf-ocr-prewarm-source-path. This supersedes "
+            "--pdf-ocr-prewarm-page-index and lets benchmark readiness warm "
+            "multiple known slow Docling OCR pages before force-refresh timing."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-prewarm-endpoint-count",
+        type=int,
+        default=None,
+        help=(
+            "Optional number of local Python OCR endpoints that receive the Docling "
+            "OCR prewarm environment. When omitted, all local OCR endpoints keep the "
+            "existing prewarm behavior."
+        ),
+    )
+    parser.add_argument(
+        "--document-extract-converter-cache",
+        choices=("disabled", "profile"),
+        default="disabled",
+        help=(
+            "Opt-in Python document-extract worker converter cache. `profile` "
+            "reuses one Docling converter per document profile for page-range "
+            "benchmark probes; the default keeps the existing converter lifecycle."
+        ),
+    )
+    parser.add_argument(
+        "--document-extract-full-threads",
+        default="auto",
+        help=(
+            "Docling full-profile PDF accelerator thread count for local Python "
+            "document workers. `auto` keeps the setting unset except for "
+            "docling-structure-recovery, where the benchmark uses one Docling "
+            "thread per worker and leaves outer parallelism to Rust."
+        ),
+    )
+    parser.add_argument(
+        "--document-extract-prewarm-source-path",
+        default=None,
+        help=(
+            "Optional PDF path converted during local Python document-worker "
+            "startup to warm the Docling full-profile converter before "
+            "force-refresh timing."
+        ),
+    )
+    parser.add_argument(
+        "--document-extract-prewarm-page-ranges",
+        default=None,
+        help=(
+            "Comma-separated 1-based inclusive page ranges used with "
+            "--document-extract-prewarm-source-path, for example `1:1,4:6`. "
+            "When omitted with a source path, workers warm page `1:1`. Use "
+            "`rust-page-range-chunk-plan` to reuse "
+            "--rust-pdf-docling-page-range-chunk-plan for benchmark readiness."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-backend-text-page-fallback",
+        choices=("disabled", "compatible-page"),
+        default="disabled",
+        help=(
+            "Opt-in Python OCR worker canary for backend-text page failures. "
+            "`compatible-page` retries only failed or empty backend-text source pages "
+            "through docling-compatible-page-ocr-v1 before Rust full-document fallback "
+            "is allowed to run."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-backend-text-empty-page",
+        choices=("disabled", "verified-empty"),
+        default="disabled",
+        help=(
+            "Opt-in backend-text source-page-range canary. `verified-empty` lets "
+            "the Python OCR worker report an empty backend-text page as a successful "
+            "empty Markdown row after backend, fast-text, and configured compatible "
+            "page attempts all return no text. Rust precision gating accepts those "
+            "rows only for matching backend-text source-page-range inputs."
+        ),
+    )
+    parser.add_argument(
+        "--local-python-ocr-endpoint-count",
+        default="auto",
         help=(
             "Number of local Python OCR Flight endpoints to start for Rust "
-            "endpoint-pool benchmarks, including the primary document worker."
+            "endpoint-pool benchmarks, including the primary document worker. "
+            "Use `auto` to fan out real hybrid Docling OCR by machine profile."
         ),
     )
     parser.add_argument(
@@ -93,6 +236,509 @@ def parse_args() -> argparse.Namespace:
             "Optional Rust provider override for "
             "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS. Use this "
             "only for source-PDF page-range benchmark profiling."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-backend-profile",
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE. Keep this "
+            "model-neutral; the analyzer maps backend profile to a concrete "
+            "Docling, hosted, or local model worker."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-chunk-ms",
+        type=int,
+        help="Audio shard duration forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS.",
+    )
+    parser.add_argument(
+        "--rust-audio-context-before-ms",
+        type=int,
+        help=(
+            "Leading overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-context-after-ms",
+        type=int,
+        help=(
+            "Trailing overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-recovery-split-ms",
+        type=int,
+        help=(
+            "Recovery shard duration forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-sample-rate-hz",
+        type=int,
+        help=(
+            "Audio materialization sample rate forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-channels",
+        type=int,
+        help="Audio materialization channels forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS.",
+    )
+    parser.add_argument(
+        "--rust-audio-format",
+        help="Audio materialization format forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT.",
+    )
+    parser.add_argument(
+        "--rust-audio-base-workers",
+        help=(
+            "Base audio shard worker budget forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-recovery-workers",
+        help=(
+            "Recovery audio shard worker budget forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-segments-jsonl",
+        help=(
+            "Optional speech timestamp sidecar forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL for "
+            "Rust-owned recovery shard planning."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-merge-gap-ms",
+        type=int,
+        help=(
+            "Speech segment merge gap forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MERGE_GAP_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-min-window-ms",
+        type=int,
+        help=(
+            "Minimum speech recovery window forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-limit-chunks",
+        type=int,
+        help=(
+            "Maximum speech recovery chunks forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-page-range-chunk-plan",
+        help=(
+            "Optional benchmark-only Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_PLAN. Use "
+            "1-based inclusive ranges such as `1:3,4:4,5:6,7:9`; the Rust "
+            "provider requires the plan to exactly cover Docling fallback pages."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-page-range-profile",
+        choices=(
+            "full",
+            "structure-text",
+            "docling-structure-text",
+        ),
+        default="full",
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE. "
+            "`structure-text` keeps Docling layout/table structure authority but "
+            "disables OCR for born-digital page-range canaries."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-page-range-hedge-delay-ms",
+        type=int,
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_HEDGE_DELAY_MS. "
+            "When set, slow Docling page-range chunks are duplicated after the "
+            "delay and the first successful response is used."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-page-range-structure-cost-budget",
+        type=int,
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET. "
+            "When set, automatic docling-structure-recovery page ranges whose "
+            "estimated structure cost exceeds the budget are split into smaller "
+            "contiguous ranges. This is an evidence-gated diagnostic control."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-docling-text-shortcut-promotion",
+        choices=("range-fill", "disabled"),
+        default="range-fill",
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_TEXT_SHORTCUT_PROMOTION. "
+            "`range-fill` preserves the current behavior; `disabled` keeps "
+            "source-profile text shortcuts out of Docling page-range fallback."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-local-backend-text",
+        choices=("disabled", "rust-lopdf"),
+        default="disabled",
+        help=(
+            "Opt-in Rust source-PDF text extraction for backend-text OCR shards. "
+            "`rust-lopdf` forwards WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT "
+            "and bypasses Python Docling only for docling-backend-text-ocr-v1 page shards."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-local-backend-text-empty",
+        choices=("dispatch-python", "fail-fast"),
+        default="dispatch-python",
+        help=(
+            "Controls empty local Rust backend-text rows for source-page-range "
+            "placeholders. `dispatch-python` preserves the existing Python "
+            "Docling retry path; `fail-fast` returns a failed OCR row immediately "
+            "so Rust can trigger the precision-preserving full-document fallback "
+            "without retrying the non-image placeholder as raster OCR."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-local-fast-text",
+        choices=("disabled", "rust-lopdf"),
+        default="disabled",
+        help=(
+            "Opt-in Rust source-PDF text extraction for fast-text OCR parent/top-up shards. "
+            "`rust-lopdf` forwards WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT and remains "
+            "bench-gated because it replaces Python Docling fast-text rows."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-fast-text-source-range-split",
+        choices=("disabled", "single-page"),
+        default="disabled",
+        help=(
+            "Opt-in scheduler canary for Docling fast-text source-PDF rows. "
+            "`single-page` splits fast-text source ranges into one page per request "
+            "while preserving Docling as the OCR authority."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-fast-text-endpoint-affinity",
+        choices=("disabled", "single-page-first"),
+        default="disabled",
+        help=(
+            "Opt-in scheduler canary for Docling fast-text source-PDF rows. "
+            "`single-page-first` routes single-page fast-text chunks to the first "
+            "configured OCR endpoint so benchmark prewarm can target that lane."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-backend-text-topup",
+        choices=("profile", "disabled", "hosted-vlm"),
+        default="profile",
+        help=(
+            "Controls extra fast-text top-up pages inside the hosted-vlm-risk-window-backend-text "
+            "Rust profile planner. `profile` preserves the existing dense-page top-up heuristic; "
+            "`disabled` routes non-recovery top-up pages to backend-text while region parent pages "
+            "can still be protected by the region recovery flow; `hosted-vlm` routes dense "
+            "top-up pages to hosted VLM full-page OCR."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-failed-page-recovery",
+        choices=("disabled", "hosted-vlm-page"),
+        default="disabled",
+        help=(
+            "Opt-in Rust precision-preserving failed-page recovery forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY. "
+            "`hosted-vlm-page` retries failed or empty non-hosted page shards through "
+            "Hosted VLM/OCR before the existing full-document Docling fallback is used."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-ocr-profile-planner",
+        choices=(
+            "disabled",
+            "fast-all",
+            "fast-risk-window",
+            "hosted-vlm-all",
+            "hosted-vlm-risk-window",
+            "hosted-vlm-risk-window-backend-text",
+            "docling-structure-recovery",
+        ),
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER. Use "
+            "`fast-*`, `hosted-vlm-*`, or `docling-structure-recovery` modes "
+            "only when profiling mixed candidate/accurate source-range OCR."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-render-dpi",
+        type=int,
+        help=(
+            "Hosted VLM/OCR rendered-page DPI forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI for Rust provider "
+            "page-image payload experiments. Values below the default OCR DPI "
+            "are ignored by the Rust provider."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-ocr-region-context-ratio",
+        type=float,
+        help=(
+            "Semantic padding ratio forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO for hybrid "
+            "region-shard Hosted VLM/OCR recovery. Use 0 to disable padding."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-planner",
+        choices=(
+            "disabled",
+            "profile-risk-window",
+            "profile-risk-window-slices",
+            "profile-risk-window-adaptive",
+        ),
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER. "
+            "`profile-risk-window` builds conservative Hosted VLM/OCR content-band "
+            "regions for pages already selected by the Hosted VLM/OCR risk-window "
+            "profile planner when no explicit region JSON is configured. "
+            "`profile-risk-window-slices` splits that content band into "
+            "top/middle/bottom regions for same-page Hosted VLM/OCR composite tests. "
+            "`profile-risk-window-adaptive` chooses one, two, or three slices "
+            "from the estimated region pixel area."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-pipeline",
+        choices=("disabled", "render-dispatch"),
+        default="disabled",
+        help=(
+            "Opt-in Rust Hosted VLM/OCR region pipeline forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE. "
+            "`render-dispatch` overlaps source-range OCR scheduling with "
+            "region rendering and dispatches region OCR as each render chunk "
+            "becomes available."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-render-ahead",
+        type=int,
+        help=(
+            "Opt-in Rust Hosted VLM/OCR region render-ahead limit forwarded "
+            "to WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD. "
+            "Values above 1 let the render-dispatch pipeline pre-render "
+            "multiple page-region chunks while preserving deterministic result "
+            "ordering."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-render-chunk",
+        choices=(
+            "page",
+            "all",
+            "region",
+            "region-seed-page",
+            "page-area-desc",
+            "page-max-area-desc",
+        ),
+        default="page",
+        help=(
+            "Opt-in Rust Hosted VLM/OCR region render chunking forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK. "
+            "`page` preserves the existing page-grouped render chunks; "
+            "`all` renders every recovery region in one PDF pass before dispatch; "
+            "`region` renders each recovery region as an independent chunk "
+            "so OpenRouter dispatch can start as soon as the first region is ready; "
+            "`region-seed-page` renders the smallest region first, then keeps "
+            "remaining chunks page-grouped; "
+            "`page-area-desc` keeps page chunks but renders pages with the "
+            "largest total recovery-region area first; `page-max-area-desc` keeps "
+            "page chunks but renders pages with the largest single recovery region first."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-base-url",
+        help=(
+            "OpenAI-compatible Hosted VLM/OCR base URL forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_BASE_URL for local Python OCR workers."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-provider",
+        choices=("openai-compatible", "openrouter"),
+        help=(
+            "Direct Hosted VLM/OCR provider preset forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_PROVIDER. Use `openrouter` to call a "
+            "hosted OpenRouter chat/completions endpoint instead of a local "
+            "model server."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-model",
+        help=(
+            "Hosted VLM/OCR model id forwarded to WENDAO_HOSTED_VLM_OCR_MODEL. "
+            "Use the served vLLM model id or community AWQ/GPTQ artifact id."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-prompt",
+        help="Prompt forwarded to WENDAO_HOSTED_VLM_OCR_PROMPT.",
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-max-tokens",
+        type=int,
+        help="Max tokens forwarded to WENDAO_HOSTED_VLM_OCR_MAX_TOKENS.",
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-region-max-tokens",
+        type=int,
+        help=(
+            "Region-shard max tokens forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS. The analyzer clamps this "
+            "by WENDAO_HOSTED_VLM_OCR_MAX_TOKENS and applies it only to Hosted VLM/OCR "
+            "region rows."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-region-composite-size",
+        type=int,
+        help=(
+            "Direct Hosted VLM/OCR same-page region composite size forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE. Values above 1 batch "
+            "same-page, same-parent region images in one request and fall back "
+            "to individual region requests when the response cannot be split "
+            "back into rows."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-region-atlas-mode",
+        choices=("disabled", "same-page-json"),
+        default="disabled",
+        help=(
+            "Opt-in direct Hosted VLM/OCR same-page region atlas mode forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE. same-page-json packs "
+            "same-page region crops into one labeled PNG atlas and requires "
+            "JSON output keyed by exact shard markers."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-scaffold-mode",
+        choices=("disabled", "region-table-json"),
+        default="disabled",
+        help=(
+            "Opt-in structural scaffold mode forwarded to both Rust and Python "
+            "Hosted VLM/OCR region recovery. `region-table-json` writes Rust region "
+            "scaffold sidecars and asks the Hosted VLM/OCR worker for strict JSON that "
+            "is canonicalized back into Markdown."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-image-optimization",
+        choices=("disabled", "region-whitespace-trim"),
+        default="disabled",
+        help=(
+            "Opt-in Hosted VLM/OCR request-image payload optimization forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_IMAGE_OPTIMIZATION. `region-whitespace-trim` "
+            "trims near-white margins from region PNG request payloads only; "
+            "it does not change OCR shard rows, DPI, or result schema."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-timeout-seconds",
+        type=float,
+        help="Request timeout forwarded to WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS.",
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-request-concurrency",
+        type=int,
+        help=(
+            "Direct Hosted VLM/OCR request concurrency forwarded to WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-speculative-retry-delay-seconds",
+        type=float,
+        help=(
+            "Opt-in Hosted VLM/OCR region hedge delay forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS. Values above "
+            "0 start a second request for a direct region shard when the first "
+            "request has not produced a valid result by this delay."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-page-window-size",
+        type=int,
+        help=(
+            "Direct Hosted VLM/OCR contiguous page-window size forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE. Values above 1 batch "
+            "adjacent page images in one request and fall back to page-level "
+            "requests when the response cannot be split back into rows."
+        ),
+    )
+    parser.add_argument(
+        "--openrouter-model",
+        help=(
+            "OpenRouter model id forwarded to WENDAO_OPENROUTER_MODEL when "
+            "WENDAO_HOSTED_VLM_OCR_MODEL is not set."
+        ),
+    )
+    parser.add_argument(
+        "--openrouter-http-referer",
+        help="Optional OpenRouter HTTP-Referer attribution header.",
+    )
+    parser.add_argument(
+        "--openrouter-title",
+        help="Optional OpenRouter X-OpenRouter-Title attribution header.",
+    )
+    parser.add_argument(
+        "--audio-hosted-provider",
+        choices=("openai-compatible", "openrouter"),
+        help=(
+            "Hosted audio provider preset forwarded to "
+            "WENDAO_AUDIO_HOSTED_PROVIDER for local Python audio workers."
+        ),
+    )
+    parser.add_argument(
+        "--audio-hosted-base-url",
+        help="OpenAI-compatible audio base URL forwarded to WENDAO_AUDIO_HOSTED_BASE_URL.",
+    )
+    parser.add_argument(
+        "--audio-hosted-model",
+        help="Hosted audio model id forwarded to WENDAO_AUDIO_HOSTED_MODEL.",
+    )
+    parser.add_argument(
+        "--audio-hosted-api-key",
+        help=(
+            "Hosted audio API key forwarded to WENDAO_AUDIO_HOSTED_API_KEY. "
+            "For OpenRouter, the analyzer still falls back to OPENROUTER_API_KEY."
+        ),
+    )
+    parser.add_argument(
+        "--audio-hosted-timeout-seconds",
+        type=float,
+        help="Hosted audio request timeout forwarded to WENDAO_AUDIO_HOSTED_TIMEOUT_SECONDS.",
+    )
+    parser.add_argument(
+        "--audio-hosted-request-concurrency",
+        type=int,
+        help=(
+            "Hosted audio request concurrency forwarded to WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY."
         ),
     )
     parser.add_argument(
@@ -140,6 +786,43 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Generate sync/full-Docling baseline artifacts before candidate "
             "probes, then reuse that baseline root for strict structure parity."
+        ),
+    )
+    parser.add_argument(
+        "--compare-docling-groundtruth",
+        action="store_true",
+        help=(
+            "Compare force-run artifacts with upstream Docling "
+            "tests/data/groundtruth/docling_v2 files when available."
+        ),
+    )
+    parser.add_argument(
+        "--docling-groundtruth-root",
+        type=Path,
+        help=(
+            "Explicit upstream Docling groundtruth root. Defaults to "
+            "<docling-source-root>/tests/data/groundtruth/docling_v2 when "
+            "--compare-docling-groundtruth is enabled."
+        ),
+    )
+    parser.add_argument(
+        "--docling-groundtruth-min-char-coverage",
+        type=float,
+        default=0.98,
+        help="Minimum candidate/groundtruth Markdown character coverage.",
+    )
+    parser.add_argument(
+        "--docling-groundtruth-min-similarity",
+        type=float,
+        default=0.98,
+        help="Minimum normalized candidate/groundtruth Markdown similarity.",
+    )
+    parser.add_argument(
+        "--fail-on-docling-groundtruth-mismatch",
+        action="store_true",
+        help=(
+            "Fail when an available upstream Docling groundtruth comparison "
+            "does not pass the configured coverage and similarity thresholds."
         ),
     )
     parser.add_argument(
@@ -338,18 +1021,29 @@ def parse_args() -> argparse.Namespace:
         help=("Fail --pdf-render-shard-audit when no PDF pages are actually rendered."),
     )
     parser.add_argument("--cargo", default="cargo")
+    parser.add_argument(
+        "--rust-provider-bin",
+        type=Path,
+        help=(
+            "Run a prebuilt Rust provider binary instead of starting the "
+            "selected Rust provider through cargo run. Use the "
+            "wendao_search_flight_server binary with --rust-provider-mode "
+            "flight and the wendao binary with --rust-provider-mode gateway."
+        ),
+    )
     parser.add_argument("--real-docling", action="store_true")
     parser.add_argument(
         "--fixture-suite",
-        choices=("fake", "docling-real"),
+        choices=("fake", "docling-real", "explicit", "milestone"),
         default="fake",
     )
     parser.add_argument(
         "--docling-source-root",
         type=Path,
         help=(
-            "Docling fixture checkout root used for docling-real fixtures. "
-            "Defaults to $PRJ_DATA_HOME/docling-real-fixtures or "
+            "Docling fixture checkout root used for docling-real fixtures. This "
+            "is a cache/download surface, not a canonical milestone fixture "
+            "authority. Defaults to $PRJ_DATA_HOME/docling-real-fixtures or "
             ".data/docling-real-fixtures."
         ),
     )
@@ -413,6 +1107,41 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Fail when force, shard-cache rebuild, and cache-hit runs produce "
             "different structure order signatures."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-structure-parity-mismatch",
+        action="store_true",
+        help=(
+            "Fail when no structure parity baseline is checked, or when any "
+            "candidate structure parity check reports an error."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-precision-gate-failure",
+        action="store_true",
+        help=(
+            "Fail when precisionSpeedSummary.precisionGatePassed is false. "
+            "This combines error rows, artifact errors, structure order, "
+            "structure parity, and Docling groundtruth guards."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-missing-ocr-metrics",
+        action="store_true",
+        help=(
+            "Fail when any measured run expected to exercise OCR shards "
+            "produces no OCR metrics sidecar rows."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-pdf-milestone-regression",
+        action="store_true",
+        help=(
+            "Fail when an OCR-positive milestone run is missing or regresses "
+            "below the stored 2604.17337 precision/speed envelope. Milestone "
+            "inputs should be supplied from repo-tracked or explicit auditable "
+            "fixture paths, not transient .data downloads."
         ),
     )
     return parser.parse_args()

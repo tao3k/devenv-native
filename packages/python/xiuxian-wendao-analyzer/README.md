@@ -1,7 +1,22 @@
 ---
 type: knowledge
+kind: package-readme
+title: "xiuxian-wendao-analyzer"
+category: "package"
+status: "active"
+author: Xiuxian Artisan Workshop
+date: 2026-05-05T00:00-07:00
+description: "Python analyzer and Docling Flight worker boundary for Wendao document extraction and table analysis."
+tags:
+  - python
+  - analyzer
+  - docling
+  - arrow-flight
 metadata:
   title: "xiuxian-wendao-analyzer"
+  retrieval:
+    saliency_base: 6.4
+    decay_rate: 0.04
 ---
 
 # xiuxian-wendao-analyzer
@@ -60,7 +75,11 @@ The current beta exports:
 27. `build_document_extract_table(...)`
 28. `/analysis/document-extract` as the primary document extraction route
 29. `DoclingPdfOcrShardWorker` for opt-in page-shard OCR
-30. summary helpers over the same rows, table, query, and repo-search runs
+30. `/analysis/audio-shards` as the internal Flight/Arrow route for Rust-owned
+    audio shard processing
+31. `wendao-image-ocr-jsonl` and `wendao-docling-document-jsonl` as
+    queue-keyed source-contract evidence adapters
+32. summary helpers over the same rows, table, query, and repo-search runs
 
 Docling is optional through the `documents` extra. That extra includes
 Docling's XBRL support so the documented XML/XBRL coverage is real, not only a
@@ -76,6 +95,252 @@ extra when running real audio conversion:
 ```bash
 uv sync --extra documents-audio
 ```
+
+For bounded MP3 audio diagnostics, use the package-managed test script instead
+of adding a public command surface:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir> \
+  --backend both \
+  --openrouter-model xiaomi/mimo-v2.5 \
+  --local-language zh \
+  --sample-strategy uniform \
+  --audio-materialization-mode normalized-16k-wav \
+  --limit-files 2 \
+  --limit-chunks 1
+```
+
+Production chunk planning belongs on the Rust side in
+`xiuxian-wendao-attachments::audio`: it derives logical chunk offsets, optional
+context windows, normalized media windows, shard cache keys, and downstream
+task/backend result cache keys before Python sees a backend request. The same
+Rust boundary can materialize normalized shard media in parallel with local
+`ffmpeg`, so Gateway/Studio can avoid Python-owned chunking on the hot path.
+The Python diagnostic mirrors that contract only for package tests and local
+comparison runs. It writes the backend-neutral
+`audio_shards.json` manifest, then compares Docling, hosted audio-input models,
+and explicit local OpenAI-compatible candidates on the same chunks. OpenRouter
+runs require the standard
+`OPENROUTER_API_KEY` environment variable. The script writes JSON summaries and
+transcript files under the selected output directory. It also writes
+`quality.json` and `review.tsv` with proxy precision signals such as empty
+outputs, Chinese character ratio, inaudible-marker density, characters per
+minute, and optional character error rate when a reference JSONL transcript is
+provided. Diagnostic inputs default to `--input-privacy private-local`, which
+requires output under `.cache/agent/evidence`; use
+`--allow-private-output-outside-cache` only for local scratch directories that
+will not be committed. Use `--domain-terms-file` to append a private glossary
+to hosted prompts, and `--required-terms-file` with
+`--min-required-term-recall` to mark critical term loss in `quality.json` and
+`review.tsv`. The shard manifest uses `xiuxian_wendao.audio_shards.v1` and
+`audio-shards-v1`; those names are model-neutral so local and hosted backends
+can change without changing chunk/cache identity.
+
+Audio materialization is explicit in diagnostics because the private evaluation
+set is MP3. The default `normalized-16k-wav` decodes bounded shards to 16 kHz
+mono WAV for broad model compatibility. `native-rate-wav` still decodes
+bounded shards, but preserves the source sample rate while using mono WAV.
+`source-direct` sends the original full source file, such as MP3, without
+ffmpeg chunking; use it only for backend compatibility and precision
+diagnostics because it cannot represent sub-source shard windows without
+decoding or trimming.
+
+For VAD-guided diagnostics, pass `--sample-strategy speech-segments` with
+`--speech-segments-jsonl <segments.jsonl>`. The segment sidecar is intentionally
+model-neutral: each JSONL row may include `source` or `sourceId`,
+`startSeconds` or `startMs`, and either `durationSeconds`/`durationMs` or
+`endSeconds`/`endMs`. This lets local CoreML VAD experiments, Rust-side audio
+materialization, or any future hosted speech detector provide precise speech
+windows without coupling the analyzer to one ASR model. The resulting shard
+manifest still uses the same `xiuxian_wendao.audio_shards.v1` identity surface.
+The production Rust document-extract route can consume the same sidecar through
+`WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL` and use it only for
+failed-row recovery planning. Python still receives unchanged audio shard Arrow
+rows and remains the backend invocation adapter.
+
+The document extraction Flight service uses the same model-neutral audio
+contract for real backend calls. Start the service with `--audio-worker skip`,
+`--audio-worker docling`, or `--audio-worker hosted`; the stable backend
+profiles are `docling-audio-transcript-v1` and
+`hosted-audio-transcript-v1`. `--audio-workers` and the
+`x-wendao-audio-workers` Flight metadata header bound analyzer-side request
+parallelism inside the Rust-owned shard budget. Hosted audio uses
+`WENDAO_AUDIO_HOSTED_PROVIDER`, `WENDAO_AUDIO_HOSTED_BASE_URL`,
+`WENDAO_AUDIO_HOSTED_MODEL`, `WENDAO_AUDIO_HOSTED_API_KEY`,
+`WENDAO_AUDIO_HOSTED_TIMEOUT_SECONDS`, and
+`WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY`; when the provider is `openrouter`,
+`OPENROUTER_API_KEY` is accepted as the public key fallback. The analyzer
+returns failed rows for missing configuration, malformed hosted responses,
+empty transcript text, backend request errors, and unsafe transcript content so
+Rust can keep precision and coverage gates deterministic. The hosted worker's
+content gate is model-neutral: it rejects excessive characters per minute,
+high repeated character n-gram ratio, hosted refusal text,
+no-transcribable-speech meta responses, and high Latin text ratio when the
+shard is configured for Chinese. The gate is enabled by default and can be
+tuned with `WENDAO_AUDIO_TRANSCRIPT_QUALITY_GATE`,
+`WENDAO_AUDIO_TRANSCRIPT_MAX_CHARS_PER_MINUTE`,
+`WENDAO_AUDIO_TRANSCRIPT_MAX_REPEATED_NGRAM_RATIO`, and
+`WENDAO_AUDIO_TRANSCRIPT_MAX_LATIN_RATIO_FOR_CHINESE`.
+
+Local model automation uses a shared analyzer `local_backend` substrate for
+device probes, launch descriptors, environment resolution, project cache/data
+roots, module-local adapter paths, and long-running backend process execution.
+OCR2 and audio keep separate backend packages and runner policy, so audio does
+not share OCR-specific code and OCR2 does not depend on audio implementation
+details. Use
+`--audio-probe-local-backend` to inspect the platform-selected runner, and
+`--audio-start-backend` to start a local OpenAI-compatible audio endpoint. On
+macOS Apple Silicon, `auto` selects the `qwen3-asr-mlx` runner and serves the
+same chat/audio `input_audio` shape used by the hosted worker. FireRedASR2S is
+not a Metal runner; its upstream CLI exposes CUDA-style `.cuda()` acceleration,
+so the setup helper refuses CPU fallback and reports MPS/Metal as blocked for
+that runner. `qwen3-asr-mlx` is an explicit Apple Silicon candidate through
+`mlx-qwen3-asr`; it is useful for local Chinese ASR
+experiments, but it is not promoted by default and must pass the same transcript
+truth/CER and repetition gates as every other backend.
+`local-openai-audio` is only the invocation channel for a local
+OpenAI-compatible audio endpoint; diagnostics and Org timelines record the
+actual model separately through `model` / `:MODEL:`.
+
+Promotion is gated by a curated Chinese transcript truth set, not only by
+agreement between Docling and hosted models. Reports should keep character
+error rate, critical number/entity preservation, shard coverage, duplicate
+span checks, and backend latency separate from Rust shard materialization and
+merge time. Private recordings may be used for local diagnostics only; any
+committed truth fixtures must be separately approved, redacted, or synthesized.
+The diagnostic writes `truth_template.jsonl`, `reference_draft.jsonl`, and
+`reference_draft.tsv`. The truth template stays blank. The reference draft is
+prefilled from candidate transcripts and is marked
+`referenceStatus: candidate-draft`, so it is rejected by the precision gate
+until reviewed. After correcting the draft text, convert it into a
+promotion-safe reference file:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --curate-reference-draft <edited-reference-draft.jsonl> \
+  --curated-reference-jsonl <curated-reference.jsonl>
+```
+
+or:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --curate-reference-tsv <edited-reference-draft.tsv> \
+  --curated-reference-jsonl <curated-reference.jsonl>
+```
+
+Then pass `<curated-reference.jsonl>` back through `--reference-jsonl` for CER
+and critical-term scoring. Before running ASR, validate the curated reference
+against the diagnostic shard manifest:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --validate-reference-jsonl <curated-reference.jsonl> \
+  --reference-audio-shards-json <audio-shards.json> \
+  --reference-validation-report-json <reference-validation-report.json>
+```
+
+For audio, the shard timeline is the structure authority. The validator checks
+that the reference rows cover the manifest and that the manifest timeline is
+valid: shard ids and reading-order keys must be unique, shard starts must be
+monotonic, durations must be positive, and the materialized media window must
+cover the logical shard window.
+
+Minimal reference rows without candidate backend metadata are also accepted.
+For the current Chinese PI private-audio lane, the next precision rerun is
+limited to the local `Qwen/Qwen3-ASR-1.7B` MLX endpoint and OpenRouter
+`xiaomi/mimo-v2.5`. Gemini remains historical rejected evidence for this lane.
+After the curated reference validates with `ready=true`, run the local
+candidate:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-file> \
+  --backend local-openai-audio \
+  --openrouter-base-url http://127.0.0.1:8013/v1/chat/completions \
+  --openrouter-model qwen3-asr-1.7b-mlx \
+  --limit-files 1 \
+  --limit-chunks 5 \
+  --chunk-seconds 60 \
+  --sample-strategy head \
+  --audio-materialization-mode native-rate-wav \
+  --reference-jsonl <curated-reference.jsonl>
+```
+
+Then run the hosted Xiaomi comparator:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-file> \
+  --backend openrouter-chat-audio \
+  --openrouter-model xiaomi/mimo-v2.5 \
+  --limit-files 1 \
+  --limit-chunks 5 \
+  --chunk-seconds 60 \
+  --sample-strategy head \
+  --audio-materialization-mode native-rate-wav \
+  --reference-jsonl <curated-reference.jsonl>
+```
+
+Compare candidate summaries with precision as the hard gate before wall time:
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
+  --compare-summary-json <qwen-summary.json> <xiaomi-summary.json> \
+  --comparison-report-json <comparison-report.json>
+```
+
+For a Chinese-first local ASR candidate, provision FireRedASR2S as an isolated
+diagnostic tool, then pass the emitted command into the shared diagnostic:
+
+```bash
+direnv exec . uv run python tests/scripts/fireredasr2s_local_setup.py \
+  --download-models \
+  --summary-json <setup-summary-json>
+```
+
+```bash
+direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir> \
+  --backend firered-openrouter \
+  --fireredasr2s-command "<fireRedAsr2sCommand from setup summary>" \
+  --openrouter-model xiaomi/mimo-v2.5 \
+  --sample-strategy uniform \
+  --limit-files 2 \
+  --limit-chunks 1
+```
+
+The FireRedASR2S adapter calls its local CLI on the same normalized 16 kHz mono
+chunks used by OpenRouter, then feeds the result into the same quality review
+files. The setup helper pins the official source revision, creates a separate
+virtual environment, downloads the AED/VAD/LID/punctuation weights under the
+project model directory, and refuses CPU fallback. FireRedASR2S remains an
+environment-provided diagnostic backend, not a required analyzer dependency.
+Its upstream CLI accelerates through CUDA-style `.cuda()` calls; on macOS
+Metal/MPS hosts it is blocked until the upstream runner gains a model-neutral
+device path or FireRedASR2S is exposed through a separate hosted
+OpenAI-compatible service.
+
+For local Qwen3-ASR MLX experiments on Apple Silicon:
+
+```bash
+direnv exec . uv run wendao-document-extract \
+  --audio-start-backend \
+  --audio-backend-runner qwen3-asr-mlx \
+  --audio-backend-model-path Qwen/Qwen3-ASR-1.7B \
+  --audio-backend-host 127.0.0.1 \
+  --audio-backend-port 8013
+```
+
+Then point `audio_asr_diagnostic.py --backend local-openai-audio` at
+`http://127.0.0.1:8013/v1/chat/completions`; keep `local-openai-audio` as the
+channel label and use the configured Qwen3-ASR model id as the model label. A
+May 15, 2026 private five-minute diagnostic kept `Qwen/Qwen3-ASR-1.7B` as the
+current local Mandarin precision candidate by proxy: zero failed rows, zero
+weak rows, stable Chinese output, and low repetition after warmup. It is still
+not promoted until a curated reference transcript supplies CER and critical
+entity/number checks. Do not use `mlx-community/*-8bit` weights with this
+adapter; the current runner expects the `mlx-qwen3-asr` model layout.
+The adapter serves `qwen3-asr-1.7b-mlx` by default and requests timestamp
+chunks by default so VTT/SRT/Org review outputs can use model-provided segment
+times when the local runner returns them.
 
 Docling is the parsing authority. The analyzer does not maintain a runtime
 allowlist; it exposes known common Docling formats and suffixes for downstream
@@ -136,6 +401,29 @@ Docling image worker for rendered shards; failed or empty shard OCR rows remain
 table-shaped failures so the Rust hybrid provider can fall back to full Docling
 when coverage is incomplete.
 
+For source-contract image evidence tasks that are not PDF page shards, the
+package also exposes `wendao-image-ocr-jsonl`. It reads a Rust-written
+`tasks.tsv`, sends only `image_ocr_evidence` rows to the configured
+OpenAI-compatible Hosted VLM/OCR endpoint, and writes queue-keyed OCR JSONL
+rows for downstream cache bridges. Task paths are resolved relative to the
+configured corpus root and path escapes are rejected before any source read or
+network request. This is an analyzer-side adapter, not a public Gateway route
+and not an ontology promotion path. Downstream private episteme runners must
+still enforce review-required and no-RDF-promotion semantics before accepting
+the text as cache evidence.
+
+For source-contract document evidence tasks, the package exposes
+`wendao-docling-document-jsonl`. It reads the same Rust-written `tasks.tsv`,
+selects only `document_text_evidence` rows with Docling-supported modern
+document extensions in this slice (`pdf`, `docx`, `pptx`, and `xlsx`), runs the
+configured Docling profile, and writes queue-keyed Markdown JSONL rows for
+downstream private cache bridges. Legacy binary Office inputs such as `.doc`,
+`.ppt`, and `.xls` are intentionally skipped by this adapter until a separate
+conversion contract produces a supported source. Task paths are confined to
+the configured corpus root before Docling is invoked. The adapter is not a
+public Gateway route, does not mutate ontology state, and does not make
+extracted text eligible for RDF promotion by itself.
+
 Docling shard OCR is bounded and adaptive. The service accepts
 `--pdf-ocr-workers auto|N` as a direct local default, but the Rust provider may
 override it per exchange through the internal `x-wendao-pdf-ocr-workers` Flight
@@ -155,6 +443,42 @@ ranges, region shards, and explicit raster tests.
 Result rows are still returned in input shard order. The Rust provider also
 validates and restores result order against the original shard input rows before
 merge, so document order is not coupled to Python worker completion order.
+For benchmark canaries, Rust can also retry failed or empty non-hosted,
+non-backend-text page OCR rows through the existing Hosted VLM/OCR page profile
+before allowing the full-document Docling fallback to run. Enable this with
+`--rust-pdf-failed-page-recovery hosted-vlm-page` in the benchmark harness or
+`WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY=hosted-vlm-page` in the Rust
+provider environment. The default remains disabled. Backend-text page failures
+and invalid hosted recovery rows still fall through to the existing precision
+fallback.
+For benchmark readiness only, the worker can pre-initialize selected Docling OCR
+profiles and optionally convert one or more real source pages before the worker
+listens. `WENDAO_PDF_OCR_PREWARM_PAGE_INDICES` accepts comma-separated
+zero-based page indices and supersedes the legacy single
+`WENDAO_PDF_OCR_PREWARM_PAGE_INDEX` value. This does not change OCR output
+schemas or live routing. The current milestone evidence rejects broad
+multi-page prewarm for pages `5,11` because it preserved precision but
+regressed force refresh to `18784.875625 ms`.
+
+The same Flight service exposes `/analysis/audio-shards` for Rust-owned audio
+chunk scheduling and materialization. Rust is expected to create normalized
+audio shards through `xiuxian-wendao-attachments::audio`, then upload
+`xiuxian_wendao.audio_shard_input.v1` Arrow batches to Python. Python returns
+`xiuxian_wendao.audio_shard_result.v1` rows and does not own chunk planning,
+cache identity, or backend scheduling. The default worker returns explicit
+`skipped` rows until Docling or hosted audio is configured. Successful rows
+remain `text/plain`; higher-level transcript formatting is a separate merge or
+export concern.
+
+Hosted audio workers normalize quoted environment values before building
+OpenAI-compatible requests, so `.env` values such as
+`OPENROUTER_API_KEY="..."` and `WENDAO_AUDIO_HOSTED_MODEL="..."` are accepted.
+The worker also retries transient hosted request or response failures through
+`WENDAO_AUDIO_HOSTED_MAX_ATTEMPTS`, which defaults to `2`. If all attempts fail,
+the worker still returns failed result rows and Rust precision gates reject
+incomplete coverage. The same retry loop also retries hosted responses that
+fail the transcript quality gate; if every attempt is still unsafe, the row is
+returned as `failed` so Rust recovery can retry only that shard span.
 
 The built-in strategy is intentionally small:
 
@@ -184,6 +508,7 @@ returned rows or table into `analyze_rows(...)` or `analyze_table(...)`.
 | PDF attachment search then analyze the returned table | `attachment_search_request(...)` + `WendaoArrowSession.attachment_search(...)` + `run_table_analysis(...)` | downstream user code                       | scripted by default, endpoint optional | local covered     |
 | Wendao document extraction service                    | `wendao-document-extract` + `/analysis/document-extract`                                                   | analyzer package service adapter           | Arrow Flight                           | local covered     |
 | Local multi-format document parsing into Arrow rows   | `extract_document_table(...)` or `extract_document_resources(...)` with the optional `documents` extra     | Docling-backed document extraction helpers | none                                   | local covered     |
+| Source-contract Docling document evidence sidecar     | `wendao-docling-document-jsonl` over a Rust-written `tasks.tsv`                                            | Docling-backed JSONL adapter               | Rust cache bridge consumes JSONL       | local covered     |
 
 | Repo search with built-in ranking | `run_repo_analysis(...)` + `summarize_repo_analysis(...)` | built-in `score_rank` | real `wendao_search_flight_server` | real-host covered |
 | Repo search with a custom Python analyzer | `run_repo_analysis(...)` + `summarize_repo_analysis(...)` + `analyzer=<your analyzer object>` | downstream user code | real `wendao_search_flight_server` | real-host covered |
@@ -250,11 +575,27 @@ uv run python tests/scripts/benchmark_wendao_document_extract.py \
   --fail-on-error-rows
 ```
 
-Use `--skip-audio` when ASR model artifacts should not be loaded. For real
-audio ASR, install `documents-audio` and run without `--skip-audio`; the
-benchmark configures the bundled `imageio-ffmpeg` executable for Whisper. Pass
+Use `--skip-audio` when audio model artifacts should not be loaded. For real
+audio conversion, install `documents-audio` and run without `--skip-audio`; the
+benchmark configures the bundled `imageio-ffmpeg` executable for media
+conversion. Pass
 `--python-uv-extra documents` for real Docling document OCR and
 `--python-uv-extra documents-audio` for real audio ASR worker starts.
+For the production audio-shard path, run the same harness with
+`--flight-mode audio-shards` so the Rust provider or Gateway plans and
+materializes timeline shards, sends `xiuxian_wendao.audio_shard_input.v1`
+batches over `/analysis/audio-shards`, and merges
+`xiuxian_wendao.audio_shard_result.v1` rows through the Rust precision gate.
+Use `--audio-worker docling` or `--audio-worker hosted` to select the analyzer
+backend, `--audio-workers` to cap analyzer-side request concurrency, and the
+`--rust-audio-*` flags to profile model-neutral Rust chunking, materialization,
+base/recovery worker budgets, and optional speech-timestamp recovery controls.
+When a VAD or speech-density sidecar exists, pass
+`--rust-audio-speech-segments-jsonl <segments.jsonl>` with optional
+`--rust-audio-speech-merge-gap-ms`, `--rust-audio-speech-min-window-ms`, and
+`--rust-audio-speech-limit-chunks`; the harness forwards them to the Rust
+provider or Gateway, which constrains failed-row recovery planning before the
+unchanged `/analysis/audio-shards` Flight call.
 Use `--only-fixture audio` or another fixture name for targeted real fixture
 diagnostics. Use `--docling-source-root` only when you already have a prepared
 Docling fixture checkout. Use `--concurrency` to stress the Rust-to-Python
@@ -265,6 +606,13 @@ fail the benchmark run.
 Use `--fail-on-structure-order-mismatch` when a real OCR benchmark must fail
 if force, shard-cache rebuild, and cache-hit artifacts produce different
 structure order signatures.
+Use `--fail-on-structure-parity-mismatch` when a real OCR benchmark has a
+Docling baseline and must fail if the candidate loses baseline text coverage,
+protected block counts, or any other structure parity guard.
+Use `--fail-on-precision-gate-failure` when a benchmark candidate should fail
+on the aggregate precision gate instead of only recording the failure in the
+report. This combines error rows, artifact errors, structure order, structure
+parity, and Docling groundtruth status from `precisionSpeedSummary`.
 Each report also includes a `precisionSpeedSummary` section that keeps the
 quality and latency signals together: error rows, artifact errors, structure
 order, force/cache/shard-reuse order stability, parity status, OCR/bbox block
@@ -309,8 +657,13 @@ extraction into a fresh output directory after the first force run and reports
 `ocrShardCache` summary with the shard cache root, Arrow file count, total
 bytes, and configured limits. Hybrid OCR reports also summarize the internal
 `_metrics.arrow` sidecar: shard metric row count, OCR result characters, bbox
-coverage count, and Rust scheduler elapsed time. The Rust provider defaults the
-OCR shard cache limit to 10 GiB and supports
+coverage count, and Rust scheduler elapsed time. Hosted VLM/OCR benchmark
+reports include `hostedVlmPromotionGate`, which checks precision, row/order
+stability, character floor, hosted request success, hosted key presence,
+force-refresh latency, and shard-cache reuse against the locked
+`fast-risk-window` promotion baseline. This is a reporting gate only; it does
+not change runtime routing.
+The Rust provider defaults the OCR shard cache limit to 10 GiB and supports
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES`,
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES`, and
 `WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_AGE_SECS` for deployment-specific
@@ -337,17 +690,541 @@ split one contiguous source-PDF OCR range into several contiguous subranges and
 send those subranges concurrently to Python/Docling. The default source-range
 target uses the current adaptive Rust OCR budget, capped by a machine-derived
 source-range ceiling and page count because real Docling conversion can regress
-when too many page-range conversions run at once. Use
-`--rust-pdf-ocr-workers` for the global Rust OCR budget ceiling and
-`--rust-pdf-ocr-source-range-workers` when a benchmark needs to profile a
-source-range-specific override. Production deployments can set
-`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when evidence
-shows a fixed override is appropriate for that machine profile.
+when too many page-range conversions run at once. Milestone and regression
+gates should leave `--rust-pdf-ocr-source-range-workers` unset so the Rust
+scheduler's system-aware auto policy is exercised. Use `--rust-pdf-ocr-workers`
+only for the global Rust OCR budget ceiling and
+`--rust-pdf-ocr-source-range-workers` only for diagnostic profile sweeps.
+For `docling-structure-recovery`, the benchmark auto profile caps Docling
+full-profile PDF accelerator threads to one per Python document worker through
+`WENDAO_DOCUMENT_EXTRACT_FULL_THREADS=1`. Rust keeps outer parallelism and
+endpoint-pool scheduling authority, while each Python worker avoids nested
+Docling thread contention. Use `--document-extract-full-threads` only for
+diagnostic sweeps or platform-specific validation. The May 8, 2026 DocLayNet
+fixture run with this auto policy preserved zero errors, stable order, and
+Docling structure parity while reducing cold force refresh to `10127.429667 ms`
+against the locked `12856.546292 ms` baseline.
+For explicit benchmark readiness, use `--document-extract-prewarm-source-path`
+with `--document-extract-prewarm-page-ranges` to run selected Docling page-range
+conversions before the worker advertises readiness. This warms the converter
+and Docling lazy state only; it does not publish candidate output artifacts or
+replace the force-refresh precision gate. The default is disabled. On May 8,
+2026, prewarming page range `1:1` for the same DocLayNet PDF fixture preserved
+zero errors, stable order, Docling structure parity, `13` resource rows, and
+`12` structure blocks while reducing force refresh to a best sample of
+`8715.070334 ms`. A repeat of the same shape preserved the same correctness
+gates but measured `11627.203583 ms`, so treat prewarm as an explicit readiness
+control with visible variance rather than a stable sub-10s default.
+The current auto policy targets seven source PDF pages per worker before
+clamping to the adaptive Rust budget, machine cap, remaining permits, and shard
+count. Within that bounded chunk budget, Rust reads a lightweight source-PDF
+page complexity profile and forms contiguous, reading-order-preserving
+subranges. The planner must not cross cache-miss gaps, and it keeps every
+selected page on the source-PDF OCR lane so the Python worker continues to use
+Docling over original PDF page ranges rather than lower-precision raster or
+table-fast shortcuts.
+Python also recognizes the existing `docling-fast-text-ocr` OCR profile as a
+separate Docling converter profile. Rows with different `ocrProfile` values are
+not merged into one source-PDF page range, so Rust can mix fast and accurate
+Docling ranges without changing the Arrow schema. The benchmark exposes this as
+`--rust-pdf-ocr-profile-planner fast-risk-window`, which forwards
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER=fast-risk-window` to the Rust
+provider. The local real-Docling benchmark server passes `ocrProfile` through
+its converter factory, so `docling-fast-text-ocr` uses Docling's FAST table
+mode even when benchmark fixture options also configure other formats. Because
+Rust owns the outer OCR worker budget, the fast-text Docling converter uses one
+internal accelerator thread by default to avoid multiplying Python-side Docling
+threads across Rust-scheduled source-range chunks. Set
+`WENDAO_PDF_OCR_FAST_TEXT_THREADS` only for a host-specific diagnostic sweep.
+Python also recognizes `docling-backend-text-ocr-v1`, a PDF-native backend-text
+source-range profile that disables Docling OCR and table-structure work while
+forcing backend text extraction. Rust can combine that profile with
+`docling-fast-text-ocr` top-up pages in the benchmark-only
+`hosted-vlm-risk-window-backend-text` planner without changing the Arrow shard
+schema. In that mixed source-range mode, Rust schedules contiguous profile
+runs as the dispatch unit, prioritizes fast-text top-up runs before backend
+runs, and automatically expands the requested dispatch budget to the run count
+before clamping it through live worker permits. When the hosted recovery
+region pipeline is also in `render-dispatch` mode, Rust keeps the run-count
+floor for the remaining source top-up ranges after local backend-text rows are
+handled. This lets non-contiguous precision top-up ranges run in parallel with
+hosted region recovery while the live Rust scheduler still owns worker
+admission. The mode remains opt-in and is promoted only for benchmark evidence
+that preserves the frozen character floor and beats the locked force-refresh
+baseline.
+The benchmark can additionally pass
+`--rust-pdf-local-backend-text rust-lopdf` to let the Rust provider satisfy
+`docling-backend-text-ocr-v1` rows with the attachment-owned `lopdf`
+source-text helper. The current promoted OpenRouter canary does not require
+that helper: it uses `mistralai/ministral-3b-2512`, render-dispatch with
+render-ahead `3`, region trim, and an explicit `2s` hosted hedge. Two May 9,
+2026 milestone runs preserved zero error rows, stable `27` rows, `21/6`
+page/region OCR blocks, and the frozen character floor: best force refresh
+`7338.796584 ms` with `metricsResultChars=115735`, and repeat force refresh
+`8322.027792 ms` with `metricsResultChars=115925`. The hosted request wall
+span was `5166 ms` and `6140 ms`; both runs used `12` HTTP attempts for `6`
+logical hosted region requests, so this remains an explicit benchmark profile
+decision rather than a global default. The older endpoint-local `4s` hedge
+sample at `8201.568417 ms` and the 2026-05-07 r59/r60 evidence remain
+historical regression controls. A same-shape `1s` hedge canary stayed
+precision-valid at `8562.0245 ms` but did not beat the `2s` envelope.
+The latest follow-up canaries keep the same active envelope. Disabling
+fast-text top-up is rejected because it preserved row/order checks but dropped
+`metricsResultChars` to `100981`, below the frozen `103984` floor. Page `5`
+prewarm plus `single-page-first` affinity measured `8516.511291 ms` with the
+precision gate intact, but did not beat the `8322.027792 ms` repeat. Composite
+size `3` reduced hosted requests to `4`, but hosted p95 reached `8528.296 ms`
+and force refresh regressed to `10797.20775 ms`. Region render chunk mode
+`region` improved first region readiness to about `0.70-0.72s`, but the two
+precision-valid repeats measured `8202.969708 ms` and `8927.807167 ms`, so it
+remains diagnostic instead of replacing page-grouped region chunks.
+`region-seed-page` is the next opt-in chunk-shape canary: Rust renders the
+smallest recovery region first, then renders the remaining regions grouped by
+page. The analyzer sees the same OCR shard rows and request schema; promotion
+still depends on the normal row/order, character-floor, hosted-tail, and
+precision gates.
+`--rust-pdf-local-backend-text-empty fail-fast` is a diagnostic scheduler
+canary for source-page-range placeholder rows. When Rust `lopdf` proves a
+`docling-backend-text-ocr-v1` source page has empty backend text, or cannot
+produce the requested source-page text vector, the provider returns a failed
+OCR row immediately so the precision-preserving
+full-document fallback can run without sending the non-image placeholder
+through the Python raster OCR path. The default remains `dispatch-python`.
+`--pdf-ocr-backend-text-empty-page verified-empty` is a narrower recovery
+canary for true empty source-page-range rows. The benchmark forwards it to the
+Python worker as `WENDAO_PDF_OCR_BACKEND_TEXT_EMPTY_PAGE=verified-empty` and
+to the Rust provider as
+`WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_EMPTY_PAGE=verified-empty`. When a
+`docling-backend-text-ocr-v1` source-page placeholder has no image path and
+backend-text plus the optional compatible-page retry both produce no text, the
+worker may return a successful empty Markdown row. Rust accepts that empty text
+only for backend-text page shards backed by source-page-range placeholders, so
+ordinary empty OCR output still triggers the existing precision fallback.
+The 2026-05-08 r108c real Docling canary rejected this mode as a promotion
+candidate for the `pdf-redp5110-sampled`, `pdf-skipped-1page`, and
+`pdf-skipped-2pages` fixtures: force refresh improved, but all three structure
+parity checks failed because backend-text rows did not preserve baseline text
+coverage. Use the structure parity gate for any future run that enables this
+canary.
+`--pdf-ocr-backend-text-page-fallback compatible-page` is a separate Python
+worker canary for backend-text page failures. It retries only failed or empty
+backend-text source pages through `docling-compatible-page-ocr-v1` before the
+Rust provider escalates to full-document fallback. The default remains
+`disabled`; promotion requires structure parity and Docling groundtruth gates
+because compatible page Markdown may not preserve full-document structure.
+`--rust-pdf-backend-text-topup disabled` is a separate character-floor
+diagnostic. It is rejected for the current milestone fixture because disabling
+top-up drops `metricsResultChars` below the frozen floor; the current-rev
+canary measured `100981` result characters at `9169.448167 ms`. The default
+remains `profile`.
+`--rust-pdf-backend-text-topup hosted-vlm` is a full-page hosted VLM/OCR
+top-up replacement canary. It is rejected for the milestone fixture because
+force refresh regressed to `35374.309 ms` and `metricsResultChars=91265` fell
+below the frozen floor; the hosted model did not preserve the dense page `5`
+text coverage that Docling fast-text top-up currently supplies.
+`--rust-pdf-local-fast-text rust-lopdf` is also diagnostic-only. It improves
+force refresh on the milestone fixture but is rejected because it drops
+`metricsResultChars` below the frozen floor. The converter-only prewarm
+diagnostic `--pdf-ocr-prewarm-profile docling-fast-text-ocr` is
+precision-valid but did not improve the promoted r59/r60 envelope. Pair it
+with `--pdf-ocr-prewarm-source-path` and `--pdf-ocr-prewarm-page-index` when a
+long-lived local worker should perform one real source-page conversion before
+listening, which triggers Docling's lazy table-structure warmup outside the
+force-refresh request path. On the milestone fixture, source page `0` warmup
+reduced page `5` fast-text top-up to about `7.2-7.4s` and passed repeat
+promotion at `11990.357708 ms` and `11537.015125 ms`, but it is accepted as a
+stability diagnostic rather than the current best evidence because it is slower
+than the promoted `8201.568417 ms` OpenRouter sample.
+Use `--pdf-ocr-prewarm-endpoint-count N` when only the first `N` local OCR
+endpoints should receive that source-page prewarm. This avoids the invalid
+full-pool page `5` prewarm failure while still allowing Rust endpoint affinity
+experiments. The paired
+`--rust-pdf-fast-text-endpoint-affinity single-page-first` canary routes
+single-page fast-text source-PDF chunks to the first endpoint. On the milestone
+fixture, r70 preserved precision and completed force refresh at
+`9636.47725 ms`, with page `5` fast-text reduced to `5274.754916 ms`. It is
+accepted as endpoint-locality evidence. A 2026-05-08 control without
+endpoint-local prewarm and affinity regressed to `22329.780375 ms`, with page
+`5` fast-text source-range work tailing at `20193.906625 ms`; restoring the r70
+shape brought the canary back to `10164.795292 ms` with a `5s` hosted hedge,
+and tightening only the hosted hedge to `4s` produced the previous promoted
+`8201.568417 ms` sample. Current-rev `2s` hedge repeats now supersede it as
+the active OpenRouter region-recovery envelope. r71 prewarmed endpoints `0-3`
+and reduced the page
+`11-13` fast-text chunk to `5972.05625 ms`, but force refresh regressed to
+`10336.721667 ms` because the hosted region tail dominated.
+The later Ministral same-page region composite size `3` diagnostics preserved
+precision but remain rejected. The older page `12` three-region composite
+request tailed at `14430.981 ms` and force refresh regressed to
+`17806.492208 ms`; the current-rev repeat reduced hosted requests to `4` but
+still measured `10797.20775 ms` force refresh with hosted p95 `8528.296 ms`.
+The r83 composite repeat with source split and endpoint affinity failed before
+OCR metrics with a Flight `BrokenPipe`, so region composite remains a
+provider-stability canary rather than a promoted OpenRouter optimization. The
+worker now traces unexpected composite exceptions as failed canary attempts
+and falls back to individual region requests, preserving the existing row
+contract. The r84 fallback-guard rerun completed with valid OCR metrics and
+passed the locked baseline at `12658.151 ms`, with `metricsResultChars=106410`,
+zero error rows, stable `27` rows, and `21/6` page/region OCR blocks. It
+remains diagnostic only because it is slower than the promoted `8201.568417 ms`
+OpenRouter envelope.
+`--rust-pdf-fast-text-source-range-split single-page` is a source-range
+chunk-shape diagnostic. It keeps Rust scheduler permits as the admission
+owner and preserves precision on the milestone fixture. The older r64b run is
+rejected because page `5` single-page Docling fast-text conversion regressed
+force refresh to `23629.474667 ms`. The later r82b run, paired with
+endpoint-local fast-text affinity, passed the locked promotion gate at
+`12133.964875 ms` with `metricsResultChars=108788`, but it remains
+diagnostic-only because it did not beat the current promoted OpenRouter sample
+and page `5` still dominated the source-range tail.
+The fast
+profile is still not the global default because broader corpus promotion needs
+separate evidence, but the arXiv `2604.17337` guard proves this opt-in
+risk-window profile on the current machine: 12,856.546 ms force-refresh
+latency, 92.084 ms shard-cache reuse latency, 2.309 ms cache p95, zero error
+rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,985 OCR result
+characters, and stable structure order.
+Python recognizes `hosted-vlm-direct-ocr-v1` as the model-agnostic direct VLM
+OCR profile over the same shard rows. That path calls an externally managed
+OpenAI-compatible backend, with vLLM as the preferred runtime, using
+`WENDAO_HOSTED_VLM_OCR_BASE_URL`, `WENDAO_HOSTED_VLM_OCR_MODEL`,
+`WENDAO_HOSTED_VLM_OCR_API_KEY`, `WENDAO_HOSTED_VLM_OCR_PROMPT`,
+`WENDAO_HOSTED_VLM_OCR_MAX_TOKENS`,
+`WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS`, and
+`WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS`. Set
+`WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY` to tune direct remote request
+fan-out; keep it provider-gated by benchmark evidence because some hosted
+models lose stability when concurrency is too high. The direct client retries
+transient hosted HTTP failures such as `429`, `500`, `502`, `503`, and `504`
+with a short bounded backoff before returning a failed row, so Rust precision
+and fallback gates still own the final decision. Set
+`WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE` above `1` to let the direct worker
+combine contiguous page images into one request as a provider capability
+canary. Current hosted optimization keeps this disabled by default. The
+`hosted-vlm-risk-window` planner sends only the source-profile risk window to
+the hosted VLM/OCR backend while leaving ordinary pages on the fast profile.
+`hosted-vlm-risk-window-backend-text` is a benchmark-only source-range
+optimization canary that keeps hosted recovery semantics but routes ordinary
+low-risk pages to `docling-backend-text-ocr-v1` and dense text top-up pages to
+`docling-fast-text-ocr`.
+The Docling-centered recovery lane makes this package the structure execution
+owner, not just a full-document fallback. The internal Flight metadata header
+`x-wendao-document-extract-page-range` requests a 1-based inclusive Docling
+conversion range and writes uniquely prefixed page-range resource rows plus a
+matching `_structure.arrow` sidecar. Studio may merge those rows back by
+`pageIndex` to replace failed or empty page OCR rows while preserving Docling
+reading order. Hosted OpenRouter, local OCR2, backend text, and fast text are
+therefore text patch or acceleration paths over Docling structure, not
+replacement structure pipelines.
+Rust may request multiple contiguous page ranges for one document when a
+benchmark enables page-range chunking. The analyzer treats each range as an
+independent Docling conversion request with stable page-range element ids;
+Studio is responsible for wrapper-row normalization, structure parity checks,
+and escalation to full-document fallback when any range is incomplete. The
+benchmark report now keeps per-range Docling fallback timing and the slowest
+chunk summary visible so analyzer conversion cost can be separated from Rust
+scheduler and Flight overhead.
+For tail-latency diagnostics, `--rust-pdf-docling-page-range-chunk-plan`
+forwards an exact 1-based fallback chunk plan such as `1:3,4:4,5:6,7:9` to the
+Rust provider. The Rust side rejects plans that omit, duplicate, or include
+pages outside the Docling fallback set, so this remains a precision-preserving
+benchmark control rather than a new routing default. The first May 8, 2026
+tail-splitting canary with that plan preserved Docling structure parity but
+regressed to `18912.534209 ms`, so the accepted default remains three-page
+chunks.
+For automatic high-cost diagnostics,
+`--rust-pdf-docling-page-range-structure-cost-budget` forwards
+`WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET` to Rust.
+When set, Rust may split automatic `docling-structure-recovery` fallback ranges
+whose source-profile structure cost exceeds the budget. The split may spend
+spare document-extract endpoint capacity, but it must remain a single Docling
+execution wave; without spare capacity Rust keeps the capped range shape. The
+flag is disabled by default and is only a benchmark-visible diagnostic control;
+structure parity, row order, and precision gates still decide promotion.
+Set `WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE=profile` only for explicit
+page-range benchmark probes that need to test whether reusing a Docling
+converter across Flight document-extract calls reduces conversion setup cost.
+The benchmark flag is `--document-extract-converter-cache profile`. The default
+remains disabled so ordinary document extraction keeps the existing converter
+lifecycle.
+Set `WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH` and
+`WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES` only through benchmark-controlled
+readiness probes. These controls are intentionally separate from converter
+reuse: prewarm validates daemon readiness and Docling lazy initialization,
+while converter-cache probes isolate repeated page-range setup cost after the
+worker is already serving requests.
+Explicit `region-shards` benchmarks are the narrower
+recovery-surface proof before automatic region discovery is promoted. Narrow
+exact-risk-only page routing is not the promotion path because the real
+milestone run lost the frozen character floor. In the current mixed-render
+route, Rust keeps ordinary pages as source-range rows and renders 300 DPI page
+images only for hosted VLM recovery pages, preserving the existing Arrow input
+and result schemas. When the benchmark supplies explicit region shards, Rust
+keeps the parent page on the fast source-range profile and appends recovery
+region rows as supplemental recovery inputs. Rust binds each hosted recovery
+region row to the retained fast parent page and records a `sentinel-sidecar-v1`
+structure provenance marker so region recovery remains a validated sidecar
+patch rather than an implicit string splice. When no explicit region JSON is configured,
+`--rust-pdf-hosted-vlm-region-planner profile-risk-window` lets Rust derive a
+conservative content-band region for pages already selected by
+`hosted-vlm-risk-window`; this remains benchmark-only until region precision and
+stitching pass the promotion gate. The adjacent benchmark-only
+`profile-risk-window-slices` planner splits that same content band into
+top/middle/bottom same-page regions so hosted VLM/OCR tests can exercise
+same-page composite requests without changing the Arrow shard schema.
+`profile-risk-window-adaptive` keeps the same benchmark-only source selection
+but chooses one, two, or three slices from Rust's source-page structure profile
+and estimated content-band pixel area. Exact structure-risk pages may receive
+more slices, while low-complexity risk-window neighbor pages can stay as one
+region. It is the preferred next hosted benchmark profile because it targets
+the measured trade-off between single-band provider tail latency and blanket
+three-slice request overhead without lowering DPI.
+The benchmark can also pass
+`--rust-pdf-hosted-vlm-region-pipeline render-dispatch`, forwarded to
+`WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE`, to let Rust overlap
+ordinary source-range OCR scheduling with hosted recovery-region rendering.
+This mode is a local-overhead optimization probe for the measured gap between
+hosted request wall span and force-refresh latency; it stays disabled by
+default and does not change the Arrow shard schema or precision gates.
+Pass `--rust-pdf-hosted-vlm-region-render-ahead N` when that opt-in pipeline
+should pre-render more than one page-region chunk while hosted requests are in
+flight. Rust still sorts the final OCR shard inputs back to deterministic
+reading order before validating rows and writing result artifacts.
+Pass `--rust-pdf-hosted-vlm-region-render-chunk region` only as a chunk-shape
+diagnostic. It asks Rust to render each recovery region as an independent
+chunk rather than grouping regions by page, so the first hosted request can be
+dispatched as soon as the first region is ready. Current-rev milestone repeats
+preserved zero errors, stable order, `27` rows, `21/6` page/region blocks, and
+the frozen character floor while moving first region readiness to about
+`0.70-0.72s`; force refresh still measured `8202.969708 ms` and
+`8927.807167 ms`, so the default remains page-grouped chunks. The all-region
+render chunk diagnostic is also rejected because it delayed first hosted
+dispatch to `12528.588583 ms` and regressed force refresh to `21670.3075 ms`.
+Pass `--rust-pdf-hosted-vlm-region-render-chunk region-seed-page` for the
+middle-ground canary: one smallest-area region becomes an early seed request,
+and all remaining recovery regions stay page-grouped. This is intended to test
+whether early hosted dispatch can be recovered without the full tail cost of
+splitting every region. The first explicit PDFium OpenRouter gate passed the
+precision gate with zero error rows, stable `27` rows, `21/6` page/region OCR
+blocks, and the frozen character floor. The measured pair is
+`8250.492790999999 ms` with `metricsResultChars=116286`, then
+`8445.105417 ms` with `metricsResultChars=116270`. It remains a canary because
+it has not beaten the active `7338.796584/8322.027792 ms` envelope and cannot
+replace page-grouped chunks yet.
+Region rows use
+`WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS`,
+defaulting to 2048 and clamped by `WENDAO_HOSTED_VLM_OCR_MAX_TOKENS`, so a
+single hosted region response cannot silently consume the full page-token
+budget unless the benchmark explicitly raises the region cap through
+`--hosted-vlm-ocr-region-max-tokens`. Set
+`WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE` above `1`, or pass
+`--hosted-vlm-ocr-region-composite-size`, to let the direct worker combine
+same-page, same-parent hosted recovery region rows into one multi-image request. Region
+composite output must split back into one non-empty Markdown result per region
+sentinel marker; otherwise the worker falls back to individual region requests
+so the existing row/order contract is preserved. Batched page-window responses
+follow the same marker-split rule for page markers. The benchmark can also set
+`WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE=same-page-json`, or pass
+`--hosted-vlm-ocr-region-atlas-mode same-page-json`, to pack a same-page region
+composite group into one labeled PNG atlas and request strict JSON keyed by
+exact shard markers. Atlas mode is an opt-in request-surface canary: valid JSON
+is canonicalized back into Markdown rows, while invalid JSON, row-count
+mismatches, empty text, and HTTP failures fall back to individual region
+requests so the existing Arrow shard result contract and precision fallback
+remain unchanged. Set
+`WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE=region-table-json`, or pass
+`--hosted-vlm-ocr-scaffold-mode region-table-json` in the benchmark harness, to
+enable structural scaffold recovery for hosted recovery region rows. In that mode the
+worker loads Studio's `_hosted_vlm_region_scaffolds.json` sidecar beside the rendered
+region images, validates the shard id, parent shard id, source content hash,
+and raster hash, asks the hosted VLM/OCR provider for JSON-only output keyed by exact region markers,
+and canonicalizes valid table/text JSON back into Markdown result rows. Missing
+sidecars, fingerprint mismatches, malformed JSON, marker or row-count
+mismatches, empty canonical text, and invalid table cell shapes return failed
+rows so the existing Rust precision fallback protects correctness.
+The current OpenRouter/Qianfan fast benchmark rejects scaffold composite as a
+promotion path because the provider failed strict row-count and canonical-text
+validation in real runs. Keep scaffold mode disabled unless the selected
+provider has fresh evidence with zero scaffold validation failures. Set
+`WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS` above `0`, or pass
+`--hosted-vlm-ocr-speculative-retry-delay-seconds`, to enable an opt-in
+hedged request for direct hosted region rows: if the first hosted request has
+not produced a valid result by that delay, the worker starts a second request
+and returns the first valid Markdown response. This is a tail-latency guard for
+cloud OCR providers; it does not change the Arrow schema or validation gates,
+and benchmark traces report both logical requests and HTTP attempt counts so
+request-cost evidence stays visible. The current promoted OpenRouter region
+canary pins this delay at `2s`; this is benchmark evidence, not a global
+default change. Set
+`WENDAO_HOSTED_VLM_OCR_TRACE_PATH` to a JSONL file when a benchmark needs
+request-level latency, HTTP status, image-byte, Markdown character,
+shard-type, region-count, render-DPI, source-pixel-area, scaffold mode,
+scaffold applied count, scaffold validation failure count, JSON character
+count, and canonical Markdown character telemetry. Trace records intentionally
+omit API keys and image payloads. Hosted VLM/OCR recovery
+benchmarks must not lower render DPI to gain speed; region shrinkage and
+provider capability gates are the accepted optimization levers. Set
+`WENDAO_HOSTED_VLM_OCR_IMAGE_OPTIMIZATION=region-whitespace-trim`, or benchmark
+with `--hosted-vlm-ocr-image-optimization region-whitespace-trim`, to trim
+near-white margins from Hosted VLM/OCR region PNG request payloads. The default
+is `disabled`; the optimization applies only to region rows, keeps render DPI
+intact, and does not change Arrow shard rows, result schema, row order, or
+validation gates. Benchmark trace summaries report
+`imageOptimizationModeCounts`, and the top-level Hosted VLM/OCR report records
+the selected mode. Analyzer declares `Pillow` as a runtime dependency because
+region trimming and same-page atlas packing both need deterministic image
+decoding outside Docling's optional dependency set.
+Scheduler trace summaries also expose source-range queue wait and dispatch
+start/end timing when the Rust scheduler provides those fields. These are
+diagnostic-only report fields used to separate request latency from scheduler
+admission and wave ordering; they do not change the Arrow OCR shard input or
+result schemas.
+A May 8, 2026 real-fixture diagnostic separated fixture coverage from hosted
+OCR evidence. The Docling `2305.03393` page and full-paper probes validated
+the real fixture path but routed only to backend-text source-page shards under
+the risk-window planner. A forced DocLayNet region through
+`baidu/qianfan-ocr-fast:free` preserved zero errors and stable order, but the
+single hosted region request tailed at about `16.7s` while scheduler queue wait
+was effectively zero. For that provider, the next latency lever is model or
+provider choice, region payload shape, or scaffolded output constraints rather
+than Rust queue admission.
+The analyzer normalizes wrapping quotes from Hosted VLM/OCR environment values
+before building OpenRouter headers. This protects local `.env` loaders that
+materialize a value such as `"sk-or-v1-..."` with literal quotes. With that
+normalization in place, the same real DocLayNet region completed through
+`mistralai/ministral-3b-2512` with zero errors, stable order, one hosted
+region request at about `7.4s`, and a force-refresh time around `9.3s`.
+`qwen/qwen3-vl-8b-instruct` also preserved correctness on the same probe but
+tailed around `27.3s`, so it remains a rejected candidate for this region.
+Set
+`WENDAO_HOSTED_VLM_OCR_PROVIDER=openrouter` to use OpenRouter's
+OpenAI-compatible `/chat/completions` API instead of a local model server. The
+OpenRouter preset defaults the base URL to `https://openrouter.ai/api/v1`,
+reads `WENDAO_OPENROUTER_API_KEY` or `OPENROUTER_API_KEY`, accepts
+`WENDAO_OPENROUTER_MODEL` when `WENDAO_HOSTED_VLM_OCR_MODEL` is not set, and
+forwards optional
+`WENDAO_OPENROUTER_HTTP_REFERER` and
+`WENDAO_OPENROUTER_TITLE` attribution headers. The selected OpenRouter model
+must support image URL chat content. When no OpenRouter model is configured,
+the hosted smoke default is `baidu/qianfan-ocr-fast:free`, which is used only
+to validate the cloud OCR path; current promotion evidence should pin the
+faster validated `mistralai/ministral-3b-2512` candidate explicitly. Use the
+[OpenRouter quickstart](https://openrouter.ai/docs/quickstart) when configuring
+the hosted provider:
+
+```bash
+export WENDAO_HOSTED_VLM_OCR_PROVIDER=openrouter
+export WENDAO_OPENROUTER_API_KEY=...
+export WENDAO_OPENROUTER_MODEL=baidu/qianfan-ocr-fast:free
+```
+
+The analyzer does not load or quantize OCR2 weights in process. Use the
+repository `fetch-models` and `start-ocr-backend` Justfile recipes only when a
+local backend is desired; they fetch prebuilt community or official artifacts
+and expose them through a vLLM OpenAI-compatible service:
+
+```bash
+just fetch-models
+just start-ocr-backend
+```
+
+`fetch-models` also auto-selects the local artifact flavor. On macOS Apple
+Silicon it defaults to the MLX-converted
+`mlx-community/DeepSeek-OCR-2-bf16` artifact and links it to
+`deepseek-ocr2-current`; on non-Mac hosts it defaults to the community FP8
+vLLM artifact. Set `WENDAO_DEEPSEEK_OCR2_MODEL_FLAVOR=generic-vllm` or
+`metal-mlx`, set `WENDAO_DEEPSEEK_OCR2_HF_REPO`, or pass `repo_id=...` when
+validating a newer AWQ, GPTQ, GGUF, or MLX artifact. The Justfile recipes are
+thin entrypoints over the analyzer CLI (`wendao-document-extract --ocr2-*`),
+so backend automation stays package-owned and directly testable.
+`start-ocr-backend` auto-selects the local platform runner. On macOS Apple
+Silicon it selects `mlx-vlm`, which wraps the MLX-converted OCR2 model in a
+repository OpenAI-compatible adapter. Install the shared local Metal/MLX
+runtime and probe it with:
+
+```bash
+just install-vllm-metal
+just probe-vllm-metal
+```
+
+The Metal runner exports the MLX/Metal defaults (`VLLM_METAL_USE_MLX=1`,
+`VLLM_MLX_DEVICE=gpu`, and
+`VLLM_METAL_MULTIMODAL_MODE=multimodal-native`) before invoking the vLLM CLI.
+The `mlx-vlm` runner is the default on macOS because a direct local probe with
+`mlx-community/DeepSeek-OCR-2-bf16` successfully returns OCR text through the
+OpenAI-compatible `/v1/chat/completions` shape expected by the analyzer. The
+lower-level `metal-vllm` runner remains available for explicit vLLM Metal
+experiments, but it still gates DeepSeek-OCR-2 by default because current vLLM
+Metal documentation lists multimodal vision/audio models as unsupported and
+focuses the plugin on text-only language models. Set
+`WENDAO_DEEPSEEK_OCR2_VLLM_METAL_ALLOW_UNSUPPORTED_VLM=1` only for explicit
+frontier probes after validating the local vLLM Metal build. The current local
+frontier probe reaches Metal engine initialization and resolves
+`DeepseekOCR2ForCausalLM`, but the vLLM Metal path loads VLMs in text-only mode
+and fails inside the `mlx-vlm` DeepSeek vision tower before serving an
+endpoint. The immediate compatibility mismatch is that the OCR2 artifact uses a
+DeepEncoderV2-style nested `vision_config.width`, while the current
+`mlx-vlm` DeepSeek-VL2 loader expects a scalar vision width.
+`vllm-omni` is not selected as the default OCR2 backend in this slice: its
+current supported-models surface does not list DeepSeek-OCR-2, and it does not
+address the macOS Metal `mlx-vlm` vision-loader mismatch above.
+On non-Mac deployment hosts, `start-ocr-backend` selects `generic-vllm` and
+starts the current vLLM OpenAI-compatible server shape for OCR2. It adds the
+OCR2 n-gram logits processor and disables prefix caching by default, matching
+the current vLLM OCR2 serving guidance. `WENDAO_DEEPSEEK_OCR2_VLLM_PACKAGE`
+defaults to `vllm>=0.20.1`, so repository automation requires a vLLM line with
+first-class OCR2 serving support instead of silently resolving to older
+packages. Deployment hosts that need a known CUDA wheel or exact compatibility
+set can still pin `WENDAO_DEEPSEEK_OCR2_VLLM_PACKAGE`, add helper packages
+through `WENDAO_DEEPSEEK_OCR2_VLLM_WITH`, or override all server flags with
+`WENDAO_DEEPSEEK_OCR2_VLLM_EXTRA_ARGS`.
+`WENDAO_DEEPSEEK_OCR2_BACKEND_RUNNER=official-vllm` remains available as a
+diagnostic compatibility runner for the official repository adapter, but it is
+not the default because that adapter follows older vLLM internal APIs.
+Default analyzer installs stay free of vLLM and model-runtime dependencies. The
+`docling-vlm-deepseek-ocr` profile remains a Docling VLM comparator path, not
+the default direct OCR2 implementation.
+Production deployments can set
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS` directly when local
+evidence shows a fixed override is appropriate for that machine profile, but
+that override is not the default correctness or performance gate.
+Pass `--fixture-suite milestone --only-fixture autosearch-2604.17337` for the
+repo-owned OCR milestone input. Use `--fixture-suite explicit` with
+`--extra-fixture NAME=PATH` only when benchmarking another audited real input
+without preparing the full Docling fixture checkout. Milestone inputs that
+define regression gates must come from a repo-tracked fixture path or another
+explicit, auditable source path; `.data` downloads are cache material only. Add
+`--fail-on-pdf-milestone-regression` to fail an OCR-positive milestone run when
+it drops below the stored `2604.17337` precision/speed envelope. The guard is
+evaluated after the JSON and Markdown reports are written so a failing run
+still leaves evidence for diagnosis. Low `metricsResultChars` is recorded as a
+milestone regression, not as a missing milestone observation.
+The May 5, 2026 source-range endpoint-fanout profile kept the default Rust
+source-range worker policy unset, used the default local endpoint auto fanout,
+and observed a 21-page force latency of 18,969.021 ms with zero error rows,
+21 OCR page blocks, 21 bbox blocks, and 103,984 OCR result characters. A
+same-machine diagnostic four-endpoint run observed 15,811.373 ms, so endpoint
+pool fanout is the current larger optimization lever; fixed source-range worker
+counts remain diagnostic only. A later May 5, 2026 structure-order weighted
+multi-shard run kept the same defaults and observed 16,364.335 ms force
+latency, 92.843 ms shard-cache rebuild latency, 2.261 ms cache p95 latency,
+zero error rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,984
+OCR result characters, and stable structure order. That run is still above the
+sub-15 target, but it preserves the precision envelope while improving the
+accepted default fanout baseline. The follow-up profile-aware fast-risk-window
+run stayed on automatic endpoint fanout, kept the Rust source-range worker
+override unset, and passed the stored milestone guard with 12,856.546 ms force
+latency, 92.084 ms shard-cache reuse latency, 2.309 ms cache p95 latency, zero
+error rows, 21 OCR page blocks, 21 bbox blocks, 21 metrics rows, 103,985 OCR
+result characters, and stable structure order.
 Use `--local-python-ocr-endpoint-count N` when a local benchmark should start
 `N` Python Flight executors, including the primary document worker, and expose
 that pool to the Rust scheduler for both full-document conversion and PDF OCR
-shards. Use `--rust-document-extract-endpoint` or `--rust-pdf-ocr-endpoint`
-more than once when a benchmark should target already-running Python Flight
+shards. The default `auto` value keeps ordinary modes at one local endpoint and
+fans out real `hybrid-page-ocr` Docling OCR by the machine profile so the Rust
+source-range endpoint-pool scheduler is exercised without pinning a fixed worker
+count. Use `--rust-document-extract-endpoint` or `--rust-pdf-ocr-endpoint` more
+than once when a benchmark should target already-running Python Flight
 executors. The script forwards those endpoints through
 `WENDAO_DOCUMENT_EXTRACT_ENDPOINTS` and
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS`; when these flags are omitted,
@@ -443,6 +1320,20 @@ Rust round-robins full-document cache misses across that pool while keeping
 content-hash deduplication, queue state, and artifact mirroring in the Rust
 control plane. `WENDAO_DOCUMENT_EXTRACT_ENDPOINT` remains the single-endpoint
 fallback and the default endpoint used when the pool is not configured.
+
+For
+[RFC: Polyglot Compute Orchestrator](../../../docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md)
+Phase 1.1, this package owns only the Python Docling Flight worker surface:
+document conversion, OCR shard execution, Arrow resource rows, and the existing
+`/analysis/document-extract` and `/analysis/pdf-ocr-shards` service routes.
+Rust continues to own queueing, worker-budget selection, status metadata,
+cache policy, and fallback coordination. The approved
+`xiuxian-polyglot-orchestrator` crate may model Python-lane admission and
+pressure evidence, but it does not add a second Docling wrapper service or
+change the analyzer public route/schema contract.
+The Rust-side harness profile verifies the owner bridges and Studio adoption
+point; this Python package remains covered by its package-local Python project
+harness and pytest suites.
 
 ## Beta Readiness
 

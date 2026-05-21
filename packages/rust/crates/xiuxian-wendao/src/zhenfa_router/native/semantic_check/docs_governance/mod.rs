@@ -3,13 +3,15 @@
 //! This module provides document governance validation for package-local
 //! crate documentation, ensuring proper identity protocols, index structure,
 //! and relation tracking.
-
+/// Public Wendao boundary.
 #[path = "collection/mod.rs"]
 pub mod collection;
+/// Public Wendao boundary.
 #[path = "rendering/mod.rs"]
 pub mod rendering;
 #[path = "scope.rs"]
 mod scope;
+/// Public Wendao boundary.
 #[path = "types.rs"]
 pub mod types;
 

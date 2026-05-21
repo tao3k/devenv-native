@@ -1,3 +1,5 @@
+//! HTTP request DTOs and control-request adapters for BPMN workflow routes.
+
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowResumeRequest,
@@ -8,6 +10,9 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowTaskReleaseRequest,
 };
 use crate::bpmn::http_transport::error_api::QianjiBpmnWorkflowHttpError;
+use crate::bpmn::identity::{
+    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -38,9 +43,9 @@ pub struct QianjiBpmnWorkflowStartHttpRequest {
     #[serde(default)]
     pub dmn_paths: Vec<PathBuf>,
     /// BPMN process identifier used for a fresh run.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// Workflow instance identifier used for checkpoint lookup and fresh runs.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Optional initial variables for a fresh run.
     #[serde(default)]
     pub initial_variables: Option<Value>,
@@ -88,7 +93,7 @@ impl QianjiBpmnWorkflowActionHttpRequest {
         QianjiBpmnWorkflowResumeRequest {
             bpmn_path: self.bpmn_path,
             dmn_paths: self.dmn_paths,
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
         }
     }
@@ -100,7 +105,7 @@ impl QianjiBpmnWorkflowActionHttpRequest {
         QianjiBpmnWorkflowEventPollRequest {
             bpmn_path: self.bpmn_path,
             dmn_paths: self.dmn_paths,
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
         }
     }
@@ -110,7 +115,7 @@ impl QianjiBpmnWorkflowActionHttpRequest {
         instance_id: String,
     ) -> QianjiBpmnWorkflowCancelRequest {
         QianjiBpmnWorkflowCancelRequest {
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
         }
     }
@@ -132,9 +137,9 @@ pub struct QianjiBpmnWorkflowTaskCompletionHttpPayload {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier expected for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN activity identifier expected for the pending host work.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Pending host-work result kind.
     pub kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
     /// User- or operator-supplied payload merged into workflow variables.
@@ -169,7 +174,7 @@ impl QianjiBpmnWorkflowTaskCompleteHttpRequest {
         QianjiBpmnWorkflowTaskCompleteRequest {
             bpmn_path: self.bpmn_path,
             dmn_paths: self.dmn_paths,
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
             completion: QianjiBpmnWorkflowTaskCompletionPayload {
                 token_id: self.completion.token_id,
@@ -197,9 +202,9 @@ pub struct QianjiBpmnWorkflowTaskClaimHttpPayload {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier expected for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN activity identifier expected for the pending host work.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Host- or operator-facing claimant identifier.
     pub claimant: String,
 }
@@ -221,7 +226,7 @@ impl QianjiBpmnWorkflowTaskClaimHttpRequest {
         instance_id: String,
     ) -> QianjiBpmnWorkflowTaskClaimRequest {
         QianjiBpmnWorkflowTaskClaimRequest {
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
             claim: QianjiBpmnWorkflowTaskClaimPayload {
                 token_id: self.claim.token_id,
@@ -239,9 +244,9 @@ pub struct QianjiBpmnWorkflowTaskReleaseHttpPayload {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier expected for the pending host work.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// BPMN activity identifier expected for the pending host work.
-    pub activity_id: String,
+    pub activity_id: QianjiBpmnActivityId,
     /// Host- or operator-facing claimant identifier that currently owns the
     /// work.
     pub claimant: String,
@@ -264,7 +269,7 @@ impl QianjiBpmnWorkflowTaskReleaseHttpRequest {
         instance_id: String,
     ) -> QianjiBpmnWorkflowTaskReleaseRequest {
         QianjiBpmnWorkflowTaskReleaseRequest {
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: self.checkpoint_backend.into_control_backend(),
             release: QianjiBpmnWorkflowTaskReleasePayload {
                 token_id: self.release.token_id,
@@ -291,7 +296,7 @@ impl QianjiBpmnWorkflowStatusHttpQuery {
         instance_id: String,
     ) -> Result<QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowHttpError> {
         Ok(QianjiBpmnWorkflowStatusRequest {
-            instance_id,
+            instance_id: instance_id.into(),
             checkpoint_backend: self.into_control_backend()?,
         })
     }

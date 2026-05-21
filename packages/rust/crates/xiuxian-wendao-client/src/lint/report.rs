@@ -3,13 +3,44 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+/// High-level classification for one Markdown lint issue.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct MarkdownLintIssueKind(String);
+
+impl MarkdownLintIssueKind {
+    /// Borrows the serialized value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for MarkdownLintIssueKind {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for MarkdownLintIssueKind {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl std::fmt::Display for MarkdownLintIssueKind {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
 /// One rendered Markdown lint issue scoped to a specific file.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct MarkdownLintIssue {
     /// File-relative machine-readable lint code.
     pub code: String,
     /// High-level classification for this issue.
-    pub kind: String,
+    pub kind: MarkdownLintIssueKind,
     /// Human-readable problem summary.
     pub problem: String,
     /// Human-readable diagnostic detail or fix guidance.

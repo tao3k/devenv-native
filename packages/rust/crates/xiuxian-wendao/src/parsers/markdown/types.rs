@@ -1,4 +1,6 @@
-use super::ParsedSection;
+//! `parsers::markdown::types` owns Wendao parsers markdown types behavior.
+
+use super::sections::ParsedSection;
 use crate::link_graph::LinkGraphDocument;
 
 /// Parsed note payload + unresolved outgoing link targets.

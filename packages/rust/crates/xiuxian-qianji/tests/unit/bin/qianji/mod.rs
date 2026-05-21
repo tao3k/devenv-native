@@ -27,6 +27,7 @@ use xiuxian_config_core::resolve_cache_home_from_value;
 mod bpmn;
 mod cache_paths;
 mod construct_cli;
+mod control_cli;
 mod dir_parsing;
 mod dir_runtime;
 mod emit;

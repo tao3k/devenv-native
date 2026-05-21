@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::{RetrievalChunk, RetrievalChunkSurface};
+use super::{RetrievalChunk, RetrievalChunkSurface, StudioContractId, StudioContractPath};
 
 /// Kind of a code-AST node.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -59,7 +59,7 @@ pub type CodeAstRetrievalAtomScope = RetrievalChunkSurface;
 #[serde(rename_all = "camelCase")]
 pub struct CodeAstNode {
     /// Node identifier.
-    pub id: String,
+    pub id: StudioContractId,
     /// Display label.
     pub label: String,
     /// Semantic node kind.
@@ -82,9 +82,9 @@ pub struct CodeAstEdge {
     /// Edge identifier.
     pub id: String,
     /// Source node identifier.
-    pub source_id: String,
+    pub source_id: StudioContractId,
     /// Target node identifier.
-    pub target_id: String,
+    pub target_id: StudioContractId,
     /// Semantic edge kind.
     pub kind: CodeAstEdgeKind,
     /// Optional display label.
@@ -112,9 +112,9 @@ pub type CodeAstRetrievalAtom = RetrievalChunk;
 #[serde(rename_all = "camelCase")]
 pub struct CodeAstAnalysisResponse {
     /// Repository identifier.
-    pub repo_id: String,
+    pub repo_id: StudioContractId,
     /// Repository-relative source path.
-    pub path: String,
+    pub path: StudioContractPath,
     /// Source language.
     pub language: String,
     /// Total number of AST nodes.
@@ -132,7 +132,7 @@ pub struct CodeAstAnalysisResponse {
     pub retrieval_atoms: Vec<CodeAstRetrievalAtom>,
     /// Optional node identifier selected by line hint.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub focus_node_id: Option<String>,
+    pub focus_node_id: Option<StudioContractId>,
     /// Diagnostics emitted by parser/analyzer.
     pub diagnostics: Vec<String>,
 }

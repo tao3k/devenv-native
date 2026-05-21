@@ -1,3 +1,5 @@
+//! `search::status::telemetry` owns Wendao search status telemetry behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Source path used by the most recent bounded streaming query for one corpus.

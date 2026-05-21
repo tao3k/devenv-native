@@ -1,3 +1,5 @@
+//! `search::reference_occurrence::build` owns Wendao search reference occurrence build behavior.
+
 mod extract;
 mod orchestration;
 mod plan;

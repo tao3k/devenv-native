@@ -10,14 +10,14 @@ pub(super) fn render_root_manifest(
     surface.push("flowchart.mmd".to_string());
     surface.extend(visible_aliases.iter().cloned());
 
-    let mut require = Vec::with_capacity(visible_aliases.len() * 2 + 1);
-    require.push("flowchart.mmd".to_string());
-    for alias in visible_aliases {
-        require.push(alias.clone());
-    }
-    for alias in visible_aliases {
-        require.push(format!("{alias}/**/*.md"));
-    }
+    let require = std::iter::once("flowchart.mmd".to_string())
+        .chain(visible_aliases.iter().cloned())
+        .chain(
+            visible_aliases
+                .iter()
+                .map(|alias| format!("{alias}/**/*.md")),
+        )
+        .collect::<Vec<_>>();
 
     let manifest = WorkdirManifest {
         version: 1,

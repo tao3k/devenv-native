@@ -1,7 +1,25 @@
 //! Unit tests for `markdown_block` module.
 
 use super::{BlockAddress, BlockKindSpecifier, MarkdownBlock, MarkdownBlockKind};
-use xiuxian_wendao_parsers::blocks::compute_block_hash;
+use xiuxian_wendao_parsers::blocks::{BlockCoreRequest, compute_block_hash};
+
+fn block(
+    kind: MarkdownBlockKind,
+    index: usize,
+    byte_range: (usize, usize),
+    line_range: (usize, usize),
+    content: &str,
+    structural_path: Vec<String>,
+) -> MarkdownBlock {
+    MarkdownBlock::new(BlockCoreRequest {
+        kind,
+        index,
+        byte_range,
+        line_range,
+        content: content.to_string(),
+        structural_path,
+    })
+}
 
 #[test]
 fn test_block_kind_id_prefix() {
@@ -29,7 +47,7 @@ fn test_block_kind_id_prefix() {
 
 #[test]
 fn test_block_new() {
-    let block = MarkdownBlock::new(
+    let block = block(
         MarkdownBlockKind::Paragraph,
         0,
         (0, 20),
@@ -47,7 +65,7 @@ fn test_block_new() {
 
 #[test]
 fn test_block_with_explicit_id() {
-    let block = MarkdownBlock::new(
+    let block = block(
         MarkdownBlockKind::CodeFence {
             language: "rust".into(),
         },
@@ -57,7 +75,7 @@ fn test_block_with_explicit_id() {
         "fn main() {}",
         vec!["Code".to_string(), "Examples".to_string()],
     )
-    .with_explicit_id("my-snippet".to_string());
+    .with_explicit_id("my-snippet".to_string().into());
 
     assert_eq!(block.block_id, "my-snippet");
     assert_eq!(block.id, Some("my-snippet".to_string()));
@@ -132,7 +150,7 @@ fn test_block_address_to_path_component() {
 
 #[test]
 fn test_block_matches_kind() {
-    let para = MarkdownBlock::new(
+    let para = block(
         MarkdownBlockKind::Paragraph,
         0,
         (0, 10),
@@ -149,7 +167,7 @@ fn test_block_matches_kind() {
         &BlockKindSpecifier::CodeFence
     ));
 
-    let code = MarkdownBlock::new(
+    let code = block(
         MarkdownBlockKind::CodeFence {
             language: "rust".into(),
         },

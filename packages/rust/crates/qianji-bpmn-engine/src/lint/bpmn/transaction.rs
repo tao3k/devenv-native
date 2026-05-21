@@ -31,7 +31,7 @@ fn error_end_requires_transaction_shell_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_transaction_configuration",
         "Error end event must live inside a transaction shell",
         format!(
@@ -58,7 +58,7 @@ fn cancel_end_requires_transaction_shell_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_transaction_configuration",
         "Cancel end event must live inside a transaction shell",
         format!(
@@ -85,7 +85,7 @@ fn multiple_transaction_cancel_end_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_transaction_configuration",
         "Transaction shell supports only one cancel end event",
         format!(
@@ -112,7 +112,7 @@ fn transaction_cancel_missing_boundary_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_transaction_configuration",
         "Transaction cancel path is missing the parent cancel boundary",
         format!(
@@ -139,7 +139,7 @@ fn transaction_error_missing_boundary_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_transaction_configuration",
         "Transaction error path is missing the parent error boundary",
         format!(
@@ -166,7 +166,7 @@ fn generic_transaction_configuration_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_transaction_configuration",
         "Transaction configuration exceeds the bounded slice",
         format!(

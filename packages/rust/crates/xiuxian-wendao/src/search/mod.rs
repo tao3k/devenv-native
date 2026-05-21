@@ -35,7 +35,7 @@ mod manifest;
 mod markdown_snapshot;
 /// Synthetic benchmark and probe helpers for search-plane performance seams.
 #[cfg(feature = "search-runtime")]
-#[path = "perf_support.rs"]
+#[path = "perf_support/mod.rs"]
 pub mod perf_support;
 #[cfg(feature = "search-runtime")]
 #[path = "project_fingerprint.rs"]
@@ -46,6 +46,9 @@ pub mod queries;
 #[cfg(feature = "search-runtime")]
 #[path = "ranking.rs"]
 mod ranking;
+#[cfg(all(test, feature = "search-runtime"))]
+#[path = "real_repo_precision/mod.rs"]
+pub(crate) mod real_repo_precision;
 #[cfg(feature = "search-runtime")]
 #[path = "reference_occurrence/mod.rs"]
 mod reference_occurrence;

@@ -3,12 +3,14 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use super::{StudioContractContentType, StudioContractId, StudioContractPath};
+
 /// A single entry in the VFS (file or directory).
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VfsEntry {
     /// Full path relative to the VFS root.
-    pub path: String,
+    pub path: StudioContractPath,
     /// File or directory name.
     pub name: String,
     /// Whether this entry is a directory.
@@ -19,7 +21,7 @@ pub struct VfsEntry {
     pub modified: u64,
     /// MIME content type guess for files.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub content_type: Option<String>,
+    pub content_type: Option<StudioContractContentType>,
     /// Project grouping label for multi-root monorepo views.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_name: Option<String>,
@@ -55,7 +57,7 @@ pub enum VfsCategory {
 #[serde(rename_all = "camelCase")]
 pub struct VfsScanEntry {
     /// Full path relative to the VFS root.
-    pub path: String,
+    pub path: StudioContractPath,
     /// File or directory name.
     pub name: String,
     /// Whether this entry is a directory.
@@ -68,12 +70,12 @@ pub struct VfsScanEntry {
     pub modified: u64,
     /// MIME content type guess for files.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub content_type: Option<String>,
+    pub content_type: Option<StudioContractContentType>,
     /// Whether the file has YAML frontmatter.
     pub has_frontmatter: bool,
     /// Wendao document ID if indexed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub wendao_id: Option<String>,
+    pub wendao_id: Option<StudioContractId>,
     /// Project grouping label for multi-root monorepo views.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_name: Option<String>,
@@ -107,9 +109,9 @@ pub struct VfsScanResult {
 #[serde(rename_all = "camelCase")]
 pub struct VfsContentResponse {
     /// Full path to the file.
-    pub path: String,
+    pub path: StudioContractPath,
     /// MIME content type.
-    pub content_type: String,
+    pub content_type: StudioContractContentType,
     /// Raw file content.
     pub content: String,
     /// File modification timestamp.

@@ -1,3 +1,5 @@
+//! `search::queries::sql` owns Wendao search queries sql behavior.
+
 /// Shared bounded-work markdown SQL surface for workdir-local retrieval.
 #[path = "bounded_work_markdown/mod.rs"]
 pub mod bounded_work_markdown;

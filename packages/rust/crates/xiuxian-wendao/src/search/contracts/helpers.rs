@@ -1,7 +1,11 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::path::{Component, Path, PathBuf};
 
 use walkdir::DirEntry;
-use xiuxian_ast::{Lang, extract_items, get_skeleton_patterns};
+use xiuxian_ast::Lang;
+use xiuxian_code_intelligence::{
+    extract_code_structure_symbols, supported_code_language_from_path,
+};
 use xiuxian_wendao_parsers::sections::MarkdownSection;
 
 use crate::parsers::markdown::extract_observations;
@@ -182,71 +186,48 @@ pub(crate) fn build_code_ast_hits_from_content(
     let crate_name = infer_crate_name(normalized_path_ref);
     let mut hits = Vec::new();
     let mut seen = std::collections::HashSet::new();
-    for pattern in get_skeleton_patterns(lang) {
-        for result in extract_items(content, pattern, lang, Some(vec!["NAME"])) {
-            let name = result
-                .captures
-                .get("NAME")
-                .cloned()
-                .unwrap_or_else(|| first_signature_line(result.text.as_str()).to_string());
-            let signature = first_signature_line(result.text.as_str()).to_string();
-            if signature.is_empty() {
-                continue;
-            }
-            let dedupe_key = format!(
-                "{normalized_path}:{}:{}:{name}",
-                result.line_start, result.line_end
-            );
-            if !seen.insert(dedupe_key) {
-                continue;
-            }
-
-            hits.push(AstSearchHit {
-                name,
-                signature,
-                path: normalized_path.to_string(),
-                language: lang.as_str().to_string(),
-                crate_name: crate_name.clone(),
-                project_name: None,
-                root_label: None,
-                node_kind: None,
-                owner_title: None,
-                navigation_target: ast_navigation_target(
-                    normalized_path,
-                    crate_name.as_str(),
-                    None,
-                    None,
-                    result.line_start,
-                    result.line_end,
-                ),
-                line_start: result.line_start,
-                line_end: result.line_end,
-                score: 0.0,
-            });
+    for symbol in extract_code_structure_symbols(content, lang) {
+        if symbol.signature.is_empty() {
+            continue;
         }
+        let dedupe_key = format!(
+            "{normalized_path}:{}:{}:{}",
+            symbol.line_start,
+            symbol.line_end,
+            symbol.name.as_str()
+        );
+        if !seen.insert(dedupe_key) {
+            continue;
+        }
+
+        hits.push(AstSearchHit {
+            name: symbol.name,
+            signature: symbol.signature,
+            path: normalized_path.to_string(),
+            language: lang.as_str().to_string(),
+            crate_name: crate_name.clone(),
+            project_name: None,
+            root_label: None,
+            node_kind: None,
+            owner_title: None,
+            navigation_target: ast_navigation_target(
+                normalized_path,
+                crate_name.as_str(),
+                None,
+                None,
+                symbol.line_start,
+                symbol.line_end,
+            ),
+            line_start: symbol.line_start,
+            line_end: symbol.line_end,
+            score: 0.0,
+        });
     }
     hits
 }
 
 pub(crate) fn ast_search_lang(path: &Path) -> Option<Lang> {
-    match Lang::from_path(path)? {
-        Lang::Python
-        | Lang::Rust
-        | Lang::JavaScript
-        | Lang::TypeScript
-        | Lang::Bash
-        | Lang::Go
-        | Lang::Java
-        | Lang::C
-        | Lang::Cpp
-        | Lang::CSharp
-        | Lang::Ruby
-        | Lang::Swift
-        | Lang::Kotlin
-        | Lang::Lua
-        | Lang::Php => Lang::from_path(path),
-        _ => None,
-    }
+    supported_code_language_from_path(path)
 }
 
 pub(crate) fn markdown_scope_name(path: &Path) -> String {
@@ -498,10 +479,6 @@ fn ast_navigation_target(
         line_end: Some(line_end),
         column: None,
     }
-}
-
-fn first_signature_line(text: &str) -> &str {
-    text.lines().next().map(str::trim).unwrap_or_default()
 }
 
 fn resolve_project_scope_path(

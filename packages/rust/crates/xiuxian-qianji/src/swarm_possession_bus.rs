@@ -1,3 +1,5 @@
+//! Swarm possession bus branch for request, claim, response, and wait flows.
+
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::Duration;
@@ -20,6 +22,14 @@ pub struct RemotePossessionBus {
     pub(super) reconnect_lock: Arc<Mutex<()>>,
 }
 
+/// Typed public error for remote possession bus operations.
+#[derive(Debug, thiserror::Error)]
+pub enum RemotePossessionBusError {
+    /// Transport, serialization, or Valkey command failure surfaced by the bus.
+    #[error("remote possession bus operation failed: {0}")]
+    Operation(#[from] anyhow::Error),
+}
+
 impl RemotePossessionBus {
     /// Creates a new possession bus from Valkey URL.
     #[must_use]
@@ -40,8 +50,10 @@ impl RemotePossessionBus {
         &self,
         request: &RemoteNodeRequest,
         ttl_seconds: u64,
-    ) -> anyhow::Result<()> {
-        self.submit_request_impl(request, ttl_seconds).await
+    ) -> Result<(), RemotePossessionBusError> {
+        self.submit_request_impl(request, ttl_seconds)
+            .await
+            .map_err(Into::into)
     }
 
     /// Claims one pending request from a role queue.
@@ -51,14 +63,16 @@ impl RemotePossessionBus {
     /// # Errors
     ///
     /// Returns an error when Valkey commands fail or request payload is malformed.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn claim_next_for_role(
         &self,
         role_class: &str,
         claimer_id: &str,
         block_timeout: Duration,
-    ) -> anyhow::Result<Option<RemoteNodeRequest>> {
+    ) -> Result<Option<RemoteNodeRequest>, RemotePossessionBusError> {
         self.claim_next_for_role_impl(role_class, claimer_id, block_timeout)
             .await
+            .map_err(Into::into)
     }
 
     /// Convenience helper: submit request and wait for one response.
@@ -71,9 +85,10 @@ impl RemotePossessionBus {
         request: &RemoteNodeRequest,
         ttl_seconds: u64,
         max_wait: Duration,
-    ) -> anyhow::Result<Option<RemoteNodeResponse>> {
+    ) -> Result<Option<RemoteNodeResponse>, RemotePossessionBusError> {
         self.request_and_wait_impl(request, ttl_seconds, max_wait)
             .await
+            .map_err(Into::into)
     }
 
     /// Publishes one response for a previously submitted request.
@@ -85,8 +100,10 @@ impl RemotePossessionBus {
         &self,
         response: &RemoteNodeResponse,
         ttl_seconds: u64,
-    ) -> anyhow::Result<()> {
-        self.submit_response_impl(response, ttl_seconds).await
+    ) -> Result<(), RemotePossessionBusError> {
+        self.submit_response_impl(response, ttl_seconds)
+            .await
+            .map_err(Into::into)
     }
 
     /// Waits for response of one request.
@@ -96,11 +113,14 @@ impl RemotePossessionBus {
     /// # Errors
     ///
     /// Returns an error when Valkey or pubsub operations fail.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn wait_response(
         &self,
         request_id: &str,
         max_wait: Duration,
-    ) -> anyhow::Result<Option<RemoteNodeResponse>> {
-        self.wait_response_impl(request_id, max_wait).await
+    ) -> Result<Option<RemoteNodeResponse>, RemotePossessionBusError> {
+        self.wait_response_impl(request_id, max_wait)
+            .await
+            .map_err(Into::into)
     }
 }

@@ -1,3 +1,5 @@
+//! `analyzers::service::search::symbol` owns Wendao service search symbol behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -31,7 +33,7 @@ pub fn build_symbol_search(
         ranked_symbol_matches(query.query.as_str(), &analysis.symbols, query.limit.max(1)),
     )
 }
-
+/// `build_symbol_search_with_artifacts` public function boundary for Wendao.
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 pub fn build_symbol_search_with_artifacts(
@@ -72,10 +74,13 @@ fn symbol_search_result_from_selected(
             let symbol = candidate.item;
             let audit_status = symbol.audit_status.clone();
             let verification_state = symbol.verification_state.clone().or_else(|| {
-                audit_status.as_deref().map(|status| match status {
-                    "verified" | "approved" => "verified".to_string(),
-                    _ => "unverified".to_string(),
-                })
+                audit_status
+                    .as_ref()
+                    .map(|status| match status.as_str() {
+                        "verified" | "approved" => "verified".to_string(),
+                        _ => "unverified".to_string(),
+                    })
+                    .map(Into::into)
             });
             let symbol_id = symbol.symbol_id.clone();
             let symbol_path = symbol.path.clone();
@@ -99,8 +104,8 @@ fn symbol_search_result_from_selected(
                 implicit_backlinks,
                 implicit_backlink_items,
                 projection_page_ids: projection_pages_for(symbol_id.as_str(), &projection_lookup),
-                audit_status,
-                verification_state,
+                audit_status: audit_status.as_ref().map(ToString::to_string),
+                verification_state: verification_state.as_ref().map(ToString::to_string),
             }
         })
         .collect::<Vec<_>>();

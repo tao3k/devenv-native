@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, PdfOcrShardResult};
 
-pub(super) fn order_ocr_results_by_inputs(
+pub(crate) fn order_ocr_results_by_inputs(
     inputs: &[PdfOcrShardInput],
     results: Vec<PdfOcrShardResult>,
 ) -> Result<Vec<PdfOcrShardResult>, String> {
@@ -14,43 +14,68 @@ pub(super) fn order_ocr_results_by_inputs(
         ));
     }
 
-    let mut input_shards = HashSet::new();
-    for input in inputs {
-        if !input_shards.insert(input.shard_element_id.as_str()) {
-            return Err(format!(
-                "duplicate OCR shard input id `{}`",
-                input.shard_element_id
-            ));
-        }
-    }
-
-    let mut results_by_shard = HashMap::with_capacity(results.len());
-    for result in results {
-        let shard_id = result.shard_element_id.clone();
-        if results_by_shard.insert(shard_id.clone(), result).is_some() {
-            return Err(format!("duplicate OCR shard result id `{shard_id}`"));
-        }
-    }
-
-    let mut ordered = Vec::with_capacity(inputs.len());
-    for input in inputs {
-        let result = results_by_shard
-            .remove(input.shard_element_id.as_str())
-            .ok_or_else(|| {
-                format!(
-                    "OCR worker did not return shard id `{}`",
-                    input.shard_element_id
-                )
-            })?;
-        validate_ocr_result_matches_input(input, &result)?;
-        ordered.push(result);
-    }
+    validate_unique_input_shards(inputs)?;
+    let mut results_by_shard = results_by_shard(results)?;
+    let ordered = ordered_results_for_inputs(inputs, &mut results_by_shard)?;
 
     if let Some(unknown) = results_by_shard.keys().next() {
         return Err(format!("OCR worker returned unknown shard id `{unknown}`"));
     }
 
     Ok(ordered)
+}
+
+fn validate_unique_input_shards(inputs: &[PdfOcrShardInput]) -> Result<(), String> {
+    inputs
+        .iter()
+        .try_fold(HashSet::new(), |mut input_shards, input| {
+            if input_shards.insert(input.shard_element_id.as_str()) {
+                Ok(input_shards)
+            } else {
+                Err(format!(
+                    "duplicate OCR shard input id `{}`",
+                    input.shard_element_id
+                ))
+            }
+        })
+        .map(|_| ())
+}
+
+fn results_by_shard(
+    results: Vec<PdfOcrShardResult>,
+) -> Result<HashMap<String, PdfOcrShardResult>, String> {
+    results.into_iter().try_fold(
+        HashMap::new(),
+        |mut results_by_shard: HashMap<String, PdfOcrShardResult>, result| {
+            let shard_id = result.shard_element_id.clone();
+            if results_by_shard.insert(shard_id.clone(), result).is_none() {
+                Ok(results_by_shard)
+            } else {
+                Err(format!("duplicate OCR shard result id `{shard_id}`"))
+            }
+        },
+    )
+}
+
+fn ordered_results_for_inputs(
+    inputs: &[PdfOcrShardInput],
+    results_by_shard: &mut HashMap<String, PdfOcrShardResult>,
+) -> Result<Vec<PdfOcrShardResult>, String> {
+    inputs
+        .iter()
+        .map(|input| {
+            let result = results_by_shard
+                .remove(input.shard_element_id.as_str())
+                .ok_or_else(|| {
+                    format!(
+                        "OCR worker did not return shard id `{}`",
+                        input.shard_element_id
+                    )
+                })?;
+            validate_ocr_result_matches_input(input, &result)?;
+            Ok(result)
+        })
+        .collect()
 }
 
 pub(super) fn validate_ocr_result_matches_input(

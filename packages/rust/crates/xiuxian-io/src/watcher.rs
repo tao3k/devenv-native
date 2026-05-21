@@ -3,15 +3,19 @@
 //! Uses `notify` crate for cross-platform file system monitoring.
 //! Publishes file events to the global `xiuxian-event` `EventBus` for reactive architecture.
 
+use std::collections::HashMap;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use globset::{Glob, GlobSetBuilder};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
+use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc;
 
 #[cfg(feature = "notify")]
 use xiuxian_event::{GLOBAL_BUS, OmniEvent, topics};
+
+use crate::error::Result;
 
 /// Configuration for file watcher.
 #[derive(Debug, Clone)]
@@ -45,35 +49,42 @@ impl Default for WatcherConfig {
     }
 }
 
+/// Path evidence shared by watcher events.
+#[derive(Debug, Clone)]
+pub struct FileEventPath {
+    /// Path to the file or directory.
+    pub path: String,
+}
+
+/// Path and directory evidence shared by create/delete events.
+#[derive(Debug, Clone)]
+pub struct FileEventPathKind {
+    /// Path to the file or directory.
+    pub path: String,
+    /// Whether the path is a directory.
+    pub is_dir: bool,
+}
+
+/// Watcher backend error event.
+#[derive(Debug, Clone)]
+pub struct FileEventError {
+    /// Path associated with the error when available.
+    pub path: String,
+    /// Error message.
+    pub error: String,
+}
+
 /// File system event types matching `notify` crate.
 #[derive(Debug, Clone)]
 pub enum FileEvent {
     /// File was created.
-    Created {
-        /// Path to the created file or directory.
-        path: String,
-        /// Whether the path is a directory.
-        is_dir: bool,
-    },
+    Created(FileEventPathKind),
     /// File was modified.
-    Modified {
-        /// Path to the modified file.
-        path: String,
-    },
+    Modified(FileEventPath),
     /// File was deleted.
-    Deleted {
-        /// Path to the deleted file or directory.
-        path: String,
-        /// Whether the path is a directory.
-        is_dir: bool,
-    },
+    Deleted(FileEventPathKind),
     /// Error occurred while processing watcher events.
-    Error {
-        /// Path associated with the error when available.
-        path: String,
-        /// Error message.
-        error: String,
-    },
+    Error(FileEventError),
 }
 
 /// Result from file watcher
@@ -168,134 +179,51 @@ fn matches_patterns(path: &Path, patterns: &[String], exclude: &[String]) -> boo
 pub async fn start_file_watcher<F>(
     config: WatcherConfig,
     callback: Option<F>,
-) -> Result<FileWatcherHandle, Box<dyn std::error::Error>>
+) -> Result<FileWatcherHandle>
 where
     F: Fn(WatcherResult) + Send + 'static,
 {
-    use std::collections::HashMap;
-    use std::time::Instant;
-    use tokio::sync::Mutex as TokioMutex;
-
     let (tx, mut rx) = mpsc::channel(1);
-
-    // Debounce map - using tokio's async Mutex
     let debounce_map = std::sync::Arc::new(TokioMutex::new(HashMap::new()));
     let debounce_duration = Duration::from_millis(config.debounce_ms);
-
-    // Create watcher
     let (watcher_tx, mut watcher_rx) = mpsc::channel(100);
+    let mut watcher = build_notify_watcher(watcher_tx)?;
+    watch_configured_paths(&mut watcher, &config)?;
 
-    let mut watcher = RecommendedWatcher::new(
-        move |result: Result<Event, notify::Error>| {
-            let _ = watcher_tx.blocking_send(result);
-        },
-        Config::default().with_poll_interval(Duration::from_millis(50)),
-    )?;
-
-    // Add paths to watch
-    for path in &config.paths {
-        watcher.watch(
-            Path::new(path),
-            if config.recursive {
-                RecursiveMode::Recursive
-            } else {
-                RecursiveMode::NonRecursive
-            },
-        )?;
-    }
-
-    // Clone config for the async task
     let patterns = config.patterns.clone();
     let exclude = config.exclude.clone();
     let cb = callback;
 
-    // Spawn watcher task
     let _task = tokio::spawn(async move {
-        // Keep watcher alive by moving it into this closure
         let _watcher = watcher;
-
         loop {
             tokio::select! {
                 _ = rx.recv() => {
-                    // Stop signal received
                     break;
                 }
                 result = watcher_rx.recv() => {
                     match result {
                         Some(Ok(event)) => {
-                            // Get first path
-                            let Some(path) = event.paths.first() else {
-                                continue;
-                            };
-
-                            // Filter by patterns
-                            if !matches_patterns(path, &patterns, &exclude) {
-                                continue;
-                            }
-
-                            // Check debounce - ONLY for Modify events
-                            // Create and Remove should always pass through to avoid missing
-                            // "Create then Write" sequences (common in editors/macOS)
-                            let path_str = path.to_string_lossy().to_string();
-                            let should_debounce = matches!(event.kind, notify::EventKind::Modify(_));
-
-                            if should_debounce {
-                                let mut debounce = debounce_map.lock().await;
-                                let now = Instant::now();
-                                if let Some(last) = debounce.get(&path_str)
-                                    && now.duration_since(*last) < debounce_duration
-                                {
-                                    continue; // Skip debounced event
-                                }
-                                debounce.insert(path_str.clone(), now);
-                            }
-
-                            // Handle macOS edge case: check if file exists for Create/Modify events
-                            // If file doesn't exist, treat it as DELETED
-                            let (topic, final_path_str) = event_to_topic_and_path(event.kind, path);
-
-                            // Convert to FileEvent - use final_path_str and topic to determine type
-                            let file_event = match topic {
-                                topics::FILE_DELETED => FileEvent::Deleted {
-                                    path: final_path_str.clone(),
-                                    is_dir: path.is_dir(),
-                                },
-                                topics::FILE_CREATED => FileEvent::Created {
-                                    path: final_path_str.clone(),
-                                    is_dir: path.is_dir(),
-                                },
-                                _ => FileEvent::Modified { path: final_path_str.clone() },
-                            };
-
-                            // Create event payload and publish to global bus
-                            let payload = serde_json::json!({
-                                "path": final_path_str,
-                                "is_dir": path.is_dir(),
-                                "event_type": format!("{:?}", event.kind),
-                                "resolved_type": topic,
-                            });
-
-                            let bus_event = OmniEvent::new("watcher", topic, payload);
-
-                            // Publish to global bus
-                            let _ = GLOBAL_BUS.publish(bus_event.clone());
-
-                            // Call callback if provided
-                            if let Some(ref cb) = cb {
-                                cb((file_event, Some(bus_event)));
+                            let processed = process_notify_event(
+                                event,
+                                &patterns,
+                                &exclude,
+                                &debounce_map,
+                                debounce_duration,
+                            ).await;
+                            if let (Some(result), Some(cb)) = (processed, cb.as_ref()) {
+                                cb(result);
                             }
                         }
                         Some(Err(e)) => {
-                            // Error from watcher
                             if let Some(ref cb) = cb {
-                                cb((FileEvent::Error {
+                                cb((FileEvent::Error(FileEventError {
                                     path: String::new(),
                                     error: e.to_string(),
-                                }, None));
+                                }), None));
                             }
                         }
                         None => {
-                            // Channel closed
                             break;
                         }
                     }
@@ -313,14 +241,120 @@ where
 ///
 /// Returns an error if the watcher cannot be created for `path`.
 #[cfg(feature = "notify")]
-pub async fn watch_path<P: AsRef<Path>>(
-    path: P,
-) -> Result<FileWatcherHandle, Box<dyn std::error::Error>> {
+pub async fn watch_path<P: AsRef<Path>>(path: P) -> Result<FileWatcherHandle> {
     let config = WatcherConfig {
         paths: vec![path.as_ref().to_string_lossy().to_string()],
         ..WatcherConfig::default()
     };
     start_file_watcher::<fn(WatcherResult)>(config, None).await
+}
+
+#[cfg(feature = "notify")]
+fn build_notify_watcher(
+    watcher_tx: mpsc::Sender<std::result::Result<Event, notify::Error>>,
+) -> Result<RecommendedWatcher> {
+    RecommendedWatcher::new(
+        move |result| {
+            let _ = watcher_tx.blocking_send(result);
+        },
+        Config::default().with_poll_interval(Duration::from_millis(50)),
+    )
+    .map_err(Into::into)
+}
+
+#[cfg(feature = "notify")]
+fn watch_configured_paths(watcher: &mut RecommendedWatcher, config: &WatcherConfig) -> Result<()> {
+    let mode = watch_recursive_mode(config.recursive);
+    for path in &config.paths {
+        watcher.watch(Path::new(path), mode)?;
+    }
+    Ok(())
+}
+
+#[cfg(feature = "notify")]
+fn watch_recursive_mode(recursive: bool) -> RecursiveMode {
+    if recursive {
+        RecursiveMode::Recursive
+    } else {
+        RecursiveMode::NonRecursive
+    }
+}
+
+#[cfg(feature = "notify")]
+async fn process_notify_event(
+    event: Event,
+    patterns: &[String],
+    exclude: &[String],
+    debounce_map: &TokioMutex<HashMap<String, Instant>>,
+    debounce_duration: Duration,
+) -> Option<WatcherResult> {
+    let path = event.paths.first()?;
+    if !matches_patterns(path, patterns, exclude) {
+        return None;
+    }
+    if debounce_rejects_event(&event, path, debounce_map, debounce_duration).await {
+        return None;
+    }
+
+    let (topic, final_path_str) = event_to_topic_and_path(event.kind, path);
+    let file_event = file_event_from_topic(topic, &final_path_str, path);
+    let bus_event = OmniEvent::new(
+        "watcher",
+        topic,
+        watcher_payload(&final_path_str, path.is_dir(), topic, &event),
+    );
+    let _ = GLOBAL_BUS.publish(bus_event.clone());
+    Some((file_event, Some(bus_event)))
+}
+
+#[cfg(feature = "notify")]
+async fn debounce_rejects_event(
+    event: &Event,
+    path: &Path,
+    debounce_map: &TokioMutex<HashMap<String, Instant>>,
+    debounce_duration: Duration,
+) -> bool {
+    if !matches!(event.kind, notify::EventKind::Modify(_)) {
+        return false;
+    }
+
+    let path_str = path.to_string_lossy().to_string();
+    let mut debounce = debounce_map.lock().await;
+    let now = Instant::now();
+    if let Some(last) = debounce.get(&path_str)
+        && now.duration_since(*last) < debounce_duration
+    {
+        return true;
+    }
+    debounce.insert(path_str, now);
+    false
+}
+
+#[cfg(feature = "notify")]
+fn file_event_from_topic(topic: &str, path: &str, source_path: &Path) -> FileEvent {
+    match topic {
+        topics::FILE_DELETED => FileEvent::Deleted(FileEventPathKind {
+            path: path.to_string(),
+            is_dir: source_path.is_dir(),
+        }),
+        topics::FILE_CREATED => FileEvent::Created(FileEventPathKind {
+            path: path.to_string(),
+            is_dir: source_path.is_dir(),
+        }),
+        _ => FileEvent::Modified(FileEventPath {
+            path: path.to_string(),
+        }),
+    }
+}
+
+#[cfg(feature = "notify")]
+fn watcher_payload(path: &str, is_dir: bool, topic: &str, event: &Event) -> serde_json::Value {
+    serde_json::json!({
+        "path": path,
+        "is_dir": is_dir,
+        "event_type": format!("{:?}", event.kind),
+        "resolved_type": topic,
+    })
 }
 
 #[cfg(all(test, feature = "notify"))]

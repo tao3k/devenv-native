@@ -13,6 +13,8 @@ use xiuxian_wendao_runtime::{
     },
 };
 
+use crate::{JuliaContractEnabled, JuliaContractId, JuliaContractSecondsU64};
+
 use super::profile::{MEMORY_JULIA_COMPUTE_FAMILY_ID, MemoryJuliaComputeProfile};
 
 /// Response column carrying the capability family id.
@@ -59,13 +61,13 @@ pub struct MemoryJuliaComputeManifestRow {
     /// Stable capability family id.
     pub family: String,
     /// Stable capability id for the staged profile.
-    pub capability_id: String,
+    pub capability_id: JuliaContractId,
     /// Stable profile id.
-    pub profile_id: String,
+    pub profile_id: JuliaContractId,
     /// Stable request schema id for semantic versioning.
-    pub request_schema_id: String,
+    pub request_schema_id: JuliaContractId,
     /// Stable response schema id for semantic versioning.
-    pub response_schema_id: String,
+    pub response_schema_id: JuliaContractId,
     /// Normalized Arrow Flight route.
     pub route: String,
     /// Optional health-check route.
@@ -73,11 +75,11 @@ pub struct MemoryJuliaComputeManifestRow {
     /// Physical transport schema version.
     pub schema_version: String,
     /// Optional timeout in seconds.
-    pub timeout_secs: Option<u64>,
+    pub timeout_secs: Option<JuliaContractSecondsU64>,
     /// Optional scenario pack hint.
     pub scenario_pack: Option<String>,
     /// Whether the runtime currently enables this profile.
-    pub enabled: bool,
+    pub enabled: JuliaContractEnabled,
 }
 
 /// Project one manifest row per staged memory-family profile from runtime config.
@@ -91,16 +93,16 @@ pub fn build_memory_julia_compute_manifest_rows(
             let contract = profile.contract();
             MemoryJuliaComputeManifestRow {
                 family: contract.family.to_string(),
-                capability_id: contract.capability_id.to_string(),
-                profile_id: contract.profile_id.to_string(),
-                request_schema_id: contract.request_schema_id.to_string(),
-                response_schema_id: contract.response_schema_id.to_string(),
+                capability_id: contract.capability_id.into(),
+                profile_id: contract.profile_id.into(),
+                request_schema_id: contract.request_schema_id.into(),
+                response_schema_id: contract.response_schema_id.into(),
                 route: route_for_profile(runtime, *profile).to_string(),
                 health_route: runtime.health_route.clone(),
                 schema_version: runtime.schema_version.clone(),
-                timeout_secs: Some(runtime.timeout_secs),
+                timeout_secs: Some(runtime.timeout_secs.value().into()),
                 scenario_pack: runtime.scenario_pack.clone(),
-                enabled: runtime.enabled,
+                enabled: runtime.enabled.into(),
             }
         })
         .collect()
@@ -221,7 +223,9 @@ pub fn build_memory_julia_compute_manifest_response_batch(
                     .collect::<Vec<_>>(),
             )),
             Arc::new(UInt64Array::from(
-                rows.iter().map(|row| row.timeout_secs).collect::<Vec<_>>(),
+                rows.iter()
+                    .map(|row| row.timeout_secs.map(JuliaContractSecondsU64::value))
+                    .collect::<Vec<_>>(),
             )),
             Arc::new(StringArray::from(
                 rows.iter()
@@ -229,7 +233,9 @@ pub fn build_memory_julia_compute_manifest_response_batch(
                     .collect::<Vec<_>>(),
             )),
             Arc::new(BooleanArray::from(
-                rows.iter().map(|row| row.enabled).collect::<Vec<_>>(),
+                rows.iter()
+                    .map(|row| row.enabled.value())
+                    .collect::<Vec<_>>(),
             )),
         ],
     )
@@ -370,20 +376,20 @@ pub fn decode_memory_julia_compute_manifest_rows(
         for row in 0..batch.num_rows() {
             rows.push(MemoryJuliaComputeManifestRow {
                 family: family.value(row).to_string(),
-                capability_id: capability_id.value(row).to_string(),
-                profile_id: profile_id.value(row).to_string(),
-                request_schema_id: request_schema_id.value(row).to_string(),
-                response_schema_id: response_schema_id.value(row).to_string(),
+                capability_id: capability_id.value(row).into(),
+                profile_id: profile_id.value(row).into(),
+                request_schema_id: request_schema_id.value(row).into(),
+                response_schema_id: response_schema_id.value(row).into(),
                 route: route.value(row).to_string(),
                 health_route: optional_string_value(health_route, row)
                     .map_err(|error| manifest_contract_error(&error))?
                     .map(str::to_string),
                 schema_version: schema_version.value(row).to_string(),
-                timeout_secs: optional_u64_value(timeout_secs, row),
+                timeout_secs: optional_u64_value(timeout_secs, row).map(Into::into),
                 scenario_pack: optional_string_value(scenario_pack, row)
                     .map_err(|error| manifest_contract_error(&error))?
                     .map(str::to_string),
-                enabled: enabled.value(row),
+                enabled: enabled.value(row).into(),
             });
         }
     }

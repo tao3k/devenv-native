@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::resolve::related` owns Wendao runtime config resolve related behavior.
+
 use crate::link_graph::runtime_config::models::LinkGraphRelatedRuntimeConfig;
 use crate::link_graph::runtime_config::settings::merged_wendao_settings;
 use xiuxian_wendao_runtime::config::resolve_link_graph_related_runtime_with_settings;

@@ -5,6 +5,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use futures::TryStreamExt;
+use lance::dataset::scanner::{DatasetRecordBatchStream, Scanner};
 use lance::dataset::{MergeInsertBuilder, WhenMatched, WhenNotMatched, WriteParams};
 use lance::deps::arrow_array::{RecordBatch, RecordBatchIterator};
 use lance::deps::arrow_schema::{ArrowError, Schema};
@@ -69,6 +70,93 @@ async fn append_batches(
         )
         .await
         .map_err(VectorStoreError::LanceDB)
+}
+
+fn configure_columnar_scanner<E>(
+    scanner: &mut Scanner,
+    options: &ColumnarScanOptions,
+    limit: Option<usize>,
+) -> Result<(), E>
+where
+    E: From<VectorStoreError>,
+{
+    configure_column_projection(scanner, options)?;
+    configure_column_filter(scanner, options)?;
+    configure_column_readahead(scanner, options);
+    configure_column_limit(scanner, limit)
+}
+
+fn configure_column_projection<E>(
+    scanner: &mut Scanner,
+    options: &ColumnarScanOptions,
+) -> Result<(), E>
+where
+    E: From<VectorStoreError>,
+{
+    if options.projected_columns.is_empty() {
+        return Ok(());
+    }
+    let columns = options
+        .projected_columns
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    scanner
+        .project(&columns)
+        .map_err(VectorStoreError::from)
+        .map_err(E::from)?;
+    Ok(())
+}
+
+fn configure_column_filter<E>(scanner: &mut Scanner, options: &ColumnarScanOptions) -> Result<(), E>
+where
+    E: From<VectorStoreError>,
+{
+    let Some(filter) = options
+        .where_filter
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return Ok(());
+    };
+    scanner
+        .filter(filter)
+        .map_err(VectorStoreError::from)
+        .map_err(E::from)?;
+    Ok(())
+}
+
+fn configure_column_readahead(scanner: &mut Scanner, options: &ColumnarScanOptions) {
+    if let Some(batch_size) = options.batch_size {
+        scanner.batch_size(batch_size);
+    }
+    if let Some(fragment_readahead) = options.fragment_readahead {
+        scanner.fragment_readahead(fragment_readahead);
+    }
+    if let Some(batch_readahead) = options.batch_readahead {
+        scanner.batch_readahead(batch_readahead);
+    }
+}
+
+fn configure_column_limit<E>(scanner: &mut Scanner, limit: Option<usize>) -> Result<(), E>
+where
+    E: From<VectorStoreError>,
+{
+    let Some(limit) = limit else {
+        return Ok(());
+    };
+    scanner
+        .limit(Some(i64::try_from(limit).unwrap_or(i64::MAX)), None)
+        .map_err(VectorStoreError::from)
+        .map_err(E::from)?;
+    Ok(())
+}
+
+fn apply_remaining_limit(remaining_limit: &mut Option<usize>, row_count: usize) {
+    if let Some(limit) = remaining_limit.as_mut() {
+        *limit = limit.saturating_sub(row_count);
+    }
 }
 
 fn copy_dir_recursive(source: &Path, target: &Path) -> Result<(), VectorStoreError> {
@@ -304,43 +392,7 @@ impl VectorStore {
     {
         let dataset = self.open_table_or_err(table_name).await.map_err(E::from)?;
         let mut scanner = dataset.scan();
-        if !options.projected_columns.is_empty() {
-            let columns = options
-                .projected_columns
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>();
-            scanner
-                .project(&columns)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
-        if let Some(filter) = options
-            .where_filter
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-        {
-            scanner
-                .filter(filter)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
-        if let Some(batch_size) = options.batch_size {
-            scanner.batch_size(batch_size);
-        }
-        if let Some(fragment_readahead) = options.fragment_readahead {
-            scanner.fragment_readahead(fragment_readahead);
-        }
-        if let Some(batch_readahead) = options.batch_readahead {
-            scanner.batch_readahead(batch_readahead);
-        }
-        if let Some(limit) = options.limit {
-            scanner
-                .limit(Some(i64::try_from(limit).unwrap_or(i64::MAX)), None)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
+        configure_columnar_scanner(&mut scanner, &options, options.limit)?;
 
         let mut stream = scanner
             .try_into_stream()
@@ -356,6 +408,25 @@ impl VectorStore {
             on_batch(batch)?;
         }
         Ok(())
+    }
+
+    async fn columnar_stream_for_table<E>(
+        &self,
+        table_name: &str,
+        options: &ColumnarScanOptions,
+        limit: Option<usize>,
+    ) -> Result<DatasetRecordBatchStream, E>
+    where
+        E: From<VectorStoreError>,
+    {
+        let dataset = self.open_table_or_err(table_name).await.map_err(E::from)?;
+        let mut scanner = dataset.scan();
+        configure_columnar_scanner(&mut scanner, options, limit)?;
+        scanner
+            .try_into_stream()
+            .await
+            .map_err(VectorStoreError::from)
+            .map_err(E::from)
     }
 
     /// Scan multiple columnar tables sequentially and process Arrow batches through one callback.
@@ -382,66 +453,42 @@ impl VectorStore {
             if remaining_limit == Some(0) {
                 break;
             }
-            let table_name = table_name.as_ref();
-            let dataset = self.open_table_or_err(table_name).await.map_err(E::from)?;
-            let mut scanner = dataset.scan();
-            if !options.projected_columns.is_empty() {
-                let columns = options
-                    .projected_columns
-                    .iter()
-                    .map(String::as_str)
-                    .collect::<Vec<_>>();
-                scanner
-                    .project(&columns)
-                    .map_err(VectorStoreError::from)
-                    .map_err(E::from)?;
-            }
-            if let Some(filter) = options
-                .where_filter
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-            {
-                scanner
-                    .filter(filter)
-                    .map_err(VectorStoreError::from)
-                    .map_err(E::from)?;
-            }
-            if let Some(batch_size) = options.batch_size {
-                scanner.batch_size(batch_size);
-            }
-            if let Some(fragment_readahead) = options.fragment_readahead {
-                scanner.fragment_readahead(fragment_readahead);
-            }
-            if let Some(batch_readahead) = options.batch_readahead {
-                scanner.batch_readahead(batch_readahead);
-            }
-            if let Some(limit) = remaining_limit {
-                scanner
-                    .limit(Some(i64::try_from(limit).unwrap_or(i64::MAX)), None)
-                    .map_err(VectorStoreError::from)
-                    .map_err(E::from)?;
-            }
+            self.scan_record_batches_streaming_table_with_limit(
+                table_name.as_ref(),
+                &options,
+                &mut remaining_limit,
+                &mut on_batch,
+            )
+            .await?;
+        }
+        Ok(())
+    }
 
-            let mut stream = scanner
-                .try_into_stream()
-                .await
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-            while let Some(batch) = stream
-                .try_next()
-                .await
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?
-            {
-                let row_count = batch.num_rows();
-                on_batch(table_name, batch)?;
-                if let Some(limit) = remaining_limit.as_mut() {
-                    *limit = limit.saturating_sub(row_count);
-                    if *limit == 0 {
-                        return Ok(());
-                    }
-                }
+    async fn scan_record_batches_streaming_table_with_limit<E, F>(
+        &self,
+        table_name: &str,
+        options: &ColumnarScanOptions,
+        remaining_limit: &mut Option<usize>,
+        on_batch: &mut F,
+    ) -> Result<(), E>
+    where
+        E: From<VectorStoreError>,
+        F: FnMut(&str, RecordBatch) -> Result<(), E>,
+    {
+        let mut stream = self
+            .columnar_stream_for_table(table_name, options, *remaining_limit)
+            .await?;
+        while let Some(batch) = stream
+            .try_next()
+            .await
+            .map_err(VectorStoreError::from)
+            .map_err(E::from)?
+        {
+            let row_count = batch.num_rows();
+            on_batch(table_name, batch)?;
+            apply_remaining_limit(remaining_limit, row_count);
+            if *remaining_limit == Some(0) {
+                return Ok(());
             }
         }
         Ok(())
@@ -466,43 +513,7 @@ impl VectorStore {
     {
         let dataset = self.open_table_or_err(table_name).await.map_err(E::from)?;
         let mut scanner = dataset.scan();
-        if !options.projected_columns.is_empty() {
-            let columns = options
-                .projected_columns
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>();
-            scanner
-                .project(&columns)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
-        if let Some(filter) = options
-            .where_filter
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-        {
-            scanner
-                .filter(filter)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
-        if let Some(batch_size) = options.batch_size {
-            scanner.batch_size(batch_size);
-        }
-        if let Some(fragment_readahead) = options.fragment_readahead {
-            scanner.fragment_readahead(fragment_readahead);
-        }
-        if let Some(batch_readahead) = options.batch_readahead {
-            scanner.batch_readahead(batch_readahead);
-        }
-        if let Some(limit) = options.limit {
-            scanner
-                .limit(Some(i64::try_from(limit).unwrap_or(i64::MAX)), None)
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-        }
+        configure_columnar_scanner(&mut scanner, &options, options.limit)?;
 
         let mut stream = scanner
             .try_into_stream()
@@ -546,66 +557,43 @@ impl VectorStore {
             if remaining_limit == Some(0) {
                 break;
             }
-            let table_name = table_name.as_ref();
-            let dataset = self.open_table_or_err(table_name).await.map_err(E::from)?;
-            let mut scanner = dataset.scan();
-            if !options.projected_columns.is_empty() {
-                let columns = options
-                    .projected_columns
-                    .iter()
-                    .map(String::as_str)
-                    .collect::<Vec<_>>();
-                scanner
-                    .project(&columns)
-                    .map_err(VectorStoreError::from)
-                    .map_err(E::from)?;
-            }
-            if let Some(filter) = options
-                .where_filter
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-            {
-                scanner
-                    .filter(filter)
-                    .map_err(VectorStoreError::from)
-                    .map_err(E::from)?;
-            }
-            if let Some(batch_size) = options.batch_size {
-                scanner.batch_size(batch_size);
-            }
-            if let Some(fragment_readahead) = options.fragment_readahead {
-                scanner.fragment_readahead(fragment_readahead);
-            }
-            if let Some(batch_readahead) = options.batch_readahead {
-                scanner.batch_readahead(batch_readahead);
-            }
-            if let Some(limit) = remaining_limit {
-                scanner
-                    .limit(Some(i64::try_from(limit).unwrap_or(i64::MAX)), None)
-                    .map_err(VectorStoreError::from)
-                    .map_err(E::from)?;
-            }
+            self.scan_record_batches_streaming_table_with_limit_async(
+                table_name.as_ref(),
+                &options,
+                &mut remaining_limit,
+                &mut on_batch,
+            )
+            .await?;
+        }
+        Ok(())
+    }
 
-            let mut stream = scanner
-                .try_into_stream()
-                .await
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?;
-            while let Some(batch) = stream
-                .try_next()
-                .await
-                .map_err(VectorStoreError::from)
-                .map_err(E::from)?
-            {
-                let row_count = batch.num_rows();
-                on_batch(table_name, batch).await?;
-                if let Some(limit) = remaining_limit.as_mut() {
-                    *limit = limit.saturating_sub(row_count);
-                    if *limit == 0 {
-                        return Ok(());
-                    }
-                }
+    async fn scan_record_batches_streaming_table_with_limit_async<E, F, Fut>(
+        &self,
+        table_name: &str,
+        options: &ColumnarScanOptions,
+        remaining_limit: &mut Option<usize>,
+        on_batch: &mut F,
+    ) -> Result<(), E>
+    where
+        E: From<VectorStoreError>,
+        F: FnMut(&str, RecordBatch) -> Fut,
+        Fut: Future<Output = Result<(), E>>,
+    {
+        let mut stream = self
+            .columnar_stream_for_table(table_name, options, *remaining_limit)
+            .await?;
+        while let Some(batch) = stream
+            .try_next()
+            .await
+            .map_err(VectorStoreError::from)
+            .map_err(E::from)?
+        {
+            let row_count = batch.num_rows();
+            on_batch(table_name, batch).await?;
+            apply_remaining_limit(remaining_limit, row_count);
+            if *remaining_limit == Some(0) {
+                return Ok(());
             }
         }
         Ok(())

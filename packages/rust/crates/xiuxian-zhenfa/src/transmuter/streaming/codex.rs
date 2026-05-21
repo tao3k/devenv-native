@@ -88,6 +88,76 @@ impl CodexStreamingParser {
     pub fn new() -> Self {
         Self::default()
     }
+
+    fn parse_response_events(&mut self, response: CodexResponse) -> Vec<ZhenfaStreamingEvent> {
+        if let Some(usage) = response.usage {
+            self.final_usage = Some(TokenUsage {
+                input: usage.prompt,
+                output: usage.completion,
+                total: usage.total,
+            });
+        }
+        response
+            .choices
+            .iter()
+            .flat_map(|choice| self.parse_choice_events(choice))
+            .collect()
+    }
+
+    fn parse_choice_events(&mut self, choice: &Choice) -> Vec<ZhenfaStreamingEvent> {
+        if let Some(reason) = &choice.finish_reason {
+            self.finish_reason = Some(reason.clone());
+        }
+
+        let mut events = Vec::new();
+        if let Some(delta) = &choice.delta {
+            self.apply_delta(delta, &mut events);
+        }
+        if let Some(message) = &choice.message {
+            self.apply_message(message, &mut events);
+        }
+        events
+    }
+
+    fn apply_delta(&mut self, delta: &Delta, events: &mut Vec<ZhenfaStreamingEvent>) {
+        if let Some(content) = &delta.content {
+            self.accumulated.push_str(content);
+            events.push(ZhenfaStreamingEvent::TextDelta(content.clone().into()));
+        }
+        if let Some(reasoning) = &delta.reasoning_content {
+            events.push(ZhenfaStreamingEvent::Thought(reasoning.clone().into()));
+        }
+        delta
+            .tool_calls
+            .iter()
+            .for_each(|tool_call| self.apply_tool_call_delta(tool_call));
+    }
+
+    fn apply_tool_call_delta(&mut self, tool_call: &ToolCallDelta) {
+        while self.tool_call_buffers.len() <= tool_call.index as usize {
+            self.tool_call_buffers.push((None, None, String::new()));
+        }
+
+        let buffer = &mut self.tool_call_buffers[tool_call.index as usize];
+        if let Some(id) = &tool_call.id {
+            buffer.0 = Some(id.clone());
+        }
+        if let Some(function) = &tool_call.function {
+            if let Some(name) = &function.name {
+                buffer.1 = Some(name.clone());
+            }
+            if let Some(args) = &function.arguments {
+                buffer.2.push_str(args);
+            }
+        }
+    }
+
+    fn apply_message(&mut self, message: &Message, events: &mut Vec<ZhenfaStreamingEvent>) {
+        if let Some(content) = &message.content {
+            self.accumulated.push_str(content);
+        }
+        events.extend(message.tool_calls.iter().map(complete_tool_call_event));
+    }
 }
 
 impl StreamingTransmuter for CodexStreamingParser {
@@ -119,78 +189,7 @@ impl StreamingTransmuter for CodexStreamingParser {
         let response: CodexResponse = serde_json::from_str(json_str)
             .map_err(|e| format!("Failed to parse Codex response: {e}"))?;
 
-        // Extract usage if present
-        if let Some(usage) = response.usage {
-            self.final_usage = Some(TokenUsage {
-                input: usage.prompt,
-                output: usage.completion,
-                total: usage.total,
-            });
-        }
-
-        let mut events = Vec::new();
-
-        // Process choices
-        for choice in response.choices {
-            if let Some(reason) = &choice.finish_reason {
-                self.finish_reason = Some(reason.clone());
-            }
-
-            if let Some(delta) = &choice.delta {
-                // Handle content
-                if let Some(content) = &delta.content {
-                    self.accumulated.push_str(content);
-                    events.push(ZhenfaStreamingEvent::TextDelta(content.clone().into()));
-                }
-
-                // Handle reasoning/thinking
-                if let Some(reasoning) = &delta.reasoning_content {
-                    events.push(ZhenfaStreamingEvent::Thought(reasoning.clone().into()));
-                }
-
-                // Handle tool calls
-                for tc in &delta.tool_calls {
-                    // Ensure buffer exists
-                    while self.tool_call_buffers.len() <= tc.index as usize {
-                        self.tool_call_buffers.push((None, None, String::new()));
-                    }
-
-                    let buffer = &mut self.tool_call_buffers[tc.index as usize];
-
-                    if let Some(id) = &tc.id {
-                        buffer.0 = Some(id.clone());
-                    }
-
-                    if let Some(func) = &tc.function {
-                        if let Some(name) = &func.name {
-                            buffer.1 = Some(name.clone());
-                        }
-                        if let Some(args) = &func.arguments {
-                            buffer.2.push_str(args);
-                        }
-                    }
-                }
-            }
-
-            // Handle complete message (non-streaming)
-            if let Some(message) = &choice.message {
-                if let Some(content) = &message.content {
-                    self.accumulated.push_str(content);
-                }
-
-                for tc in &message.tool_calls {
-                    let args: serde_json::Value = serde_json::from_str(&tc.function.arguments)
-                        .unwrap_or(serde_json::Value::Null);
-                    events.push(ZhenfaStreamingEvent::ToolCall {
-                        id: tc.id.clone().into(),
-                        name: tc.function.name.clone().into(),
-                        input: args,
-                    });
-                }
-            }
-        }
-
-        Ok(events)
+        Ok(self.parse_response_events(response))
     }
 
     fn finalize(&mut self) -> Result<Option<ZhenfaStreamingEvent>, String> {
@@ -235,5 +234,15 @@ impl StreamingTransmuter for CodexStreamingParser {
 
     fn provider_name(&self) -> &'static str {
         "codex"
+    }
+}
+
+fn complete_tool_call_event(tool_call: &ToolCall) -> ZhenfaStreamingEvent {
+    let input: serde_json::Value =
+        serde_json::from_str(&tool_call.function.arguments).unwrap_or(serde_json::Value::Null);
+    ZhenfaStreamingEvent::ToolCall {
+        id: tool_call.id.clone().into(),
+        name: tool_call.function.name.clone().into(),
+        input,
     }
 }

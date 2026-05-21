@@ -1,3 +1,5 @@
+//! `entity::query` owns Wendao entity query behavior.
+
 use super::{EntityType, RelationType};
 
 /// Search query for entities.

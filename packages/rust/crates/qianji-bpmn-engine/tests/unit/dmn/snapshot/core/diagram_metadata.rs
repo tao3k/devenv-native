@@ -57,7 +57,12 @@ fn dmn_snapshot_classifies_decision_service_documents() {
         Some("DecisionService_1")
     );
     assert_eq!(diagram.shapes[0].is_listed_input_data, None);
-    assert_eq!(diagram.shapes[0].is_collapsed, Some(false));
+    assert_eq!(
+        diagram.shapes[0]
+            .is_collapsed
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
+        Some(false)
+    );
     assert_label_bounds(
         diagram.shapes[0].label.as_ref(),
         Some("354"),
@@ -178,7 +183,12 @@ fn dmn_snapshot_preserves_versioned_listed_input_data_shape_metadata() {
         diagram.shapes[1].dmn_element_ref.as_deref(),
         Some("InputData_1")
     );
-    assert_eq!(diagram.shapes[1].is_listed_input_data, Some(true));
+    assert_eq!(
+        diagram.shapes[1]
+            .is_listed_input_data
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
+        Some(true)
+    );
     assert_shape_bounds(
         &diagram.shapes[1],
         Some("1"),
@@ -195,7 +205,12 @@ fn dmn_snapshot_preserves_versioned_listed_input_data_shape_metadata() {
         diagram.shapes[2].dmn_element_ref.as_deref(),
         Some("InputData_2")
     );
-    assert_eq!(diagram.shapes[2].is_listed_input_data, Some(true));
+    assert_eq!(
+        diagram.shapes[2]
+            .is_listed_input_data
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
+        Some(true)
+    );
     assert_shape_bounds(
         &diagram.shapes[2],
         Some("1"),
@@ -255,7 +270,12 @@ fn dmn_snapshot_preserves_versioned_direct_label_placeholders() {
         None
     );
     assert!(diagram.shapes[1].label.is_some());
-    assert_eq!(diagram.shapes[1].is_listed_input_data, Some(true));
+    assert_eq!(
+        diagram.shapes[1]
+            .is_listed_input_data
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
+        Some(true)
+    );
     assert_shape_bounds(
         &diagram.shapes[1],
         Some("1"),
@@ -278,7 +298,12 @@ fn dmn_snapshot_preserves_versioned_direct_label_placeholders() {
         None
     );
     assert!(diagram.shapes[2].label.is_some());
-    assert_eq!(diagram.shapes[2].is_listed_input_data, Some(true));
+    assert_eq!(
+        diagram.shapes[2]
+            .is_listed_input_data
+            .map(qianji_bpmn_engine::dmn_model_document::DmnSnapshotFlag::get),
+        Some(true)
+    );
     assert_shape_bounds(
         &diagram.shapes[2],
         Some("1"),

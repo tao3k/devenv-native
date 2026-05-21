@@ -39,7 +39,7 @@ def validate(payload: dict[str, Any]) -> None:
 
 
 def build_server_info(
-    name: str = "xiuxian-daochang",
+    name: str = "xiuxian-wendao",
     version: str = "2.0.0",
     protocol_version: str = "2024-11-05",
     message: str | None = None,

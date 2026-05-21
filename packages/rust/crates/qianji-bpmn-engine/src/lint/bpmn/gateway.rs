@@ -53,7 +53,7 @@ fn condition_expression_requires_conditional_gateway_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Sequence-flow condition requires a bounded conditional gateway source",
         format!(
@@ -99,7 +99,7 @@ fn default_flow_requires_multiple_outgoing_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Conditional gateway default flow requires branching",
         format!(
@@ -147,7 +147,7 @@ fn default_flow_requires_multiple_outgoing_issue(
 }
 
 fn invalid_default_flow_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Conditional gateway default flow reference is invalid",
         format!(
@@ -185,7 +185,7 @@ fn default_flow_must_not_have_condition_expression_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Default bounded conditional branch must stay unconditional",
         format!(
@@ -222,7 +222,7 @@ fn missing_condition_expression_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Non-default bounded conditional branches need conditions",
         format!(
@@ -280,7 +280,7 @@ fn unsupported_condition_expression_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Conditional gateway condition exceeds the bounded subset",
         format!(
@@ -367,7 +367,7 @@ fn no_matching_condition_or_default_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Conditional gateway can dead-end when no branch matches",
         format!(
@@ -414,7 +414,7 @@ fn unresolved_condition_variable_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Conditional gateway condition reads a missing or incompatible variable",
         format!(
@@ -463,7 +463,7 @@ fn structured_inclusive_gateway_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Inclusive gateway exceeds the structured bounded subset",
         format!(
@@ -500,7 +500,7 @@ fn generic_gateway_configuration_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Gateway configuration exceeds the bounded subset",
         format!(

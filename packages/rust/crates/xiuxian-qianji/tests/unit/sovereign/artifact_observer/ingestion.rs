@@ -23,7 +23,7 @@ impl WendaoIngestionSink for MockIngestionSink {
             .last_trace_id
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        *last = Some(trace.trace_id.clone());
+        *last = Some(trace.trace_id.as_str().to_string());
         Ok(format!("mock:{}", trace.trace_id))
     }
 }
@@ -33,7 +33,7 @@ async fn observer_ingest_artifact_success() {
     let observer = ArtifactObserver::default();
     let trace = CognitiveTraceRecord::new(
         "trace-ingest-1".to_string(),
-        Some("session-1".to_string()),
+        Some("session-1".into()),
         "AuditNode".to_string(),
         "Critique the agenda".to_string(),
     );

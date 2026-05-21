@@ -23,7 +23,7 @@ async fn build_code_search_response_returns_repo_entity_hits_from_search_plane()
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let analysis = sample_repo_analysis("valid");
@@ -90,7 +90,7 @@ async fn build_code_search_response_prefers_repo_entity_hits_before_repo_content
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let analysis = sample_repo_analysis("valid");
@@ -167,7 +167,7 @@ async fn repo_entity_search_hits_record_query_core_telemetry_into_search_plane_s
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let analysis = sample_repo_analysis("valid");

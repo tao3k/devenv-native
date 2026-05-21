@@ -1,3 +1,5 @@
+//! `analyzers::projection::tree_search` owns Wendao analyzers projection tree search behavior.
+
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{ProjectedPageIndexNode, ProjectionPageKind};
 use crate::analyzers::{
@@ -7,6 +9,7 @@ use crate::analyzers::{
 
 use super::markdown::build_projected_page_index_trees;
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Search projected page-index nodes across projected page trees.
 #[must_use]
 pub fn build_repo_projected_page_index_tree_search(
@@ -34,7 +37,7 @@ pub fn build_repo_projected_page_index_tree_search(
         hits: hits.into_iter().take(limit).map(|(_, hit)| hit).collect(),
     }
 }
-
+/// `scored_projected_page_index_node_hits` public function boundary for Wendao.
 #[must_use]
 pub fn scored_projected_page_index_node_hits(
     query: &str,

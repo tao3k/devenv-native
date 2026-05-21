@@ -1,16 +1,18 @@
 //! Public bpmn model api data contracts for BPMN/DMN engine integration.
 
+use super::types::{BpmnSnapshotFlag, BpmnSnapshotId};
+
 /// Snapshot of one BPMN `dataObject`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDataObjectSnapshot {
     /// Optional stable data-object identifier.
-    pub data_object_id: Option<String>,
+    pub data_object_id: Option<BpmnSnapshotId>,
     /// Optional human-readable data-object name.
     pub name: Option<String>,
     /// Optional BPMN item-subject reference.
     pub item_subject_ref: Option<String>,
     /// Optional BPMN collection marker.
-    pub is_collection: Option<bool>,
+    pub is_collection: Option<BpmnSnapshotFlag>,
     /// Optional direct `dataState` metadata.
     #[serde(default)]
     pub data_state: Option<BpmnDataStateSnapshot>,
@@ -20,7 +22,7 @@ pub struct BpmnDataObjectSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDataObjectReferenceSnapshot {
     /// Optional stable data-object-reference identifier.
-    pub data_object_reference_id: Option<String>,
+    pub data_object_reference_id: Option<BpmnSnapshotId>,
     /// Optional human-readable data-object-reference name.
     pub name: Option<String>,
     /// Optional referenced `dataObject` identifier.
@@ -37,7 +39,7 @@ pub struct BpmnDataObjectReferenceSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDataStoreSnapshot {
     /// Optional stable data-store identifier.
-    pub data_store_id: Option<String>,
+    pub data_store_id: Option<BpmnSnapshotId>,
     /// Optional human-readable data-store name.
     pub name: Option<String>,
     /// Optional BPMN item-subject reference.
@@ -45,7 +47,7 @@ pub struct BpmnDataStoreSnapshot {
     /// Optional BPMN capacity payload.
     pub capacity: Option<String>,
     /// Optional BPMN unlimited-capacity marker.
-    pub is_unlimited: Option<bool>,
+    pub is_unlimited: Option<BpmnSnapshotFlag>,
     /// Optional direct `dataState` metadata.
     #[serde(default)]
     pub data_state: Option<BpmnDataStateSnapshot>,
@@ -55,7 +57,7 @@ pub struct BpmnDataStoreSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDataStoreReferenceSnapshot {
     /// Optional stable data-store-reference identifier.
-    pub data_store_reference_id: Option<String>,
+    pub data_store_reference_id: Option<BpmnSnapshotId>,
     /// Optional human-readable data-store-reference name.
     pub name: Option<String>,
     /// Optional referenced `dataStore` identifier.
@@ -131,13 +133,13 @@ pub struct BpmnOutputSetSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDataInputOutputSnapshot {
     /// Optional stable data input/output identifier.
-    pub data_id: Option<String>,
+    pub data_id: Option<BpmnSnapshotId>,
     /// Optional human-readable input/output name.
     pub name: Option<String>,
     /// Optional BPMN item-subject reference.
     pub item_subject_ref: Option<String>,
     /// Optional BPMN collection marker.
-    pub is_collection: Option<bool>,
+    pub is_collection: Option<BpmnSnapshotFlag>,
     /// Optional direct `dataState` metadata.
     #[serde(default)]
     pub data_state: Option<BpmnDataStateSnapshot>,

@@ -7,6 +7,30 @@ use xiuxian_io::PrjDirs;
 
 use crate::spec::RepoSpec;
 
+/// Repository identifier accepted by managed cache path helpers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ManagedRepoId(String);
+
+impl ManagedRepoId {
+    /// Borrows the repository identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for ManagedRepoId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for ManagedRepoId {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
 fn substrate_root() -> PathBuf {
     // Keep the existing managed repository cache root stable during the crate
     // extraction slice so on-disk paths do not drift while ownership moves.
@@ -121,8 +145,10 @@ fn trim_git_suffix(segments: &mut [String]) {
 
 /// Sanitizes a repository identifier for filesystem usage.
 #[must_use]
-pub fn sanitize_repo_id(repo_id: &str) -> String {
+pub fn sanitize_repo_id(repo_id: impl Into<ManagedRepoId>) -> String {
+    let repo_id = repo_id.into();
     repo_id
+        .as_str()
         .chars()
         .map(|character| {
             if character.is_ascii_alphanumeric() || matches!(character, '-' | '_') {

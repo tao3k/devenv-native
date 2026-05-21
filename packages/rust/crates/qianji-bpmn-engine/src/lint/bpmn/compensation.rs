@@ -25,7 +25,7 @@ fn compensation_requires_transaction_shell_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_compensation_configuration",
         "Compensation is supported only inside a transaction shell",
         format!(
@@ -52,7 +52,7 @@ fn throw_compensation_end_event_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_compensation_configuration",
         "Throw compensation end events outside the bounded subset are rejected",
         format!(
@@ -82,7 +82,7 @@ fn throw_compensation_intermediate_event_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_compensation_configuration",
         "Throw compensation intermediate events outside the bounded subset are rejected",
         format!(
@@ -110,7 +110,7 @@ fn generic_compensation_configuration_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_compensation_configuration",
         "Compensation configuration exceeds the bounded slice",
         format!(

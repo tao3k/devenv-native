@@ -1,3 +1,6 @@
+//! Facade surface for `xiuxian-qianji`.
+
+#[cfg(feature = "duckdb")]
 use super::duckdb;
 
 use crate::BpmnOrchestrationError;
@@ -116,6 +119,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when the underlying checkpoint
     /// backend cannot load or decode the checkpoint.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn load(
         &self,
         instance_id: &str,
@@ -239,6 +243,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when the underlying checkpoint
     /// backend cannot delete the checkpoint state.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn delete(&self, instance_id: &str) -> Result<(), BpmnOrchestrationError> {
         match self {
             Self::Valkey { url } => delete_checkpoint(instance_id, url)
@@ -266,6 +271,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when the underlying backend cannot
     /// delete the checkpoint or when the checkpoint backend is not Valkey.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn delete_as_owner(
         &self,
         instance_id: &str,
@@ -289,6 +295,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when lease acquisition fails or when
     /// the checkpoint backend is not Valkey.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn try_acquire_lease(
         &self,
         instance_id: &str,
@@ -314,6 +321,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when lease renewal fails or when the
     /// checkpoint backend is not Valkey.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn renew_lease(
         &self,
         instance_id: &str,
@@ -339,6 +347,7 @@ impl QianjiBpmnCheckpointStore {
     ///
     /// Returns [`BpmnOrchestrationError`] when lease release fails or when the
     /// checkpoint backend is not Valkey.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn release_lease(
         &self,
         instance_id: &str,

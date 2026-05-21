@@ -313,7 +313,7 @@ fn eager_bootstrap_enqueues_imported_repo_intelligence_projects() {
 dirs = []
 url = "https://github.com/SciML/OrdinaryDiffEq.jl"
 refresh = "fetch"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 "#,
     )
     .unwrap_or_else(|error| panic!("write repo list: {error}"));
@@ -351,7 +351,7 @@ dirs = ["docs"]
             url: Some("https://github.com/SciML/OrdinaryDiffEq.jl".to_string()),
             git_ref: None,
             refresh: Some("fetch".to_string()),
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     );
     assert_eq!(

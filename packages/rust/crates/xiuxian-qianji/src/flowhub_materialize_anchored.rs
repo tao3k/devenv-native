@@ -1,3 +1,8 @@
+//! Anchored Flowhub scenario materialization.
+//!
+//! This module resolves a Mermaid graph through a Flowhub anchor and writes a
+//! localized run root with bootstrap state for `qianji check --dir`.
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -69,9 +74,44 @@ pub fn materialize_flowhub_anchored_scenario_at_node(
     output_dir: impl AsRef<Path>,
     current_node_ref: Option<&str>,
 ) -> Result<AnchoredMaterializedWorkdir, QianjiError> {
-    let anchor_manifest_path = resolve_anchor_manifest_path(anchor.as_ref());
-    let graph_path = resolve_anchored_graph(&anchor_manifest_path, scenario_ref)?;
     let output_dir = output_dir.as_ref();
+    let materialization = load_anchored_materialization(anchor.as_ref(), scenario_ref)?;
+    ensure_output_dir_is_safe(output_dir)?;
+    create_anchored_output_dir(output_dir)?;
+    let visible_surfaces = materialize_anchored_surface_dirs(output_dir, &materialization)?;
+    let plan_name = write_anchored_root_files(output_dir, &materialization, &visible_surfaces)?;
+    let bootstrap = materialize_anchored_bootstrap(output_dir, &materialization, current_node_ref)?;
+    let current_step_surface = current_node_owned_paths(&materialization.scenario_ir, &bootstrap)
+        .into_iter()
+        .collect::<Vec<_>>();
+    validate_anchored_workdir(output_dir)?;
+
+    Ok(AnchoredMaterializedWorkdir {
+        plan_name,
+        anchor_manifest_path: materialization.anchor_manifest_path,
+        graph_path: materialization.graph_path,
+        output_dir: output_dir.to_path_buf(),
+        visible_surfaces,
+        current_node: bootstrap.current_node_label,
+        allowed_next: bootstrap.allowed_next_labels,
+        current_step_surface,
+    })
+}
+
+struct AnchoredScenarioMaterialization {
+    anchor_manifest_path: PathBuf,
+    graph_path: PathBuf,
+    graph_source: String,
+    flowchart: MermaidFlowchart,
+    scenario_ir: FlowhubScenarioIr,
+}
+
+fn load_anchored_materialization(
+    anchor: &Path,
+    scenario_ref: &str,
+) -> Result<AnchoredScenarioMaterialization, QianjiError> {
+    let anchor_manifest_path = resolve_anchor_manifest_path(anchor);
+    let graph_path = resolve_anchored_graph(&anchor_manifest_path, scenario_ref)?;
     let graph_source = fs::read_to_string(&graph_path).map_err(|error| {
         QianjiError::Topology(format!(
             "Failed to read anchored Mermaid graph `{}`: {error}",
@@ -85,51 +125,100 @@ pub fn materialize_flowhub_anchored_scenario_at_node(
             graph_path.display()
         ))
     })?;
-    let workdir_contract = scenario_ir.workdir.as_ref().ok_or_else(|| {
-        QianjiError::Topology(format!(
-            "Flowhub graph `{}` does not declare a localized workdir contract",
-            graph_path.display()
-        ))
-    })?;
+    Ok(AnchoredScenarioMaterialization {
+        anchor_manifest_path,
+        graph_path,
+        graph_source,
+        flowchart,
+        scenario_ir,
+    })
+}
 
-    ensure_output_dir_is_safe(output_dir)?;
+fn create_anchored_output_dir(output_dir: &Path) -> Result<(), QianjiError> {
     fs::create_dir_all(output_dir).map_err(|error| {
         QianjiError::Topology(format!(
             "Failed to create anchored materialize target `{}`: {error}",
             output_dir.display()
         ))
-    })?;
+    })
+}
 
+fn materialize_anchored_surface_dirs(
+    output_dir: &Path,
+    materialization: &AnchoredScenarioMaterialization,
+) -> Result<Vec<String>, QianjiError> {
+    let workdir_contract = materialization
+        .scenario_ir
+        .workdir
+        .as_ref()
+        .ok_or_else(|| {
+            QianjiError::Topology(format!(
+                "Flowhub graph `{}` does not declare a localized workdir contract",
+                materialization.graph_path.display()
+            ))
+        })?;
     let visible_surfaces = derive_visible_surfaces(&workdir_contract.check.require);
     materialize_surface_dirs(output_dir, &visible_surfaces)?;
+    Ok(visible_surfaces)
+}
 
-    let plan_name = scenario_ir
+fn write_anchored_root_files(
+    output_dir: &Path,
+    materialization: &AnchoredScenarioMaterialization,
+    visible_surfaces: &[String],
+) -> Result<String, QianjiError> {
+    let plan_name = materialization
+        .scenario_ir
         .scenario_id
         .clone()
-        .unwrap_or_else(|| scenario_ir.merimind_graph_name.clone());
+        .unwrap_or_else(|| materialization.scenario_ir.merimind_graph_name.clone());
+    let workdir_contract = materialization
+        .scenario_ir
+        .workdir
+        .as_ref()
+        .ok_or_else(|| {
+            QianjiError::Topology(format!(
+                "Flowhub graph `{}` does not declare a localized workdir contract",
+                materialization.graph_path.display()
+            ))
+        })?;
     let manifest = WorkdirManifest {
         version: 1,
         plan: WorkdirPlan {
             name: plan_name.clone(),
-            surface: visible_surfaces.clone(),
+            surface: visible_surfaces.to_vec(),
         },
         check: workdir_contract.check.clone(),
     };
     let manifest_toml = toml::to_string_pretty(&manifest).map_err(|error| {
         QianjiError::Topology(format!(
             "Failed to serialize anchored workdir manifest for `{}`: {error}",
-            graph_path.display()
+            materialization.graph_path.display()
         ))
     })?;
     write_file(&output_dir.join("qianji.toml"), manifest_toml.as_str())?;
-    write_file(&output_dir.join("flowchart.mmd"), graph_source.as_str())?;
+    write_file(
+        &output_dir.join("flowchart.mmd"),
+        materialization.graph_source.as_str(),
+    )?;
+    Ok(plan_name)
+}
 
-    let bootstrap = derive_bootstrap_state(&flowchart, &scenario_ir, current_node_ref)?;
-    materialize_bootstrap_files(output_dir, &scenario_ir, &bootstrap)?;
-    let current_step_surface = current_node_owned_paths(&scenario_ir, &bootstrap)
-        .into_iter()
-        .collect::<Vec<_>>();
+fn materialize_anchored_bootstrap(
+    output_dir: &Path,
+    materialization: &AnchoredScenarioMaterialization,
+    current_node_ref: Option<&str>,
+) -> Result<BootstrapState, QianjiError> {
+    let bootstrap = derive_bootstrap_state(
+        &materialization.flowchart,
+        &materialization.scenario_ir,
+        current_node_ref,
+    )?;
+    materialize_bootstrap_files(output_dir, &materialization.scenario_ir, &bootstrap)?;
+    Ok(bootstrap)
+}
 
+fn validate_anchored_workdir(output_dir: &Path) -> Result<(), QianjiError> {
     let report = check_workdir(output_dir)?;
     if !report.is_valid() {
         return Err(QianjiError::Topology(format!(
@@ -138,17 +227,7 @@ pub fn materialize_flowhub_anchored_scenario_at_node(
             render_workdir_check_markdown(&report)
         )));
     }
-
-    Ok(AnchoredMaterializedWorkdir {
-        plan_name,
-        anchor_manifest_path,
-        graph_path,
-        output_dir: output_dir.to_path_buf(),
-        visible_surfaces,
-        current_node: bootstrap.current_node_label,
-        allowed_next: bootstrap.allowed_next_labels,
-        current_step_surface,
-    })
+    Ok(())
 }
 
 /// Render one anchored materialization result into a markdown control-plane
@@ -209,28 +288,28 @@ struct BootstrapState {
 }
 
 fn derive_visible_surfaces(require: &[String]) -> Vec<String> {
-    let mut surfaces = vec!["flowchart.mmd".to_string()];
     let mut seen = BTreeSet::from(["flowchart.mmd".to_string()]);
+    std::iter::once("flowchart.mmd".to_string())
+        .chain(
+            require
+                .iter()
+                .filter_map(|path| visible_surface_for_required_path(path))
+                .filter(|surface| seen.insert(surface.clone())),
+        )
+        .collect()
+}
 
-    for path in require {
-        let trimmed = path.trim();
-        if trimmed.is_empty() || trimmed == "qianji.toml" || trimmed == "flowchart.mmd" {
-            continue;
-        }
-        let surface = trimmed
-            .split('/')
-            .next()
-            .unwrap_or(trimmed)
-            .trim_end_matches('/');
-        if surface.is_empty() {
-            continue;
-        }
-        if seen.insert(surface.to_string()) {
-            surfaces.push(surface.to_string());
-        }
+fn visible_surface_for_required_path(path: &str) -> Option<String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() || trimmed == "qianji.toml" || trimmed == "flowchart.mmd" {
+        return None;
     }
-
-    surfaces
+    let surface = trimmed
+        .split('/')
+        .next()
+        .unwrap_or(trimmed)
+        .trim_end_matches('/');
+    (!surface.is_empty()).then(|| surface.to_string())
 }
 
 fn materialize_surface_dirs(

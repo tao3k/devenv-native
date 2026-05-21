@@ -54,7 +54,7 @@ pub use julia_transport::{
     julia_arrow_response_schema,
 };
 
-#[cfg(all(feature = "zhenfa-router", test))]
+#[cfg(all(feature = "zhenfa-router", feature = "julia", test))]
 pub use projection::DocsDocumentSegmentResult;
 #[cfg(feature = "search-runtime")]
 pub use projection::build_repo_projected_page_search_with_artifacts;

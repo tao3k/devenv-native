@@ -24,7 +24,9 @@ use xiuxian_wendao::zhenfa_router::native::WendaoPluginArtifactOutputFormat;
 async fn generic_plugin_artifact_handler_returns_plugin_artifact() {
     let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     let config_path = temp.path().join("wendao.toml");
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
     fs::write(
         &config_path,
         linked_builtin_julia_gateway_artifact_runtime_config_toml(),

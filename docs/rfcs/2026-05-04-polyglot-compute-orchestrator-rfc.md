@@ -1,11 +1,13 @@
 ---
 type: knowledge
+kind: rfc
 title: "RFC: Polyglot Compute Orchestrator (Rust/Python/Julia)"
 category: "rfc"
-status: "draft"
-authors:
-  - codex
+status: "live-backend-probe-profile-complete"
+author: Xiuxian Artisan Workshop
 created: 2026-05-04
+date: 2026-05-05T00:00-07:00
+description: "Bounded RFC for the Rust control-plane crate that coordinates existing Python Docling and Julia compute boundaries."
 tags:
   - rfc
   - orchestrator
@@ -17,17 +19,55 @@ tags:
   - arrow-flight
 metadata:
   title: "RFC: Polyglot Compute Orchestrator (Rust/Python/Julia)"
+  retrieval:
+    saliency_base: 7.2
+    decay_rate: 0.03
 ---
 
 # RFC: Polyglot Compute Orchestrator (Rust/Python/Julia)
 
+:PROPERTIES:
+:ID: rfc-polyglot-compute-orchestrator-rustpythonjulia
+:END:
+
 ## 1. Summary
 
-This RFC proposes a bounded polyglot compute coordination lane inside the
-existing Wendao runtime, document-extraction provider, and Julia plugin
-contracts. A future dedicated Rust crate, temporarily named
-`xiuxian-polyglot-orchestrator` or `xiuxian-dispatch`, remains a deferred
-package-boundary option rather than the first implementation step.
+This RFC proposes a bounded polyglot compute coordination lane centered on a
+dedicated Rust crate named `xiuxian-polyglot-orchestrator`. The crate is now the
+approved package boundary for shared polyglot control-plane contracts:
+admission, lane identity, readiness evidence, pressure evidence, and
+cross-lane validation metadata.
+
+The crate must start thin. It may define reusable Rust control-plane contracts
+and a workspace-local scaffold, but it must not take over Python Docling
+execution, document/OCR cache ownership, Julia profile schemas, Julia thread
+scheduling, shared-memory transport, or semantic authority.
+
+This RFC remains bounded, not fully accepted. **Phase 1 (Boundary
+Calibration)**, **Phase 1.1 (Crate Boundary Bootstrap)**, the read-only bridge
+and snapshot slices, and the first **Phase 2 (Python Pressure Control)**
+pressure-evidence slice, and the first **Phase 3 (Julia Readiness)**
+readiness-evidence slice, and the first **Phase 4 (Schema Benchmark)**
+schema-benchmark-evidence and report-contract slices, and the pure Docling
+scheduling-contract and owner-adoption slices are complete. The cross-chain
+rust-lang-project-harness profile slice is also complete and verifies the
+orchestrator crate, owner bridges, and Studio adoption point without changing
+runtime behavior. The full-document runtime-adoption slice is complete: Studio
+now consumes the runtime-owned inert Docling schedule plan before existing
+full-document endpoint selection while preserving endpoint-pool, cache, route,
+schema, and Python worker lifecycle authority. The backend profile
+optimization slice is also complete: focused Rust/Python backend tests now
+record the real validation chain, the attachment bridge profile records its
+required `pdf-source-range` feature-gated regression command, and the Julia
+profile/docs point at the actual lib-mounted readiness tests. The live backend
+probe profile slice is also complete: the existing analyzer/Studio benchmark
+harness now runs the real background provider path, guards the OCR-positive PDF
+milestone envelope through `precisionSpeedSummary`, and validates that the Rust
+auto-adaptive source-range scheduler stays above the documented performance and
+precision baseline without hardcoded worker counts. Later Phase 2 runtime
+control work beyond this bounded adoption, later Phase 3 live readiness work,
+later Phase 4 live benchmark or schema selection work, and Phase 5 require
+separate scoped ExecPlans before implementation.
 
 The core decision is to formalize Rust as the admission-control, lifecycle,
 fallback, and validation plane that bridges two different execution
@@ -135,6 +175,16 @@ introducing a parallel Docling wrapper.
 - **Existing contracts**: Rust already owns document extraction modes, OCR shard
   input/result schemas, worker-budget metadata, cache and ordering validation,
   and the stable document resource table.
+- **Scheduling contract**: `xiuxian-polyglot-orchestrator` may compute an inert
+  Docling scheduling plan from owner-supplied pressure evidence and
+  caller-local worker or shard bounds. Runtime and attachments remain
+  responsible for translating that plan into existing headers, batches, queues,
+  cache reuse, ordering validation, and fallback behavior.
+- **Owner adoption**: Studio's OCR scheduler consumes the plan for the final
+  worker/shard clamp after local adaptive pressure and source-range ceiling
+  policy are computed. Studio still owns semaphores, queue wait observation,
+  endpoint dispatch, cache, in-flight coalescing, and the worker-budget Flight
+  header.
 - **Model reality**: Docling's current model catalog includes Heron as the
   default layout model, but model speed and memory behavior must be treated as
   deployment-specific evidence rather than RFC-level guarantees.
@@ -191,35 +241,58 @@ To maximize L1/L3 cache efficiency and memory bandwidth:
 
 ## 6. Physical Layout (Proposed)
 
-No new crate is approved in the first slice. The first implementation should
-extend existing owners:
+The approved implementation boundary is a new crate:
+`packages/rust/crates/xiuxian-polyglot-orchestrator`.
 
-1. `xiuxian-wendao-runtime` for reusable Flight client configuration,
-   route-level request gates, timeout policy, and transport validation.
-2. `xiuxian-wendao` and `xiuxian-wendao-attachments` for document extraction
+The crate owns shared Rust control-plane contracts only:
+
+1. lane identity and capability classification for Python Docling and Julia
+   compute lanes
+2. admission budget inputs and decisions that can be reused by existing owners
+3. readiness, health, pressure, and fallback evidence envelopes
+4. pure Docling scheduling-plan contracts derived from owner-supplied pressure
+   evidence
+5. route/profile references that point to existing runtime, document, analyzer,
+   attachments, and Julia contracts without duplicating execution ownership
+
+Existing owners remain authoritative:
+
+1. `xiuxian-wendao-runtime` owns reusable Flight client configuration,
+   route-level request gates, timeout policy, runtime config, and transport
+   validation.
+2. `xiuxian-wendao` and `xiuxian-wendao-attachments` own document extraction
    provider policy, OCR shard scheduling, ordering validation, and cache
    ownership.
-3. `xiuxian-wendao-julia` for Julia-specific capability/profile contracts,
+3. `xiuxian-wendao-julia` owns Julia-specific capability/profile contracts,
    request/response schemas, route validation, and advisory evidence decoding.
-4. `xiuxian-wendao-analyzer` for the Python Docling Flight worker surface.
+4. `xiuxian-wendao-analyzer` owns the Python Docling Flight worker surface.
 
-A future crate may be created only if these owners accumulate duplicated,
-generic coordination code that cannot remain local without obscuring
-boundaries. If that trigger fires, the deferred layout would be:
+The Phase 1.1 crate scaffold should remain smaller than a runtime scheduler:
 
 ```text
 src/
   lib.rs
-  pool/
-    python_worker.rs   # Process lifecycle, OOM monitoring, pessimistic quotas
-    julia_worker.rs    # Thread-group management, JIT heartbeat & readiness probes
-  transport/
-    flight_bus.rs      # Arrow Flight IPC/TCP routing (shm integration)
-    control_grpc.rs    # Optional command signaling and measured transport tuning
-  scheduler/
-    backpressure.rs    # Tokio semaphores and admission control
-    strategy.rs        # Load-balancing algorithms
+  lanes/
+    mod.rs             # interface-only re-export
+    model.rs           # lane identity and capability classification
+  admission/
+    mod.rs             # interface-only re-export
+    model.rs           # reusable admission budget and decision contracts
+  evidence/
+    mod.rs             # interface-only re-export
+    model.rs           # health, pressure, readiness, and fallback evidence
+  refs/
+    mod.rs             # interface-only re-export
+    model.rs           # typed references to existing route/profile owners
+  docling_schedule/
+    mod.rs             # interface-only re-export
+    model.rs           # inert Docling scheduling plans
+tests/unit/lib/
+  mod.rs               # crate-root unit test mount
 ```
+
+Scheduler implementations, worker pools, lifecycle supervisors, shared-memory
+transport, and route mutation remain later-slice work.
 
 ## 7. Alignment with Existing Architecture
 
@@ -281,18 +354,70 @@ Arrow and Julia stack.
 
 ## 9. Rollout Plan
 
-1. **Phase 1 (Boundary Calibration)**: Extend the RFC, audit, and tracking
-   artifacts so the lane reuses existing Wendao runtime, document extraction,
-   attachments, analyzer, and Julia plugin boundaries.
-2. **Phase 2 (Python Pressure Control)**: Add or refine Rust-side evidence for
-   document extraction worker budgets, queue pressure, failure rows, and OCR
-   shard ordering without introducing a new Python wrapper.
-3. **Phase 3 (Julia Readiness)**: Add profile-level health, warmup, and
-   readiness evidence on top of existing `memory.julia_compute` and graph
-   structural contracts.
-4. **Phase 4 (Schema Benchmark)**: Compare profile-specific, normalized,
-   nested, and super-schema strategies before approving any heterogeneous-table
-   default.
-5. **Phase 5 (Shared Memory Pilot, Optional)**: Define and benchmark an
+1. **Phase 1 (Boundary Calibration)**: Complete. The RFC, audit, tracking
+   artifacts, and package docs now identify existing owner boundaries.
+2. **Phase 1.1 (Crate Boundary Bootstrap)**: Complete. Created
+   `xiuxian-polyglot-orchestrator` as a thin Rust crate for shared lane,
+   admission, evidence, reference, and snapshot contracts. This phase
+   authorized no runtime behavior, Python public API, schema, route, worker
+   lifecycle, shared-memory, or semantic-routing changes. Any public Rust
+   surface created here remains workspace-local and provisional until a later
+   acceptance gate.
+3. **Phase 2 (Python Pressure Control)**: Pressure, scheduling contract,
+   owner-adoption, and full-document runtime-adoption slices complete.
+   Rust-side
+   pressure evidence now describes document extraction worker budgets, queue
+   pressure, failure rows, and OCR shard ordering from supplied counters only.
+   The orchestrator crate also computes inert document-extraction and OCR-shard
+   scheduling plans from those supplied pressure facts plus caller-local worker
+   or shard bounds. Studio consumes the plan for the common worker/shard clamp
+   while retaining source-range ceilings, adaptive pressure reduction, live
+   semaphore permits, endpoint dispatch, cache, ordering, and fallback policy.
+   Studio also consumes the runtime-owned full-document schedule plan before
+   existing Docling endpoint selection, using the existing conversion semaphore
+   as the owner budget. Endpoint-pool routing, cache/job registry behavior,
+   Python analyzer API, queue ownership, and worker lifecycle stay unchanged.
+   Later runtime pressure control beyond this adoption, Python analyzer API
+   changes, queue mutation, or lifecycle supervision require a separate
+   ExecPlan.
+4. **Phase 3 (Julia Readiness)**: First slice complete. Profile-level
+   readiness evidence now records supplied route validation, schema
+   validation, manifest readiness, warmup, benchmark, and admission-window
+   facts on top of existing `memory.julia_compute` contracts. Later live
+   health probes, warmup calls, route mutation, schema changes, Julia worker
+   scheduling, or runtime dispatch require a separate ExecPlan.
+5. **Phase 4 (Schema Benchmark)**: Evidence and report-contract slices
+   complete. Schema benchmark evidence now records supplied observations for
+   profile-specific, normalized long-table, nested/struct-heavy, and
+   global-super-schema candidates, and report contracts aggregate those rows
+   with duplicate-candidate validation and tie-aware advisory preference. This
+   does not approve any heterogeneous-table default. Later live benchmark
+   execution, Arrow schema changes, route changes, or production default
+   selection require a separate ExecPlan.
+6. **Cross-chain Harness Profile**: Complete. The orchestrator crate now
+   self-applies `rust-lang-project-harness`, keeps `mod.rs` files
+   interface-only, mounts crate unit tests from `tests/unit/lib`, and exposes
+   profile hints for the control-plane root and Docling scheduler. Runtime,
+   attachments, Julia, and Studio owner surfaces also expose focused profile
+   hints for the polyglot bridge or adoption points. This slice changes
+   verification structure only; it does not approve runtime behavior, routes,
+   schemas, worker lifecycle, shared memory, or semantic routing.
+7. **Backend Profile Optimization**: Complete. Focused backend tests cover the
+   orchestrator crate, runtime bridge, feature-gated attachment bridge, Julia
+   readiness bridge, Studio document-extract adoption path, and analyzer
+   document-service suite. The slice fixed profile drift by recording the
+   attachment bridge's `pdf-source-range` regression command and by correcting
+   Julia package docs to use the actual lib-mounted test target. No runtime
+   route, schema, worker lifecycle, shared-memory, or semantic-routing behavior
+   changed.
+8. **Live Backend Probe Profile**: Complete. The existing document-extract
+   benchmark path now starts the real analyzer worker and Studio provider,
+   supports explicit milestone fixtures, enforces the stored OCR-positive PDF
+   precision/speed envelope, and keeps fixed source-range worker counts as
+   diagnostic overrides only. The validated gate uses Rust's automatic
+   system-aware scheduler and does not change routes, schemas, worker
+   lifecycle, shared memory, or semantic routing.
+9. **Phase 5 (Shared Memory Pilot, Optional)**: Define and benchmark an
    explicit mmap/memfd/UDS shared-memory contract only if Flight/IPC evidence
-   shows transport copying is the dominant bottleneck.
+   shows transport copying is the dominant bottleneck. This phase requires its
+   own ExecPlan.

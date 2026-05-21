@@ -39,13 +39,15 @@ pub use artifacts::{PluginArtifactPayload, PluginArtifactSelector, PluginLaunchS
 pub use capabilities::{ContractVersion, PluginCapabilityBinding, PluginProviderSelector};
 pub use contract_feedback::{
     ContractFindingConfidence, ContractFindingSeverity, ContractKnowledgeBatch,
-    ContractKnowledgeDecision, ContractKnowledgeEnvelope, WendaoContractFeedbackAdapter,
+    ContractKnowledgeDecision, ContractKnowledgeEntryId, ContractKnowledgeEnvelope, ContractRuleId,
+    ContractRulePackId, ContractSuiteId, WendaoContractFeedbackAdapter,
 };
 pub use entity::{
-    Entity, EntityType, GraphEntity, GraphRelation, GraphStats, Relation, RelationType,
+    Entity, EntityType, GraphEntity, GraphEntityId, GraphRelation, GraphStats, Relation,
+    RelationType,
 };
 pub use ids::{ArtifactId, CapabilityId, PluginId};
-pub use knowledge::KnowledgeEntry;
+pub use knowledge::{KnowledgeEntry, KnowledgeEntryId};
 pub use link_graph_query::{
     LinkGraphDirection, LinkGraphEdgeType, LinkGraphLinkFilter, LinkGraphMatchStrategy,
     LinkGraphPprSubgraphMode, LinkGraphRelatedFilter, LinkGraphRelatedPprOptions, LinkGraphScope,
@@ -55,7 +57,9 @@ pub use link_graph_query::{
 pub use link_graph_refresh::LinkGraphRefreshMode;
 pub use resource_uri::{WENDAO_URI_SCHEME, WendaoResourceUri, WendaoResourceUriError};
 pub use semantic_document::{
-    CognitiveTraceRecord, LinkGraphSemanticDocument, LinkGraphSemanticDocumentKind,
+    CognitiveNodeId, CognitiveSessionId, CognitiveTraceId, CognitiveTraceRecord,
+    LinkGraphSemanticDocument, LinkGraphSemanticDocumentKind, SemanticAnchorId, SemanticDocId,
+    SemanticDocumentPath,
 };
 pub use sql_query::{SqlBatchPayload, SqlColumnPayload, SqlQueryMetadata, SqlQueryPayload};
 pub use transport::{PluginTransportEndpoint, PluginTransportKind};

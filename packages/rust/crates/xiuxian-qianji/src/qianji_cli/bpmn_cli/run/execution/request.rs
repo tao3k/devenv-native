@@ -13,10 +13,10 @@ pub(crate) fn build_bpmn_workflow_start_request(
     Ok(QianjiBpmnWorkflowStartRequest {
         bpmn_path: command.bpmn_path.clone(),
         dmn_paths: command.dmn_paths.clone(),
-        process_id: command.process_id.clone(),
-        instance_id: command.instance_id.clone(),
+        process_id: command.process_id.clone().into(),
+        instance_id: command.instance_id.clone().into(),
         initial_variables: parse_bpmn_cli_initial_variables(command.context_json.as_deref())?,
-        start_at_node_id: command.start_at_node_id.clone(),
+        start_at_node_id: command.start_at_node_id.clone().map(Into::into),
         checkpoint_backend: command.checkpoint_backend.clone(),
     })
 }
@@ -27,7 +27,7 @@ pub(crate) fn build_bpmn_workflow_resume_request(
     QianjiBpmnWorkflowResumeRequest {
         bpmn_path: command.bpmn_path.clone(),
         dmn_paths: command.dmn_paths.clone(),
-        instance_id: command.instance_id.clone(),
+        instance_id: command.instance_id.clone().into(),
         checkpoint_backend: command.checkpoint_backend.clone(),
     }
 }
@@ -38,12 +38,12 @@ pub(crate) fn build_bpmn_workflow_task_complete_request(
     Ok(QianjiBpmnWorkflowTaskCompleteRequest {
         bpmn_path: command.bpmn_path.clone(),
         dmn_paths: command.dmn_paths.clone(),
-        instance_id: command.instance_id.clone(),
+        instance_id: command.instance_id.clone().into(),
         checkpoint_backend: command.checkpoint_backend.clone(),
         completion: QianjiBpmnWorkflowTaskCompletionPayload {
             token_id: command.token_id,
-            process_id: command.process_id.clone(),
-            activity_id: command.activity_id.clone(),
+            process_id: command.process_id.clone().into(),
+            activity_id: command.activity_id.clone().into(),
             kind: match command.kind {
                 BpmnTaskCompleteCliKind::Send => QianjiBpmnWorkflowTaskCompletionKind::Send,
                 BpmnTaskCompleteCliKind::Service => QianjiBpmnWorkflowTaskCompletionKind::Service,

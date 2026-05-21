@@ -1,3 +1,5 @@
+//! `analyzers::service::search::ranking::module` owns Wendao search ranking module behavior.
+
 #[cfg(feature = "repo-lexical-index")]
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -56,7 +58,7 @@ pub(crate) fn ranked_module_matches(
     {
         let lookup = modules
             .iter()
-            .map(|module| (module.module_id.clone(), module.clone()))
+            .map(|module| (module.module_id.to_string(), module.clone()))
             .collect::<BTreeMap<_, _>>();
         let Some(index) = build_search_document_index(modules.iter().map(module_search_document))
         else {
@@ -70,8 +72,9 @@ pub(crate) fn ranked_module_matches(
         ranked_module_matches_without_index(query, modules, limit)
     }
 }
-
+/// `ranked_module_matches_with_artifacts` public function boundary for Wendao.
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ranked_module_matches_with_artifacts(
     query: &str,
     modules: &[ModuleRecord],

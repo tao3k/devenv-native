@@ -36,8 +36,8 @@ async fn runtime_business_rule_task_rejects_missing_required_input_target_locall
     assert_eq!(
         error,
         BpmnEngineError::MissingDmnRequiredInputTarget {
-            source_id: "versioned-missing-required-input-runtime-20191111.dmn".to_string(),
-            decision_id: "Decision_missing_required_input".to_string(),
+            source_id: ("versioned-missing-required-input-runtime-20191111.dmn".to_string()).into(),
+            decision_id: ("Decision_missing_required_input".to_string()).into(),
             href: "#InputData_missing".to_string(),
         }
     );

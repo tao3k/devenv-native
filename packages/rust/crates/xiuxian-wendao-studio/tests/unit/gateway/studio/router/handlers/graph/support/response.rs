@@ -4,7 +4,7 @@ use axum::extract::{Path as AxumPath, Query, State};
 
 use crate::contracts::GraphNeighborsResponse;
 use crate::studio::router::handlers::graph::neighbors::graph_neighbors;
-use crate::studio::router::handlers::graph::shared::GraphNeighborsQuery;
+use crate::studio::router::handlers::graph::query_support::GraphNeighborsQuery;
 
 use super::fixture::Fixture;
 

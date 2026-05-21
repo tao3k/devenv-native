@@ -3,7 +3,7 @@ use std::fmt::Write as _;
 
 use crate::contracts::FlowhubGraphTopology;
 
-use super::api::{FlowhubGraphNodeSummary, FlowhubGraphShow};
+use super::model::{FlowhubGraphNodeSummary, FlowhubGraphShow};
 use super::render_surface::render_label_list;
 
 pub(super) fn render_mermaid_section_lines(show: &FlowhubGraphShow) -> Vec<String> {

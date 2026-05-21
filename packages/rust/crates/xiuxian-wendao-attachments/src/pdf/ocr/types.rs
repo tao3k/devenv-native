@@ -9,6 +9,20 @@ pub const PDF_OCR_SHARD_INPUT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_sha
 pub const PDF_OCR_SHARD_RESULT_SCHEMA_VERSION: &str = "xiuxian_wendao.pdf_ocr_shard_result.v1";
 /// Default OCR worker profile identifier for Docling-compatible OCR.
 pub const PDF_OCR_DEFAULT_PROFILE: &str = "docling-compatible-page-ocr-v1";
+/// Fast Docling OCR worker profile identifier for low-risk source-range OCR.
+pub const PDF_OCR_FAST_TEXT_PROFILE: &str = "docling-fast-text-ocr";
+/// Backend-text-only Docling profile identifier for source-range OCR canaries.
+pub const PDF_OCR_BACKEND_TEXT_PROFILE: &str = "docling-backend-text-ocr-v1";
+/// Hosted OpenAI-compatible VLM/OCR worker profile identifier.
+pub const PDF_OCR_HOSTED_VLM_DIRECT_PROFILE: &str = "hosted-vlm-direct-ocr-v1";
+/// Docling VLM adapter profile identifier for `DeepSeek` OCR comparator runs.
+pub const PDF_OCR_DOCLING_VLM_DEEPSEEK_OCR_PROFILE: &str = "docling-vlm-deepseek-ocr";
+
+/// Return true when an OCR profile uses the hosted direct VLM recovery path.
+#[must_use]
+pub fn is_hosted_vlm_direct_profile(profile: &str) -> bool {
+    profile == PDF_OCR_HOSTED_VLM_DIRECT_PROFILE
+}
 
 /// OCR worker profile used to derive shard input rows.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -41,7 +55,11 @@ impl Default for PdfOcrWorkerProfile {
     }
 }
 
-/// One OCR worker input row for a rendered page or region shard.
+/// Raw DTO boundary and stringly state boundary for OCR worker input rows.
+///
+/// These fields intentionally mirror the stable Arrow worker contract consumed
+/// by Python and Rust workers, so paths, MIME types, shard ids, and profile
+/// tokens stay serialized as primitive columns.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfOcrShardInput {
@@ -170,7 +188,11 @@ impl PdfOcrShardResultStatus {
     }
 }
 
-/// One OCR worker result row for a rendered page or region shard.
+/// Raw DTO boundary and stringly state boundary for OCR worker result rows.
+///
+/// The result row mirrors the stable Arrow return contract, preserving image
+/// and text MIME types plus element identifiers as serialized primitive fields
+/// while status itself is typed.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfOcrShardResult {

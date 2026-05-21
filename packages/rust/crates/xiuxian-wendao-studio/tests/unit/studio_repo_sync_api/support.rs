@@ -129,7 +129,9 @@ pub(super) fn gateway_state_for_ui_config(
                 project_root.to_path_buf(),
                 SearchPlaneService::new(project_root.to_path_buf()),
             )),
-            local_corpus_scan_coalescing: Arc::new(RwLock::new(Default::default())),
+            local_corpus_scan_coalescing: Arc::new(RwLock::new(
+                crate::studio::router::LocalCorpusScanCoalescingState::default(),
+            )),
             search_plane: SearchPlaneService::new(project_root.to_path_buf()),
             vfs_scan: Arc::new(RwLock::new(None)),
             repo_index,
@@ -163,7 +165,7 @@ pub(super) async fn publish_repo_entity_search_plane(
     if repository
         .plugins
         .iter()
-        .any(|plugin| plugin.id() == "julia")
+        .any(|plugin| plugin.id() == "julia-code-parser")
     {
         relative_paths.extend(collect_relative_files_under(
             repository_root.as_path(),
@@ -307,7 +309,9 @@ pub(super) fn gateway_state_for_project_with_options(
                 project_root.to_path_buf(),
                 SearchPlaneService::new(project_root.to_path_buf()),
             )),
-            local_corpus_scan_coalescing: Arc::new(RwLock::new(Default::default())),
+            local_corpus_scan_coalescing: Arc::new(RwLock::new(
+                crate::studio::router::LocalCorpusScanCoalescingState::default(),
+            )),
             search_plane: SearchPlaneService::new(project_root.to_path_buf()),
             vfs_scan: Arc::new(RwLock::new(None)),
             repo_index,
@@ -336,7 +340,7 @@ pub(super) fn write_default_repo_config_without_priming(
         format!(
             r#"[link_graph.projects.{repo_id}]
 root = "{}"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 "#,
             repo_dir.display()
         ),
@@ -344,7 +348,7 @@ plugins = ["julia"]
     Ok(())
 }
 
-pub(super) fn prime_local_julia_fixture_analysis_cache(
+pub(crate) fn prime_local_julia_fixture_analysis_cache(
     project_root: &Path,
     repo_id: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -525,10 +529,10 @@ pub(super) fn parse_local_julia_source(
     };
     let module_id = format!("repo:{repo_id}:module:{module_name}");
     modules.push(ModuleRecord {
-        repo_id: repo_id.to_string(),
-        module_id: module_id.clone(),
+        repo_id: repo_id.to_string().into(),
+        module_id: module_id.clone().into(),
         qualified_name: module_name.clone(),
-        path: relative_path.to_string(),
+        path: relative_path.to_string().into(),
     });
 
     let mut pending_docstring = false;
@@ -541,33 +545,33 @@ pub(super) fn parse_local_julia_source(
         if let Some((symbol_name, signature, kind)) = parse_source_symbol(trimmed) {
             let symbol_id = format!("repo:{repo_id}:symbol:{module_name}.{symbol_name}");
             symbols.push(SymbolRecord {
-                repo_id: repo_id.to_string(),
-                symbol_id: symbol_id.clone(),
-                module_id: Some(module_id.clone()),
+                repo_id: repo_id.to_string().into(),
+                symbol_id: symbol_id.clone().into(),
+                module_id: Some(module_id.clone().into()),
                 name: symbol_name.clone(),
                 qualified_name: format!("{module_name}.{symbol_name}"),
                 kind,
-                path: relative_path.to_string(),
+                path: relative_path.to_string().into(),
                 line_start: None,
                 line_end: None,
                 signature,
                 audit_status: None,
-                verification_state: Some("unknown".to_string()),
+                verification_state: Some("unknown".to_string().into()),
                 attributes: BTreeMap::new(),
             });
             if pending_docstring {
                 let doc_path = format!("{relative_path}#symbol-id:{symbol_id}");
                 let doc_id = format!("repo:{repo_id}:doc:{doc_path}");
                 docs.push(DocRecord {
-                    repo_id: repo_id.to_string(),
-                    doc_id: doc_id.clone(),
+                    repo_id: repo_id.to_string().into(),
+                    doc_id: doc_id.clone().into(),
                     title: symbol_name.clone(),
-                    path: doc_path,
+                    path: doc_path.into(),
                     format: Some("julia_docstring".to_string()),
                     doc_target: None,
                 });
                 relations.push(RelationRecord {
-                    repo_id: repo_id.to_string(),
+                    repo_id: repo_id.to_string().into(),
                     source_id: doc_id,
                     target_id: symbol_id,
                     kind: RelationKind::Documents,
@@ -653,18 +657,18 @@ pub(super) fn append_readme_doc_record(
         return;
     }
     docs.push(DocRecord {
-        repo_id: repo_id.to_string(),
-        doc_id: format!("repo:{repo_id}:doc:README.md"),
+        repo_id: repo_id.to_string().into(),
+        doc_id: format!("repo:{repo_id}:doc:README.md").into(),
         title: "README.md".to_string(),
-        path: "README.md".to_string(),
+        path: "README.md".to_string().into(),
         format: Some("md".to_string()),
         doc_target: None,
     });
     if let Some(module) = modules.first() {
         relations.push(RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: repo_id.to_string().into(),
             source_id: format!("repo:{repo_id}:doc:README.md"),
-            target_id: module.module_id.clone(),
+            target_id: module.module_id.to_string(),
             kind: RelationKind::Documents,
         });
     }
@@ -683,16 +687,16 @@ pub(super) fn append_markdown_doc_records(
         let title = markdown_title(&relative_path, &contents);
         let doc_id = format!("repo:{repo_id}:doc:{relative_path}");
         docs.push(DocRecord {
-            repo_id: repo_id.to_string(),
-            doc_id: doc_id.clone(),
+            repo_id: repo_id.to_string().into(),
+            doc_id: doc_id.clone().into(),
             title: title.clone(),
-            path: relative_path.clone(),
+            path: relative_path.clone().into(),
             format: Some("md".to_string()),
             doc_target: None,
         });
         if let Some(target_id) = matching_doc_target_id(&title, modules, symbols) {
             relations.push(RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: doc_id,
                 target_id,
                 kind: RelationKind::Documents,
@@ -714,15 +718,15 @@ pub(super) fn collect_example_records(
         let contents = fs::read_to_string(repo_root.join(&relative_path))?;
         let example_id = format!("repo:{repo_id}:example:{relative_path}");
         examples.push(ExampleRecord {
-            repo_id: repo_id.to_string(),
-            example_id: example_id.clone(),
+            repo_id: repo_id.to_string().into(),
+            example_id: example_id.clone().into(),
             title: example_title(&relative_path),
-            path: relative_path.clone(),
+            path: relative_path.clone().into(),
             summary: None,
         });
         for target_id in example_target_ids(&contents, modules, symbols) {
             relations.push(RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: example_id.clone(),
                 target_id,
                 kind: RelationKind::ExampleOf,
@@ -766,11 +770,11 @@ pub(super) fn build_local_fixture_repository_record(
     modules: &[ModuleRecord],
 ) -> RepositoryRecord {
     RepositoryRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         name: project_name
             .or_else(|| modules.first().map(|module| module.qualified_name.clone()))
             .unwrap_or_else(|| repo_id.to_string()),
-        path: repo_root.display().to_string(),
+        path: repo_root.display().to_string().into(),
         url: None,
         revision,
         version,
@@ -795,7 +799,7 @@ pub(super) fn matching_doc_target_id(
     symbols
         .iter()
         .find(|symbol| symbol.name == title || symbol.qualified_name == title)
-        .map(|symbol| symbol.symbol_id.clone())
+        .map(|symbol| symbol.symbol_id.to_string())
         .or_else(|| {
             modules
                 .iter()
@@ -807,7 +811,7 @@ pub(super) fn matching_doc_target_id(
                             .next()
                             .is_some_and(|name| name == title)
                 })
-                .map(|module| module.module_id.clone())
+                .map(|module| module.module_id.to_string())
         })
 }
 
@@ -819,9 +823,9 @@ pub(super) fn example_target_ids(
     let mut target_ids = Vec::new();
     for symbol in symbols {
         if symbol_mentioned_in_example(contents, &symbol.name) {
-            push_unique_string(&mut target_ids, symbol.symbol_id.clone());
+            push_unique_string(&mut target_ids, symbol.symbol_id.to_string());
             if let Some(module_id) = symbol.module_id.as_ref() {
-                push_unique_string(&mut target_ids, module_id.clone());
+                push_unique_string(&mut target_ids, module_id.to_string());
             }
         }
     }
@@ -830,7 +834,7 @@ pub(super) fn example_target_ids(
     }
     for module in modules {
         if module_mentioned_in_example(contents, &module.qualified_name) {
-            push_unique_string(&mut target_ids, module.module_id.clone());
+            push_unique_string(&mut target_ids, module.module_id.to_string());
         }
     }
     target_ids

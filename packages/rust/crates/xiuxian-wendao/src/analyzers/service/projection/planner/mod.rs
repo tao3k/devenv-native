@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner` owns Wendao service projection planner behavior.
+
 #[path = "api/mod.rs"]
 mod api;
 mod scoring;

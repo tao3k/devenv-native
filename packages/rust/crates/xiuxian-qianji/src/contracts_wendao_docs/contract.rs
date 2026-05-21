@@ -1,3 +1,5 @@
+//! Wendao docs contract model used by Qianji invocation validation.
+
 use serde_json::Value;
 
 #[path = "load.rs"]
@@ -5,7 +7,7 @@ mod load;
 #[path = "validate.rs"]
 mod validate;
 
-use crate::error::QianjiError;
+use crate::QianjiError;
 
 use self::load::WendaoDocsContractSnapshot;
 

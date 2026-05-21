@@ -92,8 +92,8 @@ fn parser_escalation_deferred_start_event_reports_stable_detail() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: "escalation_start_event".to_string(),
-            node_id: "start".to_string(),
+            process_id: ("escalation_start_event".to_string()).into(),
+            node_id: ("start".to_string()).into(),
             detail: "escalation_start_event_deferred",
         }
     );

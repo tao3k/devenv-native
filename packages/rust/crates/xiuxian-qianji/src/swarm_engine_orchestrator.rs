@@ -1,3 +1,5 @@
+//! Swarm engine orchestrator surface for `xiuxian-qianji`.
+
 use super::engine_types::{
     SwarmAgentConfig, SwarmExecutionOptions, SwarmExecutionReport, WorkerJoinSet,
     WorkerRuntimeConfig, generate_swarm_session_id,

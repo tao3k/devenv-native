@@ -1,3 +1,5 @@
+//! `gateway::openapi::paths::ui` owns Wendao openapi paths ui behavior.
+
 /// Axum runtime path for the UI capabilities endpoint.
 pub const API_UI_CAPABILITIES_AXUM_PATH: &str = "/api/ui/capabilities";
 /// `OpenAPI` path for the UI capabilities endpoint.

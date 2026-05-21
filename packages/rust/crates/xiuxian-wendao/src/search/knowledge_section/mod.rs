@@ -1,3 +1,5 @@
+//! `search::knowledge_section` owns Wendao search knowledge section behavior.
+
 #[path = "build/mod.rs"]
 mod build;
 #[path = "query/mod.rs"]

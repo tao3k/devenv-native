@@ -1,3 +1,5 @@
+//! `search::queries::graphql::execution` owns Wendao queries graphql execution behavior.
+
 use serde_json::{Map, Value};
 
 use crate::search::queries::SearchQueryService;

@@ -1,3 +1,5 @@
+//! `ingress::spider::types` owns Wendao ingress spider types behavior.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

@@ -293,6 +293,8 @@ fn test_get_skeleton_patterns() {
     let rs_patterns = get_skeleton_patterns(Lang::Rust);
     assert!(rs_patterns.contains(&"fn $NAME"));
     assert!(rs_patterns.contains(&"pub fn $NAME"));
+    assert!(rs_patterns.contains(&"async fn $NAME"));
+    assert!(rs_patterns.contains(&"pub async fn $NAME"));
 
     let toml_patterns = get_skeleton_patterns(Lang::Toml);
     assert!(toml_patterns.contains(&"$NAME = $VALUE"));
@@ -305,7 +307,7 @@ fn test_extract_skeleton_toml() {
 [package]
 name = "searchrust"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 "#;
 
     let skeleton = extract_skeleton(content, Lang::Toml);

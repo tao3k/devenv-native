@@ -2,8 +2,8 @@
 
 use lance::deps::arrow_array::RecordBatchReader;
 use xiuxian_lance::{
-    CONTENT_COLUMN, ID_COLUMN, METADATA_COLUMN, VECTOR_COLUMN, VectorRecordBatchReader,
-    extract_optional_string, extract_string,
+    CONTENT_COLUMN, ID_COLUMN, METADATA_COLUMN, VECTOR_COLUMN, VectorBatchInput,
+    VectorRecordBatchReader, extract_optional_string, extract_string,
 };
 
 #[test]
@@ -21,13 +21,13 @@ fn test_default_schema() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn test_from_vectors() -> Result<(), Box<dyn std::error::Error>> {
-    let reader = VectorRecordBatchReader::from_vectors(
-        vec!["id1".to_string(), "id2".to_string()],
-        vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]],
-        vec!["content1".to_string(), "content2".to_string()],
-        vec!["{}".to_string(), "{}".to_string()],
-        3,
-    )?;
+    let reader = VectorRecordBatchReader::from_vectors(VectorBatchInput {
+        ids: vec!["id1".to_string(), "id2".to_string()],
+        vectors: vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]],
+        contents: vec!["content1".to_string(), "content2".to_string()],
+        metadatas: vec!["{}".to_string(), "{}".to_string()],
+        dimension: 3,
+    })?;
 
     let schema = reader.schema();
     assert_eq!(schema.fields().len(), 4);

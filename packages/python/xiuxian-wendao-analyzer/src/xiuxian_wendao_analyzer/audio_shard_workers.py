@@ -1,0 +1,83 @@
+"""Audio shard worker facade."""
+
+from __future__ import annotations
+
+from .audio_shard_worker_config import (
+    AUDIO_BACKEND_DOCLING,
+    AUDIO_BACKEND_DOCLING_PROFILE,
+    AUDIO_BACKEND_HOSTED,
+    AUDIO_BACKEND_HOSTED_PROFILE,
+    AUDIO_BACKEND_SKIP,
+    AUDIO_HOSTED_API_KEY_ENV,
+    AUDIO_HOSTED_BASE_URL_ENV,
+    AUDIO_HOSTED_DEFAULT_MAX_ATTEMPTS,
+    AUDIO_HOSTED_DEFAULT_PROMPT,
+    AUDIO_HOSTED_DEFAULT_TIMEOUT_SECONDS,
+    AUDIO_HOSTED_MAX_ATTEMPTS_ENV,
+    AUDIO_HOSTED_MODEL_ENV,
+    AUDIO_HOSTED_OPENAI_COMPATIBLE_BASE_URL,
+    AUDIO_HOSTED_OPENAI_COMPATIBLE_PROVIDER,
+    AUDIO_HOSTED_OPENROUTER_BASE_URL,
+    AUDIO_HOSTED_OPENROUTER_PROVIDER,
+    AUDIO_HOSTED_OPENROUTER_PUBLIC_API_KEY_ENV,
+    AUDIO_HOSTED_PROVIDER_ENV,
+    AUDIO_HOSTED_REQUEST_CONCURRENCY_ENV,
+    AUDIO_HOSTED_TIMEOUT_SECONDS_ENV,
+    AUDIO_PRIMARY_LANGUAGE_ENV,
+    AUDIO_WORKER_ENV,
+    HostedAudioConfig,
+    hosted_audio_config_from_env,
+)
+from .audio_shard_worker_docling import (
+    DoclingAudioShardWorker,
+    docling_result_text,
+    new_docling_audio_converter,
+)
+from .audio_shard_worker_hosted import (
+    HostedAudioShardWorker,
+    hosted_audio_payload,
+    send_hosted_audio_request,
+)
+from .audio_shard_worker_registry import (
+    SkippingAudioShardWorker,
+    UnsupportedAudioShardWorker,
+    build_audio_shard_worker,
+    normalize_audio_worker_name,
+)
+
+__all__ = [
+    "AUDIO_BACKEND_DOCLING",
+    "AUDIO_BACKEND_DOCLING_PROFILE",
+    "AUDIO_BACKEND_HOSTED",
+    "AUDIO_BACKEND_HOSTED_PROFILE",
+    "AUDIO_BACKEND_SKIP",
+    "AUDIO_HOSTED_API_KEY_ENV",
+    "AUDIO_HOSTED_BASE_URL_ENV",
+    "AUDIO_HOSTED_DEFAULT_MAX_ATTEMPTS",
+    "AUDIO_HOSTED_DEFAULT_PROMPT",
+    "AUDIO_HOSTED_DEFAULT_TIMEOUT_SECONDS",
+    "AUDIO_HOSTED_MAX_ATTEMPTS_ENV",
+    "AUDIO_HOSTED_MODEL_ENV",
+    "AUDIO_HOSTED_OPENAI_COMPATIBLE_BASE_URL",
+    "AUDIO_HOSTED_OPENAI_COMPATIBLE_PROVIDER",
+    "AUDIO_HOSTED_OPENROUTER_BASE_URL",
+    "AUDIO_HOSTED_OPENROUTER_PROVIDER",
+    "AUDIO_HOSTED_OPENROUTER_PUBLIC_API_KEY_ENV",
+    "AUDIO_HOSTED_PROVIDER_ENV",
+    "AUDIO_HOSTED_REQUEST_CONCURRENCY_ENV",
+    "AUDIO_HOSTED_TIMEOUT_SECONDS_ENV",
+    "AUDIO_PRIMARY_LANGUAGE_ENV",
+    "AUDIO_WORKER_ENV",
+    "DoclingAudioShardWorker",
+    "HostedAudioConfig",
+    "HostedAudioShardWorker",
+    "SkippingAudioShardWorker",
+    "UnsupportedAudioShardWorker",
+    "build_audio_shard_worker",
+    "docling_result_text",
+    "hosted_audio_config_from_env",
+    "hosted_audio_payload",
+    "new_docling_audio_converter",
+    "normalize_audio_worker_name",
+    "send_hosted_audio_request",
+]

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::semantic_check::docs_governance::collection::package_docs` owns Wendao docs governance collection package docs behavior.
+
 use super::footer::collect_stale_index_footer_standards;
 use super::hidden_links::collect_hidden_path_link_issues;
 use super::relations::collect_stale_index_relation_links;

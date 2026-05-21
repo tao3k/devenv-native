@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use super::{Episode, TestResult, test_store};
+use super::{Episode, EpisodeDraft, TestResult, test_store};
 
 #[test]
 fn test_batch_operations_performance() -> TestResult {
@@ -9,13 +9,14 @@ fn test_batch_operations_performance() -> TestResult {
     let start = Instant::now();
 
     for i in 0..1000 {
-        let ep = Episode::new(
-            format!("batch-{i}"),
-            format!("task {}", i % 100),
-            encoder.encode(&format!("task {}", i % 100)),
-            format!("Solution {i}"),
-            if i % 3 == 0 { "failure" } else { "success" }.to_string(),
-        );
+        let ep = Episode::new(EpisodeDraft {
+            id: (format!("batch-{i}")).into(),
+            intent: format!("task {}", i % 100),
+            intent_embedding: encoder.encode(&format!("task {}", i % 100)),
+            experience: format!("Solution {i}"),
+            outcome: if i % 3 == 0 { "failure" } else { "success" }.to_string(),
+            scope: None,
+        });
         store.store(ep)?;
     }
 

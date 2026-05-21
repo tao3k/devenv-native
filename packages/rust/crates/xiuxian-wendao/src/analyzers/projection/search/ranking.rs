@@ -1,3 +1,5 @@
+//! `analyzers::projection::search::ranking` owns Wendao projection search ranking behavior.
+
 use crate::analyzers::RepositoryAnalysisOutput;
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 use crate::analyzers::cache::RepositorySearchArtifacts;
@@ -15,6 +17,7 @@ use super::lexical::lexical_projected_page_matches;
 use super::options::projected_page_document_search_options;
 use crate::analyzers::projection::pages::build_projected_pages;
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build projected-page search results for one repository query.
 #[must_use]
 pub fn build_repo_projected_page_search(
@@ -27,7 +30,7 @@ pub fn build_repo_projected_page_search(
         projected_page_document_search_options(),
     )
 }
-
+/// `build_repo_projected_page_search_with_options` public function boundary for Wendao.
 #[must_use]
 pub fn build_repo_projected_page_search_with_options(
     query: &RepoProjectedPageSearchQuery,
@@ -48,7 +51,8 @@ pub fn build_repo_projected_page_search_with_options(
         .collect(),
     }
 }
-
+/// Namespace boundary: this public name is scoped by its module owner.
+/// `build_repo_projected_page_search_with_artifacts` public function boundary for Wendao.
 #[must_use]
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
 pub fn build_repo_projected_page_search_with_artifacts(
@@ -71,7 +75,7 @@ pub fn build_repo_projected_page_search_with_artifacts(
         .collect(),
     }
 }
-
+/// `scored_projected_page_matches` public function boundary for Wendao.
 #[must_use]
 pub fn scored_projected_page_matches(
     query: &str,
@@ -122,8 +126,9 @@ pub(super) fn ranked_projected_page_matches(
 
     lexical_projected_page_matches(query, kind_filter, pages.as_slice(), limit, options)
 }
-
+/// `ranked_projected_page_matches_with_artifacts` public function boundary for Wendao.
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ranked_projected_page_matches_with_artifacts(
     query: &str,
     kind_filter: Option<ProjectionPageKind>,

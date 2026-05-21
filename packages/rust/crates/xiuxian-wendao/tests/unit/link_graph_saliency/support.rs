@@ -8,8 +8,7 @@ pub(super) const TEST_VALKEY_URL: &str = "redis://127.0.0.1:6379/0";
 pub(super) fn unique_prefix() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|value| value.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |value| value.as_nanos());
     format!("omni:test:saliency:{nanos}")
 }
 
@@ -49,9 +48,8 @@ fn read_snapshot(relative: &str) -> String {
 
 pub(super) fn assert_snapshot_eq(relative: &str, actual: &str) {
     let expected = read_snapshot(relative);
-    if expected != actual {
-        panic!(
-            "snapshot mismatch: {relative}\n--- expected ---\n{expected}\n--- actual ---\n{actual}"
-        );
-    }
+    assert_eq!(
+        expected, actual,
+        "snapshot mismatch: {relative}\n--- expected ---\n{expected}\n--- actual ---\n{actual}"
+    );
 }

@@ -1,3 +1,5 @@
+//! `link_graph::addressing::address` owns Wendao link graph addressing address behavior.
+
 use crate::link_graph::models::BlockAddress;
 use crate::link_graph::models::PageIndexNode;
 

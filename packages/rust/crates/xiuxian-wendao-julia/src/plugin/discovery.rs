@@ -33,10 +33,10 @@ pub(crate) fn discover_examples(
                 .unwrap_or("example")
                 .to_string();
             records.push(ExampleRecord {
-                repo_id: repo_id.to_string(),
-                example_id: format!("repo:{repo_id}:example:{relative}"),
+                repo_id: (repo_id.to_string()).into(),
+                example_id: (format!("repo:{repo_id}:example:{relative}")).into(),
                 title,
-                path: relative,
+                path: (relative).into(),
                 summary: None,
             });
         }
@@ -73,10 +73,10 @@ pub(crate) fn discover_docs(
         }
         let relative = relative_path_string(repository_root, &path)?;
         records.push(DocRecord {
-            repo_id: repo_id.to_string(),
-            doc_id: format!("repo:{repo_id}:doc:{relative}"),
+            repo_id: (repo_id.to_string()).into(),
+            doc_id: (format!("repo:{repo_id}:doc:{relative}")).into(),
             title: name.to_string(),
-            path: relative,
+            path: (relative).into(),
             format: path
                 .extension()
                 .and_then(|value| value.to_str())
@@ -104,10 +104,10 @@ pub(crate) fn discover_docs(
                 .unwrap_or("doc")
                 .to_string();
             records.push(DocRecord {
-                repo_id: repo_id.to_string(),
-                doc_id: format!("repo:{repo_id}:doc:{relative}"),
+                repo_id: (repo_id.to_string()).into(),
+                doc_id: (format!("repo:{repo_id}:doc:{relative}")).into(),
                 title,
-                path: relative,
+                path: (relative).into(),
                 format: Some("md".to_string()),
                 doc_target: None,
             });

@@ -9,9 +9,25 @@ from .common import (
     os,
     subprocess,
 )
+from .constants import (
+    OPENROUTER_LEGACY_PUBLIC_API_KEY_ENV,
+    OPENROUTER_PUBLIC_API_KEY_ENV,
+    OPENROUTER_STANDARD_API_KEY_ENVS,
+)
 from .http_status import pick_free_port
 from .processes import start_logged_process
 from .server_code import fixture_server_code, real_docling_server_code
+
+OPENROUTER_OCR_SMOKE_MODEL = "baidu/qianfan-ocr-fast:free"
+HOSTED_VLM_OCR_TRACE_PATH_ENV = "WENDAO_HOSTED_VLM_OCR_TRACE_PATH"
+PDF_OCR_PREWARM_ENV_KEYS = frozenset(
+    {
+        "WENDAO_PDF_OCR_PREWARM_PROFILES",
+        "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH",
+        "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES",
+        "WENDAO_PDF_OCR_PREWARM_PAGE_INDEX",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -20,6 +36,94 @@ class PythonWorkerServer:
     host: str
     port: int
     endpoint_url: str
+
+
+def resolve_local_python_ocr_endpoint_count(args: object) -> int:
+    raw_count = getattr(args, "local_python_ocr_endpoint_count", "auto")
+    if isinstance(raw_count, int):
+        return validate_endpoint_count(raw_count)
+
+    raw_text = str(raw_count).strip().lower()
+    if raw_text != "auto":
+        try:
+            return validate_endpoint_count(int(raw_text))
+        except ValueError as exc:
+            raise SystemExit(
+                "--local-python-ocr-endpoint-count must be a positive integer or `auto`"
+            ) from exc
+
+    if getattr(args, "external_endpoint", False):
+        return 1
+    if not should_auto_fanout_local_ocr_endpoints(args):
+        return 1
+    return ceil_sqrt(max(os.cpu_count() or 1, 1))
+
+
+def validate_endpoint_count(endpoint_count: int) -> int:
+    if endpoint_count < 1:
+        raise SystemExit("--local-python-ocr-endpoint-count must be at least 1")
+    return endpoint_count
+
+
+def should_auto_fanout_local_ocr_endpoints(args: object) -> bool:
+    return (
+        bool(getattr(args, "real_docling", False))
+        and getattr(args, "flight_mode", "") == "hybrid-page-ocr"
+        and getattr(args, "pdf_ocr_worker", "") == "docling"
+    )
+
+
+def resolve_document_extract_full_threads(args: object) -> int | None:
+    raw_count = getattr(args, "document_extract_full_threads", "auto")
+    raw_text = str(raw_count).strip().lower()
+    if raw_text == "auto":
+        if (
+            bool(getattr(args, "real_docling", False))
+            and getattr(args, "flight_mode", "") == "hybrid-page-ocr"
+            and getattr(args, "rust_pdf_ocr_profile_planner", "")
+            == "docling-structure-recovery"
+        ):
+            return 1
+        return None
+    try:
+        count = int(raw_text)
+    except ValueError as exc:
+        raise SystemExit(
+            "--document-extract-full-threads must be a positive integer or `auto`"
+        ) from exc
+    if count < 1:
+        raise SystemExit("--document-extract-full-threads must be at least 1")
+    return count
+
+
+def resolve_document_extract_prewarm_page_ranges(args: object) -> str | None:
+    raw_ranges = getattr(args, "document_extract_prewarm_page_ranges", None)
+    if raw_ranges is None:
+        return None
+    raw_text = str(raw_ranges).strip()
+    if not raw_text:
+        return None
+    if raw_text.replace("_", "-").lower() != "rust-page-range-chunk-plan":
+        return raw_text
+
+    chunk_plan = str(
+        getattr(args, "rust_pdf_docling_page_range_chunk_plan", "") or ""
+    ).strip()
+    if not chunk_plan:
+        raise SystemExit(
+            "--document-extract-prewarm-page-ranges rust-page-range-chunk-plan "
+            "requires --rust-pdf-docling-page-range-chunk-plan"
+        )
+    return chunk_plan
+
+
+def ceil_sqrt(value: int) -> int:
+    if value <= 1:
+        return value
+    root = 1
+    while root * root < value:
+        root += 1
+    return root
 
 
 def start_server_pool(
@@ -33,12 +137,21 @@ def start_server_pool(
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
     pdf_ocr_workers: str = "auto",
+    audio_worker: str = "skip",
+    audio_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
+    hosted_vlm_ocr_env: dict[str, str] | None = None,
+    audio_worker_env: dict[str, str] | None = None,
+    pdf_ocr_prewarm_endpoint_count: int | None = None,
     log_dir: Path | None = None,
 ) -> list[PythonWorkerServer]:
-    if endpoint_count < 1:
-        raise SystemExit("--local-python-ocr-endpoint-count must be at least 1")
+    endpoint_count = validate_endpoint_count(endpoint_count)
+    if (
+        pdf_ocr_prewarm_endpoint_count is not None
+        and pdf_ocr_prewarm_endpoint_count < 1
+    ):
+        raise SystemExit("--pdf-ocr-prewarm-endpoint-count must be at least 1")
     ports = [port]
     while len(ports) < endpoint_count:
         candidate = pick_free_port(host)
@@ -65,8 +178,18 @@ def start_server_pool(
             converter_count_path=worker_count_path,
             pdf_ocr_worker=pdf_ocr_worker,
             pdf_ocr_workers=pdf_ocr_workers,
+            audio_worker=audio_worker,
+            audio_workers=audio_workers,
             python_uv_package=python_uv_package,
             python_uv_extras=python_uv_extras,
+            hosted_vlm_ocr_env=hosted_vlm_ocr_env_for_worker(
+                hosted_vlm_ocr_env,
+                worker_index=index,
+                prewarm_endpoint_count=pdf_ocr_prewarm_endpoint_count,
+                log_dir=log_dir,
+                process_name=name,
+            ),
+            audio_worker_env=audio_worker_env,
             log_dir=log_dir,
             process_name=name,
         )
@@ -81,6 +204,21 @@ def start_server_pool(
     return workers
 
 
+def hosted_vlm_ocr_env_for_worker(
+    hosted_vlm_ocr_env: dict[str, str] | None,
+    *,
+    worker_index: int,
+    prewarm_endpoint_count: int | None,
+    log_dir: Path | None,
+    process_name: str,
+) -> dict[str, str]:
+    env = dict(hosted_vlm_ocr_env or {})
+    if prewarm_endpoint_count is not None and worker_index >= prewarm_endpoint_count:
+        for key in PDF_OCR_PREWARM_ENV_KEYS:
+            env.pop(key, None)
+    return hosted_vlm_ocr_trace_env(env, log_dir=log_dir, process_name=process_name)
+
+
 def start_server(
     host: str,
     port: int,
@@ -91,8 +229,12 @@ def start_server(
     converter_count_path: Path | None,
     pdf_ocr_worker: str = "skip",
     pdf_ocr_workers: str = "auto",
+    audio_worker: str = "skip",
+    audio_workers: str = "auto",
     python_uv_package: str | None = "xiuxian-wendao-analyzer",
     python_uv_extras: list[str] | None = None,
+    hosted_vlm_ocr_env: dict[str, str] | None = None,
+    audio_worker_env: dict[str, str] | None = None,
     log_dir: Path | None = None,
     process_name: str = "python-worker",
 ) -> subprocess.Popen[str]:
@@ -108,6 +250,8 @@ def start_server(
                 converter_count_path,
                 pdf_ocr_worker,
                 pdf_ocr_workers,
+                audio_worker,
+                audio_workers,
             ),
             uv_package=python_uv_package,
             uv_extras=python_uv_extras,
@@ -120,6 +264,8 @@ def start_server(
                 converter_count_path,
                 pdf_ocr_worker,
                 pdf_ocr_workers,
+                audio_worker,
+                audio_workers,
             ),
             uv_package=python_uv_package,
             uv_extras=python_uv_extras,
@@ -128,7 +274,159 @@ def start_server(
         Path(os.environ.get("PRJ_RUNTIME_DIR", ".run"))
         / "document-extract-perf-process-logs"
     )
-    return start_logged_process(command, log_dir=effective_log_dir, name=process_name)
+    worker_hosted_vlm_ocr_env = hosted_vlm_ocr_trace_env(
+        hosted_vlm_ocr_env,
+        log_dir=effective_log_dir,
+        process_name=process_name,
+    )
+    process_env = None
+    worker_env = {**worker_hosted_vlm_ocr_env, **(audio_worker_env or {})}
+    if worker_env:
+        process_env = os.environ.copy()
+        process_env.update(worker_env)
+    return start_logged_process(
+        command,
+        log_dir=effective_log_dir,
+        name=process_name,
+        env=process_env,
+    )
+
+
+def hosted_vlm_ocr_trace_env(
+    hosted_vlm_ocr_env: dict[str, str] | None,
+    *,
+    log_dir: Path | None,
+    process_name: str,
+) -> dict[str, str]:
+    env = dict(hosted_vlm_ocr_env or {})
+    if log_dir is not None:
+        env.setdefault(
+            HOSTED_VLM_OCR_TRACE_PATH_ENV,
+            str(log_dir / f"{process_name}.hosted-vlm-ocr.jsonl"),
+        )
+    return env
+
+
+def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
+    env = {}
+    mappings = {
+        "document_extract_converter_cache": "WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE",
+        "document_extract_prewarm_source_path": (
+            "WENDAO_DOCUMENT_EXTRACT_PREWARM_SOURCE_PATH"
+        ),
+        "hosted_vlm_ocr_provider": "WENDAO_HOSTED_VLM_OCR_PROVIDER",
+        "hosted_vlm_ocr_base_url": "WENDAO_HOSTED_VLM_OCR_BASE_URL",
+        "hosted_vlm_ocr_model": "WENDAO_HOSTED_VLM_OCR_MODEL",
+        "hosted_vlm_ocr_prompt": "WENDAO_HOSTED_VLM_OCR_PROMPT",
+        "hosted_vlm_ocr_max_tokens": "WENDAO_HOSTED_VLM_OCR_MAX_TOKENS",
+        "hosted_vlm_ocr_region_max_tokens": ("WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS"),
+        "hosted_vlm_ocr_region_composite_size": (
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"
+        ),
+        "hosted_vlm_ocr_region_atlas_mode": "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE",
+        "hosted_vlm_ocr_scaffold_mode": "WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE",
+        "hosted_vlm_ocr_image_optimization": (
+            "WENDAO_HOSTED_VLM_OCR_IMAGE_OPTIMIZATION"
+        ),
+        "hosted_vlm_ocr_timeout_seconds": "WENDAO_HOSTED_VLM_OCR_TIMEOUT_SECONDS",
+        "hosted_vlm_ocr_request_concurrency": (
+            "WENDAO_HOSTED_VLM_OCR_REQUEST_CONCURRENCY"
+        ),
+        "hosted_vlm_ocr_speculative_retry_delay_seconds": (
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS"
+        ),
+        "hosted_vlm_ocr_page_window_size": "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE",
+        "pdf_ocr_backend_text_page_fallback": (
+            "WENDAO_PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK"
+        ),
+        "pdf_ocr_backend_text_empty_page": "WENDAO_PDF_OCR_BACKEND_TEXT_EMPTY_PAGE",
+        "openrouter_model": "WENDAO_OPENROUTER_MODEL",
+        "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
+        "openrouter_title": "WENDAO_OPENROUTER_TITLE",
+    }
+    for attr, key in mappings.items():
+        value = getattr(args, attr, None)
+        if (
+            attr
+            in {
+                "document_extract_converter_cache",
+                "pdf_ocr_backend_text_page_fallback",
+                "pdf_ocr_backend_text_empty_page",
+            }
+            and value == "disabled"
+        ):
+            continue
+        if value is not None:
+            env[key] = str(value)
+    document_extract_prewarm_page_ranges = resolve_document_extract_prewarm_page_ranges(
+        args
+    )
+    if document_extract_prewarm_page_ranges is not None:
+        env["WENDAO_DOCUMENT_EXTRACT_PREWARM_PAGE_RANGES"] = (
+            document_extract_prewarm_page_ranges
+        )
+    document_extract_full_threads = resolve_document_extract_full_threads(args)
+    if document_extract_full_threads is not None:
+        env["WENDAO_DOCUMENT_EXTRACT_FULL_THREADS"] = str(document_extract_full_threads)
+    prewarm_profiles = getattr(args, "pdf_ocr_prewarm_profile", [])
+    if prewarm_profiles:
+        env["WENDAO_PDF_OCR_PREWARM_PROFILES"] = ",".join(
+            dict.fromkeys(str(profile) for profile in prewarm_profiles)
+        )
+    prewarm_source_path = getattr(args, "pdf_ocr_prewarm_source_path", None)
+    if prewarm_source_path:
+        env["WENDAO_PDF_OCR_PREWARM_SOURCE_PATH"] = str(prewarm_source_path)
+    prewarm_page_indices = getattr(args, "pdf_ocr_prewarm_page_indices", None)
+    if prewarm_page_indices:
+        env["WENDAO_PDF_OCR_PREWARM_PAGE_INDICES"] = str(prewarm_page_indices)
+    prewarm_page_index = getattr(args, "pdf_ocr_prewarm_page_index", None)
+    if prewarm_page_indices is None and prewarm_page_index is not None:
+        env["WENDAO_PDF_OCR_PREWARM_PAGE_INDEX"] = str(prewarm_page_index)
+    if (
+        env.get("WENDAO_HOSTED_VLM_OCR_PROVIDER") == "openrouter"
+        and "WENDAO_HOSTED_VLM_OCR_MODEL" not in env
+        and "WENDAO_OPENROUTER_MODEL" not in env
+    ):
+        env["WENDAO_OPENROUTER_MODEL"] = OPENROUTER_OCR_SMOKE_MODEL
+    if env.get("WENDAO_HOSTED_VLM_OCR_PROVIDER") == "openrouter":
+        forward_legacy_openrouter_api_key(env)
+    return env
+
+
+def audio_worker_process_env(args: object) -> dict[str, str]:
+    env = {}
+    mappings = {
+        "audio_hosted_provider": "WENDAO_AUDIO_HOSTED_PROVIDER",
+        "audio_hosted_base_url": "WENDAO_AUDIO_HOSTED_BASE_URL",
+        "audio_hosted_model": "WENDAO_AUDIO_HOSTED_MODEL",
+        "audio_hosted_api_key": "WENDAO_AUDIO_HOSTED_API_KEY",
+        "audio_hosted_timeout_seconds": "WENDAO_AUDIO_HOSTED_TIMEOUT_SECONDS",
+        "audio_hosted_request_concurrency": ("WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY"),
+    }
+    for attr, key in mappings.items():
+        value = getattr(args, attr, None)
+        if value is not None:
+            env[key] = str(value)
+    return env
+
+
+def forward_legacy_openrouter_api_key(env: dict[str, str]) -> None:
+    has_standard_key = any(
+        (env.get(key) or os.environ.get(key) or "").strip()
+        for key in OPENROUTER_STANDARD_API_KEY_ENVS
+    )
+    if has_standard_key:
+        return
+    legacy_key = os.environ.get(OPENROUTER_LEGACY_PUBLIC_API_KEY_ENV, "")
+    if not legacy_key.strip():
+        return
+    env[OPENROUTER_PUBLIC_API_KEY_ENV] = strip_wrapping_quotes(legacy_key.strip())
+
+
+def strip_wrapping_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
 
 
 def python_worker_command(

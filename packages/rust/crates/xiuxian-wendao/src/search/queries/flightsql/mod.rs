@@ -1,3 +1,5 @@
+//! `search::queries::flightsql` owns Wendao search queries flightsql behavior.
+
 #[path = "discovery/mod.rs"]
 mod discovery;
 mod execution;

@@ -2,9 +2,10 @@ pub(super) use std::fs;
 pub(super) use std::path::{Path, PathBuf};
 pub(super) use std::time::Duration;
 
+use crate::analyzers::ModuleRecord;
 pub(super) use crate::analyzers::{
-    ModuleRecord, RegisteredRepository, RepoIntelligenceError, RepositoryAnalysisOutput,
-    RepositoryPluginConfig, RepositoryRefreshPolicy, resolve_registered_repository_source,
+    RegisteredRepository, RepoIntelligenceError, RepositoryAnalysisOutput, RepositoryPluginConfig,
+    RepositoryRefreshPolicy, resolve_registered_repository_source,
 };
 pub(super) use crate::repo_index::state::collect::await_analysis_completion;
 pub(super) use crate::repo_index::state::fingerprint::{fingerprint, timestamp_now};
@@ -35,10 +36,10 @@ pub(super) fn repo_documents() -> Vec<RepoCodeDocument> {
 pub(super) fn repo_analysis_output(repo_id: &str) -> RepositoryAnalysisOutput {
     RepositoryAnalysisOutput {
         modules: vec![ModuleRecord {
-            repo_id: repo_id.to_string(),
-            module_id: "module:alpha".to_string(),
+            repo_id: repo_id.to_string().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     }

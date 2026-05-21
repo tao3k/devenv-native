@@ -1,3 +1,5 @@
+//! `analyzers::query::navigation` owns Wendao analyzers query navigation behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +12,7 @@ use crate::analyzers::projection::{
 
 /// Query for deterministic Stage-2 page-centric navigation around one stable projected page.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct RepoProjectedPageNavigationQuery {
     /// Repository identifier to project.
     pub repo_id: String,

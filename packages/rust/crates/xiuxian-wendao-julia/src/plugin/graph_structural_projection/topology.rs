@@ -13,6 +13,7 @@ use super::support::{
     graph_structural_projection_error, normalize_non_blank, normalize_pair_endpoint_ids,
     normalize_string_list,
 };
+use crate::JuliaContractKind;
 
 /// Raw generic explicit-edge topology inputs before score attachment.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,23 +25,56 @@ pub struct GraphStructuralGenericTopologyCandidateMetadataInputs {
     pub(super) edge_kinds: Vec<String>,
 }
 
+/// Named inputs for one explicit-edge topology metadata bundle.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraphStructuralGenericTopologyCandidateMetadataInput {
+    /// Stable candidate id.
+    pub candidate_id: String,
+    /// Candidate node ids.
+    pub node_ids: Vec<String>,
+    /// Candidate edge sources.
+    pub edge_sources: Vec<String>,
+    /// Candidate edge destinations.
+    pub edge_destinations: Vec<String>,
+    /// Candidate edge kinds.
+    pub edge_kinds: Vec<String>,
+}
+
 impl GraphStructuralGenericTopologyCandidateMetadataInputs {
     /// Store one generic explicit-edge topology metadata bundle.
     #[must_use]
-    pub fn new(
+    pub fn from_input(input: GraphStructuralGenericTopologyCandidateMetadataInput) -> Self {
+        let GraphStructuralGenericTopologyCandidateMetadataInput {
+            candidate_id,
+            node_ids,
+            edge_sources,
+            edge_destinations,
+            edge_kinds,
+        } = input;
+        Self {
+            candidate_id,
+            node_ids,
+            edge_sources,
+            edge_destinations,
+            edge_kinds,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new(
         candidate_id: impl Into<String>,
         node_ids: Vec<String>,
         edge_sources: Vec<String>,
         edge_destinations: Vec<String>,
         edge_kinds: Vec<String>,
     ) -> Self {
-        Self {
+        Self::from_input(GraphStructuralGenericTopologyCandidateMetadataInput {
             candidate_id: candidate_id.into(),
             node_ids,
             edge_sources,
             edge_destinations,
             edge_kinds,
-        }
+        })
     }
 }
 
@@ -50,19 +84,9 @@ impl GraphStructuralGenericTopologyCandidateMetadataInputs {
 /// constructing generic topology metadata DTOs.
 #[must_use]
 pub fn build_graph_structural_generic_topology_candidate_metadata_inputs(
-    candidate_id: impl Into<String>,
-    node_ids: Vec<String>,
-    edge_sources: Vec<String>,
-    edge_destinations: Vec<String>,
-    edge_kinds: Vec<String>,
+    input: GraphStructuralGenericTopologyCandidateMetadataInput,
 ) -> GraphStructuralGenericTopologyCandidateMetadataInputs {
-    GraphStructuralGenericTopologyCandidateMetadataInputs::new(
-        candidate_id,
-        node_ids,
-        edge_sources,
-        edge_destinations,
-        edge_kinds,
-    )
+    GraphStructuralGenericTopologyCandidateMetadataInputs::from_input(input)
 }
 
 /// Raw generic explicit-edge topology candidate inputs with staged plane
@@ -76,23 +100,56 @@ pub struct GraphStructuralGenericTopologyCandidateInputs {
     pub(super) tag_score: f64,
 }
 
+/// Named inputs for one explicit-edge topology candidate.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralGenericTopologyCandidateInput {
+    /// Explicit topology metadata.
+    pub metadata: GraphStructuralGenericTopologyCandidateMetadataInputs,
+    /// Semantic plane score.
+    pub semantic_score: f64,
+    /// Dependency plane score.
+    pub dependency_score: f64,
+    /// Keyword plane score.
+    pub keyword_score: f64,
+    /// Tag plane score.
+    pub tag_score: f64,
+}
+
 impl GraphStructuralGenericTopologyCandidateInputs {
     /// Store one generic explicit-edge topology candidate bundle.
     #[must_use]
-    pub fn new(
+    pub fn from_input(input: GraphStructuralGenericTopologyCandidateInput) -> Self {
+        let GraphStructuralGenericTopologyCandidateInput {
+            metadata,
+            semantic_score,
+            dependency_score,
+            keyword_score,
+            tag_score,
+        } = input;
+        Self {
+            metadata_inputs: metadata,
+            semantic_score,
+            dependency_score,
+            keyword_score,
+            tag_score,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new(
         metadata_inputs: GraphStructuralGenericTopologyCandidateMetadataInputs,
         semantic_score: f64,
         dependency_score: f64,
         keyword_score: f64,
         tag_score: f64,
     ) -> Self {
-        Self {
-            metadata_inputs,
+        Self::from_input(GraphStructuralGenericTopologyCandidateInput {
+            metadata: metadata_inputs,
             semantic_score,
             dependency_score,
             keyword_score,
             tag_score,
-        }
+        })
     }
 }
 
@@ -103,19 +160,9 @@ impl GraphStructuralGenericTopologyCandidateInputs {
 /// constructing generic topology candidate DTOs.
 #[must_use]
 pub fn build_graph_structural_generic_topology_candidate_inputs(
-    metadata_inputs: GraphStructuralGenericTopologyCandidateMetadataInputs,
-    semantic_score: f64,
-    dependency_score: f64,
-    keyword_score: f64,
-    tag_score: f64,
+    input: GraphStructuralGenericTopologyCandidateInput,
 ) -> GraphStructuralGenericTopologyCandidateInputs {
-    GraphStructuralGenericTopologyCandidateInputs::new(
-        metadata_inputs,
-        semantic_score,
-        dependency_score,
-        keyword_score,
-        tag_score,
-    )
+    GraphStructuralGenericTopologyCandidateInputs::from_input(input)
 }
 
 /// Build one generic explicit-edge topology metadata bundle from a staged pair
@@ -143,45 +190,128 @@ pub fn build_graph_structural_generic_topology_candidate_metadata_inputs_from_pa
     }
     let fallback_edge_kind = normalize_non_blank(fallback_edge_kind.into(), "fallback edge kind")?;
 
-    let mut node_ids = Vec::new();
-    let mut seen_nodes = HashSet::new();
-    let mut edge_sources = Vec::new();
-    let mut edge_destinations = Vec::new();
-    let mut edge_kinds = Vec::new();
-    let mut seen_edges = HashSet::new();
+    let mut accumulator = PairCollectionTopologyAccumulator::default();
 
     for pair in pair_candidates {
-        let (left_id, right_id) = normalize_pair_endpoint_ids(pair.left_id, pair.right_id)?;
-        if seen_nodes.insert(left_id.clone()) {
-            node_ids.push(left_id.clone());
-        }
-        if seen_nodes.insert(right_id.clone()) {
-            node_ids.push(right_id.clone());
-        }
-
-        let normalized_edge_kinds = if pair.edge_kinds.is_empty() {
-            vec![fallback_edge_kind.clone()]
-        } else {
-            normalize_string_list(pair.edge_kinds, "pair edge kinds", false)?
-        };
-
-        for edge_kind in normalized_edge_kinds {
-            let edge_key = (left_id.clone(), right_id.clone(), edge_kind.clone());
-            if seen_edges.insert(edge_key) {
-                edge_sources.push(left_id.clone());
-                edge_destinations.push(right_id.clone());
-                edge_kinds.push(edge_kind);
-            }
-        }
+        accumulator.push_pair(pair, &fallback_edge_kind)?;
     }
 
-    Ok(GraphStructuralGenericTopologyCandidateMetadataInputs::new(
-        candidate_id,
-        node_ids,
-        edge_sources,
-        edge_destinations,
-        edge_kinds,
-    ))
+    Ok(accumulator.into_metadata_inputs(candidate_id))
+}
+
+#[derive(Debug, Default)]
+struct PairCollectionTopologyAccumulator {
+    node_ids: Vec<String>,
+    seen_nodes: HashSet<String>,
+    edge_sources: Vec<String>,
+    edge_destinations: Vec<String>,
+    edge_kinds: Vec<String>,
+    seen_edges: HashSet<(String, String, String)>,
+}
+
+impl PairCollectionTopologyAccumulator {
+    fn push_pair(
+        &mut self,
+        pair: GraphStructuralPairCandidateInputs,
+        fallback_edge_kind: &str,
+    ) -> Result<(), RepoIntelligenceError> {
+        let (left_id, right_id) = normalize_pair_endpoint_ids(pair.left_id, pair.right_id)?;
+        push_unique_pair_nodes(
+            &left_id,
+            &right_id,
+            &mut self.node_ids,
+            &mut self.seen_nodes,
+        );
+        let normalized_edge_kinds =
+            normalize_pair_collection_edge_kinds(pair.edge_kinds, fallback_edge_kind)?;
+        push_unique_pair_edges(
+            &left_id,
+            &right_id,
+            normalized_edge_kinds,
+            &mut self.edge_sources,
+            &mut self.edge_destinations,
+            &mut self.edge_kinds,
+            &mut self.seen_edges,
+        );
+        Ok(())
+    }
+
+    fn into_metadata_inputs(
+        self,
+        candidate_id: String,
+    ) -> GraphStructuralGenericTopologyCandidateMetadataInputs {
+        GraphStructuralGenericTopologyCandidateMetadataInputs::from_input(
+            GraphStructuralGenericTopologyCandidateMetadataInput {
+                candidate_id,
+                node_ids: self.node_ids,
+                edge_sources: self.edge_sources,
+                edge_destinations: self.edge_destinations,
+                edge_kinds: self.edge_kinds,
+            },
+        )
+    }
+}
+
+fn push_unique_pair_nodes(
+    left_id: &str,
+    right_id: &str,
+    node_ids: &mut Vec<String>,
+    seen_nodes: &mut HashSet<String>,
+) {
+    if seen_nodes.insert(left_id.to_string()) {
+        node_ids.push(left_id.to_string());
+    }
+    if seen_nodes.insert(right_id.to_string()) {
+        node_ids.push(right_id.to_string());
+    }
+}
+
+fn normalize_pair_collection_edge_kinds(
+    edge_kinds: Vec<String>,
+    fallback_edge_kind: &str,
+) -> Result<Vec<String>, RepoIntelligenceError> {
+    if edge_kinds.is_empty() {
+        return Ok(vec![fallback_edge_kind.to_string()]);
+    }
+    normalize_string_list(edge_kinds, "pair edge kinds", false)
+}
+
+fn push_unique_pair_edges(
+    left_id: &str,
+    right_id: &str,
+    normalized_edge_kinds: Vec<String>,
+    edge_sources: &mut Vec<String>,
+    edge_destinations: &mut Vec<String>,
+    edge_kinds: &mut Vec<String>,
+    seen_edges: &mut HashSet<(String, String, String)>,
+) {
+    for edge_kind in normalized_edge_kinds {
+        let edge_key = (left_id.to_string(), right_id.to_string(), edge_kind.clone());
+        if seen_edges.insert(edge_key) {
+            edge_sources.push(left_id.to_string());
+            edge_destinations.push(right_id.to_string());
+            edge_kinds.push(edge_kind);
+        }
+    }
+}
+
+/// Named inputs for one generic-topology candidate built from a pair collection.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralGenericTopologyPairCollectionInput {
+    /// Stable candidate id for the aggregated topology.
+    pub candidate_id: String,
+    /// Pair candidates to aggregate.
+    pub pair_candidates: Vec<GraphStructuralPairCandidateInputs>,
+    /// Edge kind used when a pair has no explicit edge kind.
+    pub fallback_edge_kind: JuliaContractKind,
+    /// Semantic plane score.
+    pub semantic_score: f64,
+    /// Dependency plane score.
+    pub dependency_score: f64,
+    /// Keyword plane score.
+    pub keyword_score: f64,
+    /// Tag plane score.
+    pub tag_score: f64,
 }
 
 /// Build one generic explicit-edge topology candidate bundle from a staged
@@ -192,25 +322,39 @@ pub fn build_graph_structural_generic_topology_candidate_metadata_inputs_from_pa
 /// Returns [`RepoIntelligenceError`] when the pair-collection topology cannot
 /// be normalized into the bounded generic-topology request shape.
 pub fn build_graph_structural_generic_topology_candidate_inputs_from_pair_collection(
-    candidate_id: impl Into<String>,
-    pair_candidates: Vec<GraphStructuralPairCandidateInputs>,
-    fallback_edge_kind: impl Into<String>,
-    semantic_score: f64,
-    dependency_score: f64,
-    keyword_score: f64,
-    tag_score: f64,
+    input: GraphStructuralGenericTopologyPairCollectionInput,
 ) -> Result<GraphStructuralGenericTopologyCandidateInputs, RepoIntelligenceError> {
     Ok(build_graph_structural_generic_topology_candidate_inputs(
-        build_graph_structural_generic_topology_candidate_metadata_inputs_from_pair_collection(
-            candidate_id,
-            pair_candidates,
-            fallback_edge_kind,
-        )?,
-        semantic_score,
-        dependency_score,
-        keyword_score,
-        tag_score,
+        GraphStructuralGenericTopologyCandidateInput {
+            metadata:
+                build_graph_structural_generic_topology_candidate_metadata_inputs_from_pair_collection(
+                    input.candidate_id,
+                    input.pair_candidates,
+                    input.fallback_edge_kind.into_string(),
+                )?,
+            semantic_score: input.semantic_score,
+            dependency_score: input.dependency_score,
+            keyword_score: input.keyword_score,
+            tag_score: input.tag_score,
+        },
     ))
+}
+
+/// Named inputs for one generic-topology candidate built from scored pairs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralScoredPairCollectionCandidateInput {
+    /// Stable candidate id for the aggregated topology.
+    pub candidate_id: String,
+    /// Scored pair candidates to aggregate.
+    pub pair_candidates: Vec<GraphStructuralScoredPairCandidateInputs>,
+    /// Edge kind used when a pair has no explicit edge kind.
+    pub fallback_edge_kind: JuliaContractKind,
+    /// Dependency plane score.
+    pub dependency_score: f64,
+    /// Keyword plane score.
+    pub keyword_score: f64,
+    /// Tag plane score.
+    pub tag_score: f64,
 }
 
 /// Build one generic explicit-edge topology candidate bundle from a scored pair
@@ -226,13 +370,16 @@ pub fn build_graph_structural_generic_topology_candidate_inputs_from_pair_collec
 /// pair-collection topology cannot be normalized into the bounded
 /// generic-topology request shape.
 pub fn build_graph_structural_generic_topology_candidate_inputs_from_scored_pair_collection(
-    candidate_id: impl Into<String>,
-    pair_candidates: Vec<GraphStructuralScoredPairCandidateInputs>,
-    fallback_edge_kind: impl Into<String>,
-    dependency_score: f64,
-    keyword_score: f64,
-    tag_score: f64,
+    input: GraphStructuralScoredPairCollectionCandidateInput,
 ) -> Result<GraphStructuralGenericTopologyCandidateInputs, RepoIntelligenceError> {
+    let GraphStructuralScoredPairCollectionCandidateInput {
+        candidate_id,
+        pair_candidates,
+        fallback_edge_kind,
+        dependency_score,
+        keyword_score,
+        tag_score,
+    } = input;
     if pair_candidates.is_empty() {
         return Err(graph_structural_projection_error(
             "generic topology scored pair collection must contain at least one pair",
@@ -255,14 +402,33 @@ pub fn build_graph_structural_generic_topology_candidate_inputs_from_scored_pair
         .collect::<Vec<_>>();
 
     build_graph_structural_generic_topology_candidate_inputs_from_pair_collection(
-        candidate_id,
-        pair_candidates,
-        fallback_edge_kind,
-        semantic_score,
-        dependency_score,
-        keyword_score,
-        tag_score,
+        GraphStructuralGenericTopologyPairCollectionInput {
+            candidate_id,
+            pair_candidates,
+            fallback_edge_kind,
+            semantic_score,
+            dependency_score,
+            keyword_score,
+            tag_score,
+        },
     )
+}
+
+/// Named inputs for one generic-topology candidate built from raw connected pairs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralRawConnectedPairCandidateInput {
+    /// Stable candidate id for the aggregated topology.
+    pub candidate_id: String,
+    /// Raw connected pairs to aggregate.
+    pub pair_candidates: Vec<GraphStructuralRawConnectedPairInputs>,
+    /// Edge kind used when a pair has no explicit edge kind.
+    pub fallback_edge_kind: JuliaContractKind,
+    /// Dependency plane score.
+    pub dependency_score: f64,
+    /// Keyword plane score.
+    pub keyword_score: f64,
+    /// Tag plane score.
+    pub tag_score: f64,
 }
 
 /// Build one generic explicit-edge topology candidate bundle from a raw
@@ -278,13 +444,16 @@ pub fn build_graph_structural_generic_topology_candidate_inputs_from_scored_pair
 /// any connected pair is invalid, or the staged pair-collection topology
 /// cannot be normalized into the bounded generic-topology request shape.
 pub fn build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs(
-    candidate_id: impl Into<String>,
-    pair_candidates: Vec<GraphStructuralRawConnectedPairInputs>,
-    fallback_edge_kind: impl Into<String>,
-    dependency_score: f64,
-    keyword_score: f64,
-    tag_score: f64,
+    input: GraphStructuralRawConnectedPairCandidateInput,
 ) -> Result<GraphStructuralGenericTopologyCandidateInputs, RepoIntelligenceError> {
+    let GraphStructuralRawConnectedPairCandidateInput {
+        candidate_id,
+        pair_candidates,
+        fallback_edge_kind,
+        dependency_score,
+        keyword_score,
+        tag_score,
+    } = input;
     let pair_candidates = pair_candidates
         .into_iter()
         .map(|pair| {
@@ -298,12 +467,14 @@ pub fn build_graph_structural_generic_topology_candidate_inputs_from_raw_connect
         .collect::<Result<Vec<_>, _>>()?;
 
     build_graph_structural_generic_topology_candidate_inputs_from_scored_pair_collection(
-        candidate_id,
-        pair_candidates,
-        fallback_edge_kind,
-        dependency_score,
-        keyword_score,
-        tag_score,
+        GraphStructuralScoredPairCollectionCandidateInput {
+            candidate_id,
+            pair_candidates,
+            fallback_edge_kind,
+            dependency_score,
+            keyword_score,
+            tag_score,
+        },
     )
 }
 
@@ -321,21 +492,14 @@ pub struct GraphStructuralRawConnectedPairCollectionCandidateInputs {
 impl GraphStructuralRawConnectedPairCollectionCandidateInputs {
     /// Store one raw connected-pair collection bundle for later normalization.
     #[must_use]
-    pub fn new(
-        candidate_id: impl Into<String>,
-        pair_candidates: Vec<GraphStructuralRawConnectedPairInputs>,
-        fallback_edge_kind: impl Into<String>,
-        dependency_score: f64,
-        keyword_score: f64,
-        tag_score: f64,
-    ) -> Self {
+    pub fn new(input: GraphStructuralRawConnectedPairCandidateInput) -> Self {
         Self {
-            candidate_id: candidate_id.into(),
-            pair_candidates,
-            fallback_edge_kind: fallback_edge_kind.into(),
-            dependency_score,
-            keyword_score,
-            tag_score,
+            candidate_id: input.candidate_id,
+            pair_candidates: input.pair_candidates,
+            fallback_edge_kind: input.fallback_edge_kind.into_string(),
+            dependency_score: input.dependency_score,
+            keyword_score: input.keyword_score,
+            tag_score: input.tag_score,
         }
     }
 }
@@ -344,21 +508,26 @@ impl GraphStructuralRawConnectedPairCollectionCandidateInputs {
 /// fields.
 #[must_use]
 pub fn build_graph_structural_raw_connected_pair_collection_candidate_inputs(
-    candidate_id: impl Into<String>,
-    pair_candidates: Vec<GraphStructuralRawConnectedPairInputs>,
-    fallback_edge_kind: impl Into<String>,
-    dependency_score: f64,
-    keyword_score: f64,
-    tag_score: f64,
+    input: GraphStructuralRawConnectedPairCandidateInput,
 ) -> GraphStructuralRawConnectedPairCollectionCandidateInputs {
-    GraphStructuralRawConnectedPairCollectionCandidateInputs::new(
-        candidate_id,
-        pair_candidates,
-        fallback_edge_kind,
-        dependency_score,
-        keyword_score,
-        tag_score,
-    )
+    GraphStructuralRawConnectedPairCollectionCandidateInputs::new(input)
+}
+
+/// Named raw tuple inputs for one raw connected-pair collection.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphStructuralRawConnectedPairCollectionRawTupleInput<I> {
+    /// Stable candidate id for the aggregated topology.
+    pub candidate_id: String,
+    /// Raw pair tuples to normalize.
+    pub pair_candidates: I,
+    /// Edge kind used when a pair has no explicit edge kind.
+    pub fallback_edge_kind: JuliaContractKind,
+    /// Dependency plane score.
+    pub dependency_score: f64,
+    /// Keyword plane score.
+    pub keyword_score: f64,
+    /// Tag plane score.
+    pub tag_score: f64,
 }
 
 /// Build one raw connected-pair collection bundle from raw tuple fields.
@@ -376,19 +545,15 @@ pub fn build_graph_structural_raw_connected_pair_collection_candidate_inputs_fro
     L,
     R,
 >(
-    candidate_id: impl Into<String>,
-    pair_candidates: I,
-    fallback_edge_kind: impl Into<String>,
-    dependency_score: f64,
-    keyword_score: f64,
-    tag_score: f64,
+    input: GraphStructuralRawConnectedPairCollectionRawTupleInput<I>,
 ) -> Result<GraphStructuralRawConnectedPairCollectionCandidateInputs, RepoIntelligenceError>
 where
     I: IntoIterator<Item = (L, R, f64)>,
     L: Into<String>,
     R: Into<String>,
 {
-    let pair_candidates = pair_candidates
+    let pair_candidates = input
+        .pair_candidates
         .into_iter()
         .map(|(left_id, right_id, semantic_score)| {
             build_graph_structural_raw_connected_pair_inputs(left_id, right_id, semantic_score)
@@ -397,12 +562,14 @@ where
 
     Ok(
         build_graph_structural_raw_connected_pair_collection_candidate_inputs(
-            candidate_id,
-            pair_candidates,
-            fallback_edge_kind,
-            dependency_score,
-            keyword_score,
-            tag_score,
+            GraphStructuralRawConnectedPairCandidateInput {
+                candidate_id: input.candidate_id,
+                pair_candidates,
+                fallback_edge_kind: input.fallback_edge_kind,
+                dependency_score: input.dependency_score,
+                keyword_score: input.keyword_score,
+                tag_score: input.tag_score,
+            },
         ),
     )
 }

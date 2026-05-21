@@ -1,3 +1,5 @@
+//! Owns the Studio studio router repository surface.
+
 use crate::studio::pathing;
 use std::collections::HashSet;
 use xiuxian_wendao::analyzers::{
@@ -12,7 +14,7 @@ use super::state::StudioState;
 /// # Errors
 ///
 /// Returns an error when no configured repository matches `repo_id`.
-pub fn configured_repository(
+pub(crate) fn configured_repository(
     studio: &StudioState,
     repo_id: &str,
 ) -> Result<RegisteredRepository, RepoIntelligenceError> {
@@ -24,12 +26,12 @@ pub fn configured_repository(
             .into_iter()
             .find(|repository| repository.id.eq_ignore_ascii_case(resolved_id))
             .ok_or_else(|| RepoIntelligenceError::UnknownRepository {
-                repo_id: resolved_id.to_string(),
+                repo_id: resolved_id.to_string().into(),
             });
     }
 
     Err(RepoIntelligenceError::UnknownRepository {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
     })
 }
 

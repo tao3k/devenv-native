@@ -1,3 +1,5 @@
+//! Coordinates the Studio search handlers references branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 mod batch;
 mod response;
 

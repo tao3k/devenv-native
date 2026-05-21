@@ -1,3 +1,5 @@
+//! `search::attachment` owns Wendao search attachment behavior.
+
 #[path = "build/mod.rs"]
 mod build;
 #[path = "query/mod.rs"]

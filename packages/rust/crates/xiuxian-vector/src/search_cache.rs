@@ -99,6 +99,9 @@ fn get_cache() -> &'static Mutex<SearchResultCache> {
 }
 
 /// Get cached search results if present and not expired.
+///
+/// Positional boundary: cache lookups keep the query key components visible
+/// to existing search call sites instead of hiding them behind serialized state.
 #[must_use]
 pub fn get_cached(
     path: &str,
@@ -112,6 +115,9 @@ pub fn get_cached(
 }
 
 /// Store search results in cache.
+///
+/// Positional boundary: cache writes mirror [`get_cached`] so callers can
+/// pass the same query key components without constructing an intermediate key.
 pub fn set_cached(
     path: &str,
     table: &str,

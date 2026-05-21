@@ -1,3 +1,5 @@
+//! `parsers::markdown::paths` owns Wendao parsers markdown paths behavior.
+
 use std::path::Path;
 
 pub(in crate::parsers::markdown) fn normalize_slashes(raw: &str) -> String {

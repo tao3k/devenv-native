@@ -13,8 +13,9 @@ mod source_index;
 #[path = "support.rs"]
 mod support;
 
+pub use definition::DefinitionResolveOptions;
+pub(crate) use definition::resolve_best_definition;
 pub(crate) use definition::resolve_definition_candidates;
-pub use definition::{DefinitionResolveOptions, resolve_best_definition};
 pub use handlers::{build_symbol_index, search_index_status};
 pub(crate) use project_scope::project_metadata_for_path;
 pub(crate) use source_index::build_symbol_index_from_ast_hits;

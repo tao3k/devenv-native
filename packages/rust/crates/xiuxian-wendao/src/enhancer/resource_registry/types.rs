@@ -1,3 +1,5 @@
+//! `enhancer::resource_registry::types` owns Wendao enhancer resource registry types behavior.
+
 use std::collections::HashMap;
 
 use crate::enhancer::markdown_config::{MarkdownConfigBlock, MarkdownConfigMemoryIndex};
@@ -6,6 +8,7 @@ use thiserror::Error;
 
 /// One normalized config link target with optional explicit reference category.
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct WendaoResourceLinkTarget {
     /// Normalized target path or semantic URI.
     pub target_path: String,
@@ -15,6 +18,7 @@ pub struct WendaoResourceLinkTarget {
 
 /// One unresolved link edge found during embedded-registry validation.
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct MissingEmbeddedLink {
     /// Markdown source file path inside embedded resources.
     pub source_path: String,
@@ -60,6 +64,7 @@ impl WendaoResourceFile {
 
     /// Returns all linked targets for one config `id`.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn links_for_id(&self, id: &str) -> Option<&[String]> {
         self.links_by_id.get(id).map(Vec::as_slice)
     }
@@ -78,6 +83,7 @@ impl WendaoResourceFile {
 
     /// Returns link targets for one config `id` including optional explicit reference categories.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn link_targets_for_id(&self, id: &str) -> Option<&[WendaoResourceLinkTarget]> {
         self.link_targets_by_id.get(id).map(Vec::as_slice)
     }
@@ -122,6 +128,7 @@ impl WendaoResourceRegistry {
 
     /// O(1) config block lookup by exact `id`.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get(&self, id: &str) -> Option<&MarkdownConfigBlock> {
         self.config_index.get(id)
     }

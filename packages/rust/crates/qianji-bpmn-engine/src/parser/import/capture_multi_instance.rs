@@ -25,8 +25,8 @@ pub(in crate::parser::import) fn apply_multi_instance_loop_cardinality(
         } else {
             Some(trimmed.parse::<u32>().map_err(|_| {
                 BpmnEngineError::UnsupportedLoopConfiguration {
-                    process_id,
-                    node_id,
+                    process_id: process_id.into(),
+                    node_id: node_id.into(),
                     detail: "invalid_loop_cardinality",
                 }
             })?)
@@ -117,8 +117,8 @@ pub(in crate::parser::import) fn apply_multi_instance_input_data_item(
         .to_string();
     if input_data_item.is_empty() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "invalid_input_data_item",
         });
     }
@@ -152,8 +152,8 @@ pub(in crate::parser::import) fn apply_multi_instance_output_data_item(
         .to_string();
     if output_data_item.is_empty() {
         return Err(BpmnEngineError::UnsupportedLoopConfiguration {
-            process_id,
-            node_id: node.bpmn_id.clone(),
+            process_id: process_id.into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "invalid_output_data_item",
         });
     }
@@ -182,7 +182,7 @@ fn multi_instance_data_item_identifier(
     attribute_value(reader, event, "id")?
         .or_else(|| attribute_value(reader, event, "name").ok().flatten())
         .ok_or_else(|| BpmnEngineError::MissingAttribute {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             element: tag.to_string(),
             attribute: "id".to_string(),
         })

@@ -82,13 +82,14 @@ mod two_phase;
 // ============================================================================
 
 pub use encoder::IntentEncoder;
-pub use episode::Episode;
+pub use episode::{Episode, EpisodeDraft, EpisodeId};
 pub use gate::{
-    MemoryGateDecision, MemoryGateEvent, MemoryGatePolicy, MemoryGateVerdict, MemoryLifecycleState,
-    MemoryPromotionTarget, MemoryUtilityLedger,
+    MemoryGateDecision, MemoryGateEvent, MemoryGateEventInput, MemoryGateMemoryId,
+    MemoryGatePolicy, MemoryGateSessionId, MemoryGateTurnId, MemoryGateVerdict,
+    MemoryLifecycleState, MemoryPromotionTarget, MemoryUtilityLedger,
 };
-pub use projection::{MemoryProjectionFilter, MemoryProjectionRow};
-pub use q_table::QTable;
+pub use projection::{MemoryProjectionFilter, MemoryProjectionRow, MemoryProjectionTimestampMs};
+pub use q_table::{QTable, QTablePersistenceError};
 pub use recall_feedback::{
     RecallFeedbackOutcome, RecallPlanTuning, apply_feedback_to_plan_tuning,
     normalize_feedback_bias, update_feedback_bias,
@@ -97,8 +98,12 @@ pub use schema::EpisodeMetadata;
 #[cfg(feature = "valkey")]
 pub use state_backend::ValkeyMemoryStateStore;
 pub use state_backend::{
-    LocalMemoryStateStore, MemoryStateStore, default_valkey_recall_feedback_hash_key,
-    default_valkey_state_hash_keys, default_valkey_state_key,
+    LocalMemoryStateStore, MemoryStateStore, ValkeyStateHashKeys,
+    default_valkey_recall_feedback_hash_key, default_valkey_state_hash_keys,
+    default_valkey_state_key,
 };
-pub use store::{EpisodeStore, MemoryStateSnapshot, StoreConfig};
-pub use two_phase::{TwoPhaseConfig, TwoPhaseSearch, calculate_score};
+pub use store::{
+    EpisodeStore, MemoryStateSnapshot, ScopedTwoPhaseEmbeddingRecallRequest,
+    ScopedTwoPhaseRecallRequest, StoreConfig,
+};
+pub use two_phase::{TwoPhaseConfig, TwoPhaseSearch, TwoPhaseSearchRequest, calculate_score};

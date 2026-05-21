@@ -1,4 +1,4 @@
-use super::{Episode, TestResult, test_store};
+use super::{Episode, EpisodeDraft, TestResult, test_store};
 
 #[test]
 fn test_multi_hop_recall() -> TestResult {
@@ -13,13 +13,14 @@ fn test_multi_hop_recall() -> TestResult {
     ];
 
     for (i, (intent, exp, outcome)) in episodes.iter().enumerate() {
-        let ep = Episode::new(
-            format!("ep-{i}"),
-            intent.to_string(),
-            store.encoder().encode(intent),
-            exp.to_string(),
-            outcome.to_string(),
-        );
+        let ep = Episode::new(EpisodeDraft {
+            id: (format!("ep-{i}")).into(),
+            intent: intent.to_string(),
+            intent_embedding: store.encoder().encode(intent),
+            experience: exp.to_string(),
+            outcome: outcome.to_string(),
+            scope: None,
+        });
         store.store(ep)?;
     }
 
@@ -53,13 +54,14 @@ fn test_multi_hop_recall_with_embeddings() -> TestResult {
     ];
 
     for (i, (intent, exp)) in episodes.iter().enumerate() {
-        let ep = Episode::new(
-            format!("ep-{i}"),
-            intent.to_string(),
-            encoder.encode(intent),
-            exp.to_string(),
-            "success".to_string(),
-        );
+        let ep = Episode::new(EpisodeDraft {
+            id: (format!("ep-{i}")).into(),
+            intent: intent.to_string(),
+            intent_embedding: encoder.encode(intent),
+            experience: exp.to_string(),
+            outcome: "success".to_string(),
+            scope: None,
+        });
         store.store(ep)?;
     }
 

@@ -1,15 +1,19 @@
 use std::sync::{Mutex, MutexGuard};
 
-use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
+use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, is_hosted_vlm_direct_profile};
+use xiuxian_wendao_attachments::polyglot::{
+    pdf_ocr_shard_pressure_evidence, pdf_ocr_shard_schedule_plan,
+    pdf_ocr_source_range_shard_schedule_plan,
+};
 
-use super::scheduler::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
+use super::DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS_ENV;
 
 const HEALTHY_STREAK_BEFORE_INCREASE: usize = 2;
 const PRESSURE_LATENCY_MS: u64 = 60_000;
 const PRESSURE_QUEUE_WAIT_MS: u64 = 15_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum OcrSchedulerLane {
+pub(crate) enum OcrSchedulerLane {
     SourcePdfPageRange,
     RenderedPage,
     RenderedRegion,
@@ -76,20 +80,23 @@ impl OcrCapacityController {
         source_range_override: Option<usize>,
     ) -> usize {
         let snapshot = self.snapshot();
-        let shard_count = shard_count.max(1);
-        let worker_budget = snapshot
-            .current_worker_budget
-            .min(snapshot.max_worker_bound)
-            .min(shard_count)
-            .max(1);
         match lane {
-            OcrSchedulerLane::SourcePdfPageRange => source_pdf_page_range_worker_target(
+            OcrSchedulerLane::SourcePdfPageRange => scheduled_source_range_worker_budget(
                 shard_count,
-                worker_budget,
+                snapshot.current_worker_budget,
                 snapshot.max_worker_bound,
                 source_range_override,
             ),
-            OcrSchedulerLane::RenderedPage | OcrSchedulerLane::RenderedRegion => worker_budget,
+            OcrSchedulerLane::RenderedPage => scheduled_ocr_worker_budget(
+                shard_count,
+                snapshot.current_worker_budget,
+                snapshot.max_worker_bound,
+            ),
+            OcrSchedulerLane::RenderedRegion => scheduled_region_worker_budget(
+                shard_count,
+                snapshot.current_worker_budget,
+                snapshot.max_worker_bound,
+            ),
         }
     }
 
@@ -144,7 +151,7 @@ impl OcrCapacityController {
 }
 
 pub(super) fn classify_ocr_lane(inputs: &[PdfOcrShardInput]) -> OcrSchedulerLane {
-    if is_contiguous_source_pdf_page_range(inputs) {
+    if is_source_pdf_page_range_batch(inputs) {
         return OcrSchedulerLane::SourcePdfPageRange;
     }
     if inputs.iter().any(|input| input.shard_type == "region") {
@@ -160,21 +167,39 @@ pub(super) fn source_range_override_from_environment() -> Option<usize> {
         .filter(|value| *value > 0)
 }
 
+#[cfg(test)]
 pub(super) fn is_contiguous_source_pdf_page_range(inputs: &[PdfOcrShardInput]) -> bool {
     let Some(first) = inputs.first() else {
         return false;
     };
-    if !first.source_path.to_ascii_lowercase().ends_with(".pdf") {
+    if !is_source_pdf_page_range_batch(inputs) {
         return false;
     }
     inputs.iter().enumerate().all(|(offset, input)| {
-        input.source_path == first.source_path
-            && input.shard_type == "page"
-            && input.page_index == first.page_index + u32::try_from(offset).unwrap_or(u32::MAX)
+        input.page_index == first.page_index + u32::try_from(offset).unwrap_or(u32::MAX)
     })
 }
 
-fn source_pdf_page_range_worker_target(
+pub(super) fn is_source_pdf_page_range_batch(inputs: &[PdfOcrShardInput]) -> bool {
+    let Some(first) = inputs.first() else {
+        return false;
+    };
+    if !is_source_pdf_page_input(first, first.source_path.as_str()) {
+        return false;
+    }
+    inputs
+        .iter()
+        .all(|input| is_source_pdf_page_input(input, first.source_path.as_str()))
+}
+
+fn is_source_pdf_page_input(input: &PdfOcrShardInput, source_path: &str) -> bool {
+    input.source_path == source_path
+        && input.shard_type == "page"
+        && !is_hosted_vlm_direct_profile(input.ocr_profile.as_str())
+        && input.source_path.to_ascii_lowercase().ends_with(".pdf")
+}
+
+fn scheduled_source_range_worker_budget(
     shard_count: usize,
     current_worker_budget: usize,
     max_worker_bound: usize,
@@ -183,25 +208,72 @@ fn source_pdf_page_range_worker_target(
     let shard_count = shard_count.max(1);
     let current_worker_budget = current_worker_budget.max(1);
     let max_worker_bound = max_worker_bound.max(1);
-    if let Some(limit) = source_range_override {
-        return limit
-            .min(max_worker_bound)
-            .min(current_worker_budget)
-            .min(shard_count)
-            .max(1);
-    }
-    let machine_budget = source_pdf_page_range_machine_ceiling(max_worker_bound);
-    let page_budget = shard_count.div_ceil(6);
-    current_worker_budget
-        .min(machine_budget)
-        .min(page_budget.max(1))
-        .min(max_worker_bound)
-        .min(shard_count)
+    let pressure = pdf_ocr_shard_pressure_evidence(
+        Some(saturating_usize_to_u32(max_worker_bound)),
+        0,
+        0,
+        0,
+        0,
+        0,
+        false,
+    );
+    let plan = pdf_ocr_source_range_shard_schedule_plan(
+        pressure,
+        Some(saturating_usize_to_u32(current_worker_budget)),
+        source_range_override.map(saturating_usize_to_u32),
+        Some(saturating_usize_to_u32(max_worker_bound)),
+        saturating_usize_to_u32(shard_count),
+    );
+    usize::try_from(plan.recommended_workers)
+        .unwrap_or(usize::MAX)
         .max(1)
 }
 
-fn source_pdf_page_range_machine_ceiling(max_worker_bound: usize) -> usize {
-    ceil_sqrt_usize(max_worker_bound.max(1)).max(1)
+fn scheduled_ocr_worker_budget(
+    shard_count: usize,
+    requested_workers: usize,
+    max_worker_bound: usize,
+) -> usize {
+    let shard_count = shard_count.max(1);
+    let requested_workers = requested_workers.max(1);
+    let max_worker_bound = max_worker_bound.max(1);
+    let pressure = pdf_ocr_shard_pressure_evidence(
+        Some(saturating_usize_to_u32(max_worker_bound)),
+        0,
+        0,
+        0,
+        0,
+        0,
+        false,
+    );
+    let plan = pdf_ocr_shard_schedule_plan(
+        pressure,
+        Some(saturating_usize_to_u32(requested_workers)),
+        Some(saturating_usize_to_u32(max_worker_bound)),
+        saturating_usize_to_u32(shard_count),
+    );
+    usize::try_from(plan.recommended_workers)
+        .unwrap_or(usize::MAX)
+        .max(1)
+}
+
+fn scheduled_region_worker_budget(
+    shard_count: usize,
+    current_worker_budget: usize,
+    max_worker_bound: usize,
+) -> usize {
+    let shard_count = shard_count.max(1);
+    let current_worker_budget = current_worker_budget.max(1);
+    let max_worker_bound = max_worker_bound.max(1);
+    current_worker_budget
+        .saturating_add(ceil_sqrt_usize(shard_count))
+        .min(shard_count)
+        .min(max_worker_bound)
+        .max(1)
+}
+
+fn saturating_usize_to_u32(value: usize) -> u32 {
+    u32::try_from(value).unwrap_or(u32::MAX)
 }
 
 fn initial_worker_budget(max_worker_bound: usize) -> usize {

@@ -10,6 +10,25 @@ use super::PluginArrowProviderIdRef;
 use super::metadata::{attach_plugin_arrow_request_metadata, plugin_arrow_request_trace_id};
 use super::request::{PluginArrowRequestRow, build_plugin_arrow_request_batch};
 
+/// Inputs used to build a metadata-bearing request batch from vector-store rows.
+#[derive(Clone, Copy)]
+pub struct PluginArrowVectorStoreRequestBatchInput<'a, I> {
+    /// Vector store used to fetch candidate embeddings.
+    pub store: &'a VectorStore,
+    /// Vector-store table name.
+    pub table_name: &'a str,
+    /// Doc-score rows selected by the caller.
+    pub rows: I,
+    /// Query embedding forwarded to every request row.
+    pub query_vector: &'a [f32],
+    /// Provider id used to build the trace id.
+    pub provider_id: PluginArrowProviderIdRef<'a>,
+    /// User query text used to build the trace id.
+    pub query_text: &'a str,
+    /// Physical schema version attached to request metadata.
+    pub schema_version: &'a str,
+}
+
 /// Error returned when runtime cannot fetch candidate embeddings from the
 /// vector store and materialize one `WendaoArrow` request row set or batch.
 #[derive(Debug)]
@@ -126,24 +145,22 @@ where
 /// cannot fetch the required embeddings, one doc id is missing an embedding,
 /// the request batch cannot be materialized, or metadata attachment fails.
 pub async fn build_plugin_arrow_request_batch_from_vector_store_with_metadata<I>(
-    store: &VectorStore,
-    table_name: &str,
-    rows: I,
-    query_vector: &[f32],
-    provider_id: PluginArrowProviderIdRef<'_>,
-    query_text: &str,
-    schema_version: &str,
+    input: PluginArrowVectorStoreRequestBatchInput<'_, I>,
 ) -> Result<RecordBatch, PluginArrowVectorStoreRequestBuildError>
 where
     I: IntoIterator<Item = (String, f64)>,
 {
-    let batch =
-        build_plugin_arrow_request_batch_from_vector_store(store, table_name, rows, query_vector)
-            .await?;
+    let batch = build_plugin_arrow_request_batch_from_vector_store(
+        input.store,
+        input.table_name,
+        input.rows,
+        input.query_vector,
+    )
+    .await?;
     attach_plugin_arrow_request_metadata(
         &batch,
-        plugin_arrow_request_trace_id(provider_id, query_text).as_str(),
-        schema_version,
+        plugin_arrow_request_trace_id(input.provider_id, input.query_text).as_str(),
+        input.schema_version,
     )
     .map_err(PluginArrowVectorStoreRequestBuildError::Build)
 }

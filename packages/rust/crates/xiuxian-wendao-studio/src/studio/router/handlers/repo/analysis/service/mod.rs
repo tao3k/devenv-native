@@ -1,3 +1,5 @@
+//! Coordinates the Studio repo analysis service branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "coverage.rs"]
 pub(crate) mod coverage;
 #[path = "overview.rs"]

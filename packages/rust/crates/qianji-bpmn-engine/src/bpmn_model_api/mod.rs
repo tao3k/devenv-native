@@ -17,6 +17,7 @@ mod document;
 mod process;
 #[path = "root/api.rs"]
 mod root;
+mod types;
 
 pub(crate) use api::empty_bpmn_root_snapshot;
 pub use api::{
@@ -43,3 +44,4 @@ pub use api::{
     BpmnResourceRoleSnapshot, BpmnResourceSnapshot, BpmnRootSnapshot, BpmnShapeSnapshot,
     BpmnSignalSnapshot, BpmnTextAnnotationSnapshot, BpmnWaypointSnapshot,
 };
+pub use types::{BpmnSnapshotFlag, BpmnSnapshotId, BpmnSnapshotKind, BpmnSnapshotType};

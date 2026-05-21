@@ -1,3 +1,5 @@
+//! `analyzers::query::symbol` owns Wendao analyzers query symbol behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +19,7 @@ pub struct SymbolSearchQuery {
 
 /// One enriched symbol-search hit with ranking and projection metadata.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct SymbolSearchHit {
     /// The normalized symbol record.
     pub symbol: SymbolRecord,

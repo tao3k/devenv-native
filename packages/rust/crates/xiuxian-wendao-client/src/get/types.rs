@@ -3,6 +3,76 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+macro_rules! page_index_string_type {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(
+            Debug,
+            Clone,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Serialize,
+            Deserialize,
+            JsonSchema,
+            Default,
+        )]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the serialized value.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+
+        impl PartialEq<&str> for $name {
+            fn eq(&self, other: &&str) -> bool {
+                self.as_str() == *other
+            }
+        }
+
+        impl PartialEq<String> for $name {
+            fn eq(&self, other: &String) -> bool {
+                self.as_str() == other
+            }
+        }
+    };
+}
+
+page_index_string_type!(ProjectedRepoId, "Stable projected repository identifier.");
+page_index_string_type!(ProjectedPageId, "Stable projected page identifier.");
+page_index_string_type!(
+    ProjectedPath,
+    "Repository-relative projected document path."
+);
+page_index_string_type!(ProjectedDocId, "Stable projected document identifier.");
+page_index_string_type!(
+    ProjectedLinkKind,
+    "Parser-visible projected link occurrence kind."
+);
+
 /// Deterministic page family kind for one projected or parsed document.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub enum ProjectionPageKind {
@@ -36,13 +106,13 @@ pub struct ProjectedPageIndexSection {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct ProjectedPageIndexDocument {
     /// Scope identifier projected.
-    pub repo_id: String,
+    pub repo_id: ProjectedRepoId,
     /// Stable page identifier.
-    pub page_id: String,
+    pub page_id: ProjectedPageId,
     /// File path.
-    pub path: String,
+    pub path: ProjectedPath,
     /// Stable document identifier.
-    pub doc_id: String,
+    pub doc_id: ProjectedDocId,
     /// Page title.
     pub title: String,
     /// Parsed sections from the document.
@@ -81,7 +151,7 @@ pub struct ProjectedPageIndexNode {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct ProjectedPageIndexLink {
     /// Parser-visible link occurrence kind.
-    pub kind: String,
+    pub kind: ProjectedLinkKind,
     /// Parser-visible target string.
     pub target: String,
     /// Parser-visible source syntax for the occurrence.
@@ -93,15 +163,15 @@ pub struct ProjectedPageIndexLink {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct ProjectedPageIndexTree {
     /// Scope identifier projected.
-    pub repo_id: String,
+    pub repo_id: ProjectedRepoId,
     /// Stable page identifier.
-    pub page_id: String,
+    pub page_id: ProjectedPageId,
     /// Page kind.
     pub kind: ProjectionPageKind,
     /// File path.
-    pub path: String,
+    pub path: ProjectedPath,
     /// Stable document identifier.
-    pub doc_id: String,
+    pub doc_id: ProjectedDocId,
     /// Page title.
     pub title: String,
     /// Number of root nodes.
@@ -114,7 +184,7 @@ pub struct ProjectedPageIndexTree {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct DocsPageIndexDocumentsResult {
     /// Scope identifier projected.
-    pub repo_id: String,
+    pub repo_id: ProjectedRepoId,
     /// Parsed page-index-ready documents derived from target truth.
     pub documents: Vec<ProjectedPageIndexDocument>,
 }
@@ -123,7 +193,7 @@ pub struct DocsPageIndexDocumentsResult {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct DocsPageIndexTreesResult {
     /// Scope identifier projected.
-    pub repo_id: String,
+    pub repo_id: ProjectedRepoId,
     /// Parsed text-free page-index trees derived from target truth.
     pub trees: Vec<ProjectedPageIndexTree>,
 }

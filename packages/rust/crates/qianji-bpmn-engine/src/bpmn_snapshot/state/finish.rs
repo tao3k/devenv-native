@@ -195,7 +195,7 @@ impl BpmnSnapshotScanState {
         source: &BpmnSourceFile,
     ) -> BpmnDocumentSnapshot {
         BpmnDocumentSnapshot {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()),
             root: self
                 .root
                 .unwrap_or_else(|| crate::bpmn_model_api::empty_bpmn_root_snapshot(source)),

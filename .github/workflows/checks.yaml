@@ -18,7 +18,6 @@ jobs:
           - xiuxian-config-core-release
           - xiuxian-core-rs-release
           - xiuxian-core-rs-python-bindings
-          - xiuxian-daochang-release
           - xiuxian-edit-release
           - xiuxian-event-release
           - xiuxian-io-release
@@ -32,7 +31,7 @@ jobs:
           - xiuxian-qianji-release
           - xiuxian-sandbox-release
           - xiuxian-security-release
-          - xiuxian-tags-release
+          - xiuxian-code-intelligence-release
           - xiuxian-tokenizer-release
           - xiuxian-types-release
           - xiuxian-vector-release
@@ -47,6 +46,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+          ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - uses: ./.github/actions/common-setup
         with:

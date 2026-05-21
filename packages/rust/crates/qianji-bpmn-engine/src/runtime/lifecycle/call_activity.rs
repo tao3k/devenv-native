@@ -57,8 +57,8 @@ pub(super) fn enter_call_activity(
     let node = &process.nodes[node_index as usize];
     let called_process_id = node.called_process_id.as_ref().ok_or_else(|| {
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
             detail: "missing_called_process",
         }
     })?;
@@ -70,8 +70,8 @@ pub(super) fn enter_call_activity(
             .any(|frame| frame.process.process_id.as_ref() == called_process_id.as_ref())
     {
         return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
             detail: "recursive_call_activity",
         });
     }
@@ -79,9 +79,9 @@ pub(super) fn enter_call_activity(
     let (called_process_index, called_process) = package
         .find_process_position(called_process_id.as_ref())
         .ok_or_else(|| BpmnEngineError::UnknownCalledProcess {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
-            called_process_id: called_process_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
+            called_process_id: (called_process_id.to_string()).into(),
         })?;
 
     state::set_node_status(instance, node_index, NodeRuntimeStatus::Executing);
@@ -158,8 +158,8 @@ fn arm_subprocess_external_boundary_wait(
     for boundary in process.boundary_events_for_attached_node(node_index) {
         let event = process.event_for_node(boundary.index).ok_or_else(|| {
             BpmnEngineError::MissingRequiredNodeElement {
-                process_id: process.key.process_id.to_string(),
-                node_id: boundary.bpmn_id.to_string(),
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (boundary.bpmn_id.to_string()).into(),
                 element: "event_definition",
             }
         })?;

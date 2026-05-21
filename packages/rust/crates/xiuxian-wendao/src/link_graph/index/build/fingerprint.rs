@@ -2,7 +2,7 @@ use super::filters::should_skip_entry;
 use crate::parsers::markdown::is_supported_note;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use walkdir::WalkDir;
 
@@ -37,7 +37,26 @@ pub(super) fn scan_note_fingerprint(
     excluded_dirs: &HashSet<String>,
 ) -> LinkGraphFingerprint {
     let mut fingerprint = LinkGraphFingerprint::default();
-    for entry in WalkDir::new(root)
+    for scan_root in fingerprint_scan_roots(root, include_dirs) {
+        scan_note_fingerprint_root(
+            root,
+            &scan_root,
+            include_dirs,
+            excluded_dirs,
+            &mut fingerprint,
+        );
+    }
+    fingerprint
+}
+
+fn scan_note_fingerprint_root(
+    root: &Path,
+    scan_root: &Path,
+    include_dirs: &HashSet<String>,
+    excluded_dirs: &HashSet<String>,
+    fingerprint: &mut LinkGraphFingerprint,
+) {
+    for entry in WalkDir::new(scan_root)
         .follow_links(false)
         .into_iter()
         .filter_entry(|entry| {
@@ -55,7 +74,38 @@ pub(super) fn scan_note_fingerprint(
         if !entry.file_type().is_file() || !is_supported_note(path) {
             continue;
         }
-        update_fingerprint(path, &mut fingerprint);
+        update_fingerprint(path, fingerprint);
     }
-    fingerprint
 }
+
+fn fingerprint_scan_roots(root: &Path, include_dirs: &HashSet<String>) -> Vec<PathBuf> {
+    if include_dirs.is_empty() {
+        return vec![root.to_path_buf()];
+    }
+
+    let mut include_roots = include_dirs
+        .iter()
+        .filter_map(|include_dir| {
+            let path = root.join(include_dir);
+            path.is_dir().then_some(path)
+        })
+        .collect::<Vec<_>>();
+    include_roots.sort();
+    include_roots.dedup();
+
+    let mut scan_roots = Vec::with_capacity(include_roots.len());
+    'candidate: for candidate in include_roots {
+        for accepted in &scan_roots {
+            if candidate.starts_with(accepted) {
+                continue 'candidate;
+            }
+        }
+        scan_roots.push(candidate);
+    }
+
+    scan_roots
+}
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/link_graph/index/build/fingerprint.rs"]
+mod tests;

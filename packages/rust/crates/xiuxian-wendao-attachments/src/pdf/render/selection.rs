@@ -12,7 +12,7 @@ pub(super) fn resolve_source_page_range_selection(
     path: &Path,
     selection: PdfPageRenderSelection,
 ) -> Result<(u32, RenderPageSelection), String> {
-    let page_count = source_page_range_lopdf_page_count(path)?;
+    let page_count = source_pdf_page_count(path)?;
     match selection {
         PdfPageRenderSelection::AllPages => Ok((page_count, RenderPageSelection::All)),
         PdfPageRenderSelection::RegionShards => {
@@ -37,7 +37,13 @@ pub(super) fn resolve_source_page_range_selection(
     }
 }
 
-fn source_page_range_lopdf_page_count(path: &Path) -> Result<u32, String> {
+/// Return the number of pages in a source PDF using the lightweight page tree.
+///
+/// # Errors
+///
+/// Returns an error when the PDF cannot be loaded or the page count exceeds
+/// the public `u32` contract.
+pub fn source_pdf_page_count(path: &Path) -> Result<u32, String> {
     let document = LopdfDocument::load(path)
         .map_err(|error| format!("load PDF page tree with lopdf: {error}"))?;
     u32::try_from(document.get_pages().len())

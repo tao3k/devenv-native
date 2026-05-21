@@ -8,7 +8,7 @@ use crate::studio::router::handlers::repo::analysis::search::cache::{
     repository_search_key, with_cached_repo_search_result,
 };
 use crate::studio::router::handlers::repo::analysis::search::publication::repo_entity_publication_ready;
-use crate::studio::router::handlers::repo::shared::execution::with_repo_cached_analysis_bundle;
+use crate::studio::router::handlers::repo::analysis_support::execution::with_repo_cached_analysis_bundle;
 use crate::studio::router::{GatewayState, StudioApiError};
 use xiuxian_wendao::analyzers::{
     CachedRepositoryAnalysis, RepoAnalysisFallbackContract, RepoIntelligenceError,

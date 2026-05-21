@@ -1,4 +1,6 @@
-use crate::transmuter::streaming::{CognitiveDistribution, StreamProvider, ZhenfaPipeline};
+use crate::transmuter::streaming::{
+    CognitiveDistribution, StreamProvider, ZhenfaPipeline, ZhenfaPipelineOptions,
+};
 
 #[test]
 fn pipeline_creates_correct_parser() {
@@ -27,7 +29,9 @@ fn pipeline_parses_claude_text_delta() {
 
 #[test]
 fn pipeline_tracks_cognitive_state() {
-    let mut pipeline = ZhenfaPipeline::with_options(StreamProvider::Claude, false, true, 0.3);
+    let mut pipeline = ZhenfaPipeline::with_options(
+        ZhenfaPipelineOptions::new(StreamProvider::Claude).with_xsd_validation(false),
+    );
 
     let line = r#"{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Let me plan my approach."}}"#;
     let _ = pipeline.process_line(line);
@@ -38,7 +42,11 @@ fn pipeline_tracks_cognitive_state() {
 
 #[test]
 fn pipeline_respects_early_halt() {
-    let mut pipeline = ZhenfaPipeline::with_options(StreamProvider::Claude, false, true, 0.5);
+    let mut pipeline = ZhenfaPipeline::with_options(
+        ZhenfaPipelineOptions::new(StreamProvider::Claude)
+            .with_xsd_validation(false)
+            .with_early_halt_threshold(0.5),
+    );
 
     for _ in 0..10 {
         let line = r#"{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"I'm not sure about this."}}"#;
@@ -81,7 +89,12 @@ fn pipeline_reset_clears_state() {
 
 #[test]
 fn pipeline_disables_validation() {
-    let mut pipeline = ZhenfaPipeline::with_options(StreamProvider::Claude, false, false, 0.0);
+    let mut pipeline = ZhenfaPipeline::with_options(
+        ZhenfaPipelineOptions::new(StreamProvider::Claude)
+            .with_xsd_validation(false)
+            .with_cognitive_monitoring(false)
+            .with_early_halt_threshold(0.0),
+    );
     let line = r#"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Any text"}}"#;
 
     let outputs = match pipeline.process_line(line) {

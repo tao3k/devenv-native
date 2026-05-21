@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `search::service::helpers` owns Wendao search service helpers behavior.
+
 #[path = "cache.rs"]
 mod cache;
 #[path = "paths.rs"]

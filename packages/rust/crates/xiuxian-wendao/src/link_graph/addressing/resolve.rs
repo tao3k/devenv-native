@@ -1,3 +1,5 @@
+//! `link_graph::addressing::resolve` owns Wendao link graph addressing resolve behavior.
+
 use crate::link_graph::models::{PageIndexMeta, PageIndexNode};
 
 use super::address::{Address, EnhancedResolvedNode, ResolveMode};
@@ -16,6 +18,8 @@ use super::topology::{MatchType, PathEntry, PathMatch, TopologyIndex};
 ///
 /// Returns [`ResolveError::NotFound`] when the requested address cannot be resolved from either
 /// the registry index or the topology index for the provided document.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn resolve_with_indices(
     registry: &RegistryIndex,
     topology: &TopologyIndex,

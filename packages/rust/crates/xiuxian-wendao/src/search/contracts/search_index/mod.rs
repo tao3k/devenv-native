@@ -1,3 +1,5 @@
+//! `search::contracts::search_index` owns Wendao search contracts search index behavior.
+
 mod conversions;
 #[path = "definitions/mod.rs"]
 mod definitions;

@@ -1,3 +1,5 @@
+//! `search::reference_occurrence::query::lookup::route` owns Wendao query lookup route behavior.
+
 use xiuxian_db_store::VectorStoreError;
 
 use crate::duckdb::ParquetQueryEngine;

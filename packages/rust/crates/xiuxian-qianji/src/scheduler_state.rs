@@ -1,7 +1,7 @@
 //! Execution state tracking for Kahn's scheduling.
 
 use crate::contracts::{NodeStatus, QianjiOutput};
-use crate::engine::QianjiEngine;
+use crate::engine::{QianjiEdge, QianjiEngine};
 use crate::scheduler_preflight::resolve_wendao_placeholders_in_context;
 use petgraph::Direction;
 use petgraph::stable_graph::NodeIndex;
@@ -56,26 +56,42 @@ pub struct ExecutionState {
 
 impl ExecutionState {
     pub(crate) fn build(engine: &QianjiEngine, active_branches: &HashSet<String>) -> Self {
-        let mut ready_queue = VecDeque::new();
-
-        for node_idx in engine.graph.node_indices() {
-            if engine.graph[node_idx].status == NodeStatus::Idle {
-                let mut degree = 0;
-                for edge in engine.graph.edges_directed(node_idx, Direction::Incoming) {
-                    let parent_idx = edge.source();
-                    let edge_data = edge.weight();
-                    let parent_done = engine.graph[parent_idx].status == NodeStatus::Completed;
-                    let branch_match =
-                        branch_label_matches(edge_data.label.as_deref(), active_branches);
-                    if !(parent_done && branch_match) {
-                        degree += 1;
-                    }
-                }
-                if degree == 0 {
-                    ready_queue.push_back(node_idx);
-                }
-            }
-        }
+        let ready_queue = engine
+            .graph
+            .node_indices()
+            .filter(|node_idx| node_is_ready(engine, *node_idx, active_branches))
+            .collect();
         Self { ready_queue }
     }
+}
+
+fn node_is_ready(
+    engine: &QianjiEngine,
+    node_idx: NodeIndex,
+    active_branches: &HashSet<String>,
+) -> bool {
+    engine.graph[node_idx].status == NodeStatus::Idle
+        && pending_dependency_count(engine, node_idx, active_branches) == 0
+}
+
+fn pending_dependency_count(
+    engine: &QianjiEngine,
+    node_idx: NodeIndex,
+    active_branches: &HashSet<String>,
+) -> usize {
+    engine
+        .graph
+        .edges_directed(node_idx, Direction::Incoming)
+        .filter(|edge| !incoming_dependency_is_satisfied(engine, edge, active_branches))
+        .count()
+}
+
+fn incoming_dependency_is_satisfied(
+    engine: &QianjiEngine,
+    edge: &petgraph::stable_graph::EdgeReference<'_, QianjiEdge>,
+    active_branches: &HashSet<String>,
+) -> bool {
+    let parent_done = engine.graph[edge.source()].status == NodeStatus::Completed;
+    let branch_match = branch_label_matches(edge.weight().label.as_deref(), active_branches);
+    parent_done && branch_match
 }

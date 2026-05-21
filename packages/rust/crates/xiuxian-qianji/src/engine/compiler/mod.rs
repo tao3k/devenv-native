@@ -28,3 +28,4 @@ mod wendao_refresh;
 mod wendao_sql;
 
 pub(in crate::engine) use pipeline::compile_manifest;
+pub(in crate::engine::compiler) use task_type::TaskType;

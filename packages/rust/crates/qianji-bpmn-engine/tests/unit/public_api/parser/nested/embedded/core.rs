@@ -40,8 +40,8 @@ fn parser_embedded_subprocess_requires_exactly_one_start_event() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "inline_review".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("inline_review".to_string()).into(),
             detail: "embedded_subprocess_start_event_count",
         }
     );

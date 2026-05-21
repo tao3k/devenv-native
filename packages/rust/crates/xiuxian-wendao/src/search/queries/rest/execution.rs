@@ -1,7 +1,11 @@
+//! `search::queries::rest::execution` owns Wendao queries rest execution behavior.
+
 use crate::search::queries::SearchQueryService;
 use crate::search::queries::graphql::query_graphql_payload;
-use crate::search::queries::rest::{RestQueryPayload, RestQueryRequest};
 use crate::search::queries::sql::query_sql_payload;
+
+use super::request::RestQueryRequest;
+use super::response::RestQueryPayload;
 
 /// Execute one REST-style query request against the shared query system.
 ///

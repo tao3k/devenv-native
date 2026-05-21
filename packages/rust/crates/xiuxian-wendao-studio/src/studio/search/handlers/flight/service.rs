@@ -6,6 +6,7 @@ use xiuxian_wendao_server::transport::{
     SqlFlightRouteResponse, WendaoFlightRouteProviders, WendaoFlightService,
 };
 
+use super::dataset_ontology::StudioDatasetOntologyMaterializeFlightRouteProvider;
 use super::provider::StudioSearchFlightRouteProvider;
 use crate::studio::GatewayState;
 use crate::studio::router::handlers::analysis::{
@@ -19,6 +20,7 @@ use crate::studio::router::handlers::repo::analysis::index_flight::StudioRepoInd
 use crate::studio::router::handlers::repo::analysis::index_status_flight::StudioRepoIndexStatusFlightRouteProvider;
 use crate::studio::router::handlers::repo::analysis::overview_flight::StudioRepoOverviewFlightRouteProvider;
 use crate::studio::router::handlers::repo::analysis::projected_page_index_tree_flight::StudioRepoProjectedPageIndexTreeFlightRouteProvider;
+use crate::studio::router::handlers::repo::analysis::projected_retrieval_context_flight::StudioRepoProjectedRetrievalContextFlightRouteProvider;
 use crate::studio::router::handlers::repo::analysis::refine_doc_flight::StudioRefineDocFlightRouteProvider;
 use crate::studio::router::handlers::repo::analysis::sync_flight::StudioRepoSyncFlightRouteProvider;
 use crate::studio::search::handlers::ast::StudioAstSearchFlightRouteProvider;
@@ -67,6 +69,9 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     route_providers.document_extract = Some(Arc::new(
         StudioDocumentExtractFlightRouteProvider::new(state.as_ref()),
     ));
+    route_providers.dataset_ontology_materialize = Some(Arc::new(
+        StudioDatasetOntologyMaterializeFlightRouteProvider::new(Arc::clone(&state)),
+    ));
     route_providers.repo_overview = Some(Arc::new(StudioRepoOverviewFlightRouteProvider::new(
         Arc::clone(&state),
     )));
@@ -84,6 +89,9 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     ));
     route_providers.repo_projected_page_index_tree = Some(Arc::new(
         StudioRepoProjectedPageIndexTreeFlightRouteProvider::new(Arc::clone(&state)),
+    ));
+    route_providers.repo_projected_retrieval_context = Some(Arc::new(
+        StudioRepoProjectedRetrievalContextFlightRouteProvider::new(Arc::clone(&state)),
     ));
     route_providers.refine_doc = Some(Arc::new(StudioRefineDocFlightRouteProvider::new(
         Arc::clone(&state),

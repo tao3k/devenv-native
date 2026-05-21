@@ -1,9 +1,8 @@
-{
-  pkgs,
-  lib,
-  config,
-  inputs,
-  ...
+{ pkgs
+, lib
+, config
+, inputs
+, ...
 }:
 
 let
@@ -82,7 +81,6 @@ in
   # devenv.warnOnNewVersion = false;
   # https://devenv.sh/packages/
   packages = [
-    packages.secretspec
     pkgs.ollama
     pkgs.valkey
     pkgs.ngrok
@@ -90,6 +88,8 @@ in
     pkgs.tree
     pkgs.duckdb
     pkgs.asciinema
+    pkgs.ffmpeg
+    nixpkgs-latest.jujutsu
   ];
 
   dotenv.enable = true;
@@ -107,9 +107,15 @@ in
   scripts.wendao-client.exec = ''
     set -euo pipefail
 
-    cd "''${PRJ_ROOT:-$DEVENV_ROOT}"
+    root="''${PRJ_ROOT:-''${DEVENV_ROOT:-$(pwd)}}"
+    installed="$root/.devenv/state/cargo-install/bin/wendao-client"
 
-    exec cargo run -q -p xiuxian-wendao-client --bin wendao-client -- "$@"
+    if [ ! -x "$installed" ]; then
+      echo "wendao-client is not installed. Run: direnv exec . just install-wendao-client" >&2
+      exit 127
+    fi
+
+    exec "$installed" "$@"
   '';
 
   # https://devenv.sh/tasks/
@@ -121,7 +127,7 @@ in
   enterShell = ''
     # process-module-stamp: ${processModuleStampHash}
     # prekhook-module-stamp: ${prekhookModuleStampHash}
-    export PATH="$DEVENV_ROOT/.devenv/profile/bin:$DEVENV_ROOT/.venv/bin:$PATH"
+    export PATH="$DEVENV_ROOT/.devenv/state/cargo-install/bin:$DEVENV_ROOT/.devenv/profile/bin:$DEVENV_ROOT/.venv/bin:$PATH"
     export OLLAMA_MODELS="''${OLLAMA_MODELS:-''${PRJ_DATA_HOME:-$DEVENV_ROOT/.data}/models}"
     ${lib.optionalString (pkgs.stdenv.hostPlatform.isDarwin) ''
       unset SDKROOT
@@ -142,7 +148,7 @@ in
     rustfmt.enable = true;
     clippy.enable = true;
     prettier.enable = true;
-    clippy.packageOverrides.cargo = config.languages.rust.toolchain.cargo;
+    clippy.packageOverrides.cargo = config.languages.rust.toolchainPackage;
     clippy.packageOverrides.clippy = config.languages.rust.toolchainPackage;
     clippy.settings.allFeatures = true;
     oxlint.enable = true;

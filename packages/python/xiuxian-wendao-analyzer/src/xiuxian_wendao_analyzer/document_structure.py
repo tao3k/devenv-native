@@ -31,9 +31,20 @@ def _structured_document_resources(
     source: Path,
     output_dir: Path,
     document: DoclingDocumentProtocol,
+    *,
+    element_id_prefix: str = "",
+    resource_file_prefix: str = "",
 ) -> list[DocumentResourceRow]:
     resources: list[DocumentResourceRow] = []
-    resources.extend(_docling_json_resource(source, output_dir, document))
+    resources.extend(
+        _docling_json_resource(
+            source,
+            output_dir,
+            document,
+            element_id_prefix=element_id_prefix,
+            resource_file_prefix=resource_file_prefix,
+        )
+    )
 
     for resource_type, attribute_names in _STRUCTURED_RESOURCE_COLLECTIONS:
         for index, element in enumerate(
@@ -41,7 +52,13 @@ def _structured_document_resources(
             start=1,
         ):
             row = _resource_from_element(
-                source, output_dir, resource_type, element, index
+                source,
+                output_dir,
+                resource_type,
+                element,
+                index,
+                element_id_prefix=element_id_prefix,
+                resource_file_prefix=resource_file_prefix,
             )
             if row is not None:
                 resources.append(row)
@@ -55,21 +72,24 @@ def _document_structure_blocks(
     resources: list[DocumentResourceRow],
     *,
     source_content_hash: str,
+    element_id_prefix: str = "",
 ) -> list[DocumentStructureBlock]:
     blocks: list[DocumentStructureBlock] = []
     resource_by_element_id = {resource.elementId: resource for resource in resources}
-    main_resource = resource_by_element_id.get("_main")
+    main_element_id = f"{element_id_prefix}_main"
+    main_block_id = f"{element_id_prefix}docling-main"
+    main_resource = resource_by_element_id.get(main_element_id)
     markdown_text = main_resource.content if main_resource is not None else ""
     blocks.append(
         _structure_block(
             source,
             source_content_hash,
-            block_id="docling-main",
+            block_id=main_block_id,
             parent_block_id="",
             page_index=0,
             block_index=0,
             block_type="document",
-            resource_element_id="_main",
+            resource_element_id=main_element_id,
             content=markdown_text,
             mime_type="text/markdown",
             status="ok",
@@ -86,7 +106,7 @@ def _document_structure_blocks(
             _iter_document_elements(document, attribute_names),
             start=1,
         ):
-            element_id = _element_id(element, resource_type, element_index)
+            element_id = f"{element_id_prefix}{_element_id(element, resource_type, element_index)}"
             resource = resource_by_element_id.get(element_id)
             if resource is None:
                 continue
@@ -96,7 +116,7 @@ def _document_structure_blocks(
                     source,
                     source_content_hash,
                     block_id=element_id,
-                    parent_block_id="docling-main",
+                    parent_block_id=main_block_id,
                     page_index=page_index,
                     block_index=block_index,
                     block_type=resource.resourceType,

@@ -39,7 +39,7 @@ pub(crate) fn build_markdown_document_metadata(
     let explicit_backlinks = collect_backlinks(state, index, current_doc_id.as_deref());
 
     MarkdownAnalysisDocumentMetadata {
-        doc_id: current_doc_id.clone(),
+        doc_id: current_doc_id.clone().map(Into::into),
         title: document_core.title.clone(),
         tags: extract_document_tags(document_core.tags.as_slice(), doc_attributes),
         doc_type: extract_document_type(document_core.doc_type.as_deref(), doc_attributes),
@@ -68,9 +68,9 @@ pub(crate) fn build_markdown_document_metadata(
 fn extract_document_tags(
     parser_tags: &[String],
     doc_attributes: Option<&std::collections::HashMap<String, String>>,
-) -> Vec<String> {
+) -> Vec<crate::contracts::StudioContractTag> {
     if !parser_tags.is_empty() {
-        return parser_tags.to_vec();
+        return parser_tags.iter().cloned().map(Into::into).collect();
     }
 
     let mut tags = doc_attributes
@@ -85,19 +85,22 @@ fn extract_document_tags(
         .unwrap_or_default();
     tags.sort();
     tags.dedup();
-    tags
+    tags.into_iter().map(Into::into).collect()
 }
 
 fn extract_document_type(
     parser_doc_type: Option<&str>,
     doc_attributes: Option<&std::collections::HashMap<String, String>>,
-) -> Option<String> {
-    parser_doc_type.map(ToOwned::to_owned).or_else(|| {
-        doc_attributes
-            .and_then(|attributes| attributes.get("TYPE").or_else(|| attributes.get("KIND")))
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-    })
+) -> Option<crate::contracts::StudioContractDocType> {
+    parser_doc_type
+        .map(ToOwned::to_owned)
+        .or_else(|| {
+            doc_attributes
+                .and_then(|attributes| attributes.get("TYPE").or_else(|| attributes.get("KIND")))
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+        })
+        .map(Into::into)
 }
 
 fn extract_updated_string(
@@ -193,7 +196,7 @@ fn collect_outgoing_links(
             relation.target.original.clone(),
         );
         row.kind = MarkdownAnalysisDocumentLinkKind::Relation;
-        row.relation_type = Some(relation.relation_type.to_string());
+        row.relation_type = Some(relation.relation_type.to_string().into());
         row.metadata_owner = relation.source.scope_display();
         push_unique_link(&mut rows, &mut seen, row);
     }
@@ -230,87 +233,97 @@ fn collect_backlinks(
     let mut rows = Vec::new();
     let mut seen = HashSet::new();
 
-    for neighbor in graph.neighbors(doc_id, LinkGraphDirection::Incoming, 1, usize::MAX) {
-        let source_doc_id = graph
-            .resolve_doc_id_pub(neighbor.path.as_str())
-            .or_else(|| graph.resolve_doc_id_pub(neighbor.stem.as_str()));
-        let Some(source_doc_id) = source_doc_id else {
-            push_unique_link(
-                &mut rows,
-                &mut seen,
-                fallback_backlink_row(state, &neighbor.title, neighbor.path.as_str()),
-            );
-            continue;
-        };
-        let Some(source_doc) = graph.get_doc(source_doc_id) else {
-            push_unique_link(
-                &mut rows,
-                &mut seen,
-                fallback_backlink_row(state, &neighbor.title, neighbor.path.as_str()),
-            );
-            continue;
-        };
-
-        let source_path = graph.root().join(source_doc.path.as_str());
-        let mut matched = false;
-
-        if let Ok(content) = std::fs::read_to_string(&source_path) {
-            let note = parse_markdown_note(&content, source_doc.stem.as_str());
-            let references = extract_resolved_note_references(
-                note.core.references.as_slice(),
-                note.core.targets.as_slice(),
-                source_path.as_path(),
-                graph.root(),
-            );
-
-            for reference in references {
-                let resolved_doc_id = if reference.note_target == doc_id {
-                    Some(doc_id)
-                } else {
-                    graph.resolve_doc_id_pub(reference.note_target.as_str())
-                };
-                if resolved_doc_id != Some(doc_id) {
-                    continue;
-                }
-                matched = true;
-                push_unique_link(
-                    &mut rows,
-                    &mut seen,
-                    MarkdownAnalysisDocumentLink {
-                        label: source_doc.title.clone(),
-                        kind: MarkdownAnalysisDocumentLinkKind::Backlink,
-                        literal: Some(reference.original),
-                        relation_type: None,
-                        metadata_owner: None,
-                        doc_id: Some(source_doc.id.clone()),
-                        path: Some(studio_display_path(state, source_doc.path.as_str())),
-                        title: Some(source_doc.title.clone()),
-                        target_address: reference.target_address,
-                    },
-                );
-            }
-        }
-
-        if !matched {
-            push_unique_link(
-                &mut rows,
-                &mut seen,
-                MarkdownAnalysisDocumentLink {
-                    label: source_doc.title.clone(),
-                    kind: MarkdownAnalysisDocumentLinkKind::Backlink,
-                    literal: None,
-                    relation_type: None,
-                    metadata_owner: None,
-                    doc_id: Some(source_doc.id.clone()),
-                    path: Some(studio_display_path(state, source_doc.path.as_str())),
-                    title: Some(source_doc.title.clone()),
-                    target_address: None,
-                },
-            );
-        }
-    }
+    graph
+        .neighbors(doc_id, LinkGraphDirection::Incoming, 1, usize::MAX)
+        .into_iter()
+        .flat_map(|neighbor| backlink_rows_for_neighbor(state, graph, doc_id, &neighbor))
+        .for_each(|row| push_unique_link(&mut rows, &mut seen, row));
 
     rows
+}
+
+fn backlink_rows_for_neighbor(
+    state: &StudioState,
+    graph: &LinkGraphIndex,
+    doc_id: &str,
+    neighbor: &xiuxian_wendao::link_graph::LinkGraphNeighbor,
+) -> Vec<MarkdownAnalysisDocumentLink> {
+    let Some(source_doc) = graph
+        .resolve_doc_id_pub(neighbor.path.as_str())
+        .or_else(|| graph.resolve_doc_id_pub(neighbor.stem.as_str()))
+        .and_then(|source_doc_id| graph.get_doc(source_doc_id))
+    else {
+        return vec![fallback_backlink_row(
+            state,
+            &neighbor.title,
+            neighbor.path.as_str(),
+        )];
+    };
+
+    let source_path = graph.root().join(source_doc.path.as_str());
+    let matched = matched_backlink_rows(state, graph, doc_id, source_doc, source_path.as_path());
+    if matched.is_empty() {
+        vec![source_doc_backlink_row(state, source_doc, None, None)]
+    } else {
+        matched
+    }
+}
+
+fn matched_backlink_rows(
+    state: &StudioState,
+    graph: &LinkGraphIndex,
+    doc_id: &str,
+    source_doc: &xiuxian_wendao::link_graph::LinkGraphDocument,
+    source_path: &std::path::Path,
+) -> Vec<MarkdownAnalysisDocumentLink> {
+    std::fs::read_to_string(source_path)
+        .ok()
+        .map(|content| {
+            let note = parse_markdown_note(&content, source_doc.stem.as_str());
+            extract_resolved_note_references(
+                note.core.references.as_slice(),
+                note.core.targets.as_slice(),
+                source_path,
+                graph.root(),
+            )
+            .into_iter()
+            .filter(|reference| {
+                if reference.note_target == doc_id {
+                    true
+                } else {
+                    graph.resolve_doc_id_pub(reference.note_target.as_str()) == Some(doc_id)
+                }
+            })
+            .map(|reference| {
+                source_doc_backlink_row(
+                    state,
+                    source_doc,
+                    Some(reference.original),
+                    reference.target_address,
+                )
+            })
+            .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn source_doc_backlink_row(
+    state: &StudioState,
+    source_doc: &xiuxian_wendao::link_graph::LinkGraphDocument,
+    literal: Option<String>,
+    target_address: Option<String>,
+) -> MarkdownAnalysisDocumentLink {
+    MarkdownAnalysisDocumentLink {
+        label: source_doc.title.clone(),
+        kind: MarkdownAnalysisDocumentLinkKind::Backlink,
+        literal,
+        relation_type: None,
+        metadata_owner: None,
+        doc_id: Some(source_doc.id.clone().into()),
+        path: Some(studio_display_path(state, source_doc.path.as_str())),
+        title: Some(source_doc.title.clone()),
+        target_address,
+    }
 }
 
 fn fallback_backlink_row(
@@ -340,10 +353,12 @@ fn push_unique_link(
         "{:?}|{}|{}|{}|{}|{}",
         row.kind,
         row.label,
-        row.doc_id.as_deref().unwrap_or(""),
-        row.path.as_deref().unwrap_or(""),
+        row.doc_id.as_ref().map_or("", |value| value.as_ref()),
+        row.path.as_ref().map_or("", |value| value.as_ref()),
         row.target_address.as_deref().unwrap_or(""),
-        row.relation_type.as_deref().unwrap_or(""),
+        row.relation_type
+            .as_ref()
+            .map_or("", |value| value.as_ref()),
     );
     if seen.insert(key) {
         rows.push(row);
@@ -437,9 +452,9 @@ fn build_link_row(
         label,
         kind: seed.kind,
         literal: seed.literal,
-        relation_type: seed.relation_type,
+        relation_type: seed.relation_type.map(Into::into),
         metadata_owner: seed.metadata_owner,
-        doc_id: resolved.doc_id,
+        doc_id: resolved.doc_id.map(Into::into),
         path: resolved.path,
         title: resolved.title,
         target_address: seed.target_address.or(resolved.target_address),

@@ -14,6 +14,8 @@ pub(crate) mod overview;
 pub(crate) mod overview_flight;
 #[path = "projected_page_index_tree_flight.rs"]
 pub(crate) mod projected_page_index_tree_flight;
+#[path = "projected_retrieval_context_flight.rs"]
+pub(crate) mod projected_retrieval_context_flight;
 #[path = "refine_doc_flight.rs"]
 pub(crate) mod refine_doc_flight;
 #[path = "search/mod.rs"]

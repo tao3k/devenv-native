@@ -79,9 +79,9 @@ pub(crate) fn analyze_repository(
 
     let mut output = RepositoryAnalysisOutput {
         repository: Some(RepositoryRecord {
-            repo_id: context.repository.id.clone(),
+            repo_id: (context.repository.id.clone()).into(),
             name: repository_context.root_package_name,
-            path: repository_root.display().to_string(),
+            path: (repository_root.display().to_string()).into(),
             url: context.repository.url.clone(),
             revision: None,
             version: None,
@@ -95,8 +95,8 @@ pub(crate) fn analyze_repository(
         docs,
         relations,
         diagnostics: vec![DiagnosticRecord {
-            repo_id: context.repository.id.clone(),
-            path: "package.mo".to_string(),
+            repo_id: (context.repository.id.clone()).into(),
+            path: ("package.mo".to_string()).into(),
             line: 1,
             message: "Modelica analysis is conservative and currently based on package layout plus lightweight declaration scanning.".to_string(),
             severity: "info".to_string(),
@@ -149,7 +149,7 @@ fn load_modelica_repository_context_with_source_hint(
             &root_package_contents,
         )?)
         .ok_or_else(|| RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: repository.id.clone(),
+            repo_id: (repository.id.clone()).into(),
             message: "failed to parse root Modelica package name".to_string(),
         })?;
 
@@ -211,7 +211,7 @@ fn resolve_modelica_root(
     let nested_candidates = nested_package_root_candidates(context, repository_root)?;
     match nested_candidates.as_slice() {
         [] => Err(RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: context.repository.id.clone(),
+            repo_id: (context.repository.id.clone()).into(),
             message: "expected a Modelica repository root package.mo or a dominant top-level package directory".to_string(),
         }),
         [candidate] => Ok(ResolvedModelicaRoot {
@@ -225,7 +225,7 @@ fn resolve_modelica_root(
             },
         ),
         _ => Err(RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: context.repository.id.clone(),
+            repo_id: (context.repository.id.clone()).into(),
             message: "found multiple top-level Modelica package roots without a dominant package".to_string(),
         }),
     }
@@ -292,7 +292,7 @@ fn nested_package_root_candidates(
 
     if candidates.is_empty() {
         return Err(RepoIntelligenceError::UnsupportedRepositoryLayout {
-            repo_id: context.repository.id.clone(),
+            repo_id: (context.repository.id.clone()).into(),
             message: "expected a Modelica repository root package.mo or a dominant top-level package directory".to_string(),
         });
     }
@@ -321,22 +321,22 @@ fn prefix_output_paths(output: &mut RepositoryAnalysisOutput, prefix: Option<&st
     };
 
     for module in &mut output.modules {
-        module.path = prefixed_relative_path(prefix, module.path.as_str());
+        module.path = prefixed_relative_path(prefix, module.path.as_str()).into();
     }
     for symbol in &mut output.symbols {
-        symbol.path = prefixed_relative_path(prefix, symbol.path.as_str());
+        symbol.path = prefixed_relative_path(prefix, symbol.path.as_str()).into();
     }
     for example in &mut output.examples {
-        example.path = prefixed_relative_path(prefix, example.path.as_str());
+        example.path = prefixed_relative_path(prefix, example.path.as_str()).into();
     }
     for import in &mut output.imports {
-        import.path = prefixed_relative_path(prefix, import.path.as_str());
+        import.path = prefixed_relative_path(prefix, import.path.as_str()).into();
     }
     for doc in &mut output.docs {
-        doc.path = prefixed_relative_path(prefix, doc.path.as_str());
+        doc.path = prefixed_relative_path(prefix, doc.path.as_str()).into();
     }
     for diagnostic in &mut output.diagnostics {
-        diagnostic.path = prefixed_relative_path(prefix, diagnostic.path.as_str());
+        diagnostic.path = prefixed_relative_path(prefix, diagnostic.path.as_str()).into();
     }
 }
 

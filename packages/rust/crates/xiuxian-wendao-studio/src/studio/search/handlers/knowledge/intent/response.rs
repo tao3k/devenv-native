@@ -1,9 +1,9 @@
 use crate::studio::StudioApiError;
-use crate::studio::search::handlers::knowledge::helpers::{
-    compare_intent_hits, local_symbol_hit_to_search_hit, repo_content_hit_to_intent_hit,
-};
 use crate::studio::search::handlers::knowledge::intent::types::{
     IntentIndexState, IntentMergedResults, IntentSourceHits,
+};
+use crate::studio::search::handlers::knowledge::intent_policy::{
+    compare_intent_hits, local_symbol_hit_to_search_hit, repo_content_hit_to_intent_hit,
 };
 use crate::studio::types::SearchResponse;
 
@@ -80,11 +80,14 @@ pub(crate) fn build_intent_response(
         "graph_fts".to_string()
     };
     let indexing_state = if merged.partial {
-        Some(if merged.hits.is_empty() {
-            "indexing".to_string()
-        } else {
-            "partial".to_string()
-        })
+        Some(
+            if merged.hits.is_empty() {
+                "indexing".to_string()
+            } else {
+                "partial".to_string()
+            }
+            .into(),
+        )
     } else {
         None
     };
@@ -98,14 +101,14 @@ pub(crate) fn build_intent_response(
         } else {
             0.0
         }),
-        selected_mode: Some(selected_mode.clone()),
+        selected_mode: Some(selected_mode.clone().into()),
         intent,
         intent_confidence: Some(if selected_mode == "vector_only" {
             0.0
         } else {
             1.0
         }),
-        search_mode: Some(selected_mode),
+        search_mode: Some(selected_mode.into()),
         partial: merged.partial,
         indexing_state,
         pending_repos: merged.pending_repos,

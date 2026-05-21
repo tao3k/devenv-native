@@ -80,8 +80,8 @@ struct ExampleRowDerivedData {
 
 impl ExampleRowDerivedData {
     fn from_context(context: &RepoEntityContext<'_>, example: &ExampleRecord) -> Self {
-        let example_id = example.example_id.clone();
-        let path = example.path.clone();
+        let example_id = example.example_id.to_string();
+        let path = example.path.to_string();
         let language = infer_code_language(path.as_str());
         let summary_text = example.summary.clone().unwrap_or_default();
         let hierarchy = hierarchy_segments_from_path(path.as_str());

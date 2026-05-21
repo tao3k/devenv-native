@@ -1,3 +1,5 @@
+//! `analyzers::projection::builder` owns Wendao analyzers projection builder behavior.
+
 mod anchors;
 mod assemble;
 mod helpers;

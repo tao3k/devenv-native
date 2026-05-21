@@ -16,6 +16,7 @@ use crate::pdf::render::{
 };
 
 mod input;
+mod recovery;
 mod result;
 
 fn assert_close(actual: f64, expected: f64) {

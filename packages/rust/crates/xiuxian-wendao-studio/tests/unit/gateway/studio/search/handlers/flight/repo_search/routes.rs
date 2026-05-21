@@ -1,7 +1,7 @@
 use super::{
     ANALYSIS_CODE_AST_ROUTE, ANALYSIS_MARKDOWN_ROUTE, Arc, FlightDescriptor, FlightService,
     GatewayState, PathBuf, Request, SEARCH_SYMBOLS_ROUTE, SearchMaintenancePolicy,
-    SearchManifestKeyspace, SearchPlaneService, UiConfig, UiProjectConfig,
+    SearchManifestKeyspace, SearchPlaneService, StudioFlightRoots, UiConfig, UiProjectConfig,
     build_repo_search_flight_service, build_studio_flight_service,
     build_studio_flight_service_for_roots, build_symbol_index, create_dir_all_or_panic,
     first_ticket, flight_descriptor_path, init_git_repo_or_panic,
@@ -110,8 +110,7 @@ dirs = ["packages"]
     ));
     let flight_service = build_studio_flight_service_for_roots(
         search_plane,
-        project_root.clone(),
-        project_root.clone(),
+        StudioFlightRoots::new(project_root.clone(), project_root.clone()),
         "v2",
         3,
     )
@@ -163,8 +162,7 @@ dirs = ["docs"]
     ));
     let flight_service = build_studio_flight_service_for_roots(
         search_plane,
-        project_root.clone(),
-        project_root.clone(),
+        StudioFlightRoots::new(project_root.clone(), project_root.clone()),
         "v2",
         3,
     )
@@ -202,7 +200,7 @@ async fn build_studio_flight_service_for_roots_accepts_code_ast_analysis_routes(
     );
     write_file_or_panic(
         project_root.join("repo/Cargo.toml"),
-        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
         "Cargo.toml should write",
     );
     write_file_or_panic(
@@ -232,8 +230,7 @@ plugins = ["ast-grep"]
     ));
     let flight_service = build_studio_flight_service_for_roots(
         search_plane,
-        project_root.clone(),
-        project_root.clone(),
+        StudioFlightRoots::new(project_root.clone(), project_root.clone()),
         "v2",
         3,
     )

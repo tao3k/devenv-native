@@ -205,8 +205,8 @@ impl TaskIoBindings {
             let process_id = process.process_id.clone();
             let node_id = last_process_node_mut(source, process)?.bpmn_id.clone();
             return Err(BpmnEngineError::UnsupportedTaskConfiguration {
-                process_id,
-                node_id,
+                process_id: process_id.into(),
+                node_id: node_id.into(),
                 detail: "task_io_multiple_source_refs_deferred",
             });
         }
@@ -231,8 +231,8 @@ impl TaskIoBindings {
         let process_id = process.process_id.clone();
         let node_id = last_process_node_mut(source, process)?.bpmn_id.clone();
         Err(BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id,
-            node_id,
+            process_id: process_id.into(),
+            node_id: node_id.into(),
             detail,
         })
     }
@@ -245,8 +245,8 @@ impl TaskIoBindings {
         let process_id = process.process_id.clone();
         let node_id = last_process_node_mut(source, process)?.bpmn_id.clone();
         Err(BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id,
-            node_id,
+            process_id: process_id.into(),
+            node_id: node_id.into(),
             detail,
         })
     }

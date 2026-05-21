@@ -150,7 +150,7 @@ fn issue_from_checkpoint_xml_escape_error(
     let span = find_unescaped_ampersand_span(&source.contents)?;
     let replacement_line = escaped_line_fix_for_ampersand(&source.contents, span.start)?;
     Some(
-        LintIssue::new(
+        LintIssue::from_parts(
             "bpmn.invalid_xml",
             "BPMN XML is not well-formed",
             format!(

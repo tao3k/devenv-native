@@ -1,6 +1,7 @@
 //! Public bpmn model api definitions contracts for BPMN/DMN engine integration.
 
 use super::data::{BpmnIoBindingSnapshot, BpmnIoSpecificationSnapshot};
+use super::types::{BpmnSnapshotFlag, BpmnSnapshotId, BpmnSnapshotKind, BpmnSnapshotType};
 
 /// Snapshot of one BPMN `import`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -10,7 +11,7 @@ pub struct BpmnImportSnapshot {
     /// Optional import location.
     pub location: Option<String>,
     /// Optional imported model type URI.
-    pub import_type: Option<String>,
+    pub import_type: Option<BpmnSnapshotType>,
 }
 
 /// Snapshot of one BPMN `extension` declaration.
@@ -30,9 +31,9 @@ pub struct BpmnExtensionSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnRelationshipSnapshot {
     /// Optional stable relationship identifier.
-    pub relationship_id: Option<String>,
+    pub relationship_id: Option<BpmnSnapshotId>,
     /// Required relationship type preserved as optional metadata for recovery.
-    pub relationship_type: Option<String>,
+    pub relationship_type: Option<BpmnSnapshotType>,
     /// Optional relationship direction.
     pub direction: Option<String>,
     /// Direct source references preserved in source order.
@@ -47,13 +48,13 @@ pub struct BpmnRelationshipSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnItemDefinitionSnapshot {
     /// Optional stable item-definition identifier.
-    pub item_definition_id: Option<String>,
+    pub item_definition_id: Option<BpmnSnapshotId>,
     /// Optional referenced external or model structure.
     pub structure_ref: Option<String>,
     /// Optional BPMN item kind.
-    pub item_kind: Option<String>,
+    pub item_kind: Option<BpmnSnapshotKind>,
     /// Optional BPMN collection marker.
-    pub is_collection: Option<bool>,
+    pub is_collection: Option<BpmnSnapshotFlag>,
 }
 
 /// Snapshot of one BPMN `message`.
@@ -92,9 +93,9 @@ pub struct BpmnEndPointSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnGlobalTaskSnapshot {
     /// Local BPMN global task kind.
-    pub task_kind: String,
+    pub task_kind: BpmnSnapshotKind,
     /// Optional stable global task identifier.
-    pub task_id: Option<String>,
+    pub task_id: Option<BpmnSnapshotId>,
     /// Optional human-readable global task name.
     pub name: Option<String>,
     /// Optional BPMN implementation marker.
@@ -173,9 +174,9 @@ pub struct BpmnResourceParameterSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnResourceRoleSnapshot {
     /// Local BPMN resource-role kind.
-    pub role_kind: String,
+    pub role_kind: BpmnSnapshotKind,
     /// Optional stable role identifier.
-    pub role_id: Option<String>,
+    pub role_id: Option<BpmnSnapshotId>,
     /// Optional role name.
     pub name: Option<String>,
     /// Optional nested `resourceRef` payload.

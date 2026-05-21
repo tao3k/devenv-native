@@ -1,3 +1,5 @@
+//! `link_graph_refs::stats` owns Wendao link graph refs stats behavior.
+
 use super::extract::extract_entity_refs;
 use super::model::LinkGraphEntityRef;
 use serde::{Deserialize, Serialize};

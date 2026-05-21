@@ -17,7 +17,7 @@ pub(super) fn unsupported_organization_unit_document_issue(
     } else {
         "elements"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_organization_unit_document",
         "DMN file contains organization-unit business context but no executable decisions",
         format!(
@@ -56,7 +56,7 @@ pub(super) fn unsupported_performance_indicator_document_issue(
     } else {
         "elements"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_performance_indicator_document",
         "DMN file contains performance-indicator business context but no executable decisions",
         format!(
@@ -95,7 +95,7 @@ pub(super) fn unsupported_text_annotation_document_issue(
     } else {
         "annotations"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_text_annotation_document",
         "DMN file contains text annotations but no executable decisions",
         format!(

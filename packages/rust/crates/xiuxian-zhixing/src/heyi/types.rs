@@ -12,6 +12,20 @@ use xiuxian_wendao::graph::KnowledgeGraph;
 use xiuxian_wendao::skill_runtime::zhixing::{ZhixingIndexSummary, ZhixingWendaoIndexer};
 use xiuxian_wendao::sync::IncrementalSyncPolicy;
 
+/// Named input for creating a [`ZhixingHeyi`] orchestrator.
+pub struct ZhixingHeyiInit {
+    /// Reference to the Knowledge Graph managed by Wendao.
+    pub graph: Arc<KnowledgeGraph>,
+    /// Reference to the Manifestation layer managed by Qianhuan.
+    pub manifestation: Arc<dyn ManifestationInterface>,
+    /// Reference to the markdown file storage engine.
+    pub storage: Arc<MarkdownStorage>,
+    /// Scope key used for persistent metadata indexing.
+    pub scope_key: String,
+    /// Configured time zone string.
+    pub time_zone_str: String,
+}
+
 /// Integration of Zhi (Knowledge) and Xing (Action) - the Heyi orchestrator.
 pub struct ZhixingHeyi {
     /// Reference to the Knowledge Graph managed by Wendao.
@@ -35,21 +49,18 @@ impl ZhixingHeyi {
     ///
     /// # Errors
     /// Returns `Error::Config` when `time_zone_str` is not a valid IANA time zone.
-    pub fn new(
-        graph: Arc<KnowledgeGraph>,
-        manifestation: Arc<dyn ManifestationInterface>,
-        storage: Arc<MarkdownStorage>,
-        scope_key: String,
-        time_zone_str: &str,
-    ) -> Result<Self> {
-        let time_zone = Tz::from_str(time_zone_str).map_err(|error| {
-            crate::Error::Config(format!("Invalid time zone '{time_zone_str}': {error}"))
+    pub fn new(input: ZhixingHeyiInit) -> Result<Self> {
+        let time_zone = Tz::from_str(&input.time_zone_str).map_err(|error| {
+            crate::Error::Config(format!(
+                "Invalid time zone '{}': {error}",
+                input.time_zone_str
+            ))
         })?;
         Ok(Self {
-            graph,
-            manifestation,
-            storage,
-            scope_key,
+            graph: input.graph,
+            manifestation: input.manifestation,
+            storage: input.storage,
+            scope_key: input.scope_key,
             time_zone,
             reminder_queue: None,
             active_persona: None,

@@ -43,7 +43,7 @@ pub(super) fn issue_from_dmn_table_shape_error(
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> Option<LintIssue> {
     Some(match error {
-        BpmnEngineError::UnsupportedDmnDecisionCount { source_id, count } => LintIssue::new(
+        BpmnEngineError::UnsupportedDmnDecisionCount { source_id, count } => LintIssue::from_parts(
             "dmn.unsupported_decision_count",
             "Exact-one DMN compatibility parser encountered multiple decisions",
             format!(
@@ -69,7 +69,7 @@ pub(super) fn issue_from_dmn_table_shape_error(
             missing_dmn_decision_table_issue(decision_id, snapshot)
         }
         BpmnEngineError::UnsupportedDmnDecisionTableCount { decision_id, count } => {
-            LintIssue::new(
+            LintIssue::from_parts(
                 "dmn.unsupported_decision_table_count",
                 "DMN decision has too many decision tables",
                 format!(

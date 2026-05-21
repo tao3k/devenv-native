@@ -4,7 +4,8 @@ use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::core::{
-    GraphStructuralCandidateSubgraph, GraphStructuralQueryContext, GraphStructuralRerankSignals,
+    GraphStructuralCandidateSubgraph, GraphStructuralCandidateSubgraphInput,
+    GraphStructuralQueryContext, GraphStructuralRerankSignals,
 };
 use super::overlap::GraphStructuralFilterConstraint;
 use super::rows::{
@@ -13,6 +14,7 @@ use super::rows::{
 use super::topology::{
     GraphStructuralGenericTopologyCandidateInputs,
     GraphStructuralGenericTopologyCandidateMetadataInputs,
+    GraphStructuralRawConnectedPairCandidateInput,
     GraphStructuralRawConnectedPairCollectionCandidateInputs,
     build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs,
 };
@@ -39,13 +41,13 @@ pub fn build_graph_structural_generic_topology_candidate_subgraph(
         edge_destinations,
         edge_kinds,
     } = metadata_inputs;
-    GraphStructuralCandidateSubgraph::new(
+    GraphStructuralCandidateSubgraph::from_input(GraphStructuralCandidateSubgraphInput {
         candidate_id,
         node_ids,
         edge_sources,
         edge_destinations,
         edge_kinds,
-    )
+    })
 }
 
 /// Build one staged structural-rerank request row from one generic explicit-edge
@@ -118,12 +120,14 @@ pub fn build_graph_structural_generic_topology_rerank_request_batch_from_raw_con
         .cloned()
         .map(|candidate| {
             build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs(
-                candidate.candidate_id,
-                candidate.pair_candidates,
-                candidate.fallback_edge_kind,
-                candidate.dependency_score,
-                candidate.keyword_score,
-                candidate.tag_score,
+                GraphStructuralRawConnectedPairCandidateInput {
+                    candidate_id: candidate.candidate_id,
+                    pair_candidates: candidate.pair_candidates,
+                    fallback_edge_kind: candidate.fallback_edge_kind.into(),
+                    dependency_score: candidate.dependency_score,
+                    keyword_score: candidate.keyword_score,
+                    tag_score: candidate.tag_score,
+                },
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -193,12 +197,14 @@ pub fn build_graph_structural_generic_topology_filter_request_batch_from_raw_con
         .cloned()
         .map(|candidate| {
             build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs(
-                candidate.candidate_id,
-                candidate.pair_candidates,
-                candidate.fallback_edge_kind,
-                candidate.dependency_score,
-                candidate.keyword_score,
-                candidate.tag_score,
+                GraphStructuralRawConnectedPairCandidateInput {
+                    candidate_id: candidate.candidate_id,
+                    pair_candidates: candidate.pair_candidates,
+                    fallback_edge_kind: candidate.fallback_edge_kind.into(),
+                    dependency_score: candidate.dependency_score,
+                    keyword_score: candidate.keyword_score,
+                    tag_score: candidate.tag_score,
+                },
             )
         })
         .collect::<Result<Vec<_>, _>>()?;

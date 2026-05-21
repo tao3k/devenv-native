@@ -1,8 +1,18 @@
+//! `search::repo_search::ast` owns Wendao search repo search ast behavior.
+
+#[cfg(test)]
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
+#[cfg(test)]
+use std::path::PathBuf;
 
 use walkdir::{DirEntry, WalkDir};
-use xiuxian_ast::{Lang, extract_items, get_skeleton_patterns};
+use xiuxian_ast::Lang;
+use xiuxian_code_intelligence::{
+    CodePatternMatch, code_language_from_path, extract_code_pattern_matches,
+    extract_code_structure_symbols, normalize_code_language_identifier, score_code_structure_query,
+};
 use xiuxian_git_repo::SyncMode;
 
 use crate::analyzers::resolve_registered_repository_source;
@@ -37,6 +47,103 @@ struct GenericAstAnalysisMatch<'a> {
     line_start: usize,
     line_end: usize,
     score: f64,
+}
+
+#[derive(Debug, Clone)]
+#[cfg(test)]
+pub(crate) struct RepoAstAnalysisIndex {
+    records: Vec<RepoAstAnalysisRecord>,
+    exact_name_index: HashMap<String, Vec<usize>>,
+    file_count: usize,
+}
+
+#[derive(Debug, Clone)]
+#[cfg(test)]
+struct RepoAstAnalysisRecord {
+    repo_id: String,
+    relative_path: String,
+    lang: Lang,
+    name: String,
+    signature: String,
+    line_start: usize,
+    line_end: usize,
+}
+
+#[cfg(test)]
+impl RepoAstAnalysisIndex {
+    pub(crate) fn file_count(&self) -> usize {
+        self.file_count
+    }
+
+    pub(crate) fn symbol_count(&self) -> usize {
+        self.records.len()
+    }
+
+    pub(crate) fn search(&self, search_term: Option<&str>, limit: usize) -> Vec<SearchHit> {
+        if limit == 0 {
+            return Vec::new();
+        }
+        if let Some(search_term) = normalized_exact_search_term(search_term)
+            && let Some(record_indexes) = self.exact_name_index.get(search_term.as_str())
+        {
+            return record_indexes
+                .iter()
+                .take(limit)
+                .map(|index| {
+                    let record = &self.records[*index];
+                    build_generic_ast_analysis_hit(&GenericAstAnalysisMatch {
+                        repo_id: record.repo_id.as_str(),
+                        relative_path: record.relative_path.as_str(),
+                        lang: record.lang,
+                        name: record.name.as_str(),
+                        signature: record.signature.as_str(),
+                        line_start: record.line_start,
+                        line_end: record.line_end,
+                        score: 1.0,
+                    })
+                })
+                .collect();
+        }
+
+        let mut matches = self
+            .records
+            .iter()
+            .filter_map(|record| {
+                let score = score_code_structure_query(
+                    search_term,
+                    record.relative_path.as_str(),
+                    record.name.as_str(),
+                    record.signature.as_str(),
+                )?;
+                Some((score, record))
+            })
+            .collect::<Vec<_>>();
+        matches.sort_by(|left, right| {
+            right
+                .0
+                .partial_cmp(&left.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| left.1.relative_path.cmp(&right.1.relative_path))
+                .then_with(|| left.1.line_start.cmp(&right.1.line_start))
+        });
+
+        matches
+            .into_iter()
+            .take(limit)
+            .map(|(score, record)| {
+                build_generic_ast_analysis_hit(&GenericAstAnalysisMatch {
+                    repo_id: record.repo_id.as_str(),
+                    relative_path: record.relative_path.as_str(),
+                    lang: record.lang,
+                    name: record.name.as_str(),
+                    signature: record.signature.as_str(),
+                    line_start: record.line_start,
+                    line_end: record.line_end,
+                    score,
+                })
+            })
+            .collect()
+    }
 }
 
 pub(crate) async fn search_repo_ast_pattern_hits(
@@ -91,6 +198,67 @@ pub(crate) async fn search_repo_ast_analysis_hits(
     })
     .await
     .map_err(|error| format!("ast-grep repo search task failed: {error}"))?
+}
+
+#[cfg(test)]
+pub(crate) fn build_repo_ast_analysis_index_from_checkout(
+    checkout_root: &Path,
+    repository: &RegisteredRepository,
+    language_filters: &[String],
+    include_dirs: &[String],
+    excluded_dirs: &[String],
+) -> RepoAstAnalysisIndex {
+    let excluded_languages = excluded_ast_languages_for_repository(repository);
+    let normalized_filters = normalized_language_filters(language_filters);
+    let mut records = Vec::new();
+    let mut seen = HashSet::new();
+    let mut file_count = 0;
+
+    for root in repo_ast_index_roots(checkout_root, include_dirs) {
+        if !root.is_dir() {
+            continue;
+        }
+        for entry in WalkDir::new(root.as_path())
+            .into_iter()
+            .filter_entry(|entry| {
+                should_descend_into_entry(entry)
+                    && should_descend_into_catalog_entry(checkout_root, entry, excluded_dirs)
+            })
+        {
+            let Ok(entry) = entry else { continue };
+            if !entry.file_type().is_file() {
+                continue;
+            }
+
+            let Some(lang) = supported_ast_lang(entry.path(), &excluded_languages) else {
+                continue;
+            };
+            if !normalized_filters.is_empty() && !normalized_filters.contains(lang.as_str()) {
+                continue;
+            }
+
+            let Ok(content) = std::fs::read_to_string(entry.path()) else {
+                continue;
+            };
+            file_count += 1;
+            let relative_path = normalize_repo_relative_path(checkout_root, entry.path());
+            push_analysis_records(
+                &mut records,
+                &mut seen,
+                repository.id.as_str(),
+                relative_path.as_str(),
+                lang,
+                content.as_str(),
+            );
+        }
+    }
+
+    let exact_name_index = build_exact_name_index(records.as_slice());
+    RepoAstAnalysisIndex {
+        records,
+        exact_name_index,
+        file_count,
+    }
 }
 
 fn normalize_analysis_search_term(repo_id: &str, search_term: Option<&str>) -> Option<String> {
@@ -215,7 +383,7 @@ fn build_ast_search_hit(
     repo_id: &str,
     relative_path: &str,
     lang: Lang,
-    result: &xiuxian_ast::ExtractResult,
+    result: &CodePatternMatch,
 ) -> SearchHit {
     let name = result
         .captures
@@ -287,82 +455,66 @@ impl SearchAccumulator {
     }
 
     fn push_pattern_matches(&mut self, file: &RepoAstFile<'_>, pattern: &str) -> bool {
-        for result in extract_items(file.content, pattern, file.lang, None) {
-            let dedupe_key = format!(
-                "{}:{}:{}:{}",
-                file.relative_path, result.line_start, result.line_end, result.text
-            );
-            if !self.seen.insert(dedupe_key) {
-                continue;
-            }
+        extract_code_pattern_matches(file.content, pattern, file.lang, None)
+            .into_iter()
+            .any(|result| {
+                let dedupe_key = format!(
+                    "{}:{}:{}:{}",
+                    file.relative_path, result.line_start, result.line_end, result.text
+                );
+                if !self.seen.insert(dedupe_key) {
+                    return false;
+                }
 
-            self.hits.push(build_ast_search_hit(
-                file.repo_id,
-                file.relative_path,
-                file.lang,
-                &result,
-            ));
-            if self.hits.len() >= self.limit {
-                return true;
-            }
-        }
-
-        false
+                self.hits.push(build_ast_search_hit(
+                    file.repo_id,
+                    file.relative_path,
+                    file.lang,
+                    &result,
+                ));
+                self.hits.len() >= self.limit
+            })
     }
 
     fn push_analysis_matches(&mut self, file: &RepoAstFile<'_>, search_term: Option<&str>) -> bool {
-        for pattern in get_skeleton_patterns(file.lang) {
-            for result in extract_items(file.content, pattern, file.lang, Some(vec!["NAME"])) {
-                let signature = first_signature_line(result.text.as_str()).to_string();
-                if signature.is_empty() {
-                    continue;
-                }
-                let name = result
-                    .captures
-                    .get("NAME")
-                    .cloned()
-                    .filter(|value| !value.trim().is_empty())
-                    .unwrap_or_else(|| signature.clone());
-                let Some(score) = generic_ast_analysis_score(
+        extract_code_structure_symbols(file.content, file.lang)
+            .into_iter()
+            .any(|symbol| {
+                let Some(score) = score_code_structure_query(
                     search_term,
                     file.relative_path,
-                    name.as_str(),
-                    signature.as_str(),
+                    symbol.name.as_str(),
+                    symbol.signature.as_str(),
                 ) else {
-                    continue;
+                    return false;
                 };
                 let dedupe_key = format!(
                     "{}:{}:{}:{}",
-                    file.relative_path, result.line_start, result.line_end, name
+                    file.relative_path, symbol.line_start, symbol.line_end, symbol.name
                 );
                 if !self.seen.insert(dedupe_key) {
-                    continue;
+                    return false;
                 }
 
                 let analysis_match = GenericAstAnalysisMatch {
                     repo_id: file.repo_id,
                     relative_path: file.relative_path,
                     lang: file.lang,
-                    name: name.as_str(),
-                    signature: signature.as_str(),
-                    line_start: result.line_start,
-                    line_end: result.line_end,
+                    name: symbol.name.as_str(),
+                    signature: symbol.signature.as_str(),
+                    line_start: symbol.line_start,
+                    line_end: symbol.line_end,
                     score,
                 };
                 self.hits
                     .push(build_generic_ast_analysis_hit(&analysis_match));
-                if self.hits.len() >= self.limit {
-                    return true;
-                }
-            }
-        }
-
-        false
+                self.hits.len() >= self.limit
+            })
     }
 }
 
 fn supported_ast_lang(path: &Path, excluded_languages: &HashSet<String>) -> Option<Lang> {
-    let lang = Lang::from_path(path)?;
+    let lang = code_language_from_path(path)?;
     (!excluded_languages.contains(lang.as_str())).then_some(lang)
 }
 
@@ -424,48 +576,59 @@ fn push_normalized_ast_language(languages: &mut Vec<String>, language: &str) {
         return;
     }
 
-    let normalized = match Lang::try_from(trimmed) {
-        Ok(lang) => lang.as_str().to_string(),
-        Err(_) => trimmed.to_ascii_lowercase(),
-    };
-    languages.push(normalized);
+    languages.push(normalize_code_language_identifier(trimmed));
 }
 
-fn first_signature_line(text: &str) -> &str {
-    text.lines().next().map(str::trim).unwrap_or_default()
+#[cfg(test)]
+fn repo_ast_index_roots(checkout_root: &Path, include_dirs: &[String]) -> Vec<PathBuf> {
+    if include_dirs.is_empty() {
+        return vec![checkout_root.to_path_buf()];
+    }
+
+    include_dirs
+        .iter()
+        .map(|path| path.trim())
+        .filter(|path| !path.is_empty())
+        .map(|path| checkout_root.join(path))
+        .collect()
 }
 
-fn generic_ast_analysis_score(
-    search_term: Option<&str>,
-    relative_path: &str,
-    name: &str,
-    signature: &str,
-) -> Option<f64> {
-    let Some(search_term) = search_term
+#[cfg(test)]
+fn should_descend_into_catalog_entry(
+    checkout_root: &Path,
+    entry: &DirEntry,
+    excluded_dirs: &[String],
+) -> bool {
+    if entry.depth() == 0 || excluded_dirs.is_empty() {
+        return true;
+    }
+
+    let relative_path = normalize_repo_relative_path(checkout_root, entry.path());
+    !excluded_dirs.iter().any(|excluded| {
+        let excluded = excluded.trim().trim_matches('/');
+        !excluded.is_empty()
+            && (relative_path == excluded || relative_path.starts_with(&format!("{excluded}/")))
+    })
+}
+
+#[cfg(test)]
+fn normalized_exact_search_term(search_term: Option<&str>) -> Option<String> {
+    search_term
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_ascii_lowercase)
-    else {
-        return Some(0.72);
-    };
-    let normalized_name = name.to_ascii_lowercase();
-    let normalized_signature = signature.to_ascii_lowercase();
-    let normalized_path = relative_path.to_ascii_lowercase();
+}
 
-    if normalized_name == search_term {
-        return Some(1.0);
+#[cfg(test)]
+fn build_exact_name_index(records: &[RepoAstAnalysisRecord]) -> HashMap<String, Vec<usize>> {
+    let mut index: HashMap<String, Vec<usize>> = HashMap::new();
+    for (record_index, record) in records.iter().enumerate() {
+        index
+            .entry(record.name.to_ascii_lowercase())
+            .or_default()
+            .push(record_index);
     }
-    if normalized_name.contains(search_term.as_str()) {
-        return Some(0.97);
-    }
-    if normalized_signature.contains(search_term.as_str()) {
-        return Some(0.91);
-    }
-    if normalized_path.contains(search_term.as_str()) {
-        return Some(0.84);
-    }
-
-    None
+    index
 }
 
 fn build_generic_ast_analysis_hit(result: &GenericAstAnalysisMatch<'_>) -> SearchHit {
@@ -507,6 +670,37 @@ fn build_generic_ast_analysis_hit(result: &GenericAstAnalysisMatch<'_>) -> Searc
             line_end: Some(result.line_end),
             column: None,
         }),
+    }
+}
+
+#[cfg(test)]
+fn push_analysis_records(
+    records: &mut Vec<RepoAstAnalysisRecord>,
+    seen: &mut HashSet<String>,
+    repo_id: &str,
+    relative_path: &str,
+    lang: Lang,
+    content: &str,
+) {
+    for symbol in extract_code_structure_symbols(content, lang) {
+        let dedupe_key = format!(
+            "{relative_path}:{}:{}:{name}",
+            symbol.line_start,
+            symbol.line_end,
+            name = symbol.name.as_str()
+        );
+        if !seen.insert(dedupe_key) {
+            continue;
+        }
+        records.push(RepoAstAnalysisRecord {
+            repo_id: repo_id.to_string(),
+            relative_path: relative_path.to_string(),
+            lang,
+            name: symbol.name,
+            signature: symbol.signature,
+            line_start: symbol.line_start,
+            line_end: symbol.line_end,
+        });
     }
 }
 

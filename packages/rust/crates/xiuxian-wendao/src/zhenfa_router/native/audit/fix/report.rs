@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::fix::report` owns Wendao audit fix report behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Result of applying a single fix to a file.

@@ -35,7 +35,7 @@ async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
                     url: None,
                     git_ref: None,
                     refresh: None,
-                    plugins: vec!["julia".to_string()],
+                    plugins: vec!["julia-code-parser".to_string()],
                 },
                 crate::contracts::UiRepoProjectConfig {
                     id: "beta".to_string(),
@@ -78,7 +78,7 @@ async fn build_intent_cache_key_is_stable_for_reordered_repo_config() {
                     url: None,
                     git_ref: None,
                     refresh: None,
-                    plugins: vec!["julia".to_string()],
+                    plugins: vec!["julia-code-parser".to_string()],
                 },
             ],
         },
@@ -124,7 +124,7 @@ async fn build_intent_search_response_includes_repo_content_hits_for_debug_looku
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let snapshot = Arc::new(RepoIndexSnapshot {
@@ -209,7 +209,7 @@ async fn load_intent_search_response_reports_repo_content_flight_transport_metad
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let snapshot = Arc::new(RepoIndexSnapshot {
@@ -362,7 +362,7 @@ threads = 2
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let snapshot = Arc::new(RepoIndexSnapshot {
@@ -421,7 +421,7 @@ async fn build_intent_search_response_includes_repo_entity_hits_for_debug_lookup
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     let analysis = sample_repo_analysis("valid");

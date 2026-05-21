@@ -9,8 +9,8 @@ use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
 
 use crate::link_graph::{
-    LinkGraphIndex, LinkGraphSearchOptions, QuantumAnchorHit, RegistryIndex, SkeletonRerankOptions,
-    TopologyIndex, skeleton_rerank,
+    LinkGraphIndex, LinkGraphPlannedSearchPayload, LinkGraphSearchOptions, QuantumAnchorHit,
+    RegistryIndex, SkeletonRerankOptions, TopologyIndex, skeleton_rerank,
 };
 
 use super::WendaoContextExt;
@@ -29,6 +29,13 @@ pub(crate) struct WendaoAgenticNavArgs {
     /// Whether to use strict mode (filter out invalid anchors).
     #[serde(default)]
     pub strict: bool,
+}
+
+struct AgenticNavRequest {
+    query: String,
+    limit: usize,
+    search_options: LinkGraphSearchOptions,
+    rerank_options: SkeletonRerankOptions,
 }
 
 fn default_limit() -> usize {
@@ -51,63 +58,86 @@ pub fn wendao_agentic_nav(
     ctx: &ZhenfaContext,
     args: WendaoAgenticNavArgs,
 ) -> Result<String, ZhenfaError> {
-    let query = args.query.trim();
-    if query.is_empty() {
-        return Err(ZhenfaError::invalid_arguments(
-            "`query` must be a non-empty string",
-        ));
-    }
-
+    let request = AgenticNavRequest::from_args(args)?;
     let index = ctx.link_graph_index()?;
-    let limit = args.limit.clamp(1, 100);
-
-    // Build search options with optional doc_id filter
-    let search_options = if let Some(ref doc_id) = args.doc_id {
-        let mut opts = LinkGraphSearchOptions::default();
-        opts.filters.include_paths.push(doc_id.clone());
-        opts
-    } else {
-        LinkGraphSearchOptions::default()
-    };
-
-    // Perform search to get initial candidates
-    let payload = index.search_planned_payload_with_agentic(
-        query,
-        limit * 3, // Get more for filtering
-        search_options,
-        None, // include_provisional
-        None, // provisional_limit
-    );
-
-    // Build dual indices for validation from payload results
+    let payload = agentic_nav_payload(&index, &request);
     let trees = build_page_index_trees_from_hits(&payload.results, &index);
     let registry = RegistryIndex::build_from_trees(&trees);
     let topology = TopologyIndex::build_from_trees(&trees);
+    let validated = validated_agentic_nav_hits(&payload.results, &registry, &topology, &request);
+    Ok(render_agentic_nav_result(
+        request.query.as_str(),
+        &validated,
+        request.limit,
+    ))
+}
 
-    // Configure re-ranking options
-    let rerank_options = if args.strict {
-        SkeletonRerankOptions::strict()
-    } else {
-        SkeletonRerankOptions::lenient()
-    };
+impl AgenticNavRequest {
+    fn from_args(args: WendaoAgenticNavArgs) -> Result<Self, ZhenfaError> {
+        let query = args.query.trim();
+        if query.is_empty() {
+            return Err(ZhenfaError::invalid_arguments(
+                "`query` must be a non-empty string",
+            ));
+        }
+        Ok(Self {
+            query: query.to_string(),
+            limit: args.limit.clamp(1, 100),
+            search_options: agentic_search_options(args.doc_id),
+            rerank_options: agentic_rerank_options(args.strict),
+        })
+    }
+}
 
-    // Convert hits to anchor hits for re-ranking
-    let anchor_hits: Vec<QuantumAnchorHit> = payload
-        .results
-        .iter()
+fn agentic_search_options(doc_id: Option<String>) -> LinkGraphSearchOptions {
+    let mut opts = LinkGraphSearchOptions::default();
+    if let Some(doc_id) = doc_id {
+        opts.filters.include_paths.push(doc_id);
+    }
+    opts
+}
+
+fn agentic_rerank_options(strict: bool) -> SkeletonRerankOptions {
+    if strict {
+        return SkeletonRerankOptions::strict();
+    }
+    SkeletonRerankOptions::lenient()
+}
+
+fn agentic_nav_payload(
+    index: &LinkGraphIndex,
+    request: &AgenticNavRequest,
+) -> LinkGraphPlannedSearchPayload {
+    index.search_planned_payload_with_agentic(
+        request.query.as_str(),
+        request.limit * 3,
+        request.search_options.clone(),
+        None,
+        None,
+    )
+}
+
+fn validated_agentic_nav_hits(
+    hits: &[crate::link_graph::LinkGraphHit],
+    registry: &RegistryIndex,
+    topology: &TopologyIndex,
+    request: &AgenticNavRequest,
+) -> Vec<crate::link_graph::addressing::SkeletonValidatedHit> {
+    skeleton_rerank(
+        anchor_hits_from_search_hits(hits),
+        registry,
+        topology,
+        &request.rerank_options,
+    )
+}
+
+fn anchor_hits_from_search_hits(hits: &[crate::link_graph::LinkGraphHit]) -> Vec<QuantumAnchorHit> {
+    hits.iter()
         .map(|hit| QuantumAnchorHit {
             anchor_id: format!("{}#{}", hit.path, hit.stem),
             vector_score: hit.score,
         })
-        .collect();
-
-    // Apply skeleton re-ranking
-    let validated = skeleton_rerank(anchor_hits, &registry, &topology, &rerank_options);
-
-    // Build XML result
-    let xml = render_agentic_nav_result(query, &validated, limit);
-
-    Ok(xml)
+        .collect()
 }
 
 /// Build page index trees from search hits.

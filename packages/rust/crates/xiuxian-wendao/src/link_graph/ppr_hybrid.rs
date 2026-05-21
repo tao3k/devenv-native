@@ -54,6 +54,7 @@ impl HybridPprKernel {
     }
 
     /// Adds a node if not exists.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn add_node(&mut self, id: &str, node_type: NodeType, saliency: f64) {
         if !self.id_to_idx.contains_key(id) {
             let idx = self.graph.add_node(NodeData {
@@ -87,60 +88,112 @@ impl HybridPprKernel {
             return;
         }
 
-        // 1. Initialize ranks from seeds
+        self.initialize_seed_ranks(seeds);
+        let out_weights = self.out_weight_sums(node_count);
+        let indices = self.node_indices();
+        self.run_power_iterations(seeds, alpha, iterations, tolerance, &out_weights, &indices);
+    }
+
+    fn initialize_seed_ranks(&mut self, seeds: &HashMap<String, f64>) {
         for (id, &val) in seeds {
             if let Some(&idx) = self.id_to_idx.get(id) {
                 self.graph[idx].rank = val;
             }
         }
+    }
 
-        // Pre-compute out-weight sums for all nodes (for fast O(1) division during gather)
+    fn out_weight_sums(&self, node_count: usize) -> Vec<f64> {
         let mut out_weights = vec![0.0; node_count];
         for idx in self.graph.node_indices() {
-            let total: f32 = self.graph.edges(idx).map(|e| *e.weight()).sum();
+            let total: f32 = self.graph.edges(idx).map(|edge| *edge.weight()).sum();
             out_weights[idx.index()] = f64::from(total);
         }
+        out_weights
+    }
 
-        // Collect indices for parallel iteration
-        let indices: Vec<NodeIndex> = self.graph.node_indices().collect();
+    fn node_indices(&self) -> Vec<NodeIndex> {
+        self.graph.node_indices().collect()
+    }
 
-        // 2. Power iteration
+    fn run_power_iterations(
+        &mut self,
+        seeds: &HashMap<String, f64>,
+        alpha: f64,
+        iterations: usize,
+        tolerance: f64,
+        out_weights: &[f64],
+        indices: &[NodeIndex],
+    ) {
         for _ in 0..iterations {
-            // Gather phase (Parallel)
-            let new_ranks: Vec<(NodeIndex, f64)> = indices
-                .par_iter()
-                .map(|&v| {
-                    let mut incoming_sum = 0.0;
-                    for edge in self.graph.edges_directed(v, Direction::Incoming) {
-                        let u = edge.source();
-                        let w = f64::from(*edge.weight());
-                        let out_w = out_weights[u.index()];
-                        if out_w > 0.0 {
-                            incoming_sum += self.graph[u].rank * (w / out_w);
-                        }
-                    }
-
-                    let seed_prob = seeds.get(&self.graph[v].id).copied().unwrap_or(0.0);
-                    let current_saliency = self.graph[v].saliency;
-                    let teleport_prob = (seed_prob + current_saliency / 10.0).min(1.0);
-
-                    let next_rank = (1.0 - alpha) * incoming_sum + alpha * teleport_prob;
-                    (v, next_rank)
-                })
-                .collect();
-
-            // Convergence check & Apply updates
-            let mut diff = 0.0;
-            for (idx, new_rank) in new_ranks {
-                let old_rank = self.graph[idx].rank;
-                diff += (new_rank - old_rank).abs();
-                self.graph[idx].rank = new_rank;
-            }
-
+            let new_ranks = self.next_rank_batch(seeds, alpha, out_weights, indices);
+            let diff = self.apply_rank_updates(new_ranks);
             if diff < tolerance {
-                break; // Early stopping
+                break;
             }
         }
+    }
+
+    fn next_rank_batch(
+        &self,
+        seeds: &HashMap<String, f64>,
+        alpha: f64,
+        out_weights: &[f64],
+        indices: &[NodeIndex],
+    ) -> Vec<(NodeIndex, f64)> {
+        indices
+            .par_iter()
+            .map(|&idx| (idx, self.next_rank_for_node(idx, seeds, alpha, out_weights)))
+            .collect()
+    }
+
+    fn next_rank_for_node(
+        &self,
+        idx: NodeIndex,
+        seeds: &HashMap<String, f64>,
+        alpha: f64,
+        out_weights: &[f64],
+    ) -> f64 {
+        let incoming_sum = self.incoming_rank_sum(idx, out_weights);
+        let teleport_prob = self.teleport_probability(idx, seeds);
+        (1.0 - alpha) * incoming_sum + alpha * teleport_prob
+    }
+
+    fn incoming_rank_sum(&self, idx: NodeIndex, out_weights: &[f64]) -> f64 {
+        self.graph
+            .edges_directed(idx, Direction::Incoming)
+            .filter_map(|edge| {
+                self.incoming_edge_contribution(edge.source(), *edge.weight(), out_weights)
+            })
+            .sum()
+    }
+
+    fn incoming_edge_contribution(
+        &self,
+        source: NodeIndex,
+        weight: f32,
+        out_weights: &[f64],
+    ) -> Option<f64> {
+        let out_weight = out_weights[source.index()];
+        (out_weight > 0.0).then(|| self.graph[source].rank * (f64::from(weight) / out_weight))
+    }
+
+    fn teleport_probability(&self, idx: NodeIndex, seeds: &HashMap<String, f64>) -> f64 {
+        let seed_prob = seeds.get(&self.graph[idx].id).copied().unwrap_or(0.0);
+        let current_saliency = self.graph[idx].saliency;
+        (seed_prob + current_saliency / 10.0).min(1.0)
+    }
+
+    fn apply_rank_updates(&mut self, new_ranks: Vec<(NodeIndex, f64)>) -> f64 {
+        new_ranks
+            .into_iter()
+            .map(|(idx, new_rank)| self.apply_rank_update(idx, new_rank))
+            .sum()
+    }
+
+    fn apply_rank_update(&mut self, idx: NodeIndex, new_rank: f64) -> f64 {
+        let old_rank = self.graph[idx].rank;
+        self.graph[idx].rank = new_rank;
+        (new_rank - old_rank).abs()
     }
 
     /// Extract top-K nodes.

@@ -22,8 +22,8 @@ impl ProcessKey {
         spec_digest_hex: impl AsRef<str>,
     ) -> Self {
         Self {
-            package_id: Arc::<str>::from(package_id.as_ref()),
-            process_id: Arc::<str>::from(process_id.as_ref()),
+            package_id: (Arc::<str>::from(package_id.as_ref())),
+            process_id: (Arc::<str>::from(process_id.as_ref())),
             spec_digest_hex: Arc::<str>::from(spec_digest_hex.as_ref()),
         }
     }

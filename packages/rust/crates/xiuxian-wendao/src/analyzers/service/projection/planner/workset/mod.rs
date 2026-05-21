@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::workset` owns Wendao projection planner workset behavior.
+
 mod balance;
 mod groups;
 mod math;

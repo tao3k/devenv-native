@@ -38,15 +38,27 @@ fn dmn_parser_supports_datetime_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DateTimeRange(DmnDateTimeRange::new(
-            Some(DmnDateTimeRangeBound::new("2026-05-01T09:00:00", true)),
-            Some(DmnDateTimeRangeBound::new("2026-05-01T12:00:00", false)),
+            Some(DmnDateTimeRangeBound::new(
+                "2026-05-01T09:00:00",
+                true.into()
+            )),
+            Some(DmnDateTimeRangeBound::new(
+                "2026-05-01T12:00:00",
+                false.into()
+            )),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DateTimeRange(DmnDateTimeRange::new(
-            Some(DmnDateTimeRangeBound::new("2026-05-01T13:00:00", true)),
-            Some(DmnDateTimeRangeBound::new("2026-05-01T15:00:00", true)),
+            Some(DmnDateTimeRangeBound::new(
+                "2026-05-01T13:00:00",
+                true.into()
+            )),
+            Some(DmnDateTimeRangeBound::new(
+                "2026-05-01T15:00:00",
+                true.into()
+            )),
         ))
     );
 }
@@ -90,11 +102,11 @@ fn dmn_parser_supports_offset_datetime_range_unary_tests() {
         DmnInputEntry::DateTimeRange(DmnDateTimeRange::new(
             Some(DmnDateTimeRangeBound::new(
                 "2026-05-01T09:00:00+09:00",
-                true
+                true.into(),
             )),
             Some(DmnDateTimeRangeBound::new(
                 "2026-05-01T12:00:00+09:00",
-                false
+                false.into(),
             )),
         ))
     );
@@ -103,11 +115,11 @@ fn dmn_parser_supports_offset_datetime_range_unary_tests() {
         DmnInputEntry::DateTimeRange(DmnDateTimeRange::new(
             Some(DmnDateTimeRangeBound::new(
                 "2026-05-01T13:00:00+09:00",
-                true
+                true.into(),
             )),
             Some(DmnDateTimeRangeBound::new(
                 "2026-05-01T15:00:00+09:00",
-                true
+                true.into(),
             )),
         ))
     );

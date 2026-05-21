@@ -1,6 +1,7 @@
 use crate::transport::{
     ANALYSIS_CODE_AST_ROUTE, ANALYSIS_REFINE_DOC_ROUTE, ANALYSIS_REPO_DOC_COVERAGE_ROUTE,
     ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
+    ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
 };
 use crate::transport::{
     ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
@@ -15,6 +16,7 @@ use super::{
     populate_code_ast_analysis_headers, populate_refine_doc_headers,
     populate_repo_doc_coverage_headers, populate_repo_overview_headers,
     populate_repo_projected_page_index_tree_headers,
+    populate_repo_projected_retrieval_context_headers,
 };
 
 #[tokio::test]
@@ -121,6 +123,27 @@ async fn build_studio_search_flight_service_wires_repo_projected_page_index_tree
                 metadata,
                 "demo",
                 "repo:demo:projection:reference:doc:repo:demo:doc:docs/solve.md",
+            );
+        },
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn build_studio_search_flight_service_wires_repo_projected_retrieval_context_routes() {
+    let service = build_analysis_route_service();
+
+    assert_route_ticket(
+        &service,
+        ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
+        "repo projected retrieval context route",
+        |metadata| {
+            populate_repo_projected_retrieval_context_headers(
+                metadata,
+                "demo",
+                "repo:demo:projection:reference:doc:repo:demo:doc:docs/solve.md",
+                Some("repo:demo:reference:docs/solve.md:12"),
+                5,
             );
         },
     )

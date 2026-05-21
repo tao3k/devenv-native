@@ -10,4 +10,4 @@ pub use self::api::{
     parse_skill_frontmatter, uses_skill_frontmatter,
 };
 pub use self::raw::{RawFrontmatter, split_frontmatter, split_frontmatter_raw};
-pub use self::types::NoteFrontmatter;
+pub use self::types::{NoteCategory, NoteFrontmatter};

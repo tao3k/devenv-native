@@ -16,7 +16,8 @@ pub struct DmnDocumentSnapshot {
 impl DmnDocumentSnapshot {
     /// Returns one decision snapshot by id.
     #[must_use]
-    pub fn decision(&self, decision_id: &str) -> Option<&DmnDecisionSnapshot> {
+    pub fn decision(&self, decision_id: impl AsRef<str>) -> Option<&DmnDecisionSnapshot> {
+        let decision_id = decision_id.as_ref();
         self.decisions
             .iter()
             .find(|decision| decision.decision_id == decision_id)

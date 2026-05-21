@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::navigation` owns Wendao service projection navigation behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -186,6 +188,7 @@ pub fn repo_projected_page_navigation_from_config(
     })
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build deterministic projected page-navigation search results from normalized analysis records.
 ///
 /// # Errors

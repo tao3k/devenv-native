@@ -1,5 +1,7 @@
 //! Code-AST analysis route contract and metadata validation.
 
+use crate::transport::query_contract::RepoIdRef;
+
 /// Stable route for the code-AST analysis contract.
 pub const ANALYSIS_CODE_AST_ROUTE: &str = "/analysis/code-ast";
 
@@ -11,7 +13,7 @@ pub const ANALYSIS_CODE_AST_ROUTE: &str = "/analysis/code-ast";
 /// identifier is blank, or when the optional line hint is zero.
 pub fn validate_code_ast_analysis_request(
     path: &str,
-    repo_id: &str,
+    repo_id: RepoIdRef<'_>,
     line_hint: Option<usize>,
 ) -> Result<(), String> {
     if path.trim().is_empty() {

@@ -2,11 +2,7 @@ use std::cmp;
 use std::fs;
 use std::path::Path;
 
-pub(crate) use std::time::Instant;
-pub(crate) use tempfile::tempdir;
-pub(crate) use xiuxian_wendao::{
-    LinkGraphIndex, LinkGraphPprSubgraphMode, LinkGraphRelatedPprOptions,
-};
+use xiuxian_wendao::LinkGraphPprSubgraphMode;
 
 pub(crate) const NODE_COUNT: usize = 10_240;
 pub(crate) const HUB_COUNT: usize = 32;

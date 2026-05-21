@@ -1,3 +1,5 @@
+//! `settings` owns Wendao settings behavior.
+
 mod access;
 mod overrides;
 mod toml;

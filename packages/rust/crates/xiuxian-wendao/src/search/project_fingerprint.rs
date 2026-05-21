@@ -1,3 +1,5 @@
+//! `search::project_fingerprint` owns Wendao search project fingerprint behavior.
+
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;

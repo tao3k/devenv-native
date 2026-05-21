@@ -1,6 +1,6 @@
 use crate::contracts::NodeDefinition;
 
-use super::shared::string_param;
+use super::params::string_param;
 
 pub(in crate::engine::compiler) struct WendaoSqlValidateMechanismConfig {
     pub(in crate::engine::compiler) surface_bundle_key: String,

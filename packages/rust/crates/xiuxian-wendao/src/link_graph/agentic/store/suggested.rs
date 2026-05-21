@@ -1,3 +1,5 @@
+//! `link_graph::agentic::store::suggested` owns Wendao agentic store suggested behavior.
+
 use std::collections::HashSet;
 
 use crate::link_graph::runtime_config::{
@@ -44,6 +46,7 @@ fn valkey_stop_index(limit: usize) -> Result<i64, String> {
 ///
 /// Returns an error when the Valkey URL is invalid, the request cannot be
 /// normalized or serialized, or the write to Valkey fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn valkey_suggested_link_log_with_valkey(
     request: &LinkGraphSuggestedLinkRequest,
     valkey_url: &str,
@@ -168,6 +171,7 @@ pub fn valkey_suggested_link_recent_latest(
 ///
 /// Returns an error when the Valkey URL is invalid, the scan limit cannot be
 /// represented for `LRANGE`, or the read from Valkey fails.
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn valkey_suggested_link_recent_latest_with_valkey(
     limit: usize,
     valkey_url: &str,

@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::index_tree` owns Wendao service projection index tree behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -335,6 +337,7 @@ pub fn repo_projected_page_index_tree_from_config(
     })
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build one deterministic projected page-index node from normalized analysis records.
 ///
 /// # Errors
@@ -381,6 +384,7 @@ pub fn repo_projected_page_index_node_from_config(
     })
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build deterministic projected page-index tree search results from normalized analysis records.
 #[must_use]
 pub fn build_repo_projected_page_index_tree_search(

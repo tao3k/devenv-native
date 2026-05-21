@@ -29,6 +29,9 @@ use xiuxian_wendao_runtime::config::{
 };
 
 mod configured;
+#[cfg(feature = "duckdb")]
+mod dataset_ontology;
+#[cfg(feature = "duckdb")]
 mod event_lake;
 mod relation_engine;
 mod runtime;

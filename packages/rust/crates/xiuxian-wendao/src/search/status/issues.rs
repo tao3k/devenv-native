@@ -1,3 +1,5 @@
+//! `search::status::issues` owns Wendao search status issues behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Machine-readable issue code attached to a corpus status row.

@@ -1,3 +1,5 @@
+//! `duckdb::connection` owns Wendao duckdb connection behavior.
+
 use super::runtime::resolve_enabled_search_duckdb_runtime;
 use crate::duckdb::SearchDuckDbRuntimeConfig;
 use xiuxian_db_store::duckdb::{

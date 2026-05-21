@@ -87,108 +87,144 @@ pub fn collapse_clusters(
         return Vec::new();
     }
 
-    let mut virtual_nodes: Vec<VirtualNode> = Vec::new();
-    let mut cluster_info: Vec<(DenseCluster, String)> = Vec::new();
-
-    for (cluster_index, cluster) in clusters.into_iter().enumerate() {
-        let member_set: HashSet<&String> = cluster.members.iter().collect();
-
-        // Collect edges
-        let mut outgoing_edges: HashSet<String> = HashSet::new();
-        let mut incoming_edges: HashSet<String> = HashSet::new();
-
-        for member_id in &cluster.members {
-            // Outgoing edges to non-members
-            if let Some(neighbors) = outgoing.get(member_id) {
-                for neighbor in neighbors {
-                    if !member_set.contains(neighbor) {
-                        outgoing_edges.insert(neighbor.clone());
-                    }
-                }
-            }
-
-            // Incoming edges from non-members
-            if let Some(neighbors) = incoming.get(member_id) {
-                for neighbor in neighbors {
-                    if !member_set.contains(neighbor) {
-                        incoming_edges.insert(neighbor.clone());
-                    }
-                }
-            }
-        }
-
-        // Get member titles for title synthesis (use stem as title proxy)
-        let member_titles: Vec<&str> = cluster
-            .members
-            .iter()
-            .filter_map(|id| docs_by_id.get(id).map(|doc| doc.stem.as_str()))
-            .collect();
-
-        let virtual_id = VirtualNode::generate_id(&cluster.members, cluster_index);
-
-        let virtual_node = VirtualNode {
-            id: virtual_id.clone(),
-            members: cluster.members.clone(),
-            avg_saliency: cluster.avg_saliency,
-            title: VirtualNode::synthesize_title(&member_titles),
-            internal_edges: cluster.internal_edges,
-            edge_density: cluster.edge_density,
-            outgoing_edges: outgoing_edges.clone(),
-            incoming_edges: incoming_edges.clone(),
-        };
-
-        virtual_nodes.push(virtual_node);
-        cluster_info.push((cluster, virtual_id));
-    }
-
-    // Rewire edges: remove member-to-member edges, add virtual node edges
-    for (cluster, virtual_id) in &cluster_info {
-        let member_set: HashSet<&String> = cluster.members.iter().collect();
-
-        // Remove internal edges between members
-        for member_id in &cluster.members {
-            if let Some(neighbors) = outgoing.get_mut(member_id) {
-                neighbors.retain(|n| !member_set.contains(n));
-            }
-            if let Some(neighbors) = incoming.get_mut(member_id) {
-                neighbors.retain(|n| !member_set.contains(n));
-            }
-        }
-
-        // Get virtual node edges
-        let Some(vnode) = virtual_nodes.iter().find(|vn| vn.id == *virtual_id) else {
-            debug_assert!(false, "virtual node should exist");
-            continue;
-        };
-
-        // Add edges from virtual node to external nodes
-        outgoing
-            .entry(virtual_id.clone())
-            .or_default()
-            .extend(vnode.outgoing_edges.iter().cloned());
-
-        incoming
-            .entry(virtual_id.clone())
-            .or_default()
-            .extend(vnode.incoming_edges.iter().cloned());
-
-        // Add reverse edges from external nodes to virtual node
-        for ext_node in &vnode.outgoing_edges {
-            incoming
-                .entry(ext_node.clone())
-                .or_default()
-                .insert(virtual_id.clone());
-        }
-
-        for ext_node in &vnode.incoming_edges {
-            outgoing
-                .entry(ext_node.clone())
-                .or_default()
-                .insert(virtual_id.clone());
-        }
-    }
-
+    let virtual_nodes = build_virtual_nodes(clusters, docs_by_id, outgoing, incoming);
+    rewire_virtual_nodes(&virtual_nodes, outgoing, incoming);
     virtual_nodes
+}
+
+fn build_virtual_nodes(
+    clusters: Vec<DenseCluster>,
+    docs_by_id: &HashMap<String, LinkGraphDocument>,
+    outgoing: &HashMap<String, HashSet<String>>,
+    incoming: &HashMap<String, HashSet<String>>,
+) -> Vec<VirtualNode> {
+    clusters
+        .into_iter()
+        .enumerate()
+        .map(|(cluster_index, cluster)| {
+            build_virtual_node(cluster_index, cluster, docs_by_id, outgoing, incoming)
+        })
+        .collect()
+}
+
+fn build_virtual_node(
+    cluster_index: usize,
+    cluster: DenseCluster,
+    docs_by_id: &HashMap<String, LinkGraphDocument>,
+    outgoing: &HashMap<String, HashSet<String>>,
+    incoming: &HashMap<String, HashSet<String>>,
+) -> VirtualNode {
+    let (outgoing_edges, incoming_edges) = cluster_external_edges(&cluster, outgoing, incoming);
+    let member_titles = member_titles(&cluster.members, docs_by_id);
+    VirtualNode {
+        id: VirtualNode::generate_id(&cluster.members, cluster_index),
+        members: cluster.members,
+        avg_saliency: cluster.avg_saliency,
+        title: VirtualNode::synthesize_title(&member_titles),
+        internal_edges: cluster.internal_edges,
+        edge_density: cluster.edge_density,
+        outgoing_edges,
+        incoming_edges,
+    }
+}
+
+fn cluster_external_edges(
+    cluster: &DenseCluster,
+    outgoing: &HashMap<String, HashSet<String>>,
+    incoming: &HashMap<String, HashSet<String>>,
+) -> (HashSet<String>, HashSet<String>) {
+    let member_set = cluster.members.iter().collect::<HashSet<_>>();
+    (
+        external_edges(&cluster.members, &member_set, outgoing),
+        external_edges(&cluster.members, &member_set, incoming),
+    )
+}
+
+fn external_edges(
+    members: &[String],
+    member_set: &HashSet<&String>,
+    edge_map: &HashMap<String, HashSet<String>>,
+) -> HashSet<String> {
+    members
+        .iter()
+        .filter_map(|member_id| edge_map.get(member_id))
+        .flat_map(|neighbors| neighbors.iter())
+        .filter(|neighbor| !member_set.contains(*neighbor))
+        .cloned()
+        .collect()
+}
+
+fn member_titles<'a>(
+    members: &[String],
+    docs_by_id: &'a HashMap<String, LinkGraphDocument>,
+) -> Vec<&'a str> {
+    members
+        .iter()
+        .filter_map(|id| docs_by_id.get(id).map(|doc| doc.stem.as_str()))
+        .collect()
+}
+
+fn rewire_virtual_nodes(
+    virtual_nodes: &[VirtualNode],
+    outgoing: &mut HashMap<String, HashSet<String>>,
+    incoming: &mut HashMap<String, HashSet<String>>,
+) {
+    for virtual_node in virtual_nodes {
+        remove_internal_member_edges(virtual_node, outgoing, incoming);
+        insert_virtual_node_edges(virtual_node, outgoing, incoming);
+        insert_reverse_virtual_node_edges(virtual_node, outgoing, incoming);
+    }
+}
+
+fn remove_internal_member_edges(
+    virtual_node: &VirtualNode,
+    outgoing: &mut HashMap<String, HashSet<String>>,
+    incoming: &mut HashMap<String, HashSet<String>>,
+) {
+    let member_set = virtual_node.members.iter().collect::<HashSet<_>>();
+    for member_id in &virtual_node.members {
+        if let Some(neighbors) = outgoing.get_mut(member_id) {
+            neighbors.retain(|neighbor| !member_set.contains(neighbor));
+        }
+        if let Some(neighbors) = incoming.get_mut(member_id) {
+            neighbors.retain(|neighbor| !member_set.contains(neighbor));
+        }
+    }
+}
+
+fn insert_virtual_node_edges(
+    virtual_node: &VirtualNode,
+    outgoing: &mut HashMap<String, HashSet<String>>,
+    incoming: &mut HashMap<String, HashSet<String>>,
+) {
+    outgoing
+        .entry(virtual_node.id.clone())
+        .or_default()
+        .extend(virtual_node.outgoing_edges.iter().cloned());
+    incoming
+        .entry(virtual_node.id.clone())
+        .or_default()
+        .extend(virtual_node.incoming_edges.iter().cloned());
+}
+
+fn insert_reverse_virtual_node_edges(
+    virtual_node: &VirtualNode,
+    outgoing: &mut HashMap<String, HashSet<String>>,
+    incoming: &mut HashMap<String, HashSet<String>>,
+) {
+    for ext_node in &virtual_node.outgoing_edges {
+        incoming
+            .entry(ext_node.clone())
+            .or_default()
+            .insert(virtual_node.id.clone());
+    }
+
+    for ext_node in &virtual_node.incoming_edges {
+        outgoing
+            .entry(ext_node.clone())
+            .or_default()
+            .insert(virtual_node.id.clone());
+    }
 }
 
 #[cfg(test)]

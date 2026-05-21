@@ -1,13 +1,14 @@
 use std::hash::{Hash, Hasher};
 
 use xiuxian_qianhuan::{
-    InjectionMode, InjectionPolicy, InjectionSnapshot, PromptContextBlock, PromptContextCategory,
-    PromptContextSource,
+    InjectionMode, InjectionPolicy, InjectionSessionId, InjectionSnapshot, InjectionSnapshotId,
+    InjectionSnapshotInput, InjectionTurnId, PromptContextBlock, PromptContextBlockId,
+    PromptContextBlockInput, PromptContextCategory, PromptContextSource, PromptSessionScope,
 };
 
 #[test]
 fn prompt_context_block_computes_payload_chars() {
-    let block = PromptContextBlock::new(
+    let block = block(
         "blk-1",
         PromptContextSource::MemoryRecall,
         PromptContextCategory::MemoryRecall,
@@ -43,7 +44,7 @@ fn injection_policy_roundtrip_keeps_snake_case_mode() {
 
 #[test]
 fn injection_snapshot_validate_rejects_budget_violation() {
-    let block = PromptContextBlock::new(
+    let block = block(
         "blk-2",
         PromptContextSource::Knowledge,
         PromptContextCategory::Knowledge,
@@ -56,8 +57,7 @@ fn injection_snapshot_validate_rejects_budget_violation() {
         max_chars: 32,
         ..InjectionPolicy::default()
     };
-    let snapshot =
-        InjectionSnapshot::from_blocks("snap-1", "telegram:100:200", 7, policy, None, vec![block]);
+    let snapshot = snapshot("snap-1", "telegram:100:200", 7, policy, None, vec![block]);
 
     let error = match snapshot.validate() {
         Ok(()) => panic!("expected max_chars validation failure"),
@@ -68,7 +68,7 @@ fn injection_snapshot_validate_rejects_budget_violation() {
 
 #[test]
 fn injection_snapshot_roundtrip_is_stable() {
-    let block = PromptContextBlock::new(
+    let block = block(
         "blk-3",
         PromptContextSource::SessionXml,
         PromptContextCategory::SessionXml,
@@ -77,7 +77,7 @@ fn injection_snapshot_roundtrip_is_stable() {
         "<qa><q>q</q><a>a</a></qa>",
         true,
     );
-    let snapshot = InjectionSnapshot::from_blocks(
+    let snapshot = snapshot(
         "snap-2",
         "telegram:group-1:user-9",
         42,
@@ -112,7 +112,7 @@ fn injection_snapshot_content_hash_is_stable_across_turn_loop() {
         ..InjectionPolicy::default()
     };
     let blocks = vec![
-        PromptContextBlock::new(
+        block(
             "blk-memory",
             PromptContextSource::MemoryRecall,
             PromptContextCategory::MemoryRecall,
@@ -121,7 +121,7 @@ fn injection_snapshot_content_hash_is_stable_across_turn_loop() {
             "memory recall context",
             false,
         ),
-        PromptContextBlock::new(
+        block(
             "blk-policy",
             PromptContextSource::Policy,
             PromptContextCategory::Policy,
@@ -132,7 +132,7 @@ fn injection_snapshot_content_hash_is_stable_across_turn_loop() {
         ),
     ];
 
-    let snapshot_turn_1 = InjectionSnapshot::from_blocks(
+    let snapshot_turn_1 = snapshot(
         "snap-turn-1",
         "telegram:scope-a",
         1,
@@ -140,8 +140,7 @@ fn injection_snapshot_content_hash_is_stable_across_turn_loop() {
         None,
         blocks.clone(),
     );
-    let snapshot_turn_2 =
-        InjectionSnapshot::from_blocks("snap-turn-2", "telegram:scope-a", 2, policy, None, blocks);
+    let snapshot_turn_2 = snapshot("snap-turn-2", "telegram:scope-a", 2, policy, None, blocks);
     if let Err(error) = snapshot_turn_1.validate() {
         panic!("turn 1 snapshot must be valid: {error}");
     }
@@ -172,4 +171,42 @@ fn snapshot_content_hash(snapshot: &InjectionSnapshot) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     encoded.hash(&mut hasher);
     hasher.finish()
+}
+
+fn block(
+    block_id: &str,
+    source: PromptContextSource,
+    category: PromptContextCategory,
+    priority: u16,
+    session_scope: &str,
+    payload: impl Into<String>,
+    anchor: bool,
+) -> PromptContextBlock {
+    PromptContextBlock::new(PromptContextBlockInput {
+        block_id: PromptContextBlockId::new(block_id),
+        source,
+        category,
+        priority,
+        session_scope: PromptSessionScope::new(session_scope),
+        payload: payload.into(),
+        anchor,
+    })
+}
+
+fn snapshot(
+    snapshot_id: &str,
+    session_id: &str,
+    turn_id: u64,
+    policy: InjectionPolicy,
+    role_mix: Option<xiuxian_qianhuan::RoleMixProfile>,
+    blocks: Vec<PromptContextBlock>,
+) -> InjectionSnapshot {
+    InjectionSnapshot::from_blocks(InjectionSnapshotInput {
+        snapshot_id: InjectionSnapshotId::new(snapshot_id),
+        session_id: InjectionSessionId::new(session_id),
+        turn_id: InjectionTurnId::new(turn_id),
+        policy,
+        role_mix,
+        blocks,
+    })
 }

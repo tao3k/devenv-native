@@ -9,8 +9,8 @@ use std::thread;
 use std::time::Duration;
 use tempfile::tempdir;
 use xiuxian_qianhuan::{
-    HotReloadRuntime, HotReloadStatus, InMemoryHotReloadVersionBackend, ManifestationManager,
-    ManifestationTemplateTarget,
+    HotReloadRuntime, HotReloadStatus, HotReloadTargetId, InMemoryHotReloadVersionBackend,
+    ManifestationManager, ManifestationTemplateTarget,
 };
 
 fn create_manager(root: &Path) -> Result<Arc<ManifestationManager>> {
@@ -73,7 +73,10 @@ fn hot_reload_runtime_remote_version_sync_refreshes_target() -> Result<()> {
 
     thread::sleep(Duration::from_millis(10));
     fs::write(&template_path, "Agenda v2 remote: {{ title }}")?;
-    backend.set_version("qianhuan.manifestation.templates", 3)?;
+    backend.set_version(
+        &HotReloadTargetId::new("qianhuan.manifestation.templates"),
+        3,
+    )?;
 
     let outcomes = runtime.sync_remote_versions()?;
     assert_eq!(outcomes.len(), 1);

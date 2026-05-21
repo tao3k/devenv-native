@@ -2,7 +2,11 @@
 
 use std::collections::BTreeMap;
 
-/// Non-extracting audit summary for archive-backed document attachments.
+/// Raw DTO boundary and stringly state boundary for archive audit summaries.
+///
+/// The serialized audit surface intentionally keeps archive paths, MIME types,
+/// and routing reason tokens as primitive fields because it mirrors cache and
+/// report rows consumed outside this crate.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArchiveAttachmentAudit {
@@ -42,7 +46,10 @@ pub struct ArchiveAttachmentAudit {
     pub decision_reason: String,
 }
 
-/// Non-extracting audit row for one archive member.
+/// Stringly state boundary for one archive member audit row.
+///
+/// Archive entry kind and role values are emitted as stable report tokens so
+/// downstream cache readers can preserve the source archive vocabulary.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArchiveMemberAudit {

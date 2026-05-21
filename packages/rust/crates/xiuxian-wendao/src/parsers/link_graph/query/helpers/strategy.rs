@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::link_graph::LinkGraphMatchStrategy;
 
 pub(in crate::parsers::link_graph::query) fn looks_like_regex(query: &str) -> bool {

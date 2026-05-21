@@ -1,3 +1,5 @@
+//! `skill_runtime::asset_request::types` owns Wendao skill runtime asset request types behavior.
+
 /// Strongly-typed handle for building semantic Wendao asset requests.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct WendaoAssetHandle;

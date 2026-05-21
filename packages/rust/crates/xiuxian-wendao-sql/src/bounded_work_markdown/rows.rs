@@ -1,3 +1,5 @@
+//! Row construction for bounded-work Markdown query surfaces.
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -7,6 +9,36 @@ use xiuxian_wendao_parsers::{DocumentCore, parse_markdown_toc, parse_org_toc};
 use super::discovery::DiscoveredMarkdownFile;
 use super::skeleton::render_markdown_skeleton;
 
+/// First-order bounded-work surface kind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundedWorkSurfaceKind(String);
+
+impl BoundedWorkSurfaceKind {
+    /// Borrows the stable surface-kind token.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for BoundedWorkSurfaceKind {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for BoundedWorkSurfaceKind {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl PartialEq<&str> for BoundedWorkSurfaceKind {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
 /// One queryable structural markdown unit inside a bounded work surface.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedWorkMarkdownRow {
@@ -15,7 +47,7 @@ pub struct BoundedWorkMarkdownRow {
     /// The top-level bounded-work surface that owns this row.
     pub surface: String,
     /// The first-order kind derived from the bounded surface and relative path.
-    pub surface_kind: String,
+    pub surface_kind: BoundedWorkSurfaceKind,
     /// The normalized heading path using `/` as the segment separator.
     pub heading_path: String,
     /// The current row title or effective section title.
@@ -103,12 +135,12 @@ fn parse_bounded_work_document(
     (parsed.document.core, parsed.sections)
 }
 
-fn classify_surface_kind(file: &DiscoveredMarkdownFile) -> String {
+fn classify_surface_kind(file: &DiscoveredMarkdownFile) -> BoundedWorkSurfaceKind {
     match file.surface.as_str() {
-        "blueprint" => "blueprint_note".to_string(),
-        "plan" => "plan_note".to_string(),
-        "semantic" => classify_semantic_path(file.relative_path.as_str()).to_string(),
-        surface => format!("{surface}_note"),
+        "blueprint" => "blueprint_note".into(),
+        "plan" => "plan_note".into(),
+        "semantic" => classify_semantic_path(file.relative_path.as_str()).into(),
+        surface => format!("{surface}_note").into(),
     }
 }
 

@@ -1,3 +1,5 @@
+//! Executors cli call surface for `xiuxian-qianji`.
+
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
 use crate::scheduler_preflight::resolve_semantic_content;
 use async_trait::async_trait;

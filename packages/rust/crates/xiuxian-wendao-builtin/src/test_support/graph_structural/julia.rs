@@ -1,7 +1,7 @@
 //! Graph-structural Julia service fixtures for builtin integration tests.
 
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_solver_demo_multi_route_service,
+    JuliaServiceGuard, spawn_wendaosearch_solver_demo_multi_route_service,
     spawn_wendaosearch_solver_demo_structural_rerank_service,
 };
 
@@ -45,15 +45,15 @@ pub use xiuxian_wendao_julia::{
 };
 
 /// Spawn the linked builtin single-route `WendaoSearch` `solver_demo`
-/// structural-rerank example service.
+/// structural-rerank service.
 pub async fn linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service()
--> (String, JuliaExampleServiceGuard) {
+-> (String, JuliaServiceGuard) {
     spawn_wendaosearch_solver_demo_structural_rerank_service().await
 }
 
 /// Spawn the linked builtin same-port multi-route `WendaoSearch`
-/// `solver_demo` example service.
+/// `solver_demo` service.
 pub async fn linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service()
--> (String, JuliaExampleServiceGuard) {
+-> (String, JuliaServiceGuard) {
     spawn_wendaosearch_solver_demo_multi_route_service().await
 }

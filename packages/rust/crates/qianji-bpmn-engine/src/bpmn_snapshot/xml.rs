@@ -13,7 +13,7 @@ pub(in crate::bpmn_snapshot) fn attribute_value(
 ) -> Result<Option<String>> {
     for attribute in event.attributes() {
         let attribute = attribute.map_err(|error| BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
             offset: None,
         })?;
@@ -21,7 +21,7 @@ pub(in crate::bpmn_snapshot) fn attribute_value(
             let value = attribute
                 .decode_and_unescape_value(reader.decoder())
                 .map_err(|error| BpmnEngineError::InvalidXml {
-                    source_id: source.source_id.clone(),
+                    source_id: (source.source_id.clone()).into(),
                     message: error.to_string(),
                     offset: None,
                 })?;
@@ -53,7 +53,7 @@ pub(in crate::bpmn_snapshot) fn bpmn_model_namespace(
 ) -> Result<Option<String>> {
     for attribute in event.attributes() {
         let attribute = attribute.map_err(|error| BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
             offset: None,
         })?;
@@ -64,7 +64,7 @@ pub(in crate::bpmn_snapshot) fn bpmn_model_namespace(
         let value = attribute
             .decode_and_unescape_value(reader.decoder())
             .map_err(|error| BpmnEngineError::InvalidXml {
-                source_id: source.source_id.clone(),
+                source_id: (source.source_id.clone()).into(),
                 message: error.to_string(),
                 offset: None,
             })?;
@@ -81,12 +81,12 @@ pub(super) fn append_text_content(
     decoded: std::result::Result<Cow<'_, str>, quick_xml::encoding::EncodingError>,
 ) -> Result<()> {
     let text = decoded.map_err(|error| BpmnEngineError::InvalidXml {
-        source_id: source.source_id.clone(),
+        source_id: (source.source_id.clone()).into(),
         message: error.to_string(),
         offset: None,
     })?;
     let text = unescape(text.as_ref()).map_err(|error| BpmnEngineError::InvalidXml {
-        source_id: source.source_id.clone(),
+        source_id: (source.source_id.clone()).into(),
         message: error.to_string(),
         offset: None,
     })?;
@@ -102,7 +102,7 @@ pub(super) fn append_reference_content(
     if let Some(ch) = reference
         .resolve_char_ref()
         .map_err(|error| BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
             offset: None,
         })?
@@ -114,13 +114,13 @@ pub(super) fn append_reference_content(
     let reference = reference
         .decode()
         .map_err(|error| BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
             offset: None,
         })?;
     let entity = resolve_predefined_entity(reference.as_ref()).ok_or_else(|| {
         BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: format!("unrecognized XML entity reference '&{reference};'"),
             offset: None,
         }

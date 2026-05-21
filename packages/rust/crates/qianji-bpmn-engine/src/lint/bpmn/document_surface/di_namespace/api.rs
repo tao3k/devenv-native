@@ -29,7 +29,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_namespace_issue(
         "invalid_namespaces_truncated": violations.len() > SNAPSHOT_EVIDENCE_LIMIT,
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.invalid_di_namespace",
         "BPMN diagram interchange metadata uses non-standard XML namespaces",
         format!(

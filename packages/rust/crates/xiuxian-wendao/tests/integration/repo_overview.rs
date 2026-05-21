@@ -41,7 +41,7 @@ fn config_parses_relative_repo_paths_against_config_dir() -> TestResult {
         &config_path,
         r#"[link_graph.projects.sample]
 root = "../repos/sample"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 "#,
     )?;
 
@@ -56,7 +56,7 @@ plugins = ["julia"]
 #[test]
 fn builtin_registry_contains_julia_plugin() -> TestResult {
     let registry = bootstrap_builtin_registry()?;
-    assert!(registry.plugin_ids().contains(&"julia"));
+    assert!(registry.plugin_ids().contains(&"julia-code-parser"));
     Ok(())
 }
 
@@ -424,7 +424,7 @@ fn linked_julia_parser_summary_plugin_toml() -> Result<String, Box<dyn std::erro
     ensure_linked_parser_summary_service()?;
     let base_url = linked_parser_summary_base_url()?;
     Ok(format!(
-        r#"{{ id = "julia", parser_summary_transport = {{ base_url = "{base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}"#
+        r#"{{ id = "julia-code-parser", parser_summary_transport = {{ base_url = "{base_url}", file_summary = {{ schema_version = "v3" }}, root_summary = {{ schema_version = "v3" }} }} }}"#
     ))
 }
 

@@ -47,56 +47,45 @@ impl VectorStore {
     /// Check if a metadata value matches the filter conditions.
     #[must_use]
     pub fn matches_filter(metadata: &serde_json::Value, conditions: &serde_json::Value) -> bool {
-        match conditions {
-            serde_json::Value::Object(obj) => {
-                for (key, value) in obj {
-                    let meta_value = if key.contains('.') {
-                        let parts: Vec<&str> = key.split('.').collect();
-                        let mut current = metadata.clone();
-                        for part in parts {
-                            if let serde_json::Value::Object(map) = current {
-                                current = map.get(part).cloned().unwrap_or(serde_json::Value::Null);
-                            } else {
-                                return false;
-                            }
-                        }
-                        Some(current)
-                    } else {
-                        metadata.get(key).cloned()
-                    };
+        let Some(obj) = conditions.as_object() else {
+            return true;
+        };
 
-                    if let Some(meta_val) = meta_value {
-                        match (&meta_val, value) {
-                            (serde_json::Value::String(mv), serde_json::Value::String(v)) => {
-                                if mv != v {
-                                    return false;
-                                }
-                            }
-                            (serde_json::Value::Number(mv), serde_json::Value::Number(v)) => {
-                                if mv != v {
-                                    return false;
-                                }
-                            }
-                            (serde_json::Value::Bool(mv), serde_json::Value::Bool(v)) => {
-                                if mv != v {
-                                    return false;
-                                }
-                            }
-                            _ => {
-                                let meta_str = meta_val.to_string().trim_matches('"').to_string();
-                                let value_str = value.to_string().trim_matches('"').to_string();
-                                if meta_str != value_str {
-                                    return false;
-                                }
-                            }
-                        }
-                    } else {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => true,
-        }
+        obj.iter().all(|(key, expected)| {
+            metadata_value_for_key(metadata, key)
+                .is_some_and(|actual| metadata_values_match(&actual, expected))
+        })
     }
+}
+
+fn metadata_value_for_key(metadata: &serde_json::Value, key: &str) -> Option<serde_json::Value> {
+    if key.contains('.') {
+        return nested_metadata_value(metadata, key);
+    }
+    metadata.get(key).cloned()
+}
+
+fn nested_metadata_value(metadata: &serde_json::Value, key: &str) -> Option<serde_json::Value> {
+    let mut current = metadata;
+    for part in key.split('.') {
+        current = current.as_object()?.get(part)?;
+    }
+    Some(current.clone())
+}
+
+fn metadata_values_match(actual: &serde_json::Value, expected: &serde_json::Value) -> bool {
+    match (actual, expected) {
+        (serde_json::Value::String(actual), serde_json::Value::String(expected)) => {
+            actual == expected
+        }
+        (serde_json::Value::Number(actual), serde_json::Value::Number(expected)) => {
+            actual == expected
+        }
+        (serde_json::Value::Bool(actual), serde_json::Value::Bool(expected)) => actual == expected,
+        _ => json_filter_text(actual) == json_filter_text(expected),
+    }
+}
+
+fn json_filter_text(value: &serde_json::Value) -> String {
+    value.to_string().trim_matches('"').to_string()
 }

@@ -1,3 +1,5 @@
+//! `search::queries::sql::execution` owns Wendao queries sql execution behavior.
+
 #[cfg(feature = "search-runtime")]
 #[path = "parquet.rs"]
 mod parquet;

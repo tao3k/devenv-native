@@ -1,3 +1,5 @@
+//! Valkey-backed CRUD operations for `KnowledgeStorage`.
+
 use chrono::Utc;
 use serde_yaml::Value;
 
@@ -12,6 +14,19 @@ const KNOWLEDGE_VALKEY_URL_SETTING: &str = "storage.knowledge.valkey_url";
 const KNOWLEDGE_VALKEY_URL_ENV: &str = "XIUXIAN_WENDAO_KNOWLEDGE_VALKEY_URL";
 const DEFAULT_KNOWLEDGE_VALKEY_URL: &str = "redis://127.0.0.1/";
 
+/// Error returned by `KnowledgeStorage` CRUD operations.
+#[derive(Debug, thiserror::Error)]
+pub enum KnowledgeStorageError {
+    /// Valkey command, connection, or client creation failed.
+    #[error(transparent)]
+    Redis(#[from] redis::RedisError),
+    /// Stored knowledge entry JSON could not be serialized or deserialized.
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
+}
+
+pub(super) type StorageResult<T> = Result<T, KnowledgeStorageError>;
+
 impl KnowledgeStorage {
     /// Initialize the storage (validate Valkey connectivity).
     ///
@@ -19,7 +34,7 @@ impl KnowledgeStorage {
     ///
     /// Returns an error when the Valkey client cannot be created, the
     /// connection cannot be established, or the connectivity/key checks fail.
-    pub fn init(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn init(&self) -> StorageResult<()> {
         let client = Self::redis_client()?;
         let mut conn = client.get_connection()?;
         let _pong: String = redis::cmd("PING").query(&mut conn)?;
@@ -40,9 +55,9 @@ impl KnowledgeStorage {
         })
     }
 
-    pub(super) fn redis_client() -> Result<redis::Client, String> {
+    pub(super) fn redis_client() -> StorageResult<redis::Client> {
         let url = Self::resolve_knowledge_valkey_url();
-        open_client(url.as_str()).map_err(|e| e.to_string())
+        Ok(open_client(url.as_str())?)
     }
 
     /// Upsert a knowledge entry.
@@ -51,39 +66,46 @@ impl KnowledgeStorage {
     ///
     /// Returns an error when storage initialization fails, the Valkey
     /// connection fails, or JSON serialization/deserialization fails.
-    pub fn upsert(&self, entry: &KnowledgeEntry) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn upsert(&self, entry: &KnowledgeEntry) -> StorageResult<()> {
         self.init()?;
-        let client = Self::redis_client()
-            .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)?;
-        let mut conn = client.get_connection()?;
-        let entries_key = self.entries_key();
+        let mut conn = Self::storage_connection()?;
+        let existing = self.load_existing_entry(&mut conn, &entry.id)?;
+        let to_store = version_entry_for_upsert(entry, existing);
+        self.write_entry_payload(&mut conn, &to_store)?;
+        Ok(())
+    }
+
+    fn storage_connection() -> StorageResult<redis::Connection> {
+        let client = Self::redis_client()?;
+        Ok(client.get_connection()?)
+    }
+
+    fn load_existing_entry(
+        &self,
+        conn: &mut redis::Connection,
+        entry_id: &str,
+    ) -> StorageResult<Option<KnowledgeEntry>> {
         let existing_raw: Option<String> = redis::cmd("HGET")
-            .arg(&entries_key)
-            .arg(&entry.id)
-            .query(&mut conn)?;
-        let existing = existing_raw
+            .arg(self.entries_key())
+            .arg(entry_id)
+            .query(conn)?;
+        Ok(existing_raw
             .as_deref()
             .map(serde_json::from_str::<KnowledgeEntry>)
-            .transpose()?;
+            .transpose()?)
+    }
 
-        let now = Utc::now();
-        let (created_at, version) = if let Some(found) = existing {
-            (found.created_at, found.version + 1)
-        } else {
-            (now, entry.version.max(1))
-        };
-
-        let mut to_store = entry.clone();
-        to_store.created_at = created_at;
-        to_store.updated_at = now;
-        to_store.version = version;
-        let payload = serde_json::to_string(&to_store)?;
-
+    fn write_entry_payload(
+        &self,
+        conn: &mut redis::Connection,
+        entry: &KnowledgeEntry,
+    ) -> StorageResult<()> {
+        let payload = serde_json::to_string(entry)?;
         let _: i64 = redis::cmd("HSET")
-            .arg(entries_key)
-            .arg(&to_store.id)
+            .arg(self.entries_key())
+            .arg(&entry.id)
             .arg(payload)
-            .query(&mut conn)?;
+            .query(conn)?;
         Ok(())
     }
 
@@ -93,9 +115,8 @@ impl KnowledgeStorage {
     ///
     /// Returns an error when the Valkey client or connection cannot be
     /// created, or when the `HLEN` command fails.
-    pub fn count(&self) -> Result<i64, Box<dyn std::error::Error>> {
-        let client = Self::redis_client()
-            .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)?;
+    pub fn count(&self) -> StorageResult<i64> {
+        let client = Self::redis_client()?;
         let mut conn = client.get_connection()?;
         let total: i64 = redis::cmd("HLEN")
             .arg(self.entries_key())
@@ -109,13 +130,12 @@ impl KnowledgeStorage {
     ///
     /// Returns an error when the Valkey client or connection cannot be
     /// created, or when the `HDEL` command fails.
-    pub fn delete(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let client = Self::redis_client()
-            .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)?;
+    pub fn delete(&self, entry_id: impl AsRef<str>) -> StorageResult<()> {
+        let client = Self::redis_client()?;
         let mut conn = client.get_connection()?;
         let _: i64 = redis::cmd("HDEL")
             .arg(self.entries_key())
-            .arg(id)
+            .arg(entry_id.as_ref())
             .query(&mut conn)?;
         Ok(())
     }
@@ -124,17 +144,13 @@ impl KnowledgeStorage {
     ///
     /// # Errors
     /// Returns an error if Valkey connection or deserialization fails.
-    pub fn get_entry(
-        &self,
-        id: &str,
-    ) -> Result<Option<KnowledgeEntry>, Box<dyn std::error::Error>> {
-        let client = Self::redis_client()
-            .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)?;
+    pub fn get_entry(&self, entry_id: impl AsRef<str>) -> StorageResult<Option<KnowledgeEntry>> {
+        let client = Self::redis_client()?;
         let mut conn = client.get_connection()?;
         let entries_key = self.entries_key();
         let raw: Option<String> = redis::cmd("HGET")
             .arg(&entries_key)
-            .arg(id)
+            .arg(entry_id.as_ref())
             .query(&mut conn)?;
 
         match raw {
@@ -147,9 +163,8 @@ impl KnowledgeStorage {
     ///
     /// # Errors
     /// Returns an error if Valkey connection or deserialization fails.
-    pub fn load_all_entries(&self) -> Result<Vec<KnowledgeEntry>, Box<dyn std::error::Error>> {
-        let client = Self::redis_client()
-            .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)?;
+    pub fn load_all_entries(&self) -> StorageResult<Vec<KnowledgeEntry>> {
+        let client = Self::redis_client()?;
         let mut conn = client.get_connection()?;
         let entries_key = self.entries_key();
         let raws: std::collections::HashMap<String, String> =
@@ -168,13 +183,29 @@ impl KnowledgeStorage {
     ///
     /// Returns an error when the Valkey client or connection cannot be
     /// created, or when the `DEL` command fails.
-    pub fn clear(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let client = Self::redis_client()
-            .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)?;
+    pub fn clear(&self) -> StorageResult<()> {
+        let client = Self::redis_client()?;
         let mut conn = client.get_connection()?;
         let _: i64 = redis::cmd("DEL").arg(self.entries_key()).query(&mut conn)?;
         Ok(())
     }
+}
+
+fn version_entry_for_upsert(
+    entry: &KnowledgeEntry,
+    existing: Option<KnowledgeEntry>,
+) -> KnowledgeEntry {
+    let now = Utc::now();
+    let (created_at, version) = match existing {
+        Some(found) => (found.created_at, found.version + 1),
+        None => (now, entry.version.max(1)),
+    };
+
+    let mut to_store = entry.clone();
+    to_store.created_at = created_at;
+    to_store.updated_at = now;
+    to_store.version = version;
+    to_store
 }
 
 fn resolve_knowledge_valkey_url_with_fallback(candidate: Option<String>) -> String {
@@ -192,14 +223,14 @@ fn resolve_knowledge_valkey_url_with_settings_and_lookup(
             lookup,
             &[KNOWLEDGE_VALKEY_URL_ENV, "VALKEY_URL", "REDIS_URL"],
         )
-        .map(|(_, url)| url),
+        .map(|candidate| candidate.value),
     )
 }
 
 impl KnowledgeStorage {
     #[cfg(test)]
-    fn redis_client_from_url(valkey_url: &str) -> Result<redis::Client, String> {
-        open_client(valkey_url).map_err(|e| e.to_string())
+    fn redis_client_from_url(valkey_url: &str) -> StorageResult<redis::Client> {
+        Ok(open_client(valkey_url)?)
     }
 }
 

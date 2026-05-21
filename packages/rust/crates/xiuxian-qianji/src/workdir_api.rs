@@ -15,10 +15,12 @@ pub(crate) use super::runtime_state::{
     expected_next_labels, load_workdir_runtime_state, resolve_runtime_node,
 };
 pub use super::semantic_scope::{
-    WorkdirSemanticProjectionPolicySummary, WorkdirSemanticScopeGuardStatus,
-    WorkdirSemanticScopeGuardTrace, WorkdirSemanticScopeObjectSummary,
-    WorkdirSemanticSqlGuardSummary, render_workdir_semantic_scope_guard_trace,
-    trace_workdir_semantic_scope_bundle, trace_workdir_semantic_scope_bundle_with_evidence,
+    WorkdirSemanticEvidenceStatus, WorkdirSemanticProjectionPolicySummary,
+    WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
+    WorkdirSemanticScopeObjectKind, WorkdirSemanticScopeObjectStatus,
+    WorkdirSemanticScopeObjectSummary, WorkdirSemanticSqlGuardSummary,
+    render_workdir_semantic_scope_guard_trace, trace_workdir_semantic_scope_bundle,
+    trace_workdir_semantic_scope_bundle_with_evidence,
     trace_workdir_semantic_scope_bundle_with_sql_guard_evidence, trace_workdir_semantic_scope_json,
     workdir_semantic_scope_guard_trace_json,
 };

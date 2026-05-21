@@ -14,8 +14,8 @@ pub(super) fn knowledge_requirement_href(
         .filter(|target| !target.is_empty())
         .map(ToString::to_string)
         .ok_or_else(|| BpmnEngineError::UnsupportedDmnKnowledgeRequirementHref {
-            source_id: decision.source_id.to_string(),
-            decision_id: decision.decision.decision_id.to_string(),
+            source_id: (decision.source_id.to_string()).into(),
+            decision_id: (decision.decision.decision_id.to_string()).into(),
             href: href.to_string(),
         })
 }

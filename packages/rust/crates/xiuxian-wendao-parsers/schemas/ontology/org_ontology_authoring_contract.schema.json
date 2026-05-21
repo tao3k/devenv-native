@@ -1,0 +1,216 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://xiuxian.local/schemas/wendao/org-ontology-authoring-contract.draft.schema.json",
+  "title": "Wendao Org Ontology Authoring Contract",
+  "description": "Draft parser-owned DTO contract for Org-native ontology authoring documents. Org remains the authoring syntax; this schema validates compiled parser DTOs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "documentId", "sourcePath", "sourceHash", "sections"],
+  "properties": {
+    "schema": {
+      "const": "xiuxian_wendao.org_ontology_authoring.v0.draft"
+    },
+    "documentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourcePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceHash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/authoringSection"
+      }
+    }
+  },
+  "$defs": {
+    "sourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startLine", "endLine"],
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "startColumn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endColumn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "stringMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "lifecycleState": {
+      "type": "string",
+      "enum": ["draft", "candidate", "review", "accepted", "retired"]
+    },
+    "authoringKind": {
+      "type": "string",
+      "enum": [
+        "domain",
+        "object_type",
+        "link_type",
+        "action_type",
+        "query_type",
+        "interface_type",
+        "value_type",
+        "validation_rule",
+        "dataset_mapping",
+        "corpus_mapping"
+      ]
+    },
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "columns", "rows"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "object_fields",
+            "link_endpoints",
+            "action_parameters",
+            "query_parameters",
+            "interface_methods",
+            "value_literals",
+            "validation_cases",
+            "dataset_columns",
+            "object_mapping",
+            "link_mapping",
+            "mapping_evidence",
+            "evidence"
+          ]
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stringMap"
+          }
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/sourceSpan"
+        }
+      }
+    },
+    "embeddedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "purpose", "contentHash"],
+      "properties": {
+        "language": {
+          "type": "string",
+          "enum": ["rdf", "toml", "sql", "json", "markdown", "org", "text"]
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["preview", "example", "validation", "mapping", "note"]
+        },
+        "contentHash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/sourceSpan"
+        }
+      }
+    },
+    "authoringSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sectionId",
+        "headingPath",
+        "level",
+        "title",
+        "authoringKind",
+        "lifecycleState",
+        "properties",
+        "sourceSpan"
+      ],
+      "properties": {
+        "sectionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "headingPath": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authoringKind": {
+          "$ref": "#/$defs/authoringKind"
+        },
+        "lifecycleState": {
+          "$ref": "#/$defs/lifecycleState"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "properties": {
+          "$ref": "#/$defs/stringMap"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/table"
+          }
+        },
+        "embeddedArtifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/embeddedArtifact"
+          }
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/sourceSpan"
+        }
+      }
+    }
+  }
+}

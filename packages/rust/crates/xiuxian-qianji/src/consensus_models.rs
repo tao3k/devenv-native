@@ -1,3 +1,5 @@
+//! Consensus models surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Defines the strategy for achieving agreement across distributed agent instances.

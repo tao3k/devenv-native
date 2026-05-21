@@ -29,11 +29,11 @@ pub(crate) fn build_pending_host_work_request_impl(
     let requests = build_pending_host_work_requests_impl(instance)?;
     match requests.as_slice() {
         [] => Err(BpmnEngineError::MissingPendingHostWork {
-            instance_id: instance.instance_id.to_string(),
+            instance_id: (instance.instance_id.to_string()).into(),
         }),
         [request] => Ok(request.clone()),
         requests => Err(BpmnEngineError::AmbiguousPendingHostWork {
-            instance_id: instance.instance_id.to_string(),
+            instance_id: (instance.instance_id.to_string()).into(),
             count: requests.len(),
         }),
     }
@@ -50,7 +50,7 @@ pub(crate) fn build_pending_host_work_requests_impl(
 ) -> Result<Vec<PendingHostWorkRequest>> {
     if instance.pending_host_work.is_empty() {
         return Err(BpmnEngineError::MissingPendingHostWork {
-            instance_id: instance.instance_id.to_string(),
+            instance_id: (instance.instance_id.to_string()).into(),
         });
     }
 
@@ -76,7 +76,7 @@ fn build_pending_host_work_request_for_entry(
     let activity_id = pending
         .activity_id
         .clone()
-        .unwrap_or_else(|| format!("node#{node_index}"));
+        .unwrap_or_else(|| format!("node#{node_index}").into());
     let form = pending.human_task_form.clone();
     let assignment = pending.human_task_assignment.clone();
     let lane = pending.lane.clone();
@@ -123,9 +123,9 @@ fn build_pending_host_work_request_for_entry(
             repeat,
         }),
         super::PendingHostWorkKind::User => PendingHostWorkRequest::User(UserTaskRequest {
-            instance_id,
-            process_id,
-            token_id,
+            instance_id: instance_id.into(),
+            process_id: process_id.into(),
+            token_id: token_id.into(),
             node_index,
             activity_id,
             variables,
@@ -138,9 +138,9 @@ fn build_pending_host_work_request_for_entry(
             claim,
         }),
         super::PendingHostWorkKind::Manual => PendingHostWorkRequest::Manual(ManualTaskRequest {
-            instance_id,
-            process_id,
-            token_id,
+            instance_id: instance_id.into(),
+            process_id: process_id.into(),
+            token_id: token_id.into(),
             node_index,
             activity_id,
             variables,
@@ -242,8 +242,12 @@ fn build_business_rule_task_request(
             process_id: pending
                 .process_id
                 .clone()
-                .unwrap_or_else(|| instance.process.process_id.to_string()),
-            node_id: pending.node_index.to_string(),
+                .map_or_else(
+                    || instance.process.process_id.to_string(),
+                    |id| id.to_string(),
+                )
+                .into(),
+            node_id: (pending.node_index.to_string()).into(),
         }
     })?;
     let evaluation_variables = if pending
@@ -257,8 +261,8 @@ fn build_business_rule_task_request(
     };
     Ok(PendingHostWorkRequest::BusinessRule(
         BusinessRuleTaskRequest {
-            instance_id: envelope.instance_id,
-            token_id: envelope.token_id,
+            instance_id: (envelope.instance_id),
+            token_id: (envelope.token_id),
             node_index: envelope.node_index,
             evaluation: DmnEvaluationRequest::new(decision, evaluation_variables),
             inputs: envelope.inputs,
@@ -297,7 +301,8 @@ fn materialize_task_inputs(
                         process_id: pending
                             .process_id
                             .clone()
-                            .unwrap_or_else(|| "<active>".to_string()),
+                            .map_or_else(|| "<active>".to_string(), |id| id.to_string())
+                            .into(),
                         node_index: pending.node_index,
                         input: input.name.to_string(),
                         source_ref: source_ref.to_string(),

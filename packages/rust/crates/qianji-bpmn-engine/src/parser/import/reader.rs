@@ -95,7 +95,7 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
             Ok(_) => {}
             Err(error) => {
                 return Err(BpmnEngineError::InvalidXml {
-                    source_id: source.source_id.clone(),
+                    source_id: (source.source_id.clone()).into(),
                     message: error.to_string(),
                     offset: Some(reader.error_position()),
                 });
@@ -105,13 +105,13 @@ pub(crate) fn import_bpmn_source(source: &BpmnSourceFile) -> Result<RawPackageDo
 
     if !saw_root {
         return Err(BpmnEngineError::MissingRootElement {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
         });
     }
 
     Ok(RawPackageDocument {
-        source_id: source.source_id.clone(),
-        package_id: package_id.unwrap_or_else(|| source.source_id.clone()),
+        source_id: (source.source_id.clone()),
+        package_id: (package_id.unwrap_or_else(|| source.source_id.clone())),
         processes,
     })
 }
@@ -160,12 +160,12 @@ fn append_capture_text(
         return Ok(());
     }
     let text = decoded.map_err(|error| BpmnEngineError::InvalidXml {
-        source_id: source.source_id.clone(),
+        source_id: (source.source_id.clone()).into(),
         message: error.to_string(),
         offset: None,
     })?;
     let text = unescape(text.as_ref()).map_err(|error| BpmnEngineError::InvalidXml {
-        source_id: source.source_id.clone(),
+        source_id: (source.source_id.clone()).into(),
         message: error.to_string(),
         offset: None,
     })?;
@@ -185,7 +185,7 @@ fn append_capture_reference(
     if let Some(ch) = reference
         .resolve_char_ref()
         .map_err(|error| BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
             offset: None,
         })?
@@ -197,13 +197,13 @@ fn append_capture_reference(
     let reference = reference
         .decode()
         .map_err(|error| BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
             offset: None,
         })?;
     let entity = resolve_predefined_entity(reference.as_ref()).ok_or_else(|| {
         BpmnEngineError::InvalidXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: format!("unrecognized XML entity reference '&{reference};'"),
             offset: None,
         }
@@ -234,8 +234,8 @@ fn handle_start_tag(
             .map(|process| process.process_id.clone())
             .unwrap_or_default();
         return Err(BpmnEngineError::UnsupportedElement {
-            source_id: source.source_id.clone(),
-            process_id,
+            source_id: (source.source_id.clone()).into(),
+            process_id: process_id.into(),
             element,
         });
     }

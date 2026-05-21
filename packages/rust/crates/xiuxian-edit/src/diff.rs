@@ -16,30 +16,44 @@ use similar::{ChangeTag, TextDiff};
 /// A string containing the unified diff with `+`, `-`, and ` ` prefixes.
 #[must_use]
 pub fn generate_unified_diff(original: &str, modified: &str) -> String {
-    let diff = TextDiff::from_lines(original, modified);
+    render_unified_diff(&TextDiff::from_lines(original, modified))
+}
+
+fn render_unified_diff(diff: &TextDiff<'_, '_, '_, str>) -> String {
     let mut output = String::new();
 
     for (idx, group) in diff.grouped_ops(3).iter().enumerate() {
-        if idx > 0 {
-            output.push_str("...\n");
-        }
+        append_group_separator(&mut output, idx);
         for op in group {
             for change in diff.iter_changes(op) {
-                let sign = match change.tag() {
-                    ChangeTag::Delete => "-",
-                    ChangeTag::Insert => "+",
-                    ChangeTag::Equal => " ",
-                };
-                output.push_str(sign);
-                output.push_str(change.value());
-                if change.missing_newline() {
-                    output.push('\n');
-                }
+                append_change(&mut output, &change);
             }
         }
     }
 
     output
+}
+
+fn append_group_separator(output: &mut String, group_index: usize) {
+    if group_index > 0 {
+        output.push_str("...\n");
+    }
+}
+
+fn append_change(output: &mut String, change: &similar::Change<&str>) {
+    output.push_str(change_sign(change.tag()));
+    output.push_str(change.value());
+    if change.missing_newline() {
+        output.push('\n');
+    }
+}
+
+fn change_sign(tag: ChangeTag) -> &'static str {
+    match tag {
+        ChangeTag::Delete => "-",
+        ChangeTag::Insert => "+",
+        ChangeTag::Equal => " ",
+    }
 }
 
 #[cfg(test)]

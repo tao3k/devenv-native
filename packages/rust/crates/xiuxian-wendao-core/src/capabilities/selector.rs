@@ -1,3 +1,5 @@
+//! Capability selector records for querying available Wendao features.
+
 use serde::{Deserialize, Serialize};
 
 use crate::ids::{CapabilityId, PluginId};

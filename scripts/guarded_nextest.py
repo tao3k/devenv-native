@@ -90,7 +90,9 @@ def now_iso() -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=("Run a command under a memory/perf guard and kill process tree on anomalies.")
+        description=(
+            "Run a command under a memory/perf guard and kill process tree on anomalies."
+        )
     )
     parser.add_argument(
         "--label",
@@ -151,7 +153,7 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help=(
             "Enforce only one process globally whose command contains this substring. "
-            "Supports `exe=<name>` for executable exact-match (e.g. exe=xiuxian-daochang) "
+            "Supports `exe=<name>` for executable exact-match (e.g. exe=wendao) "
             "or `exe_prefix=<prefix>` for executable prefix-match (e.g. exe_prefix=llm-). "
             "Repeat flag for multiple patterns."
         ),
@@ -173,7 +175,7 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help=(
             "Realtime process spike rule in format 'substring:max_count:max_total_rss_gb'. "
-            "Example: 'exe=xiuxian-daochang:1:6' or 'exe_prefix=llm-:1:8'. "
+            "Example: 'exe=wendao:1:6' or 'exe_prefix=llm-:1:8'. "
             "Set max_total_rss_gb to 0 to disable RSS limit."
         ),
     )
@@ -367,7 +369,9 @@ def truncate_command(command: str, limit: int = 180) -> str:
     return f"{command[: limit - 3]}..."
 
 
-def top_offenders(pids: set[int], table: dict[int, ProcInfo], limit: int = 8) -> list[Offender]:
+def top_offenders(
+    pids: set[int], table: dict[int, ProcInfo], limit: int = 8
+) -> list[Offender]:
     ranked = [(table[pid], pid) for pid in pids if pid in table]
     ranked.sort(key=lambda item: item[0].rss_kb, reverse=True)
     out: list[Offender] = []
@@ -434,7 +438,9 @@ def singleton_violations(
             continue
         matched = pids_matching_substring(table, normalized, root_pid)
         if len(matched) > 1:
-            violations.append(SingletonViolation(pattern=normalized, matched_pids=matched))
+            violations.append(
+                SingletonViolation(pattern=normalized, matched_pids=matched)
+            )
     return violations
 
 
@@ -551,7 +557,11 @@ def evaluate_watch_binary_rules(
         exceeded = [(pid, rss) for pid, rss in matches if rss > rule.max_rss_gb]
         if exceeded:
             violations.append(
-                (rule, exceeded, f"rss_exceeded: {exceeded[0][1]:.2f}GB > {rule.max_rss_gb}GB")
+                (
+                    rule,
+                    exceeded,
+                    f"rss_exceeded: {exceeded[0][1]:.2f}GB > {rule.max_rss_gb}GB",
+                )
             )
 
     return violations
@@ -631,7 +641,9 @@ def evaluate_aggressive_kill_rules(
 
         # Check count violation
         if len(matched) > rule.max_count:
-            violations.append((rule, matched, f"count_exceeded: {len(matched)} > {rule.max_count}"))
+            violations.append(
+                (rule, matched, f"count_exceeded: {len(matched)} > {rule.max_count}")
+            )
             continue
 
         # Check RSS violation for any single process
@@ -641,7 +653,11 @@ def evaluate_aggressive_kill_rules(
                     rss_gb = kb_to_gb(table[pid].rss_kb)
                     if rss_gb > rule.max_rss_gb:
                         violations.append(
-                            (rule, [pid], f"rss_exceeded: {rss_gb:.2f}GB > {rule.max_rss_gb}GB")
+                            (
+                                rule,
+                                [pid],
+                                f"rss_exceeded: {rss_gb:.2f}GB > {rule.max_rss_gb}GB",
+                            )
                         )
 
     return violations
@@ -821,7 +837,9 @@ def run_guarded(args: argparse.Namespace) -> int:
     aggressive_poll_sec = max(args.aggressive_poll_ms, 50) / 1000.0
 
     # Use faster polling if aggressive rules are present
-    effective_poll_sec = min(poll_sec, aggressive_poll_sec) if aggressive_rules else poll_sec
+    effective_poll_sec = (
+        min(poll_sec, aggressive_poll_sec) if aggressive_rules else poll_sec
+    )
 
     if args.truncate_samples:
         args.samples_jsonl.parent.mkdir(parents=True, exist_ok=True)
@@ -862,7 +880,9 @@ def run_guarded(args: argparse.Namespace) -> int:
                 ps_unavailable_reason = ps_error
                 log_line(
                     args.log_file,
-                    (f"ps_unavailable fallback_enabled=true error={ps_unavailable_reason!r}"),
+                    (
+                        f"ps_unavailable fallback_enabled=true error={ps_unavailable_reason!r}"
+                    ),
                 )
             tree = {proc.pid}
         else:
@@ -966,7 +986,10 @@ def run_guarded(args: argparse.Namespace) -> int:
                     )
 
                 # KILL EVERYTHING IMMEDIATELY - no grace period
-                log_line(args.log_file, "aggressive_shutdown initiating full process tree kill")
+                log_line(
+                    args.log_file,
+                    "aggressive_shutdown initiating full process tree kill",
+                )
 
                 # Kill the entire process tree with SIGKILL
                 kill_tree(tree, signal.SIGKILL)
@@ -986,7 +1009,9 @@ def run_guarded(args: argparse.Namespace) -> int:
 
         # Watch binary check - monitor specific binary names for memory violations
         if watch_binary_rules and table:
-            watch_violations = evaluate_watch_binary_rules(table, watch_binary_rules, args.log_file)
+            watch_violations = evaluate_watch_binary_rules(
+                table, watch_binary_rules, args.log_file
+            )
             if watch_violations:
                 for rule, exceeded, reason in watch_violations:
                     for pid, rss_gb in exceeded:
@@ -1015,7 +1040,9 @@ def run_guarded(args: argparse.Namespace) -> int:
         # On macOS, individual processes may have ~400GB VSZ due to address space layout
         # but if we see VSZ > 10GB on non-system processes, it's suspicious
         if table and args.max_vsz_gb > 0:
-            high_vsz_procs = find_high_vsz_processes(table, args.max_vsz_gb, tree, args.log_file)
+            high_vsz_procs = find_high_vsz_processes(
+                table, args.max_vsz_gb, tree, args.log_file
+            )
             if high_vsz_procs:
                 log_line(
                     args.log_file,
@@ -1023,7 +1050,8 @@ def run_guarded(args: argparse.Namespace) -> int:
                 )
                 for pid, vsz_gb, cmd in high_vsz_procs:
                     log_line(
-                        args.log_file, f"high_vsz_killing pid={pid} vsz_gb={vsz_gb:.2f} cmd={cmd}"
+                        args.log_file,
+                        f"high_vsz_killing pid={pid} vsz_gb={vsz_gb:.2f} cmd={cmd}",
                     )
                     try:
                         os.kill(pid, signal.SIGKILL)
@@ -1063,7 +1091,9 @@ def run_guarded(args: argparse.Namespace) -> int:
             for violation in guard_process_spike_violations:
                 kill_pids.update(violation.matched_pids)
             for pattern in args.kill_substring:
-                kill_pids.update(pids_matching_substring(table, pattern.strip(), proc.pid))
+                kill_pids.update(
+                    pids_matching_substring(table, pattern.strip(), proc.pid)
+                )
             growth = growth_gb_per_min(samples, args.growth_window_sec)
             guard_offenders = top_offenders(kill_pids, table)
 
@@ -1150,7 +1180,9 @@ def run_guarded(args: argparse.Namespace) -> int:
                     for violation in guard_process_spike_violations:
                         kill_pids.update(violation.matched_pids)
                     for pattern in args.kill_substring:
-                        kill_pids.update(pids_matching_substring(table, pattern.strip(), proc.pid))
+                        kill_pids.update(
+                            pids_matching_substring(table, pattern.strip(), proc.pid)
+                        )
                 else:
                     kill_pids = {proc.pid}
                 kill_tree(kill_pids, signal.SIGKILL)
@@ -1166,7 +1198,8 @@ def run_guarded(args: argparse.Namespace) -> int:
     cpu_series = [s.cpu_pct for s in samples]
     pid_series = [float(s.pid_count) for s in samples]
     growth_series = [
-        growth_gb_per_min(samples[: idx + 1], args.growth_window_sec) for idx in range(len(samples))
+        growth_gb_per_min(samples[: idx + 1], args.growth_window_sec)
+        for idx in range(len(samples))
     ]
 
     summary = {
@@ -1191,13 +1224,19 @@ def run_guarded(args: argparse.Namespace) -> int:
         },
         "rss": {
             "peak_gb": round(max(rss_gb_series) if rss_gb_series else 0.0, 6),
-            "avg_gb": round(sum(rss_gb_series) / len(rss_gb_series), 6) if rss_gb_series else 0.0,
+            "avg_gb": (
+                round(sum(rss_gb_series) / len(rss_gb_series), 6)
+                if rss_gb_series
+                else 0.0
+            ),
             "p95_gb": round(percentile(rss_gb_series, 0.95), 6),
             "p99_gb": round(percentile(rss_gb_series, 0.99), 6),
         },
         "cpu": {
             "peak_pct": round(max(cpu_series) if cpu_series else 0.0, 6),
-            "avg_pct": round(sum(cpu_series) / len(cpu_series), 6) if cpu_series else 0.0,
+            "avg_pct": (
+                round(sum(cpu_series) / len(cpu_series), 6) if cpu_series else 0.0
+            ),
             "p95_pct": round(percentile(cpu_series, 0.95), 6),
             "p99_pct": round(percentile(cpu_series, 0.99), 6),
         },
@@ -1214,7 +1253,9 @@ def run_guarded(args: argparse.Namespace) -> int:
         "peak_top_offenders": [asdict(item) for item in peak_offenders],
         "guard_top_offenders": [asdict(item) for item in guard_offenders],
         "singleton_violations": [asdict(item) for item in guard_singleton_violations],
-        "process_spike_violations": [asdict(item) for item in guard_process_spike_violations],
+        "process_spike_violations": [
+            asdict(item) for item in guard_process_spike_violations
+        ],
         "report_paths": {
             "log_file": str(args.log_file),
             "samples_jsonl": str(args.samples_jsonl),
@@ -1228,7 +1269,9 @@ def run_guarded(args: argparse.Namespace) -> int:
     }
 
     command_signature = " ".join(args.command)
-    previous = load_last_history_match(args.history_jsonl, args.label, command_signature)
+    previous = load_last_history_match(
+        args.history_jsonl, args.label, command_signature
+    )
     if previous is not None:
         current_peak = float(summary["rss"]["peak_gb"])
         current_duration = float(summary["duration_s"])

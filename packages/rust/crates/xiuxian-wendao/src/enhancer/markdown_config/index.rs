@@ -1,3 +1,5 @@
+//! `enhancer::markdown_config::index` owns Wendao enhancer markdown config index behavior.
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -52,6 +54,7 @@ impl MarkdownConfigMemoryIndex {
 
     /// Returns a block by exact `id` lookup in O(1).
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get(&self, id: &str) -> Option<&MarkdownConfigBlock> {
         self.blocks_by_id.get(id)
     }

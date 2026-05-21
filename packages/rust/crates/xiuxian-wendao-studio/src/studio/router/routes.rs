@@ -1,3 +1,5 @@
+//! Owns the Studio studio router routes surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -42,7 +44,7 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
         )
         .route(
             openapi_paths::API_DOCS_PROJECTED_GAP_REPORT_AXUM_PATH,
-            get(handlers::docs::projection::projected_gap::projected_gap_report),
+            get(handlers::docs::projection::projected_gap::docs_projected_gap_report),
         )
         .route(
             openapi_paths::API_DOCS_PLANNER_ITEM_AXUM_PATH,
@@ -138,6 +140,18 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
             get(handlers::document_extract_jobs::get_document_extract_job),
         )
         .route(
+            handlers::episteme::EPISTEME_SOURCE_CONTRACT_RUN_PLAN_ROUTE,
+            post(handlers::episteme::plan_episteme_extraction_run),
+        )
+        .route(
+            handlers::episteme::EPISTEME_EVIDENCE_READ_ROUTE,
+            post(handlers::episteme::read_episteme_evidence_source),
+        )
+        .route(
+            handlers::episteme::EPISTEME_EVIDENCE_SELECTION_PLAN_ROUTE,
+            post(handlers::episteme::write_episteme_evidence_selection_plan_source),
+        )
+        .route(
             openapi_paths::API_REPO_OVERVIEW_AXUM_PATH,
             get(handlers::repo::analysis::overview::overview),
         )
@@ -179,7 +193,7 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_GAP_REPORT_AXUM_PATH,
-            get(handlers::repo::pages::collection::projected_gap_report),
+            get(handlers::repo::pages::collection::repo_projected_gap_report),
         )
         .route(
             openapi_paths::API_REPO_PROJECTED_PAGE_AXUM_PATH,

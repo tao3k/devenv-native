@@ -12,7 +12,7 @@ pub(crate) fn some_or_panic<T>(value: Option<T>, context: &str) -> T {
 
 pub(crate) fn repository_record(repo_id: &str) -> RepositoryRecord {
     RepositoryRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: repo_id.to_string().into(),
         name: repo_id.to_string(),
         ..RepositoryRecord::default()
     }
@@ -25,10 +25,10 @@ pub(crate) fn module_record(
     path: &str,
 ) -> ModuleRecord {
     ModuleRecord {
-        repo_id: repo_id.to_string(),
-        module_id: module_id.to_string(),
+        repo_id: repo_id.to_string().into(),
+        module_id: module_id.to_string().into(),
         qualified_name: qualified_name.to_string(),
-        path: path.to_string(),
+        path: path.to_string().into(),
     }
 }
 
@@ -41,13 +41,13 @@ pub(crate) fn symbol_record(
     path: &str,
 ) -> SymbolRecord {
     SymbolRecord {
-        repo_id: repo_id.to_string(),
-        symbol_id: symbol_id.to_string(),
-        module_id: module_id.map(str::to_string),
+        repo_id: repo_id.to_string().into(),
+        symbol_id: symbol_id.to_string().into(),
+        module_id: module_id.map(str::to_string).map(Into::into),
         name: name.to_string(),
         qualified_name: qualified_name.to_string(),
         kind: RepoSymbolKind::Function,
-        path: path.to_string(),
+        path: path.to_string().into(),
         line_start: None,
         line_end: None,
         signature: Some(format!("fn {name}()")),
@@ -59,10 +59,10 @@ pub(crate) fn symbol_record(
 
 pub(crate) fn doc_record(repo_id: &str, doc_id: &str, title: &str, path: &str) -> DocRecord {
     DocRecord {
-        repo_id: repo_id.to_string(),
-        doc_id: doc_id.to_string(),
+        repo_id: repo_id.to_string().into(),
+        doc_id: doc_id.to_string().into(),
         title: title.to_string(),
-        path: path.to_string(),
+        path: path.to_string().into(),
         format: Some("markdown".to_string()),
         doc_target: None,
     }
@@ -75,10 +75,10 @@ pub(crate) fn example_record(
     path: &str,
 ) -> ExampleRecord {
     ExampleRecord {
-        repo_id: repo_id.to_string(),
-        example_id: example_id.to_string(),
+        repo_id: repo_id.to_string().into(),
+        example_id: example_id.to_string().into(),
         title: title.to_string(),
-        path: path.to_string(),
+        path: path.to_string().into(),
         summary: Some(format!("{title} summary")),
     }
 }
@@ -91,9 +91,9 @@ pub(crate) fn import_record(
     source_module: &str,
 ) -> ImportRecord {
     ImportRecord {
-        repo_id: repo_id.to_string(),
-        module_id: module_id.to_string(),
-        path: String::new(),
+        repo_id: repo_id.to_string().into(),
+        module_id: module_id.to_string().into(),
+        path: String::new().into(),
         import_name: import_name.to_string(),
         target_package: target_package.to_string(),
         source_module: source_module.to_string(),
@@ -147,37 +147,37 @@ pub(crate) fn analysis_fixture() -> RepositoryAnalysisOutput {
         ],
         relations: vec![
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: "doc-a".to_string(),
                 target_id: "mod-a".to_string(),
                 kind: RelationKind::Documents,
             },
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: "doc-b".to_string(),
                 target_id: "sym-a".to_string(),
                 kind: RelationKind::Documents,
             },
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: "doc-b".to_string(),
                 target_id: "sym-a".to_string(),
                 kind: RelationKind::Documents,
             },
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: "ex-a".to_string(),
                 target_id: "sym-a".to_string(),
                 kind: RelationKind::ExampleOf,
             },
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: "ex-a".to_string(),
                 target_id: "mod-a".to_string(),
                 kind: RelationKind::ExampleOf,
             },
             RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: repo_id.to_string().into(),
                 source_id: "ex-a".to_string(),
                 target_id: "sym-a".to_string(),
                 kind: RelationKind::ExampleOf,

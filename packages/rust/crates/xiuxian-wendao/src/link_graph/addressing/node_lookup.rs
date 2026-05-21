@@ -1,3 +1,5 @@
+//! `link_graph::addressing::node_lookup` owns Wendao link graph addressing node lookup behavior.
+
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 
@@ -12,6 +14,7 @@ use super::address::{Address, ResolvedNode};
 /// Attempts resolution in order: ID → Path → Hash.
 /// Returns `None` if no resolution succeeds.
 #[must_use]
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn resolve_node<S>(
     trees: &HashMap<String, Vec<PageIndexNode>, S>,
     address: &Address,

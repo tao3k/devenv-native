@@ -1,9 +1,11 @@
 #[cfg(feature = "duckdb")]
 use std::fs;
+use std::path::PathBuf;
 
+use crate::search::SearchMaintenancePolicy;
 use crate::search::service::tests::support::{
-    PathBuf, SearchMaintenancePolicy, SearchPlaneService, ok_or_panic, sample_repo_analysis,
-    sample_repo_documents, service_test_manifest_keyspace, temp_dir,
+    SearchPlaneService, ok_or_panic, sample_repo_analysis, sample_repo_documents,
+    service_test_manifest_keyspace, temp_dir,
 };
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;

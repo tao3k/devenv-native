@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::search` owns Wendao service projection search behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -62,6 +64,7 @@ pub fn docs_search_from_config(
     })
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Build deterministic projected-page search results for one repository query.
 #[must_use]
 pub fn build_repo_projected_page_search(
@@ -71,6 +74,7 @@ pub fn build_repo_projected_page_search(
     build_projected_page_search(query, analysis)
 }
 
+/// Namespace boundary: this public name is scoped by its module owner.
 #[must_use]
 #[cfg(feature = "search-runtime")]
 /// Build deterministic projected-page search results with precomputed artifacts.

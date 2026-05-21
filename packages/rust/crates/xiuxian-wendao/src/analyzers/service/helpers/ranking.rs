@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 pub(crate) fn normalized_rank_score(raw_score: u8, worst_bucket: u8) -> f64 {
     let denominator = f64::from(worst_bucket.saturating_add(1));
     let numerator = f64::from(worst_bucket.saturating_add(1).saturating_sub(raw_score));

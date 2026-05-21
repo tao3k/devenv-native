@@ -1,3 +1,5 @@
+//! `search::tantivy::index` owns Wendao search tantivy index behavior.
+
 mod core;
 mod exact;
 mod fuzzy;

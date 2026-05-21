@@ -17,7 +17,7 @@ pub use load::{
     resolve_and_merge_toml_with_paths,
 };
 pub use precedence::{
-    first_non_empty_lookup, first_non_empty_named_lookup, lookup_bool_flag, lookup_parsed,
-    lookup_positive_parsed, parse_bool_flag, parse_positive, parse_trimmed, toml_first_env_parsed,
-    toml_first_env_string, toml_first_named_string, trimmed_non_empty,
+    NamedScalarValue, first_non_empty_lookup, first_non_empty_named_lookup, lookup_bool_flag,
+    lookup_parsed, lookup_positive_parsed, parse_bool_flag, parse_positive, parse_trimmed,
+    toml_first_env_parsed, toml_first_env_string, toml_first_named_string, trimmed_non_empty,
 };

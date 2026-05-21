@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::fix::preview` owns Wendao audit fix preview behavior.
+
 /// Preview of a single fix operation.
 #[derive(Debug, Clone)]
 pub struct FixPreview {

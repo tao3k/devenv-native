@@ -13,13 +13,14 @@ pub use self::api::{
     semantic_scope_metadata_envelope_to_vec,
 };
 pub use self::types::{
-    SemanticBundleProvenance, SemanticChangeIntent, SemanticConfidence, SemanticConfidenceSource,
-    SemanticObject, SemanticObjectKind, SemanticOwner, SemanticProjection,
-    SemanticProjectionFreshnessPolicyEntry, SemanticProjectionFreshnessPolicyReport,
+    SemanticBundleProvenance, SemanticChangeIntent, SemanticChangeIntentType, SemanticConfidence,
+    SemanticConfidenceSource, SemanticObject, SemanticObjectKind, SemanticOwner,
+    SemanticProjection, SemanticProjectionFreshnessPolicyEntry,
+    SemanticProjectionFreshnessPolicyReport, SemanticProjectionPolicyStatus,
     SemanticProjectionRefreshPlanEntry, SemanticProjectionRefreshPlanReport,
-    SemanticProjectionStaleness, SemanticProvenance, SemanticRelation, SemanticRelationChange,
-    SemanticRelationChangeAction, SemanticRelationEdge, SemanticRelationKind, SemanticRepository,
-    SemanticScopeBundle, SemanticScopeMetadataEnvelope, SemanticScopeRequest, SemanticStatus,
-    SemanticStatusTransition, SemanticValidationIssue, SemanticValidationReport,
-    SemanticVerification,
+    SemanticProjectionRefreshPlanStatus, SemanticProjectionStaleness, SemanticProjectionType,
+    SemanticProvenance, SemanticRelation, SemanticRelationChange, SemanticRelationChangeAction,
+    SemanticRelationEdge, SemanticRelationKind, SemanticRepository, SemanticScopeBundle,
+    SemanticScopeMetadataEnvelope, SemanticScopeRequest, SemanticStatus, SemanticStatusTransition,
+    SemanticValidationIssue, SemanticValidationReport, SemanticVerification,
 };

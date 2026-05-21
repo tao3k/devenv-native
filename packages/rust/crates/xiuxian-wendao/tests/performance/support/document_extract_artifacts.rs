@@ -29,6 +29,8 @@ const DOCUMENT_RESOURCES_ARROW_CACHE_NAME: &str = "_resources.arrow";
 const DOCUMENT_STRUCTURE_ARROW_CACHE_NAME: &str = "_structure.arrow";
 const DOCUMENT_METRICS_ARROW_CACHE_NAME: &str = "_metrics.arrow";
 const DOCUMENT_TIMING_ARROW_CACHE_NAME: &str = "_document_metrics.arrow";
+const HYBRID_PAGE_OCR_FALLBACK_REPORT_NAME: &str = "_hybrid_page_ocr_fallback.json";
+const HYBRID_PAGE_OCR_TIMING_REPORT_NAME: &str = "_hybrid_page_ocr_timing.json";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,6 +42,9 @@ pub(crate) struct ArtifactReport {
     pub(crate) resources_row_count: usize,
     pub(crate) resource_type_counts: BTreeMap<String, usize>,
     pub(crate) resource_status_counts: BTreeMap<String, usize>,
+    pub(crate) audio_transcript_chars: usize,
+    pub(crate) audio_transcript_timeline_marker_count: usize,
+    pub(crate) audio_transcript_timeline_marked_rows: usize,
     pub(crate) structure_arrow_exists: bool,
     pub(crate) structure_arrow_bytes: u64,
     pub(crate) structure_row_count: usize,
@@ -68,6 +73,26 @@ pub(crate) struct ArtifactReport {
     pub(crate) document_timing_status_counts: BTreeMap<String, usize>,
     pub(crate) document_timing_phase_elapsed_ms: BTreeMap<String, f64>,
     pub(crate) document_timing_total_elapsed_ms: f64,
+    pub(crate) hybrid_page_ocr_fallback_reason: Option<String>,
+    pub(crate) hybrid_page_ocr_timing_report_bytes: u64,
+    pub(crate) hybrid_page_ocr_timing_phase_elapsed_ms: BTreeMap<String, f64>,
+    pub(crate) hybrid_page_ocr_timing_total_elapsed_ms: f64,
+    pub(crate) hybrid_page_ocr_timing_ocr_shard_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_shard_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_request_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: usize,
+    pub(crate) structure_authority_pages: usize,
+    pub(crate) text_shortcut_pages: usize,
+    pub(crate) ocr_patch_regions: usize,
+    pub(crate) page_range_docling_fallback_pages: usize,
+    pub(crate) page_range_docling_fallback_chunk_count: usize,
+    pub(crate) page_range_docling_fallback_plan: Option<Value>,
+    pub(crate) page_range_docling_fallback_chunks: Vec<Value>,
+    pub(crate) page_range_docling_fallback_chunk_summary: Option<Value>,
+    pub(crate) full_docling_fallback_count: usize,
+    pub(crate) hybrid_page_ocr_timing_scheduler_trace: Vec<Value>,
     #[cfg(feature = "document-extract-attachment-audit")]
     pub(crate) image_attachment_audit: Option<AttachmentAudit>,
     #[cfg(feature = "document-extract-attachment-audit")]
@@ -114,6 +139,9 @@ fn inspect_artifact_dir(
         resources_row_count: 0,
         resource_type_counts: BTreeMap::new(),
         resource_status_counts: BTreeMap::new(),
+        audio_transcript_chars: 0,
+        audio_transcript_timeline_marker_count: 0,
+        audio_transcript_timeline_marked_rows: 0,
         structure_arrow_exists: false,
         structure_arrow_bytes: 0,
         structure_row_count: 0,
@@ -142,6 +170,26 @@ fn inspect_artifact_dir(
         document_timing_status_counts: BTreeMap::new(),
         document_timing_phase_elapsed_ms: BTreeMap::new(),
         document_timing_total_elapsed_ms: 0.0,
+        hybrid_page_ocr_fallback_reason: None,
+        hybrid_page_ocr_timing_report_bytes: 0,
+        hybrid_page_ocr_timing_phase_elapsed_ms: BTreeMap::new(),
+        hybrid_page_ocr_timing_total_elapsed_ms: 0.0,
+        hybrid_page_ocr_timing_ocr_shard_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_shard_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_request_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: 0,
+        structure_authority_pages: 0,
+        text_shortcut_pages: 0,
+        ocr_patch_regions: 0,
+        page_range_docling_fallback_pages: 0,
+        page_range_docling_fallback_chunk_count: 0,
+        page_range_docling_fallback_plan: None,
+        page_range_docling_fallback_chunks: Vec::new(),
+        page_range_docling_fallback_chunk_summary: None,
+        full_docling_fallback_count: 0,
+        hybrid_page_ocr_timing_scheduler_trace: Vec::new(),
         #[cfg(feature = "document-extract-attachment-audit")]
         image_attachment_audit: None,
         #[cfg(feature = "document-extract-attachment-audit")]
@@ -168,6 +216,9 @@ fn populate_artifact_report(
     populate_archive_attachment_audit(report);
 
     let output_dir = std::path::PathBuf::from(&report.output_dir);
+    populate_hybrid_page_ocr_fallback_reason(report, output_dir.as_path())?;
+    populate_hybrid_page_ocr_timing_report(report, output_dir.as_path())?;
+
     let resources_path = output_dir.join(DOCUMENT_RESOURCES_ARROW_CACHE_NAME);
     if let Some(batches) = read_arrow_file_batches(resources_path.as_path())? {
         report.resources_arrow_exists = true;
@@ -175,6 +226,7 @@ fn populate_artifact_report(
         report.resources_row_count = batches.iter().map(RecordBatch::num_rows).sum();
         report.resource_type_counts = string_counts(&batches, "resourceType")?;
         report.resource_status_counts = string_counts(&batches, "status")?;
+        populate_audio_transcript_metrics(report, &batches)?;
     }
 
     let structure_path = output_dir.join(DOCUMENT_STRUCTURE_ARROW_CACHE_NAME);
@@ -243,6 +295,180 @@ fn populate_artifact_report(
             .unwrap_or_default();
     }
     Ok(())
+}
+
+fn populate_audio_transcript_metrics(
+    report: &mut ArtifactReport,
+    batches: &[RecordBatch],
+) -> Result<(), String> {
+    for batch in batches {
+        let Some(resource_type_column) = batch.column_by_name("resourceType") else {
+            continue;
+        };
+        let Some(content_column) = batch.column_by_name("content") else {
+            continue;
+        };
+        let Some(resource_types) = resource_type_column.as_any().downcast_ref::<StringArray>()
+        else {
+            return Err("document resource `resourceType` column is not utf8".to_string());
+        };
+        let Some(contents) = content_column.as_any().downcast_ref::<StringArray>() else {
+            return Err("document resource `content` column is not utf8".to_string());
+        };
+        for row in 0..batch.num_rows() {
+            if resource_types.is_null(row)
+                || contents.is_null(row)
+                || resource_types.value(row) != "audio-transcript"
+            {
+                continue;
+            }
+            let content = contents.value(row);
+            let marker_count = audio_transcript_timeline_marker_count(content);
+            report.audio_transcript_chars = report
+                .audio_transcript_chars
+                .saturating_add(content.chars().count());
+            report.audio_transcript_timeline_marker_count = report
+                .audio_transcript_timeline_marker_count
+                .saturating_add(marker_count);
+            if marker_count > 0 {
+                report.audio_transcript_timeline_marked_rows = report
+                    .audio_transcript_timeline_marked_rows
+                    .saturating_add(1);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn audio_transcript_timeline_marker_count(content: &str) -> usize {
+    content
+        .lines()
+        .filter(|line| is_audio_timeline_marker_line(line.trim_start()))
+        .count()
+}
+
+fn is_audio_timeline_marker_line(line: &str) -> bool {
+    let Some(marker_end) = line.find(']') else {
+        return false;
+    };
+    let marker = &line[..=marker_end];
+    marker.starts_with('[')
+        && marker.contains('-')
+        && marker[..marker_end]
+            .split('-')
+            .all(|part| part.contains(':'))
+}
+
+fn populate_hybrid_page_ocr_fallback_reason(
+    report: &mut ArtifactReport,
+    output_dir: &Path,
+) -> Result<(), String> {
+    let fallback_path = output_dir.join(HYBRID_PAGE_OCR_FALLBACK_REPORT_NAME);
+    if !fallback_path.exists() {
+        return Ok(());
+    }
+    let value = serde_json::from_slice::<Value>(
+        fs::read(fallback_path.as_path())
+            .map_err(|error| format!("read hybrid OCR fallback report: {error}"))?
+            .as_slice(),
+    )
+    .map_err(|error| format!("decode hybrid OCR fallback report: {error}"))?;
+    report.hybrid_page_ocr_fallback_reason = value
+        .get("reason")
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
+    Ok(())
+}
+
+fn populate_hybrid_page_ocr_timing_report(
+    report: &mut ArtifactReport,
+    output_dir: &Path,
+) -> Result<(), String> {
+    let timing_path = output_dir.join(HYBRID_PAGE_OCR_TIMING_REPORT_NAME);
+    if !timing_path.exists() {
+        return Ok(());
+    }
+    let value = serde_json::from_slice::<Value>(
+        fs::read(timing_path.as_path())
+            .map_err(|error| format!("read hybrid OCR timing report: {error}"))?
+            .as_slice(),
+    )
+    .map_err(|error| format!("decode hybrid OCR timing report: {error}"))?;
+    report.hybrid_page_ocr_timing_report_bytes = file_len(timing_path.as_path())?;
+    report.hybrid_page_ocr_timing_total_elapsed_ms = value
+        .get("totalElapsedMs")
+        .and_then(Value::as_f64)
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr_shard_count = value
+        .get("ocrShardCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_shard_count = value
+        .get("ocr2RegionShardCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_request_count = value
+        .get("ocr2RegionRequestCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_rendered_shard_count = value
+        .get("ocr2RegionRenderedShardCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count = value
+        .get("ocr2RegionRenderCacheHitCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count = value
+        .get("ocr2RegionRenderCacheMissCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.structure_authority_pages = timing_report_usize(&value, "structureAuthorityPages");
+    report.text_shortcut_pages = timing_report_usize(&value, "textShortcutPages");
+    report.ocr_patch_regions = timing_report_usize(&value, "ocrPatchRegions");
+    report.page_range_docling_fallback_pages =
+        timing_report_usize(&value, "pageRangeDoclingFallbackPages");
+    report.page_range_docling_fallback_chunk_count =
+        timing_report_usize(&value, "pageRangeDoclingFallbackChunkCount");
+    report.page_range_docling_fallback_plan = value.get("pageRangeDoclingFallbackPlan").cloned();
+    report.page_range_docling_fallback_chunks = value
+        .get("pageRangeDoclingFallbackChunks")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    report.page_range_docling_fallback_chunk_summary =
+        value.get("pageRangeDoclingFallbackChunkSummary").cloned();
+    report.full_docling_fallback_count = timing_report_usize(&value, "fullDoclingFallbackCount");
+    report.hybrid_page_ocr_timing_scheduler_trace = value
+        .get("ocrSchedulerTrace")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if let Some(phases) = value.get("phaseElapsedMs").and_then(Value::as_object) {
+        report.hybrid_page_ocr_timing_phase_elapsed_ms = phases
+            .iter()
+            .filter_map(|(phase, elapsed)| {
+                elapsed
+                    .as_f64()
+                    .map(|elapsed_ms| (phase.clone(), elapsed_ms))
+            })
+            .collect();
+    }
+    Ok(())
+}
+
+fn timing_report_usize(value: &Value, key: &str) -> usize {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default()
 }
 
 #[cfg(feature = "document-extract-attachment-audit")]
@@ -735,6 +961,183 @@ fn artifact_report_reads_document_timing_sidecar() -> Result<(), String> {
         2.0,
     )?;
     assert_float_eq(Some(report.document_timing_total_elapsed_ms), 15.0)?;
+    Ok(())
+}
+
+#[test]
+fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> {
+    let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let output_dir = temp_dir.path().join("outputs").join("pdf");
+    fs::create_dir_all(output_dir.as_path()).map_err(|error| error.to_string())?;
+    write_hybrid_page_ocr_timing_sidecar(output_dir.as_path())?;
+
+    let report = inspect_artifact_dir("fixture.pdf", output_dir.to_string_lossy().as_ref(), None);
+
+    assert_hybrid_page_ocr_timing_report(&report)
+}
+
+fn write_hybrid_page_ocr_timing_sidecar(output_dir: &Path) -> Result<(), String> {
+    fs::write(
+        output_dir
+            .join(HYBRID_PAGE_OCR_TIMING_REPORT_NAME)
+            .as_path(),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": "xiuxian_wendao.hybrid_page_ocr_timing.v1",
+            "ocrShardCount": 27,
+            "ocr2RegionShardCount": 6,
+            "ocr2RegionRequestCount": 6,
+            "ocr2RegionRenderedShardCount": 6,
+            "ocr2RegionRenderCacheHitCount": 6,
+            "ocr2RegionRenderCacheMissCount": 0,
+            "structureAuthorityPages": 4,
+            "textShortcutPages": 2,
+            "ocrPatchRegions": 3,
+            "pageRangeDoclingFallbackPages": 5,
+            "pageRangeDoclingFallbackChunkCount": 2,
+            "pageRangeDoclingFallbackPlan": {
+                "strategy": "source-profile-weighted",
+                "targetChunkCount": 4,
+                "fallbackPageCount": 5,
+                "rangeCount": 2,
+                "chunkSize": null,
+                "sourceProfileUsed": true,
+                "ranges": [
+                    {
+                        "pageStart": 0,
+                        "pageEnd": 2,
+                        "oneBasedStart": 1,
+                        "oneBasedEnd": 3,
+                    },
+                    {
+                        "pageStart": 3,
+                        "pageEnd": 4,
+                        "oneBasedStart": 4,
+                        "oneBasedEnd": 5,
+                    },
+                ],
+            },
+            "pageRangeDoclingFallbackChunks": [
+                {
+                    "pageStart": 0,
+                    "pageEnd": 2,
+                    "oneBasedStart": 1,
+                    "oneBasedEnd": 3,
+                    "elapsedMs": 1200.0,
+                    "resourceRows": 9,
+                },
+                {
+                    "pageStart": 3,
+                    "pageEnd": 4,
+                    "oneBasedStart": 4,
+                    "oneBasedEnd": 5,
+                    "elapsedMs": 4400.0,
+                    "resourceRows": 12,
+                },
+            ],
+            "pageRangeDoclingFallbackChunkSummary": {
+                "chunkCount": 2,
+                "elapsedMsMax": 4400.0,
+                "elapsedMsTotal": 5600.0,
+                "resourceRows": 21,
+                "longestPageStart": 3,
+                "longestPageEnd": 4,
+                "longestOneBasedStart": 4,
+                "longestOneBasedEnd": 5,
+                "longestResourceRows": 12,
+            },
+            "fullDoclingFallbackCount": 0,
+            "ocrSchedulerTrace": [
+                {
+                    "lane": "source-pdf-page-range",
+                    "shardCount": 7,
+                    "pageStart": 0,
+                    "pageEnd": 6,
+                    "latencyMs": 19327.0,
+                    "textCharCount": 48879,
+                },
+            ],
+            "totalElapsedMs": 5600.0,
+            "phaseElapsedMs": {
+                "regionMaterialize": 5550.0,
+                "ocrScheduler": 3.5,
+                "total": 5600.0,
+            },
+        }))
+        .map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+fn assert_hybrid_page_ocr_timing_report(report: &ArtifactReport) -> Result<(), String> {
+    assert_eq!(report.artifact_error, None);
+    assert!(report.hybrid_page_ocr_timing_report_bytes > 0);
+    assert_eq!(report.hybrid_page_ocr_timing_ocr_shard_count, 27);
+    assert_eq!(report.hybrid_page_ocr_timing_ocr2_region_shard_count, 6);
+    assert_eq!(report.hybrid_page_ocr_timing_ocr2_region_request_count, 6);
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_rendered_shard_count,
+        6
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count,
+        6
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count,
+        0
+    );
+    assert_eq!(report.structure_authority_pages, 4);
+    assert_eq!(report.text_shortcut_pages, 2);
+    assert_eq!(report.ocr_patch_regions, 3);
+    assert_eq!(report.page_range_docling_fallback_pages, 5);
+    assert_eq!(report.page_range_docling_fallback_chunk_count, 2);
+    assert_eq!(
+        report
+            .page_range_docling_fallback_plan
+            .as_ref()
+            .and_then(|plan| plan.get("strategy"))
+            .and_then(Value::as_str),
+        Some("source-profile-weighted")
+    );
+    assert_eq!(report.page_range_docling_fallback_chunks.len(), 2);
+    assert_eq!(
+        report.page_range_docling_fallback_chunks[1]["resourceRows"],
+        12
+    );
+    assert_eq!(
+        report
+            .page_range_docling_fallback_chunk_summary
+            .as_ref()
+            .and_then(|summary| summary.get("longestPageStart"))
+            .and_then(Value::as_u64),
+        Some(3)
+    );
+    assert_eq!(report.full_docling_fallback_count, 0);
+    assert_eq!(report.hybrid_page_ocr_timing_scheduler_trace.len(), 1);
+    assert_eq!(
+        report.hybrid_page_ocr_timing_scheduler_trace[0]["lane"],
+        "source-pdf-page-range"
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_scheduler_trace[0]["textCharCount"],
+        48879
+    );
+    assert_float_eq(Some(report.hybrid_page_ocr_timing_total_elapsed_ms), 5600.0)?;
+    assert_float_eq(
+        report
+            .hybrid_page_ocr_timing_phase_elapsed_ms
+            .get("regionMaterialize")
+            .copied(),
+        5550.0,
+    )?;
+    assert_float_eq(
+        report
+            .hybrid_page_ocr_timing_phase_elapsed_ms
+            .get("ocrScheduler")
+            .copied(),
+        3.5,
+    )?;
     Ok(())
 }
 

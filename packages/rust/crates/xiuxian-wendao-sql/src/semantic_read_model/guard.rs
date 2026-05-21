@@ -1,10 +1,12 @@
+//! SQL guard checks for semantic read-model projection freshness.
+
 use std::path::Path;
 
 use serde_json::{Map, Value};
 use xiuxian_wendao_parsers::semantic_ssot::{SemanticRepository, load_semantic_repository};
 
 use crate::SqlQueryPayload;
-use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};
+use crate::local_relation::{DuckDbLocalRelationEngine, LocalRelationEngine};
 
 use super::query::query_semantic_read_model_payload_with_engine;
 
@@ -90,7 +92,7 @@ pub async fn run_semantic_sql_projection_freshness_guard(
     semantic_root: &Path,
 ) -> Result<SemanticSqlGuardEvidence, String> {
     let repository = load_semantic_repository(semantic_root);
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory()?;
     run_semantic_sql_projection_freshness_guard_with_engine(&repository, &query_engine).await
 }
 

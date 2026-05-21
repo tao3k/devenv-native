@@ -12,7 +12,7 @@ async fn test_narrator_performance_scaling() {
             stem: format!("node_{i}"),
             score: 1.0 - (f64::from(i) * 0.01),
             title: format!("Deep Scaling Analysis node {i}"),
-            path: format!("path/{i}.md"),
+            path: format!("path/{i}.md").into(),
             doc_type: None,
             tags: vec!["doc".to_string()],
             best_section: None,

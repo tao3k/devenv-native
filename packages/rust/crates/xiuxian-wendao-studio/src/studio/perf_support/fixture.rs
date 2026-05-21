@@ -1,3 +1,5 @@
+//! Owns the Studio studio perf support fixture surface.
+
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
@@ -6,7 +8,7 @@ use anyhow::{Result, anyhow};
 use axum::Router;
 #[cfg(feature = "julia")]
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_julia_parser_summary_service_with_attempts,
+    JuliaServiceGuard, spawn_wendaosearch_julia_parser_summary_service_with_attempts,
 };
 
 use crate::studio::perf_support::git::create_local_git_repo;
@@ -25,6 +27,8 @@ use crate::studio::perf_support::workspace::{
 use crate::studio::studio_router;
 use xiuxian_wendao::repo_index::repo_index_policy_debug_snapshot;
 
+use crate::contracts::{StudioContractId, StudioContractMillisecondsU64, StudioContractToken};
+
 #[cfg(feature = "julia")]
 const PERF_JULIA_PARSER_SUMMARY_READY_ATTEMPTS: usize = 900;
 
@@ -33,7 +37,7 @@ pub struct GatewayPerfFixture {
     root: GatewayPerfRoot,
     state: Arc<crate::studio::GatewayState>,
     #[cfg(feature = "julia")]
-    _julia_parser_summary_guard: Option<JuliaExampleServiceGuard>,
+    _julia_parser_summary_guard: Option<JuliaServiceGuard>,
 }
 
 /// One controller-side concurrency snapshot captured alongside repo-index
@@ -51,15 +55,15 @@ pub struct GatewayRepoIndexControllerDebugSnapshot {
     /// Number of consecutive I/O pressure observations at the current limit.
     pub io_pressure_streak: usize,
     /// Exponential moving average of sync control elapsed time in milliseconds.
-    pub ema_elapsed_ms: Option<u64>,
+    pub ema_elapsed_ms: Option<StudioContractMillisecondsU64>,
     /// Rolling baseline used to detect sustained sync I/O pressure.
-    pub baseline_elapsed_ms: Option<u64>,
+    pub baseline_elapsed_ms: Option<StudioContractMillisecondsU64>,
     /// Most recent sync control elapsed time in milliseconds.
-    pub last_elapsed_ms: Option<u64>,
+    pub last_elapsed_ms: Option<StudioContractMillisecondsU64>,
     /// Ratio between current and previous efficiency, expressed as a percent.
-    pub last_efficiency_ratio_pct: Option<u64>,
+    pub last_efficiency_ratio_pct: Option<StudioContractMillisecondsU64>,
     /// Last controller adjustment reason recorded by the adaptive loop.
-    pub last_adjustment: String,
+    pub last_adjustment: StudioContractToken,
     /// Effective analysis timeout used by the repo-index runtime.
     pub analysis_timeout_secs: u64,
     /// Effective sync timeout used by the repo-index runtime.
@@ -91,11 +95,11 @@ impl GatewayPerfFixture {
             success_streak: snapshot.success_streak,
             reference_limit: snapshot.reference_limit,
             io_pressure_streak: snapshot.io_pressure_streak,
-            ema_elapsed_ms: snapshot.ema_elapsed_ms,
-            baseline_elapsed_ms: snapshot.baseline_elapsed_ms,
-            last_elapsed_ms: snapshot.last_elapsed_ms,
-            last_efficiency_ratio_pct: snapshot.last_efficiency_ratio_pct,
-            last_adjustment: snapshot.last_adjustment.as_str().to_string(),
+            ema_elapsed_ms: snapshot.ema_elapsed_ms.map(Into::into),
+            baseline_elapsed_ms: snapshot.baseline_elapsed_ms.map(Into::into),
+            last_elapsed_ms: snapshot.last_elapsed_ms.map(Into::into),
+            last_efficiency_ratio_pct: snapshot.last_efficiency_ratio_pct.map(Into::into),
+            last_adjustment: snapshot.last_adjustment.as_str().into(),
             analysis_timeout_secs: policy.analysis_timeout_secs,
             sync_timeout_secs: policy.sync_timeout_secs,
             sync_retry_budget: policy.sync_retry_budget,
@@ -118,12 +122,16 @@ impl GatewayPerfFixture {
     ///
     /// Returns an error if the repo-backed search-plane query fails or does
     /// not return any hits for the requested repo/query pair.
-    pub async fn warm_repo_scope_query(&self, repo_id: &str, query: &str) -> Result<()> {
+    pub async fn warm_repo_scope_query(
+        &self,
+        repo_id: &StudioContractId,
+        query: &str,
+    ) -> Result<()> {
         let hits = self
             .state
             .studio
             .search_plane
-            .search_repo_entities(repo_id, query, &HashSet::new(), &HashSet::new(), 5)
+            .search_repo_entities(repo_id.as_str(), query, &HashSet::new(), &HashSet::new(), 5)
             .await
             .map_err(|error| anyhow!("failed to warm repo-scoped search telemetry: {error}"))?;
         if hits.is_empty() {

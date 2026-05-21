@@ -1,3 +1,5 @@
+//! `pybindings::unified_symbol_py::py_symbol` owns Wendao pybindings unified symbol py py symbol behavior.
+
 use crate::unified_symbol::{SymbolSource, UnifiedSymbol};
 use pyo3::{pyclass, pymethods};
 

@@ -17,6 +17,7 @@ impl SearchPlaneService {
 
     /// Build a query cache key from active local corpus epochs.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn search_query_cache_key(
         &self,
         scope: &str,
@@ -43,41 +44,9 @@ impl SearchPlaneService {
         &self,
         input: RepoSearchQueryCacheKeyInput<'_>,
     ) -> Option<String> {
-        let mut versions = input
-            .corpora
-            .iter()
-            .map(|corpus| self.corpus_cache_version(*corpus))
-            .collect::<Vec<_>>();
-        let mut sorted_repo_ids = input.repo_ids.to_vec();
-        sorted_repo_ids.sort_unstable();
-        sorted_repo_ids.dedup();
-        if sorted_repo_ids.is_empty() {
-            versions.push("repo_set:none".to_string());
-        }
-        for repo_id in sorted_repo_ids {
-            for corpus in input.repo_corpora {
-                if let Some(record) = self
-                    .repo_corpus_record_for_reads(*corpus, repo_id.as_str())
-                    .await
-                {
-                    let runtime = record.runtime.as_ref().map(RepoRuntimeState::from_record);
-                    if let Some(publication) = record.publication.as_ref() {
-                        versions.push(repo_publication_cache_version(
-                            runtime.as_ref(),
-                            publication,
-                        ));
-                    } else {
-                        versions.push(repo_corpus_cache_version(
-                            *corpus,
-                            repo_id.as_str(),
-                            runtime.as_ref(),
-                        ));
-                    }
-                } else {
-                    versions.push(repo_corpus_cache_version(*corpus, repo_id.as_str(), None));
-                }
-            }
-        }
+        let mut versions = self.local_corpus_cache_versions(input.corpora);
+        self.extend_repo_corpus_cache_versions(&mut versions, input.repo_ids, input.repo_corpora)
+            .await;
         self.cache.search_query_cache_key_from_versions(
             input.scope,
             versions.as_slice(),
@@ -85,6 +54,59 @@ impl SearchPlaneService {
             input.limit,
             input.intent,
             input.repo_hint,
+        )
+    }
+
+    fn local_corpus_cache_versions(&self, corpora: &[SearchCorpusKind]) -> Vec<String> {
+        corpora
+            .iter()
+            .map(|corpus| self.corpus_cache_version(*corpus))
+            .collect()
+    }
+
+    async fn extend_repo_corpus_cache_versions(
+        &self,
+        versions: &mut Vec<String>,
+        repo_ids: &[String],
+        repo_corpora: &[SearchCorpusKind],
+    ) {
+        let sorted_repo_ids = sorted_repo_ids(repo_ids);
+        if sorted_repo_ids.is_empty() {
+            versions.push("repo_set:none".to_string());
+            return;
+        }
+        for repo_id in sorted_repo_ids {
+            self.extend_one_repo_corpus_cache_versions(versions, repo_id.as_str(), repo_corpora)
+                .await;
+        }
+    }
+
+    async fn extend_one_repo_corpus_cache_versions(
+        &self,
+        versions: &mut Vec<String>,
+        repo_id: &str,
+        repo_corpora: &[SearchCorpusKind],
+    ) {
+        for corpus in repo_corpora {
+            versions.push(
+                self.repo_corpus_cache_version_for_reads(*corpus, repo_id)
+                    .await,
+            );
+        }
+    }
+
+    async fn repo_corpus_cache_version_for_reads(
+        &self,
+        corpus: SearchCorpusKind,
+        repo_id: &str,
+    ) -> String {
+        let Some(record) = self.repo_corpus_record_for_reads(corpus, repo_id).await else {
+            return repo_corpus_cache_version(corpus, repo_id, None);
+        };
+        let runtime = record.runtime.as_ref().map(RepoRuntimeState::from_record);
+        record.publication.as_ref().map_or_else(
+            || repo_corpus_cache_version(corpus, repo_id, runtime.as_ref()),
+            |publication| repo_publication_cache_version(runtime.as_ref(), publication),
         )
     }
 
@@ -103,4 +125,11 @@ impl SearchPlaneService {
     {
         self.cache.set_json(key, ttl, value).await;
     }
+}
+
+fn sorted_repo_ids(repo_ids: &[String]) -> Vec<String> {
+    let mut sorted = repo_ids.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+    sorted
 }

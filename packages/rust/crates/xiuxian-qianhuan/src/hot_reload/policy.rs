@@ -64,31 +64,22 @@ pub fn resolve_hot_reload_watch_patterns(
 
 fn normalize_patterns<'a>(values: impl Iterator<Item = &'a str>) -> Vec<String> {
     let mut unique = HashSet::new();
-    let mut normalized = Vec::new();
-    for value in values {
-        let trimmed = value.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if unique.insert(trimmed.to_string()) {
-            normalized.push(trimmed.to_string());
-        }
-    }
-    normalized
+    values
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .filter_map(|value| {
+            let owned = value.to_string();
+            unique.insert(owned.clone()).then_some(owned)
+        })
+        .collect()
 }
 
 fn normalize_extensions<'a>(values: impl Iterator<Item = &'a str>) -> Vec<String> {
     let mut unique = HashSet::new();
-    let mut normalized = Vec::new();
-    for value in values {
-        let Some(extension) = normalize_extension(value) else {
-            continue;
-        };
-        if unique.insert(extension.clone()) {
-            normalized.push(extension);
-        }
-    }
-    normalized
+    values
+        .filter_map(normalize_extension)
+        .filter_map(|extension| unique.insert(extension.clone()).then_some(extension))
+        .collect()
 }
 
 fn normalize_extension(value: &str) -> Option<String> {

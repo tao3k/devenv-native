@@ -1,3 +1,5 @@
+//! `analyzers::projection::retrieval_context` owns Wendao analyzers projection retrieval context behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{
@@ -68,9 +70,9 @@ fn build_node_context(
 ) -> Result<ProjectedPageIndexNodeContext, RepoIntelligenceError> {
     let raw = find_node_context(tree.roots.as_slice(), node_id, &[]).ok_or_else(|| {
         RepoIntelligenceError::UnknownProjectedPageIndexNode {
-            repo_id: page.repo_id.clone(),
-            page_id: page.page_id.clone(),
-            node_id: node_id.to_string(),
+            repo_id: page.repo_id.clone().into(),
+            page_id: page.page_id.clone().into(),
+            node_id: node_id.to_string().into(),
         }
     })?;
 

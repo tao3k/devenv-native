@@ -1,3 +1,5 @@
+//! `analyzers::service::search::imports` owns Wendao service search imports behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;
@@ -59,7 +61,7 @@ pub fn build_import_search(
         import_hits,
     }
 }
-
+/// `build_import_search_with_artifacts` public function boundary for Wendao.
 #[must_use]
 #[cfg(feature = "search-runtime")]
 pub fn build_import_search_with_artifacts(

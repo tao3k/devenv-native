@@ -1,3 +1,5 @@
+//! `link_graph::models::records::payload` owns Wendao models records payload behavior.
+
 use super::hits::{LinkGraphDisplayHit, LinkGraphHit};
 use super::quantum_fusion::QuantumContext;
 use super::retrieval_plan::{

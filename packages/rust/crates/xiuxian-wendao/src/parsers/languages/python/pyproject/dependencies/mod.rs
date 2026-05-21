@@ -1,3 +1,5 @@
+//! `parsers::languages::python::pyproject::dependencies` owns Wendao python pyproject dependencies behavior.
+
 mod api;
 mod regex;
 mod types;

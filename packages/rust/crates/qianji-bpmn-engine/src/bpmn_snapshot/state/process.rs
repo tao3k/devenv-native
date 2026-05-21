@@ -19,8 +19,8 @@ impl BpmnSnapshotScanState {
         };
         root.relationship_count += 1;
         root.relationships.push(BpmnRelationshipSnapshot {
-            relationship_id: attribute_value(source, reader, event, "id")?,
-            relationship_type: attribute_value(source, reader, event, "type")?,
+            relationship_id: attribute_value(source, reader, event, "id")?.map(Into::into),
+            relationship_type: attribute_value(source, reader, event, "type")?.map(Into::into),
             direction: attribute_value(source, reader, event, "direction")?,
             source_refs: Vec::new(),
             target_refs: Vec::new(),
@@ -39,11 +39,12 @@ impl BpmnSnapshotScanState {
         is_empty: bool,
     ) -> Result<()> {
         let process = BpmnProcessSnapshot {
-            process_id: attribute_value(source, reader, event, "id")?,
+            process_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             name: attribute_value(source, reader, event, "name")?,
-            process_type: attribute_value(source, reader, event, "processType")?,
-            is_closed: boolean_attribute_value(source, reader, event, "isClosed")?,
-            is_executable: boolean_attribute_value(source, reader, event, "isExecutable")?,
+            process_type: attribute_value(source, reader, event, "processType")?.map(Into::into),
+            is_closed: boolean_attribute_value(source, reader, event, "isClosed")?.map(Into::into),
+            is_executable: boolean_attribute_value(source, reader, event, "isExecutable")?
+                .map(Into::into),
             definitional_collaboration_ref: attribute_value(
                 source,
                 reader,
@@ -111,12 +112,12 @@ impl BpmnSnapshotScanState {
         self.current_flow_element_metadata = Some((
             process_index,
             BpmnFlowElementMetadataSnapshot {
-                element_kind: tag.to_string(),
-                element_id: attribute_value(source, reader, event, "id")?,
+                element_kind: tag.to_string().into(),
+                element_id: attribute_value(source, reader, event, "id")?.map(Into::into),
                 name: attribute_value(source, reader, event, "name")?,
-                has_auditing: false,
+                has_auditing: false.into(),
                 auditing_id: None,
-                has_monitoring: false,
+                has_monitoring: false.into(),
                 monitoring_id: None,
                 category_value_refs: Vec::new(),
             },
@@ -133,8 +134,8 @@ impl BpmnSnapshotScanState {
         let Some((_, metadata)) = self.current_flow_element_metadata.as_mut() else {
             return Ok(());
         };
-        metadata.has_auditing = true;
-        metadata.auditing_id = attribute_value(source, reader, event, "id")?;
+        metadata.has_auditing = true.into();
+        metadata.auditing_id = attribute_value(source, reader, event, "id")?.map(Into::into);
         Ok(())
     }
 
@@ -147,8 +148,8 @@ impl BpmnSnapshotScanState {
         let Some((_, metadata)) = self.current_flow_element_metadata.as_mut() else {
             return Ok(());
         };
-        metadata.has_monitoring = true;
-        metadata.monitoring_id = attribute_value(source, reader, event, "id")?;
+        metadata.has_monitoring = true.into();
+        metadata.monitoring_id = attribute_value(source, reader, event, "id")?.map(Into::into);
         Ok(())
     }
 

@@ -155,7 +155,7 @@ pub(crate) struct DocsToolRuntimeHandle {
 }
 
 impl DocsToolRuntimeHandle {
-    #[cfg(test)]
+    #[cfg(all(test, feature = "julia"))]
     #[must_use]
     pub(crate) fn new(inner: Arc<dyn DocsToolRuntime>) -> Self {
         Self { inner }

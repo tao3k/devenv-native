@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::retrieval` owns Wendao service projection retrieval behavior.
+
 use std::path::Path;
 
 use crate::analyzers::PluginRegistry;

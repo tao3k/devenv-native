@@ -85,13 +85,13 @@ fn performance_probe_event_competition_wait_resolution_compares_linear_vs_indexe
 fn build_event_competition_tokens(wait_count: u32, unrelated_token_count: u32) -> Vec<TokenRecord> {
     let mut active_tokens = Vec::with_capacity((wait_count + unrelated_token_count) as usize);
     active_tokens.extend((0..wait_count).map(|offset| TokenRecord {
-        token_id: u64::from(offset) + 1,
+        token_id: (u64::from(offset) + 1),
         node_index: 2 + offset,
         incoming_edge_index: Some(offset),
         inclusive_join_hint: None,
     }));
     active_tokens.extend((0..unrelated_token_count).map(|offset| TokenRecord {
-        token_id: u64::from(wait_count + offset) + 1,
+        token_id: (u64::from(wait_count + offset) + 1),
         node_index: 1_000 + offset,
         incoming_edge_index: None,
         inclusive_join_hint: None,

@@ -1,15 +1,23 @@
 use std::fs;
+use std::path::Path;
+#[cfg(feature = "julia")]
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::studio::arrow_types::{
     LanceDataType, LanceField, LanceFloat64Array, LanceRecordBatch, LanceSchema, LanceStringArray,
 };
+#[cfg(feature = "julia")]
+use crate::studio::studio_repo_sync_api_tests::support::prime_local_julia_fixture_analysis_cache;
+#[cfg(feature = "julia")]
+use crate::studio::test_support::{add_git_remote, commit_all, init_git_repository};
 use crate::transport::{
     AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
     MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
     RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
-    RepoProjectedPageIndexTreeFlightRouteProvider, RepoSearchFlightRouteProvider,
+    RepoProjectedPageIndexTreeFlightRouteProvider,
+    RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRouteProvider,
     RepoSyncFlightRouteProvider, RerankScoreWeights, WendaoFlightRouteProviders,
     WendaoFlightService,
 };
@@ -22,13 +30,17 @@ use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::search::handlers::tests::test_studio_state;
 use crate::studio::{GatewayState, StudioState};
 use crate::studio::{build_ast_index, search::build_symbol_index};
+#[cfg(feature = "julia")]
+use xiuxian_wendao::repo_index::RepoCodeDocument;
+#[cfg(feature = "julia")]
+use xiuxian_wendao::search::SearchPlaneService;
 
 pub(super) struct GatewayStateFixture {
     _temp_dir: TempDir,
     pub(super) state: Arc<GatewayState>,
 }
 
-fn write_fixture_files(root: &std::path::Path, files: &[(&str, &str)], context: &str) {
+fn write_fixture_files(root: &Path, files: &[(&str, &str)], context: &str) {
     for (path, contents) in files {
         let full_path = root.join(path);
         if let Some(parent) = full_path.parent() {
@@ -163,6 +175,100 @@ pub(super) async fn make_gateway_state_with_search_routes() -> GatewayStateFixtu
         .unwrap_or_else(|error| panic!("publish attachments: {error}"));
 
     gateway_state_fixture(temp_dir, studio)
+}
+
+#[cfg(feature = "julia")]
+pub(super) async fn make_gateway_state_with_search_strategy_flow_routes() -> GatewayStateFixture {
+    let temp_dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+    write_fixture_files(
+        temp_dir.path(),
+        &[
+            ("docs/alpha.md", "# Alpha\n\nSee [[beta]].\n"),
+            ("docs/beta.md", "# Beta\n\nBody.\n"),
+        ],
+        "workspace graph fixture",
+    );
+    let repo_dir = create_gateway_sync_julia_repo(temp_dir.path());
+    fs::write(
+        temp_dir.path().join("wendao.toml"),
+        format!(
+            r#"[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+
+[link_graph.projects.gateway-sync]
+root = "{}"
+plugins = ["julia-code-parser"]
+refresh = "manual"
+"#,
+            repo_dir.display()
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write SearchStrategyFlow fixture config: {error}"));
+    prime_local_julia_fixture_analysis_cache(temp_dir.path(), "gateway-sync")
+        .unwrap_or_else(|error| panic!("prime SearchStrategyFlow fixture analysis cache: {error}"));
+
+    let plugin_registry = Arc::new(
+        xiuxian_wendao::analyzers::bootstrap_builtin_registry()
+            .unwrap_or_else(|error| panic!("bootstrap builtin plugin registry: {error}")),
+    );
+    let search_plane = SearchPlaneService::new(temp_dir.path().to_path_buf());
+    let studio = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
+        plugin_registry,
+        temp_dir.path().to_path_buf(),
+        temp_dir.path().to_path_buf(),
+        search_plane,
+    );
+    studio
+        .search_plane
+        .publish_repo_content_chunks_with_revision(
+            "gateway-sync",
+            &[RepoCodeDocument {
+                path: "docs/solve.md".to_string(),
+                language: Some("markdown".to_string()),
+                contents: Arc::<str>::from("solve anchors and source examples"),
+                size_bytes: 33,
+                modified_unix_ms: 10,
+            }],
+            Some("search-strategy-flow-rev-1"),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("publish SearchStrategyFlow repo search fixture: {error}"));
+
+    gateway_state_fixture(temp_dir, studio)
+}
+
+#[cfg(feature = "julia")]
+fn create_gateway_sync_julia_repo(base: &Path) -> PathBuf {
+    let repo_dir = base.join("gatewaysyncpkg");
+    write_fixture_files(
+        repo_dir.as_path(),
+        &[
+            ("README.md", "# Gateway Sync Package\n"),
+            (
+                "Project.toml",
+                r#"name = "GatewaySyncPkg"
+uuid = "12345678-1234-1234-1234-123456789abc"
+version = "0.1.0"
+"#,
+            ),
+            (
+                "src/GatewaySyncPkg.jl",
+                "module GatewaySyncPkg\nexport solve\n\"\"\"solve docs\"\"\"\nsolve() = nothing\nend\n",
+            ),
+            ("examples/solve_demo.jl", "using GatewaySyncPkg\nsolve()\n"),
+            ("docs/solve.md", "# solve\n"),
+        ],
+        "SearchStrategyFlow registered Julia repo",
+    );
+    init_git_repository(repo_dir.as_path());
+    add_git_remote(
+        repo_dir.as_path(),
+        "origin",
+        "https://example.invalid/xiuxian-wendao/gatewaysyncpkg.git",
+    );
+    commit_all(repo_dir.as_path(), "initial import");
+    repo_dir
 }
 
 async fn publish_local_symbol_index(studio: &StudioState) {
@@ -385,6 +491,23 @@ impl RepoProjectedPageIndexTreeFlightRouteProvider for RecordingAnalysisRoutePro
 }
 
 #[async_trait]
+impl RepoProjectedRetrievalContextFlightRouteProvider for RecordingAnalysisRouteProvider {
+    async fn repo_projected_retrieval_context_batch(
+        &self,
+        repo_id: &str,
+        page_id: &str,
+        node_id: Option<&str>,
+        related_limit: usize,
+    ) -> Result<AnalysisFlightRouteResponse, Status> {
+        analysis_route_response(
+            "repo_projected_retrieval_context",
+            format!("{repo_id}:{page_id}:{node_id:?}:{related_limit}"),
+        )
+        .map_err(Status::internal)
+    }
+}
+
+#[async_trait]
 impl RefineDocFlightRouteProvider for RecordingAnalysisRouteProvider {
     async fn refine_doc_batch(
         &self,
@@ -423,6 +546,7 @@ pub(super) fn build_analysis_route_service() -> WendaoFlightService {
     route_providers.repo_sync = Some(analysis_provider.clone());
     route_providers.repo_doc_coverage = Some(analysis_provider.clone());
     route_providers.repo_projected_page_index_tree = Some(analysis_provider.clone());
+    route_providers.repo_projected_retrieval_context = Some(analysis_provider.clone());
     route_providers.refine_doc = Some(analysis_provider);
     WendaoFlightService::new_with_route_providers_and_sql(
         "v2",

@@ -1,27 +1,29 @@
-use super::{Episode, TestResult, test_store};
+use super::{Episode, EpisodeDraft, TestResult, test_store};
 
 #[test]
 fn test_memory_decay_scenario() -> TestResult {
     let store = test_store("test");
     let encoder = store.encoder();
 
-    let ep1 = Episode::new(
-        "fresh-high".to_string(),
-        "recent success".to_string(),
-        encoder.encode("recent success"),
-        "Did X".to_string(),
-        "success".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("fresh-high".to_string()).into(),
+        intent: "recent success".to_string(),
+        intent_embedding: encoder.encode("recent success"),
+        experience: "Did X".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(ep1)?;
     store.update_q("fresh-high", 0.9);
 
-    let ep2 = Episode::new(
-        "old-low".to_string(),
-        "old failure".to_string(),
-        encoder.encode("old failure"),
-        "Did Y".to_string(),
-        "failure".to_string(),
-    );
+    let ep2 = Episode::new(EpisodeDraft {
+        id: ("old-low".to_string()).into(),
+        intent: "old failure".to_string(),
+        intent_embedding: encoder.encode("old failure"),
+        experience: "Did Y".to_string(),
+        outcome: "failure".to_string(),
+        scope: None,
+    });
     store.store(ep2)?;
     store.update_q("old-low", 0.1);
 
@@ -55,15 +57,16 @@ fn test_multi_hop_reasoning_scenario() -> TestResult {
     ];
 
     for (i, (intent, exp, outcome, q)) in chain.iter().enumerate() {
-        let ep = Episode::new(
-            format!("ep-{i}"),
-            intent.to_string(),
-            encoder.encode(intent),
-            exp.to_string(),
-            outcome.to_string(),
-        );
+        let ep = Episode::new(EpisodeDraft {
+            id: (format!("ep-{i}")).into(),
+            intent: intent.to_string(),
+            intent_embedding: encoder.encode(intent),
+            experience: exp.to_string(),
+            outcome: outcome.to_string(),
+            scope: None,
+        });
         store.store(ep)?;
-        store.update_q(&format!("ep-{i}"), *q);
+        store.update_q(format!("ep-{i}"), *q);
     }
 
     let queries = vec![
@@ -89,13 +92,14 @@ fn test_incremental_learning() -> TestResult {
     let store = test_store("test");
     let encoder = store.encoder();
 
-    let ep = Episode::new(
-        "learn-1".to_string(),
-        "initial approach".to_string(),
-        encoder.encode("initial approach"),
-        "Initial solution".to_string(),
-        "success".to_string(),
-    );
+    let ep = Episode::new(EpisodeDraft {
+        id: ("learn-1".to_string()).into(),
+        intent: "initial approach".to_string(),
+        intent_embedding: encoder.encode("initial approach"),
+        experience: "Initial solution".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(ep)?;
     store.update_q("learn-1", 0.6);
 
@@ -115,13 +119,14 @@ fn test_incremental_learning() -> TestResult {
 
     store.mark_accessed("learn-1");
 
-    let ep_old = Episode::new(
-        "old-1".to_string(),
-        "deprecated".to_string(),
-        encoder.encode("deprecated"),
-        "Old".to_string(),
-        "failure".to_string(),
-    );
+    let ep_old = Episode::new(EpisodeDraft {
+        id: ("old-1".to_string()).into(),
+        intent: "deprecated".to_string(),
+        intent_embedding: encoder.encode("deprecated"),
+        experience: "Old".to_string(),
+        outcome: "failure".to_string(),
+        scope: None,
+    });
     store.store(ep_old)?;
     store.delete_episode("old-1");
 

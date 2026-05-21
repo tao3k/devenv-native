@@ -14,11 +14,11 @@ const WENDAOSEARCH_WORKSPACE_PREFIX: &str = ".data/WendaoSearch.jl/";
 const WENDAO_CODE_PARSER_WORKSPACE_PREFIX: &str = ".data/WendaoCodeParser.jl/";
 
 /// Guard for a spawned Julia integration-support service process.
-pub struct JuliaExampleServiceGuard {
+pub struct JuliaServiceGuard {
     child: Option<Child>,
 }
 
-impl JuliaExampleServiceGuard {
+impl JuliaServiceGuard {
     pub(crate) fn new(child: Child) -> Self {
         Self { child: Some(child) }
     }
@@ -38,18 +38,18 @@ impl JuliaExampleServiceGuard {
         };
         if let Some(_status) = child
             .try_wait()
-            .unwrap_or_else(|error| panic!("poll Julia example child: {error}"))
+            .unwrap_or_else(|error| panic!("poll Julia service child: {error}"))
         {
             return;
         }
         child
             .kill()
-            .unwrap_or_else(|error| panic!("kill Julia example child: {error}"));
+            .unwrap_or_else(|error| panic!("kill Julia service child: {error}"));
         let _ = child.wait();
     }
 }
 
-impl Drop for JuliaExampleServiceGuard {
+impl Drop for JuliaServiceGuard {
     fn drop(&mut self) {
         let Some(child) = self.child.as_mut() else {
             return;
@@ -65,7 +65,7 @@ pub(crate) fn reserve_service_port() -> u16 {
     std::net::TcpListener::bind("127.0.0.1:0")
         .and_then(|listener| listener.local_addr())
         .map_or_else(
-            |error| panic!("reserve Julia example service port: {error}"),
+            |error| panic!("reserve Julia service port: {error}"),
             |address| address.port(),
         )
 }

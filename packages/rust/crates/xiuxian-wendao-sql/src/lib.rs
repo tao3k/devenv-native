@@ -8,6 +8,8 @@
 
 /// Bounded-work markdown SQL helper surface for workdir-local retrieval.
 pub mod bounded_work_markdown;
+/// Dataset-to-ontology SQL materialization helper surface.
+pub mod dataset_ontology;
 /// Request-scoped local relation-engine seams for bounded SQL helpers.
 pub mod local_relation;
 mod payload;
@@ -15,7 +17,7 @@ mod payload;
 pub mod semantic_read_model;
 
 pub use local_relation::{
-    DataFusionLocalRelationEngine, LocalRelationEngine, LocalRelationEngineKind,
+    DuckDbLocalRelationEngine, LocalRelationEngine, LocalRelationEngineKind,
     LocalRelationMaterializationState, LocalRelationRegistrationHint,
 };
 pub use xiuxian_wendao_core::{

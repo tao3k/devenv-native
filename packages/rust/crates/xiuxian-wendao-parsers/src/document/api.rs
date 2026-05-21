@@ -1,6 +1,6 @@
 //! Public document parsing API for Markdown metadata envelopes.
 
-use super::types::{DocumentCore, DocumentFormat, MarkdownDocument};
+use super::types::{DocumentCore, DocumentFormat, DocumentType, MarkdownDocument};
 use crate::frontmatter::split_frontmatter;
 use crate::markdown_structure::parse_markdown_document_metadata;
 use serde_yaml::Value;
@@ -107,7 +107,7 @@ fn extract_lead(
     String::new()
 }
 
-fn extract_doc_type(frontmatter: Option<&Value>) -> Option<String> {
+fn extract_doc_type(frontmatter: Option<&Value>) -> Option<DocumentType> {
     let value = frontmatter?;
     value
         .get("type")
@@ -115,6 +115,7 @@ fn extract_doc_type(frontmatter: Option<&Value>) -> Option<String> {
         .and_then(Value::as_str)
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
+        .map(DocumentType::new)
 }
 
 fn count_words(body: &str) -> usize {

@@ -1,3 +1,5 @@
+//! Scheduler core types surface for `xiuxian-qianji`.
+
 use crate::consensus::ConsensusManager;
 use crate::engine::QianjiEngine;
 use crate::scheduler_identity::SchedulerAgentIdentity;
@@ -113,6 +115,8 @@ impl QianjiScheduler {
 
     /// Creates a scheduler with explicit runtime services and inferred defaults.
     #[must_use]
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
+    /// Positional boundary: this compatibility API keeps the established public call shape.
     pub fn with_runtime_services(
         engine: QianjiEngine,
         consensus_manager: Option<Arc<ConsensusManager>>,

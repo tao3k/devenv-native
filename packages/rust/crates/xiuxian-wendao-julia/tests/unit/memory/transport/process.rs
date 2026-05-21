@@ -21,7 +21,7 @@ fn validate_memory_julia_compute_request_batches_dispatches_by_profile() {
         usage_count: 4,
         failure_rate: 0.25,
         ttl_score: 0.7,
-        current_state: "active".to_string(),
+        current_state: "active".into(),
     }])
     .unwrap_or_else(|error| panic!("request batch should build: {error}"));
 

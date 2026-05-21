@@ -6,7 +6,7 @@ use crate::qianji_cli::bpmn_cli::types::{
 use crate::qianji_cli::bpmn_cli::{host, render};
 
 use super::request::build_bpmn_workflow_start_request;
-use crate::qianji_cli::bpmn_cli::run::shared::workflow_control_service;
+use crate::qianji_cli::bpmn_cli::run::control_service::workflow_control_service;
 
 pub(crate) async fn run_bpmn_start_command(
     command: &BpmnStartCliCommand,

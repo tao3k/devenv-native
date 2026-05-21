@@ -68,8 +68,8 @@ fn parser_transaction_owner_rejects_multiple_cancel_boundaries() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "tx_cancel_boundary_b".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("tx_cancel_boundary_b".to_string()).into(),
             detail: "multiple_transaction_cancel_boundaries",
         }
     );

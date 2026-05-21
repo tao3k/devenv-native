@@ -1,5 +1,12 @@
 #[tokio::test]
 async fn demo_capability_manifest_live_proof_covers_fetch_preflight_binding_and_plugin_preflight() {
+    if !local_wendaosearch_package_available() {
+        eprintln!(
+            "skipping real WendaoSearch capability-manifest live proof; set WENDAOSEARCH_PACKAGE_DIR"
+        );
+        return;
+    }
+
     let port = reserve_real_service_port();
     let base_url = format!("http://127.0.0.1:{port}");
     let _service = spawn_real_wendaosearch_demo_capability_manifest_service(port);
@@ -19,10 +26,10 @@ async fn demo_capability_manifest_live_proof_covers_fetch_preflight_binding_and_
         fetch_julia_plugin_capability_manifest_rows_for_repository(
             &repository,
             &[JuliaPluginCapabilityManifestRequestRow {
-                plugin_id: JULIA_PLUGIN_ID.to_string(),
-                repository_id: repository.id.clone(),
+                plugin_id: JULIA_PLUGIN_ID.into(),
+                repository_id: repository.id.clone().into(),
                 capability_filter: None,
-                include_disabled: true,
+                include_disabled: true.into(),
             }],
         ),
         LIVE_REQUEST_TIMEOUT_SECS,
@@ -39,10 +46,10 @@ async fn demo_capability_manifest_live_proof_covers_fetch_preflight_binding_and_
 
 fn assert_live_capability_manifest_rows(rows: &[JuliaPluginCapabilityManifestRow]) {
     assert_eq!(rows.len(), 3);
-    assert!(rows.iter().all(|row| row.plugin_id == JULIA_PLUGIN_ID));
+    assert!(rows.iter().all(|row| row.plugin_id.as_str() == JULIA_PLUGIN_ID));
     assert!(
         rows.iter()
-            .any(|row| row.capability_id == JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID)
+            .any(|row| row.capability_id.as_str() == JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID)
     );
 }
 
@@ -55,7 +62,7 @@ fn assert_live_manifest_discovery_clients(repository: &RegisteredRepository, bas
 
     assert!(
         rows.iter()
-            .any(|row| row.capability_id == JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID)
+            .any(|row| row.capability_id.as_str() == JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID)
     );
 
     let binding = discover_julia_graph_structural_binding_from_manifest_for_repository(

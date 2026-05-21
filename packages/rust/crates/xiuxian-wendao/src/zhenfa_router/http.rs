@@ -1,3 +1,5 @@
+//! `zhenfa_router::http` owns Wendao zhenfa router http behavior.
+
 use axum::{
     Json, Router,
     extract::{Path, Query},

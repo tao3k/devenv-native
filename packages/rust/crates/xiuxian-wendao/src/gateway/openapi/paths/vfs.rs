@@ -1,3 +1,5 @@
+//! `gateway::openapi::paths::vfs` owns Wendao openapi paths vfs behavior.
+
 /// Axum runtime path for the VFS root endpoint.
 pub const API_VFS_ROOT_AXUM_PATH: &str = "/api/vfs";
 /// `OpenAPI` path for the VFS root endpoint.

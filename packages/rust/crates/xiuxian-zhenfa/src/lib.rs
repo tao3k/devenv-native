@@ -21,6 +21,7 @@ mod gateway;
 mod native;
 mod router;
 mod transmuter;
+mod types;
 mod xml_lite;
 #[cfg(feature = "xml-transform")]
 mod xml_transform;
@@ -47,15 +48,19 @@ pub use gateway::{
     ZhenfaGatewayBuildError, ZhenfaGatewayBuilder, notification_worker,
 };
 pub use native::{
-    BroadcastResult, ExternalSignal, SignalRegistry, SignalRegistryExt, ZhenfaAuditSink,
-    ZhenfaContext, ZhenfaDispatchEvent, ZhenfaDispatchOutcome, ZhenfaError, ZhenfaMutationGuard,
-    ZhenfaMutationLock, ZhenfaOrchestrator, ZhenfaOrchestratorHooks, ZhenfaRegistry,
-    ZhenfaResultCache, ZhenfaSignal, ZhenfaSignalSink, ZhenfaTool,
+    BroadcastResult, ExternalSignal, ObservationSignalInput, SignalRegistry, SignalRegistryExt,
+    ZhenfaAuditSink, ZhenfaContext, ZhenfaDispatchEvent, ZhenfaDispatchOutcome, ZhenfaError,
+    ZhenfaMutationGuard, ZhenfaMutationLock, ZhenfaOrchestrator, ZhenfaOrchestratorHooks,
+    ZhenfaRegistry, ZhenfaResultCache, ZhenfaSignal, ZhenfaSignalSink, ZhenfaTool,
 };
 #[cfg(feature = "gateway")]
 pub use router::ZhenfaRouter;
 pub use router::{MethodRegistry, ZhenfaMethodHandler, method_handler};
 pub use transmuter::{ZhenfaResolveAndWashError, ZhenfaTransmuter, ZhenfaTransmuterError};
+pub use types::{
+    ZhenfaElapsedMillis, ZhenfaSessionId, ZhenfaSignalType, ZhenfaToolId, ZhenfaToolIdRef,
+    ZhenfaTraceId, ZhenfaXmlLiteTagName,
+};
 pub use xml_lite::{extract_tag_f32, extract_tag_value};
 #[cfg(feature = "xml-transform")]
 pub use xml_transform::{json_str_to_xml, json_to_xml, markdown_to_xml};
@@ -64,5 +69,5 @@ pub use xml_transform::{json_str_to_xml, json_to_xml, markdown_to_xml};
 pub use transmuter::streaming::{
     ClaudeStreamingParser, CodexStreamingParser, CognitiveDistribution, GeminiStreamingParser,
     PipelineError, PipelineOutput, StreamProvider, StreamingOutcome, StreamingTransmuter,
-    TokenUsage, ZhenfaPipeline, ZhenfaStreamingEvent,
+    TokenUsage, ZhenfaPipeline, ZhenfaPipelineOptions, ZhenfaStreamingEvent,
 };

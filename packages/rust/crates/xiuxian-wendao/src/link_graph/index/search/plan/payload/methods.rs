@@ -19,6 +19,7 @@ impl LinkGraphIndex {
     /// Parse/execute search and return canonical external payload shape with
     /// optional provisional suggested-link injection policy.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn search_planned_payload_with_agentic(
         &self,
         query: &str,
@@ -65,6 +66,7 @@ impl LinkGraphIndex {
     /// one optional precomputed query vector for semantic ignition and Julia
     /// rerank integration.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn search_planned_payload_with_agentic_query_vector(
         &self,
         query: &str,
@@ -111,6 +113,7 @@ impl LinkGraphIndex {
 
     /// Parse/execute search and return canonical external payload shape on the
     /// async path, including optional semantic ignition enrichment.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub async fn search_planned_payload_with_agentic_async(
         &self,
         query: &str,
@@ -133,6 +136,7 @@ impl LinkGraphIndex {
     /// Parse/execute search and return canonical external payload shape on the
     /// async path with one optional precomputed query vector for semantic
     /// ignition and Julia rerank integration.
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub async fn search_planned_payload_with_agentic_async_with_query_vector(
         &self,
         query: &str,

@@ -11,7 +11,7 @@ use arrow_flight::{FlightDescriptor, FlightInfo};
 use tonic::Request;
 
 use super::{
-    StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
+    StudioFlightRoots, StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
     build_repo_search_flight_service, build_studio_flight_service,
     build_studio_flight_service_for_roots,
 };

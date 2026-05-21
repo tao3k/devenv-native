@@ -18,10 +18,10 @@ impl BpmnSnapshotScanState {
         is_empty: bool,
     ) -> Result<()> {
         let collaboration = BpmnCollaborationSnapshot {
-            collaboration_kind: tag.to_string(),
-            collaboration_id: attribute_value(source, reader, event, "id")?,
+            collaboration_kind: tag.to_string().into(),
+            collaboration_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             name: attribute_value(source, reader, event, "name")?,
-            is_closed: boolean_attribute_value(source, reader, event, "isClosed")?,
+            is_closed: boolean_attribute_value(source, reader, event, "isClosed")?.map(Into::into),
             initiating_participant_ref: attribute_value(
                 source,
                 reader,
@@ -129,8 +129,8 @@ impl BpmnSnapshotScanState {
             return Ok(());
         };
         let node = BpmnConversationNodeSnapshot {
-            node_kind: tag.to_string(),
-            node_id: attribute_value(source, reader, event, "id")?,
+            node_kind: tag.to_string().into(),
+            node_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             name: attribute_value(source, reader, event, "name")?,
             called_collaboration_ref: attribute_value(
                 source,
@@ -164,8 +164,8 @@ impl BpmnSnapshotScanState {
             return Ok(());
         };
         let activity = BpmnChoreographyActivitySnapshot {
-            activity_kind: tag.to_string(),
-            activity_id: attribute_value(source, reader, event, "id")?,
+            activity_kind: tag.to_string().into(),
+            activity_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             name: attribute_value(source, reader, event, "name")?,
             initiating_participant_ref: attribute_value(
                 source,
@@ -173,7 +173,7 @@ impl BpmnSnapshotScanState {
                 event,
                 "initiatingParticipantRef",
             )?,
-            loop_type: attribute_value(source, reader, event, "loopType")?,
+            loop_type: attribute_value(source, reader, event, "loopType")?.map(Into::into),
             called_choreography_ref: attribute_value(
                 source,
                 reader,

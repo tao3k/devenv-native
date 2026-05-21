@@ -5,8 +5,10 @@ use std::sync::Arc;
 use axum::Json;
 use axum::extract::{Path as AxumPath, Query, State};
 
-use super::shared::{GraphNeighborsQuery, normalize_hops, normalize_limit, parse_direction};
 use crate::contracts::GraphNeighborsResponse;
+use crate::studio::router::handlers::graph::query_support::{
+    GraphNeighborsQuery, normalize_hops, normalize_limit, parse_direction,
+};
 use crate::studio::router::handlers::graph::service::run_graph_neighbors;
 use crate::studio::router::{GatewayState, StudioApiError};
 

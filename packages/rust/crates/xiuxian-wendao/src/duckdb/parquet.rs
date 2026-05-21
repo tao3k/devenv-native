@@ -1,3 +1,5 @@
+//! `duckdb::parquet` owns Wendao duckdb parquet behavior.
+
 #[cfg(feature = "duckdb")]
 use std::collections::BTreeMap;
 use std::path::Path;

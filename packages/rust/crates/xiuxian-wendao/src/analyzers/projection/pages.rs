@@ -1,3 +1,5 @@
+//! `analyzers::projection::pages` owns Wendao analyzers projection pages behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::analyzers::RepositoryAnalysisOutput;
@@ -170,10 +172,10 @@ fn projection_display_context(analysis: &RepositoryAnalysisOutput) -> Projection
             .iter()
             .map(|module| {
                 (
-                    module.module_id.clone(),
+                    module.module_id.to_string(),
                     DisplayItem {
                         title: module.qualified_name.clone(),
-                        path: module.path.clone(),
+                        path: module.path.to_string(),
                     },
                 )
             })
@@ -183,10 +185,10 @@ fn projection_display_context(analysis: &RepositoryAnalysisOutput) -> Projection
             .iter()
             .map(|symbol| {
                 (
-                    symbol.symbol_id.clone(),
+                    symbol.symbol_id.to_string(),
                     DisplayItem {
                         title: symbol.qualified_name.clone(),
-                        path: symbol.path.clone(),
+                        path: symbol.path.to_string(),
                     },
                 )
             })
@@ -196,10 +198,10 @@ fn projection_display_context(analysis: &RepositoryAnalysisOutput) -> Projection
             .iter()
             .map(|example| {
                 (
-                    example.example_id.clone(),
+                    example.example_id.to_string(),
                     DisplayItem {
                         title: example.title.clone(),
-                        path: example.path.clone(),
+                        path: example.path.to_string(),
                     },
                 )
             })
@@ -209,10 +211,10 @@ fn projection_display_context(analysis: &RepositoryAnalysisOutput) -> Projection
             .iter()
             .map(|doc| {
                 (
-                    doc.doc_id.clone(),
+                    doc.doc_id.to_string(),
                     DisplayItem {
                         title: doc.title.clone(),
-                        path: doc.path.clone(),
+                        path: doc.path.to_string(),
                     },
                 )
             })

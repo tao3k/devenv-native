@@ -1,3 +1,5 @@
+//! Api surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Minimal pre-emission workflow plan produced after construct-card selection.

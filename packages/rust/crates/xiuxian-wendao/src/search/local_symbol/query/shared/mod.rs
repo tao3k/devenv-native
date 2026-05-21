@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `search::local_symbol::query::shared` owns Wendao local symbol query shared behavior.
+
 mod columns;
 mod decode;
 mod execution;

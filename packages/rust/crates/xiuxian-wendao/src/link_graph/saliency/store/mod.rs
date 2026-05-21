@@ -1,3 +1,5 @@
+//! `link_graph::saliency::store` owns Wendao link graph saliency store behavior.
+
 mod common;
 mod decay;
 mod read;

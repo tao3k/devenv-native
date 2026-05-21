@@ -47,6 +47,22 @@ pub struct BpmnProcessSpec {
     pub outgoing_edge_order: Vec<u32>,
 }
 
+/// Input for constructing a process specification with bounded compensation
+/// bindings.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BpmnProcessSpecInput {
+    /// Stable process identity.
+    pub key: ProcessKey,
+    /// Process nodes.
+    pub nodes: Vec<BpmnNodeSpec>,
+    /// Process edges.
+    pub edges: Vec<BpmnEdgeSpec>,
+    /// Process event bindings.
+    pub events: Vec<BpmnEventSpec>,
+    /// Bounded compensation handler bindings.
+    pub compensation_handlers: Vec<BpmnCompensationHandlerSpec>,
+}
+
 impl BpmnProcessSpec {
     /// Creates a process specification shell.
     #[must_use]
@@ -56,12 +72,22 @@ impl BpmnProcessSpec {
         edges: Vec<BpmnEdgeSpec>,
         events: Vec<BpmnEventSpec>,
     ) -> Self {
-        Self::new_with_compensation(key, nodes, edges, events, Vec::new())
+        Self::from_parts(key, nodes, edges, events, Vec::new())
     }
 
     /// Creates a process specification shell with bounded compensation bindings.
     #[must_use]
-    pub fn new_with_compensation(
+    pub fn new_with_compensation(input: BpmnProcessSpecInput) -> Self {
+        Self::from_parts(
+            input.key,
+            input.nodes,
+            input.edges,
+            input.events,
+            input.compensation_handlers,
+        )
+    }
+
+    pub(crate) fn from_parts(
         key: ProcessKey,
         nodes: Vec<BpmnNodeSpec>,
         edges: Vec<BpmnEdgeSpec>,

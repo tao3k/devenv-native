@@ -6,7 +6,9 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::lang::Lang;
-use crate::re_exports::{LanguageExt, MatcherExt, MetaVariable, Pattern, SupportLang};
+use crate::re_exports::{
+    Doc, LanguageExt, MatcherExt, MetaVariable, NodeMatch, Pattern, SupportLang,
+};
 
 enum TomlPattern {
     Table {
@@ -40,24 +42,34 @@ pub struct ExtractResult {
     pub captures: HashMap<String, String>,
 }
 
+/// Named constructor input for `ExtractResult`.
+#[derive(Debug, Clone)]
+pub struct ExtractResultParts {
+    /// The matched code text.
+    pub text: String,
+    /// Byte offset start position.
+    pub start: usize,
+    /// Byte offset end position.
+    pub end: usize,
+    /// Line number start.
+    pub line_start: usize,
+    /// Line number end.
+    pub line_end: usize,
+    /// Captured variable values.
+    pub captures: HashMap<String, String>,
+}
+
 impl ExtractResult {
     /// Create a new `ExtractResult`.
     #[must_use]
-    pub fn new(
-        text: String,
-        start: usize,
-        end: usize,
-        line_start: usize,
-        line_end: usize,
-        captures: HashMap<String, String>,
-    ) -> Self {
+    pub fn new(parts: ExtractResultParts) -> Self {
         Self {
-            text,
-            start,
-            end,
-            line_start,
-            line_end,
-            captures,
+            text: parts.text,
+            start: parts.start,
+            end: parts.end,
+            line_start: parts.line_start,
+            line_end: parts.line_end,
+            captures: parts.captures,
         }
     }
 }
@@ -99,79 +111,128 @@ pub fn extract_items(
     lang: Lang,
     capture_names: Option<Vec<&str>>,
 ) -> Vec<ExtractResult> {
+    extract_items_for_patterns(content, &[pattern], lang, capture_names)
+}
+
+/// Extract code elements from content using multiple ast-grep patterns.
+///
+/// This parses the source once and applies all valid patterns to the parsed
+/// tree. Use it when a caller needs to evaluate a language's full skeleton
+/// pattern set over the same file.
+#[must_use]
+pub fn extract_items_for_patterns(
+    content: &str,
+    patterns: &[&str],
+    lang: Lang,
+    capture_names: Option<Vec<&str>>,
+) -> Vec<ExtractResult> {
     let capture_names: Option<HashSet<String>> =
         capture_names.map(|v| v.into_iter().map(str::to_string).collect());
 
+    extract_items_for_patterns_with_filter(content, patterns, lang, capture_names.as_ref())
+}
+
+fn extract_items_for_patterns_with_filter(
+    content: &str,
+    patterns: &[&str],
+    lang: Lang,
+    capture_names: Option<&HashSet<String>>,
+) -> Vec<ExtractResult> {
     if lang == Lang::Toml {
-        return extract_toml_items(content, pattern, capture_names.as_ref());
+        return patterns
+            .iter()
+            .flat_map(|pattern| extract_toml_items(content, pattern, capture_names))
+            .collect();
     }
 
-    let lang_str = lang.as_str();
-    let support_lang: SupportLang = match lang_str.parse() {
-        Ok(l) => l,
-        Err(_) => return Vec::new(),
+    let Some(support_lang) = parse_support_lang(lang) else {
+        return Vec::new();
     };
+    extract_ast_items_for_patterns(content, patterns, support_lang, capture_names)
+}
 
+fn extract_ast_items_for_patterns(
+    content: &str,
+    patterns: &[&str],
+    support_lang: SupportLang,
+    capture_names: Option<&HashSet<String>>,
+) -> Vec<ExtractResult> {
     let grep_result = support_lang.ast_grep(content);
     let root_node = grep_result.root();
 
-    let Ok(search_pattern) = Pattern::try_new(pattern, support_lang) else {
+    let search_patterns = patterns
+        .iter()
+        .filter_map(|pattern| Pattern::try_new(pattern, support_lang).ok())
+        .collect::<Vec<_>>();
+    if search_patterns.is_empty() {
         return Vec::new();
-    };
+    }
 
-    // Pre-compute line index for fast line number lookup
-    let line_offsets: Vec<usize> = content
+    let line_offsets = line_offsets(content);
+
+    root_node
+        .dfs()
+        .flat_map(|node| {
+            search_patterns
+                .iter()
+                .filter_map(move |pattern| pattern.match_node(node.clone()))
+        })
+        .map(|matched| matched_extract_result(&matched, capture_names, &line_offsets))
+        .collect()
+}
+
+fn parse_support_lang(lang: Lang) -> Option<SupportLang> {
+    lang.as_str().parse().ok()
+}
+
+fn line_offsets(content: &str) -> Vec<usize> {
+    content
         .char_indices()
         .filter(|(_, c)| *c == '\n')
         .map(|(i, _)| i)
         .chain(std::iter::once(content.len()))
-        .collect();
+        .collect()
+}
 
-    let mut results = Vec::new();
+fn matched_extract_result(
+    matched: &NodeMatch<impl Doc>,
+    capture_names: Option<&HashSet<String>>,
+    line_offsets: &[usize],
+) -> ExtractResult {
+    let start = matched.range().start;
+    let end = matched.range().end;
+    let (line_start, line_end) = byte_to_line(start, end, line_offsets);
 
-    for node in root_node.dfs() {
-        if let Some(m) = search_pattern.match_node(node.clone()) {
-            let env = m.get_env();
-
-            // Extract captures based on filter
-            let mut captures = HashMap::new();
-            for mv in env.get_matched_variables() {
-                let name = match &mv {
-                    MetaVariable::Capture(name, _) | MetaVariable::MultiCapture(name) => {
-                        name.as_str()
-                    }
-                    _ => continue,
-                };
-
-                // Apply capture name filter if provided
-                if let Some(ref filter) = capture_names
-                    && !filter.contains(name)
-                {
-                    continue;
-                }
-
-                if let Some(captured) = env.get_match(name) {
-                    captures.insert(name.to_string(), captured.text().to_string());
-                }
-            }
-
-            // Calculate line numbers from byte offsets
-            let start = m.range().start;
-            let end = m.range().end;
-            let (line_start, line_end) = byte_to_line(start, end, &line_offsets);
-
-            results.push(ExtractResult {
-                text: m.text().to_string(),
-                start,
-                end,
-                line_start,
-                line_end,
-                captures,
-            });
-        }
+    ExtractResult {
+        text: matched.text().to_string(),
+        start,
+        end,
+        line_start,
+        line_end,
+        captures: extract_captures(matched, capture_names),
     }
+}
 
-    results
+fn extract_captures(
+    matched: &NodeMatch<impl Doc>,
+    capture_names: Option<&HashSet<String>>,
+) -> HashMap<String, String> {
+    let env = matched.get_env();
+    env.get_matched_variables()
+        .filter_map(capture_name)
+        .filter(|name| capture_names.is_none_or(|filter| filter.contains(name)))
+        .filter_map(|name| {
+            env.get_match(&name)
+                .map(|captured| (name.clone(), captured.text().to_string()))
+        })
+        .collect()
+}
+
+fn capture_name(meta_variable: MetaVariable) -> Option<String> {
+    match meta_variable {
+        MetaVariable::Capture(name, _) | MetaVariable::MultiCapture(name) => Some(name),
+        _ => None,
+    }
 }
 
 fn extract_toml_items(
@@ -183,41 +244,50 @@ fn extract_toml_items(
         return Vec::new();
     };
 
-    let mut results = Vec::new();
-    let mut byte_offset = 0;
+    content
+        .split_inclusive('\n')
+        .enumerate()
+        .scan(0_usize, |byte_offset, (line_index, raw_line)| {
+            let line_start_offset = *byte_offset;
+            *byte_offset += raw_line.len();
+            Some((line_index, line_start_offset, raw_line))
+        })
+        .filter_map(|(line_index, byte_offset, raw_line)| {
+            toml_extract_result_for_line(&pattern, capture_names, line_index, byte_offset, raw_line)
+        })
+        .collect()
+}
 
-    for (line_index, raw_line) in content.split_inclusive('\n').enumerate() {
-        let trimmed_line = raw_line.trim();
-        if trimmed_line.is_empty() || trimmed_line.starts_with('#') {
-            byte_offset += raw_line.len();
-            continue;
-        }
-
-        let Some(mut captures) = match_toml_pattern(&pattern, trimmed_line) else {
-            byte_offset += raw_line.len();
-            continue;
-        };
-        if let Some(filter) = capture_names {
-            captures.retain(|name, _| filter.contains(name));
-        }
-
-        let leading_offset = raw_line.find(trimmed_line).unwrap_or(0);
-        let start = byte_offset + leading_offset;
-        let end = start + trimmed_line.len();
-        let line_number = line_index + 1;
-
-        results.push(ExtractResult::new(
-            trimmed_line.to_string(),
-            start,
-            end,
-            line_number,
-            line_number,
-            captures,
-        ));
-        byte_offset += raw_line.len();
+fn toml_extract_result_for_line(
+    pattern: &TomlPattern,
+    capture_names: Option<&HashSet<String>>,
+    line_index: usize,
+    byte_offset: usize,
+    raw_line: &str,
+) -> Option<ExtractResult> {
+    let trimmed_line = raw_line.trim();
+    if trimmed_line.is_empty() || trimmed_line.starts_with('#') {
+        return None;
     }
 
-    results
+    let mut captures = match_toml_pattern(pattern, trimmed_line)?;
+    if let Some(filter) = capture_names {
+        captures.retain(|name, _| filter.contains(name));
+    }
+
+    let leading_offset = raw_line.find(trimmed_line).unwrap_or(0);
+    let start = byte_offset + leading_offset;
+    let end = start + trimmed_line.len();
+    let line_number = line_index + 1;
+
+    Some(ExtractResult::new(ExtractResultParts {
+        text: trimmed_line.to_string(),
+        start,
+        end,
+        line_start: line_number,
+        line_end: line_number,
+        captures,
+    }))
 }
 
 fn parse_toml_pattern(pattern: &str) -> Option<TomlPattern> {
@@ -316,6 +386,8 @@ pub fn get_skeleton_patterns(lang: Lang) -> &'static [&'static str] {
         Lang::Rust => &[
             "fn $NAME",
             "pub fn $NAME",
+            "async fn $NAME",
+            "pub async fn $NAME",
             "struct $NAME",
             "pub struct $NAME",
             "impl $NAME",
@@ -378,22 +450,20 @@ pub fn get_skeleton_patterns(lang: Lang) -> &'static [&'static str] {
 pub fn extract_skeleton(content: &str, lang: Lang) -> String {
     let patterns = get_skeleton_patterns(lang);
 
-    // Extract items for each pattern and combine results
-    let mut all_results: Vec<String> = Vec::new();
-    for pattern in patterns {
-        let results = extract_items(content, pattern, lang, None);
-        for result in results {
-            if !result.text.is_empty() {
-                // Extract just the signature line (before the body starts)
-                let signature = extract_signature(&result.text, lang);
-                if !signature.is_empty() {
-                    all_results.push(signature);
-                }
-            }
-        }
-    }
+    patterns
+        .iter()
+        .flat_map(|pattern| extract_items(content, pattern, lang, None))
+        .filter_map(|result| extract_nonempty_signature(&result.text, lang))
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
 
-    all_results.join("\n\n")
+fn extract_nonempty_signature(text: &str, lang: Lang) -> Option<String> {
+    if text.is_empty() {
+        return None;
+    }
+    let signature = extract_signature(text, lang);
+    (!signature.is_empty()).then_some(signature)
 }
 
 /// Extract just the signature line from a code element, removing the body.

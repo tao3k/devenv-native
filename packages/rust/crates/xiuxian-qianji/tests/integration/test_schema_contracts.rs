@@ -1,4 +1,4 @@
-use xiuxian_qianji::contracts::{EdgeDefinition, NodeDefinition, QianjiManifest};
+use xiuxian_qianji::contracts::{EdgeDefinition, NodeDefinition, NodeTaskType, QianjiManifest};
 
 #[test]
 fn test_qianji_manifest_schema_contract() -> Result<(), Box<dyn std::error::Error>> {
@@ -6,7 +6,7 @@ fn test_qianji_manifest_schema_contract() -> Result<(), Box<dyn std::error::Erro
         name: "Test_Schema".to_string(),
         nodes: vec![NodeDefinition {
             id: "A".to_string(),
-            task_type: "mock".to_string(),
+            task_type: NodeTaskType::new("mock"),
             weight: 1.5,
             params: serde_json::json!({"key": "value"}),
             contract: None,

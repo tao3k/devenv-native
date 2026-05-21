@@ -1,7 +1,9 @@
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
-use crate::dependency_indexer::{ExternalSymbol, SymbolIndex, SymbolKind, extract_symbols};
+use crate::dependency_indexer::{
+    ExternalSymbol, SymbolIndex, SymbolKind, extract_dependency_symbols,
+};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -15,7 +17,7 @@ fn extract_fixture_symbols(
         writer.write_all(content.as_bytes())?;
         writer.flush()?;
     }
-    extract_symbols(temp_file.path(), language).map_err(Into::into)
+    extract_dependency_symbols(temp_file.path(), language).map_err(Into::into)
 }
 
 fn build_symbol_index() -> SymbolIndex {

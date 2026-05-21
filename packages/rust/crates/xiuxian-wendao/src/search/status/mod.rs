@@ -1,3 +1,5 @@
+//! `search::status` owns Wendao search status behavior.
+
 #[path = "corpus.rs"]
 pub(crate) mod corpus;
 #[path = "issues.rs"]

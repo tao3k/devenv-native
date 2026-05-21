@@ -470,7 +470,7 @@ fn write_repo_url_config_with_refresh(
             r#"[link_graph.projects.{repo_id}]
 url = "{}"
 refresh = "{refresh}"
-plugins = ["julia"]
+plugins = ["julia-code-parser"]
 "#,
             repo_url.display(),
             refresh = refresh

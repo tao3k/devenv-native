@@ -12,6 +12,7 @@ members = [
   "packages/rust/crates/xiuxian-git-repo",
   "packages/rust/crates/xiuxian-wendao-attachments",
   "packages/rust/crates/xiuxian-wendao-parsers",
+  "packages/rust/crates/xiuxian-wendao-episteme",
   "packages/rust/crates/xiuxian-wendao",
   "packages/rust/crates/xiuxian-wendao-builtin",
   "packages/rust/crates/xiuxian-wendao-core",
@@ -25,7 +26,7 @@ members = [
   "packages/rust/crates/xiuxian-logging",
   "packages/rust/crates/xiuxian-security",
   "packages/rust/crates/xiuxian-sandbox",
-  "packages/rust/crates/xiuxian-tags",
+  "packages/rust/crates/xiuxian-code-intelligence",
   "packages/rust/crates/xiuxian-tokenizer",
   "packages/rust/crates/xiuxian-types",
   "packages/rust/crates/xiuxian-vector",
@@ -33,10 +34,11 @@ members = [
   "packages/rust/crates/xiuxian-qianhuan",
   "packages/rust/crates/qianji-bpmn-engine",
   "packages/rust/crates/xiuxian-llm",
+  "packages/rust/crates/xiuxian-polyglot-orchestrator",
   "packages/rust/crates/xiuxian-wendao-client",
   "packages/rust/crates/xiuxian-wendao-julia",
   "packages/rust/crates/xiuxian-window",
-  "packages/rust/crates/xiuxian-daochang",
+  "packages/rust/crates/xiuxian-qianji-control",
   "packages/rust/crates/xiuxian-qianji",
   "packages/rust/crates/xiuxian-memory",
   "packages/rust/crates/xiuxian-zhixing",
@@ -82,7 +84,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "b663a07fc9697ee82bac6c4995de1bc92b88ba05" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "f9f0d2fce8e09c6d5e3fa8ffd40756566b758483" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"
@@ -115,6 +117,7 @@ gix = "0.81.0"
 
 # Python bindings - Python 3.13 support via PyO3 0.27+
 pyo3 = { version = "0.27.2", features = ["extension-module"] }
+pyo3-build-config = "0.27.2"
 pyo3-asyncio = { version = "0.27", features = ["tokio"] }
 
 # Safe I/O & Tokenization
@@ -148,6 +151,7 @@ arrow-schema = { version = "58.1.0", features = ["ffi"] }
 arrow-string = "58.1.0"
 parquet = "58.1.0"
 datafusion = "53.0.0"
+sqlparser = "0.61.0"
 
 # Redis cache and session backend
 redis = { version = "1.0.3", default-features = false }
@@ -162,7 +166,7 @@ rayon = "1.11"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 litellm-rs = { git = "https://github.com/tao3k/litellm-rs", branch = "xiuxian", default-features = false }
 
-# CLI and HTTP (xiuxian-daochang gateway)
+# CLI and HTTP
 clap = { version = "4.5", features = ["derive"] }
 axum = "0.8"
 tonic = { version = "0.14.5", default-features = false, features = ["transport"] }
@@ -176,7 +180,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "48a2368ebffa695cd0a4a1195928e45b1683bd44" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "acf9295ef9ef03caeb7ffa85c5e0b2389abe7d67" }
 
 
 # Performance optimization - Thin LTO for reduced memory

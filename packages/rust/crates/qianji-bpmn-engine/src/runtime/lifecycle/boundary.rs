@@ -15,8 +15,8 @@ pub(crate) fn cancel_attached_boundary_siblings(
         }
         let _ = process.event_for_node(boundary.index).ok_or_else(|| {
             BpmnEngineError::MissingRequiredNodeElement {
-                process_id: process.key.process_id.to_string(),
-                node_id: boundary.bpmn_id.to_string(),
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (boundary.bpmn_id.to_string()).into(),
                 element: "event_definition",
             }
         })?;

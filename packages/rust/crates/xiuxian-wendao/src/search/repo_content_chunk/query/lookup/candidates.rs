@@ -1,8 +1,9 @@
 use std::path::Path;
 
 use crate::search::contracts::{SearchHit, StudioNavigationTarget};
+use crate::search::repo_content_chunk::schema::{line_number_column, path_column};
 
-use super::helpers::{infer_code_language, truncate_content_search_snippet};
+use super::helpers::{infer_code_language, sql_string_literal, truncate_content_search_snippet};
 
 #[derive(Debug, Clone)]
 pub(crate) struct RepoContentChunkCandidate {
@@ -70,4 +71,45 @@ impl RepoContentChunkCandidate {
             }),
         }
     }
+}
+
+pub(crate) fn compare_candidates(
+    left: &RepoContentChunkCandidate,
+    right: &RepoContentChunkCandidate,
+) -> std::cmp::Ordering {
+    right
+        .score
+        .partial_cmp(&left.score)
+        .unwrap_or(std::cmp::Ordering::Equal)
+        .then_with(|| left.path.cmp(&right.path))
+        .then_with(|| left.line_number.cmp(&right.line_number))
+}
+
+pub(crate) fn candidate_path_key(candidate: &RepoContentChunkCandidate) -> String {
+    candidate.path.clone()
+}
+
+pub(crate) fn repo_content_detail_filter_expression(
+    candidates: &[RepoContentChunkCandidate],
+) -> Option<String> {
+    if candidates.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "({})",
+        candidates
+            .iter()
+            .map(|candidate| {
+                format!(
+                    "({path_column} = {path} AND {line_number_column} = {line_number})",
+                    path_column = path_column(),
+                    path = sql_string_literal(candidate.path.as_str()),
+                    line_number_column = line_number_column(),
+                    line_number = candidate.line_number
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" OR ")
+    ))
 }

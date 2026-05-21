@@ -2,7 +2,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Expr};
+use syn::{Expr, parse_macro_input};
 
 pub(crate) fn expand_from(input: TokenStream) -> TokenStream {
     let items: Vec<Expr> = parse_macro_input!(

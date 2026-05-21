@@ -39,8 +39,8 @@ pub(crate) async fn prepare_resume_workflow(
         resolved_dmn_paths,
         checkpoint_store: Some(checkpoint_store),
         execution_request: QianjiBpmnExecutionRequest::new(
-            &process_id,
-            &request.instance_id,
+            process_id,
+            request.instance_id.clone(),
             None,
             unix_millis_now(),
         ),
@@ -61,7 +61,7 @@ pub(crate) async fn prepare_resume_workflow_from_prepared_start(
         .load(request.instance_id.as_str())
         .await?
         .ok_or_else(|| QianjiBpmnWorkflowControlError::CheckpointMissing {
-            instance_id: request.instance_id.clone(),
+            instance_id: request.instance_id.clone().into(),
         })?;
     let process_id = checkpoint.state.process.process_id.to_string();
 
@@ -71,8 +71,8 @@ pub(crate) async fn prepare_resume_workflow_from_prepared_start(
         resolved_dmn_paths: prepared_start.resolved_dmn_paths.clone(),
         checkpoint_store: Some(checkpoint_store),
         execution_request: QianjiBpmnExecutionRequest::new(
-            &process_id,
-            &request.instance_id,
+            process_id,
+            request.instance_id.clone(),
             None,
             unix_millis_now(),
         ),

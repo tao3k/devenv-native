@@ -1,3 +1,5 @@
+//! `link_graph::agentic::types::schema` owns Wendao agentic types schema behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Schema version used by passive suggested-link proposal records.

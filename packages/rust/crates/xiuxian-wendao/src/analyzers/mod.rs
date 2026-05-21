@@ -135,7 +135,7 @@ pub use records::{
 pub use registry::PluginRegistry;
 pub use repo_source::resolve_registered_repository_source;
 pub use saliency::compute_repository_saliency;
-#[cfg(all(feature = "zhenfa-router", test))]
+#[cfg(all(feature = "zhenfa-router", feature = "julia", test))]
 pub(crate) use service::DocsDocumentSegmentResult;
 #[cfg(feature = "search-runtime")]
 pub use service::canonical_import_query_text;

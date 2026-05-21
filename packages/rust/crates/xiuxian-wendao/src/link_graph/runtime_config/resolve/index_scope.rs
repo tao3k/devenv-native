@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::resolve::index_scope` owns Wendao runtime config resolve index scope behavior.
+
 use crate::link_graph::runtime_config::LinkGraphIndexRuntimeConfig;
 use crate::link_graph::runtime_config::settings::merged_wendao_settings;
 use std::path::Path;

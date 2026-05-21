@@ -1,9 +1,12 @@
+//! Registry for resolving repository-intelligence plugins by typed plugin ids.
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use super::config::RegisteredRepository;
 use super::errors::RepoIntelligenceError;
 use super::plugin::RepoIntelligencePlugin;
+use super::records::RepoIntelligencePluginId;
 
 /// In-memory plugin registry for Repo Intelligence analyzers.
 #[derive(Default)]
@@ -30,7 +33,9 @@ impl PluginRegistry {
     {
         let plugin_id = plugin.id().to_string();
         if self.plugins.contains_key(&plugin_id) {
-            return Err(RepoIntelligenceError::DuplicatePlugin { plugin_id });
+            return Err(RepoIntelligenceError::DuplicatePlugin {
+                plugin_id: plugin_id.into(),
+            });
         }
 
         self.plugins.insert(plugin_id, Arc::new(plugin));
@@ -39,8 +44,12 @@ impl PluginRegistry {
 
     /// Fetch a plugin by identifier.
     #[must_use]
-    pub fn get(&self, plugin_id: &str) -> Option<Arc<dyn RepoIntelligencePlugin>> {
-        self.plugins.get(plugin_id).map(Arc::clone)
+    pub fn get(
+        &self,
+        plugin_id: impl Into<RepoIntelligencePluginId>,
+    ) -> Option<Arc<dyn RepoIntelligencePlugin>> {
+        let plugin_id = plugin_id.into();
+        self.plugins.get(plugin_id.as_str()).map(Arc::clone)
     }
 
     /// Return the registered plugin identifiers in stable order.
@@ -59,19 +68,26 @@ impl PluginRegistry {
         &self,
         repository: &RegisteredRepository,
     ) -> Result<Vec<Arc<dyn RepoIntelligencePlugin>>, RepoIntelligenceError> {
-        let mut resolved = Vec::new();
-        for plugin in repository.repo_intelligence_plugins() {
-            let registered =
-                self.get(plugin.id())
-                    .ok_or_else(|| RepoIntelligenceError::MissingPlugin {
-                        plugin_id: plugin.id().to_string(),
-                    })?;
+        repository
+            .repo_intelligence_plugins()
+            .map(|plugin| self.resolve_plugin_for_repository(repository, plugin.id()))
+            .filter_map(Result::transpose)
+            .collect()
+    }
 
-            if registered.supports_repository(repository) {
-                resolved.push(registered);
-            }
-        }
-        Ok(resolved)
+    fn resolve_plugin_for_repository(
+        &self,
+        repository: &RegisteredRepository,
+        plugin_id: &str,
+    ) -> Result<Option<Arc<dyn RepoIntelligencePlugin>>, RepoIntelligenceError> {
+        let registered =
+            self.get(plugin_id)
+                .ok_or_else(|| RepoIntelligenceError::MissingPlugin {
+                    plugin_id: plugin_id.into(),
+                })?;
+        Ok(registered
+            .supports_repository(repository)
+            .then_some(registered))
     }
 }
 

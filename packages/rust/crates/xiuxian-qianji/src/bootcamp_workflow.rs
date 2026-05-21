@@ -1,3 +1,5 @@
+//! Bootcamp workflow surface for `xiuxian-qianji`.
+
 use super::llm::resolve_bootcamp_llm_client;
 pub(super) use super::manifest::{parse_manifest, parsed_manifest_requires_link_graph};
 use super::manifest::{parsed_manifest_requires_llm, resolve_flow_manifest_toml};
@@ -5,11 +7,11 @@ use super::runtime::{
     build_link_graph_index, build_placeholder_link_graph_index, unix_timestamp_millis,
 };
 use super::{BootcampRunOptions, BootcampVfsMount, WorkflowReport};
-use crate::QianjiApp;
 use crate::error::QianjiError;
 #[cfg(feature = "llm")]
 use crate::runtime_config::resolve_qianji_runtime_llm_config;
 use crate::scheduler_preflight::{RuntimeWendaoMount, with_runtime_wendao_mounts};
+use crate::{QianjiApp, QianjiManifestPipelineRequest, QianjiPipelineDependencies};
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Instant;
@@ -158,14 +160,13 @@ async fn run_workflow_from_manifest_payload(
         .unwrap_or_else(|| Arc::new(ThousandFacesOrchestrator::new(genesis_rules, None)));
     let registry = persona_registry.unwrap_or_else(|| Arc::new(PersonaRegistry::with_builtins()));
     let llm_client = resolve_bootcamp_llm_client(requires_llm, llm_mode)?;
-    let scheduler = QianjiApp::create_pipeline_from_manifest_with_consensus(
+    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry)
+        .with_llm_client(llm_client)
+        .with_consensus_manager(consensus_manager);
+    let scheduler = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
         manifest_toml,
-        index,
-        orchestrator,
-        registry,
-        llm_client,
-        consensus_manager,
-    )?;
+        dependencies,
+    })?;
     let runtime_mounts = vfs_mounts
         .iter()
         .copied()

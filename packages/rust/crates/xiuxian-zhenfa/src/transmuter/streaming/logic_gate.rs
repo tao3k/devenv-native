@@ -55,98 +55,11 @@ impl XsdConstraintMap {
     /// Create constraint map for `qianji_plan.xsd`.
     #[must_use]
     pub fn qianji_audit_plan() -> Self {
-        let mut root_tags = HashSet::new();
-        root_tags.insert(Arc::from("qianji-audit-plan"));
-
-        let mut child_tags = HashMap::new();
-
-        // qianji-audit-plan children
-        let mut plan_children = HashSet::new();
-        plan_children.insert(Arc::from("summary"));
-        plan_children.insert(Arc::from("implementation-steps"));
-        plan_children.insert(Arc::from("risk-assessment"));
-        plan_children.insert(Arc::from("verification-strategy"));
-        child_tags.insert(Arc::from("qianji-audit-plan"), plan_children);
-
-        // summary children
-        let mut summary_children = HashSet::new();
-        summary_children.insert(Arc::from("intent"));
-        summary_children.insert(Arc::from("total-steps"));
-        child_tags.insert(Arc::from("summary"), summary_children);
-
-        // implementation-steps children
-        let mut steps_children = HashSet::new();
-        steps_children.insert(Arc::from("step"));
-        child_tags.insert(Arc::from("implementation-steps"), steps_children);
-
-        // step children
-        let mut single_step_children = HashSet::new();
-        single_step_children.insert(Arc::from("title"));
-        single_step_children.insert(Arc::from("file-target"));
-        single_step_children.insert(Arc::from("rationale"));
-        single_step_children.insert(Arc::from("content"));
-        child_tags.insert(Arc::from("step"), single_step_children);
-
-        // content children
-        let mut content_children = HashSet::new();
-        content_children.insert(Arc::from("description"));
-        content_children.insert(Arc::from("code-snippet"));
-        child_tags.insert(Arc::from("content"), content_children);
-
-        // risk-assessment children
-        let mut risk_children = HashSet::new();
-        risk_children.insert(Arc::from("risk-pair"));
-        child_tags.insert(Arc::from("risk-assessment"), risk_children);
-
-        // risk-pair children
-        let mut risk_pair_children = HashSet::new();
-        risk_pair_children.insert(Arc::from("potential-issue"));
-        risk_pair_children.insert(Arc::from("mitigation-strategy"));
-        child_tags.insert(Arc::from("risk-pair"), risk_pair_children);
-
-        // verification-strategy children
-        let mut verify_children = HashSet::new();
-        verify_children.insert(Arc::from("test-command"));
-        verify_children.insert(Arc::from("expected-outcome"));
-        child_tags.insert(Arc::from("verification-strategy"), verify_children);
-
-        // Required attributes
-        let mut required_attrs = HashMap::new();
-        required_attrs.insert(Arc::from("step"), vec![Arc::from("number")]);
-        required_attrs.insert(
-            Arc::from("file-target"),
-            vec![Arc::from("path"), Arc::from("action")],
-        );
-        required_attrs.insert(Arc::from("risk-pair"), vec![Arc::from("severity")]);
-
-        // Enumerated attributes
-        let mut enum_attrs = HashMap::new();
-
-        let mut action_values = HashSet::new();
-        action_values.insert(Arc::from("create"));
-        action_values.insert(Arc::from("modify"));
-        action_values.insert(Arc::from("delete"));
-        action_values.insert(Arc::from("research"));
-        enum_attrs.insert(
-            (Arc::from("file-target"), Arc::from("action")),
-            action_values,
-        );
-
-        let mut severity_values = HashSet::new();
-        severity_values.insert(Arc::from("low"));
-        severity_values.insert(Arc::from("medium"));
-        severity_values.insert(Arc::from("high"));
-        severity_values.insert(Arc::from("critical"));
-        enum_attrs.insert(
-            (Arc::from("risk-pair"), Arc::from("severity")),
-            severity_values,
-        );
-
         Self {
-            root_tags,
-            child_tags,
-            required_attrs,
-            enum_attrs,
+            root_tags: qianji_root_tags(),
+            child_tags: qianji_child_tags(),
+            required_attrs: qianji_required_attrs(),
+            enum_attrs: qianji_enum_attrs(),
         }
     }
 
@@ -180,6 +93,105 @@ impl XsdConstraintMap {
     pub fn required_attributes(&self, tag: &str) -> &[Arc<str>] {
         self.required_attrs.get(tag).map_or(&[], Vec::as_slice)
     }
+}
+
+fn qianji_root_tags() -> SharedStrSet {
+    let mut root_tags = HashSet::new();
+    root_tags.insert(Arc::from("qianji-audit-plan"));
+    root_tags
+}
+
+fn qianji_child_tags() -> ChildTagMap {
+    let mut child_tags = HashMap::new();
+
+    // qianji-audit-plan children
+    let mut plan_children = HashSet::new();
+    plan_children.insert(Arc::from("summary"));
+    plan_children.insert(Arc::from("implementation-steps"));
+    plan_children.insert(Arc::from("risk-assessment"));
+    plan_children.insert(Arc::from("verification-strategy"));
+    child_tags.insert(Arc::from("qianji-audit-plan"), plan_children);
+
+    // summary children
+    let mut summary_children = HashSet::new();
+    summary_children.insert(Arc::from("intent"));
+    summary_children.insert(Arc::from("total-steps"));
+    child_tags.insert(Arc::from("summary"), summary_children);
+
+    // implementation-steps children
+    let mut steps_children = HashSet::new();
+    steps_children.insert(Arc::from("step"));
+    child_tags.insert(Arc::from("implementation-steps"), steps_children);
+
+    // step children
+    let mut single_step_children = HashSet::new();
+    single_step_children.insert(Arc::from("title"));
+    single_step_children.insert(Arc::from("file-target"));
+    single_step_children.insert(Arc::from("rationale"));
+    single_step_children.insert(Arc::from("content"));
+    child_tags.insert(Arc::from("step"), single_step_children);
+
+    // content children
+    let mut content_children = HashSet::new();
+    content_children.insert(Arc::from("description"));
+    content_children.insert(Arc::from("code-snippet"));
+    child_tags.insert(Arc::from("content"), content_children);
+
+    // risk-assessment children
+    let mut risk_children = HashSet::new();
+    risk_children.insert(Arc::from("risk-pair"));
+    child_tags.insert(Arc::from("risk-assessment"), risk_children);
+
+    // risk-pair children
+    let mut risk_pair_children = HashSet::new();
+    risk_pair_children.insert(Arc::from("potential-issue"));
+    risk_pair_children.insert(Arc::from("mitigation-strategy"));
+    child_tags.insert(Arc::from("risk-pair"), risk_pair_children);
+
+    // verification-strategy children
+    let mut verify_children = HashSet::new();
+    verify_children.insert(Arc::from("test-command"));
+    verify_children.insert(Arc::from("expected-outcome"));
+    child_tags.insert(Arc::from("verification-strategy"), verify_children);
+    child_tags
+}
+
+fn qianji_required_attrs() -> RequiredAttrMap {
+    // Required attributes
+    let mut required_attrs = HashMap::new();
+    required_attrs.insert(Arc::from("step"), vec![Arc::from("number")]);
+    required_attrs.insert(
+        Arc::from("file-target"),
+        vec![Arc::from("path"), Arc::from("action")],
+    );
+    required_attrs.insert(Arc::from("risk-pair"), vec![Arc::from("severity")]);
+    required_attrs
+}
+
+fn qianji_enum_attrs() -> EnumAttrMap {
+    // Enumerated attributes
+    let mut enum_attrs = HashMap::new();
+
+    let mut action_values = HashSet::new();
+    action_values.insert(Arc::from("create"));
+    action_values.insert(Arc::from("modify"));
+    action_values.insert(Arc::from("delete"));
+    action_values.insert(Arc::from("research"));
+    enum_attrs.insert(
+        (Arc::from("file-target"), Arc::from("action")),
+        action_values,
+    );
+
+    let mut severity_values = HashSet::new();
+    severity_values.insert(Arc::from("low"));
+    severity_values.insert(Arc::from("medium"));
+    severity_values.insert(Arc::from("high"));
+    severity_values.insert(Arc::from("critical"));
+    enum_attrs.insert(
+        (Arc::from("risk-pair"), Arc::from("severity")),
+        severity_values,
+    );
+    enum_attrs
 }
 
 impl Default for XsdConstraintMap {

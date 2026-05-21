@@ -1,6 +1,6 @@
 use tempfile::TempDir;
 
-use super::{Episode, TestResult, test_store};
+use super::{Episode, EpisodeDraft, TestResult, test_store};
 
 #[test]
 fn test_episode_store_persistence() -> TestResult {
@@ -12,27 +12,30 @@ fn test_episode_store_persistence() -> TestResult {
 
     let store = test_store("test");
 
-    let ep1 = Episode::new(
-        "ep-1".to_string(),
-        "debug api timeout".to_string(),
-        store.encoder().encode("debug api timeout"),
-        "Increased timeout".to_string(),
-        "success".to_string(),
-    );
-    let ep2 = Episode::new(
-        "ep-2".to_string(),
-        "fix memory leak".to_string(),
-        store.encoder().encode("fix memory leak"),
-        "Replaced HashMap".to_string(),
-        "success".to_string(),
-    );
-    let ep3 = Episode::new(
-        "ep-3".to_string(),
-        "optimize query".to_string(),
-        store.encoder().encode("optimize query"),
-        "Added index".to_string(),
-        "failure".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "debug api timeout".to_string(),
+        intent_embedding: store.encoder().encode("debug api timeout"),
+        experience: "Increased timeout".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
+    let ep2 = Episode::new(EpisodeDraft {
+        id: ("ep-2".to_string()).into(),
+        intent: "fix memory leak".to_string(),
+        intent_embedding: store.encoder().encode("fix memory leak"),
+        experience: "Replaced HashMap".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
+    let ep3 = Episode::new(EpisodeDraft {
+        id: ("ep-3".to_string()).into(),
+        intent: "optimize query".to_string(),
+        intent_embedding: store.encoder().encode("optimize query"),
+        experience: "Added index".to_string(),
+        outcome: "failure".to_string(),
+        scope: None,
+    });
 
     store.store(ep1)?;
     store.store(ep2)?;
@@ -65,20 +68,22 @@ fn test_episode_store_persistence() -> TestResult {
 fn test_memory_decay() -> TestResult {
     let store = test_store("test");
 
-    let ep1 = Episode::new(
-        "ep-1".to_string(),
-        "debug api timeout".to_string(),
-        store.encoder().encode("debug api timeout"),
-        "Increased timeout".to_string(),
-        "success".to_string(),
-    );
-    let ep2 = Episode::new(
-        "ep-2".to_string(),
-        "fix memory leak".to_string(),
-        store.encoder().encode("fix memory leak"),
-        "Replaced HashMap".to_string(),
-        "success".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "debug api timeout".to_string(),
+        intent_embedding: store.encoder().encode("debug api timeout"),
+        experience: "Increased timeout".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
+    let ep2 = Episode::new(EpisodeDraft {
+        id: ("ep-2".to_string()).into(),
+        intent: "fix memory leak".to_string(),
+        intent_embedding: store.encoder().encode("fix memory leak"),
+        experience: "Replaced HashMap".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
 
     store.store(ep1)?;
     store.store(ep2)?;
@@ -122,13 +127,14 @@ fn test_memory_stats() -> TestResult {
     assert_eq!(stats.total_episodes, 0);
     assert_eq!(stats.q_table_size, 0);
 
-    let ep1 = Episode::new(
-        "ep-1".to_string(),
-        "debug api timeout".to_string(),
-        store.encoder().encode("debug api timeout"),
-        "Increased timeout".to_string(),
-        "success".to_string(),
-    );
+    let ep1 = Episode::new(EpisodeDraft {
+        id: ("ep-1".to_string()).into(),
+        intent: "debug api timeout".to_string(),
+        intent_embedding: store.encoder().encode("debug api timeout"),
+        experience: "Increased timeout".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(ep1)?;
 
     let stats = store.stats();

@@ -1,3 +1,5 @@
+//! `duckdb::engine` owns Wendao duckdb engine behavior.
+
 #[cfg(feature = "duckdb")]
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -572,10 +574,7 @@ impl LocalRelationEngine for DuckDbLocalRelationEngine {
 #[async_trait]
 impl BoundedSqlLocalRelationEngine for DuckDbLocalRelationEngine {
     fn kind(&self) -> BoundedSqlLocalRelationEngineKind {
-        match LocalRelationEngine::kind(self) {
-            LocalRelationEngineKind::DataFusion => BoundedSqlLocalRelationEngineKind::DataFusion,
-            LocalRelationEngineKind::DuckDb => BoundedSqlLocalRelationEngineKind::DuckDb,
-        }
+        BoundedSqlLocalRelationEngineKind::DuckDb
     }
 
     fn register_record_batches(

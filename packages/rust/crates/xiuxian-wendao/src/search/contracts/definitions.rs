@@ -1,3 +1,5 @@
+//! `search::contracts::definitions` owns Wendao search contracts definitions behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -6,6 +8,7 @@ use super::StudioNavigationTarget;
 /// A single hit in an AST definition search.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct AstSearchHit {
     /// Captured definition name.
     pub name: String,
@@ -42,6 +45,7 @@ pub struct AstSearchHit {
 /// Result of a best-definition resolution.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct DefinitionSearchHit {
     /// Symbol or definition name.
     pub name: String,

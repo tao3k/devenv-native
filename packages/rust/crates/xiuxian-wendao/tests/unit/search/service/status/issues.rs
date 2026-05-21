@@ -1,4 +1,5 @@
-use crate::search::service::tests::support::{some_or_panic, summarize_issues};
+use crate::search::service::helpers::summarize_issues;
+use crate::search::service::tests::support::some_or_panic;
 use crate::search::{SearchCorpusIssue, SearchCorpusIssueCode, SearchCorpusIssueFamily};
 
 #[test]

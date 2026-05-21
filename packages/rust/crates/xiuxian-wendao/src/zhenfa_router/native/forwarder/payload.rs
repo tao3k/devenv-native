@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::forwarder::payload` owns Wendao native forwarder payload behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// A notification payload to be sent to subscribers.

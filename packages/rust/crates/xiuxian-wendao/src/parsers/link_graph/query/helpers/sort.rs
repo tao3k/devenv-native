@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::link_graph::{LinkGraphSortField, LinkGraphSortOrder, LinkGraphSortTerm};
 
 fn parse_sort_field(raw: &str) -> Option<LinkGraphSortField> {

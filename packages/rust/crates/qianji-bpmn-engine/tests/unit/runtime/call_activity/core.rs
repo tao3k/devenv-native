@@ -2,8 +2,7 @@ use super::{StubHost, call_activity_child_process, call_activity_main_process};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnPackage, InstanceLifecycle, PendingHostWorkKind,
-    PendingHostWorkResult, UserTaskOutcome, advance_instance, apply_pending_host_work_result,
-    create_instance,
+    PendingHostWorkResult, UserTaskOutcome, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -72,7 +71,7 @@ async fn runtime_call_activity_host_completion_returns_to_parent_process() {
     assert!(matches!(blocked, BpmnAdvanceOutcome::BlockedOnHost(_)));
     let token_id = instance.pending_host_work[0].token_id;
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

@@ -2,7 +2,7 @@ use crate::qianji_cli::bpmn_cli::deps::{QianjiBpmnWorkflowInstancesRequest, Qian
 use crate::qianji_cli::bpmn_cli::render;
 use crate::qianji_cli::bpmn_cli::types::{BpmnCliOutput, BpmnInstancesCliCommand};
 
-use super::shared::workflow_control_service;
+use super::control_service::workflow_control_service;
 
 pub(crate) async fn run_bpmn_instances_command(
     command: &BpmnInstancesCliCommand,

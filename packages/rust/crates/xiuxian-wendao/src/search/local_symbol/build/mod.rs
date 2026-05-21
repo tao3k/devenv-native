@@ -1,3 +1,5 @@
+//! `search::local_symbol::build` owns Wendao search local symbol build behavior.
+
 mod orchestration;
 mod partitions;
 mod plan;

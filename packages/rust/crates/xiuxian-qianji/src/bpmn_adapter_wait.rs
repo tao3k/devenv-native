@@ -1,3 +1,5 @@
+//! Bpmn adapter wait surface for `xiuxian-qianji`.
+
 use super::adapter_error::BpmnAdapterError;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnHostBridge, BpmnInstanceState, BpmnPackage, HostBridgeError,

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::semantic_edit` owns Wendao zhenfa router native semantic edit behavior.
+
 use std::fmt::Write;
 
 use schemars::JsonSchema;
@@ -45,7 +47,7 @@ pub struct WendaoSemanticEditArgs {
 ///
 /// Returns a [`ZhenfaError`] when the address is invalid, the document or section cannot be
 /// resolved, the file cannot be read or written, or the byte-range edit fails validation.
-#[allow(clippy::needless_pass_by_value, clippy::too_many_lines)]
+#[allow(clippy::needless_pass_by_value)]
 #[allow(missing_docs)]
 #[zhenfa_tool(
     name = "wendao.semantic_edit",
@@ -56,6 +58,14 @@ pub struct WendaoSemanticEditArgs {
 pub fn wendao_semantic_edit(
     ctx: &ZhenfaContext,
     args: WendaoSemanticEditArgs,
+) -> Result<String, ZhenfaError> {
+    semantic_edit_impl(ctx, &args)
+}
+
+#[allow(clippy::too_many_lines)]
+fn semantic_edit_impl(
+    ctx: &ZhenfaContext,
+    args: &WendaoSemanticEditArgs,
 ) -> Result<String, ZhenfaError> {
     let address = Address::parse(&args.address).ok_or_else(|| {
         ZhenfaError::invalid_arguments(format!(

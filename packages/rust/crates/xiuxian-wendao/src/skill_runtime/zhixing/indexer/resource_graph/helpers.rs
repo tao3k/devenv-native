@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::collections::BTreeSet;
 use std::path::Path;
 
@@ -12,21 +13,22 @@ pub(crate) fn is_skill_descriptor_path(path: &str) -> bool {
 
 pub(crate) fn dedup_targets(targets: &[WendaoResourceLinkTarget]) -> Vec<WendaoResourceLinkTarget> {
     let mut seen = BTreeSet::new();
-    let mut deduped = Vec::new();
-    for target in targets {
-        let key = (
-            target.target_path.trim().to_string(),
-            target
-                .reference_type
-                .as_deref()
-                .map(str::trim)
-                .map(str::to_ascii_lowercase)
-                .filter(|value: &String| !value.is_empty()),
-        );
-        if seen.insert(key) {
-            deduped.push(target.clone());
-        }
-    }
+    let mut deduped = targets
+        .iter()
+        .filter(|target| {
+            let key = (
+                target.target_path.trim().to_string(),
+                target
+                    .reference_type
+                    .as_deref()
+                    .map(str::trim)
+                    .map(str::to_ascii_lowercase)
+                    .filter(|value: &String| !value.is_empty()),
+            );
+            seen.insert(key)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
     deduped.sort_by(|left, right| left.target_path.cmp(&right.target_path));
     deduped
 }

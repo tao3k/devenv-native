@@ -1,3 +1,5 @@
+//! `dependency_indexer::symbols::model` owns Wendao dependency indexer symbols model behavior.
+
 use std::path::PathBuf;
 
 /// A single extracted symbol.
@@ -18,6 +20,7 @@ pub struct ExternalSymbol {
 impl ExternalSymbol {
     /// Create a new `ExternalSymbol`.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn new(name: &str, kind: SymbolKind, file: &str, line: usize, crate_name: &str) -> Self {
         Self {
             name: name.to_string(),

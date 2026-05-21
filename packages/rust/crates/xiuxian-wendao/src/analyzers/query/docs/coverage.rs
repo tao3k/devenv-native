@@ -1,3 +1,5 @@
+//! `analyzers::query::docs::coverage` owns Wendao query docs coverage behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +17,7 @@ pub struct DocCoverageQuery {
 
 /// Minimal documentation coverage response for the MVP surface.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct DocCoverageResult {
     /// Repository identifier searched.
     pub repo_id: String,

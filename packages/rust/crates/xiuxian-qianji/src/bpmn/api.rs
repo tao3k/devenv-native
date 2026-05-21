@@ -28,7 +28,7 @@ pub use super::driver::{
     QianjiBpmnExecutionDriver, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,
     QianjiBpmnPendingHostCompletion,
 };
-pub use super::error::BpmnOrchestrationError;
+pub use super::error::{BpmnOrchestrationError, BpmnUnsupportedStartNodeKind};
 pub use super::execution::{
     DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
 };
@@ -44,6 +44,10 @@ pub use super::http_transport::{
     QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
     qianji_bpmn_workflow_router,
+};
+pub use super::identity::{
+    QianjiBpmnActivityId, QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnProcessId,
+    QianjiBpmnStartAtNodeId, QianjiBpmnWorkflowInstanceId,
 };
 pub use super::loader::{load_bpmn_package_from_files, load_bpmn_package_from_files_with_options};
 pub use super::ownership::QianjiBpmnSchedulerLeaseConfig;

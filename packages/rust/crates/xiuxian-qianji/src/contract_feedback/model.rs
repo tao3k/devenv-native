@@ -200,6 +200,7 @@ pub struct ContractFinding {
 impl ContractFinding {
     /// Create a new finding with empty evidence, examples, and labels.
     #[must_use]
+    /// Positional boundary: this compatibility API keeps the established public call shape.
     pub fn new(
         rule_id: impl Into<String>,
         pack_id: impl Into<String>,

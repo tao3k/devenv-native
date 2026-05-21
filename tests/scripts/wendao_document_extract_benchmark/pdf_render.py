@@ -11,7 +11,10 @@ from .common import (
     sys,
     tempfile,
 )
-from .features import cargo_features_with_pdf_render, normalize_render_selection
+from .features import (
+    cargo_features_for_studio_pdf_render_audit,
+    normalize_render_selection,
+)
 from .fixtures import resolve_fixtures, select_fixtures
 from .pdfium import prepare_pdfium_runtime, validate_pdfium_library_path
 from .runtime import rust_process_env
@@ -67,11 +70,11 @@ def build_pdf_render_shard_audit_command(
         args.cargo,
         "test",
         "-p",
-        "xiuxian-wendao",
+        "xiuxian-wendao-studio",
         "--test",
-        "wendao-validation-gate",
+        "performance_test",
         "--features",
-        cargo_features_with_pdf_render(args.cargo_features),
+        cargo_features_for_studio_pdf_render_audit(args.cargo_features),
         "pdf_render_page_render_shard_manifest",
         "--",
         "--ignored",
@@ -237,6 +240,35 @@ def resolve_pdfium_library_path(args: argparse.Namespace) -> Path | None:
     explicit_path = getattr(args, "pdfium_library_path", None)
     if explicit_path is not None:
         return validate_pdfium_library_path(explicit_path)
-    if getattr(args, "prepare_pdfium_runtime", False):
+    if getattr(args, "prepare_pdfium_runtime", False) or hybrid_pdf_ocr_requires_pdfium(
+        args
+    ):
         return prepare_pdfium_runtime()
     return None
+
+
+def hybrid_pdf_ocr_requires_pdfium(args: argparse.Namespace) -> bool:
+    profile_planner = (
+        str(getattr(args, "rust_pdf_ocr_profile_planner", "") or "")
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if profile_planner in {
+        "hosted-vlm-all",
+        "hosted-vlm-risk-window",
+        "hosted-vlm-risk-window-backend-text",
+    }:
+        return True
+    region_planner = (
+        str(getattr(args, "rust_pdf_hosted_vlm_region_planner", "") or "")
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if region_planner and region_planner != "disabled":
+        return True
+    selection = normalize_render_selection(
+        getattr(args, "hybrid_pdf_render_selection", "shard-fallback-pages")
+    )
+    return selection == "region_shards"

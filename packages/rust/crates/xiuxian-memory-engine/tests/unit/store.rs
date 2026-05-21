@@ -1,7 +1,7 @@
 //! `EpisodeStore` tests.
 
 use crate::common;
-use xiuxian_memory_engine::{Episode, EpisodeStore, StoreConfig};
+use xiuxian_memory_engine::{Episode, EpisodeDraft, EpisodeStore, StoreConfig};
 
 type TestResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
@@ -22,13 +22,14 @@ fn test_store_creation() {
 fn test_store_episode() -> TestResult {
     let store = EpisodeStore::default();
 
-    let episode = Episode::new(
-        "ep-001".to_string(),
-        "debug network error".to_string(),
-        store.encoder().encode("debug network error"),
-        "Checked firewall".to_string(),
-        "success".to_string(),
-    );
+    let episode = Episode::new(EpisodeDraft {
+        id: ("ep-001".to_string()).into(),
+        intent: "debug network error".to_string(),
+        intent_embedding: store.encoder().encode("debug network error"),
+        experience: "Checked firewall".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
 
     let id = store.store(episode)?;
     assert_eq!(id, "ep-001");
@@ -41,13 +42,14 @@ fn test_recall() -> TestResult {
     let store = EpisodeStore::default();
 
     for i in 0..5 {
-        let episode = Episode::new(
-            format!("ep-{i}"),
-            format!("intent {i}"),
-            store.encoder().encode(&format!("intent {i}")),
-            format!("experience {i}"),
-            "success".to_string(),
-        );
+        let episode = Episode::new(EpisodeDraft {
+            id: (format!("ep-{i}")).into(),
+            intent: format!("intent {i}"),
+            intent_embedding: store.encoder().encode(&format!("intent {i}")),
+            experience: format!("experience {i}"),
+            outcome: "success".to_string(),
+            scope: None,
+        });
         store.store(episode)?;
     }
 
@@ -61,13 +63,14 @@ fn test_two_phase_recall() -> TestResult {
     let store = EpisodeStore::default();
 
     for i in 0..5 {
-        let episode = Episode::new(
-            format!("ep-{i}"),
-            format!("debug error {i}"),
-            store.encoder().encode(&format!("debug error {i}")),
-            format!("experience {i}"),
-            if i < 3 { "success" } else { "failure" }.to_string(),
-        );
+        let episode = Episode::new(EpisodeDraft {
+            id: (format!("ep-{i}")).into(),
+            intent: format!("debug error {i}"),
+            intent_embedding: store.encoder().encode(&format!("debug error {i}")),
+            experience: format!("experience {i}"),
+            outcome: if i < 3 { "success" } else { "failure" }.to_string(),
+            scope: None,
+        });
         store.store(episode)?;
     }
 
@@ -84,13 +87,14 @@ fn test_two_phase_recall() -> TestResult {
 fn test_q_update() -> TestResult {
     let store = EpisodeStore::default();
 
-    let episode = Episode::new(
-        "ep-001".to_string(),
-        "test".to_string(),
-        store.encoder().encode("test"),
-        "experience".to_string(),
-        "success".to_string(),
-    );
+    let episode = Episode::new(EpisodeDraft {
+        id: ("ep-001".to_string()).into(),
+        intent: "test".to_string(),
+        intent_embedding: store.encoder().encode("test"),
+        experience: "experience".to_string(),
+        outcome: "success".to_string(),
+        scope: None,
+    });
     store.store(episode)?;
 
     let q_initial = store.q_table.get_q("ep-001");

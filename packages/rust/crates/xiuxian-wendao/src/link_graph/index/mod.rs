@@ -65,7 +65,7 @@ pub(in crate::link_graph::index) use scoring::{
 };
 pub(in crate::link_graph::index) use shared::{
     ScoredSearchRow, deterministic_random_key, doc_contains_phrase, doc_sort_key,
-    normalize_path_filter, path_matches_filter,
+    normalize_path_filter, path_matches_filter, sort_hits,
 };
 pub(crate) use types::{IndexedSection, SectionCandidate, SectionMatch};
 pub use types::{

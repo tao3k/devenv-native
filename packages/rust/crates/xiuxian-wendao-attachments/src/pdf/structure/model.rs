@@ -11,7 +11,11 @@ pub const DOCUMENT_STRUCTURE_ARROW_CACHE_NAME: &str = "_structure.arrow";
 /// Stable schema version for document structure sidecars.
 pub const DOCUMENT_STRUCTURE_SCHEMA_VERSION: &str = "xiuxian_wendao.document_structure.v1";
 
-/// One normalized document structure row derived from resource extraction.
+/// Raw DTO boundary and stringly state boundary for document structure rows.
+///
+/// The row mirrors the stable Arrow structure sidecar, so block ids, resource
+/// ids, block type, MIME type, status, and provenance remain serialized
+/// primitive columns.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DocumentStructureBlock {
     pub contract_version: String,

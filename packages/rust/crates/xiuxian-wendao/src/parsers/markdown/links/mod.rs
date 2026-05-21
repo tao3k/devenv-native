@@ -1,3 +1,5 @@
+//! `parsers::markdown::links` owns Wendao parsers markdown links behavior.
+
 mod api;
 mod normalize;
 mod parse_target;

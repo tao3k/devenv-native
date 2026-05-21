@@ -6,6 +6,8 @@ mod api;
 mod build;
 #[path = "load.rs"]
 mod load;
+#[path = "model.rs"]
+mod model;
 #[path = "render.rs"]
 mod render;
 #[path = "render_execution.rs"]
@@ -16,6 +18,7 @@ mod render_surface;
 mod semantics;
 
 pub(crate) use api::load_flowhub_graph_runtime_contract;
-pub use api::{FlowhubGraphShow, render_flowhub_graph_show, show_flowhub_graph};
+pub use api::{render_flowhub_graph_show, show_flowhub_graph};
+pub use model::FlowhubGraphShow;
 pub(crate) use render::graph_show_sections;
 pub(crate) use render_surface::display_graph_path;

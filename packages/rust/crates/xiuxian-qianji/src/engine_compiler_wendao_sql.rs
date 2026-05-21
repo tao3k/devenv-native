@@ -1,9 +1,11 @@
+//! Wendao SQL compiler branch split by discover, validate, and execute tasks.
+
 #[path = "engine/compiler/wendao_sql/discover.rs"]
 mod discover;
 #[path = "engine/compiler/wendao_sql/execute.rs"]
 mod execute;
-#[path = "engine/compiler/wendao_sql/shared.rs"]
-mod shared;
+#[path = "engine/compiler/wendao_sql/params.rs"]
+mod params;
 #[path = "engine/compiler/wendao_sql/validate.rs"]
 mod validate;
 

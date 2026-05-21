@@ -13,7 +13,11 @@ pub const DOCUMENT_METRICS_ARROW_CACHE_NAME: &str = "_metrics.arrow";
 /// Stable schema version for OCR shard metrics sidecars.
 pub const DOCUMENT_METRICS_SCHEMA_VERSION: &str = "xiuxian_wendao.document_metrics.v1";
 
-/// One normalized metric row emitted for a PDF OCR shard result.
+/// Raw DTO boundary and stringly state boundary for PDF OCR metric rows.
+///
+/// This struct mirrors the stable Arrow sidecar schema, so source paths,
+/// shard identifiers, shard type, and status are stored as serialized
+/// primitive columns rather than domain newtypes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PdfOcrShardMetric {
     pub contract_version: String,

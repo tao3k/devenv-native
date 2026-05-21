@@ -129,7 +129,7 @@ fn reject_unsupported_top_level_import(
 ) -> Result<()> {
     if tag == "import" && parent_tag == Some("definitions") {
         return Err(BpmnEngineError::UnsupportedDmnImport {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
         });
     }
     Ok(())

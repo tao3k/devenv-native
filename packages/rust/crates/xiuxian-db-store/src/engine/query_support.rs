@@ -34,6 +34,39 @@ pub const RETRIEVAL_LANGUAGE_COLUMN: &str = "language";
 /// Optional line-number column.
 pub const RETRIEVAL_LINE_COLUMN: &str = "line";
 
+/// Retrieval document type label.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct RetrievalDocType(String);
+
+impl RetrievalDocType {
+    /// Borrows the serialized document type label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for RetrievalDocType {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+impl From<String> for RetrievalDocType {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for RetrievalDocType {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
 /// Arrow-friendly row model used by retrieval adapters.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RetrievalRow {
@@ -52,7 +85,7 @@ pub struct RetrievalRow {
     /// Optional preview snippet.
     pub snippet: Option<String>,
     /// Optional doc type.
-    pub doc_type: Option<String>,
+    pub doc_type: Option<RetrievalDocType>,
     /// Optional match reason.
     pub match_reason: Option<String>,
     /// Optional best section.
@@ -110,77 +143,145 @@ pub fn retrieval_rows_to_record_batch(
     rows: &[RetrievalRow],
 ) -> Result<RecordBatch, VectorStoreError> {
     let schema = retrieval_result_schema();
-    let ids = StringArray::from(
-        rows.iter()
-            .map(|row| Some(row.id.as_str()))
-            .collect::<Vec<_>>(),
-    );
-    let paths = StringArray::from(
-        rows.iter()
-            .map(|row| Some(row.path.as_str()))
-            .collect::<Vec<_>>(),
-    );
-    let repos = StringArray::from(
-        rows.iter()
-            .map(|row| row.repo.as_deref())
-            .collect::<Vec<_>>(),
-    );
-    let titles = StringArray::from(
-        rows.iter()
-            .map(|row| row.title.as_deref())
-            .collect::<Vec<_>>(),
-    );
-    let scores = Float64Array::from(rows.iter().map(|row| row.score).collect::<Vec<_>>());
-    let sources = StringArray::from(
-        rows.iter()
-            .map(|row| Some(row.source.as_str()))
-            .collect::<Vec<_>>(),
-    );
-    let snippets = StringArray::from(
-        rows.iter()
-            .map(|row| row.snippet.as_deref())
-            .collect::<Vec<_>>(),
-    );
-    let doc_types = StringArray::from(
-        rows.iter()
-            .map(|row| row.doc_type.as_deref())
-            .collect::<Vec<_>>(),
-    );
-    let match_reasons = StringArray::from(
-        rows.iter()
-            .map(|row| row.match_reason.as_deref())
-            .collect::<Vec<_>>(),
-    );
-    let best_sections = StringArray::from(
-        rows.iter()
-            .map(|row| row.best_section.as_deref())
-            .collect::<Vec<_>>(),
-    );
-    let languages = StringArray::from(
-        rows.iter()
-            .map(|row| row.language.as_deref())
-            .collect::<Vec<_>>(),
-    );
-    let lines = UInt64Array::from(rows.iter().map(|row| row.line).collect::<Vec<_>>());
+    RecordBatch::try_new(schema, retrieval_row_arrays(rows))
+        .map_err(|error| VectorStoreError::General(format!("build retrieval batch: {error}")))
+}
 
-    RecordBatch::try_new(
-        schema,
-        vec![
-            Arc::new(ids) as ArrayRef,
-            Arc::new(paths) as ArrayRef,
-            Arc::new(repos) as ArrayRef,
-            Arc::new(titles) as ArrayRef,
-            Arc::new(scores) as ArrayRef,
-            Arc::new(sources) as ArrayRef,
-            Arc::new(snippets) as ArrayRef,
-            Arc::new(doc_types) as ArrayRef,
-            Arc::new(match_reasons) as ArrayRef,
-            Arc::new(best_sections) as ArrayRef,
-            Arc::new(languages) as ArrayRef,
-            Arc::new(lines) as ArrayRef,
-        ],
-    )
-    .map_err(|error| VectorStoreError::General(format!("build retrieval batch: {error}")))
+fn retrieval_row_arrays(rows: &[RetrievalRow]) -> Vec<ArrayRef> {
+    vec![
+        Arc::new(required_utf8_array(
+            rows.iter()
+                .map(|row| Some(row.id.as_str()))
+                .collect::<Vec<_>>(),
+        )) as ArrayRef,
+        Arc::new(required_utf8_array(
+            rows.iter()
+                .map(|row| Some(row.path.as_str()))
+                .collect::<Vec<_>>(),
+        )),
+        Arc::new(optional_utf8_array(
+            rows.iter().map(|row| row.repo.as_deref()),
+        )),
+        Arc::new(optional_utf8_array(
+            rows.iter().map(|row| row.title.as_deref()),
+        )),
+        Arc::new(Float64Array::from(
+            rows.iter().map(|row| row.score).collect::<Vec<_>>(),
+        )),
+        Arc::new(required_utf8_array(
+            rows.iter()
+                .map(|row| Some(row.source.as_str()))
+                .collect::<Vec<_>>(),
+        )),
+        Arc::new(optional_utf8_array(
+            rows.iter().map(|row| row.snippet.as_deref()),
+        )),
+        Arc::new(optional_utf8_array(
+            rows.iter()
+                .map(|row| row.doc_type.as_ref().map(RetrievalDocType::as_str)),
+        )),
+        Arc::new(optional_utf8_array(
+            rows.iter().map(|row| row.match_reason.as_deref()),
+        )),
+        Arc::new(optional_utf8_array(
+            rows.iter().map(|row| row.best_section.as_deref()),
+        )),
+        Arc::new(optional_utf8_array(
+            rows.iter().map(|row| row.language.as_deref()),
+        )),
+        Arc::new(UInt64Array::from(
+            rows.iter().map(|row| row.line).collect::<Vec<_>>(),
+        )),
+    ]
+}
+
+fn required_utf8_array(values: Vec<Option<&str>>) -> StringArray {
+    StringArray::from(values)
+}
+
+fn optional_utf8_array<'a>(values: impl Iterator<Item = Option<&'a str>>) -> StringArray {
+    StringArray::from(values.collect::<Vec<_>>())
+}
+
+struct RetrievalBatchColumns<'a> {
+    ids: &'a StringArray,
+    paths: &'a StringArray,
+    repos: &'a StringArray,
+    titles: &'a StringArray,
+    scores: &'a Float64Array,
+    sources: &'a StringArray,
+    snippets: &'a StringArray,
+    doc_types: &'a StringArray,
+    match_reasons: &'a StringArray,
+    best_sections: &'a StringArray,
+    languages: &'a StringArray,
+    lines: &'a UInt64Array,
+}
+
+impl RetrievalBatchColumns<'_> {
+    fn row_at(&self, row_index: usize) -> RetrievalRow {
+        RetrievalRow {
+            id: self.ids.value(row_index).to_string(),
+            path: self.paths.value(row_index).to_string(),
+            repo: optional_string_value(self.repos, row_index),
+            title: optional_string_value(self.titles, row_index),
+            score: (!self.scores.is_null(row_index)).then(|| self.scores.value(row_index)),
+            source: self.sources.value(row_index).to_string(),
+            snippet: optional_string_value(self.snippets, row_index),
+            doc_type: optional_string_value(self.doc_types, row_index).map(Into::into),
+            match_reason: optional_string_value(self.match_reasons, row_index),
+            best_section: optional_string_value(self.best_sections, row_index),
+            language: optional_string_value(self.languages, row_index),
+            line: (!self.lines.is_null(row_index)).then(|| self.lines.value(row_index)),
+        }
+    }
+}
+
+fn retrieval_batch_columns(
+    batch: &RecordBatch,
+) -> Result<RetrievalBatchColumns<'_>, VectorStoreError> {
+    Ok(RetrievalBatchColumns {
+        ids: required_string_column(batch, RETRIEVAL_ID_COLUMN)?,
+        paths: required_string_column(batch, RETRIEVAL_PATH_COLUMN)?,
+        repos: required_string_column(batch, RETRIEVAL_REPO_COLUMN)?,
+        titles: required_string_column(batch, RETRIEVAL_TITLE_COLUMN)?,
+        scores: required_float64_column(batch, RETRIEVAL_SCORE_COLUMN)?,
+        sources: required_string_column(batch, RETRIEVAL_SOURCE_COLUMN)?,
+        snippets: required_string_column(batch, RETRIEVAL_SNIPPET_COLUMN)?,
+        doc_types: required_string_column(batch, RETRIEVAL_DOC_TYPE_COLUMN)?,
+        match_reasons: required_string_column(batch, RETRIEVAL_MATCH_REASON_COLUMN)?,
+        best_sections: required_string_column(batch, RETRIEVAL_BEST_SECTION_COLUMN)?,
+        languages: required_string_column(batch, RETRIEVAL_LANGUAGE_COLUMN)?,
+        lines: required_uint64_column(batch, RETRIEVAL_LINE_COLUMN)?,
+    })
+}
+
+fn optional_string_value(array: &StringArray, row_index: usize) -> Option<String> {
+    (!array.is_null(row_index)).then(|| array.value(row_index).to_string())
+}
+
+fn required_float64_column<'a>(
+    batch: &'a RecordBatch,
+    column: &str,
+) -> Result<&'a Float64Array, VectorStoreError> {
+    batch
+        .column_by_name(column)
+        .and_then(|array| array.as_any().downcast_ref::<Float64Array>())
+        .ok_or_else(|| {
+            VectorStoreError::General(format!("missing Float64 retrieval column `{column}`"))
+        })
+}
+
+fn required_uint64_column<'a>(
+    batch: &'a RecordBatch,
+    column: &str,
+) -> Result<&'a UInt64Array, VectorStoreError> {
+    batch
+        .column_by_name(column)
+        .and_then(|array| array.as_any().downcast_ref::<UInt64Array>())
+        .ok_or_else(|| {
+            VectorStoreError::General(format!("missing UInt64 retrieval column `{column}`"))
+        })
 }
 
 /// Decode retrieval rows from a canonical Arrow record batch.
@@ -192,55 +293,10 @@ pub fn retrieval_rows_to_record_batch(
 pub fn retrieval_rows_from_record_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<RetrievalRow>, VectorStoreError> {
-    let ids = required_string_column(batch, RETRIEVAL_ID_COLUMN)?;
-    let paths = required_string_column(batch, RETRIEVAL_PATH_COLUMN)?;
-    let repos = required_string_column(batch, RETRIEVAL_REPO_COLUMN)?;
-    let titles = required_string_column(batch, RETRIEVAL_TITLE_COLUMN)?;
-    let scores = batch
-        .column_by_name(RETRIEVAL_SCORE_COLUMN)
-        .and_then(|column| column.as_any().downcast_ref::<Float64Array>())
-        .ok_or_else(|| {
-            VectorStoreError::General(format!(
-                "missing Float64 retrieval column `{RETRIEVAL_SCORE_COLUMN}`"
-            ))
-        })?;
-    let sources = required_string_column(batch, RETRIEVAL_SOURCE_COLUMN)?;
-    let snippets = required_string_column(batch, RETRIEVAL_SNIPPET_COLUMN)?;
-    let doc_types = required_string_column(batch, RETRIEVAL_DOC_TYPE_COLUMN)?;
-    let match_reasons = required_string_column(batch, RETRIEVAL_MATCH_REASON_COLUMN)?;
-    let best_sections = required_string_column(batch, RETRIEVAL_BEST_SECTION_COLUMN)?;
-    let languages = required_string_column(batch, RETRIEVAL_LANGUAGE_COLUMN)?;
-    let lines = batch
-        .column_by_name(RETRIEVAL_LINE_COLUMN)
-        .and_then(|column| column.as_any().downcast_ref::<UInt64Array>())
-        .ok_or_else(|| {
-            VectorStoreError::General(format!(
-                "missing UInt64 retrieval column `{RETRIEVAL_LINE_COLUMN}`"
-            ))
-        })?;
-
-    let mut rows = Vec::with_capacity(batch.num_rows());
-    for row_index in 0..batch.num_rows() {
-        rows.push(RetrievalRow {
-            id: ids.value(row_index).to_string(),
-            path: paths.value(row_index).to_string(),
-            repo: (!repos.is_null(row_index)).then(|| repos.value(row_index).to_string()),
-            title: (!titles.is_null(row_index)).then(|| titles.value(row_index).to_string()),
-            score: (!scores.is_null(row_index)).then(|| scores.value(row_index)),
-            source: sources.value(row_index).to_string(),
-            snippet: (!snippets.is_null(row_index)).then(|| snippets.value(row_index).to_string()),
-            doc_type: (!doc_types.is_null(row_index))
-                .then(|| doc_types.value(row_index).to_string()),
-            match_reason: (!match_reasons.is_null(row_index))
-                .then(|| match_reasons.value(row_index).to_string()),
-            best_section: (!best_sections.is_null(row_index))
-                .then(|| best_sections.value(row_index).to_string()),
-            language: (!languages.is_null(row_index))
-                .then(|| languages.value(row_index).to_string()),
-            line: (!lines.is_null(row_index)).then(|| lines.value(row_index)),
-        });
-    }
-    Ok(rows)
+    let columns = retrieval_batch_columns(batch)?;
+    Ok((0..batch.num_rows())
+        .map(|row_index| columns.row_at(row_index))
+        .collect())
 }
 
 /// Project payload columns from a retrieval batch and optionally filter by candidate id.

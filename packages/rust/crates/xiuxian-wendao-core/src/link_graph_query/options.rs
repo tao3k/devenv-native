@@ -1,5 +1,7 @@
+//! Runtime validation and schema for link-graph search options.
+
 use super::enums::LinkGraphMatchStrategy;
-use super::filters::LinkGraphSearchFilters;
+use super::filters::{LinkGraphLinkFilter, LinkGraphRelatedFilter, LinkGraphSearchFilters};
 use super::sort::LinkGraphSortTerm;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -58,74 +60,102 @@ impl LinkGraphSearchOptions {
     ///
     /// Returns an error string when one or more query filters violate the runtime schema.
     pub fn validate(&self) -> Result<(), String> {
-        if let Some(filter) = &self.filters.link_to
-            && filter.max_distance.is_some_and(|distance| distance == 0)
-        {
-            return Err(
-                "link_graph search options schema violation at filters.link_to.max_distance: must be >= 1"
-                    .to_string(),
-            );
-        }
-        if let Some(filter) = &self.filters.linked_by
-            && filter.max_distance.is_some_and(|distance| distance == 0)
-        {
-            return Err(
-                "link_graph search options schema violation at filters.linked_by.max_distance: must be >= 1"
-                    .to_string(),
-            );
-        }
-        if let Some(filter) = &self.filters.related
-            && filter.max_distance.is_some_and(|distance| distance == 0)
-        {
-            return Err(
-                "link_graph search options schema violation at filters.related.max_distance: must be >= 1"
-                    .to_string(),
-            );
-        }
-        if let Some(filter) = &self.filters.related
-            && let Some(ppr) = &filter.ppr
-        {
-            if let Some(alpha) = ppr.alpha
-                && !(0.0..=1.0).contains(&alpha)
-            {
-                return Err(
-                    "link_graph search options schema violation at filters.related.ppr.alpha: must be between 0 and 1"
-                        .to_string(),
-                );
-            }
-            if let Some(max_iter) = ppr.max_iter
-                && max_iter == 0
-            {
-                return Err(
-                    "link_graph search options schema violation at filters.related.ppr.max_iter: must be >= 1"
-                        .to_string(),
-                );
-            }
-            if let Some(tol) = ppr.tol
-                && tol <= 0.0
-            {
-                return Err(
-                    "link_graph search options schema violation at filters.related.ppr.tol: must be > 0"
-                        .to_string(),
-                );
-            }
-        }
-        if let Some(level) = self.filters.max_heading_level
-            && !(1..=6).contains(&level)
-        {
-            return Err(
-                "link_graph search options schema violation at filters.max_heading_level: must be between 1 and 6"
-                    .to_string(),
-            );
-        }
-        if let Some(cap) = self.filters.per_doc_section_cap
-            && cap == 0
-        {
-            return Err(
-                "link_graph search options schema violation at filters.per_doc_section_cap: must be >= 1"
-                    .to_string(),
-            );
-        }
-        Ok(())
+        validate_link_distance_filter(
+            "filters.link_to.max_distance",
+            self.filters.link_to.as_ref(),
+        )?;
+        validate_link_distance_filter(
+            "filters.linked_by.max_distance",
+            self.filters.linked_by.as_ref(),
+        )?;
+        validate_related_distance_filter(
+            "filters.related.max_distance",
+            self.filters.related.as_ref(),
+        )?;
+        validate_related_ppr(self.filters.related.as_ref())?;
+        validate_heading_level(self.filters.max_heading_level)?;
+        validate_per_doc_section_cap(self.filters.per_doc_section_cap)
     }
+}
+
+fn validate_link_distance_filter(
+    path: &'static str,
+    filter: Option<&LinkGraphLinkFilter>,
+) -> Result<(), String> {
+    validate_positive_distance(path, filter.and_then(|filter| filter.max_distance))
+}
+
+fn validate_related_distance_filter(
+    path: &'static str,
+    filter: Option<&LinkGraphRelatedFilter>,
+) -> Result<(), String> {
+    validate_positive_distance(path, filter.and_then(|filter| filter.max_distance))
+}
+
+fn validate_positive_distance(path: &'static str, distance: Option<usize>) -> Result<(), String> {
+    if distance.is_some_and(|distance| distance == 0) {
+        return Err(format!(
+            "link_graph search options schema violation at {path}: must be >= 1"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_related_ppr(related: Option<&LinkGraphRelatedFilter>) -> Result<(), String> {
+    let Some(ppr) = related.and_then(|filter| filter.ppr.as_ref()) else {
+        return Ok(());
+    };
+    validate_ppr_alpha(ppr.alpha)?;
+    validate_ppr_max_iter(ppr.max_iter)?;
+    validate_ppr_tol(ppr.tol)
+}
+
+fn validate_ppr_alpha(alpha: Option<f64>) -> Result<(), String> {
+    if alpha.is_some_and(|alpha| !(0.0..=1.0).contains(&alpha)) {
+        return Err(
+            "link_graph search options schema violation at filters.related.ppr.alpha: must be between 0 and 1"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn validate_ppr_max_iter(max_iter: Option<usize>) -> Result<(), String> {
+    if max_iter.is_some_and(|max_iter| max_iter == 0) {
+        return Err(
+            "link_graph search options schema violation at filters.related.ppr.max_iter: must be >= 1"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn validate_ppr_tol(tol: Option<f64>) -> Result<(), String> {
+    if tol.is_some_and(|tol| tol <= 0.0) {
+        return Err(
+            "link_graph search options schema violation at filters.related.ppr.tol: must be > 0"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn validate_heading_level(level: Option<usize>) -> Result<(), String> {
+    if level.is_some_and(|level| !(1..=6).contains(&level)) {
+        return Err(
+            "link_graph search options schema violation at filters.max_heading_level: must be between 1 and 6"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn validate_per_doc_section_cap(cap: Option<usize>) -> Result<(), String> {
+    if cap.is_some_and(|cap| cap == 0) {
+        return Err(
+            "link_graph search options schema violation at filters.per_doc_section_cap: must be >= 1"
+                .to_string(),
+        );
+    }
+    Ok(())
 }

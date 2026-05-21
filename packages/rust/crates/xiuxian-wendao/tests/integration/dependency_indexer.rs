@@ -49,7 +49,7 @@ fn test_symbol_index_search() {
 fn test_dependency_config_load() {
     // Test loading config from actual xiuxian.toml
     let config_path = workspace_root()
-        .join("packages/rust/crates/xiuxian-daochang/resources/config/xiuxian.toml");
+        .join("packages/rust/crates/xiuxian-wendao/resources/config/xiuxian.toml");
     let config = DependencyBuildConfig::load(config_path.to_string_lossy().as_ref());
 
     // Should expose at least one external dependency configuration.

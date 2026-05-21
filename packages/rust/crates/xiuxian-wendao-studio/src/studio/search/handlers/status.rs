@@ -1,3 +1,5 @@
+//! Owns the Studio search handlers status surface.
+
 use std::sync::Arc;
 
 use axum::{Json, extract::State};

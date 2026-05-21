@@ -5,6 +5,7 @@ description = "Wendao analyzer package for Arrow-backed analysis and Docling doc
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "pillow>=11.0.0",
     "pyarrow>=14.0.0",
     "wendao-arrow-interface",
     "wendao-core-lib",
@@ -17,7 +18,6 @@ documents = [
 documents-audio = [
     "docling[xbrl]>=2.70.0",
     "imageio-ffmpeg>=0.6.0",
-    "openai-whisper>=20250625",
 ]
 
 [dependency-groups]
@@ -33,6 +33,8 @@ build-backend = "hatchling.build"
 [project.scripts]
 xiuxian-wendao-document-extract = "xiuxian_wendao_analyzer.document_service_cli:document_extract_service_main"
 wendao-document-extract = "xiuxian_wendao_analyzer.document_service_cli:document_extract_service_main"
+wendao-image-ocr-jsonl = "xiuxian_wendao_analyzer.image_ocr_jsonl:main"
+wendao-docling-document-jsonl = "xiuxian_wendao_analyzer.docling_document_jsonl:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xiuxian_wendao_analyzer"]
@@ -40,7 +42,10 @@ packages = ["src/xiuxian_wendao_analyzer"]
 [tool.uv]
 package = true
 
+[tool.python-lang-project-harness]
+blocking_severities = ["error"]
+
 [tool.uv.sources]
 wendao-core-lib = { workspace = true }
 wendao-arrow-interface = { workspace = true }
-python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "5c4b0769524dfc694719ec1901b135f975c2470f" }
+python-lang-project-harness = { git = "https://github.com/tao3k/python-lang-project-harness", rev = "77954cbc065aa621c1b08d23028dbf3757894fe2" }

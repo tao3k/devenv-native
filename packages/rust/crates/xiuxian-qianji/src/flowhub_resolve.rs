@@ -1,3 +1,5 @@
+//! Flowhub resolve surface for `xiuxian-qianji`.
+
 use std::path::{Path, PathBuf};
 
 use crate::contracts::{FlowhubModuleManifest, FlowhubScenarioManifest};

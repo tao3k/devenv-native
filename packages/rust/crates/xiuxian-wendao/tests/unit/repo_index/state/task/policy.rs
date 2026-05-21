@@ -134,7 +134,7 @@ fn retryable_sync_failure_stops_after_retry_budget_is_exhausted() {
 #[test]
 fn retryable_sync_failure_rejects_non_transport_errors() {
     let error = RepoIntelligenceError::MissingRepositorySource {
-        repo_id: "DifferentialEquations.jl".to_string(),
+        repo_id: "DifferentialEquations.jl".to_string().into(),
     };
     assert!(!should_retry_sync_failure(&error, 0));
 }
@@ -150,8 +150,8 @@ fn retryable_sync_failure_matches_descriptor_pressure_errors() {
 #[test]
 fn retryable_sync_failure_matches_retryable_invalid_repository_path_reasons() {
     let error = RepoIntelligenceError::InvalidRepositoryPath {
-        repo_id: "DifferentialEquations.jl".to_string(),
-        path: "/tmp/example.git".to_string(),
+        repo_id: "DifferentialEquations.jl".to_string().into(),
+        path: "/tmp/example.git".to_string().into(),
         reason: "failed to open managed mirror as bare git repository: could not open '/tmp/example.git/config': Too many open files; class=Os (2)".to_string(),
     };
     assert!(should_retry_sync_failure(&error, 0));
@@ -160,7 +160,7 @@ fn retryable_sync_failure_matches_retryable_invalid_repository_path_reasons() {
 #[test]
 fn unsupported_layout_does_not_penalize_adaptive_concurrency() {
     let error = RepoIntelligenceError::UnsupportedRepositoryLayout {
-        repo_id: "Sundials.jl".to_string(),
+        repo_id: "Sundials.jl".to_string().into(),
         message: "missing Project.toml".to_string(),
     };
 

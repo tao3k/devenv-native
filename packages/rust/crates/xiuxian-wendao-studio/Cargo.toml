@@ -74,7 +74,7 @@ local-runtime = [
   "dep:toml",
   "dep:uuid",
   "dep:walkdir",
-  "dep:xiuxian-ast",
+  "dep:xiuxian-code-intelligence",
   "dep:xiuxian-config-core",
   "dep:xiuxian-db-store",
   "dep:xiuxian-git-repo",
@@ -82,6 +82,7 @@ local-runtime = [
   "dep:xiuxian-wendao",
   "dep:xiuxian-wendao-builtin",
   "dep:xiuxian-wendao-core",
+  "dep:xiuxian-wendao-episteme",
   "dep:xiuxian-wendao-parsers",
   "dep:xiuxian-wendao-sql",
   "dep:xiuxian-zhenfa",
@@ -112,17 +113,28 @@ test-support = [
   "xiuxian-wendao/test-support",
 ]
 cli-bin-support = [
-  "studio",
+  "zhenfa-router",
   "dep:clap",
   "dep:xiuxian-logging",
   "dep:xiuxian-wendao-client",
-  "xiuxian-zhenfa/gateway",
+  "xiuxian-wendao-client/semantic-sql",
+]
+flight-server-bin-support = [
+  "zhenfa-router",
 ]
 document-extract-pdf-source-range = [
   "local-runtime",
+  "dep:num-traits",
   "dep:xiuxian-wendao-attachments",
   "xiuxian-wendao/document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-source-range",
+]
+document-extract-audio-shards = [
+  "studio",
+  "dep:sha2",
+  "dep:xiuxian-qianji",
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/audio-shard-arrow",
 ]
 document-extract-pdf-render = [
   "document-extract-pdf-source-range",
@@ -148,7 +160,7 @@ required-features = ["contracts"]
 [[bin]]
 name = "wendao_search_flight_server"
 path = "src/bin/wendao_search_flight_server.rs"
-required-features = ["cli-bin-support", "zhenfa-router"]
+required-features = ["flight-server-bin-support"]
 
 [[bin]]
 name = "wendao_search_flightsql_server"
@@ -166,6 +178,7 @@ xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features 
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
+xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme", optional = true }
 xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }
@@ -173,11 +186,12 @@ xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
-xiuxian-ast = { path = "../xiuxian-ast", optional = true }
+xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }
 xiuxian-io = { path = "../xiuxian-io", optional = true }
+xiuxian-qianji = { path = "../xiuxian-qianji", default-features = false, optional = true }
 
 anyhow = { workspace = true, optional = true }
 arrow = { workspace = true, optional = true }
@@ -195,6 +209,7 @@ globset = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 notify = { workspace = true, optional = true }
 notify-debouncer-full = { workspace = true, optional = true }
+num-traits = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }
@@ -220,6 +235,10 @@ walkdir = { workspace = true, optional = true }
 insta = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, features = ["test-support"] }
+
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [lints]
 workspace = true

@@ -68,7 +68,7 @@ pub(super) fn issue_from_bpmn_execution_shape_error(error: &BpmnEngineError) -> 
             process_id,
             node_id,
             detail,
-        } => LintIssue::new(
+        } => LintIssue::from_parts(
             "bpmn.unsupported_event_configuration",
             "Event configuration exceeds the bounded slice",
             format!(
@@ -102,7 +102,7 @@ fn unknown_called_process_issue(
     node_id: &str,
     called_process_id: &str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unknown_called_process",
         "Call activity targets a missing process",
         format!(
@@ -127,7 +127,7 @@ fn unknown_called_process_issue(
 }
 
 fn loop_configuration_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_loop_configuration",
         "Loop configuration exceeds the bounded slice",
         format!(
@@ -155,7 +155,7 @@ fn multiple_event_definition_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_multiple_event_definitions",
         "Multiple-event definition exceeds the bounded slice",
         format!(
@@ -179,7 +179,7 @@ fn multiple_event_definition_issue(
 }
 
 fn escalation_event_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_escalation_event",
         "Escalation event configuration is deferred",
         format!(

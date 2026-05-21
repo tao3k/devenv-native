@@ -1,3 +1,5 @@
+//! `link_graph::addressing::topology::types` owns Wendao addressing topology types behavior.
+
 use std::collections::HashMap;
 
 /// A path entry representing a node's position in the document structure.

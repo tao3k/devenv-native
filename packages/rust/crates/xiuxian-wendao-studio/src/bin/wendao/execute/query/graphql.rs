@@ -2,7 +2,7 @@ use anyhow::{Context, Result, anyhow};
 use xiuxian_io::PrjDirs;
 use xiuxian_wendao::search::queries::{SearchQueryService, graphql::query_graphql_payload};
 
-use crate::bin_support::wendao::helpers::emit;
+use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{Cli, GraphqlQueryArgs};
 
 pub(super) async fn handle(cli: &Cli, args: &GraphqlQueryArgs) -> Result<()> {

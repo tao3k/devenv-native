@@ -3,6 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 
+use crate::studio::router::LocalCorpusScanCoalescingState;
 use crate::studio::symbol_index::SymbolIndexCoordinator;
 use crate::studio::types::{UiConfig, UiRepoProjectConfig};
 use crate::studio::{
@@ -50,7 +51,9 @@ pub(crate) fn gateway_state_for_project(project_root: &Path) -> Result<Arc<Gatew
                 config_root.clone(),
                 search_plane.clone(),
             )),
-            local_corpus_scan_coalescing: Arc::new(RwLock::new(Default::default())),
+            local_corpus_scan_coalescing: Arc::new(RwLock::new(
+                LocalCorpusScanCoalescingState::default(),
+            )),
             search_plane,
             vfs_scan: Arc::new(RwLock::new(None)),
             repo_index,

@@ -1,9 +1,11 @@
-use std::collections::BTreeMap;
+//! Owns the Studio router state cold start surface.
 
 use chrono::DateTime;
 use serde::Serialize;
 
-use crate::studio::router::state::types::StudioState;
+use crate::studio::router::state::types::{
+    StudioSearchColdStartCorpusState, StudioSearchColdStartEvent, StudioState,
+};
 use crate::studio::symbol_index::timestamp_now;
 use xiuxian_wendao::search::{
     SearchBuildRepeatWorkTelemetry, SearchCorpusKind, SearchPlaneStatusSnapshot,
@@ -16,19 +18,6 @@ const LOCAL_COLD_START_CORPORA: [SearchCorpusKind; 4] = [
     SearchCorpusKind::LocalSymbol,
     SearchCorpusKind::ReferenceOccurrence,
 ];
-
-/// One process-local cold-start event observed by the Studio gateway.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct StudioSearchColdStartEvent {
-    /// RFC3339 wall-clock timestamp captured when the event was first observed.
-    pub recorded_at: String,
-    /// Milliseconds elapsed since the current Studio process started.
-    pub elapsed_ms: u64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    /// Optional stable source label that first observed the event.
-    pub source: Option<String>,
-}
 
 /// Process-local cold-start telemetry for one local search corpus.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -74,25 +63,6 @@ pub struct StudioSearchColdStartTelemetry {
     pub corpora: Vec<StudioSearchColdStartCorpusTelemetry>,
     /// Structured telemetry detectors grouped under the cold-start framework.
     pub diagnostics: StudioSearchColdStartDiagnosticsTelemetry,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct StudioSearchColdStartCorpusState {
-    pub(crate) index_started: Option<StudioSearchColdStartEvent>,
-    pub(crate) ready_observed: Option<StudioSearchColdStartEvent>,
-    pub(crate) partial_search_response: Option<StudioSearchColdStartEvent>,
-    pub(crate) ready_search_response: Option<StudioSearchColdStartEvent>,
-}
-
-#[derive(Debug, Default)]
-pub(crate) struct StudioSearchColdStartTelemetryState {
-    corpora: BTreeMap<SearchCorpusKind, StudioSearchColdStartCorpusState>,
-}
-
-impl StudioSearchColdStartTelemetryState {
-    fn corpus_mut(&mut self, corpus: SearchCorpusKind) -> &mut StudioSearchColdStartCorpusState {
-        self.corpora.entry(corpus).or_default()
-    }
 }
 
 impl StudioState {

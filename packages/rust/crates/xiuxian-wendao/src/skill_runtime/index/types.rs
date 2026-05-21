@@ -1,3 +1,5 @@
+//! `skill_runtime::index::types` owns Wendao skill runtime index types behavior.
+
 use crate::skill_runtime::inventory::preload::{preload_reference_dir, semantic_resource_uri_key};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

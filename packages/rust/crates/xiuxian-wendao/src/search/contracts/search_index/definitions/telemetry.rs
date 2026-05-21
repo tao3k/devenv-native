@@ -1,3 +1,5 @@
+//! `search::contracts::search_index::definitions::telemetry` owns Wendao search index definitions telemetry behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

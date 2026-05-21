@@ -29,7 +29,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_boolean_issue(
         "invalid_booleans_truncated": violations.len() > SNAPSHOT_EVIDENCE_LIMIT,
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.invalid_di_boolean",
         "BPMN diagram interchange metadata uses an invalid boolean value",
         format!(

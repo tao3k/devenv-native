@@ -40,7 +40,7 @@ The same feature boundary now covers Modelica repo-intelligence too:
 the Rust implementation now lives on the Julia line in
 `xiuxian-wendao-julia` instead of a standalone `xiuxian-wendao-modelica`
 crate. The same Julia-owned line now also owns parser-summary transport
-discovery for both languages, so plain `plugins = ["julia"]` and
+discovery for both languages, so plain `plugins = ["julia-code-parser"]` and
 `plugins = ["modelica"]` repository config can resolve the standard
 `WendaoSearch.jl` parser-summary endpoint without repo-local Rust
 AST fallback or per-repository inline transport blocks.
@@ -56,7 +56,7 @@ Studio `code_search` now follows that same ownership rule end to end. The
 production handler lives under
 `src/gateway/studio/search/handlers/code_search/search/`, reuses the shared
 `src/search/repo_search/` seam, and consumes Julia-owned native parser
-publications for both `plugins = ["julia"]` and `plugins = ["modelica"]`
+publications for both `plugins = ["julia-code-parser"]` and `plugins = ["modelica"]`
 repositories. The gateway no longer path-mounts a test-only code-search
 implementation or keeps a second Rust-local Julia or Modelica AST route. The
 focused gateway `code_search` proofs for plain Julia and plain Modelica plugin
@@ -139,8 +139,139 @@ Use `xiuxian-wendao` for:
   resolves the local embedded path convention under
   `$PRJ_DATA_HOME/wendao/event_lake/`
 - analyzers, enhancers, and other Wendao domain services
+- DuckDB-backed dataset-to-ontology materialization for raw Arrow/Flight source
+  tables, using source contracts from
+  [`wendao-episteme`](../../../../wendao-episteme/README.md) and bounded SQL
+  helper seams from
+  [`xiuxian-wendao-sql`](../xiuxian-wendao-sql/README.md). The callable
+  runtime seam is `duckdb::DatasetOntologyDuckDbMaterializer`; production
+  Gateway or Flight upload routes must call this materializer rather than
+  reimplementing DuckDB setup or source-contract SQL orchestration. The same
+  seam can build requests from named Arrow IPC stream files emitted by
+  source-contract tooling, keeping Python on validation and handoff only.
+  The stable transport manifest and route constants live in
+  [`xiuxian-wendao-runtime`](../xiuxian-wendao-runtime/README.md) under the
+  ontology query-contract family.
+- Episteme source-contract validation and run planning for
+  customer-owned domain extensions. Source-contract parse and DTO shape are
+  parser-owned in
+  [`xiuxian-wendao-parsers`](../xiuxian-wendao-parsers/docs/episteme-source-contracts.md);
+  Rust Episteme implementation now belongs in
+  [`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md), which
+  validates the ontology source contract and selects the active source
+  manifest and mapping ledger from `ontology/manifest.toml`. During migration,
+  this crate may consume or
+  re-export Episteme services, but it should not remain the long-term
+  implementation home. Rust owns source hash validation, queue selection,
+  persisted run-plan receipts, scheduling, cache identity, and compiled
+  read-model seed materialization into `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state` Arrow batches. Customer
+  repository names, domain names, corpus-root environment variable
+  names, source manifest paths, and mapping ledger paths are episteme
+  configuration facts, not Rust defaults. A single-contract episteme repository
+  can be selected automatically; multi-domain repositories must declare
+  `[active_source_contract]`. The read-model seed contains
+  source-contract facts and provenance only; it does not embed source corpus
+  text or promote raw rows to RDF truth. When the `julia` feature is enabled,
+  the compiled seed can be packaged into the existing WendaoGraph ontology
+  read-model quality request shape, or combined with caller-supplied compiled
+  parent object/link registry batches for extension proof. The handoff remains
+  accepted read-model batches rather than TSV, RDF, `registry.json`, or
+  `wendao.toml` parsing by Julia. Analyzer adapters live in
+  package-owned analyzer crates; user or private episteme repositories should
+  not own runtime tools, planning, promotion, or backend orchestration. The
+  current operator entrypoints are the Studio-owned
+  `wendao episteme structure write-toc` CLI command, which writes an
+  evidence-only Org TOC ledger from source-contract file rows with
+  route/category summaries ahead of the full file table, and
+  `wendao episteme evidence write-selection-plan`, which writes an
+  evidence-only selection ledger from chosen `file_id` values before any
+  extractor execution, and `wendao episteme source-contract plan-extraction-run`
+  CLI command, which can consume that selection ledger as a hard `file_id`
+  constraint before writing extractor tasks. A bounded Studio Gateway admission
+  endpoint exposes the same Rust writer. Episteme repositories may also provide
+  `episteme.toml` with runtime defaults for corpus and run roots; Rust resolves
+  those defaults generically, while explicit CLI or Gateway values remain
+  overrides. Structure
+  TOC generation defaults to metadata-only validation for fast human/LLM
+  orientation and keeps full sha256 validation as an explicit `full-hash` gate.
+  Extraction run planning uses `contract_shape_only` validation: it validates
+  manifests, mapping ledger shape, queue/file consistency, filters, and selected
+  `file_id` coverage without traversing or hashing the source corpus. Full
+  sha256 proof remains the validation/read-model/promotion boundary, not the
+  no-execution planning boundary. Image evidence enters this same admission
+  path through the explicit `image_ocr_evidence` route: the planner writes
+  cache-only planned OCR tasks and preserves `raw_to_rdf_promotion_allowed =
+false`, while actual OCR execution remains a later Gateway/analyzer
+  extraction step.
+  The same source-contract service also exposes targeted evidence reads by
+  `file_id`, returning bounded metadata and plain-text previews without
+  arbitrary path reads, extractor execution, or ontology promotion.
+  Full-audio transcript ledgers can enter this same graph-quality lane through
+  `materialize_episteme_audio_evidence_review_seed`: the API accepts
+  model-neutral audio evidence source and segment rows, emits review-required
+  `semantic_objects`, `semantic_relations`, and `semantic_projection_state`
+  batches, and validates source hashes, shard ids, transcript hashes, timing,
+  and duplicate segment identity. Raw transcript text is validated as evidence
+  input but is not embedded into emitted semantic objects, and the output is a
+  review queue for WendaoGraph quality checks rather than RDF materialization
+  or ontology truth promotion. Human-accepted audio claims can then enter the
+  same read-model contract through
+  `materialize_episteme_audio_reviewed_claim_seed`: reviewed claim rows must
+  reference known audio evidence segment ids, carry reviewer and evidence-hash
+  provenance, and emit promotion-candidate semantic objects plus
+  claim-to-evidence relations for graph-quality review. This second gate still
+  does not write ontology source files or promote transcript text directly to
+  RDF truth. Accepted reviewed claims can also be written to local proposal
+  artifacts with `write_episteme_audio_claim_promotion_proposal`, which emits
+  deterministic reviewed-claim TSV and receipt JSON files for human or
+  source-contract promotion review. These proposal artifacts carry ontology
+  triple intent and evidence hashes only; they do not materialize RDF, mutate
+  ontology source files, or include raw transcript text.
+  Studio can also load episteme repositories from
+  thin deployment registry entries:
+  local entries use `path = "..."`, Git entries use `url = "..."`, and Rust
+  owns source-kind inference, managed checkout materialization, resolved
+  revision receipts, and cache paths. The primary user config does not require
+  backend-shaped fields such as `source.kind`, `remote`, or `rev`. After
+  loading the enabled registry entries, Rust builds a deterministic reference
+  graph from each repository's `ontology/manifest.toml`: declared domain ids
+  must be unique, and any manifest extension target must be owned by a loaded
+  registry entry before a registry-selected run plan is admitted. A validated
+  registry graph can also be compiled into the same `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state` Arrow read-model
+  tables used by WendaoGraph quality checks, representing registry entries,
+  domains, ownership links, and extension links without requiring common
+  ontology repositories to declare source-contract TSVs. The
+  episteme source-contract test surface also includes an opt-in live diagnostic
+  guarded by `RUN_EPISTEME_SOURCE_CONTRACT_WENDAOGRAPH_QUALITY_LIVE_TEST=1`;
+  it requires `WENDAO_EPISTEME_SOURCE_CONTRACT_ROOT=<path>`, reads the selected
+  source manifest's `corpus_root_env`, sends the compiled seed through the
+  runtime Arrow Flight
+  client, and writes cache-local evidence. That diagnostic is not a default
+  test, not a production Gateway route, and not a semantic RDF promotion step.
+  The diagnostic accepts `WENDAO_EPISTEME_SOURCE_CONTRACT_QUALITY_REPEATS=<n>` for
+  bounded warm-service timing runs and
+  `WENDAO_EPISTEME_SOURCE_CONTRACT_QUALITY_PREWARM_ROUNDS=<n>` for unmeasured prewarm
+  quality exchanges before measured repeats. It can also target a prestarted
+  quality service with
+  `WENDAO_EPISTEME_SOURCE_CONTRACT_WENDAOGRAPH_QUALITY_BASE_URL=<url>`; if unset, the
+  diagnostic still spawns a local Julia service. The live diagnostic can also
+  opt into `WENDAO_EPISTEME_SOURCE_CONTRACT_VALIDATION_HASH_CACHE_PATH=<path>`; this
+  cache is a Rust-owned validation accelerator only, and entries are used only
+  when the current path metadata and recorded manifest SHA-256 still match.
+  Default validation still performs full-file hashing.
 - business handlers that materialize Wendao-specific responses
 - temporary compatibility seams that have not been extracted yet
+
+SearchStrategyFlow uses that same ownership split. The product crate owns the
+structured search backend, including DuckDB-backed candidate retrieval where
+configured. `xiuxian-wendao-julia` receives narrowed candidate batches for
+Julia strategy/frontier selection; Julia does not own DuckDB access or full
+candidate discovery. The domain-owned Flight host also prewarms bootstrap
+projected pages and page-index trees, then serves projected page-index and
+retrieval-context materialization from a host-local cache before falling back to
+analysis-backed route construction.
 
 Do not place new code here when it is better classified as:
 
@@ -576,6 +707,17 @@ readable repo aliases and inject a synthetic `repo_id` column, so SQL clients
 can query across partitions or repos without first discovering every physical
 source table.
 
+The real-repository search precision harness is documented in
+[`docs/03_features/216_real_repo_search_precision.md`](docs/03_features/216_real_repo_search_precision.md).
+The README keeps only the crate-level map: the harness stays opt-in, reuses
+the existing LinkGraph and repo-AST search contracts, writes cache-local
+receipts, and validates both this repository and optional external
+orchestration sources such as [`pi-wendao`](https://github.com/tao3k/pi-wendao)
+without committing runtime checkouts. The feature note records the latest
+real-validation reflection: graph-first reasoning-tree search is strongest for
+evidence-rich knowledge tasks, while simple known-item or small-repository
+queries should remain eligible for cheaper profile routing.
+
 The SQL lane now also keeps snapshot-level regression coverage through
 `src/search/queries/sql/tests/snapshots.rs`, with canonical baselines under
 `tests/snapshots/search/queries/`. That namespace now belongs to the shared
@@ -697,13 +839,53 @@ defaults, host staging, transport, and composed downcalls belong in
 `xiuxian-wendao-julia`. `xiuxian-wendao` now keeps only the thin
 `memory::julia` bridge that points at those plugin-owned surfaces.
 
-For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` now provides the local
-`link_graph::wendao_graph_evidence` adapter. It maps `LinkGraphIndex` document
-links, PageIndex parent-child topology, and optional seed rows into validated
-WendaoGraph request `RecordBatch` bundles by reusing the
-`xiuxian-wendao-julia` contract mirror. This is still transport-neutral: the
-adapter does not call Julia, does not add a Flight route, and does not change
-search ranking behavior.
+For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` provides the local
+`link_graph::wendao_graph_evidence` adapter. The link-evidence bundle maps
+`LinkGraphIndex` document links plus optional diffusion seeds and
+either `semantic_neighbors` rows or host-precomputed `semantic_overlay` rows
+into the existing `/graph/link/evidence` request tables by reusing the
+`xiuxian-wendao-julia` contract mirror. The semantic paths validate node
+identity, one-based vertex indices, rank, distance, overlay weight, and edge
+kind before Arrow batch construction so Julia can derive `semantic_overlay`,
+`diffusion_scores`, and `link_frontier` deterministically. The two semantic
+input variants are mutually exclusive, matching the WendaoGraph.jl request
+contract.
+This is still transport-neutral: the adapter does not call Julia, does not add
+a Flight route, and does not change search ranking behavior.
+
+The WendaoGraph PageIndex reasoning path is separate. The same adapter module
+also exposes a PageIndex sidecar builder that materializes `page_index_nodes`,
+`page_index_edges`, and schema-stable `page_index_seeds` from `LinkGraphIndex`
+for future WendaoGraph service integration. These PageIndex reasoning tables
+are not mixed into `/graph/link/evidence`.
+
+The same adapter now also exposes a semantic SSOT projection path for agent
+reasoning-tree work. `xiuxian-wendao` projects parser-owned
+`SemanticScopeBundle` facts into the existing PageIndex request tables so
+WendaoGraph.jl can compute derived `reasoning_frontier`, `disclosure_trace`,
+and planner-action evidence. The projection preserves semantic object ids,
+relation kinds, source paths, status, confidence, owner, provenance, and
+validation hints inside the PageIndex request rows. Julia does not own or
+mutate SSOT authority; Rust validates the projection before any Julia dispatch.
+An opt-in live proof materializes the semantic projection as temporary
+PageIndex TSV fixture files and runs the real WendaoGraph.jl host entrypoint,
+so this path is validated beyond schema-only tests while remaining
+transport-neutral.
+The stable design reference is
+[`docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md`](../../../../docs/rfcs/2026-05-03-repo-native-semantic-ssot-layer-rfc.md).
+
+That boundary is backed by the git-stable host fixture under
+`packages/rust/crates/xiuxian-wendao/tests/fixtures/wendaograph_page_index_reasoning_host`.
+Rust tests compare the fixture against the PageIndex sidecar builder, and
+WendaoGraph.jl can read the same fixture through its native PageIndex contract
+and reasoning tests. The fixture is interop evidence only; it does not add a
+Flight route or change runtime fallback behavior.
+
+WendaoGraph.jl now also exposes `page_index_reasoning_from_request(...)` as a
+host-request facade for those sidecar-shaped tables. Host callers can pass a
+request object containing `page_index_nodes`, `page_index_edges`, and optional
+`page_index_seeds`; table payloads supplied through keywords are rejected so
+the transport boundary stays explicit.
 
 For link-graph semantic retrieval, `VectorStoreSemanticIgnition` now also
 provides `build_julia_rerank_request_batch(...)`, which reuses anchor ids as
@@ -871,19 +1053,19 @@ The Julia deployment inspection surface now also carries its own controller for
 copy/download feedback state, further reducing the amount of local UI state
 owned by the top-level StatusBar shell.
 
-A second official-example integration now targets
+A second WendaoSearch service-fixture integration now targets
 `.data/WendaoArrow/scripts/run_stream_metadata_server.sh` to confirm additive
 response columns derived from request metadata do not break the planned-search
 Julia rerank path. The Julia response decoder now also surfaces optional
 additive `trace_id` columns into `julia_rerank.trace_ids`, and the planned
-search runtime writes a stable request-schema `trace_id` so the official
-metadata example can roundtrip that context without changing the core
+search runtime writes a stable request-schema `trace_id` so the metadata
+service fixture can roundtrip that context without changing the core
 `doc_id / analyzer_score / final_score` contract.
 
 The integration support layer now keeps those two concerns separate:
 
 - custom-score tests launch a private Julia processor with explicit score maps
-- official-example tests launch `.data/WendaoArrow/scripts/run_stream_scoring_server.sh`
+- WendaoSearch service-fixture tests launch `.data/WendaoArrow/scripts/run_stream_scoring_server.sh`
 
 At the request boundary, both `zhenfa_router::WendaoSearchRequest` and the
 planned HTTP request surface now accept an optional `query_vector`. When

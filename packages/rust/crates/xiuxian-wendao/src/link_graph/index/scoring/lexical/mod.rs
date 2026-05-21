@@ -1,3 +1,5 @@
+//! `link_graph::index::scoring::lexical` owns Wendao index scoring lexical behavior.
+
 #[path = "document.rs"]
 mod document;
 #[path = "helpers.rs"]

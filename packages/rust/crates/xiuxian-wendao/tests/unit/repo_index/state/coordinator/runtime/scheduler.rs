@@ -132,7 +132,7 @@ fn handle_task_result_does_not_penalize_unsupported_repo_failures() {
             outcome: RepoTaskOutcome::Failure {
                 revision: None,
                 error: crate::analyzers::RepoIntelligenceError::UnsupportedRepositoryLayout {
-                    repo_id: "alpha/repo".to_string(),
+                    repo_id: "alpha/repo".to_string().into(),
                     message: "missing Project.toml".to_string(),
                 },
             },

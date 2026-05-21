@@ -33,8 +33,7 @@ fn test_saliency_store_auto_repairs_invalid_payload() -> Result<(), String> {
         },
         TEST_VALKEY_URL,
         Some(&prefix),
-    )
-    .map_err(|err| err.to_string())?;
+    )?;
 
     let mut conn = valkey_connection()?;
     let pattern = format!("{prefix}:saliency:*");
@@ -53,8 +52,7 @@ fn test_saliency_store_auto_repairs_invalid_payload() -> Result<(), String> {
         .query::<()>(&mut conn)
         .map_err(|err| err.to_string())?;
 
-    let fetched = valkey_saliency_get_with_valkey("note-b", TEST_VALKEY_URL, Some(&prefix))
-        .map_err(|err| err.to_string())?;
+    let fetched = valkey_saliency_get_with_valkey("note-b", TEST_VALKEY_URL, Some(&prefix))?;
     let raw: Option<String> = redis::cmd("GET")
         .arg(&key)
         .query(&mut conn)

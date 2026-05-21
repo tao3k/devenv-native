@@ -32,7 +32,7 @@ fn build_repository_analysis_cache_key_reuses_julia_identity_for_non_affecting_c
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let source = MaterializedRepo {
         checkout_root: tempdir.path().to_path_buf(),
@@ -89,7 +89,7 @@ fn build_repository_analysis_cache_key_reuses_julia_identity_for_ast_equivalent_
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let source = MaterializedRepo {
         checkout_root: tempdir.path().to_path_buf(),
@@ -148,7 +148,7 @@ fn build_repository_analysis_cache_key_invalidates_on_julia_source_change() {
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let source = MaterializedRepo {
         checkout_root: tempdir.path().to_path_buf(),

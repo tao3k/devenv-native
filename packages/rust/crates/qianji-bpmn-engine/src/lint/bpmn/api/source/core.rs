@@ -240,7 +240,7 @@ fn invalid_default_gateway_issue(
     } else {
         ""
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Conditional gateway default flow reference is invalid",
         format!(
@@ -316,7 +316,7 @@ fn duplicate_unconditional_gateway_issue(
         MissingBranchDuplicateKind::Default => duplicate_default_flow_ids.join(", "),
         MissingBranchDuplicateKind::None => String::new(),
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_gateway_configuration",
         "Non-default bounded conditional branches need conditions",
         format!(
@@ -354,7 +354,7 @@ pub(in crate::lint::bpmn::api) fn source_task_routing_issue(
     let violations = find_task_routing_violations(&source.contents);
     let primary = violations.first()?;
     let all_violations_summary = task_routing_violations_summary(&violations);
-    let issue = LintIssue::new(
+    let issue = LintIssue::from_parts(
         "bpmn.unsupported_task_configuration",
         "Executable tasks must have exactly one outgoing sequence flow",
         format!(

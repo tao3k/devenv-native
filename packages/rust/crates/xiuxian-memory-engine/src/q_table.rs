@@ -5,7 +5,23 @@
 //! where `α` is the learning rate and `reward` is the observed outcome.
 
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+use thiserror::Error;
+
+use crate::EpisodeId;
+
+/// Persistence error returned by public Q-table state APIs.
+#[derive(Debug, Error)]
+pub enum QTablePersistenceError {
+    /// The Q-table could not be encoded as JSON.
+    #[error("serialize q-table: {0}")]
+    Serialize(#[from] serde_json::Error),
+    /// The Q-table file could not be read or written.
+    #[error("q-table file io: {0}")]
+    Io(#[from] std::io::Error),
+}
 
 /// Q-learning table for episode utility tracking.
 ///
@@ -59,25 +75,32 @@ impl QTable {
 
     /// Update one Q-value using
     /// `Q_new = Q_old + α * (reward - Q_old)`.
-    pub fn update(&self, episode_id: &str, reward: f32) -> f32 {
-        let q_old = self.get_q(episode_id);
+    pub fn update(&self, episode_id: impl Into<EpisodeId>, reward: f32) -> f32 {
+        let episode_id = episode_id.into();
+        let q_old = self.get_q(episode_id.as_str());
         let q_new = q_old + self.learning_rate * (reward - q_old);
         let q_clamped = q_new.clamp(0.0, 1.0);
-        self.write_table().insert(episode_id.to_string(), q_clamped);
+        self.write_table()
+            .insert(episode_id.as_str().to_string(), q_clamped);
         q_clamped
     }
 
     /// Get the Q-value for one episode.
     ///
     /// Returns 0.5 when the episode has no stored value.
-    pub fn get_q(&self, episode_id: &str) -> f32 {
-        self.read_table().get(episode_id).copied().unwrap_or(0.5)
+    pub fn get_q(&self, episode_id: impl Into<EpisodeId>) -> f32 {
+        let episode_id = episode_id.into();
+        self.read_table()
+            .get(episode_id.as_str())
+            .copied()
+            .unwrap_or(0.5)
     }
 
     /// Initialize a new episode with the default Q-value.
-    pub fn init_episode(&self, episode_id: &str) {
+    pub fn init_episode(&self, episode_id: impl Into<EpisodeId>) {
+        let episode_id = episode_id.into();
         self.write_table()
-            .entry(episode_id.to_string())
+            .entry(episode_id.as_str().to_string())
             .or_insert(0.5);
     }
 
@@ -124,8 +147,9 @@ impl QTable {
     }
 
     /// Remove an entry from the Q-table.
-    pub fn remove(&self, episode_id: &str) {
-        self.write_table().remove(episode_id);
+    pub fn remove(&self, episode_id: impl Into<EpisodeId>) {
+        let episode_id = episode_id.into();
+        self.write_table().remove(episode_id.as_str());
     }
 
     /// Save the Q-table to a JSON file.
@@ -133,11 +157,15 @@ impl QTable {
     /// # Errors
     ///
     /// Returns an error if the table cannot be serialized or written to disk.
-    pub fn save(&self, path: &str) -> Result<(), anyhow::Error> {
+    pub fn save(&self, path: impl AsRef<Path>) -> Result<(), QTablePersistenceError> {
         let data = self.snapshot_map();
         let json = serde_json::to_string_pretty(&data)?;
-        std::fs::write(path, json)?;
-        log::info!("Saved Q-table with {} entries to {path}", data.len());
+        std::fs::write(path.as_ref(), json)?;
+        log::info!(
+            "Saved Q-table with {} entries to {}",
+            data.len(),
+            path.as_ref().display()
+        );
         Ok(())
     }
 
@@ -146,9 +174,10 @@ impl QTable {
     /// # Errors
     ///
     /// Returns an error if the file exists but cannot be read or parsed.
-    pub fn load(&mut self, path: &str) -> Result<(), anyhow::Error> {
-        if !std::path::Path::new(path).exists() {
-            log::info!("No existing Q-table file at {path}");
+    pub fn load(&mut self, path: impl AsRef<Path>) -> Result<(), QTablePersistenceError> {
+        let path = path.as_ref();
+        if !path.exists() {
+            log::info!("No existing Q-table file at {}", path.display());
             return Ok(());
         }
 
@@ -156,7 +185,7 @@ impl QTable {
         let data: HashMap<String, f32> = serde_json::from_str(&json)?;
         let count = data.len();
         *self.write_table() = data;
-        log::info!("Loaded {count} Q-table entries from {path}");
+        log::info!("Loaded {count} Q-table entries from {}", path.display());
         Ok(())
     }
 

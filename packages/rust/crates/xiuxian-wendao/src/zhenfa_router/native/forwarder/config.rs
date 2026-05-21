@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::forwarder::config` owns Wendao native forwarder config behavior.
+
 use serde::{Deserialize, Serialize};
 
 use crate::zhenfa_router::native::sentinel::DriftConfidence;

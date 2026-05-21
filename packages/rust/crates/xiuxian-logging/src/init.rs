@@ -1,3 +1,5 @@
+//! Runtime initialization for `tracing` and `log` subscribers.
+
 use std::io::IsTerminal;
 
 use thiserror::Error;

@@ -10,9 +10,9 @@ use crate::studio::router::retrieval_arrow::encode_retrieval_chunks_ipc;
 fn retrieval_arrow_roundtrip_preserves_chunk_fields() {
     let chunks = vec![
         RetrievalChunk {
-            owner_id: "section:intro".to_string(),
-            chunk_id: "md:intro".to_string(),
-            semantic_type: "section".to_string(),
+            owner_id: "section:intro".to_string().into(),
+            chunk_id: "md:intro".to_string().into(),
+            semantic_type: "section".to_string().into(),
             fingerprint: "fp:intro".to_string(),
             token_estimate: 18,
             display_label: Some("Intro".to_string()),
@@ -23,9 +23,9 @@ fn retrieval_arrow_roundtrip_preserves_chunk_fields() {
             attributes: vec![("heading_path".to_string(), "Intro".to_string())],
         },
         RetrievalChunk {
-            owner_id: "block:return:solve".to_string(),
-            chunk_id: "ast:return:solve".to_string(),
-            semantic_type: "return".to_string(),
+            owner_id: "block:return:solve".to_string().into(),
+            chunk_id: "ast:return:solve".to_string().into(),
+            semantic_type: "return".to_string().into(),
             fingerprint: "fp:return".to_string(),
             token_estimate: 9,
             display_label: None,

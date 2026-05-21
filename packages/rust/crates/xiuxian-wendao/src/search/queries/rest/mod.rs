@@ -1,3 +1,5 @@
+//! `search::queries::rest` owns Wendao search queries rest behavior.
+
 mod execution;
 mod request;
 mod response;

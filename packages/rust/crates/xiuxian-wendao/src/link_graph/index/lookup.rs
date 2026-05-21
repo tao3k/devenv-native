@@ -58,6 +58,7 @@ impl LinkGraphIndex {
 
     /// Resolve one document or anchor id into its semantic breadcrumb trail.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn page_index_semantic_path(&self, anchor_id: &str) -> Option<Vec<String>> {
         self.extract_lineage(anchor_id)
     }
@@ -84,6 +85,7 @@ impl LinkGraphIndex {
 
     /// Return an indexed document by canonical document id.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_doc(&self, doc_id: &str) -> Option<&LinkGraphDocument> {
         self.docs_by_id.get(doc_id)
     }
@@ -98,6 +100,7 @@ impl LinkGraphIndex {
 
     /// Resolve a document stem or canonical id into the canonical document id.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn resolve_doc_id_pub(&self, stem_or_id: &str) -> Option<&str> {
         self.resolve_doc_id(stem_or_id)
     }
@@ -141,6 +144,7 @@ impl LinkGraphIndex {
 
     /// Get document relative path by stem or ID.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn doc_path(&self, stem_or_id: &str) -> Option<&str> {
         let doc_id = self.resolve_doc_id(stem_or_id)?;
         self.docs_by_id.get(doc_id).map(|doc| doc.path.as_str())
@@ -148,6 +152,7 @@ impl LinkGraphIndex {
 
     /// Get document title by stem or ID.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn doc_title(&self, stem_or_id: &str) -> Option<&str> {
         let doc_id = self.resolve_doc_id(stem_or_id)?;
         self.docs_by_id.get(doc_id).map(|doc| doc.title.as_str())
@@ -180,6 +185,7 @@ impl LinkGraphIndex {
 
     /// Extract semantic intent targets for a document.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn intent_targets(&self, doc_id: &str) -> (Vec<String>, Vec<String>) {
         let Some(doc) = self.docs_by_id.get(doc_id) else {
             return (Vec::new(), Vec::new());

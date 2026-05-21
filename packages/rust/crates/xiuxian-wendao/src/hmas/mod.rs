@@ -1,3 +1,5 @@
+//! `hmas` owns Wendao hmas behavior.
+
 #[path = "blackboard/mod.rs"]
 mod blackboard;
 mod protocol;

@@ -1,4 +1,8 @@
+//! Owns the Studio repo query analysis surface.
+
 use serde::Deserialize;
+
+use crate::contracts::StudioContractMode;
 
 /// Query parameters for repository-wide search.
 #[derive(Debug, Deserialize)]
@@ -40,7 +44,7 @@ pub struct RepoSyncApiQuery {
     /// The repository identifier.
     pub repo: Option<String>,
     /// The synchronization mode ("ensure", "refresh", or "status").
-    pub mode: Option<String>,
+    pub mode: Option<StudioContractMode>,
 }
 
 /// Query parameters for repo index status.

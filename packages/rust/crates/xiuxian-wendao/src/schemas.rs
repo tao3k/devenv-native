@@ -55,28 +55,28 @@ pub const HMAS_DIGITAL_THREAD_V1: &str =
 pub const HMAS_EVIDENCE_V1: &str =
     include_str!("../resources/xiuxian_wendao.hmas.evidence.v1.schema.json");
 
-// --- xiuxian-daochang schemas ---
-/// Canonical schema for `daochang` agent route traces.
+// --- agent runtime schemas ---
+/// Canonical schema for agent route traces.
 pub const AGENT_ROUTE_TRACE_V1: &str =
-    include_str!("../../xiuxian-daochang/resources/xiuxian.runtime.route_trace.v1.schema.json");
-/// Canonical schema for `daochang` agent server info.
+    include_str!("../resources/agent/xiuxian.runtime.route_trace.v1.schema.json");
+/// Canonical schema for agent server info.
 pub const AGENT_SERVER_INFO_V1: &str =
-    include_str!("../../xiuxian-daochang/resources/xiuxian.runtime.server_info.v1.schema.json");
-/// Canonical schema for `daochang` agent session closure.
+    include_str!("../resources/agent/xiuxian.runtime.server_info.v1.schema.json");
+/// Canonical schema for agent session closure.
 pub const AGENT_SESSION_CLOSED_V1: &str =
-    include_str!("../../xiuxian-daochang/resources/xiuxian.runtime.session_closed.v1.schema.json");
-/// Canonical schema for `daochang` router route tests.
+    include_str!("../resources/agent/xiuxian.runtime.session_closed.v1.schema.json");
+/// Canonical schema for router route tests.
 pub const ROUTER_ROUTE_TEST_V1: &str =
-    include_str!("../../xiuxian-daochang/resources/xiuxian.router.route_test.v1.schema.json");
-/// Canonical schema for `daochang` router search operations.
+    include_str!("../resources/agent/xiuxian.router.route_test.v1.schema.json");
+/// Canonical schema for router search operations.
 pub const ROUTER_ROUTING_SEARCH_V1: &str =
-    include_str!("../../xiuxian-daochang/resources/xiuxian.router.routing_search.v1.schema.json");
-/// Canonical schema for `daochang` router search configuration.
+    include_str!("../resources/agent/xiuxian.router.routing_search.v1.schema.json");
+/// Canonical schema for router search configuration.
 pub const ROUTER_SEARCH_CONFIG_V1: &str =
-    include_str!("../../xiuxian-daochang/resources/xiuxian.router.search_config.v1.schema.json");
-/// Canonical schema for `daochang` discovery matches.
+    include_str!("../resources/agent/xiuxian.router.search_config.v1.schema.json");
+/// Canonical schema for agent discovery matches.
 pub const DISCOVER_MATCH_V1: &str =
-    include_str!("../../xiuxian-daochang/resources/xiuxian.discover.match.v1.schema.json");
+    include_str!("../resources/agent/xiuxian.discover.match.v1.schema.json");
 
 // --- xiuxian-memory-engine schemas ---
 /// Canonical schema for `memory-engine` gate events.

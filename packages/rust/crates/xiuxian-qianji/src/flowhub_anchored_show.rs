@@ -1,3 +1,5 @@
+//! Flowhub anchored show surface for `xiuxian-qianji`.
+
 use std::path::Path;
 
 use crate::error::QianjiError;

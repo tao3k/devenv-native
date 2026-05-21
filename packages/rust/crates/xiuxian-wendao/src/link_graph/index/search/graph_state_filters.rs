@@ -8,16 +8,12 @@ impl LinkGraphIndex {
         let Some(targets) = self.outgoing.get(doc_id) else {
             return false;
         };
-        for target in targets {
-            let has_reverse = self
+        targets.iter().any(|target| {
+            !self
                 .outgoing
                 .get(target)
-                .is_some_and(|row| row.contains(doc_id));
-            if !has_reverse {
-                return true;
-            }
-        }
-        false
+                .is_some_and(|row| row.contains(doc_id))
+        })
     }
 
     pub(super) fn matches_graph_state_filters(

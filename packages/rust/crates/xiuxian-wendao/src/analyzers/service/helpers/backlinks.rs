@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::collections::BTreeMap;
 
 use crate::analyzers::RepoBacklinkItem;
@@ -30,9 +31,9 @@ pub(crate) fn documents_backlink_lookup(
                 kind: Some("documents".to_string()),
             },
             |doc| RepoBacklinkItem {
-                id: doc.doc_id.clone(),
+                id: doc.doc_id.to_string(),
                 title: Some(doc.title.clone()).filter(|title| !title.trim().is_empty()),
-                path: Some(doc.path.clone()).filter(|path| !path.trim().is_empty()),
+                path: Some(doc.path.to_string()).filter(|path| !path.trim().is_empty()),
                 kind: Some("documents".to_string()),
             },
         );

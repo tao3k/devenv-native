@@ -12,11 +12,9 @@ pub(super) fn expected_builtin_languages(registry: &PluginRegistry) -> Vec<Strin
         .into_iter()
         .map(std::string::ToString::to_string)
         .collect::<Vec<_>>();
-    let mut expected = xiuxian_ast::Lang::all()
-        .iter()
-        .copied()
-        .map(xiuxian_ast::Lang::as_str)
-        .map(std::string::ToString::to_string)
+    let mut expected = xiuxian_code_intelligence::all_code_language_ids()
+        .into_iter()
+        .map(|language_id| language_id.as_str().to_string())
         .collect::<std::collections::BTreeSet<_>>();
     expected.extend(registry_languages);
     expected.into_iter().collect::<Vec<_>>()
@@ -49,7 +47,9 @@ pub(super) fn plugin_artifact_state(
 ) {
     let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     let config_path = temp.path().join("wendao.toml");
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
     fs::write(&config_path, runtime_config_toml)
         .unwrap_or_else(|error| panic!("write config: {error}"));
     let config_path_string = config_path.to_string_lossy().to_string();

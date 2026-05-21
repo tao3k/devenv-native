@@ -13,7 +13,7 @@ use xiuxian_wendao_server::transport::{
     MarkdownAnalysisFlightRouteProvider, SemanticScopeFlightRequest,
     SemanticScopeFlightRouteProvider,
 };
-use xiuxian_wendao_sql::DataFusionLocalRelationEngine;
+use xiuxian_wendao_sql::DuckDbLocalRelationEngine;
 use xiuxian_wendao_sql::semantic_read_model::{
     SemanticProjectionFreshnessFinding, SemanticSqlGuardEvidence,
     run_semantic_sql_projection_freshness_guard_with_engine,
@@ -343,7 +343,7 @@ fn semantic_scope_batch_columns(
 async fn semantic_sql_guard_evidence(
     repository: &SemanticRepository,
 ) -> Result<SemanticSqlGuardEvidence, String> {
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory()?;
     run_semantic_sql_projection_freshness_guard_with_engine(repository, &query_engine).await
 }
 

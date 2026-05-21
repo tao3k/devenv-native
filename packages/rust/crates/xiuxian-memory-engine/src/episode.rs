@@ -9,6 +9,78 @@ use serde::{Deserialize, Serialize};
 /// Global scope constant for episodes without a specific scope.
 pub const GLOBAL_EPISODE_SCOPE: &str = "_global";
 
+/// Stable episode identifier used by memory APIs.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct EpisodeId(String);
+
+impl EpisodeId {
+    /// Borrows the raw episode identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for EpisodeId {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+impl From<String> for EpisodeId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for EpisodeId {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl From<&String> for EpisodeId {
+    fn from(value: &String) -> Self {
+        Self(value.clone())
+    }
+}
+
+impl PartialEq<&str> for EpisodeId {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+/// Input payload for creating an episode.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EpisodeDraft {
+    /// Unique identifier for this episode.
+    pub id: EpisodeId,
+    /// User intent captured for the episode.
+    pub intent: String,
+    /// Semantic embedding for the intent.
+    pub intent_embedding: Vec<f32>,
+    /// Stored experience or action result.
+    pub experience: String,
+    /// Outcome label or detail.
+    pub outcome: String,
+    /// Optional logical scope.
+    #[serde(default)]
+    pub scope: Option<String>,
+}
+
+impl EpisodeDraft {
+    /// Assign a logical scope to this draft.
+    #[must_use]
+    pub fn with_scope(mut self, scope: impl Into<String>) -> Self {
+        self.scope = Some(scope.into());
+        self
+    }
+}
+
 /// A single experience episode in the memory system.
 ///
 /// Each episode represents a stored interaction with:
@@ -51,54 +123,34 @@ pub struct Episode {
 impl Episode {
     /// Create a new episode with default Q-value (0.5).
     #[must_use]
-    pub fn new(
-        id: String,
-        intent: String,
-        intent_embedding: Vec<f32>,
-        experience: String,
-        outcome: String,
-    ) -> Self {
-        let now = Utc::now().timestamp_millis();
-        Self {
-            id,
-            intent,
-            intent_embedding,
-            experience,
-            outcome,
-            q_value: 0.5, // Initial Q-value (neutral)
-            retrieval_count: 0,
-            success_count: 0,
-            failure_count: 0,
-            created_at: now,
-            updated_at: now,
-            scope: GLOBAL_EPISODE_SCOPE.to_string(),
-        }
+    pub fn new(draft: EpisodeDraft) -> Self {
+        Self::from_draft(draft)
     }
 
     /// Create a new episode with a specific scope.
     #[must_use]
-    pub fn new_scoped(
-        id: String,
-        intent: String,
-        intent_embedding: Vec<f32>,
-        experience: String,
-        outcome: String,
-        scope: impl AsRef<str>,
-    ) -> Self {
+    pub fn new_scoped(draft: EpisodeDraft) -> Self {
+        Self::from_draft(draft)
+    }
+
+    fn from_draft(draft: EpisodeDraft) -> Self {
         let now = Utc::now().timestamp_millis();
         Self {
-            id,
-            intent,
-            intent_embedding,
-            experience,
-            outcome,
+            id: draft.id.as_str().to_string(),
+            intent: draft.intent,
+            intent_embedding: draft.intent_embedding,
+            experience: draft.experience,
+            outcome: draft.outcome,
             q_value: 0.5, // Initial Q-value (neutral)
             retrieval_count: 0,
             success_count: 0,
             failure_count: 0,
             created_at: now,
             updated_at: now,
-            scope: Self::normalize_scope(scope.as_ref()),
+            scope: draft
+                .scope
+                .as_deref()
+                .map_or_else(|| GLOBAL_EPISODE_SCOPE.to_string(), Self::normalize_scope),
         }
     }
 

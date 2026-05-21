@@ -1,3 +1,5 @@
+//! `search::local_symbol::build::types` owns Wendao local symbol build types behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::search::SearchFileFingerprint;
@@ -21,7 +23,7 @@ pub(crate) struct LocalSymbolWriteResult {
     pub(crate) row_count: u64,
     pub(crate) fragment_count: u64,
 }
-
+/// `LocalSymbolBuildError` public enum boundary for Wendao.
 #[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
 pub enum LocalSymbolBuildError {

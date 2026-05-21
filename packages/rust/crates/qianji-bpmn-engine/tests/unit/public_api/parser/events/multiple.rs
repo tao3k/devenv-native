@@ -11,8 +11,8 @@ fn parser_multiple_event_definition_is_lint_deferred() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: "multiple_event_definition".to_string(),
-            node_id: "wait_multiple".to_string(),
+            process_id: ("multiple_event_definition".to_string()).into(),
+            node_id: ("wait_multiple".to_string()).into(),
             detail: "multiple_event_definition_deferred",
         }
     );
@@ -28,8 +28,8 @@ fn parser_parallel_multiple_event_definition_is_lint_deferred() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: "parallel_multiple_event_definition".to_string(),
-            node_id: "wait_parallel_multiple".to_string(),
+            process_id: ("parallel_multiple_event_definition".to_string()).into(),
+            node_id: ("wait_parallel_multiple".to_string()).into(),
             detail: "parallel_multiple_event_definition_deferred",
         }
     );
@@ -45,9 +45,9 @@ fn parser_multiple_event_concrete_definitions_are_rejected() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedMultipleEventDefinitions {
-            source_id: "invalid-multiple-event-definitions.bpmn".to_string(),
-            process_id: "multiple_event_definitions".to_string(),
-            node_id: "wait_multiple".to_string(),
+            source_id: ("invalid-multiple-event-definitions.bpmn".to_string()).into(),
+            process_id: ("multiple_event_definitions".to_string()).into(),
+            node_id: ("wait_multiple".to_string()).into(),
         }
     );
 }

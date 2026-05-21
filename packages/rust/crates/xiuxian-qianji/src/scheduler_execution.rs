@@ -24,6 +24,7 @@ impl QianjiScheduler {
     ///
     /// Returns [`QianjiError`] when checkpoint load/save/delete fails,
     /// when any mechanism aborts/errors, on task panic, or when step budget is exceeded.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn run_with_checkpoint(
         &self,
         initial_context: serde_json::Value,

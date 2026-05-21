@@ -62,6 +62,92 @@ impl MemoryJuliaComputeServiceMode {
     }
 }
 
+/// Provider identity for the memory-family Julia compute lane.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct MemoryJuliaComputePluginId(String);
+
+impl MemoryJuliaComputePluginId {
+    /// Creates a plugin identity from a caller-validated value.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Returns the plugin identity as text.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+
+    /// Consumes this value into its owned string representation.
+    #[must_use]
+    pub fn into_string(self) -> String {
+        self.0
+    }
+}
+
+impl Default for MemoryJuliaComputePluginId {
+    fn default() -> Self {
+        Self(DEFAULT_MEMORY_JULIA_COMPUTE_PLUGIN_ID.to_string())
+    }
+}
+
+impl From<&str> for MemoryJuliaComputePluginId {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<String> for MemoryJuliaComputePluginId {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl PartialEq<&str> for MemoryJuliaComputePluginId {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+/// Timeout budget, in seconds, for a memory-family Julia compute roundtrip.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct MemoryJuliaComputeTimeoutSecs(u64);
+
+impl MemoryJuliaComputeTimeoutSecs {
+    /// Creates a timeout value from a caller-validated positive second count.
+    #[must_use]
+    pub fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the timeout as seconds.
+    #[must_use]
+    pub fn value(self) -> u64 {
+        self.0
+    }
+}
+
+impl Default for MemoryJuliaComputeTimeoutSecs {
+    fn default() -> Self {
+        Self(DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS)
+    }
+}
+
+impl From<u64> for MemoryJuliaComputeTimeoutSecs {
+    fn from(value: u64) -> Self {
+        Self::new(value)
+    }
+}
+
+impl PartialEq<u64> for MemoryJuliaComputeTimeoutSecs {
+    fn eq(&self, other: &u64) -> bool {
+        self.value() == *other
+    }
+}
+
 /// Route map for the first `memory` capability family profiles.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MemoryJuliaComputeRoutesRuntimeConfig {
@@ -96,7 +182,7 @@ pub struct MemoryJuliaComputeRuntimeConfig {
     /// Physical schema version for request/response transport.
     pub schema_version: String,
     /// Provider identity advertised by the Julia capability manifest.
-    pub plugin_id: String,
+    pub plugin_id: MemoryJuliaComputePluginId,
     /// Optional family-level health route for the Julia compute service.
     pub health_route: Option<String>,
     /// Transport interaction mode used by the host integration.
@@ -104,7 +190,7 @@ pub struct MemoryJuliaComputeRuntimeConfig {
     /// Optional scenario pack forwarded into the Julia compute lane.
     pub scenario_pack: Option<String>,
     /// Timeout budget for one compute roundtrip.
-    pub timeout_secs: u64,
+    pub timeout_secs: MemoryJuliaComputeTimeoutSecs,
     /// Maximum concurrent in-flight compute roundtrips per host transport client.
     pub max_in_flight_requests: u64,
     /// Fallback behavior when Julia compute is unavailable.
@@ -121,11 +207,11 @@ impl Default for MemoryJuliaComputeRuntimeConfig {
             enabled: false,
             base_url: DEFAULT_MEMORY_JULIA_COMPUTE_BASE_URL.to_string(),
             schema_version: DEFAULT_MEMORY_JULIA_COMPUTE_SCHEMA_VERSION.to_string(),
-            plugin_id: DEFAULT_MEMORY_JULIA_COMPUTE_PLUGIN_ID.to_string(),
+            plugin_id: MemoryJuliaComputePluginId::default(),
             health_route: None,
             service_mode: MemoryJuliaComputeServiceMode::default(),
             scenario_pack: None,
-            timeout_secs: DEFAULT_MEMORY_JULIA_COMPUTE_TIMEOUT_SECS,
+            timeout_secs: MemoryJuliaComputeTimeoutSecs::default(),
             max_in_flight_requests: DEFAULT_MEMORY_JULIA_COMPUTE_MAX_IN_FLIGHT_REQUESTS,
             fallback_mode: MemoryJuliaComputeFallbackMode::default(),
             shadow_compare: true,
@@ -144,7 +230,16 @@ pub fn resolve_memory_julia_compute_runtime_with_settings(
     settings: &Value,
 ) -> MemoryJuliaComputeRuntimeConfig {
     let mut resolved = MemoryJuliaComputeRuntimeConfig::default();
+    apply_memory_julia_compute_endpoint_settings(settings, &mut resolved);
+    apply_memory_julia_compute_behavior_settings(settings, &mut resolved);
+    apply_memory_julia_compute_route_settings(settings, &mut resolved);
+    resolved
+}
 
+fn apply_memory_julia_compute_endpoint_settings(
+    settings: &Value,
+    resolved: &mut MemoryJuliaComputeRuntimeConfig,
+) {
     if let Some(enabled) = get_setting_bool(settings, "memory.julia_compute.enabled") {
         resolved.enabled = enabled;
     }
@@ -160,11 +255,16 @@ pub fn resolve_memory_julia_compute_runtime_with_settings(
     }
 
     if let Some(plugin_id) = resolve_non_empty_string(settings, "memory.julia_compute.plugin_id") {
-        resolved.plugin_id = plugin_id;
+        resolved.plugin_id = MemoryJuliaComputePluginId::new(plugin_id);
     }
 
     resolved.health_route = resolve_non_empty_string(settings, "memory.julia_compute.health_route");
+}
 
+fn apply_memory_julia_compute_behavior_settings(
+    settings: &Value,
+    resolved: &mut MemoryJuliaComputeRuntimeConfig,
+) {
     if let Some(service_mode) =
         resolve_non_empty_string(settings, "memory.julia_compute.service_mode")
             .as_deref()
@@ -181,7 +281,7 @@ pub fn resolve_memory_julia_compute_runtime_with_settings(
             .as_deref()
             .and_then(parse_positive_u64)
     {
-        resolved.timeout_secs = timeout_secs;
+        resolved.timeout_secs = MemoryJuliaComputeTimeoutSecs::new(timeout_secs);
     }
 
     if let Some(max_in_flight_requests) =
@@ -204,7 +304,12 @@ pub fn resolve_memory_julia_compute_runtime_with_settings(
     {
         resolved.shadow_compare = shadow_compare;
     }
+}
 
+fn apply_memory_julia_compute_route_settings(
+    settings: &Value,
+    resolved: &mut MemoryJuliaComputeRuntimeConfig,
+) {
     if let Some(route) =
         resolve_non_empty_string(settings, "memory.julia_compute.routes.episodic_recall")
     {
@@ -228,8 +333,6 @@ pub fn resolve_memory_julia_compute_runtime_with_settings(
     {
         resolved.routes.memory_calibration = route;
     }
-
-    resolved
 }
 
 #[cfg(test)]

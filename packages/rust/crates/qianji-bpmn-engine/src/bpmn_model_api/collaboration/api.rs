@@ -1,19 +1,20 @@
 //! Public bpmn model api collaboration contracts for BPMN/DMN engine integration.
 
 use super::artifact::{BpmnAssociationSnapshot, BpmnGroupSnapshot, BpmnTextAnnotationSnapshot};
+use super::types::{BpmnSnapshotFlag, BpmnSnapshotId, BpmnSnapshotKind, BpmnSnapshotType};
 
 /// Snapshot of one BPMN `collaboration`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnCollaborationSnapshot {
     /// Local BPMN collaboration element kind, such as `collaboration`.
     #[serde(default)]
-    pub collaboration_kind: String,
+    pub collaboration_kind: BpmnSnapshotKind,
     /// Optional stable collaboration identifier.
-    pub collaboration_id: Option<String>,
+    pub collaboration_id: Option<BpmnSnapshotId>,
     /// Optional human-readable collaboration name.
     pub name: Option<String>,
     /// Optional BPMN closed-collaboration marker.
-    pub is_closed: Option<bool>,
+    pub is_closed: Option<BpmnSnapshotFlag>,
     /// Optional initiating participant for `globalChoreographyTask`.
     pub initiating_participant_ref: Option<String>,
     /// Direct participant metadata preserved from the collaboration.
@@ -129,9 +130,9 @@ pub struct BpmnMessageFlowSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnConversationNodeSnapshot {
     /// Local BPMN conversation-node kind.
-    pub node_kind: String,
+    pub node_kind: BpmnSnapshotKind,
     /// Optional stable conversation-node identifier.
-    pub node_id: Option<String>,
+    pub node_id: Option<BpmnSnapshotId>,
     /// Optional human-readable conversation-node name.
     pub name: Option<String>,
     /// Optional called collaboration reference for `callConversation`.
@@ -157,15 +158,15 @@ pub struct BpmnConversationNodeSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnChoreographyActivitySnapshot {
     /// Local BPMN choreography activity kind.
-    pub activity_kind: String,
+    pub activity_kind: BpmnSnapshotKind,
     /// Optional stable choreography activity identifier.
-    pub activity_id: Option<String>,
+    pub activity_id: Option<BpmnSnapshotId>,
     /// Optional human-readable choreography activity name.
     pub name: Option<String>,
     /// Optional initiating participant reference.
     pub initiating_participant_ref: Option<String>,
     /// Optional BPMN choreography loop type.
-    pub loop_type: Option<String>,
+    pub loop_type: Option<BpmnSnapshotType>,
     /// Optional called choreography reference for `callChoreography`.
     pub called_choreography_ref: Option<String>,
     /// Direct participant references preserved in source order.

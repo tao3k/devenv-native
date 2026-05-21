@@ -134,10 +134,10 @@ fn test_analysis(
         docs: pages
             .into_iter()
             .map(|page| crate::analyzers::DocRecord {
-                repo_id: page.repo_id,
-                doc_id: page.doc_id,
+                repo_id: page.repo_id.into(),
+                doc_id: page.doc_id.into(),
                 title: page.title,
-                path: page.path,
+                path: page.path.into(),
                 format: page.format_hints.first().cloned(),
                 doc_target: None,
             })

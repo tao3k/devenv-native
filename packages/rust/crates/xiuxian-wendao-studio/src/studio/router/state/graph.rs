@@ -2,7 +2,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::studio::router::error::StudioApiError;
-use crate::studio::router::state::helpers::graph_include_dirs;
+use crate::studio::router::state::project_config::graph_include_dirs;
 use crate::studio::router::state::types::{
     GatewayState, GraphIndexCacheEntry, GraphSourceSignature, StudioState,
 };

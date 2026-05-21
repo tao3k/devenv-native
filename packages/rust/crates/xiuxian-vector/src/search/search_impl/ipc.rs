@@ -36,33 +36,10 @@ fn collect_vector_ipc_data(results: &[VectorSearchResult]) -> VectorIpcData {
         .map(|r| serde_json::to_string(&r.metadata).unwrap_or_else(|_| "null".to_string()))
         .collect();
 
-    let mut rk_builder = ListBuilder::new(StringBuilder::new());
-    for result in results {
-        for keyword in result
-            .routing_keywords
-            .split_whitespace()
-            .filter(|token| !token.is_empty())
-        {
-            rk_builder.values().append_value(keyword);
-        }
-        rk_builder.append(true);
-    }
-    let routing_keywords_array: std::sync::Arc<dyn Array> =
-        std::sync::Arc::new(rk_builder.finish());
-
-    let mut intents_builder = ListBuilder::new(StringBuilder::new());
-    for result in results {
-        for intent in result
-            .intents
-            .split(" | ")
-            .map(str::trim)
-            .filter(|token| !token.is_empty())
-        {
-            intents_builder.values().append_value(intent);
-        }
-        intents_builder.append(true);
-    }
-    let intents_array: std::sync::Arc<dyn Array> = std::sync::Arc::new(intents_builder.finish());
+    let routing_keywords_array =
+        vector_result_list_array(results, |result| result.routing_keywords.split_whitespace());
+    let intents_array =
+        vector_result_list_array(results, |result| result.intents.split(" | ").map(str::trim));
 
     VectorIpcData {
         ids,
@@ -74,6 +51,31 @@ fn collect_vector_ipc_data(results: &[VectorSearchResult]) -> VectorIpcData {
         routing_keywords_array,
         intents_array,
     }
+}
+
+fn vector_result_list_array<'a, F, I>(
+    results: &'a [VectorSearchResult],
+    tokens: F,
+) -> std::sync::Arc<dyn Array>
+where
+    F: Fn(&'a VectorSearchResult) -> I,
+    I: Iterator<Item = &'a str>,
+{
+    let mut builder = ListBuilder::new(StringBuilder::new());
+    for result in results {
+        append_vector_result_tokens(&mut builder, tokens(result));
+    }
+    std::sync::Arc::new(builder.finish())
+}
+
+fn append_vector_result_tokens<'a, I>(builder: &mut ListBuilder<StringBuilder>, tokens: I)
+where
+    I: Iterator<Item = &'a str>,
+{
+    for token in tokens.filter(|token| !token.is_empty()) {
+        builder.values().append_value(token);
+    }
+    builder.append(true);
 }
 
 fn resolve_vector_ipc_projection(projection: Option<&[String]>) -> Result<Vec<&str>, String> {

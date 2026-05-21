@@ -2,6 +2,7 @@
 
 use thiserror::Error;
 
+use crate::ZhenfaXmlLiteTagName;
 use crate::xml_lite::{extract_tag_f32, extract_tag_value};
 
 /// Structural validation failures detected during ingress washing.
@@ -28,7 +29,7 @@ pub enum ZhenfaTransmuterError {
     #[error("unclosed XML-Lite tag <{tag}>")]
     UnclosedTag {
         /// The opening tag that remained on stack.
-        tag: String,
+        tag: ZhenfaXmlLiteTagName,
     },
 }
 
@@ -191,96 +192,154 @@ pub fn validate_structure(content: &str) -> Result<(), ZhenfaTransmuterError> {
     if content.contains('\0') {
         return Err(ZhenfaTransmuterError::NullByteDetected);
     }
+    XmlLiteStructureValidator::new(content).validate()
+}
 
-    let bytes = content.as_bytes();
-    let mut cursor = 0usize;
-    let mut stack: Vec<String> = Vec::new();
+struct XmlLiteStructureValidator<'a> {
+    content: &'a str,
+    bytes: &'a [u8],
+    cursor: usize,
+    stack: Vec<String>,
+}
 
-    while cursor < bytes.len() {
-        if bytes[cursor] != b'<' {
-            cursor += 1;
-            continue;
+impl<'a> XmlLiteStructureValidator<'a> {
+    fn new(content: &'a str) -> Self {
+        Self {
+            content,
+            bytes: content.as_bytes(),
+            cursor: 0,
+            stack: Vec::new(),
         }
+    }
 
-        if cursor + 1 >= bytes.len() {
-            break;
+    fn validate(mut self) -> Result<(), ZhenfaTransmuterError> {
+        while self.cursor < self.bytes.len() {
+            self.scan_next_token()?;
         }
+        self.finish()
+    }
 
-        if bytes[cursor + 1] == b'!' {
-            if content[cursor..].starts_with("<!--") {
-                if let Some(offset) = content[cursor + 4..].find("-->") {
-                    cursor = cursor + 4 + offset + 3;
-                    continue;
-                }
-                return Err(ZhenfaTransmuterError::UnclosedTag {
-                    tag: "!--".to_string(),
-                });
+    fn scan_next_token(&mut self) -> Result<(), ZhenfaTransmuterError> {
+        if self.bytes[self.cursor] != b'<' {
+            self.cursor += 1;
+            return Ok(());
+        }
+        if self.cursor + 1 >= self.bytes.len() {
+            self.cursor = self.bytes.len();
+            return Ok(());
+        }
+        match self.bytes[self.cursor + 1] {
+            b'!' => self.scan_bang_token(),
+            b'?' => {
+                self.scan_processing_instruction();
+                Ok(())
             }
-            cursor += 1;
-            continue;
+            _ => self.scan_tag_token(),
         }
+    }
 
-        if bytes[cursor + 1] == b'?' {
-            if let Some(offset) = content[cursor + 2..].find("?>") {
-                cursor = cursor + 2 + offset + 2;
-                continue;
+    fn scan_bang_token(&mut self) -> Result<(), ZhenfaTransmuterError> {
+        if self.content[self.cursor..].starts_with("<!--") {
+            if let Some(offset) = self.content[self.cursor + 4..].find("-->") {
+                self.cursor = self.cursor + 4 + offset + 3;
+                return Ok(());
             }
-            break;
-        }
-
-        let closing = bytes[cursor + 1] == b'/';
-        let tag_start = if closing { cursor + 2 } else { cursor + 1 };
-        if tag_start >= bytes.len() {
-            break;
-        }
-        if !is_tag_name_start(bytes[tag_start]) {
-            cursor += 1;
-            continue;
-        }
-
-        let mut tag_end = tag_start + 1;
-        while tag_end < bytes.len() && is_tag_name_char(bytes[tag_end]) {
-            tag_end += 1;
-        }
-        let tag_name = &content[tag_start..tag_end];
-
-        let mut angle_close = tag_end;
-        while angle_close < bytes.len() && bytes[angle_close] != b'>' {
-            angle_close += 1;
-        }
-        if angle_close >= bytes.len() {
             return Err(ZhenfaTransmuterError::UnclosedTag {
-                tag: tag_name.to_string(),
+                tag: ZhenfaXmlLiteTagName::from("!--"),
             });
         }
+        self.cursor += 1;
+        Ok(())
+    }
 
-        let self_closing = !closing && angle_close > cursor && bytes[angle_close - 1] == b'/';
-        if closing {
-            match stack.pop() {
-                Some(expected) if expected == tag_name => {}
-                Some(expected) => {
-                    return Err(ZhenfaTransmuterError::MismatchedClosingTag {
-                        expected,
-                        found: tag_name.to_string(),
-                    });
-                }
-                None => {
-                    return Err(ZhenfaTransmuterError::UnexpectedClosingTag {
-                        found: tag_name.to_string(),
-                    });
-                }
-            }
-        } else if !self_closing {
-            stack.push(tag_name.to_string());
+    fn scan_processing_instruction(&mut self) {
+        if let Some(offset) = self.content[self.cursor + 2..].find("?>") {
+            self.cursor = self.cursor + 2 + offset + 2;
+        } else {
+            self.cursor = self.bytes.len();
+        }
+    }
+
+    fn scan_tag_token(&mut self) -> Result<(), ZhenfaTransmuterError> {
+        let closing = self.bytes[self.cursor + 1] == b'/';
+        let tag_start = if closing {
+            self.cursor + 2
+        } else {
+            self.cursor + 1
+        };
+        if tag_start >= self.bytes.len() {
+            self.cursor = self.bytes.len();
+            return Ok(());
+        }
+        if !is_tag_name_start(self.bytes[tag_start]) {
+            self.cursor += 1;
+            return Ok(());
         }
 
-        cursor = angle_close + 1;
+        let tag_end = self.scan_tag_name_end(tag_start);
+        let tag_name = &self.content[tag_start..tag_end];
+        let Some(angle_close) = self.scan_angle_close(tag_end) else {
+            return Err(ZhenfaTransmuterError::UnclosedTag {
+                tag: ZhenfaXmlLiteTagName::from(tag_name),
+            });
+        };
+        self.apply_tag(tag_name, closing, angle_close)?;
+        self.cursor = angle_close + 1;
+        Ok(())
     }
 
-    if let Some(tag) = stack.pop() {
-        return Err(ZhenfaTransmuterError::UnclosedTag { tag });
+    fn scan_tag_name_end(&self, tag_start: usize) -> usize {
+        let mut tag_end = tag_start + 1;
+        while tag_end < self.bytes.len() && is_tag_name_char(self.bytes[tag_end]) {
+            tag_end += 1;
+        }
+        tag_end
     }
-    Ok(())
+
+    fn scan_angle_close(&self, tag_end: usize) -> Option<usize> {
+        let mut angle_close = tag_end;
+        while angle_close < self.bytes.len() && self.bytes[angle_close] != b'>' {
+            angle_close += 1;
+        }
+        (angle_close < self.bytes.len()).then_some(angle_close)
+    }
+
+    fn apply_tag(
+        &mut self,
+        tag_name: &str,
+        closing: bool,
+        angle_close: usize,
+    ) -> Result<(), ZhenfaTransmuterError> {
+        let self_closing =
+            !closing && angle_close > self.cursor && self.bytes[angle_close - 1] == b'/';
+        if closing {
+            return self.close_tag(tag_name);
+        }
+        if !self_closing {
+            self.stack.push(tag_name.to_string());
+        }
+        Ok(())
+    }
+
+    fn close_tag(&mut self, tag_name: &str) -> Result<(), ZhenfaTransmuterError> {
+        match self.stack.pop() {
+            Some(expected) if expected == tag_name => Ok(()),
+            Some(expected) => Err(ZhenfaTransmuterError::MismatchedClosingTag {
+                expected,
+                found: tag_name.to_string(),
+            }),
+            None => Err(ZhenfaTransmuterError::UnexpectedClosingTag {
+                found: tag_name.to_string(),
+            }),
+        }
+    }
+
+    fn finish(mut self) -> Result<(), ZhenfaTransmuterError> {
+        if let Some(tag) = self.stack.pop() {
+            return Err(ZhenfaTransmuterError::UnclosedTag { tag: tag.into() });
+        }
+        Ok(())
+    }
 }
 
 fn is_tag_name_start(byte: u8) -> bool {

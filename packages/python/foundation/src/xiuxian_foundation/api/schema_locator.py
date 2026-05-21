@@ -30,7 +30,9 @@ def _project_roots() -> tuple[Path, ...]:
     return (Path.cwd(),)
 
 
-def _resource_dirs_for_root(root: Path, preferred_crates: tuple[str, ...]) -> list[Path]:
+def _resource_dirs_for_root(
+    root: Path, preferred_crates: tuple[str, ...]
+) -> list[Path]:
     out: list[Path] = []
     seen: set[str] = set()
     crates_root = root / "packages" / "rust" / "crates"
@@ -69,11 +71,22 @@ def resolve_schema_file_path(
             candidate = directory / name
             if candidate.exists():
                 return candidate
+            for nested in sorted(directory.glob(f"*/{name}")):
+                if nested.exists():
+                    return nested
 
     # Deterministic not-found path for clear error messages.
     root = roots[0]
     if preferred_crates:
-        return root / "packages" / "rust" / "crates" / preferred_crates[0] / "resources" / name
+        return (
+            root
+            / "packages"
+            / "rust"
+            / "crates"
+            / preferred_crates[0]
+            / "resources"
+            / name
+        )
     return root / "packages" / "rust" / "crates" / "xiuxian-wendao" / "resources" / name
 
 

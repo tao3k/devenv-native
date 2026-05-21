@@ -39,15 +39,15 @@ fn dmn_parser_supports_date_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::DateRange(DmnDateRange::new(
-            Some(DmnDateRangeBound::new("2026-03-01", true)),
-            Some(DmnDateRangeBound::new("2026-03-10", false)),
+            Some(DmnDateRangeBound::new("2026-03-01", true.into())),
+            Some(DmnDateRangeBound::new("2026-03-10", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::DateRange(DmnDateRange::new(
-            Some(DmnDateRangeBound::new("2026-04-01", true)),
-            Some(DmnDateRangeBound::new("2026-04-05", true)),
+            Some(DmnDateRangeBound::new("2026-04-01", true.into())),
+            Some(DmnDateRangeBound::new("2026-04-05", true.into())),
         ))
     );
 }

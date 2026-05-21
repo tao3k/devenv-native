@@ -1,3 +1,5 @@
+//! Owns the Studio handlers flight repo search surface.
+
 use std::sync::Arc;
 
 use crate::studio::arrow_types::LanceRecordBatch;
@@ -7,6 +9,7 @@ use xiuxian_wendao_server::transport::{
 };
 
 use super::service::build_studio_search_flight_service_with_repo_provider;
+use crate::studio::types::{UiConfig, UiRepoProjectConfig};
 use crate::studio::{GatewayState, StudioState};
 use xiuxian_db_store::lance_batch_to_engine_batch;
 use xiuxian_wendao::repo_index::RepoCodeDocument;
@@ -64,16 +67,10 @@ impl RepoSearchFlightRouteProvider for StudioRepoSearchFlightRouteProvider {
         let result = if let Some(studio) = self.studio.as_ref() {
             let runtime_request = runtime_repo_search_request(request);
             let repository =
-                crate::studio::configured_repository(studio.as_ref(), request.repo_id.trim())
-                    .map_err(|error| {
-                        format!(
-                            "failed to resolve repo-search repository `{}`: {error}",
-                            request.repo_id.trim()
-                        )
-                    })?;
+                crate::studio::configured_repository(studio.as_ref(), request.repo_id.trim()).ok();
             search_repo_content_batch_with_repository(
                 self.search_plane.as_ref(),
-                Some(&repository),
+                repository.as_ref(),
                 &runtime_request,
             )
             .await
@@ -84,6 +81,34 @@ impl RepoSearchFlightRouteProvider for StudioRepoSearchFlightRouteProvider {
         let batch =
             result.map_err(|error| format!("repo-search Flight provider failed: {error}"))?;
         Ok(lance_batch_to_engine_batch(&batch))
+    }
+}
+
+/// Project and config roots used to bootstrap a Studio Flight service.
+#[derive(Debug, Clone)]
+pub struct StudioFlightRoots {
+    project_root: std::path::PathBuf,
+    config_root: std::path::PathBuf,
+    direct_repo_id: Option<String>,
+}
+
+impl StudioFlightRoots {
+    /// Create a root bundle for Studio Flight service bootstrap.
+    #[must_use]
+    pub fn new(project_root: std::path::PathBuf, config_root: std::path::PathBuf) -> Self {
+        Self {
+            project_root,
+            config_root,
+            direct_repo_id: None,
+        }
+    }
+
+    /// Register the project root as a direct repository when the runtime config
+    /// does not already declare the requested repo id.
+    #[must_use]
+    pub fn with_direct_repo_id(mut self, repo_id: impl Into<String>) -> Self {
+        self.direct_repo_id = Some(repo_id.into());
+        self
     }
 }
 
@@ -172,7 +197,7 @@ pub fn build_studio_flight_service(
 ///
 /// Returns an error when the runtime Flight service cannot be constructed for
 /// the requested schema version, rerank dimension, and rerank score weights.
-pub fn build_studio_flight_service_with_weights(
+pub(crate) fn build_studio_flight_service_with_weights(
     search_plane: Arc<SearchPlaneService>,
     gateway_state: Arc<GatewayState>,
     expected_schema_version: impl Into<String>,
@@ -202,15 +227,13 @@ pub fn build_studio_flight_service_with_weights(
 /// version and rerank dimension.
 pub fn build_studio_flight_service_for_roots(
     search_plane: Arc<SearchPlaneService>,
-    project_root: std::path::PathBuf,
-    config_root: std::path::PathBuf,
+    roots: StudioFlightRoots,
     expected_schema_version: impl Into<String>,
     rerank_dimension: usize,
 ) -> Result<WendaoFlightService, String> {
     build_studio_flight_service_for_roots_with_weights(
         search_plane,
-        project_root,
-        config_root,
+        roots,
         expected_schema_version,
         rerank_dimension,
         RerankScoreWeights::default(),
@@ -226,10 +249,9 @@ pub fn build_studio_flight_service_for_roots(
 /// Returns an error when the plugin registry cannot be bootstrapped or when the
 /// runtime Flight service cannot be constructed for the requested schema
 /// version, rerank dimension, and rerank score weights.
-pub fn build_studio_flight_service_for_roots_with_weights(
+pub(crate) fn build_studio_flight_service_for_roots_with_weights(
     search_plane: Arc<SearchPlaneService>,
-    project_root: std::path::PathBuf,
-    config_root: std::path::PathBuf,
+    roots: StudioFlightRoots,
     expected_schema_version: impl Into<String>,
     rerank_dimension: usize,
     rerank_weights: RerankScoreWeights,
@@ -238,12 +260,38 @@ pub fn build_studio_flight_service_for_roots_with_weights(
         xiuxian_wendao::analyzers::bootstrap_builtin_registry()
             .map_err(|error| format!("bootstrap registry: {error}"))?,
     );
+    let StudioFlightRoots {
+        project_root,
+        config_root,
+        direct_repo_id,
+    } = roots;
     let studio = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
         plugin_registry,
-        project_root,
+        project_root.clone(),
         config_root,
         search_plane.as_ref().clone(),
     );
+    if let Some(repo_id) = direct_repo_id
+        && !studio
+            .configured_repo_projects()
+            .iter()
+            .any(|repository| repository.id == repo_id)
+    {
+        studio.bootstrap_runtime_ui_config(
+            UiConfig {
+                projects: Vec::new(),
+                repo_projects: vec![UiRepoProjectConfig {
+                    id: repo_id,
+                    root: Some(project_root.display().to_string()),
+                    url: None,
+                    git_ref: None,
+                    refresh: Some("manual".to_string()),
+                    plugins: vec!["markdown-parser".to_string()],
+                }],
+            },
+            false,
+        );
+    }
     let gateway_state = Arc::new(GatewayState {
         index: None,
         signal_tx: None,

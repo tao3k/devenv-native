@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::fuzzy_suggest::cache` owns Wendao audit fuzzy suggest cache behavior.
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -34,6 +36,7 @@ pub fn clear_candidate_cache() {
 
 /// Get cache statistics for debugging.
 #[must_use]
+/// Tuple API boundary: this public API preserves byte or count pairs used by existing addressing contracts.
 pub fn cache_stats() -> (usize, usize) {
     CANDIDATE_CACHE.with(|cache| {
         let c = cache.borrow();

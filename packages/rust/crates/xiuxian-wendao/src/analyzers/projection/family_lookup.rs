@@ -1,3 +1,5 @@
+//! `analyzers::projection::family_lookup` owns Wendao analyzers projection family lookup behavior.
+
 use crate::analyzers::RepoIntelligenceError;
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{
@@ -34,8 +36,8 @@ pub fn build_projected_page_family_cluster(
         .find(|family| family.kind == query.kind)
         .ok_or_else(
             || RepoIntelligenceError::UnknownProjectedPageFamilyCluster {
-                repo_id: query.repo_id.clone(),
-                page_id: query.page_id.clone(),
+                repo_id: query.repo_id.clone().into(),
+                page_id: query.page_id.clone().into(),
                 kind: query.kind,
             },
         )?;

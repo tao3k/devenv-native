@@ -1,3 +1,5 @@
+//! Executors wendao ingester mechanism surface for `xiuxian-qianji`.
+
 use super::entity::{build_promotion_entity, build_promotion_relation, build_topic_entity};
 use super::persistence::persist_promotion_graph;
 use super::scope::resolve_graph_scope;

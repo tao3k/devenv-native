@@ -27,15 +27,14 @@ impl LinkGraphIndex {
                 LinkGraphDirection::Outgoing | LinkGraphDirection::Both
             ) && let Some(targets) = self.outgoing.get(&current)
             {
-                for target in targets {
-                    if target == seed_id {
-                        continue;
-                    }
-                    if visited.insert(target.clone()) {
-                        out.insert(target.clone());
-                        queue.push_back((target.clone(), next_depth));
-                    }
-                }
+                push_directional_neighbors(
+                    targets,
+                    seed_id,
+                    &mut visited,
+                    &mut out,
+                    &mut queue,
+                    next_depth,
+                );
             }
 
             if matches!(
@@ -43,18 +42,36 @@ impl LinkGraphIndex {
                 LinkGraphDirection::Incoming | LinkGraphDirection::Both
             ) && let Some(sources) = self.incoming.get(&current)
             {
-                for source in sources {
-                    if source == seed_id {
-                        continue;
-                    }
-                    if visited.insert(source.clone()) {
-                        out.insert(source.clone());
-                        queue.push_back((source.clone(), next_depth));
-                    }
-                }
+                push_directional_neighbors(
+                    sources,
+                    seed_id,
+                    &mut visited,
+                    &mut out,
+                    &mut queue,
+                    next_depth,
+                );
             }
         }
 
         out
     }
+}
+
+fn push_directional_neighbors(
+    neighbors: &HashSet<String>,
+    seed_id: &str,
+    visited: &mut HashSet<String>,
+    out: &mut HashSet<String>,
+    queue: &mut VecDeque<(String, usize)>,
+    next_depth: usize,
+) {
+    neighbors
+        .iter()
+        .filter(|neighbor| neighbor.as_str() != seed_id)
+        .filter(|neighbor| visited.insert((*neighbor).clone()))
+        .cloned()
+        .for_each(|neighbor| {
+            out.insert(neighbor.clone());
+            queue.push_back((neighbor, next_depth));
+        });
 }

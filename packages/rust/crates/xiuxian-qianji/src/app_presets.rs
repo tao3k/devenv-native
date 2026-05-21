@@ -1,3 +1,5 @@
+//! Built-in `Qianji` pipeline manifest payloads embedded at compile time.
+
 /// Built-in research manifest for high-precision calibration.
 pub const RESEARCH_TRINITY_TOML: &str = include_str!("../resources/research_trinity.toml");
 /// Built-in `MemRL` promotion workflow manifest.

@@ -12,6 +12,7 @@ pub struct SchedulerAgentIdentity {
 impl SchedulerAgentIdentity {
     /// Creates an identity with explicit values.
     #[must_use]
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub fn new(agent_id: Option<String>, role_class: Option<String>) -> Self {
         Self {
             agent_id: normalize_non_empty(agent_id),

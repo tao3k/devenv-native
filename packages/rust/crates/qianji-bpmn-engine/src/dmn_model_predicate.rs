@@ -55,6 +55,34 @@ pub enum DmnComparisonOperator {
     GreaterThanOrEqual,
 }
 
+/// Whether a DMN range bound includes its boundary value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DmnRangeBoundInclusivity {
+    /// Includes the boundary value.
+    Inclusive,
+    /// Excludes the boundary value.
+    Exclusive,
+}
+
+impl DmnRangeBoundInclusivity {
+    /// Returns whether the bound includes its boundary value.
+    #[must_use]
+    pub const fn is_inclusive(self) -> bool {
+        matches!(self, Self::Inclusive)
+    }
+}
+
+impl From<bool> for DmnRangeBoundInclusivity {
+    fn from(value: bool) -> Self {
+        if value {
+            Self::Inclusive
+        } else {
+            Self::Exclusive
+        }
+    }
+}
+
 /// One bounded numeric comparison predicate.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DmnNumericComparison {
@@ -84,8 +112,11 @@ pub struct DmnNumericRangeBound {
 impl DmnNumericRangeBound {
     /// Creates one numeric range bound.
     #[must_use]
-    pub fn new(value: f64, inclusive: bool) -> Self {
-        Self { value, inclusive }
+    pub fn new(value: f64, inclusivity: DmnRangeBoundInclusivity) -> Self {
+        Self {
+            value,
+            inclusive: inclusivity.is_inclusive(),
+        }
     }
 }
 
@@ -138,10 +169,10 @@ pub struct DmnDurationRangeBound {
 impl DmnDurationRangeBound {
     /// Creates one bounded duration range bound.
     #[must_use]
-    pub fn new(value: impl AsRef<str>, inclusive: bool) -> Self {
+    pub fn new(value: impl AsRef<str>, inclusivity: DmnRangeBoundInclusivity) -> Self {
         Self {
             value: Arc::<str>::from(value.as_ref()),
-            inclusive,
+            inclusive: inclusivity.is_inclusive(),
         }
     }
 }
@@ -195,10 +226,10 @@ pub struct DmnDateRangeBound {
 impl DmnDateRangeBound {
     /// Creates one ISO date range bound.
     #[must_use]
-    pub fn new(value: impl AsRef<str>, inclusive: bool) -> Self {
+    pub fn new(value: impl AsRef<str>, inclusivity: DmnRangeBoundInclusivity) -> Self {
         Self {
             value: Arc::<str>::from(value.as_ref()),
-            inclusive,
+            inclusive: inclusivity.is_inclusive(),
         }
     }
 }
@@ -254,10 +285,10 @@ pub struct DmnDateTimeRangeBound {
 impl DmnDateTimeRangeBound {
     /// Creates one ISO local datetime range bound.
     #[must_use]
-    pub fn new(value: impl AsRef<str>, inclusive: bool) -> Self {
+    pub fn new(value: impl AsRef<str>, inclusivity: DmnRangeBoundInclusivity) -> Self {
         Self {
             value: Arc::<str>::from(value.as_ref()),
-            inclusive,
+            inclusive: inclusivity.is_inclusive(),
         }
     }
 }
@@ -311,10 +342,10 @@ pub struct DmnTimeRangeBound {
 impl DmnTimeRangeBound {
     /// Creates one ISO time range bound.
     #[must_use]
-    pub fn new(value: impl AsRef<str>, inclusive: bool) -> Self {
+    pub fn new(value: impl AsRef<str>, inclusivity: DmnRangeBoundInclusivity) -> Self {
         Self {
             value: Arc::<str>::from(value.as_ref()),
-            inclusive,
+            inclusive: inclusivity.is_inclusive(),
         }
     }
 }

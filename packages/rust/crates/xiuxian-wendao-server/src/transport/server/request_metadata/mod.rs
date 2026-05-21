@@ -5,6 +5,7 @@ mod core;
 mod document_extract;
 mod graph_vfs_analysis;
 mod header_values;
+mod ontology;
 mod repo;
 mod repo_search;
 mod route;
@@ -23,11 +24,14 @@ pub(crate) use graph_vfs_analysis::{
     validate_markdown_analysis_request_metadata, validate_semantic_scope_request_metadata,
     validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
 };
+pub(crate) use ontology::validate_dataset_ontology_materialize_request_metadata;
 pub(crate) use repo::{
     validate_refine_doc_request_metadata, validate_repo_doc_coverage_request_metadata,
     validate_repo_index_request_metadata, validate_repo_index_status_request_metadata,
     validate_repo_overview_request_metadata,
-    validate_repo_projected_page_index_tree_request_metadata, validate_repo_sync_request_metadata,
+    validate_repo_projected_page_index_tree_request_metadata,
+    validate_repo_projected_retrieval_context_request_metadata,
+    validate_repo_sync_request_metadata,
 };
 pub(crate) use repo_search::validate_repo_search_request_metadata;
 pub(crate) use route::{descriptor_route, is_search_family_route, join_sorted_set, ticket_route};

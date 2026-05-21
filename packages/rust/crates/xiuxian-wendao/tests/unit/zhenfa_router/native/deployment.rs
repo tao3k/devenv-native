@@ -25,7 +25,9 @@ fn write_config_and_set_override(temp: &tempfile::TempDir, body: &str) {
 }
 
 fn plugin_selector_or_panic() -> PluginArtifactSelector {
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
 
     build_plugin_artifact_selector(&plugin_id, &artifact_id)
         .unwrap_or_else(|error| panic!("build plugin selector: {error}"))
@@ -33,7 +35,9 @@ fn plugin_selector_or_panic() -> PluginArtifactSelector {
 
 #[test]
 fn wendao_plugin_artifact_args_deserialize_selector_and_format() {
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
     let args: WendaoPluginArtifactArgs = serde_json::from_value(serde_json::json!({
         "plugin_id": plugin_id.clone(),
         "artifact_id": artifact_id.clone(),
@@ -51,7 +55,9 @@ fn wendao_plugin_artifact_args_deserialize_selector_and_format() {
 
 #[test]
 fn wendao_plugin_artifact_args_default_to_toml_output() {
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
     let args: WendaoPluginArtifactArgs = serde_json::from_value(serde_json::json!({
         "plugin_id": plugin_id.clone(),
         "artifact_id": artifact_id.clone()
@@ -66,7 +72,9 @@ fn wendao_plugin_artifact_args_default_to_toml_output() {
 
 #[test]
 fn wendao_plugin_artifact_args_deserialize_output_path() {
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
     let args: WendaoPluginArtifactArgs = serde_json::from_value(serde_json::json!({
         "plugin_id": plugin_id.clone(),
         "artifact_id": artifact_id.clone(),
@@ -151,7 +159,9 @@ fn render_plugin_artifact_uses_selected_format() {
 #[serial]
 fn export_plugin_artifact_writes_json_file_when_requested() {
     let temp = tempdir_or_panic();
-    let (plugin_id, artifact_id) = linked_builtin_julia_gateway_artifact_path();
+    let artifact_path = linked_builtin_julia_gateway_artifact_path();
+    let plugin_id = artifact_path.plugin_id;
+    let artifact_id = artifact_path.artifact_id;
     write_config_and_set_override(
         &temp,
         &linked_builtin_julia_gateway_artifact_runtime_config_toml(),

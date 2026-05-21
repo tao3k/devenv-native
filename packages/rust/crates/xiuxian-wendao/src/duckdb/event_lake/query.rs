@@ -19,6 +19,7 @@ pub const WENDAO_EVENT_QUERY_MAX_LIMIT: u32 = 10_000;
 
 /// Wendao event-row filters for bounded event-lake reads.
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct WendaoEventQuery {
     /// Optional tenant or workspace boundary.
     pub tenant_id: Option<String>,

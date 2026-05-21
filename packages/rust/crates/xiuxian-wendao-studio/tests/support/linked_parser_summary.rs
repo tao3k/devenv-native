@@ -7,9 +7,11 @@ use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use toml::Value;
+#[cfg(feature = "julia")]
 use xiuxian_wendao_julia::integration_support::{
-    JuliaExampleServiceGuard, spawn_wendaosearch_all_parser_summary_service,
+    JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
+#[cfg(feature = "julia")]
 use xiuxian_wendao_julia::{
     clear_modelica_parser_summary_transport_cache_for_tests,
     set_linked_julia_parser_summary_base_url_for_tests,
@@ -33,9 +35,8 @@ struct LinkedParserSummaryService {
 }
 
 enum LinkedParserSummaryGuard {
-    Real {
-        _guard: JuliaExampleServiceGuard,
-    },
+    #[cfg(feature = "julia")]
+    Real { _guard: JuliaServiceGuard },
     Fake {
         _guard: FakeParserSummaryServiceGuard,
     },
@@ -113,29 +114,42 @@ fn linked_parser_summary_service()
 
 fn spawn_in_process_linked_parser_summary_service()
 -> Result<(String, LinkedParserSummaryGuard), String> {
-    if !real_parser_summary_service_is_available() {
+    #[cfg(not(feature = "julia"))]
+    {
         return spawn_fake_julia_parser_summary_service()
             .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard }));
     }
-    match std::thread::spawn(|| {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|error| error.to_string())?;
-        Ok::<(String, JuliaExampleServiceGuard), String>(
-            runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
-        )
-    })
-    .join()
+    #[cfg(feature = "julia")]
     {
-        Ok(Ok((base_url, guard))) => {
-            Ok((base_url, LinkedParserSummaryGuard::Real { _guard: guard }))
+        if !real_parser_summary_service_is_available() {
+            return spawn_fake_julia_parser_summary_service().map(|(base_url, guard)| {
+                (base_url, LinkedParserSummaryGuard::Fake { _guard: guard })
+            });
         }
-        Ok(Err(_)) | Err(_) => spawn_fake_julia_parser_summary_service()
-            .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard })),
+        match std::thread::spawn(|| {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|error| error.to_string())?;
+            Ok::<(String, JuliaServiceGuard), String>(
+                runtime.block_on(spawn_wendaosearch_all_parser_summary_service()),
+            )
+        })
+        .join()
+        {
+            Ok(Ok((base_url, guard))) => {
+                Ok((base_url, LinkedParserSummaryGuard::Real { _guard: guard }))
+            }
+            Ok(Err(_)) | Err(_) => {
+                spawn_fake_julia_parser_summary_service().map(|(base_url, guard)| {
+                    (base_url, LinkedParserSummaryGuard::Fake { _guard: guard })
+                })
+            }
+        }
     }
 }
 
+#[cfg(feature = "julia")]
 fn real_parser_summary_service_is_available() -> bool {
     std::env::var_os(WENDAOSEARCH_PACKAGE_DIR_ENV)
         .filter(|value| !value.is_empty())
@@ -143,8 +157,13 @@ fn real_parser_summary_service_is_available() -> bool {
 }
 
 fn configure_linked_parser_summary_base_url(base_url: &str) -> Result<(), String> {
-    set_linked_julia_parser_summary_base_url_for_tests(base_url)?;
-    set_linked_modelica_parser_summary_base_url_for_tests(base_url)?;
+    #[cfg(feature = "julia")]
+    {
+        set_linked_julia_parser_summary_base_url_for_tests(base_url)?;
+        set_linked_modelica_parser_summary_base_url_for_tests(base_url)?;
+    }
+    #[cfg(not(feature = "julia"))]
+    let _ = base_url;
     Ok(())
 }
 
@@ -165,11 +184,7 @@ fn ensure_process_managed_parser_summary_service(
             start_process_managed_parser_summary_service(base_url.as_str(), mode)?;
         }
         wait_for_service_ready(base_url.as_str(), PROCESS_MANAGED_READY_ATTEMPTS)?;
-        clear_modelica_parser_summary_transport_cache_for_tests();
-        set_linked_julia_parser_summary_base_url_for_tests(base_url.as_str())
-            .map_err(|error| error.clone())?;
-        set_linked_modelica_parser_summary_base_url_for_tests(base_url.as_str())
-            .map_err(|error| error.clone())?;
+        configure_process_managed_parser_summary_base_url(base_url.as_str())?;
         Ok(())
     });
     match service.as_ref() {
@@ -178,6 +193,20 @@ fn ensure_process_managed_parser_summary_service(
             Err(Box::new(IoError::other(message.clone())) as Box<dyn std::error::Error>)
         }
     }
+}
+
+fn configure_process_managed_parser_summary_base_url(base_url: &str) -> Result<(), String> {
+    #[cfg(feature = "julia")]
+    {
+        clear_modelica_parser_summary_transport_cache_for_tests();
+        set_linked_julia_parser_summary_base_url_for_tests(base_url)
+            .map_err(|error| error.clone())?;
+        set_linked_modelica_parser_summary_base_url_for_tests(base_url)
+            .map_err(|error| error.clone())?;
+    }
+    #[cfg(not(feature = "julia"))]
+    let _ = base_url;
+    Ok(())
 }
 
 fn start_process_managed_parser_summary_service(

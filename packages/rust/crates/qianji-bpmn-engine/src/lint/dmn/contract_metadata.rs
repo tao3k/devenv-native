@@ -8,7 +8,7 @@ pub(super) fn unsupported_allowed_answers_decision_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_allowed_answers_decision",
         "DMN decision contains allowed answers metadata but no decision table",
         format!(
@@ -47,7 +47,7 @@ pub(super) fn unsupported_decision_maker_decision_issue(
     } else {
         "references"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_decision_maker_decision",
         "DMN decision contains decision-maker metadata but no decision table",
         format!(
@@ -93,7 +93,7 @@ pub(super) fn unsupported_mixed_decision_governance_decision_issue(
     } else {
         "references"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_mixed_decision_governance_decision",
         "DMN decision contains maker and owner metadata but no decision table",
         format!(
@@ -134,7 +134,7 @@ pub(super) fn unsupported_decision_owner_decision_issue(
     } else {
         "references"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_decision_owner_decision",
         "DMN decision contains decision-owner metadata but no decision table",
         format!(
@@ -168,7 +168,7 @@ pub(super) fn generic_missing_decision_table_issue(
     decision_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.missing_decision_table",
         "DMN decision has no decision table",
         format!(

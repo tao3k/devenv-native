@@ -15,8 +15,9 @@ use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 
 use crate::transport::{
-    EffectiveRerankFlightHostSettings, REPO_SEARCH_BEST_SECTION_COLUMN, REPO_SEARCH_DOC_ID_COLUMN,
-    REPO_SEARCH_HIERARCHY_COLUMN, REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_MATCH_REASON_COLUMN,
+    EffectiveRerankFlightHostSettings, EffectiveRerankFlightHostSettingsInput,
+    REPO_SEARCH_BEST_SECTION_COLUMN, REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_HIERARCHY_COLUMN,
+    REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_MATCH_REASON_COLUMN,
     REPO_SEARCH_NAVIGATION_CATEGORY_COLUMN, REPO_SEARCH_NAVIGATION_LINE_COLUMN,
     REPO_SEARCH_NAVIGATION_LINE_END_COLUMN, REPO_SEARCH_NAVIGATION_PATH_COLUMN,
     REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_SCORE_COLUMN, REPO_SEARCH_TAGS_COLUMN,
@@ -34,38 +35,19 @@ use super::WendaoFlightService;
 /// binding, or server execution fails.
 pub async fn run_wendao_flight_server_from_args(
     args: impl IntoIterator<Item = String>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut args = args.into_iter();
-    let bind_addr = args.next().unwrap_or_else(|| "127.0.0.1:0".to_string());
-    let parsed_overrides = split_rerank_flight_host_overrides(args)
-        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
-    let mut positional_args = parsed_overrides.positional_args.into_iter();
-    let positional_rerank_dimension = positional_args
-        .next()
-        .map(|value| value.parse::<usize>())
-        .transpose()?
-        .unwrap_or(3);
-    let effective_settings: EffectiveRerankFlightHostSettings =
-        resolve_effective_rerank_flight_host_settings(
-            parsed_overrides.schema_version_override,
-            parsed_overrides.rerank_dimension_override,
-            None,
-            None,
-            positional_rerank_dimension,
-            rerank_score_weights_from_env().map_err(io::Error::other)?,
-        );
-
-    let listener = TcpListener::bind(bind_addr).await?;
+) -> SampleFlightHostResult<()> {
+    let host_args = parse_sample_host_args(args)?;
+    let listener = TcpListener::bind(host_args.bind_addr).await?;
     let address = listener.local_addr()?;
     let query_response_batch = sample_repo_search_batch()?;
     writeln!(io::stdout(), "READY http://{address}")?;
     io::stdout().flush()?;
 
     let service = WendaoFlightService::new_with_weights(
-        effective_settings.expected_schema_version,
+        host_args.effective_settings.expected_schema_version,
         query_response_batch,
-        effective_settings.rerank_dimension,
-        effective_settings.rerank_weights,
+        host_args.effective_settings.rerank_dimension,
+        host_args.effective_settings.rerank_weights,
     )?;
 
     Server::builder()
@@ -74,6 +56,47 @@ pub async fn run_wendao_flight_server_from_args(
         .await?;
 
     Ok(())
+}
+
+/// Result surface for the sample Flight host application boundary.
+pub type SampleFlightHostResult<T> = Result<T, Box<dyn std::error::Error>>;
+
+struct SampleHostArgs {
+    bind_addr: String,
+    effective_settings: EffectiveRerankFlightHostSettings,
+}
+
+fn parse_sample_host_args(
+    args: impl IntoIterator<Item = String>,
+) -> SampleFlightHostResult<SampleHostArgs> {
+    let mut args = args.into_iter();
+    let bind_addr = args.next().unwrap_or_else(|| "127.0.0.1:0".to_string());
+    let parsed_overrides = split_rerank_flight_host_overrides(args)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let fallback_dimension = parse_positional_rerank_dimension(parsed_overrides.positional_args)?;
+    let effective_settings =
+        resolve_effective_rerank_flight_host_settings(EffectiveRerankFlightHostSettingsInput {
+            schema_version_override: parsed_overrides.schema_version_override,
+            rerank_dimension_override: parsed_overrides.rerank_dimension_override,
+            file_backed_schema_version: None,
+            file_backed_weights: None,
+            fallback_dimension,
+            fallback_weights: rerank_score_weights_from_env().map_err(io::Error::other)?,
+        });
+    Ok(SampleHostArgs {
+        bind_addr,
+        effective_settings,
+    })
+}
+
+fn parse_positional_rerank_dimension(positional_args: Vec<String>) -> io::Result<usize> {
+    positional_args
+        .into_iter()
+        .next()
+        .map(|value| value.parse::<usize>())
+        .transpose()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+        .map(|dimension| dimension.unwrap_or(3))
 }
 
 fn sample_repo_search_batch() -> Result<LanceRecordBatch, Box<dyn std::error::Error>> {

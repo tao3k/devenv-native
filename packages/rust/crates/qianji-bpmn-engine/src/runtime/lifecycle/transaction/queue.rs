@@ -96,13 +96,14 @@ pub(super) fn queue_transaction_compensation_targets(
         return Ok(false);
     };
 
-    let mut pending_handler_node_indices = Vec::new();
-    for activity_index in completed_activity_node_indices {
-        let Some(handler) = process.compensation_handler_for_activity(activity_index) else {
-            continue;
-        };
-        pending_handler_node_indices.push(handler.handler);
-    }
+    let mut pending_handler_node_indices = completed_activity_node_indices
+        .into_iter()
+        .filter_map(|activity_index| {
+            process
+                .compensation_handler_for_activity(activity_index)
+                .map(|handler| handler.handler)
+        })
+        .collect::<Vec<_>>();
     if pending_handler_node_indices.is_empty() {
         return Ok(false);
     }

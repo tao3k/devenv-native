@@ -1,3 +1,5 @@
+//! Layout engine types surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 use super::style::QgsTheme;

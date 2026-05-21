@@ -64,7 +64,7 @@ fn is_identifier_segment(segment: &str) -> bool {
 
 pub(super) fn unsupported_literal(source_id: &str, literal: &str) -> BpmnEngineError {
     BpmnEngineError::UnsupportedDmnLiteral {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         literal: literal.to_string(),
     }
 }

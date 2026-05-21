@@ -31,8 +31,8 @@ pub(crate) fn prepare_start_workflow(
         resolved_dmn_paths,
         checkpoint_store,
         execution_request: QianjiBpmnExecutionRequest::new(
-            &request.process_id,
-            &request.instance_id,
+            request.process_id.clone(),
+            request.instance_id.clone(),
             request.initial_variables.clone(),
             unix_millis_now(),
         )

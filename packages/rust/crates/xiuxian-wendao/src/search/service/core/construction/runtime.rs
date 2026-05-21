@@ -80,7 +80,7 @@ impl SearchPlaneService {
             markdown_snapshot_entries: Arc::new(RwLock::new(std::collections::HashMap::new())),
             source_snapshot_entries: Arc::new(RwLock::new(std::collections::HashMap::new())),
             repeat_work_telemetry: Arc::new(RwLock::new(
-                crate::search::service::core::repeat_work::SearchBuildRepeatWorkTelemetryState::default(),
+                crate::search::service::core::types::SearchBuildRepeatWorkTelemetryState::default(),
             )),
             repo_corpus_records: Arc::new(RwLock::new(std::collections::BTreeMap::new())),
         };

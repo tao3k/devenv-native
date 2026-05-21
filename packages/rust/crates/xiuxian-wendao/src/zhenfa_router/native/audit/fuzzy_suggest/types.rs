@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::fuzzy_suggest::types` owns Wendao audit fuzzy suggest types behavior.
+
 use serde::{Deserialize, Serialize};
 
 use super::pattern::PatternSkeleton;

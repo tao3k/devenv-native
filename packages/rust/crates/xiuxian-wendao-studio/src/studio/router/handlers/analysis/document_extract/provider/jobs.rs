@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use arrow::array::{Array, StringArray};
@@ -51,6 +50,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         }
 
         let output_string = output.to_string_lossy().to_string();
+        let _permit = self.acquire_document_extract_dispatch_permit().await?;
         let engine_batches = self
             .request_python_document_extract(
                 source_path,
@@ -245,10 +245,7 @@ impl StudioDocumentExtractFlightRouteProvider {
     }
 
     pub(super) async fn run_job(&self, job_id: &str) -> Result<(), String> {
-        let _permit = Arc::clone(&self.runtime.conversion_permits)
-            .acquire_owned()
-            .await
-            .map_err(|error| format!("acquire document extract conversion permit: {error}"))?;
+        let _permit = self.acquire_document_extract_dispatch_permit().await?;
         let Some(status) = ({
             let _registry_guard = self.registry_lock();
             self.registry()?.start_job(job_id)?

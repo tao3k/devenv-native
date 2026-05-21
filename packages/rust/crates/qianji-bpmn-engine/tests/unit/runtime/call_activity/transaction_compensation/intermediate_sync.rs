@@ -7,7 +7,7 @@ use crate::runtime::call_activity::{TRANSACTION_PROCESS_ID, node_index};
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, PendingHostWorkResult, UserTaskOutcome, advance_instance,
-    apply_pending_host_work_result, create_instance,
+    create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -114,7 +114,7 @@ async fn runtime_transaction_throw_compensation_intermediate_runs_handler_then_r
     let pending = instance.pending_host_work.clone();
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[0].token_id,
@@ -146,7 +146,7 @@ async fn runtime_transaction_throw_compensation_intermediate_runs_handler_then_r
         "tx_refund",
     );
 
-    let compensation_resumed = apply_pending_host_work_result(
+    let compensation_resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         compensation_pending[0].token_id,

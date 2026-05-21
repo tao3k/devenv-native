@@ -15,6 +15,9 @@ runtime code.
   without compiling the DuckDB runtime.
 - `duckdb`: enables real DuckDB connection opening, DuckLake catalog attach
   helpers, and Arrow record-batch append helpers for attached DuckLake tables.
+  The Wendao client Org agent read-model command consumes this feature as its
+  default local materialization backend; runtime path changes are configured by
+  the client through `wendao.toml`, not through a DuckDB selector flag.
 - `qianji-bpmn-workflow-state`: enables the Qianji BPMN workflow-state
   DuckDB adapter, checkpoint-envelope storage helpers, append-only durable
   checkpoint events, and Arrow-appender batch snapshot storage for

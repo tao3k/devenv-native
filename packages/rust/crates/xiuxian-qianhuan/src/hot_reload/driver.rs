@@ -106,10 +106,9 @@ impl Drop for HotReloadDriver {
 
 fn event_path(event: &FileEvent) -> Option<PathBuf> {
     let raw = match event {
-        FileEvent::Created { path, .. }
-        | FileEvent::Modified { path }
-        | FileEvent::Deleted { path, .. }
-        | FileEvent::Error { path, .. } => path.as_str(),
+        FileEvent::Created(event) | FileEvent::Deleted(event) => event.path.as_str(),
+        FileEvent::Modified(event) => event.path.as_str(),
+        FileEvent::Error(event) => event.path.as_str(),
     };
     if raw.trim().is_empty() {
         None

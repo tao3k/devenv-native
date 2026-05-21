@@ -1,3 +1,5 @@
+//! Bpmn runtime loader surface for `xiuxian-qianji`.
+
 use super::error::BpmnOrchestrationError;
 use qianji_bpmn_engine::{
     BpmnBundleSnapshot, BpmnPackage, BpmnParseOptions, BpmnSourceFile, DmnSourceFile,

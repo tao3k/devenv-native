@@ -1,3 +1,5 @@
+//! `pybindings::dep_indexer_py::symbols` owns Wendao pybindings dep indexer py symbols behavior.
+
 use pyo3::{pyclass, pymethods};
 use std::path::PathBuf;
 

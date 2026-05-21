@@ -1,3 +1,5 @@
+//! `search::repo_search::batch` owns Wendao search repo search batch behavior.
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -14,7 +16,11 @@ use xiuxian_wendao_runtime::transport::{
     REPO_SEARCH_TITLE_COLUMN,
 };
 
+use super::content::{search_repo_content_hits, search_repo_content_hits_with_repository};
+use crate::analyzers::RegisteredRepository;
+use crate::search::SearchPlaneService;
 use crate::search::contracts::SearchHit;
+use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
 struct RepoSearchBatchColumns<'a> {
     doc_ids: Vec<String>,
@@ -91,6 +97,34 @@ impl<'a> RepoSearchBatchColumns<'a> {
 
 pub(crate) fn repo_search_batch_from_hits(hits: &[SearchHit]) -> Result<LanceRecordBatch, String> {
     build_repo_search_batch(RepoSearchBatchColumns::from_hits(hits)?)
+}
+
+/// Execute repository content search and render the result as a Flight record batch.
+///
+/// # Errors
+///
+/// Returns a string error when repository search or batch rendering fails.
+pub async fn search_repo_content_batch(
+    search_plane: &SearchPlaneService,
+    request: &RepoSearchFlightRequest,
+) -> Result<LanceRecordBatch, String> {
+    let hits = search_repo_content_hits(search_plane, request).await?;
+    repo_search_batch_from_hits(&hits)
+}
+
+/// Execute repository content search with an optional checkout fallback repository.
+///
+/// # Errors
+///
+/// Returns a string error when repository search, checkout fallback, or batch
+/// rendering fails.
+pub async fn search_repo_content_batch_with_repository(
+    search_plane: &SearchPlaneService,
+    repository: Option<&RegisteredRepository>,
+    request: &RepoSearchFlightRequest,
+) -> Result<LanceRecordBatch, String> {
+    let hits = search_repo_content_hits_with_repository(search_plane, repository, request).await?;
+    repo_search_batch_from_hits(&hits)
 }
 
 fn build_repo_search_batch(

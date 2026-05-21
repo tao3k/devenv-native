@@ -48,7 +48,7 @@ pub(crate) struct Cli {
 }
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/bin/wendao/types/cli.rs"]
+#[path = "../../../../tests/unit/bin/wendao/types/cli/mod.rs"]
 mod tests;
 
 impl Cli {

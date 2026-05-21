@@ -50,6 +50,7 @@ impl PyKnowledgeStorage {
     /// # Errors
     ///
     /// Returns a Python runtime error when the storage lookup fails.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get_entry(&self, entry_id: &str) -> PyResult<Option<PyKnowledgeEntry>> {
         self.runtime.block_on(async {
             let entry = self

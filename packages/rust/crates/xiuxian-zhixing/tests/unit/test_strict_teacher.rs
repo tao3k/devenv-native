@@ -9,8 +9,8 @@ use xiuxian_wendao::entity::{Entity, EntityType};
 use xiuxian_wendao::graph::KnowledgeGraph;
 use xiuxian_zhixing::ATTR_JOURNAL_CARRYOVER;
 use xiuxian_zhixing::RESOURCES;
-use xiuxian_zhixing::ZhixingHeyi;
 use xiuxian_zhixing::storage::MarkdownStorage;
+use xiuxian_zhixing::{ZhixingHeyi, ZhixingHeyiInit};
 
 struct EchoManifestation;
 
@@ -48,13 +48,13 @@ async fn test_strict_teacher_blocker() -> std::result::Result<(), Box<dyn std::e
     let storage = Arc::new(MarkdownStorage::new(tmp.path().to_path_buf()));
     let manifestation = Arc::new(EchoManifestation);
 
-    let heyi = ZhixingHeyi::new(
-        graph.clone(),
+    let heyi = ZhixingHeyi::new(ZhixingHeyiInit {
+        graph: graph.clone(),
         manifestation,
         storage,
-        "strict-teacher".to_string(),
-        "UTC",
-    )?;
+        scope_key: "strict-teacher".to_string(),
+        time_zone_str: "UTC".to_string(),
+    })?;
 
     // Should be blocked
     let result = heyi.check_heart_demon_blocker();

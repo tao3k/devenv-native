@@ -25,8 +25,8 @@ async fn workflow_control_service_event_poll_resumes_checkpointed_wait() {
                 &QianjiBpmnWorkflowStartRequest {
                     bpmn_path: bpmn_path.clone(),
                     dmn_paths: Vec::new(),
-                    process_id: "wait_flow".to_string(),
-                    instance_id: "wf_event_poll_action".to_string(),
+                    process_id: "wait_flow".to_string().into(),
+                    instance_id: "wf_event_poll_action".to_string().into(),
                     initial_variables: Some(json!({ "amount": 7 })),
                     start_at_node_id: None,
                     checkpoint_backend: Some(QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb),
@@ -59,7 +59,7 @@ async fn workflow_control_service_event_poll_resumes_checkpointed_wait() {
                 &QianjiBpmnWorkflowEventPollRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    instance_id: "wf_event_poll_action".to_string(),
+                    instance_id: "wf_event_poll_action".to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                 },
                 &host,

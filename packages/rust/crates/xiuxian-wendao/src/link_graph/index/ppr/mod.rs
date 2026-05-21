@@ -1,3 +1,5 @@
+//! `link_graph::index::ppr` owns Wendao link graph index ppr behavior.
+
 #[path = "compute/mod.rs"]
 mod compute;
 #[path = "constants.rs"]

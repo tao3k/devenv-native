@@ -43,7 +43,7 @@ pub(super) fn subprocess_configuration_issue(
 }
 
 fn event_subprocess_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Unsupported event subprocess shape",
         format!(
@@ -71,7 +71,7 @@ fn embedded_subprocess_start_event_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Embedded subprocess must have exactly one start event",
         format!(
@@ -98,7 +98,7 @@ fn transaction_start_event_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Transaction shell must have exactly one start event",
         format!(
@@ -125,7 +125,7 @@ fn embedded_subprocess_missing_end_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Embedded subprocess is missing an end event",
         format!(
@@ -152,7 +152,7 @@ fn embedded_subprocess_error_missing_boundary_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Embedded subprocess error path is missing the parent error boundary",
         format!(
@@ -179,7 +179,7 @@ fn call_activity_error_missing_boundary_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Call activity error path is missing the parent error boundary",
         format!(
@@ -206,7 +206,7 @@ fn error_end_requires_supported_error_owner_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Error end event must belong to a supported error path",
         format!(
@@ -234,7 +234,7 @@ fn transaction_missing_end_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Transaction shell is missing an end event",
         format!(
@@ -257,7 +257,7 @@ fn transaction_missing_end_issue(
 }
 
 fn recursive_subprocess_issue(process_id: &str, node_id: &str, detail: &'static str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Recursive subprocess call chain is unsupported",
         format!(
@@ -284,7 +284,7 @@ fn generic_subprocess_configuration_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_subprocess_configuration",
         "Subprocess configuration exceeds the bounded slice",
         format!(

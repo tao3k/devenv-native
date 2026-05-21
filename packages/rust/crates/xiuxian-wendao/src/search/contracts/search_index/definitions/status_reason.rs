@@ -1,3 +1,5 @@
+//! `search::contracts::search_index::definitions::status_reason` owns Wendao search index definitions status reason behavior.
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

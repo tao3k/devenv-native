@@ -1,3 +1,5 @@
+//! Local relation registration for semantic read-model tables.
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_parsers::semantic_ssot::SemanticRepository;
 
@@ -24,6 +26,17 @@ pub(super) struct SemanticReadModelRegistration {
     pub(super) input_bytes: u64,
 }
 
+/// Arrow record batches for the advisory semantic read-model tables.
+#[derive(Debug, Clone)]
+pub struct SemanticReadModelRecordBatches {
+    /// Batch for the `semantic_objects` table.
+    pub objects: RecordBatch,
+    /// Batch for the `semantic_relations` table.
+    pub relations: RecordBatch,
+    /// Batch for the `semantic_projection_state` table.
+    pub projection_state: RecordBatch,
+}
+
 /// Build semantic read-model rows from one validated semantic repository.
 ///
 /// # Errors
@@ -34,6 +47,35 @@ pub fn build_semantic_read_model_rows(
     repository: &SemanticRepository,
 ) -> Result<SemanticReadModelRows, String> {
     build_rows(repository)
+}
+
+/// Build Arrow record batches for the advisory semantic read-model tables.
+///
+/// # Errors
+///
+/// Returns an error when the repository is invalid or when any read-model table
+/// cannot be encoded as an Arrow record batch.
+pub fn build_semantic_read_model_record_batches(
+    repository: &SemanticRepository,
+) -> Result<SemanticReadModelRecordBatches, String> {
+    let rows = build_rows(repository)?;
+    semantic_read_model_record_batches_from_rows(&rows)
+}
+
+/// Build Arrow record batches from already projected semantic read-model rows.
+///
+/// # Errors
+///
+/// Returns an error when any read-model table cannot be encoded as an Arrow
+/// record batch.
+pub fn semantic_read_model_record_batches_from_rows(
+    rows: &SemanticReadModelRows,
+) -> Result<SemanticReadModelRecordBatches, String> {
+    Ok(SemanticReadModelRecordBatches {
+        objects: build_semantic_objects_record_batch(&rows.objects)?,
+        relations: build_semantic_relations_record_batch(&rows.relations)?,
+        projection_state: build_semantic_projection_state_record_batch(&rows.projection_state)?,
+    })
 }
 
 /// Register semantic read-model tables into a bounded local relation engine.
@@ -54,31 +96,28 @@ pub(super) fn register_semantic_read_model_tables_with_stats(
     repository: &SemanticRepository,
 ) -> Result<SemanticReadModelRegistration, String> {
     let rows = build_rows(repository)?;
-    let object_batch = build_semantic_objects_record_batch(&rows.objects)?;
-    let relation_batch = build_semantic_relations_record_batch(&rows.relations)?;
-    let projection_state_batch =
-        build_semantic_projection_state_record_batch(&rows.projection_state)?;
+    let batches = semantic_read_model_record_batches_from_rows(&rows)?;
     let input_row_count = rows.objects.len() + rows.relations.len() + rows.projection_state.len();
     let input_bytes = batches_array_bytes(&[
-        object_batch.clone(),
-        relation_batch.clone(),
-        projection_state_batch.clone(),
+        batches.objects.clone(),
+        batches.relations.clone(),
+        batches.projection_state.clone(),
     ]);
 
     query_engine.register_record_batches(
         SEMANTIC_OBJECTS_TABLE_NAME,
         semantic_objects_schema(),
-        vec![object_batch],
+        vec![batches.objects],
     )?;
     query_engine.register_record_batches(
         SEMANTIC_RELATIONS_TABLE_NAME,
         semantic_relations_schema(),
-        vec![relation_batch],
+        vec![batches.relations],
     )?;
     query_engine.register_record_batches(
         SEMANTIC_PROJECTION_STATE_TABLE_NAME,
         semantic_projection_state_schema(),
-        vec![projection_state_batch],
+        vec![batches.projection_state],
     )?;
 
     Ok(SemanticReadModelRegistration {

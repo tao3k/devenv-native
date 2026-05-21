@@ -20,6 +20,21 @@ pub struct TwoPhaseConfig {
     pub lambda: f32,
 }
 
+/// Request for executing two-phase search.
+#[derive(Debug, Clone, Copy)]
+pub struct TwoPhaseSearchRequest<'a> {
+    /// Episodes available for search.
+    pub episodes: &'a [Episode],
+    /// Query intent.
+    pub intent: &'a str,
+    /// Optional phase-one candidate override.
+    pub k1: Option<usize>,
+    /// Optional final result count override.
+    pub k2: Option<usize>,
+    /// Optional Q-value weight override.
+    pub lambda: Option<f32>,
+}
+
 impl Default for TwoPhaseConfig {
     fn default() -> Self {
         Self {
@@ -69,21 +84,15 @@ impl TwoPhaseSearch {
     /// # Returns
     /// Vector of (episode, score) tuples sorted by score
     #[must_use]
-    pub fn search(
-        &self,
-        episodes: &[Episode],
-        intent: &str,
-        k1: Option<usize>,
-        k2: Option<usize>,
-        lambda: Option<f32>,
-    ) -> Vec<(Episode, f32)> {
-        let k1 = k1.unwrap_or(self.config.k1);
-        let k2 = k2.unwrap_or(self.config.k2);
-        let lambda = lambda.unwrap_or(self.config.lambda);
+    pub fn search(&self, request: TwoPhaseSearchRequest<'_>) -> Vec<(Episode, f32)> {
+        let k1 = request.k1.unwrap_or(self.config.k1);
+        let k2 = request.k2.unwrap_or(self.config.k2);
+        let lambda = request.lambda.unwrap_or(self.config.lambda);
 
         // Phase 1: Semantic recall
-        let embedding = self.encoder.encode(intent);
-        let mut candidates: Vec<(Episode, f32)> = episodes
+        let embedding = self.encoder.encode(request.intent);
+        let mut candidates: Vec<(Episode, f32)> = request
+            .episodes
             .iter()
             .map(|ep| {
                 let similarity = self
@@ -118,7 +127,13 @@ impl TwoPhaseSearch {
     /// Quick search with default parameters.
     #[must_use]
     pub fn quick_search(&self, episodes: &[Episode], intent: &str) -> Vec<(Episode, f32)> {
-        self.search(episodes, intent, None, None, None)
+        self.search(TwoPhaseSearchRequest {
+            episodes,
+            intent,
+            k1: None,
+            k2: None,
+            lambda: None,
+        })
     }
 
     /// Get the configuration.

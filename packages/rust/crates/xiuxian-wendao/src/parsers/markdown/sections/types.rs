@@ -1,3 +1,5 @@
+//! `parsers::markdown::sections::types` owns Wendao markdown sections types behavior.
+
 use std::collections::HashMap;
 use xiuxian_wendao_parsers::sections::{
     LogbookEntry, MarkdownSection, SectionCore, SectionMetadata,

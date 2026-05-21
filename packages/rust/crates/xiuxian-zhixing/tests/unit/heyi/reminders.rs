@@ -1,5 +1,7 @@
 use crate::storage::MarkdownStorage;
-use crate::{ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED, ReminderSignal, heyi::ZhixingHeyi};
+use crate::{
+    ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED, ReminderSignal, ZhixingHeyiInit, heyi::ZhixingHeyi,
+};
 use chrono::{Duration, Utc};
 use serde_json::json;
 use std::sync::Arc;
@@ -20,13 +22,13 @@ fn build_test_heyi(
         &[],
         embedded_templates,
     )?);
-    Ok(ZhixingHeyi::new(
+    Ok(ZhixingHeyi::new(ZhixingHeyiInit {
         graph,
         manifestation,
         storage,
-        "test-reminder-scope".to_string(),
-        "UTC",
-    )?)
+        scope_key: "test-reminder-scope".to_string(),
+        time_zone_str: "UTC".to_string(),
+    })?)
 }
 
 #[test]

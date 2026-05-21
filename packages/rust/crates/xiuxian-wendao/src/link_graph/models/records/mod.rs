@@ -1,3 +1,5 @@
+//! `link_graph::models::records` owns Wendao link graph models records behavior.
+
 mod diagnostics;
 mod document;
 mod graph_rows;

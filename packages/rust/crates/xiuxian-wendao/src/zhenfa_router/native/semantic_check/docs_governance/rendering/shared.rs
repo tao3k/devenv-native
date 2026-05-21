@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `zhenfa_router::native::semantic_check::docs_governance::rendering::shared` owns Wendao docs governance rendering shared behavior.
+
 use std::fs;
 use std::path::Path;
 

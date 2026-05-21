@@ -1,0 +1,55 @@
+* TODO Task title [0/6] [0%] :agent:
+:PROPERTIES:
+:SDD: <sdd-path-or-none>
+:EXECPLAN: <execplan-path>
+:STABLE_REF: <repo-relative-stable-reference>
+:PACKAGE: <package-or-subsystem>
+:SLICE: <slice-slug>
+:STATUS: active
+:COOKIE_DATA: direct
+:NEXT_ACTION: <next-action>
+:RESUME_QUERY: <resume-query>
+:ARCHIVE_TARGET: <archive-target-path>
+:EVIDENCE: <evidence-summary-or-path>
+:END:
+SCHEDULED: <YYYY-MM-DD Day>
+
+- [ ] Scope and recovery anchor confirmed.
+- [ ] Task-local research complete.
+- [ ] Implementation complete.
+- [ ] Validation complete.
+- [ ] Evidence and archive state updated.
+
+** Context
+
+** TODO Task Checklist [0/5] [0%]
+:PROPERTIES:
+:COOKIE_DATA: direct
+:END:
+
+- [ ] Scope and recovery anchor confirmed.
+- [ ] Task-local research complete.
+- [ ] Implementation complete.
+- [ ] Validation complete.
+- [ ] Evidence and archive state updated.
+
+** Checkpoints
+
+** Validation
+
+- [ ] Targeted tests or lint checks passed.
+- [ ] Tracking surfaces pass Org lint.
+- [ ] Recovery query returns the expected task state.
+
+** Evidence
+
+** Recovery
+
+Use this heading as the task-local recovery anchor. At turn start, query active
+work with:
+
+#+begin_src text
+wendao-client orgize task-list --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+** Notes

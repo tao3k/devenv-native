@@ -82,7 +82,7 @@ mod tests {
             "xiuxian-tokenizer",
             "xiuxian-ast",
             "xiuxian-security",
-            "xiuxian-tags",
+            "xiuxian-code-intelligence",
             "xiuxian-edit",
             "xiuxian-vector",
             "xiuxian-tui",

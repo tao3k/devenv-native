@@ -8,6 +8,21 @@ use tracing::warn;
 
 use crate::llm::error::{LlmError, LlmResult, sanitize_user_visible};
 
+/// HTTP request context for Anthropic-compatible messages calls.
+#[derive(Debug, Clone, Copy)]
+pub struct AnthropicMessagesHttpRequest<'a> {
+    /// Shared HTTP client.
+    pub client: &'a reqwest::Client,
+    /// Provider endpoint URL.
+    pub endpoint: &'a str,
+    /// Provider API key.
+    pub api_key: &'a str,
+    /// JSON request body.
+    pub body: &'a Value,
+    /// Maximum transport attempts.
+    pub attempts: usize,
+}
+
 /// Send Anthropic-compatible `messages` request with retry on transient transport errors.
 ///
 /// # Errors
@@ -15,21 +30,24 @@ use crate::llm::error::{LlmError, LlmResult, sanitize_user_visible};
 /// Returns `LlmError::Internal` when all retry attempts fail due to network transport issues.
 /// Returns `LlmError::ConnectionFailed` when request building/sending fails on a non-retryable error.
 pub async fn send_anthropic_messages_with_retry(
-    client: &reqwest::Client,
-    endpoint: &str,
-    api_key: &str,
-    body: &Value,
-    attempts: usize,
+    request: AnthropicMessagesHttpRequest<'_>,
 ) -> LlmResult<reqwest::Response> {
-    let max_attempts = attempts.max(1);
+    send_anthropic_messages_with_retry_impl(request).await
+}
+
+async fn send_anthropic_messages_with_retry_impl(
+    request: AnthropicMessagesHttpRequest<'_>,
+) -> LlmResult<reqwest::Response> {
+    let max_attempts = request.attempts.max(1);
     let mut attempt = 1usize;
     loop {
-        let result = client
-            .post(endpoint)
-            .header("x-api-key", api_key)
+        let result = request
+            .client
+            .post(request.endpoint)
+            .header("x-api-key", request.api_key)
             .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
-            .json(body)
+            .json(request.body)
             .send()
             .await;
 
@@ -50,7 +68,7 @@ pub async fn send_anthropic_messages_with_retry(
                 let backoff = retry_backoff_for_attempt(attempt);
                 warn!(
                     event = "xiuxian.llm.providers.anthropic_http.network_retry",
-                    endpoint,
+                    endpoint = request.endpoint,
                     attempt,
                     max_attempts,
                     backoff_ms = backoff.as_millis(),
@@ -71,14 +89,9 @@ pub async fn send_anthropic_messages_with_retry(
 /// Returns `LlmError::Internal` when the endpoint returns a non-success status or
 /// when the response payload cannot be decoded as JSON.
 pub async fn send_anthropic_messages_json_with_retry(
-    client: &reqwest::Client,
-    endpoint: &str,
-    api_key: &str,
-    body: &Value,
-    attempts: usize,
+    request: AnthropicMessagesHttpRequest<'_>,
 ) -> LlmResult<Value> {
-    let response =
-        send_anthropic_messages_with_retry(client, endpoint, api_key, body, attempts).await?;
+    let response = send_anthropic_messages_with_retry(request).await?;
     if !response.status().is_success() {
         let status = response.status();
         let error_text = response.text().await.map_err(|source| LlmError::Internal {

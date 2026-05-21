@@ -1,5 +1,7 @@
 //! Error model for Qianji BPMN workflow-state storage operations.
 
+use super::{QianjiBpmnRecordKey, QianjiBpmnUpdatedAtMs};
+
 /// Error returned by the BPMN `DuckDB` workflow data store.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum QianjiBpmnDataStoreError {
@@ -15,9 +17,9 @@ pub enum QianjiBpmnDataStoreError {
     )]
     TimestampOutOfRange {
         /// Record key whose timestamp failed conversion.
-        record_key: String,
+        record_key: QianjiBpmnRecordKey,
         /// Timestamp value in milliseconds.
-        updated_at_ms: u64,
+        updated_at_ms: QianjiBpmnUpdatedAtMs,
     },
     /// Returned when JSON payload serialization or deserialization fails.
     #[error("BPMN DuckDB data-store codec operation `{operation}` failed: {message}")]

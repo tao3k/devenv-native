@@ -14,7 +14,7 @@ use xiuxian_wendao::zhenfa_router::native::audit::{
 fn test_fuzzy_suggestion_rust_function_renamed() {
     // Simulate a source file with a renamed function
     let source = SourceFile {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         content: r#"
 fn process_records(data: Vec<u8>) -> Result<(), Error> {
     // Process the records
@@ -26,7 +26,7 @@ fn process_records(data: Vec<u8>) -> Result<(), Error> {
 
     // Try to find a pattern that was renamed (process_data -> process_records)
     let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("fn process_data($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     assert!(
         suggestion.is_some(),
@@ -44,7 +44,7 @@ fn process_records(data: Vec<u8>) -> Result<(), Error> {
 #[test]
 fn test_fuzzy_suggestion_no_similar_code() {
     let source = SourceFile {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         content: r#"
 struct Point {
     x: i32,
@@ -57,7 +57,7 @@ struct Point {
     // Looking for a function that doesn't exist
     let suggestion = suggest_pattern_fix(
         "fn nonexistent_function($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source],
     );
 
@@ -70,18 +70,18 @@ struct Point {
 #[test]
 fn test_fuzzy_suggestion_custom_threshold() {
     let source = SourceFile {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         content: "fn foo() { }".to_string(),
     };
 
     // With default threshold (0.65), this might not match
     // With very low threshold, it might match
     let suggestion_default =
-        suggest_pattern_fix("fn bar($$$)", xiuxian_ast::Lang::Rust, &[source.clone()]);
+        suggest_pattern_fix("fn bar($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source.clone()]);
 
     let suggestion_low = suggest_pattern_fix_with_threshold(
         "fn bar($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source],
         Some(0.1), // Very low threshold
     );
@@ -95,7 +95,7 @@ fn test_fuzzy_suggestion_custom_threshold() {
 #[test]
 fn test_fuzzy_suggestion_multiple_candidates_ranked() {
     let source = SourceFile {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         content: r#"
 fn process_data_item(item: Item) -> Result<()> { }
 fn process_data_stream(stream: Stream) -> Result<()> { }
@@ -105,7 +105,7 @@ fn process_data_batch(batch: Vec<Item>) -> Result<()> { }
     };
 
     let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("fn process_data($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     // Should find a suggestion (best match among multiple candidates)
     if let Some(s) = suggestion {
@@ -117,7 +117,7 @@ fn process_data_batch(batch: Vec<Item>) -> Result<()> { }
 #[test]
 fn test_fuzzy_suggestion_with_struct_renamed() {
     let source = SourceFile {
-        path: "src/types.rs".to_string(),
+        path: "src/types.rs".to_string().into(),
         content: r#"
 pub struct ProcessedRecord {
     pub id: u64,
@@ -129,7 +129,7 @@ pub struct ProcessedRecord {
     };
 
     let suggestion =
-        suggest_pattern_fix("struct RawRecord $$$", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("struct RawRecord $$$", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     // Should find a suggestion for renamed struct
     if let Some(s) = suggestion {
@@ -148,14 +148,14 @@ pub struct ProcessedRecord {
 fn test_confidence_threshold_filtering() {
     // Source with only vaguely similar code
     let source = SourceFile {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         content: "fn completely_different() { }".to_string(),
     };
 
     // With high threshold, should not match
     let suggestion_high = suggest_pattern_fix_with_threshold(
         "fn process_data($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source.clone()],
         Some(0.9), // High threshold
     );
@@ -163,7 +163,7 @@ fn test_confidence_threshold_filtering() {
     // With very low threshold, might match (both are functions)
     let suggestion_low = suggest_pattern_fix_with_threshold(
         "fn process_data($$$)",
-        xiuxian_ast::Lang::Rust,
+        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
         &[source],
         Some(0.1), // Low threshold
     );
@@ -185,12 +185,12 @@ fn test_confidence_threshold_filtering() {
 #[test]
 fn test_replacement_drawer_format() {
     let source = SourceFile {
-        path: "src/lib.rs".to_string(),
+        path: "src/lib.rs".to_string().into(),
         content: "fn process_records() { }".to_string(),
     };
 
     let suggestion =
-        suggest_pattern_fix("fn process_data($$$)", xiuxian_ast::Lang::Rust, &[source]);
+        suggest_pattern_fix("fn process_data($$$)", &xiuxian_code_intelligence::CodeLanguageId::from("rust"), &[source]);
 
     if let Some(s) = suggestion {
         // Replacement drawer should be properly formatted

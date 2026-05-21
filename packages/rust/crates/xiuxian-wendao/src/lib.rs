@@ -60,16 +60,30 @@
 // ---------------------------------------------------------------------------
 // Core domain modules
 // ---------------------------------------------------------------------------
+/// Public Wendao boundary.
 pub mod entity;
+/// Rust-owned episteme source-contract planning services.
+pub mod episteme;
+/// Domain-owned live Flight host for SearchStrategyFlow replay.
+#[cfg(feature = "search-runtime")]
+pub mod flight_host;
+/// Public Wendao boundary.
 pub mod graph;
 /// HMAS blackboard protocol contracts and validators.
 pub mod hmas;
+/// Public Wendao boundary.
 pub mod kg_cache;
+/// Public Wendao boundary.
 pub mod link_graph;
 /// Feature-gated thin bridge into Julia-owned memory compute surfaces.
 #[cfg(feature = "julia")]
 pub mod memory;
+/// Public Wendao boundary.
 pub mod parsers;
+/// Feature-gated host projection that combines Wendao runtime and Julia
+/// compute contracts for the polyglot scheduler.
+#[cfg(feature = "julia")]
+pub mod polyglot;
 /// Optional Python binding namespace.
 #[cfg(feature = "pybindings")]
 pub mod pybindings;
@@ -79,11 +93,14 @@ pub mod query_core;
 /// Repo-intelligence ingestion runtime and status coordination.
 #[cfg(feature = "search-runtime")]
 pub mod repo_index;
+/// Public Wendao boundary.
 pub mod schemas;
 /// Wendao search infrastructure, corpora, query adapters, and shared primitives.
 pub mod search;
 pub(crate) mod settings;
+/// Public Wendao boundary.
 pub mod storage;
+/// Public Wendao boundary.
 pub mod sync;
 #[cfg(all(
     test,
@@ -97,6 +114,7 @@ pub mod sync;
 ))]
 #[path = "../tests/unit/support/mod.rs"]
 pub(crate) mod test_support;
+/// Public Wendao boundary.
 pub mod types;
 /// Shared Valkey client helpers for Wendao runtime integrations.
 pub mod valkey_common;
@@ -104,23 +122,32 @@ pub mod valkey_common;
 // ---------------------------------------------------------------------------
 // Fusion recall boost (Rust computation, Python thin wrapper)
 // ---------------------------------------------------------------------------
+/// Public Wendao boundary.
 pub mod fusion;
 
 // ---------------------------------------------------------------------------
 // Feature modules (enhancer, link graph refs, dependency, unified symbol)
 // ---------------------------------------------------------------------------
+/// Public Wendao boundary.
 pub mod analyzers;
 /// Bridges contract-testing findings into Wendao knowledge ingestion payloads.
 pub mod contract_feedback;
+/// Public Wendao boundary.
 pub mod dependency_indexer;
 /// Bounded local relation-engine seam and DuckDB host bridge.
 #[cfg(feature = "search-runtime")]
 pub mod duckdb;
+/// Public Wendao boundary.
 pub mod enhancer;
+/// Public Wendao boundary.
 pub mod gateway;
+/// Public Wendao boundary.
 pub mod ingress;
+/// Public Wendao boundary.
 pub mod link_graph_refs;
+/// Public Wendao boundary.
 pub mod skill_runtime;
+/// Public Wendao boundary.
 #[cfg(feature = "repo-lexical-index")]
 pub mod unified_symbol;
 /// High-level search router for integrating multiple backends.
@@ -250,7 +277,7 @@ pub use skill_runtime::{
     embedded_resource_text_from_wendao_uri, embedded_skill_links_for_id,
     embedded_skill_links_for_reference_type, embedded_skill_links_index, embedded_skill_markdown,
 };
-pub use storage::KnowledgeStorage;
+pub use storage::{KnowledgeStorage, KnowledgeStorageError};
 pub use sync::{
     DiscoveryOptions, FileChange, IncrementalSyncPolicy, SyncEngine, SyncManifest, SyncResult,
     extract_extensions_from_glob_patterns,

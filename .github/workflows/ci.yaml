@@ -19,6 +19,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+          ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - name: Read Rust toolchain channel
         id: rust
@@ -30,6 +31,7 @@ jobs:
             exit 1
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "RUSTUP_TOOLCHAIN=${channel}" >> "$GITHUB_ENV"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -38,7 +40,7 @@ jobs:
           components: rustfmt
 
       - name: Check Rust formatting
-        run: scripts/rust/cargo_exec.sh fmt --all --check
+        run: cargo fmt --all --check
 
   lint:
     runs-on: ubuntu-latest
@@ -56,6 +58,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+          ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -72,6 +75,7 @@ jobs:
             exit 1
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "RUSTUP_TOOLCHAIN=${channel}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |
@@ -156,7 +160,7 @@ jobs:
           cache-on-failure: true
 
       - name: Run Rust lint
-        run: scripts/rust/cargo_exec.sh clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Save sccache cache (fallback)
         if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
@@ -184,6 +188,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+          ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - name: Install cocogitto
         uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
@@ -231,6 +236,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+          ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -253,6 +259,7 @@ jobs:
             exit 1
           fi
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "RUSTUP_TOOLCHAIN=${channel}" >> "$GITHUB_ENV"
 
       - name: Install Linux build dependencies
         if: ${{ runner.os == 'Linux' }}
@@ -310,6 +317,15 @@ jobs:
           echo "PROTOC=${protoc_path}" >> "$GITHUB_ENV"
           echo "PROTOC_INCLUDE=${proto_include}" >> "$GITHUB_ENV"
           echo "PYO3_PYTHON=${python_path}" >> "$GITHUB_ENV"
+          if [[ "${RUNNER_OS:-}" == "macOS" ]]; then
+            sdkroot_path="$(xcrun --sdk macosx --show-sdk-path)"
+            echo "SDKROOT=${sdkroot_path}" >> "$GITHUB_ENV"
+            echo "LIBRARY_PATH=${sdkroot_path}/usr/lib" >> "$GITHUB_ENV"
+            echo "CC=/usr/bin/clang" >> "$GITHUB_ENV"
+            echo "CXX=/usr/bin/clang++" >> "$GITHUB_ENV"
+            echo "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER=/usr/bin/clang" >> "$GITHUB_ENV"
+            echo "CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER=/usr/bin/clang" >> "$GITHUB_ENV"
+          fi
           protoc --version
           echo "PROTOC_INCLUDE=${proto_include}"
           python --version
@@ -318,6 +334,15 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.rust.outputs.channel }}
+
+      - name: Verify Rust toolchain
+        run: |
+          set -euo pipefail
+          command -v cargo
+          command -v rustc
+          cargo --version
+          rustc --version
+          rustup show active-toolchain || true
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
@@ -405,7 +430,7 @@ jobs:
       - name: Start WendaoCodeParser parser-summary service for Rust tests
         run: |
           set -euo pipefail
-          source scripts/channel/process-runtime.sh
+          source scripts/runtime/process-runtime.sh
           export WENDAO_CODE_PARSER_SERVICE_NAME=wendaocodeparser-parser-summary
           export WENDAO_CODE_PARSER_RUNTIME_DIR=.run/wendaocodeparser
           export WENDAO_CODE_PARSER_PORT=41081
@@ -474,7 +499,7 @@ jobs:
       - name: Start WendaoSearch solver-demo service for Rust tests
         run: |
           set -euo pipefail
-          source scripts/channel/process-runtime.sh
+          source scripts/runtime/process-runtime.sh
           export WENDAOSEARCH_SERVICE_NAME=wendaosearch-solver-demo
           export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
           export WENDAOSEARCH_PORT=41080
@@ -544,10 +569,10 @@ jobs:
           exit 1
 
       - name: Build Wendao Studio CLI for domain CLI tests
-        run: scripts/rust/cargo_exec.sh build -p xiuxian-wendao-studio --features "cli-bin-support zhenfa-router julia" --bin wendao
+        run: cargo build -p xiuxian-wendao-studio --features "cli-bin-support zhenfa-router julia" --bin wendao
 
       - name: Run Rust workspace tests
-        run: scripts/rust/cargo_exec.sh nextest run --workspace --exclude xiuxian-core-rs --no-fail-fast
+        run: cargo nextest run --workspace --exclude xiuxian-core-rs --no-fail-fast
 
       - name: Run xiuxian-core-rs tests
         run: bash scripts/rust/test_xiuxian_core_rs.sh --lib --no-fail-fast
@@ -556,7 +581,7 @@ jobs:
         if: ${{ always() }}
         run: |
           set +e
-          source scripts/channel/process-runtime.sh
+          source scripts/runtime/process-runtime.sh
           managed_cleanup_pidfile_process \
             .run/wendaocodeparser/wendaocodeparser-parser-summary.pid \
             wendaocodeparser-parser-summary \

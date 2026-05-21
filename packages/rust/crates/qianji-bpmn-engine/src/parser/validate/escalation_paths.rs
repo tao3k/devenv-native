@@ -23,18 +23,18 @@ impl SupportedEscalationOwner {
     fn missing_boundary_error(self, process_id: &str, node_id: &str) -> BpmnEngineError {
         match self {
             Self::Transaction => BpmnEngineError::UnsupportedTransactionConfiguration {
-                process_id: process_id.to_string(),
-                node_id: node_id.to_string(),
+                process_id: (process_id.to_string()).into(),
+                node_id: (node_id.to_string()).into(),
                 detail: "transaction_escalation_missing_boundary",
             },
             Self::EmbeddedSubProcess => BpmnEngineError::UnsupportedSubProcessConfiguration {
-                process_id: process_id.to_string(),
-                node_id: node_id.to_string(),
+                process_id: (process_id.to_string()).into(),
+                node_id: (node_id.to_string()).into(),
                 detail: "embedded_subprocess_escalation_missing_boundary",
             },
             Self::CallActivity => BpmnEngineError::UnsupportedSubProcessConfiguration {
-                process_id: process_id.to_string(),
-                node_id: node_id.to_string(),
+                process_id: (process_id.to_string()).into(),
+                node_id: (node_id.to_string()).into(),
                 detail: "call_activity_escalation_missing_boundary",
             },
         }
@@ -64,8 +64,8 @@ pub(in crate::parser) fn validate_supported_escalation_throw_paths(
     let owner_requirements = resolve_supported_escalation_owners(process, call_activity_owners);
     if owner_requirements.is_empty() {
         return Err(BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: escalation_throw_nodes[0].bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (escalation_throw_nodes[0].bpmn_id.clone()).into(),
             detail: escalation_throw_missing_parent_detail(&escalation_throw_nodes[0].kind),
         });
     }
@@ -122,8 +122,8 @@ fn resolve_supported_escalation_owners<'a>(
             owner_node_id,
             kind: NestedShellKind::Transaction,
         } => vec![EscalationOwnerRequirement {
-            process_id: owner_process_id.as_str(),
-            node_id: owner_node_id.as_str(),
+            process_id: (owner_process_id.as_str()),
+            node_id: (owner_node_id.as_str()),
             owner_kind: SupportedEscalationOwner::Transaction,
         }],
         RawProcessScope::NestedShell {
@@ -131,8 +131,8 @@ fn resolve_supported_escalation_owners<'a>(
             owner_node_id,
             kind: NestedShellKind::EmbeddedSubProcess,
         } => vec![EscalationOwnerRequirement {
-            process_id: owner_process_id.as_str(),
-            node_id: owner_node_id.as_str(),
+            process_id: (owner_process_id.as_str()),
+            node_id: (owner_node_id.as_str()),
             owner_kind: SupportedEscalationOwner::EmbeddedSubProcess,
         }],
         RawProcessScope::NestedShell {
@@ -145,8 +145,8 @@ fn resolve_supported_escalation_owners<'a>(
                 owners
                     .iter()
                     .map(|owner| EscalationOwnerRequirement {
-                        process_id: owner.process_id,
-                        node_id: owner.node_id,
+                        process_id: (owner.process_id),
+                        node_id: (owner.node_id),
                         owner_kind: SupportedEscalationOwner::CallActivity,
                     })
                     .collect::<Vec<_>>()

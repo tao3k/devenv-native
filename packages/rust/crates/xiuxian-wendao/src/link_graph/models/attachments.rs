@@ -1,3 +1,5 @@
+//! `link_graph::models::attachments` owns Wendao link graph models attachments behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Vision annotation payload from multimodal analysis.
@@ -98,6 +100,7 @@ impl LinkGraphAttachmentKind {
 
 /// One normalized attachment reference extracted from a markdown note.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct LinkGraphAttachment {
     /// Source document id (relative path without extension).
     pub source_id: String,
@@ -122,6 +125,7 @@ pub struct LinkGraphAttachment {
 
 /// Attachment search hit.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct LinkGraphAttachmentHit {
     /// Source document id (relative path without extension).
     pub source_id: String,

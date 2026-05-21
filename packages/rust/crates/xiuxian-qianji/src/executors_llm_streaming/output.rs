@@ -53,23 +53,11 @@ pub(super) fn build_repo_tree_fallback_plan(context: &serde_json::Value) -> serd
         .get("repo_tree")
         .and_then(serde_json::Value::as_str)
         .unwrap_or("");
-    let mut paths = Vec::new();
-    for line in repo_tree.lines() {
-        let trimmed = line.trim();
-        if !trimmed.starts_with("./") {
-            continue;
-        }
-        if trimmed.matches('/').count() > 1 {
-            continue;
-        }
-        let path = trimmed.trim_start_matches("./").trim();
-        if !path.is_empty() {
-            paths.push(path.to_string());
-        }
-        if paths.len() >= 12 {
-            break;
-        }
-    }
+    let mut paths = repo_tree
+        .lines()
+        .filter_map(repo_tree_top_level_path)
+        .take(12)
+        .collect::<Vec<_>>();
     if paths.is_empty() {
         paths.push(".".to_string());
     }
@@ -79,6 +67,15 @@ pub(super) fn build_repo_tree_fallback_plan(context: &serde_json::Value) -> serd
             "paths": paths,
         }
     ])
+}
+
+fn repo_tree_top_level_path(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if !trimmed.starts_with("./") || trimmed.matches('/').count() > 1 {
+        return None;
+    }
+    let path = trimmed.trim_start_matches("./").trim();
+    (!path.is_empty()).then(|| path.to_string())
 }
 
 pub(super) fn context_non_empty_string(context: &serde_json::Value, key: &str) -> Option<String> {

@@ -15,7 +15,7 @@ pub(crate) fn validate_dmn_root_start_tag(
     let root_element = local_name(event_name.as_ref());
     if root_element != "definitions" {
         return Err(BpmnEngineError::UnsupportedDmnRootElement {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             element: root_element.to_string(),
         });
     }
@@ -25,13 +25,13 @@ pub(crate) fn validate_dmn_root_start_tag(
 
     let Some(model_namespace_uri) = find_model_namespace_uri(source, reader, event)? else {
         return Err(BpmnEngineError::MissingDmnModelNamespace {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
         });
     };
 
     if !is_supported_dmn_model_namespace(&model_namespace_uri) {
         return Err(BpmnEngineError::UnsupportedDmnModelNamespace {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             model_namespace_uri,
         });
     }
@@ -46,7 +46,7 @@ fn find_model_namespace_uri(
 ) -> Result<Option<String>> {
     for attribute in event.attributes() {
         let attribute = attribute.map_err(|error| BpmnEngineError::InvalidDmnXml {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             message: error.to_string(),
         })?;
         let key = attribute.key.as_ref();
@@ -56,7 +56,7 @@ fn find_model_namespace_uri(
         let value = attribute
             .decode_and_unescape_value(reader.decoder())
             .map_err(|error| BpmnEngineError::InvalidDmnXml {
-                source_id: source.source_id.clone(),
+                source_id: (source.source_id.clone()).into(),
                 message: error.to_string(),
             })?;
         let value = value.as_ref();

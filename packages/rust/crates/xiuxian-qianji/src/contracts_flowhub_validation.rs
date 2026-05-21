@@ -1,3 +1,5 @@
+//! Contracts flowhub validation surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Validation scope for Flowhub manifests.

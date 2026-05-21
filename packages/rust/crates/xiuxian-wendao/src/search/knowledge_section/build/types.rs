@@ -1,3 +1,5 @@
+//! `search::knowledge_section::build::types` owns Wendao knowledge section build types behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(any(test, feature = "test-support"))]
@@ -19,7 +21,7 @@ pub(super) struct KnowledgeSectionWriteResult {
     pub(super) row_count: u64,
     pub(super) fragment_count: u64,
 }
-
+/// `KnowledgeSectionBuildError` public enum boundary for Wendao.
 #[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, thiserror::Error)]
 pub enum KnowledgeSectionBuildError {

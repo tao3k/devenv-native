@@ -1,13 +1,13 @@
 use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 
-use xiuxian_ast::Lang;
+use xiuxian_code_intelligence::all_code_language_ids;
 use xiuxian_wendao_server::transport::{
     SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE,
 };
 
 use crate::studio::router::repository::configured_repositories;
-use crate::studio::router::state::helpers::supported_code_kinds;
+use crate::studio::router::state::project_config::supported_code_kinds;
 use crate::studio::router::state::types::{StudioConfiguredOwners, StudioState};
 use crate::studio::router::{sanitize_projects, sanitize_repo_projects};
 use crate::studio::types::{
@@ -158,11 +158,9 @@ impl StudioState {
             .into_iter()
             .map(ToOwned::to_owned)
             .collect::<Vec<_>>();
-        let mut supported_languages = Lang::all()
-            .iter()
-            .copied()
-            .map(Lang::as_str)
-            .map(ToOwned::to_owned)
+        let mut supported_languages = all_code_language_ids()
+            .into_iter()
+            .map(|language_id| language_id.as_str().to_string())
             .collect::<BTreeSet<_>>();
         supported_languages.extend(plugin_languages);
         let supported_languages = supported_languages.into_iter().collect();
@@ -177,7 +175,8 @@ impl StudioState {
             studio_bootstrap_background_indexing_enabled: bootstrap_background_indexing.enabled(),
             studio_bootstrap_background_indexing_mode: bootstrap_background_indexing
                 .mode()
-                .to_string(),
+                .to_string()
+                .into(),
             studio_bootstrap_background_indexing_deferred_activation_observed:
                 bootstrap_background_indexing.deferred_activation_observed(),
         }

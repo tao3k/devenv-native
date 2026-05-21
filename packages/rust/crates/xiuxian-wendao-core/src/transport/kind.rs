@@ -1,3 +1,5 @@
+//! Transport-kind catalog for Wendao plugin runtime data exchange.
+
 use serde::{Deserialize, Serialize};
 
 /// Supported transport kinds for Wendao plugin-runtime data exchange.

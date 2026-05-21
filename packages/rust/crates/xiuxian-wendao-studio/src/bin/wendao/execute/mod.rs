@@ -13,6 +13,8 @@ mod audit;
 mod dispatch;
 #[path = "docs.rs"]
 mod docs;
+#[path = "episteme.rs"]
+mod episteme;
 #[path = "fix.rs"]
 mod fix;
 #[cfg(feature = "zhenfa-router")]

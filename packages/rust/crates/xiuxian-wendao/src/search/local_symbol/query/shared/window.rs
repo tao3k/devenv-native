@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::search::ranking::RetainedWindow;
 
 const MIN_RETAINED_LOCAL_SYMBOLS: usize = 64;

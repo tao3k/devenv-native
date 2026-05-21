@@ -1,3 +1,5 @@
+//! `analyzers::service::projection::planner::api::queue` owns Wendao planner api queue behavior.
+
 use std::collections::BTreeMap;
 use std::path::Path;
 

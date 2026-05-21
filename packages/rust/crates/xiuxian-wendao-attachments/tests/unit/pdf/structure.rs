@@ -213,6 +213,26 @@ fn document_structure_parity_rejects_lower_page_text_coverage() {
 }
 
 #[test]
+fn document_structure_parity_ignores_document_wrapper_text() -> Result<(), String> {
+    let baseline = vec![
+        typed_block("docling-json", 0, 0, "docling_json", "full document json"),
+        typed_block("document", 0, 1, "document", "full document markdown"),
+        typed_block("table-0", 0, 2, "table", "| a | b |"),
+    ];
+    let candidate = vec![
+        typed_block("page-json", 0, 0, "docling_json", "page json"),
+        typed_block("page-document", 0, 1, "document", "page markdown"),
+        typed_block("table-0", 0, 2, "table", "| a | b |"),
+    ];
+
+    let summary = validate_document_structure_parity(baseline.as_slice(), candidate.as_slice())?;
+
+    assert_eq!(summary.baseline_text_chars, 5);
+    assert_eq!(summary.candidate_text_chars, 5);
+    Ok(())
+}
+
+#[test]
 fn document_structure_parity_rejects_protected_block_loss() {
     let baseline = vec![
         typed_block("text-0", 0, 0, "text_page", "alpha"),

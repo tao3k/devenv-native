@@ -1,3 +1,5 @@
+//! `parsers::markdown::relations::types` owns Wendao markdown relations types behavior.
+
 use crate::entity::RelationType;
 use crate::link_graph::addressing::Address;
 

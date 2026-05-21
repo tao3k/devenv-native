@@ -1,3 +1,5 @@
+//! `pybindings::dep_indexer_py::config` owns Wendao pybindings dep indexer py config behavior.
+
 use pyo3::{pyclass, pymethods};
 
 use crate::dependency_indexer::{ConfigExternalDependency, DependencyBuildConfig};

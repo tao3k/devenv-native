@@ -11,7 +11,7 @@ pub(super) fn unsupported_decision_service_issue(
     source_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_decision_service",
         "DMN file contains decision service definitions but no executable decisions",
         format!(
@@ -50,7 +50,7 @@ pub(super) fn unsupported_input_data_artifact_issue(
     } else {
         "artifacts"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_input_data_artifact",
         "DMN file contains input-data artifacts but no executable decisions",
         format!(
@@ -89,7 +89,7 @@ pub(super) fn unsupported_item_definition_document_issue(
     } else {
         "definitions"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_item_definition_document",
         "DMN file contains item definitions but no executable decisions",
         format!(
@@ -128,7 +128,7 @@ pub(super) fn unsupported_knowledge_source_artifact_issue(
     } else {
         "artifacts"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_knowledge_source_artifact",
         "DMN file contains knowledge-source artifacts but no executable decisions",
         format!(
@@ -167,7 +167,7 @@ pub(super) fn unsupported_business_knowledge_model_artifact_issue(
     } else {
         "artifacts"
     };
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_business_knowledge_model_artifact",
         "DMN file contains business-knowledge-model artifacts but no executable decisions",
         format!(

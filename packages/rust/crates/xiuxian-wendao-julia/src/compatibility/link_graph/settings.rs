@@ -3,6 +3,10 @@
 use serde_yaml::Value;
 
 use super::runtime::LinkGraphJuliaRerankRuntimeConfig;
+use crate::{
+    JuliaContractMode, JuliaContractPath, JuliaContractRoute, JuliaContractSchemaVersion,
+    JuliaContractSecondsU64, JuliaContractUrl,
+};
 
 const LINK_GRAPH_JULIA_RERANK_BASE_URL_KEY: &str = "link_graph.retrieval.julia_rerank.base_url";
 const LINK_GRAPH_JULIA_RERANK_ROUTE_KEY: &str = "link_graph.retrieval.julia_rerank.route";
@@ -68,25 +72,29 @@ impl LinkGraphJuliaRerankRuntimeConfig {
                 LINK_GRAPH_JULIA_RERANK_BASE_URL_KEY,
                 LINK_GRAPH_JULIA_RERANK_BASE_URL_ENV,
                 &env_lookup,
-            ),
+            )
+            .map(JuliaContractUrl::from),
             route: resolve_optional_string(
                 settings,
                 LINK_GRAPH_JULIA_RERANK_ROUTE_KEY,
                 LINK_GRAPH_JULIA_RERANK_ROUTE_ENV,
                 &env_lookup,
-            ),
+            )
+            .map(JuliaContractRoute::from),
             health_route: resolve_optional_string(
                 settings,
                 LINK_GRAPH_JULIA_RERANK_HEALTH_ROUTE_KEY,
                 LINK_GRAPH_JULIA_RERANK_HEALTH_ROUTE_ENV,
                 &env_lookup,
-            ),
+            )
+            .map(JuliaContractRoute::from),
             schema_version: resolve_optional_string(
                 settings,
                 LINK_GRAPH_JULIA_RERANK_SCHEMA_VERSION_KEY,
                 LINK_GRAPH_JULIA_RERANK_SCHEMA_VERSION_ENV,
                 &env_lookup,
-            ),
+            )
+            .map(JuliaContractSchemaVersion::from),
             timeout_secs: resolve_optional_string(
                 settings,
                 LINK_GRAPH_JULIA_RERANK_TIMEOUT_SECS_KEY,
@@ -94,19 +102,22 @@ impl LinkGraphJuliaRerankRuntimeConfig {
                 &env_lookup,
             )
             .as_deref()
-            .and_then(parse_positive_u64),
+            .and_then(parse_positive_u64)
+            .map(JuliaContractSecondsU64::from),
             service_mode: resolve_optional_string(
                 settings,
                 LINK_GRAPH_JULIA_RERANK_SERVICE_MODE_KEY,
                 LINK_GRAPH_JULIA_RERANK_SERVICE_MODE_ENV,
                 &env_lookup,
-            ),
+            )
+            .map(JuliaContractMode::from),
             search_config_path: resolve_optional_string(
                 settings,
                 LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH_KEY,
                 LINK_GRAPH_JULIA_RERANK_SEARCH_CONFIG_PATH_ENV,
                 &env_lookup,
-            ),
+            )
+            .map(JuliaContractPath::from),
             vector_weight: resolve_optional_string(
                 settings,
                 LINK_GRAPH_JULIA_RERANK_VECTOR_WEIGHT_KEY,

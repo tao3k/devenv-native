@@ -1,3 +1,5 @@
+//! `analyzers::query::gaps` owns Wendao analyzers query gaps behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -50,6 +52,7 @@ pub struct ProjectedGapSummary {
 
 /// One deterministic deep-wiki planning gap.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct ProjectedGapRecord {
     /// Repository identifier.
     pub repo_id: String,

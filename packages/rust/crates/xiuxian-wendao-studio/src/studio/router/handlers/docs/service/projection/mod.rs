@@ -1,3 +1,5 @@
+//! Coordinates the Studio docs service projection branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "family.rs"]
 pub(crate) mod family;
 #[path = "gap_report.rs"]

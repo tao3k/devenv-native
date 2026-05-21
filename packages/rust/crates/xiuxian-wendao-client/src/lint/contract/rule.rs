@@ -95,7 +95,7 @@ impl RuleContract {
     pub(super) fn render_issue(&self, facts: &DiagnosticFacts) -> MarkdownLintIssue {
         MarkdownLintIssue {
             code: facts.rule_key().to_string(),
-            kind: facts.kind().to_string(),
+            kind: facts.kind().into(),
             problem: self.render_problem(facts),
             message: self.render_detail(facts),
             line: facts.line(),

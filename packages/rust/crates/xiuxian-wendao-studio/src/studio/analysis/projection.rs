@@ -17,28 +17,28 @@ pub(crate) fn build_mermaid_projections(
 
 fn build_outline_projection(nodes: &[AnalysisNode], edges: &[AnalysisEdge]) -> MermaidProjection {
     let mut source = String::from("graph TD\n");
-    let mut node_count = 0;
-    let mut edge_count = 0;
-
-    for node in nodes {
-        if matches!(node.kind, AnalysisNodeKind::Section) {
+    let node_count = nodes
+        .iter()
+        .filter(|node| matches!(node.kind, AnalysisNodeKind::Section))
+        .inspect(|node| {
             let _ = writeln!(source, "  {}[\"{}\"]", escape_id(&node.id), node.label);
-            node_count += 1;
-        }
-    }
+        })
+        .count();
 
-    for edge in edges {
-        if matches!(
-            edge.kind,
-            AnalysisEdgeKind::Contains | AnalysisEdgeKind::Parent
-        ) {
+    let edge_count = edges
+        .iter()
+        .filter(|edge| {
+            matches!(
+                edge.kind,
+                AnalysisEdgeKind::Contains | AnalysisEdgeKind::Parent
+            )
+        })
+        .inspect(|edge| {
             let s_id = escape_id(&edge.source_id);
             let t_id = escape_id(&edge.target_id);
-            // Rough check if nodes are in this projection
             let _ = writeln!(source, "  {s_id} --> {t_id}");
-            edge_count += 1;
-        }
-    }
+        })
+        .count();
 
     MermaidProjection {
         kind: MermaidViewKind::Outline,
@@ -50,27 +50,26 @@ fn build_outline_projection(nodes: &[AnalysisNode], edges: &[AnalysisEdge]) -> M
 
 fn build_task_projection(nodes: &[AnalysisNode], edges: &[AnalysisEdge]) -> MermaidProjection {
     let mut source = String::from("graph LR\n");
-    let mut node_count = 0;
-    let mut edge_count = 0;
-
-    for node in nodes {
-        if matches!(node.kind, AnalysisNodeKind::Task) {
+    let node_count = nodes
+        .iter()
+        .filter(|node| matches!(node.kind, AnalysisNodeKind::Task))
+        .inspect(|node| {
             let _ = writeln!(source, "  {}[\"{}\"]", escape_id(&node.id), node.label);
-            node_count += 1;
-        }
-    }
+        })
+        .count();
 
-    for edge in edges {
-        if matches!(edge.kind, AnalysisEdgeKind::NextStep) {
+    let edge_count = edges
+        .iter()
+        .filter(|edge| matches!(edge.kind, AnalysisEdgeKind::NextStep))
+        .inspect(|edge| {
             let _ = writeln!(
                 source,
                 "  {} --> {}",
                 escape_id(&edge.source_id),
                 escape_id(&edge.target_id)
             );
-            edge_count += 1;
-        }
-    }
+        })
+        .count();
 
     MermaidProjection {
         kind: MermaidViewKind::Tasks,

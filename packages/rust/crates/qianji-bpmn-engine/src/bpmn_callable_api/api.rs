@@ -22,7 +22,8 @@ impl BpmnCallableRegistry {
 
     /// Finds one callable definition by BPMN identifier.
     #[must_use]
-    pub fn find_definition(&self, callable_id: &str) -> Option<&BpmnCallableDefinition> {
+    pub fn find_definition(&self, callable_id: impl AsRef<str>) -> Option<&BpmnCallableDefinition> {
+        let callable_id = callable_id.as_ref();
         self.definitions
             .iter()
             .find(|definition| definition.callable_id.as_ref() == callable_id)

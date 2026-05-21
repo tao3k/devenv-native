@@ -1,4 +1,6 @@
-use crate::{NotificationPayload, NotificationService, WebhookConfig, ZhenfaSignal};
+use crate::{
+    NotificationPayload, NotificationService, WebhookConfig, ZhenfaSignal, ZhenfaSignalType,
+};
 
 #[test]
 fn notification_service_new() {
@@ -39,7 +41,7 @@ fn signal_to_payload_reward() {
 #[test]
 fn notification_payload_serialization() {
     let payload = NotificationPayload {
-        signal_type: "semantic_drift".to_string(),
+        signal_type: ZhenfaSignalType::from("semantic_drift"),
         source: "src/lib.rs".to_string(),
         summary: "Code changed".to_string(),
         confidence: "high".to_string(),
@@ -61,7 +63,7 @@ fn notification_payload_serialization() {
 async fn notification_service_skips_empty_url() {
     let service = NotificationService::new(WebhookConfig::default());
     let payload = NotificationPayload {
-        signal_type: "test".to_string(),
+        signal_type: ZhenfaSignalType::from("test"),
         source: "test".to_string(),
         summary: "Test".to_string(),
         confidence: "high".to_string(),

@@ -17,36 +17,39 @@ pub(crate) fn build_page_index_tree(
         .iter()
         .any(|section| !section.heading_path.trim().is_empty());
 
-    for section in sections {
-        if section.section_text.trim().is_empty() && section.heading_path.trim().is_empty() {
-            continue;
-        }
+    sections
+        .iter()
+        .filter(|section| has_page_index_content(section))
+        .for_each(|section| {
+            let level = effective_level(section.heading_level);
+            while stack
+                .last()
+                .is_some_and(|parent: &PageIndexNode| parent.level >= level)
+            {
+                close_last_open_node(&mut roots, &mut stack);
+            }
 
-        let level = effective_level(section.heading_level);
-        while stack
-            .last()
-            .is_some_and(|parent: &PageIndexNode| parent.level >= level)
-        {
-            close_last_open_node(&mut roots, &mut stack);
-        }
-
-        let parent_id = stack.last().map(|p| p.node_id.clone());
-        let node = build_node(
-            doc_id,
-            doc_title,
-            section,
-            has_named_headings,
-            &mut slug_counts,
-            parent_id,
-        );
-        stack.push(node);
-    }
+            let parent_id = stack.last().map(|p| p.node_id.clone());
+            let node = build_node(
+                doc_id,
+                doc_title,
+                section,
+                has_named_headings,
+                &mut slug_counts,
+                parent_id,
+            );
+            stack.push(node);
+        });
 
     while !stack.is_empty() {
         close_last_open_node(&mut roots, &mut stack);
     }
 
     roots
+}
+
+fn has_page_index_content(section: &IndexedSection) -> bool {
+    !section.section_text.trim().is_empty() || !section.heading_path.trim().is_empty()
 }
 
 fn build_node(

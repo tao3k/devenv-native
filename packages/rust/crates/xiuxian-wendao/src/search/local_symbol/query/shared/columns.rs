@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::search::ranking::{RetainedWindow, StreamingRerankTelemetry, trim_ranked_vec};
 use std::collections::HashSet;
 use xiuxian_db_store::EngineRecordBatch;

@@ -1,3 +1,5 @@
+//! Parser and validator for stable `wendao://` semantic resource URIs.
+
 use std::path::{Component, Path, PathBuf};
 
 use thiserror::Error;

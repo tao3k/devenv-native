@@ -7,6 +7,8 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
+use crate::JuliaContractState;
+
 /// Request column carrying the stable memory id.
 pub const MEMORY_JULIA_GATE_SCORE_MEMORY_ID_COLUMN: &str = "memory_id";
 /// Request column carrying the optional scenario pack.
@@ -102,7 +104,7 @@ pub struct MemoryJuliaGateScoreRequestRow {
     /// TTL score in `[0, 1]`.
     pub ttl_score: f32,
     /// Current lifecycle state string.
-    pub current_state: String,
+    pub current_state: JuliaContractState,
 }
 
 /// One decoded recommendation row for the staged gate-score profile.

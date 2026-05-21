@@ -25,8 +25,9 @@ mod validate;
 
 pub use api::{
     WorkdirAdvance, WorkdirCheckFollowUpQuery, WorkdirCheckReport, WorkdirDiagnostic,
-    WorkdirMarkdownSurface, WorkdirSemanticProjectionPolicySummary,
+    WorkdirMarkdownSurface, WorkdirSemanticEvidenceStatus, WorkdirSemanticProjectionPolicySummary,
     WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
+    WorkdirSemanticScopeObjectKind, WorkdirSemanticScopeObjectStatus,
     WorkdirSemanticScopeObjectSummary, WorkdirSemanticSqlGuardSummary, WorkdirShow,
     WorkdirVisibleSurface, WorkdirVisibleSurfaceKind, advance_workdir_step,
     build_workdir_check_follow_up_query, check_workdir, load_workdir_manifest,

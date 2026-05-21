@@ -134,8 +134,8 @@ fn parser_service_task_rejects_unknown_data_object_reference_target() {
     assert_eq!(
         error,
         BpmnEngineError::UnknownDataObjectReference {
-            process_id: "unknown_data_object_reference".to_string(),
-            reference_id: "OrderRef".to_string(),
+            process_id: ("unknown_data_object_reference".to_string()).into(),
+            reference_id: ("OrderRef".to_string()).into(),
             data_object_ref: "MissingOrderData".to_string(),
         }
     );
@@ -175,8 +175,8 @@ fn parser_service_task_rejects_multiple_io_source_refs() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id: "service_task_multiple_sources".to_string(),
-            node_id: "enrich".to_string(),
+            process_id: ("service_task_multiple_sources".to_string()).into(),
+            node_id: ("enrich".to_string()).into(),
             detail: "task_io_multiple_source_refs_deferred",
         }
     );
@@ -216,8 +216,8 @@ fn parser_service_task_rejects_io_transformation() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedTaskConfiguration {
-            process_id: "service_task_transformation".to_string(),
-            node_id: "enrich".to_string(),
+            process_id: ("service_task_transformation".to_string()).into(),
+            node_id: ("enrich".to_string()).into(),
             detail: "task_io_transformation_deferred",
         }
     );

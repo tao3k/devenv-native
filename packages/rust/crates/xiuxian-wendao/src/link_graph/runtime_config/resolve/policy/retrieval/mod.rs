@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::resolve::policy::retrieval` owns Wendao resolve policy retrieval behavior.
+
 mod base;
 mod semantic_ignition;
 

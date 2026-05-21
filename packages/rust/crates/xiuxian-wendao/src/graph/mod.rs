@@ -15,6 +15,7 @@ mod errors;
 mod intent;
 #[path = "persistence/mod.rs"]
 mod persistence;
+/// Public Wendao boundary.
 #[path = "query/mod.rs"]
 pub mod query;
 #[path = "relation_ops.rs"]

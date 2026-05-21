@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::BTreeMap;
+use std::ops::Deref;
 
 /// Parser-owned document format family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -12,6 +13,51 @@ pub enum DocumentFormat {
     Markdown,
     /// Org-mode family document input.
     Org,
+}
+
+/// Semantic document type token from parser metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct DocumentType(String);
+
+impl DocumentType {
+    /// Build a document type token.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Borrow this document type as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl From<String> for DocumentType {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&str> for DocumentType {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<DocumentType> for String {
+    fn from(value: DocumentType) -> Self {
+        value.0
+    }
+}
+
+impl Deref for DocumentType {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
 }
 
 /// Parser-owned cross-format document metadata and normalized body content.
@@ -28,7 +74,7 @@ pub struct DocumentCore {
     pub tags: Vec<String>,
     /// Optional semantic document type from format-specific metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub doc_type: Option<String>,
+    pub doc_type: Option<DocumentType>,
     /// Best-effort leading content snippet from the body.
     pub lead: String,
     /// Best-effort word count computed from the body.

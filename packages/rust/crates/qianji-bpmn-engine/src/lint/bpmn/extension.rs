@@ -40,7 +40,7 @@ fn legacy_custom_qname_issues(source: &BpmnSourceFile) -> Vec<LintIssue> {
     else {
         return Vec::new();
     };
-    vec![LintIssue::new(
+    vec![LintIssue::from_parts(
         "bpmn.legacy_custom_interaction_xml",
         "Custom QName interaction XML is not supported",
         format!(
@@ -132,7 +132,7 @@ fn unsupported_interaction_type_issue(
     task_id: &str,
     interaction_type: &str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_native_interaction_type",
         "Native human-task interaction type is unsupported",
         format!(
@@ -160,7 +160,7 @@ fn missing_choices_issue(
     task_id: &str,
     interaction_type: &str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.missing_native_choice_contract",
         "Choice interaction is missing choices",
         format!(
@@ -184,7 +184,7 @@ fn missing_choices_issue(
 }
 
 fn ambiguous_choices_issue(source: &BpmnSourceFile, task_id: &str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.ambiguous_native_choices",
         "Choice interaction has multiple choices sources",
         format!(
@@ -211,7 +211,7 @@ fn unsupported_free_text_cardinality_issue(
     task_id: &str,
     field_count: usize,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_native_free_text_cardinality",
         "Native free-text field cardinality is unsupported",
         format!("user/manual task '{task_id}' declares {field_count} free-text fields."),
@@ -233,7 +233,7 @@ fn unsupported_free_text_cardinality_issue(
 }
 
 fn missing_result_output_issue(source: &BpmnSourceFile, task_id: &str) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.missing_native_answer_output",
         "Native human-task answer output is missing",
         format!("user/manual task '{task_id}' does not map data output `answer` to a result variable."),

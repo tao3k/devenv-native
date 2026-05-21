@@ -13,6 +13,65 @@ fn u32_to_f32(value: u32) -> f32 {
     value.to_f32().unwrap_or(f32::MAX)
 }
 
+macro_rules! memory_gate_string_type {
+    ($name:ident) => {
+        #[doc = "String identifier used by memory-gate event APIs."]
+        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Borrows the serialized identifier value.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl std::ops::Deref for $name {
+            type Target = str;
+
+            fn deref(&self) -> &Self::Target {
+                self.as_str()
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self(value.to_owned())
+            }
+        }
+    };
+}
+
+memory_gate_string_type!(MemoryGateSessionId);
+memory_gate_string_type!(MemoryGateMemoryId);
+
+/// Monotonic turn id for a memory-gate event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct MemoryGateTurnId(u64);
+
+impl MemoryGateTurnId {
+    /// Returns the numeric turn id.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
+impl From<u64> for MemoryGateTurnId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
 /// Lifecycle state used by gate events.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -76,51 +135,97 @@ impl MemoryUtilityLedger {
         graph_consistency_score: f32,
         omega_alignment_score: f32,
     ) -> Self {
-        let usage_count = episode.total_uses();
-        let usage_count_f32 = u32_to_f32(usage_count);
-        let success = u32_to_f32(episode.success_count);
-        let failure = u32_to_f32(episode.failure_count);
-        let feedback_count = episode.feedback_count();
-        let feedback_count_f32 = u32_to_f32(feedback_count);
-        let failure_rate = if feedback_count == 0 {
-            if episode.outcome.eq_ignore_ascii_case("error") {
-                1.0
-            } else {
-                0.0
-            }
-        } else {
-            (failure / feedback_count_f32).clamp(0.0, 1.0)
-        };
-
+        let feedback = episode_feedback_facts(episode);
         let q_value = episode.q_value.clamp(0.0, 1.0);
-        let frequency_score = if usage_count == 0 {
-            0.0
-        } else {
-            (usage_count_f32 / (usage_count_f32 + 3.0)).clamp(0.0, 1.0)
-        };
-        let stability_score = (1.0 - failure_rate).clamp(0.0, 1.0);
-        let success_bias = ((success + 1.0) / (success + failure + 2.0)).clamp(0.0, 1.0);
-        let ttl_score =
-            (0.45 * frequency_score + 0.35 * stability_score + 0.20 * success_bias).clamp(0.0, 1.0);
-
-        let react_score = react_revalidation_score.clamp(0.0, 1.0);
-        let graph_score = graph_consistency_score.clamp(0.0, 1.0);
-        let omega_score = omega_alignment_score.clamp(0.0, 1.0);
-        let utility_score =
-            (0.32 * react_score + 0.23 * graph_score + 0.25 * omega_score + 0.20 * q_value)
-                .clamp(0.0, 1.0);
+        let ttl_score = ttl_score_from_feedback(&feedback);
+        let evidence = MemoryEvidenceScores::new(
+            react_revalidation_score,
+            graph_consistency_score,
+            omega_alignment_score,
+        );
+        let utility_score = utility_score_from_evidence(evidence, q_value);
 
         Self {
-            react_revalidation_score: react_score,
-            graph_consistency_score: graph_score,
-            omega_alignment_score: omega_score,
+            react_revalidation_score: evidence.react,
+            graph_consistency_score: evidence.graph,
+            omega_alignment_score: evidence.omega,
             ttl_score,
             utility_score,
             q_value,
-            usage_count,
-            failure_rate,
+            usage_count: feedback.usage_count,
+            failure_rate: feedback.failure_rate,
         }
     }
+}
+
+struct EpisodeFeedbackFacts {
+    usage_count: u32,
+    usage_count_f32: f32,
+    success: f32,
+    failure: f32,
+    failure_rate: f32,
+}
+
+fn episode_feedback_facts(episode: &Episode) -> EpisodeFeedbackFacts {
+    let usage_count = episode.total_uses();
+    let success = u32_to_f32(episode.success_count);
+    let failure = u32_to_f32(episode.failure_count);
+    let feedback_count = episode.feedback_count();
+    EpisodeFeedbackFacts {
+        usage_count,
+        usage_count_f32: u32_to_f32(usage_count),
+        success,
+        failure,
+        failure_rate: failure_rate_for_episode(episode, failure, feedback_count),
+    }
+}
+
+fn failure_rate_for_episode(episode: &Episode, failure: f32, feedback_count: u32) -> f32 {
+    if feedback_count == 0 {
+        return if episode.outcome.eq_ignore_ascii_case("error") {
+            1.0
+        } else {
+            0.0
+        };
+    }
+    (failure / u32_to_f32(feedback_count)).clamp(0.0, 1.0)
+}
+
+fn ttl_score_from_feedback(feedback: &EpisodeFeedbackFacts) -> f32 {
+    let frequency_score = frequency_score(feedback.usage_count, feedback.usage_count_f32);
+    let stability_score = (1.0 - feedback.failure_rate).clamp(0.0, 1.0);
+    let success_bias =
+        ((feedback.success + 1.0) / (feedback.success + feedback.failure + 2.0)).clamp(0.0, 1.0);
+    (0.45 * frequency_score + 0.35 * stability_score + 0.20 * success_bias).clamp(0.0, 1.0)
+}
+
+fn frequency_score(usage_count: u32, usage_count_f32: f32) -> f32 {
+    if usage_count == 0 {
+        return 0.0;
+    }
+    (usage_count_f32 / (usage_count_f32 + 3.0)).clamp(0.0, 1.0)
+}
+
+#[derive(Clone, Copy)]
+struct MemoryEvidenceScores {
+    react: f32,
+    graph: f32,
+    omega: f32,
+}
+
+impl MemoryEvidenceScores {
+    fn new(react: f32, graph: f32, omega: f32) -> Self {
+        Self {
+            react: react.clamp(0.0, 1.0),
+            graph: graph.clamp(0.0, 1.0),
+            omega: omega.clamp(0.0, 1.0),
+        }
+    }
+}
+
+fn utility_score_from_evidence(evidence: MemoryEvidenceScores, q_value: f32) -> f32 {
+    (0.32 * evidence.react + 0.23 * evidence.graph + 0.25 * evidence.omega + 0.20 * q_value)
+        .clamp(0.0, 1.0)
 }
 
 /// Deterministic policy thresholds for memory gate.
@@ -242,11 +347,11 @@ impl MemoryGatePolicy {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MemoryGateEvent {
     /// Session identifier of the decision context.
-    pub session_id: String,
+    pub session_id: MemoryGateSessionId,
     /// Monotonic turn identifier within the runtime.
-    pub turn_id: u64,
+    pub turn_id: MemoryGateTurnId,
     /// Memory episode id this decision targets.
-    pub memory_id: String,
+    pub memory_id: MemoryGateMemoryId,
     /// Lifecycle state before decision.
     pub state_before: MemoryLifecycleState,
     /// Lifecycle state after decision.
@@ -257,31 +362,40 @@ pub struct MemoryGateEvent {
     pub decision: MemoryGateDecision,
 }
 
+/// Input required to build a canonical memory-gate event.
+#[derive(Debug, Clone)]
+pub struct MemoryGateEventInput {
+    /// Session identifier of the decision context.
+    pub session_id: MemoryGateSessionId,
+    /// Monotonic turn identifier within the runtime.
+    pub turn_id: MemoryGateTurnId,
+    /// Memory episode id this decision targets.
+    pub memory_id: MemoryGateMemoryId,
+    /// Utility ledger used by the decision.
+    pub ledger: MemoryUtilityLedger,
+    /// Gate decision payload.
+    pub decision: MemoryGateDecision,
+}
+
 impl MemoryGateEvent {
     /// Build a canonical gate event from one decision.
     #[must_use]
-    pub fn from_decision(
-        session_id: &str,
-        turn_id: u64,
-        memory_id: &str,
-        ledger: &MemoryUtilityLedger,
-        decision: MemoryGateDecision,
-    ) -> Self {
+    pub fn from_decision(input: MemoryGateEventInput) -> Self {
         let state_before = MemoryLifecycleState::Active;
-        let state_after = match decision.verdict {
+        let state_after = match input.decision.verdict {
             MemoryGateVerdict::Retain => MemoryLifecycleState::Active,
             MemoryGateVerdict::Obsolete => MemoryLifecycleState::Purged,
             MemoryGateVerdict::Promote => MemoryLifecycleState::Promoted,
         };
 
         Self {
-            session_id: session_id.to_string(),
-            turn_id,
-            memory_id: memory_id.to_string(),
+            session_id: input.session_id,
+            turn_id: input.turn_id,
+            memory_id: input.memory_id,
             state_before,
             state_after,
-            ttl_score: ledger.ttl_score,
-            decision,
+            ttl_score: input.ledger.ttl_score,
+            decision: input.decision,
         }
     }
 }

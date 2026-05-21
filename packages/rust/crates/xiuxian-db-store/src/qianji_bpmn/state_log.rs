@@ -11,6 +11,7 @@ use qianji_bpmn_engine::BpmnCheckpointEnvelope;
 use super::store::{timestamp_to_i64, validate_field};
 use super::{
     QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnInstanceId,
 };
 
 const WORKFLOW_STATE_LOG_TABLE: &str = "qianji_bpmn_workflow_state_events";
@@ -183,10 +184,11 @@ impl QianjiBpmnDuckDbDataStore {
     /// JSON payload cannot be decoded into a checkpoint envelope.
     pub fn load_compacted_workflow_state_snapshot(
         &self,
-        instance_id: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
     ) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
-        validate_field("instance_id", instance_id)?;
-        self.load_latest_workflow_state_table_payload(instance_id)?
+        let instance_id = instance_id.into();
+        validate_field("instance_id", instance_id.as_str())?;
+        self.load_latest_workflow_state_table_payload(instance_id.as_str())?
             .map(|payload_json| decode_checkpoint(&payload_json))
             .transpose()
     }
@@ -236,9 +238,10 @@ impl QianjiBpmnDuckDbDataStore {
     /// JSON payload cannot be decoded into a checkpoint envelope.
     pub fn load_latest_workflow_state_snapshot(
         &self,
-        instance_id: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
     ) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
-        validate_field("instance_id", instance_id)?;
+        let instance_id = instance_id.into();
+        validate_field("instance_id", instance_id.as_str())?;
         let mut statement = self
             .connection()
             .prepare_cached(LOAD_LATEST_WORKFLOW_STATE_EVENT_SQL)
@@ -247,7 +250,9 @@ impl QianjiBpmnDuckDbDataStore {
                 message: error.to_string(),
             })?;
         let payload_json: Option<String> = statement
-            .query_row(crate::duckdb_crate::params![instance_id], |row| row.get(0))
+            .query_row(crate::duckdb_crate::params![instance_id.as_str()], |row| {
+                row.get(0)
+            })
             .optional()
             .map_err(|error| QianjiBpmnDataStoreError::Storage {
                 operation: "load_latest_workflow_state_snapshot",
@@ -255,7 +260,7 @@ impl QianjiBpmnDuckDbDataStore {
             })?;
         let payload_json = match payload_json {
             Some(payload_json) => Some(payload_json),
-            None => self.load_latest_workflow_state_table_payload(instance_id)?,
+            None => self.load_latest_workflow_state_table_payload(instance_id.as_str())?,
         };
         payload_json
             .map(|payload_json| decode_checkpoint(&payload_json))
@@ -310,21 +315,22 @@ impl QianjiBpmnDuckDbDataStore {
     /// `DuckDB` rejects the delete.
     pub fn delete_workflow_state_snapshots(
         &self,
-        instance_id: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
     ) -> Result<bool, QianjiBpmnDataStoreError> {
-        validate_field("instance_id", instance_id)?;
+        let instance_id = instance_id.into();
+        validate_field("instance_id", instance_id.as_str())?;
         self.execute_in_transaction("delete_workflow_state_snapshots", || {
             let deleted_events = self.delete_rows_by_instance_id(
                 DELETE_WORKFLOW_STATE_SNAPSHOTS_SQL,
                 "prepare_delete_workflow_state_snapshots",
                 "delete_workflow_state_snapshots",
-                instance_id,
+                instance_id.as_str(),
             )?;
             let deleted_latest = self.delete_rows_by_instance_id(
                 DELETE_LATEST_WORKFLOW_STATE_SNAPSHOT_SQL,
                 "prepare_delete_latest_workflow_state_snapshot",
                 "delete_latest_workflow_state_snapshot",
-                instance_id,
+                instance_id.as_str(),
             )?;
             Ok(deleted_events || deleted_latest)
         })
@@ -338,9 +344,10 @@ impl QianjiBpmnDuckDbDataStore {
     /// `DuckDB` rejects the count query.
     pub fn workflow_state_snapshot_count(
         &self,
-        instance_id: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
     ) -> Result<u64, QianjiBpmnDataStoreError> {
-        validate_field("instance_id", instance_id)?;
+        let instance_id = instance_id.into();
+        validate_field("instance_id", instance_id.as_str())?;
         let mut statement = self
             .connection()
             .prepare_cached(COUNT_WORKFLOW_STATE_SNAPSHOTS_SQL)
@@ -349,7 +356,9 @@ impl QianjiBpmnDuckDbDataStore {
                 message: error.to_string(),
             })?;
         let count: i64 = statement
-            .query_row(crate::duckdb_crate::params![instance_id], |row| row.get(0))
+            .query_row(crate::duckdb_crate::params![instance_id.as_str()], |row| {
+                row.get(0)
+            })
             .map_err(|error| QianjiBpmnDataStoreError::Storage {
                 operation: "count_workflow_state_snapshots",
                 message: error.to_string(),
@@ -457,22 +466,11 @@ CREATE TABLE IF NOT EXISTS qianji_bpmn_workflow_state_latest (
 fn workflow_state_snapshots_to_batch<'a>(
     checkpoints: impl IntoIterator<Item = &'a BpmnCheckpointEnvelope>,
 ) -> Result<(RecordBatch, usize), QianjiBpmnDataStoreError> {
-    let mut instance_ids = Vec::new();
-    let mut sequences = Vec::new();
-    let mut updated_at_values = Vec::new();
-    let mut payloads = Vec::new();
-    for checkpoint in checkpoints {
-        let instance_id = checkpoint.state.instance_id.as_ref();
-        validate_field("instance_id", instance_id)?;
-        instance_ids.push(instance_id.to_string());
-        sequences.push(sequence_to_i64(checkpoint.sequence)?);
-        updated_at_values.push(timestamp_to_i64(
-            QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
-            checkpoint.state.updated_at_ms,
-        )?);
-        payloads.push(serialize_checkpoint(checkpoint)?);
-    }
-    let count = instance_ids.len();
+    let columns = checkpoints
+        .into_iter()
+        .map(workflow_state_snapshot_columns)
+        .collect::<Result<Vec<_>, QianjiBpmnDataStoreError>>()?;
+    let count = columns.len();
     let schema = Arc::new(Schema::new(vec![
         Field::new("instance_id", DataType::Utf8, false),
         Field::new("sequence", DataType::Int64, false),
@@ -482,10 +480,30 @@ fn workflow_state_snapshots_to_batch<'a>(
     let batch = RecordBatch::try_new(
         schema,
         vec![
-            Arc::new(StringArray::from(instance_ids)),
-            Arc::new(Int64Array::from(sequences)),
-            Arc::new(Int64Array::from(updated_at_values)),
-            Arc::new(StringArray::from(payloads)),
+            Arc::new(StringArray::from(
+                columns
+                    .iter()
+                    .map(|column| column.instance_id.as_str())
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(Int64Array::from(
+                columns
+                    .iter()
+                    .map(|column| column.sequence)
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(Int64Array::from(
+                columns
+                    .iter()
+                    .map(|column| column.updated_at_ms)
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(
+                columns
+                    .iter()
+                    .map(|column| column.payload_json.as_str())
+                    .collect::<Vec<_>>(),
+            )),
         ],
     )
     .map_err(|error| QianjiBpmnDataStoreError::Storage {
@@ -493,6 +511,29 @@ fn workflow_state_snapshots_to_batch<'a>(
         message: error.to_string(),
     })?;
     Ok((batch, count))
+}
+
+struct WorkflowStateSnapshotColumns {
+    instance_id: String,
+    sequence: i64,
+    updated_at_ms: i64,
+    payload_json: String,
+}
+
+fn workflow_state_snapshot_columns(
+    checkpoint: &BpmnCheckpointEnvelope,
+) -> Result<WorkflowStateSnapshotColumns, QianjiBpmnDataStoreError> {
+    let instance_id = checkpoint.state.instance_id.as_ref();
+    validate_field("instance_id", instance_id)?;
+    Ok(WorkflowStateSnapshotColumns {
+        instance_id: instance_id.to_string(),
+        sequence: sequence_to_i64(checkpoint.sequence)?,
+        updated_at_ms: timestamp_to_i64(
+            QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+            checkpoint.state.updated_at_ms,
+        )?,
+        payload_json: serialize_checkpoint(checkpoint)?,
+    })
 }
 
 fn sequence_to_i64(sequence: u64) -> Result<i64, QianjiBpmnDataStoreError> {

@@ -1,3 +1,5 @@
+//! `analyzers::projection::search` owns Wendao analyzers projection search behavior.
+
 mod heuristic;
 #[cfg(feature = "repo-lexical-index")]
 mod indexed;

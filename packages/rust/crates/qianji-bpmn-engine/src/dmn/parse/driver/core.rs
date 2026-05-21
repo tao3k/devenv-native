@@ -21,7 +21,7 @@ pub(crate) fn parse_dmn_decisions_impl(
             Ok(event) => event,
             Err(error) => {
                 return Err(BpmnEngineError::InvalidDmnXml {
-                    source_id: source.source_id.clone(),
+                    source_id: (source.source_id.clone()).into(),
                     message: error.to_string(),
                 });
             }
@@ -34,7 +34,7 @@ pub(crate) fn parse_dmn_decisions_impl(
 
     if !saw_root {
         return Err(BpmnEngineError::MissingDmnRootElement {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
         });
     }
 
@@ -45,7 +45,7 @@ pub(crate) fn parse_dmn_decision_impl(source: &DmnSourceFile) -> Result<DmnDecis
     let mut decisions = parse_dmn_decisions_impl(source)?;
     if decisions.len() != 1 {
         return Err(BpmnEngineError::UnsupportedDmnDecisionCount {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
             count: decisions.len(),
         });
     }

@@ -21,7 +21,7 @@ pub(super) fn undeclared_gateway_condition_output_issue(
     let mut output_list = context.producer_outputs.iter().cloned().collect::<Vec<_>>();
     output_list.sort();
     let output_summary = output_list.join(", ");
-    let mut issue = LintIssue::new(
+    let mut issue = LintIssue::from_parts(
         "bpmn.undeclared_gateway_condition_output",
         "Gateway condition variable is not declared by upstream task outputs",
         format!(

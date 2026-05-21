@@ -97,10 +97,41 @@ pub struct LintIssue {
     pub evidence: Value,
 }
 
+/// Input for constructing one structured lint issue.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LintIssueInput {
+    /// Stable machine-readable issue code.
+    pub code: String,
+    /// Short title suitable for CLI rendering.
+    pub title: String,
+    /// Short explanation of what failed.
+    pub summary: String,
+    /// Why the parser or validator stopped.
+    pub why_it_failed: String,
+    /// Ordered repair steps that a human or LLM should follow.
+    pub repair_guidance: Vec<String>,
+    /// One direct editing prompt optimized for LLM-assisted repair.
+    pub llm_fix_prompt: String,
+    /// Structured evidence extracted from the parse failure.
+    pub evidence: Value,
+}
+
 impl LintIssue {
     /// Creates one lint issue.
     #[must_use]
-    pub fn new(
+    pub fn new(input: LintIssueInput) -> Self {
+        Self::from_parts(
+            input.code,
+            input.title,
+            input.summary,
+            input.why_it_failed,
+            input.repair_guidance,
+            input.llm_fix_prompt,
+            input.evidence,
+        )
+    }
+
+    pub(crate) fn from_parts(
         code: impl Into<String>,
         title: impl Into<String>,
         summary: impl Into<String>,

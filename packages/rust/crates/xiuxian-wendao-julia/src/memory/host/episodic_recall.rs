@@ -116,19 +116,19 @@ fn build_request_row(
     validate_projection_row(projection_row)?;
 
     Ok(MemoryJuliaEpisodicRecallRequestRow {
-        query_id: query.query_id.clone(),
+        query_id: query.query_id.clone().into(),
         scenario_pack: query.scenario_pack.clone(),
         scope: projection_row.scope.clone(),
         query_text: query.query_text.clone(),
         query_embedding: query.query_embedding.clone(),
-        candidate_id: projection_row.episode_id.clone(),
+        candidate_id: projection_row.episode_id.as_str().into(),
         intent_embedding: projection_row.intent_embedding.clone(),
         q_value: projection_row.q_value,
         success_count: projection_row.success_count,
         failure_count: projection_row.failure_count,
         retrieval_count: projection_row.retrieval_count,
-        created_at_ms: projection_row.created_at_ms,
-        updated_at_ms: projection_row.updated_at_ms,
+        created_at_ms: projection_row.created_at_ms.get().into(),
+        updated_at_ms: projection_row.updated_at_ms.get().into(),
         k1: query.k1,
         k2: query.k2,
         lambda: query.lambda,
@@ -144,7 +144,7 @@ fn validate_projection_row(row: &MemoryProjectionRow) -> Result<(), RepoIntellig
     if row.updated_at_ms < row.created_at_ms {
         return Err(staging_error(format!(
             "projection row `{}` has updated_at_ms earlier than created_at_ms",
-            row.episode_id
+            row.episode_id.as_str()
         )));
     }
     Ok(())

@@ -1,3 +1,5 @@
+//! Filesystem watcher for `Zhenfa` Sentinel document and source-change signals.
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -44,6 +46,14 @@ pub struct Sentinel {
     _debouncer: Debouncer<RecommendedWatcher, RecommendedCache>,
 }
 
+/// Error returned while starting the Sentinel watcher.
+#[derive(Debug, thiserror::Error)]
+pub enum SentinelWatchError {
+    /// The underlying filesystem watcher could not be created or configured.
+    #[error(transparent)]
+    Notify(#[from] notify::Error),
+}
+
 impl Sentinel {
     /// Create and start a new Sentinel observer.
     ///
@@ -51,7 +61,10 @@ impl Sentinel {
     ///
     /// Returns an error when the filesystem debouncer cannot be created or when any configured
     /// watch path cannot be registered with the underlying watcher.
-    pub fn start(ctx: Arc<ZhenfaContext>, config: SentinelConfig) -> Result<Self, anyhow::Error> {
+    pub fn start(
+        ctx: Arc<ZhenfaContext>,
+        config: SentinelConfig,
+    ) -> Result<Self, SentinelWatchError> {
         let (tx, mut rx) = mpsc::channel(100);
 
         // Create the debouncer

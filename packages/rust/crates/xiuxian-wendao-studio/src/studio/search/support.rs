@@ -39,11 +39,6 @@ pub(in crate::studio::search) fn source_language_label(path: &Path) -> Option<&'
     }
 }
 
-/// Extracts the first line of a signature text, trimmed of whitespace.
-pub(in crate::studio::search) fn first_signature_line(text: &str) -> &str {
-    text.lines().next().map(str::trim).unwrap_or_default()
-}
-
 /// Returns a human-readable label for a symbol kind.
 pub(in crate::studio::search) fn symbol_kind_label(kind: &SymbolKind) -> &'static str {
     match kind {

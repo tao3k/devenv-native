@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use xiuxian_ast::{Lang, extract_items, get_skeleton_patterns};
+use xiuxian_code_intelligence::{
+    CodeLanguageId, extract_code_structure_symbols_for_language_id, first_code_signature_line,
+};
 
 use crate::studio::types::{
     CodeAstAnalysisResponse, CodeAstNode, CodeAstNodeKind, CodeAstProjection,
@@ -26,9 +28,10 @@ pub(crate) fn build_generic_code_ast_analysis_response(
     path: String,
     line_hint: Option<usize>,
     source_content: &str,
-    lang: Lang,
+    language_id: &CodeLanguageId,
 ) -> CodeAstAnalysisResponse {
-    let items = extract_generic_ast_items(repo_id.as_str(), path.as_str(), source_content, lang);
+    let items =
+        extract_generic_ast_items(repo_id.as_str(), path.as_str(), source_content, language_id);
     let focus_item = focus_generic_ast_item(items.as_slice(), line_hint);
     let focus_node_id = focus_item.map(|item| item.id.clone());
     let mut nodes = Vec::with_capacity(items.len());
@@ -36,7 +39,7 @@ pub(crate) fn build_generic_code_ast_analysis_response(
 
     for item in &items {
         nodes.push(CodeAstNode {
-            id: item.id.clone(),
+            id: item.id.clone().into(),
             label: item.label.clone(),
             kind: item.kind,
             path: Some(path.clone()),
@@ -51,7 +54,7 @@ pub(crate) fn build_generic_code_ast_analysis_response(
         );
         let attributes = vec![
             ("analysis_mode".to_string(), "ast-grep".to_string()),
-            ("language".to_string(), lang.as_str().to_string()),
+            ("language".to_string(), language_id.as_str().to_string()),
         ];
         retrieval_atoms.push(
             build_code_ast_retrieval_atom(
@@ -84,7 +87,7 @@ pub(crate) fn build_generic_code_ast_analysis_response(
         );
     }
 
-    if supports_generic_code_blocks(lang)
+    if supports_generic_code_blocks(language_id)
         && let Some(focus_item) = focus_item
     {
         retrieval_atoms.extend(build_code_block_retrieval_atoms(
@@ -95,9 +98,9 @@ pub(crate) fn build_generic_code_ast_analysis_response(
     }
 
     CodeAstAnalysisResponse {
-        repo_id,
-        path,
-        language: lang.as_str().to_string(),
+        repo_id: repo_id.into(),
+        path: path.into(),
+        language: language_id.as_str().to_string(),
         node_count: nodes.len(),
         edge_count: 0,
         projections: vec![
@@ -120,7 +123,7 @@ pub(crate) fn build_generic_code_ast_analysis_response(
         nodes,
         edges: Vec::new(),
         retrieval_atoms,
-        focus_node_id,
+        focus_node_id: focus_node_id.map(Into::into),
         diagnostics: Vec::new(),
     }
 }
@@ -129,41 +132,34 @@ fn extract_generic_ast_items(
     repo_id: &str,
     path: &str,
     source_content: &str,
-    lang: Lang,
+    language_id: &CodeLanguageId,
 ) -> Vec<GenericAstItem> {
     let mut items = Vec::new();
     let mut seen = HashSet::new();
 
-    for pattern in get_skeleton_patterns(lang) {
-        for result in extract_items(source_content, pattern, lang, Some(vec!["NAME"])) {
-            let signature = first_signature_line(result.text.as_str()).to_string();
-            if signature.is_empty() {
-                continue;
-            }
-
-            let label = result
-                .captures
-                .get("NAME")
-                .cloned()
-                .filter(|value| !value.trim().is_empty())
-                .unwrap_or_else(|| fallback_item_label(path, signature.as_str()));
-            let dedupe_key = format!("{path}:{}:{}:{label}", result.line_start, result.line_end);
-            if !seen.insert(dedupe_key) {
-                continue;
-            }
-
-            items.push(GenericAstItem {
-                id: format!(
-                    "repo:{repo_id}:generic_ast:{}:{}:{}:{}",
-                    path, result.line_start, result.line_end, label
-                ),
-                label,
-                kind: infer_generic_ast_node_kind(lang, pattern, signature.as_str()),
-                signature,
-                line_start: result.line_start,
-                line_end: result.line_end,
-            });
+    for symbol in extract_code_structure_symbols_for_language_id(source_content, language_id) {
+        let label = symbol
+            .captures
+            .get("NAME")
+            .cloned()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| fallback_item_label(path, symbol.signature.as_str()));
+        let dedupe_key = format!("{path}:{}:{}:{label}", symbol.line_start, symbol.line_end);
+        if !seen.insert(dedupe_key) {
+            continue;
         }
+
+        items.push(GenericAstItem {
+            id: format!(
+                "repo:{repo_id}:generic_ast:{}:{}:{}:{}",
+                path, symbol.line_start, symbol.line_end, label
+            ),
+            label,
+            kind: infer_generic_ast_node_kind(language_id, symbol.signature.as_str()),
+            signature: symbol.signature,
+            line_start: symbol.line_start,
+            line_end: symbol.line_end,
+        });
     }
 
     if !items.is_empty() {
@@ -175,7 +171,7 @@ fn extract_generic_ast_items(
     items.push(GenericAstItem {
         id: format!("repo:{repo_id}:generic_ast:{path}:1:1:{label}"),
         label,
-        kind: if lang == Lang::Toml {
+        kind: if language_id.as_str() == "toml" {
             CodeAstNodeKind::Module
         } else {
             CodeAstNodeKind::Other
@@ -214,15 +210,12 @@ fn fallback_item_label(path: &str, fallback: &str) -> String {
 }
 
 fn first_signature_line(text: &str) -> &str {
-    text.lines()
-        .find(|line| !line.trim().is_empty())
-        .map(str::trim)
-        .unwrap_or_default()
+    first_code_signature_line(text)
 }
 
-fn infer_generic_ast_node_kind(lang: Lang, pattern: &str, signature: &str) -> CodeAstNodeKind {
-    if lang == Lang::Toml {
-        return if pattern.contains('[') {
+fn infer_generic_ast_node_kind(language_id: &CodeLanguageId, signature: &str) -> CodeAstNodeKind {
+    if language_id.as_str() == "toml" {
+        return if signature.trim_start().starts_with('[') {
             CodeAstNodeKind::Module
         } else {
             CodeAstNodeKind::Constant
@@ -230,16 +223,13 @@ fn infer_generic_ast_node_kind(lang: Lang, pattern: &str, signature: &str) -> Co
     }
 
     let normalized_signature = signature.trim_start();
-    let normalized_pattern = pattern.trim_start();
     if normalized_signature.starts_with("fn ")
         || normalized_signature.starts_with("pub fn ")
-        || normalized_pattern.starts_with("fn ")
-        || normalized_pattern.starts_with("pub fn ")
-        || normalized_pattern.starts_with("function ")
-        || normalized_pattern.starts_with("def ")
-        || normalized_pattern.starts_with("async def ")
-        || normalized_pattern.starts_with("fun ")
-        || normalized_pattern.starts_with("func ")
+        || normalized_signature.starts_with("function ")
+        || normalized_signature.starts_with("def ")
+        || normalized_signature.starts_with("async def ")
+        || normalized_signature.starts_with("fun ")
+        || normalized_signature.starts_with("func ")
     {
         return CodeAstNodeKind::Function;
     }
@@ -249,10 +239,6 @@ fn infer_generic_ast_node_kind(lang: Lang, pattern: &str, signature: &str) -> Co
         || normalized_signature.starts_with("data class ")
         || normalized_signature.starts_with("interface ")
         || normalized_signature.starts_with("impl ")
-        || normalized_pattern.contains("struct")
-        || normalized_pattern.contains("class")
-        || normalized_pattern.contains("interface")
-        || normalized_pattern.starts_with("impl ")
     {
         return CodeAstNodeKind::Type;
     }
@@ -277,6 +263,6 @@ fn generic_ast_semantic_type(kind: CodeAstNodeKind) -> &'static str {
     }
 }
 
-fn supports_generic_code_blocks(lang: Lang) -> bool {
-    !matches!(lang, Lang::Toml)
+fn supports_generic_code_blocks(language_id: &CodeLanguageId) -> bool {
+    language_id.as_str() != "toml"
 }

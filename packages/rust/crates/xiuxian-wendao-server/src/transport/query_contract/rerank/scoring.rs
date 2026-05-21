@@ -36,7 +36,7 @@ pub fn score_rerank_request_batch(
     )
 }
 
-/// Score one validated rerank request batch with explicit transport-owned
+/// Score one validated rerank request batch with explicit runtime-owned
 /// rerank weights.
 ///
 /// # Errors

@@ -183,19 +183,22 @@ fn build_incremental_doc_relations_rehydrates_readme_and_annotation_docs() {
     ];
     let docs = vec![
         DocRecord {
-            repo_id: "modelica-demo".to_string(),
-            doc_id: "repo:modelica-demo:doc:README.md".to_string(),
+            repo_id: "modelica-demo".to_string().into(),
+            doc_id: "repo:modelica-demo:doc:README.md".to_string().into(),
             title: "README".to_string(),
-            path: "README.md".to_string(),
+            path: "README.md".to_string().into(),
             format: Some("md".to_string()),
             doc_target: None,
         },
         DocRecord {
-            repo_id: "modelica-demo".to_string(),
+            repo_id: "modelica-demo".to_string().into(),
             doc_id: "repo:modelica-demo:doc:Controllers/package.mo#annotation.documentation"
-                .to_string(),
+                .to_string()
+                .into(),
             title: "Controllers documentation".to_string(),
-            path: "Controllers/package.mo#annotation.documentation".to_string(),
+            path: "Controllers/package.mo#annotation.documentation"
+                .to_string()
+                .into(),
             format: Some("modelica_annotation".to_string()),
             doc_target: None,
         },
@@ -233,9 +236,9 @@ fn build_incremental_doc_relations_rehydrates_readme_and_annotation_docs() {
 
 fn module(module_id: &str, qualified_name: &str, path: &str) -> ModuleRecord {
     ModuleRecord {
-        repo_id: "modelica-demo".to_string(),
-        module_id: module_id.to_string(),
+        repo_id: "modelica-demo".to_string().into(),
+        module_id: module_id.to_string().into(),
         qualified_name: qualified_name.to_string(),
-        path: path.to_string(),
+        path: path.to_string().into(),
     }
 }

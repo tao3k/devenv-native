@@ -29,7 +29,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_required_attribute_issue(
         "missing_required_attributes_truncated": violations.len() > SNAPSHOT_EVIDENCE_LIMIT,
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.missing_di_required_attribute",
         "BPMN diagram interchange metadata is missing a required attribute",
         format!(

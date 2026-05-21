@@ -1,3 +1,5 @@
+//! `link_graph_refs::model` owns Wendao link graph refs model behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Represents an entity reference extracted from note content.

@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::audit_bridge::bridge` owns Wendao audit audit bridge bridge behavior.
+
 use crate::zhenfa_router::native::semantic_check::SemanticIssue;
 use crate::zhenfa_router::native::semantic_check::docs_governance::{
     DOC_IDENTITY_PROTOCOL_ISSUE_TYPE, INCOMPLETE_PACKAGE_DOCS_INDEX_FOOTER_BLOCK_ISSUE_TYPE,

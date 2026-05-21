@@ -1,3 +1,5 @@
+//! `repo_index::bootstrap` owns Wendao repo index bootstrap behavior.
+
 use std::path::PathBuf;
 use std::sync::Arc;
 

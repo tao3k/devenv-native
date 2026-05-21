@@ -1,3 +1,5 @@
+//! Owns the Studio repo retrieval search surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -16,8 +18,8 @@ use xiuxian_wendao::analyzers::{
 };
 
 use crate::studio::router::handlers::repo::parse::projection::parse_projection_page_kind;
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::search::required_search_query;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::retrieval::RepoProjectedPageSearchApiQuery;
 
 /// Projected page index tree search endpoint.

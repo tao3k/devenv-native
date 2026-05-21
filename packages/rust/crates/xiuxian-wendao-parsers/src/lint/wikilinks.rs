@@ -80,6 +80,13 @@ struct FenceStart {
     width: usize,
 }
 
+#[derive(Clone, Copy)]
+struct LintSourceLine<'a> {
+    index: usize,
+    text: &'a str,
+    byte_start: usize,
+}
+
 fn lint_mixed_wikilink_markdown_links(
     body: &str,
     line_offset: usize,
@@ -87,49 +94,81 @@ fn lint_mixed_wikilink_markdown_links(
 ) -> Vec<(usize, usize)> {
     let mut open_fence: Option<FenceStart> = None;
     let mut blocked_spans = Vec::new();
-    let mut line_byte_start = 0usize;
-
-    for (index, raw_line) in body.lines().enumerate() {
-        let line_number = line_offset + index;
-        let line = raw_line.trim_end_matches('\r');
-        let Some(candidate) = parse_fence_marker(line) else {
-            if open_fence.is_none() {
-                issues.extend(collect_mixed_line_issues(
-                    line,
-                    line_number,
-                    line_byte_start,
-                    &mut blocked_spans,
-                ));
-            }
-            line_byte_start += raw_line.len();
-            if body.as_bytes().get(line_byte_start) == Some(&b'\n') {
-                line_byte_start += 1;
-            }
-            continue;
-        };
-        match open_fence {
-            Some(start)
-                if candidate.marker == start.marker
-                    && candidate.width >= start.width
-                    && candidate.trailing.trim().is_empty() =>
-            {
-                open_fence = None;
-            }
-            None => {
-                open_fence = Some(FenceStart {
-                    marker: candidate.marker,
-                    width: candidate.width,
-                });
-            }
-            Some(_) => {}
-        }
-        line_byte_start += raw_line.len();
-        if body.as_bytes().get(line_byte_start) == Some(&b'\n') {
-            line_byte_start += 1;
-        }
-    }
+    source_lines_with_offsets(body).for_each(|source_line| {
+        process_mixed_link_line(
+            source_line,
+            line_offset,
+            issues,
+            &mut blocked_spans,
+            &mut open_fence,
+        );
+    });
 
     blocked_spans
+}
+
+fn source_lines_with_offsets(body: &str) -> impl Iterator<Item = LintSourceLine<'_>> {
+    body.lines()
+        .enumerate()
+        .scan(0usize, |byte_start, (index, line)| {
+            let source_line = LintSourceLine {
+                index,
+                text: line,
+                byte_start: *byte_start,
+            };
+            *byte_start += line.len();
+            if body.as_bytes().get(*byte_start) == Some(&b'\n') {
+                *byte_start += 1;
+            }
+            Some(source_line)
+        })
+}
+
+fn process_mixed_link_line(
+    source_line: LintSourceLine<'_>,
+    line_offset: usize,
+    issues: &mut Vec<MarkdownSyntaxLintIssue>,
+    blocked_spans: &mut Vec<(usize, usize)>,
+    open_fence: &mut Option<FenceStart>,
+) {
+    let line_number = line_offset + source_line.index;
+    let line = source_line.text.trim_end_matches('\r');
+    let Some(candidate) = parse_fence_marker(line) else {
+        if open_fence.is_none() {
+            issues.extend(collect_mixed_line_issues(
+                line,
+                line_number,
+                source_line.byte_start,
+                blocked_spans,
+            ));
+        }
+        return;
+    };
+    update_open_fence(
+        open_fence,
+        candidate.marker,
+        candidate.width,
+        candidate.trailing,
+    );
+}
+
+fn update_open_fence(
+    open_fence: &mut Option<FenceStart>,
+    marker: char,
+    width: usize,
+    trailing: &str,
+) {
+    match open_fence {
+        Some(start)
+            if marker == start.marker && width >= start.width && trailing.trim().is_empty() =>
+        {
+            *open_fence = None;
+        }
+        None => {
+            *open_fence = Some(FenceStart { marker, width });
+        }
+        Some(_) => {}
+    }
 }
 
 fn collect_mixed_line_issues(

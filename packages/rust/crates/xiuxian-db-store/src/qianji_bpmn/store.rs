@@ -5,7 +5,7 @@ use crate::duckdb_crate::OptionalExt;
 
 use super::{
     QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
-    QianjiBpmnDuckDbDataStoreConfig,
+    QianjiBpmnDuckDbDataStoreConfig, QianjiBpmnInstanceId, QianjiBpmnRecordKey,
 };
 use qianji_bpmn_engine::BpmnCheckpointEnvelope;
 
@@ -72,10 +72,10 @@ impl QianjiBpmnDuckDbDataStore {
                 message: error.to_string(),
             }
         })?;
-        let updated_at_ms = timestamp_to_i64(&record.record_key, record.updated_at_ms)?;
+        let updated_at_ms = timestamp_to_i64(&record.record_key, record.updated_at_ms.get())?;
         self.upsert_record_parts(
-            &record.instance_id,
-            &record.record_key,
+            record.instance_id.as_str(),
+            record.record_key.as_str(),
             &payload_json,
             updated_at_ms,
         )
@@ -117,11 +117,13 @@ impl QianjiBpmnDuckDbDataStore {
     /// `DuckDB` rejects the query, or the stored JSON payload cannot be decoded.
     pub fn load_record(
         &self,
-        instance_id: &str,
-        record_key: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
+        record_key: impl Into<QianjiBpmnRecordKey>,
     ) -> Result<Option<QianjiBpmnDataRecord>, QianjiBpmnDataStoreError> {
-        validate_field("instance_id", instance_id)?;
-        validate_field("record_key", record_key)?;
+        let instance_id = instance_id.into();
+        let record_key = record_key.into();
+        validate_field("instance_id", instance_id.as_str())?;
+        validate_field("record_key", record_key.as_str())?;
         let mut statement = self
             .connection()
             .prepare_cached(LOAD_WORKFLOW_DATA_RECORD_SQL)
@@ -131,7 +133,7 @@ impl QianjiBpmnDuckDbDataStore {
             })?;
         let row: Option<(String, i64)> = statement
             .query_row(
-                crate::duckdb_crate::params![instance_id, record_key],
+                crate::duckdb_crate::params![instance_id.as_str(), record_key.as_str()],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()
@@ -140,7 +142,12 @@ impl QianjiBpmnDuckDbDataStore {
                 message: error.to_string(),
             })?;
         row.map(|(payload_json, updated_at_ms)| {
-            decode_record(instance_id, record_key, &payload_json, updated_at_ms)
+            decode_record(
+                instance_id.as_str(),
+                record_key.as_str(),
+                &payload_json,
+                updated_at_ms,
+            )
         })
         .transpose()
     }
@@ -153,11 +160,13 @@ impl QianjiBpmnDuckDbDataStore {
     /// `DuckDB` rejects the delete.
     pub fn delete_record(
         &self,
-        instance_id: &str,
-        record_key: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
+        record_key: impl Into<QianjiBpmnRecordKey>,
     ) -> Result<bool, QianjiBpmnDataStoreError> {
-        validate_field("instance_id", instance_id)?;
-        validate_field("record_key", record_key)?;
+        let instance_id = instance_id.into();
+        let record_key = record_key.into();
+        validate_field("instance_id", instance_id.as_str())?;
+        validate_field("record_key", record_key.as_str())?;
         let mut statement = self
             .connection()
             .prepare_cached(DELETE_WORKFLOW_DATA_RECORD_SQL)
@@ -166,7 +175,10 @@ impl QianjiBpmnDuckDbDataStore {
                 message: error.to_string(),
             })?;
         let changed = statement
-            .execute(crate::duckdb_crate::params![instance_id, record_key])
+            .execute(crate::duckdb_crate::params![
+                instance_id.as_str(),
+                record_key.as_str()
+            ])
             .map_err(|error| QianjiBpmnDataStoreError::Storage {
                 operation: "delete_workflow_data_record",
                 message: error.to_string(),
@@ -240,9 +252,10 @@ impl QianjiBpmnDuckDbDataStore {
     /// JSON payload cannot be decoded into a checkpoint envelope.
     pub fn load_workflow_state(
         &self,
-        instance_id: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
     ) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
-        validate_field("instance_id", instance_id)?;
+        let instance_id = instance_id.into();
+        validate_field("instance_id", instance_id.as_str())?;
         let mut statement = self
             .connection()
             .prepare_cached(LOAD_WORKFLOW_STATE_SQL)
@@ -252,7 +265,10 @@ impl QianjiBpmnDuckDbDataStore {
             })?;
         let payload_json: Option<String> = statement
             .query_row(
-                crate::duckdb_crate::params![instance_id, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY],
+                crate::duckdb_crate::params![
+                    instance_id.as_str(),
+                    QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY
+                ],
                 |row| row.get(0),
             )
             .optional()
@@ -280,7 +296,7 @@ impl QianjiBpmnDuckDbDataStore {
     /// fails.
     pub fn delete_workflow_state(
         &self,
-        instance_id: &str,
+        instance_id: impl Into<QianjiBpmnInstanceId>,
     ) -> Result<bool, QianjiBpmnDataStoreError> {
         self.delete_record(instance_id, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY)
     }
@@ -299,11 +315,10 @@ impl QianjiBpmnDuckDbDataStore {
             .into_iter()
             .map(|instance_id| {
                 validate_field("instance_id", instance_id)?;
-                Ok(instance_id.to_string())
+                Ok(QianjiBpmnInstanceId::from(instance_id))
             })
             .collect::<Result<Vec<_>, QianjiBpmnDataStoreError>>()?;
         self.execute_in_transaction("delete_workflow_state_snapshots_batch", || {
-            let mut count = 0;
             let mut statement = self
                 .connection()
                 .prepare_cached(DELETE_WORKFLOW_DATA_RECORD_SQL)
@@ -311,21 +326,10 @@ impl QianjiBpmnDuckDbDataStore {
                     operation: "prepare_delete_workflow_state_snapshots_batch",
                     message: error.to_string(),
                 })?;
-            for instance_id in &instance_ids {
-                let changed = statement
-                    .execute(crate::duckdb_crate::params![
-                        instance_id,
-                        QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
-                    ])
-                    .map_err(|error| QianjiBpmnDataStoreError::Storage {
-                        operation: "delete_workflow_state_snapshots_batch",
-                        message: error.to_string(),
-                    })?;
-                if changed > 0 {
-                    count += 1;
-                }
-            }
-            Ok(count)
+            instance_ids.iter().try_fold(0usize, |count, instance_id| {
+                delete_workflow_state_row(&mut statement, instance_id)
+                    .map(|deleted| count + usize::from(deleted))
+            })
         })
     }
 
@@ -384,9 +388,25 @@ CREATE TABLE IF NOT EXISTS {WORKFLOW_DATA_TABLE} (
     }
 }
 
+fn delete_workflow_state_row(
+    statement: &mut crate::duckdb_crate::CachedStatement<'_>,
+    instance_id: &QianjiBpmnInstanceId,
+) -> Result<bool, QianjiBpmnDataStoreError> {
+    let changed = statement
+        .execute(crate::duckdb_crate::params![
+            instance_id.as_str(),
+            QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
+        ])
+        .map_err(|error| QianjiBpmnDataStoreError::Storage {
+            operation: "delete_workflow_state_snapshots_batch",
+            message: error.to_string(),
+        })?;
+    Ok(changed > 0)
+}
+
 fn validate_record(record: &QianjiBpmnDataRecord) -> Result<(), QianjiBpmnDataStoreError> {
-    validate_field("instance_id", &record.instance_id)?;
-    validate_field("record_key", &record.record_key)
+    validate_field("instance_id", record.instance_id.as_str())?;
+    validate_field("record_key", record.record_key.as_str())
 }
 
 pub(super) fn validate_field(
@@ -404,8 +424,8 @@ pub(super) fn timestamp_to_i64(
     updated_at_ms: u64,
 ) -> Result<i64, QianjiBpmnDataStoreError> {
     i64::try_from(updated_at_ms).map_err(|_| QianjiBpmnDataStoreError::TimestampOutOfRange {
-        record_key: record_key.to_string(),
-        updated_at_ms,
+        record_key: record_key.into(),
+        updated_at_ms: updated_at_ms.into(),
     })
 }
 

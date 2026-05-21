@@ -2,7 +2,7 @@
 fn build_graph_structural_flight_transport_client_returns_none_without_config() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     };
 
@@ -19,7 +19,7 @@ fn build_graph_structural_flight_transport_client_reads_common_options() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "graph_structural_transport": {
                     "base_url": "http://127.0.0.1:9101",
@@ -59,7 +59,7 @@ fn build_graph_structural_flight_transport_client_reads_route_specific_overrides
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "graph_structural_transport": {
                     "base_url": "http://127.0.0.1:9101",
@@ -100,7 +100,7 @@ fn build_graph_structural_flight_transport_client_honors_enabled_false() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "graph_structural_transport": {
                     "base_url": "http://127.0.0.1:9101",
@@ -126,7 +126,7 @@ fn build_graph_structural_flight_transport_client_rejects_invalid_field_types() 
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "graph_structural_transport": {
                     "constraint_filter": {

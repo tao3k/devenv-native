@@ -1,3 +1,5 @@
+//! Swarm engine types surface for `xiuxian-qianji`.
+
 use crate::telemetry::PulseEmitter;
 use std::sync::Arc;
 
@@ -32,6 +34,7 @@ impl SwarmAgentConfig {
 
 /// Swarm execution options.
 #[derive(Debug, Clone)]
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct SwarmExecutionOptions {
     /// Shared session id for all workers. Auto-generated when not provided.
     pub session_id: Option<String>,

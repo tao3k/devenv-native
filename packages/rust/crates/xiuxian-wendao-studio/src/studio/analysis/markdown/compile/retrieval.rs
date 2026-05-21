@@ -1,8 +1,8 @@
-use crate::studio::analysis::markdown::compile::types::MarkdownCompiler;
-use crate::studio::analysis::markdown::compile::utils::{
+use crate::studio::analysis::markdown::compile::syntax::{
     build_stable_fingerprint, estimate_token_count, markdown_code_semantic_type,
     slice_content_lines, slugify,
 };
+use crate::studio::analysis::markdown::compile::types::MarkdownCompiler;
 use crate::studio::types::{AnalysisNodeKind, MarkdownRetrievalAtom, RetrievalChunkSurface};
 
 impl MarkdownCompiler<'_> {
@@ -51,9 +51,10 @@ impl MarkdownCompiler<'_> {
                 };
                 let excerpt = slice_content_lines(self.content, node.line_start, node.line_end);
                 Some(MarkdownRetrievalAtom {
-                    owner_id: node.id.clone(),
-                    chunk_id: format!("md:{}:{}", slugify(self.path), node.id.replace(':', "-")),
-                    semantic_type,
+                    owner_id: node.id.clone().into(),
+                    chunk_id: format!("md:{}:{}", slugify(self.path), node.id.replace(':', "-"))
+                        .into(),
+                    semantic_type: semantic_type.into(),
                     fingerprint: build_stable_fingerprint(
                         format!(
                             "{}|{}|{}|{}|{}",

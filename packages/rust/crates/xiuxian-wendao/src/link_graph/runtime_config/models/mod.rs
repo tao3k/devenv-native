@@ -1,3 +1,5 @@
+//! `link_graph::runtime_config::models` owns Wendao link graph runtime config models behavior.
+
 #[path = "agentic.rs"]
 mod agentic;
 #[path = "cache.rs"]

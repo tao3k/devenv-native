@@ -2,6 +2,8 @@
 //!
 //! Provides HTTP endpoints for VFS operations, graph queries, and UI configuration.
 
+/// Studio public API surface.
+/// Studio public API surface.
 #[path = "types/mod.rs"]
 pub mod types;
 
@@ -20,6 +22,16 @@ pub use xiuxian_wendao_attachments::pdf::ocr as document_extract_pdf_ocr;
 #[doc(hidden)]
 #[path = "document_extract_pdf_ocr_client.rs"]
 pub mod document_extract_pdf_ocr_client;
+#[cfg(all(
+    feature = "document-extract-pdf-source-range",
+    feature = "zhenfa-router"
+))]
+pub(crate) use document_extract_pdf_ocr_client::PdfOcrShardSchedulerTrace;
+
+/// Feature-gated audio shard Flight client proof helpers.
+#[cfg(feature = "document-extract-audio-shards")]
+#[doc(hidden)]
+pub mod document_extract_audio_client;
 
 #[cfg(feature = "zhenfa-router")]
 #[path = "analysis/mod.rs"]
@@ -51,25 +63,32 @@ pub(crate) mod symbol_index;
 #[path = "vfs/mod.rs"]
 mod vfs;
 
+#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
+pub(crate) use router::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 #[cfg(feature = "zhenfa-router")]
 pub use router::{
     GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,
     StudioSearchColdStartCorpusTelemetry, StudioSearchColdStartEvent,
-    StudioSearchColdStartTelemetry, StudioState, configured_repositories, configured_repository,
+    StudioSearchColdStartTelemetry, StudioState, configured_repositories,
     load_ui_config_from_wendao_toml, map_repo_intelligence_error, resolve_studio_config_root,
     sanitize_path_like, sanitize_path_list, studio_effective_wendao_toml_path, studio_router,
     studio_routes, studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
 #[cfg(feature = "zhenfa-router")]
-pub(crate) use router::{registered_repository_search_seeds, resolve_registered_repository_id};
+pub(crate) use router::{
+    configured_repository, registered_repository_search_seeds, resolve_registered_repository_id,
+};
 #[cfg(feature = "zhenfa-router")]
 pub use search::build_ast_index;
+#[cfg(feature = "flight-server-bin-support")]
+pub(crate) use search::handlers::build_studio_flight_service_for_roots_with_weights;
+#[cfg(feature = "cli-bin-support")]
+pub(crate) use search::handlers::build_studio_flight_service_with_weights;
 #[cfg(feature = "zhenfa-router")]
 pub use search::handlers::{
-    StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
+    StudioFlightRoots, StudioRepoSearchFlightRouteProvider, bootstrap_sample_repo_search_content,
     build_repo_search_flight_service, build_repo_search_flight_service_with_weights,
     build_studio_flight_service, build_studio_flight_service_for_roots,
-    build_studio_flight_service_for_roots_with_weights, build_studio_flight_service_with_weights,
 };
 #[cfg(feature = "zhenfa-router")]
 pub use startup_health::{
@@ -77,7 +96,11 @@ pub use startup_health::{
     describe_gateway_startup_health, probe_gateway_startup_health,
 };
 
-#[cfg(test)]
+/// SearchStrategyFlow proof surfaces owned by Studio.
+#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
+pub mod search_strategy_flow;
+
+#[cfg(all(test, feature = "zhenfa-router"))]
 #[path = "../../tests/unit/gateway/studio/support.rs"]
 pub(crate) mod test_support;
 
@@ -87,4 +110,4 @@ mod studio_vfs_performance_tests;
 
 #[cfg(all(test, feature = "zhenfa-router"))]
 #[path = "../../tests/unit/studio_repo_sync_api/mod.rs"]
-mod studio_repo_sync_api_tests;
+pub(crate) mod studio_repo_sync_api_tests;

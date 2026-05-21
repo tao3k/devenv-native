@@ -215,8 +215,8 @@ fn advance_inclusive_gateway(
 
     let gateway = &process.nodes[node_index as usize];
     Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-        process_id: process.key.process_id.to_string(),
-        node_id: gateway.bpmn_id.to_string(),
+        process_id: (process.key.process_id.to_string()).into(),
+        node_id: (gateway.bpmn_id.to_string()).into(),
         detail: "inclusive_gateway_requires_structured_split_or_join",
     })
 }
@@ -238,8 +238,8 @@ fn select_exclusive_gateway_edge(
             .as_deref()
         else {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.key.process_id.to_string(),
-                node_id: gateway.bpmn_id.to_string(),
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (gateway.bpmn_id.to_string()).into(),
                 detail: "missing_condition_expression",
             });
         };
@@ -249,15 +249,15 @@ fn select_exclusive_gateway_edge(
             Ok(false) => {}
             Err(GatewayConditionError::UnresolvedVariablePath(_)) => {
                 return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.key.process_id.to_string(),
-                    node_id: gateway.bpmn_id.to_string(),
+                    process_id: (process.key.process_id.to_string()).into(),
+                    node_id: (gateway.bpmn_id.to_string()).into(),
                     detail: "unresolved_condition_variable",
                 });
             }
             Err(GatewayConditionError::UnsupportedExpression) => {
                 return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.key.process_id.to_string(),
-                    node_id: gateway.bpmn_id.to_string(),
+                    process_id: (process.key.process_id.to_string()).into(),
+                    node_id: (gateway.bpmn_id.to_string()).into(),
                     detail: "unsupported_condition_expression",
                 });
             }
@@ -265,8 +265,8 @@ fn select_exclusive_gateway_edge(
     }
 
     default_edge_index.ok_or_else(|| BpmnEngineError::UnsupportedGatewayConfiguration {
-        process_id: process.key.process_id.to_string(),
-        node_id: gateway.bpmn_id.to_string(),
+        process_id: (process.key.process_id.to_string()).into(),
+        node_id: (gateway.bpmn_id.to_string()).into(),
         detail: "no_matching_condition_or_default",
     })
 }
@@ -281,8 +281,8 @@ fn advance_inclusive_split(
     let gateway = &process.nodes[node_index as usize];
     let join_node_index = gateway.inclusive_join_node.ok_or_else(|| {
         BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: gateway.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (gateway.bpmn_id.to_string()).into(),
             detail: "inclusive_split_missing_join",
         }
     })?;
@@ -341,42 +341,15 @@ fn select_inclusive_gateway_edges(
     gateway: &crate::ir_node_api::BpmnNodeSpec,
 ) -> Result<Vec<u32>> {
     let default_edge_index = gateway.default_outgoing_edge;
-    let mut selected = Vec::new();
-
-    for edge_index in outgoing {
-        if Some(*edge_index) == default_edge_index {
-            continue;
-        }
-        let Some(condition_expression) = process.edges[*edge_index as usize]
-            .condition_expression
-            .as_deref()
-        else {
-            return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.key.process_id.to_string(),
-                node_id: gateway.bpmn_id.to_string(),
-                detail: "missing_condition_expression",
-            });
-        };
-
-        match evaluate_gateway_condition(condition_expression, &instance.variables) {
-            Ok(true) => selected.push(*edge_index),
-            Ok(false) => {}
-            Err(GatewayConditionError::UnresolvedVariablePath(_)) => {
-                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.key.process_id.to_string(),
-                    node_id: gateway.bpmn_id.to_string(),
-                    detail: "unresolved_condition_variable",
-                });
-            }
-            Err(GatewayConditionError::UnsupportedExpression) => {
-                return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                    process_id: process.key.process_id.to_string(),
-                    node_id: gateway.bpmn_id.to_string(),
-                    detail: "unsupported_condition_expression",
-                });
-            }
-        }
-    }
+    let mut selected = outgoing
+        .iter()
+        .copied()
+        .filter(|edge_index| Some(*edge_index) != default_edge_index)
+        .map(|edge_index| evaluate_inclusive_gateway_edge(process, instance, gateway, edge_index))
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
 
     if selected.is_empty() {
         if let Some(default_edge_index) = default_edge_index {
@@ -384,13 +357,50 @@ fn select_inclusive_gateway_edges(
             return Ok(selected);
         }
         return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: gateway.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (gateway.bpmn_id.to_string()).into(),
             detail: "no_matching_condition_or_default",
         });
     }
 
     Ok(selected)
+}
+
+fn evaluate_inclusive_gateway_edge(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    gateway: &crate::ir_node_api::BpmnNodeSpec,
+    edge_index: u32,
+) -> Result<Option<u32>> {
+    let Some(condition_expression) = process.edges[edge_index as usize]
+        .condition_expression
+        .as_deref()
+    else {
+        return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (gateway.bpmn_id.to_string()).into(),
+            detail: "missing_condition_expression",
+        });
+    };
+
+    match evaluate_gateway_condition(condition_expression, &instance.variables) {
+        Ok(true) => Ok(Some(edge_index)),
+        Ok(false) => Ok(None),
+        Err(GatewayConditionError::UnresolvedVariablePath(_)) => {
+            Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (gateway.bpmn_id.to_string()).into(),
+                detail: "unresolved_condition_variable",
+            })
+        }
+        Err(GatewayConditionError::UnsupportedExpression) => {
+            Err(BpmnEngineError::UnsupportedGatewayConfiguration {
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (gateway.bpmn_id.to_string()).into(),
+                detail: "unsupported_condition_expression",
+            })
+        }
+    }
 }
 
 fn advance_inclusive_join(
@@ -406,14 +416,14 @@ fn advance_inclusive_join(
         .get(current_token_index)
         .and_then(|token| token.inclusive_join_hint.clone())
         .ok_or_else(|| BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: gateway.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (gateway.bpmn_id.to_string()).into(),
             detail: "inclusive_join_missing_activation_hint",
         })?;
     if join_hint.join_node_index != node_index {
         return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: gateway.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (gateway.bpmn_id.to_string()).into(),
             detail: "inclusive_join_missing_activation_hint",
         });
     }
@@ -429,8 +439,8 @@ fn advance_inclusive_join(
         let _ = state::remove_active_token(instance, current_token_index);
         if instance.active_tokens.is_empty() {
             return Err(BpmnEngineError::UnsupportedGatewayConfiguration {
-                process_id: process.key.process_id.to_string(),
-                node_id: gateway.bpmn_id.to_string(),
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (gateway.bpmn_id.to_string()).into(),
                 detail: "inclusive_join_missing_peer_token",
             });
         }
@@ -469,8 +479,8 @@ fn advance_event_based_gateway(
     let outgoing = process.outgoing_edge_indices(node_index);
     if outgoing.len() < 2 {
         return Err(BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: gateway.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (gateway.bpmn_id.to_string()).into(),
             detail: "insufficient_outgoing_waits",
         });
     }
@@ -481,8 +491,8 @@ fn advance_event_based_gateway(
         .collect::<Vec<_>>();
     let Some(first_wait_node_index) = wait_node_indices.first().copied() else {
         return Err(BpmnEngineError::UnsupportedEventBasedGatewayConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: gateway.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (gateway.bpmn_id.to_string()).into(),
             detail: "insufficient_outgoing_waits",
         });
     };

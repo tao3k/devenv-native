@@ -2,11 +2,11 @@
 //!
 //! Start with `surface`; sibling leaves group execution, human-work, and management DTOs.
 
-#[path = "execution/api.rs"]
+#[path = "execution/model.rs"]
 mod execution;
-#[path = "human_work/api.rs"]
+#[path = "human_work/model.rs"]
 mod human_work;
-#[path = "management/api.rs"]
+#[path = "management/model.rs"]
 mod management;
 #[path = "surface.rs"]
 mod surface;

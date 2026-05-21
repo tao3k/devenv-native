@@ -1,3 +1,5 @@
+//! `link_graph_refs::extract` owns Wendao link graph refs extract behavior.
+
 use super::model::LinkGraphEntityRef;
 use std::collections::HashSet;
 use xiuxian_wendao_parsers::{extract_wikilinks, parse_wikilink_literal};

@@ -53,42 +53,68 @@ impl RepoError {
     #[must_use]
     pub fn classify_message(message: &str) -> RepoErrorKind {
         let lower = message.to_ascii_lowercase();
-        if lower.contains("too many open files") {
-            RepoErrorKind::DescriptorPressure
-        } else if [
-            "can't assign requested address",
-            "failed to connect",
-            "could not connect",
-            "timed out",
-            "timeout",
-            "temporary failure",
-            "connection reset",
-            "connection refused",
-            "connection aborted",
-            "network is unreachable",
-        ]
-        .iter()
-        .any(|needle| lower.contains(needle))
-        {
-            RepoErrorKind::TransientNetwork
-        } else if lower.contains("authentication required")
-            || lower.contains("authentication failed")
-            || lower.contains("permission denied")
-        {
-            RepoErrorKind::AuthFailed
-        } else if lower.contains("reference not found") || lower.contains("git reference not found")
-        {
-            RepoErrorKind::RevisionNotFound
-        } else if lower.contains("remote")
-            && (lower.contains("missing")
-                || lower.contains("mismatch")
-                || lower.contains("invalid"))
-        {
-            RepoErrorKind::RemoteMisconfigured
-        } else if lower.contains("corrupt") || lower.contains("invalid object") {
-            RepoErrorKind::RepositoryCorrupt
-        } else {
-            RepoErrorKind::Permanent
-        }
+        classify_lowercase_message(&lower)
     }
+}
+
+fn classify_lowercase_message(lower: &str) -> RepoErrorKind {
+    if is_descriptor_pressure_message(lower) {
+        return RepoErrorKind::DescriptorPressure;
+    }
+    if is_transient_network_message(lower) {
+        return RepoErrorKind::TransientNetwork;
+    }
+    if is_auth_failure_message(lower) {
+        return RepoErrorKind::AuthFailed;
+    }
+    if is_revision_not_found_message(lower) {
+        return RepoErrorKind::RevisionNotFound;
+    }
+    if is_remote_misconfigured_message(lower) {
+        return RepoErrorKind::RemoteMisconfigured;
+    }
+    if is_repository_corrupt_message(lower) {
+        return RepoErrorKind::RepositoryCorrupt;
+    }
+    RepoErrorKind::Permanent
+}
+
+fn is_descriptor_pressure_message(lower: &str) -> bool {
+    lower.contains("too many open files")
+}
+
+fn is_transient_network_message(lower: &str) -> bool {
+    [
+        "can't assign requested address",
+        "failed to connect",
+        "could not connect",
+        "timed out",
+        "timeout",
+        "temporary failure",
+        "connection reset",
+        "connection refused",
+        "connection aborted",
+        "network is unreachable",
+    ]
+    .iter()
+    .any(|needle| lower.contains(needle))
+}
+
+fn is_auth_failure_message(lower: &str) -> bool {
+    lower.contains("authentication required")
+        || lower.contains("authentication failed")
+        || lower.contains("permission denied")
+}
+
+fn is_revision_not_found_message(lower: &str) -> bool {
+    lower.contains("reference not found") || lower.contains("git reference not found")
+}
+
+fn is_remote_misconfigured_message(lower: &str) -> bool {
+    lower.contains("remote")
+        && (lower.contains("missing") || lower.contains("mismatch") || lower.contains("invalid"))
+}
+
+fn is_repository_corrupt_message(lower: &str) -> bool {
+    lower.contains("corrupt") || lower.contains("invalid object")
 }

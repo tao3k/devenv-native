@@ -6,7 +6,7 @@ use specta::Type;
 use super::{
     AstSearchHit, AttachmentSearchHit, DefinitionSearchHit, ReferenceSearchHit, SearchHit,
 };
-use crate::contracts::StudioNavigationTarget;
+use crate::contracts::{StudioContractMode, StudioContractState, StudioNavigationTarget};
 
 /// Response for Studio attachment search queries.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -25,7 +25,7 @@ pub struct AttachmentSearchResponse {
     pub partial: bool,
     /// Current attachment-index lifecycle state.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
+    pub indexing_state: Option<StudioContractState>,
     /// Optional attachment-index error surfaced without blocking the request path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub index_error: Option<String>,
@@ -48,7 +48,7 @@ pub struct AstSearchResponse {
     pub partial: bool,
     /// Current AST-index lifecycle state.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
+    pub indexing_state: Option<StudioContractState>,
     /// Optional AST-index error surfaced without blocking the request path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub index_error: Option<String>,
@@ -99,7 +99,7 @@ pub struct ReferenceSearchResponse {
     pub partial: bool,
     /// Current reference-index lifecycle state.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
+    pub indexing_state: Option<StudioContractState>,
     /// Optional reference-index error surfaced without blocking the request path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub index_error: Option<String>,
@@ -120,7 +120,7 @@ pub struct SearchResponse {
     pub graph_confidence_score: Option<f64>,
     /// Optional selected mode label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selected_mode: Option<String>,
+    pub selected_mode: Option<StudioContractMode>,
     /// Optional resolved intent label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub intent: Option<String>,
@@ -129,14 +129,14 @@ pub struct SearchResponse {
     pub intent_confidence: Option<f64>,
     /// Optional backend search mode.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub search_mode: Option<String>,
+    pub search_mode: Option<StudioContractMode>,
     /// Whether the backend returned partial results because repo indexes are still warming or
     /// because a repo-wide search exhausted its bounded server-side budget.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub partial: bool,
     /// Optional aggregate indexing state for code search.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<String>,
+    pub indexing_state: Option<StudioContractState>,
     /// Repo ids that are still queued or indexing.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pending_repos: Vec<String>,

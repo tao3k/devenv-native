@@ -21,6 +21,10 @@ use crate::VectorStoreError;
 /// * `contents` - Text content
 /// * `metadatas` - JSON metadata strings
 ///
+/// Positional boundary: this helper preserves the legacy Lance row
+/// component surface used by existing callers until they migrate to a named
+/// batch request type.
+///
 /// # Errors
 ///
 /// Returns an error if batch construction fails.

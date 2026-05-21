@@ -1,3 +1,5 @@
+//! `search::queries::rest::response` owns Wendao queries rest response behavior.
+
 use serde::{Deserialize, Serialize};
 
 use crate::search::queries::graphql::GraphqlQueryPayload;

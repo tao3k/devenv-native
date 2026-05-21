@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::audit::fix::format` owns Wendao audit fix format behavior.
+
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::hash::BuildHasher;

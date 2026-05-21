@@ -1,3 +1,5 @@
+//! `search::repo_entity::query::hydrate` owns Wendao repo entity query hydrate behavior.
+
 #[path = "columns.rs"]
 mod columns;
 #[path = "load.rs"]

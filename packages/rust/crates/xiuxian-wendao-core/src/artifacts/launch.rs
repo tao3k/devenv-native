@@ -1,3 +1,5 @@
+//! Launch metadata for artifact-producing Wendao commands.
+
 use serde::{Deserialize, Serialize};
 
 /// Generic launch specification for a managed plugin process.

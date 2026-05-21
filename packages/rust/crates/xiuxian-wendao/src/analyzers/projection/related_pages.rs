@@ -1,15 +1,17 @@
+//! `analyzers::projection::related_pages` owns Wendao analyzers projection related pages behavior.
+
 use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::projection::contracts::{ProjectedPageRecord, ProjectionPageKind};
 
 use super::pages::build_projected_pages;
-
+/// `PROJECTION_PAGE_KIND_ORDER` public constant boundary for Wendao.
 pub const PROJECTION_PAGE_KIND_ORDER: [ProjectionPageKind; 4] = [
     ProjectionPageKind::Reference,
     ProjectionPageKind::HowTo,
     ProjectionPageKind::Tutorial,
     ProjectionPageKind::Explanation,
 ];
-
+/// `scored_related_projected_pages` public function boundary for Wendao.
 #[must_use]
 pub fn scored_related_projected_pages(
     page: &ProjectedPageRecord,
@@ -40,7 +42,7 @@ pub fn scored_related_projected_pages(
 
     matches
 }
-
+/// `find_related_pages` public function boundary for Wendao.
 #[must_use]
 pub fn find_related_pages(
     page: &ProjectedPageRecord,

@@ -1,3 +1,5 @@
+//! `search::status::maintenance` owns Wendao search status maintenance behavior.
+
 use serde::{Deserialize, Serialize};
 
 use crate::search::coordinator::SearchCompactionReason;

@@ -1,3 +1,5 @@
+//! `search::repo_content_chunk::build::types` owns Wendao repo content chunk build types behavior.
+
 use std::time::Duration;
 
 use crate::repo_index::RepoCodeDocument;
@@ -7,7 +9,7 @@ pub(crate) const REPO_CONTENT_CHUNK_EXTRACTOR_VERSION: u32 = 2;
 
 pub(crate) type RepoContentChunkBuildAction = RepoStagedMutationAction<Vec<RepoCodeDocument>>;
 pub(crate) type RepoContentChunkBuildPlan = RepoStagedMutationPlan<Vec<RepoCodeDocument>>;
-
+/// `RepoContentChunkMutationWriteProfile` public type boundary for Wendao.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RepoContentChunkMutationWriteProfile {
     pub touched_partition_count: usize,
@@ -19,14 +21,14 @@ pub struct RepoContentChunkMutationWriteProfile {
     pub write_touched_elapsed: Duration,
     pub write_snapshot_elapsed: Duration,
 }
-
+/// `RepoContentChunkFinalizeProfile` public type boundary for Wendao.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RepoContentChunkFinalizeProfile {
     pub prewarm: Duration,
     pub record_publication: Duration,
     pub set_fingerprints: Duration,
 }
-
+/// `RepoContentChunkIncrementalPublishProfile` public type boundary for Wendao.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RepoContentChunkIncrementalPublishProfile {
     pub previous_fingerprint_read_elapsed: Duration,

@@ -3,9 +3,9 @@ use std::sync::Arc;
 use log::info;
 use xiuxian_zhenfa::ZhenfaSignal;
 
-use crate::studio::router::state::cold_start::StudioSearchColdStartTelemetryState;
 use crate::studio::router::state::types::{
-    GatewayState, LocalCorpusScanCoalescingState, StudioConfiguredOwners, StudioState,
+    GatewayState, LocalCorpusScanCoalescingState, StudioConfiguredOwners,
+    StudioSearchColdStartTelemetryState, StudioState,
 };
 use crate::studio::router::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,
@@ -62,7 +62,7 @@ impl GatewayState {
     /// Create gateway state shared by the CLI endpoints and Studio router
     /// with the effective webhook URL and config path chosen at startup.
     #[must_use]
-    pub fn new_with_webhook_url_and_config_path(
+    pub(crate) fn new_with_webhook_url_and_config_path(
         index: Option<Arc<LinkGraphIndex>>,
         signal_tx: Option<tokio::sync::mpsc::UnboundedSender<ZhenfaSignal>>,
         webhook_url: Option<String>,
@@ -83,7 +83,8 @@ impl GatewayState {
     /// Create gateway state for the real `gateway start` runtime, with the
     /// launch-path bootstrap policy resolved from the runtime env.
     #[must_use]
-    pub fn new_for_gateway_start(
+    #[cfg(any(feature = "cli-bin-support", test))]
+    pub(crate) fn new_for_gateway_start(
         index: Option<Arc<LinkGraphIndex>>,
         signal_tx: Option<tokio::sync::mpsc::UnboundedSender<ZhenfaSignal>>,
         webhook_url: Option<String>,

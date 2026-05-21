@@ -34,10 +34,22 @@ impl VectorStore {
         options: SearchOptions,
     ) -> Result<Vec<VectorSearchResult>, VectorStoreError> {
         let table_path = self.table_path(table_name);
-        if !table_path.exists() {
-            return Err(VectorStoreError::TableNotFound(table_name.to_string()));
-        }
+        Self::ensure_search_table_exists(table_name, table_path.as_path())?;
 
+        let mut results = self
+            .collect_optimized_search_rows(table_path.as_path(), query, limit, &options)
+            .await?;
+        Self::sort_and_truncate_results(&mut results, limit);
+        Ok(results)
+    }
+
+    async fn collect_optimized_search_rows(
+        &self,
+        table_path: &std::path::Path,
+        query: Vec<f32>,
+        limit: usize,
+        options: &SearchOptions,
+    ) -> Result<Vec<VectorSearchResult>, VectorStoreError> {
         let dataset = self
             .open_dataset_at_uri(table_path.to_string_lossy().as_ref())
             .await?;
@@ -48,11 +60,7 @@ impl VectorStore {
         let mut scanner = dataset.scan();
         // When a filter is pushed down, Lance may use scalar indices (e.g. skill_name/category);
         // if filtering happens after ANN we request more candidates so enough pass the filter.
-        let fetch_count = if pushdown_filter.is_some() {
-            limit.saturating_mul(4).max(limit + 50)
-        } else {
-            limit.saturating_mul(2).max(limit + 10)
-        };
+        let fetch_count = Self::fetch_count_for_filter(limit, pushdown_filter.is_some());
         if !options.projected_columns.is_empty() {
             scanner.project(&options.projected_columns)?;
         }
@@ -86,13 +94,33 @@ impl VectorStore {
             }
         }
 
+        Ok(results)
+    }
+
+    fn ensure_search_table_exists(
+        table_name: &str,
+        table_path: &std::path::Path,
+    ) -> Result<(), VectorStoreError> {
+        if table_path.exists() {
+            return Ok(());
+        }
+        Err(VectorStoreError::TableNotFound(table_name.to_string()))
+    }
+
+    fn fetch_count_for_filter(limit: usize, has_pushdown_filter: bool) -> usize {
+        if has_pushdown_filter {
+            return limit.saturating_mul(4).max(limit + 50);
+        }
+        limit.saturating_mul(2).max(limit + 10)
+    }
+
+    fn sort_and_truncate_results(results: &mut Vec<VectorSearchResult>, limit: usize) {
         results.sort_by(|a, b| {
             a.distance
                 .partial_cmp(&b.distance)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
         results.truncate(limit);
-        Ok(results)
     }
 
     /// Search with configurable options; returns Arrow IPC stream bytes for zero-copy consumption in Python.

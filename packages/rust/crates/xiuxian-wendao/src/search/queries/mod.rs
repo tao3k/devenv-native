@@ -1,3 +1,5 @@
+//! `search::queries` owns Wendao search queries behavior.
+
 #[cfg(feature = "search-runtime")]
 #[path = "core/mod.rs"]
 mod core;

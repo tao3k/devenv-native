@@ -1,3 +1,5 @@
+//! Shared identifier contracts for Wendao request and response payloads.
+
 use serde::{Deserialize, Serialize};
 
 /// Stable plugin identifier used by generic plugin-runtime contracts.

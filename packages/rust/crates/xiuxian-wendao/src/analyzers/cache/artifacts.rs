@@ -1,3 +1,5 @@
+//! `analyzers::cache::artifacts` owns Wendao analyzers cache artifacts behavior.
+
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
 

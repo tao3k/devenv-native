@@ -253,7 +253,7 @@ fn managed_remote_repository(refresh: RepositoryRefreshPolicy) -> RegisteredRepo
         url: Some("https://example.com/managed-remote.git".to_string()),
         git_ref: None,
         refresh,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     }
 }
 

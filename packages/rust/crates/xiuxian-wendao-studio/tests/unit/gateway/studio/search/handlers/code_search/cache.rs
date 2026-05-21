@@ -14,7 +14,7 @@ async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
                     url: None,
                     git_ref: None,
                     refresh: None,
-                    plugins: vec!["julia".to_string()],
+                    plugins: vec!["julia-code-parser".to_string()],
                 },
                 crate::contracts::UiRepoProjectConfig {
                     id: "beta".to_string(),
@@ -50,7 +50,7 @@ async fn build_code_search_cache_key_is_stable_for_reordered_repo_config() {
                     url: None,
                     git_ref: None,
                     refresh: None,
-                    plugins: vec!["julia".to_string()],
+                    plugins: vec!["julia-code-parser".to_string()],
                 },
             ],
         },

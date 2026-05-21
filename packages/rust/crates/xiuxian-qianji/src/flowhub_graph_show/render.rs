@@ -1,6 +1,6 @@
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 
-use super::FlowhubGraphShow;
+use super::model::FlowhubGraphShow;
 use super::render_execution::{
     render_declared_topology_line, render_execution_section_lines, render_mermaid_section_lines,
     render_node_section_lines,

@@ -10,7 +10,7 @@ pub(crate) fn find_single_start_node(process: &BpmnProcessSpec) -> Result<BpmnNo
         .map(|node| node.index);
     let Some(start_node_index) = start_nodes.next() else {
         return Err(BpmnEngineError::MissingRequiredProcessElement {
-            process_id: process.key.process_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
             element: "start event",
         });
     };

@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 /// Check if the query matches the end of a path.
 pub(super) fn path_match_suffix(path_lower: &[String], query_lower: &str) -> bool {
     // Try matching query against path suffixes
@@ -13,13 +14,10 @@ pub(super) fn path_match_suffix(path_lower: &[String], query_lower: &str) -> boo
     }
 
     let suffix_start = path_lower.len() - query_parts.len();
-    for (i, query_part) in query_parts.iter().enumerate() {
-        if &path_lower[suffix_start + i] != query_part {
-            return false;
-        }
-    }
-
-    true
+    query_parts
+        .iter()
+        .enumerate()
+        .all(|(i, query_part)| &path_lower[suffix_start + i] == query_part)
 }
 
 pub(super) fn similarity_ratio(left: usize, right: usize) -> f32 {

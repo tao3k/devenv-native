@@ -6,7 +6,7 @@ use walkdir::WalkDir;
 
 use crate::error::QianjiError;
 
-use super::api::WorkdirDiagnostic;
+use super::model::WorkdirDiagnostic;
 use super::render::follow_up_surfaces_for_requirement;
 
 pub(super) fn load_optional_flowchart(
@@ -51,31 +51,28 @@ pub(super) fn count_glob_matches(workdir: &Path, pattern: &str) -> Result<usize,
         })?
         .compile_matcher();
 
-    let mut match_count = 0_usize;
-    for entry in WalkDir::new(workdir) {
-        let entry = entry.map_err(|error| {
-            QianjiError::Topology(format!(
-                "Failed to walk bounded work surface `{}`: {error}",
-                workdir.display()
-            ))
-        })?;
-        if entry.path() == workdir {
-            continue;
-        }
-        let relative = entry.path().strip_prefix(workdir).map_err(|error| {
-            QianjiError::Topology(format!(
-                "Failed to relativize bounded work-surface path `{}` against `{}`: {error}",
-                entry.path().display(),
-                workdir.display()
-            ))
-        })?;
-        let normalized = relative.to_string_lossy().replace('\\', "/");
-        if matcher.is_match(normalized.as_str()) {
-            match_count += 1;
-        }
-    }
-
-    Ok(match_count)
+    WalkDir::new(workdir)
+        .into_iter()
+        .try_fold(0_usize, |match_count, entry| {
+            let entry = entry.map_err(|error| {
+                QianjiError::Topology(format!(
+                    "Failed to walk bounded work surface `{}`: {error}",
+                    workdir.display()
+                ))
+            })?;
+            if entry.path() == workdir {
+                return Ok(match_count);
+            }
+            let relative = entry.path().strip_prefix(workdir).map_err(|error| {
+                QianjiError::Topology(format!(
+                    "Failed to relativize bounded work-surface path `{}` against `{}`: {error}",
+                    entry.path().display(),
+                    workdir.display()
+                ))
+            })?;
+            let normalized = relative.to_string_lossy().replace('\\', "/");
+            Ok(match_count + usize::from(matcher.is_match(normalized.as_str())))
+        })
 }
 
 pub(super) fn is_glob_pattern(value: &str) -> bool {

@@ -1,6 +1,6 @@
 //! `PyO3` bindings for fusion recall boost.
 
-use pyo3::types::{PyAny, PyAnyMethods, PyDictMethods, PyListMethods};
+use pyo3::types::{PyAny, PyAnyMethods, PyDict, PyDictMethods, PyList, PyListMethods};
 use pyo3::{Bound, IntoPyObject, Py, PyResult, Python, pyfunction};
 use std::collections::{HashMap, HashSet};
 
@@ -23,6 +23,7 @@ use crate::fusion::{RecallResult, apply_link_graph_proximity_boost};
 /// Returns an error if Python inputs cannot be converted to expected Rust types.
 #[pyfunction]
 #[pyo3(signature = (results, stem_links, stem_tags, link_boost, tag_boost))]
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn apply_link_graph_proximity_boost_py(
     py: Python<'_>,
     results: &Bound<'_, pyo3::types::PyList>,
@@ -31,49 +32,9 @@ pub fn apply_link_graph_proximity_boost_py(
     link_boost: f64,
     tag_boost: f64,
 ) -> PyResult<Vec<Py<PyAny>>> {
-    let mut rust_results: Vec<RecallResult> = Vec::with_capacity(results.len());
-    for obj in results.iter() {
-        let dict = obj.clone().cast_into::<pyo3::types::PyDict>()?;
-        let source = dict
-            .get_item("source")?
-            .and_then(|v: Bound<'_, PyAny>| v.extract::<String>().ok())
-            .unwrap_or_default();
-        let score = dict
-            .get_item("score")?
-            .and_then(|v: Bound<'_, PyAny>| v.extract::<f64>().ok())
-            .unwrap_or(0.0);
-        let content = dict
-            .get_item("content")?
-            .and_then(|v: Bound<'_, PyAny>| v.extract::<String>().ok())
-            .unwrap_or_default();
-        let title = dict
-            .get_item("title")?
-            .and_then(|v: Bound<'_, PyAny>| v.extract::<String>().ok())
-            .unwrap_or_default();
-        rust_results.push(RecallResult::new(source, score, content, title));
-    }
-
-    let mut links_map: HashMap<String, HashSet<String>> = HashMap::new();
-    for (k, v) in stem_links.iter() {
-        let stem = k.extract::<String>()?;
-        let list = v.cast::<pyo3::types::PyList>()?;
-        let set: HashSet<String> = list
-            .iter()
-            .filter_map(|item: Bound<'_, PyAny>| item.extract::<String>().ok())
-            .collect();
-        links_map.insert(stem, set);
-    }
-
-    let mut tags_map: HashMap<String, HashSet<String>> = HashMap::new();
-    for (k, v) in stem_tags.iter() {
-        let stem = k.extract::<String>()?;
-        let list = v.cast::<pyo3::types::PyList>()?;
-        let set: HashSet<String> = list
-            .iter()
-            .filter_map(|item: Bound<'_, PyAny>| item.extract::<String>().ok())
-            .collect();
-        tags_map.insert(stem, set);
-    }
+    let mut rust_results = extract_recall_results(results)?;
+    let links_map = extract_string_set_map(stem_links)?;
+    let tags_map = extract_string_set_map(stem_tags)?;
 
     apply_link_graph_proximity_boost(
         &mut rust_results,
@@ -83,14 +44,66 @@ pub fn apply_link_graph_proximity_boost_py(
         tag_boost,
     );
 
-    let mut out = Vec::with_capacity(rust_results.len());
-    for r in rust_results {
-        let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("source", r.source)?;
-        dict.set_item("score", r.score)?;
-        dict.set_item("content", r.content)?;
-        dict.set_item("title", r.title)?;
-        out.push(dict.into_pyobject(py)?.into());
-    }
-    Ok(out)
+    recall_results_to_py(py, rust_results)
+}
+
+fn extract_recall_results(results: &Bound<'_, PyList>) -> PyResult<Vec<RecallResult>> {
+    results
+        .iter()
+        .map(|obj| extract_recall_result(&obj))
+        .collect()
+}
+
+fn extract_recall_result(obj: &Bound<'_, PyAny>) -> PyResult<RecallResult> {
+    let dict = obj.clone().cast_into::<PyDict>()?;
+    Ok(RecallResult::new(
+        extract_optional_string(&dict, "source")?,
+        extract_optional_f64(&dict, "score")?,
+        extract_optional_string(&dict, "content")?,
+        extract_optional_string(&dict, "title")?,
+    ))
+}
+
+fn extract_optional_string(dict: &Bound<'_, PyDict>, key: &str) -> PyResult<String> {
+    Ok(dict
+        .get_item(key)?
+        .and_then(|value: Bound<'_, PyAny>| value.extract::<String>().ok())
+        .unwrap_or_default())
+}
+
+fn extract_optional_f64(dict: &Bound<'_, PyDict>, key: &str) -> PyResult<f64> {
+    Ok(dict
+        .get_item(key)?
+        .and_then(|value: Bound<'_, PyAny>| value.extract::<f64>().ok())
+        .unwrap_or(0.0))
+}
+
+fn extract_string_set_map(dict: &Bound<'_, PyDict>) -> PyResult<HashMap<String, HashSet<String>>> {
+    dict.iter()
+        .map(|(key, value)| Ok((key.extract::<String>()?, extract_string_set(&value)?)))
+        .collect()
+}
+
+fn extract_string_set(value: &Bound<'_, PyAny>) -> PyResult<HashSet<String>> {
+    Ok(value
+        .cast::<PyList>()?
+        .iter()
+        .filter_map(|item: Bound<'_, PyAny>| item.extract::<String>().ok())
+        .collect())
+}
+
+fn recall_results_to_py(py: Python<'_>, results: Vec<RecallResult>) -> PyResult<Vec<Py<PyAny>>> {
+    results
+        .into_iter()
+        .map(|result| recall_result_to_py(py, result))
+        .collect()
+}
+
+fn recall_result_to_py(py: Python<'_>, result: RecallResult) -> PyResult<Py<PyAny>> {
+    let dict = PyDict::new(py);
+    dict.set_item("source", result.source)?;
+    dict.set_item("score", result.score)?;
+    dict.set_item("content", result.content)?;
+    dict.set_item("title", result.title)?;
+    Ok(dict.into_pyobject(py)?.into())
 }

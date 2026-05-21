@@ -10,8 +10,7 @@ use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnInstanceInit, BpmnPackage, EventPollOutcome,
     InstanceLifecycle, NodeRuntimeStatus, PendingHostWorkResult, UserTaskOutcome, WaitKind,
-    advance_instance, apply_event_poll_outcome, apply_pending_host_work_result,
-    build_event_poll_request, create_instance,
+    advance_instance, apply_event_poll_outcome, build_event_poll_request, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -71,7 +70,7 @@ async fn runtime_non_interrupting_boundary_timer_spawns_concurrent_timeout_path(
     assert_non_interrupting_boundary_branch_drained(&instance);
 
     let token_id = instance.pending_host_work[0].token_id;
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,
@@ -119,7 +118,7 @@ async fn runtime_host_completion_clears_non_interrupting_boundary_timer_wait() {
     assert_eq!(instance.waits.len(), 1);
     let token_id = instance.pending_host_work[0].token_id;
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,
@@ -202,7 +201,7 @@ async fn runtime_non_interrupting_boundary_message_spawns_concurrent_boundary_pa
     assert_non_interrupting_boundary_branch_drained(&instance);
 
     let token_id = instance.pending_host_work[0].token_id;
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,
@@ -333,7 +332,7 @@ async fn runtime_host_completion_clears_non_interrupting_boundary_signal_wait() 
     );
     let token_id = instance.pending_host_work[0].token_id;
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

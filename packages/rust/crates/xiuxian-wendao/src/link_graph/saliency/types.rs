@@ -1,3 +1,5 @@
+//! `link_graph::saliency::types` owns Wendao link graph saliency types behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Namespace-scoped schema version for `LinkGraph` saliency persistence.

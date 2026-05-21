@@ -9,4 +9,4 @@ mod run;
 #[path = "../../tests/unit/bin/qianji_server/mod.rs"]
 mod tests;
 
-pub use facade::run_qianji_server_cli;
+pub use facade::{QianjiServerCliError, run_qianji_server_cli};

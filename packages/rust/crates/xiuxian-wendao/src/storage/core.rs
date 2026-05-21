@@ -1,3 +1,5 @@
+//! `storage::core` owns Wendao storage core behavior.
+
 use crate::types::{KnowledgeCategory, KnowledgeEntry};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -105,14 +107,16 @@ impl KnowledgeStorage {
         if a.is_empty() || b.is_empty() || a.len() != b.len() {
             return 0.0;
         }
-        let mut dot = 0.0_f32;
-        let mut norm_a = 0.0_f32;
-        let mut norm_b = 0.0_f32;
-        for idx in 0..a.len() {
-            dot += a[idx] * b[idx];
-            norm_a += a[idx] * a[idx];
-            norm_b += b[idx] * b[idx];
-        }
+        let (dot, norm_a, norm_b) = a.iter().zip(b.iter()).fold(
+            (0.0_f32, 0.0_f32, 0.0_f32),
+            |(dot, norm_a, norm_b), (left, right)| {
+                (
+                    dot + left * right,
+                    norm_a + left * left,
+                    norm_b + right * right,
+                )
+            },
+        );
         if norm_a == 0.0 || norm_b == 0.0 {
             0.0
         } else {

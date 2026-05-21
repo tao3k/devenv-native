@@ -1,3 +1,5 @@
+//! Facade surface for `xiuxian-qianji`.
+
 use super::{critique, runtime};
 
 use std::sync::Arc;
@@ -7,7 +9,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use futures::StreamExt;
 use xiuxian_llm::llm::{ChatRequest, LlmClient};
-use xiuxian_zhenfa::ZhenfaPipeline;
+use xiuxian_zhenfa::{ZhenfaPipeline, ZhenfaPipelineOptions};
 
 use super::QianjiAdvisoryRolePlan;
 use crate::executors::{QianjiAdvisoryAuditExecutor, QianjiAdvisoryExecutionPlan};
@@ -92,10 +94,8 @@ impl QianjiLlmAdvisoryAuditExecutor {
         request: ChatRequest,
     ) -> Result<(String, Option<LiveCognitiveMetrics>)> {
         let mut pipeline = ZhenfaPipeline::with_options(
-            resolve_provider(self.model.as_str()),
-            true,
-            true,
-            self.cognitive_early_halt_threshold,
+            ZhenfaPipelineOptions::new(resolve_provider(self.model.as_str()))
+                .with_early_halt_threshold(self.cognitive_early_halt_threshold),
         );
         let mut stream = self.client.chat_stream(request).await?;
         let mut accumulated = String::new();

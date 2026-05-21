@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
 use walkdir::WalkDir;
+use xiuxian_code_intelligence::{CodeLanguageId, count_code_pattern_matches_for_language_id};
 use xiuxian_wendao::parsers::markdown::{CodeObservation, is_supported_note, parse_note};
 use xiuxian_wendao::zhenfa_router::native::audit::{
     SourceFile, resolve_source_files, suggest_pattern_fix_with_threshold,
@@ -39,7 +40,8 @@ impl ScenarioRunner for SemanticCheckRunner {
                 let Some(lang) = observation.ast_language() else {
                     continue;
                 };
-                let source_files = resolve_scenario_source_files(&source_paths, lang);
+                let language_id = CodeLanguageId::from(lang.as_str());
+                let source_files = resolve_scenario_source_files(&source_paths, &language_id);
                 let issue_context = IssueBuildContext {
                     source_files: &source_files,
                     scenario_dir: &scenario.dir,
@@ -59,7 +61,7 @@ impl ScenarioRunner for SemanticCheckRunner {
                 }
 
                 if source_files.is_empty()
-                    || count_observation_matches(observation, lang, &source_files) > 0
+                    || count_observation_matches(observation, &language_id, &source_files) > 0
                 {
                     continue;
                 }
@@ -182,21 +184,30 @@ fn parse_scenario_notes(temp_dir: &Path) -> Result<Vec<ScenarioObservationDoc>, 
     Ok(docs)
 }
 
-fn resolve_scenario_source_files(paths: &[String], lang: xiuxian_ast::Lang) -> Vec<SourceFile> {
+fn resolve_scenario_source_files(
+    paths: &[String],
+    language_id: &CodeLanguageId,
+) -> Vec<SourceFile> {
     let path_refs = paths.iter().map(Path::new).collect::<Vec<_>>();
-    resolve_source_files(&path_refs, lang)
+    resolve_source_files(&path_refs, language_id)
 }
 
 fn count_observation_matches(
     observation: &CodeObservation,
-    lang: xiuxian_ast::Lang,
+    language_id: &CodeLanguageId,
     source_files: &[SourceFile],
 ) -> usize {
     source_files
         .iter()
         .filter(|file| observation.matches_scope(&file.path))
-        .filter_map(|file| xiuxian_ast::scan(&file.content, &observation.pattern, lang).ok())
-        .map(|matches| matches.len())
+        .filter_map(|file| {
+            count_code_pattern_matches_for_language_id(
+                &file.content,
+                &observation.pattern,
+                language_id,
+            )
+            .ok()
+        })
         .sum()
 }
 
@@ -211,9 +222,10 @@ fn build_issue(
     let fuzzy_suggestion = observation
         .ast_language()
         .and_then(|lang| {
+            let language_id = CodeLanguageId::from(lang.as_str());
             suggest_pattern_fix_with_threshold(
                 &observation.pattern,
-                lang,
+                &language_id,
                 context.source_files,
                 Some(0.65),
             )

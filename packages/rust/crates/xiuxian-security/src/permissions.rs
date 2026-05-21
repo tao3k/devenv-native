@@ -1,11 +1,13 @@
-/// `PermissionGatekeeper` - zero trust access control.
-///
-/// Validates skill tool calls against declared permissions.
-///
-/// Permission format:
-/// - Exact: `"filesystem:read"` allows only `"filesystem:read"`.
-/// - Wildcard category: `"filesystem:*"` allows any `"filesystem:*"` tool.
-/// - Admin: `"*"` allows everything.
+//! `PermissionGatekeeper` zero-trust access control.
+//!
+//! Validates skill tool calls against declared permissions.
+//!
+//! Permission format:
+//! - Exact: `"filesystem:read"` allows only `"filesystem:read"`.
+//! - Wildcard category: `"filesystem:*"` allows any `"filesystem:*"` tool.
+//! - Admin: `"*"` allows everything.
+
+/// Zero-trust tool permission checker.
 pub struct PermissionGatekeeper;
 
 impl PermissionGatekeeper {
@@ -17,12 +19,9 @@ impl PermissionGatekeeper {
     /// Returns `true` when at least one permission pattern matches the tool.
     #[must_use]
     pub fn check(tool_name: &str, permissions: &[String]) -> bool {
-        for pattern in permissions {
-            if Self::matches_pattern(tool_name, pattern) {
-                return true;
-            }
-        }
-        false
+        permissions
+            .iter()
+            .any(|pattern| Self::matches_pattern(tool_name, pattern))
     }
 
     fn matches_pattern(tool: &str, pattern: &str) -> bool {

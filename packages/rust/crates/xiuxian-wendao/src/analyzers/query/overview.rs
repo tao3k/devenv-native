@@ -1,3 +1,5 @@
+//! `analyzers::query::overview` owns Wendao analyzers query overview behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

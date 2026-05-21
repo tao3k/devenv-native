@@ -20,8 +20,8 @@ fn test_compute_link_graph_saliency_clamps_bounds() -> Result<(), String> {
     let boosted = compute_link_graph_saliency(5.0, 0.0, 10_000, 0.0, policy);
 
     let snapshot = ClampBoundsSnapshot {
-        decayed: format!("{:.6}", decayed),
-        boosted: format!("{:.6}", boosted),
+        decayed: format!("{decayed:.6}"),
+        boosted: format!("{boosted:.6}"),
     };
     let actual = format!(
         "{}\n",

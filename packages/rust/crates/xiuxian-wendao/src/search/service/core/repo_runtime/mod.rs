@@ -1,3 +1,5 @@
+//! `search::service::core::repo_runtime` owns Wendao service core repo runtime behavior.
+
 mod bootstrap;
 mod helpers;
 mod reads;

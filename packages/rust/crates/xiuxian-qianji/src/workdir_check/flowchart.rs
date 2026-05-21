@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::error::QianjiError;
 
-use super::api::WorkdirDiagnostic;
+use super::model::WorkdirDiagnostic;
 use super::render::{follow_up_surfaces_for_flowchart, render_label_list};
 use super::runtime::WorkdirStepAwareContext;
 

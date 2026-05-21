@@ -24,6 +24,18 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             bool(report.get("resourcesArrowExists")) for report in reports
         ),
         "resourcesRows": _sum_int_report_values(reports, "resourcesRowCount"),
+        "audioTranscriptChars": _sum_int_report_values(
+            reports,
+            "audioTranscriptChars",
+        ),
+        "audioTranscriptTimelineMarkerCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptTimelineMarkerCount",
+        ),
+        "audioTranscriptTimelineMarkedRows": _sum_int_report_values(
+            reports,
+            "audioTranscriptTimelineMarkedRows",
+        ),
         "structureArrowExists": any(
             bool(report.get("structureArrowExists")) for report in reports
         ),
@@ -75,6 +87,83 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "documentTimingPhaseElapsedMs",
         ),
+        "hybridPageOcrFallbackReasons": _hybrid_page_ocr_fallback_reasons(reports),
+        "hybridPageOcrTimingReportExists": any(
+            _hybrid_page_ocr_timing_report_exists(report) for report in reports
+        ),
+        "hybridPageOcrTimingTotalElapsedMs": _sum_float_report_values(
+            reports,
+            "hybridPageOcrTimingTotalElapsedMs",
+        ),
+        "hybridPageOcrTimingPhaseElapsedMs": _aggregate_float_report_maps(
+            reports,
+            "hybridPageOcrTimingPhaseElapsedMs",
+        ),
+        "hybridPageOcrTimingOcrShardCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcrShardCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionShardCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionShardCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionRequestCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRequestCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderedShardCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRenderedShardCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderCacheHitCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRenderCacheHitCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderCacheMissCount": _sum_int_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRenderCacheMissCount",
+        ),
+        "structureAuthorityPages": _sum_int_report_values(
+            reports,
+            "structureAuthorityPages",
+        ),
+        "textShortcutPages": _sum_int_report_values(
+            reports,
+            "textShortcutPages",
+        ),
+        "ocrPatchRegions": _sum_int_report_values(
+            reports,
+            "ocrPatchRegions",
+        ),
+        "pageRangeDoclingFallbackPages": _sum_int_report_values(
+            reports,
+            "pageRangeDoclingFallbackPages",
+        ),
+        "pageRangeDoclingFallbackChunkCount": _sum_int_report_values(
+            reports,
+            "pageRangeDoclingFallbackChunkCount",
+        ),
+        "pageRangeDoclingFallbackPlan": _page_range_docling_fallback_plan(reports),
+        "pageRangeDoclingFallbackChunks": _page_range_docling_fallback_chunks(
+            reports,
+        ),
+        "pageRangeDoclingFallbackChunkSummary": (
+            _page_range_docling_fallback_chunk_summary(
+                _page_range_docling_fallback_chunks(reports),
+            )
+        ),
+        "fullDoclingFallbackCount": _sum_int_report_values(
+            reports,
+            "fullDoclingFallbackCount",
+        ),
+        "hybridPageOcrTimingSchedulerTrace": _hybrid_page_ocr_scheduler_trace(
+            reports,
+        ),
+        "hybridPageOcrTimingSchedulerTraceSummary": (
+            _hybrid_page_ocr_scheduler_trace_summary(
+                _hybrid_page_ocr_scheduler_trace(reports),
+            )
+        ),
         "imageAttachmentAuditCount": _image_attachment_audit_count(reports),
         "imageKnownDimensionCount": _image_known_dimension_count(reports),
         "imageFormatCounts": _image_format_counts(reports),
@@ -100,6 +189,15 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             1 for report in reports if report.get("artifactError")
         ),
     }
+
+
+def _hybrid_page_ocr_fallback_reasons(reports: list[dict[str, Any]]) -> list[str]:
+    return [
+        reason
+        for report in reports
+        if isinstance((reason := report.get("hybridPageOcrFallbackReason")), str)
+        and reason
+    ]
 
 
 def _structure_parity_passed(reports: list[dict[str, Any]]) -> bool | None:
@@ -155,6 +253,244 @@ def _document_timing_arrow_exists(report: dict[str, Any]) -> bool:
     return (isinstance(arrow_bytes, int) and arrow_bytes > 0) or (
         isinstance(row_count, int) and row_count > 0
     )
+
+
+def _hybrid_page_ocr_timing_report_exists(report: dict[str, Any]) -> bool:
+    if bool(report.get("hybridPageOcrTimingReportExists")):
+        return True
+    report_bytes = report.get("hybridPageOcrTimingReportBytes")
+    total_elapsed_ms = report.get("hybridPageOcrTimingTotalElapsedMs")
+    has_report_bytes = isinstance(report_bytes, int) and report_bytes > 0
+    has_total_elapsed = (
+        isinstance(total_elapsed_ms, int | float) and total_elapsed_ms > 0
+    )
+    return has_report_bytes or has_total_elapsed
+
+
+def _hybrid_page_ocr_scheduler_trace(
+    reports: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    trace: list[dict[str, Any]] = []
+    for report in reports:
+        rows = report.get("hybridPageOcrTimingSchedulerTrace")
+        if not isinstance(rows, list):
+            continue
+        trace.extend(row for row in rows if isinstance(row, dict))
+    return trace
+
+
+def _hybrid_page_ocr_scheduler_trace_summary(
+    trace: list[dict[str, Any]],
+) -> dict[str, Any]:
+    source_range = [row for row in trace if row.get("lane") == "source-pdf-page-range"]
+    longest = max(
+        source_range,
+        key=lambda row: float(row.get("latencyMs") or 0.0),
+        default={},
+    )
+    return {
+        "sourceRangeChunkCount": len(source_range),
+        "sourceRangeShardCount": _sum_numeric_trace_values(
+            source_range,
+            "shardCount",
+        ),
+        "sourceRangeTextCharCount": _sum_numeric_trace_values(
+            source_range,
+            "textCharCount",
+        ),
+        "sourceRangeLatencyMsMax": _float_or_none(longest.get("latencyMs")),
+        "sourceRangeQueueWaitMsMax": _max_float_trace_value(
+            source_range,
+            "queueWaitMs",
+        ),
+        "sourceRangeDispatchStartMsMin": _min_float_trace_value(
+            source_range,
+            "dispatchStartMs",
+        ),
+        "sourceRangeDispatchEndMsMax": _max_float_trace_value(
+            source_range,
+            "dispatchEndMs",
+        ),
+        "sourceRangeLongestPageStart": _int_or_none(longest.get("pageStart")),
+        "sourceRangeLongestPageEnd": _int_or_none(longest.get("pageEnd")),
+        "sourceRangeLongestShardCount": _int_or_none(longest.get("shardCount")),
+        "sourceRangeLongestQueueWaitMs": _float_or_none(longest.get("queueWaitMs")),
+        "sourceRangeLongestDispatchStartMs": _float_or_none(
+            longest.get("dispatchStartMs"),
+        ),
+        "sourceRangeLongestDispatchEndMs": _float_or_none(
+            longest.get("dispatchEndMs"),
+        ),
+        "sourceRangeLongestTextCharCount": _int_or_none(
+            longest.get("textCharCount"),
+        ),
+    }
+
+
+def _page_range_docling_fallback_chunks(
+    reports: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    chunks: list[dict[str, Any]] = []
+    for report in reports:
+        rows = report.get("pageRangeDoclingFallbackChunks")
+        if not isinstance(rows, list):
+            continue
+        chunks.extend(row for row in rows if isinstance(row, dict))
+    return chunks
+
+
+def _page_range_docling_fallback_plan(
+    reports: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    for report in reports:
+        plan = report.get("pageRangeDoclingFallbackPlan")
+        if isinstance(plan, dict):
+            return plan
+    return None
+
+
+def _page_range_docling_fallback_chunk_summary(
+    chunks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    longest = max(
+        chunks,
+        key=lambda row: float(row.get("elapsedMs") or 0.0),
+        default={},
+    )
+    elapsed_values = [
+        float(value)
+        for row in chunks
+        if isinstance((value := row.get("elapsedMs")), int | float)
+    ]
+    elapsed_total = sum(elapsed_values)
+    elapsed_max = max(elapsed_values, default=None)
+    elapsed_min = min(elapsed_values, default=None)
+    elapsed_mean = elapsed_total / len(elapsed_values) if elapsed_values else None
+    document_timing_total = sum(
+        float(value)
+        for row in chunks
+        if isinstance((value := row.get("documentTimingTotalElapsedMs")), int | float)
+    )
+    return {
+        "chunkCount": len(chunks),
+        "elapsedMsMax": elapsed_max,
+        "elapsedMsMin": elapsed_min,
+        "elapsedMsMean": elapsed_mean,
+        "elapsedMsSpread": (
+            elapsed_max - elapsed_min
+            if elapsed_max is not None and elapsed_min is not None
+            else None
+        ),
+        "elapsedMsMaxToMeanRatio": (
+            elapsed_max / elapsed_mean
+            if elapsed_max is not None and elapsed_mean is not None and elapsed_mean > 0
+            else None
+        ),
+        "elapsedMsTotal": elapsed_total,
+        "documentTimingTotalElapsedMs": document_timing_total,
+        "documentTimingPhaseElapsedMs": _aggregate_float_report_maps(
+            chunks,
+            "documentTimingPhaseElapsedMs",
+        ),
+        "documentExtractProfileCounts": _string_counts_from_rows(
+            chunks,
+            "documentExtractProfile",
+        ),
+        "resourceRows": _sum_numeric_trace_values(chunks, "resourceRows"),
+        "sourceProfilePageCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "pageCount",
+        ),
+        "sourceProfileEstimatedWeightTotal": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "estimatedWeightTotal",
+        ),
+        "sourceProfileStructureAuthorityRequiredCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "structureAuthorityRequiredCount",
+        ),
+        "sourceProfileFastProfileRiskCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "fastProfileRiskCount",
+        ),
+        "sourceProfileBackendTextTopupCount": _sum_nested_int_values(
+            chunks,
+            "sourceProfile",
+            "backendTextTopupCount",
+        ),
+        "longestPageStart": _int_or_none(longest.get("pageStart")),
+        "longestPageEnd": _int_or_none(longest.get("pageEnd")),
+        "longestOneBasedStart": _int_or_none(longest.get("oneBasedStart")),
+        "longestOneBasedEnd": _int_or_none(longest.get("oneBasedEnd")),
+        "longestResourceRows": _int_or_none(longest.get("resourceRows")),
+        "longestDocumentTimingTotalElapsedMs": _float_or_none(
+            longest.get("documentTimingTotalElapsedMs"),
+        ),
+        "longestDocumentTimingPhaseElapsedMs": (
+            phases
+            if isinstance((phases := longest.get("documentTimingPhaseElapsedMs")), dict)
+            else None
+        ),
+        "longestSourceProfile": (
+            source_profile
+            if isinstance((source_profile := longest.get("sourceProfile")), dict)
+            else None
+        ),
+    }
+
+
+def _sum_numeric_trace_values(rows: list[dict[str, Any]], key: str) -> int:
+    return sum(value for row in rows if isinstance((value := row.get(key)), int))
+
+
+def _string_counts_from_rows(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        value = row.get(key)
+        if isinstance(value, str) and value:
+            counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _sum_nested_int_values(
+    rows: list[dict[str, Any]], parent_key: str, key: str
+) -> int:
+    return sum(
+        value
+        for row in rows
+        if isinstance((parent := row.get(parent_key)), dict)
+        and isinstance((value := parent.get(key)), int)
+    )
+
+
+def _max_float_trace_value(rows: list[dict[str, Any]], key: str) -> float | None:
+    values = [
+        float(value) for row in rows if isinstance((value := row.get(key)), int | float)
+    ]
+    return max(values, default=None)
+
+
+def _min_float_trace_value(rows: list[dict[str, Any]], key: str) -> float | None:
+    values = [
+        float(value) for row in rows if isinstance((value := row.get(key)), int | float)
+    ]
+    return min(values, default=None)
+
+
+def _float_or_none(value: Any) -> float | None:
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, int):
+        return value
+    return None
 
 
 def _image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:

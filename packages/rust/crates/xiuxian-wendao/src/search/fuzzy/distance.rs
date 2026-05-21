@@ -1,4 +1,7 @@
-use crate::search::fuzzy::buffers::{collect_chars, with_thread_local_buffers};
+//! `search::fuzzy::distance` owns Wendao search fuzzy distance behavior.
+
+use super::buffers::{collect_chars, with_thread_local_buffers};
+use super::case::chars_equal_ignore_case;
 
 /// Compute the shared-prefix length in Unicode scalar values.
 #[must_use]
@@ -90,8 +93,4 @@ pub(crate) fn edit_distance_with_scratch(
     }
 
     prev_row[right_len]
-}
-
-pub(crate) fn chars_equal_ignore_case(left: char, right: char) -> bool {
-    left.to_lowercase().eq(right.to_lowercase())
 }

@@ -1,0 +1,4 @@
+[tests]
+allowed_root_files = [
+  { name = "unit.rs", explanation = "thin aggregate that mounts xiuxian-qianji-control unit suites from tests/unit" },
+]

@@ -18,15 +18,15 @@ pub(crate) fn build_retrieval_chunks_flight_batch(
 ) -> Result<LanceRecordBatch, String> {
     let owner_ids = chunks
         .iter()
-        .map(|chunk| chunk.owner_id.clone())
+        .map(|chunk| chunk.owner_id.to_string())
         .collect::<Vec<_>>();
     let chunk_ids = chunks
         .iter()
-        .map(|chunk| chunk.chunk_id.clone())
+        .map(|chunk| chunk.chunk_id.to_string())
         .collect::<Vec<_>>();
     let semantic_types = chunks
         .iter()
-        .map(|chunk| chunk.semantic_type.clone())
+        .map(|chunk| chunk.semantic_type.to_string())
         .collect::<Vec<_>>();
     let fingerprints = chunks
         .iter()

@@ -2,7 +2,7 @@
 fn build_julia_flight_transport_client_returns_none_without_inline_config() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     };
 
@@ -18,7 +18,7 @@ fn build_julia_flight_transport_client_reads_nested_flight_transport_options() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "flight_transport": {
                     "base_url": "http://127.0.0.1:8081",
@@ -56,7 +56,7 @@ fn build_julia_flight_transport_client_rejects_invalid_field_types() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "flight_transport": {
                     "timeout_secs": "fast"
@@ -82,7 +82,7 @@ fn build_julia_flight_transport_client_honors_enabled_false() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "flight_transport": {
                     "enabled": false,
@@ -105,7 +105,7 @@ fn build_julia_flight_transport_client_rejects_zero_in_flight_budget() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
         plugins: vec![RepositoryPluginConfig::Config {
-            id: "julia".to_string(),
+            id: "julia-code-parser".to_string(),
             options: serde_json::json!({
                 "flight_transport": {
                     "max_in_flight_requests": 0

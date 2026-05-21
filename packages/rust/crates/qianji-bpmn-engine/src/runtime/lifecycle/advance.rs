@@ -179,8 +179,8 @@ fn start_event_should_wait(
         | BpmnEventKind::Error
         | BpmnEventKind::Escalation
         | BpmnEventKind::Terminate => Err(BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: process.key.process_id.to_string(),
-            node_id: process.nodes[node_index as usize].bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (process.nodes[node_index as usize].bpmn_id.to_string()).into(),
             detail: "unsupported_start_event_definition",
         }),
     }
@@ -230,10 +230,11 @@ fn advance_end_event(
             BpmnEventKind::Escalation => {
                 if instance.call_stack.is_empty() {
                     return Err(BpmnEngineError::UnsupportedEventConfiguration {
-                        process_id: process.key.process_id.to_string(),
-                        node_id: process.nodes[current_node_index as usize]
+                        process_id: (process.key.process_id.to_string()).into(),
+                        node_id: (process.nodes[current_node_index as usize]
                             .bpmn_id
-                            .to_string(),
+                            .to_string())
+                        .into(),
                         detail: "escalation_end_requires_supported_parent_boundary",
                     });
                 }
@@ -375,10 +376,11 @@ fn advance_intermediate_throw_event(
 ) -> Result<()> {
     let event = process.event_for_node(current_node_index).ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.key.process_id.to_string(),
-            node_id: process.nodes[current_node_index as usize]
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (process.nodes[current_node_index as usize]
                 .bpmn_id
-                .to_string(),
+                .to_string())
+            .into(),
             element: "event_definition",
         }
     })?;
@@ -407,10 +409,11 @@ fn advance_intermediate_throw_event(
         BpmnEventKind::Escalation => {
             if instance.call_stack.is_empty() {
                 return Err(BpmnEngineError::UnsupportedEventConfiguration {
-                    process_id: process.key.process_id.to_string(),
-                    node_id: process.nodes[current_node_index as usize]
+                    process_id: (process.key.process_id.to_string()).into(),
+                    node_id: (process.nodes[current_node_index as usize]
                         .bpmn_id
-                        .to_string(),
+                        .to_string())
+                    .into(),
                     detail: "escalation_throw_requires_supported_parent_boundary",
                 });
             }
@@ -503,8 +506,8 @@ fn advance_business_rule_task(
     }
     let decision = current_node.decision.clone().ok_or_else(|| {
         BpmnEngineError::MissingBusinessRuleDecisionRef {
-            process_id: process.key.process_id.to_string(),
-            node_id: current_node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (current_node.bpmn_id.to_string()).into(),
         }
     })?;
     let token_id = instance
@@ -577,12 +580,12 @@ pub(crate) fn apply_pending_host_work_result_impl(
         .ok_or_else(|| {
             if instance.pending_host_work.is_empty() {
                 return BpmnEngineError::MissingPendingHostWork {
-                    instance_id: instance.instance_id.to_string(),
+                    instance_id: (instance.instance_id.to_string()).into(),
                 };
             }
             BpmnEngineError::MissingPendingHostWorkToken {
-                instance_id: instance.instance_id.to_string(),
-                token_id,
+                instance_id: (instance.instance_id.to_string()).into(),
+                token_id: token_id.into(),
             }
         })?;
     let pending_process_id = pending
@@ -681,14 +684,14 @@ fn map_task_completion_output(
         .filter(|task_io| !task_io.outputs.is_empty())
     else {
         return Err(BpmnEngineError::MissingTaskOutputMapping {
-            process_id: process_id.to_string(),
-            activity_id: activity_id.to_string(),
+            process_id: (process_id.to_string()).into(),
+            activity_id: (activity_id.to_string()).into(),
         });
     };
     let Some(data) = data.as_object() else {
         return Err(BpmnEngineError::TaskCompletionDataNotObject {
-            process_id: process_id.to_string(),
-            activity_id: activity_id.to_string(),
+            process_id: (process_id.to_string()).into(),
+            activity_id: (activity_id.to_string()).into(),
         });
     };
     let mut declared_targets = BTreeMap::<String, (String, bool)>::new();
@@ -702,8 +705,8 @@ fn map_task_completion_output(
     for (field, (_, required)) in &declared_targets {
         if *required && !data.contains_key(field.as_str()) {
             return Err(BpmnEngineError::MissingTaskCompletionField {
-                process_id: process_id.to_string(),
-                activity_id: activity_id.to_string(),
+                process_id: (process_id.to_string()).into(),
+                activity_id: (activity_id.to_string()).into(),
                 field: field.clone(),
             });
         }
@@ -711,8 +714,8 @@ fn map_task_completion_output(
     for field in data.keys() {
         if !declared_fields.contains(field) {
             return Err(BpmnEngineError::UndeclaredTaskCompletionField {
-                process_id: process_id.to_string(),
-                activity_id: activity_id.to_string(),
+                process_id: (process_id.to_string()).into(),
+                activity_id: (activity_id.to_string()).into(),
                 field: field.clone(),
             });
         }
@@ -796,6 +799,6 @@ fn resolve_process_for_pending_host_work<'a>(
     package
         .find_process(process_id)
         .ok_or_else(|| BpmnEngineError::MissingProcess {
-            process_id: process_id.to_string(),
+            process_id: (process_id.to_string()).into(),
         })
 }

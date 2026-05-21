@@ -1,3 +1,5 @@
+//! Owns the Studio router code ast resolve surface.
+
 use std::path::Path;
 
 use xiuxian_wendao::analyzers::{RepoSymbolKind, RepositoryAnalysisOutput};
@@ -8,7 +10,7 @@ use xiuxian_wendao::analyzers::{RepoSymbolKind, RepositoryAnalysisOutput};
 ///
 /// Returns [`crate::studio::router::StudioApiError`] when the
 /// repository cannot be resolved from the explicit repo id or path prefix.
-pub fn resolve_code_ast_repository_and_path<'a>(
+pub(crate) fn resolve_code_ast_repository_and_path<'a>(
     repositories: &'a [xiuxian_wendao::analyzers::RegisteredRepository],
     repo_id: Option<&str>,
     path: &str,

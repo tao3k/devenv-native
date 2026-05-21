@@ -7,7 +7,7 @@ use xiuxian_wendao::analyzers::RepoIntelligenceError;
 fn map_repo_intelligence_error_reports_missing_repo_intelligence_plugins() {
     let error =
         map_repo_intelligence_error(RepoIntelligenceError::MissingRepoIntelligencePlugins {
-            repo_id: "sample".to_string(),
+            repo_id: "sample".to_string().into(),
         });
 
     assert_eq!(error.status(), StatusCode::BAD_REQUEST);

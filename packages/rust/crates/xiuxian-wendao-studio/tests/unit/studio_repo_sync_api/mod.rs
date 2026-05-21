@@ -16,7 +16,7 @@ use xiuxian_wendao::analyzers::{
 };
 use xiuxian_wendao::repo_index::RepoIndexRequest;
 
-type TestResult = Result<(), Box<dyn std::error::Error>>;
+type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 type LocalProjectMetadata = (Option<String>, Option<String>, Option<String>);
 
 mod docs_endpoints;
@@ -26,4 +26,4 @@ mod planner;
 mod repo_endpoints;
 mod repo_projected_context;
 mod repo_projected_lookup;
-mod support;
+pub(crate) mod support;

@@ -4,8 +4,7 @@ use qianji_bpmn_engine::{
     BpmnPackage, BpmnParseOptions, BpmnProcessSpec, BpmnScriptTaskSpec, BpmnSourceFile,
     BpmnTaskInputBinding, BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding,
     DmnDecisionRef, PendingHostWorkRequest, PendingHostWorkResult, ProcessKey, ServiceTaskOutcome,
-    advance_instance, apply_pending_host_work_result, build_pending_host_work_request,
-    create_instance, parse_bpmn_package,
+    advance_instance, build_pending_host_work_request, create_instance, parse_bpmn_package,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -108,7 +107,7 @@ async fn host_dispatch_and_resume_copy_through_data_object_reference_association
     );
     let token_id = request.token_id;
 
-    apply_pending_host_work_result(
+    crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         token_id,

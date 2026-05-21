@@ -40,6 +40,12 @@ pub struct SpiderBridge {
     stealth_mode: bool,
 }
 
+struct FetchedPage {
+    source_url: String,
+    html: String,
+    user_agent: &'static str,
+}
+
 impl SpiderBridge {
     /// Construct one bridge for a root URL.
     #[must_use]
@@ -72,30 +78,17 @@ impl SpiderBridge {
     /// Returns an error when the page fetch or extraction path cannot produce
     /// usable page content for the configured root URL.
     pub async fn quick_ingest(&self) -> LlmResult<WebContext> {
+        let fetched_page = self.fetch_root_page().await?;
+        Ok(self.build_context(fetched_page))
+    }
+
+    async fn fetch_root_page(&self) -> LlmResult<FetchedPage> {
         // The compatibility bridge keeps the page-limit knob for callers, but
         // this reduced implementation intentionally ingests only the requested
         // source page instead of recursively crawling links.
-        let user_agent = if self.stealth_mode {
-            STEALTH_USER_AGENT
-        } else {
-            DEFAULT_USER_AGENT
-        };
+        let user_agent = self.selected_user_agent();
         let client = build_client(user_agent)?;
-        let response = client
-            .get(self.root_url.as_ref())
-            .send()
-            .await
-            .map_err(|error| {
-                internal_error(format!("web fetch failed for {}: {error}", self.root_url))
-            })?
-            .error_for_status()
-            .map_err(|error| {
-                internal_error(format!(
-                    "web fetch returned an error status for {}: {error}",
-                    self.root_url
-                ))
-            })?;
-
+        let response = fetch_root_response(&client, &self.root_url).await?;
         let source_url = response.url().to_string();
         let html = response.text().await.map_err(|error| {
             internal_error(format!(
@@ -103,39 +96,68 @@ impl SpiderBridge {
                 self.root_url
             ))
         })?;
-        let cleaned_html = clean_html(html.as_str());
+        Ok(FetchedPage {
+            source_url,
+            html,
+            user_agent,
+        })
+    }
 
+    fn selected_user_agent(&self) -> &'static str {
+        if self.stealth_mode {
+            STEALTH_USER_AGENT
+        } else {
+            DEFAULT_USER_AGENT
+        }
+    }
+
+    fn build_context(&self, fetched_page: FetchedPage) -> WebContext {
+        let cleaned_html = clean_html(fetched_page.html.as_str());
         let (markdown_content, content_source) = resolve_markdown_content(
             cleaned_html.as_str(),
-            html.as_str(),
-            source_url.as_str(),
+            fetched_page.html.as_str(),
+            fetched_page.source_url.as_str(),
             true,
         );
-
-        let title = extract_title(html.as_str()).unwrap_or_else(|| source_url.clone());
-
-        let mut metadata = HashMap::new();
-        metadata.insert("engine".to_string(), "reqwest".to_string());
-        metadata.insert(
-            "crawler.page_limit".to_string(),
-            self.page_limit.to_string(),
+        let title = extract_title(fetched_page.html.as_str())
+            .unwrap_or_else(|| fetched_page.source_url.clone());
+        let metadata = self.build_metadata(
+            fetched_page.html.as_str(),
+            fetched_page.user_agent,
+            content_source,
         );
-        metadata.insert("crawler.stealth".to_string(), self.stealth_mode.to_string());
-        metadata.insert(
-            "crawler.content_source".to_string(),
-            content_source.to_string(),
-        );
-        metadata.insert("crawler.user_agent".to_string(), user_agent.to_string());
-        if let Some(description) = extract_meta_description(html.as_str()) {
-            metadata.insert("page.description".to_string(), description);
-        }
 
-        Ok(WebContext {
-            source_url,
+        WebContext {
+            source_url: fetched_page.source_url,
             title,
             markdown_content,
             metadata,
-        })
+        }
+    }
+
+    fn build_metadata(
+        &self,
+        html: &str,
+        user_agent: &str,
+        content_source: &str,
+    ) -> HashMap<String, String> {
+        let mut metadata = HashMap::from([
+            ("engine".to_string(), "reqwest".to_string()),
+            (
+                "crawler.page_limit".to_string(),
+                self.page_limit.to_string(),
+            ),
+            ("crawler.stealth".to_string(), self.stealth_mode.to_string()),
+            (
+                "crawler.content_source".to_string(),
+                content_source.to_string(),
+            ),
+            ("crawler.user_agent".to_string(), user_agent.to_string()),
+        ]);
+        if let Some(description) = extract_meta_description(html) {
+            metadata.insert("page.description".to_string(), description);
+        }
+        metadata
     }
 }
 
@@ -145,6 +167,20 @@ fn build_client(user_agent: &str) -> LlmResult<Client> {
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
         .build()
         .map_err(|error| internal_error(format!("failed to build web client: {error}")))
+}
+
+async fn fetch_root_response(client: &Client, root_url: &str) -> LlmResult<reqwest::Response> {
+    client
+        .get(root_url)
+        .send()
+        .await
+        .map_err(|error| internal_error(format!("web fetch failed for {root_url}: {error}")))?
+        .error_for_status()
+        .map_err(|error| {
+            internal_error(format!(
+                "web fetch returned an error status for {root_url}: {error}"
+            ))
+        })
 }
 
 fn extract_title(raw_html: &str) -> Option<String> {

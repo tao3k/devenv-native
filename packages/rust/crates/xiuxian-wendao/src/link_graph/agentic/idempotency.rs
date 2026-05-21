@@ -1,7 +1,10 @@
+//! `link_graph::agentic::idempotency` owns Wendao link graph agentic idempotency behavior.
+
 use super::types::{LinkGraphSuggestedLink, LinkGraphSuggestedLinkRequest};
 
 /// Build deterministic idempotency signature for one suggested-link identity.
 #[must_use]
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn suggested_link_signature(
     source_id: &str,
     target_id: &str,

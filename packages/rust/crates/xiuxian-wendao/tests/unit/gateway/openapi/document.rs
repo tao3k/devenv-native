@@ -1,5 +1,5 @@
 use serde_json::Value;
-#[cfg(feature = "julia")]
+#[cfg(all(feature = "julia", feature = "builtin-plugins"))]
 use xiuxian_wendao_builtin::{
     linked_builtin_julia_deployment_artifact_openapi_json_example,
     linked_builtin_julia_deployment_artifact_openapi_toml_example,
@@ -83,7 +83,7 @@ fn bundled_gateway_openapi_document_declares_public_json_bearer_boundary() {
     );
 }
 
-#[cfg(feature = "julia")]
+#[cfg(all(feature = "julia", feature = "builtin-plugins"))]
 #[test]
 fn bundled_gateway_openapi_document_declares_rerank_plugin_artifact_examples() {
     let document = load_bundled_wendao_gateway_openapi_document()
@@ -101,7 +101,7 @@ fn bundled_gateway_openapi_document_declares_rerank_plugin_artifact_examples() {
     );
 }
 
-#[cfg(feature = "julia")]
+#[cfg(all(feature = "julia", feature = "builtin-plugins"))]
 #[test]
 fn bundled_gateway_openapi_document_declares_rerank_julia_deployment_artifact_examples() {
     let document = load_bundled_wendao_gateway_openapi_document()

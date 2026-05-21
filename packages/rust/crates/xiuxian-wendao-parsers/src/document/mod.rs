@@ -6,6 +6,6 @@ mod types;
 pub use api::parse_markdown_document;
 pub(crate) use api::parse_markdown_document_from_parts;
 pub use types::{
-    DocumentCore, DocumentEnvelope, DocumentFormat, MarkdownDocument, OrgDocument,
+    DocumentCore, DocumentEnvelope, DocumentFormat, DocumentType, MarkdownDocument, OrgDocument,
     OrgDocumentMetadata,
 };

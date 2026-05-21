@@ -1,3 +1,5 @@
+//! Owns the Studio docs types planner surface.
+
 use serde::Deserialize;
 
 /// Query parameters for one docs-facing deterministic planner item.

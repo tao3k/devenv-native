@@ -1,3 +1,5 @@
+//! Contracts bindings surface for `xiuxian-qianji`.
+
 use serde::{Deserialize, Serialize};
 
 /// Execution mode for per-node Qianhuan annotation bindings.
@@ -33,6 +35,7 @@ impl NodeQianhuanExecutionMode {
 /// `[[nodes]] ... [nodes.qianhuan]`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct NodeQianhuanBinding {
     /// Persona profile identifier resolved by `PersonaRegistry`.
     pub persona_id: Option<String>,

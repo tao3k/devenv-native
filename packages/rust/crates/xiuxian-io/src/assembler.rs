@@ -14,6 +14,9 @@ use tera::{Context, Tera};
 use crate::error::{IoError, Result};
 use xiuxian_tokenizer::count_tokens;
 
+#[cfg(feature = "assembler")]
+type SkillReferenceRead = (PathBuf, std::io::Result<String>);
+
 /// Result of assembling skill context.
 #[derive(Debug, Clone)]
 pub struct AssemblyResult {
@@ -67,71 +70,112 @@ impl ContextAssembler {
         ref_paths: impl AsRef<[PathBuf]>,
         variables: impl Borrow<Value>,
     ) -> Result<AssemblyResult> {
-        let main_path = main_path.as_ref();
-        let ref_paths = ref_paths.as_ref();
-        let variables = variables.borrow();
-
-        // 1. [Parallel I/O] Read main file and references concurrently
-        let (main_res, refs_res) = rayon::join(
-            || std::fs::read_to_string(main_path),
-            || {
-                ref_paths
-                    .par_iter()
-                    .map(|p| (p.clone(), std::fs::read_to_string(p)))
-                    .collect::<Vec<_>>()
-            },
-        );
-
-        let main_template = main_res.map_err(|error| {
-            if error.kind() == std::io::ErrorKind::NotFound {
-                IoError::NotFound(main_path.display().to_string())
-            } else {
-                IoError::System(error)
-            }
-        })?;
-
-        // 2. [Templating] Render the main template
-        let rendered_main = Context::from_value(variables.clone())
-            .map_err(|error| format!("[Template Error: {error}]"))
-            .and_then(|context| {
-                Tera::one_off(&main_template, &context, false)
-                    .map_err(|error| format!("[Template Error: {error}]"))
-            })
-            .unwrap_or_else(|error| error);
-
-        // 3. [Assembly] Build the final buffer
-        let mut buffer = String::with_capacity(rendered_main.len() + 2048);
-        buffer.push_str("# Active Protocol\n");
-        buffer.push_str(&rendered_main);
-
-        let mut missing = Vec::new();
-
-        if !ref_paths.is_empty() {
-            buffer.push_str("\n\n# Required References\n");
-            for (path, content_res) in refs_res {
-                match content_res {
-                    Ok(c) => {
-                        buffer.push_str("\n## ");
-                        if let Some(name) = path.file_name() {
-                            buffer.push_str(&name.to_string_lossy());
-                        }
-                        buffer.push('\n');
-                        buffer.push_str(&c);
-                    }
-                    Err(_) => missing.push(path),
-                }
-            }
-        }
-
-        // 4. [Token Counting] using xiuxian-tokenizer
-        let count = count_tokens(&buffer);
-
-        Ok(AssemblyResult {
-            content: buffer,
-            token_count: count,
-            missing_refs: missing,
-        })
+        assemble_skill_impl(main_path.as_ref(), ref_paths.as_ref(), variables.borrow())
     }
+}
+
+#[cfg(feature = "assembler")]
+fn assemble_skill_impl(
+    main_path: &Path,
+    ref_paths: &[PathBuf],
+    variables: &Value,
+) -> Result<AssemblyResult> {
+    let (main_template, refs_res) = read_skill_inputs(main_path, ref_paths)?;
+    let rendered_main = render_skill_template(&main_template, variables);
+    let (content, missing_refs) = assemble_skill_buffer(&rendered_main, ref_paths, refs_res);
+    let token_count = count_tokens(&content);
+
+    Ok(AssemblyResult {
+        content,
+        token_count,
+        missing_refs,
+    })
+}
+
+#[cfg(feature = "assembler")]
+fn read_skill_inputs(
+    main_path: &Path,
+    ref_paths: &[PathBuf],
+) -> Result<(String, Vec<SkillReferenceRead>)> {
+    let (main_res, refs_res) = rayon::join(
+        || std::fs::read_to_string(main_path),
+        || {
+            ref_paths
+                .par_iter()
+                .map(|path| (path.clone(), std::fs::read_to_string(path)))
+                .collect::<Vec<_>>()
+        },
+    );
+
+    main_res
+        .map(|main_template| (main_template, refs_res))
+        .map_err(|error| main_read_error(main_path, error))
+}
+
+#[cfg(feature = "assembler")]
+fn main_read_error(main_path: &Path, error: std::io::Error) -> IoError {
+    if error.kind() == std::io::ErrorKind::NotFound {
+        IoError::NotFound(main_path.display().to_string())
+    } else {
+        IoError::System(error)
+    }
+}
+
+#[cfg(feature = "assembler")]
+fn render_skill_template(main_template: &str, variables: &Value) -> String {
+    Context::from_value(variables.clone())
+        .map_err(|error| format!("[Template Error: {error}]"))
+        .and_then(|context| {
+            Tera::one_off(main_template, &context, false)
+                .map_err(|error| format!("[Template Error: {error}]"))
+        })
+        .unwrap_or_else(|error| error)
+}
+
+#[cfg(feature = "assembler")]
+fn assemble_skill_buffer(
+    rendered_main: &str,
+    ref_paths: &[PathBuf],
+    refs_res: Vec<(PathBuf, std::io::Result<String>)>,
+) -> (String, Vec<PathBuf>) {
+    let mut buffer = String::with_capacity(rendered_main.len() + 2048);
+    buffer.push_str("# Active Protocol\n");
+    buffer.push_str(rendered_main);
+
+    if ref_paths.is_empty() {
+        return (buffer, Vec::new());
+    }
+
+    buffer.push_str("\n\n# Required References\n");
+    append_reference_sections(&mut buffer, refs_res)
+}
+
+#[cfg(feature = "assembler")]
+fn append_reference_sections(
+    buffer: &mut String,
+    refs_res: Vec<(PathBuf, std::io::Result<String>)>,
+) -> (String, Vec<PathBuf>) {
+    let missing = refs_res
+        .into_iter()
+        .filter_map(|(path, content_res)| match content_res {
+            Ok(content) => {
+                append_reference_section(buffer, &path, &content);
+                None
+            }
+            Err(_) => Some(path),
+        })
+        .collect();
+    (std::mem::take(buffer), missing)
+}
+
+#[cfg(feature = "assembler")]
+fn append_reference_section(buffer: &mut String, path: &Path, content: &str) {
+    buffer.push_str("\n## ");
+    if let Some(name) = path.file_name() {
+        buffer.push_str(&name.to_string_lossy());
+    }
+    buffer.push('\n');
+    buffer.push_str(content);
 }
 
 #[cfg(all(test, feature = "assembler"))]

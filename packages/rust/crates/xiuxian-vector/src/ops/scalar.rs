@@ -51,7 +51,7 @@ impl VectorStore {
         if let Some(ref cb) = self.index_progress_callback {
             cb(IndexBuildProgress::Started {
                 table_name: table_name.to_string(),
-                index_type: "btree".to_string(),
+                index_type: "btree".into(),
             });
         }
 
@@ -68,7 +68,7 @@ impl VectorStore {
 
         Ok(IndexStats {
             column: column.to_string(),
-            index_type: "btree".to_string(),
+            index_type: "btree".into(),
             duration_ms,
         })
     }
@@ -100,7 +100,7 @@ impl VectorStore {
         if let Some(ref cb) = self.index_progress_callback {
             cb(IndexBuildProgress::Started {
                 table_name: table_name.to_string(),
-                index_type: "bitmap".to_string(),
+                index_type: "bitmap".into(),
             });
         }
 
@@ -123,7 +123,7 @@ impl VectorStore {
 
         Ok(IndexStats {
             column: column.to_string(),
-            index_type: "bitmap".to_string(),
+            index_type: "bitmap".into(),
             duration_ms,
         })
     }

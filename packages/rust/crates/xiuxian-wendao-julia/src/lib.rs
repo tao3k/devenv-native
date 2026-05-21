@@ -3,12 +3,23 @@
 mod arrow_metadata;
 /// Legacy compatibility surfaces exported by the standalone Julia plugin crate.
 pub mod compatibility;
-/// Bounded integration-test helpers for Julia-owned official example services.
+/// Bounded integration-test helpers for Julia-owned managed services.
 pub mod integration_support;
 /// Runtime-level memory-family thin compat surfaces for Julia compute.
 pub mod memory;
 mod modelica_plugin;
 mod plugin;
+/// Read-only projections from Julia-owned contracts into polyglot contracts.
+pub mod polyglot;
+mod semantic;
+/// Command-line adapters for Julia-owned Wendao bridges.
+pub mod wendaograph_search_strategy_flow_cli;
+
+pub use semantic::{
+    JuliaContractEnabled, JuliaContractId, JuliaContractKind, JuliaContractMode, JuliaContractPath,
+    JuliaContractReason, JuliaContractRoute, JuliaContractSchemaVersion, JuliaContractSecondsU64,
+    JuliaContractState, JuliaContractTimestampMsI64, JuliaContractTransport, JuliaContractUrl,
+};
 
 pub(crate) use modelica_plugin::fetch_modelica_parser_file_summary_blocking_for_repository;
 #[cfg(test)]
@@ -43,19 +54,32 @@ pub use plugin::{
     GRAPH_STRUCTURAL_RERANK_RESPONSE_COLUMNS, GRAPH_STRUCTURAL_RERANK_ROUTE,
     GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN, GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN,
     GRAPH_STRUCTURAL_STRUCTURAL_SCORE_COLUMN, GRAPH_STRUCTURAL_TAG_SCORE_COLUMN,
-    GraphStructuralCandidateSubgraph, GraphStructuralFilterConstraint,
-    GraphStructuralFilterRequestRow, GraphStructuralFilterScoreRow,
+    GraphStructuralCandidateSubgraph, GraphStructuralCandidateSubgraphInput,
+    GraphStructuralFilterConstraint, GraphStructuralFilterRequestRow,
+    GraphStructuralFilterScoreRow, GraphStructuralGenericTopologyCandidateInput,
     GraphStructuralGenericTopologyCandidateInputs,
+    GraphStructuralGenericTopologyCandidateMetadataInput,
     GraphStructuralGenericTopologyCandidateMetadataInputs,
-    GraphStructuralKeywordOverlapCandidateInputs, GraphStructuralKeywordOverlapPairInputs,
-    GraphStructuralKeywordOverlapPairRequestInputs, GraphStructuralKeywordOverlapPairRerankInputs,
-    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInputs,
-    GraphStructuralKeywordTagQueryInputs, GraphStructuralNodeMetadataInputs,
-    GraphStructuralPairCandidateInputs, GraphStructuralQueryAnchor, GraphStructuralQueryContext,
+    GraphStructuralGenericTopologyPairCollectionInput, GraphStructuralKeywordOverlapCandidateInput,
+    GraphStructuralKeywordOverlapCandidateInputs,
+    GraphStructuralKeywordOverlapCandidateMetadataInput,
+    GraphStructuralKeywordOverlapCandidateMetadataInputs, GraphStructuralKeywordOverlapPairInputs,
+    GraphStructuralKeywordOverlapPairRequestInput, GraphStructuralKeywordOverlapPairRequestInputs,
+    GraphStructuralKeywordOverlapPairRerankInput, GraphStructuralKeywordOverlapPairRerankInputs,
+    GraphStructuralKeywordOverlapPairRerankRowInput, GraphStructuralKeywordOverlapQueryInput,
+    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInput,
+    GraphStructuralKeywordOverlapRawCandidateInputs, GraphStructuralKeywordTagMatchFlags,
+    GraphStructuralKeywordTagPairRerankRequestInput, GraphStructuralKeywordTagQueryContextInput,
+    GraphStructuralKeywordTagQueryInput, GraphStructuralKeywordTagQueryInputs,
+    GraphStructuralKeywordTagRerankSignalInput, GraphStructuralNodeMetadataInputs,
+    GraphStructuralPairCandidateInputs, GraphStructuralPairFilterRequestInput,
+    GraphStructuralPairRerankRequestInput, GraphStructuralQueryAnchor, GraphStructuralQueryContext,
+    GraphStructuralQueryContextInput, GraphStructuralRawConnectedPairCandidateInput,
     GraphStructuralRawConnectedPairCollectionCandidateInputs,
-    GraphStructuralRawConnectedPairInputs, GraphStructuralRerankRequestRow,
-    GraphStructuralRerankScoreRow, GraphStructuralRerankSignals, GraphStructuralRouteKind,
-    GraphStructuralScoredPairCandidateInputs, JULIA_ARROW_RESPONSE_SCHEMA_VERSION,
+    GraphStructuralRawConnectedPairCollectionRawTupleInput, GraphStructuralRawConnectedPairInputs,
+    GraphStructuralRerankRequestRow, GraphStructuralRerankScoreRow, GraphStructuralRerankSignals,
+    GraphStructuralRouteKind, GraphStructuralScoredPairCandidateInputs,
+    GraphStructuralScoredPairCollectionCandidateInput, JULIA_ARROW_RESPONSE_SCHEMA_VERSION,
     JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION, JULIA_PLUGIN_CAPABILITY_MANIFEST_BASE_URL_COLUMN,
     JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN,
     JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN,
@@ -77,7 +101,10 @@ pub use plugin::{
     JuliaRepoIntelligencePlugin, JuliaSourceId, WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_CONTRACTS,
     WENDAO_GRAPH_EVIDENCE_REQUEST_TABLE_NAMES, WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_CONTRACTS,
     WENDAO_GRAPH_EVIDENCE_RESPONSE_TABLE_NAMES, WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION,
-    WENDAO_GRAPH_LINK_EVIDENCE_ROUTE, WendaoGraphEvidenceColumnContract,
+    WENDAO_GRAPH_LINK_EVIDENCE_ROUTE, WENDAO_GRAPH_PAGE_INDEX_REASONING_REQUEST_TABLE_CONTRACTS,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_REQUEST_TABLE_NAMES,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_RESPONSE_TABLE_CONTRACTS,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_RESPONSE_TABLE_NAMES, WendaoGraphEvidenceColumnContract,
     WendaoGraphEvidenceColumnType, WendaoGraphEvidenceTableContract, WendaoGraphEvidenceTableKind,
     build_graph_structural_filter_request_batch, build_graph_structural_filter_request_row,
     build_graph_structural_flight_transport_client,
@@ -152,8 +179,13 @@ pub use plugin::{
     validate_julia_plugin_capability_manifest_request_batches,
     validate_julia_plugin_capability_manifest_response_batches,
     validate_wendao_graph_evidence_request_schema, validate_wendao_graph_evidence_response_schema,
+    validate_wendao_graph_page_index_reasoning_request_schema,
+    validate_wendao_graph_page_index_reasoning_response_schema,
     wendao_graph_evidence_request_table_contract, wendao_graph_evidence_response_table_contract,
     wendao_graph_evidence_table_schema, wendao_graph_link_evidence_route,
+    wendao_graph_page_index_reasoning_request_table_contract,
+    wendao_graph_page_index_reasoning_response_table_contract,
+    wendao_graph_page_index_reasoning_table_schema,
 };
 
 #[cfg(test)]
@@ -165,6 +197,37 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                 [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
             )
             .with_rationale("crate root owns the public package API for cargo-test verification"),
+        )
+        .with_verification_profile_hint(
+            rust_lang_project_harness::RustVerificationProfileHint::new(
+                "src/polyglot/",
+                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+            )
+            .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
+            .with_task_contract(
+                rust_lang_project_harness::RustVerificationTaskKind::Regression,
+                rust_lang_project_harness::RustVerificationTaskContract::new(
+                    rust_lang_project_harness::RustVerificationPhase::AfterUnitTestsPass,
+                    "Regression check must exercise the Julia polyglot readiness bridge",
+                    [
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "command",
+                            "cargo test -p xiuxian-wendao-julia --lib polyglot",
+                        ),
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "target",
+                            "lib unit tests mounted from tests/unit/polyglot/",
+                        ),
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "coverage",
+                            "profile refs, manifest refs, readiness evidence, admission, and snapshots",
+                        ),
+                    ],
+                ),
+            )
+            .with_rationale(
+                "Julia polyglot bridge owns readiness evidence projections for the orchestrator chain",
+            ),
         )
     }
 );

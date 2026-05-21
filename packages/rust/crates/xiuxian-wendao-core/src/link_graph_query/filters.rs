@@ -1,3 +1,5 @@
+//! Link-graph filter payloads for structural and relatedness search.
+
 use super::enums::{LinkGraphEdgeType, LinkGraphPprSubgraphMode, LinkGraphScope};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

@@ -27,10 +27,10 @@ pub(crate) fn build_module_search_result(
             ))
         })?;
         let module = ModuleRecord {
-            repo_id: repo_id.to_string(),
-            module_id: row.id.clone(),
+            repo_id: repo_id.to_string().into(),
+            module_id: row.id.clone().into(),
             qualified_name: row.qualified_name.clone(),
-            path: row.path.clone(),
+            path: row.path.clone().into(),
         };
         modules.push(module.clone());
         module_hits.push(ModuleSearchHit {
@@ -77,18 +77,18 @@ pub(crate) fn build_symbol_search_result(
             })
         });
         let symbol = SymbolRecord {
-            repo_id: repo_id.to_string(),
-            symbol_id: row.id.clone(),
-            module_id: row.module_id.clone(),
+            repo_id: repo_id.to_string().into(),
+            symbol_id: row.id.clone().into(),
+            module_id: row.module_id.clone().map(Into::into),
             name: row.name.clone(),
             qualified_name: row.qualified_name.clone(),
             kind: parse_symbol_kind(row.symbol_kind.as_str()),
-            path: row.path.clone(),
+            path: row.path.clone().into(),
             line_start: row.line_start.map(|value| value as usize),
             line_end: row.line_end.map(|value| value as usize),
             signature: row.signature.clone(),
-            audit_status: audit_status.clone(),
-            verification_state: verification_state.clone(),
+            audit_status: audit_status.clone().map(Into::into),
+            verification_state: verification_state.clone().map(Into::into),
             attributes: parse_attributes_map(row.attributes_json.as_deref())?,
         };
         symbols.push(symbol.clone());
@@ -131,10 +131,10 @@ pub(crate) fn build_example_search_result(
             ))
         })?;
         let example = ExampleRecord {
-            repo_id: repo_id.to_string(),
-            example_id: row.id.clone(),
+            repo_id: repo_id.to_string().into(),
+            example_id: row.id.clone().into(),
             title: row.name.clone(),
-            path: row.path.clone(),
+            path: row.path.clone().into(),
             summary: row.summary.clone(),
         };
         examples.push(example.clone());
@@ -177,15 +177,15 @@ pub(crate) fn build_import_search_result(
         let mut attributes = parse_attributes_map(row.attributes_json.as_deref())?;
         let resolved_id = attributes.remove("resolved_id");
         let import = ImportRecord {
-            repo_id: repo_id.to_string(),
-            module_id: row.module_id.clone().unwrap_or_default(),
-            path: row.path.clone(),
+            repo_id: repo_id.to_string().into(),
+            module_id: row.module_id.clone().unwrap_or_default().into(),
+            path: row.path.clone().into(),
             import_name: row.name.clone(),
             target_package: row.summary.clone().unwrap_or_default(),
             source_module: row.signature.clone().unwrap_or_default(),
             kind: parse_import_kind(row.symbol_kind.as_str()),
             line_start: row.line_start.map(|value| value as usize),
-            resolved_id,
+            resolved_id: resolved_id.map(Into::into),
             attributes,
         };
         imports.push(import.clone());

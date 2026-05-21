@@ -1,3 +1,5 @@
+//! Coordinates the Studio studio perf support branch and keeps its child modules behind one documented reasoning-tree boundary.
+
 #[path = "fixture.rs"]
 mod fixture;
 #[path = "git.rs"]

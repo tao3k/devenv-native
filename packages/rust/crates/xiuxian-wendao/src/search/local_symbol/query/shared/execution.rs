@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use crate::duckdb::ParquetQueryEngine;
 use crate::search::ranking::{RetainedWindow, StreamingRerankSource, StreamingRerankTelemetry};
 

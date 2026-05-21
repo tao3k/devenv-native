@@ -7,6 +7,7 @@ use crate::link_graph::page_index::{
 impl LinkGraphIndex {
     /// Return the hierarchical `PageIndex` roots for a note.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn page_index(&self, stem_or_id: &str) -> Option<&[PageIndexNode]> {
         let doc_id = self.resolve_doc_id(stem_or_id)?;
         self.get_tree(doc_id).map(Vec::as_slice)
@@ -14,6 +15,7 @@ impl LinkGraphIndex {
 
     /// Render the canonical traceability label for one anchor id.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn page_index_trace_label(&self, anchor_id: &str) -> Option<String> {
         self.extract_lineage(anchor_id)
             .map(|path| format!("[Path: {}]", path.join(" > ")))
@@ -25,6 +27,7 @@ impl LinkGraphIndex {
     /// `Some(PageIndexParent::Parent(parent_id))` for child nodes,
     /// and `None` when the node id is unknown.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn page_index_parent_id(&self, node_id: &str) -> Option<PageIndexParent<'_>> {
         self.node_parent_map
             .get(node_id)

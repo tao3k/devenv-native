@@ -1,3 +1,4 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use super::text::{normalize_boolean_operators, split_top_level, strip_outer_parens};
 use crate::link_graph::{LinkGraphEdgeType, LinkGraphScope};
 

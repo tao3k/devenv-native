@@ -2,9 +2,35 @@
 
 use std::collections::HashMap;
 
+/// Parsed property drawer key/value line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PropertyDrawerLine {
+    /// Upper-cased property key.
+    pub key: String,
+    /// Trimmed property value.
+    pub value: String,
+}
+
+impl PropertyDrawerLine {
+    /// Build a parsed property drawer line.
+    #[must_use]
+    pub fn new(key: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            value: value.into(),
+        }
+    }
+}
+
+impl PartialEq<(String, String)> for PropertyDrawerLine {
+    fn eq(&self, other: &(String, String)) -> bool {
+        self.key == other.0 && self.value == other.1
+    }
+}
+
 /// Parse one property drawer line such as `:ID: value`.
 #[must_use]
-pub fn parse_property_drawer(line: &str) -> Option<(String, String)> {
+pub fn parse_property_drawer(line: &str) -> Option<PropertyDrawerLine> {
     let trimmed = line.trim();
     if !trimmed.starts_with(':') {
         return None;
@@ -23,7 +49,7 @@ pub fn parse_property_drawer(line: &str) -> Option<(String, String)> {
         return None;
     }
 
-    Some((key, value))
+    Some(PropertyDrawerLine::new(key, value))
 }
 
 /// Extract section-leading property drawer attributes.
@@ -48,8 +74,8 @@ pub fn extract_property_drawers(lines: &[String]) -> HashMap<String, String> {
         }
 
         if in_properties_block {
-            if let Some((key, value)) = parse_property_drawer(line) {
-                attributes.insert(key, value);
+            if let Some(property) = parse_property_drawer(line) {
+                attributes.insert(property.key, property.value);
             }
             continue;
         }
@@ -58,8 +84,8 @@ pub fn extract_property_drawers(lines: &[String]) -> HashMap<String, String> {
             break;
         }
 
-        if let Some((key, value)) = parse_property_drawer(line) {
-            attributes.insert(key, value);
+        if let Some(property) = parse_property_drawer(line) {
+            attributes.insert(property.key, property.value);
         } else if trimmed.is_empty() {
             // Skip empty lines at the start of the section.
         } else {

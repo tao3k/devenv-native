@@ -1,5 +1,7 @@
 //! Public bpmn model api di contracts for BPMN/DMN engine integration.
 
+use super::types::{BpmnSnapshotFlag, BpmnSnapshotId, BpmnSnapshotKind};
+
 /// Snapshot of one BPMN DI `BPMNDiagram`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnDiagramSnapshot {
@@ -37,19 +39,19 @@ pub struct BpmnPlaneSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BpmnShapeSnapshot {
     /// Optional stable BPMN shape identifier.
-    pub shape_id: Option<String>,
+    pub shape_id: Option<BpmnSnapshotId>,
     /// Optional referenced BPMN semantic element.
     pub bpmn_element: Option<String>,
     /// Optional horizontal marker.
-    pub is_horizontal: Option<bool>,
+    pub is_horizontal: Option<BpmnSnapshotFlag>,
     /// Optional expanded marker.
-    pub is_expanded: Option<bool>,
+    pub is_expanded: Option<BpmnSnapshotFlag>,
     /// Optional marker-visibility marker.
-    pub is_marker_visible: Option<bool>,
+    pub is_marker_visible: Option<BpmnSnapshotFlag>,
     /// Optional message-visibility marker.
-    pub is_message_visible: Option<bool>,
+    pub is_message_visible: Option<BpmnSnapshotFlag>,
     /// Optional participant band kind.
-    pub participant_band_kind: Option<String>,
+    pub participant_band_kind: Option<BpmnSnapshotKind>,
     /// Optional choreography activity shape reference.
     pub choreography_activity_shape: Option<String>,
     /// Optional direct nested `dc:Bounds` metadata.
@@ -70,7 +72,7 @@ pub struct BpmnEdgeSnapshot {
     /// Optional target diagram element reference.
     pub target_element: Option<String>,
     /// Optional message visible kind.
-    pub message_visible_kind: Option<String>,
+    pub message_visible_kind: Option<BpmnSnapshotKind>,
     /// Direct nested `di:waypoint` metadata preserved in source order.
     #[serde(default)]
     pub waypoints: Vec<BpmnWaypointSnapshot>,
@@ -128,11 +130,11 @@ pub struct BpmnFontSnapshot {
     /// Optional font size payload.
     pub size: Option<String>,
     /// Optional bold marker.
-    pub is_bold: Option<bool>,
+    pub is_bold: Option<BpmnSnapshotFlag>,
     /// Optional italic marker.
-    pub is_italic: Option<bool>,
+    pub is_italic: Option<BpmnSnapshotFlag>,
     /// Optional underline marker.
-    pub is_underline: Option<bool>,
+    pub is_underline: Option<BpmnSnapshotFlag>,
     /// Optional strike-through marker.
-    pub is_strike_through: Option<bool>,
+    pub is_strike_through: Option<BpmnSnapshotFlag>,
 }

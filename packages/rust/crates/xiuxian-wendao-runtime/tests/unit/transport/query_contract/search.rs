@@ -2,18 +2,48 @@ use super::{
     REPO_SEARCH_DEFAULT_LIMIT, validate_attachment_search_request, validate_autocomplete_request,
     validate_definition_request, validate_repo_search_request,
 };
+use crate::transport::RepoSearchRequest;
+
+fn validate_repo_search_request_case(
+    query_text: &str,
+    limit: usize,
+    language_filters: &[String],
+    path_prefixes: &[String],
+    title_filters: &[String],
+    tag_filters: &[String],
+    filename_filters: &[String],
+) -> Result<(), String> {
+    validate_repo_search_request(RepoSearchRequest {
+        query_text,
+        limit,
+        language_filters,
+        path_prefixes,
+        title_filters,
+        tag_filters,
+        filename_filters,
+    })
+}
 
 #[test]
 fn repo_search_request_validation_accepts_stable_request() {
     assert!(
-        validate_repo_search_request("rerank rust traits", 25, &[], &[], &[], &[], &[]).is_ok()
+        validate_repo_search_request_case("rerank rust traits", 25, &[], &[], &[], &[], &[])
+            .is_ok()
     );
 }
 
 #[test]
 fn repo_search_request_validation_rejects_blank_query_text() {
     assert_eq!(
-        validate_repo_search_request("   ", REPO_SEARCH_DEFAULT_LIMIT, &[], &[], &[], &[], &[],),
+        validate_repo_search_request_case(
+            "   ",
+            REPO_SEARCH_DEFAULT_LIMIT,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+        ),
         Err("repo search query text must not be blank".to_string())
     );
 }
@@ -21,7 +51,7 @@ fn repo_search_request_validation_rejects_blank_query_text() {
 #[test]
 fn repo_search_request_validation_rejects_zero_limit() {
     assert_eq!(
-        validate_repo_search_request("rerank rust traits", 0, &[], &[], &[], &[], &[]),
+        validate_repo_search_request_case("rerank rust traits", 0, &[], &[], &[], &[], &[]),
         Err("repo search limit must be greater than zero".to_string())
     );
 }
@@ -119,7 +149,7 @@ fn autocomplete_request_validation_rejects_blank_prefix() {
 #[test]
 fn repo_search_request_validation_rejects_blank_language_filters() {
     assert_eq!(
-        validate_repo_search_request(
+        validate_repo_search_request_case(
             "rerank rust traits",
             REPO_SEARCH_DEFAULT_LIMIT,
             &["rust".to_string(), "   ".to_string()],
@@ -135,7 +165,7 @@ fn repo_search_request_validation_rejects_blank_language_filters() {
 #[test]
 fn repo_search_request_validation_rejects_blank_path_prefixes() {
     assert_eq!(
-        validate_repo_search_request(
+        validate_repo_search_request_case(
             "rerank rust traits",
             REPO_SEARCH_DEFAULT_LIMIT,
             &[],
@@ -151,7 +181,7 @@ fn repo_search_request_validation_rejects_blank_path_prefixes() {
 #[test]
 fn repo_search_request_validation_rejects_blank_title_filters() {
     assert_eq!(
-        validate_repo_search_request(
+        validate_repo_search_request_case(
             "rerank rust traits",
             REPO_SEARCH_DEFAULT_LIMIT,
             &[],
@@ -167,7 +197,7 @@ fn repo_search_request_validation_rejects_blank_title_filters() {
 #[test]
 fn repo_search_request_validation_rejects_blank_tag_filters() {
     assert_eq!(
-        validate_repo_search_request(
+        validate_repo_search_request_case(
             "rerank rust traits",
             REPO_SEARCH_DEFAULT_LIMIT,
             &[],
@@ -183,7 +213,7 @@ fn repo_search_request_validation_rejects_blank_tag_filters() {
 #[test]
 fn repo_search_request_validation_rejects_blank_filename_filters() {
     assert_eq!(
-        validate_repo_search_request(
+        validate_repo_search_request_case(
             "rerank rust traits",
             REPO_SEARCH_DEFAULT_LIMIT,
             &[],

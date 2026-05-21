@@ -10,27 +10,21 @@ This directory contains utility scripts for the `xiuxian-artisan-workshop` proje
 
 ## Available Scripts
 
-| Script                                                | Purpose                                                                                                  |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `benchmark_wendao_gateway_repo_get.py`                | Benchmark live gateway repo GET latency together with bootstrap and repo-index readiness context         |
-| `benchmark_wendao_search.py`                          | Benchmark wendao search latency                                                                          |
-| `evaluate_wendao_retrieval.py`                        | Evaluate wendao Top1/Top3/Top10 on fixed query matrix                                                    |
-| `benchmark_wendao_related.py`                         | Benchmark wendao related latency and PPR diagnostics                                                     |
-| `gate_wendao_ppr.sh`                                  | Unified WG2/WG3 gate: retrieval matrix quality + related PPR latency/diagnostics                         |
-| `fetch_previous_skills_benchmark_artifact.py`         | Fetch a member file from the latest matching successful GitHub Actions artifact into a local output path |
-| `channel/test_xiuxian_daochang_discord_acl_events.py` | Live Discord ingress ACL black-box probe for managed command denial events                               |
-| `channel/start-xiuxian-daochang-memory-ci.sh`         | Unified launcher for quick/nightly memory CI gates with latest status/failure aggregation                |
-| `channel/memory_ci_finalize.py`                       | Shared artifact finalizer for memory CI launcher (`latest-run`, failure JSON/Markdown)                   |
+| Script                                        | Purpose                                                                                                  |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `benchmark_wendao_gateway_repo_get.py`        | Benchmark live gateway repo GET latency together with bootstrap and repo-index readiness context         |
+| `benchmark_wendao_search.py`                  | Benchmark wendao search latency                                                                          |
+| `evaluate_wendao_retrieval.py`                | Evaluate wendao Top1/Top3/Top10 on fixed query matrix                                                    |
+| `benchmark_wendao_related.py`                 | Benchmark wendao related latency and PPR diagnostics                                                     |
+| `gate_wendao_ppr.sh`                          | Unified WG2/WG3 gate: retrieval matrix quality + related PPR latency/diagnostics                         |
+| `fetch_previous_skills_benchmark_artifact.py` | Fetch a member file from the latest matching successful GitHub Actions artifact into a local output path |
+| `channel/memory_ci_finalize.py`               | Shared artifact finalizer for legacy channel memory CI artifacts                                         |
 
-### Memory CI launchers
+### Bot channel launchers
 
-```bash
-# unified launcher (direct profile selection)
-bash scripts/channel/start-xiuxian-daochang-memory-ci.sh --profile quick --foreground
-
-# nightly gate (foreground)
-bash scripts/channel/start-xiuxian-daochang-memory-ci.sh --profile nightly --foreground
-```
+Telegram and Discord bot runtime launchers are being migrated to the external
+`lingchong-bot` repository. Main-repo scripts should focus on Wendao/kernel
+validation and should not launch the bot runtime directly.
 
 ## Running Scripts
 

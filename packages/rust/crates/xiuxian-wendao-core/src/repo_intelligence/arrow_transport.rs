@@ -1,3 +1,5 @@
+//! Arrow transport schema helpers for Julia repository-intelligence analyzers.
+
 use std::sync::Arc;
 
 use arrow::datatypes::{DataType, Field, Schema};

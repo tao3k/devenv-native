@@ -1,3 +1,5 @@
+//! `skill_runtime::zhixing::indexer` owns Wendao skill runtime zhixing indexer behavior.
+
 mod documents;
 mod file_discovery;
 #[path = "resource_graph/mod.rs"]

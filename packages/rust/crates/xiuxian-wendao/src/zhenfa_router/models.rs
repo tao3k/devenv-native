@@ -1,3 +1,5 @@
+//! `zhenfa_router::models` owns Wendao zhenfa router models behavior.
+
 use serde::{Deserialize, Serialize};
 
 use crate::LinkGraphSearchOptions;

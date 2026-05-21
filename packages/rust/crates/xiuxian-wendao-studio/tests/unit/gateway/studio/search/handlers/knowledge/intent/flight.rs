@@ -39,7 +39,7 @@ async fn studio_intent_flight_provider_reads_repo_backed_hits() {
             url: None,
             git_ref: None,
             refresh: None,
-            plugins: vec!["julia".to_string()],
+            plugins: vec!["julia-code-parser".to_string()],
         }],
     });
     publish_repo_content_chunk_index(

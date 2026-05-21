@@ -1,3 +1,5 @@
+//! `analyzers::query::sync` owns Wendao analyzers query sync behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -171,6 +173,7 @@ pub struct RepoSyncStatusSummary {
 
 /// Repository source synchronization result.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct RepoSyncResult {
     /// Repository identifier.
     pub repo_id: String,

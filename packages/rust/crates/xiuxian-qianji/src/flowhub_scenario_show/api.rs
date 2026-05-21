@@ -1,59 +1,25 @@
-use std::path::{Path, PathBuf};
+//! Flowhub scenario preview API.
+//!
+//! This module loads a scenario manifest, resolves Flowhub modules, and
+//! renders the bounded work-surface preview exposed by `qianji show`.
+
+use std::path::Path;
 
 use crate::error::QianjiError;
 use crate::markdown::{MarkdownShowSection, render_show_surface};
 
 use crate::flowhub::{
-    derive_flowchart_aliases, load_flowhub_scenario_manifest, render_flowchart,
-    resolve_flowhub_scenario_modules,
+    ResolvedFlowhubModule, derive_flowchart_aliases, load_flowhub_scenario_manifest,
+    render_flowchart, resolve_flowhub_scenario_modules,
 };
 
+use super::model::{
+    FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview,
+};
 use super::render::{
     render_scenario_flowchart_section_lines, render_scenario_hidden_aliases_section_lines,
     render_scenario_links_section_lines, render_scenario_surface_section_lines,
 };
-
-/// One visible surface preview derived from a scenario alias.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FlowhubScenarioSurfacePreview {
-    /// Alias that will become a top-level bounded work-surface directory.
-    pub alias: String,
-    /// Resolved Flowhub module reference for this alias.
-    pub module_ref: String,
-    /// Conceptual target path inside the future work surface.
-    pub target_path: PathBuf,
-    /// Source node manifest inside Flowhub.
-    pub source_manifest_path: PathBuf,
-}
-
-/// One hidden composite alias that participates in the scenario graph but does
-/// not materialize into a top-level bounded surface.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FlowhubScenarioHiddenAlias {
-    /// Alias declared by the scenario manifest.
-    pub alias: String,
-    /// Resolved Flowhub module reference.
-    pub module_ref: String,
-}
-
-/// First-order preview of the bounded work surface implied by a scenario root.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FlowhubScenarioShow {
-    /// Stable scenario/plan name.
-    pub plan_name: String,
-    /// Scenario root directory.
-    pub scenario_dir: PathBuf,
-    /// Resolved Flowhub root used for module lookups.
-    pub flowhub_root: PathBuf,
-    /// Derived preview of the materialized root flowchart.
-    pub flowchart_preview: String,
-    /// Ordered visible leaf surfaces that will materialize.
-    pub surfaces: Vec<FlowhubScenarioSurfacePreview>,
-    /// Ordered composite aliases hidden behind the top-level bounded surface.
-    pub hidden_aliases: Vec<FlowhubScenarioHiddenAlias>,
-    /// Declared scenario links rendered as stable references.
-    pub links: Vec<String>,
-}
 
 /// Build a first-order work-surface preview from a Flowhub scenario directory.
 ///
@@ -71,26 +37,11 @@ pub fn show_flowhub_scenario(
     let manifest = load_flowhub_scenario_manifest(&manifest_path)?;
     let resolved_modules = resolve_flowhub_scenario_modules(flowhub_root, &manifest)?;
 
-    let mut surfaces = Vec::new();
-    let mut hidden_aliases = Vec::new();
-    let mut visible_aliases = Vec::new();
-    for module in &resolved_modules {
-        if module.manifest.template.is_some() {
-            hidden_aliases.push(FlowhubScenarioHiddenAlias {
-                alias: module.alias.clone(),
-                module_ref: module.module_ref.clone(),
-            });
-            continue;
-        }
-
-        visible_aliases.push(module.alias.clone());
-        surfaces.push(FlowhubScenarioSurfacePreview {
-            alias: module.alias.clone(),
-            module_ref: module.module_ref.clone(),
-            target_path: scenario_dir.join(&module.alias),
-            source_manifest_path: module.manifest_path.clone(),
-        });
-    }
+    let ScenarioModulePartition {
+        surfaces,
+        hidden_aliases,
+        visible_aliases,
+    } = partition_scenario_modules(scenario_dir, &resolved_modules);
 
     if surfaces.is_empty() {
         return Err(QianjiError::Topology(format!(
@@ -101,18 +52,7 @@ pub fn show_flowhub_scenario(
 
     let flowchart_aliases = derive_flowchart_aliases(&manifest, &visible_aliases);
     let flowchart_preview = render_flowchart(&manifest, &visible_aliases, &flowchart_aliases);
-    let links = manifest
-        .template
-        .link
-        .iter()
-        .map(|link| {
-            format!(
-                "{} -> {}",
-                display_link_ref(&link.from),
-                display_link_ref(&link.to)
-            )
-        })
-        .collect::<Vec<_>>();
+    let links = build_scenario_links(&manifest.template.link);
 
     Ok(FlowhubScenarioShow {
         plan_name: manifest.planning.name,
@@ -170,4 +110,63 @@ fn display_link_ref(reference: &crate::contracts::TemplateLinkRef) -> String {
         (Some(alias), symbol) => format!("{alias}::{symbol}"),
         (None, symbol) => symbol.clone(),
     }
+}
+
+#[derive(Default)]
+struct ScenarioModulePartition {
+    surfaces: Vec<FlowhubScenarioSurfacePreview>,
+    hidden_aliases: Vec<FlowhubScenarioHiddenAlias>,
+    visible_aliases: Vec<String>,
+}
+
+fn partition_scenario_modules(
+    scenario_dir: &Path,
+    resolved_modules: &[ResolvedFlowhubModule],
+) -> ScenarioModulePartition {
+    resolved_modules.iter().fold(
+        ScenarioModulePartition::default(),
+        |mut partition, module| {
+            if module.manifest.template.is_some() {
+                partition.hidden_aliases.push(hidden_scenario_alias(module));
+            } else {
+                partition.visible_aliases.push(module.alias.clone());
+                partition
+                    .surfaces
+                    .push(surface_preview_for_module(scenario_dir, module));
+            }
+            partition
+        },
+    )
+}
+
+fn hidden_scenario_alias(module: &ResolvedFlowhubModule) -> FlowhubScenarioHiddenAlias {
+    FlowhubScenarioHiddenAlias {
+        alias: module.alias.clone(),
+        module_ref: module.module_ref.clone(),
+    }
+}
+
+fn surface_preview_for_module(
+    scenario_dir: &Path,
+    module: &ResolvedFlowhubModule,
+) -> FlowhubScenarioSurfacePreview {
+    FlowhubScenarioSurfacePreview {
+        alias: module.alias.clone(),
+        module_ref: module.module_ref.clone(),
+        target_path: scenario_dir.join(&module.alias),
+        source_manifest_path: module.manifest_path.clone(),
+    }
+}
+
+fn build_scenario_links(links: &[crate::contracts::TemplateLinkSpec]) -> Vec<String> {
+    links
+        .iter()
+        .map(|link| {
+            format!(
+                "{} -> {}",
+                display_link_ref(&link.from),
+                display_link_ref(&link.to)
+            )
+        })
+        .collect()
 }

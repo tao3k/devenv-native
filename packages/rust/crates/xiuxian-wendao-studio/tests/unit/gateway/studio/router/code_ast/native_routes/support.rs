@@ -142,7 +142,7 @@ pub(super) fn create_sample_rust_repo(
     fs::write(
         repo_dir.join("Cargo.toml"),
         format!(
-            "[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+            "[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
             package_name.to_ascii_lowercase()
         ),
     )?;

@@ -6,13 +6,15 @@
 //! - Clone isolation (independent rate limiters)
 //! - Type bridging (`ObservationSignal` → `ExternalSignal`)
 
-use xiuxian_zhenfa::{BroadcastResult, ExternalSignal, SignalRegistry};
+use xiuxian_zhenfa::{
+    BroadcastResult, ExternalSignal, ObservationSignalInput, SignalRegistry, ZhenfaSignalType,
+};
 
 /// Helper to create a test signal.
 fn test_signal() -> ExternalSignal {
     ExternalSignal {
         source: "sentinel".to_string(),
-        signal_type: "semantic_drift".to_string(),
+        signal_type: ZhenfaSignalType::from("semantic_drift"),
         summary: "Test signal".to_string(),
         confidence: 0.9,
         affected_docs: vec!["docs/api".to_string()],
@@ -111,14 +113,14 @@ fn signal_registry_clone_has_independent_rate_limiter() {
 
 #[test]
 fn convert_observation_signal_creates_valid_external_signal() {
-    let external = SignalRegistry::convert_observation_signal(
-        "sentinel",
-        "stale",
-        "Observation may be stale",
-        0.75,
-        vec!["docs/guide".to_string(), "docs/api".to_string()],
-        false,
-    );
+    let external = SignalRegistry::convert_observation_signal(ObservationSignalInput {
+        source: "sentinel".to_string(),
+        signal_type: ZhenfaSignalType::from("stale"),
+        summary: "Observation may be stale".to_string(),
+        confidence: 0.75,
+        affected_docs: vec!["docs/guide".to_string(), "docs/api".to_string()],
+        auto_fix_available: false,
+    });
 
     assert_eq!(external.source, "sentinel");
     assert_eq!(external.signal_type, "stale");

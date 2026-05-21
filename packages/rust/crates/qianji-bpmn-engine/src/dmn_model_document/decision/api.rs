@@ -1,14 +1,14 @@
 //! Public dmn model document decision contracts for BPMN/DMN engine integration.
 
-use super::{DmnFunctionDefinitionSnapshot, DmnInvocationSnapshot};
+use super::{DmnFunctionDefinitionSnapshot, DmnInvocationSnapshot, DmnSnapshotKind};
 
 /// Snapshot of one direct decision-owned requirement reference placeholder.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DmnRequirementReferenceSnapshot {
     /// Parent requirement element kind, such as `informationRequirement`.
-    pub requirement_kind: String,
+    pub requirement_kind: DmnSnapshotKind,
     /// Direct reference element kind, such as `requiredInput`.
-    pub reference_kind: String,
+    pub reference_kind: DmnSnapshotKind,
     /// Optional direct `href` payload preserved from the reference element.
     pub href: Option<String>,
 }

@@ -84,7 +84,7 @@ pub struct BpmnFrontierExecutionProposal {
 impl From<&BpmnFrontierEntry> for BpmnFrontierExecutionProposal {
     fn from(entry: &BpmnFrontierEntry) -> Self {
         Self {
-            token_id: entry.token_id,
+            token_id: (entry.token_id),
             token_index: entry.token_index,
             node_index: entry.node_index,
             incoming_edge_index: entry.incoming_edge_index,
@@ -223,7 +223,16 @@ pub fn reduce_frontier_plan(
     instance: &BpmnInstanceState,
     proposals: BpmnFrontierProposalSet,
 ) -> BpmnFrontierPlan {
-    let action = if !proposals.execution_proposals.is_empty() {
+    let action = reduce_frontier_action(process, instance, &proposals);
+    BpmnFrontierPlan { proposals, action }
+}
+
+fn reduce_frontier_action(
+    process: &BpmnProcessSpec,
+    instance: &BpmnInstanceState,
+    proposals: &BpmnFrontierProposalSet,
+) -> BpmnFrontierPlanAction {
+    if !proposals.execution_proposals.is_empty() {
         BpmnFrontierPlanAction::ExecuteBatch(batch::build_frontier_execution_batch(
             process,
             proposals.execution_proposals.clone(),
@@ -236,9 +245,7 @@ pub fn reduce_frontier_plan(
         BpmnFrontierPlanAction::Suspended(Some(reason))
     } else {
         BpmnFrontierPlanAction::Stalled
-    };
-
-    BpmnFrontierPlan { proposals, action }
+    }
 }
 
 /// Plans the deterministic next runtime step from the current frontier.

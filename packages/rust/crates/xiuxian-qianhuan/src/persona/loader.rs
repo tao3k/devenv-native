@@ -14,27 +14,27 @@ pub(super) fn collect_persona_files(path: &Path) -> Result<Vec<PathBuf>> {
         ));
     }
 
-    let mut files = Vec::new();
-    for entry in WalkDir::new(path) {
-        let entry = entry
-            .with_context(|| format!("failed to walk persona directory {}", path.display()))?;
-        if !entry.file_type().is_file() {
-            continue;
-        }
-        let file_path = entry.into_path();
-        let Some(ext) = file_path
-            .extension()
-            .and_then(|value| value.to_str())
-            .map(str::to_ascii_lowercase)
-        else {
-            continue;
-        };
-        if ext == "toml" {
-            files.push(file_path);
-        }
-    }
+    let mut files = WalkDir::new(path)
+        .into_iter()
+        .map(|entry| {
+            entry.with_context(|| format!("failed to walk persona directory {}", path.display()))
+        })
+        .filter_map(|entry| match entry {
+            Ok(entry) if entry.file_type().is_file() && has_toml_extension(entry.path()) => {
+                Some(Ok(entry.into_path()))
+            }
+            Ok(_) => None,
+            Err(error) => Some(Err(error)),
+        })
+        .collect::<Result<Vec<_>>>()?;
     files.sort();
     Ok(files)
+}
+
+fn has_toml_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("toml"))
 }
 
 pub(super) fn parse_profile_from_file(path: &Path) -> Result<PersonaProfile> {

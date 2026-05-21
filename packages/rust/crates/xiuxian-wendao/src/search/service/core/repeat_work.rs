@@ -1,3 +1,5 @@
+//! `search::service::core::repeat_work` owns Wendao service core repeat work behavior.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
@@ -14,7 +16,7 @@ use crate::search::{
 const MAX_TELEMETRY_PATH_SAMPLES: usize = 10;
 const MAX_TELEMETRY_HOT_PATHS: usize = 20;
 const MAX_TELEMETRY_FINDINGS: usize = 20;
-
+/// `SearchBuildRepeatWorkSummaryTelemetry` public type boundary for Wendao.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkSummaryTelemetry {
@@ -31,14 +33,14 @@ pub struct SearchBuildRepeatWorkSummaryTelemetry {
     #[serde(rename = "findingCount")]
     pub findings: usize,
 }
-
+/// `SearchBuildRepeatWorkPathTelemetry` public type boundary for Wendao.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkPathTelemetry {
     pub path: String,
     pub observations: u64,
 }
-
+/// `SearchBuildRepeatWorkSourceTelemetry` public type boundary for Wendao.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkSourceTelemetry {
@@ -51,7 +53,7 @@ pub struct SearchBuildRepeatWorkSourceTelemetry {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub top_repeated_paths: Vec<SearchBuildRepeatWorkPathTelemetry>,
 }
-
+/// `SearchBuildRepeatWorkHotPathTelemetry` public type boundary for Wendao.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchBuildRepeatWorkHotPathTelemetry {
@@ -63,9 +65,10 @@ pub struct SearchBuildRepeatWorkHotPathTelemetry {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub operations: Vec<String>,
 }
-
+/// `SearchBuildRepeatWorkFindingTelemetry` public type boundary for Wendao.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct SearchBuildRepeatWorkFindingTelemetry {
     pub kind: String,
     pub severity: String,
@@ -103,18 +106,6 @@ pub struct SearchBuildRepeatWorkTelemetry {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     /// Derived repeat-work findings sorted by severity and impact.
     pub findings: Vec<SearchBuildRepeatWorkFindingTelemetry>,
-}
-
-#[derive(Debug, Default)]
-pub(crate) struct SearchBuildRepeatWorkTelemetryState {
-    source_operations: BTreeMap<(String, String), SearchBuildRepeatWorkSourceState>,
-}
-
-#[derive(Debug, Default)]
-struct SearchBuildRepeatWorkSourceState {
-    batch_count: u64,
-    file_observation_count: u64,
-    path_counts: BTreeMap<String, u64>,
 }
 
 #[derive(Debug, Default)]

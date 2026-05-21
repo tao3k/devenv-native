@@ -22,11 +22,12 @@ impl BpmnSnapshotScanState {
         };
         root.data_store_count += 1;
         root.data_stores.push(BpmnDataStoreSnapshot {
-            data_store_id: attribute_value(source, reader, event, "id")?,
+            data_store_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             name: attribute_value(source, reader, event, "name")?,
             item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
             capacity: attribute_value(source, reader, event, "capacity")?,
-            is_unlimited: boolean_attribute_value(source, reader, event, "isUnlimited")?,
+            is_unlimited: boolean_attribute_value(source, reader, event, "isUnlimited")?
+                .map(Into::into),
             data_state: None,
         });
         if !is_empty {
@@ -105,10 +106,11 @@ impl BpmnSnapshotScanState {
         };
         process.data_object_count += 1;
         process.data_objects.push(BpmnDataObjectSnapshot {
-            data_object_id: attribute_value(source, reader, event, "id")?,
+            data_object_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             name: attribute_value(source, reader, event, "name")?,
             item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
-            is_collection: boolean_attribute_value(source, reader, event, "isCollection")?,
+            is_collection: boolean_attribute_value(source, reader, event, "isCollection")?
+                .map(Into::into),
             data_state: None,
         });
         if !is_empty {
@@ -138,7 +140,8 @@ impl BpmnSnapshotScanState {
         process
             .data_object_references
             .push(BpmnDataObjectReferenceSnapshot {
-                data_object_reference_id: attribute_value(source, reader, event, "id")?,
+                data_object_reference_id: attribute_value(source, reader, event, "id")?
+                    .map(Into::into),
                 name: attribute_value(source, reader, event, "name")?,
                 data_object_ref: attribute_value(source, reader, event, "dataObjectRef")?,
                 item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,
@@ -171,7 +174,8 @@ impl BpmnSnapshotScanState {
         process
             .data_store_references
             .push(BpmnDataStoreReferenceSnapshot {
-                data_store_reference_id: attribute_value(source, reader, event, "id")?,
+                data_store_reference_id: attribute_value(source, reader, event, "id")?
+                    .map(Into::into),
                 name: attribute_value(source, reader, event, "name")?,
                 data_store_ref: attribute_value(source, reader, event, "dataStoreRef")?,
                 item_subject_ref: attribute_value(source, reader, event, "itemSubjectRef")?,

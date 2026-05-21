@@ -168,12 +168,14 @@ impl RegistryIndex {
     ///
     /// Returns the indexed node with document context, or `None` if not found.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn get(&self, id: &str) -> Option<&IndexedNode> {
         self.by_id.get(id)
     }
 
     /// Check if an ID exists in the registry.
     #[must_use]
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub fn contains(&self, id: &str) -> bool {
         self.by_id.contains_key(id)
     }

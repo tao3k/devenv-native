@@ -1,3 +1,5 @@
+//! Capability binding records that connect tools to runtime contracts.
+
 use serde::{Deserialize, Serialize};
 
 use super::{ContractVersion, PluginProviderSelector};

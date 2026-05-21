@@ -1,8 +1,13 @@
+//! HTTP response DTOs for BPMN workflow routes.
+
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskReleaseReport,
 };
 use crate::bpmn::driver::QianjiBpmnExecutionReport;
+use crate::bpmn::identity::{
+    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
+};
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
     BpmnHumanTaskLifecycleEvent, BpmnInstanceState, BpmnLaneMembershipSpec, BpmnTaskIoSpec,
@@ -17,11 +22,11 @@ pub struct QianjiBpmnPendingHostWorkHttpResponse {
     /// Runtime token identifier for the pending host work.
     pub token_id: u64,
     /// BPMN process identifier for the pending host work.
-    pub process_id: Option<String>,
+    pub process_id: Option<QianjiBpmnProcessId>,
     /// BPMN node index.
     pub node_index: u32,
     /// Stable BPMN activity identifier for the blocked node.
-    pub activity_id: Option<String>,
+    pub activity_id: Option<QianjiBpmnActivityId>,
     /// Host work category.
     pub kind: PendingHostWorkKind,
     /// Optional host-generated work identifier.
@@ -42,11 +47,20 @@ impl QianjiBpmnPendingHostWorkHttpResponse {
     fn from_pending_host_work(work: &PendingHostWork) -> Self {
         Self {
             token_id: work.token_id,
-            process_id: work.process_id.clone(),
+            process_id: work
+                .process_id
+                .as_ref()
+                .map(|process_id| process_id.as_str().into()),
             node_index: work.node_index,
-            activity_id: work.activity_id.clone(),
+            activity_id: work
+                .activity_id
+                .as_ref()
+                .map(|activity_id| activity_id.as_str().into()),
             kind: work.kind.clone(),
-            work_id: work.work_id.clone(),
+            work_id: work
+                .work_id
+                .as_ref()
+                .map(|work_id| work_id.as_str().to_owned()),
             form: work.human_task_form.clone(),
             assignment: work.human_task_assignment.clone(),
             lane: work.lane.clone(),
@@ -60,9 +74,9 @@ impl QianjiBpmnPendingHostWorkHttpResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QianjiBpmnWorkflowSnapshotHttpResponse {
     /// Stable workflow instance identifier.
-    pub instance_id: String,
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
     /// Stable BPMN process identifier.
-    pub process_id: String,
+    pub process_id: QianjiBpmnProcessId,
     /// Monotonic runtime sequence.
     pub sequence: u64,
     /// High-level BPMN instance lifecycle.
@@ -88,8 +102,8 @@ impl QianjiBpmnWorkflowSnapshotHttpResponse {
     #[must_use]
     pub fn from_instance(instance: &BpmnInstanceState) -> Self {
         Self {
-            instance_id: instance.instance_id.to_string(),
-            process_id: instance.process.process_id.to_string(),
+            instance_id: instance.instance_id.as_ref().into(),
+            process_id: instance.process.process_id.as_ref().into(),
             sequence: instance.sequence,
             lifecycle: instance.lifecycle.clone(),
             variables: instance.variables.clone(),

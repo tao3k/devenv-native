@@ -10,19 +10,19 @@ use std::sync::Arc;
 
 fn sample_request_row() -> MemoryJuliaEpisodicRecallRequestRow {
     MemoryJuliaEpisodicRecallRequestRow {
-        query_id: "query-1".to_string(),
+        query_id: "query-1".into(),
         scenario_pack: Some("searchinfra".to_string()),
         scope: "repo".to_string(),
         query_text: Some("find workaround".to_string()),
         query_embedding: vec![0.2, 0.4, 0.6],
-        candidate_id: "episode-1".to_string(),
+        candidate_id: "episode-1".into(),
         intent_embedding: vec![0.1, 0.3, 0.5],
         q_value: 0.75,
         success_count: 4,
         failure_count: 1,
         retrieval_count: 5,
-        created_at_ms: 1_000,
-        updated_at_ms: 2_000,
+        created_at_ms: 1_000.into(),
+        updated_at_ms: 2_000.into(),
         k1: 1.0,
         k2: 0.5,
         lambda: 0.7,

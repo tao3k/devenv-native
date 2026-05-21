@@ -1,10 +1,11 @@
 use tempfile::TempDir;
 use xiuxian_memory_engine::{
-    Episode, EpisodeStore, MemoryLifecycleState, MemoryUtilityLedger, StoreConfig,
+    Episode, EpisodeDraft, EpisodeStore, MemoryLifecycleState, MemoryUtilityLedger, StoreConfig,
 };
 
 use crate::memory::host::gate_score::{
-    MemoryGateScoreEvidenceRow, build_memory_gate_score_evidence_row_from_episode,
+    MemoryGateScoreEvidenceRow, MemoryGateScoreEvidenceSignals, MemoryGateScoreStoreEvidenceInput,
+    build_memory_gate_score_evidence_row_from_episode,
     build_memory_gate_score_evidence_row_from_store,
     build_memory_gate_score_request_batch_from_evidence,
     build_memory_gate_score_request_rows_from_evidence,
@@ -22,12 +23,15 @@ fn make_store() -> Result<(TempDir, EpisodeStore), Box<dyn std::error::Error>> {
 
 fn sample_episode(memory_id: &str) -> Episode {
     let mut episode = Episode::new_scoped(
-        memory_id.to_string(),
-        "intent".to_string(),
-        vec![0.1, 0.2, 0.3],
-        "experience".to_string(),
-        "completed".to_string(),
-        "alpha",
+        EpisodeDraft {
+            id: memory_id.to_string().into(),
+            intent: "intent".to_string(),
+            intent_embedding: vec![0.1, 0.2, 0.3],
+            experience: "experience".to_string(),
+            outcome: "completed".to_string(),
+            scope: None,
+        }
+        .with_scope("alpha"),
     );
     episode.q_value = 0.84;
     episode.success_count = 5;
@@ -36,16 +40,22 @@ fn sample_episode(memory_id: &str) -> Episode {
     episode
 }
 
+fn gate_score_signals(current_state: MemoryLifecycleState) -> MemoryGateScoreEvidenceSignals {
+    MemoryGateScoreEvidenceSignals {
+        react_revalidation_score: 0.91,
+        graph_consistency_score: 0.88,
+        omega_alignment_score: 0.93,
+        current_state,
+    }
+}
+
 #[test]
 fn build_memory_gate_score_request_rows_from_evidence_maps_host_fields()
 -> Result<(), Box<dyn std::error::Error>> {
     let evidence = build_memory_gate_score_evidence_row_from_episode(
         &sample_episode("memory-alpha"),
         Some("searchinfra".to_string()),
-        0.91,
-        0.88,
-        0.93,
-        MemoryLifecycleState::Active,
+        &gate_score_signals(MemoryLifecycleState::Active),
     );
 
     let rows = build_memory_gate_score_request_rows_from_evidence(&[evidence])?;
@@ -73,18 +83,17 @@ fn build_memory_gate_score_request_batch_from_evidence_materializes_staged_contr
         build_memory_gate_score_evidence_row_from_episode(
             &sample_episode("memory-alpha"),
             Some("searchinfra".to_string()),
-            0.91,
-            0.88,
-            0.93,
-            MemoryLifecycleState::Active,
+            &gate_score_signals(MemoryLifecycleState::Active),
         ),
         build_memory_gate_score_evidence_row_from_episode(
             &sample_episode("memory-beta"),
             None,
-            0.77,
-            0.74,
-            0.81,
-            MemoryLifecycleState::Cooling,
+            &MemoryGateScoreEvidenceSignals {
+                react_revalidation_score: 0.77,
+                graph_consistency_score: 0.74,
+                omega_alignment_score: 0.81,
+                current_state: MemoryLifecycleState::Cooling,
+            },
         ),
     ];
 
@@ -130,15 +139,13 @@ fn build_memory_gate_score_evidence_row_from_store_roundtrips_real_episode()
     let (_temp, store) = make_store()?;
     store.store(sample_episode("memory-alpha"))?;
 
-    let evidence = build_memory_gate_score_evidence_row_from_store(
-        &store,
-        "memory-alpha".into(),
-        Some("searchinfra".to_string()),
-        0.91,
-        0.88,
-        0.93,
-        MemoryLifecycleState::RevalidatePending,
-    )?;
+    let evidence =
+        build_memory_gate_score_evidence_row_from_store(MemoryGateScoreStoreEvidenceInput {
+            store: &store,
+            memory_id: "memory-alpha".into(),
+            scenario_pack: Some("searchinfra".to_string()),
+            signals: gate_score_signals(MemoryLifecycleState::RevalidatePending),
+        })?;
     let rows = build_memory_gate_score_request_rows_from_evidence(&[evidence])?;
 
     assert_eq!(rows.len(), 1);

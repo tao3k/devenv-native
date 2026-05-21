@@ -1,3 +1,5 @@
+//! `enhancer::resource_semantics` owns Wendao enhancer resource semantics behavior.
+
 use std::sync::Arc;
 
 use crate::entity::{EntityType, RelationType};

@@ -11,8 +11,8 @@ pub(crate) fn conditional_event_is_satisfied(
     let node = &process.nodes[node_index as usize];
     let event = process.event_for_node(node_index).ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
             element: "event_definition",
         }
     })?;
@@ -27,8 +27,8 @@ pub(crate) fn conditional_event_is_satisfied(
         .map(str::trim)
         .filter(|condition| !condition.is_empty())
         .ok_or_else(|| BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.key.process_id.to_string(),
-            node_id: node.bpmn_id.to_string(),
+            process_id: (process.key.process_id.to_string()).into(),
+            node_id: (node.bpmn_id.to_string()).into(),
             element: "conditional_expression",
         })?;
 
@@ -37,8 +37,8 @@ pub(crate) fn conditional_event_is_satisfied(
         Err(GatewayConditionError::UnresolvedVariablePath(_)) => Ok(false),
         Err(GatewayConditionError::UnsupportedExpression) => {
             Err(BpmnEngineError::UnsupportedEventConfiguration {
-                process_id: process.key.process_id.to_string(),
-                node_id: node.bpmn_id.to_string(),
+                process_id: (process.key.process_id.to_string()).into(),
+                node_id: (node.bpmn_id.to_string()).into(),
                 detail: "unsupported_conditional_event_expression",
             })
         }

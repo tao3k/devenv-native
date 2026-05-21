@@ -70,6 +70,7 @@ fn all_keywords(tool_keywords: &HashMap<String, HashSet<String>>) -> HashSet<Str
 
 /// A parsed skill document for bulk registration.
 #[derive(Debug, Clone, Default)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct SkillDoc {
     /// Document ID
     pub id: String,

@@ -33,7 +33,10 @@ fn duckdb_workflow_state_snapshot_round_trips_checkpoint_envelope() {
         ),
         "reserved workflow-state record should exist",
     );
-    assert_eq!(state_record.updated_at_ms, checkpoint.state.updated_at_ms);
+    assert_eq!(
+        state_record.updated_at_ms.get(),
+        checkpoint.state.updated_at_ms
+    );
 }
 
 #[test]

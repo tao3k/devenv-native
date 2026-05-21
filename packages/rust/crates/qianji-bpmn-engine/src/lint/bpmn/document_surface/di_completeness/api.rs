@@ -34,7 +34,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_completeness_issue(
         "snapshot": diagram_snapshot_summary(&snapshot),
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.incomplete_di_surface",
         "BPMN diagram interchange metadata is incomplete",
         format!(

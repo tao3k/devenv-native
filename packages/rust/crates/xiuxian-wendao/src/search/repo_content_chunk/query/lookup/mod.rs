@@ -1,3 +1,5 @@
+//! `search::repo_content_chunk::query::lookup` owns Wendao repo content chunk query lookup behavior.
+
 mod candidates;
 mod error;
 mod execution;
@@ -7,10 +9,10 @@ mod route;
 mod scan;
 
 pub(crate) use candidates::RepoContentChunkCandidate;
+#[cfg(test)]
+pub(crate) use candidates::{candidate_path_key, compare_candidates};
 pub use error::RepoContentChunkSearchError;
 pub(crate) use filters::RepoContentChunkSearchFilters;
-#[cfg(test)]
-pub(crate) use helpers::{candidate_path_key, compare_candidates};
 pub(crate) use route::search_repo_content_chunks_with_filters;
 #[cfg(test)]
 pub(crate) use scan::{

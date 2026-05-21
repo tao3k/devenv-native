@@ -24,11 +24,11 @@ async fn default_bridge_keeps_unsupported_host_operations_explicit() {
         dispatch_pending_host_work_request(
             &host,
             PendingHostWorkRequest::User(UserTaskRequest {
-                instance_id: "wf_user".to_string(),
-                process_id: "review".to_string(),
-                token_id: 7,
+                instance_id: "wf_user".into(),
+                process_id: "review".into(),
+                token_id: 7.into(),
                 node_index: 3,
-                activity_id: "Task_Review".to_string(),
+                activity_id: "Task_Review".into(),
                 variables: json!({ "approved": false }),
                 inputs: json!({}),
                 output_bindings: vec![],

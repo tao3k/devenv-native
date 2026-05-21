@@ -1,3 +1,6 @@
+//! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
+//! `search::local_symbol::query::shared::restore` owns Wendao query shared restore behavior.
+
 use crate::search::SearchPlaneService;
 use crate::search::contracts::AstSearchHit;
 use crate::search::local_symbol::query::shared::{

@@ -1,6 +1,7 @@
 //! Public runtime host-dispatch coordination state.
 
 use crate::dmn_model_api::DmnDecisionRef;
+use crate::host_types_api::{BpmnHostActivityId, BpmnHostProcessId, BpmnHostWorkId};
 use crate::ir_index_api::BpmnNodeIndex;
 use crate::ir_node_api::{
     BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnLaneMembershipSpec, BpmnTaskIoSpec,
@@ -40,12 +41,12 @@ pub struct PendingHostWork {
     pub token_id: u64,
     /// Owning BPMN process identifier.
     #[serde(default)]
-    pub process_id: Option<String>,
+    pub process_id: Option<BpmnHostProcessId>,
     /// Owning BPMN node index.
     pub node_index: BpmnNodeIndex,
     /// Stable BPMN activity identifier for the blocked node.
     #[serde(default)]
-    pub activity_id: Option<String>,
+    pub activity_id: Option<BpmnHostActivityId>,
     /// Host work category.
     pub kind: PendingHostWorkKind,
     /// Optional DMN decision binding for business-rule work.
@@ -78,5 +79,5 @@ pub struct PendingHostWork {
     #[serde(default)]
     pub event_name: Option<String>,
     /// Optional host-generated work identifier.
-    pub work_id: Option<String>,
+    pub work_id: Option<BpmnHostWorkId>,
 }

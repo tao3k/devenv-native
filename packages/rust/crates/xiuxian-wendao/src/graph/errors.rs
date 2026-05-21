@@ -1,3 +1,5 @@
+//! `graph::errors` owns Wendao graph errors behavior.
+
 use thiserror::Error;
 
 /// Graph errors.
@@ -11,5 +13,6 @@ pub enum GraphError {
     RelationExists(String),
     /// The relation references invalid source/target entities.
     #[error("Invalid relation: source={0}, target={1}")]
+    /// Tuple payload boundary: this public variant mirrors an existing relation payload shape.
     InvalidRelation(String, String),
 }

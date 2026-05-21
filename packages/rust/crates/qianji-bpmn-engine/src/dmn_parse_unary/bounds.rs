@@ -33,17 +33,17 @@ pub(super) fn parse_left_question_mark_bound(
     if let Some(value_raw) = raw.strip_suffix("<=") {
         return Ok(DmnNumericRangeBound::new(
             parse_numeric_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_suffix('<') {
         return Ok(DmnNumericRangeBound::new(
             parse_numeric_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -56,17 +56,17 @@ pub(super) fn parse_left_question_mark_date_bound(
     if let Some(value_raw) = raw.strip_suffix("<=") {
         return Ok(DmnDateRangeBound::new(
             parse_date_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_suffix('<') {
         return Ok(DmnDateRangeBound::new(
             parse_date_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -79,17 +79,17 @@ pub(super) fn parse_left_question_mark_time_bound(
     if let Some(value_raw) = raw.strip_suffix("<=") {
         return Ok(DmnTimeRangeBound::new(
             parse_time_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_suffix('<') {
         return Ok(DmnTimeRangeBound::new(
             parse_time_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -102,17 +102,17 @@ pub(super) fn parse_left_question_mark_date_time_bound(
     if let Some(value_raw) = raw.strip_suffix("<=") {
         return Ok(DmnDateTimeRangeBound::new(
             parse_date_time_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_suffix('<') {
         return Ok(DmnDateTimeRangeBound::new(
             parse_date_time_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -125,17 +125,17 @@ pub(super) fn parse_left_question_mark_duration_bound(
     if let Some(value_raw) = raw.strip_suffix("<=") {
         return Ok(DmnDurationRangeBound::new(
             parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_suffix('<') {
         return Ok(DmnDurationRangeBound::new(
             parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -148,17 +148,17 @@ pub(super) fn parse_right_question_mark_bound(
     if let Some(value_raw) = raw.strip_prefix("<=") {
         return Ok(DmnNumericRangeBound::new(
             parse_numeric_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_prefix('<') {
         return Ok(DmnNumericRangeBound::new(
             parse_numeric_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -171,17 +171,17 @@ pub(super) fn parse_right_question_mark_date_bound(
     if let Some(value_raw) = raw.strip_prefix("<=") {
         return Ok(DmnDateRangeBound::new(
             parse_date_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_prefix('<') {
         return Ok(DmnDateRangeBound::new(
             parse_date_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -194,17 +194,17 @@ pub(super) fn parse_right_question_mark_time_bound(
     if let Some(value_raw) = raw.strip_prefix("<=") {
         return Ok(DmnTimeRangeBound::new(
             parse_time_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_prefix('<') {
         return Ok(DmnTimeRangeBound::new(
             parse_time_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -217,17 +217,17 @@ pub(super) fn parse_right_question_mark_date_time_bound(
     if let Some(value_raw) = raw.strip_prefix("<=") {
         return Ok(DmnDateTimeRangeBound::new(
             parse_date_time_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_prefix('<') {
         return Ok(DmnDateTimeRangeBound::new(
             parse_date_time_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -240,17 +240,17 @@ pub(super) fn parse_right_question_mark_duration_bound(
     if let Some(value_raw) = raw.strip_prefix("<=") {
         return Ok(DmnDurationRangeBound::new(
             parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
-            true,
+            true.into(),
         ));
     }
     if let Some(value_raw) = raw.strip_prefix('<') {
         return Ok(DmnDurationRangeBound::new(
             parse_duration_unary_value(source_id, value_raw.trim(), expression)?,
-            false,
+            false.into(),
         ));
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }
@@ -261,12 +261,12 @@ pub(super) fn parse_numeric_value(source_id: &str, raw: &str, expression: &str) 
             number
                 .as_f64()
                 .ok_or_else(|| BpmnEngineError::UnsupportedDmnUnaryTest {
-                    source_id: source_id.to_string(),
+                    source_id: (source_id.to_string()).into(),
                     expression: expression.to_string(),
                 })
         }
         _ => Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: expression.to_string(),
         }),
     }
@@ -280,7 +280,7 @@ pub(super) fn parse_date_unary_value(
     match parse_date_literal(source_id, raw)? {
         Some(date) => Ok(date),
         None => Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: expression.to_string(),
         }),
     }
@@ -294,7 +294,7 @@ pub(super) fn parse_time_unary_value(
     match parse_time_literal(source_id, raw)? {
         Some(time) => Ok(time),
         None => Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: expression.to_string(),
         }),
     }
@@ -308,7 +308,7 @@ pub(super) fn parse_date_time_unary_value(
     match parse_date_time_literal(source_id, raw)? {
         Some(date_time) => Ok(date_time),
         None => Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: expression.to_string(),
         }),
     }
@@ -322,7 +322,7 @@ pub(super) fn parse_duration_unary_value(
     match parse_duration_literal(source_id, raw)? {
         Some(duration) => Ok(duration),
         None => Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: expression.to_string(),
         }),
     }
@@ -336,13 +336,13 @@ pub(super) fn ensure_matching_duration_bound_families(
 ) -> Result<()> {
     let Some(left_family) = supported_duration_family(left) else {
         return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: expression.to_string(),
         });
     };
     let Some(right_family) = supported_duration_family(right) else {
         return Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: source_id.to_string(),
+            source_id: (source_id.to_string()).into(),
             expression: expression.to_string(),
         });
     };
@@ -350,7 +350,7 @@ pub(super) fn ensure_matching_duration_bound_families(
         return Ok(());
     }
     Err(BpmnEngineError::UnsupportedDmnUnaryTest {
-        source_id: source_id.to_string(),
+        source_id: (source_id.to_string()).into(),
         expression: expression.to_string(),
     })
 }

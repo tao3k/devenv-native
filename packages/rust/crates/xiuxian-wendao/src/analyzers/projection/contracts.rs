@@ -1,3 +1,5 @@
+//! `analyzers::projection::contracts` owns Wendao analyzers projection contracts behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 pub use xiuxian_wendao_core::repo_intelligence::ProjectionPageKind;
@@ -56,6 +58,7 @@ pub struct ProjectedPageSection {
 
 /// One deterministic projected page.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct ProjectedPageRecord {
     /// Repository identifier.
     pub repo_id: String,
@@ -93,8 +96,8 @@ pub struct ProjectedPageRecord {
 impl From<&DocRecord> for ProjectedPageRecord {
     fn from(doc: &DocRecord) -> Self {
         let kind = projection_kind_from_doc_format(doc.format.as_deref());
-        let path = doc.path.clone();
-        let doc_id = doc.doc_id.clone();
+        let path = doc.path.to_string();
+        let doc_id = doc.doc_id.to_string();
         let format_hints = doc.format.clone().into_iter().collect::<Vec<_>>();
         let mut keywords = vec![doc.title.clone(), path.clone(), doc_id.clone()];
         keywords.extend(format_hints.iter().cloned());
@@ -102,7 +105,7 @@ impl From<&DocRecord> for ProjectedPageRecord {
         keywords.dedup();
 
         Self {
-            repo_id: doc.repo_id.clone(),
+            repo_id: doc.repo_id.to_string(),
             page_id: format!(
                 "repo:{}:projection:{}:doc:{}",
                 doc.repo_id,
@@ -114,7 +117,7 @@ impl From<&DocRecord> for ProjectedPageRecord {
             module_ids: Vec::new(),
             symbol_ids: Vec::new(),
             example_ids: Vec::new(),
-            doc_ids: vec![doc.doc_id.clone()],
+            doc_ids: vec![doc.doc_id.to_string()],
             paths: vec![path.clone()],
             format_hints,
             sections: Vec::new(),
@@ -127,6 +130,7 @@ impl From<&DocRecord> for ProjectedPageRecord {
 
 /// Rendered projected markdown document.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct ProjectedMarkdownDocument {
     /// Repository identifier.
     pub repo_id: String,
@@ -159,6 +163,7 @@ pub struct ProjectedPageIndexSection {
 
 /// Parsed projected markdown document prepared for page-index tree generation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct ProjectedPageIndexDocument {
     /// Repository identifier.
     pub repo_id: String,
@@ -201,6 +206,7 @@ pub struct ProjectedPageIndexNode {
 
 /// Snapshot of one projected page-index tree.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct ProjectedPageIndexTree {
     /// Repository identifier.
     pub repo_id: String,

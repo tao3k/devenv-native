@@ -55,6 +55,7 @@ pub struct AdvisoryAuditRequest {
 
 /// One role-attributed advisory finding.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct RoleAuditFinding {
     /// Role identifier that produced the critique.
     pub role_id: String,

@@ -1,19 +1,22 @@
 use xiuxian_wendao_parsers::section_create::{
-    BuildSectionOptions, build_new_sections_content_with_options, compute_content_hash,
-    find_insertion_point, generate_section_id, parse_heading_line,
+    BuildSectionOptions, ParsedHeadingLine, build_new_sections_content_with_options,
+    compute_content_hash, find_insertion_point, generate_section_id, parse_heading_line,
 };
 
 #[test]
 fn parse_heading_line_recognizes_markdown_headings() {
     assert_eq!(
         parse_heading_line("# Title"),
-        Some((1, "Title".to_string()))
+        Some(ParsedHeadingLine::new(1, "Title"))
     );
     assert_eq!(
         parse_heading_line("## Sub Title"),
-        Some((2, "Sub Title".to_string()))
+        Some(ParsedHeadingLine::new(2, "Sub Title"))
     );
-    assert_eq!(parse_heading_line("###Deep"), Some((3, "Deep".to_string())));
+    assert_eq!(
+        parse_heading_line("###Deep"),
+        Some(ParsedHeadingLine::new(3, "Deep"))
+    );
     assert_eq!(parse_heading_line("No heading"), None);
     assert_eq!(parse_heading_line("####### Too deep"), None);
 }

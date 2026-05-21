@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::docs::search_page_index` owns Wendao native docs search page index behavior.
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};

@@ -19,7 +19,7 @@ from xiuxian_foundation.api.schema_provider import get_schema
 def test_build_server_info_defaults():
     """build_server_info returns canonical shape with defaults."""
     out = build_server_info()
-    assert out[NAME_KEY] == "xiuxian-daochang"
+    assert out[NAME_KEY] == "xiuxian-wendao"
     assert out[VERSION_KEY] == "2.0.0"
     assert out[PROTOCOL_VERSION_KEY] == "2024-11-05"
     assert MESSAGE_KEY not in out
@@ -48,7 +48,7 @@ def test_validate_rejects_extra_keys():
     except (ImportError, ValueError):
         pytest.skip("Shared schema not found")
     payload = {
-        NAME_KEY: "xiuxian-daochang",
+        NAME_KEY: "xiuxian-wendao",
         VERSION_KEY: "2.0.0",
         PROTOCOL_VERSION_KEY: "2024-11-05",
         "extra": "not allowed",

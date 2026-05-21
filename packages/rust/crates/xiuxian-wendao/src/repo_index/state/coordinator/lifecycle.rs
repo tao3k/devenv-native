@@ -42,6 +42,7 @@ impl RepoIndexCoordinator {
     /// # Errors
     ///
     /// Returns an analysis error when the semaphore has been closed.
+    /// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
     pub async fn acquire_sync_permit(
         &self,
         repo_id: &str,

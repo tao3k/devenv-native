@@ -35,9 +35,9 @@ fn parser_call_activity_missing_target_is_rejected() {
     assert_eq!(
         error,
         BpmnEngineError::UnknownCalledProcess {
-            process_id: "main_process".to_string(),
-            node_id: "invoke_child".to_string(),
-            called_process_id: "missing_process".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("invoke_child".to_string()).into(),
+            called_process_id: ("missing_process".to_string()).into(),
         }
     );
 }
@@ -88,8 +88,8 @@ fn parser_call_activity_error_path_requires_matching_parent_boundary() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedSubProcessConfiguration {
-            process_id: "main_process".to_string(),
-            node_id: "invoke_review".to_string(),
+            process_id: ("main_process".to_string()).into(),
+            node_id: ("invoke_review".to_string()).into(),
             detail: "call_activity_error_missing_boundary",
         }
     );

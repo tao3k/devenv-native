@@ -1,3 +1,5 @@
+//! Artifact selectors, launches, and payloads for Wendao tool results.
+
 mod launch;
 mod payload;
 mod selector;

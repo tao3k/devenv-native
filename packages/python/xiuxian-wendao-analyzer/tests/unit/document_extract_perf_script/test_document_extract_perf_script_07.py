@@ -151,6 +151,42 @@ def test_hybrid_pdf_render_region_env_ignores_non_region_selection(
     assert benchmark.build_hybrid_pdf_render_region_env(args) == {}
 
 
+def test_hosted_vlm_hybrid_profiles_auto_prepare_pdfium_runtime(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    pdfium_library = tmp_path / "libpdfium.dylib"
+    pdfium_library.write_bytes(b"pdfium")
+    monkeypatch.setattr(
+        benchmark._pdf_render,
+        "prepare_pdfium_runtime",
+        lambda: pdfium_library,
+    )
+    args = benchmark.argparse.Namespace(
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        rust_pdf_ocr_profile_planner="hosted-vlm-risk-window",
+        rust_pdf_hosted_vlm_region_planner="profile-risk-window-slices",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+    )
+
+    assert benchmark.resolve_pdfium_library_path(args) == pdfium_library
+
+
+def test_fast_source_range_profile_does_not_auto_prepare_pdfium_runtime() -> None:
+    benchmark = _load_benchmark_module()
+    args = benchmark.argparse.Namespace(
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        rust_pdf_ocr_profile_planner="fast-risk-window",
+        rust_pdf_hosted_vlm_region_planner="disabled",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+    )
+
+    assert benchmark.resolve_pdfium_library_path(args) is None
+
+
 def test_pdfium_asset_selection_covers_primary_platforms() -> None:
     benchmark = _load_benchmark_module()
 

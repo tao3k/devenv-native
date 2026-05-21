@@ -3,8 +3,8 @@
 mod compiler;
 mod handlers;
 mod retrieval;
+mod syntax;
 mod types;
-mod utils;
 
 #[cfg(test)]
 #[path = "../../../../../tests/unit/gateway/studio/analysis/markdown/compile/mod.rs"]

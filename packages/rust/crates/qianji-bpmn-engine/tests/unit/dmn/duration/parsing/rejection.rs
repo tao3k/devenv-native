@@ -10,7 +10,7 @@ fn dmn_parser_rejects_mixed_duration_family_ranges() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedDmnUnaryTest {
-            source_id: "invalid-mixed-duration-family-range.dmn".to_string(),
+            source_id: ("invalid-mixed-duration-family-range.dmn".to_string()).into(),
             expression: "duration(\"P6M\")<= ?<duration(\"P30D\")".to_string(),
         }
     );

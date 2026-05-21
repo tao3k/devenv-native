@@ -1,3 +1,5 @@
+//! `link_graph::context_snapshot::types` owns Wendao link graph context snapshot types behavior.
+
 use crate::link_graph::models::{QuantumAnchorHit, QuantumContext, QuantumFusionOptions};
 use crate::schemas::LINK_GRAPH_QUANTUM_CONTEXT_SNAPSHOT_V1;
 use serde::{Deserialize, Serialize};
@@ -37,6 +39,7 @@ pub struct QuantumContextSnapshot {
 impl QuantumContextSnapshot {
     /// Build a snapshot payload from the provided inputs.
     #[must_use]
+    /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
     pub fn new(
         snapshot_id: impl Into<String>,
         query_text: Option<&str>,

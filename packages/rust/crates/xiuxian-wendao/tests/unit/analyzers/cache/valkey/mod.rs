@@ -140,10 +140,10 @@ fn payload_roundtrip_preserves_analysis_output() {
     let key = sample_cache_key("payload-roundtrip");
     let analysis = RepositoryAnalysisOutput {
         modules: vec![crate::analyzers::ModuleRecord {
-            repo_id: key.repo_id.clone(),
-            module_id: "module:alpha".to_string(),
+            repo_id: key.repo_id.clone().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     };
@@ -170,10 +170,10 @@ fn cache_roundtrip_uses_test_shadow_when_no_live_client_is_bound() {
     let key = sample_cache_key("shadow-roundtrip");
     let analysis = RepositoryAnalysisOutput {
         modules: vec![crate::analyzers::ModuleRecord {
-            repo_id: key.repo_id.clone(),
-            module_id: "module:alpha".to_string(),
+            repo_id: key.repo_id.clone().into(),
+            module_id: "module:alpha".to_string().into(),
             qualified_name: "Alpha".to_string(),
-            path: "src/lib.rs".to_string(),
+            path: "src/lib.rs".to_string().into(),
         }],
         ..RepositoryAnalysisOutput::default()
     };

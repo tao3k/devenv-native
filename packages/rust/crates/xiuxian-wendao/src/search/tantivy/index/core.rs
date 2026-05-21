@@ -1,3 +1,5 @@
+//! `search::tantivy::index::core` owns Wendao tantivy index core behavior.
+
 use crate::search::tantivy::fields::SearchDocumentFields;
 use crate::search::tantivy::tokenizer::register_search_tokenizer;
 use tantivy::{Index, IndexReader, ReloadPolicy, TantivyError};

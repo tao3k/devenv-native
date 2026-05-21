@@ -1,3 +1,5 @@
+//! Data model for graph query intent routing.
+
 /// Structured intent parsed from a user query.
 #[derive(Debug, Clone, Default)]
 pub struct QueryIntent {

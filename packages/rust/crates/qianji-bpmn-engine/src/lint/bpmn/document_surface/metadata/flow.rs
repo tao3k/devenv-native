@@ -10,8 +10,8 @@ pub(in crate::lint::bpmn::document_surface) fn flow_element_metadata_counts(
     for process in &snapshot.processes {
         counts.element += process.flow_element_metadata_count;
         for metadata in &process.flow_element_metadata {
-            counts.auditing += usize::from(metadata.has_auditing);
-            counts.monitoring += usize::from(metadata.has_monitoring);
+            counts.auditing += usize::from(metadata.has_auditing.get());
+            counts.monitoring += usize::from(metadata.has_monitoring.get());
             counts.category_value_ref += metadata.category_value_refs.len();
         }
     }

@@ -1,6 +1,6 @@
 //! Attachment search route contract and metadata validation.
 
-use super::repo::validate_repo_search_request;
+use super::repo::{RepoSearchRequest, validate_repo_search_request};
 
 /// Canonical attachment-search extension-filter metadata header for Wendao Flight requests.
 pub const WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER: &str =
@@ -26,7 +26,15 @@ pub fn validate_attachment_search_request(
     ext_filters: &[String],
     kind_filters: &[String],
 ) -> Result<(), String> {
-    validate_repo_search_request(query_text, limit, &[], &[], &[], &[], &[])?;
+    validate_repo_search_request(RepoSearchRequest {
+        query_text,
+        limit,
+        language_filters: &[],
+        path_prefixes: &[],
+        title_filters: &[],
+        tag_filters: &[],
+        filename_filters: &[],
+    })?;
     for ext_filter in ext_filters {
         if ext_filter.trim().is_empty() {
             return Err(

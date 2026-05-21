@@ -2,8 +2,7 @@ use crate::runtime::call_activity::{StubHost, node_index, parsed_fixture_package
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, BpmnInstanceState, BpmnPackage, InstanceLifecycle,
-    PendingHostWork, PendingHostWorkResult, UserTaskOutcome, apply_pending_host_work_result,
-    create_instance,
+    PendingHostWork, PendingHostWorkResult, UserTaskOutcome, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -44,7 +43,7 @@ pub(super) fn complete_user_task(
     completed_at_ms: u64,
     message: &str,
 ) -> BpmnAdvanceOutcome {
-    apply_pending_host_work_result(
+    crate::test_support::apply_pending_host_work_result(
         package,
         instance,
         token_id,

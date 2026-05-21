@@ -1,3 +1,5 @@
+//! `pybindings::knowledge_py::py_entry` owns Wendao pybindings knowledge py py entry behavior.
+
 use pyo3::{pyclass, pymethods};
 use serde_json::{json, to_string};
 

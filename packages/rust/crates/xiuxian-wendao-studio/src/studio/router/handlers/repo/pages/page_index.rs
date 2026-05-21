@@ -1,3 +1,5 @@
+//! Owns the Studio repo pages page index surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -11,8 +13,8 @@ use crate::studio::router::handlers::repo::projected_service::pages::{
 use crate::studio::router::{GatewayState, StudioApiError};
 use xiuxian_wendao::analyzers::{RepoProjectedPageIndexNodeQuery, RepoProjectedPageIndexTreeQuery};
 
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::resource::{required_node_id, required_page_id};
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::pages::{
     RepoProjectedPageApiQuery, RepoProjectedPageIndexNodeApiQuery,
 };

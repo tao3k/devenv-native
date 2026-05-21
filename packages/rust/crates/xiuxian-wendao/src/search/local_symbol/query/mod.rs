@@ -1,3 +1,5 @@
+//! `search::local_symbol::query` owns Wendao search local symbol query behavior.
+
 #[path = "autocomplete/mod.rs"]
 mod autocomplete;
 #[path = "lookup/mod.rs"]

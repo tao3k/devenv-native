@@ -3,6 +3,7 @@
 use super::types::{
     MarkdownOutlineDocument, MarkdownOutlineHeading, MarkdownTocDocument, TocDocument,
 };
+use crate::DocumentType;
 use crate::document::parse_markdown_document_from_parts;
 use crate::frontmatter::split_frontmatter;
 use crate::markdown_structure::parse_markdown_structure;
@@ -68,13 +69,13 @@ fn extract_outline_title(
     fallback_title.to_string()
 }
 
-fn extract_outline_doc_type(frontmatter: Option<&Value>) -> Option<String> {
+fn extract_outline_doc_type(frontmatter: Option<&Value>) -> Option<DocumentType> {
     frontmatter
         .and_then(|value| value.get("type").or_else(|| value.get("kind")))
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
+        .map(DocumentType::new)
 }
 
 fn scan_outline_headings(body: &str) -> Vec<MarkdownOutlineHeading> {
@@ -101,8 +102,8 @@ fn scan_outline_headings(body: &str) -> Vec<MarkdownOutlineHeading> {
             continue;
         }
 
-        if let Some((level, title)) = parse_heading_line(trimmed) {
-            headings.push((line_index + 1, level, title));
+        if let Some(heading) = parse_heading_line(trimmed) {
+            headings.push((line_index + 1, heading.level, heading.title));
         }
     }
 

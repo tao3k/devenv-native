@@ -89,9 +89,9 @@ pub(crate) fn build_code_ast_retrieval_atom(
     let locator_slug = slugify_segment(locator);
 
     crate::studio::types::CodeAstRetrievalAtom {
-        owner_id: owner_id.to_string(),
-        chunk_id: format!("ast:{path_slug}:{scope_slug}:{semantic_slug}:{locator_slug}"),
-        semantic_type: semantic_type.to_string(),
+        owner_id: owner_id.to_string().into(),
+        chunk_id: format!("ast:{path_slug}:{scope_slug}:{semantic_slug}:{locator_slug}").into(),
+        semantic_type: semantic_type.to_string().into(),
         fingerprint: build_stable_fingerprint(
             format!("{path}|{scope_slug}|{semantic_type}|{locator}|{content}").as_str(),
         ),

@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
-use syn::{parse_macro_input, Error, Expr, Lit, MetaNameValue, Result as SynResult, Token};
+use syn::{Error, Expr, Lit, MetaNameValue, Result as SynResult, Token, parse_macro_input};
 
 struct XiuxianConfigArgs {
     namespace: String,

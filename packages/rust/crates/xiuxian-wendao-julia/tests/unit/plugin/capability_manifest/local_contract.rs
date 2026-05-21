@@ -2,7 +2,7 @@
 fn capability_manifest_build_client_returns_none_without_config() {
     let repository = RegisteredRepository {
         id: "repo-julia".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
         ..RegisteredRepository::default()
     };
 
@@ -59,10 +59,10 @@ fn capability_manifest_build_client_rejects_invalid_field_types() {
 fn capability_manifest_request_batch_materializes_rows() {
     let batch = build_julia_plugin_capability_manifest_request_batch(&[
         JuliaPluginCapabilityManifestRequestRow {
-            plugin_id: "xiuxian-wendao-julia".to_string(),
-            repository_id: "repo-julia".to_string(),
-            capability_filter: Some("graph-structural".to_string()),
-            include_disabled: true,
+            plugin_id: "xiuxian-wendao-julia".into(),
+            repository_id: "repo-julia".into(),
+            capability_filter: Some("graph-structural".into()),
+            include_disabled: true.into(),
         },
     ])
     .unwrap_or_else(|error| panic!("request batch should build: {error}"));
@@ -132,28 +132,28 @@ fn capability_manifest_response_validation_rejects_unsupported_transport() {
 fn capability_manifest_selects_graph_structural_binding_by_variant() {
     let rows = vec![
         JuliaPluginCapabilityManifestRow {
-            plugin_id: JULIA_PLUGIN_ID.to_string(),
-            capability_id: JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID.to_string(),
-            capability_variant: Some("structural_rerank".to_string()),
-            transport_kind: "arrow_flight".to_string(),
-            base_url: "http://127.0.0.1:8815".to_string(),
-            route: "/graph/structural/rerank".to_string(),
-            health_route: Some("/healthz".to_string()),
-            schema_version: "v0-draft".to_string(),
-            timeout_secs: Some(15),
-            enabled: true,
+            plugin_id: JULIA_PLUGIN_ID.into(),
+            capability_id: JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID.into(),
+            capability_variant: Some("structural_rerank".into()),
+            transport_kind: "arrow_flight".into(),
+            base_url: "http://127.0.0.1:8815".into(),
+            route: "/graph/structural/rerank".into(),
+            health_route: Some("/healthz".into()),
+            schema_version: "v0-draft".into(),
+            timeout_secs: Some(15_u64.into()),
+            enabled: true.into(),
         },
         JuliaPluginCapabilityManifestRow {
-            plugin_id: JULIA_PLUGIN_ID.to_string(),
-            capability_id: JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID.to_string(),
-            capability_variant: Some("constraint_filter".to_string()),
-            transport_kind: "arrow_flight".to_string(),
-            base_url: "http://127.0.0.1:8815".to_string(),
-            route: "/graph/structural/filter".to_string(),
-            health_route: Some("/healthz".to_string()),
-            schema_version: "v0-draft".to_string(),
-            timeout_secs: Some(15),
-            enabled: true,
+            plugin_id: JULIA_PLUGIN_ID.into(),
+            capability_id: JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID.into(),
+            capability_variant: Some("constraint_filter".into()),
+            transport_kind: "arrow_flight".into(),
+            base_url: "http://127.0.0.1:8815".into(),
+            route: "/graph/structural/filter".into(),
+            health_route: Some("/healthz".into()),
+            schema_version: "v0-draft".into(),
+            timeout_secs: Some(15_u64.into()),
+            enabled: true.into(),
         },
     ];
 

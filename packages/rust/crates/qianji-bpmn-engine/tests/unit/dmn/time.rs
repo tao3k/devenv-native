@@ -39,15 +39,15 @@ fn dmn_parser_supports_time_range_unary_tests() {
     assert_eq!(
         decision.table.rules[0].input_entries[0],
         DmnInputEntry::TimeRange(DmnTimeRange::new(
-            Some(DmnTimeRangeBound::new("09:00:00", true)),
-            Some(DmnTimeRangeBound::new("12:00:00", false)),
+            Some(DmnTimeRangeBound::new("09:00:00", true.into())),
+            Some(DmnTimeRangeBound::new("12:00:00", false.into())),
         ))
     );
     assert_eq!(
         decision.table.rules[1].input_entries[0],
         DmnInputEntry::TimeRange(DmnTimeRange::new(
-            Some(DmnTimeRangeBound::new("13:00:00", true)),
-            Some(DmnTimeRangeBound::new("15:00:00", true)),
+            Some(DmnTimeRangeBound::new("13:00:00", true.into())),
+            Some(DmnTimeRangeBound::new("15:00:00", true.into())),
         ))
     );
 }

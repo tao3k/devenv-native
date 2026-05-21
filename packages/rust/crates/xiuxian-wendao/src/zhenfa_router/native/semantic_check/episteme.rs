@@ -39,6 +39,7 @@ pub struct EpistemeLoadReport {
 
 /// Validated policy query metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct EpistemePolicyQueryReport {
     /// Policy query id.
     pub id: String,
@@ -779,25 +780,18 @@ fn contains_sql_token(sql: &str, token: &str) -> bool {
         return false;
     }
 
-    for start in 0..=(sql.len() - token.len()) {
-        if !sql[start..start + token.len()].eq_ignore_ascii_case(token) {
-            continue;
-        }
-        let before = start
-            .checked_sub(1)
-            .and_then(|idx| sql.get(idx))
-            .copied()
-            .is_some_and(is_sql_identifier_byte);
-        let after = sql
-            .get(start + token.len())
-            .copied()
-            .is_some_and(is_sql_identifier_byte);
-        if !before && !after {
-            return true;
-        }
-    }
-
-    false
+    (0..=(sql.len() - token.len())).any(|start| {
+        sql[start..start + token.len()].eq_ignore_ascii_case(token)
+            && !start
+                .checked_sub(1)
+                .and_then(|idx| sql.get(idx))
+                .copied()
+                .is_some_and(is_sql_identifier_byte)
+            && !sql
+                .get(start + token.len())
+                .copied()
+                .is_some_and(is_sql_identifier_byte)
+    })
 }
 
 fn is_sql_identifier_byte(byte: u8) -> bool {

@@ -94,7 +94,7 @@ expression: value
     "hits": [
       {
         "auditStatus": null,
-        "bestSection": "edition = \"2021\"",
+        "bestSection": "edition = \"2024\"",
         "docType": "ast_match",
         "hierarchicalUri": null,
         "hierarchy": [
@@ -245,7 +245,7 @@ expression: value
     "hits": [
       {
         "auditStatus": null,
-        "bestSection": "edition = \"2021\"",
+        "bestSection": "edition = \"2024\"",
         "docType": "ast_match",
         "hierarchicalUri": null,
         "hierarchy": [
@@ -551,7 +551,7 @@ expression: value
     "hits": [
       {
         "auditStatus": null,
-        "bestSection": "edition = \"2021\"",
+        "bestSection": "edition = \"2024\"",
         "docType": "ast_match",
         "hierarchicalUri": null,
         "hierarchy": [

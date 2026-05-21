@@ -1,3 +1,5 @@
+//! `link_graph::index::build` owns Wendao link graph index build behavior.
+
 #[path = "api/mod.rs"]
 mod api;
 #[path = "assemble/mod.rs"]

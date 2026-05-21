@@ -72,8 +72,8 @@ pub(crate) fn collect_julia_sources(
             .join(include_literal.as_str());
         let Ok(include_relative) = relative_path_string(repository_root, &include_path) else {
             diagnostics.push(DiagnosticRecord {
-                repo_id: repository.id.clone(),
-                path: include_literal.clone(),
+                repo_id: (repository.id.clone()).into(),
+                path: (include_literal.clone()).into(),
                 line: 0,
                 message: format!(
                     "ignored include `{include_literal}` because it resolves outside repository root"
@@ -85,8 +85,8 @@ pub(crate) fn collect_julia_sources(
 
         if !include_path.is_file() {
             diagnostics.push(DiagnosticRecord {
-                repo_id: repository.id.clone(),
-                path: include_relative,
+                repo_id: (repository.id.clone()).into(),
+                path: (include_relative).into(),
                 line: 0,
                 message: format!(
                     "ignored include `{include_literal}` because the target file does not exist"

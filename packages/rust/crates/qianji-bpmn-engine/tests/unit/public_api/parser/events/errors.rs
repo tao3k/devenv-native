@@ -31,8 +31,8 @@ fn parser_intermediate_catch_event_requires_event_definition() {
     assert_eq!(
         error,
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: "await_missing_event".to_string(),
-            node_id: "wait_missing".to_string(),
+            process_id: ("await_missing_event".to_string()).into(),
+            node_id: ("wait_missing".to_string()).into(),
             element: "event_definition",
         }
     );
@@ -48,8 +48,8 @@ fn parser_intermediate_timer_event_requires_timer_expression() {
     assert_eq!(
         error,
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: "await_timer".to_string(),
-            node_id: "wait_timer".to_string(),
+            process_id: ("await_timer".to_string()).into(),
+            node_id: ("wait_timer".to_string()).into(),
             element: "timer_expression",
         }
     );
@@ -65,8 +65,8 @@ fn parser_intermediate_conditional_event_requires_condition_expression() {
     assert_eq!(
         error,
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: "await_condition".to_string(),
-            node_id: "wait_condition".to_string(),
+            process_id: ("await_condition".to_string()).into(),
+            node_id: ("wait_condition".to_string()).into(),
             element: "conditional_expression",
         }
     );
@@ -82,8 +82,8 @@ fn parser_intermediate_conditional_event_rejects_unsupported_condition_expressio
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: "await_condition".to_string(),
-            node_id: "wait_condition".to_string(),
+            process_id: ("await_condition".to_string()).into(),
+            node_id: ("wait_condition".to_string()).into(),
             detail: "unsupported_conditional_event_expression",
         }
     );
@@ -99,8 +99,8 @@ fn parser_conditional_boundary_event_requires_condition_expression() {
     assert_eq!(
         error,
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: "review_with_invalid_conditional_boundary".to_string(),
-            node_id: "review_condition".to_string(),
+            process_id: ("review_with_invalid_conditional_boundary".to_string()).into(),
+            node_id: ("review_condition".to_string()).into(),
             element: "conditional_expression",
         }
     );
@@ -116,8 +116,8 @@ fn parser_conditional_boundary_event_rejects_unsupported_condition_expression() 
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: "review_with_invalid_conditional_boundary".to_string(),
-            node_id: "review_condition".to_string(),
+            process_id: ("review_with_invalid_conditional_boundary".to_string()).into(),
+            node_id: ("review_condition".to_string()).into(),
             detail: "unsupported_conditional_event_expression",
         }
     );

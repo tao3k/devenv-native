@@ -67,13 +67,18 @@ impl BpmnSnapshotScanState {
             return Ok(());
         };
         let shape = BpmnShapeSnapshot {
-            shape_id: attribute_value(source, reader, event, "id")?,
+            shape_id: attribute_value(source, reader, event, "id")?.map(Into::into),
             bpmn_element: attribute_value(source, reader, event, "bpmnElement")?,
-            is_horizontal: boolean_attribute_value(source, reader, event, "isHorizontal")?,
-            is_expanded: boolean_attribute_value(source, reader, event, "isExpanded")?,
-            is_marker_visible: boolean_attribute_value(source, reader, event, "isMarkerVisible")?,
-            is_message_visible: boolean_attribute_value(source, reader, event, "isMessageVisible")?,
-            participant_band_kind: attribute_value(source, reader, event, "participantBandKind")?,
+            is_horizontal: boolean_attribute_value(source, reader, event, "isHorizontal")?
+                .map(Into::into),
+            is_expanded: boolean_attribute_value(source, reader, event, "isExpanded")?
+                .map(Into::into),
+            is_marker_visible: boolean_attribute_value(source, reader, event, "isMarkerVisible")?
+                .map(Into::into),
+            is_message_visible: boolean_attribute_value(source, reader, event, "isMessageVisible")?
+                .map(Into::into),
+            participant_band_kind: attribute_value(source, reader, event, "participantBandKind")?
+                .map(Into::into),
             choreography_activity_shape: attribute_value(
                 source,
                 reader,
@@ -109,7 +114,8 @@ impl BpmnSnapshotScanState {
             bpmn_element: attribute_value(source, reader, event, "bpmnElement")?,
             source_element: attribute_value(source, reader, event, "sourceElement")?,
             target_element: attribute_value(source, reader, event, "targetElement")?,
-            message_visible_kind: attribute_value(source, reader, event, "messageVisibleKind")?,
+            message_visible_kind: attribute_value(source, reader, event, "messageVisibleKind")?
+                .map(Into::into),
             waypoints: Vec::new(),
             label: None,
         };

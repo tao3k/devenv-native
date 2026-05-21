@@ -52,7 +52,7 @@ pub fn build_graph_structural_filter_request_row(
         candidate_id: candidate.candidate_id().to_string(),
         retrieval_layer: query.retrieval_layer(),
         query_max_layers: query.query_max_layers(),
-        constraint_kind: constraint.constraint_kind().to_string(),
+        constraint_kind: constraint.constraint_kind().into(),
         required_boundary_size: constraint.required_boundary_size(),
         anchor_planes: query
             .anchors()

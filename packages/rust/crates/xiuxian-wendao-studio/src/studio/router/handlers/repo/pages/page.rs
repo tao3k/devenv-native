@@ -1,3 +1,5 @@
+//! Owns the Studio repo pages page surface.
+
 use std::sync::Arc;
 
 use axum::{
@@ -9,8 +11,8 @@ use crate::studio::router::handlers::repo::projected_service::pages::run_repo_pr
 use crate::studio::router::{GatewayState, StudioApiError};
 use xiuxian_wendao::analyzers::RepoProjectedPageQuery;
 
-use crate::studio::router::handlers::repo::parse::repo::required_registered_repo_id;
 use crate::studio::router::handlers::repo::parse::resource::required_page_id;
+use crate::studio::router::handlers::repo::parse::source::required_registered_repo_id;
 use crate::studio::router::handlers::repo::query::pages::RepoProjectedPageApiQuery;
 
 /// Projected page endpoint.

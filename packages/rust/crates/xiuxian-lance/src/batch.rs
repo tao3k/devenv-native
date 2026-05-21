@@ -39,6 +39,21 @@ pub struct VectorRecordBatchReader {
     current_batch: usize,
 }
 
+/// Named input for creating a vector record batch reader.
+#[derive(Debug, Clone)]
+pub struct VectorBatchInput {
+    /// Primary keys for each vector row.
+    pub ids: Vec<String>,
+    /// Dense vector values.
+    pub vectors: Vec<Vec<f32>>,
+    /// Row content values.
+    pub contents: Vec<String>,
+    /// Metadata JSON values.
+    pub metadatas: Vec<String>,
+    /// Fixed vector dimension.
+    pub dimension: usize,
+}
+
 impl VectorRecordBatchReader {
     /// Create a new reader from a vector store batch.
     #[must_use]
@@ -57,21 +72,17 @@ impl VectorRecordBatchReader {
     /// Returns an error if `dimension` exceeds the Arrow fixed-size-list range
     /// or if building the underlying Arrow arrays or record batch fails.
     pub fn from_vectors(
-        ids: Vec<String>,
-        vectors: Vec<Vec<f32>>,
-        contents: Vec<String>,
-        metadatas: Vec<String>,
-        dimension: usize,
+        input: VectorBatchInput,
     ) -> Result<Self, lance::deps::arrow_schema::ArrowError> {
-        let id_array = StringArray::from(ids);
-        let content_array = StringArray::from(contents);
-        let metadata_array = StringArray::from(metadatas);
-        let schema = Self::default_schema(dimension)?;
-        let dimension = i32::try_from(dimension).map_err(|_| {
+        let id_array = StringArray::from(input.ids);
+        let content_array = StringArray::from(input.contents);
+        let metadata_array = StringArray::from(input.metadatas);
+        let schema = Self::default_schema(input.dimension)?;
+        let dimension = i32::try_from(input.dimension).map_err(|_| {
             ArrowError::SchemaError("vector dimension exceeds i32 range".to_string())
         })?;
 
-        let flat_values: Vec<f32> = vectors.into_iter().flatten().collect();
+        let flat_values: Vec<f32> = input.vectors.into_iter().flatten().collect();
         let vector_array = FixedSizeListArray::try_new(
             Arc::new(Field::new("item", DataType::Float32, true)),
             dimension,

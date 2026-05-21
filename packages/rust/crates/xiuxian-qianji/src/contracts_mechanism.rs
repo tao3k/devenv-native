@@ -1,3 +1,5 @@
+//! Contracts mechanism surface for `xiuxian-qianji`.
+
 use async_trait::async_trait;
 
 use super::QianjiOutput;

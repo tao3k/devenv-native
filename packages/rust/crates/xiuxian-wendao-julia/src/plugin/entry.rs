@@ -4,10 +4,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use xiuxian_wendao_core::repo_intelligence::{
-    AnalysisContext, DocRecord, DocTargetRecord, ModuleRecord, PluginAnalysisOutput,
-    PluginLinkContext, RegisteredRepository, RelationKind, RelationRecord, RepoIntelligenceError,
-    RepoIntelligencePlugin, RepoSourceFile, RepoSymbolKind, RepositoryAnalysisOutput,
-    RepositoryRecord, SymbolRecord,
+    AnalysisContext, BuiltinPluginId, DocRecord, DocTargetRecord, ModuleRecord,
+    PluginAnalysisOutput, PluginLinkContext, RegisteredRepository, RelationKind, RelationRecord,
+    RepoIntelligenceError, RepoIntelligencePlugin, RepoSourceFile, RepoSymbolKind,
+    RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord,
 };
 
 use super::capability_manifest::validate_julia_capability_manifest_preflight_for_repository;
@@ -25,7 +25,7 @@ use super::project::{load_project_metadata, locate_root_module_file};
 use super::sources::{JuliaAnalyzedFile, collect_julia_sources};
 use super::transport::build_julia_flight_transport_client;
 
-const JULIA_PLUGIN_ID: &str = "julia";
+const JULIA_PLUGIN_ID: &str = "julia-code-parser";
 
 /// External Julia analyzer for Repo Intelligence.
 #[derive(Debug, Default, Clone, Copy)]
@@ -36,7 +36,7 @@ pub struct JuliaRepoIntelligencePlugin;
 /// # Errors
 ///
 /// Returns [`RepoIntelligenceError`] when the registry already contains a
-/// plugin with the `julia` identifier.
+/// plugin with the `julia-code-parser` identifier.
 pub fn register_into(
     registry: &mut xiuxian_wendao_core::repo_intelligence::PluginRegistry,
 ) -> Result<(), RepoIntelligenceError> {
@@ -45,7 +45,7 @@ pub fn register_into(
 
 inventory::submit! {
     xiuxian_wendao_core::repo_intelligence::BuiltinPluginRegistrar::new(
-        JULIA_PLUGIN_ID,
+        BuiltinPluginId::new(JULIA_PLUGIN_ID),
         register_into,
     )
 }
@@ -85,10 +85,10 @@ impl RepoIntelligencePlugin for JuliaRepoIntelligencePlugin {
                 .module_name
                 .as_ref()
                 .map(|qualified_name| ModuleRecord {
-                    repo_id: context.repository.id.clone(),
-                    module_id,
+                    repo_id: (context.repository.id.clone()).into(),
+                    module_id: module_id.into(),
                     qualified_name: qualified_name.clone(),
-                    path: file.path.clone(),
+                    path: (file.path.clone()).into(),
                 })
                 .into_iter()
                 .collect(),
@@ -162,10 +162,10 @@ impl RepoIntelligencePlugin for JuliaRepoIntelligencePlugin {
         );
         let examples = discover_examples(&context.repository.id, repository_root)?;
         let modules = vec![ModuleRecord {
-            repo_id: context.repository.id.clone(),
-            module_id: module_id.clone(),
+            repo_id: (context.repository.id.clone()).into(),
+            module_id: (module_id.clone()).into(),
             qualified_name: collected.root_summary.module_name.clone(),
-            path: root_path.clone(),
+            path: (root_path.clone()).into(),
         }];
         let symbols = collect_symbol_records(
             &context.repository.id,
@@ -208,9 +208,9 @@ impl RepoIntelligencePlugin for JuliaRepoIntelligencePlugin {
 
         Ok(RepositoryAnalysisOutput {
             repository: Some(RepositoryRecord {
-                repo_id: context.repository.id.clone(),
+                repo_id: (context.repository.id.clone()).into(),
                 name: metadata.name,
-                path: repository_root.display().to_string(),
+                path: (repository_root.display().to_string()).into(),
                 url: context.repository.url.clone(),
                 revision: None,
                 version: metadata.version,
@@ -371,7 +371,9 @@ fn materialize_symbol_records(
             },
             base_symbol_id(repo_id, module_name, export_name),
         );
-        symbol_map.entry(symbol.symbol_id.clone()).or_insert(symbol);
+        symbol_map
+            .entry(symbol.symbol_id.to_string())
+            .or_insert(symbol);
     }
 
     symbol_map.into_values().collect()
@@ -385,7 +387,7 @@ fn build_import_relations(
     imports
         .iter()
         .map(|import| RelationRecord {
-            repo_id: repo_id.to_string(),
+            repo_id: (repo_id.to_string()).into(),
             source_id: module_id.to_string(),
             target_id: format!("external:{}", import.module),
             kind: RelationKind::Uses,
@@ -404,29 +406,29 @@ fn build_structural_relations(
     let mut relations = Vec::new();
 
     relations.extend(modules.iter().map(|module| RelationRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: (repo_id.to_string()).into(),
         source_id: repository_node_id.clone(),
-        target_id: module.module_id.clone(),
+        target_id: module.module_id.clone().to_string(),
         kind: RelationKind::Contains,
     }));
     relations.extend(symbols.iter().filter_map(|symbol| {
         symbol.module_id.as_ref().map(|module_id| RelationRecord {
-            repo_id: repo_id.to_string(),
-            source_id: module_id.clone(),
-            target_id: symbol.symbol_id.clone(),
+            repo_id: (repo_id.to_string()).into(),
+            source_id: module_id.clone().to_string(),
+            target_id: symbol.symbol_id.clone().to_string(),
             kind: RelationKind::Declares,
         })
     }));
     relations.extend(examples.iter().map(|example| RelationRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: (repo_id.to_string()).into(),
         source_id: repository_node_id.clone(),
-        target_id: example.example_id.clone(),
+        target_id: example.example_id.clone().to_string(),
         kind: RelationKind::Contains,
     }));
     relations.extend(docs.iter().map(|doc| RelationRecord {
-        repo_id: repo_id.to_string(),
+        repo_id: (repo_id.to_string()).into(),
         source_id: repository_node_id.clone(),
-        target_id: doc.doc_id.clone(),
+        target_id: doc.doc_id.clone().to_string(),
         kind: RelationKind::Contains,
     }));
 
@@ -450,10 +452,10 @@ fn build_docstring_records(
                 }
             };
             Some(DocRecord {
-                repo_id: repo_id.to_string(),
-                doc_id: format!("repo:{repo_id}:doc:{path}#{anchor}"),
+                repo_id: (repo_id.to_string()).into(),
+                doc_id: (format!("repo:{repo_id}:doc:{path}#{anchor}")).into(),
                 title: docstring.target_name.clone(),
-                path: format!("{path}#{anchor}"),
+                path: (format!("{path}#{anchor}")).into(),
                 format: Some("julia_docstring".to_string()),
                 doc_target: Some(build_doc_target_record(docstring)),
             })
@@ -480,11 +482,11 @@ fn build_docstring_relations(
                     ),
                     ResolvedDocstringTarget::Symbol(symbol) => (
                         docstring_symbol_anchor(docstring, symbol),
-                        symbol.symbol_id.clone(),
+                        symbol.symbol_id.to_string(),
                     ),
                 };
             Some(RelationRecord {
-                repo_id: repo_id.to_string(),
+                repo_id: (repo_id.to_string()).into(),
                 source_id: format!("repo:{repo_id}:doc:{path}#{anchor}"),
                 target_id,
                 kind: RelationKind::Documents,
@@ -593,7 +595,7 @@ fn docstring_symbol_anchor(docstring: &JuliaParserDocAttachment, symbol: &Symbol
 
 fn build_doc_target_record(docstring: &JuliaParserDocAttachment) -> DocTargetRecord {
     DocTargetRecord {
-        kind: doc_target_kind_label(docstring.target_kind).to_string(),
+        kind: (doc_target_kind_label(docstring.target_kind).to_string()).into(),
         name: docstring.target_name.clone(),
         path: docstring.target_path.clone(),
         line_start: docstring.target_line_start,
@@ -616,17 +618,17 @@ fn build_symbol_record(
 ) -> SymbolRecord {
     let qualified_name = qualified_symbol_name(module_name, &symbol.name);
     SymbolRecord {
-        repo_id: repo_id.to_string(),
-        symbol_id,
-        module_id: Some(format!("repo:{repo_id}:module:{module_name}")),
+        repo_id: (repo_id.to_string()).into(),
+        symbol_id: symbol_id.into(),
+        module_id: Some((format!("repo:{repo_id}:module:{module_name}")).into()),
         name: symbol.name,
         qualified_name,
         kind: symbol.kind,
-        path: symbol.path,
+        path: (symbol.path).into(),
         line_start: symbol.line_start,
         line_end: symbol.line_end,
         signature: symbol.signature,
-        audit_status: Some("unreviewed".to_string()),
+        audit_status: Some(("unreviewed".to_string()).into()),
         verification_state: None,
         attributes: symbol.attributes,
     }
@@ -676,13 +678,13 @@ fn normalize_symbol_id_segment(raw: &str) -> String {
 }
 
 fn upsert_symbol(symbols: &mut BTreeMap<String, SymbolRecord>, symbol: SymbolRecord) {
-    match symbols.get_mut(&symbol.symbol_id) {
+    match symbols.get_mut(symbol.symbol_id.as_str()) {
         Some(existing) if existing.kind == RepoSymbolKind::ModuleExport => {
             *existing = symbol;
         }
         Some(_) => {}
         None => {
-            symbols.insert(symbol.symbol_id.clone(), symbol);
+            symbols.insert(symbol.symbol_id.to_string(), symbol);
         }
     }
 }

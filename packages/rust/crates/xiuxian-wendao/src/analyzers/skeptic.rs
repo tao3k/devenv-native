@@ -3,6 +3,7 @@
 use super::records::{DocRecord, RelationKind, RelationRecord, SymbolRecord};
 use std::collections::HashMap;
 
+/// Namespace boundary: this public name is scoped by its module owner.
 /// Result of a skepticism audit for a symbol.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuditResult {
@@ -46,12 +47,14 @@ pub fn audit_symbols(
         }
     }
 
-    let doc_map: HashMap<String, &DocRecord> =
-        docs.iter().map(|doc| (doc.doc_id.clone(), doc)).collect();
+    let doc_map: HashMap<String, &DocRecord> = docs
+        .iter()
+        .map(|doc| (doc.doc_id.to_string(), doc))
+        .collect();
 
     // 2. Audit each symbol
     for symbol in symbols {
-        let result = if let Some(doc_ids) = symbol_to_docs.get(&symbol.symbol_id) {
+        let result = if let Some(doc_ids) = symbol_to_docs.get(symbol.symbol_id.as_str()) {
             // Basic check: does any associated doc title contain the symbol name?
             // (In a future version, we would read the actual file content via VFS)
             let has_valid_doc = doc_ids.iter().any(|doc_id| {
@@ -75,7 +78,7 @@ pub fn audit_symbols(
             AuditResult::Unknown
         };
 
-        audit_map.insert(symbol.symbol_id.clone(), result.as_str().to_string());
+        audit_map.insert(symbol.symbol_id.to_string(), result.as_str().to_string());
     }
 
     audit_map

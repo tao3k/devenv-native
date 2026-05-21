@@ -2,6 +2,7 @@
 
 #[path = "api.rs"]
 mod api;
+/// Public Wendao boundary.
 #[path = "code_observation/mod.rs"]
 pub mod code_observation;
 #[path = "content.rs"]

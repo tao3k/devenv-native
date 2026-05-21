@@ -6,6 +6,7 @@ use std::sync::Arc;
 use serde_json::Value;
 
 use super::ZhenfaTool;
+use crate::ZhenfaToolIdRef;
 
 /// In-memory native tool registry used by the zhenfa orchestrator.
 #[derive(Clone, Default)]
@@ -27,7 +28,7 @@ impl ZhenfaRegistry {
 
     /// Resolve one tool by id.
     #[must_use]
-    pub fn get(&self, tool_id: &str) -> Option<Arc<dyn ZhenfaTool>> {
+    pub fn get(&self, tool_id: ZhenfaToolIdRef<'_>) -> Option<Arc<dyn ZhenfaTool>> {
         self.tools.get(tool_id).cloned()
     }
 
@@ -45,7 +46,7 @@ impl ZhenfaRegistry {
 
     /// Returns true when the tool id is registered.
     #[must_use]
-    pub fn contains(&self, tool_id: &str) -> bool {
+    pub fn contains(&self, tool_id: ZhenfaToolIdRef<'_>) -> bool {
         self.tools.contains_key(tool_id)
     }
 

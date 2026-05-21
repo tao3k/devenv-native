@@ -8,7 +8,7 @@ use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::signal::ZhenfaSignal;
-use crate::JsonRpcMeta;
+use crate::{JsonRpcMeta, ZhenfaSessionId, ZhenfaTraceId};
 
 type ExtensionValue = Arc<dyn Any + Send + Sync>;
 type ExtensionMap = HashMap<TypeId, ExtensionValue>;
@@ -17,9 +17,9 @@ type ExtensionMap = HashMap<TypeId, ExtensionValue>;
 #[derive(Clone, Default)]
 pub struct ZhenfaContext {
     /// Optional session identifier propagated from caller runtime.
-    pub session_id: Option<String>,
+    pub session_id: Option<ZhenfaSessionId>,
     /// Optional trace identifier for correlation.
-    pub trace_id: Option<String>,
+    pub trace_id: Option<ZhenfaTraceId>,
     /// Additional metadata fields propagated by the caller.
     pub extra: HashMap<String, Value>,
     extensions: Arc<ExtensionMap>,
@@ -29,8 +29,8 @@ impl ZhenfaContext {
     /// Build a context from explicit metadata fields.
     #[must_use]
     pub fn new(
-        session_id: Option<String>,
-        trace_id: Option<String>,
+        session_id: Option<ZhenfaSessionId>,
+        trace_id: Option<ZhenfaTraceId>,
         extra: HashMap<String, Value>,
     ) -> Self {
         Self {
@@ -48,11 +48,11 @@ impl ZhenfaContext {
     }
 
     /// Set the trace identifier when absent.
-    pub fn set_correlation_id_if_absent(&mut self, correlation_id: impl Into<String>) {
+    pub fn set_correlation_id_if_absent(&mut self, correlation_id: impl Into<ZhenfaTraceId>) {
         let should_set = self
             .trace_id
             .as_ref()
-            .is_none_or(|value| value.trim().is_empty());
+            .is_none_or(|value| value.as_str().trim().is_empty());
         if should_set {
             self.trace_id = Some(correlation_id.into());
         }
@@ -112,7 +112,11 @@ impl ZhenfaContext {
 
 impl From<JsonRpcMeta> for ZhenfaContext {
     fn from(meta: JsonRpcMeta) -> Self {
-        Self::new(meta.session_id, meta.trace_id, meta.extra)
+        Self::new(
+            meta.session_id.map(ZhenfaSessionId::from),
+            meta.trace_id.map(ZhenfaTraceId::from),
+            meta.extra,
+        )
     }
 }
 

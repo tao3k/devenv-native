@@ -1,3 +1,5 @@
+//! `search::queries::sql::provider::route` owns Wendao sql provider route behavior.
+
 use async_trait::async_trait;
 use xiuxian_wendao_runtime::transport::{SqlFlightRouteProvider, SqlFlightRouteResponse};
 

@@ -60,11 +60,12 @@ impl<'conn> DuckLakeRecordBatchAppender<'conn> {
     where
         I: IntoIterator<Item = ::duckdb::arrow::record_batch::RecordBatch>,
     {
-        let mut appended_rows = 0;
-        for batch in batches {
-            appended_rows += self.append_batch(batch)?;
-        }
-        Ok(appended_rows)
+        batches
+            .into_iter()
+            .try_fold(0usize, |appended_rows, batch| {
+                self.append_batch(batch)
+                    .map(|batch_rows| appended_rows + batch_rows)
+            })
     }
 
     /// Flush appended rows into `DuckDB`.

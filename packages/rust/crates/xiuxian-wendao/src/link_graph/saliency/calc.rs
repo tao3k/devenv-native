@@ -1,3 +1,5 @@
+//! `link_graph::saliency::calc` owns Wendao link graph saliency calc behavior.
+
 use super::{DEFAULT_DECAY_RATE, DEFAULT_SALIENCY_BASE, LinkGraphSaliencyPolicy};
 
 fn clamp_finite(value: f64, minimum: f64, maximum: f64) -> f64 {
@@ -10,6 +12,7 @@ fn clamp_finite(value: f64, minimum: f64, maximum: f64) -> f64 {
 /// Compute the next saliency score:
 /// `S = clamp(S_base * exp(-lambda * delta_t_days) + alpha * ln(1 + activations), [min, max])`
 #[must_use]
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn compute_link_graph_saliency(
     saliency_base: f64,
     decay_rate: f64,

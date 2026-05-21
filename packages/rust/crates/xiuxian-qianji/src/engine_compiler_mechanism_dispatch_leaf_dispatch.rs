@@ -1,4 +1,6 @@
-use crate::error::QianjiError;
+//! Leaf-dispatch branch for compiler task mechanism resolution.
+
+use crate::QianjiError;
 
 use super::resolver_chain;
 

@@ -1,3 +1,5 @@
+//! `repo_index::types` owns Wendao repo index types behavior.
+
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -106,6 +108,7 @@ pub struct RepoIndexRequest {
 
 /// Indexed source document captured from a configured repository.
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Raw DTO boundary: this public record mirrors serialized Wendao transport fields.
 pub struct RepoCodeDocument {
     /// Repository-relative source path.
     pub path: String,

@@ -1,3 +1,5 @@
+//! `unified_symbol::symbol` owns Wendao unified symbol symbol behavior.
+
 use serde::{Deserialize, Serialize};
 
 /// Source type for a symbol.
@@ -11,6 +13,7 @@ pub enum SymbolSource {
 
 /// A unified symbol that can represent both project and external symbols.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct UnifiedSymbol {
     /// Symbol name.
     pub name: String,

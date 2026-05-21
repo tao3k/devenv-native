@@ -1,3 +1,5 @@
+//! `link_graph::context_snapshot::store` owns Wendao link graph context snapshot store behavior.
+
 use crate::link_graph::context_snapshot::runtime::{
     normalize_snapshot_key_prefix, resolve_snapshot_runtime, snapshot_cache_key,
     snapshot_redis_client,
@@ -28,6 +30,7 @@ fn decode_snapshot_payload(raw: &str, snapshot_id: &str) -> Option<QuantumContex
 /// # Errors
 ///
 /// Returns an error when runtime configuration is invalid or Valkey operations fail.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn valkey_quantum_context_snapshot_get(
     snapshot_id: &str,
 ) -> Result<Option<QuantumContextSnapshot>, String> {
@@ -40,6 +43,7 @@ pub fn valkey_quantum_context_snapshot_get(
 /// # Errors
 ///
 /// Returns an error when inputs are invalid or Valkey operations fail.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn valkey_quantum_context_snapshot_get_with_valkey(
     snapshot_id: &str,
     valkey_url: &str,
@@ -132,6 +136,7 @@ pub fn valkey_quantum_context_snapshot_save_with_valkey(
 /// # Errors
 ///
 /// Returns an error when runtime configuration is invalid or Valkey operations fail.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn valkey_quantum_context_snapshot_drop(snapshot_id: &str) -> Result<(), String> {
     let (valkey_url, key_prefix) = resolve_snapshot_runtime()?;
     let trimmed = snapshot_id.trim();
@@ -156,6 +161,7 @@ pub fn valkey_quantum_context_snapshot_drop(snapshot_id: &str) -> Result<(), Str
 /// # Errors
 ///
 /// Returns an error when runtime configuration is invalid or Valkey operations fail.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn valkey_quantum_context_snapshot_rollback(
     snapshot_id: &str,
 ) -> Result<Option<Vec<QuantumContext>>, String> {
@@ -172,6 +178,7 @@ pub fn valkey_quantum_context_snapshot_rollback(
 /// # Errors
 ///
 /// Returns an error when inputs are invalid or Valkey operations fail.
+/// Primitive boundary: this public API keeps raw Wendao identifier carriers for existing transport and query contracts.
 pub fn valkey_quantum_context_snapshot_rollback_with_valkey(
     snapshot_id: &str,
     valkey_url: &str,

@@ -15,6 +15,7 @@ mod navigation;
 mod plugin_artifact;
 mod retrieval;
 mod search_responses;
+mod semantic;
 mod symbols;
 mod type_collection;
 mod vfs;
@@ -25,6 +26,14 @@ pub use document_extract::{
 };
 pub use error::ApiError;
 pub use plugin_artifact::{UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind};
+pub use semantic::{
+    StudioContractCategory, StudioContractCenterFlag, StudioContractContentType,
+    StudioContractDocType, StudioContractId, StudioContractKind, StudioContractMillisecondsI64,
+    StudioContractMillisecondsU64, StudioContractMimeType, StudioContractMode,
+    StudioContractNodeKind, StudioContractPath, StudioContractRelationType,
+    StudioContractSecondsU64, StudioContractSemanticType, StudioContractState,
+    StudioContractStatus, StudioContractTag, StudioContractToken, StudioContractUrl,
+};
 pub use type_collection::{studio_frontend_type_collection, studio_type_collection};
 pub use vfs::{VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult};
 
@@ -58,7 +67,7 @@ pub use markdown_analysis::{
 
 pub use navigation::StudioNavigationTarget;
 pub use retrieval::{RetrievalChunk, RetrievalChunkSurface};
-#[cfg(all(test, feature = "local-runtime"))]
+#[cfg(all(test, feature = "zhenfa-router"))]
 pub(crate) use search_responses::domain_ast_hits_for_search_plane;
 pub use search_responses::{
     AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,

@@ -28,12 +28,12 @@ async fn workflow_control_service_task_complete_accepts_typed_user_payload() {
                 &QianjiBpmnWorkflowTaskCompleteRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    instance_id: "wf_task_complete_action".to_string(),
+                    instance_id: "wf_task_complete_action".to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                     completion: QianjiBpmnWorkflowTaskCompletionPayload {
                         token_id: pending_token_id,
-                        process_id: "review".to_string(),
-                        activity_id: pending_activity_id,
+                        process_id: "review".to_string().into(),
+                        activity_id: pending_activity_id.into(),
                         kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                         data: json!({
                             "answer": "approved",
@@ -97,12 +97,12 @@ async fn workflow_control_service_task_complete_can_continue_to_next_human_bound
                 &QianjiBpmnWorkflowTaskCompleteRequest {
                     bpmn_path,
                     dmn_paths: Vec::new(),
-                    instance_id: "wf_task_complete_human_boundary".to_string(),
+                    instance_id: "wf_task_complete_human_boundary".to_string().into(),
                     checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::LocalDuckDb,
                     completion: QianjiBpmnWorkflowTaskCompletionPayload {
                         token_id: pending_token_id,
-                        process_id: "review".to_string(),
-                        activity_id: pending_activity_id,
+                        process_id: "review".to_string().into(),
+                        activity_id: pending_activity_id.into(),
                         kind: QianjiBpmnWorkflowTaskCompletionKind::User,
                         data: json!({
                             "answer": "ready",

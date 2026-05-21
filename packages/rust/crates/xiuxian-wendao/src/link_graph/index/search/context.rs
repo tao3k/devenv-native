@@ -1,9 +1,11 @@
+//! `link_graph::index::search::context` owns Wendao index search context behavior.
+
 use crate::link_graph::index::{
     LinkGraphIndex, LinkGraphMatchStrategy, LinkGraphSearchOptions, normalize_path_filter,
     normalize_with_case, tokenize,
 };
 use regex::{Regex, RegexBuilder};
-
+/// `SearchExecutionContext` public type boundary for Wendao.
 #[derive(Debug, Clone)]
 pub struct SearchExecutionContext {
     pub bounded: usize,
@@ -129,7 +131,7 @@ impl LinkGraphIndex {
         }
     }
 }
-
+/// `SearchRuntimePolicy` public type boundary for Wendao.
 #[derive(Debug, Clone)]
 pub struct SearchRuntimePolicy {
     pub scope: LinkGraphScope,

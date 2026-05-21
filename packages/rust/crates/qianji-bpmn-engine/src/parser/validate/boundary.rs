@@ -52,8 +52,8 @@ pub(in crate::parser) fn validate_boundary_event(
     }
     if usage.total > 0 {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "multiple_boundary_events_for_attached_node",
         });
     }
@@ -61,22 +61,22 @@ pub(in crate::parser) fn validate_boundary_event(
 
     if event_kind == Some(&BpmnEventKind::Cancel) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "cancel_boundary_requires_transaction_shell",
         });
     }
     if event_kind == Some(&BpmnEventKind::Error) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "error_boundary_requires_supported_subprocess_shell",
         });
     }
     if event_kind == Some(&BpmnEventKind::Escalation) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "escalation_boundary_requires_supported_subprocess_shell",
         });
     }
@@ -92,8 +92,8 @@ pub(in crate::parser) fn validate_boundary_event(
             | BpmnNodeKind::BusinessRuleTask
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "unsupported_boundary_attachment_kind",
         });
     }
@@ -107,8 +107,8 @@ pub(in crate::parser) fn validate_boundary_event(
         )
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "unsupported_boundary_event_kind",
         });
     }
@@ -125,8 +125,8 @@ fn validate_non_interrupting_boundary(
 ) -> Result<()> {
     if usage.total > 0 {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "multiple_boundary_events_for_attached_node",
         });
     }
@@ -134,8 +134,8 @@ fn validate_non_interrupting_boundary(
 
     if event_kind == Some(&BpmnEventKind::Escalation) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "non_interrupting_escalation_boundary_deferred",
         });
     }
@@ -149,15 +149,15 @@ fn validate_non_interrupting_boundary(
             | BpmnNodeKind::BusinessRuleTask
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "unsupported_boundary_attachment_kind",
         });
     }
     if !supports_non_interrupting_boundary_repeat(attached_node) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "non_interrupting_boundary_requires_supported_task_repeat_owner",
         });
     }
@@ -171,8 +171,8 @@ fn validate_non_interrupting_boundary(
         )
     ) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             detail: "unsupported_boundary_event_kind",
         });
     }
@@ -198,16 +198,16 @@ fn resolve_boundary_attachment<'a>(
 ) -> Result<(&'a str, &'a RawNode)> {
     let attached_to_ref = node.attached_to_ref.as_deref().ok_or_else(|| {
         BpmnEngineError::MissingRequiredNodeElement {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
             element: "attached_to_ref",
         }
     })?;
     if !node_ids.contains(attached_to_ref) {
         return Err(BpmnEngineError::UnknownBoundaryAttachment {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
-            attached_to_node_id: attached_to_ref.to_string(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
+            attached_to_node_id: (attached_to_ref.to_string()).into(),
         });
     }
     let attached_node = process
@@ -215,9 +215,9 @@ fn resolve_boundary_attachment<'a>(
         .iter()
         .find(|candidate| candidate.bpmn_id == attached_to_ref)
         .ok_or_else(|| BpmnEngineError::UnknownBoundaryAttachment {
-            process_id: process.process_id.clone(),
-            node_id: node.bpmn_id.clone(),
-            attached_to_node_id: attached_to_ref.to_string(),
+            process_id: (process.process_id.clone()).into(),
+            node_id: (node.bpmn_id.clone()).into(),
+            attached_to_node_id: (attached_to_ref.to_string()).into(),
         })?;
     Ok((attached_to_ref, attached_node))
 }
@@ -394,8 +394,8 @@ fn boundary_configuration_error(
     detail: &'static str,
 ) -> Result<bool> {
     Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-        process_id: process.process_id.clone(),
-        node_id: node.bpmn_id.clone(),
+        process_id: (process.process_id.clone()).into(),
+        node_id: (node.bpmn_id.clone()).into(),
         detail,
     })
 }

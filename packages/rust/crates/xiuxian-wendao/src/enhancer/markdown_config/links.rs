@@ -1,3 +1,5 @@
+//! `enhancer::markdown_config::links` owns Wendao enhancer markdown config links behavior.
+
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
 

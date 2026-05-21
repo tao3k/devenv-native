@@ -2,7 +2,7 @@
 
 #[cfg(feature = "provider-litellm")]
 use super::error::sanitize_user_visible;
-use super::error::{LlmError, LlmResult};
+use super::error::{HttpContentType, LlmError, LlmResult};
 use async_trait::async_trait;
 use futures::Stream;
 #[cfg(feature = "provider-litellm")]
@@ -264,7 +264,7 @@ fn map_litellm_openai_like_error(stage: &'static str, error: impl std::fmt::Disp
     {
         return LlmError::RequestFailed {
             status: reqwest::StatusCode::NOT_FOUND,
-            content_type: "application/json".to_string(),
+            content_type: HttpContentType::new("application/json"),
             reason,
         };
     }

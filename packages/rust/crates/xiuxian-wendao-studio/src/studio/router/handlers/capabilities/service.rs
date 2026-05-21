@@ -1,3 +1,5 @@
+//! Owns the Studio handlers capabilities service surface.
+
 use std::sync::Arc;
 
 use axum::{Json, extract::State};

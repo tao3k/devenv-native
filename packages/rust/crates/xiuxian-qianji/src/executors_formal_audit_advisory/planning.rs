@@ -4,11 +4,12 @@ use crate::contract_feedback::{
 };
 use anyhow::{Result, anyhow};
 use xiuxian_qianhuan::{
-    PersonaProfile, PromptContextBlock, PromptContextCategory, PromptContextSource, RoleMixProfile,
-    RoleMixRole,
+    InjectionSessionId, InjectionSnapshotId, InjectionSnapshotInput, InjectionTurnId,
+    PersonaProfile, PromptContextBlock, PromptContextBlockId, PromptContextBlockInput,
+    PromptContextCategory, PromptContextSource, PromptSessionScope, RoleMixProfile, RoleMixRole,
 };
 
-use super::helpers::{
+use super::evidence::{
     advisory_labels, advisory_summary, findings_summary, pack_summary, primary_finding,
     primary_finding_summary, primary_trace_id, role_mix_profile_id, runtime_trace_artifact_summary,
     runtime_trace_evidence, sanitize_identifier, snapshot_id,
@@ -51,14 +52,15 @@ impl QianjiAdvisoryAuditExecutor {
             let turn_id = u64::try_from(role_index + 1).map_err(|error| {
                 anyhow!("role index overflow while preparing advisory plan: {error}")
             })?;
-            let snapshot = xiuxian_qianhuan::InjectionSnapshot::from_blocks(
-                snapshot_id(request, role_id),
-                session_id.clone(),
-                turn_id,
-                self.injection_policy.clone(),
-                Some(role_mix.clone()),
-                blocks,
-            );
+            let snapshot =
+                xiuxian_qianhuan::InjectionSnapshot::from_blocks(InjectionSnapshotInput {
+                    snapshot_id: InjectionSnapshotId::new(snapshot_id(request, role_id)),
+                    session_id: InjectionSessionId::new(session_id.clone()),
+                    turn_id: InjectionTurnId::new(turn_id),
+                    policy: self.injection_policy.clone(),
+                    role_mix: Some(role_mix.clone()),
+                    blocks,
+                });
             snapshot.validate().map_err(|error| {
                 anyhow!("invalid advisory injection snapshot for role '{role_id}': {error}")
             })?;
@@ -135,7 +137,7 @@ impl QianjiAdvisoryAuditExecutor {
                 finding.evidence.push(FindingEvidence {
                     kind: EvidenceKind::DerivedInvariant,
                     path: None,
-                    locator: Some(role_plan.snapshot.snapshot_id.clone()),
+                    locator: Some(role_plan.snapshot.snapshot_id.as_ref().to_string()),
                     message: format!(
                         "Prepared Qianhuan advisory snapshot for '{}' with {} blocks and {} chars.",
                         role_plan.persona_name,
@@ -202,7 +204,7 @@ impl QianjiAdvisoryAuditExecutor {
         persona: &PersonaProfile,
         primary_finding: Option<&ContractFinding>,
     ) -> Vec<PromptContextBlock> {
-        let mut blocks = vec![PromptContextBlock::new(
+        let mut blocks = vec![advisory_block(
             format!("{}:policy", sanitize_identifier(persona.id.as_str())),
             PromptContextSource::Policy,
             PromptContextCategory::Policy,
@@ -213,7 +215,7 @@ impl QianjiAdvisoryAuditExecutor {
         )];
 
         if !persona.style_anchors.is_empty() {
-            blocks.push(PromptContextBlock::new(
+            blocks.push(advisory_block(
                 format!("{}:anchors", sanitize_identifier(persona.id.as_str())),
                 PromptContextSource::Policy,
                 PromptContextCategory::Policy,
@@ -228,7 +230,7 @@ impl QianjiAdvisoryAuditExecutor {
             ));
         }
 
-        blocks.push(PromptContextBlock::new(
+        blocks.push(advisory_block(
             format!("{}:findings", sanitize_identifier(persona.id.as_str())),
             PromptContextSource::RuntimeHint,
             PromptContextCategory::RuntimeHint,
@@ -239,7 +241,7 @@ impl QianjiAdvisoryAuditExecutor {
         ));
 
         if let Some(finding) = primary_finding {
-            blocks.push(PromptContextBlock::new(
+            blocks.push(advisory_block(
                 format!("{}:primary", sanitize_identifier(persona.id.as_str())),
                 PromptContextSource::Knowledge,
                 PromptContextCategory::Knowledge,
@@ -252,7 +254,7 @@ impl QianjiAdvisoryAuditExecutor {
 
         let runtime_trace_summary = runtime_trace_artifact_summary(request);
         if !runtime_trace_summary.is_empty() {
-            blocks.push(PromptContextBlock::new(
+            blocks.push(advisory_block(
                 format!("{}:runtime", sanitize_identifier(persona.id.as_str())),
                 PromptContextSource::RuntimeHint,
                 PromptContextCategory::RuntimeHint,
@@ -265,4 +267,24 @@ impl QianjiAdvisoryAuditExecutor {
 
         blocks
     }
+}
+
+fn advisory_block(
+    block_id: impl Into<String>,
+    source: PromptContextSource,
+    category: PromptContextCategory,
+    priority: u16,
+    session_id: impl Into<String>,
+    payload: impl Into<String>,
+    anchor: bool,
+) -> PromptContextBlock {
+    PromptContextBlock::new(PromptContextBlockInput {
+        block_id: PromptContextBlockId::new(block_id),
+        source,
+        category,
+        priority,
+        session_scope: PromptSessionScope::new(session_id),
+        payload: payload.into(),
+        anchor,
+    })
 }

@@ -1,3 +1,5 @@
+//! `query_core::operators::types` owns Wendao query core operators types behavior.
+
 use std::collections::{BTreeSet, HashSet};
 
 use crate::query_core::types::WendaoRelation;

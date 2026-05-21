@@ -97,6 +97,64 @@ pub struct TableNewColumn {
     pub nullable: bool,
 }
 
+/// Typed catalog token for index families reported by Lance.
+///
+/// The serialized representation remains a string for compatibility with
+/// existing admin responses, while Rust callers see an explicit boundary type.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct IndexTypeToken(String);
+
+impl IndexTypeToken {
+    /// Create a token from a Lance index-family label.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Return the raw Lance index-family label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl From<&str> for IndexTypeToken {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<String> for IndexTypeToken {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl std::fmt::Display for IndexTypeToken {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+impl PartialEq<&str> for IndexTypeToken {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+impl PartialEq<str> for IndexTypeToken {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
+
+impl PartialEq<IndexTypeToken> for &str {
+    fn eq(&self, other: &IndexTypeToken) -> bool {
+        *self == other.as_str()
+    }
+}
+
 /// Progress events for index build. Used when an optional callback is set on the store;
 /// when Lance 2.x exposes a progress API, `Progress(percent)` can be emitted during build.
 #[derive(Debug, Clone)]
@@ -105,8 +163,8 @@ pub enum IndexBuildProgress {
     Started {
         /// Table being indexed.
         table_name: String,
-        /// Index type (e.g. `btree`, `ivf_hnsw`).
-        index_type: String,
+        /// Lance index-family token such as `btree` or `ivf_hnsw`.
+        index_type: IndexTypeToken,
     },
     /// Build progress (0–100). Emitted when Lance provides progress; not yet wired.
     Progress {
@@ -125,8 +183,9 @@ pub enum IndexBuildProgress {
 pub struct IndexStats {
     /// Column(s) indexed (e.g. `"skill_name"`, `"category"`).
     pub column: String,
-    /// Index kind: `"btree"`, `"bitmap"`, `"inverted"`, `"vector"`.
-    pub index_type: String,
+    /// Lance index-family token such as `"btree"`, `"bitmap"`, `"inverted"`,
+    /// or `"vector"`.
+    pub index_type: IndexTypeToken,
     /// Build duration in milliseconds.
     pub duration_ms: u64,
 }
@@ -157,8 +216,8 @@ impl Default for IndexThresholds {
 pub struct IndexStatus {
     /// Index name (e.g. `"vector"`, `"scalar_skill_name_btree"`).
     pub name: String,
-    /// Index kind (e.g. `"IVF_FLAT"`, `"Inverted"`, `"BTree"`).
-    pub index_type: String,
+    /// Lance index-kind token such as `"IVF_FLAT"`, `"Inverted"`, or `"BTree"`.
+    pub index_type: IndexTypeToken,
 }
 
 /// Suggested action from [`crate::VectorStore::analyze_table_health`].

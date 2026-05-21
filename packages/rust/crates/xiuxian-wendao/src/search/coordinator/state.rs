@@ -1,3 +1,5 @@
+//! `search::coordinator::state` owns Wendao search coordinator state behavior.
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};

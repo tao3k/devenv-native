@@ -19,13 +19,12 @@ jobs:
         image:
           - name: xiuxian-wendao
             flake-attr: container-wendao
-          - name: xiuxian-daochang
-            flake-attr: container-daochang
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
+          ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - uses: ./.github/actions/common-setup
         with:

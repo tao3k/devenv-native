@@ -1,7 +1,9 @@
-mod datafusion;
+//! Local relation engine abstraction and implementations.
+
+mod duckdb;
 mod types;
 
-pub use datafusion::DataFusionLocalRelationEngine;
+pub use duckdb::DuckDbLocalRelationEngine;
 pub use types::{
     LocalRelationEngine, LocalRelationEngineKind, LocalRelationMaterializationState,
     LocalRelationRegistrationHint,

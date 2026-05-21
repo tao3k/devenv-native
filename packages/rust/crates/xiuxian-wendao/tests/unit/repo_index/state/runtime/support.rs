@@ -1,4 +1,5 @@
-pub(super) use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
+pub(super) use std::collections::HashSet;
 pub(super) use std::fs;
 pub(super) use std::path::PathBuf;
 pub(super) use std::sync::Arc;
@@ -6,13 +7,15 @@ pub(super) use std::time::Duration;
 
 pub(super) use crate::analyzers::PluginRegistry;
 pub(super) use crate::analyzers::RepoSourceFile;
+pub(super) use crate::analyzers::RepositoryRecord;
+#[cfg(feature = "julia")]
+pub(super) use crate::analyzers::bootstrap_builtin_registry;
 pub(super) use crate::analyzers::{
     AnalysisContext, PluginAnalysisOutput, RegisteredRepository, RepoIntelligenceError,
     RepoIntelligencePlugin, RepositoryAnalysisOutput, RepositoryPluginConfig,
     RepositoryRefreshPolicy, analyze_registered_repository_with_registry,
-    bootstrap_builtin_registry,
 };
-pub(super) use crate::analyzers::{ModuleRecord, RepoSymbolKind, RepositoryRecord, SymbolRecord};
+use crate::analyzers::{ModuleRecord, RepoSymbolKind, SymbolRecord};
 pub(super) use crate::analyzers::{RepoSourceKind, RepoSyncResult};
 pub(super) use crate::repo_index::state::coordinator::PreparedIncrementalAnalysis;
 pub(super) use crate::repo_index::state::fingerprint::timestamp_now;
@@ -23,21 +26,26 @@ pub(super) use crate::search::{
     SearchPlaneCache, SearchPlanePhase, SearchPlaneService, SearchPublicationStorageFormat,
     SearchRepoPublicationInput,
 };
+#[cfg(feature = "julia")]
 pub(super) use crate::test_support::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
+#[cfg(feature = "julia")]
 use crate::test_support::linked_parser_summary::linked_parser_summary_base_url;
 pub(super) use crate::test_support::{commit_all, init_git_repository};
 pub(super) use chrono::Utc;
 pub(super) use xiuxian_git_repo::discover_checkout_metadata;
+#[cfg(feature = "julia")]
 pub(super) struct LinkedParserSummaryTestGuard {
     killed: bool,
 }
 
+#[cfg(feature = "julia")]
 impl LinkedParserSummaryTestGuard {
     pub(super) fn kill(&mut self) {
         self.killed = true;
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn spawn_wendaosearch_julia_parser_summary_service()
 -> (String, LinkedParserSummaryTestGuard) {
     (
@@ -47,6 +55,7 @@ pub(super) fn spawn_wendaosearch_julia_parser_summary_service()
     )
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn spawn_wendaosearch_modelica_parser_summary_service()
 -> (String, LinkedParserSummaryTestGuard) {
     (
@@ -56,9 +65,10 @@ pub(super) fn spawn_wendaosearch_modelica_parser_summary_service()
     )
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn julia_parser_summary_plugin_config(base_url: &str) -> RepositoryPluginConfig {
     RepositoryPluginConfig::Config {
-        id: "julia".to_string(),
+        id: "julia-code-parser".to_string(),
         options: serde_json::json!({
             "parser_summary_transport": {
                 "base_url": base_url,
@@ -73,6 +83,7 @@ pub(super) fn julia_parser_summary_plugin_config(base_url: &str) -> RepositoryPl
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn modelica_parser_summary_plugin_config(base_url: &str) -> RepositoryPluginConfig {
     RepositoryPluginConfig::Config {
         id: "modelica".to_string(),
@@ -87,6 +98,7 @@ pub(super) fn modelica_parser_summary_plugin_config(base_url: &str) -> Repositor
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn mixed_julia_modelica_plugin_configs(
     julia_base_url: &str,
     modelica_base_url: &str,
@@ -97,6 +109,7 @@ pub(super) fn mixed_julia_modelica_plugin_configs(
     ]
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn mixed_modelica_rust_plugin_configs() -> Vec<RepositoryPluginConfig> {
     vec![
         RepositoryPluginConfig::Id("modelica".to_string()),
@@ -138,19 +151,19 @@ impl RepoIntelligencePlugin for RuntimeRustPlugin {
         let module_id = format!("repo:{}:module:fixture", context.repository.id);
         Ok(PluginAnalysisOutput {
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: module_id.clone(),
+                repo_id: context.repository.id.clone().into(),
+                module_id: module_id.clone().into(),
                 qualified_name: "fixture".to_string(),
-                path: file.path.clone(),
+                path: file.path.clone().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:solve", context.repository.id),
-                module_id: Some(module_id),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:solve", context.repository.id).into(),
+                module_id: Some(module_id.into()),
                 name: "solve".to_string(),
                 qualified_name: "fixture.solve".to_string(),
                 kind: RepoSymbolKind::Function,
-                path: file.path.clone(),
+                path: file.path.clone().into(),
                 line_start: Some(1),
                 line_end: Some(1),
                 signature: Some("solve(x)".to_string()),
@@ -172,9 +185,9 @@ impl RepoIntelligencePlugin for RuntimeRustPlugin {
     ) -> Result<RepositoryAnalysisOutput, RepoIntelligenceError> {
         Ok(RepositoryAnalysisOutput {
             repository: Some(RepositoryRecord {
-                repo_id: context.repository.id.clone(),
+                repo_id: context.repository.id.clone().into(),
                 name: "fixture".to_string(),
-                path: repository_root.display().to_string(),
+                path: repository_root.display().to_string().into(),
                 url: None,
                 revision: None,
                 version: None,
@@ -182,19 +195,19 @@ impl RepoIntelligencePlugin for RuntimeRustPlugin {
                 dependencies: Vec::new(),
             }),
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: format!("repo:{}:module:fixture", context.repository.id),
+                repo_id: context.repository.id.clone().into(),
+                module_id: format!("repo:{}:module:fixture", context.repository.id).into(),
                 qualified_name: "fixture".to_string(),
-                path: "src/lib.rs".to_string(),
+                path: "src/lib.rs".to_string().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:solve", context.repository.id),
-                module_id: Some(format!("repo:{}:module:fixture", context.repository.id)),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:solve", context.repository.id).into(),
+                module_id: Some(format!("repo:{}:module:fixture", context.repository.id).into()),
                 name: "solve".to_string(),
                 qualified_name: "fixture.solve".to_string(),
                 kind: RepoSymbolKind::Function,
-                path: "src/lib.rs".to_string(),
+                path: "src/lib.rs".to_string().into(),
                 line_start: Some(1),
                 line_end: Some(1),
                 signature: Some("solve(x)".to_string()),
@@ -227,19 +240,19 @@ impl RepoIntelligencePlugin for RuntimeModelicaPlugin {
         let module_id = format!("repo:{}:module:DemoLib", context.repository.id);
         Ok(PluginAnalysisOutput {
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: module_id.clone(),
+                repo_id: context.repository.id.clone().into(),
+                module_id: module_id.clone().into(),
                 qualified_name: "DemoLib".to_string(),
-                path: file.path.clone(),
+                path: file.path.clone().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:PI", context.repository.id),
-                module_id: Some(module_id),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:PI", context.repository.id).into(),
+                module_id: Some(module_id.into()),
                 name: "PI".to_string(),
                 qualified_name: "DemoLib.PI".to_string(),
                 kind: RepoSymbolKind::Type,
-                path: file.path.clone(),
+                path: file.path.clone().into(),
                 line_start: Some(1),
                 line_end: Some(1),
                 signature: Some("model PI".to_string()),
@@ -261,9 +274,9 @@ impl RepoIntelligencePlugin for RuntimeModelicaPlugin {
     ) -> Result<RepositoryAnalysisOutput, RepoIntelligenceError> {
         Ok(RepositoryAnalysisOutput {
             repository: Some(RepositoryRecord {
-                repo_id: context.repository.id.clone(),
+                repo_id: context.repository.id.clone().into(),
                 name: "DemoLib".to_string(),
-                path: repository_root.display().to_string(),
+                path: repository_root.display().to_string().into(),
                 url: None,
                 revision: None,
                 version: None,
@@ -271,19 +284,19 @@ impl RepoIntelligencePlugin for RuntimeModelicaPlugin {
                 dependencies: Vec::new(),
             }),
             modules: vec![ModuleRecord {
-                repo_id: context.repository.id.clone(),
-                module_id: format!("repo:{}:module:DemoLib", context.repository.id),
+                repo_id: context.repository.id.clone().into(),
+                module_id: format!("repo:{}:module:DemoLib", context.repository.id).into(),
                 qualified_name: "DemoLib".to_string(),
-                path: "PI.mo".to_string(),
+                path: "PI.mo".to_string().into(),
             }],
             symbols: vec![SymbolRecord {
-                repo_id: context.repository.id.clone(),
-                symbol_id: format!("repo:{}:symbol:PI", context.repository.id),
-                module_id: Some(format!("repo:{}:module:DemoLib", context.repository.id)),
+                repo_id: context.repository.id.clone().into(),
+                symbol_id: format!("repo:{}:symbol:PI", context.repository.id).into(),
+                module_id: Some(format!("repo:{}:module:DemoLib", context.repository.id).into()),
                 name: "PI".to_string(),
                 qualified_name: "DemoLib.PI".to_string(),
                 kind: RepoSymbolKind::Type,
-                path: "PI.mo".to_string(),
+                path: "PI.mo".to_string().into(),
                 line_start: Some(1),
                 line_end: Some(1),
                 signature: Some("model PI".to_string()),
@@ -296,6 +309,7 @@ impl RepoIntelligencePlugin for RuntimeModelicaPlugin {
     }
 }
 
+#[cfg(feature = "julia")]
 pub(super) fn bootstrap_builtin_registry_with_runtime_rust_plugin() -> Arc<PluginRegistry> {
     let mut registry =
         bootstrap_builtin_registry().unwrap_or_else(|error| panic!("bootstrap registry: {error}"));

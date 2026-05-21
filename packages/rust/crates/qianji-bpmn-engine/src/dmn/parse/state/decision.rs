@@ -90,7 +90,9 @@ pub(crate) fn finalize_decision_definition(
             });
         }
         (None, None, None, None, None, None) => {
-            return Err(BpmnEngineError::MissingDmnDecisionTable { decision_id });
+            return Err(BpmnEngineError::MissingDmnDecisionTable {
+                decision_id: decision_id.into(),
+            });
         }
     };
     Ok(attach_requirement_contracts(
@@ -106,7 +108,7 @@ pub(crate) fn finalize_decision_definitions(
 ) -> Result<Vec<DmnDecisionDefinition>> {
     if decisions.is_empty() {
         return Err(BpmnEngineError::MissingDmnDecision {
-            source_id: source.source_id.clone(),
+            source_id: (source.source_id.clone()).into(),
         });
     }
 

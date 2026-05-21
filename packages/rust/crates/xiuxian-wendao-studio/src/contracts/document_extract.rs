@@ -3,6 +3,12 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use super::{
+    StudioContractContentType, StudioContractId, StudioContractMillisecondsI64,
+    StudioContractMillisecondsU64, StudioContractMimeType, StudioContractPath,
+    StudioContractStatus,
+};
+
 /// Document extraction result returned to the frontend.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -27,9 +33,9 @@ pub struct DocumentExtractResult {
 #[serde(rename_all = "camelCase")]
 pub struct DocumentExtractResource {
     /// Resource type: "document" | "image" | "table" | "formula".
-    pub resource_type: String,
+    pub resource_type: StudioContractContentType,
     /// VFS path to the extracted file (empty for inline text).
-    pub resource_path: String,
+    pub resource_path: StudioContractPath,
     /// Page index (0-based).
     pub page_index: usize,
     /// Caption or title.
@@ -37,11 +43,11 @@ pub struct DocumentExtractResource {
     /// Text / HTML / LaTeX content.
     pub content: String,
     /// MIME type.
-    pub mime_type: String,
+    pub mime_type: StudioContractMimeType,
     /// Extraction status: "ok" | "error" | "skipped".
-    pub status: String,
+    pub status: StudioContractStatus,
     /// Element ID from the extractor.
-    pub element_id: String,
+    pub element_id: StudioContractId,
 }
 
 /// Browser-facing request for submitting an async document extraction job.
@@ -67,23 +73,23 @@ pub struct DocumentExtractJobSubmitRequest {
 #[serde(rename_all = "camelCase")]
 pub struct DocumentExtractJobStatus {
     /// Stable job id derived from content hash and converter profile.
-    pub job_id: String,
+    pub job_id: StudioContractId,
     /// Source document path.
-    pub source_path: String,
+    pub source_path: StudioContractPath,
     /// Output directory for extracted resources.
     pub output_dir: String,
     /// SHA-256 content hash for the source document.
     pub content_hash: String,
     /// Job status: queued, running, succeeded, or failed.
-    pub status: String,
+    pub status: StudioContractStatus,
     /// Number of conversion attempts.
     pub attempt_count: i32,
     /// Creation timestamp in epoch milliseconds.
-    pub created_at_ms: i64,
+    pub created_at_ms: StudioContractMillisecondsI64,
     /// Start timestamp in epoch milliseconds.
-    pub started_at_ms: i64,
+    pub started_at_ms: StudioContractMillisecondsI64,
     /// Finish timestamp in epoch milliseconds.
-    pub finished_at_ms: i64,
+    pub finished_at_ms: StudioContractMillisecondsI64,
     /// Failure message when status is failed.
     pub error_message: String,
 }
@@ -124,16 +130,16 @@ pub struct DocumentExtractJobsStatus {
     pub pdf_ocr_live_requests: u64,
     /// Rolling p50 wait before receiving a PDF OCR permit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pdf_ocr_queue_wait_p50_ms: Option<u64>,
+    pub pdf_ocr_queue_wait_p50_ms: Option<StudioContractMillisecondsU64>,
     /// Rolling p95 wait before receiving a PDF OCR permit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pdf_ocr_queue_wait_p95_ms: Option<u64>,
+    pub pdf_ocr_queue_wait_p95_ms: Option<StudioContractMillisecondsU64>,
     /// Rolling p50 Python OCR latency.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pdf_ocr_latency_p50_ms: Option<u64>,
+    pub pdf_ocr_latency_p50_ms: Option<StudioContractMillisecondsU64>,
     /// Rolling p95 Python OCR latency.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pdf_ocr_latency_p95_ms: Option<u64>,
+    pub pdf_ocr_latency_p95_ms: Option<StudioContractMillisecondsU64>,
     /// Cumulative source-PDF page-range OCR shard count.
     #[serde(default)]
     pub pdf_ocr_source_pdf_page_range_shards: u64,
@@ -163,14 +169,14 @@ pub struct DocumentExtractJobsStatus {
     pub failed_jobs: usize,
     /// Most recently finished job id, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_finished_job_id: Option<String>,
+    pub last_finished_job_id: Option<StudioContractId>,
     /// Most recently finished job status, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_finished_status: Option<String>,
+    pub last_finished_status: Option<StudioContractStatus>,
     /// Most recently finished conversion duration in milliseconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_conversion_duration_ms: Option<i64>,
+    pub last_conversion_duration_ms: Option<StudioContractMillisecondsI64>,
     /// Maximum finished conversion duration in milliseconds across persisted jobs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_conversion_duration_ms: Option<i64>,
+    pub max_conversion_duration_ms: Option<StudioContractMillisecondsI64>,
 }

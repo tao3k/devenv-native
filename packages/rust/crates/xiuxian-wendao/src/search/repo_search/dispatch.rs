@@ -1,3 +1,5 @@
+//! `search::repo_search::dispatch` owns Wendao search repo search dispatch behavior.
+
 use std::collections::BTreeMap;
 
 use crate::search::{RepoSearchAvailability, RepoSearchPublicationState, SearchPlaneService};

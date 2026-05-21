@@ -1,3 +1,5 @@
+//! Workdir parse surface for `xiuxian-qianji`.
+
 use crate::contracts::WorkdirManifest;
 use crate::error::QianjiError;
 

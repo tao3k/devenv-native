@@ -26,7 +26,7 @@ async fn load_code_ast_analysis_response_supports_plain_julia_plugin_repository(
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     configure_repo_project(
         fixture.state.studio.as_ref(),

@@ -41,6 +41,47 @@ fn parse_note_uses_parser_owned_document_metadata_contract() {
 }
 
 #[test]
+fn parse_note_adds_semantic_frontmatter_id_to_search_text() {
+    let content = concat!(
+        "---\n",
+        "id: component.wendao.query-substrate\n",
+        "kind: component\n",
+        "title: Wendao Query Substrate\n",
+        "relations:\n",
+        "  - kind: implements\n",
+        "    target: decision.semantic-ssot.repo-native-first\n",
+        "---\n",
+        "\n",
+        "Wendao exposes parser-backed semantic object scopes.\n",
+    );
+    let root = Path::new("/tmp/parser-doc");
+    let path = Path::new("/tmp/parser-doc/semantic/objects/component/wendao-query-substrate.md");
+
+    let parsed =
+        parse_note(path, root, content).unwrap_or_else(|| panic!("expected parsed note output"));
+
+    assert_eq!(parsed.doc.title, "Wendao Query Substrate");
+    assert!(
+        parsed
+            .doc
+            .search_text
+            .contains("semantic_id: component.wendao.query-substrate")
+    );
+    assert!(
+        parsed
+            .doc
+            .search_text
+            .contains("component.wendao.query-substrate Wendao Query Substrate")
+    );
+    assert!(parsed.doc.search_text.contains(
+        "semantic_relation_key: component.wendao.query-substrate implements decision.semantic-ssot.repo-native-first"
+    ));
+    assert!(parsed.doc.search_text.contains(
+        "semantic_relation_search_key: component.wendao.query-substrate Wendao Query Substrate implements decision.semantic-ssot.repo-native-first"
+    ));
+}
+
+#[test]
 fn parse_markdown_document_exposes_cross_format_markdown_core() {
     let document = xiuxian_wendao_parsers::document::parse_markdown_document(
         "# Heading Contract\n\nBody text.\n",

@@ -7,8 +7,8 @@ pub(crate) fn resolve_navigation_target(state: &StudioState, path: &str) -> Stud
     let project_name = studio_project_name(state, normalized.as_str());
 
     StudioNavigationTarget {
-        path: normalized,
-        category: "file".to_string(),
+        path: normalized.into(),
+        category: "file".into(),
         project_name,
         root_label: None,
         line: None,

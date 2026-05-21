@@ -39,7 +39,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_reference_issue(
         "snapshot": diagram_snapshot_summary(&snapshot),
     });
 
-    Some(LintIssue::new(
+    Some(LintIssue::from_parts(
         "bpmn.invalid_di_reference",
         "BPMN diagram reference points at a missing element",
         format!(

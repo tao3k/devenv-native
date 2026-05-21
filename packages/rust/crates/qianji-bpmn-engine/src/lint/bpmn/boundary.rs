@@ -38,7 +38,7 @@ fn cancel_boundary_requires_transaction_shell_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_boundary_configuration",
         "Cancel boundary must attach to a transaction shell",
         format!(
@@ -65,7 +65,7 @@ fn multiple_transaction_cancel_boundaries_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_boundary_configuration",
         "Transaction owner exposes more than one cancel boundary",
         format!(
@@ -93,7 +93,7 @@ fn error_boundary_requires_supported_subprocess_shell_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_boundary_configuration",
         "Error boundary must attach to a supported subprocess shell",
         format!(
@@ -120,7 +120,7 @@ fn escalation_boundary_requires_supported_subprocess_shell_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_boundary_configuration",
         "Escalation boundary must attach to a supported subprocess shell",
         format!(
@@ -147,7 +147,7 @@ fn non_interrupting_escalation_boundary_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_boundary_configuration",
         "Non-interrupting escalation boundaries are deferred",
         format!(
@@ -174,7 +174,7 @@ fn non_interrupting_boundary_requires_supported_task_repeat_owner_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_boundary_configuration",
         "Non-interrupting boundary must attach to a supported task owner",
         format!(
@@ -201,7 +201,7 @@ fn generic_boundary_configuration_issue(
     node_id: &str,
     detail: &'static str,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "bpmn.unsupported_boundary_configuration",
         "Boundary event configuration exceeds the bounded slice",
         format!(

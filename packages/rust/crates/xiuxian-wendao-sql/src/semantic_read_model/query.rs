@@ -1,12 +1,15 @@
+//! Read-only SQL query execution over semantic read-model rows.
+
 use std::path::Path;
 use std::time::{Duration, Instant};
 
 use arrow::record_batch::RecordBatch;
-use datafusion::sql::parser::{DFParser, Statement as DataFusionStatement};
-use datafusion::sql::sqlparser::ast::Statement as SqlStatement;
+use sqlparser::ast::Statement as SqlStatement;
+use sqlparser::dialect::DuckDbDialect;
+use sqlparser::parser::Parser;
 use xiuxian_wendao_parsers::semantic_ssot::{SemanticRepository, load_semantic_repository};
 
-use crate::local_relation::{DataFusionLocalRelationEngine, LocalRelationEngine};
+use crate::local_relation::{DuckDbLocalRelationEngine, LocalRelationEngine};
 use crate::payload::sql_query_payload_from_record_batches;
 use crate::{SqlQueryMetadata, SqlQueryPayload};
 
@@ -52,7 +55,7 @@ pub async fn query_semantic_read_model_payload(
     query_text: &str,
 ) -> Result<SqlQueryPayload, String> {
     let repository = load_semantic_repository(semantic_root);
-    let query_engine = DataFusionLocalRelationEngine::new_with_information_schema();
+    let query_engine = DuckDbLocalRelationEngine::new_in_memory()?;
     query_semantic_read_model_payload_with_engine(&repository, query_text, &query_engine).await
 }
 
@@ -69,7 +72,8 @@ pub fn validate_semantic_read_model_query_text(query_text: &str) -> Result<(), S
         return Err("semantic read-model SQL query text must not be blank".to_string());
     }
 
-    let mut statements = DFParser::parse_sql(normalized_query)
+    let dialect = DuckDbDialect {};
+    let mut statements = Parser::parse_sql(&dialect, normalized_query)
         .map_err(|error| format!("failed to parse semantic read-model SQL query text: {error}"))?;
     if statements.len() != 1 {
         return Err(
@@ -77,15 +81,11 @@ pub fn validate_semantic_read_model_query_text(query_text: &str) -> Result<(), S
         );
     }
 
-    let statement = statements.pop_front().ok_or_else(|| {
+    let statement = statements.pop().ok_or_else(|| {
         "semantic read-model SQL query text must contain exactly one statement".to_string()
     })?;
     match statement {
-        DataFusionStatement::Statement(statement)
-            if matches!(statement.as_ref(), SqlStatement::Query(_)) =>
-        {
-            Ok(())
-        }
+        SqlStatement::Query(_) => Ok(()),
         _ => Err(
             "semantic read-model SQL query text must be a read-only query statement".to_string(),
         ),
@@ -115,20 +115,22 @@ async fn payload_from_query_engine_batches(
         registered_view_source_count: 0,
         result_batch_count: engine_batches.len(),
         result_row_count,
-        registered_input_bytes: Some(registration.input_bytes),
-        result_bytes: Some(result_bytes),
+        registered_input_bytes: Some(registration.input_bytes.into()),
+        result_bytes: Some(result_bytes.into()),
         local_relation_materialization_state: query_engine
             .relation_materialization_state(SEMANTIC_OBJECTS_TABLE_NAME)
-            .map(|state| state.as_str().to_string()),
-        local_temp_storage_peak_bytes: query_engine.last_query_temp_storage_peak_bytes(),
+            .map(|state| state.as_str().to_string().into()),
+        local_temp_storage_peak_bytes: query_engine
+            .last_query_temp_storage_peak_bytes()
+            .map(Into::into),
         local_relation_engine: Some(query_engine.kind().as_str().to_string()),
         duckdb_registration_strategy: query_engine
             .relation_registration_strategy(SEMANTIC_OBJECTS_TABLE_NAME)
             .map(str::to_string),
         registered_input_batch_count: Some(registration.input_batch_count),
         registered_input_row_count: Some(registration.input_row_count),
-        registration_time_ms: Some(registration_time_ms),
-        local_query_execution_time_ms: Some(local_query_execution_time_ms),
+        registration_time_ms: Some(registration_time_ms.into()),
+        local_query_execution_time_ms: Some(local_query_execution_time_ms.into()),
     };
     sql_query_payload_from_record_batches(metadata, &engine_batches)
 }

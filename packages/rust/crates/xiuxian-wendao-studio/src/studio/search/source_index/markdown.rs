@@ -70,7 +70,7 @@ fn build_markdown_node_hits(
                 crate_name: crate_name.to_string(),
                 project_name: None,
                 root_label: None,
-                node_kind: markdown_node_kind(node.kind).map(ToOwned::to_owned),
+                node_kind: markdown_node_kind(node.kind).map(Into::into),
                 owner_title: None,
                 navigation_target: ast_navigation_target(
                     path,
@@ -122,7 +122,7 @@ fn build_markdown_property_hits_from_toc_section(
             crate_name: crate_name.to_string(),
             project_name: None,
             root_label: None,
-            node_kind: Some("property".to_string()),
+            node_kind: Some("property".into()),
             owner_title: owner_title.clone(),
             navigation_target: ast_navigation_target(
                 path,
@@ -155,7 +155,7 @@ fn build_markdown_observation_hits_from_toc_section(
             crate_name: crate_name.to_string(),
             project_name: None,
             root_label: None,
-            node_kind: Some("observation".to_string()),
+            node_kind: Some("observation".into()),
             owner_title: owner_title.clone(),
             navigation_target: ast_navigation_target(
                 path,

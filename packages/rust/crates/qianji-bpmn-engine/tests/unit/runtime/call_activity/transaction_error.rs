@@ -2,7 +2,7 @@ use super::{StubHost, TRANSACTION_PROCESS_ID, node_index, parsed_fixture_package
 use crate::test_support::MustExt as _;
 use qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnInstanceInit, InstanceLifecycle, PendingHostWorkResult,
-    UserTaskOutcome, advance_instance, apply_pending_host_work_result, create_instance,
+    UserTaskOutcome, advance_instance, create_instance,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -26,7 +26,7 @@ async fn runtime_transaction_error_end_preserves_variables_and_routes_boundary_p
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
     assert_eq!(pending.len(), 1);
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[0].token_id,
@@ -96,7 +96,7 @@ async fn runtime_transaction_specific_error_routes_specific_and_catch_all_bounda
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
     assert_eq!(pending.len(), 1);
 
-    let resumed = apply_pending_host_work_result(
+    let resumed = crate::test_support::apply_pending_host_work_result(
         package.as_ref(),
         &mut instance,
         pending[0].token_id,
@@ -185,7 +185,7 @@ async fn runtime_transaction_multi_error_ends_route_payment_specific_and_catch_a
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
 
     assert_eq!(
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending[0].token_id,
@@ -268,7 +268,7 @@ async fn runtime_transaction_multi_error_ends_route_default_fraud_boundary_and_c
     assert_eq!(blocked, BpmnAdvanceOutcome::BlockedOnHost(pending.clone()));
 
     assert_eq!(
-        apply_pending_host_work_result(
+        crate::test_support::apply_pending_host_work_result(
             package.as_ref(),
             &mut instance,
             pending[0].token_id,

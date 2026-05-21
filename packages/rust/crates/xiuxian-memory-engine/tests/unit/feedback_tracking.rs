@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use anyhow::Result;
-use xiuxian_memory_engine::{Episode, EpisodeStore, StoreConfig};
+use xiuxian_memory_engine::{Episode, EpisodeDraft, EpisodeStore, StoreConfig};
 
 fn new_store() -> Result<EpisodeStore> {
     let tmp = tempfile::tempdir()?;
@@ -13,13 +13,14 @@ fn new_store() -> Result<EpisodeStore> {
 }
 
 fn episode(id: &str) -> Episode {
-    Episode::new(
-        id.to_string(),
-        "intent".to_string(),
-        vec![0.1; 8],
-        "experience".to_string(),
-        "completed".to_string(),
-    )
+    Episode::new(EpisodeDraft {
+        id: (id.to_string()).into(),
+        intent: "intent".to_string(),
+        intent_embedding: vec![0.1; 8],
+        experience: "experience".to_string(),
+        outcome: "completed".to_string(),
+        scope: None,
+    })
 }
 
 #[test]

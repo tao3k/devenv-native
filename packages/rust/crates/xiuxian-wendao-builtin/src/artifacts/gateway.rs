@@ -32,9 +32,33 @@ pub fn linked_builtin_julia_gateway_artifact_selected_transport() -> &'static st
 }
 
 /// Return the linked builtin Julia gateway artifact selector fixture.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinkedBuiltinJuliaGatewayArtifactPath {
+    /// Plugin identifier that owns the gateway artifact.
+    pub plugin_id: String,
+    /// Artifact identifier inside the plugin.
+    pub artifact_id: String,
+}
+
+impl LinkedBuiltinJuliaGatewayArtifactPath {
+    /// Builds a named artifact path from the upstream Julia tuple fixture.
+    #[must_use]
+    pub fn from_tuple((plugin_id, artifact_id): (String, String)) -> Self {
+        Self {
+            plugin_id,
+            artifact_id,
+        }
+    }
+}
+
+/// Return the linked builtin Julia gateway artifact selector fixture.
 #[must_use]
-pub fn linked_builtin_julia_gateway_artifact_path() -> (String, String) {
-    julia_gateway_artifact_path()
+pub fn linked_builtin_julia_gateway_artifact_path() -> LinkedBuiltinJuliaGatewayArtifactPath {
+    let artifact_path = julia_gateway_artifact_path();
+    LinkedBuiltinJuliaGatewayArtifactPath {
+        plugin_id: artifact_path.plugin_id,
+        artifact_id: artifact_path.artifact_id,
+    }
 }
 
 /// Return the linked builtin Julia gateway artifact route fixture.

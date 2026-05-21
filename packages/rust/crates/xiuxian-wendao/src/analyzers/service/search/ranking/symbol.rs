@@ -1,3 +1,5 @@
+//! `analyzers::service::search::ranking::symbol` owns Wendao search ranking symbol behavior.
+
 #[cfg(feature = "repo-lexical-index")]
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -32,7 +34,7 @@ pub(crate) fn ranked_symbol_matches(
     {
         let lookup = symbols
             .iter()
-            .map(|symbol| (symbol.symbol_id.clone(), symbol.clone()))
+            .map(|symbol| (symbol.symbol_id.to_string(), symbol.clone()))
             .collect::<BTreeMap<_, _>>();
         let Some(index) = build_search_document_index(symbols.iter().map(symbol_search_document))
         else {
@@ -46,8 +48,9 @@ pub(crate) fn ranked_symbol_matches(
         ranked_symbol_matches_without_index(query, symbols, limit)
     }
 }
-
+/// `ranked_symbol_matches_with_artifacts` public function boundary for Wendao.
 #[cfg(all(feature = "search-runtime", feature = "repo-lexical-index"))]
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn ranked_symbol_matches_with_artifacts(
     query: &str,
     symbols: &[SymbolRecord],

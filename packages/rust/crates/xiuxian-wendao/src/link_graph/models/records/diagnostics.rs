@@ -1,3 +1,5 @@
+//! `link_graph::models::records::diagnostics` owns Wendao models records diagnostics behavior.
+
 use crate::link_graph::models::query::LinkGraphPprSubgraphMode;
 use serde::{Deserialize, Serialize};
 

@@ -3,7 +3,10 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::{AnalysisNode, RetrievalChunk};
+use super::{
+    AnalysisNode, RetrievalChunk, StudioContractDocType, StudioContractId,
+    StudioContractRelationType,
+};
 
 /// Kind of an analysis edge.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -40,11 +43,11 @@ pub struct AnalysisEvidence {
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisEdge {
     /// Edge identifier.
-    pub id: String,
+    pub id: StudioContractId,
     /// Source node identifier.
-    pub source_id: String,
+    pub source_id: StudioContractId,
     /// Target node identifier.
-    pub target_id: String,
+    pub target_id: StudioContractId,
     /// Relationship kind.
     pub kind: AnalysisEdgeKind,
     /// Display label.
@@ -85,13 +88,13 @@ pub struct MarkdownAnalysisDocumentLink {
     pub literal: Option<String>,
     /// Explicit semantic relation type for metadata-owned links.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub relation_type: Option<String>,
+    pub relation_type: Option<StudioContractRelationType>,
     /// Owning metadata scope for explicit relation rows.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata_owner: Option<String>,
     /// Canonical target/source document id when resolution succeeds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub doc_id: Option<String>,
+    pub doc_id: Option<StudioContractId>,
     /// Studio-display path fallback for reader navigation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
@@ -109,15 +112,15 @@ pub struct MarkdownAnalysisDocumentLink {
 pub struct MarkdownAnalysisDocumentMetadata {
     /// Canonical document id when the graph index can resolve the file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub doc_id: Option<String>,
+    pub doc_id: Option<StudioContractId>,
     /// Parser-owned document title.
     pub title: String,
     /// Parser-owned document tags.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub tags: Vec<String>,
+    pub tags: Vec<super::StudioContractTag>,
     /// Optional parser-owned semantic document type.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub doc_type: Option<String>,
+    pub doc_type: Option<StudioContractDocType>,
     /// Best-effort updated timestamp from raw metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated: Option<String>,

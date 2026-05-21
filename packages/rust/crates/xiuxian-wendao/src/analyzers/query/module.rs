@@ -1,3 +1,5 @@
+//! `analyzers::query::module` owns Wendao analyzers query module behavior.
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +18,7 @@ pub struct ModuleSearchQuery {
 
 /// Structured backlink metadata derived from relation records.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+/// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
 pub struct RepoBacklinkItem {
     /// Stable backlink identifier (typically a doc id).
     pub id: String,

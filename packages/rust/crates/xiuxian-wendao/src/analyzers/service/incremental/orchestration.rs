@@ -84,7 +84,7 @@ fn refresh_repository_record(
         );
         record.revision = checkout_metadata.and_then(|metadata| metadata.revision.clone());
         if record.path.trim().is_empty() {
-            record.path = repository_root.display().to_string();
+            record.path = repository_root.display().to_string().into();
         }
         if record.url.is_none() {
             record.url.clone_from(&repository.url);

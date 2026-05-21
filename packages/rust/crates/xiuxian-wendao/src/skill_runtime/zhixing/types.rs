@@ -1,3 +1,5 @@
+//! `skill_runtime::zhixing::types` owns Wendao skill runtime zhixing types behavior.
+
 /// Metadata attribute for journal carryover state.
 pub const ATTR_JOURNAL_CARRYOVER: &str = "journal:carryover";
 /// Metadata attribute for scheduled timer timestamp.

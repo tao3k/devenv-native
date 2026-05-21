@@ -1,3 +1,5 @@
+//! `pybindings::knowledge_py::py_functions` owns Wendao pybindings knowledge py py functions behavior.
+
 use pyo3::pyfunction;
 
 use crate::types::KnowledgeEntry;
@@ -7,6 +9,7 @@ use super::{PyKnowledgeCategory, PyKnowledgeEntry};
 /// Create a knowledge entry from Python.
 #[pyfunction]
 #[pyo3(signature = (title, content, category, tags, source))]
+/// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub fn create_knowledge_entry(
     title: &str,
     content: &str,

@@ -8,7 +8,7 @@ pub(super) fn missing_dmn_model_namespace_issue(
     source_id: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.missing_model_namespace",
         "DMN document root is missing a supported model namespace",
         format!(
@@ -45,7 +45,7 @@ pub(super) fn unsupported_dmn_model_namespace_issue(
     model_namespace_uri: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_model_namespace",
         "DMN model namespace is outside the bounded parser slice",
         format!(
@@ -84,7 +84,7 @@ pub(super) fn missing_dmn_attribute_issue(
     attribute: &str,
     snapshot: Option<&DmnDocumentSnapshot>,
 ) -> LintIssue {
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.missing_attribute",
         "Required DMN attribute is missing",
         format!(
@@ -121,7 +121,7 @@ pub(super) fn unsupported_dmn_import_issue(
         "elements"
     };
 
-    LintIssue::new(
+    LintIssue::from_parts(
         "dmn.unsupported_import",
         "DMN file uses top-level imports outside the bounded parser slice",
         format!("Source '{source_id}' declares {import_count} top-level `<import>` {noun}."),

@@ -1,3 +1,5 @@
+//! Wendao SQL validation branch for render, gate, and facade logic.
+
 #[path = "render_sql.rs"]
 mod render_sql;
 #[path = "validation.rs"]

@@ -195,7 +195,7 @@ async fn payload_fetch_projects_requested_columns() {
             score: Some(0.9),
             source: "test".to_string(),
             snippet: Some("fn alpha()".to_string()),
-            doc_type: Some("file".to_string()),
+            doc_type: Some("file".into()),
             match_reason: Some("repo_content_search".to_string()),
             best_section: Some("3: fn alpha()".to_string()),
             language: Some("rust".to_string()),

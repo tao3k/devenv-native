@@ -1,3 +1,5 @@
+//! `zhenfa_router::native::forwarder::service` owns Wendao native forwarder service behavior.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -66,14 +68,19 @@ impl ForwardNotifier {
 
         // Check rate limits for each affected doc
         let mut rate_limiter = self.rate_limiter.write().await;
-        for doc in &drift.affected_docs {
-            if !rate_limiter.check_and_increment(&doc.doc_id, self.config.rate_limit_per_hour) {
+        let within_rate_limit = drift.affected_docs.iter().all(|doc| {
+            let allowed = rate_limiter
+                .check_and_increment(doc.doc_id.as_str(), self.config.rate_limit_per_hour);
+            if !allowed {
                 log::info!(
                     "Rate limit exceeded for doc: {}, skipping notification",
                     doc.doc_id
                 );
-                return false;
             }
+            allowed
+        });
+        if !within_rate_limit {
+            return false;
         }
         drop(rate_limiter);
 
@@ -152,18 +159,12 @@ impl ForwardNotifier {
     /// that helps document maintainers quickly understand what changed.
     fn generate_diff_preview(drift: &SemanticDriftSignal) -> Option<DiffPreview> {
         // Extract symbols from affected patterns
-        let mut symbols_added = Vec::new();
+        let symbols_added = drift
+            .affected_docs
+            .iter()
+            .flat_map(|doc| extract_pattern_symbols(&doc.matching_pattern))
+            .collect::<Vec<_>>();
         let symbols_removed = Vec::new();
-
-        for doc in &drift.affected_docs {
-            // Parse the pattern to extract symbol names
-            let symbols = extract_pattern_symbols(&doc.matching_pattern);
-            for symbol in symbols {
-                // In a real implementation, we'd check if the symbol exists in new vs old content
-                // For now, we just record what we observed
-                symbols_added.push(symbol);
-            }
-        }
 
         // If no symbols were found, return None
         if symbols_added.is_empty() {

@@ -1,3 +1,5 @@
+//! `hmas::blackboard` owns Wendao hmas blackboard behavior.
+
 mod ast;
 mod extract;
 mod report;

@@ -39,10 +39,14 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "DocumentExtractFlightServer" in analyzer.__all__
     assert "ANALYSIS_DOCUMENT_EXTRACT_ROUTE" in analyzer.__all__
     assert "ANALYSIS_PDF_OCR_SHARDS_ROUTE" in analyzer.__all__
+    assert "ANALYSIS_AUDIO_SHARDS_ROUTE" in analyzer.__all__
     assert "PDF_OCR_SHARD_INPUT_SCHEMA" in analyzer.__all__
     assert "PDF_OCR_SHARD_RESULT_SCHEMA" in analyzer.__all__
+    assert "AUDIO_SHARD_INPUT_SCHEMA" in analyzer.__all__
+    assert "AUDIO_SHARD_RESULT_SCHEMA" in analyzer.__all__
     assert "DoclingPdfOcrShardWorker" in analyzer.__all__
     assert "PdfOcrShardWorkerProtocol" in analyzer.__all__
+    assert "AudioShardWorkerProtocol" in analyzer.__all__
     assert "ScoreRankAnalyzer" in analyzer.__all__
     assert "analyze_query" in analyzer.__all__
     assert "analyze_repo_search" in analyzer.__all__
@@ -57,6 +61,8 @@ def test_public_exports_include_core_analyzer_surface() -> None:
     assert "is_known_docling_source" in analyzer.__all__
     assert "warm_document_arrow_runtime" in analyzer.__all__
     assert "build_document_extract_table" in analyzer.__all__
+    assert "DOCUMENT_EXTRACT_FULL_THREADS_ENV" in analyzer.__all__
+    assert "document_extract_full_threads_from_env" in analyzer.__all__
     assert "normalize_document_extract_profile" in analyzer.__all__
     assert "build_pdf_ocr_shard_result_table" in analyzer.__all__
     assert "summarize_rows_analysis" in analyzer.__all__
@@ -82,7 +88,17 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
         analyzer.PDF_OCR_SHARD_RESULT_SCHEMA_VERSION
         == "xiuxian_wendao.pdf_ocr_shard_result.v1"
     )
+    assert (
+        analyzer.AUDIO_SHARD_INPUT_SCHEMA_VERSION
+        == "xiuxian_wendao.audio_shard_input.v1"
+    )
+    assert (
+        analyzer.AUDIO_SHARD_RESULT_SCHEMA_VERSION
+        == "xiuxian_wendao.audio_shard_result.v1"
+    )
     assert isclass(analyzer.DocumentExtractFlightServer)
+    assert isclass(analyzer.AudioShardWorkerProtocol)
+    assert isclass(analyzer.SkippingAudioShardWorker)
     assert isclass(analyzer.ScoreRankAnalyzer)
 
     assert callable(analyzer.build_analyzer)
@@ -99,8 +115,11 @@ def test_public_exports_preserve_expected_symbol_kinds() -> None:
     assert callable(analyzer.is_known_docling_source)
     assert callable(analyzer.warm_document_arrow_runtime)
     assert callable(analyzer.build_document_extract_table)
+    assert callable(analyzer.build_audio_shard_result_table)
+    assert callable(analyzer.document_extract_full_threads_from_env)
     assert callable(analyzer.normalize_document_extract_profile)
     assert callable(analyzer.build_pdf_ocr_shard_result_table)
+    assert callable(analyzer.resolve_audio_shard_worker_count)
     assert callable(analyzer.summarize_query_route)
     assert callable(analyzer.summarize_repo_query_text_results)
     assert callable(analyzer.summarize_rows_analysis)

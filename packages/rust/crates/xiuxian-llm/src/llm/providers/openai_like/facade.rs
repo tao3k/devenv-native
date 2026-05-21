@@ -8,11 +8,13 @@ use super::responses::{
 #[cfg(feature = "provider-litellm")]
 use crate::llm::{Base64ImageSource, resolve_image_source_to_base64};
 #[cfg(feature = "provider-litellm")]
-use crate::llm::{LlmError, LlmResult, sanitize_user_visible};
+use crate::llm::{HttpContentType, LlmError, LlmResult, sanitize_user_visible};
 #[cfg(feature = "provider-litellm")]
 use litellm_rs::core::providers::openai_like::{OpenAILikeConfig, OpenAILikeProvider};
 #[cfg(feature = "provider-litellm")]
-use litellm_rs::core::types::chat::ChatRequest as LiteChatRequest;
+use litellm_rs::core::types::chat::{
+    ChatMessage as LiteChatMessage, ChatRequest as LiteChatRequest,
+};
 #[cfg(feature = "provider-litellm")]
 use litellm_rs::core::types::content::{ContentPart, ImageSource};
 #[cfg(feature = "provider-litellm")]
@@ -80,42 +82,76 @@ pub async fn inline_openai_compatible_image_urls(
     client: &reqwest::Client,
     request: &LiteChatRequest,
 ) -> LlmResult<LiteChatRequest> {
+    inline_openai_compatible_image_urls_impl(client, request).await
+}
+
+#[cfg(feature = "provider-litellm")]
+async fn inline_openai_compatible_image_urls_impl(
+    client: &reqwest::Client,
+    request: &LiteChatRequest,
+) -> LlmResult<LiteChatRequest> {
     let mut new_request = request.clone();
     let mut image_cache: HashMap<String, Base64ImageSource> = HashMap::new();
 
     for message in &mut new_request.messages {
-        if let Some(MessageContent::Parts(parts)) = message.content.clone() {
-            let mut converted_parts = Vec::with_capacity(parts.len());
-            for part in parts {
-                match part {
-                    ContentPart::ImageUrl { image_url } => {
-                        let image_ref = image_url.url;
-                        let source = if let Some(cached) = image_cache.get(&image_ref) {
-                            cached.clone()
-                        } else {
-                            let resolved =
-                                resolve_image_source_to_base64(client, &image_ref).await?;
-                            image_cache.insert(image_ref.clone(), resolved.clone());
-                            resolved
-                        };
-
-                        converted_parts.push(ContentPart::Image {
-                            source: ImageSource {
-                                media_type: source.media_type,
-                                data: source.data,
-                            },
-                            detail: image_url.detail,
-                            image_url: None,
-                        });
-                    }
-                    other => converted_parts.push(other),
-                }
-            }
-            message.content = Some(MessageContent::Parts(converted_parts));
-        }
+        inline_message_images(client, &mut image_cache, message).await?;
     }
 
     Ok(new_request)
+}
+
+#[cfg(feature = "provider-litellm")]
+async fn inline_message_images(
+    client: &reqwest::Client,
+    image_cache: &mut HashMap<String, Base64ImageSource>,
+    message: &mut LiteChatMessage,
+) -> LlmResult<()> {
+    let Some(MessageContent::Parts(parts)) = message.content.clone() else {
+        return Ok(());
+    };
+
+    let mut converted_parts = Vec::with_capacity(parts.len());
+    for part in parts {
+        converted_parts.push(inline_content_part_image(client, image_cache, part).await?);
+    }
+    message.content = Some(MessageContent::Parts(converted_parts));
+    Ok(())
+}
+
+#[cfg(feature = "provider-litellm")]
+async fn inline_content_part_image(
+    client: &reqwest::Client,
+    image_cache: &mut HashMap<String, Base64ImageSource>,
+    part: ContentPart,
+) -> LlmResult<ContentPart> {
+    let ContentPart::ImageUrl { image_url } = part else {
+        return Ok(part);
+    };
+    let image_ref = image_url.url;
+    let source = cached_image_source(client, image_cache, &image_ref).await?;
+
+    Ok(ContentPart::Image {
+        source: ImageSource {
+            media_type: source.media_type.to_string(),
+            data: source.data,
+        },
+        detail: image_url.detail,
+        image_url: None,
+    })
+}
+
+#[cfg(feature = "provider-litellm")]
+async fn cached_image_source(
+    client: &reqwest::Client,
+    image_cache: &mut HashMap<String, Base64ImageSource>,
+    image_ref: &str,
+) -> LlmResult<Base64ImageSource> {
+    if let Some(cached) = image_cache.get(image_ref) {
+        return Ok(cached.clone());
+    }
+    let resolved = resolve_image_source_to_base64(client, image_ref).await?;
+    image_cache.insert(image_ref.to_string(), resolved.clone());
+    Ok(resolved)
 }
 
 /// Detect the canonical OpenAI-compatible error indicating streaming is mandatory.
@@ -187,7 +223,7 @@ pub async fn execute_openai_responses_request(
             }
             let error = LlmError::RequestFailed {
                 status,
-                content_type,
+                content_type: HttpContentType::new(content_type),
                 reason: sanitized_reason.clone(),
             };
             if retry_openai_responses_attempt(endpoint, attempt, max_attempts, &error).await {

@@ -8,15 +8,15 @@ use xiuxian_logging::init_from_cli;
 
 use xiuxian_wendao::{LinkGraphIndex, set_link_graph_wendao_config_override};
 
+#[path = "../bin/wendao/cli_support/mod.rs"]
+mod cli_support;
 #[path = "../bin/wendao/execute/mod.rs"]
 mod execute;
-#[path = "../bin/wendao/helpers/mod.rs"]
-mod helpers;
 #[path = "../bin/wendao/types/mod.rs"]
 mod types;
 
+use cli_support::build_index;
 use execute::{can_execute_immediate, execute, execute_immediate};
-use helpers::build_index;
 use types::{AgenticCommand, Cli, Command};
 
 /// Runs the main Wendao command-line interface.

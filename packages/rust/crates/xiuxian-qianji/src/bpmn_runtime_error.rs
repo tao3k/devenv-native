@@ -1,9 +1,40 @@
+//! Error contracts for the host-owned BPMN orchestration facade.
+
 use crate::bpmn::BpmnAdapterError;
+use crate::bpmn::identity::{
+    QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnProcessId, QianjiBpmnStartAtNodeId,
+    QianjiBpmnWorkflowInstanceId,
+};
 use qianji_bpmn_engine::{BpmnEngineError, BpmnPendingHostWorkIdentityMismatch};
+use std::fmt;
 use std::io;
 use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
 use xiuxian_db_store::qianji_bpmn::QianjiBpmnDataStoreError;
+
+/// Typed BPMN node-kind label for unsupported start-at requests.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BpmnUnsupportedStartNodeKind(String);
+
+impl BpmnUnsupportedStartNodeKind {
+    /// Build a typed unsupported-node label from a BPMN runtime kind.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Return the stable human-readable node-kind label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl fmt::Display for BpmnUnsupportedStartNodeKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 
 /// Error returned by the host-owned BPMN orchestration facade.
 #[derive(Debug, thiserror::Error)]
@@ -43,9 +74,9 @@ pub enum BpmnOrchestrationError {
     )]
     FreshContextRequired {
         /// Process id for the requested BPMN run.
-        process_id: String,
+        process_id: QianjiBpmnProcessId,
         /// Instance id for the requested BPMN run.
-        instance_id: String,
+        instance_id: QianjiBpmnWorkflowInstanceId,
     },
     /// Returned when a start-at run would overwrite an existing checkpoint.
     #[error(
@@ -53,15 +84,15 @@ pub enum BpmnOrchestrationError {
     )]
     StartAtCheckpointExists {
         /// Workflow instance identifier that already exists.
-        instance_id: String,
+        instance_id: QianjiBpmnWorkflowInstanceId,
     },
     /// Returned when a start-at run targets a node that is not in the process.
     #[error("BPMN start-at target node '{node_id}' was not found in process '{process_id}'")]
     StartAtNodeMissing {
         /// Process id for the requested BPMN run.
-        process_id: String,
+        process_id: QianjiBpmnProcessId,
         /// Requested BPMN node id.
-        node_id: String,
+        node_id: QianjiBpmnStartAtNodeId,
     },
     /// Returned when a start-at run targets an unsupported node kind.
     #[error(
@@ -69,11 +100,11 @@ pub enum BpmnOrchestrationError {
     )]
     StartAtNodeUnsupported {
         /// Process id for the requested BPMN run.
-        process_id: String,
+        process_id: QianjiBpmnProcessId,
         /// Requested BPMN node id.
-        node_id: String,
+        node_id: QianjiBpmnStartAtNodeId,
         /// Human-readable BPMN node kind.
-        node_kind: String,
+        node_kind: BpmnUnsupportedStartNodeKind,
     },
     /// Returned when a checkpoint references a BPMN process that is missing
     /// from the loaded package.
@@ -82,7 +113,7 @@ pub enum BpmnOrchestrationError {
     )]
     CheckpointProcessMissing {
         /// Process id referenced by the stored checkpoint.
-        process_id: String,
+        process_id: QianjiBpmnProcessId,
     },
     /// Returned when a checkpoint process identity drifts from the loaded package.
     #[error(
@@ -90,13 +121,13 @@ pub enum BpmnOrchestrationError {
     )]
     CheckpointProcessIdentityDrift {
         /// Process id referenced by the stored checkpoint.
-        process_id: String,
+        process_id: QianjiBpmnProcessId,
         /// Package id stored in the checkpoint envelope.
-        checkpoint_package_id: String,
+        checkpoint_package_id: QianjiBpmnPackageId,
         /// Spec digest stored in the checkpoint envelope.
         checkpoint_spec_digest: String,
         /// Package id resolved from the currently loaded BPMN package.
-        loaded_package_id: String,
+        loaded_package_id: QianjiBpmnPackageId,
         /// Spec digest resolved from the currently loaded BPMN package.
         loaded_spec_digest: String,
     },
@@ -112,7 +143,7 @@ pub enum BpmnOrchestrationError {
     )]
     PendingHostWorkClaimRequired {
         /// Workflow instance identifier.
-        instance_id: String,
+        instance_id: QianjiBpmnWorkflowInstanceId,
         /// Runtime token identifier for the pending host work.
         token_id: u64,
         /// Checkpointed claimant that owns the pending human work.
@@ -125,7 +156,7 @@ pub enum BpmnOrchestrationError {
     )]
     PendingHostWorkClaimantMismatch {
         /// Workflow instance identifier.
-        instance_id: String,
+        instance_id: QianjiBpmnWorkflowInstanceId,
         /// Runtime token identifier for the pending host work.
         token_id: u64,
         /// Checkpointed claimant that owns the pending human work.
@@ -156,9 +187,9 @@ pub enum BpmnOrchestrationError {
     )]
     CheckpointLeaseConflict {
         /// Workflow instance identifier.
-        instance_id: String,
+        instance_id: QianjiBpmnWorkflowInstanceId,
         /// Owner token that lost the lease race.
-        owner_token: String,
+        owner_token: QianjiBpmnLeaseOwnerToken,
     },
     /// Returned when BPMN lease ownership is requested from one scheduler
     /// identity that does not expose a stable agent id.

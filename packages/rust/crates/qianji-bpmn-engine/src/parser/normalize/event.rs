@@ -66,7 +66,7 @@ fn fallback_task_message_event(node: &RawNode) -> Option<RawEventSpec> {
         .as_ref()
         .map(|reference_id| RawEventSpec {
             kind: crate::ir_event_api::BpmnEventKind::Message,
-            reference_id: Some(reference_id.clone()),
+            reference_id: (Some(reference_id.clone())),
             wait_for_completion: true,
             name: None,
             timer: None,

@@ -1,7 +1,9 @@
 use serde_json::json;
 use xiuxian_qianhuan::EmbeddedManifestationTemplateCatalog;
 
-use super::api::{FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview};
+use super::model::{
+    FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview,
+};
 
 const SCENARIO_FLOWCHART_SECTION_TEMPLATE_NAME: &str = "flowhub_scenario_flowchart.md.j2";
 const SCENARIO_FLOWCHART_SECTION_TEMPLATE_SOURCE: &str =

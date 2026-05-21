@@ -16,7 +16,8 @@ use xiuxian_wendao_runtime::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
+    WENDAO_SCHEMA_VERSION_HEADER, encode_document_extract_source_path_utf8_hex,
 };
 
 use super::support::document_extract_artifacts::{ArtifactReport, inspect_artifacts};
@@ -238,12 +239,7 @@ async fn request_document_extract(
     client
         .add_header(WENDAO_SCHEMA_VERSION_HEADER, "v2")
         .map_err(|error| error.to_string())?;
-    client
-        .add_header(
-            WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
-            input.source.as_str(),
-        )
-        .map_err(|error| error.to_string())?;
+    add_source_path_headers(&mut client, input.source.as_str())?;
     client
         .add_header(
             WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
@@ -294,6 +290,22 @@ async fn request_document_extract(
         .try_collect()
         .await
         .map_err(|error| error.to_string())
+}
+
+fn add_source_path_headers(client: &mut FlightClient, source_path: &str) -> Result<(), String> {
+    let encoded = encode_document_extract_source_path_utf8_hex(source_path);
+    client
+        .add_header(
+            WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER,
+            encoded.as_str(),
+        )
+        .map_err(|error| error.to_string())?;
+    if source_path.is_ascii() {
+        client
+            .add_header(WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, source_path)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 async fn connect_document_extract(endpoint_url: &str) -> Result<Channel, String> {

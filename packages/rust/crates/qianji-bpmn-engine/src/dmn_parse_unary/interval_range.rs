@@ -40,8 +40,8 @@ pub(super) fn parse_date_interval_range(
     let lower = parse_date_unary_value(source_id, lower_raw.trim(), raw)?;
     let upper = parse_date_unary_value(source_id, upper_raw.trim(), raw)?;
     Ok(Some(DmnInputEntry::DateRange(DmnDateRange::new(
-        Some(DmnDateRangeBound::new(lower, first_char == '[')),
-        Some(DmnDateRangeBound::new(upper, last_char == ']')),
+        Some(DmnDateRangeBound::new(lower, (first_char == '[').into())),
+        Some(DmnDateRangeBound::new(upper, (last_char == ']').into())),
     ))))
 }
 
@@ -74,8 +74,8 @@ pub(super) fn parse_time_interval_range(
     let lower = parse_time_unary_value(source_id, lower_raw.trim(), raw)?;
     let upper = parse_time_unary_value(source_id, upper_raw.trim(), raw)?;
     Ok(Some(DmnInputEntry::TimeRange(DmnTimeRange::new(
-        Some(DmnTimeRangeBound::new(lower, first_char == '[')),
-        Some(DmnTimeRangeBound::new(upper, last_char == ']')),
+        Some(DmnTimeRangeBound::new(lower, (first_char == '[').into())),
+        Some(DmnTimeRangeBound::new(upper, (last_char == ']').into())),
     ))))
 }
 
@@ -108,8 +108,11 @@ pub(super) fn parse_date_time_interval_range(
     let lower = parse_date_time_unary_value(source_id, lower_raw.trim(), raw)?;
     let upper = parse_date_time_unary_value(source_id, upper_raw.trim(), raw)?;
     Ok(Some(DmnInputEntry::DateTimeRange(DmnDateTimeRange::new(
-        Some(DmnDateTimeRangeBound::new(lower, first_char == '[')),
-        Some(DmnDateTimeRangeBound::new(upper, last_char == ']')),
+        Some(DmnDateTimeRangeBound::new(
+            lower,
+            (first_char == '[').into(),
+        )),
+        Some(DmnDateTimeRangeBound::new(upper, (last_char == ']').into())),
     ))))
 }
 
@@ -143,8 +146,11 @@ pub(super) fn parse_duration_interval_range(
     let upper = parse_duration_unary_value(source_id, upper_raw.trim(), raw)?;
     ensure_matching_duration_bound_families(source_id, raw, &lower, &upper)?;
     Ok(Some(DmnInputEntry::DurationRange(DmnDurationRange::new(
-        Some(DmnDurationRangeBound::new(lower, first_char == '[')),
-        Some(DmnDurationRangeBound::new(upper, last_char == ']')),
+        Some(DmnDurationRangeBound::new(
+            lower,
+            (first_char == '[').into(),
+        )),
+        Some(DmnDurationRangeBound::new(upper, (last_char == ']').into())),
     ))))
 }
 
@@ -174,7 +180,7 @@ pub(super) fn parse_numeric_interval_range(
     let lower = parse_numeric_value(source_id, lower_raw.trim(), raw)?;
     let upper = parse_numeric_value(source_id, upper_raw.trim(), raw)?;
     Ok(Some(DmnInputEntry::NumericRange(DmnNumericRange::new(
-        Some(DmnNumericRangeBound::new(lower, first_char == '[')),
-        Some(DmnNumericRangeBound::new(upper, last_char == ']')),
+        Some(DmnNumericRangeBound::new(lower, (first_char == '[').into())),
+        Some(DmnNumericRangeBound::new(upper, (last_char == ']').into())),
     ))))
 }

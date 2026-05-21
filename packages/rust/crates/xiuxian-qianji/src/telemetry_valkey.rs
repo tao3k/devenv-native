@@ -1,3 +1,5 @@
+//! Telemetry valkey surface for `xiuxian-qianji`.
+
 use super::{DEFAULT_PULSE_CHANNEL, PulseEmitter, SwarmEvent};
 use async_trait::async_trait;
 use std::sync::Arc;

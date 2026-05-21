@@ -5,10 +5,10 @@ pub(crate) mod flight;
 #[cfg(test)]
 #[path = "../../../../../tests/unit/gateway/studio/router/handlers/graph/neighbors_impl.rs"]
 pub(crate) mod neighbors;
+#[path = "query_support/mod.rs"]
+pub(crate) mod query_support;
 #[path = "service.rs"]
 mod service;
-#[path = "shared/mod.rs"]
-pub(crate) mod shared;
 #[path = "topology.rs"]
 pub(crate) mod topology;
 #[path = "topology_flight.rs"]

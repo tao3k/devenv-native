@@ -1,3 +1,5 @@
+//! `pybindings::dep_indexer_py::indexer` owns Wendao pybindings dep indexer py indexer behavior.
+
 use pyo3::{pyclass, pymethods};
 
 use crate::dependency_indexer::{DependencyIndexResult, DependencyIndexer, DependencyStats};

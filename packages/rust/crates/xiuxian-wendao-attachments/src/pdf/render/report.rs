@@ -108,6 +108,11 @@ pub(super) struct ReportParts {
 }
 
 impl ReportParts {
+    #[cfg(feature = "pdf-render")]
+    pub(super) fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
     pub(super) fn unsupported(error_message: &str) -> Self {
         Self {
             page_count: 0,

@@ -1,3 +1,5 @@
+//! Public logging option types for `xiuxian-logging` callers.
+
 use clap::ValueEnum;
 
 /// Log rendering format.

@@ -48,7 +48,7 @@ pub use graph_structural::{
     linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service,
 };
 pub use julia::{
-    linked_builtin_julia_deployment_artifact_selector,
+    LinkedBuiltinJuliaRerankEndpoint, linked_builtin_julia_deployment_artifact_selector,
     linked_builtin_julia_rerank_provider_binding_with_endpoint,
     linked_builtin_julia_rerank_provider_selector, linked_builtin_julia_search_example_config_path,
     linked_builtin_julia_search_launcher_path,

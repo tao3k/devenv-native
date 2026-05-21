@@ -4,6 +4,7 @@ use crate::link_graph::agentic::{
     suggested_link_signature_from_request, valkey_suggested_link_log,
 };
 use std::collections::HashSet;
+use std::ops::ControlFlow;
 use std::time::Instant;
 
 struct WorkerPersistOutcome {
@@ -73,28 +74,33 @@ fn persist_request_with_retries(
     left_id: &str,
     right_id: &str,
 ) -> WorkerPersistOutcome {
-    let mut persist_phase_ms = 0.0;
-    let mut persist_attempts = 0usize;
-    let mut persisted = false;
-    let mut errors = Vec::new();
-
-    for _attempt in 0..attempts {
-        persist_attempts = persist_attempts.saturating_add(1);
-        let persist_started = Instant::now();
-        match valkey_suggested_link_log(request) {
-            Ok(_) => {
-                persist_phase_ms += persist_started.elapsed().as_secs_f64() * 1000.0;
-                persisted = true;
-                break;
+    let (persist_phase_ms, persist_attempts, errors, persisted) = match (0..attempts).try_fold(
+        (0.0, 0usize, Vec::new()),
+        |(persist_phase_ms, persist_attempts, mut errors), _| {
+            let persist_started = Instant::now();
+            let elapsed_ms = || persist_started.elapsed().as_secs_f64() * 1000.0;
+            let next_attempts = persist_attempts.saturating_add(1);
+            match valkey_suggested_link_log(request) {
+                Ok(_) => ControlFlow::Break((
+                    persist_phase_ms + elapsed_ms(),
+                    next_attempts,
+                    errors,
+                    true,
+                )),
+                Err(err) => {
+                    errors.push(format!(
+                        "worker={worker_id} source={left_id} target={right_id} error={err}"
+                    ));
+                    ControlFlow::Continue((persist_phase_ms + elapsed_ms(), next_attempts, errors))
+                }
             }
-            Err(err) => {
-                persist_phase_ms += persist_started.elapsed().as_secs_f64() * 1000.0;
-                errors.push(format!(
-                    "worker={worker_id} source={left_id} target={right_id} error={err}"
-                ));
-            }
+        },
+    ) {
+        ControlFlow::Break(outcome) => outcome,
+        ControlFlow::Continue((persist_phase_ms, persist_attempts, errors)) => {
+            (persist_phase_ms, persist_attempts, errors, false)
         }
-    }
+    };
     WorkerPersistOutcome {
         persisted,
         persist_phase_ms,

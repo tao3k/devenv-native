@@ -9,8 +9,9 @@ metadata:
 `xiuxian-artisan-workshop` is a Rust-first monorepo for native agent
 infrastructure. It brings together knowledge and retrieval (`Wendao`),
 workflow and control-plane execution (`Qianji`), context and persona rendering
-(`Qianhuan`), agent-loop runtime (`Daochang`), memory, vector/search, storage,
-and thin Python consumer packages.
+(`Qianhuan`), memory, vector/search, storage, and thin Python consumer
+packages. Telegram and Discord bot runtime ownership has moved to the external
+`lingchong-bot` repository.
 
 This README is the repository entry map. Detailed contracts live in package
 READMEs, RFCs, and the documentation index.
@@ -20,7 +21,6 @@ READMEs, RFCs, and the documentation index.
 ```mermaid
 flowchart TB
     Operators["Operators, agents, CLIs"]
-    Daochang["xiuxian-daochang<br/>agent loop and native tools"]
     Zhenfa["xiuxian-zhenfa<br/>native tool and routing substrate"]
     Qianji["xiuxian-qianji<br/>workflow, Flowhub, BPMN control"]
     Qianhuan["xiuxian-qianhuan<br/>context and persona rendering"]
@@ -32,10 +32,9 @@ flowchart TB
     Storage["vector, Lance, DataFusion, DuckDB, Valkey<br/>retrieval and runtime storage substrate"]
     Python["packages/python<br/>thin Arrow consumers and workflow contracts"]
 
-    Operators --> Daochang
     Operators --> Qianji
-    Daochang --> Zhenfa
-    Daochang --> Wendao
+    Operators --> Zhenfa
+    Operators --> Wendao
     Qianji --> Qianhuan
     Qianji --> Wendao
     Wendao --> WendaoCore
@@ -56,8 +55,9 @@ The practical boundary is package ownership:
   runtime kernel.
 - **Wendao is split into contract, runtime, and domain packages** so shared DTOs
   do not accumulate host behavior or deployment-specific concerns.
-- **Daochang reaches Wendao through gateway/native-tool contracts** rather than
-  embedding Wendao business logic in-process.
+- **Bot runtimes reach Wendao through gateway/client contracts** from the
+  external `lingchong-bot` repository rather than embedding Wendao business
+  logic in-process.
 - **Julia and Modelica repo-intelligence integration is owned by
   `xiuxian-wendao-julia`**, with Rust gateway code consuming the managed
   service boundary.
@@ -68,7 +68,7 @@ The practical boundary is package ownership:
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Knowledge and retrieval         | [`xiuxian-wendao`](packages/rust/crates/xiuxian-wendao/README.md), [`xiuxian-wendao-core`](packages/rust/crates/xiuxian-wendao-core/README.md), [`xiuxian-wendao-runtime`](packages/rust/crates/xiuxian-wendao-runtime/README.md), [`xiuxian-wendao-sql`](packages/rust/crates/xiuxian-wendao-sql/README.md), [`xiuxian-wendao-julia`](packages/rust/crates/xiuxian-wendao-julia/README.md), [`xiuxian-wendao-client`](packages/rust/crates/xiuxian-wendao-client/README.md) | Wendao domain logic, stable shared contracts, host/runtime behavior, bounded SQL helpers, Julia/Modelica repo intelligence, and local CLI surfaces. |
 | Workflow and orchestration      | [`xiuxian-qianji`](packages/rust/crates/xiuxian-qianji/README.md), [`qianji-bpmn-engine`](packages/rust/crates/qianji-bpmn-engine/README.md), [`xiuxian-qianhuan`](packages/rust/crates/xiuxian-qianhuan/README.md)                                                                                                                                                                                                                                                          | Flowhub and BPMN control, workflow validation, persona/context rendering, and execution-facing contract assembly.                                   |
-| Agent and tool runtime          | [`xiuxian-daochang`](packages/rust/crates/xiuxian-daochang/README.md), `xiuxian-zhenfa`, `xiuxian-llm`, `xiuxian-security`, `xiuxian-sandbox`                                                                                                                                                                                                                                                                                                                                | Agent loop, native tool routing, LLM orchestration, execution plumbing, and sandbox/security surfaces.                                              |
+| Agent and tool runtime          | `xiuxian-zhenfa`, `xiuxian-llm`, `xiuxian-security`, `xiuxian-sandbox`                                                                                                                                                                                                                                                                                                                                                                                                       | Native tool routing, LLM orchestration, execution plumbing, and sandbox/security surfaces. Bot/channel runtime lives in `lingchong-bot`.            |
 | Data and memory substrate       | [`xiuxian-vector`](packages/rust/crates/xiuxian-vector/README.md), [`xiuxian-lance`](packages/rust/crates/xiuxian-lance/README.md), `xiuxian-db-store`, [`xiuxian-memory-engine`](packages/rust/crates/xiuxian-memory-engine/README.md), `xiuxian-memory`                                                                                                                                                                                                                    | Vector retrieval, Lance-backed search, database storage helpers, episodic memory, and memory-facing runtime contracts.                              |
 | Repository and parser substrate | [`xiuxian-git-repo`](packages/rust/crates/xiuxian-git-repo/README.md), `xiuxian-wendao-parsers`, [`xiuxian-ast`](packages/rust/crates/xiuxian-ast/README.md)                                                                                                                                                                                                                                                                                                                 | Git/repository access, parser ownership, AST tooling, and syntax-aware project-policy gates.                                                        |
 | Python adapters                 | [`packages/python`](packages/python/README.md)                                                                                                                                                                                                                                                                                                                                                                                                                               | Thin Arrow, workflow-contract, analyzer, and compatibility packages around Rust-owned contracts.                                                    |

@@ -36,7 +36,7 @@ fn analyze_repository_reuses_cached_analysis_for_non_affecting_revision_churn() 
         url: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         git_ref: None,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let calls = Arc::new(AtomicUsize::new(0));
     let mut registry = PluginRegistry::new();
@@ -95,7 +95,7 @@ fn analyze_repository_invalidates_cached_analysis_for_julia_source_change() {
         url: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         git_ref: None,
-        plugins: vec![RepositoryPluginConfig::Id("julia".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("julia-code-parser".to_string())],
     };
     let calls = Arc::new(AtomicUsize::new(0));
     let mut registry = PluginRegistry::new();

@@ -1,3 +1,5 @@
+//! `query_core::execute::operations` owns Wendao query core execute operations behavior.
+
 use crate::query_core::context::WendaoExecutionContext;
 use crate::query_core::operators::{
     ColumnMaskOp, ColumnMaskPredicate, GraphNeighborsOp, PayloadFetchOp, VectorSearchOp,

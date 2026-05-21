@@ -16,3 +16,18 @@ fn ordinary_audit_command_requires_link_graph_index() {
     assert!(command_requires_index(&cli.command));
     assert!(matches!(cli.command, Command::Audit(_)));
 }
+
+#[test]
+fn episteme_plan_command_does_not_require_link_graph_index() {
+    let cli = Cli::parse_from([
+        "wendao",
+        "episteme",
+        "source-contract",
+        "plan-extraction-run",
+        "--run-id",
+        "source_contract_seed",
+    ]);
+
+    assert!(!command_requires_index(&cli.command));
+    assert!(matches!(cli.command, Command::Episteme { .. }));
+}

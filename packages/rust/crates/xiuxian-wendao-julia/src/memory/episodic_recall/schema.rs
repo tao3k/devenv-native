@@ -1,5 +1,7 @@
 //! Julia episodic-recall transport columns and row types.
 
+use crate::{JuliaContractId, JuliaContractMode, JuliaContractTimestampMsI64};
+
 /// Request column carrying the host query id.
 pub const MEMORY_JULIA_EPISODIC_RECALL_QUERY_ID_COLUMN: &str = "query_id";
 /// Request column carrying the scenario pack.
@@ -88,7 +90,7 @@ pub const MEMORY_JULIA_EPISODIC_RECALL_RESPONSE_COLUMNS: [&str; 9] = [
 #[derive(Debug, Clone, PartialEq)]
 pub struct MemoryJuliaEpisodicRecallRequestRow {
     /// Host query id used as the join key across candidates.
-    pub query_id: String,
+    pub query_id: JuliaContractId,
     /// Optional scenario pack forwarded into the Julia compute lane.
     pub scenario_pack: Option<String>,
     /// Logical scope of the memory candidate.
@@ -98,7 +100,7 @@ pub struct MemoryJuliaEpisodicRecallRequestRow {
     /// Semantic embedding of the query.
     pub query_embedding: Vec<f32>,
     /// Stable candidate episode id.
-    pub candidate_id: String,
+    pub candidate_id: JuliaContractId,
     /// Semantic embedding of the candidate intent.
     pub intent_embedding: Vec<f32>,
     /// Host utility estimate.
@@ -110,9 +112,9 @@ pub struct MemoryJuliaEpisodicRecallRequestRow {
     /// Number of total retrievals.
     pub retrieval_count: u32,
     /// Host creation timestamp.
-    pub created_at_ms: i64,
+    pub created_at_ms: JuliaContractTimestampMsI64,
     /// Host update timestamp.
-    pub updated_at_ms: i64,
+    pub updated_at_ms: JuliaContractTimestampMsI64,
     /// Semantic recall tuning weight.
     pub k1: f32,
     /// Utility rerank tuning weight.
@@ -127,9 +129,9 @@ pub struct MemoryJuliaEpisodicRecallRequestRow {
 #[derive(Debug, Clone, PartialEq)]
 pub struct MemoryJuliaEpisodicRecallScoreRow {
     /// Host query id echoed by the provider.
-    pub query_id: String,
+    pub query_id: JuliaContractId,
     /// Candidate episode id echoed by the provider.
-    pub candidate_id: String,
+    pub candidate_id: JuliaContractId,
     /// Semantic score produced by Julia.
     pub semantic_score: f32,
     /// Utility score produced by Julia.
@@ -141,7 +143,7 @@ pub struct MemoryJuliaEpisodicRecallScoreRow {
     /// Optional ranking reason string.
     pub ranking_reason: Option<String>,
     /// Optional retrieval mode string.
-    pub retrieval_mode: Option<String>,
+    pub retrieval_mode: Option<JuliaContractMode>,
     /// Physical schema version echoed by the provider.
     pub schema_version: String,
 }

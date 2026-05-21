@@ -16,10 +16,12 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 mod artifacts;
 mod bootstrap;
 mod link;
+mod markdown_parser;
 mod retrieval_policy;
 mod test_support;
 
 pub use artifacts::{
+    LinkedBuiltinJuliaGatewayArtifactPath,
     linked_builtin_julia_deployment_artifact_openapi_json_example,
     linked_builtin_julia_deployment_artifact_openapi_toml_example,
     linked_builtin_julia_gateway_artifact_base_url,
@@ -55,7 +57,8 @@ pub use test_support::{
     GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN, GRAPH_STRUCTURAL_TAG_SCORE_COLUMN,
     GraphStructuralFilterConstraint, GraphStructuralFilterRequestRow,
     GraphStructuralFilterScoreRow, GraphStructuralRawConnectedPairCollectionCandidateInputs,
-    GraphStructuralRerankScoreRow, build_graph_structural_filter_request_batch,
+    GraphStructuralRerankScoreRow, LinkedBuiltinJuliaRerankEndpoint,
+    build_graph_structural_filter_request_batch,
     build_graph_structural_generic_topology_candidate_inputs,
     build_graph_structural_generic_topology_candidate_inputs_from_pair_collection,
     build_graph_structural_generic_topology_candidate_inputs_from_raw_connected_pairs,

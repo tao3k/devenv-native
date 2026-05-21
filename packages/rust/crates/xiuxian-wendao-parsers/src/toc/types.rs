@@ -1,6 +1,6 @@
 //! Markdown table-of-contents DTOs.
 
-use crate::document::MarkdownDocument;
+use crate::document::{DocumentType, MarkdownDocument};
 use crate::sections::MarkdownSection;
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ pub struct MarkdownOutlineDocument {
     pub title: String,
     /// Optional semantic document type from frontmatter.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub doc_type: Option<String>,
+    pub doc_type: Option<DocumentType>,
     /// Total number of lines in the stripped Markdown body.
     pub line_count: usize,
     /// Heading outline entries in source order.

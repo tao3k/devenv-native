@@ -28,22 +28,31 @@ pub struct DmnInputClause {
     pub type_ref: Option<Arc<str>>,
 }
 
+/// Named construction payload for one bounded DMN input clause.
+#[derive(Clone, Copy)]
+pub struct DmnInputClauseInput<'a> {
+    /// Stable input identifier.
+    pub input_id: &'a str,
+    /// Optional human-readable label.
+    pub label: Option<&'a str>,
+    /// Optional input name.
+    pub name: Option<&'a str>,
+    /// Optional input expression used to resolve variables.
+    pub expression: Option<&'a str>,
+    /// Optional DMN `typeRef` metadata from the executable source.
+    pub type_ref: Option<&'a str>,
+}
+
 impl DmnInputClause {
     /// Creates one bounded input clause.
     #[must_use]
-    pub fn new(
-        input_id: impl AsRef<str>,
-        label: Option<impl AsRef<str>>,
-        name: Option<impl AsRef<str>>,
-        expression: Option<impl AsRef<str>>,
-        type_ref: Option<impl AsRef<str>>,
-    ) -> Self {
+    pub fn new(input: DmnInputClauseInput<'_>) -> Self {
         Self {
-            input_id: Arc::<str>::from(input_id.as_ref()),
-            label: label.map(|value| Arc::<str>::from(value.as_ref())),
-            name: name.map(|value| Arc::<str>::from(value.as_ref())),
-            expression: expression.map(|value| Arc::<str>::from(value.as_ref())),
-            type_ref: type_ref.map(|value| Arc::<str>::from(value.as_ref())),
+            input_id: Arc::<str>::from(input.input_id),
+            label: input.label.map(Arc::<str>::from),
+            name: input.name.map(Arc::<str>::from),
+            expression: input.expression.map(Arc::<str>::from),
+            type_ref: input.type_ref.map(Arc::<str>::from),
         }
     }
 

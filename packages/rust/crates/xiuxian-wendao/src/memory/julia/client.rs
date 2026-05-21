@@ -1,3 +1,5 @@
+//! `memory::julia::client` owns Wendao memory julia client behavior.
+
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 use xiuxian_wendao_julia::memory::downcall::{
     fetch_calibration_artifact_rows_from_inputs as fetch_calibration_artifact_rows_with_runtime,

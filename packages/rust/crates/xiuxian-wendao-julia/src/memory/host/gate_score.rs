@@ -41,6 +41,31 @@ pub struct MemoryGateScoreEvidenceRow {
     pub current_state: MemoryLifecycleState,
 }
 
+/// Host-owned gate-score signals that are not stored directly on an episode.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MemoryGateScoreEvidenceSignals {
+    /// `ReAct` revalidation score in `[0, 1]`.
+    pub react_revalidation_score: f32,
+    /// Graph consistency score in `[0, 1]`.
+    pub graph_consistency_score: f32,
+    /// Omega alignment score in `[0, 1]`.
+    pub omega_alignment_score: f32,
+    /// Current Rust-owned lifecycle state.
+    pub current_state: MemoryLifecycleState,
+}
+
+/// Named inputs for looking up one gate-score evidence row from a store.
+pub struct MemoryGateScoreStoreEvidenceInput<'a> {
+    /// Episode store that owns the memory item.
+    pub store: &'a EpisodeStore,
+    /// Host memory identifier used for store lookup.
+    pub memory_id: MemoryGateScoreMemoryId<'a>,
+    /// Optional scenario pack forwarded into Julia.
+    pub scenario_pack: Option<String>,
+    /// Host-computed evidence signals for this memory item.
+    pub signals: MemoryGateScoreEvidenceSignals,
+}
+
 /// Build typed Julia `memory_gate_score` request rows from Rust-owned gate
 /// evidence.
 ///
@@ -79,21 +104,18 @@ pub fn build_memory_gate_score_request_batch_from_evidence(
 pub fn build_memory_gate_score_evidence_row_from_episode(
     episode: &Episode,
     scenario_pack: Option<String>,
-    react_revalidation_score: f32,
-    graph_consistency_score: f32,
-    omega_alignment_score: f32,
-    current_state: MemoryLifecycleState,
+    signals: &MemoryGateScoreEvidenceSignals,
 ) -> MemoryGateScoreEvidenceRow {
     MemoryGateScoreEvidenceRow {
         memory_id: episode.id.clone(),
         scenario_pack,
         ledger: MemoryUtilityLedger::from_episode(
             episode,
-            react_revalidation_score,
-            graph_consistency_score,
-            omega_alignment_score,
+            signals.react_revalidation_score,
+            signals.graph_consistency_score,
+            signals.omega_alignment_score,
         ),
-        current_state,
+        current_state: signals.current_state,
     }
 }
 
@@ -104,16 +126,10 @@ pub fn build_memory_gate_score_evidence_row_from_episode(
 /// Returns [`RepoIntelligenceError`] when the requested episode does not
 /// exist in the store.
 pub fn build_memory_gate_score_evidence_row_from_store(
-    store: &EpisodeStore,
-    memory_id: MemoryGateScoreMemoryId<'_>,
-    scenario_pack: Option<String>,
-    react_revalidation_score: f32,
-    graph_consistency_score: f32,
-    omega_alignment_score: f32,
-    current_state: MemoryLifecycleState,
+    input: MemoryGateScoreStoreEvidenceInput<'_>,
 ) -> Result<MemoryGateScoreEvidenceRow, RepoIntelligenceError> {
-    let memory_id = memory_id.as_str();
-    let Some(episode) = store.get(memory_id) else {
+    let memory_id = input.memory_id.as_str();
+    let Some(episode) = input.store.get(memory_id) else {
         return Err(staging_error(format!(
             "memory Julia memory_gate_score host staging could not find episode `{}`",
             memory_id.trim()
@@ -122,11 +138,8 @@ pub fn build_memory_gate_score_evidence_row_from_store(
 
     Ok(build_memory_gate_score_evidence_row_from_episode(
         &episode,
-        scenario_pack,
-        react_revalidation_score,
-        graph_consistency_score,
-        omega_alignment_score,
-        current_state,
+        input.scenario_pack,
+        &input.signals,
     ))
 }
 
@@ -164,7 +177,7 @@ fn build_request_row(
         usage_count: evidence_row.ledger.usage_count,
         failure_rate: evidence_row.ledger.failure_rate,
         ttl_score: evidence_row.ledger.ttl_score,
-        current_state: evidence_row.current_state.as_str().to_string(),
+        current_state: evidence_row.current_state.as_str().into(),
     })
 }
 

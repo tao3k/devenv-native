@@ -25,6 +25,7 @@ pub struct QianjiStateSnapshot {
 impl QianjiStateSnapshot {
     /// Formats the Redis key for a given session.
     #[must_use]
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub fn redis_key(session_id: &str) -> String {
         format!("xq:qianji:checkpoint:{session_id}")
     }
@@ -35,6 +36,7 @@ impl QianjiStateSnapshot {
     ///
     /// Returns [`QianjiError::CheckpointError`] when redis connectivity,
     /// key lookup, or JSON deserialization fails.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn load(session_id: &str, redis_url: &str) -> Result<Option<Self>, QianjiError> {
         let client = redis::Client::open(redis_url)
             .map_err(|e| QianjiError::CheckpointError(e.to_string()))?;
@@ -92,6 +94,7 @@ impl QianjiStateSnapshot {
     ///
     /// Returns [`QianjiError::CheckpointError`] when redis connectivity
     /// or delete command execution fails.
+    /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn delete(session_id: &str, redis_url: &str) -> Result<(), QianjiError> {
         let client = redis::Client::open(redis_url)
             .map_err(|e| QianjiError::CheckpointError(e.to_string()))?;

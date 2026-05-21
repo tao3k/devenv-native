@@ -52,8 +52,8 @@ fn detect_recursive_call_activity_from(
         for (called_process_id, node_id) in edges {
             if visiting.contains(called_process_id) {
                 return Some(BpmnEngineError::UnsupportedSubProcessConfiguration {
-                    process_id: process_id.to_string(),
-                    node_id: node_id.clone(),
+                    process_id: (process_id.to_string()).into(),
+                    node_id: (node_id.clone()).into(),
                     detail: "recursive_call_activity",
                 });
             }

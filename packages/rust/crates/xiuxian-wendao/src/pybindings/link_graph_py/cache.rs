@@ -1,3 +1,5 @@
+//! `pybindings::link_graph_py::cache` owns Wendao pybindings link graph py cache behavior.
+
 use pyo3::{PyResult, pyfunction};
 
 use crate::link_graph::{valkey_stats_cache_del, valkey_stats_cache_get, valkey_stats_cache_set};

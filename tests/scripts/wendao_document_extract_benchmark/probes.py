@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from xiuxian_wendao_analyzer.docling_groundtruth import (
+    compare_report_artifacts_to_docling_groundtruth,
+    summarize_docling_groundtruth_reports,
+)
+
 from .artifact_summary import (
     max_rss_kb,
     percentile,
@@ -9,6 +14,11 @@ from .artifact_summary import (
     summarize_artifact_reports,
 )
 from .attachment_classes import classify_attachment
+from .audio_transcript_org import (
+    DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
+    export_audio_transcript_org,
+    export_audio_transcript_reference_drafts,
+)
 from .common import (
     Any,
     Path,
@@ -18,6 +28,7 @@ from .common import (
 from .fake_fixtures import distinct_miss_wait_ms
 from .features import cargo_features_for_flight_mode
 from .http_status import run_command_with_status_sampling
+from .providers import apply_rust_pdf_ocr_env
 from .runtime import rust_process_env
 from .rust_status import (
     combine_rust_jobs_status_summaries,
@@ -150,6 +161,7 @@ def run_structure_baseline_probe(
                 f"structure baseline `{fixture_name}` produced error rows: {error_rows}"
             )
         artifact_summary = summarize_artifact_reports(report.get("artifactReports", []))
+        docling_groundtruth_reports = _compare_docling_groundtruth(args, report)
         fixture_reports.append(
             {
                 "fixture": fixture_name,
@@ -162,6 +174,10 @@ def run_structure_baseline_probe(
                 "structureReadingOrderSorted": artifact_summary[
                     "structureReadingOrderSorted"
                 ],
+                "doclingGroundtruth": summarize_docling_groundtruth_reports(
+                    docling_groundtruth_reports,
+                ),
+                "doclingGroundtruthReports": docling_groundtruth_reports,
             }
         )
 
@@ -234,6 +250,10 @@ def run_fixture_probe(
         concurrency=1,
         report_path=output_dir / "force.json",
     )
+    force_docling_groundtruth_reports = _compare_docling_groundtruth(args, force_report)
+    force_docling_groundtruth = summarize_docling_groundtruth_reports(
+        force_docling_groundtruth_reports,
+    )
     shard_cache_reuse_report = None
     if args.shard_cache_reuse_probe:
         shard_cache_reuse_report = run_cargo_perf_test(
@@ -265,6 +285,18 @@ def run_fixture_probe(
         concurrency=args.concurrency,
         report_path=output_dir / "cache.json",
     )
+    audio_transcript_org = export_audio_transcript_org_for_fixture(
+        args,
+        fixture_name,
+        output_dir,
+    )
+    audio_transcript_reference_draft = (
+        export_audio_transcript_reference_draft_for_fixture(
+            args,
+            fixture_name,
+            output_dir,
+        )
+    )
     cached_latencies = cached_report["latenciesMs"]
     request_count = cached_report["requestCount"]
     row_count = cached_report["rowCount"]
@@ -281,9 +313,36 @@ def run_fixture_probe(
         else 0
     )
     cache_error_rows = cached_report.get("errorRowCount", 0)
+    force_artifact_summary = summarize_artifact_reports(
+        force_report.get("artifactReports", [])
+    )
     artifact_summary = summarize_artifact_reports(
         cached_report.get("artifactReports", [])
     )
+    shard_cache_reuse_artifact_summary = (
+        summarize_artifact_reports(shard_cache_reuse_report.get("artifactReports", []))
+        if shard_cache_reuse_report
+        else None
+    )
+    artifact_registry_reuse_artifact_summary = (
+        summarize_artifact_reports(
+            artifact_registry_reuse_report.get("artifactReports", [])
+        )
+        if artifact_registry_reuse_report
+        else None
+    )
+    metrics_rows_by_run = {
+        "force": force_artifact_summary["metricsRows"],
+        "cache": artifact_summary["metricsRows"],
+    }
+    if shard_cache_reuse_artifact_summary:
+        metrics_rows_by_run["shard_cache_reuse"] = shard_cache_reuse_artifact_summary[
+            "metricsRows"
+        ]
+    if artifact_registry_reuse_artifact_summary:
+        metrics_rows_by_run["artifact_registry_reuse"] = (
+            artifact_registry_reuse_artifact_summary["metricsRows"]
+        )
     structure_order_consistency = fixture_structure_order_consistency(
         force_report,
         cached_report,
@@ -303,6 +362,28 @@ def run_fixture_probe(
             f"artifact_registry_reuse={artifact_registry_reuse_error_rows}, "
             f"cache={cache_error_rows}"
         )
+    if getattr(args, "fail_on_missing_ocr_metrics", False):
+        missing_metrics_runs = [
+            name
+            for name, metrics_rows in metrics_rows_by_run.items()
+            if metrics_rows <= 0
+        ]
+        if missing_metrics_runs:
+            fallback_reasons = hybrid_page_ocr_fallback_reasons_by_run(
+                force_report,
+                cached_report,
+                shard_cache_reuse_report,
+                artifact_registry_reuse_report,
+            )
+            reason_suffix = (
+                "; hybrid fallback reasons: " + "; ".join(fallback_reasons)
+                if fallback_reasons
+                else ""
+            )
+            raise SystemExit(
+                f"fixture `{fixture_name}` produced no OCR metrics rows for: "
+                f"{', '.join(missing_metrics_runs)}{reason_suffix}"
+            )
     if (
         getattr(args, "fail_on_structure_order_mismatch", False)
         and structure_order_consistency["structureOrderStable"] is False
@@ -310,6 +391,14 @@ def run_fixture_probe(
         raise SystemExit(
             f"fixture `{fixture_name}` produced unstable structure order across runs: "
             f"mismatches={structure_order_consistency['structureOrderMismatchCount']}"
+        )
+    if (
+        getattr(args, "fail_on_docling_groundtruth_mismatch", False)
+        and force_docling_groundtruth["passed"] is False
+    ):
+        raise SystemExit(
+            f"fixture `{fixture_name}` did not match upstream Docling groundtruth: "
+            f"{force_docling_groundtruth['failures']}"
         )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
@@ -356,6 +445,18 @@ def run_fixture_probe(
         "forceErrorRows": force_error_rows,
         "forceStatusCounts": force_report.get("statusCounts", {}),
         "forceMaxRssKb": force_report.get("maxRssKb"),
+        "doclingGroundtruth": force_docling_groundtruth,
+        "doclingGroundtruthReports": force_docling_groundtruth_reports,
+        "doclingGroundtruthChecked": force_docling_groundtruth["checked"],
+        "doclingGroundtruthPassed": force_docling_groundtruth["passed"],
+        "doclingGroundtruthMissingCount": force_docling_groundtruth["missingCount"],
+        "doclingGroundtruthFailureCount": force_docling_groundtruth["failureCount"],
+        "doclingGroundtruthMinMarkdownSimilarity": force_docling_groundtruth[
+            "minMarkdownSimilarity"
+        ],
+        "doclingGroundtruthMinCharCoverageRatio": force_docling_groundtruth[
+            "minCharCoverageRatio"
+        ],
         "shardCacheReuseEnabled": args.shard_cache_reuse_probe,
         "shardCacheReuseForceMs": (
             shard_cache_reuse_report["latenciesMs"][0]
@@ -411,6 +512,27 @@ def run_fixture_probe(
         "arrowIpcBytes": cached_report["arrowIpcBytes"],
         "resourcesArrowExists": artifact_summary["resourcesArrowExists"],
         "resourcesRows": artifact_summary["resourcesRows"],
+        "audioTranscriptChars": artifact_summary["audioTranscriptChars"],
+        "audioTranscriptTimelineMarkerCount": artifact_summary[
+            "audioTranscriptTimelineMarkerCount"
+        ],
+        "audioTranscriptTimelineMarkedRows": artifact_summary[
+            "audioTranscriptTimelineMarkedRows"
+        ],
+        "audioTranscriptOrgPath": audio_transcript_org["path"],
+        "audioTranscriptOrgRows": audio_transcript_org["rows"],
+        "audioTranscriptOrgChars": audio_transcript_org["chars"],
+        "audioTranscriptOrgTimelineMarkerCount": audio_transcript_org[
+            "timelineMarkerCount"
+        ],
+        "audioTranscriptReferenceDraftJsonlPath": audio_transcript_reference_draft[
+            "jsonlPath"
+        ],
+        "audioTranscriptReferenceDraftTsvPath": audio_transcript_reference_draft[
+            "tsvPath"
+        ],
+        "audioTranscriptReferenceDraftRows": audio_transcript_reference_draft["rows"],
+        "audioTranscriptReferenceDraftChars": audio_transcript_reference_draft["chars"],
         "structureArrowExists": artifact_summary["structureArrowExists"],
         "structureRows": artifact_summary["structureRows"],
         "structureOcrPageBlocks": artifact_summary["structureOcrPageBlocks"],
@@ -428,6 +550,103 @@ def run_fixture_probe(
         "metricsRustSchedulerElapsedMs": artifact_summary[
             "metricsRustSchedulerElapsedMs"
         ],
+        "forceHybridPageOcrTimingTotalElapsedMs": force_artifact_summary[
+            "hybridPageOcrTimingTotalElapsedMs"
+        ],
+        "forceHybridPageOcrTimingPhaseElapsedMs": force_artifact_summary[
+            "hybridPageOcrTimingPhaseElapsedMs"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionShardCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionShardCount"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionRequestCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRequestCount"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionRenderedShardCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRenderedShardCount"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionRenderCacheHitCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRenderCacheHitCount"
+        ],
+        "forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount": force_artifact_summary[
+            "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
+        ],
+        "structureAuthorityPages": force_artifact_summary["structureAuthorityPages"],
+        "textShortcutPages": force_artifact_summary["textShortcutPages"],
+        "ocrPatchRegions": force_artifact_summary["ocrPatchRegions"],
+        "pageRangeDoclingFallbackPages": force_artifact_summary[
+            "pageRangeDoclingFallbackPages"
+        ],
+        "pageRangeDoclingFallbackChunkCount": force_artifact_summary[
+            "pageRangeDoclingFallbackChunkCount"
+        ],
+        "forceHybridPageOcrTimingPageRangeDoclingFallbackPlan": force_artifact_summary[
+            "pageRangeDoclingFallbackPlan"
+        ],
+        "forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary": (
+            force_artifact_summary["pageRangeDoclingFallbackChunkSummary"]
+        ),
+        "fullDoclingFallbackCount": force_artifact_summary["fullDoclingFallbackCount"],
+        "forceHybridPageOcrTimingSchedulerTraceSummary": force_artifact_summary[
+            "hybridPageOcrTimingSchedulerTraceSummary"
+        ],
+        "shardCacheReuseMetricsRustSchedulerElapsedMs": (
+            shard_cache_reuse_artifact_summary["metricsRustSchedulerElapsedMs"]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingTotalElapsedMs": (
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingTotalElapsedMs"]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs": (
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingPhaseElapsedMs"]
+            if shard_cache_reuse_artifact_summary
+            else {}
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionShardCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionShardCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRequestCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRequestCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderedShardCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderedShardCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderCacheHitCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingSchedulerTraceSummary": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingSchedulerTraceSummary"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else {}
+        ),
         "documentTimingArrowExists": artifact_summary["documentTimingArrowExists"],
         "documentTimingRows": artifact_summary["documentTimingRows"],
         "documentTimingTotalElapsedMs": artifact_summary[
@@ -436,6 +655,9 @@ def run_fixture_probe(
         "documentTimingOverheadMs": document_timing_overhead_ms,
         "documentTimingPhaseElapsedMs": artifact_summary[
             "documentTimingPhaseElapsedMs"
+        ],
+        "hybridPageOcrFallbackReasons": artifact_summary[
+            "hybridPageOcrFallbackReasons"
         ],
         "imageAttachmentAuditCount": artifact_summary["imageAttachmentAuditCount"],
         "imageKnownDimensionCount": artifact_summary["imageKnownDimensionCount"],
@@ -466,6 +688,73 @@ def run_fixture_probe(
     }
 
 
+def export_audio_transcript_org_for_fixture(
+    args: argparse.Namespace,
+    fixture_name: str,
+    output_dir: Path,
+) -> dict[str, Any]:
+    if not getattr(args, "export_audio_transcript_org", False):
+        return {
+            "path": None,
+            "rows": 0,
+            "chars": 0,
+            "timelineMarkerCount": 0,
+        }
+    report_dir = Path(
+        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
+    )
+    org_path = report_dir / "audio-transcripts" / f"{fixture_name}.org"
+    return export_audio_transcript_org(
+        output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
+        org_path,
+    )
+
+
+def export_audio_transcript_reference_draft_for_fixture(
+    args: argparse.Namespace,
+    fixture_name: str,
+    output_dir: Path,
+) -> dict[str, Any]:
+    if not getattr(args, "export_audio_transcript_org", False):
+        return {
+            "jsonlPath": None,
+            "tsvPath": None,
+            "rows": 0,
+            "chars": 0,
+        }
+    report_dir = Path(
+        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
+    )
+    draft_dir = report_dir / "audio-transcripts"
+    return export_audio_transcript_reference_drafts(
+        output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
+        draft_dir / f"{fixture_name}.reference_draft.jsonl",
+        draft_dir / f"{fixture_name}.reference_draft.tsv",
+    )
+
+
+def hybrid_page_ocr_fallback_reasons_by_run(
+    force_report: dict[str, Any],
+    cached_report: dict[str, Any],
+    shard_cache_reuse_report: dict[str, Any] | None,
+    artifact_registry_reuse_report: dict[str, Any] | None,
+) -> list[str]:
+    reports_by_run = {
+        "force": force_report,
+        "cache": cached_report,
+    }
+    if shard_cache_reuse_report is not None:
+        reports_by_run["shard_cache_reuse"] = shard_cache_reuse_report
+    if artifact_registry_reuse_report is not None:
+        reports_by_run["artifact_registry_reuse"] = artifact_registry_reuse_report
+    reasons = []
+    for run_name, report in reports_by_run.items():
+        summary = summarize_artifact_reports(report.get("artifactReports", []))
+        for reason in summary.get("hybridPageOcrFallbackReasons", []):
+            reasons.append(f"{run_name}: {reason}")
+    return reasons
+
+
 def document_timing_overhead(
     force_refresh_ms: float,
     artifact_summary: dict[str, Any],
@@ -477,6 +766,23 @@ def document_timing_overhead(
     if not isinstance(timing_ms, int | float):
         return None
     return max(float(force_refresh_ms) - float(timing_ms), 0.0)
+
+
+def _compare_docling_groundtruth(
+    args: argparse.Namespace,
+    report: dict[str, Any],
+) -> list[dict[str, Any]]:
+    return compare_report_artifacts_to_docling_groundtruth(
+        enabled=getattr(args, "compare_docling_groundtruth", False),
+        groundtruth_root=getattr(args, "docling_groundtruth_root", None),
+        report=report,
+        min_char_coverage=getattr(
+            args,
+            "docling_groundtruth_min_char_coverage",
+            0.98,
+        ),
+        min_similarity=getattr(args, "docling_groundtruth_min_similarity", 0.98),
+    )
 
 
 def run_cargo_perf_test(
@@ -512,6 +818,7 @@ def run_cargo_perf_test(
             "WENDAO_DOCUMENT_EXTRACT_PERF_REPORT": str(report_path),
         }
     )
+    apply_rust_pdf_ocr_env(args, env)
     if inputs is not None:
         env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"] = json.dumps(
             [

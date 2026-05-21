@@ -1,7 +1,33 @@
+//! Core knowledge-entry records used by Wendao storage and retrieval.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use xiuxian_types::KnowledgeCategory;
+
+/// Stable identifier for one knowledge entry.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KnowledgeEntryId(String);
+
+impl KnowledgeEntryId {
+    /// Consumes this id into its serialized representation.
+    #[must_use]
+    pub fn into_string(self) -> String {
+        self.0
+    }
+}
+
+impl From<String> for KnowledgeEntryId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for KnowledgeEntryId {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
 
 /// Stable knowledge payload shared across Wendao consumers.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -31,10 +57,15 @@ pub struct KnowledgeEntry {
 impl KnowledgeEntry {
     /// Create a new `KnowledgeEntry` with required fields.
     #[must_use]
-    pub fn new(id: String, title: String, content: String, category: KnowledgeCategory) -> Self {
+    pub fn new(
+        id: impl Into<KnowledgeEntryId>,
+        title: String,
+        content: String,
+        category: KnowledgeCategory,
+    ) -> Self {
         let now = Utc::now();
         Self {
-            id,
+            id: id.into().into_string(),
             title,
             content,
             category,

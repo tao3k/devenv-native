@@ -1,0 +1,209 @@
+#+TITLE: Agent Org Workflow
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:workflow:
+
+* Agent Org Workflow
+This file defines the repository-local Org workflow for agent task tracking.
+It uses task-local Org headings, native time markers, and command-line recovery
+queries.
+
+** Tracking Surfaces
+
+Use SDD plus task surfaces:
+
+1. SDD: durable system/capability/view/decision/audit direction under =$PRJ_CACHE_HOME/agent/sdd/=.
+2. ExecPlan: optional detailed execution log under =$PRJ_CACHE_HOME/agent/execplans/=.
+3. Org task ledger: current task state under =$PRJ_CACHE_HOME/agent/org/=.
+
+The Org task ledger owns task lifecycle state, schedule markers, recovery
+queries, and evidence pointers. The SDD owns architecture description, design
+rationale, audit concerns, and parent/child design edges. The ExecPlan owns
+detailed execution logs when a slice needs them. Package docs own durable
+public behavior.
+
+** Task Lifecycle
+
+Use native Org state and time markers:
+
+1. =TODO= means the slice is active or resumable.
+2. =DONE= means the slice is validated and no longer belongs in the active
+   recovery view.
+3. =SCHEDULED:= records the next planned work date.
+4. =DEADLINE:= is optional and only for real calendar pressure.
+5. =CLOSED:= records completion time.
+6. Progress cookies such as =[1/3]= and =[33%]= belong on task headings that
+   contain direct checkbox checklists, direct TODO/DONE child headings, or both.
+7. Checkbox items use native Org states: =- [ ]= for open work and =- [X]=
+   for completed work.
+8. If a heading has both TODO children and checkboxes, set
+   =:COOKIE_DATA: direct= in the property drawer so Orgize counts only the
+   current heading's direct checklist items and direct TODO/DONE child headings.
+9. Do not leave empty property values in templates. Use explicit placeholders
+   such as =<execplan-path>= or =none= so Orgize can keep the property drawer in
+   the effective property set.
+10. Repeated agent tasks use native Org repeater cookies on =SCHEDULED:= or
+    =DEADLINE:= timestamps, for example =<2026-05-18 Mon ++1d>= for a cadence
+    that catches up to the next future occurrence and =<2026-05-18 Mon .+1w>=
+    for a cadence measured from completion time.
+11. When a task needs both =SCHEDULED:= and =DEADLINE:= metadata, keep them on
+    the same planning line so the Orgize read model preserves both timestamps.
+
+A task's heading is the durable recovery anchor.
+
+** Recovery Commands
+
+Recover active work without reading chat history first:
+
+#+begin_src text
+wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Refresh the authoritative DuckDB read model after editing Org files or when a
+cached query looks stale:
+
+#+begin_src text
+wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Recover SDD system/capability/view/decision/audit status:
+
+#+begin_src text
+wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd
+#+end_src
+
+The task-list command excludes DONE and archived rows by default and renders
+native Org repeater cookies as =repeat:= metadata. Use =--cached= for fast
+turn-start recovery from the current DuckDB snapshot; omit it when the query
+must refresh from Org source files first.
+
+Find scheduled work for one day or a date window:
+
+#+begin_src text
+wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+wendao-client orgize agent-planning --date YYYY-MM-DD --end YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Find one lane by stable text:
+
+#+begin_src text
+wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Open a named DuckDB-backed control view:
+
+#+begin_src text
+wendao-client orgize task-list --cached --view closure-needed $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-list --cached --view archive-candidate $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-list --cached --view repeating $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Review completed achievement task rows without polluting active recovery:
+
+#+begin_src text
+wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Summarize archive candidates, achievements, repeaters, and tag counts:
+
+#+begin_src text
+wendao-client orgize task-report --cached $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-report --cached --view archive-candidate $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-report --cached --view closure-needed $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-report --cached --view repeating $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Omit =--cached= from =task-report= when the summary must refresh the read model
+before rendering.
+
+Plan physical archival for completed task rows:
+
+#+begin_src text
+wendao-client orgize task-archive $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-archive --target 2026.org $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-archive --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Apply a reviewed archive plan explicitly:
+
+#+begin_src text
+wendao-client orgize task-archive --apply $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-archive --apply --target 2026.org $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-archive --apply --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+The archive command prints an =Archive Targets= summary before row details so
+operators can review the write targets and selected row counts before applying
+the plan. Use =--closed-before= to keep newly completed same-day tasks out of a
+bulk archive run.
+
+Use sparse-tree when the full source subtree context is useful:
+
+#+begin_src text
+wendao-client orgize sparse-tree --match '+agent+achievement' $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Lint SDD and task tracking files before marking a tracking slice complete:
+
+#+begin_src text
+wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/sdd
+wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/org
+#+end_src
+
+Define repeated performance/profile checks with native Org timestamps:
+
+#+begin_src org
+* TODO Wendao Performance Profile Cadence [0/5] [0%] :agent:performance:
+SCHEDULED: <2026-05-18 Mon ++1d>
+:PROPERTIES:
+:COOKIE_DATA: direct
+:NEXT_ACTION: Refresh the benchmark baseline and compare the current candidate.
+:RESUME_QUERY: wendao-client orgize task-list --cached --text 'Performance Profile' $PRJ_CACHE_HOME/agent/org
+:END:
+
+- [ ] Refresh the frozen baseline before judging a candidate.
+- [ ] Run the current candidate profile with a stable harness command.
+- [ ] Compare latency, row count, ordering, and precision gates.
+- [ ] Record evidence in the active ExecPlan or package docs.
+- [ ] Decide whether to continue optimizing, archive the slice, or open the next one.
+#+end_src
+
+** Completion Protocol
+
+When a slice is complete:
+
+1. Mark the task heading =DONE=.
+2. Add a =CLOSED:= timestamp.
+3. Set =STATUS= to =done=.
+4. Record exact evidence in =EVIDENCE= and the task's =** Evidence= section.
+5. Update the paired ExecPlan =** Outcomes & Retrospective= section.
+6. Move the completed ExecPlan to =$PRJ_CACHE_HOME/agent/execplans/archives/=.
+7. Keep the task heading in the ledger only if it is needed as a lane index;
+   otherwise move it to =$PRJ_CACHE_HOME/agent/org/archives/YYYY.org=.
+
+The active recovery query excludes DONE headings by default, so completed
+headings do not block the next agent turn even before physical archival.
+
+** Resume Protocol
+
+At the start of a resumed turn:
+
+1. Run the active task-list query.
+2. Open the =EXECPLAN= path on the selected heading.
+3. Read the task =** Recovery=, the top-level progress cookie, and the next
+   unchecked checklist item.
+4. Read the ExecPlan =** Progress= section only after the task-local checklist
+   identifies the active step.
+5. Continue from the next unchecked checkpoint.
+
+This protocol complements the agent turn loop. The chat resume gives recent
+conversation state; the Org ledger gives durable task state.
+
+** Archive Discipline
+
+Archive only completed, validated slices. Do not archive active or blocked
+tasks.
+
+Archived tasks may remain queryable by omitting sparse-tree =--exclude-archived=
+and =--exclude-done= filters. They should not appear in active task-list
+recovery unless =--include-archived= or =--include-done= is explicitly set.

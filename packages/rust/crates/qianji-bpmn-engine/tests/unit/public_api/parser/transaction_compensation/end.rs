@@ -119,8 +119,8 @@ fn parser_rejects_throw_compensation_end_event_with_compensation_detail() {
     assert_eq!(
         error,
         BpmnEngineError::UnsupportedCompensationConfiguration {
-            process_id: "throw_compensation_flow".to_string(),
-            node_id: "throw_end".to_string(),
+            process_id: ("throw_compensation_flow".to_string()).into(),
+            node_id: ("throw_end".to_string()).into(),
             detail: "throw_compensation_end_event",
         }
     );

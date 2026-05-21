@@ -11,7 +11,12 @@ fn bpmn_snapshot_preserves_choreography_metadata() {
         choreography.collaboration_id.as_deref(),
         Some("Choreography_Order")
     );
-    assert_eq!(choreography.is_closed, Some(false));
+    assert_eq!(
+        choreography
+            .is_closed
+            .map(qianji_bpmn_engine::bpmn_model_api::BpmnSnapshotFlag::get),
+        Some(false)
+    );
     assert_eq!(choreography.participants.len(), 2);
     assert_eq!(choreography.message_flows.len(), 2);
     assert_eq!(choreography.choreography_activities.len(), 3);

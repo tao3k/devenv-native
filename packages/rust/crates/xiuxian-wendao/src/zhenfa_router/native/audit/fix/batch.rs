@@ -1,5 +1,7 @@
+//! `zhenfa_router::native::audit::fix::batch` owns Wendao audit fix batch behavior.
+
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::BatchFix;
 use super::hashing::compute_blake3_hash;
@@ -149,133 +151,39 @@ impl AtomicFixBatch {
     /// Returns a `FixReport` even on errors - check `report.is_success()`
     /// and `report.errors` for details.
     #[must_use]
-    #[allow(clippy::too_many_lines)]
     pub fn apply_all(&self) -> FixReport {
         let mut report = FixReport::default();
-        let filtered = self.filter_by_confidence();
-
-        for (path, mut fixes) in filtered {
-            let content = match std::fs::read_to_string(&path) {
-                Ok(c) => c,
-                Err(error)
-                    if error.kind() == std::io::ErrorKind::NotFound
-                        && fixes.len() == 1
-                        && fixes[0].is_create_file() =>
-                {
-                    String::new()
-                }
-                Err(e) => {
-                    report
-                        .errors
-                        .push(format!("Failed to read {}: {}", path.display(), e));
-                    report.files_skipped += 1;
-                    continue;
-                }
-            };
-
-            let create_file_mode = fixes.len() == 1 && fixes[0].is_create_file();
-
-            if create_file_mode && path.exists() {
-                report.failures += 1;
-                report.files_skipped += 1;
-                report.errors.push(format!(
-                    "Refusing to create {} because the file already exists",
-                    path.display()
-                ));
-                continue;
-            }
-
-            // ONE-TIME hash verification (CAS check) before any modifications
-            // Get expected hash from first surgical fix (all fixes for same file share same base_hash)
-            if !create_file_mode
-                && let Some(first_fix) = fixes.iter().find(|f| f.is_surgical())
-                && let Some(ref expected_hash) = first_fix.base_hash
-            {
-                let actual_hash = compute_blake3_hash(&content);
-                if &actual_hash != expected_hash {
-                    report.failures += fixes.len();
-                    report.files_skipped += 1;
-                    report.errors.push(format!(
-                        "Hash mismatch for {}: expected {}..8, got {}..8",
-                        path.display(),
-                        &expected_hash[..8.min(expected_hash.len())],
-                        &actual_hash[..8]
-                    ));
-                    continue;
-                }
-            }
-
-            // Sort fixes by byte range (descending) to avoid offset issues
-            // Fixes without byte_range go last (they use string search)
-            fixes.sort_by(|a, b| {
-                let a_start = a.byte_range.as_ref().map_or(usize::MAX, |r| r.start);
-                let b_start = b.byte_range.as_ref().map_or(usize::MAX, |r| r.start);
-                b_start.cmp(&a_start)
-            });
-
-            // Apply all fixes to in-memory content
-            let mut modified_content = content.clone();
-            let mut file_success = true;
-
-            for fix in &fixes {
-                let result = fix.apply_surgical(&mut modified_content);
-                let is_success = matches!(result, FixResult::Success);
-
-                report.results.push(FileFixResult {
-                    path: path.to_string_lossy().to_string(),
-                    result: result.to_string(),
-                    line_number: fix.line_number,
-                    confidence: fix.confidence,
-                });
-
-                if is_success {
-                    report.successes += 1;
-                } else {
-                    report.failures += 1;
-                    report.errors.push(format!(
-                        "Fix failed at {}:{}: {}",
-                        path.display(),
-                        fix.line_number,
-                        result
-                    ));
-                    file_success = false;
-                }
-            }
-
-            // Only write if all fixes succeeded AND not in dry-run mode
-            if file_success && !self.dry_run {
-                if let Some(parent) = path.parent()
-                    && let Err(error) = std::fs::create_dir_all(parent)
-                {
-                    report.errors.push(format!(
-                        "Failed to create parent directories for {}: {}",
-                        path.display(),
-                        error
-                    ));
-                    report.files_skipped += 1;
-                    continue;
-                }
-
-                match std::fs::write(&path, &modified_content) {
-                    Ok(()) => {
-                        report.files_modified += 1;
-                    }
-                    Err(e) => {
-                        report
-                            .errors
-                            .push(format!("Failed to write {}: {}", path.display(), e));
-                        report.files_skipped += 1;
-                    }
-                }
-            } else if file_success && self.dry_run {
-                // Count as modified in dry-run mode for reporting
-                report.files_modified += 1;
-            } else {
-                report.files_skipped += 1;
-            }
+        for (path, mut fixes) in self.filter_by_confidence() {
+            self.apply_file_fixes(path.as_path(), &mut fixes, &mut report);
         }
 
         report
+    }
+
+    fn apply_file_fixes(&self, path: &Path, fixes: &mut [BatchFix], report: &mut FixReport) {
+        let create_file_mode = is_create_file_batch(fixes);
+        let Some(content) = read_fix_content(path, fixes, report) else {
+            return;
+        };
+        if !verify_create_file_target(path, create_file_mode, report) {
+            return;
+        }
+        if !verify_fix_hash(path, fixes, &content, create_file_mode, report) {
+            return;
+        }
+        sort_fixes_for_application(fixes);
+        let Some(modified_content) = apply_fixes_to_content(path, fixes, &content, report) else {
+            return;
+        };
+        self.finish_file_fixes(path, &modified_content, report);
+    }
+
+    fn finish_file_fixes(&self, path: &Path, modified_content: &str, report: &mut FixReport) {
+        if self.dry_run {
+            report.files_modified += 1;
+            return;
+        }
+        write_modified_content(path, modified_content, report);
     }
 
     /// Get the total number of fixes.
@@ -289,4 +197,168 @@ impl AtomicFixBatch {
     pub fn files_affected(&self) -> usize {
         self.fixes_by_file.len()
     }
+}
+
+fn is_create_file_batch(fixes: &[BatchFix]) -> bool {
+    fixes.len() == 1 && fixes[0].is_create_file()
+}
+
+fn read_fix_content(path: &Path, fixes: &[BatchFix], report: &mut FixReport) -> Option<String> {
+    match std::fs::read_to_string(path) {
+        Ok(content) => Some(content),
+        Err(error)
+            if error.kind() == std::io::ErrorKind::NotFound && is_create_file_batch(fixes) =>
+        {
+            Some(String::new())
+        }
+        Err(error) => {
+            report
+                .errors
+                .push(format!("Failed to read {}: {}", path.display(), error));
+            report.files_skipped += 1;
+            None
+        }
+    }
+}
+
+fn verify_create_file_target(path: &Path, create_file_mode: bool, report: &mut FixReport) -> bool {
+    if !create_file_mode || !path.exists() {
+        return true;
+    }
+    report.failures += 1;
+    report.files_skipped += 1;
+    report.errors.push(format!(
+        "Refusing to create {} because the file already exists",
+        path.display()
+    ));
+    false
+}
+
+fn verify_fix_hash(
+    path: &Path,
+    fixes: &[BatchFix],
+    content: &str,
+    create_file_mode: bool,
+    report: &mut FixReport,
+) -> bool {
+    if create_file_mode {
+        return true;
+    }
+    let Some(expected_hash) = first_surgical_base_hash(fixes) else {
+        return true;
+    };
+    let actual_hash = compute_blake3_hash(content);
+    if actual_hash == expected_hash {
+        return true;
+    }
+    report.failures += fixes.len();
+    report.files_skipped += 1;
+    report.errors.push(format!(
+        "Hash mismatch for {}: expected {}..8, got {}..8",
+        path.display(),
+        &expected_hash[..8.min(expected_hash.len())],
+        &actual_hash[..8]
+    ));
+    false
+}
+
+fn first_surgical_base_hash(fixes: &[BatchFix]) -> Option<String> {
+    fixes
+        .iter()
+        .find(|fix| fix.is_surgical())
+        .and_then(|fix| fix.base_hash.clone())
+}
+
+fn sort_fixes_for_application(fixes: &mut [BatchFix]) {
+    fixes.sort_by(|a, b| {
+        let a_start = a
+            .byte_range
+            .as_ref()
+            .map_or(usize::MAX, |range| range.start);
+        let b_start = b
+            .byte_range
+            .as_ref()
+            .map_or(usize::MAX, |range| range.start);
+        b_start.cmp(&a_start)
+    });
+}
+
+fn apply_fixes_to_content(
+    path: &Path,
+    fixes: &[BatchFix],
+    content: &str,
+    report: &mut FixReport,
+) -> Option<String> {
+    let mut modified_content = content.to_string();
+    let mut file_success = true;
+    for fix in fixes {
+        file_success &= apply_one_fix(path, fix, &mut modified_content, report);
+    }
+    if file_success {
+        Some(modified_content)
+    } else {
+        report.files_skipped += 1;
+        None
+    }
+}
+
+fn apply_one_fix(
+    path: &Path,
+    fix: &BatchFix,
+    modified_content: &mut String,
+    report: &mut FixReport,
+) -> bool {
+    let result = fix.apply_surgical(modified_content);
+    let is_success = matches!(result, FixResult::Success);
+    report.results.push(FileFixResult {
+        path: path.to_string_lossy().to_string(),
+        result: result.to_string(),
+        line_number: fix.line_number,
+        confidence: fix.confidence,
+    });
+    if is_success {
+        report.successes += 1;
+        return true;
+    }
+    report.failures += 1;
+    report.errors.push(format!(
+        "Fix failed at {}:{}: {}",
+        path.display(),
+        fix.line_number,
+        result
+    ));
+    false
+}
+
+fn write_modified_content(path: &Path, modified_content: &str, report: &mut FixReport) {
+    if !ensure_parent_dir(path, report) {
+        return;
+    }
+    match std::fs::write(path, modified_content) {
+        Ok(()) => {
+            report.files_modified += 1;
+        }
+        Err(error) => {
+            report
+                .errors
+                .push(format!("Failed to write {}: {}", path.display(), error));
+            report.files_skipped += 1;
+        }
+    }
+}
+
+fn ensure_parent_dir(path: &Path, report: &mut FixReport) -> bool {
+    let Some(parent) = path.parent() else {
+        return true;
+    };
+    if let Err(error) = std::fs::create_dir_all(parent) {
+        report.errors.push(format!(
+            "Failed to create parent directories for {}: {}",
+            path.display(),
+            error
+        ));
+        report.files_skipped += 1;
+        return false;
+    }
+    true
 }

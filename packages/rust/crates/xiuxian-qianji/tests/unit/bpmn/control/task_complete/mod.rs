@@ -10,9 +10,9 @@ pub(super) use super::support::{
 };
 pub(super) use crate::{QianjiBpmnCheckpointStore, load_bpmn_package_from_files};
 pub(super) use qianji_bpmn_engine::{
-    BpmnCheckpointEnvelope, BpmnInstanceInit, PendingHostWorkKind, PendingHostWorkResult,
-    ServiceTaskOutcome, UserTaskOutcome, advance_instance, apply_pending_host_work_result,
-    create_instance,
+    BpmnCheckpointEnvelope, BpmnInstanceInit, PendingHostWorkApplyInput, PendingHostWorkKind,
+    PendingHostWorkResult, ServiceTaskOutcome, UserTaskOutcome, advance_instance,
+    apply_pending_host_work_result, create_instance,
 };
 
 async fn seed_pending_user_task_checkpoint(
@@ -68,7 +68,7 @@ async fn seed_pending_user_task_checkpoint_with_instance(
             .await,
         "pending service task checkpoint should persist",
     );
-    (pending_token_id, pending_activity_id)
+    (pending_token_id, pending_activity_id.as_str().to_string())
 }
 
 async fn seed_pending_service_task_checkpoint_with_instance(
@@ -105,17 +105,17 @@ async fn seed_pending_service_task_checkpoint_with_instance(
     let first_user_token_id = instance.pending_host_work[0].token_id;
     let completed_at_ms = instance.updated_at_ms;
     let mut outcome = ok_of(
-        apply_pending_host_work_result(
-            package.as_ref(),
-            &mut instance,
-            first_user_token_id,
-            PendingHostWorkResult::User(UserTaskOutcome {
+        apply_pending_host_work_result(PendingHostWorkApplyInput {
+            package: package.as_ref(),
+            instance: &mut instance,
+            token_id: first_user_token_id.into(),
+            result: PendingHostWorkResult::User(UserTaskOutcome {
                 data: json!({
                     "answer": "ready",
                 }),
             }),
-            completed_at_ms,
-        ),
+            completed_at_ms: completed_at_ms.into(),
+        }),
         "service task seed should complete first user work",
     );
     loop {
@@ -153,7 +153,7 @@ async fn seed_pending_service_task_checkpoint_with_instance(
             .await,
         "pending service task checkpoint should persist",
     );
-    (pending_token_id, pending_activity_id)
+    (pending_token_id, pending_activity_id.as_str().to_string())
 }
 
 mod claims;

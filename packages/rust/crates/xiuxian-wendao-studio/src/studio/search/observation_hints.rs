@@ -55,34 +55,56 @@ fn hints_from_analysis(
         return None;
     }
 
-    let mut scope_patterns = Vec::new();
-    let mut languages = Vec::new();
-    let mut seen_scopes = HashSet::new();
-    let mut seen_languages = HashSet::new();
-    for observation_id in observation_ids {
-        let Some(node) = nodes_by_id.get(observation_id.as_str()) else {
-            continue;
-        };
-        let Some(value) = observation_value_from_label(node.label.as_str()) else {
-            continue;
-        };
-        let Some(observation) = CodeObservation::parse(value) else {
-            continue;
-        };
-
-        if seen_languages.insert(observation.language.clone()) {
-            languages.push(observation.language);
-        }
-        if let Some(scope) = observation.scope
-            && seen_scopes.insert(scope.clone())
-        {
-            scope_patterns.push(scope);
-        }
-    }
+    let (scope_patterns, languages) = parsed_observations(&observation_ids, &nodes_by_id)
+        .fold(ObservationHintAccum::default(), |mut accum, observation| {
+            accum.push_language(observation.language);
+            if let Some(scope) = observation.scope {
+                accum.push_scope(scope);
+            }
+            accum
+        })
+        .into_parts();
 
     (!scope_patterns.is_empty() || !languages.is_empty()).then_some(DefinitionObservationHints {
         scope_patterns,
         languages,
+    })
+}
+
+#[derive(Default)]
+struct ObservationHintAccum {
+    scope_patterns: Vec<String>,
+    languages: Vec<String>,
+    seen_scopes: HashSet<String>,
+    seen_languages: HashSet<String>,
+}
+
+impl ObservationHintAccum {
+    fn push_language(&mut self, language: String) {
+        if self.seen_languages.insert(language.clone()) {
+            self.languages.push(language);
+        }
+    }
+
+    fn push_scope(&mut self, scope: String) {
+        if self.seen_scopes.insert(scope.clone()) {
+            self.scope_patterns.push(scope);
+        }
+    }
+
+    fn into_parts(self) -> (Vec<String>, Vec<String>) {
+        (self.scope_patterns, self.languages)
+    }
+}
+
+fn parsed_observations<'a>(
+    observation_ids: &'a [String],
+    nodes_by_id: &'a HashMap<&'a str, &'a crate::studio::types::AnalysisNode>,
+) -> impl Iterator<Item = CodeObservation> + 'a {
+    observation_ids.iter().filter_map(|observation_id| {
+        let node = nodes_by_id.get(observation_id.as_str())?;
+        let value = observation_value_from_label(node.label.as_str())?;
+        CodeObservation::parse(value)
     })
 }
 

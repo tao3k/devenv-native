@@ -1,3 +1,5 @@
+//! `ingress::spider::hash_store` owns Wendao ingress spider hash store behavior.
+
 use std::collections::HashSet;
 use std::sync::{PoisonError, RwLock};
 

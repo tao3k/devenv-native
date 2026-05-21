@@ -15,7 +15,7 @@ impl From<TempFunctionDefinitionSnapshot> for DmnFunctionDefinitionSnapshot {
     fn from(value: TempFunctionDefinitionSnapshot) -> Self {
         Self {
             function_definition_id: value.function_definition_id,
-            kind: value.kind,
+            kind: (value.kind.map(Into::into)),
             parameters: value.parameters.into_iter().map(Into::into).collect(),
             body: value.body.map(Into::into),
         }

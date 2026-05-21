@@ -214,18 +214,22 @@ impl<'a> DiagnosticContext<'a> {
             return LocalTargetResolution::Missing;
         }
         let target = Path::new(trimmed);
-        for base in candidate_base_dirs(source_path, self.root) {
-            for candidate in candidate_target_paths(base.as_path(), target, target_kind) {
-                if candidate.is_file() {
-                    let canonical = fs::canonicalize(candidate.as_path()).unwrap_or(candidate);
-                    if self.is_within_root(canonical.as_path()) {
-                        return LocalTargetResolution::Resolved(canonical);
-                    }
-                    return LocalTargetResolution::OutsideRoot(canonical);
-                }
+        candidate_base_dirs(source_path, self.root)
+            .into_iter()
+            .flat_map(|base| candidate_target_paths(base.as_path(), target, target_kind))
+            .find_map(|candidate| self.resolve_existing_candidate(candidate))
+            .unwrap_or(LocalTargetResolution::Missing)
+    }
+
+    fn resolve_existing_candidate(&self, candidate: PathBuf) -> Option<LocalTargetResolution> {
+        candidate.is_file().then(|| {
+            let canonical = fs::canonicalize(candidate.as_path()).unwrap_or(candidate);
+            if self.is_within_root(canonical.as_path()) {
+                LocalTargetResolution::Resolved(canonical)
+            } else {
+                LocalTargetResolution::OutsideRoot(canonical)
             }
-        }
-        LocalTargetResolution::Missing
+        })
     }
 
     fn read_document_index(&mut self, path: &Path) -> Option<LocalTargetDocumentIndex> {
@@ -320,38 +324,47 @@ fn collect_heading_addresses(sections: &[MarkdownSection]) -> HashSet<String> {
 }
 
 fn collect_block_addresses(sections: &[MarkdownSection]) -> HashSet<String> {
-    let mut block_addresses = HashSet::new();
-    for section in sections {
-        let structural_path = if section.heading_path().trim().is_empty() {
-            Vec::new()
-        } else {
-            section
-                .heading_path()
-                .split(" / ")
-                .map(ToString::to_string)
+    sections
+        .iter()
+        .flat_map(section_blocks)
+        .filter(|block| !block.is_code())
+        .flat_map(|block| {
+            block
+                .content
+                .lines()
+                .filter_map(block_address_candidate)
                 .collect::<Vec<_>>()
-        };
-        for block in extract_blocks(
-            section.section_text.as_str(),
-            section.byte_start(),
-            section.line_start(),
-            structural_path.as_slice(),
-        ) {
-            if block.is_code() {
-                continue;
-            }
-            for line in block.content.lines() {
-                let trimmed = line.trim();
-                if trimmed.starts_with('^')
-                    && trimmed.len() > 1
-                    && !trimmed[1..].chars().any(char::is_whitespace)
-                {
-                    block_addresses.insert(normalize_block_fragment(trimmed));
-                }
-            }
-        }
+        })
+        .collect()
+}
+
+fn section_blocks(section: &MarkdownSection) -> Vec<xiuxian_wendao_parsers::MarkdownBlock> {
+    let structural_path = section_structural_path(section);
+    extract_blocks(
+        section.section_text.as_str(),
+        section.byte_start(),
+        section.line_start(),
+        structural_path.as_slice(),
+    )
+}
+
+fn section_structural_path(section: &MarkdownSection) -> Vec<String> {
+    if section.heading_path().trim().is_empty() {
+        return Vec::new();
     }
-    block_addresses
+    section
+        .heading_path()
+        .split(" / ")
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn block_address_candidate(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    (trimmed.starts_with('^')
+        && trimmed.len() > 1
+        && !trimmed[1..].chars().any(char::is_whitespace))
+    .then(|| normalize_block_fragment(trimmed))
 }
 
 fn normalize_heading_fragment(fragment: &str) -> String {
