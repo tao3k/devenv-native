@@ -125,7 +125,7 @@ jobs:
           components: clippy
 
       - name: Install sccache
-        uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
+        uses: taiki-e/install-action@65851e10cd6c377f11a60e600abc07cb08643468 # v2
         with:
           tool: sccache@0.7.5
 
@@ -191,7 +191,7 @@ jobs:
           ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - name: Install cocogitto
-        uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
+        uses: taiki-e/install-action@65851e10cd6c377f11a60e600abc07cb08643468 # v2
         with:
           tool: cocogitto
 
@@ -345,12 +345,12 @@ jobs:
           rustup show active-toolchain || true
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
+        uses: taiki-e/install-action@65851e10cd6c377f11a60e600abc07cb08643468 # v2
         with:
           tool: cargo-nextest@0.9.127
 
       - name: Install sccache
-        uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
+        uses: taiki-e/install-action@65851e10cd6c377f11a60e600abc07cb08643468 # v2
         with:
           tool: sccache@0.7.5
 
