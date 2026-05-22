@@ -139,6 +139,88 @@ fn org_ontology_authoring_compiler_projects_dataset_mapping_tables_and_sql_artif
 }
 
 #[test]
+fn org_ontology_authoring_compiler_projects_promotion_review_table() {
+    let schema = compile_schema(AUTHORING_SCHEMA);
+    let content = concat!(
+        ":PROPERTIES:\n",
+        ":ID: org-authoring:promotion-review\n",
+        ":END:\n",
+        "#+TITLE: Private Ontology Promotion Review Packet\n",
+        "\n",
+        "* TODO Promotion review packet\n",
+        ":PROPERTIES:\n",
+        ":ID: section:promotion-review\n",
+        ":ONTOLOGY_KIND: dataset_mapping\n",
+        ":LIFECYCLE_STATE: review\n",
+        ":DOMAIN: episteme://private/medical-episteme/10_LongTermCare\n",
+        ":END:\n",
+        "| record_id | record_kind | review_decision | promotion_decision | reviewer_id |\n",
+        "| candidate.term | ontology_candidate.object_term | ready_for_review | pending_review | reviewer.example |\n",
+    );
+
+    let document = match compile_org_ontology_authoring_document(
+        content,
+        "medical-episteme/runs/ontology-generation/ltc_ontology_seed_20260520/promotion_review.org",
+    ) {
+        Ok(document) => document,
+        Err(error) => panic!("promotion review Org fixture should compile: {error}"),
+    };
+    let instance = match serde_json::to_value(&document) {
+        Ok(instance) => instance,
+        Err(error) => panic!("DTO should serialize: {error}"),
+    };
+    let section = &document.sections[0];
+
+    assert_eq!(section.authoring_kind, "dataset_mapping");
+    assert_eq!(section.lifecycle_state, "review");
+    assert_eq!(section.tables.len(), 1);
+    assert_eq!(section.tables[0].kind, "promotion_review");
+    assert_eq!(section.tables[0].name, "Promotion Review");
+    assert_valid(&schema, &instance);
+}
+
+#[test]
+fn org_ontology_authoring_compiler_projects_candidate_review_table() {
+    let schema = compile_schema(AUTHORING_SCHEMA);
+    let content = concat!(
+        ":PROPERTIES:\n",
+        ":ID: org-authoring:candidate-review\n",
+        ":END:\n",
+        "#+TITLE: Private Ontology Candidate Review Packet\n",
+        "\n",
+        "* TODO Candidate review packet\n",
+        ":PROPERTIES:\n",
+        ":ID: section:candidate-review\n",
+        ":ONTOLOGY_KIND: dataset_mapping\n",
+        ":LIFECYCLE_STATE: review\n",
+        ":DOMAIN: episteme://private/medical-episteme/10_LongTermCare\n",
+        ":END:\n",
+        "| record_id | record_kind | review_decision | promotion_precondition_met |\n",
+        "| candidate.term | ontology_candidate.object_term | ready_for_review | false |\n",
+    );
+
+    let document = match compile_org_ontology_authoring_document(
+        content,
+        "medical-episteme/runs/ontology-generation/ltc_ontology_seed_20260520/candidate_review.org",
+    ) {
+        Ok(document) => document,
+        Err(error) => panic!("candidate review Org fixture should compile: {error}"),
+    };
+    let instance = match serde_json::to_value(&document) {
+        Ok(instance) => instance,
+        Err(error) => panic!("DTO should serialize: {error}"),
+    };
+    let section = &document.sections[0];
+
+    assert_eq!(section.authoring_kind, "dataset_mapping");
+    assert_eq!(section.lifecycle_state, "review");
+    assert_eq!(section.tables.len(), 1);
+    assert_eq!(section.tables[0].kind, "candidate_review");
+    assert_eq!(section.tables[0].name, "Candidate Review");
+    assert_valid(&schema, &instance);
+}
+
+#[test]
 fn org_ontology_authoring_compiler_rejects_untyped_org_sections() {
     let Err(error) = compile_org_ontology_authoring_document(
         "* Untyped Section\nBody.\n",

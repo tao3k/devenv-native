@@ -75,15 +75,47 @@ fn ontology_promotion_apply_plan_writes_approved_plan_rows()
     Ok(())
 }
 
+#[test]
+fn ontology_promotion_apply_plan_ignores_poisoned_tsv_projection()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    write_promotion_review(temp.path(), "approved", "reviewer.example")?;
+    fs::write(
+        temp.path().join("promotion_review.tsv"),
+        "not_the_authority\nthis row must be ignored\n",
+    )?;
+
+    let request = EpistemeOntologyPromotionApplyPlanRequest::new(temp.path());
+    let report = write_episteme_ontology_promotion_apply_plan(&request)?;
+
+    assert_eq!(report.approved_count, 1);
+    assert_eq!(report.apply_plan_row_count, 1);
+    Ok(())
+}
+
 fn write_promotion_review(
     root: &std::path::Path,
     first_decision: &str,
     reviewer_id: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     fs::write(
-        root.join("promotion_review.tsv"),
+        root.join("promotion_review.org"),
         format!(
-            "record_id\trecord_kind\tlabel\tsuggested_term_key\treview_decision\tquality_score\tevidence_strength\tissue_codes\tpromotion_precondition_met\tsource_file_id\tsource_queue_id\textraction_run_id\trelation_source_candidate_id\trelation_target_candidate_id\tpromotion_decision\tsource_mutation_allowed\tontology_truth\treviewer_id\treviewer_note\ncandidate.term\tontology_candidate.object_term\tPolicy Term\tpolicy.document\tready_for_review\t80\tmapping_ledger\t\ttrue\t\t\t\t\t\tpending_review\tfalse\tfalse\t\t\nrelation.source.term\tontology_candidate.source_artifact.suggested_object_type\t\t\tready_for_review\t75\thash_provenance\t\ttrue\tfile.source\tqueue.source\t\tcandidate.source\tcandidate.term\t{first_decision}\tfalse\tfalse\t{reviewer_id}\tapproved by test reviewer\n",
+            "#+TITLE: Private Ontology Promotion Review Packet\n\
+             \n\
+             * Promotion review packet\n\
+             :PROPERTIES:\n\
+             :WENDAO_KIND: ontology_promotion_review_packet\n\
+             :ONTOLOGY_KIND: dataset_mapping\n\
+             :LIFECYCLE_STATE: review\n\
+             :PROMOTION_STATE: pending_review\n\
+             :SOURCE_MUTATION_ALLOWED: false\n\
+             :ONTOLOGY_TRUTH: false\n\
+             :END:\n\
+             \n\
+             | record_id | record_kind | label | suggested_term_key | review_decision | quality_score | evidence_strength | issue_codes | promotion_precondition_met | source_file_id | source_queue_id | extraction_run_id | relation_source_candidate_id | relation_target_candidate_id | promotion_decision | source_mutation_allowed | ontology_truth | reviewer_id | reviewer_note |\n\
+             | candidate.term | ontology_candidate.object_term | Policy Term | policy.document | ready_for_review | 80 | mapping_ledger |  | true |  |  |  |  |  | pending_review | false | false |  |  |\n\
+             | relation.source.term | ontology_candidate.source_artifact.suggested_object_type |  |  | ready_for_review | 75 | hash_provenance |  | true | file.source | queue.source |  | candidate.source | candidate.term | {first_decision} | false | false | {reviewer_id} | approved by test reviewer |\n",
         ),
     )?;
     Ok(())

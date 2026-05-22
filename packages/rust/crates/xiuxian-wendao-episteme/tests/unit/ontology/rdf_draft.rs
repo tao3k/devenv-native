@@ -60,6 +60,27 @@ fn ontology_rdf_draft_export_requires_passed_review_gate() -> Result<(), Box<dyn
     Ok(())
 }
 
+#[test]
+fn ontology_rdf_draft_export_ignores_poisoned_candidate_review_tsv_projection()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    write_reviewed_candidate_run(temp.path(), true)?;
+    fs::write(
+        temp.path().join("candidate_review.tsv"),
+        "record_id\trecord_kind\treview_decision\tquality_score\tevidence_strength\tissue_codes\tpromotion_precondition_met\tsource_file_id\tsource_queue_id\textraction_run_id\tsuggested_term_key\tlabel\ncandidate.term\tontology_candidate.object_term\tblocked_invalid\t1\tnone\ttsv_poison\tfalse\t\t\t\tpoisoned.term\tPoisoned TSV Label\n",
+    )?;
+
+    let request = EpistemeOntologyRdfDraftExportRequest::new(temp.path());
+    let report = export_episteme_ontology_rdf_draft(&request)?;
+    let rdf = fs::read_to_string(&report.rdf_draft_ttl)?;
+
+    assert!(rdf.contains("wdp:reviewDecision \"ready_for_review\""));
+    assert!(rdf.contains("wdp:reviewLabel \"Policy Term\""));
+    assert!(!rdf.contains("tsv_poison"));
+    assert!(!rdf.contains("Poisoned TSV Label"));
+    Ok(())
+}
+
 fn write_reviewed_candidate_run(
     root: &std::path::Path,
     review_gate_passed: bool,
@@ -80,15 +101,46 @@ fn write_reviewed_candidate_run(
         root.join("candidate_review.tsv"),
         "record_id\trecord_kind\treview_decision\tquality_score\tevidence_strength\tissue_codes\tpromotion_precondition_met\tsource_file_id\tsource_queue_id\textraction_run_id\tsuggested_term_key\tlabel\ncandidate.term\tontology_candidate.object_term\tready_for_review\t80\tmapping_ledger\t\ttrue\t\t\t\tpolicy.document\tPolicy Term\ncandidate.source\tontology_candidate.source_artifact\tready_for_review\t80\tsource_metadata\t\ttrue\tfile.source\tqueue.source\t\tpolicy.document\tPolicy Source\ncandidate.evidence\tontology_candidate.extraction_evidence\tready_for_review\t90\textracted_text_hash\t\ttrue\tfile.source\tqueue.source\tseed\t\tPolicy Source evidence\nrelation.source.term\tontology_candidate.source_artifact.suggested_object_type\tready_for_review\t75\thash_provenance\t\ttrue\tfile.source\tqueue.source\t\t\t\nrelation.evidence.source\tontology_candidate.extraction_evidence.supports_source_artifact\tready_for_review\t75\thash_provenance\t\ttrue\tfile.source\tqueue.source\tseed\t\t\nevidence:candidate.evidence\tontology_candidate.extraction_cache\tready_for_review\t85\textracted_text_hash\t\ttrue\tfile.source\tqueue.source\tseed\t\t\n",
     )?;
+    fs::write(root.join("candidate_review.org"), candidate_review_org())?;
     fs::write(
         root.join("quality_report.json"),
         format!(
-            "{{\n  \"schemaVersion\": \"xiuxian_wendao.episteme_ontology_candidate_review.v1\",\n  \"runDir\": \"{}\",\n  \"candidateReviewTsv\": \"{}\",\n  \"qualityReportJson\": \"{}\",\n  \"candidateObjectCount\": 3,\n  \"candidateRelationCount\": 2,\n  \"candidateEvidenceCount\": 1,\n  \"reviewRowCount\": 6,\n  \"duplicateCandidateIdCount\": 0,\n  \"missingRelationReferenceCount\": 0,\n  \"promotionFlagViolationCount\": 0,\n  \"ontologyTruthViolationCount\": 0,\n  \"malformedRowCount\": 0,\n  \"promotionPreconditionMetCount\": 6,\n  \"blockedInvalidCount\": 0,\n  \"needsEvidenceCount\": 0,\n  \"reviewGatePassed\": {}\n}}\n",
+            "{{\n  \"schemaVersion\": \"xiuxian_wendao.episteme_ontology_candidate_review.v1\",\n  \"runDir\": \"{}\",\n  \"candidateReviewTsv\": \"{}\",\n  \"candidateReviewOrg\": \"{}\",\n  \"qualityReportJson\": \"{}\",\n  \"candidateObjectCount\": 3,\n  \"candidateRelationCount\": 2,\n  \"candidateEvidenceCount\": 1,\n  \"reviewRowCount\": 6,\n  \"duplicateCandidateIdCount\": 0,\n  \"missingRelationReferenceCount\": 0,\n  \"promotionFlagViolationCount\": 0,\n  \"ontologyTruthViolationCount\": 0,\n  \"malformedRowCount\": 0,\n  \"promotionPreconditionMetCount\": 6,\n  \"blockedInvalidCount\": 0,\n  \"needsEvidenceCount\": 0,\n  \"reviewGatePassed\": {}\n}}\n",
             root.display(),
             root.join("candidate_review.tsv").display(),
+            root.join("candidate_review.org").display(),
             root.join("quality_report.json").display(),
             review_gate_passed
         ),
     )?;
     Ok(())
+}
+
+fn candidate_review_org() -> &'static str {
+    concat!(
+        "#+TITLE: Private Ontology Candidate Review Ledger\n",
+        "\n",
+        "* Candidate review ledger\n",
+        ":PROPERTIES:\n",
+        ":WENDAO_KIND: ontology_candidate_review_gate\n",
+        ":ONTOLOGY_KIND: dataset_mapping\n",
+        ":LIFECYCLE_STATE: review\n",
+        ":PROMOTION_STATE: blocked_pending_review\n",
+        ":SOURCE_MUTATION_ALLOWED: false\n",
+        ":ONTOLOGY_TRUTH: false\n",
+        ":END:\n",
+        "\n",
+        "| field | value |\n",
+        "|-|-|\n",
+        "| review_row_count | 6 |\n",
+        "\n",
+        "| record_id | record_kind | review_decision | quality_score | evidence_strength | issue_codes | promotion_precondition_met | source_file_id | source_queue_id | extraction_run_id | suggested_term_key | label |\n",
+        "|-|-|-|-|-|-|-|-|-|-|-|-|\n",
+        "| candidate.term | ontology_candidate.object_term | ready_for_review | 80 | mapping_ledger | | true | | | | policy.document | Policy Term |\n",
+        "| candidate.source | ontology_candidate.source_artifact | ready_for_review | 80 | source_metadata | | true | file.source | queue.source | | policy.document | Policy Source |\n",
+        "| candidate.evidence | ontology_candidate.extraction_evidence | ready_for_review | 90 | extracted_text_hash | | true | file.source | queue.source | seed | | Policy Source evidence |\n",
+        "| relation.source.term | ontology_candidate.source_artifact.suggested_object_type | ready_for_review | 75 | hash_provenance | | true | file.source | queue.source | | | |\n",
+        "| relation.evidence.source | ontology_candidate.extraction_evidence.supports_source_artifact | ready_for_review | 75 | hash_provenance | | true | file.source | queue.source | seed | | |\n",
+        "| evidence:candidate.evidence | ontology_candidate.extraction_cache | ready_for_review | 85 | extracted_text_hash | | true | file.source | queue.source | seed | | |\n",
+    )
 }

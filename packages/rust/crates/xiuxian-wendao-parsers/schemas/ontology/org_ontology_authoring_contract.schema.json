@@ -102,6 +102,8 @@
             "object_mapping",
             "link_mapping",
             "mapping_evidence",
+            "candidate_review",
+            "promotion_review",
             "evidence"
           ]
         },

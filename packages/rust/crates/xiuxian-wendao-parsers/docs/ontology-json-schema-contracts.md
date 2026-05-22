@@ -81,6 +81,13 @@ evidence. SQL source blocks are carried as `embeddedArtifacts` with
 `purpose = "mapping"` so downstream source-contract tooling can verify intent
 without treating raw rows or model output as ontology truth.
 
+Candidate and promotion review ledgers also use native Org tables. A table with
+`review_decision` and `promotion_precondition_met` columns is projected as
+`table.kind = "candidate_review"`, while a table with `promotion_decision` and
+`reviewer_id` columns is projected as `table.kind = "promotion_review"`. This
+lets runtime crates treat Org as the review authority while keeping TSV files as
+generated machine projections.
+
 ## Org Property Drawer Schema Gate
 
 Org property drawers remain native Org syntax, but sections that declare

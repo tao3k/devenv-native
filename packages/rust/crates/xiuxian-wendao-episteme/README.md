@@ -66,37 +66,46 @@ orchestrate the command, but promotion into RDF or SQL remains a later
 review-gated slice.
 
 The candidate review gate is the next deterministic step. It reads generated
-candidate TSV artifacts and writes `candidate_review.tsv` plus
-`quality_report.json` under the same ontology-generation run directory. The
-review gate reports duplicate candidate ids, missing relation references,
-unsafe promotion flags, ontology-truth flags, evidence strength, quality scores,
-and precondition status for later human or LLM-assisted review. It still does
-not write RDF, mutate ontology sources, or persist raw extracted text.
+candidate TSV artifacts and writes `candidate_review.org`,
+`candidate_review.tsv`, and `quality_report.json` under the same
+ontology-generation run directory. The Org ledger is the authoritative review
+table; the TSV file is a generated projection. The review gate reports
+duplicate candidate ids, missing relation references, unsafe promotion flags,
+ontology-truth flags, evidence strength, quality scores, and precondition
+status for later human or LLM-assisted review. It still does not write RDF,
+mutate ontology sources, or persist raw extracted text.
 
 The RDF draft export is review-gated and still non-mutating. It requires a
-passing `quality_report.json`, then writes `rdf_draft.ttl`,
-`promotion_proposal.org`, and `promotion_proposal.json` beside the reviewed
-candidate run. These artifacts make candidate ids, labels, provenance, review
-decisions, and proposal status inspectable as RDF-shaped data, but they keep
-`rawToRdfPromotionAllowed=false` and `ontologyTruth=false`. Source ontology RDF
-is not changed by this crate; promotion into a private ontology source tree is a
-separate review slice.
+passing `quality_report.json` and consumes review decisions from
+`candidate_review.org`, then writes `rdf_draft.ttl`, `promotion_proposal.org`,
+and `promotion_proposal.json` beside the reviewed candidate run. These artifacts
+make candidate ids, labels, provenance, review decisions, and proposal status
+inspectable as RDF-shaped data, but they keep `rawToRdfPromotionAllowed=false`
+and `ontologyTruth=false`. Source ontology RDF is not changed by this crate;
+promotion into a private ontology source tree is a separate review slice.
+Stale or corrupted candidate review TSV projections cannot change RDF draft
+review state.
 
 The promotion review packet is the next explicit gate. It requires the clean
-draft proposal, then writes `promotion_review.tsv`, `promotion_review.org`, and
+draft proposal and reads candidate review rows from `candidate_review.org`, then
+writes `promotion_review.tsv`, `promotion_review.org`, and
 `promotion_review.json` beside the run. Every generated row starts as
 `pending_review` with `sourceMutationAllowed=false` and `ontologyTruth=false`.
-The packet gives a human or LLM reviewer stable candidate ids, quality scores,
-evidence strength, and relation endpoint context without approving promotion or
-editing ontology source RDF.
+The Org packet contains the authoritative review table for human or
+LLM-assisted review; the TSV file is a machine projection for reporting and
+read-model consumers. The packet gives a reviewer stable candidate ids, quality
+scores, evidence strength, and relation endpoint context without approving
+promotion or editing ontology source RDF. Stale or corrupted candidate review
+TSV projections cannot change promotion review packet rows.
 
 The promotion apply-plan writer consumes only explicit decisions from
-`promotion_review.tsv`. Pending-only reviews produce an empty
+`promotion_review.org`. Pending-only reviews produce an empty
 `promotion_apply_plan.tsv` plus Org/JSON receipts, while approved rows require
 reviewer provenance and satisfied preconditions before they can appear as
 `propose_source_patch` plan rows. The apply plan is still non-mutating:
 `sourceMutationAllowed=false`, `ontologyTruth=false`, and source ontology RDF is
-not changed by this crate.
+not changed by this crate. Stale or corrupted TSV projections cannot authorize
+ontology promotion.
 
 The existing `xiuxian-wendao::episteme::source_contract` facade now delegates
 its manifest/path admission entry points to this crate while keeping its richer

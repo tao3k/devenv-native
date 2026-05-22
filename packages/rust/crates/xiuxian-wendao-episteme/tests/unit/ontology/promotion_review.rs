@@ -3,6 +3,7 @@ use std::fs;
 use xiuxian_wendao_episteme::{
     EpistemeOntologyPromotionReviewPacketRequest, write_episteme_ontology_promotion_review_packet,
 };
+use xiuxian_wendao_parsers::compile_org_ontology_authoring_document;
 
 #[test]
 fn ontology_promotion_review_packet_writes_pending_review_artifacts()
@@ -32,7 +33,21 @@ fn ontology_promotion_review_packet_writes_pending_review_artifacts()
 
     let review_org = fs::read_to_string(&report.promotion_review_org)?;
     assert!(review_org.contains(":WENDAO_KIND: ontology_promotion_review_packet"));
+    assert!(review_org.contains(":ONTOLOGY_KIND: dataset_mapping"));
     assert!(review_org.contains("| pending_review_count | 3 |"));
+    assert!(review_org.contains("| promotion_decision |"));
+    assert!(review_org.contains("| relation.source.term |"));
+    let compiled = compile_org_ontology_authoring_document(
+        &review_org,
+        report.promotion_review_org.display().to_string(),
+    )?;
+    assert!(
+        compiled
+            .sections
+            .iter()
+            .flat_map(|section| section.tables.iter())
+            .any(|table| table.kind == "promotion_review" && table.rows.len() == 3)
+    );
 
     let review_json = fs::read_to_string(&report.promotion_review_json)?;
     assert!(review_json.contains("\"sourceMutationAllowed\": false"));
@@ -58,6 +73,31 @@ fn ontology_promotion_review_packet_blocks_unsafe_proposal()
     Ok(())
 }
 
+#[test]
+fn ontology_promotion_review_packet_ignores_poisoned_candidate_review_tsv_projection()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    write_clean_draft_run(temp.path(), false)?;
+    fs::write(
+        temp.path().join("candidate_review.tsv"),
+        "record_id\trecord_kind\treview_decision\tquality_score\tevidence_strength\tissue_codes\tpromotion_precondition_met\tsource_file_id\tsource_queue_id\textraction_run_id\tsuggested_term_key\tlabel\ncandidate.term\tontology_candidate.object_term\tblocked_invalid\t1\tnone\ttsv_poison\tfalse\t\t\t\tpoisoned.term\tPoisoned TSV Label\n",
+    )?;
+
+    let request = EpistemeOntologyPromotionReviewPacketRequest::new(temp.path());
+    let report = write_episteme_ontology_promotion_review_packet(&request)?;
+    let review_org = fs::read_to_string(&report.promotion_review_org)?;
+    let review_tsv = fs::read_to_string(&report.promotion_review_tsv)?;
+
+    assert_eq!(report.promotion_review_row_count, 3);
+    assert!(review_org.contains("| candidate.term |"));
+    assert!(review_org.contains("| Policy Term |"));
+    assert!(!review_org.contains("tsv_poison"));
+    assert!(!review_org.contains("Poisoned TSV Label"));
+    assert!(review_tsv.contains("Policy Term"));
+    assert!(!review_tsv.contains("Poisoned TSV Label"));
+    Ok(())
+}
+
 fn write_clean_draft_run(
     root: &std::path::Path,
     unsafe_ontology_truth: bool,
@@ -71,6 +111,7 @@ fn write_clean_draft_run(
         root.join("candidate_review.tsv"),
         "record_id\trecord_kind\treview_decision\tquality_score\tevidence_strength\tissue_codes\tpromotion_precondition_met\tsource_file_id\tsource_queue_id\textraction_run_id\tsuggested_term_key\tlabel\ncandidate.term\tontology_candidate.object_term\tready_for_review\t80\tmapping_ledger\t\ttrue\t\t\t\tpolicy.document\tPolicy Term\ncandidate.source\tontology_candidate.source_artifact\tready_for_review\t80\tsource_metadata\t\ttrue\tfile.source\tqueue.source\t\tpolicy.document\tPolicy Source\nrelation.source.term\tontology_candidate.source_artifact.suggested_object_type\tready_for_review\t75\thash_provenance\t\ttrue\tfile.source\tqueue.source\t\t\t\n",
     )?;
+    fs::write(root.join("candidate_review.org"), candidate_review_org())?;
     fs::write(
         root.join("promotion_proposal.json"),
         format!(
@@ -80,4 +121,30 @@ fn write_clean_draft_run(
         ),
     )?;
     Ok(())
+}
+
+fn candidate_review_org() -> &'static str {
+    concat!(
+        "#+TITLE: Private Ontology Candidate Review Ledger\n",
+        "\n",
+        "* Candidate review ledger\n",
+        ":PROPERTIES:\n",
+        ":WENDAO_KIND: ontology_candidate_review_gate\n",
+        ":ONTOLOGY_KIND: dataset_mapping\n",
+        ":LIFECYCLE_STATE: review\n",
+        ":PROMOTION_STATE: blocked_pending_review\n",
+        ":SOURCE_MUTATION_ALLOWED: false\n",
+        ":ONTOLOGY_TRUTH: false\n",
+        ":END:\n",
+        "\n",
+        "| field | value |\n",
+        "|-|-|\n",
+        "| review_row_count | 3 |\n",
+        "\n",
+        "| record_id | record_kind | review_decision | quality_score | evidence_strength | issue_codes | promotion_precondition_met | source_file_id | source_queue_id | extraction_run_id | suggested_term_key | label |\n",
+        "|-|-|-|-|-|-|-|-|-|-|-|-|\n",
+        "| candidate.term | ontology_candidate.object_term | ready_for_review | 80 | mapping_ledger | | true | | | | policy.document | Policy Term |\n",
+        "| candidate.source | ontology_candidate.source_artifact | ready_for_review | 80 | source_metadata | | true | file.source | queue.source | | policy.document | Policy Source |\n",
+        "| relation.source.term | ontology_candidate.source_artifact.suggested_object_type | ready_for_review | 75 | hash_provenance | | true | file.source | queue.source | | | |\n",
+    )
 }

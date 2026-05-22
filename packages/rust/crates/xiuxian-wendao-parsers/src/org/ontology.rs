@@ -604,6 +604,8 @@ fn table_name_for_kind(kind: &str) -> String {
         "object_mapping" => "Object Mapping",
         "link_mapping" => "Link Mapping",
         "mapping_evidence" => "Mapping Evidence",
+        "candidate_review" => "Candidate Review",
+        "promotion_review" => "Promotion Review",
         other => other,
     }
     .to_string()
@@ -618,6 +620,14 @@ fn table_kind_for_columns(columns: &[String]) -> OrgOntologyTableKind {
         || normalized.contains(&"rdf_class".to_string())
     {
         "object_mapping"
+    } else if normalized.contains(&"promotion_decision".to_string())
+        && normalized.contains(&"reviewer_id".to_string())
+    {
+        "promotion_review"
+    } else if normalized.contains(&"review_decision".to_string())
+        && normalized.contains(&"promotion_precondition_met".to_string())
+    {
+        "candidate_review"
     } else if normalized.contains(&"predicate".to_string())
         || normalized.contains(&"rdf_property".to_string())
     {

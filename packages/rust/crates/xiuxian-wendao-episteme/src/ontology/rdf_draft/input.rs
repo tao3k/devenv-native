@@ -1,10 +1,15 @@
-use std::{collections::HashMap, fs, path::Path};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs,
+    path::Path,
+};
 
 use anyhow::{Context, Result};
+use xiuxian_wendao_parsers::{OrgOntologyAuthoringTable, compile_org_ontology_authoring_document};
 
 use super::model::{
     CandidateEvidenceRecord, CandidateObjectRecord, CandidateRelationRecord, DraftInputs,
-    EVIDENCE_TSV, OBJECTS_TSV, QUALITY_REPORT_JSON, QualityReport, RELATIONS_TSV, REVIEW_TSV,
+    EVIDENCE_TSV, OBJECTS_TSV, QUALITY_REPORT_JSON, QualityReport, RELATIONS_TSV, REVIEW_ORG,
     ReviewRecord, TsvTable,
 };
 
@@ -13,7 +18,7 @@ pub(super) fn read_draft_inputs(run_dir: &Path) -> Result<DraftInputs> {
     let objects = read_candidate_objects(run_dir.join(OBJECTS_TSV).as_path())?;
     let relations = read_candidate_relations(run_dir.join(RELATIONS_TSV).as_path())?;
     let evidence = read_candidate_evidence(run_dir.join(EVIDENCE_TSV).as_path())?;
-    let reviews = read_candidate_review(run_dir.join(REVIEW_TSV).as_path())?;
+    let reviews = read_candidate_review(run_dir.join(REVIEW_ORG).as_path())?;
     Ok(DraftInputs {
         objects,
         relations,
@@ -102,23 +107,45 @@ fn read_candidate_evidence(path: &Path) -> Result<Vec<CandidateEvidenceRecord>> 
 }
 
 fn read_candidate_review(path: &Path) -> Result<Vec<ReviewRecord>> {
-    read_tsv(path)?
+    read_candidate_review_org_table(path)?
         .rows
         .iter()
         .map(|row| {
             Ok(ReviewRecord {
-                record_id: required(row, "record_id", path)?,
-                record_kind: required(row, "record_kind", path)?,
-                review_decision: required(row, "review_decision", path)?,
-                quality_score: parse_usize(row, "quality_score", path)?,
-                evidence_strength: required(row, "evidence_strength", path)?,
-                issue_codes: optional(row, "issue_codes"),
-                promotion_precondition_met: parse_bool(row, "promotion_precondition_met", path)?,
-                suggested_term_key: optional(row, "suggested_term_key"),
-                label: optional(row, "label"),
+                record_id: required_org(row, "record_id", path)?,
+                record_kind: required_org(row, "record_kind", path)?,
+                review_decision: required_org(row, "review_decision", path)?,
+                quality_score: parse_usize_org(row, "quality_score", path)?,
+                evidence_strength: required_org(row, "evidence_strength", path)?,
+                issue_codes: optional_org(row, "issue_codes"),
+                promotion_precondition_met: parse_bool_org(
+                    row,
+                    "promotion_precondition_met",
+                    path,
+                )?,
+                suggested_term_key: optional_org(row, "suggested_term_key"),
+                label: optional_org(row, "label"),
             })
         })
         .collect()
+}
+
+fn read_candidate_review_org_table(path: &Path) -> Result<OrgOntologyAuthoringTable> {
+    let content =
+        fs::read_to_string(path).with_context(|| format!("failed to read `{}`", path.display()))?;
+    let document = compile_org_ontology_authoring_document(&content, path.display().to_string())
+        .with_context(|| format!("failed to parse candidate review Org `{}`", path.display()))?;
+    document
+        .sections
+        .into_iter()
+        .flat_map(|section| section.tables)
+        .find(|table| table.kind == "candidate_review")
+        .with_context(|| {
+            format!(
+                "candidate review Org `{}` has no candidate_review table",
+                path.display()
+            )
+        })
 }
 
 fn read_tsv(path: &Path) -> Result<TsvTable> {
@@ -193,6 +220,41 @@ fn parse_bool(row: &HashMap<String, String>, name: &str, path: &Path) -> Result<
         "false" => Ok(false),
         _ => anyhow::bail!(
             "candidate TSV `{}` has invalid `{name}` value `{value}`",
+            path.display()
+        ),
+    }
+}
+
+fn required_org(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result<String> {
+    row.get(name).cloned().with_context(|| {
+        format!(
+            "candidate review Org `{}` missing `{name}` column",
+            path.display()
+        )
+    })
+}
+
+fn optional_org(row: &BTreeMap<String, String>, name: &str) -> String {
+    row.get(name).cloned().unwrap_or_default()
+}
+
+fn parse_usize_org(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result<usize> {
+    let value = required_org(row, name, path)?;
+    value.parse::<usize>().with_context(|| {
+        format!(
+            "candidate review Org `{}` has invalid `{name}` value `{value}`",
+            path.display()
+        )
+    })
+}
+
+fn parse_bool_org(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result<bool> {
+    let value = required_org(row, name, path)?;
+    match value.as_str() {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => anyhow::bail!(
+            "candidate review Org `{}` has invalid `{name}` value `{value}`",
             path.display()
         ),
     }

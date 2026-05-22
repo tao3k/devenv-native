@@ -1,7 +1,7 @@
 //! Promotion review packet generation for ontology RDF draft runs.
 
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fs::{self, File},
     io::Write,
     path::{Path, PathBuf},
@@ -9,11 +9,12 @@ use std::{
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use xiuxian_wendao_parsers::{OrgOntologyAuthoringTable, compile_org_ontology_authoring_document};
 
 const PROMOTION_REVIEW_SCHEMA_VERSION: &str =
     "xiuxian_wendao.episteme_ontology_promotion_review_packet.v1";
 const RELATIONS_TSV: &str = "candidate_relations.tsv";
-const REVIEW_TSV: &str = "candidate_review.tsv";
+const REVIEW_ORG: &str = "candidate_review.org";
 const RDF_DRAFT_TTL: &str = "rdf_draft.ttl";
 const PROMOTION_PROPOSAL_JSON: &str = "promotion_proposal.json";
 const PROMOTION_REVIEW_TSV: &str = "promotion_review.tsv";
@@ -22,6 +23,27 @@ const PROMOTION_REVIEW_JSON: &str = "promotion_review.json";
 const PROMOTION_DECISION_PENDING: &str = "pending_review";
 const SOURCE_MUTATION_ALLOWED: bool = false;
 const ONTOLOGY_TRUTH: bool = false;
+const PROMOTION_REVIEW_COLUMNS: [&str; 19] = [
+    "record_id",
+    "record_kind",
+    "label",
+    "suggested_term_key",
+    "review_decision",
+    "quality_score",
+    "evidence_strength",
+    "issue_codes",
+    "promotion_precondition_met",
+    "source_file_id",
+    "source_queue_id",
+    "extraction_run_id",
+    "relation_source_candidate_id",
+    "relation_target_candidate_id",
+    "promotion_decision",
+    "source_mutation_allowed",
+    "ontology_truth",
+    "reviewer_id",
+    "reviewer_note",
+];
 
 /// Request for writing a promotion review packet from a clean RDF draft run.
 #[derive(Debug, Clone)]
@@ -59,7 +81,7 @@ pub struct EpistemeOntologyPromotionReviewPacketReport {
     pub promotion_review_org: PathBuf,
     /// Generated promotion review JSON path.
     pub promotion_review_json: PathBuf,
-    /// Number of review rows read from `candidate_review.tsv`.
+    /// Number of review rows read from `candidate_review.org`.
     pub review_row_count: usize,
     /// Number of promotion review packet rows written.
     pub promotion_review_row_count: usize,
@@ -157,7 +179,7 @@ pub fn write_episteme_ontology_promotion_review_packet(
     write_promotion_review_tsv(output_paths.tsv.as_path(), &packet_rows)?;
 
     let report = build_promotion_review_report(run_dir, &inputs, &output_paths, &packet_rows);
-    write_promotion_review_outputs(&output_paths, &report)?;
+    write_promotion_review_outputs(&output_paths, &report, &packet_rows)?;
     Ok(report)
 }
 
@@ -165,7 +187,7 @@ fn read_promotion_review_inputs(run_dir: &Path) -> Result<PromotionReviewInputs>
     let proposal = read_promotion_proposal(run_dir.join(PROMOTION_PROPOSAL_JSON).as_path())?;
     validate_promotion_proposal(run_dir, &proposal)?;
     let relation_context = read_candidate_relations(run_dir.join(RELATIONS_TSV).as_path())?;
-    let review_rows = read_candidate_review(run_dir.join(REVIEW_TSV).as_path())?;
+    let review_rows = read_candidate_review(run_dir.join(REVIEW_ORG).as_path())?;
     ensure_review_row_count_matches(&proposal, review_rows.len())?;
     Ok(PromotionReviewInputs {
         proposal,
@@ -220,8 +242,9 @@ fn build_promotion_review_report(
 fn write_promotion_review_outputs(
     output_paths: &PromotionReviewOutputPaths,
     report: &EpistemeOntologyPromotionReviewPacketReport,
+    packet_rows: &[PromotionReviewRow],
 ) -> Result<()> {
-    write_promotion_review_org(output_paths.org.as_path(), report)?;
+    write_promotion_review_org(output_paths.org.as_path(), report, packet_rows)?;
     write_json(output_paths.json.as_path(), report)
 }
 
@@ -307,27 +330,49 @@ fn read_candidate_relations(path: &Path) -> Result<HashMap<String, CandidateRela
 }
 
 fn read_candidate_review(path: &Path) -> Result<Vec<CandidateReviewRecord>> {
-    let table = read_tsv(path)?;
+    let table = read_candidate_review_org_table(path)?;
     table
         .rows
         .iter()
         .map(|row| {
             Ok(CandidateReviewRecord {
-                record_id: required(row, "record_id", path)?,
-                record_kind: required(row, "record_kind", path)?,
-                review_decision: required(row, "review_decision", path)?,
-                quality_score: parse_usize(row, "quality_score", path)?,
-                evidence_strength: required(row, "evidence_strength", path)?,
-                issue_codes: optional(row, "issue_codes"),
-                promotion_precondition_met: parse_bool(row, "promotion_precondition_met", path)?,
-                source_file_id: optional(row, "source_file_id"),
-                source_queue_id: optional(row, "source_queue_id"),
-                extraction_run_id: optional(row, "extraction_run_id"),
-                suggested_term_key: optional(row, "suggested_term_key"),
-                label: optional(row, "label"),
+                record_id: required_org(row, "record_id", path)?,
+                record_kind: required_org(row, "record_kind", path)?,
+                review_decision: required_org(row, "review_decision", path)?,
+                quality_score: parse_usize_org(row, "quality_score", path)?,
+                evidence_strength: required_org(row, "evidence_strength", path)?,
+                issue_codes: optional_org(row, "issue_codes"),
+                promotion_precondition_met: parse_bool_org(
+                    row,
+                    "promotion_precondition_met",
+                    path,
+                )?,
+                source_file_id: optional_org(row, "source_file_id"),
+                source_queue_id: optional_org(row, "source_queue_id"),
+                extraction_run_id: optional_org(row, "extraction_run_id"),
+                suggested_term_key: optional_org(row, "suggested_term_key"),
+                label: optional_org(row, "label"),
             })
         })
         .collect()
+}
+
+fn read_candidate_review_org_table(path: &Path) -> Result<OrgOntologyAuthoringTable> {
+    let content =
+        fs::read_to_string(path).with_context(|| format!("failed to read `{}`", path.display()))?;
+    let document = compile_org_ontology_authoring_document(&content, path.display().to_string())
+        .with_context(|| format!("failed to parse candidate review Org `{}`", path.display()))?;
+    document
+        .sections
+        .into_iter()
+        .flat_map(|section| section.tables)
+        .find(|table| table.kind == "candidate_review")
+        .with_context(|| {
+            format!(
+                "candidate review Org `{}` has no candidate_review table",
+                path.display()
+            )
+        })
 }
 
 struct TsvTable {
@@ -382,27 +427,36 @@ fn required(row: &HashMap<String, String>, name: &str, path: &Path) -> Result<St
         .with_context(|| format!("candidate TSV `{}` missing `{name}` column", path.display()))
 }
 
-fn optional(row: &HashMap<String, String>, name: &str) -> String {
-    row.get(name).cloned().unwrap_or_default()
-}
-
-fn parse_usize(row: &HashMap<String, String>, name: &str, path: &Path) -> Result<usize> {
-    let value = required(row, name, path)?;
-    value.parse::<usize>().with_context(|| {
+fn required_org(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result<String> {
+    row.get(name).cloned().with_context(|| {
         format!(
-            "candidate TSV `{}` has invalid `{name}` value `{value}`",
+            "candidate review Org `{}` missing `{name}` column",
             path.display()
         )
     })
 }
 
-fn parse_bool(row: &HashMap<String, String>, name: &str, path: &Path) -> Result<bool> {
-    let value = required(row, name, path)?;
+fn optional_org(row: &BTreeMap<String, String>, name: &str) -> String {
+    row.get(name).cloned().unwrap_or_default()
+}
+
+fn parse_usize_org(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result<usize> {
+    let value = required_org(row, name, path)?;
+    value.parse::<usize>().with_context(|| {
+        format!(
+            "candidate review Org `{}` has invalid `{name}` value `{value}`",
+            path.display()
+        )
+    })
+}
+
+fn parse_bool_org(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result<bool> {
+    let value = required_org(row, name, path)?;
     match value.as_str() {
         "true" => Ok(true),
         "false" => Ok(false),
         _ => anyhow::bail!(
-            "candidate TSV `{}` has invalid `{name}` value `{value}`",
+            "candidate review Org `{}` has invalid `{name}` value `{value}`",
             path.display()
         ),
     }
@@ -410,10 +464,7 @@ fn parse_bool(row: &HashMap<String, String>, name: &str, path: &Path) -> Result<
 
 fn write_promotion_review_tsv(path: &Path, rows: &[PromotionReviewRow]) -> Result<()> {
     let mut file = create_file(path)?;
-    writeln!(
-        file,
-        "record_id\trecord_kind\tlabel\tsuggested_term_key\treview_decision\tquality_score\tevidence_strength\tissue_codes\tpromotion_precondition_met\tsource_file_id\tsource_queue_id\textraction_run_id\trelation_source_candidate_id\trelation_target_candidate_id\tpromotion_decision\tsource_mutation_allowed\tontology_truth\treviewer_id\treviewer_note"
-    )?;
+    writeln!(file, "{}", PROMOTION_REVIEW_COLUMNS.join("\t"))?;
     for row in rows {
         writeln!(
             file,
@@ -445,6 +496,7 @@ fn write_promotion_review_tsv(path: &Path, rows: &[PromotionReviewRow]) -> Resul
 fn write_promotion_review_org(
     path: &Path,
     report: &EpistemeOntologyPromotionReviewPacketReport,
+    rows: &[PromotionReviewRow],
 ) -> Result<()> {
     let mut file = create_file(path)?;
     writeln!(file, "#+TITLE: Private Ontology Promotion Review Packet")?;
@@ -452,6 +504,8 @@ fn write_promotion_review_org(
     writeln!(file, "* Promotion review packet")?;
     writeln!(file, ":PROPERTIES:")?;
     writeln!(file, ":WENDAO_KIND: ontology_promotion_review_packet")?;
+    writeln!(file, ":ONTOLOGY_KIND: dataset_mapping")?;
+    writeln!(file, ":LIFECYCLE_STATE: review")?;
     writeln!(file, ":PROMOTION_STATE: pending_review")?;
     writeln!(file, ":SOURCE_MUTATION_ALLOWED: false")?;
     writeln!(file, ":ONTOLOGY_TRUTH: false")?;
@@ -486,7 +540,66 @@ fn write_promotion_review_org(
         report.source_mutation_allowed
     )?;
     writeln!(file, "| ontology_truth | {} |", report.ontology_truth)?;
+    writeln!(file)?;
+    writeln!(
+        file,
+        "The table below is the authoritative review ledger. TSV files are generated projections."
+    )?;
+    writeln!(file)?;
+    writeln!(
+        file,
+        "| {} |",
+        PROMOTION_REVIEW_COLUMNS
+            .iter()
+            .map(|column| escape_org_table_cell(column))
+            .collect::<Vec<_>>()
+            .join(" | ")
+    )?;
+    writeln!(
+        file,
+        "| {} |",
+        PROMOTION_REVIEW_COLUMNS
+            .iter()
+            .map(|_| "-")
+            .collect::<Vec<_>>()
+            .join(" | ")
+    )?;
+    for row in rows {
+        writeln!(
+            file,
+            "| {} |",
+            promotion_review_org_cells(row)
+                .iter()
+                .map(|cell| escape_org_table_cell(cell))
+                .collect::<Vec<_>>()
+                .join(" | ")
+        )?;
+    }
     Ok(())
+}
+
+fn promotion_review_org_cells(row: &PromotionReviewRow) -> [String; 19] {
+    [
+        row.record_id.clone(),
+        row.record_kind.clone(),
+        row.label.clone(),
+        row.suggested_term_key.clone(),
+        row.review_decision.clone(),
+        row.quality_score.to_string(),
+        row.evidence_strength.clone(),
+        row.issue_codes.clone(),
+        row.promotion_precondition_met.to_string(),
+        row.source_file_id.clone(),
+        row.source_queue_id.clone(),
+        row.extraction_run_id.clone(),
+        row.relation_source_candidate_id.clone(),
+        row.relation_target_candidate_id.clone(),
+        row.promotion_decision.to_string(),
+        row.source_mutation_allowed.to_string(),
+        row.ontology_truth.to_string(),
+        row.reviewer_id.clone(),
+        row.reviewer_note.clone(),
+    ]
 }
 
 fn write_json(path: &Path, report: &EpistemeOntologyPromotionReviewPacketReport) -> Result<()> {
@@ -508,6 +621,15 @@ fn create_file(path: &Path) -> Result<File> {
 fn escape_tsv(value: &str) -> String {
     value
         .replace('\\', "\\\\")
+        .replace('\t', "\\t")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+}
+
+fn escape_org_table_cell(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('|', "\\vert{}")
         .replace('\t', "\\t")
         .replace('\n', "\\n")
         .replace('\r', "\\r")

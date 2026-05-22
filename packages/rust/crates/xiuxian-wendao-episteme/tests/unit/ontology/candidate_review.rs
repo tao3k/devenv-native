@@ -3,6 +3,7 @@ use std::fs;
 use xiuxian_wendao_episteme::{
     EpistemeOntologyCandidateReviewRequest, review_episteme_ontology_candidates,
 };
+use xiuxian_wendao_parsers::compile_org_ontology_authoring_document;
 
 #[test]
 fn ontology_candidate_review_writes_quality_gate_artifacts()
@@ -27,8 +28,27 @@ fn ontology_candidate_review_writes_quality_gate_artifacts()
     assert!(review_tsv.contains("extracted_text_hash"));
     assert!(!review_tsv.contains("raw private text"));
 
+    let review_org = fs::read_to_string(&report.candidate_review_org)?;
+    assert!(review_org.contains(":WENDAO_KIND: ontology_candidate_review_gate"));
+    assert!(review_org.contains(":ONTOLOGY_KIND: dataset_mapping"));
+    assert!(review_org.contains("| promotion_precondition_met_count |"));
+    assert!(review_org.contains("| review_decision |"));
+    assert!(review_org.contains("| candidate.term |"));
+    let compiled = compile_org_ontology_authoring_document(
+        &review_org,
+        report.candidate_review_org.display().to_string(),
+    )?;
+    assert!(
+        compiled
+            .sections
+            .iter()
+            .flat_map(|section| section.tables.iter())
+            .any(|table| table.kind == "candidate_review" && table.rows.len() == 6)
+    );
+
     let quality_report = fs::read_to_string(&report.quality_report_json)?;
     assert!(quality_report.contains("\"reviewGatePassed\": true"));
+    assert!(quality_report.contains("\"candidateReviewOrg\""));
     Ok(())
 }
 

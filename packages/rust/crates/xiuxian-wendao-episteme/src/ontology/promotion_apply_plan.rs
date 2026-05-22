@@ -9,10 +9,11 @@ use std::{
 
 use anyhow::{Context, Result};
 use serde::Serialize;
+use xiuxian_wendao_parsers::{OrgOntologyAuthoringTable, compile_org_ontology_authoring_document};
 
 const PROMOTION_APPLY_PLAN_SCHEMA_VERSION: &str =
     "xiuxian_wendao.episteme_ontology_promotion_apply_plan.v1";
-const PROMOTION_REVIEW_TSV: &str = "promotion_review.tsv";
+const PROMOTION_REVIEW_ORG: &str = "promotion_review.org";
 const PROMOTION_APPLY_PLAN_TSV: &str = "promotion_apply_plan.tsv";
 const PROMOTION_APPLY_PLAN_ORG: &str = "promotion_apply_plan.org";
 const PROMOTION_APPLY_PLAN_JSON: &str = "promotion_apply_plan.json";
@@ -35,7 +36,7 @@ impl EpistemeOntologyPromotionApplyPlanRequest {
         }
     }
 
-    /// Ontology-generation run directory containing `promotion_review.tsv`.
+    /// Ontology-generation run directory containing `promotion_review.org`.
     #[must_use]
     pub fn run_dir(&self) -> &Path {
         self.run_dir.as_path()
@@ -160,7 +161,7 @@ pub fn write_episteme_ontology_promotion_apply_plan(
     request: &EpistemeOntologyPromotionApplyPlanRequest,
 ) -> Result<EpistemeOntologyPromotionApplyPlanReport> {
     let run_dir = request.run_dir();
-    let review_rows = read_promotion_review(run_dir.join(PROMOTION_REVIEW_TSV).as_path())?;
+    let review_rows = read_promotion_review_org(run_dir.join(PROMOTION_REVIEW_ORG).as_path())?;
     validate_review_rows(&review_rows)?;
     let counts = count_decisions(&review_rows);
     let plan_rows = build_apply_plan_rows(&review_rows);
@@ -261,8 +262,8 @@ fn build_apply_plan_rows(rows: &[PromotionReviewRecord]) -> Vec<ApplyPlanRow> {
         .collect()
 }
 
-fn read_promotion_review(path: &Path) -> Result<Vec<PromotionReviewRecord>> {
-    let table = read_tsv(path)?;
+fn read_promotion_review_org(path: &Path) -> Result<Vec<PromotionReviewRecord>> {
+    let table = read_promotion_review_org_table(path)?;
     table
         .rows
         .iter()
@@ -297,56 +298,34 @@ fn read_promotion_review(path: &Path) -> Result<Vec<PromotionReviewRecord>> {
         .collect()
 }
 
-struct TsvTable {
-    rows: Vec<BTreeMap<String, String>>,
-}
-
-fn read_tsv(path: &Path) -> Result<TsvTable> {
+fn read_promotion_review_org_table(path: &Path) -> Result<OrgOntologyAuthoringTable> {
     let content =
         fs::read_to_string(path).with_context(|| format!("failed to read `{}`", path.display()))?;
-    let mut lines = content.lines();
-    let header_line = lines
-        .next()
-        .with_context(|| format!("promotion review TSV `{}` is empty", path.display()))?;
-    let headers: Vec<String> = header_line.split('\t').map(ToString::to_string).collect();
-    if headers.is_empty() {
-        anyhow::bail!("promotion review TSV `{}` has no header", path.display());
-    }
-    let rows = lines
-        .enumerate()
-        .filter(|(_, line)| !line.trim().is_empty())
-        .map(|(index, line)| parse_tsv_row(path, &headers, index + 2, line))
-        .collect::<Result<Vec<_>>>()?;
-    Ok(TsvTable { rows })
-}
-
-fn parse_tsv_row(
-    path: &Path,
-    headers: &[String],
-    line_number: usize,
-    line: &str,
-) -> Result<BTreeMap<String, String>> {
-    let values: Vec<&str> = line.split('\t').collect();
-    if values.len() != headers.len() {
-        anyhow::bail!(
-            "promotion review TSV `{}` row {} has {} columns, expected {}",
-            path.display(),
-            line_number,
-            values.len(),
-            headers.len()
-        );
-    }
-    Ok(headers
+    let document = compile_org_ontology_authoring_document(&content, path.display().to_string())
+        .map_err(|error| {
+            anyhow::anyhow!(
+                "failed to compile `{}` as Org ontology authoring document: {error}",
+                path.display()
+            )
+        })?;
+    document
+        .sections
         .iter()
+        .flat_map(|section| section.tables.iter())
+        .find(|table| table.kind == "promotion_review")
         .cloned()
-        .zip(values.into_iter().map(unescape_tsv))
-        .collect())
+        .with_context(|| {
+            format!(
+                "promotion review Org `{}` is missing a `promotion_review` table",
+                path.display()
+            )
+        })
 }
 
 fn required(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result<String> {
     row.get(name).cloned().with_context(|| {
         format!(
-            "promotion review TSV `{}` missing `{name}` column",
+            "promotion review Org `{}` missing `{name}` column",
             path.display()
         )
     })
@@ -360,7 +339,7 @@ fn parse_usize(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Resul
     let value = required(row, name, path)?;
     value.parse::<usize>().with_context(|| {
         format!(
-            "promotion review TSV `{}` has invalid `{name}` value `{value}`",
+            "promotion review Org `{}` has invalid `{name}` value `{value}`",
             path.display()
         )
     })
@@ -372,7 +351,7 @@ fn parse_bool(row: &BTreeMap<String, String>, name: &str, path: &Path) -> Result
         "true" => Ok(true),
         "false" => Ok(false),
         _ => anyhow::bail!(
-            "promotion review TSV `{}` has invalid `{name}` value `{value}`",
+            "promotion review Org `{}` has invalid `{name}` value `{value}`",
             path.display()
         ),
     }
@@ -485,26 +464,4 @@ fn escape_tsv(value: &str) -> String {
         .replace('\t', "\\t")
         .replace('\n', "\\n")
         .replace('\r', "\\r")
-}
-
-fn unescape_tsv(value: &str) -> String {
-    let mut output = String::new();
-    let mut chars = value.chars();
-    while let Some(character) = chars.next() {
-        if character != '\\' {
-            output.push(character);
-            continue;
-        }
-        match chars.next() {
-            Some('t') => output.push('\t'),
-            Some('n') => output.push('\n'),
-            Some('r') => output.push('\r'),
-            Some('\\') | None => output.push('\\'),
-            Some(other) => {
-                output.push('\\');
-                output.push(other);
-            }
-        }
-    }
-    output
 }

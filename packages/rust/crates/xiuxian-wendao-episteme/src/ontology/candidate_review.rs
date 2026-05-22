@@ -15,7 +15,22 @@ const OBJECTS_TSV: &str = "candidate_objects.tsv";
 const RELATIONS_TSV: &str = "candidate_relations.tsv";
 const EVIDENCE_TSV: &str = "candidate_evidence.tsv";
 const REVIEW_TSV: &str = "candidate_review.tsv";
+const REVIEW_ORG: &str = "candidate_review.org";
 const QUALITY_REPORT_JSON: &str = "quality_report.json";
+const REVIEW_COLUMNS: [&str; 12] = [
+    "record_id",
+    "record_kind",
+    "review_decision",
+    "quality_score",
+    "evidence_strength",
+    "issue_codes",
+    "promotion_precondition_met",
+    "source_file_id",
+    "source_queue_id",
+    "extraction_run_id",
+    "suggested_term_key",
+    "label",
+];
 
 /// Request for reviewing generated ontology candidate artifacts.
 #[derive(Debug, Clone)]
@@ -49,6 +64,8 @@ pub struct EpistemeOntologyCandidateReviewReport {
     pub run_dir: PathBuf,
     /// Generated candidate review TSV path.
     pub candidate_review_tsv: PathBuf,
+    /// Authoritative candidate review Org ledger path.
+    pub candidate_review_org: PathBuf,
     /// Generated quality report JSON path.
     pub quality_report_json: PathBuf,
     /// Number of candidate object rows read.
@@ -176,12 +193,15 @@ pub fn review_episteme_ontology_candidates(
     let evidence = read_candidate_evidence(run_dir.join(EVIDENCE_TSV).as_path())?;
     let (review_rows, metrics) = build_review_rows(&objects, &relations, &evidence);
     let review_tsv = run_dir.join(REVIEW_TSV);
+    let review_org = run_dir.join(REVIEW_ORG);
     let quality_report_json = run_dir.join(QUALITY_REPORT_JSON);
     write_review_tsv(review_tsv.as_path(), &review_rows)?;
+    write_review_org(review_org.as_path(), &review_rows, &metrics)?;
     let report = EpistemeOntologyCandidateReviewReport {
         schema_version: REVIEW_SCHEMA_VERSION,
         run_dir: run_dir.to_path_buf(),
         candidate_review_tsv: review_tsv,
+        candidate_review_org: review_org,
         quality_report_json,
         candidate_object_count: objects.len(),
         candidate_relation_count: relations.len(),
@@ -658,10 +678,7 @@ fn parse_bool(row: &HashMap<String, String>, name: &str, path: &Path) -> Result<
 
 fn write_review_tsv(path: &Path, rows: &[ReviewRow]) -> Result<()> {
     let mut file = create_file(path)?;
-    writeln!(
-        file,
-        "record_id\trecord_kind\treview_decision\tquality_score\tevidence_strength\tissue_codes\tpromotion_precondition_met\tsource_file_id\tsource_queue_id\textraction_run_id\tsuggested_term_key\tlabel"
-    )?;
+    writeln!(file, "{}", REVIEW_COLUMNS.join("\t"))?;
     for row in rows {
         writeln!(
             file,
@@ -683,6 +700,93 @@ fn write_review_tsv(path: &Path, rows: &[ReviewRow]) -> Result<()> {
     Ok(())
 }
 
+fn write_review_org(path: &Path, rows: &[ReviewRow], metrics: &ReviewMetrics) -> Result<()> {
+    let mut file = create_file(path)?;
+    writeln!(file, "#+TITLE: Private Ontology Candidate Review Ledger")?;
+    writeln!(file)?;
+    writeln!(file, "* Candidate review ledger")?;
+    writeln!(file, ":PROPERTIES:")?;
+    writeln!(file, ":WENDAO_KIND: ontology_candidate_review_gate")?;
+    writeln!(file, ":ONTOLOGY_KIND: dataset_mapping")?;
+    writeln!(file, ":LIFECYCLE_STATE: review")?;
+    writeln!(file, ":PROMOTION_STATE: blocked_pending_review")?;
+    writeln!(file, ":SOURCE_MUTATION_ALLOWED: false")?;
+    writeln!(file, ":ONTOLOGY_TRUTH: false")?;
+    writeln!(file, ":END:")?;
+    writeln!(file)?;
+    writeln!(
+        file,
+        "This ledger is the authoritative candidate review input. TSV files are generated projections."
+    )?;
+    writeln!(file)?;
+    writeln!(file, "| field | value |")?;
+    writeln!(file, "|-|-|")?;
+    writeln!(file, "| review_row_count | {} |", rows.len())?;
+    writeln!(
+        file,
+        "| promotion_precondition_met_count | {} |",
+        metrics.promotion_precondition_met_count
+    )?;
+    writeln!(
+        file,
+        "| blocked_invalid_count | {} |",
+        metrics.blocked_invalid_count
+    )?;
+    writeln!(
+        file,
+        "| needs_evidence_count | {} |",
+        metrics.needs_evidence_count
+    )?;
+    writeln!(file)?;
+    writeln!(
+        file,
+        "| {} |",
+        REVIEW_COLUMNS
+            .iter()
+            .map(|column| escape_org_table_cell(column))
+            .collect::<Vec<_>>()
+            .join(" | ")
+    )?;
+    writeln!(
+        file,
+        "| {} |",
+        REVIEW_COLUMNS
+            .iter()
+            .map(|_| "-")
+            .collect::<Vec<_>>()
+            .join(" | ")
+    )?;
+    for row in rows {
+        writeln!(
+            file,
+            "| {} |",
+            review_row_org_cells(row)
+                .iter()
+                .map(|cell| escape_org_table_cell(cell))
+                .collect::<Vec<_>>()
+                .join(" | ")
+        )?;
+    }
+    Ok(())
+}
+
+fn review_row_org_cells(row: &ReviewRow) -> [String; 12] {
+    [
+        row.record_id.clone(),
+        row.record_kind.clone(),
+        row.review_decision.to_string(),
+        row.quality_score.to_string(),
+        row.evidence_strength.to_string(),
+        row.issue_codes.join(","),
+        row.promotion_precondition_met.to_string(),
+        row.source_file_id.clone(),
+        row.source_queue_id.clone(),
+        row.extraction_run_id.clone(),
+        row.suggested_term_key.clone(),
+        row.label.clone(),
+    ]
+}
+
 fn write_json(path: &Path, report: &EpistemeOntologyCandidateReviewReport) -> Result<()> {
     let mut file = create_file(path)?;
     serde_json::to_writer_pretty(&mut file, report)
@@ -702,6 +806,15 @@ fn create_file(path: &Path) -> Result<File> {
 fn escape_tsv(value: &str) -> String {
     value
         .replace('\\', "\\\\")
+        .replace('\t', "\\t")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+}
+
+fn escape_org_table_cell(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('|', "\\vert{}")
         .replace('\t', "\\t")
         .replace('\n', "\\n")
         .replace('\r', "\\r")
