@@ -128,7 +128,7 @@ fn source_pdf_page_range_fast_text_split_uses_single_page_chunks_when_enabled() 
             true,
             true,
         ),
-        2
+        4
     );
     assert_eq!(
         source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fast_text_split(

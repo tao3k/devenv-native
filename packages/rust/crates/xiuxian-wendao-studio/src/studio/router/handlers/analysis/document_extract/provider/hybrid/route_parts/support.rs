@@ -172,15 +172,17 @@ pub(super) fn ocr2_region_render_request_chunks_with_lookup(
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
-pub(super) fn ocr2_region_render_ahead_limit_with_lookup(
+pub(super) fn ocr2_region_render_ahead_limit_for_capacity_with_lookup(
     chunk_count: usize,
+    endpoint_count: usize,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> usize {
+    let endpoint_window = endpoint_count.saturating_sub(1).max(1);
     let requested = lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD_ENV)
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|value| *value > 0)
-        .unwrap_or(1);
-    requested.clamp(1, chunk_count.max(1))
+        .unwrap_or(endpoint_window);
+    requested.clamp(1, chunk_count.max(1).min(endpoint_window))
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -190,6 +192,10 @@ pub(super) struct Ocr2RegionMaterializationStats {
     pub(super) render_cache_hit_count: usize,
     pub(super) render_cache_miss_count: usize,
     pub(super) render_reported_elapsed_ms: f64,
+    pub(super) pipeline_planned_render_chunk_count: usize,
+    pub(super) pipeline_endpoint_count: usize,
+    pub(super) pipeline_render_ahead_limit: usize,
+    pub(super) pipeline_render_spawn_count: usize,
     pub(super) pipeline_render_chunk_count: usize,
     pub(super) pipeline_region_dispatch_count: usize,
     pub(super) pipeline_base_result_count: usize,

@@ -42,6 +42,12 @@ fn client_verification_profile_hints_bind_active_skill_tasks() {
     );
     assert_bound_task(
         &plan,
+        "src/orgize/read_model/store/materialize.rs",
+        RustVerificationTaskKind::Performance,
+        "rust-verification-performance@criterion",
+    );
+    assert_bound_task(
+        &plan,
         "src/lint/contract/validation.rs",
         RustVerificationTaskKind::Regression,
         "rust-verification-regression@insta",
@@ -79,6 +85,7 @@ pub(super) fn client_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
         .with_verification_profile_hint(cli_security_hint())
         .with_verification_profile_hint(get_runtime_performance_hint())
+        .with_verification_profile_hint(orgize_read_model_performance_hint())
         .with_verification_profile_hint(lint_contract_regression_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
@@ -174,6 +181,46 @@ fn get_runtime_performance_hint() -> RustVerificationProfileHint {
         ),
     )
     .with_rationale("get command execution crosses runtime and document-fetch boundaries")
+}
+
+fn orgize_read_model_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/orgize/read_model/store/materialize.rs",
+        [
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::LatencySensitive,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Performance])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report Org agent read-model refresh/query evidence from cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_orgize",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_orgize",
+                ),
+                RustVerificationRequirement::new("baseline", "Criterion baseline name or commit"),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted latency regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "Criterion latency or throughput result",
+                ),
+                RustVerificationRequirement::new(
+                    "profile_artifact",
+                    "target/criterion artifact path for the relevant benchmark group",
+                ),
+            ],
+        ),
+    )
+    .with_rationale(
+        "Org agent read-model refresh crosses parser, DuckDB write, and cached query boundaries",
+    )
 }
 
 fn lint_contract_regression_hint() -> RustVerificationProfileHint {

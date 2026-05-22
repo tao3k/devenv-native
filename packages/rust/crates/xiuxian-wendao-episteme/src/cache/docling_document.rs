@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     materialization_support::{
-        display_path, increment, non_empty_or, normalized_text, sha256_text, write_json,
+        display_path, increment, non_empty_or, normalized_text, sha256_file, sha256_text,
+        write_json,
     },
-    path::resolve_run_output_path,
+    path::{resolve_existing_corpus_file, resolve_run_output_path},
     task::{EpistemeCacheTask, read_tasks_tsv, task_extension},
 };
 
@@ -224,6 +225,7 @@ pub fn write_docling_document_cache_outputs(
     tasks: &[EpistemeCacheTask],
     document_results_jsonl: &Path,
     run_dir: &Path,
+    corpus_root: &Path,
 ) -> Result<EpistemeDoclingDocumentCacheBridgeReport> {
     let outputs_dir = run_dir.join("outputs");
     fs::create_dir_all(&outputs_dir)
@@ -246,7 +248,7 @@ pub fn write_docling_document_cache_outputs(
         );
     }
 
-    let summary = write_docling_document_cache_task_outputs(tasks, &rows, run_dir)?;
+    let summary = write_docling_document_cache_task_outputs(tasks, &rows, run_dir, corpus_root)?;
 
     let report = EpistemeDoclingDocumentCacheBridgeReport {
         schema_version: CACHE_RECEIPT_SCHEMA,
@@ -278,10 +280,11 @@ fn write_docling_document_cache_task_outputs(
     tasks: &[EpistemeCacheTask],
     rows: &BTreeMap<String, DoclingDocumentJsonlRow>,
     run_dir: &Path,
+    corpus_root: &Path,
 ) -> Result<DoclingDocumentCacheWriteSummary> {
     let mut summary = DoclingDocumentCacheWriteSummary::default();
     for task in tasks {
-        write_one_docling_document_cache_output(task, rows, run_dir, &mut summary)?;
+        write_one_docling_document_cache_output(task, rows, run_dir, corpus_root, &mut summary)?;
     }
     Ok(summary)
 }
@@ -290,29 +293,46 @@ fn write_one_docling_document_cache_output(
     task: &EpistemeCacheTask,
     rows: &BTreeMap<String, DoclingDocumentJsonlRow>,
     run_dir: &Path,
+    corpus_root: &Path,
     summary: &mut DoclingDocumentCacheWriteSummary,
 ) -> Result<()> {
     let extension = task_extension(task);
     increment(&mut summary.extension_counts, &extension);
     let output_path = resolve_run_output_path(run_dir, &task.planned_output_path, &task.queue_id)?;
+    let source_hash = match build_task_context(task, corpus_root) {
+        Ok(value) => value,
+        Err(error) => {
+            write_failure_output(&output_path, task, &extension, false, &error)?;
+            increment(&mut summary.status_counts, "failed");
+            summary.failed_count += 1;
+            return Ok(());
+        }
+    };
     let Some(row) = rows.get(&task.queue_id) else {
         write_failure_output(
             &output_path,
             task,
             &extension,
+            true,
             "Docling document result row is missing",
         )?;
         increment(&mut summary.status_counts, "failed");
         summary.failed_count += 1;
         return Ok(());
     };
-    validate_result_row(task, row, &extension)?;
+    if let Err(error) = validate_result_row(task, row, &extension, &source_hash) {
+        write_failure_output(&output_path, task, &extension, false, &error)?;
+        increment(&mut summary.status_counts, "failed");
+        summary.failed_count += 1;
+        return Ok(());
+    }
     let text = normalized_text(&row.text);
     if text.is_empty() {
         write_failure_output(
             &output_path,
             task,
             &extension,
+            true,
             "Docling document result text is empty",
         )?;
         increment(&mut summary.status_counts, "failed");
@@ -398,41 +418,66 @@ fn validate_result_row(
     task: &EpistemeCacheTask,
     row: &DoclingDocumentJsonlRow,
     extension: &str,
-) -> Result<()> {
+    source_hash: &str,
+) -> Result<(), String> {
     if task.extraction_route != EPISTEME_DOCLING_DOCUMENT_ROUTE {
-        anyhow::bail!(
+        return Err(format!(
             "Docling document result targeted non-document route `{}` for `{}`",
-            task.extraction_route,
-            task.queue_id
-        );
+            task.extraction_route, task.queue_id
+        ));
     }
     if task.output_contract != OUTPUT_CONTRACT {
-        anyhow::bail!(
+        return Err(format!(
             "Docling document task `{}` has unsupported output contract `{}`",
-            task.queue_id,
-            task.output_contract
-        );
+            task.queue_id, task.output_contract
+        ));
     }
-    if row.source_sha256 != task.source_sha256 {
-        anyhow::bail!(
+    if row.source_sha256 != task.source_sha256 || source_hash != task.source_sha256 {
+        return Err(format!(
             "Docling document source sha256 drift for `{}`",
             task.queue_id
-        );
+        ));
     }
     if row.extension != extension {
-        anyhow::bail!(
+        return Err(format!(
             "Docling document extension mismatch for `{}`: result `{}` task `{extension}`",
-            task.queue_id,
-            row.extension
-        );
+            task.queue_id, row.extension
+        ));
     }
     Ok(())
+}
+
+fn build_task_context(task: &EpistemeCacheTask, corpus_root: &Path) -> Result<String, String> {
+    if task.extraction_route != EPISTEME_DOCLING_DOCUMENT_ROUTE {
+        return Err(format!(
+            "Docling document task targeted non-document route `{}`",
+            task.extraction_route
+        ));
+    }
+    if task.output_contract != OUTPUT_CONTRACT {
+        return Err(format!(
+            "Docling document task has unsupported output contract `{}`",
+            task.output_contract
+        ));
+    }
+    let source_path =
+        resolve_existing_corpus_file(corpus_root, &task.relative_path, &task.queue_id)
+            .map_err(|error| error.to_string())?;
+    if !source_path.is_file() {
+        return Err("source document is missing".to_string());
+    }
+    let source_hash = sha256_file(&source_path).map_err(|error| error.to_string())?;
+    if source_hash != task.source_sha256 {
+        return Err(format!("source sha256 drift for `{}`", task.queue_id));
+    }
+    Ok(source_hash)
 }
 
 fn write_failure_output(
     path: &Path,
     task: &EpistemeCacheTask,
     extension: &str,
+    source_hash_matched: bool,
     error: &str,
 ) -> Result<()> {
     let output = DoclingDocumentCacheFailureOutput {
@@ -448,7 +493,7 @@ fn write_failure_output(
         route_family: route_family_for_task(task),
         support_state: "planned",
         source_sha256: task.source_sha256.clone(),
-        source_hash_matched: false.into(),
+        source_hash_matched: source_hash_matched.into(),
         output_contract: OUTPUT_CONTRACT,
         ocr_required: false.into(),
         docling_document_executed: false.into(),

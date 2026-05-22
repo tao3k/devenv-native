@@ -22,6 +22,26 @@ async fn handoff_is_one_shot() {
     assert!(second.is_none());
 }
 
+#[tokio::test]
+async fn payload_alias_overwrites_existing_cache_entry() {
+    let cache = FlightRoutePayloadCache::default();
+    let stale = cache
+        .insert("document-key".to_string(), test_payload())
+        .await;
+    let fresh = Arc::new(test_payload());
+
+    cache
+        .insert_alias("document-key".to_string(), Arc::clone(&fresh))
+        .await;
+    let cached = cache
+        .get("document-key")
+        .await
+        .unwrap_or_else(|| panic!("alias should be cached"));
+
+    assert!(!Arc::ptr_eq(&cached, &stale));
+    assert!(Arc::ptr_eq(&cached, &fresh));
+}
+
 fn test_payload() -> FlightRoutePayload {
     let schema = Arc::new(Schema::empty());
     let batch = RecordBatch::new_empty(schema);

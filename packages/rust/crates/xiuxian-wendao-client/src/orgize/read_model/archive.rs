@@ -1,6 +1,6 @@
 //! Org task archive writeback support.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
 
@@ -12,11 +12,18 @@ use super::model::{AgentOrgTaskListRow, ResolvedReadModelSettings};
 use super::row_view::property_value;
 use super::settings::resolve_config_path_value;
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(super) struct ArchiveApplyReport {
+    pub(super) rows: usize,
+    pub(super) sources_updated: Vec<PathBuf>,
+    pub(super) targets_updated: Vec<PathBuf>,
+}
+
 pub(super) fn apply_archive_plan(
     rows: &[&AgentOrgTaskListRow],
     settings: &ResolvedReadModelSettings,
     context: &ClientContext,
-) -> Result<()> {
+) -> Result<ArchiveApplyReport> {
     let mut rows_by_source = BTreeMap::<PathBuf, Vec<&AgentOrgTaskListRow>>::new();
     for row in rows {
         rows_by_source
@@ -26,6 +33,7 @@ pub(super) fn apply_archive_plan(
     }
 
     let mut appends = BTreeMap::<PathBuf, Vec<String>>::new();
+    let mut sources_updated = BTreeSet::<PathBuf>::new();
     for (source_path, mut source_rows) in rows_by_source {
         source_rows.sort_by_key(|row| std::cmp::Reverse(row.source_range_start));
         let original = fs::read_to_string(&source_path)
@@ -60,8 +68,10 @@ pub(super) fn apply_archive_plan(
         }
         fs::write(&source_path, updated)
             .with_context(|| format!("failed to write `{}`", source_path.display()))?;
+        sources_updated.insert(source_path);
     }
 
+    let mut targets_updated = BTreeSet::<PathBuf>::new();
     for (target, subtrees) in appends {
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).with_context(|| {
@@ -84,9 +94,14 @@ pub(super) fn apply_archive_plan(
         }
         fs::write(&target, archive_content)
             .with_context(|| format!("failed to write `{}`", target.display()))?;
+        targets_updated.insert(target);
     }
 
-    Ok(())
+    Ok(ArchiveApplyReport {
+        rows: rows.len(),
+        sources_updated: sources_updated.into_iter().collect(),
+        targets_updated: targets_updated.into_iter().collect(),
+    })
 }
 
 pub(super) fn archive_target_for_row(

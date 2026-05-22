@@ -29,6 +29,8 @@ mod promotion;
 mod read_model;
 #[path = "registry.rs"]
 mod registry;
+#[path = "route_policy.rs"]
+mod route_policy;
 #[path = "run_plan.rs"]
 mod run_plan;
 #[path = "selection.rs"]
@@ -58,8 +60,11 @@ pub use read_model::{
     EpistemeAudioEvidenceSourceRow, EpistemeAudioReviewedClaimObjectKind,
     EpistemeAudioReviewedClaimReadModelRequest, EpistemeAudioReviewedClaimRow,
     EpistemeReadModelMaterialization, EpistemeReadModelRequest, EpistemeReadModelTable,
+    admit_and_materialize_episteme_ontology_registry_snapshot_read_model_seed,
     materialize_episteme_audio_evidence_review_seed,
-    materialize_episteme_audio_reviewed_claim_seed, materialize_episteme_read_model_seed,
+    materialize_episteme_audio_reviewed_claim_seed,
+    materialize_episteme_ontology_registry_snapshot_read_model_seed,
+    materialize_episteme_read_model_seed,
     materialize_episteme_read_model_seed_with_validation_hash_cache,
     materialize_episteme_registry_reference_graph_read_model_seed,
     validate_episteme_read_model_relation_endpoints,
@@ -165,6 +170,9 @@ pub enum EpistemeError {
     /// The episteme config cannot select one source contract.
     #[error("episteme source-contract manifest is invalid: {0}")]
     InvalidEpistemeManifest(String),
+    /// The ontology registry snapshot is invalid.
+    #[error("episteme ontology registry snapshot is invalid: {0}")]
+    InvalidOntologyRegistry(String),
     /// The source contract is not valid, so planning cannot proceed.
     #[error("episteme source-contract source contract is invalid: {0:?}")]
     InvalidContract(Vec<String>),
@@ -193,6 +201,12 @@ impl From<episteme_admission::EpistemeError> for EpistemeError {
                 Self::InvalidEpistemeManifest(message)
             }
         }
+    }
+}
+
+impl From<episteme_admission::EpistemeOntologyRegistryError> for EpistemeError {
+    fn from(source: episteme_admission::EpistemeOntologyRegistryError) -> Self {
+        Self::InvalidOntologyRegistry(source.to_string())
     }
 }
 

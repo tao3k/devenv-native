@@ -3,7 +3,7 @@
 use crate::{
     ActivityFailure, ActivityId, ActivityResult, ActivityStatus, ActivityTask, ActivityView,
     ControlError, ControlEvent, ControlEventKind, ControlEventRecord, ControlLedger, ControlResult,
-    RunId, RunView, StepId, ToolActivityAdmission, WorkerId, replay_run_view,
+    LlmActivityAdmission, RunId, RunView, StepId, ToolActivityAdmission, WorkerId, replay_run_view,
 };
 
 /// Named request for recording one admitted activity scheduling fact.
@@ -18,6 +18,20 @@ pub struct AdmittedActivityScheduleRecord {
     pub occurred_at_ms: u64,
     /// Already admitted tool activity.
     pub admission: ToolActivityAdmission,
+}
+
+/// Named request for recording one admitted LLM activity scheduling fact.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct AdmittedLlmActivityScheduleRecord {
+    /// Owning run id.
+    pub run_id: RunId,
+    /// Optional owning step id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_id: Option<StepId>,
+    /// Event timestamp supplied by caller.
+    pub occurred_at_ms: u64,
+    /// Already admitted LLM activity.
+    pub admission: LlmActivityAdmission,
 }
 
 impl AdmittedActivityScheduleRecord {
@@ -39,6 +53,35 @@ impl AdmittedActivityScheduleRecord {
         step_id: StepId,
         occurred_at_ms: u64,
         admission: ToolActivityAdmission,
+    ) -> Self {
+        Self {
+            run_id,
+            step_id: Some(step_id),
+            occurred_at_ms,
+            admission,
+        }
+    }
+}
+
+impl AdmittedLlmActivityScheduleRecord {
+    /// Creates a run-scoped admitted LLM activity schedule record request.
+    #[must_use]
+    pub const fn run(run_id: RunId, occurred_at_ms: u64, admission: LlmActivityAdmission) -> Self {
+        Self {
+            run_id,
+            step_id: None,
+            occurred_at_ms,
+            admission,
+        }
+    }
+
+    /// Creates a step-scoped admitted LLM activity schedule record request.
+    #[must_use]
+    pub const fn step(
+        run_id: RunId,
+        step_id: StepId,
+        occurred_at_ms: u64,
+        admission: LlmActivityAdmission,
     ) -> Self {
         Self {
             run_id,
@@ -300,6 +343,65 @@ where
     record_admitted_activity_schedule(ledger, request).map(ActivityJournalWriteOutcome::appended)
 }
 
+/// Records an already admitted LLM activity as an `ActivityScheduled` event.
+///
+/// # Errors
+///
+/// Returns a control error when the admission payload is invalid or the ledger
+/// append fails.
+pub fn record_admitted_llm_activity_schedule<L>(
+    ledger: &L,
+    request: AdmittedLlmActivityScheduleRecord,
+) -> ControlResult<ControlEventRecord>
+where
+    L: ControlLedger + ?Sized,
+{
+    request.admission.validate()?;
+    let AdmittedLlmActivityScheduleRecord {
+        run_id,
+        step_id,
+        occurred_at_ms,
+        admission,
+    } = request;
+    let event_kind = ControlEventKind::ActivityScheduled {
+        task: llm_activity_schedule_task(&admission),
+    };
+    let event = match step_id {
+        Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
+        None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
+    };
+    ledger.append_event(event)
+}
+
+/// Records an admitted LLM activity schedule with duplicate and transition guards.
+///
+/// # Errors
+///
+/// Returns a control error when the admission payload is invalid, the activity
+/// was already scheduled with different details, replay fails, or the ledger
+/// append fails.
+pub fn record_admitted_llm_activity_schedule_idempotent<L>(
+    ledger: &L,
+    request: AdmittedLlmActivityScheduleRecord,
+) -> ControlResult<ActivityJournalWriteOutcome>
+where
+    L: ControlLedger + ?Sized,
+{
+    request.admission.validate()?;
+    let run_id = request.run_id.clone();
+    let step_id = request.step_id.clone();
+    let task = llm_activity_schedule_task(&request.admission);
+    let kind = ControlEventKind::ActivityScheduled { task: task.clone() };
+    let records = ledger.load_events(&run_id)?;
+    if let Some(record) = find_existing_activity_event(&records, &run_id, step_id.as_ref(), &kind) {
+        return Ok(ActivityJournalWriteOutcome::already_recorded(record));
+    }
+    let view = replay_run_view(records)?;
+    validate_schedule_transition(&view, step_id.as_ref(), &task)?;
+    record_admitted_llm_activity_schedule(ledger, request)
+        .map(ActivityJournalWriteOutcome::appended)
+}
+
 /// Records an activity attempt start as an `ActivityStarted` event.
 ///
 /// # Errors
@@ -484,6 +586,55 @@ where
     let view = replay_run_view(records)?;
     validate_failure_transition(&view, scope.step_id(), &activity_id, &failure)?;
     record_activity_failed(ledger, request).map(ActivityJournalWriteOutcome::appended)
+}
+
+const LLM_ACTIVITY_REQUEST_AUDIT_METADATA_KEY: &str = "qianji_llm_activity_request";
+const ORIGINAL_ACTIVITY_METADATA_KEY: &str = "qianji_original_activity_metadata";
+
+fn llm_activity_schedule_task(admission: &LlmActivityAdmission) -> ActivityTask {
+    let mut task = admission.activity_task().clone();
+    task.metadata =
+        with_llm_request_audit_metadata(task.metadata, llm_request_audit_metadata(admission));
+    task
+}
+
+fn with_llm_request_audit_metadata(
+    existing_metadata: serde_json::Value,
+    audit_metadata: serde_json::Value,
+) -> serde_json::Value {
+    match existing_metadata {
+        serde_json::Value::Object(mut metadata) => {
+            metadata.insert(
+                LLM_ACTIVITY_REQUEST_AUDIT_METADATA_KEY.to_owned(),
+                audit_metadata,
+            );
+            serde_json::Value::Object(metadata)
+        }
+        serde_json::Value::Null => serde_json::json!({
+            LLM_ACTIVITY_REQUEST_AUDIT_METADATA_KEY: audit_metadata,
+        }),
+        metadata => serde_json::json!({
+            LLM_ACTIVITY_REQUEST_AUDIT_METADATA_KEY: audit_metadata,
+            ORIGINAL_ACTIVITY_METADATA_KEY: metadata,
+        }),
+    }
+}
+
+fn llm_request_audit_metadata(admission: &LlmActivityAdmission) -> serde_json::Value {
+    let request = &admission.activity.request;
+    serde_json::json!({
+        "schema": "qianji.llm_activity_request_audit.v1",
+        "model": request.model.as_str(),
+        "prompt_ref": &request.prompt_ref,
+        "context_ref": &request.context_ref,
+        "tool_schema_hash": &request.tool_schema_hash,
+        "temperature_millis": request.temperature_millis,
+        "max_tokens": request.max_tokens,
+        "response_schema_ref": &request.response_schema_ref,
+        "budget": &request.budget,
+        "request_metadata": &request.metadata,
+        "admission_metadata": &admission.metadata,
+    })
 }
 
 fn find_existing_activity_event(

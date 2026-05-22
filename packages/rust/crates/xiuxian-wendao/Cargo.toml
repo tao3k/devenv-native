@@ -75,7 +75,6 @@ test-support = [
   "repo-lexical-index",
   "search-runtime",
   "studio",
-  "zhenfa-router",
 ]
 document-extract-attachment-audit = [
   "dep:xiuxian-wendao-attachments",

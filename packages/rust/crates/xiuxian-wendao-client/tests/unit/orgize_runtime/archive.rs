@@ -11,8 +11,62 @@ fn standalone_orgize_task_archive_plans_and_applies_completed_rows() {
     assert_archive_plan(temp.path(), &fixture);
     assert_archive_target_filter(temp.path(), &fixture);
     assert_archive_closed_before_filter(temp.path(), &fixture);
+    assert_archive_expect_selected_gate(temp.path(), &fixture);
+    assert_archive_plan_json(temp.path(), &fixture);
     assert_archive_apply(temp.path(), &fixture);
     assert_archive_report(temp.path());
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_archive_apply_json_outputs_write_receipt() {
+    let temp = tempdir_or_panic();
+    let fixture = write_archive_fixture(temp.path());
+
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .env_remove("PRJ_CACHE_HOME")
+        .arg("--root")
+        .arg(temp.path())
+        .arg("--output")
+        .arg("json")
+        .arg("orgize")
+        .arg("task-archive")
+        .arg("--apply")
+        .arg("--target")
+        .arg("completed.org")
+        .arg("--closed-before")
+        .arg("2026-05-18")
+        .arg("--expect-selected")
+        .arg("1")
+        .arg("agenda.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize task-archive apply json: {error}"));
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|error| panic!("parse json: {error}"));
+    assert_eq!(parsed["command"], "orgize task-archive");
+    assert_eq!(parsed["mode"], "apply");
+    assert_eq!(parsed["applied"], 1);
+    assert_eq!(parsed["selected"], 1);
+    assert_eq!(parsed["sourcesUpdated"][0], "agenda.org", "json: {parsed}");
+    assert_eq!(
+        parsed["targetsUpdated"][0], ".cache/agent/org/archives/completed.org",
+        "json: {parsed}"
+    );
+    assert_eq!(parsed["postApplyRefresh"], "refreshed");
+    assert_eq!(parsed["postApplyRows"], 4);
+    let agenda_after = std::fs::read_to_string(&fixture.agenda)
+        .unwrap_or_else(|error| panic!("read agenda after json apply: {error}"));
+    assert!(!agenda_after.contains("Completed slice"));
+    assert!(fixture.archive_path.is_file());
 }
 
 #[cfg(feature = "orgize-agent-read-model")]
@@ -194,6 +248,117 @@ fn assert_archive_closed_before_filter(root: &Path, _fixture: &ArchiveFixture) {
 }
 
 #[cfg(feature = "orgize-agent-read-model")]
+fn assert_archive_expect_selected_gate(root: &Path, fixture: &ArchiveFixture) {
+    let plan = run_orgize(
+        root,
+        &[
+            "task-archive",
+            "--target",
+            "completed.org",
+            "--closed-before",
+            "2026-05-18",
+            "--expect-selected",
+            "1",
+            "agenda.org",
+        ],
+        "task-archive expect-selected plan",
+    );
+    assert_cli_success(&plan);
+    assert!(
+        plan.stdout.contains("expect-selected: 1"),
+        "stdout: {}",
+        plan.stdout
+    );
+    let mismatch = run_orgize(
+        root,
+        &[
+            "task-archive",
+            "--target",
+            "completed.org",
+            "--closed-before",
+            "2026-05-18",
+            "--expect-selected",
+            "2",
+            "agenda.org",
+        ],
+        "task-archive expect-selected mismatch",
+    );
+    assert_eq!(
+        mismatch.status_code,
+        Some(1),
+        "stdout: {}\nstderr: {}",
+        mismatch.stdout,
+        mismatch.stderr
+    );
+    assert!(
+        mismatch
+            .stderr
+            .contains("archive selected row count mismatch: expected 2, selected 1"),
+        "stderr: {}",
+        mismatch.stderr
+    );
+    assert!(
+        std::fs::read_to_string(&fixture.agenda)
+            .unwrap_or_else(|error| panic!("read agenda after mismatch: {error}"))
+            .contains("Completed slice"),
+        "mismatched expect-selected must not edit source"
+    );
+    assert!(
+        !fixture.archive_path.exists(),
+        "mismatched expect-selected must not write archive"
+    );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+fn assert_archive_plan_json(root: &Path, _fixture: &ArchiveFixture) {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .env_remove("PRJ_CACHE_HOME")
+        .arg("--root")
+        .arg(root)
+        .arg("--output")
+        .arg("json")
+        .arg("orgize")
+        .arg("task-archive")
+        .arg("--target")
+        .arg("completed.org")
+        .arg("--closed-before")
+        .arg("2026-05-18")
+        .arg("--expect-selected")
+        .arg("1")
+        .arg("agenda.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize task-archive json: {error}"));
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|error| panic!("parse json: {error}"));
+    assert_eq!(parsed["command"], "orgize task-archive");
+    assert_eq!(parsed["mode"], "plan");
+    assert_eq!(parsed["targetFilter"], "completed.org");
+    assert_eq!(parsed["closedBefore"], "2026-05-18");
+    assert_eq!(parsed["expectSelected"], 1);
+    assert_eq!(parsed["candidates"], 1);
+    assert_eq!(parsed["selected"], 1);
+    assert_eq!(
+        parsed["archiveTargets"][".cache/agent/org/archives/completed.org"],
+        1
+    );
+    assert_eq!(parsed["items"].as_array().map_or(0, Vec::len), 1);
+    assert_eq!(parsed["items"][0]["title"], "Completed slice");
+    assert_eq!(
+        parsed["items"][0]["target"],
+        ".cache/agent/org/archives/completed.org"
+    );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
 fn assert_archive_apply(root: &Path, fixture: &ArchiveFixture) {
     let apply = run_orgize(
         root,
@@ -204,6 +369,8 @@ fn assert_archive_apply(root: &Path, fixture: &ArchiveFixture) {
             "completed.org",
             "--closed-before",
             "2026-05-18",
+            "--expect-selected",
+            "1",
             "agenda.org",
         ],
         "task-archive apply",
@@ -216,6 +383,38 @@ fn assert_archive_apply(root: &Path, fixture: &ArchiveFixture) {
     );
     assert!(
         apply.stdout.contains("applied: 1"),
+        "stdout: {}",
+        apply.stdout
+    );
+    assert!(
+        apply.stdout.contains("sources-updated: 1"),
+        "stdout: {}",
+        apply.stdout
+    );
+    assert!(
+        apply.stdout.contains("- source: agenda.org"),
+        "stdout: {}",
+        apply.stdout
+    );
+    assert!(
+        apply.stdout.contains("targets-updated: 1"),
+        "stdout: {}",
+        apply.stdout
+    );
+    assert!(
+        apply
+            .stdout
+            .contains("- target: .cache/agent/org/archives/completed.org"),
+        "stdout: {}",
+        apply.stdout
+    );
+    assert!(
+        apply.stdout.contains("post-apply-refresh: refreshed"),
+        "stdout: {}",
+        apply.stdout
+    );
+    assert!(
+        apply.stdout.contains("post-apply-rows: 4"),
         "stdout: {}",
         apply.stdout
     );

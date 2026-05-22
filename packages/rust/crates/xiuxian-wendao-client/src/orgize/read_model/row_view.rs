@@ -3,6 +3,7 @@
 use std::path::Path;
 
 use crate::ClientContext;
+use crate::orgize::OrgizeTaskListView;
 
 use super::model::AgentOrgTaskListRow;
 
@@ -15,6 +16,18 @@ pub(super) fn task_repeater_labels(row: &AgentOrgTaskListRow) -> Vec<String> {
         labels.push(format!("deadline {} ({})", repeater.cookie, repeater.kind));
     }
     labels
+}
+
+pub(crate) fn task_list_view_label(view: OrgizeTaskListView) -> &'static str {
+    match view {
+        OrgizeTaskListView::Active => "active",
+        OrgizeTaskListView::Done => "done",
+        OrgizeTaskListView::Archived => "archived",
+        OrgizeTaskListView::Achievement => "achievement",
+        OrgizeTaskListView::ArchiveCandidate => "archive-candidate",
+        OrgizeTaskListView::ClosureNeeded => "closure-needed",
+        OrgizeTaskListView::Repeating => "repeating",
+    }
 }
 
 pub(super) fn display_source_path(source_path: &str, context: &ClientContext) -> String {

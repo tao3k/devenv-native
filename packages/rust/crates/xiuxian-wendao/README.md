@@ -159,7 +159,30 @@ Use `xiuxian-wendao` for:
   Rust Episteme implementation now belongs in
   [`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md), which
   validates the ontology source contract and selects the active source
-  manifest and mapping ledger from `ontology/manifest.toml`. During migration,
+  manifest and mapping ledger from `ontology/manifest.toml`. Common source
+  contracts use `episteme://` domain ids; private extension source contracts use
+  `episteme://private/` ids and declare their common-domain target through
+  `extends`.
+  It also admits compiler-produced `ontology/registry.json` snapshots through
+  `xiuxian-wendao-episteme` and materializes admitted snapshots into
+  `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` read-model seed batches. The registry snapshot
+  materializer emits registry, domain, RDF term, rule, policy, dataset mapping,
+  and API-surface graph facts without asking Julia or Python to parse
+  `registry.json`. The stable Rust entry point for Gateway callers is
+  `admit_and_materialize_episteme_ontology_registry_snapshot_read_model_seed`,
+  which performs snapshot admission, semantic materialization, and relation
+  endpoint validation before returning read-model batches.
+  Document source contracts should keep Docling-native
+  `document_text_evidence` rows limited to modern supported formats and route
+  legacy Office binaries through a separate conversion route before cache
+  materialization. Rust source-contract validation rejects `doc`, `ppt`, and
+  `xls` rows or manifest route declarations that send legacy Office binaries
+  through `document_text_evidence`. The run planner can emit
+  `legacy_office_document_evidence` tasks for conversion-admission, while the
+  Episteme runtime crate validates those tasks before its bounded converter
+  runner executes an operator-supplied converter wrapper.
+  During migration,
   this crate may consume or
   re-export Episteme services, but it should not remain the long-term
   implementation home. Rust owns source hash validation, queue selection,
@@ -188,11 +211,37 @@ Use `xiuxian-wendao` for:
   evidence-only selection ledger from chosen `file_id` values before any
   extractor execution, and `wendao episteme source-contract plan-extraction-run`
   CLI command, which can consume that selection ledger as a hard `file_id`
-  constraint before writing extractor tasks. A bounded Studio Gateway admission
-  endpoint exposes the same Rust writer. Episteme repositories may also provide
-  `episteme.toml` with runtime defaults for corpus and run roots; Rust resolves
-  those defaults generically, while explicit CLI or Gateway values remain
-  overrides. Structure
+  constraint before writing extractor tasks. The run-plan write report exposes
+  total queue rows plus selected route/category counts so route coverage can be
+  audited from the command output without opening generated receipts. The same
+  source-contract CLI surface also exposes cache runners for image OCR, Docling
+  document extraction, and legacy Office conversion. After cache-local evidence
+  exists, `wendao episteme source-contract generate-ontology-candidates`
+  delegates to `xiuxian-wendao-episteme` to write review-required ontology
+  candidate TSV/Org artifacts without mutating RDF or promoting raw extracted
+  text. `wendao episteme source-contract review-ontology-candidates` then
+  delegates to the Episteme crate's review gate to produce deterministic
+  quality and integrity artifacts for the generated candidate run; this is a
+  promotion precondition, not RDF export. `wendao episteme source-contract
+  write-ontology-rdf-draft` can then write reviewable `rdf_draft.ttl`,
+  `promotion_proposal.org`, and `promotion_proposal.json` artifacts beside a
+  passing candidate run. These artifacts remain proposal surfaces with
+  raw-to-RDF promotion disabled and ontology truth set to false; the command
+  does not mutate private ontology source RDF. `wendao episteme source-contract
+  write-ontology-promotion-review` can then write pending review packets
+  (`promotion_review.tsv`, `promotion_review.org`, and
+  `promotion_review.json`) that keep source mutation disabled and ontology
+  truth false. `wendao episteme source-contract
+  write-ontology-promotion-apply-plan` consumes explicit review decisions and
+  writes non-mutating `promotion_apply_plan.*` artifacts; pending-only reviews
+  yield zero plan rows, approved rows require reviewer provenance and satisfied
+  preconditions, and the plan still has `sourceMutationAllowed=false` and
+  `ontologyTruth=false`. Bounded Studio Gateway admission
+  endpoints expose the same Rust writers and the ontology registry snapshot
+  read-model admission summary. Episteme repositories may also provide
+  `episteme.toml` with runtime defaults for corpus, run roots, and an optional
+  legacy Office converter wrapper path; Rust resolves those defaults
+  generically, while explicit CLI or Gateway values remain overrides. Structure
   TOC generation defaults to metadata-only validation for fast human/LLM
   orientation and keeps full sha256 validation as an explicit `full-hash` gate.
   Extraction run planning uses `contract_shape_only` validation: it validates

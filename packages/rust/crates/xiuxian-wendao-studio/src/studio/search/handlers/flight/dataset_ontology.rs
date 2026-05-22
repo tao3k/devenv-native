@@ -124,11 +124,17 @@ impl DatasetOntologyMaterializeFlightRouteProvider
             ));
         }
         let batches = materialization_result_batches(&materialization)?;
+        #[cfg(feature = "julia")]
         let wendaograph_proof = dataset_ontology_wendaograph_proof_evidence(
             self.state.studio.config_root.as_path(),
             &materialization,
         )
         .await?;
+        #[cfg(not(feature = "julia"))]
+        let wendaograph_proof = dataset_ontology_wendaograph_proof_evidence(
+            self.state.studio.config_root.as_path(),
+            &materialization,
+        );
         let app_metadata =
             dataset_ontology_app_metadata(&materialization.report, wendaograph_proof.as_ref())?;
         Ok(
@@ -417,11 +423,11 @@ async fn dataset_ontology_wendaograph_proof_evidence(
 }
 
 #[cfg(not(feature = "julia"))]
-async fn dataset_ontology_wendaograph_proof_evidence(
+fn dataset_ontology_wendaograph_proof_evidence(
     _project_root: &Path,
     _materialization: &DatasetOntologyRuntimeMaterialization,
-) -> Result<Option<DatasetOntologyWendaoGraphProofEvidence>, String> {
-    Ok(None)
+) -> Option<DatasetOntologyWendaoGraphProofEvidence> {
+    None
 }
 
 #[cfg(feature = "julia")]

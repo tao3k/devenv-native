@@ -1,5 +1,14 @@
 mod basic;
+mod claim;
 mod finish;
+mod mirror;
 mod queue;
+mod reclaim;
 mod recovery_plan;
+mod release;
+mod schedule_llm;
+mod settle;
 mod start;
+mod take;
+mod worker_loop;
+mod worker_once;

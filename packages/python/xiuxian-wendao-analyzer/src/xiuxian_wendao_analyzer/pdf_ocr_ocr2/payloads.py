@@ -12,6 +12,7 @@ from .payload_helpers import (
     region_atlas_prompt,
     region_composite_prompt,
     region_scaffold_prompt,
+    single_region_prompt,
     window_prompt,
 )
 
@@ -29,6 +30,7 @@ def request_payload(
     max_tokens: int,
     image_data_url_value: str | None = None,
     image_optimization_mode: str = HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
+    region_prompt_mode: str | None = None,
 ) -> dict[str, Any]:
     return {
         "model": model,
@@ -36,7 +38,14 @@ def request_payload(
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": prompt},
+                    {
+                        "type": "text",
+                        "text": single_region_prompt(
+                            prompt,
+                            input_row,
+                            region_prompt_mode=region_prompt_mode,
+                        ),
+                    },
                     {
                         "type": "image_url",
                         "image_url": {
@@ -99,6 +108,7 @@ def region_composite_request_payload(
     input_rows: Sequence[Mapping[str, Any]],
     image_paths: Sequence[Path],
     max_tokens: int,
+    image_data_url_values: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     content: list[dict[str, Any]] = [
         {"type": "text", "text": region_composite_prompt(prompt, input_rows)}
@@ -117,7 +127,13 @@ def region_composite_request_payload(
         content.append(
             {
                 "type": "image_url",
-                "image_url": {"url": image_data_url(input_row, image_path)},
+                "image_url": {
+                    "url": (
+                        image_data_url_values[ordinal - 1]
+                        if image_data_url_values is not None
+                        else image_data_url(input_row, image_path)
+                    )
+                },
             }
         )
     return {

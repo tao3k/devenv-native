@@ -123,6 +123,42 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount",
         ),
+        "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": _sum_float_report_values(
+            reports,
+            "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs",
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineEndpointCount": _max_int_report_value(
+            reports,
+            "hybridPageOcrTimingOcr2RegionPipelineEndpointCount",
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": _max_int_report_value(
+            reports,
+            "hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit",
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount",
+            )
+        ),
         "structureAuthorityPages": _sum_int_report_values(
             reports,
             "structureAuthorityPages",
@@ -222,6 +258,13 @@ def _sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
     )
 
 
+def _max_int_report_value(reports: list[dict[str, Any]], key: str) -> int:
+    return max(
+        (value for report in reports if isinstance((value := report.get(key)), int)),
+        default=0,
+    )
+
+
 def _sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
     return sum(
         float(value)
@@ -314,6 +357,8 @@ def _hybrid_page_ocr_scheduler_trace_summary(
         "sourceRangeLongestPageStart": _int_or_none(longest.get("pageStart")),
         "sourceRangeLongestPageEnd": _int_or_none(longest.get("pageEnd")),
         "sourceRangeLongestShardCount": _int_or_none(longest.get("shardCount")),
+        "sourceRangeLongestOcrProfile": _str_or_none(longest.get("ocrProfile")),
+        "sourceRangeLongestShardType": _str_or_none(longest.get("shardType")),
         "sourceRangeLongestQueueWaitMs": _float_or_none(longest.get("queueWaitMs")),
         "sourceRangeLongestDispatchStartMs": _float_or_none(
             longest.get("dispatchStartMs"),
@@ -454,6 +499,10 @@ def _string_counts_from_rows(rows: list[dict[str, Any]], key: str) -> dict[str, 
         if isinstance(value, str) and value:
             counts[value] = counts.get(value, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _str_or_none(value: Any) -> str | None:
+    return value if isinstance(value, str) and value else None
 
 
 def _sum_nested_int_values(

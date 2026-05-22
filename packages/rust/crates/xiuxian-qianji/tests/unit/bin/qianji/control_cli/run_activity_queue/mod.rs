@@ -1,3 +1,12 @@
+mod claim;
 mod finish;
+mod mirror;
 mod query;
+mod reclaim;
+mod release;
+mod schedule_llm;
+mod settle;
 mod start;
+mod take;
+mod worker_loop;
+mod worker_once;

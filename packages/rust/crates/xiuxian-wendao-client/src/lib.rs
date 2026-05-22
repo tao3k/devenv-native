@@ -43,6 +43,8 @@ pub use lint::{
 };
 #[cfg(feature = "orgize-agent-read-model")]
 pub use orgize::OrgizeReadModelArgs;
+#[cfg(all(feature = "performance", feature = "orgize-agent-read-model"))]
+pub use orgize::perf_support as orgize_perf_support;
 pub use orgize::{
     OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
     OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,

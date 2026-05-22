@@ -144,7 +144,7 @@ in
 
   # https://devenv.sh/pre-commit-hooks/
   git-hooks.hooks = {
-    black.enable = true;
+    ruff.enable = true;
     rustfmt.enable = true;
     clippy.enable = true;
     prettier.enable = true;

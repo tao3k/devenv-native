@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import urllib.error
+from dataclasses import dataclass
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
@@ -16,6 +17,7 @@ from .image_payload import hosted_vlm_image_payload
 from .payloads import image_bytes_data_url, request_payload
 from .results import succeeded_markdown_result
 from .single_scaffold import recognize_region_scaffold
+from .trace import row_source_pixel_area
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -24,9 +26,12 @@ if TYPE_CHECKING:
 class SingleShardClient(Protocol):
     _model: str
     _prompt: str
+    _region_prompt_mode: str
     _image_optimization_mode: str
     _scaffold_mode: str
     _speculative_retry_delay_seconds: float
+    _speculative_retry_min_source_pixels: int
+    _speculative_retry_min_image_bytes: int
 
     def _max_tokens_for_row(self, input_row: Mapping[str, Any]) -> int: ...
 
@@ -53,7 +58,22 @@ class SingleShardClient(Protocol):
         scaffold_validation_failure_count: int = 0,
         scaffold_json_chars: int = 0,
         canonical_markdown_chars: int = 0,
+        hedge_winner: str | None = None,
+        hedge_delay_seconds: float | None = None,
+        hedge_primary_latency_ms: float | None = None,
+        hedge_secondary_latency_ms: float | None = None,
     ) -> None: ...
+
+
+@dataclass(frozen=True)
+class SingleMarkdownRequestResult:
+    http_status: int | None
+    markdown: str
+    hedged: bool
+    hedge_winner: str | None = None
+    hedge_delay_seconds: float | None = None
+    hedge_primary_latency_ms: float | None = None
+    hedge_secondary_latency_ms: float | None = None
 
 
 def recognize_single(
@@ -93,11 +113,14 @@ def recognize_single(
                 image_payload.image_bytes,
                 image_payload.image_mime_type,
             ),
+            region_prompt_mode=client._region_prompt_mode,
         )
         image_bytes = len(image_payload.image_bytes)
-        http_status, markdown, hedged = send_single_markdown_request(
-            client, payload, input_row
+        request_result = send_single_markdown_request(
+            client, payload, input_row, image_bytes=image_bytes
         )
+        http_status = request_result.http_status
+        markdown = request_result.markdown
     except urllib.error.HTTPError as exc:
         client._write_trace(
             input_row,
@@ -146,8 +169,12 @@ def recognize_single(
         markdown_chars=len(markdown),
         error=None,
         max_tokens=max_tokens,
-        request_kind="region-hedged" if hedged else None,
-        http_attempt_count=2 if hedged else 1,
+        request_kind="region-hedged" if request_result.hedged else None,
+        http_attempt_count=2 if request_result.hedged else 1,
+        hedge_winner=request_result.hedge_winner,
+        hedge_delay_seconds=request_result.hedge_delay_seconds,
+        hedge_primary_latency_ms=request_result.hedge_primary_latency_ms,
+        hedge_secondary_latency_ms=request_result.hedge_secondary_latency_ms,
     )
     return succeeded_markdown_result(markdown)
 
@@ -156,14 +183,17 @@ def send_single_markdown_request(
     client: SingleShardClient,
     payload: Mapping[str, Any],
     input_row: Mapping[str, Any],
-) -> tuple[int | None, str, bool]:
+    *,
+    image_bytes: int,
+) -> SingleMarkdownRequestResult:
     if (
         str(input_row.get("shardType") or "") != "region"
         or client._speculative_retry_delay_seconds <= 0
+        or not should_speculatively_retry_region(client, input_row, image_bytes)
     ):
         http_status, response_payload = client._send_completion_request(payload)
         markdown = extract_openai_message_content(response_payload)
-        return http_status, markdown, False
+        return SingleMarkdownRequestResult(http_status, markdown, False)
 
     return send_hedged_single_markdown_request(
         client,
@@ -172,43 +202,74 @@ def send_single_markdown_request(
     )
 
 
+def should_speculatively_retry_region(
+    client: SingleShardClient,
+    input_row: Mapping[str, Any],
+    image_bytes: int,
+) -> bool:
+    min_source_pixels = max(0, client._speculative_retry_min_source_pixels)
+    if min_source_pixels > 0 and row_source_pixel_area(input_row) < min_source_pixels:
+        return False
+    min_image_bytes = max(0, client._speculative_retry_min_image_bytes)
+    return min_image_bytes <= 0 or image_bytes >= min_image_bytes
+
+
 def send_hedged_single_markdown_request(
     client: SingleShardClient,
     payload: Mapping[str, Any],
     *,
     delay_seconds: float,
-) -> tuple[int | None, str, bool]:
-    outcomes: Queue[tuple[int | None, str | None, Exception | None]] = Queue()
+) -> SingleMarkdownRequestResult:
+    outcomes: Queue[tuple[str, int | None, str | None, Exception | None, float]] = (
+        Queue()
+    )
 
-    def send() -> None:
+    def send(attempt: str) -> None:
+        started = time.perf_counter()
         try:
             http_status, response_payload = client._send_completion_request(payload)
             markdown = require_non_empty_markdown(
                 extract_openai_message_content(response_payload)
             )
-            outcomes.put((http_status, markdown, None))
+            latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
+            outcomes.put((attempt, http_status, markdown, None, latency_ms))
         except Exception as exc:
-            outcomes.put((None, None, exc))
+            latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
+            outcomes.put((attempt, None, None, exc, latency_ms))
 
-    Thread(target=send, daemon=True).start()
+    Thread(target=send, args=("primary",), daemon=True).start()
     try:
-        http_status, markdown, error = outcomes.get(timeout=delay_seconds)
+        _attempt, http_status, markdown, error, _latency_ms = outcomes.get(
+            timeout=delay_seconds
+        )
     except Empty:
-        Thread(target=send, daemon=True).start()
-        return first_successful_hedged_outcome(outcomes)
+        Thread(target=send, args=("hedge",), daemon=True).start()
+        return first_successful_hedged_outcome(outcomes, delay_seconds=delay_seconds)
     if error is not None:
         raise error
-    return http_status, str(markdown), False
+    return SingleMarkdownRequestResult(http_status, str(markdown), False)
 
 
 def first_successful_hedged_outcome(
-    outcomes: Queue[tuple[int | None, str | None, Exception | None]],
-) -> tuple[int | None, str, bool]:
+    outcomes: Queue[tuple[str, int | None, str | None, Exception | None, float]],
+    *,
+    delay_seconds: float,
+) -> SingleMarkdownRequestResult:
     first_error: Exception | None = None
+    attempt_latencies: dict[str, float] = {}
     for _ in range(2):
-        http_status, markdown, error = outcomes.get()
+        attempt, http_status, markdown, error, latency_ms = outcomes.get()
+        attempt_latencies[attempt] = latency_ms
         if error is None:
-            return http_status, str(markdown), True
+            return SingleMarkdownRequestResult(
+                http_status,
+                str(markdown),
+                True,
+                hedge_winner=attempt,
+                hedge_delay_seconds=delay_seconds,
+                hedge_primary_latency_ms=attempt_latencies.get("primary"),
+                hedge_secondary_latency_ms=attempt_latencies.get("hedge"),
+            )
         if first_error is None:
             first_error = error
     if first_error is not None:

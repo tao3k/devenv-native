@@ -108,13 +108,49 @@ fn print_control_usage() {
         "             qianji [-v|--log-verbose] control activity-complete --ledger <path> --run-id <id> --activity-id <id> --completed-at-ms <ms> [--step-id <id>] [--output-hash <hash>] [--metadata <json>] [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control activity-complete --ledger <path> --worker-task-json <json> --completed-at-ms <ms> [--output-hash <hash>] [--metadata <json>] [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control activity-fail --ledger <path> --run-id <id> --activity-id <id> --failed-at-ms <ms> --error-code <code> --message <text> --retryable <true|false> --attempt <n> [--step-id <id>] [--metadata <json>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-fail --ledger <path> --worker-task-json <json> --failed-at-ms <ms> --error-code <code> --message <text> --retryable <true|false> [--metadata <json>] [--json]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control activity-queue --ledger <path> --run-id <id> [--task-queue <queue>] [--json]"
     );
     eprintln!(
+        "             qianji [-v|--log-verbose] control activity-claim --valkey-url <url> --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-mirror --ledger <path> --valkey-url <url> --run-id <id> [--namespace <ns>] [--task-queue <queue>] [--priority <n>] [--not-before-ms <ms>] [--metadata <json>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-reclaim --valkey-url <url> --lease-json <json> --now-ms <ms> [--namespace <ns>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-release --valkey-url <url> --lease-json <json> [--namespace <ns>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-schedule-llm --ledger <path> --run-id <id> --occurred-at-ms <ms> --llm-activity-json <json> [--step-id <id>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-settle --ledger <path> --valkey-url <url> --leased-task-json <json> --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>] [--output-hash <hash>] [--error-code <code>] [--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]"
+    );
+    eprintln!(
         "             qianji [-v|--log-verbose] control activity-start --ledger <path> --run-id <id> --activity-id <id> --worker-id <id> --started-at-ms <ms> --attempt <n> [--step-id <id>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-start --ledger <path> --worker-task-json <json> --worker-id <id> --started-at-ms <ms> [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-take --ledger <path> --valkey-url <url> --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-worker-once --ledger <path> --valkey-url <url> --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --executor fixture --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--output-hash <hash>] [--error-code <code>] [--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]"
+    );
+    eprintln!(
+        "             qianji [-v|--log-verbose] control activity-worker-loop --ledger <path> --valkey-url <url> --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n> --executor fixture --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--now-step-ms <ms>] [--heartbeat-ttl-ms <ms>] [--settled-step-ms <ms>] [--empty-limit <n>] [--output-hash <hash>] [--error-code <code>] [--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control costs --ledger <path> --run-id <id> [--json]"
@@ -132,7 +168,7 @@ fn print_control_usage() {
         "             qianji [-v|--log-verbose] control history --ledger <path> --run-id <id> [--json]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] control heartbeat --ledger <path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms <ms> [--metadata <json>] [--json]"
+        "             qianji [-v|--log-verbose] control heartbeat --ledger <path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms <ms> [--valkey-url <url>] [--namespace <ns>] [--metadata <json>] [--json]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control view --ledger <path> --run-id <id> [--json]"

@@ -15,11 +15,12 @@ manages what is happening:
 - budget and cost observations
 - gate results
 - recovery attempts
-- hot scheduling leases and worker heartbeats
+- hot scheduling queues, leases, activity tasks, and worker heartbeats
 
 The core slice ships Rust contracts plus in-memory stores. The `duckdb`
 feature adds the durable append-only ledger adapter. The `valkey` feature adds
-the hot-state adapter for queues, leases, and worker heartbeats.
+the hot-state adapter for step queues, worker activity task queues, leases,
+and worker heartbeats.
 
 ## Boundary
 
@@ -80,6 +81,18 @@ metadata through claim-check references, while `LlmActivityTask` binds that
 payload to an `llm.*` activity type and task queue. Provider adapters should
 disable provider-client retries and let `ActivityRetryPolicy` control retry
 behavior.
+LLM activity admission is represented by `LlmActivityAdmission`. It validates
+the complete `LlmActivityTask` and requires the generic `ActivityTask`
+`input_ref` to match the request `prompt_ref`, so model providers can only
+execute claim-check prompts that the deterministic controller admitted.
+`record_admitted_llm_activity_schedule` records an admitted LLM activity as a
+durable `ActivityScheduled` fact. It does not call providers, enqueue
+hot-state work, acquire leases, or start workers.
+The stored `ActivityTask.metadata.qianji_llm_activity_request` value carries a
+compact audit summary of the admitted model, prompt/context references,
+tool-schema hash, response-schema reference, token limits, and budget. It keeps
+LLM replay and operator history tied to claim-check references without storing
+provider prompt or context payloads in the ledger.
 
 Agent planner output is represented as `AgentProposal`; Qianji reducer output
 is represented as `AgentDecision`. Accepted decisions must name the scheduled
@@ -143,7 +156,43 @@ read-only worker management view and does not claim work, acquire leases,
 append lifecycle events, or mutate Valkey hot state. The projection also
 reports replayed activity lifecycle counts so operators can see scheduled,
 in-flight, completed, and failed activity state without loading the full run
-view.
+view. Each projection also exposes `WorkerActivityTask` envelopes with durable
+run, optional step, activity, queue, input, idempotency, timeout, retry policy,
+scheduled timestamp, and next-attempt fields. These envelopes are derived from
+the same replayed schedule events and are the worker-facing task contract; hot
+state may mirror them for polling, but it is not their source of truth.
+Worker task envelopes copy scheduled task metadata, so the LLM request audit
+summary remains visible in replay-derived queue inspection and hot-state mirror
+payloads.
+`RunnableActivityTask`, `ActivityTaskLease`, and
+`HotStateLeasedActivityTask` are the hot-state mirror payloads for that
+worker-facing contract. `HotStateStore::enqueue_activity_task` and
+`HotStateStore::claim_activity_task` provide task-queue filtered worker
+delivery with lease ownership while preserving the ledger as the durable
+authority. `HotStateStore::release_activity_task_lease` removes a completed or
+failed hot-state activity lease after durable lifecycle recording, and
+`HotStateStore::reclaim_expired_activity_task_lease` returns only expired
+leases to the runnable activity queue.
+`mirror_worker_activity_tasks_to_hot_state` is the bounded bridge from durable
+replay to that hot-state mirror: it loads `WorkerActivityTask` envelopes from
+`ControlLedger::load_worker_activity_tasks` and enqueues `RunnableActivityTask`
+entries for worker polling without appending new ledger events. Hot-state
+enqueue is idempotent for pending activity tasks and will not re-enqueue a task
+that is already protected by an activity lease.
+The Qianji CLI exposes this bridge as an explicit mirror step before worker
+claiming, keeping replay-derived task identity separate from hot-state lease
+ownership.
+Worker-facing CLIs and adapters may claim one mirrored task from hot state, but
+the lease is only a polling and ownership guard. Durable lifecycle truth still
+comes from the append-only ledger through the worker activity start, complete,
+and fail helpers.
+`WorkerActivityStartRecord`, `WorkerActivityCompletedRecord`, and
+`WorkerActivityFailedRecord` let Worker adapters record lifecycle outcomes
+directly from a `WorkerActivityTask` envelope. The helpers recover run or step
+scope and attempt from replay-derived task facts, then delegate to the
+idempotent activity journal guards. Workers therefore do not reconstruct
+scope, activity id, or retry attempt by hand, and hot-state queue delivery
+cannot become the durable authority.
 `record_worker_heartbeat` records a durable Worker liveness audit fact after
 validating heartbeat TTL. `record_worker_heartbeat_with_hot_state` first
 mirrors the heartbeat into a `HotStateStore` and then appends the durable
@@ -154,10 +203,10 @@ audit state through one governed helper.
 `HotStateStore` and then appends durable history, so scheduling and later
 recovery appliers can share the same queue mirror contract without executing
 Workers.
-`HotStateStore::load_snapshot` is a read-only operator query over hot queues,
-leases, and worker heartbeats. It reports `HotStateSnapshot` facts without
-reclaiming leases, reordering queues, renewing heartbeats, appending ledger
-events, or executing Workers.
+`HotStateStore::load_snapshot` is a read-only operator query over hot step
+queues, activity task queues, leases, and worker heartbeats. It reports
+`HotStateSnapshot` facts without reclaiming leases, reordering queues,
+renewing heartbeats, appending ledger events, or executing Workers.
 Replay-derived `StepView` records the current active `StepLease`, which lets
 read-only operator surfaces inspect lease ownership without touching hot state.
 Run-level replay also supports lease inventory views by collecting active
@@ -234,7 +283,14 @@ hot-state work, lease steps, or execute workers.
   `record_activity_started_idempotent`,
   `record_activity_completed_idempotent`, and
   `record_activity_failed_idempotent`
-- `ActivityQueueProjection` and `ActivityQueueItem`
+- `ActivityQueueProjection`, `ActivityQueueItem`, and `WorkerActivityTask`
+- `WorkerActivityHotStateMirrorRequest`,
+  `WorkerActivityHotStateMirrorOutcome`, and
+  `mirror_worker_activity_tasks_to_hot_state`
+- `WorkerActivityStartRecord`, `WorkerActivityCompletedRecord`,
+  `WorkerActivityFailedRecord`, `record_worker_activity_started_idempotent`,
+  `record_worker_activity_completed_idempotent`, and
+  `record_worker_activity_failed_idempotent`
 - `WorkerHeartbeatJournalRecord`, `record_worker_heartbeat`, and
   `record_worker_heartbeat_with_hot_state`
 - `StepLeaseReleaseJournalRecord` and `record_step_lease_released`
@@ -246,6 +302,8 @@ hot-state work, lease steps, or execute workers.
   `TimerInventorySummary`
 - `TimerFireJournalRecord` and `record_timer_fired`
 - `RecoveryStartedJournalRecord` and `record_recovery_started`
+- `AdmittedLlmActivityScheduleRecord` and
+  `record_admitted_llm_activity_schedule`
 - `RecoveryLoopApplicationRequest`, `RecoveryLoopApplication`,
   `RecoveryLoopActionApplication`, and `apply_recovery_plan`
 - `RecoveryActionApplicationRequest`, `RecoveryActionApplication`,
@@ -254,12 +312,16 @@ hot-state work, lease steps, or execute workers.
   `HumanApprovalDecision`
 - `CostInventoryProjection`, `CostInventoryItem`, and
   `CostInventorySummary`
-- `ActivityTask`, `ActivityRetryDecision`, `LlmActivityRequest`,
-  `LlmActivityTask`, `SignalRecord`, `TimerRecord`, and `VersionPin`
-- `HotStateSnapshot` and `HotStateLeasedStep`
+- `LlmActivityAdmission` and `ToolActivityAdmission`
+- `ActivityTask`, `ActivityRetryDecision`, `ActivityTaskLease`,
+  `LlmActivityRequest`, `LlmActivityTask`, `RunnableActivityTask`,
+  `SignalRecord`, `TimerRecord`, and `VersionPin`
+- `HotStateSnapshot`, `HotStateLeasedStep`, and
+  `HotStateLeasedActivityTask`
 - `ControlLedger`
 - `ControlLedger::load_run_view`
 - `ControlLedger::load_activity_queue_projection`
+- `ControlLedger::load_worker_activity_tasks`
 - `ControlLedger::load_cost_inventory_projection`
 - `ControlLedger::load_signal_inventory_projection`
 - `ControlLedger::load_timer_inventory_projection`

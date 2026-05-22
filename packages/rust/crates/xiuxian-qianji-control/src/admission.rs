@@ -3,8 +3,65 @@
 use crate::{
     ActivityTask, AgentDecision, AgentDecisionId, AgentDecisionOutcome, AgentProposal,
     AgentProposalId, ApprovalRequestId, ControlError, ControlResult, DecisionReasonCode,
-    ToolAuthorizationDecision, ToolName,
+    LlmActivityTask, ToolAuthorizationDecision, ToolName,
 };
+
+/// Admitted LLM activity task before queueing or provider execution.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct LlmActivityAdmission {
+    /// LLM activity payload admitted by the deterministic controller.
+    pub activity: LlmActivityTask,
+    /// Extension metadata.
+    #[serde(default)]
+    pub metadata: serde_json::Value,
+}
+
+impl LlmActivityAdmission {
+    /// Validates and records an LLM activity admission.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when the LLM activity is invalid, when the
+    /// generic activity input reference is missing, or when it does not match
+    /// the request prompt reference. Provider adapters must not execute LLM
+    /// calls without this claim-check binding.
+    pub fn from_activity(activity: LlmActivityTask) -> ControlResult<Self> {
+        activity.validate()?;
+        if activity.task.input_ref.as_ref() != Some(&activity.request.prompt_ref) {
+            return Err(invalid_admission_contract(
+                "llm activity admission task input_ref must match request prompt_ref",
+            ));
+        }
+
+        Ok(Self {
+            activity,
+            metadata: serde_json::Value::Null,
+        })
+    }
+
+    /// Sets extension metadata.
+    #[must_use]
+    pub fn with_metadata(mut self, metadata: serde_json::Value) -> Self {
+        self.metadata = metadata;
+        self
+    }
+
+    /// Validates this admission contract.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when the admitted LLM activity is invalid or no
+    /// longer preserves the prompt claim-check binding.
+    pub fn validate(&self) -> ControlResult<()> {
+        Self::from_activity(self.activity.clone()).map(|_| ())
+    }
+
+    /// Returns the validated generic activity task for schedule recording.
+    #[must_use]
+    pub const fn activity_task(&self) -> &ActivityTask {
+        &self.activity.task
+    }
+}
 
 /// Admitted tool activity task before queueing or execution.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]

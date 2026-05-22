@@ -189,6 +189,8 @@ Use the DuckDB-backed Org task list for active recovery. Add `--cached` for
 fast Codex turn-start recovery from an existing snapshot; omit it when the
 query must refresh from Org source files first:
 `wendao-client orgize task-list [--cached] [--text TEXT] [--tag TAG] <path>`.
+Use `--output json` or `--output pretty` when automation needs limited task
+rows as a machine-readable recovery contract.
 Use named task-list views for common recovery and archive control surfaces:
 `wendao-client orgize task-list --cached --view closure-needed <path>`,
 `wendao-client orgize task-list --cached --view archive-candidate <path>`,
@@ -196,14 +198,23 @@ Use named task-list views for common recovery and archive control surfaces:
 `wendao-client orgize task-list --cached --view repeating <path>`.
 
 Use the DuckDB-backed Org task report for archive and achievement summaries:
-`wendao-client orgize task-report [--cached] [--text TEXT] [--tag TAG] <path>`.
+`wendao-client orgize task-report [--cached] [--summary-only] [--text TEXT] [--tag TAG] <path>`.
+Use `--output json` or `--output pretty` when automation needs the report
+summary as a machine-readable contract.
 The same named views apply when a focused summary is more useful than the full
 report:
 `wendao-client orgize task-report --cached --view archive-candidate <path>`.
 
 Use the DuckDB-backed Org task archive command for plan-first physical
 archival. Omit `--apply` for read-only planning:
-`wendao-client orgize task-archive [--apply] [--text TEXT] [--tag TAG] <path>`.
+`wendao-client orgize task-archive [--apply] [--expect-selected COUNT] [--text TEXT] [--tag TAG] <path>`.
+Use `--expect-selected` after reviewing a plan so apply fails before writes if
+the selected row count changes.
+Use `--output json` or `--output pretty` in plan mode when automation needs the
+selected rows and archive target counts as a machine-readable review contract.
+When `--apply` is used, the command prints updated source/target counts and
+refreshes the DuckDB read model before returning. In JSON or pretty output
+mode, apply returns the same write receipt as a machine-readable object.
 
 ## Resume and Archive Commands
 
@@ -229,7 +240,7 @@ Review completed achievements:
 
 Review archive candidates and repeating task counts:
 
-`wendao-client orgize task-report --cached $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-report --cached --summary-only $PRJ_CACHE_HOME/agent/org`.
 
 Plan physical archival:
 

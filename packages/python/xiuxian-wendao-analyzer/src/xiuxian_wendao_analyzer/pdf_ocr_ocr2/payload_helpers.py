@@ -6,7 +6,10 @@ import base64
 import json
 from typing import TYPE_CHECKING, Any
 
-from ..pdf_ocr_contracts import HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION
+from ..pdf_ocr_contracts import (
+    HOSTED_VLM_OCR_COMPACT_REGION_MARKDOWN_PROMPT_MODE,
+    HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
+)
 from .image_payload import hosted_vlm_image_payload
 from .markers import ocr2_page_marker, ocr2_region_marker
 
@@ -35,6 +38,48 @@ def image_data_url(
 def image_bytes_data_url(image_bytes: bytes, image_mime_type: str) -> str:
     encoded = base64.b64encode(image_bytes).decode("ascii")
     return f"data:{image_mime_type};base64,{encoded}"
+
+
+def single_region_prompt(
+    prompt: str,
+    input_row: Mapping[str, Any],
+    *,
+    region_prompt_mode: str | None,
+) -> str:
+    if (
+        str(input_row.get("shardType") or "") != "region"
+        or region_prompt_mode != HOSTED_VLM_OCR_COMPACT_REGION_MARKDOWN_PROMPT_MODE
+    ):
+        return prompt
+    source_box = {
+        "left": input_row.get("sourcePagePixelLeft"),
+        "top": input_row.get("sourcePagePixelTop"),
+        "right": input_row.get("sourcePagePixelRight"),
+        "bottom": input_row.get("sourcePagePixelBottom"),
+    }
+    region_json = json.dumps(
+        {
+            "pageIndex": input_row.get("pageIndex"),
+            "regionIndex": input_row.get("regionIndex"),
+            "shardElementId": str(input_row.get("shardElementId") or ""),
+            "parentShardElementId": str(input_row.get("parentShardElementId") or ""),
+            "sourcePagePixelBox": source_box,
+        },
+        sort_keys=True,
+    )
+    return (
+        f"{prompt}\n\n"
+        "You will receive exactly one cropped OCR recovery region from a PDF. "
+        "Treat the image as a region patch, not as a full document page. "
+        "Return compact Markdown for only the visible crop. Preserve all "
+        "visible text, table cells, formulas, symbols, and reading order. "
+        "Do not add introductions, code fences, section markers, page titles, "
+        "or context that is not visible in the crop. If the table shape is "
+        "unclear, output the visible words, numbers, formulas, and symbols in "
+        "reading order instead of inventing rows or columns.\n\n"
+        "Region metadata:\n"
+        f"{region_json}"
+    )
 
 
 def window_prompt(prompt: str, input_rows: Sequence[Mapping[str, Any]]) -> str:

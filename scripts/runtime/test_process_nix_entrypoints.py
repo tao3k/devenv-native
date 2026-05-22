@@ -10,7 +10,7 @@ PROCESS_ROOT = PROJECT_ROOT / "scripts/runtime/processes"
 ENTRYPOINT_PROCESSES = (
     "carfox",
     "valkey",
-    "wendao-document-extract",
+    "wendao-analyzer",
     "wendao-frontend",
     "wendao-gateway",
     "wendao-sentinel",
@@ -20,7 +20,7 @@ ENTRYPOINT_PROCESSES = (
 
 HEALTHCHECK_PROCESSES = (
     "valkey",
-    "wendao-document-extract",
+    "wendao-analyzer",
     "wendao-frontend",
     "wendao-gateway",
     "wendao-sentinel",
@@ -65,6 +65,25 @@ def test_process_healthchecks_are_owned_by_process_directories() -> None:
 
         assert healthcheck.is_file()
         assert os.access(healthcheck, os.X_OK)
+
+
+def test_wendao_analyzer_launch_cleans_legacy_document_extract_listener() -> None:
+    launch_script = (
+        PROJECT_ROOT / "scripts/runtime/wendao-analyzer-launch.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "cleanup_analyzer_listener" in launch_script
+    assert "wendao-document-extract" in launch_script
+    assert "xiuxian_wendao_analyzer" in launch_script
+    assert "DocumentExtractFlightServer" in launch_script
+
+
+def test_wendao_gateway_entrypoint_uses_production_flight_timeout_budget() -> None:
+    entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS:-600" in entrypoint
 
 
 def test_process_nix_exposes_code_parser_summary_service() -> None:

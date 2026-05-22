@@ -62,6 +62,49 @@ fn run_control_activity_start_appends_json_and_updates_queue() -> Result<(), Str
 }
 
 #[test]
+fn run_control_activity_start_accepts_worker_task_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
+    let worker_task_json = worker_task_json(&ledger_path, &run_id, "activity-run-scheduled")?;
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::ActivityStartWorkerTask {
+            ledger_path: ledger_path.clone(),
+            worker_task_json,
+            worker_id: "worker-llm".to_string(),
+            started_at_ms: 7_000,
+            json: true,
+        }),
+        "control activity-start worker-task json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity-start worker-task output should be valid json",
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let queue = must_ok(
+        ledger.load_activity_queue_projection(&run_id, None),
+        "worker-task activity start should replay into queue projection",
+    );
+
+    assert_eq!(json["status"], "appended");
+    assert_eq!(json["record"]["event"]["kind"]["event"], "activity_started");
+    assert_eq!(
+        json["record"]["event"]["kind"]["activity_id"],
+        "activity-run-scheduled"
+    );
+    assert_eq!(json["record"]["event"]["kind"]["worker_id"], "worker-llm");
+    assert_eq!(queue.summary.in_flight, 2);
+    assert_eq!(queue.summary.scheduled, 1);
+    Ok(())
+}
+
+#[test]
 fn run_control_activity_start_is_idempotent_for_exact_duplicate() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -102,6 +145,25 @@ fn run_control_activity_start_is_idempotent_for_exact_duplicate() -> Result<(), 
         second_json["record"]["sequence"]
     );
     Ok(())
+}
+
+fn worker_task_json(
+    ledger_path: &std::path::Path,
+    run_id: &xiuxian_qianji_control::RunId,
+    activity_id: &str,
+) -> Result<String, String> {
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let task = must_ok(
+        ledger.load_worker_activity_tasks(run_id, None),
+        "should load worker activity tasks",
+    )
+    .into_iter()
+    .find(|task| task.activity_id.as_str() == activity_id)
+    .ok_or_else(|| format!("missing worker task for {activity_id}"))?;
+    serde_json::to_string(&task).map_err(|error| format!("should serialize worker task: {error}"))
 }
 
 #[test]

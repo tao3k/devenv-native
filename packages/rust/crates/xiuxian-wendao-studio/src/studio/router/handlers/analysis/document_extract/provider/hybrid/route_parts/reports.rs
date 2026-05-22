@@ -2,9 +2,10 @@ use super::{
     BTreeMap, DocumentExtractFlightRequest, HYBRID_PAGE_OCR_FALLBACK_REPORT_NAME,
     HYBRID_PAGE_OCR_TIMING_REPORT_NAME, HybridDocumentResourceBatch,
     Ocr2RegionMaterializationStats, PageRangeDoclingFallbackChunkTiming, Path,
-    PdfOcrShardSchedulerTrace, failed_page_recovery_mode_label, is_hosted_vlm_direct_profile, json,
+    PdfOcrShardSchedulerTrace, failed_page_recovery_mode_label, is_hosted_vlm_direct_profile,
     ocr2_region_pipeline_mode_label, ocr2_region_render_chunk_mode_label,
 };
+use serde_json::json;
 
 pub(super) async fn write_hybrid_page_ocr_fallback_report(
     request: &DocumentExtractFlightRequest,
@@ -204,6 +205,10 @@ pub(super) async fn write_hybrid_page_ocr_timing_report(
         "ocr2RegionRenderCacheHitCount": region_materialization_stats.render_cache_hit_count,
         "ocr2RegionRenderCacheMissCount": region_materialization_stats.render_cache_miss_count,
         "ocr2RegionRenderReportedElapsedMs": region_materialization_stats.render_reported_elapsed_ms,
+        "ocr2RegionPipelinePlannedRenderChunkCount": region_materialization_stats.pipeline_planned_render_chunk_count,
+        "ocr2RegionPipelineEndpointCount": region_materialization_stats.pipeline_endpoint_count,
+        "ocr2RegionPipelineRenderAheadLimit": region_materialization_stats.pipeline_render_ahead_limit,
+        "ocr2RegionPipelineRenderSpawnCount": region_materialization_stats.pipeline_render_spawn_count,
         "ocr2RegionPipelineRenderChunkCount": region_materialization_stats.pipeline_render_chunk_count,
         "ocr2RegionPipelineRegionDispatchCount": region_materialization_stats.pipeline_region_dispatch_count,
         "ocr2RegionPipelineBaseResultCount": region_materialization_stats.pipeline_base_result_count,

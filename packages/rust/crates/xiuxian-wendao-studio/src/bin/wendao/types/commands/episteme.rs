@@ -36,6 +36,18 @@ pub(crate) enum EpistemeSourceContractCommand {
     RunImageOcrCache(EpistemeRunImageOcrCacheArgs),
     /// Run the Docling document cache bridge for supported document tasks.
     RunDoclingDocumentCache(EpistemeRunDoclingDocumentCacheArgs),
+    /// Run the legacy Office converter for doc/ppt/xls evidence tasks.
+    RunLegacyOfficeConversion(EpistemeRunLegacyOfficeConversionArgs),
+    /// Generate review-gated ontology candidate rows from source-contract evidence.
+    GenerateOntologyCandidates(EpistemeGenerateOntologyCandidatesArgs),
+    /// Review generated ontology candidate rows before any promotion slice.
+    ReviewOntologyCandidates(EpistemeReviewOntologyCandidatesArgs),
+    /// Export reviewed ontology candidates as RDF draft proposal artifacts.
+    WriteOntologyRdfDraft(EpistemeWriteOntologyRdfDraftArgs),
+    /// Write a pending-review promotion packet from a clean RDF draft run.
+    WriteOntologyPromotionReview(EpistemeWriteOntologyPromotionReviewArgs),
+    /// Write a non-mutating apply plan from explicit promotion review decisions.
+    WriteOntologyPromotionApplyPlan(EpistemeWriteOntologyPromotionApplyPlanArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -163,6 +175,9 @@ pub(crate) struct EpistemeRunImageOcrCacheArgs {
     /// OCR JSONL path. Defaults to `<run-root>/<run-id>/ocr_results.jsonl`.
     #[arg(long, value_name = "FILE")]
     pub ocr_results_jsonl: Option<PathBuf>,
+    /// Reuse an existing OCR JSONL file and skip analyzer execution.
+    #[arg(long)]
+    pub use_existing_results: bool,
     /// Write the run plan and print command specs without executing Python commands.
     #[arg(long)]
     pub dry_run: bool,
@@ -206,9 +221,135 @@ pub(crate) struct EpistemeRunDoclingDocumentCacheArgs {
     /// Docling document JSONL path. Defaults to `<run-root>/<run-id>/document_results.jsonl`.
     #[arg(long, value_name = "FILE")]
     pub document_results_jsonl: Option<PathBuf>,
+    /// Reuse an existing Docling document JSONL file and skip analyzer execution.
+    #[arg(long)]
+    pub use_existing_results: bool,
     /// Write the run plan and print command specs without executing extraction.
     #[arg(long)]
     pub dry_run: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeRunLegacyOfficeConversionArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Corpus root. Defaults to the env var named by episteme config.
+    #[arg(long, value_name = "DIR")]
+    pub corpus_root: Option<PathBuf>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/extraction.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Optional source category filter.
+    #[arg(long, value_name = "CATEGORY")]
+    pub category: Option<String>,
+    /// Maximum number of legacy Office queue rows to select.
+    #[arg(long, default_value_t = 12)]
+    pub limit: usize,
+    /// Evidence selection run id used to constrain legacy Office conversion planning.
+    #[arg(long, value_name = "ID")]
+    pub selection_run_id: Option<String>,
+    /// Evidence selection artifact root. Defaults to <episteme-root>/runs/evidence-selection.
+    #[arg(long, value_name = "DIR")]
+    pub selection_root: Option<PathBuf>,
+    /// Converter executable or wrapper. Defaults to episteme.toml runtime config.
+    #[arg(long, value_name = "FILE")]
+    pub converter_command: Option<PathBuf>,
+    /// Write the run plan and conversion receipt without executing the converter.
+    #[arg(long)]
+    pub dry_run: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeGenerateOntologyCandidatesArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Extraction run root. Defaults to <episteme-root>/runs/extraction.
+    #[arg(long, value_name = "DIR")]
+    pub extraction_run_root: Option<PathBuf>,
+    /// Safe ASCII run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Extraction run id whose cache outputs should seed evidence. May repeat.
+    #[arg(long = "extraction-run-id", value_name = "ID")]
+    pub extraction_run_ids: Vec<String>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeReviewOntologyCandidatesArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id to review.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologyRdfDraftArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id to export.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologyPromotionReviewArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id to review for promotion.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologyPromotionApplyPlanArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose promotion review decisions should be planned.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
 }
 
 #[derive(Args, Debug, Clone)]

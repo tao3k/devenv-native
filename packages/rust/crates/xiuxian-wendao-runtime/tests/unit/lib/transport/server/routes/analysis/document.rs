@@ -115,6 +115,41 @@ async fn wendao_flight_service_do_get_reuses_cached_document_extract_payload_aft
 }
 
 #[tokio::test]
+async fn wendao_flight_service_force_document_extract_warms_non_force_cache_alias() {
+    let provider = Arc::new(RecordingDocumentExtractProvider::default());
+    let service = build_service_with_route_providers(|route_providers| {
+        route_providers.document_extract = Some(provider.clone());
+    });
+    let mut force_request = Request::new(route_descriptor(ANALYSIS_DOCUMENT_EXTRACT_ROUTE));
+    populate_schema_and_document_extract_headers(
+        force_request.metadata_mut(),
+        "docs/manual.pdf",
+        Some(".cache/document-extract"),
+        Some("yes"),
+        Some("no"),
+    );
+    must_ok(
+        service.get_flight_info(force_request).await,
+        "force document extraction should resolve through the provider",
+    );
+
+    let mut cached_request = Request::new(route_descriptor(ANALYSIS_DOCUMENT_EXTRACT_ROUTE));
+    populate_schema_and_document_extract_headers(
+        cached_request.metadata_mut(),
+        "docs/manual.pdf",
+        Some(".cache/document-extract"),
+        Some("no"),
+        Some("no"),
+    );
+    must_ok(
+        service.get_flight_info(cached_request).await,
+        "non-force document extraction should reuse the force-refresh payload alias",
+    );
+
+    assert_eq!(provider.call_count(), 1);
+}
+
+#[tokio::test]
 async fn wendao_flight_service_does_not_cache_document_extract_status_payloads() {
     let provider = Arc::new(RecordingDocumentExtractProvider::default());
     let service = build_service_with_route_providers(|route_providers| {

@@ -87,6 +87,41 @@ def test_auto_local_ocr_endpoint_count_uses_machine_profile(monkeypatch) -> None
     assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 4
 
 
+def test_parse_args_marks_default_port_as_implicit(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark._args.sys, "argv", ["benchmark"])
+
+    args = benchmark.parse_args()
+
+    assert args.port == 50051
+    assert args.port_was_explicit is False
+
+
+def test_parse_args_marks_cli_port_as_explicit(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark._args.sys, "argv", ["benchmark", "--port", "62051"])
+
+    args = benchmark.parse_args()
+
+    assert args.port == 62051
+    assert args.port_was_explicit is True
+
+
+def test_reset_process_log_dir_removes_stale_trace_files(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    process_log_dir = tmp_path / "process-logs"
+    process_log_dir.mkdir()
+    stale_trace = process_log_dir / "python-worker-0.hosted-vlm-ocr.jsonl"
+    stale_trace.write_text('{"requestKind":"region"}\n', encoding="utf-8")
+    stale_subdir = process_log_dir / "old"
+    stale_subdir.mkdir()
+
+    benchmark.reset_process_log_dir(process_log_dir)
+
+    assert process_log_dir.is_dir()
+    assert list(process_log_dir.iterdir()) == []
+
+
 def test_auto_local_ocr_endpoint_count_keeps_non_hybrid_modes_single_endpoint(
     monkeypatch,
 ) -> None:

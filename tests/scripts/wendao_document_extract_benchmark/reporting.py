@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from .attachment_classes import (
@@ -322,6 +323,58 @@ def _format_counts(value: Any) -> str:
     )
 
 
+def _format_string_list(value: Any) -> str:
+    if not isinstance(value, list) or not value:
+        return ""
+    return ", ".join(sorted(item for item in value if isinstance(item, str)))
+
+
+def _format_json_object(value: Any) -> str:
+    if not isinstance(value, dict) or not value:
+        return ""
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _format_slowest_hosted_requests(value: Any) -> str:
+    if not isinstance(value, list) or not value:
+        return ""
+    rendered = []
+    for request in value[:5]:
+        if not isinstance(request, dict):
+            continue
+        rendered.append(
+            "page={page} region={region} latencyMs={latency} kind={kind} "
+            "attempts={attempts} imageBytes={image_bytes} sourcePixels={source_pixels} "
+            "chars={chars}{hedge}".format(
+                page=request.get("pageIndex"),
+                region=request.get("regionIndex"),
+                latency=_format_optional_float(request.get("latencyMs")),
+                kind=request.get("requestKind"),
+                attempts=request.get("httpAttemptCount"),
+                image_bytes=request.get("imageBytes"),
+                source_pixels=request.get("sourcePixelArea"),
+                chars=request.get("markdownChars"),
+                hedge=_format_slowest_hosted_request_hedge(request),
+            )
+        )
+    return "; ".join(rendered)
+
+
+def _format_slowest_hosted_request_hedge(request: dict[str, Any]) -> str:
+    hedge_winner = request.get("hedgeWinner")
+    if not hedge_winner:
+        return ""
+    return (
+        " hedgeWinner={winner} hedgeDelaySeconds={delay} "
+        "hedgePrimaryMs={primary} hedgeSecondaryMs={secondary}"
+    ).format(
+        winner=hedge_winner,
+        delay=_format_optional_float(request.get("hedgeDelaySeconds")),
+        primary=_format_optional_float(request.get("hedgePrimaryLatencyMs")),
+        secondary=_format_optional_float(request.get("hedgeSecondaryLatencyMs")),
+    )
+
+
 def _format_float_counts(value: Any) -> str:
     if not isinstance(value, dict) or not value:
         return ""
@@ -340,6 +393,16 @@ def _format_fixture_latency(value: Any) -> str:
     if isinstance(fixture, str) and isinstance(latency, (int, float)):
         return f"{fixture}:{float(latency):.3f}"
     return ""
+
+
+def _summary_or_first_result_value(payload: dict[str, Any], key: str) -> Any:
+    value = payload["summary"].get(key)
+    if value is not None:
+        return value
+    results = payload.get("results")
+    if isinstance(results, list) and results and isinstance(results[0], dict):
+        return results[0].get(key)
+    return None
 
 
 def render_markdown(payload: dict[str, Any]) -> str:
@@ -438,23 +501,39 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`{payload.get('rustPdfFastTextSourceRangeSplit')}`",
         "- Rust PDF fast-text endpoint affinity: "
         f"`{payload.get('rustPdfFastTextEndpointAffinity')}`",
+        "- Rust PDF OCR scheduler lane fairness: "
+        f"`{payload.get('rustPdfOcrSchedulerLaneFairness')}`",
         f"- Rust PDF backend-text top-up: `{payload.get('rustPdfBackendTextTopup')}`",
         f"- Rust PDF failed-page recovery: `{payload.get('rustPdfFailedPageRecovery')}`",
         f"- Rust PDF OCR profile planner: `{payload.get('rustPdfOcrProfilePlanner')}`",
         f"- Rust PDF Hosted VLM/OCR render DPI: `{payload.get('rustPdfHostedVlmRenderDpi')}`",
         f"- Rust PDF Hosted VLM/OCR region planner: `{payload.get('rustPdfHostedVlmRegionPlanner')}`",
+        "- Rust PDF Hosted VLM/OCR region target pixels: "
+        f"`{payload.get('rustPdfHostedVlmRegionTargetPixels')}`",
+        "- Rust PDF Hosted VLM/OCR region max slices: "
+        f"`{payload.get('rustPdfHostedVlmRegionMaxSlices')}`",
         f"- Rust PDF Hosted VLM/OCR region pipeline: `{payload.get('rustPdfHostedVlmRegionPipeline')}`",
         f"- Rust PDF Hosted VLM/OCR region render ahead: `{payload.get('rustPdfHostedVlmRegionRenderAhead')}`",
         f"- Rust PDF Hosted VLM/OCR region render chunk: `{payload.get('rustPdfHostedVlmRegionRenderChunk')}`",
+        f"- Rust PDF region render mode: `{payload.get('rustPdfRegionRenderMode')}`",
         f"- Hosted VLM/OCR backend: `{hosted_vlm_ocr.get('backend')}`",
         f"- Hosted VLM/OCR provider: `{hosted_vlm_ocr.get('provider')}`",
         f"- Hosted VLM/OCR base URL: `{hosted_vlm_ocr.get('baseUrl')}`",
         f"- Hosted VLM/OCR model: `{hosted_vlm_ocr.get('model')}`",
         f"- OpenRouter model: `{hosted_vlm_ocr.get('openRouterModel')}`",
         f"- OpenRouter key configured: `{hosted_vlm_ocr.get('openRouterApiKeyConfigured')}`",
+        "- OpenRouter provider routing: "
+        f"`{_format_json_object(hosted_vlm_ocr.get('openRouterProvider'))}`",
         f"- Hosted VLM/OCR max tokens: `{hosted_vlm_ocr.get('maxTokens')}`",
         f"- Hosted VLM/OCR region max tokens: `{hosted_vlm_ocr.get('regionMaxTokens')}`",
+        f"- Hosted VLM/OCR region prompt mode: `{hosted_vlm_ocr.get('regionPromptMode')}`",
         f"- Hosted VLM/OCR region composite size: `{hosted_vlm_ocr.get('regionCompositeSize')}`",
+        f"- Hosted VLM/OCR region composite mode: `{hosted_vlm_ocr.get('regionCompositeMode')}`",
+        "- Hosted VLM/OCR region composite observed requests: "
+        f"`{hosted_vlm_promotion.get('observed', {}).get('regionCompositeRequestCount')}`",
+        "- Hosted VLM/OCR region composite budgets: "
+        f"`sourcePixels={hosted_vlm_ocr.get('regionCompositeMaxSourcePixels')}, "
+        f"imageBytes={hosted_vlm_ocr.get('regionCompositeMaxImageBytes')}`",
         f"- Hosted VLM/OCR region atlas mode: `{hosted_vlm_ocr.get('regionAtlasMode')}`",
         "- Hosted VLM/OCR image optimization mode: "
         f"`{hosted_vlm_ocr.get('imageOptimizationMode')}`",
@@ -462,6 +541,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Hosted VLM/OCR request concurrency: `{hosted_vlm_ocr.get('requestConcurrency')}`",
         "- Hosted VLM/OCR speculative retry delay seconds: "
         f"`{hosted_vlm_ocr.get('speculativeRetryDelaySeconds')}`",
+        "- Hosted VLM/OCR speculative retry minimums: "
+        f"`sourcePixels={hosted_vlm_ocr.get('speculativeRetryMinSourcePixels')}, "
+        f"imageBytes={hosted_vlm_ocr.get('speculativeRetryMinImageBytes')}`",
         f"- Hosted VLM/OCR page window size: `{hosted_vlm_ocr.get('pageWindowSize')}`",
         f"- Hosted audio backend: `{hosted_audio.get('backend')}`",
         f"- Hosted audio provider: `{hosted_audio.get('provider')}`",
@@ -477,6 +559,11 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"shards={hosted_vlm_ocr_requests.get('shardCountTotal')}, "
         f"regions={hosted_vlm_ocr_requests.get('regionShardCount')}, "
         f"sourcePixels={hosted_vlm_ocr_requests.get('sourcePixelAreaTotal')}, "
+        f"sourcePixelsMax={hosted_vlm_ocr_requests.get('sourcePixelAreaMax')}, "
+        f"sourcePixelsAvg={_format_optional_float(hosted_vlm_ocr_requests.get('sourcePixelAreaPerRequestAvg'))}, "
+        f"imageBytes={hosted_vlm_ocr_requests.get('imageBytesTotal')}, "
+        f"imageBytesMax={hosted_vlm_ocr_requests.get('imageBytesMax')}, "
+        f"imageBytesAvg={_format_optional_float(hosted_vlm_ocr_requests.get('imageBytesPerRequestAvg'))}, "
         f"success={hosted_vlm_ocr_requests.get('successCount')}, "
         f"failed={hosted_vlm_ocr_requests.get('failureCount')}, "
         f"p50Ms={_format_optional_float(hosted_vlm_ocr_requests.get('latencyMsP50'))}, "
@@ -486,8 +573,11 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"overlapRatio={_format_optional_float(hosted_vlm_ocr_requests.get('requestLatencyOverlapRatio'))}, "
         f"chars={hosted_vlm_ocr_requests.get('charCountTotal')}, "
         f"kinds={_format_counts(hosted_vlm_ocr_requests.get('requestKindCounts'))}, "
+        f"hedgeWinners={_format_counts(hosted_vlm_ocr_requests.get('hedgeWinnerCounts'))}, "
         f"imageModes={_format_counts(hosted_vlm_ocr_requests.get('imageOptimizationModeCounts'))}, "
         f"http={_format_counts(hosted_vlm_ocr_requests.get('httpStatusCounts'))}`",
+        "- Hosted VLM/OCR slowest requests: "
+        f"`{_format_slowest_hosted_requests(hosted_vlm_ocr_requests.get('slowestRequests'))}`",
         f"- Rust document extract endpoints: `{payload.get('rustDocumentExtractEndpoints', [])}`",
         f"- Rust PDF OCR endpoints: `{payload.get('rustPdfOcrEndpoints', [])}`",
         "- Docling full-profile threads: "
@@ -495,6 +585,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"(resolved `{payload.get('documentExtractFullThreadsResolved')}`)",
         f"- Structure baseline root: `{payload.get('structureBaselineRoot')}`",
         f"- PDF OCR profile: `{payload['pdfOcrProfile']}`",
+        "- PDF OCR fast-text source converter: "
+        f"`{payload.get('pdfOcrFastTextSourceConverter', 'default')}`",
         "- Shard-cache reuse probe: "
         f"`{any(result.get('shardCacheReuseEnabled') for result in payload['results'])}`",
         "- Artifact-registry reuse probe: "
@@ -536,7 +628,20 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"maxChunkMs={_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkMs'))}, "
         f"longestPages={_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkPageStart'))}-"
         f"{_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkPageEnd'))}, "
+        f"profile={precision_speed.get('maxForceHybridPageOcrSourceRangeChunkProfile')}, "
+        f"shardType={precision_speed.get('maxForceHybridPageOcrSourceRangeChunkShardType')}, "
+        f"longestChars={_format_optional_float(precision_speed.get('maxForceHybridPageOcrSourceRangeChunkTextChars'))}, "
         f"chars={precision_speed.get('totalForceHybridPageOcrSourceRangeTraceChars')}`",
+        "- Rust hosted region render trace: "
+        f"`reportedMs={_format_optional_float(_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs'))}, "
+        f"plannedChunks={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount')}, "
+        f"endpoints={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount')}, "
+        f"renderAhead={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit')}, "
+        f"renderSpawns={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount')}, "
+        f"renderChunks={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount')}, "
+        f"dispatchChunks={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount')}, "
+        f"cacheHits={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderCacheHitCount')}, "
+        f"cacheMisses={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount')}`",
         f"- Structure sidecar rows: `{payload['summary']['totalStructureRows']}`",
         "- Structure OCR blocks: "
         f"`page={payload['summary']['totalStructureOcrPageBlocks']}, "
@@ -662,6 +767,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`precisionCandidate={candidate_taxonomy.get('precisionCandidate')}, "
         f"speedCandidate={candidate_taxonomy.get('speedCandidate')}, "
         f"promotionCandidate={candidate_taxonomy.get('promotionCandidate')}, "
+        f"defaultPromotionCandidate={candidate_taxonomy.get('defaultPromotionCandidate')}, "
+        "optInPromotionControls="
+        f"{_format_string_list(candidate_taxonomy.get('optInPromotionControls'))}, "
         f"rejectedStructureLoss={candidate_taxonomy.get('rejectedStructureLoss')}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",

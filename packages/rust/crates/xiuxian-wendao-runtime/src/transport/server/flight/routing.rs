@@ -38,16 +38,36 @@ fn document_extract_cache_key(
     route: &str,
     metadata: &tonic::metadata::MetadataMap,
 ) -> Result<String, Status> {
+    document_extract_cache_key_with_force_override(route, metadata, None)
+}
+
+fn document_extract_cache_key_with_force_override(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+    force_override: Option<bool>,
+) -> Result<String, Status> {
     let request = validate_document_extract_request_metadata(metadata)?;
+    let force = force_override.unwrap_or(request.force);
     Ok(format!(
         "{route}|{:?}|{:?}|{}|{}|{:?}|{}",
         request.source_path,
         request.output_dir,
-        request.force,
+        force,
         request.error_row,
         request.mode,
         request.wait_ms
     ))
+}
+
+fn document_extract_force_refresh_non_force_cache_alias_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<Option<String>, Status> {
+    let request = validate_document_extract_request_metadata(metadata)?;
+    if !request.force {
+        return Ok(None);
+    }
+    document_extract_cache_key_with_force_override(route, metadata, Some(false)).map(Some)
 }
 
 fn document_extract_status_cache_key(
@@ -217,6 +237,16 @@ impl WendaoFlightService {
         } else {
             Err(unexpected_routed_request(route))
         }
+    }
+
+    pub(super) fn route_request_cache_alias_key(
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<Option<String>, Status> {
+        if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
+            return document_extract_force_refresh_non_force_cache_alias_key(route, metadata);
+        }
+        Ok(None)
     }
 
     pub(super) async fn read_route_payload(

@@ -152,6 +152,10 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
             post(handlers::episteme::write_episteme_evidence_selection_plan_source),
         )
         .route(
+            handlers::episteme::EPISTEME_ONTOLOGY_REGISTRY_READ_MODEL_ROUTE,
+            post(handlers::episteme::admit_episteme_ontology_registry_read_model),
+        )
+        .route(
             openapi_paths::API_REPO_OVERVIEW_AXUM_PATH,
             get(handlers::repo::analysis::overview::overview),
         )

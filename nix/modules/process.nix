@@ -33,14 +33,14 @@ in
     carfox.exec = processEntrypoint "carfox";
 
     # Wendao Phase 7.6 Integrated Services
-    wendao-document-extract = {
-      exec = processEntrypoint "wendao-document-extract";
+    wendao-analyzer = {
+      exec = processEntrypoint "wendao-analyzer";
       process-compose = {
         depends_on = {
           wendao-gateway.condition = "process_healthy";
         };
         readiness_probe = {
-          exec.command = processHealthcheck "wendao-document-extract";
+          exec.command = processHealthcheck "wendao-analyzer";
           initial_delay_seconds = 5;
           period_seconds = 3;
           timeout_seconds = 4;

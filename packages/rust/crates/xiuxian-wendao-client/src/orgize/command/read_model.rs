@@ -89,6 +89,10 @@ pub struct OrgizeTaskReportArgs {
     #[arg(long = "include-archived")]
     pub include_archived: bool,
 
+    /// Render only counters and tag counts, omitting detailed task sections.
+    #[arg(long = "summary-only")]
+    pub summary_only: bool,
+
     /// Maximum number of rows to render per section.
     #[arg(long = "limit", default_value_t = 10)]
     pub limit: usize,
@@ -124,6 +128,10 @@ pub struct OrgizeTaskArchiveArgs {
     /// Maximum number of rows to plan or apply.
     #[arg(long = "limit", default_value_t = 20)]
     pub limit: usize,
+
+    /// Require the selected row count to match before applying or reporting a plan.
+    #[arg(long = "expect-selected", value_name = "COUNT")]
+    pub expect_selected: Option<usize>,
 
     /// Org files or directories to materialize before archiving. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
     #[arg(value_name = "PATH")]

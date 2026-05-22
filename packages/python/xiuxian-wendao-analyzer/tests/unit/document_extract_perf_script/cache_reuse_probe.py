@@ -97,6 +97,27 @@ def _artifact_report(report_name: str, latency: float) -> dict[str, object]:
         "hybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
             0 if report_name == "shard-cache-reuse.json" else 6
         ),
+        "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
+            0.0 if report_name == "shard-cache-reuse.json" else 125.0
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": (
+            2 if report_name != "cache.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineEndpointCount": (
+            4 if report_name != "cache.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": (
+            3 if report_name != "cache.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": (
+            2 if report_name != "cache.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": (
+            2 if report_name != "cache.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": (
+            2 if report_name != "cache.json" else 0
+        ),
         "structureAuthorityPages": 2,
         "textShortcutPages": 4,
         "ocrPatchRegions": 3,
@@ -158,6 +179,8 @@ def _page_range_chunk() -> dict[str, object]:
 def _scheduler_trace() -> dict[str, object]:
     return {
         "lane": "source-pdf-page-range",
+        "ocrProfile": "docling-fast-text-ocr",
+        "shardType": "page",
         "shardCount": 7,
         "pageStart": 0,
         "pageEnd": 6,

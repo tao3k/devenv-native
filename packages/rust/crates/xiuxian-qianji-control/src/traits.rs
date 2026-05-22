@@ -1,10 +1,11 @@
 //! Storage and gate traits for the control plane.
 
 use crate::{
-    ActivityQueueProjection, ControlEvent, ControlEventRecord, ControlResult,
-    CostInventoryProjection, GateResult, HotStateSnapshot, RunId, RunOperatorSummary,
-    RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableStep, SignalInventoryProjection,
-    StepLease, StepView, TaskQueue, TimerInventoryProjection, WorkerHeartbeat, WorkerId, WorkerRef,
+    ActivityQueueProjection, ActivityTaskLease, ControlEvent, ControlEventRecord, ControlResult,
+    CostInventoryProjection, GateResult, HotStateLeasedActivityTask, HotStateSnapshot, RunId,
+    RunOperatorSummary, RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableActivityTask,
+    RunnableStep, SignalInventoryProjection, StepLease, StepView, TaskQueue,
+    TimerInventoryProjection, WorkerActivityTask, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -77,6 +78,21 @@ pub trait ControlLedger: Send + Sync {
             &self.load_run_view(run_id)?,
             task_queue,
         ))
+    }
+
+    /// Loads worker-facing activity task envelopes from durable history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded or replayed.
+    fn load_worker_activity_tasks(
+        &self,
+        run_id: &RunId,
+        task_queue: Option<&TaskQueue>,
+    ) -> ControlResult<Vec<WorkerActivityTask>> {
+        Ok(self
+            .load_activity_queue_projection(run_id, task_queue)?
+            .worker_tasks)
     }
 
     /// Loads a read-only durable timer inventory projection from durable
@@ -188,6 +204,44 @@ pub trait HotStateStore: Send + Sync {
     ///
     /// Returns a store-specific control error when reclaim fails.
     async fn reclaim_expired_lease(&self, lease: &StepLease, now_ms: u64) -> ControlResult<bool>;
+
+    /// Enqueues one worker activity task into hot-state delivery.
+    ///
+    /// # Errors
+    ///
+    /// Returns a store-specific control error when enqueue fails.
+    async fn enqueue_activity_task(&self, task: RunnableActivityTask) -> ControlResult<()>;
+
+    /// Claims one worker activity task lease for a worker.
+    ///
+    /// # Errors
+    ///
+    /// Returns a store-specific control error when acquisition fails.
+    async fn claim_activity_task(
+        &self,
+        worker: WorkerRef,
+        task_queue: Option<&TaskQueue>,
+        now_ms: u64,
+        lease_ttl_ms: u64,
+    ) -> ControlResult<Option<HotStateLeasedActivityTask>>;
+
+    /// Releases an activity-task lease if the caller still owns it.
+    ///
+    /// # Errors
+    ///
+    /// Returns a store-specific control error when release fails.
+    async fn release_activity_task_lease(&self, lease: &ActivityTaskLease) -> ControlResult<bool>;
+
+    /// Reclaims an expired activity-task lease and makes the task runnable again.
+    ///
+    /// # Errors
+    ///
+    /// Returns a store-specific control error when reclaim fails.
+    async fn reclaim_expired_activity_task_lease(
+        &self,
+        lease: &ActivityTaskLease,
+        now_ms: u64,
+    ) -> ControlResult<bool>;
 
     /// Records one worker heartbeat.
     ///

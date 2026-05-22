@@ -7,6 +7,7 @@ import csv
 import hashlib
 import json
 import sys
+import urllib.error
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -101,8 +102,8 @@ def run_image_ocr_jsonl_tasks(
                     "source_sha256": source_sha256,
                 }
             )
-        except Exception as exc:  # noqa: BLE001 - report all row-level failures.
-            errors.append(f"{queue_id}: {exc}")
+        except Exception as exc:
+            errors.append(f"{queue_id}: {row_error_message(exc)}")
     write_jsonl(output_jsonl_path, output_rows)
     return {
         "schema_version": IMAGE_OCR_JSONL_RUN_SCHEMA_VERSION,
@@ -173,6 +174,24 @@ def _send_completion(
     )
 
 
+def row_error_message(error: BaseException) -> str:
+    if isinstance(error, urllib.error.HTTPError):
+        body = http_error_body(error)
+        if body:
+            return f"{error}; response body: {body}"
+    return str(error)
+
+
+def http_error_body(error: urllib.error.HTTPError) -> str:
+    try:
+        body = error.read().decode("utf-8", errors="replace").strip()
+    except Exception:
+        return ""
+    if len(body) <= 480:
+        return body
+    return f"{body[:477]}..."
+
+
 def image_mime_type_for_path(path: Path) -> str:
     extension = path.suffix.lower()
     if extension in {".jpg", ".jpeg"}:
@@ -224,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
             corpus_root=Path(args.corpus_root).expanduser().resolve(),
             output_jsonl_path=Path(args.output_jsonl).expanduser().resolve(),
         )
-    except Exception as exc:  # noqa: BLE001 - CLI prints deterministic JSON failures.
+    except Exception as exc:
         report = {
             "schema_version": IMAGE_OCR_JSONL_RUN_SCHEMA_VERSION,
             "passed": False,

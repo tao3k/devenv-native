@@ -5,6 +5,26 @@ use std::path::PathBuf;
 use xiuxian_wendao_parsers::{OrgizeAgentTaskProperty, OrgizeAgentTaskRepeater};
 
 pub(super) const AGENT_ORG_TASKS_TABLE: &str = "agent_org_tasks";
+pub(super) const AGENT_ORG_TASK_LIST_COLUMNS: &str = r"
+    source_path,
+    source_line,
+    source_range_start,
+    source_range_end,
+    title,
+    todo_state,
+    is_done,
+    archived,
+    tags_json,
+    effective_tags_json,
+    scheduled,
+    scheduled_repeater_json,
+    deadline,
+    deadline_repeater_json,
+    closed,
+    level,
+    outline_path_json,
+    properties_json
+";
 pub(super) const AGENT_ORG_TASK_LIST_QUERY: &str = r"
 SELECT
     source_path,
@@ -46,6 +66,16 @@ pub(super) struct AgentOrgReadModelMaterializationReport {
     pub(super) active_rows: usize,
     pub(super) done_rows: usize,
     pub(super) archived_rows: usize,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct TaskQuerySnapshot {
+    pub(super) settings: ResolvedReadModelSettings,
+    pub(super) source_paths: Vec<PathBuf>,
+    pub(super) materialized: Option<AgentOrgReadModelMaterializationReport>,
+    pub(super) snapshot_label: &'static str,
+    pub(super) refresh_warning: Option<String>,
+    pub(super) rows: Vec<AgentOrgTaskListRow>,
 }
 
 #[derive(Debug, Clone)]

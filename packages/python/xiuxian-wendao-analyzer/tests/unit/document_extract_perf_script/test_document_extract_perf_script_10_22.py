@@ -16,6 +16,11 @@ from .support import (
 def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     benchmark = _load_benchmark_module()
     result = distinct_miss_summary_result(benchmark)
+    result["forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"] = 42.5
+    result["forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"] = 3
+    result["forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] = 4
+    result["forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"] = 3
+    result["forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"] = 3
     distinct_report = distinct_miss_report()
 
     summary = benchmark.summarize_results([result], distinct_report)
@@ -94,6 +99,15 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Shard reuse force ms" in markdown
     assert "Artifact-registry reuse probe" in markdown
     assert "Rust OCR source-range trace" in markdown
+    assert "Rust hosted region render trace" in markdown
+    assert "reportedMs=42.500" in markdown
+    assert "plannedChunks=3" in markdown
+    assert "endpoints=4" in markdown
+    assert "renderAhead=3" in markdown
+    assert "renderSpawns=3" in markdown
+    assert "profile=docling-fast-text-ocr" in markdown
+    assert "shardType=page" in markdown
+    assert "longestChars=80.000" in markdown
     assert "Document extract prewarm page ranges resolved" in markdown
     assert "1:3,4:4,5:6,7:9" in markdown
     assert "Rust PDF Docling page-range hedge delay ms" in markdown
@@ -107,6 +121,15 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "42.000" in markdown
     assert "OCR shard cache" in markdown
     assert "files=2" in markdown
+    assert "Hosted VLM/OCR requests" in markdown
+    assert "sourcePixelsMax=1795980" in markdown
+    assert "Hosted VLM/OCR slowest requests" in markdown
+    assert "page=12 region=1 latencyMs=6924.510" in markdown
+    assert "kind=region-hedged" in markdown
+    assert "Hosted VLM/OCR speculative retry minimums" in markdown
+    assert "sourcePixels=1000000" in markdown
+    assert "OpenRouter provider routing" in markdown
+    assert '{"sort":{"by":"latency"}}' in markdown
     assert "Metrics sidecar" in markdown
     assert "chars=80" in markdown
     assert "Document timing sidecar" in markdown
@@ -125,9 +148,14 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "maxBoundaryOverheadShare=80.0%" in markdown
     assert "doclingChunkProfiles=`structure-text=1`" in markdown
     assert "Rust PDF OCR source-range workers" in markdown
+    assert "Rust PDF Hosted VLM/OCR region target pixels" in markdown
+    assert "750000.0" in markdown
+    assert "Rust PDF Hosted VLM/OCR region max slices" in markdown
     assert "Structure parity" in markdown
     assert "Structure order stable across runs" in markdown
     assert "Structure baseline generation" in markdown
     assert "Precision-speed summary" in markdown
     assert "orderStable=True" in markdown
     assert "maxForceMs=10.000" in markdown
+    assert "defaultPromotionCandidate=" in markdown
+    assert "optInPromotionControls=" in markdown

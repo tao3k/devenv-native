@@ -9,11 +9,6 @@ use arrow::array::{Array, ArrayRef, Int32Array, StringArray};
 use arrow::compute::concat_batches;
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
 #[cfg(any(feature = "document-extract-pdf-render", test))]
-use serde_json::Value;
-use serde_json::json;
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-use sha2::{Digest, Sha256};
-#[cfg(any(feature = "document-extract-pdf-render", test))]
 use std::path::PathBuf;
 use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 #[cfg(any(feature = "document-extract-pdf-source-range", test))]
@@ -26,7 +21,7 @@ use xiuxian_wendao_attachments::pdf::ocr::{
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use xiuxian_wendao_attachments::pdf::ocr::{
     downgrade_hosted_vlm_region_parent_page_inputs, hosted_vlm_region_parent_page_shards,
-    merge_hosted_vlm_recovery_region_inputs, prepare_hosted_vlm_recovery_region_inputs,
+    prepare_hosted_vlm_recovery_region_inputs,
 };
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use xiuxian_wendao_attachments::pdf::profile::{
@@ -45,8 +40,8 @@ use xiuxian_wendao_attachments::pdf::render::{
     page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
     page_region_render_request_chunks_by_region,
-    page_region_render_request_chunks_by_region_seed_page, render_pdf_page_shards_for_page_indices,
-    render_pdf_region_shards,
+    page_region_render_request_chunks_by_region_seed_page,
+    render_pdf_region_shards_with_source_hash,
 };
 use xiuxian_wendao_server::transport::{
     DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest,
@@ -68,15 +63,9 @@ use super::{
 };
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use super::{
-    HybridPdfOcr2RegionPipelineMode, HybridPdfOcr2RegionRenderChunkMode, HybridPdfOcr2ScaffoldMode,
+    HybridPdfOcr2RegionPipelineMode, HybridPdfOcr2RegionRenderChunkMode,
     hybrid_page_ocr2_region_pipeline_mode_with_lookup,
     hybrid_page_ocr2_region_render_chunk_mode_with_lookup,
-    hybrid_page_ocr2_scaffold_mode_with_lookup,
-};
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-use super::{
-    automatic_ocr2_recovery_region_requests_for_source_with_lookup,
-    hybrid_page_ocr_region_requests_for_source_with_lookup,
 };
 use crate::studio::PdfOcrShardSchedulerTrace;
 #[cfg(test)]
@@ -107,7 +96,7 @@ mod docling_structure_budget;
 mod failed_page;
 #[path = "route_parts/pipeline.rs"]
 mod pipeline;
-#[path = "route_parts/regions.rs"]
+#[path = "route_parts/regions/mod.rs"]
 mod regions;
 #[path = "route_parts/reports.rs"]
 mod reports;
@@ -167,16 +156,22 @@ use failed_page::{failed_page_recovery_candidates, failed_page_recovery_input};
 use pipeline::materialize_hybrid_page_ocr_resource_batch_with_region_pipeline;
 #[cfg(all(test, feature = "document-extract-pdf-render"))]
 use pipeline::{Ocr2RegionPipelineBatchKind, record_ocr2_region_pipeline_batch_result};
+#[cfg(test)]
+pub(crate) use regions::OCR2_REGION_SCAFFOLD_FILE_NAME;
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 use regions::{
     cached_ocr2_region_render_report, materialize_ocr2_recovery_page_images,
     materialize_ocr2_recovery_region_images, ocr2_recovery_region_requests_for_inputs,
-    ocr2_region_render_cache_dir, write_ocr2_region_scaffold_sidecar_with_lookup,
+    ocr2_region_render_cache_dir_with_source_hash, sha256_file_hex,
+    write_ocr2_region_scaffold_sidecar_with_lookup,
 };
 #[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(crate) use regions::{has_ocr2_recovery_page_candidates, merge_ocr2_recovery_page_inputs};
 #[cfg(test)]
-use regions::{ocr2_region_render_cache_key, ocr2_region_scaffold_payload};
+use regions::{
+    ocr2_region_render_cache_key, ocr2_region_render_cache_key_with_source_hash,
+    ocr2_region_scaffold_payload,
+};
 #[cfg(test)]
 use reports::{
     docling_centered_structure_authority_page_count, page_range_docling_fallback_chunk_summary,
@@ -207,28 +202,15 @@ use support::{
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use support::{
-    ocr2_region_pipeline_enabled, ocr2_region_render_ahead_limit_with_lookup,
+    ocr2_region_pipeline_enabled, ocr2_region_render_ahead_limit_for_capacity_with_lookup,
     ocr2_region_render_request_chunks_with_lookup,
 };
 
 const HYBRID_PAGE_OCR_FALLBACK_REPORT_NAME: &str = "_hybrid_page_ocr_fallback.json";
 const HYBRID_PAGE_OCR_TIMING_REPORT_NAME: &str = "_hybrid_page_ocr_timing.json";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-const OCR2_REGION_RENDER_CACHE_DIR_NAME: &str = "hosted-vlm-region-renders";
 #[cfg(feature = "document-extract-pdf-render")]
 const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-const OCR2_REGION_SCAFFOLD_FILE_NAME: &str = "_hosted_vlm_region_scaffolds.json";
 const DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY";
 const DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_CHUNK_SIZE_ENV: &str =
@@ -246,6 +228,7 @@ const DOCLING_STRUCTURE_RECOVERY_SMALL_PAGE_RANGE_CHUNK_SIZE: u32 = 1;
 const DOCLING_STRUCTURE_RECOVERY_DEFAULT_PAGE_RANGE_CHUNK_SIZE: u32 = 3;
 const FAILED_PAGE_RECOVERY_HOSTED_VLM_PAGE_MODE: &str = "hosted-vlm-page";
 const HOSTED_VLM_DIRECT_OCR_ENGINE: &str = "hosted-vlm-direct-ocr";
+const PDF_RENDER_REQUIRE_PDFIUM_ENV: &str = "WENDAO_PDF_RENDER_REQUIRE_PDFIUM";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum HybridPdfFailedPageRecoveryMode {
@@ -339,6 +322,9 @@ impl StudioDocumentExtractFlightRouteProvider {
             .await
         {
             Err(reason) => {
+                if hybrid_page_ocr_render_failure_requires_fail_fast(reason.as_str()) {
+                    return Err(reason);
+                }
                 return self
                     .fallback_python_document_extract(request, output.as_path(), &reason)
                     .await;
@@ -638,6 +624,39 @@ impl StudioDocumentExtractFlightRouteProvider {
         )
         .await
     }
+}
+
+fn hybrid_page_ocr_render_failure_requires_fail_fast(reason: &str) -> bool {
+    hybrid_page_ocr_render_failure_requires_fail_fast_with_lookup(reason, &|key| {
+        std::env::var(key).ok()
+    })
+}
+
+pub(crate) fn hybrid_page_ocr_render_failure_requires_fail_fast_with_lookup(
+    reason: &str,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> bool {
+    env_flag_enabled(lookup(PDF_RENDER_REQUIRE_PDFIUM_ENV).as_deref())
+        && is_pdfium_render_failure(reason)
+}
+
+fn env_flag_enabled(value: Option<&str>) -> bool {
+    matches!(
+        value.map(|value| value.trim().to_ascii_lowercase()),
+        Some(value)
+            if !value.is_empty()
+                && value != "0"
+                && value != "false"
+                && value != "off"
+                && value != "disabled"
+    )
+}
+
+fn is_pdfium_render_failure(reason: &str) -> bool {
+    reason.contains("render status `fallback`")
+        || reason.contains("Pdfium")
+        || reason.contains("PDFium")
+        || reason.contains("document-extract-pdf-render")
 }
 
 #[cfg(feature = "document-extract-pdf-render")]

@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 
     from .documents import DocumentConverterProtocol
 
+PDF_OCR_FAST_TEXT_SOURCE_BACKEND_TABLE_PROFILE = (
+    "docling-fast-text-source-backend-table"
+)
+
 
 def _factory_accepts_ocr_profile(factory: Callable[..., Any] | None) -> bool:
     if factory is None:
@@ -55,6 +59,22 @@ def _new_docling_converter(
             num_threads=_fast_text_accelerator_threads()
         )
         options.table_structure_options.mode = TableFormerMode.FAST
+        return DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=options),
+            }
+        )
+    if ocr_profile == PDF_OCR_FAST_TEXT_SOURCE_BACKEND_TABLE_PROFILE:
+        options = PdfPipelineOptions()
+        options.accelerator_options = AcceleratorOptions(
+            num_threads=_fast_text_accelerator_threads()
+        )
+        options.table_structure_options.mode = TableFormerMode.FAST
+        options.do_ocr = False
+        options.force_backend_text = True
+        options.ocr_batch_size = 1
+        options.layout_batch_size = 1
+        options.table_batch_size = 1
         return DocumentConverter(
             format_options={
                 InputFormat.PDF: PdfFormatOption(pipeline_options=options),

@@ -74,7 +74,9 @@ wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd
 The task-list command excludes DONE and archived rows by default and renders
 native Org repeater cookies as =repeat:= metadata. Use =--cached= for fast
 turn-start recovery from the current DuckDB snapshot; omit it when the query
-must refresh from Org source files first.
+must refresh from Org source files first. Add =--output json= or =--output
+pretty= when automation needs limited task rows, next actions, resume queries,
+and repeater metadata as a machine-readable recovery contract.
 
 Find scheduled work for one day or a date window:
 
@@ -107,14 +109,17 @@ wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent
 Summarize archive candidates, achievements, repeaters, and tag counts:
 
 #+begin_src text
-wendao-client orgize task-report --cached $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-report --cached --summary-only $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-report --cached --view archive-candidate $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-report --cached --view closure-needed $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-report --cached --view repeating $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Omit =--cached= from =task-report= when the summary must refresh the read model
-before rendering.
+before rendering. Omit =--summary-only= when the report should include detailed
+task rows for each section. Add =--output json= or =--output pretty= when a
+script or agent needs the report counters, tag counts, and section counts as a
+machine-readable summary contract.
 
 Plan physical archival for completed task rows:
 
@@ -122,6 +127,7 @@ Plan physical archival for completed task rows:
 wendao-client orgize task-archive $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-archive --target 2026.org $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-archive --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-archive --closed-before YYYY-MM-DD --expect-selected COUNT $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Apply a reviewed archive plan explicitly:
@@ -130,12 +136,21 @@ Apply a reviewed archive plan explicitly:
 wendao-client orgize task-archive --apply $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-archive --apply --target 2026.org $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-archive --apply --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-archive --apply --closed-before YYYY-MM-DD --expect-selected COUNT $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 The archive command prints an =Archive Targets= summary before row details so
 operators can review the write targets and selected row counts before applying
-the plan. Use =--closed-before= to keep newly completed same-day tasks out of a
-bulk archive run.
+the plan. After =--apply=, it prints a compact write receipt with updated
+source and target counts, then refreshes the DuckDB read model so subsequent
+=--cached= recovery sees the post-archive state. Use =--closed-before= to keep
+newly completed same-day tasks out of a bulk archive run. Use
+=--expect-selected= after reviewing a plan so an apply fails before any write
+when the selected row count changes. Add =--output json= or =--output pretty=
+in plan mode when automation needs selected rows and archive target counts as a
+machine-readable review contract. The same output flags in apply mode emit a
+write receipt with updated source/target paths and post-apply read-model
+counters.
 
 Use sparse-tree when the full source subtree context is useful:
 
@@ -167,6 +182,18 @@ SCHEDULED: <2026-05-18 Mon ++1d>
 - [ ] Record evidence in the active ExecPlan or package docs.
 - [ ] Decide whether to continue optimizing, archive the slice, or open the next one.
 #+end_src
+
+The stable client-side Org read-model benchmark is:
+
+#+begin_src text
+cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_orgize
+#+end_src
+
+The benchmark fixture covers 1,024 agent task rows and measures refresh through
+DuckDB materialization plus cached query. Use it when changing Org tracking
+read-model storage, archive planning, or recovery query behavior. The current
+local profile is roughly 42-57 ms for refresh plus cached query, and roughly
+6.1-6.8 ms for the cached active recovery window with a limit of 20 rows.
 
 ** Completion Protocol
 

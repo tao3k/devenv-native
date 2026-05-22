@@ -33,6 +33,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         benchmark_fixtures={"pdf": tmp_path / "sample.pdf"},
         pdfium_library_path=None,
         prepare_pdfium_runtime=False,
+        require_pdfium=True,
         rust_pdf_ocr_workers="6",
         rust_pdf_ocr_source_range_workers="2",
         rust_pdf_docling_page_range_chunk_plan="1:3,4:4,5:6,7:9",
@@ -46,16 +47,24 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         rust_pdf_local_fast_text="rust-lopdf",
         rust_pdf_fast_text_source_range_split="single-page",
         rust_pdf_fast_text_endpoint_affinity="single-page-first",
+        rust_pdf_ocr_scheduler_lane_fairness="source-first",
         rust_pdf_backend_text_topup="hosted-vlm",
         rust_pdf_failed_page_recovery="hosted-vlm-page",
         rust_pdf_ocr_profile_planner="fast-risk-window",
         rust_pdf_hosted_vlm_render_dpi=360,
         rust_pdf_ocr_region_context_ratio=0.2,
         rust_pdf_hosted_vlm_region_planner="profile-risk-window",
+        rust_pdf_hosted_vlm_region_target_pixels=750_000.0,
+        rust_pdf_hosted_vlm_region_max_slices=4,
         rust_pdf_hosted_vlm_region_pipeline="render-dispatch",
         rust_pdf_hosted_vlm_region_render_ahead=3,
         rust_pdf_hosted_vlm_region_render_chunk="region-seed-page",
+        rust_pdf_region_render_mode="direct-crop",
+        rust_pdf_hosted_vlm_region_dispatch_chunk_size=3,
         hosted_vlm_ocr_region_composite_size=3,
+        hosted_vlm_ocr_region_composite_mode="adaptive-small-region",
+        hosted_vlm_ocr_region_composite_max_source_pixels=30000,
+        hosted_vlm_ocr_region_composite_max_image_bytes=65536,
         hosted_vlm_ocr_scaffold_mode="region-table-json",
         rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
         rust_document_extract_endpoint=["http://127.0.0.1:53051"],
@@ -80,7 +89,7 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         "--features",
     ]
     assert command[6] == (
-        "performance,cli-bin-support,zhenfa-router,duckdb,document-extract-pdf-render"
+        "performance,cli-bin-support,zhenfa-router,duckdb,document-extract-pdf-render,flight-server-bin-support"
     )
     env = kwargs["env"]
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
@@ -115,6 +124,9 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY"]
         == "single-page-first"
     )
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS"] == "source-first"
+    )
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP"] == "hosted-vlm"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY"] == "hosted-vlm-page"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] == "fast-risk-window"
@@ -125,6 +137,10 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         == "profile-risk-window"
     )
     assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS"] == "750000.0"
+    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES"] == "4"
+    assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE"]
         == "render-dispatch"
     )
@@ -133,7 +149,15 @@ def test_start_rust_provider_forwards_hybrid_region_env(
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK"]
         == "region-seed-page"
     )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE"] == "direct-crop"
+    assert env["WENDAO_PDF_RENDER_REQUIRE_PDFIUM"] == "1"
+    assert (
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE"] == "3"
+    )
     assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] == "3"
+    assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MODE"] == "adaptive-small-region"
+    assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_SOURCE_PIXELS"] == "30000"
+    assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_IMAGE_BYTES"] == "65536"
     assert (
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE"]
         == "region-table-json"
@@ -151,3 +175,82 @@ def test_start_rust_provider_forwards_hybrid_region_env(
     )
     assert regions[0]["source"] == str(tmp_path / "sample.pdf")
     assert regions[0]["regions"][0]["regionIndex"] == 1
+
+
+def test_start_rust_provider_keeps_python_composite_size_out_of_dispatch_env(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    calls = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            calls.append((command, kwargs))
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", FakePopen)
+    monkeypatch.setenv("SDKROOT", "/tmp/macos-sdk")
+    monkeypatch.setenv("LIBRARY_PATH", "/tmp/macos-sdk/usr/lib")
+    monkeypatch.setenv("PRJ_ROOT", str(tmp_path / "repo"))
+    args = benchmark.argparse.Namespace(
+        cargo="cargo",
+        rust_provider_bin=None,
+        rust_provider_features="cli-bin-support,zhenfa-router,duckdb",
+        flight_mode="hybrid-page-ocr",
+        hybrid_pdf_render_selection="shard-fallback-pages",
+        pdf_render_region=[],
+        benchmark_fixtures={},
+        pdfium_library_path=None,
+        prepare_pdfium_runtime=False,
+        require_pdfium=False,
+        rust_pdf_ocr_workers=None,
+        rust_pdf_ocr_source_range_workers=None,
+        rust_pdf_docling_page_range_chunk_plan=None,
+        rust_pdf_docling_page_range_profile="full",
+        rust_pdf_docling_page_range_hedge_delay_ms=None,
+        rust_pdf_docling_page_range_structure_cost_budget=None,
+        rust_pdf_docling_text_shortcut_promotion="range-fill",
+        pdf_ocr_backend_text_empty_page="disabled",
+        rust_pdf_local_backend_text="disabled",
+        rust_pdf_local_backend_text_empty="dispatch-python",
+        rust_pdf_local_fast_text="disabled",
+        rust_pdf_fast_text_source_range_split="disabled",
+        rust_pdf_fast_text_endpoint_affinity="disabled",
+        rust_pdf_ocr_scheduler_lane_fairness="disabled",
+        rust_pdf_backend_text_topup="profile",
+        rust_pdf_failed_page_recovery="disabled",
+        rust_pdf_ocr_profile_planner=None,
+        rust_pdf_hosted_vlm_render_dpi=None,
+        rust_pdf_ocr_region_context_ratio=None,
+        rust_pdf_hosted_vlm_region_planner=None,
+        rust_pdf_hosted_vlm_region_pipeline="render-dispatch",
+        rust_pdf_hosted_vlm_region_render_ahead=None,
+        rust_pdf_hosted_vlm_region_render_chunk="page",
+        rust_pdf_region_render_mode="default",
+        rust_pdf_hosted_vlm_region_dispatch_chunk_size=None,
+        hosted_vlm_ocr_region_composite_size=3,
+        hosted_vlm_ocr_region_composite_mode="adaptive-small-region",
+        hosted_vlm_ocr_region_composite_max_source_pixels=None,
+        hosted_vlm_ocr_region_composite_max_image_bytes=None,
+        hosted_vlm_ocr_scaffold_mode="disabled",
+        rust_pdf_ocr_endpoint=["http://127.0.0.1:52051"],
+        rust_document_extract_endpoint=[],
+    )
+
+    benchmark.start_rust_provider_server(
+        args,
+        rust_host="127.0.0.1",
+        rust_port=51052,
+        python_host="127.0.0.1",
+        python_port=51051,
+        temp_root=tmp_path,
+    )
+
+    env = calls[0][1]["env"]
+    assert env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] == "3"
+    assert "WENDAO_PDF_RENDER_REQUIRE_PDFIUM" not in env
+    assert "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE" not in env
+    assert (
+        "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE" not in env
+    )
+    assert "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS" not in env

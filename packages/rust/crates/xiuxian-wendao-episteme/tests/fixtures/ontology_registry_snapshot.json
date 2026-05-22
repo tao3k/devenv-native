@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "ontology": "synthetic",
+  "compatibility": "semantic_api_compatibility",
+  "source_contract": {
+    "manifest": "manifest.toml",
+    "artifact_mode": "source_contract",
+    "mutation_allowed": false,
+    "runtime_compilation_owner": "xiuxian-wendao",
+    "sdk_generation_owner": "xiuxian-wendao",
+    "api_surface": "api_surface.toml"
+  },
+  "reference_nouns": [
+    "OntologyObject",
+    "Query"
+  ],
+  "domains": [
+    {
+      "id": "episteme://synthetic/core",
+      "category": "00",
+      "layer": "L0",
+      "name": "Synthetic Core",
+      "rdf_files": [
+        "00_Core/ontology.rdf"
+      ],
+      "rules": []
+    },
+    {
+      "id": "episteme://synthetic/domain",
+      "category": "10",
+      "layer": "L1",
+      "name": "Synthetic Domain",
+      "rdf_files": [
+        "10_Domain/ontology.rdf"
+      ],
+      "rules": [
+        "10_Domain/rules/01_rule.sql"
+      ],
+      "policies": [
+        "10_Domain/policies/policy.md"
+      ],
+      "dataset_mappings": [
+        "10_Domain/mappings/mapping.toml"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "domain": "episteme://synthetic/domain",
+      "kind": "read_only_sql_validation",
+      "path": "10_Domain/rules/01_rule.sql"
+    }
+  ],
+  "policies": [
+    {
+      "domain": "episteme://synthetic/domain",
+      "kind": "policy_markdown",
+      "path": "10_Domain/policies/policy.md"
+    }
+  ],
+  "dataset_mappings": [
+    {
+      "domain": "episteme://synthetic/domain",
+      "kind": "duckdb_arrow_sql_dataset_mapping",
+      "mapping_id": "synthetic.mapping.v1",
+      "path": "10_Domain/mappings/mapping.toml",
+      "ledger_org": "10_Domain/mappings/ledger.org",
+      "materialization": {
+        "object_observations": "10_Domain/mappings/sql/01_object_observations.sql",
+        "semantic_objects": "10_Domain/mappings/sql/02_semantic_objects.sql",
+        "semantic_relations": "10_Domain/mappings/sql/03_semantic_relations.sql"
+      },
+      "raw_tables": [
+        "raw_synthetic"
+      ],
+      "validation_rules": [
+        "10_Domain/rules/01_rule.sql"
+      ]
+    }
+  ],
+  "rdf_terms": {
+    "classes": [
+      {
+        "domain": "episteme://synthetic/core",
+        "iri": "https://wendao.ai/ontology/synthetic#Base",
+        "label": "Base",
+        "api_candidate": "Base",
+        "source_file": "00_Core/ontology.rdf"
+      },
+      {
+        "domain": "episteme://synthetic/domain",
+        "iri": "https://wendao.ai/ontology/synthetic#SyntheticObject",
+        "label": "Synthetic Object",
+        "api_candidate": "SyntheticObject",
+        "source_file": "10_Domain/ontology.rdf"
+      }
+    ],
+    "object_properties": [
+      {
+        "domain": "episteme://synthetic/domain",
+        "iri": "https://wendao.ai/ontology/synthetic#linksTo",
+        "label": "links to",
+        "api_candidate": "linksTo",
+        "from_iri": "https://wendao.ai/ontology/synthetic#SyntheticObject",
+        "to_iri": "https://wendao.ai/ontology/synthetic#SyntheticRelated",
+        "source_file": "10_Domain/ontology.rdf"
+      }
+    ]
+  },
+  "api": {
+    "object_types": [
+      {
+        "api_name": "SyntheticObject",
+        "domain": "episteme://synthetic/domain",
+        "rdf_class": "https://wendao.ai/ontology/synthetic#SyntheticObject",
+        "primary_key": [
+          "syntheticId"
+        ],
+        "display_name_property": "syntheticName",
+        "interfaces": [
+          "Thing"
+        ]
+      },
+      {
+        "api_name": "SyntheticRelated",
+        "domain": "episteme://synthetic/domain",
+        "rdf_class": "https://wendao.ai/ontology/synthetic#SyntheticRelated",
+        "primary_key": [
+          "relatedId"
+        ],
+        "display_name_property": "relatedName",
+        "interfaces": []
+      }
+    ],
+    "interface_types": [
+      {
+        "api_name": "Thing",
+        "implemented_by": [
+          "SyntheticObject"
+        ]
+      }
+    ],
+    "link_types": [
+      {
+        "api_name": "SyntheticObject.related",
+        "domain": "episteme://synthetic/domain",
+        "from_object_type": "SyntheticObject",
+        "to_object_type": "SyntheticRelated",
+        "rdf_property": "https://wendao.ai/ontology/synthetic#linksTo",
+        "cardinality": "one_to_many"
+      }
+    ],
+    "action_types": [
+      {
+        "api_name": "recordSynthetic",
+        "domain": "episteme://synthetic/domain",
+        "affected_object_types": [
+          "SyntheticObject"
+        ],
+        "requires_evidence": true,
+        "validation_rules": [
+          "10_Domain/rules/01_rule.sql"
+        ]
+      }
+    ],
+    "query_types": [
+      {
+        "api_name": "syntheticById",
+        "domain": "episteme://synthetic/domain",
+        "parameters": [
+          "syntheticId"
+        ],
+        "returns": "SyntheticObject"
+      }
+    ]
+  }
+}

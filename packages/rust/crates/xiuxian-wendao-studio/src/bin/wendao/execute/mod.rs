@@ -13,7 +13,7 @@ mod audit;
 mod dispatch;
 #[path = "docs.rs"]
 mod docs;
-#[path = "episteme.rs"]
+#[path = "episteme/mod.rs"]
 mod episteme;
 #[path = "fix.rs"]
 mod fix;

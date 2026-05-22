@@ -24,7 +24,7 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
                         "startedUnixMs": 1_000,
                         "endedUnixMs": 1_010,
                         "latencyMs": 10.0,
-                        "model": "baidu/qianfan-ocr-fast:free",
+                        "model": "baidu/qianfan-ocr-fast",
                         "markdownChars": 100,
                         "imageBytes": 2048,
                         "pageCount": 2,
@@ -33,6 +33,15 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
                         "shardCount": 2,
                         "shardTypeCounts": {"page": 2},
                         "sourcePixelArea": 2000,
+                        "pageIndex": 5,
+                        "regionIndex": 1,
+                        "readingOrderKey": "000005.000010",
+                        "rasterWidthPx": 20,
+                        "rasterHeightPx": 100,
+                        "sourcePagePixelLeft": 10,
+                        "sourcePagePixelTop": 20,
+                        "sourcePagePixelRight": 30,
+                        "sourcePagePixelBottom": 120,
                         "renderDpi": 300,
                         "scaffoldMode": "disabled",
                         "imageOptimizationMode": "disabled",
@@ -49,7 +58,7 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
                         "startedUnixMs": 1_005,
                         "endedUnixMs": 1_035,
                         "latencyMs": 30.0,
-                        "model": "baidu/qianfan-ocr-fast:free",
+                        "model": "baidu/qianfan-ocr-fast",
                         "markdownChars": 0,
                         "imageBytes": 1024,
                         "requestKind": "region",
@@ -57,6 +66,11 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
                         "shardCount": 1,
                         "shardTypeCounts": {"region": 1},
                         "sourcePixelArea": 400,
+                        "pageIndex": 6,
+                        "regionIndex": 2,
+                        "readingOrderKey": "000006.000020",
+                        "rasterWidthPx": 20,
+                        "rasterHeightPx": 20,
                         "renderDpi": 300,
                         "scaffoldMode": "region-table-json",
                         "imageOptimizationMode": "region-whitespace-trim",
@@ -82,7 +96,7 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
     assert summary["parseErrorCount"] == 1
     assert summary["statusCounts"] == {"failed": 1, "succeeded": 1}
     assert summary["httpStatusCounts"] == {"200": 1, "429": 1}
-    assert summary["modelCounts"] == {"baidu/qianfan-ocr-fast:free": 2}
+    assert summary["modelCounts"] == {"baidu/qianfan-ocr-fast": 2}
     assert summary["requestKindCounts"] == {
         "page-window-canary": 1,
         "region": 1,
@@ -107,11 +121,49 @@ def test_summarize_hosted_vlm_ocr_request_traces(tmp_path: Path) -> None:
     assert summary["scaffoldJsonCharCountTotal"] == 17
     assert summary["canonicalMarkdownCharCountTotal"] == 0
     assert summary["imageBytesTotal"] == 3072
+    assert summary["imageBytesMax"] == 2048
+    assert summary["imageBytesPerRequestAvg"] == 1536.0
     assert summary["sourcePixelAreaTotal"] == 2400
+    assert summary["sourcePixelAreaMax"] == 2000
+    assert summary["sourcePixelAreaPerRequestAvg"] == 1200.0
     assert summary["latencyMsP50"] == 10.0
     assert summary["latencyMsP95"] == 30.0
     assert summary["latencyMsMax"] == 30.0
     assert summary["requestLatencyMsTotal"] == 40.0
+    assert summary["slowestRequests"] == [
+        {
+            "latencyMs": 30.0,
+            "requestKind": "region",
+            "pageIndex": 6,
+            "regionIndex": 2,
+            "readingOrderKey": "000006.000020",
+            "httpAttemptCount": 2,
+            "imageBytes": 1024,
+            "sourcePixelArea": 400,
+            "markdownChars": 0,
+            "rasterWidthPx": 20,
+            "rasterHeightPx": 20,
+        },
+        {
+            "latencyMs": 10.0,
+            "requestKind": "page-window-canary",
+            "pageIndex": 5,
+            "regionIndex": 1,
+            "readingOrderKey": "000005.000010",
+            "httpAttemptCount": 1,
+            "imageBytes": 2048,
+            "sourcePixelArea": 2000,
+            "markdownChars": 100,
+            "rasterWidthPx": 20,
+            "rasterHeightPx": 100,
+            "sourcePixelBox": {
+                "left": 10,
+                "top": 20,
+                "right": 30,
+                "bottom": 120,
+            },
+        },
+    ]
     assert summary["requestWallStartUnixMs"] == 1_000
     assert summary["requestWallEndUnixMs"] == 1_035
     assert summary["requestWallSpanMs"] == 35

@@ -155,6 +155,72 @@ document_text_evidence = ["docx", "txt"]
         Ok(())
     }
 
+    pub(super) fn write_ontology_registry_snapshot(
+        &self,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let ontology_root = self.episteme_root.join("ontology");
+        fs::create_dir_all(ontology_root.join("SourceContract"))?;
+        fs::write(
+            ontology_root.join("SourceContract/ontology.rdf"),
+            "synthetic rdf\n",
+        )?;
+        fs::write(
+            ontology_root.join("api_surface.toml"),
+            "schema_version = 1\nname = \"synthetic-api\"\n",
+        )?;
+        let registry = serde_json::json!({
+            "schema_version": 1,
+            "ontology": "synthetic-gateway",
+            "compatibility": "semantic_api_compatibility",
+            "source_contract": {
+                "manifest": "manifest.toml",
+                "artifact_mode": "source_contract",
+                "mutation_allowed": false,
+                "runtime_compilation_owner": "xiuxian-wendao",
+                "sdk_generation_owner": "xiuxian-wendao",
+                "api_surface": "api_surface.toml"
+            },
+            "reference_nouns": ["OntologyObject"],
+            "domains": [{
+                "id": "episteme://synthetic/source-contract",
+                "name": "Synthetic Source Contract",
+                "rdf_files": ["SourceContract/ontology.rdf"]
+            }],
+            "rules": [],
+            "policies": [],
+            "dataset_mappings": [],
+            "rdf_terms": {
+                "classes": [{
+                    "domain": "episteme://synthetic/source-contract",
+                    "iri": "https://wendao.ai/ontology/synthetic#Source",
+                    "label": "Synthetic Source",
+                    "api_candidate": "SyntheticSource",
+                    "source_file": "SourceContract/ontology.rdf"
+                }],
+                "object_properties": []
+            },
+            "api": {
+                "object_types": [{
+                    "api_name": "SyntheticSource",
+                    "domain": "episteme://synthetic/source-contract",
+                    "rdf_class": "https://wendao.ai/ontology/synthetic#Source",
+                    "primary_key": ["sourceId"],
+                    "display_name_property": "name",
+                    "interfaces": []
+                }],
+                "link_types": [],
+                "action_types": [],
+                "query_types": [],
+                "interface_types": []
+            }
+        });
+        fs::write(
+            ontology_root.join("registry.json"),
+            serde_json::to_string_pretty(&registry)?,
+        )?;
+        Ok(())
+    }
+
     pub(super) fn write_contract_extending(
         &self,
         target: &str,
@@ -309,6 +375,21 @@ fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     Ok(format!("{:x}", hasher.finalize()))
+}
+
+#[test]
+fn gateway_fixture_writes_ontology_registry_snapshot() -> Result<(), Box<dyn std::error::Error>> {
+    let fixture = EpistemeGatewayFixture::new()?;
+    fixture.write_contract()?;
+    fixture.write_ontology_registry_snapshot()?;
+
+    assert!(
+        fixture
+            .episteme_root
+            .join("ontology/registry.json")
+            .is_file()
+    );
+    Ok(())
 }
 
 const SYNTHETIC_MAPPING_LEDGER: &str = r"#+TITLE: Synthetic Source Corpus Mapping Ledger

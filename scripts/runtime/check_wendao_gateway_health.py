@@ -84,14 +84,19 @@ def log_reports_flight_business_plane_ready(logfile: Path) -> bool:
     return False
 
 
-def _parse_health_payload(raw_payload: bytes) -> tuple[bool, str, str]:
+def _health_payload_reports_flight_ready(payload: dict[str, Any]) -> bool:
+    planes = payload.get("planes")
+    return isinstance(planes, dict) and planes.get("flight") == "mounted"
+
+
+def _parse_health_payload(raw_payload: bytes) -> tuple[bool, str, str, bool]:
     try:
         payload = json.loads(raw_payload.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        return False, f"health endpoint returned invalid json: {error}", ""
+        return False, f"health endpoint returned invalid json: {error}", "", False
 
     if not isinstance(payload, dict):
-        return False, "health endpoint returned a non-object payload", ""
+        return False, "health endpoint returned a non-object payload", "", False
 
     if payload.get("service") != EXPECTED_HEALTH_SERVICE:
         return (
@@ -99,13 +104,19 @@ def _parse_health_payload(raw_payload: bytes) -> tuple[bool, str, str]:
             "health endpoint reported an unexpected service "
             f"({payload.get('service')!r} != {EXPECTED_HEALTH_SERVICE!r})",
             "",
+            False,
         )
 
     if payload.get("ready") is not True:
-        return False, f"health endpoint did not report ready=true: {payload!r}", ""
+        return (
+            False,
+            f"health endpoint did not report ready=true: {payload!r}",
+            "",
+            False,
+        )
 
     process_id = _normalize_process_id(str(payload.get("processId", "")))
-    return True, "ok", process_id
+    return True, "ok", process_id, _health_payload_reports_flight_ready(payload)
 
 
 def is_gateway_healthy(
@@ -140,7 +151,12 @@ def is_gateway_healthy(
     if health_status != EXPECTED_HEALTH_STATUS:
         return False, f"health endpoint returned HTTP {health_status}: {health_url}"
 
-    payload_ok, payload_message, payload_process_id = _parse_health_payload(raw_payload)
+    (
+        payload_ok,
+        payload_message,
+        payload_process_id,
+        payload_reports_flight_ready,
+    ) = _parse_health_payload(raw_payload)
     if not payload_ok:
         return False, payload_message
 
@@ -169,10 +185,14 @@ def is_gateway_healthy(
     if command and not is_wendao_gateway_command(command):
         return False, f"wendao-gateway process {candidate_pid} is unexpected: {command}"
 
-    if not log_reports_flight_business_plane_ready(logfile):
+    if (
+        not payload_reports_flight_ready
+        and not log_reports_flight_business_plane_ready(logfile)
+    ):
         return (
             False,
-            f"gateway log has not reported the Flight business plane yet: {logfile}",
+            "gateway health payload and log have not reported the "
+            f"Flight business plane yet: {logfile}",
         )
 
     return True, "healthy"

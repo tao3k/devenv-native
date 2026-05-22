@@ -13,8 +13,8 @@ use xiuxian_wendao_parsers::EpistemeSourceManifest;
 
 use super::{
     EpistemeError, EpistemeFileRow, FILES_TSV, count_by, discovered_corpus_paths, extension_routes,
-    read_files_tsv, read_source_manifest, safe_run_id, source_contract_paths,
-    validate_episteme_source_contract,
+    read_files_tsv, read_source_manifest, route_policy::validate_document_route_policy,
+    safe_run_id, source_contract_paths, validate_episteme_source_contract,
 };
 
 const TOC_WRITE_REPORT_SCHEMA_VERSION: &str =
@@ -250,6 +250,7 @@ pub(super) fn validate_source_contract_metadata_only(
     if manifest.files != FILES_TSV {
         errors.push("source manifest files must be files.tsv".to_string());
     }
+    validate_document_route_policy(manifest, files, &mut errors);
     if !corpus_root.is_dir() {
         errors.push(format!(
             "corpus root does not exist: {}",

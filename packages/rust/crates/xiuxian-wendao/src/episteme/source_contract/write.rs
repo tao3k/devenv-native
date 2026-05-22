@@ -4,6 +4,7 @@
 //! validated source-contract run plans without executing extraction.
 
 use std::{
+    collections::BTreeMap,
     fs,
     io::Write,
     path::{Path, PathBuf},
@@ -37,8 +38,14 @@ pub struct EpistemeRunPlanWriteReport {
     pub receipt_path: PathBuf,
     /// Created outputs directory.
     pub outputs_dir: PathBuf,
+    /// Total queue rows available before filtering.
+    pub total_queue_rows: usize,
     /// Number of selected tasks.
     pub selected_count: usize,
+    /// Selected row counts by route.
+    pub route_counts: BTreeMap<String, usize>,
+    /// Selected row counts by category.
+    pub category_counts: BTreeMap<String, usize>,
     /// Whether extraction ran during planning.
     pub extraction_executed: bool,
     /// Whether direct RDF promotion is allowed.
@@ -74,7 +81,10 @@ pub fn write_episteme_extraction_run_plan(
         tasks_path,
         receipt_path,
         outputs_dir,
+        total_queue_rows: receipt.total_queue_rows,
         selected_count: receipt.selected_count,
+        route_counts: receipt.route_counts,
+        category_counts: receipt.category_counts,
         extraction_executed: receipt.extraction_executed,
         raw_to_rdf_promotion_allowed: receipt.raw_to_rdf_promotion_allowed,
         validation_mode: receipt.validation_mode,

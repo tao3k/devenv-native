@@ -14,11 +14,11 @@ from .constants import (
     OPENROUTER_PUBLIC_API_KEY_ENV,
     OPENROUTER_STANDARD_API_KEY_ENVS,
 )
-from .http_status import pick_free_port
+from .http_status import can_bind_port, pick_free_port
 from .processes import start_logged_process
 from .server_code import fixture_server_code, real_docling_server_code
 
-OPENROUTER_OCR_SMOKE_MODEL = "baidu/qianfan-ocr-fast:free"
+OPENROUTER_OCR_SMOKE_MODEL = "baidu/qianfan-ocr-fast"
 HOSTED_VLM_OCR_TRACE_PATH_ENV = "WENDAO_HOSTED_VLM_OCR_TRACE_PATH"
 PDF_OCR_PREWARM_ENV_KEYS = frozenset(
     {
@@ -145,6 +145,7 @@ def start_server_pool(
     audio_worker_env: dict[str, str] | None = None,
     pdf_ocr_prewarm_endpoint_count: int | None = None,
     log_dir: Path | None = None,
+    allow_base_port_fallback: bool = False,
 ) -> list[PythonWorkerServer]:
     endpoint_count = validate_endpoint_count(endpoint_count)
     if (
@@ -152,12 +153,12 @@ def start_server_pool(
         and pdf_ocr_prewarm_endpoint_count < 1
     ):
         raise SystemExit("--pdf-ocr-prewarm-endpoint-count must be at least 1")
-    ports = [port]
-    while len(ports) < endpoint_count:
-        candidate = pick_free_port(host)
-        if candidate not in ports:
-            ports.append(candidate)
-
+    ports = resolve_worker_ports(
+        host,
+        port,
+        endpoint_count=endpoint_count,
+        allow_base_port_fallback=allow_base_port_fallback,
+    )
     count_root = None
     if converter_count_path is not None and endpoint_count > 1:
         count_root = converter_count_path
@@ -202,6 +203,31 @@ def start_server_pool(
             )
         )
     return workers
+
+
+def resolve_worker_ports(
+    host: str,
+    port: int,
+    *,
+    endpoint_count: int,
+    allow_base_port_fallback: bool = False,
+) -> list[int]:
+    endpoint_count = validate_endpoint_count(endpoint_count)
+    base_port = port
+    if not can_bind_port(host, base_port):
+        if not allow_base_port_fallback:
+            raise SystemExit(
+                f"--port {base_port} is already in use on {host}; "
+                "stop the stale worker or pass a different --port"
+            )
+        base_port = pick_free_port(host)
+
+    ports = [base_port]
+    while len(ports) < endpoint_count:
+        candidate = pick_free_port(host)
+        if candidate not in ports:
+            ports.append(candidate)
+    return ports
 
 
 def hosted_vlm_ocr_env_for_worker(
@@ -320,8 +346,20 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         "hosted_vlm_ocr_prompt": "WENDAO_HOSTED_VLM_OCR_PROMPT",
         "hosted_vlm_ocr_max_tokens": "WENDAO_HOSTED_VLM_OCR_MAX_TOKENS",
         "hosted_vlm_ocr_region_max_tokens": ("WENDAO_HOSTED_VLM_OCR_REGION_MAX_TOKENS"),
+        "hosted_vlm_ocr_region_prompt_mode": (
+            "WENDAO_HOSTED_VLM_OCR_REGION_PROMPT_MODE"
+        ),
         "hosted_vlm_ocr_region_composite_size": (
             "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"
+        ),
+        "hosted_vlm_ocr_region_composite_mode": (
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MODE"
+        ),
+        "hosted_vlm_ocr_region_composite_max_source_pixels": (
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_SOURCE_PIXELS"
+        ),
+        "hosted_vlm_ocr_region_composite_max_image_bytes": (
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_IMAGE_BYTES"
         ),
         "hosted_vlm_ocr_region_atlas_mode": "WENDAO_HOSTED_VLM_OCR_REGION_ATLAS_MODE",
         "hosted_vlm_ocr_scaffold_mode": "WENDAO_HOSTED_VLM_OCR_SCAFFOLD_MODE",
@@ -335,26 +373,36 @@ def hosted_vlm_ocr_process_env(args: object) -> dict[str, str]:
         "hosted_vlm_ocr_speculative_retry_delay_seconds": (
             "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS"
         ),
+        "hosted_vlm_ocr_speculative_retry_min_source_pixels": (
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS"
+        ),
+        "hosted_vlm_ocr_speculative_retry_min_image_bytes": (
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_IMAGE_BYTES"
+        ),
         "hosted_vlm_ocr_page_window_size": "WENDAO_HOSTED_VLM_OCR_PAGE_WINDOW_SIZE",
+        "hosted_vlm_ocr_openrouter_provider_json": (
+            "WENDAO_HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON"
+        ),
         "pdf_ocr_backend_text_page_fallback": (
             "WENDAO_PDF_OCR_BACKEND_TEXT_PAGE_FALLBACK"
         ),
         "pdf_ocr_backend_text_empty_page": "WENDAO_PDF_OCR_BACKEND_TEXT_EMPTY_PAGE",
+        "pdf_ocr_fast_text_source_converter": (
+            "WENDAO_PDF_OCR_FAST_TEXT_SOURCE_CONVERTER"
+        ),
         "openrouter_model": "WENDAO_OPENROUTER_MODEL",
         "openrouter_http_referer": "WENDAO_OPENROUTER_HTTP_REFERER",
         "openrouter_title": "WENDAO_OPENROUTER_TITLE",
     }
     for attr, key in mappings.items():
         value = getattr(args, attr, None)
-        if (
-            attr
-            in {
-                "document_extract_converter_cache",
-                "pdf_ocr_backend_text_page_fallback",
-                "pdf_ocr_backend_text_empty_page",
-            }
-            and value == "disabled"
-        ):
+        if attr in {
+            "document_extract_converter_cache",
+            "hosted_vlm_ocr_region_composite_mode",
+            "pdf_ocr_backend_text_page_fallback",
+            "pdf_ocr_backend_text_empty_page",
+            "pdf_ocr_fast_text_source_converter",
+        } and value in {"disabled", "fixed", "default"}:
             continue
         if value is not None:
             env[key] = str(value)

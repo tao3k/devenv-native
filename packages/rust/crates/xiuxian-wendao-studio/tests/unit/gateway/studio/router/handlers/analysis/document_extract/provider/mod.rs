@@ -14,7 +14,9 @@ use super::{
 #[cfg(feature = "document-extract-pdf-source-range")]
 use super::{
     DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER_ENV,
     DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV, HybridDocumentResourceBatch,
@@ -33,10 +35,11 @@ use super::{
     hybrid_page_ocr_region_context_ratio_with_lookup,
     hybrid_page_ocr_region_requests_for_source_with_lookup,
     hybrid_page_ocr_render_profile_with_lookup, hybrid_page_ocr_render_selection_with_lookup,
-    hybrid_page_ocr2_region_planner_with_lookup, hybrid_pdf_backend_text_topup_with_lookup,
-    merge_ocr2_recovery_page_inputs, validate_hybrid_page_coverage, validate_hybrid_precision_gate,
-    validate_hybrid_shard_coverage, validate_ocr_results_match_inputs,
-    validate_successful_ocr_results, write_hybrid_document_resource_artifacts,
+    hybrid_page_ocr2_region_patch_sizing_with_lookup, hybrid_page_ocr2_region_planner_with_lookup,
+    hybrid_pdf_backend_text_topup_with_lookup, merge_ocr2_recovery_page_inputs,
+    validate_hybrid_page_coverage, validate_hybrid_precision_gate, validate_hybrid_shard_coverage,
+    validate_ocr_results_match_inputs, validate_successful_ocr_results,
+    write_hybrid_document_resource_artifacts,
 };
 
 #[cfg(feature = "document-extract-audio-shards")]

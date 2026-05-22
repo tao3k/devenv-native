@@ -9,3 +9,4 @@ mod recovery;
 mod signal_inventory;
 mod support;
 mod timer_inventory;
+mod worker_lifecycle;

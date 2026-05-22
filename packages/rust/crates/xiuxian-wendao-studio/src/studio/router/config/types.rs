@@ -87,6 +87,7 @@ pub(crate) struct WendaoTomlWendaoGraphOntologyReadModelQualityConfig {
 
 /// Normalized `WendaoGraph` ontology read-model quality endpoint settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(any(test, feature = "julia"))]
 pub(crate) struct WendaoGraphOntologyReadModelQualityEndpointConfig {
     pub(crate) base_url: String,
     pub(crate) timeout_seconds: Option<u64>,

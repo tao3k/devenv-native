@@ -39,9 +39,12 @@ use super::{
     failed_page_recovery_mode_with_lookup, has_ocr2_recovery_page_candidates,
     has_unhandled_non_success_result, hybrid_page_ocr_artifact_cache_key_for_test,
     hybrid_page_ocr_artifact_cache_response_for_test,
+    hybrid_page_ocr_render_failure_requires_fail_fast_with_lookup,
     materialize_hybrid_page_ocr_resource_batch_from_results,
-    normalize_docling_page_range_wrapper_rows, ocr2_region_render_cache_key,
-    ocr2_region_scaffold_payload, page_range_docling_fallback_chunk_summary, read_arrow_file,
+    normalize_docling_page_range_wrapper_rows,
+    ocr2_region_render_ahead_limit_for_capacity_with_lookup, ocr2_region_render_cache_key,
+    ocr2_region_render_cache_key_with_source_hash, ocr2_region_scaffold_payload,
+    page_range_docling_fallback_chunk_summary, read_arrow_file,
     record_ocr_scheduler_or_docling_fallback_phase, record_ocr2_region_pipeline_batch_result,
     scheduled_inputs_without_docling_page_range_fallback_pages,
     store_hybrid_page_ocr_artifact_cache_for_test,
@@ -67,6 +70,7 @@ include!("docling_structure_budget.rs");
 include!("resource_rows.rs");
 include!("region_cache_pipeline.rs");
 include!("artifact_cache.rs");
+include!("render_fail_fast.rs");
 
 fn scaffold_enabled_lookup(key: &str) -> Option<String> {
     (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV)

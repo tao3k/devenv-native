@@ -43,7 +43,9 @@ pub(super) use types::{
 
 #[cfg(test)]
 pub(super) use types::{
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
 };
@@ -67,6 +69,7 @@ pub(super) use render::{
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
     automatic_ocr2_recovery_region_requests_with_lookup,
     hybrid_page_ocr_region_context_ratio_with_lookup, hybrid_page_ocr_render_selection_with_lookup,
+    hybrid_page_ocr2_region_patch_sizing_with_lookup,
 };
 #[cfg(test)]
 pub(super) use route::{has_ocr2_recovery_page_candidates, merge_ocr2_recovery_page_inputs};

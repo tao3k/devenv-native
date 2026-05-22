@@ -44,6 +44,14 @@ impl FlightRoutePayloadCache {
         self.payloads.lock().await.get(cache_key).cloned()
     }
 
+    pub(super) async fn insert_alias(&self, cache_key: String, payload: Arc<FlightRoutePayload>) {
+        let mut payloads = self.payloads.lock().await;
+        if payloads.len() >= MAX_CACHED_ROUTE_PAYLOADS {
+            payloads.clear();
+        }
+        payloads.insert(cache_key, payload);
+    }
+
     pub(super) async fn insert_handoff(&self, cache_key: String, payload: Arc<FlightRoutePayload>) {
         let mut handoffs = self.handoffs.lock().await;
         let now = Instant::now();

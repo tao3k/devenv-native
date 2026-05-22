@@ -108,6 +108,13 @@ fn gateway_flight_runtime_knobs_clamp_invalid_or_out_of_range_values() {
         }),
         5
     );
+    assert_eq!(
+        gateway_flight_request_timeout_secs_with_lookup(22, &|key| match key {
+            "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS" => Some("1200".to_string()),
+            _ => None,
+        }),
+        900
+    );
 }
 
 #[test]

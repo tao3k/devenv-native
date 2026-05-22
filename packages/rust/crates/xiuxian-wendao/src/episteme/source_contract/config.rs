@@ -20,6 +20,10 @@ pub struct EpistemeRuntimeConfig {
     pub evidence_selection_runs: Option<PathBuf>,
     /// Resolved extraction run root.
     pub extraction_runs: Option<PathBuf>,
+    /// Resolved ontology candidate generation run root.
+    pub ontology_generation_runs: Option<PathBuf>,
+    /// Resolved legacy Office converter executable or wrapper path.
+    pub legacy_office_converter: Option<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,6 +44,10 @@ struct EpistemeRuntimeDefaults {
     evidence_selection_runs: Option<PathBuf>,
     #[serde(rename = "extraction_run_root")]
     extraction_runs: Option<PathBuf>,
+    #[serde(rename = "ontology_generation_run_root")]
+    ontology_generation_runs: Option<PathBuf>,
+    #[serde(rename = "legacy_office_converter")]
+    legacy_office_converter: Option<PathBuf>,
 }
 
 /// Load optional episteme runtime defaults from `<episteme-root>/episteme.toml`.
@@ -73,6 +81,14 @@ pub fn load_episteme_runtime_config(
             parsed.runtime.evidence_selection_runs,
         ),
         extraction_runs: resolve_config_path(episteme_root, parsed.runtime.extraction_runs),
+        ontology_generation_runs: resolve_config_path(
+            episteme_root,
+            parsed.runtime.ontology_generation_runs,
+        ),
+        legacy_office_converter: resolve_config_path(
+            episteme_root,
+            parsed.runtime.legacy_office_converter,
+        ),
     }))
 }
 

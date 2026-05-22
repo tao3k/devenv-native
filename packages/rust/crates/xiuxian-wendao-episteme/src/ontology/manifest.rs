@@ -12,6 +12,9 @@ use thiserror::Error;
 /// Repository-relative ontology manifest path used by Episteme repositories.
 pub const ONTOLOGY_MANIFEST_RELATIVE_PATH: &str = "ontology/manifest.toml";
 const SOURCE_CONTRACT_ARTIFACT_MODE: &str = "source_contract";
+const PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE: &str = "private_source_contract";
+const EPISTEME_DOMAIN_SCHEME: &str = "episteme://";
+const PRIVATE_DOMAIN_PREFIX: &str = "episteme://private/";
 
 /// Top-level source ontology manifest.
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq)]
@@ -23,8 +26,20 @@ pub struct EpistemeOntologyManifest {
     /// Human-readable description.
     #[serde(default)]
     pub description: Option<String>,
+    /// Optional primary human language for private or vertical ontology packs.
+    #[serde(default)]
+    pub primary_language: Option<String>,
+    /// Optional top-level artifact mode for private extension manifests.
+    #[serde(default)]
+    pub artifact_mode: Option<EpistemeOntologyArtifactMode>,
+    /// Optional top-level mutation flag for private extension manifests.
+    #[serde(default)]
+    pub mutation_allowed: Option<bool>,
     /// Ownership and mutation boundaries for the ontology source contract.
     pub boundaries: EpistemeOntologyBoundaries,
+    /// Optional private extension target declaration.
+    #[serde(default)]
+    pub extends: Option<EpistemeOntologyExtends>,
     /// Declared ontology domains.
     #[serde(default)]
     pub domains: Vec<EpistemeOntologyDomain>,
@@ -41,7 +56,8 @@ pub struct EpistemeOntologyManifest {
 pub struct EpistemeOntologyBoundaries {
     /// Source owner label.
     pub owner: String,
-    /// Artifact mode; must be `source_contract`.
+    /// Artifact mode; common manifests use `source_contract`.
+    #[serde(default = "default_source_contract_artifact_mode")]
     pub artifact_mode: EpistemeOntologyArtifactMode,
     /// Runtime compilation owner.
     pub runtime_compilation_owner: String,
@@ -49,7 +65,17 @@ pub struct EpistemeOntologyBoundaries {
     #[serde(default)]
     pub sql_execution_owner: Option<String>,
     /// Whether direct source mutation is allowed.
+    #[serde(default)]
     pub mutation_allowed: bool,
+    /// Common-domain owner for private extension manifests.
+    #[serde(default)]
+    pub common_domain_owner: Option<String>,
+    /// Raw corpus ownership policy for private extension manifests.
+    #[serde(default)]
+    pub raw_corpus_policy: Option<String>,
+    /// Whether raw cache rows may be promoted directly to RDF.
+    #[serde(default)]
+    pub raw_to_rdf_promotion_allowed: Option<bool>,
 }
 
 /// Typed ontology artifact-mode value.
@@ -65,6 +91,19 @@ impl EpistemeOntologyArtifactMode {
     }
 }
 
+fn default_source_contract_artifact_mode() -> EpistemeOntologyArtifactMode {
+    EpistemeOntologyArtifactMode(SOURCE_CONTRACT_ARTIFACT_MODE.to_string())
+}
+
+/// Private extension target declaration.
+#[derive(Debug, Clone, Deserialize, Eq, PartialEq)]
+pub struct EpistemeOntologyExtends {
+    /// Common manifest id being extended.
+    pub common_manifest: String,
+    /// Common ontology IRI being extended.
+    pub common_ontology_iri: String,
+}
+
 /// One ontology domain declaration.
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq)]
 pub struct EpistemeOntologyDomain {
@@ -77,7 +116,14 @@ pub struct EpistemeOntologyDomain {
     #[serde(default)]
     pub layer: Option<String>,
     /// Human-readable domain name.
+    #[serde(default)]
     pub name: String,
+    /// Primary Chinese domain label for Chinese-first private packs.
+    #[serde(default)]
+    pub name_zh: Option<String>,
+    /// English domain label for bilingual private packs.
+    #[serde(default)]
+    pub name_en: Option<String>,
     /// RDF source files relative to `ontology/`.
     #[serde(default)]
     pub rdf_files: Vec<String>,
@@ -96,6 +142,9 @@ pub struct EpistemeOntologyDomain {
     /// Mapping ledgers relative to `ontology/`.
     #[serde(default)]
     pub mapping_ledgers: Vec<String>,
+    /// Review ledgers relative to `ontology/`.
+    #[serde(default)]
+    pub review_ledgers: Vec<String>,
 }
 
 /// Typed ontology domain category value.
@@ -232,9 +281,12 @@ fn validate_manifest_shape(
     if manifest.boundaries.owner.trim().is_empty() {
         return Err(invalid_contract("boundaries.owner must not be blank"));
     }
-    if manifest.boundaries.artifact_mode.as_str() != SOURCE_CONTRACT_ARTIFACT_MODE {
+    let artifact_mode = effective_artifact_mode(manifest);
+    if artifact_mode != SOURCE_CONTRACT_ARTIFACT_MODE
+        && artifact_mode != PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE
+    {
         return Err(invalid_contract(format!(
-            "boundaries.artifact_mode must be `{SOURCE_CONTRACT_ARTIFACT_MODE}`"
+            "artifact mode must be `{SOURCE_CONTRACT_ARTIFACT_MODE}` or `{PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE}`"
         )));
     }
     if manifest
@@ -247,9 +299,18 @@ fn validate_manifest_shape(
             "boundaries.runtime_compilation_owner must not be blank",
         ));
     }
-    if manifest.boundaries.mutation_allowed {
+    if effective_mutation_allowed(manifest) {
         return Err(invalid_contract(
             "boundaries.mutation_allowed must be false for source ontology admission",
+        ));
+    }
+    if manifest
+        .boundaries
+        .raw_to_rdf_promotion_allowed
+        .unwrap_or(false)
+    {
+        return Err(invalid_contract(
+            "boundaries.raw_to_rdf_promotion_allowed must be false for source ontology admission",
         ));
     }
     if manifest.domains.is_empty() {
@@ -257,28 +318,78 @@ fn validate_manifest_shape(
             "manifest must declare at least one domain",
         ));
     }
-    validate_domain_ids(&manifest.domains)
+    validate_private_extension_shape(manifest, artifact_mode)?;
+    validate_domain_ids(&manifest.domains, artifact_mode)
 }
 
-fn validate_domain_ids(domains: &[EpistemeOntologyDomain]) -> Result<(), EpistemeOntologyError> {
+fn effective_artifact_mode(manifest: &EpistemeOntologyManifest) -> &str {
+    manifest
+        .artifact_mode
+        .as_ref()
+        .unwrap_or(&manifest.boundaries.artifact_mode)
+        .as_str()
+}
+
+fn effective_mutation_allowed(manifest: &EpistemeOntologyManifest) -> bool {
+    manifest
+        .mutation_allowed
+        .unwrap_or(manifest.boundaries.mutation_allowed)
+}
+
+fn validate_private_extension_shape(
+    manifest: &EpistemeOntologyManifest,
+    artifact_mode: &str,
+) -> Result<(), EpistemeOntologyError> {
+    if artifact_mode != PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE {
+        return Ok(());
+    }
+    let Some(extends) = &manifest.extends else {
+        return Err(invalid_contract(
+            "private source contracts must declare [extends]",
+        ));
+    };
+    if !extends.common_manifest.starts_with(EPISTEME_DOMAIN_SCHEME) {
+        return Err(invalid_contract(format!(
+            "extends.common_manifest must use {EPISTEME_DOMAIN_SCHEME} scheme: {}",
+            extends.common_manifest
+        )));
+    }
+    if extends.common_ontology_iri.trim().is_empty() {
+        return Err(invalid_contract(
+            "extends.common_ontology_iri must not be blank",
+        ));
+    }
+    if manifest
+        .primary_language
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default()
+        .is_empty()
+    {
+        return Err(invalid_contract(
+            "private source contracts must declare primary_language",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_domain_ids(
+    domains: &[EpistemeOntologyDomain],
+    artifact_mode: &str,
+) -> Result<(), EpistemeOntologyError> {
     let mut seen = BTreeSet::new();
     for domain in domains {
         if domain.id.trim().is_empty() {
             return Err(invalid_contract("domain id must not be blank"));
         }
-        if !domain.id.starts_with("episteme://") {
-            return Err(invalid_contract(format!(
-                "domain id must use episteme:// scheme: {}",
-                domain.id
-            )));
-        }
+        validate_domain_scheme(&domain.id, artifact_mode)?;
         if !seen.insert(domain.id.as_str()) {
             return Err(invalid_contract(format!(
                 "duplicate ontology domain id: {}",
                 domain.id
             )));
         }
-        if domain.name.trim().is_empty() {
+        if domain_display_name(domain).is_empty() {
             return Err(invalid_contract(format!(
                 "domain {} name must not be blank",
                 domain.id
@@ -286,6 +397,39 @@ fn validate_domain_ids(domains: &[EpistemeOntologyDomain]) -> Result<(), Epistem
         }
     }
     Ok(())
+}
+
+fn validate_domain_scheme(
+    domain_id: &str,
+    artifact_mode: &str,
+) -> Result<(), EpistemeOntologyError> {
+    match artifact_mode {
+        SOURCE_CONTRACT_ARTIFACT_MODE if domain_id.starts_with(EPISTEME_DOMAIN_SCHEME) => Ok(()),
+        SOURCE_CONTRACT_ARTIFACT_MODE => Err(invalid_contract(format!(
+            "domain id must use {EPISTEME_DOMAIN_SCHEME} scheme: {domain_id}"
+        ))),
+        PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE if domain_id.starts_with(PRIVATE_DOMAIN_PREFIX) => {
+            Ok(())
+        }
+        PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE => Err(invalid_contract(format!(
+            "private source-contract domain id must use {PRIVATE_DOMAIN_PREFIX} prefix: {domain_id}"
+        ))),
+        _ => Err(invalid_contract(format!(
+            "unsupported artifact mode for domain id validation: {artifact_mode}"
+        ))),
+    }
+}
+
+fn domain_display_name(domain: &EpistemeOntologyDomain) -> &str {
+    if !domain.name.trim().is_empty() {
+        return domain.name.trim();
+    }
+    domain
+        .name_zh
+        .as_deref()
+        .or(domain.name_en.as_deref())
+        .map(str::trim)
+        .unwrap_or_default()
 }
 
 fn validate_manifest_artifacts(
@@ -325,6 +469,7 @@ fn validate_domain_artifacts(
     validate_artifact_list(episteme_root, &domain.dataset_mappings, "dataset_mappings")?;
     validate_artifact_list(episteme_root, &domain.source_manifests, "source_manifests")?;
     validate_artifact_list(episteme_root, &domain.mapping_ledgers, "mapping_ledgers")?;
+    validate_artifact_list(episteme_root, &domain.review_ledgers, "review_ledgers")?;
 
     report.rdf_file_count += domain.rdf_files.len();
     report.rule_count += domain.rules.len();

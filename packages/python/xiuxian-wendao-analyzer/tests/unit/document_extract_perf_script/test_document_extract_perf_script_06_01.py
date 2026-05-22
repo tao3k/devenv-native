@@ -49,6 +49,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         pdf_ocr_worker="skip",
         pdf_ocr_workers="auto",
         pdf_ocr_prewarm_profile=["docling-fast-text-ocr"],
+        pdf_ocr_fast_text_source_converter="backend-table",
         pdf_ocr_backend_text_empty_page="verified-empty",
         local_python_ocr_endpoint_count=1,
         rust_pdf_ocr_workers=None,
@@ -114,12 +115,14 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
     assert payload["pdfOcrPrewarmPageIndex"] is None
     assert payload["pdfOcrPrewarmPageIndices"] is None
     assert payload["pdfOcrPrewarmEndpointCount"] is None
+    assert payload["pdfOcrFastTextSourceConverter"] == "backend-table"
     assert payload["pdfOcrBackendTextEmptyPage"] == "verified-empty"
     assert payload["rustPdfLocalBackendText"] == "rust-lopdf"
     assert payload["rustPdfLocalBackendTextEmpty"] == "fail-fast"
     assert payload["rustPdfLocalFastText"] == "rust-lopdf"
     assert payload["rustPdfFastTextSourceRangeSplit"] == "single-page"
     assert payload["rustPdfFastTextEndpointAffinity"] == "disabled"
+    assert payload["rustPdfOcrSchedulerLaneFairness"] == "disabled"
     assert payload["rustPdfBackendTextTopup"] == "disabled"
     assert payload["rustAudioSpeechSegmentsJsonl"] == str(tmp_path / "speech.jsonl")
     assert payload["rustAudioSpeechMergeGapMs"] == 500

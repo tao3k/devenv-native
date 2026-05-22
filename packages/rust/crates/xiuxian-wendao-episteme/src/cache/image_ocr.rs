@@ -4,11 +4,11 @@ use std::{collections::BTreeMap, fs, io::Read, path::Path};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use super::{
     materialization_support::{
-        display_path, increment, non_empty_or, normalized_text, sha256_text, write_json,
+        display_path, increment, non_empty_or, normalized_text, sha256_file, sha256_text,
+        write_json,
     },
     path::{resolve_existing_corpus_file, resolve_run_output_path},
     task::{EpistemeCacheTask, read_tasks_tsv, task_extension},
@@ -655,19 +655,4 @@ fn is_jpeg_sof_marker(marker: u8) -> bool {
         marker,
         0xc0 | 0xc1 | 0xc2 | 0xc3 | 0xc5 | 0xc6 | 0xc7 | 0xc9 | 0xca | 0xcb | 0xcd | 0xce | 0xcf
     )
-}
-
-fn sha256_file(path: &Path) -> Result<String> {
-    let mut file =
-        fs::File::open(path).with_context(|| format!("failed to open `{}`", path.display()))?;
-    let mut hasher = Sha256::new();
-    let mut buffer = vec![0u8; 1024 * 1024].into_boxed_slice();
-    loop {
-        let count = file.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        hasher.update(&buffer[..count]);
-    }
-    Ok(format!("{:x}", hasher.finalize()))
 }

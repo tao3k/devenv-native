@@ -42,9 +42,22 @@ fn ocr2_region_render_cache_key_tracks_source_profile_and_region() -> Result<(),
 
     let baseline =
         ocr2_region_render_cache_key(source.as_path(), &profile, std::slice::from_ref(&region))?;
+    let source_a_hash = format!("{:x}", <sha2::Sha256 as sha2::Digest>::digest(b"source-a"));
     assert_eq!(
         baseline,
-        ocr2_region_render_cache_key(source.as_path(), &profile, std::slice::from_ref(&region),)?
+        ocr2_region_render_cache_key_with_source_hash(
+            source_a_hash.as_str(),
+            &profile,
+            std::slice::from_ref(&region),
+        )?
+    );
+    assert_ne!(
+        baseline,
+        ocr2_region_render_cache_key_with_source_hash(
+            "different-source-hash",
+            &profile,
+            std::slice::from_ref(&region),
+        )?
     );
 
     let mut changed_region = region.clone();
@@ -160,4 +173,36 @@ fn ocr2_region_pipeline_batch_result_telemetry_splits_base_and_region() {
     assert!((phases["regionPipelineLastBaseResult"] - 1_250.0).abs() < f64::EPSILON);
     assert!((phases["regionPipelineFirstRegionResult"] - 2_500.0).abs() < f64::EPSILON);
     assert!((phases["regionPipelineLastRegionResult"] - 3_000.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn ocr2_region_render_ahead_reserves_endpoint_capacity_for_base_batch() {
+    let lookup = |key: &str| {
+        (key == "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD")
+            .then(|| "7".to_string())
+    };
+
+    assert_eq!(
+        ocr2_region_render_ahead_limit_for_capacity_with_lookup(7, 4, &lookup),
+        3
+    );
+    assert_eq!(
+        ocr2_region_render_ahead_limit_for_capacity_with_lookup(2, 8, &lookup),
+        2
+    );
+    assert_eq!(
+        ocr2_region_render_ahead_limit_for_capacity_with_lookup(7, 1, &lookup),
+        1
+    );
+    assert_eq!(
+        ocr2_region_render_ahead_limit_for_capacity_with_lookup(7, 4, &|_| None),
+        3
+    );
+    assert_eq!(
+        ocr2_region_render_ahead_limit_for_capacity_with_lookup(7, 4, &|key| {
+            (key == "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD")
+                .then(|| "1".to_string())
+        }),
+        1
+    );
 }

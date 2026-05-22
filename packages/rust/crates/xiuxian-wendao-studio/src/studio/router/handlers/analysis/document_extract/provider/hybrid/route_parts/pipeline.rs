@@ -9,11 +9,12 @@ use super::{
     hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_render_profile_with_lookup,
     materialize_hybrid_page_ocr_resource_batch,
     materialize_hybrid_page_ocr_resource_batch_from_results, materialize_ocr2_recovery_page_images,
-    ocr2_recovery_region_requests_for_inputs, ocr2_region_render_ahead_limit_with_lookup,
-    ocr2_region_render_cache_dir, ocr2_region_render_request_chunks_with_lookup,
+    ocr2_recovery_region_requests_for_inputs,
+    ocr2_region_render_ahead_limit_for_capacity_with_lookup,
+    ocr2_region_render_cache_dir_with_source_hash, ocr2_region_render_request_chunks_with_lookup,
     order_ocr_results_by_inputs, pdf_ocr_endpoint_urls, prepare_hosted_vlm_recovery_region_inputs,
-    read_arrow_file, record_phase_elapsed, render_pdf_region_shards,
-    write_ocr2_region_scaffold_sidecar_with_lookup,
+    read_arrow_file, record_phase_elapsed, render_pdf_region_shards_with_source_hash,
+    sha256_file_hex, write_ocr2_region_scaffold_sidecar_with_lookup,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use futures::future::{BoxFuture, FutureExt};
@@ -47,6 +48,7 @@ pub(super) struct ScheduledOcrBatch {
 #[cfg(feature = "document-extract-pdf-render")]
 struct Ocr2RegionPipelineDrainRequest<'a> {
     source_path: &'a Path,
+    source_content_hash: &'a str,
     page_count: u32,
     render_profile: &'a PdfPageRenderProfile,
     region_chunks: &'a [Vec<PdfPageRegionRenderRequest>],
@@ -136,14 +138,20 @@ pub(super) async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipel
     let region_chunks = ocr2_region_render_request_chunks_with_lookup(regions.as_slice(), &|key| {
         std::env::var(key).ok()
     });
-    let render_ahead_limit =
-        ocr2_region_render_ahead_limit_with_lookup(region_chunks.len(), &|key| {
-            std::env::var(key).ok()
-        });
+    let render_ahead_limit = ocr2_region_render_ahead_limit_for_capacity_with_lookup(
+        region_chunks.len(),
+        endpoint_urls.len(),
+        &|key| std::env::var(key).ok(),
+    );
+    let source_content_hash = sha256_file_hex(source_path.as_path())?;
+    stats.pipeline_planned_render_chunk_count = region_chunks.len();
+    stats.pipeline_endpoint_count = endpoint_urls.len();
+    stats.pipeline_render_ahead_limit = render_ahead_limit;
     let scheduler_started = Instant::now();
     let drain_output = drain_ocr2_region_pipeline(
         Ocr2RegionPipelineDrainRequest {
             source_path: source_path.as_path(),
+            source_content_hash: source_content_hash.as_str(),
             page_count: render_report.page_count,
             render_profile: &render_profile,
             region_chunks: region_chunks.as_slice(),
@@ -228,7 +236,7 @@ async fn drain_ocr2_region_pipeline<'a>(
         chunk_index: 0,
     };
     dispatch_base_ocr_batch(&request, &mut drain_state, base_inputs, scheduler_started);
-    fill_region_render_queue(&request, &mut drain_state);
+    fill_region_render_queue(&request, &mut drain_state, scheduler_started);
     while !drain_state.active_renders.is_empty() || !drain_state.pending_ocr.is_empty() {
         tokio::select! {
             render_join = drain_state.active_renders.next(), if !drain_state.active_renders.is_empty() => {
@@ -278,9 +286,12 @@ fn dispatch_base_ocr_batch<'a>(
 fn fill_region_render_queue<'a>(
     request: &Ocr2RegionPipelineDrainRequest<'a>,
     state: &mut Ocr2RegionPipelineDrainState<'a>,
+    scheduler_started: Instant,
 ) {
+    let chunk_index_before = state.chunk_index;
     fill_ocr2_region_render_ahead(
         request.source_path,
+        request.source_content_hash,
         request.page_count,
         request.render_profile,
         request.region_chunks,
@@ -288,6 +299,24 @@ fn fill_region_render_queue<'a>(
         request.render_ahead_limit,
         &mut state.active_renders,
     );
+    let spawned_count = state.chunk_index.saturating_sub(chunk_index_before);
+    if spawned_count > 0 {
+        let spawn_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
+        state.stats.pipeline_render_spawn_count = state
+            .stats
+            .pipeline_render_spawn_count
+            .saturating_add(spawned_count);
+        if state.stats.pipeline_render_spawn_count == spawned_count {
+            state.phase_elapsed_ms.insert(
+                "regionPipelineFirstRenderSpawn".to_string(),
+                spawn_elapsed_ms,
+            );
+        }
+        state.phase_elapsed_ms.insert(
+            "regionPipelineLastRenderSpawn".to_string(),
+            spawn_elapsed_ms,
+        );
+    }
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
@@ -318,7 +347,7 @@ fn handle_ready_region_render<'a>(
         state.stats,
     )?;
     dispatch_region_ocr_batch(request, state, region_inputs, scheduler_started);
-    fill_region_render_queue(request, state);
+    fill_region_render_queue(request, state, scheduler_started);
     Ok(())
 }
 
@@ -378,6 +407,7 @@ fn handle_completed_ocr_batch(
 #[cfg(feature = "document-extract-pdf-render")]
 pub(super) fn fill_ocr2_region_render_ahead(
     source_path: &Path,
+    source_content_hash: &str,
     page_count: u32,
     render_profile: &PdfPageRenderProfile,
     region_chunks: &[Vec<PdfPageRegionRenderRequest>],
@@ -390,6 +420,7 @@ pub(super) fn fill_ocr2_region_render_ahead(
     while active_renders.len() < render_ahead_limit {
         let Some(render) = spawn_next_ocr2_region_render_chunk(
             source_path,
+            source_content_hash,
             page_count,
             render_profile,
             region_chunks,
@@ -482,6 +513,7 @@ pub(super) fn collect_scheduled_ocr_batch(
 #[cfg(feature = "document-extract-pdf-render")]
 pub(super) fn spawn_next_ocr2_region_render_chunk(
     source_path: &Path,
+    source_content_hash: &str,
     page_count: u32,
     render_profile: &PdfPageRenderProfile,
     region_chunks: &[Vec<PdfPageRegionRenderRequest>],
@@ -490,10 +522,11 @@ pub(super) fn spawn_next_ocr2_region_render_chunk(
     let regions = region_chunks.get(*chunk_index)?.clone();
     *chunk_index = (*chunk_index).saturating_add(1);
     let source_path = source_path.to_path_buf();
+    let source_content_hash = source_content_hash.to_string();
     let render_profile = render_profile.clone();
     Some(tokio::spawn(async move {
-        let output_dir = ocr2_region_render_cache_dir(
-            source_path.as_path(),
+        let output_dir = ocr2_region_render_cache_dir_with_source_hash(
+            source_content_hash.as_str(),
             &render_profile,
             regions.as_slice(),
         )?;
@@ -515,11 +548,12 @@ pub(super) fn spawn_next_ocr2_region_render_chunk(
         let render_profile_for_render = render_profile;
         let regions_for_render = regions;
         let report = tokio::task::spawn_blocking(move || {
-            render_pdf_region_shards(
+            render_pdf_region_shards_with_source_hash(
                 source_for_render.as_path(),
                 output_for_render.as_path(),
                 &render_profile_for_render,
                 regions_for_render.as_slice(),
+                source_content_hash.as_str(),
             )
         })
         .await

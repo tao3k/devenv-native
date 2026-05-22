@@ -53,11 +53,51 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
         == 4.0
     )
     assert result["forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount"] == 6
+    assert result["forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"] == 125.0
+    assert (
+        result["forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"] == 2
+    )
+    assert result["forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] == 4
+    assert result["forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"] == 3
+    assert result["forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"] == 2
+    assert result["forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"] == 2
+    assert result["forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"] == 2
     assert (
         result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount"] == 6
     )
     assert (
         result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount"] == 0
+    )
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"]
+        == 0.0
+    )
+    assert (
+        result[
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
+        ]
+        == 2
+    )
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] == 4
+    )
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"]
+        == 3
+    )
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"]
+        == 2
+    )
+    assert (
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"]
+        == 2
+    )
+    assert (
+        result[
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
+        ]
+        == 2
     )
     assert result["artifactRegistryReuseEnabled"] is True
     assert result["artifactRegistryReuseForceMs"] == 9.0
@@ -66,6 +106,18 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
     assert result["metricsRows"] == 21
     assert result["metricsResultChars"] == 2048
     assert result["metricsBboxCount"] == 21
+    assert (
+        result["forceHybridPageOcrTimingSchedulerTraceSummary"][
+            "sourceRangeLongestOcrProfile"
+        ]
+        == "docling-fast-text-ocr"
+    )
+    assert (
+        result["forceHybridPageOcrTimingSchedulerTraceSummary"][
+            "sourceRangeLongestShardType"
+        ]
+        == "page"
+    )
     assert result["structureAuthorityPages"] == 2
     assert result["textShortcutPages"] == 4
     assert result["ocrPatchRegions"] == 3

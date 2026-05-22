@@ -3,7 +3,7 @@
 use crate::{
     ActivityId, ActivityType, ArtifactId, ArtifactKind, ErrorCode, EvidenceId, GateName,
     IdempotencyKey, LeaseId, LlmModelId, RunId, SignalName, StepId, TaskQueue, TimerId, VersionKey,
-    WorkerId,
+    WorkerActivityTask, WorkerId,
 };
 use crate::{ControlError, ControlResult};
 
@@ -746,6 +746,22 @@ pub struct RunnableStep {
     pub metadata: serde_json::Value,
 }
 
+/// Runnable activity task entry for hot-state queues.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct RunnableActivityTask {
+    /// Worker-facing durable task envelope.
+    pub task: WorkerActivityTask,
+    /// Higher values are acquired first.
+    #[serde(default)]
+    pub priority: i64,
+    /// Earliest acquisition time.
+    #[serde(default)]
+    pub not_before_ms: u64,
+    /// Extension metadata for hot-state delivery.
+    #[serde(default)]
+    pub metadata: serde_json::Value,
+}
+
 /// Worker requesting hot-state leases.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WorkerRef {
@@ -784,6 +800,34 @@ impl StepLease {
     }
 }
 
+/// Active activity-task lease.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ActivityTaskLease {
+    /// Lease id.
+    pub lease_id: LeaseId,
+    /// Owning run id.
+    pub run_id: RunId,
+    /// Owning step id when the activity is step-scoped.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_id: Option<StepId>,
+    /// Leased activity id.
+    pub activity_id: ActivityId,
+    /// Owning worker id.
+    pub worker_id: WorkerId,
+    /// Acquisition timestamp.
+    pub acquired_at_ms: u64,
+    /// Expiry timestamp.
+    pub expires_at_ms: u64,
+}
+
+impl ActivityTaskLease {
+    /// Returns true when the lease is still valid at `now_ms`.
+    #[must_use]
+    pub const fn is_active_at(&self, now_ms: u64) -> bool {
+        now_ms < self.expires_at_ms
+    }
+}
+
 /// Worker heartbeat stored in hot state.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WorkerHeartbeat {
@@ -809,6 +853,12 @@ pub struct HotStateSnapshot {
     /// Steps currently protected by active or expired leases.
     #[serde(default)]
     pub leased_steps: Vec<HotStateLeasedStep>,
+    /// Activity tasks currently waiting in the hot activity queue.
+    #[serde(default)]
+    pub pending_activity_tasks: Vec<RunnableActivityTask>,
+    /// Activity tasks currently protected by active or expired leases.
+    #[serde(default)]
+    pub leased_activity_tasks: Vec<HotStateLeasedActivityTask>,
     /// Worker heartbeat payloads still visible in hot state.
     #[serde(default)]
     pub worker_heartbeats: Vec<WorkerHeartbeat>,
@@ -822,6 +872,8 @@ impl HotStateSnapshot {
             observed_at_ms,
             pending_steps: Vec::new(),
             leased_steps: Vec::new(),
+            pending_activity_tasks: Vec::new(),
+            leased_activity_tasks: Vec::new(),
             worker_heartbeats: Vec::new(),
         }
     }
@@ -841,6 +893,21 @@ impl HotStateSnapshot {
         self.leased_steps.len() - self.active_lease_count()
     }
 
+    /// Returns active activity-task lease count at the snapshot timestamp.
+    #[must_use]
+    pub fn active_activity_task_lease_count(&self) -> usize {
+        self.leased_activity_tasks
+            .iter()
+            .filter(|leased| leased.lease.is_active_at(self.observed_at_ms))
+            .count()
+    }
+
+    /// Returns expired activity-task lease count at the snapshot timestamp.
+    #[must_use]
+    pub fn expired_activity_task_lease_count(&self) -> usize {
+        self.leased_activity_tasks.len() - self.active_activity_task_lease_count()
+    }
+
     /// Returns live heartbeat count at the snapshot timestamp.
     #[must_use]
     pub fn live_heartbeat_count(&self) -> usize {
@@ -858,4 +925,13 @@ pub struct HotStateLeasedStep {
     pub step: RunnableStep,
     /// Current lease payload.
     pub lease: StepLease,
+}
+
+/// One leased hot-state activity task plus its original runnable payload.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct HotStateLeasedActivityTask {
+    /// Original runnable activity task payload.
+    pub activity_task: RunnableActivityTask,
+    /// Current lease payload.
+    pub lease: ActivityTaskLease,
 }

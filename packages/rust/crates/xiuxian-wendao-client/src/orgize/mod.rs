@@ -14,4 +14,6 @@ pub use command::{
     OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskListView,
     OrgizeTaskReportArgs,
 };
+#[cfg(all(feature = "performance", feature = "orgize-agent-read-model"))]
+pub use read_model::perf_support;
 pub(crate) use run::run_command;

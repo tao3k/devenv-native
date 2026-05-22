@@ -10,34 +10,32 @@ use xiuxian_wendao_parsers::{
 use crate::orgize::{
     OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs,
 };
-use crate::{ClientContext, CommandOutcome};
+use crate::{ClientContext, CommandOutcome, OutputFormat};
 
-use super::archive::apply_archive_plan;
+use super::archive::{ArchiveApplyReport, apply_archive_plan};
 use super::filter::{
     filter_archive_rows, filter_report_rows, filter_task_rows, task_row_has_tag,
     task_row_is_archive_candidate, task_row_is_closure_needed, task_row_is_repeating,
 };
+use super::json::{
+    ArchiveApplyJsonContext, TaskListJsonContext, TaskReportCounts, emit_task_archive_apply_json,
+    emit_task_archive_plan_json, emit_task_list_json, emit_task_report_json,
+};
 use super::model::{
     AGENT_ORG_TASKS_TABLE, AgentOrgReadModelMaterializationReport, ResolvedReadModelSettings,
+    TaskQuerySnapshot,
 };
 use super::render::{
     render_archive_plan_row, render_archive_target_summary, render_report_section,
     render_tag_counts, render_task_list_row,
 };
+use super::row_view::{display_source_path, task_list_view_label};
 use super::settings::{resolve_read_model_settings, resolve_source_paths};
 use super::store::{
-    open_read_model_connection, open_read_model_read_only_connection, query_agent_org_task_rows,
+    open_read_model_connection, open_read_model_read_only_connection,
+    query_active_agent_org_task_row_window, query_agent_org_task_rows,
     refresh_agent_org_read_model,
 };
-
-struct TaskQuerySnapshot {
-    settings: ResolvedReadModelSettings,
-    source_paths: Vec<PathBuf>,
-    materialized: Option<AgentOrgReadModelMaterializationReport>,
-    snapshot_label: &'static str,
-    refresh_warning: Option<String>,
-    rows: Vec<super::model::AgentOrgTaskListRow>,
-}
 
 pub(crate) fn run_read_model(
     args: &OrgizeReadModelArgs,
@@ -61,51 +59,121 @@ pub(crate) fn run_task_list(
     args: &OrgizeTaskListArgs,
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
+    if let Some(outcome) = try_run_cached_active_task_list_fast_path(args, context)? {
+        return Ok(outcome);
+    }
+
     let snapshot = open_task_query_snapshot(&args.paths, context, args.cached)?;
     let filtered = filter_task_rows(&snapshot.rows, args);
     let limit = args.limit;
-    let shown = filtered.iter().take(limit).collect::<Vec<_>>();
+    let shown = filtered.iter().take(limit).copied().collect::<Vec<_>>();
+    let active = filtered
+        .iter()
+        .filter(|row| !row.is_done && !row.archived)
+        .count();
+    let done = filtered.iter().filter(|row| row.is_done).count();
+    let archived = filtered.iter().filter(|row| row.archived).count();
+
+    if context.output() != OutputFormat::Text {
+        emit_task_list_json(&TaskListJsonContext {
+            args,
+            snapshot: &snapshot,
+            rows: filtered.len(),
+            showing: shown.len(),
+            active,
+            done,
+            archived,
+            shown: &shown,
+            context,
+        })?;
+        return Ok(CommandOutcome::success());
+    }
 
     println!("orgize agent task-list");
     println!("backend: duckdb");
     if let Some(view) = args.view {
-        println!("view: {}", view_label(view));
+        println!("view: {}", task_list_view_label(view));
     }
     render_snapshot_header(&snapshot);
     println!("table: {AGENT_ORG_TASKS_TABLE}");
     println!("rows: {}", filtered.len());
     println!("showing: {}", shown.len());
-    println!(
-        "active: {}",
-        filtered
-            .iter()
-            .filter(|row| !row.is_done && !row.archived)
-            .count()
-    );
-    println!(
-        "done: {}",
-        filtered.iter().filter(|row| row.is_done).count()
-    );
-    println!(
-        "archived: {}",
-        filtered.iter().filter(|row| row.archived).count()
-    );
+    println!("active: {active}");
+    println!("done: {done}");
+    println!("archived: {archived}");
     for (index, row) in shown.iter().enumerate() {
         render_task_list_row(index + 1, row, context);
     }
     Ok(CommandOutcome::success())
 }
 
-fn view_label(view: crate::orgize::OrgizeTaskListView) -> &'static str {
-    match view {
-        crate::orgize::OrgizeTaskListView::Active => "active",
-        crate::orgize::OrgizeTaskListView::Done => "done",
-        crate::orgize::OrgizeTaskListView::Archived => "archived",
-        crate::orgize::OrgizeTaskListView::Achievement => "achievement",
-        crate::orgize::OrgizeTaskListView::ArchiveCandidate => "archive-candidate",
-        crate::orgize::OrgizeTaskListView::ClosureNeeded => "closure-needed",
-        crate::orgize::OrgizeTaskListView::Repeating => "repeating",
+fn try_run_cached_active_task_list_fast_path(
+    args: &OrgizeTaskListArgs,
+    context: &ClientContext,
+) -> Result<Option<CommandOutcome>> {
+    if !can_use_cached_active_task_list_fast_path(args) {
+        return Ok(None);
     }
+    let settings = resolve_read_model_settings(context)?;
+    let Some(connection) = open_read_model_read_only_connection(&settings)? else {
+        return Ok(None);
+    };
+    let source_paths = resolve_source_paths(&args.paths, context, settings.cache_home.as_path());
+    let window = query_active_agent_org_task_row_window(&connection, &source_paths, args.limit)?;
+    let active = window.total_rows;
+    let rows = window.rows;
+    let snapshot = TaskQuerySnapshot {
+        settings,
+        source_paths,
+        materialized: None,
+        snapshot_label: "cached",
+        refresh_warning: None,
+        rows: rows.clone(),
+    };
+    let shown = rows.iter().collect::<Vec<_>>();
+
+    if context.output() != OutputFormat::Text {
+        emit_task_list_json(&TaskListJsonContext {
+            args,
+            snapshot: &snapshot,
+            rows: active,
+            showing: shown.len(),
+            active,
+            done: 0,
+            archived: 0,
+            shown: &shown,
+            context,
+        })?;
+        return Ok(Some(CommandOutcome::success()));
+    }
+
+    println!("orgize agent task-list");
+    println!("backend: duckdb");
+    if let Some(view) = args.view {
+        println!("view: {}", task_list_view_label(view));
+    }
+    render_snapshot_header(&snapshot);
+    println!("table: {AGENT_ORG_TASKS_TABLE}");
+    println!("rows: {active}");
+    println!("showing: {}", shown.len());
+    println!("active: {active}");
+    println!("done: 0");
+    println!("archived: 0");
+    for (index, row) in shown.iter().enumerate() {
+        render_task_list_row(index + 1, row, context);
+    }
+    Ok(Some(CommandOutcome::success()))
+}
+
+fn can_use_cached_active_task_list_fast_path(args: &OrgizeTaskListArgs) -> bool {
+    args.cached
+        && args.text.is_none()
+        && args.tags.is_empty()
+        && !args.include_done
+        && !args.include_archived
+        && args
+            .view
+            .is_none_or(|view| view == crate::orgize::OrgizeTaskListView::Active)
 }
 
 pub(crate) fn run_task_report(
@@ -151,10 +219,28 @@ pub(crate) fn run_task_report(
         .copied()
         .collect::<Vec<_>>();
 
+    if context.output() != OutputFormat::Text {
+        let counts = TaskReportCounts {
+            rows: filtered.len(),
+            active: active_rows.len(),
+            done: done_rows.len(),
+            archived: archived_rows.len(),
+            achievements: achievements.len(),
+            archive_candidates: archive_candidates.len(),
+            repeating: repeating_rows.len(),
+            closure_needed: closure_needed_rows.len(),
+        };
+        emit_task_report_json(args, &snapshot, &counts, &filtered, context.output())?;
+        return Ok(CommandOutcome::success());
+    }
+
     println!("orgize agent task-report");
     println!("backend: duckdb");
     if let Some(view) = args.view {
-        println!("view: {}", view_label(view));
+        println!("view: {}", task_list_view_label(view));
+    }
+    if args.summary_only {
+        println!("summary-only: true");
     }
     render_snapshot_header(&snapshot);
     println!("table: {AGENT_ORG_TASKS_TABLE}");
@@ -167,6 +253,9 @@ pub(crate) fn run_task_report(
     println!("repeating: {}", repeating_rows.len());
     println!("closure-needed: {}", closure_needed_rows.len());
     render_tag_counts(&filtered);
+    if args.summary_only {
+        return Ok(CommandOutcome::success());
+    }
     render_report_section("Closure Needed", &closure_needed_rows, limit, context);
     render_report_section("Archive Candidates", &archive_candidates, limit, context);
     render_report_section("Achievements", &achievements, limit, context);
@@ -183,6 +272,27 @@ pub(crate) fn run_task_archive(
     } else {
         open_task_query_snapshot(&args.paths, context, false)?
     };
+    let selection = select_archive_rows(&snapshot, args, context)?;
+    ensure_archive_selected_count(args, selection.selected.len())?;
+    if context.output() != OutputFormat::Text {
+        render_task_archive_json(args, &snapshot, &selection, context)?;
+        return Ok(CommandOutcome::success());
+    }
+
+    render_task_archive_text(args, &snapshot, &selection, context)?;
+    Ok(CommandOutcome::success())
+}
+
+struct TaskArchiveSelection<'a> {
+    candidates: Vec<&'a super::model::AgentOrgTaskListRow>,
+    selected: Vec<&'a super::model::AgentOrgTaskListRow>,
+}
+
+fn select_archive_rows<'a>(
+    snapshot: &'a TaskQuerySnapshot,
+    args: &OrgizeTaskArchiveArgs,
+    context: &ClientContext,
+) -> Result<TaskArchiveSelection<'a>> {
     let target = args.target.as_ref().map(|target| target.to_lowercase());
     let closed_before = args
         .closed_before
@@ -213,11 +323,64 @@ pub(crate) fn run_task_archive(
         .take(args.limit)
         .copied()
         .collect::<Vec<_>>();
+    Ok(TaskArchiveSelection {
+        candidates,
+        selected,
+    })
+}
 
+fn ensure_archive_selected_count(args: &OrgizeTaskArchiveArgs, selected: usize) -> Result<()> {
+    if let Some(expected) = args.expect_selected {
+        anyhow::ensure!(
+            selected == expected,
+            "archive selected row count mismatch: expected {expected}, selected {selected}",
+        );
+    }
+    Ok(())
+}
+
+fn render_task_archive_json(
+    args: &OrgizeTaskArchiveArgs,
+    snapshot: &TaskQuerySnapshot,
+    selection: &TaskArchiveSelection<'_>,
+    context: &ClientContext,
+) -> Result<()> {
+    if args.apply {
+        let apply_report = apply_archive_plan(&selection.selected, &snapshot.settings, context)?;
+        let refreshed = refresh_agent_org_read_model(&args.paths, context)?;
+        emit_task_archive_apply_json(&ArchiveApplyJsonContext {
+            args,
+            snapshot,
+            candidates: selection.candidates.len(),
+            selected: &selection.selected,
+            apply_report: &apply_report,
+            post_apply: &refreshed.materialized,
+            output: context.output(),
+            context,
+        })?;
+    } else {
+        emit_task_archive_plan_json(
+            args,
+            snapshot,
+            selection.candidates.len(),
+            &selection.selected,
+            context.output(),
+            context,
+        )?;
+    }
+    Ok(())
+}
+
+fn render_task_archive_text(
+    args: &OrgizeTaskArchiveArgs,
+    snapshot: &TaskQuerySnapshot,
+    selection: &TaskArchiveSelection<'_>,
+    context: &ClientContext,
+) -> Result<()> {
     println!("orgize agent task-archive");
     println!("backend: duckdb");
     println!("mode: {}", if args.apply { "apply" } else { "plan" });
-    render_snapshot_header(&snapshot);
+    render_snapshot_header(snapshot);
     println!("table: {AGENT_ORG_TASKS_TABLE}");
     if let Some(target) = args.target.as_deref() {
         println!("target-filter: {target}");
@@ -225,19 +388,49 @@ pub(crate) fn run_task_archive(
     if let Some(closed_before) = args.closed_before.as_deref() {
         println!("closed-before: {closed_before}");
     }
-    println!("candidates: {}", candidates.len());
-    println!("selected: {}", selected.len());
-    render_archive_target_summary(&selected, &snapshot.settings, context);
-    for (index, row) in selected.iter().enumerate() {
+    if let Some(expected) = args.expect_selected {
+        println!("expect-selected: {expected}");
+    }
+    println!("candidates: {}", selection.candidates.len());
+    println!("selected: {}", selection.selected.len());
+    render_archive_target_summary(&selection.selected, &snapshot.settings, context);
+    for (index, row) in selection.selected.iter().enumerate() {
         render_archive_plan_row(index + 1, row, &snapshot.settings, context);
     }
 
     if args.apply {
-        apply_archive_plan(&selected, &snapshot.settings, context)?;
-        println!("applied: {}", selected.len());
+        let apply_report = apply_archive_plan(&selection.selected, &snapshot.settings, context)?;
+        render_apply_report(&apply_report, context);
+        let refreshed = refresh_agent_org_read_model(&args.paths, context)?;
+        println!("post-apply-refresh: refreshed");
+        println!("post-apply-rows: {}", refreshed.materialized.rows);
+        println!("post-apply-active: {}", refreshed.materialized.active_rows);
+        println!("post-apply-done: {}", refreshed.materialized.done_rows);
+        println!(
+            "post-apply-archived: {}",
+            refreshed.materialized.archived_rows
+        );
     }
 
-    Ok(CommandOutcome::success())
+    Ok(())
+}
+
+fn render_apply_report(report: &ArchiveApplyReport, context: &ClientContext) {
+    println!("applied: {}", report.rows);
+    println!("sources-updated: {}", report.sources_updated.len());
+    for source in &report.sources_updated {
+        println!(
+            "- source: {}",
+            display_source_path(source.to_string_lossy().as_ref(), context)
+        );
+    }
+    println!("targets-updated: {}", report.targets_updated.len());
+    for target in &report.targets_updated {
+        println!(
+            "- target: {}",
+            display_source_path(target.to_string_lossy().as_ref(), context)
+        );
+    }
 }
 
 fn parse_iso_date_filter(value: &str) -> Result<&str> {

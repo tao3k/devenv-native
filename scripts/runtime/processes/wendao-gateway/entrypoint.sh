@@ -34,12 +34,17 @@ rm -f "$PIDFILE"
 export VALKEY_URL="${VALKEY_URL:-redis://127.0.0.1:6379/0}"
 export XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING="${XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING:-1}"
 export XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED="${XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED:-true}"
-export XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS="${XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS:-120}"
+export XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS="${XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS:-600}"
 export WENDAO_GATEWAY_PIDFILE="$PIDFILE"
 
 cd "$PROJECT_ROOT"
 if [ "$BUILD_ENABLED" != "0" ]; then
-  cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
+  if command -v cargo >/dev/null 2>&1; then
+    cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
+  elif [ ! -x "$WENDAO_BIN" ]; then
+    echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
+    exit 1
+  fi
 fi
 
 "$WENDAO_BIN" --conf "$CONFIG_PATH" gateway start \

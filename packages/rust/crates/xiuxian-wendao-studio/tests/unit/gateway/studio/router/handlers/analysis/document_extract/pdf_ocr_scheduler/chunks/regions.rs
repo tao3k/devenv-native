@@ -79,3 +79,19 @@ fn rendered_region_shard_chunks_group_same_page_regions_for_composite_canary() {
         ]
     );
 }
+
+#[test]
+fn rendered_region_dispatch_chunk_size_uses_rust_dispatch_env_only() {
+    assert_eq!(
+        rendered_region_dispatch_chunk_size_with_lookup(&|key| {
+            (key == "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE").then(|| "3".to_string())
+        }),
+        1
+    );
+    assert_eq!(
+        rendered_region_dispatch_chunk_size_with_lookup(&|key| {
+            (key == HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE_ENV).then(|| "3".to_string())
+        }),
+        3
+    );
+}

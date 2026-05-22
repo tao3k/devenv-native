@@ -116,8 +116,8 @@ fn spawn_in_process_linked_parser_summary_service()
 -> Result<(String, LinkedParserSummaryGuard), String> {
     #[cfg(not(feature = "julia"))]
     {
-        return spawn_fake_julia_parser_summary_service()
-            .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard }));
+        spawn_fake_julia_parser_summary_service()
+            .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard }))
     }
     #[cfg(feature = "julia")]
     {
@@ -163,7 +163,9 @@ fn configure_linked_parser_summary_base_url(base_url: &str) -> Result<(), String
         set_linked_modelica_parser_summary_base_url_for_tests(base_url)?;
     }
     #[cfg(not(feature = "julia"))]
-    let _ = base_url;
+    if base_url.trim().is_empty() {
+        return Err("linked parser summary base URL must not be empty".to_string());
+    }
     Ok(())
 }
 
@@ -205,7 +207,9 @@ fn configure_process_managed_parser_summary_base_url(base_url: &str) -> Result<(
             .map_err(|error| error.clone())?;
     }
     #[cfg(not(feature = "julia"))]
-    let _ = base_url;
+    if base_url.trim().is_empty() {
+        return Err("process-managed parser summary base URL must not be empty".to_string());
+    }
     Ok(())
 }
 

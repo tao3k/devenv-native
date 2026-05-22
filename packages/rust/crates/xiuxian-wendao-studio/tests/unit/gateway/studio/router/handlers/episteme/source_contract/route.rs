@@ -11,7 +11,7 @@ use crate::studio::router::studio_router;
 use super::support::EpistemeGatewayFixture;
 use super::{
     EPISTEME_EVIDENCE_READ_ROUTE, EPISTEME_EVIDENCE_SELECTION_PLAN_ROUTE,
-    EPISTEME_SOURCE_CONTRACT_RUN_PLAN_ROUTE,
+    EPISTEME_ONTOLOGY_REGISTRY_READ_MODEL_ROUTE, EPISTEME_SOURCE_CONTRACT_RUN_PLAN_ROUTE,
 };
 
 #[tokio::test]
@@ -52,6 +52,41 @@ async fn episteme_source_contract_gateway_route_writes_run_plan()
             .join("runs/extraction/gateway_route_seed/tasks.tsv")
             .is_file()
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn episteme_ontology_registry_gateway_route_admits_read_model()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fixture = EpistemeGatewayFixture::new()?;
+    fixture.write_contract()?;
+    fixture.write_ontology_registry_snapshot()?;
+
+    let body = serde_json::json!({
+        "epistemeRoot": "source-contract"
+    });
+    let request = axum::http::Request::builder()
+        .method("POST")
+        .uri(EPISTEME_ONTOLOGY_REGISTRY_READ_MODEL_ROUTE)
+        .header(axum::http::header::CONTENT_TYPE, "application/json")
+        .body(Body::from(body.to_string()))?;
+
+    let response = studio_router(fixture.gateway_state())
+        .oneshot(request)
+        .await?;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = to_bytes(response.into_body(), usize::MAX).await?;
+    let payload: serde_json::Value = serde_json::from_slice(&body)?;
+    assert_eq!(
+        payload["schemaVersion"],
+        "xiuxian_wendao.episteme_ontology_registry_read_model_admission.v1"
+    );
+    assert_eq!(payload["status"], "admitted");
+    assert_eq!(payload["rowCounts"]["semanticObjects"], 4);
+    assert_eq!(payload["rowCounts"]["semanticRelations"], 3);
+    assert_eq!(payload["rowCounts"]["semanticProjectionState"], 1);
 
     Ok(())
 }

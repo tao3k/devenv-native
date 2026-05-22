@@ -211,6 +211,30 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER"] = str(
             rust_pdf_hosted_vlm_region_planner
         )
+    rust_pdf_hosted_vlm_region_target_pixels = getattr(
+        args,
+        "rust_pdf_hosted_vlm_region_target_pixels",
+        None,
+    )
+    if (
+        rust_pdf_hosted_vlm_region_target_pixels is not None
+        and rust_pdf_hosted_vlm_region_target_pixels > 0
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS"] = str(
+            rust_pdf_hosted_vlm_region_target_pixels
+        )
+    rust_pdf_hosted_vlm_region_max_slices = getattr(
+        args,
+        "rust_pdf_hosted_vlm_region_max_slices",
+        None,
+    )
+    if (
+        rust_pdf_hosted_vlm_region_max_slices
+        and rust_pdf_hosted_vlm_region_max_slices > 0
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES"] = str(
+            rust_pdf_hosted_vlm_region_max_slices
+        )
     rust_pdf_hosted_vlm_region_pipeline = getattr(
         args,
         "rust_pdf_hosted_vlm_region_pipeline",
@@ -247,6 +271,35 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK"] = str(
             rust_pdf_hosted_vlm_region_render_chunk
         )
+    rust_pdf_region_render_mode = getattr(args, "rust_pdf_region_render_mode", None)
+    if rust_pdf_region_render_mode and rust_pdf_region_render_mode != "default":
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE"] = str(
+            rust_pdf_region_render_mode
+        )
+    rust_pdf_hosted_vlm_region_dispatch_chunk_size = getattr(
+        args,
+        "rust_pdf_hosted_vlm_region_dispatch_chunk_size",
+        None,
+    )
+    if (
+        rust_pdf_hosted_vlm_region_dispatch_chunk_size
+        and rust_pdf_hosted_vlm_region_dispatch_chunk_size > 1
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE"] = str(
+            rust_pdf_hosted_vlm_region_dispatch_chunk_size
+        )
+    rust_pdf_ocr_scheduler_lane_fairness = getattr(
+        args,
+        "rust_pdf_ocr_scheduler_lane_fairness",
+        None,
+    )
+    if (
+        rust_pdf_ocr_scheduler_lane_fairness
+        and rust_pdf_ocr_scheduler_lane_fairness != "disabled"
+    ):
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS"] = str(
+            rust_pdf_ocr_scheduler_lane_fairness
+        )
     hosted_vlm_ocr_scaffold_mode = getattr(args, "hosted_vlm_ocr_scaffold_mode", None)
     if hosted_vlm_ocr_scaffold_mode and hosted_vlm_ocr_scaffold_mode != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE"] = str(
@@ -263,6 +316,36 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
     ):
         env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] = str(
             hosted_vlm_ocr_region_composite_size
+        )
+    hosted_vlm_ocr_region_composite_mode = getattr(
+        args,
+        "hosted_vlm_ocr_region_composite_mode",
+        None,
+    )
+    if (
+        hosted_vlm_ocr_region_composite_mode
+        and hosted_vlm_ocr_region_composite_mode != "fixed"
+    ):
+        env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MODE"] = str(
+            hosted_vlm_ocr_region_composite_mode
+        )
+    hosted_vlm_ocr_region_composite_max_source_pixels = getattr(
+        args,
+        "hosted_vlm_ocr_region_composite_max_source_pixels",
+        None,
+    )
+    if hosted_vlm_ocr_region_composite_max_source_pixels:
+        env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_SOURCE_PIXELS"] = str(
+            hosted_vlm_ocr_region_composite_max_source_pixels
+        )
+    hosted_vlm_ocr_region_composite_max_image_bytes = getattr(
+        args,
+        "hosted_vlm_ocr_region_composite_max_image_bytes",
+        None,
+    )
+    if hosted_vlm_ocr_region_composite_max_image_bytes:
+        env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_IMAGE_BYTES"] = str(
+            hosted_vlm_ocr_region_composite_max_image_bytes
         )
     ocr_endpoint_pool = rust_pdf_ocr_endpoint_pool(args)
     if ocr_endpoint_pool:
@@ -345,6 +428,8 @@ def start_rust_provider_server(
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
+    if getattr(args, "require_pdfium", False):
+        env["WENDAO_PDF_RENDER_REQUIRE_PDFIUM"] = "1"
     apply_rust_pdf_ocr_env(args, env)
     apply_rust_audio_env(args, env)
     rust_provider_bin = getattr(args, "rust_provider_bin", None)
@@ -456,6 +541,8 @@ def start_gateway_server(
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
+    if getattr(args, "require_pdfium", False):
+        env["WENDAO_PDF_RENDER_REQUIRE_PDFIUM"] = "1"
     apply_rust_pdf_ocr_env(args, env)
     apply_rust_audio_env(args, env)
     gateway_args = [

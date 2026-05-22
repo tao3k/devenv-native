@@ -571,6 +571,39 @@ def run_fixture_probe(
         "forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount": force_artifact_summary[
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
         ],
+        "forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
+            force_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
+            ]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": (
+            force_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
+            ]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineEndpointCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": (
+            force_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"
+            ]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": (
+            force_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"
+            ]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": (
+            force_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"
+            ]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": (
+            force_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
+            ]
+        ),
         "structureAuthorityPages": force_artifact_summary["structureAuthorityPages"],
         "textShortcutPages": force_artifact_summary["textShortcutPages"],
         "ocrPatchRegions": force_artifact_summary["ocrPatchRegions"],
@@ -636,6 +669,55 @@ def run_fixture_probe(
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
             shard_cache_reuse_artifact_summary[
                 "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineEndpointCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
             ]
             if shard_cache_reuse_artifact_summary
             else None

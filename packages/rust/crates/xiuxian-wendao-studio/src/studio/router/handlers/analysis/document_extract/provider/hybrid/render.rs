@@ -15,7 +15,9 @@ use xiuxian_wendao_server::transport::DocumentExtractFlightRequest;
 
 use super::profile::{hybrid_page_ocr_profile_planner, is_hosted_vlm_topup_page};
 use super::types::{
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
     HybridPdfRegionInput,
@@ -33,6 +35,8 @@ const OCR2_AUTO_REGION_BOTTOM_RATIO: f64 = 0.30;
 const OCR2_AUTO_REGION_TOP_RATIO: f64 = 0.84;
 const OCR2_AUTO_REGION_SLICE_COUNT: u32 = 3;
 const OCR2_AUTO_REGION_TARGET_PIXELS: f64 = 2_250_000.0;
+const OCR2_AUTO_REGION_MAX_SLICES: u32 = 3;
+const OCR2_AUTO_REGION_MAX_SLICE_CAP: u32 = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum HybridPdfOcr2RegionPlanner {
@@ -40,6 +44,12 @@ pub(crate) enum HybridPdfOcr2RegionPlanner {
     ProfileRiskWindow,
     ProfileRiskWindowSlices,
     ProfileRiskWindowAdaptive,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct HybridPdfOcr2RegionPatchSizing {
+    pub(crate) target_pixels: f64,
+    pub(crate) max_slices: u32,
 }
 
 pub(crate) async fn render_hybrid_page_ocr_shards(
@@ -201,6 +211,7 @@ pub(crate) fn automatic_ocr2_recovery_region_requests_for_profiles_with_lookup(
         .iter()
         .map(|profile| (profile.page_index, profile))
         .collect::<BTreeMap<_, _>>();
+    let patch_sizing = hybrid_page_ocr2_region_patch_sizing_with_lookup(lookup);
     let regions = inputs
         .iter()
         .flat_map(|input| match planner {
@@ -216,6 +227,7 @@ pub(crate) fn automatic_ocr2_recovery_region_requests_for_profiles_with_lookup(
                 ocr2_recovery_content_adaptive_slices(
                     input,
                     profiles_by_page.get(&input.page_index).copied(),
+                    patch_sizing,
                 )
             }
             HybridPdfOcr2RegionPlanner::Disabled => Vec::new(),
@@ -243,6 +255,25 @@ pub(crate) fn hybrid_page_ocr2_region_planner_with_lookup(
             HybridPdfOcr2RegionPlanner::ProfileRiskWindowAdaptive
         }
         _ => HybridPdfOcr2RegionPlanner::Disabled,
+    }
+}
+
+pub(crate) fn hybrid_page_ocr2_region_patch_sizing_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> HybridPdfOcr2RegionPatchSizing {
+    let target_pixels = lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV)
+        .and_then(|value| value.trim().parse::<f64>().ok())
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .unwrap_or(OCR2_AUTO_REGION_TARGET_PIXELS);
+    let max_slices = lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV)
+        .and_then(|value| value.trim().parse::<u32>().ok())
+        .filter(|value| *value > 0)
+        .map_or(OCR2_AUTO_REGION_MAX_SLICES, |value| {
+            value.min(OCR2_AUTO_REGION_MAX_SLICE_CAP)
+        });
+    HybridPdfOcr2RegionPatchSizing {
+        target_pixels,
+        max_slices,
     }
 }
 
@@ -284,37 +315,45 @@ fn ocr2_recovery_content_slices(input: &PdfOcrShardInput) -> Vec<PdfPageRegionRe
 fn ocr2_recovery_content_adaptive_slices(
     input: &PdfOcrShardInput,
     profile: Option<&PdfSourcePageProfile>,
+    patch_sizing: HybridPdfOcr2RegionPatchSizing,
 ) -> Vec<PdfPageRegionRenderRequest> {
     let Some(band) = ocr2_recovery_content_band_region(input) else {
         return Vec::new();
     };
     let content_pixels = estimated_region_pixels(input, band.region_box);
-    let slice_count = adaptive_region_slice_count(content_pixels, profile);
+    let slice_count = adaptive_region_slice_count(content_pixels, profile, patch_sizing);
     ocr2_recovery_content_band_slices(&band, slice_count)
 }
 
-fn adaptive_region_slice_count(content_pixels: f64, profile: Option<&PdfSourcePageProfile>) -> u32 {
-    let pixel_slices = pixel_area_slice_count(content_pixels);
+fn adaptive_region_slice_count(
+    content_pixels: f64,
+    profile: Option<&PdfSourcePageProfile>,
+    patch_sizing: HybridPdfOcr2RegionPatchSizing,
+) -> u32 {
+    let pixel_slices = pixel_area_slice_count(content_pixels, patch_sizing);
     let Some(profile) = profile else {
         return pixel_slices;
     };
     if is_exact_structural_risk(profile) {
-        return pixel_slices.max(3);
+        return pixel_slices.max(3).min(patch_sizing.max_slices);
     }
-    if is_low_complexity_risk_neighbor(profile) {
+    if pixel_slices == 1 && is_low_complexity_risk_neighbor(profile) {
         return 1;
     }
     pixel_slices
 }
 
-fn pixel_area_slice_count(content_pixels: f64) -> u32 {
-    if content_pixels > OCR2_AUTO_REGION_TARGET_PIXELS * 2.0 {
-        3
-    } else if content_pixels > OCR2_AUTO_REGION_TARGET_PIXELS {
-        2
-    } else {
-        1
+fn pixel_area_slice_count(
+    content_pixels: f64,
+    patch_sizing: HybridPdfOcr2RegionPatchSizing,
+) -> u32 {
+    if !content_pixels.is_finite() || content_pixels <= 0.0 {
+        return 1;
     }
+    (content_pixels / patch_sizing.target_pixels)
+        .ceil()
+        .max(1.0)
+        .min(f64::from(patch_sizing.max_slices)) as u32
 }
 
 fn is_exact_structural_risk(profile: &PdfSourcePageProfile) -> bool {

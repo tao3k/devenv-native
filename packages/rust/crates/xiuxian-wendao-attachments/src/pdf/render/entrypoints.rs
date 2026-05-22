@@ -271,8 +271,41 @@ pub fn render_pdf_region_shards(
     let source_bytes =
         fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
     let source_hash = sha256_hex(&source_bytes);
+    render_pdf_region_shards_with_source_hash(path, output_dir, profile, regions, &source_hash)
+}
+
+/// # Errors
+///
+/// Returns an error if the requested regions cannot be rendered, or Arrow
+/// artifact files cannot be written. Missing `PDFium` libraries are represented
+/// as fallback reports rather than errors.
+#[cfg(feature = "pdf-render")]
+pub fn render_pdf_region_shards_with_source_hash(
+    path: &Path,
+    output_dir: &Path,
+    profile: &PdfPageRenderProfile,
+    regions: &[PdfPageRegionRenderRequest],
+    source_hash: &str,
+) -> Result<PdfPageRenderShardReport, String> {
+    let context = RenderShardContext::new(
+        path,
+        output_dir,
+        profile,
+        PdfPageRenderSelection::RegionShards,
+    );
+    if !is_pdf_path(path) {
+        return Ok(context.report(ReportParts::unsupported("unsupported non-PDF input")));
+    }
+    if regions.is_empty() {
+        return Ok(context.report(ReportParts::skipped(
+            0,
+            PdfRenderRoutingDecision::HybridPageOcrCandidate,
+            "no region shards requested".to_string(),
+        )));
+    }
+
     let (page_count, manifests) =
-        match render_pdfium_manifests_with_retry(path, &source_hash, |document, source_hash| {
+        match render_pdfium_manifests_with_retry(path, source_hash, |document, source_hash| {
             let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
             render_document_region_manifests(document, &context, source_hash, regions)
                 .map(|manifests| (page_count, manifests))

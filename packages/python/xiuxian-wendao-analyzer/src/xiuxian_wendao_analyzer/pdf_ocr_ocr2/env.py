@@ -2,22 +2,33 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
+from typing import Any
 
 from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_API_KEY_ENV,
+    HOSTED_VLM_OCR_COMPACT_REGION_MARKDOWN_PROMPT_MODE,
     HOSTED_VLM_OCR_DEFAULT_API_KEY,
     HOSTED_VLM_OCR_DEFAULT_IMAGE_OPTIMIZATION,
     HOSTED_VLM_OCR_DEFAULT_REGION_ATLAS_MODE,
+    HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MODE,
+    HOSTED_VLM_OCR_DEFAULT_REGION_PROMPT_MODE,
     HOSTED_VLM_OCR_DEFAULT_SCAFFOLD_MODE,
     HOSTED_VLM_OCR_IMAGE_OPTIMIZATION_ENV,
     HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV,
     HOSTED_VLM_OCR_OPENROUTER_HTTP_REFERER_ENV,
+    HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON_ENV,
     HOSTED_VLM_OCR_OPENROUTER_PUBLIC_API_KEY_ENV,
     HOSTED_VLM_OCR_OPENROUTER_TITLE_ENV,
     HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV,
     HOSTED_VLM_OCR_REGION_ATLAS_SAME_PAGE_JSON_MODE,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_ADAPTIVE_SMALL_REGION_MODE,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_DISABLED_MODE,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_FIXED_MODE,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_MODE_ENV,
+    HOSTED_VLM_OCR_REGION_PROMPT_MODE_ENV,
     HOSTED_VLM_OCR_REGION_TABLE_JSON_SCAFFOLD_MODE,
     HOSTED_VLM_OCR_REGION_WHITESPACE_TRIM_OPTIMIZATION,
     HOSTED_VLM_OCR_SCAFFOLD_MODE_ENV,
@@ -52,6 +63,25 @@ def openrouter_headers() -> dict[str, str]:
     if title:
         headers["X-OpenRouter-Title"] = title
     return headers
+
+
+def openrouter_provider_preferences_env() -> dict[str, Any] | None:
+    value = os.environ.get(HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON_ENV)
+    if value is None or not value.strip():
+        return None
+    try:
+        parsed = json.loads(_strip_wrapping_quotes(value.strip()))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"unsupported {HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON_ENV}: "
+            "expected a JSON object"
+        ) from exc
+    if not isinstance(parsed, dict) or not all(isinstance(key, str) for key in parsed):
+        raise ValueError(
+            f"unsupported {HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON_ENV}: "
+            "expected a JSON object with string keys"
+        )
+    return parsed
 
 
 def positive_int_env(key: str, default: int) -> int:
@@ -123,6 +153,53 @@ def region_atlas_mode_env() -> str:
     raise ValueError(
         f"unsupported {HOSTED_VLM_OCR_REGION_ATLAS_MODE_ENV}={value}; "
         "supported values: disabled, same-page-json"
+    )
+
+
+def region_composite_mode_env() -> str:
+    value = (
+        os.environ.get(
+            HOSTED_VLM_OCR_REGION_COMPOSITE_MODE_ENV,
+            HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MODE,
+        )
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if not value:
+        return HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MODE
+    if value in {
+        HOSTED_VLM_OCR_REGION_COMPOSITE_DISABLED_MODE,
+        HOSTED_VLM_OCR_REGION_COMPOSITE_FIXED_MODE,
+        HOSTED_VLM_OCR_REGION_COMPOSITE_ADAPTIVE_SMALL_REGION_MODE,
+    }:
+        return value
+    raise ValueError(
+        f"unsupported {HOSTED_VLM_OCR_REGION_COMPOSITE_MODE_ENV}={value}; "
+        "supported values: disabled, fixed, adaptive-small-region"
+    )
+
+
+def region_prompt_mode_env() -> str:
+    value = (
+        os.environ.get(
+            HOSTED_VLM_OCR_REGION_PROMPT_MODE_ENV,
+            HOSTED_VLM_OCR_DEFAULT_REGION_PROMPT_MODE,
+        )
+        .strip()
+        .replace("_", "-")
+        .lower()
+    )
+    if not value:
+        return HOSTED_VLM_OCR_DEFAULT_REGION_PROMPT_MODE
+    if value in {
+        HOSTED_VLM_OCR_DEFAULT_REGION_PROMPT_MODE,
+        HOSTED_VLM_OCR_COMPACT_REGION_MARKDOWN_PROMPT_MODE,
+    }:
+        return value
+    raise ValueError(
+        f"unsupported {HOSTED_VLM_OCR_REGION_PROMPT_MODE_ENV}={value}; "
+        "supported values: default, compact-region-markdown"
     )
 
 

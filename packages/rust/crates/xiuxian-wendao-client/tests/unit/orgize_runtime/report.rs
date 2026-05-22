@@ -117,6 +117,88 @@ fn standalone_orgize_task_report_named_views_limit_summary_scope() {
     );
 }
 
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_report_summary_only_omits_detail_sections() {
+    let temp = tempdir_or_panic();
+    write_task_report_named_views_fixture(temp.path());
+
+    let output = run_orgize(
+        temp.path(),
+        &["task-report", "--summary-only", "agenda.org"],
+        "task-report summary-only",
+    );
+    assert_cli_success(&output);
+    assert!(
+        output.stdout.contains("summary-only: true"),
+        "stdout: {}",
+        output.stdout
+    );
+    assert!(
+        output.stdout.contains("rows: 4"),
+        "stdout: {}",
+        output.stdout
+    );
+    assert!(
+        output.stdout.contains("archive-candidates: 2"),
+        "stdout: {}",
+        output.stdout
+    );
+    assert!(
+        output.stdout.contains("achievement: 1"),
+        "stdout: {}",
+        output.stdout
+    );
+    assert!(
+        !output.stdout.contains("Archive Candidates:"),
+        "stdout: {}",
+        output.stdout
+    );
+    assert!(
+        !output.stdout.contains("[TASK001]"),
+        "stdout: {}",
+        output.stdout
+    );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_report_json_outputs_summary_contract() {
+    let temp = tempdir_or_panic();
+    write_task_report_named_views_fixture(temp.path());
+
+    let output = Command::new(env!("CARGO_BIN_EXE_wendao-client"))
+        .env_remove("PRJ_CACHE_HOME")
+        .arg("--root")
+        .arg(temp.path())
+        .arg("--output")
+        .arg("json")
+        .arg("orgize")
+        .arg("task-report")
+        .arg("--summary-only")
+        .arg("agenda.org")
+        .output()
+        .unwrap_or_else(|error| panic!("run orgize task-report json: {error}"));
+    let stdout =
+        String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
+    let stderr =
+        String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|error| panic!("parse json: {error}"));
+    assert_eq!(parsed["command"], "orgize task-report");
+    assert_eq!(parsed["backend"], "duckdb");
+    assert_eq!(parsed["summaryOnly"], true);
+    assert_eq!(parsed["rows"], 4);
+    assert_eq!(parsed["archiveCandidates"], 2);
+    assert_eq!(parsed["tags"]["agent"], 4);
+    assert_eq!(parsed["sections"]["archiveCandidates"], 2);
+}
+
 fn write_task_report_named_views_fixture(root: &std::path::Path) {
     std::fs::write(
         root.join("agenda.org"),

@@ -214,7 +214,13 @@ status` command renders Org-native SDD
     default database is
     `$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb`. Optional
     path/runtime overrides belong in the `wendao.toml` `[agent.org_read_model]`
-    table through `database_path`, `temp_directory`, and `threads`.
+    table through `database_path`, `temp_directory`, and `threads`. The refresh
+    path uses DuckDB's native appender for materialization. The performance
+    profile is covered by
+    `cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_orgize`;
+    the current 1,024-row refresh plus cached-query profile is roughly
+    42-57 ms on the local benchmark fixture. The cached active recovery query
+    for a 20-row window is roughly 6.1-6.8 ms.
 
 Diagnostic rendering is split deliberately:
 

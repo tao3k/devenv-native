@@ -13,10 +13,13 @@ pub(crate) use commands::{
     DocsNodeArgs, DocsPageArgs, DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs,
     DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs, EpistemeCommand,
     EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
-    EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
-    EpistemeSourceContractCommand, EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
-    EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs, FixArgs, HmasCommand,
+    EpistemeEvidenceSelectionValidationModeArg, EpistemeGenerateOntologyCandidatesArgs,
+    EpistemePlanExtractionRunArgs, EpistemeReadEvidenceArgs, EpistemeReviewOntologyCandidatesArgs,
+    EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
+    EpistemeRunLegacyOfficeConversionArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
+    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
+    EpistemeWriteOntologyPromotionApplyPlanArgs, EpistemeWriteOntologyPromotionReviewArgs,
+    EpistemeWriteOntologyRdfDraftArgs, EpistemeWriteStructureTocArgs, FixArgs, HmasCommand,
     SaliencyCommand, SentinelArgs, SentinelCommand, SentinelWatchArgs,
 };
 #[cfg(feature = "zhenfa-router")]

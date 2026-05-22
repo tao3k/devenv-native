@@ -121,7 +121,7 @@ def _hosted_vlm_promotion_payload(
         "summary": summary,
         "hostedVlmOcr": {
             "provider": "openrouter",
-            "openRouterModel": "baidu/qianfan-ocr-fast:free",
+            "openRouterModel": "baidu/qianfan-ocr-fast",
             "openRouterApiKeyConfigured": True,
             "regionAtlasMode": region_atlas_mode,
             "scaffoldMode": scaffold_mode,

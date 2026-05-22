@@ -15,10 +15,19 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
 
     match args.get(2).map(String::as_str) {
         Some("activity") => parse_activity(args).map(Some),
+        Some("activity-claim") => super::activity_claim::parse(args).map(Some),
         Some("activity-complete") => super::activity_finish::parse_complete(args).map(Some),
         Some("activity-fail") => super::activity_finish::parse_fail(args).map(Some),
+        Some("activity-mirror") => super::activity_mirror::parse(args).map(Some),
         Some("activity-queue") => parse_activity_queue(args).map(Some),
+        Some("activity-reclaim") => super::activity_reclaim::parse(args).map(Some),
+        Some("activity-release") => super::activity_release::parse(args).map(Some),
+        Some("activity-schedule-llm") => super::activity_schedule_llm::parse(args).map(Some),
+        Some("activity-settle") => super::activity_settle::parse(args).map(Some),
         Some("activity-start") => super::activity_start::parse(args).map(Some),
+        Some("activity-take") => super::activity_take::parse(args).map(Some),
+        Some("activity-worker-loop") => super::activity_worker_loop::parse(args).map(Some),
+        Some("activity-worker-once") => super::activity_worker_once::parse(args).map(Some),
         Some("apply-recovery-plan") => parse_apply_recovery_plan(args).map(Some),
         Some("costs") => parse_costs(args).map(Some),
         Some("decision") => parse_decision(args).map(Some),
@@ -40,7 +49,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `activity-complete`, `activity-fail`, `activity-queue`, `activity-start`, `apply-recovery-plan`, `costs`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `query`, `recovery-snapshot`, `summary`, `signal`, `signals`, `step`, `timer`, `timers`, or `view`",
+            "missing `control` subcommand; expected `activity`, `activity-claim`, `activity-complete`, `activity-fail`, `activity-mirror`, `activity-queue`, `activity-reclaim`, `activity-release`, `activity-schedule-llm`, `activity-settle`, `activity-start`, `activity-take`, `activity-worker-loop`, `activity-worker-once`, `apply-recovery-plan`, `costs`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `query`, `recovery-snapshot`, `summary`, `signal`, `signals`, `step`, `timer`, `timers`, or `view`",
         )),
     }
 }

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_API_KEY_ENV,
@@ -14,10 +14,14 @@ from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_DEFAULT_MODEL,
     HOSTED_VLM_OCR_DEFAULT_PAGE_WINDOW_SIZE,
     HOSTED_VLM_OCR_DEFAULT_PROMPT,
+    HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MAX_IMAGE_BYTES,
+    HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MAX_SOURCE_PIXELS,
     HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_SIZE,
     HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS,
     HOSTED_VLM_OCR_DEFAULT_REQUEST_CONCURRENCY,
     HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_DELAY_SECONDS,
+    HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_MIN_IMAGE_BYTES,
+    HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS,
     HOSTED_VLM_OCR_DEFAULT_TIMEOUT_SECONDS,
     HOSTED_VLM_OCR_MAX_TOKENS_ENV,
     HOSTED_VLM_OCR_MODEL_ENV,
@@ -28,10 +32,14 @@ from ..pdf_ocr_contracts import (
     HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV,
     HOSTED_VLM_OCR_PROMPT_ENV,
     HOSTED_VLM_OCR_PROVIDER_ENV,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_IMAGE_BYTES_ENV,
+    HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_SOURCE_PIXELS_ENV,
     HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV,
     HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV,
     HOSTED_VLM_OCR_REQUEST_CONCURRENCY_ENV,
     HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
+    HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_IMAGE_BYTES_ENV,
+    HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS_ENV,
     HOSTED_VLM_OCR_TIMEOUT_SECONDS_ENV,
     HOSTED_VLM_OCR_TRACE_PATH_ENV,
 )
@@ -39,11 +47,14 @@ from .env import (
     env_value,
     image_optimization_mode_env,
     openrouter_headers,
+    openrouter_provider_preferences_env,
     optional_path_env,
     positive_float_env,
     positive_int_env,
     positive_int_value,
     region_atlas_mode_env,
+    region_composite_mode_env,
+    region_prompt_mode_env,
     resolve_openrouter_api_key,
     scaffold_mode_env,
 )
@@ -61,16 +72,23 @@ class Ocr2ClientConfig:
     prompt: str
     max_tokens: int
     region_max_tokens: int
+    region_prompt_mode: str
     region_composite_size: int
+    region_composite_mode: str
+    region_composite_max_source_pixels: int
+    region_composite_max_image_bytes: int
     region_atlas_mode: str
     timeout_seconds: float
     request_concurrency: int
     speculative_retry_delay_seconds: float
+    speculative_retry_min_source_pixels: int
+    speculative_retry_min_image_bytes: int
     page_window_size: int
     scaffold_mode: str
     image_optimization_mode: str
     trace_path: Path | None = None
     extra_headers: Mapping[str, str] | None = None
+    openrouter_provider_preferences: Mapping[str, Any] | None = None
 
 
 def ocr2_client_config_from_env(
@@ -79,6 +97,11 @@ def ocr2_client_config_from_env(
 ) -> Ocr2ClientConfig:
     resolved_request_concurrency = positive_int_value(request_concurrency)
     provider = env_value(HOSTED_VLM_OCR_PROVIDER_ENV, "")
+    region_composite_size = positive_int_env(
+        HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV,
+        HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_SIZE,
+    )
+    region_composite_mode = region_composite_mode_env()
     if provider == HOSTED_VLM_OCR_OPENROUTER_PROVIDER:
         return Ocr2ClientConfig(
             base_url=env_value(
@@ -102,9 +125,16 @@ def ocr2_client_config_from_env(
                 HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV,
                 HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS,
             ),
-            region_composite_size=positive_int_env(
-                HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV,
-                HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_SIZE,
+            region_prompt_mode=region_prompt_mode_env(),
+            region_composite_size=region_composite_size,
+            region_composite_mode=region_composite_mode,
+            region_composite_max_source_pixels=positive_int_env(
+                HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_SOURCE_PIXELS_ENV,
+                HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MAX_SOURCE_PIXELS,
+            ),
+            region_composite_max_image_bytes=positive_int_env(
+                HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_IMAGE_BYTES_ENV,
+                HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MAX_IMAGE_BYTES,
             ),
             region_atlas_mode=region_atlas_mode_env(),
             timeout_seconds=positive_float_env(
@@ -116,6 +146,14 @@ def ocr2_client_config_from_env(
                 HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
                 HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_DELAY_SECONDS,
             ),
+            speculative_retry_min_source_pixels=positive_int_env(
+                HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS_ENV,
+                HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS,
+            ),
+            speculative_retry_min_image_bytes=positive_int_env(
+                HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_IMAGE_BYTES_ENV,
+                HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_MIN_IMAGE_BYTES,
+            ),
             page_window_size=positive_int_env(
                 HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV,
                 HOSTED_VLM_OCR_DEFAULT_PAGE_WINDOW_SIZE,
@@ -124,6 +162,7 @@ def ocr2_client_config_from_env(
             image_optimization_mode=image_optimization_mode_env(),
             trace_path=optional_path_env(HOSTED_VLM_OCR_TRACE_PATH_ENV),
             extra_headers=openrouter_headers(),
+            openrouter_provider_preferences=openrouter_provider_preferences_env(),
         )
     if provider and provider != "openai-compatible":
         raise ValueError(
@@ -145,9 +184,16 @@ def ocr2_client_config_from_env(
             HOSTED_VLM_OCR_REGION_MAX_TOKENS_ENV,
             HOSTED_VLM_OCR_DEFAULT_REGION_MAX_TOKENS,
         ),
-        region_composite_size=positive_int_env(
-            HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV,
-            HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_SIZE,
+        region_prompt_mode=region_prompt_mode_env(),
+        region_composite_size=region_composite_size,
+        region_composite_mode=region_composite_mode,
+        region_composite_max_source_pixels=positive_int_env(
+            HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_SOURCE_PIXELS_ENV,
+            HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MAX_SOURCE_PIXELS,
+        ),
+        region_composite_max_image_bytes=positive_int_env(
+            HOSTED_VLM_OCR_REGION_COMPOSITE_MAX_IMAGE_BYTES_ENV,
+            HOSTED_VLM_OCR_DEFAULT_REGION_COMPOSITE_MAX_IMAGE_BYTES,
         ),
         region_atlas_mode=region_atlas_mode_env(),
         timeout_seconds=positive_float_env(
@@ -158,6 +204,14 @@ def ocr2_client_config_from_env(
         speculative_retry_delay_seconds=positive_float_env(
             HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
             HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_DELAY_SECONDS,
+        ),
+        speculative_retry_min_source_pixels=positive_int_env(
+            HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS_ENV,
+            HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS,
+        ),
+        speculative_retry_min_image_bytes=positive_int_env(
+            HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_IMAGE_BYTES_ENV,
+            HOSTED_VLM_OCR_DEFAULT_SPECULATIVE_RETRY_MIN_IMAGE_BYTES,
         ),
         page_window_size=positive_int_env(
             HOSTED_VLM_OCR_PAGE_WINDOW_SIZE_ENV,

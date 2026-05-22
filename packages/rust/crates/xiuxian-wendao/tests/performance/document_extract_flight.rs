@@ -277,7 +277,7 @@ async fn request_document_extract(
     let flight_info = client
         .get_flight_info(descriptor)
         .await
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| format!("document extract get_flight_info failed: {error}"))?;
     let ticket = flight_info
         .endpoint
         .first()
@@ -286,10 +286,10 @@ async fn request_document_extract(
     client
         .do_get(ticket)
         .await
-        .map_err(|error| error.to_string())?
+        .map_err(|error| format!("document extract do_get failed: {error}"))?
         .try_collect()
         .await
-        .map_err(|error| error.to_string())
+        .map_err(|error| format!("document extract stream collect failed: {error}"))
 }
 
 fn add_source_path_headers(client: &mut FlightClient, source_path: &str) -> Result<(), String> {

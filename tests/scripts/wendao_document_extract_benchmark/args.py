@@ -6,6 +6,7 @@ from .common import (
     Path,
     argparse,
     os,
+    sys,
 )
 from .constants import (
     DOCLING_DEFAULT_GIT_REF,
@@ -193,6 +194,17 @@ def parse_args() -> argparse.Namespace:
             "empty Markdown row after backend, fast-text, and configured compatible "
             "page attempts all return no text. Rust precision gating accepts those "
             "rows only for matching backend-text source-page-range inputs."
+        ),
+    )
+    parser.add_argument(
+        "--pdf-ocr-fast-text-source-converter",
+        choices=("default", "backend-table"),
+        default="default",
+        help=(
+            "Opt-in Python Docling fast-text source-PDF converter mode. "
+            "`backend-table` keeps Docling FAST table structure but disables OCR "
+            "for source-PDF fast-text rows; rendered-image OCR stays on the "
+            "default fast-text converter."
         ),
     )
     parser.add_argument(
@@ -445,6 +457,18 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-ocr-scheduler-lane-fairness",
+        choices=("disabled", "source-first"),
+        default="disabled",
+        help=(
+            "Opt-in Rust scheduler canary forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS. "
+            "`source-first` lets source-PDF page-range OCR groups enter the "
+            "Python Flight endpoints before rendered-region fanout when both "
+            "lanes are present."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-backend-text-topup",
         choices=("profile", "disabled", "hosted-vlm"),
         default="profile",
@@ -525,6 +549,22 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-target-pixels",
+        type=float,
+        help=(
+            "Opt-in target source-pixel area per adaptive Hosted VLM/OCR region "
+            "patch forwarded to WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-max-slices",
+        type=int,
+        help=(
+            "Opt-in max adaptive Hosted VLM/OCR region slices per page forwarded "
+            "to WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES."
+        ),
+    )
+    parser.add_argument(
         "--rust-pdf-hosted-vlm-region-pipeline",
         choices=("disabled", "render-dispatch"),
         default="disabled",
@@ -540,11 +580,11 @@ def parse_args() -> argparse.Namespace:
         "--rust-pdf-hosted-vlm-region-render-ahead",
         type=int,
         help=(
-            "Opt-in Rust Hosted VLM/OCR region render-ahead limit forwarded "
+            "Optional Rust Hosted VLM/OCR region render-ahead override forwarded "
             "to WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD. "
-            "Values above 1 let the render-dispatch pipeline pre-render "
-            "multiple page-region chunks while preserving deterministic result "
-            "ordering."
+            "When omitted, render-dispatch automatically reserves one endpoint "
+            "for the base batch and uses the remaining endpoint capacity as the "
+            "render-ahead window, clamped by planned chunk count."
         ),
     )
     parser.add_argument(
@@ -570,6 +610,29 @@ def parse_args() -> argparse.Namespace:
             "`page-area-desc` keeps page chunks but renders pages with the "
             "largest total recovery-region area first; `page-max-area-desc` keeps "
             "page chunks but renders pages with the largest single recovery region first."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-region-render-mode",
+        choices=("default", "direct-crop"),
+        default="default",
+        help=(
+            "Opt-in Rust PDF region rasterization mode forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE. `default` renders "
+            "a page raster and crops requested regions; `direct-crop` asks "
+            "PDFium to render the requested region crop directly without "
+            "lowering DPI."
+        ),
+    )
+    parser.add_argument(
+        "--rust-pdf-hosted-vlm-region-dispatch-chunk-size",
+        type=int,
+        help=(
+            "Optional Rust provider override for "
+            "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE. "
+            "Keep this unset or 1 for endpoint fanout; set it above 1 only "
+            "when intentionally co-dispatching same-page region rows to one "
+            "Python worker for analyzer-side composite experiments."
         ),
     )
     parser.add_argument(
@@ -616,6 +679,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--hosted-vlm-ocr-region-prompt-mode",
+        choices=("default", "compact-region-markdown"),
+        default="default",
+        help=(
+            "Opt-in single-region prompt shaping forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_REGION_PROMPT_MODE. "
+            "`compact-region-markdown` tells hosted VLM/OCR models to treat "
+            "region inputs as cropped patches and return only visible Markdown."
+        ),
+    )
+    parser.add_argument(
         "--hosted-vlm-ocr-region-composite-size",
         type=int,
         help=(
@@ -624,6 +698,31 @@ def parse_args() -> argparse.Namespace:
             "same-page, same-parent region images in one request and fall back "
             "to individual region requests when the response cannot be split "
             "back into rows."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-region-composite-mode",
+        choices=("disabled", "fixed", "adaptive-small-region"),
+        default="fixed",
+        help=(
+            "Hosted VLM/OCR same-page region composite policy forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MODE. `adaptive-small-region` "
+            "uses the source-pixel and encoded-image budgets before combining "
+            "region shards."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-region-composite-max-source-pixels",
+        type=int,
+        help=(
+            "Maximum aggregate source-page pixel area for adaptive same-page region composites."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-region-composite-max-image-bytes",
+        type=int,
+        help=(
+            "Maximum aggregate encoded image bytes for adaptive same-page region composites."
         ),
     )
     parser.add_argument(
@@ -682,6 +781,26 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--hosted-vlm-ocr-speculative-retry-min-source-pixels",
+        type=int,
+        help=(
+            "Optional source-pixel threshold forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS. "
+            "When set with a positive hedge delay, direct region shards below "
+            "this source-pixel area are not speculatively retried."
+        ),
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-speculative-retry-min-image-bytes",
+        type=int,
+        help=(
+            "Optional request-image byte threshold forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_IMAGE_BYTES. "
+            "When set with a positive hedge delay, direct region shards below "
+            "this encoded image size are not speculatively retried."
+        ),
+    )
+    parser.add_argument(
         "--hosted-vlm-ocr-page-window-size",
         type=int,
         help=(
@@ -705,6 +824,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--openrouter-title",
         help="Optional OpenRouter X-OpenRouter-Title attribution header.",
+    )
+    parser.add_argument(
+        "--hosted-vlm-ocr-openrouter-provider-json",
+        help=(
+            "Opt-in OpenRouter provider routing JSON object forwarded to "
+            "WENDAO_HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON. The analyzer "
+            "inserts this object as the request-body provider field for hosted "
+            "VLM/OCR calls."
+        ),
     )
     parser.add_argument(
         "--audio-hosted-provider",
@@ -1144,4 +1272,8 @@ def parse_args() -> argparse.Namespace:
             "fixture paths, not transient .data downloads."
         ),
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.port_was_explicit = any(
+        raw == "--port" or raw.startswith("--port=") for raw in sys.argv[1:]
+    )
+    return args

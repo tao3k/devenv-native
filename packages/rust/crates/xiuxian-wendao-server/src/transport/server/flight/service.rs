@@ -70,6 +70,11 @@ impl FlightService for WendaoFlightService {
         let route_payload = self
             .cached_route_payload(route.as_str(), &metadata, &cache_key)
             .await?;
+        if let Some(alias_key) = Self::route_request_cache_alias_key(route.as_str(), &metadata)? {
+            self.route_payload_cache
+                .insert_alias(alias_key, Arc::clone(&route_payload))
+                .await;
+        }
         if !route_payload_cacheable(route.as_str()) {
             self.route_payload_cache
                 .insert_handoff(cache_key, Arc::clone(&route_payload))

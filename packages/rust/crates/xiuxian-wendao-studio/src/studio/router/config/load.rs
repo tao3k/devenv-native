@@ -11,7 +11,9 @@ use super::paths::studio_effective_wendao_toml_path;
 use super::sanitize::{
     sanitize_path_like, sanitize_path_list, sanitize_projects, sanitize_repo_projects,
 };
-use super::types::{WendaoGraphOntologyReadModelQualityEndpointConfig, WendaoTomlConfig};
+#[cfg(any(test, feature = "julia"))]
+use super::types::WendaoGraphOntologyReadModelQualityEndpointConfig;
+use super::types::WendaoTomlConfig;
 
 const DEFAULT_MARKDOWN_PARSER_PLUGIN_ID: &str = "markdown-parser";
 
@@ -88,6 +90,7 @@ pub(crate) fn load_episteme_registry_from_wendao_toml_path(
 }
 
 #[must_use]
+#[cfg(any(test, feature = "julia"))]
 pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml(
     config_root: &Path,
 ) -> Option<WendaoGraphOntologyReadModelQualityEndpointConfig> {
@@ -98,6 +101,7 @@ pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_
 }
 
 #[must_use]
+#[cfg(any(test, feature = "julia"))]
 pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml_path(
     config_path: &Path,
 ) -> Option<WendaoGraphOntologyReadModelQualityEndpointConfig> {

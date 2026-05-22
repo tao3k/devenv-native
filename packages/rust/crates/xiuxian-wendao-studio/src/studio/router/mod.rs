@@ -27,9 +27,10 @@ pub(crate) use code_ast::build_generic_code_ast_analysis_response;
 pub(crate) use code_ast::resolve_code_ast_repository_and_path;
 #[cfg(feature = "cli-bin-support")]
 pub(crate) use config::load_episteme_registry_from_wendao_toml_path;
+#[cfg(any(test, feature = "julia"))]
+pub(crate) use config::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 pub(crate) use config::{
     load_document_extract_endpoint_from_wendao_toml, load_episteme_registry_from_wendao_toml,
-    load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml,
 };
 pub use config::{
     load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,

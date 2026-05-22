@@ -40,6 +40,10 @@ def write_trace_record(
     scaffold_validation_failure_count: int = 0,
     scaffold_json_chars: int = 0,
     canonical_markdown_chars: int = 0,
+    hedge_winner: str | None = None,
+    hedge_delay_seconds: float | None = None,
+    hedge_primary_latency_ms: float | None = None,
+    hedge_secondary_latency_ms: float | None = None,
 ) -> None:
     if trace_path is None:
         return
@@ -89,6 +93,14 @@ def write_trace_record(
         "errorType": type(error).__name__ if error is not None else None,
         "errorMessage": short_error_message(error),
     }
+    if hedge_winner:
+        record["hedgeWinner"] = hedge_winner
+    if hedge_delay_seconds is not None:
+        record["hedgeDelaySeconds"] = hedge_delay_seconds
+    if hedge_primary_latency_ms is not None:
+        record["hedgePrimaryLatencyMs"] = hedge_primary_latency_ms
+    if hedge_secondary_latency_ms is not None:
+        record["hedgeSecondaryLatencyMs"] = hedge_secondary_latency_ms
     try:
         with _HOSTED_VLM_OCR_TRACE_LOCK:
             trace_path.parent.mkdir(parents=True, exist_ok=True)

@@ -9,8 +9,10 @@ from .audio_backend import (
     AudioBackendOptions,
     run_audio_backend_action,
 )
+from .document_profiles import new_docling_converter_for_profile
 from .document_service import DocumentExtractFlightServer
 from .document_service_parser import build_document_extract_argument_parser
+from .document_service_prewarm import prewarm_document_extract_converter_from_env
 from .document_service_workers import (
     build_audio_worker,
     build_pdf_ocr_worker,
@@ -58,8 +60,16 @@ def document_extract_service_main() -> int:
             return 1
 
     location = f"grpc://{args.host}:{args.port}"
+    try:
+        prewarmed_converter = prewarm_document_extract_converter_from_env(
+            converter_factory=new_docling_converter_for_profile
+        )
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        sys.stderr.write(f"Error: {exc}\n")
+        return 1
     server = DocumentExtractFlightServer(
         location,
+        converter=prewarmed_converter,
         ocr_worker=build_pdf_ocr_worker(args.pdf_ocr_worker, args.pdf_ocr_workers),
         audio_worker=build_audio_worker(args.audio_worker, args.audio_workers),
     )

@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 
 PDF_OCR_FAST_TEXT_THREADS_ENV = "WENDAO_PDF_OCR_FAST_TEXT_THREADS"
 PDF_OCR_FAST_TEXT_DEFAULT_THREADS = 1
+PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV = "WENDAO_PDF_OCR_FAST_TEXT_SOURCE_CONVERTER"
+PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_DEFAULT = "default"
+PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_BACKEND_TABLE = "backend-table"
 PDF_OCR_PREWARM_PROFILES_ENV = "WENDAO_PDF_OCR_PREWARM_PROFILES"
 PDF_OCR_PREWARM_SOURCE_PATH_ENV = "WENDAO_PDF_OCR_PREWARM_SOURCE_PATH"
 PDF_OCR_PREWARM_PAGE_INDICES_ENV = "WENDAO_PDF_OCR_PREWARM_PAGE_INDICES"
@@ -50,3 +53,24 @@ def _try_export_source_page_batch_markdown(
 def _ocr_profile(input_row: Mapping[str, Any]) -> str:
     profile = str(input_row.get("ocrProfile", "")).strip()
     return profile or PDF_OCR_DEFAULT_PROFILE
+
+
+def fast_text_source_converter_mode() -> str:
+    from os import environ
+
+    return fast_text_source_converter_mode_with_lookup(environ.get)
+
+
+def fast_text_source_converter_mode_with_lookup(
+    lookup: Any,
+) -> str:
+    value = str(lookup(PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV) or "").strip()
+    if not value:
+        return PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_DEFAULT
+    normalized = value.replace("_", "-").lower()
+    if normalized in {
+        PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_DEFAULT,
+        PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_BACKEND_TABLE,
+    }:
+        return normalized
+    return PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_DEFAULT

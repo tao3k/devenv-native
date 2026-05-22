@@ -119,7 +119,7 @@ def _hosted_vlm_promotion_payload(
         "summary": summary,
         "hostedVlmOcr": {
             "provider": "openrouter",
-            "openRouterModel": "baidu/qianfan-ocr-fast:free",
+            "openRouterModel": "baidu/qianfan-ocr-fast",
             "openRouterApiKeyConfigured": True,
             "regionAtlasMode": region_atlas_mode,
             "scaffoldMode": scaffold_mode,
@@ -144,11 +144,11 @@ def test_pdf_ocr_milestone_guard_flags_char_count_regression() -> None:
     benchmark = _load_benchmark_module()
     result = _pdf_ocr_milestone_result(metrics_result_chars=98_157)
 
-    guard = benchmark.summarize_results([result])["precisionSpeedSummary"][
-        "pdfOcrMilestoneGuard"
-    ]
+    precision_speed = benchmark.summarize_results([result])["precisionSpeedSummary"]
+    guard = precision_speed["pdfOcrMilestoneGuard"]
 
     assert guard["checked"] is True
     assert guard["passed"] is False
     assert "metricsResultChars 98157 below baseline 103984" in guard["regressions"]
     assert guard["observations"][0]["metricsResultChars"] == 98_157
+    assert precision_speed["precisionGatePassed"] is False

@@ -120,7 +120,7 @@ def _hosted_vlm_promotion_payload(
         "summary": summary,
         "hostedVlmOcr": {
             "provider": "openrouter",
-            "openRouterModel": "baidu/qianfan-ocr-fast:free",
+            "openRouterModel": "baidu/qianfan-ocr-fast",
             "openRouterApiKeyConfigured": True,
             "regionAtlasMode": region_atlas_mode,
             "scaffoldMode": scaffold_mode,
@@ -149,9 +149,31 @@ def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
         shard_cache_reuse_ms=144.232,
     )
     payload["rustPdfHostedVlmRegionPipeline"] = "render-dispatch"
+    payload["rustPdfHostedVlmRegionTargetPixels"] = 750_000.0
+    payload["rustPdfHostedVlmRegionMaxSlices"] = 4
     payload["rustPdfHostedVlmRegionRenderAhead"] = 3
     payload["rustPdfHostedVlmRegionRenderChunk"] = "region"
+    payload["rustPdfRegionRenderMode"] = "direct-crop"
+    payload["rustPdfHostedVlmRegionDispatchChunkSize"] = 1
+    payload["rustPdfOcrSchedulerLaneFairness"] = "source-first"
+    payload["hostedVlmOcr"]["speculativeRetryMinSourcePixels"] = 1_000_000
+    payload["hostedVlmOcr"]["speculativeRetryMinImageBytes"] = 200_000
     payload["hostedVlmOcr"]["requestSummary"]["requestWallSpanMs"] = 12_261.0
+    payload["hostedVlmOcr"]["requestSummary"]["slowestRequests"] = [
+        {
+            "latencyMs": 6924.51,
+            "requestKind": "region-hedged",
+            "pageIndex": 12,
+            "regionIndex": 1,
+            "readingOrderKey": "000012.000010",
+            "httpAttemptCount": 2,
+            "imageBytes": 242_150,
+            "sourcePixelArea": 1_795_980,
+            "markdownChars": 2086,
+            "rasterWidthPx": 930,
+            "rasterHeightPx": 1931,
+        }
+    ]
     payload["summary"]["forceHybridPageOcrTimingPhaseElapsedMs"] = {
         "ocrScheduler": 16_738.118,
         "regionMaterialize": 7_256.222,
@@ -166,16 +188,75 @@ def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
         "regionPipelineLastRegionResult": 16_700.0,
         "total": 24_350.906,
     }
+    payload["summary"][
+        "forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
+    ] = 7_255.609
+    payload["summary"][
+        "forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
+    ] = 6
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] = 4
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"] = 3
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"] = 6
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"] = 6
+    payload["summary"][
+        "forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
+    ] = 6
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
+    ] = 0.0
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
+    ] = 6
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount"
+    ] = 4
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"
+    ] = 3
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"
+    ] = 6
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"
+    ] = 6
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
+    ] = 6
 
     gate = benchmark.hosted_vlm_promotion_gate(payload)
 
     observed = gate["observed"]
     assert observed["rustPdfHostedVlmRegionPipeline"] == "render-dispatch"
+    assert observed["rustPdfHostedVlmRegionTargetPixels"] == 750_000.0
+    assert observed["rustPdfHostedVlmRegionMaxSlices"] == 4
     assert observed["rustPdfHostedVlmRegionRenderAhead"] == 3
     assert observed["rustPdfHostedVlmRegionRenderChunk"] == "region"
+    assert observed["rustPdfRegionRenderMode"] == "direct-crop"
+    assert observed["rustPdfHostedVlmRegionDispatchChunkSize"] == 1
+    assert observed["rustPdfOcrSchedulerLaneFairness"] == "source-first"
+    assert observed["speculativeRetryMinSourcePixels"] == 1_000_000
+    assert observed["speculativeRetryMinImageBytes"] == 200_000
     assert observed["forceHostedVlmLocalOverheadMs"] == pytest.approx(12_101.71)
     assert observed["forceHostedVlmSchedulerNonRequestMs"] == pytest.approx(4_477.118)
     assert observed["forceHostedVlmRegionRenderMs"] == pytest.approx(7_255.609)
+    assert observed["forceHostedVlmRegionRenderReportedElapsedMs"] == pytest.approx(
+        7_255.609
+    )
+    assert observed["forceHostedVlmRegionPipelinePlannedRenderChunkCount"] == 6
+    assert observed["forceHostedVlmRegionPipelineEndpointCount"] == 4
+    assert observed["forceHostedVlmRegionPipelineRenderAheadLimit"] == 3
+    assert observed["forceHostedVlmRegionPipelineRenderSpawnCount"] == 6
+    assert observed["forceHostedVlmRegionPipelineRenderChunkCount"] == 6
+    assert observed["forceHostedVlmRegionPipelineRegionDispatchCount"] == 6
+    assert observed["shardCacheReuseHostedVlmRegionRenderReportedElapsedMs"] == 0.0
+    assert (
+        observed["shardCacheReuseHostedVlmRegionPipelinePlannedRenderChunkCount"] == 6
+    )
+    assert observed["shardCacheReuseHostedVlmRegionPipelineEndpointCount"] == 4
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRenderAheadLimit"] == 3
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRenderSpawnCount"] == 6
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRenderChunkCount"] == 6
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRegionDispatchCount"] == 6
     assert observed["forceHostedVlmRegionPipelineFirstReadyMs"] == 5_500.0
     assert observed["forceHostedVlmRegionPipelineLastDispatchMs"] == 7_220.0
     assert observed["forceHostedVlmRegionPipelineLastBaseResultMs"] == 11_000.0
@@ -186,3 +267,76 @@ def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
     assert observed["forceHostedVlmSourceRangeChunkPageEnd"] == 6
     assert observed["forceHostedVlmSourceRangeChunkCount"] == 3
     assert observed["forceHostedVlmSourceRangeTraceChars"] == 109_412
+    assert observed["slowestRequests"] == [
+        {
+            "latencyMs": 6924.51,
+            "requestKind": "region-hedged",
+            "pageIndex": 12,
+            "regionIndex": 1,
+            "readingOrderKey": "000012.000010",
+            "httpAttemptCount": 2,
+            "imageBytes": 242_150,
+            "sourcePixelArea": 1_795_980,
+            "markdownChars": 2086,
+            "rasterWidthPx": 930,
+            "rasterHeightPx": 1931,
+        }
+    ]
+
+
+def test_hosted_vlm_promotion_observed_reads_fixture_result_timing_fallback() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(
+        benchmark,
+        force_ms=11_791.672,
+        shard_cache_reuse_ms=163.949,
+    )
+    payload["rustPdfHostedVlmRegionPipeline"] = "render-dispatch"
+    payload["rustPdfHostedVlmRegionRenderAhead"] = None
+    payload["hostedVlmOcr"]["requestSummary"]["requestWallSpanMs"] = 8_930.0
+    payload["results"] = [
+        {
+            "forceHybridPageOcrTimingPhaseElapsedMs": {
+                "ocrScheduler": 11_591.297,
+                "regionPipelineFirstRenderSpawn": 0.1,
+                "regionPipelineFirstRegionReady": 2_642.936,
+                "regionPipelineLastRegionDispatch": 3_570.775,
+            },
+            "forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": 9_152.285,
+            "forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": 3,
+            "forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount": 4,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": 3,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": 3,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": 3,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": 3,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": 0.0,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": 3,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount": 4,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": 3,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": 3,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": 3,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": 3,
+        }
+    ]
+
+    observed = benchmark.hosted_vlm_promotion_gate(payload)["observed"]
+
+    assert observed["rustPdfHostedVlmRegionRenderAhead"] is None
+    assert observed["forceHostedVlmRegionPipelineFirstReadyMs"] == 2_642.936
+    assert observed["forceHostedVlmRegionPipelineLastDispatchMs"] == 3_570.775
+    assert observed["forceHostedVlmRegionRenderReportedElapsedMs"] == 9_152.285
+    assert observed["forceHostedVlmRegionPipelinePlannedRenderChunkCount"] == 3
+    assert observed["forceHostedVlmRegionPipelineEndpointCount"] == 4
+    assert observed["forceHostedVlmRegionPipelineRenderAheadLimit"] == 3
+    assert observed["forceHostedVlmRegionPipelineRenderSpawnCount"] == 3
+    assert observed["forceHostedVlmRegionPipelineRenderChunkCount"] == 3
+    assert observed["forceHostedVlmRegionPipelineRegionDispatchCount"] == 3
+    assert observed["shardCacheReuseHostedVlmRegionRenderReportedElapsedMs"] == 0.0
+    assert (
+        observed["shardCacheReuseHostedVlmRegionPipelinePlannedRenderChunkCount"] == 3
+    )
+    assert observed["shardCacheReuseHostedVlmRegionPipelineEndpointCount"] == 4
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRenderAheadLimit"] == 3
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRenderSpawnCount"] == 3
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRenderChunkCount"] == 3
+    assert observed["shardCacheReuseHostedVlmRegionPipelineRegionDispatchCount"] == 3

@@ -1,9 +1,12 @@
 pub(super) use super::{
     EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
-    EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
-    EpistemeSourceContractCommand, EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
-    EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs,
+    EpistemeEvidenceSelectionValidationModeArg, EpistemeGenerateOntologyCandidatesArgs,
+    EpistemePlanExtractionRunArgs, EpistemeReadEvidenceArgs, EpistemeReviewOntologyCandidatesArgs,
+    EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
+    EpistemeRunLegacyOfficeConversionArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
+    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
+    EpistemeWriteOntologyPromotionApplyPlanArgs, EpistemeWriteOntologyPromotionReviewArgs,
+    EpistemeWriteOntologyRdfDraftArgs, EpistemeWriteStructureTocArgs,
 };
 
 mod evidence;

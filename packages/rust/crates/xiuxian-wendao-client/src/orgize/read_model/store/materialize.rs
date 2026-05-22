@@ -13,8 +13,7 @@ pub(super) fn materialize_agent_org_tasks(
     rows: &[OrgizeAgentTaskRow],
 ) -> Result<AgentOrgReadModelMaterializationReport> {
     let connection = open_read_model_connection(settings)?;
-    initialize_agent_org_tasks_table(&connection)?;
-    replace_agent_org_task_rows(&connection, rows)?;
+    replace_agent_org_task_rows_in_transaction(&connection, rows)?;
 
     let done_rows = rows.iter().filter(|row| row.is_done).count();
     let archived_rows = rows.iter().filter(|row| row.archived).count();
@@ -30,39 +29,35 @@ pub(super) fn materialize_agent_org_tasks(
     })
 }
 
+fn replace_agent_org_task_rows_in_transaction(
+    connection: &xiuxian_db_store::duckdb_crate::Connection,
+    rows: &[OrgizeAgentTaskRow],
+) -> Result<()> {
+    connection
+        .execute_batch("BEGIN TRANSACTION;")
+        .with_context(|| "failed to begin agent_org_tasks refresh transaction")?;
+    let result = (|| {
+        initialize_agent_org_tasks_table(connection)?;
+        replace_agent_org_task_rows(connection, rows)
+    })();
+    match result {
+        Ok(()) => connection
+            .execute_batch("COMMIT;")
+            .with_context(|| "failed to commit agent_org_tasks refresh transaction"),
+        Err(error) => {
+            let _ = connection.execute_batch("ROLLBACK;");
+            Err(error)
+        }
+    }
+}
+
 fn replace_agent_org_task_rows(
     connection: &xiuxian_db_store::duckdb_crate::Connection,
     rows: &[OrgizeAgentTaskRow],
 ) -> Result<()> {
-    let mut statement = connection
-        .prepare(
-            r"
-INSERT INTO agent_org_tasks (
-    task_id,
-    source_path,
-    source_line,
-    source_column,
-    source_range_start,
-    source_range_end,
-    level,
-    outline_path_json,
-    title,
-    todo_state,
-    is_done,
-    tags_json,
-    effective_tags_json,
-    scheduled,
-    scheduled_repeater_json,
-    deadline,
-    deadline_repeater_json,
-    closed,
-    archived,
-    archive_location,
-    properties_json
-) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)
-",
-        )
-        .with_context(|| "failed to prepare agent_org_tasks insert statement")?;
+    let mut appender = connection
+        .appender("agent_org_tasks")
+        .with_context(|| "failed to open agent_org_tasks DuckDB appender")?;
 
     for row in rows {
         let outline_path_json = serde_json::to_string(&row.outline_path)
@@ -85,8 +80,8 @@ INSERT INTO agent_org_tasks (
             .map(serde_json::to_string)
             .transpose()
             .with_context(|| "failed to serialize Org task deadline repeater")?;
-        statement
-            .execute(xiuxian_db_store::duckdb_crate::params![
+        appender
+            .append_row(xiuxian_db_store::duckdb_crate::params![
                 row.task_id.as_str(),
                 row.source_path.as_str(),
                 row.source_line,
@@ -116,5 +111,8 @@ INSERT INTO agent_org_tasks (
                 )
             })?;
     }
+    appender
+        .flush()
+        .with_context(|| "failed to flush agent_org_tasks DuckDB appender")?;
     Ok(())
 }

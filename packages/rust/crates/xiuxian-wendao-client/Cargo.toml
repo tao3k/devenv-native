@@ -47,5 +47,10 @@ name = "wendao_client_get"
 harness = false
 required-features = ["performance"]
 
+[[bench]]
+name = "wendao_client_orgize"
+harness = false
+required-features = ["performance", "orgize-agent-read-model"]
+
 [lints]
 workspace = true

@@ -71,6 +71,62 @@ fn run_control_activity_complete_appends_json_and_is_idempotent() -> Result<(), 
 }
 
 #[test]
+fn run_control_activity_complete_accepts_worker_task_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
+    let worker_task_json = worker_task_json(&ledger_path, &run_id, "activity-run-scheduled")?;
+    must_ok(
+        run_control_command(&ControlCliCommand::ActivityStartWorkerTask {
+            ledger_path: ledger_path.clone(),
+            worker_task_json: worker_task_json.clone(),
+            worker_id: "worker-llm".to_string(),
+            started_at_ms: 8_000,
+            json: false,
+        }),
+        "activity-complete worker-task setup should start the run activity",
+    );
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::ActivityCompleteWorkerTask {
+            ledger_path: ledger_path.clone(),
+            worker_task_json,
+            completed_at_ms: 9_000,
+            output_hash: Some("sha256:activity-output".to_string()),
+            metadata: Some("{\"rows\":3}".to_string()),
+            json: true,
+        }),
+        "control activity-complete worker-task json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity-complete worker-task output should be valid json",
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let queue = must_ok(
+        ledger.load_activity_queue_projection(&run_id, None),
+        "worker-task activity complete should replay into queue projection summary",
+    );
+
+    assert_eq!(json["status"], "appended");
+    assert_eq!(
+        json["record"]["event"]["kind"]["event"],
+        "activity_completed"
+    );
+    assert_eq!(
+        json["record"]["event"]["kind"]["activity_id"],
+        "activity-run-scheduled"
+    );
+    assert_eq!(queue.summary.completed, 1);
+    assert_eq!(queue.summary.scheduled, 1);
+    Ok(())
+}
+
+#[test]
 fn run_control_activity_fail_appends_json_after_start() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -139,6 +195,62 @@ fn run_control_activity_fail_appends_json_after_start() -> Result<(), String> {
 }
 
 #[test]
+fn run_control_activity_fail_accepts_worker_task_json() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
+    let worker_task_json = worker_task_json(&ledger_path, &run_id, "activity-step-scheduled")?;
+    must_ok(
+        run_control_command(&ControlCliCommand::ActivityStartWorkerTask {
+            ledger_path: ledger_path.clone(),
+            worker_task_json: worker_task_json.clone(),
+            worker_id: "worker-tool".to_string(),
+            started_at_ms: 8_000,
+            json: false,
+        }),
+        "activity-fail worker-task setup should start the step activity",
+    );
+
+    let output = must_ok(
+        run_control_command(&ControlCliCommand::ActivityFailWorkerTask {
+            ledger_path: ledger_path.clone(),
+            worker_task_json,
+            failed_at_ms: 9_000,
+            error_code: "rate_limited".to_string(),
+            message: "provider rejected request".to_string(),
+            retryable: true,
+            metadata: None,
+            json: true,
+        }),
+        "control activity-fail worker-task json should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity-fail worker-task output should be valid json",
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let queue = must_ok(
+        ledger.load_activity_queue_projection(&run_id, None),
+        "worker-task activity failure should replay into queue projection summary",
+    );
+
+    assert_eq!(json["status"], "appended");
+    assert_eq!(json["record"]["event"]["kind"]["event"], "activity_failed");
+    assert_eq!(
+        json["record"]["event"]["kind"]["activity_id"],
+        "activity-step-scheduled"
+    );
+    assert_eq!(json["record"]["event"]["kind"]["failure"]["attempt"], 1);
+    assert_eq!(queue.summary.failed, 1);
+    assert_eq!(queue.summary.scheduled, 1);
+    Ok(())
+}
+
+#[test]
 fn run_control_activity_complete_rejects_not_started_activity() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
@@ -164,4 +276,23 @@ fn run_control_activity_complete_rejects_not_started_activity() -> Result<(), St
             .contains("activity completion requires a started activity")
     );
     Ok(())
+}
+
+fn worker_task_json(
+    ledger_path: &std::path::Path,
+    run_id: &xiuxian_qianji_control::RunId,
+    activity_id: &str,
+) -> Result<String, String> {
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let task = must_ok(
+        ledger.load_worker_activity_tasks(run_id, None),
+        "should load worker activity tasks",
+    )
+    .into_iter()
+    .find(|task| task.activity_id.as_str() == activity_id)
+    .ok_or_else(|| format!("missing worker task for {activity_id}"))?;
+    serde_json::to_string(&task).map_err(|error| format!("should serialize worker task: {error}"))
 }

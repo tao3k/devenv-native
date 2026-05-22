@@ -205,8 +205,9 @@ artifacts only. It does not execute OCR, ASR, LLM extraction, or RDF promotion,
 and it does not promote raw content into ontology truth. Planning uses
 `contract_shape_only` validation, so it checks manifest and mapping-ledger
 shape, queue/file consistency, filters, and selected `file_id` coverage without
-walking or hashing the source corpus. Full sha256 proof remains on explicit
-validation, read-model, or promotion paths. When
+walking or hashing the source corpus. The emitted report includes total queue
+rows plus selected route/category counts for direct route-census auditing. Full
+sha256 proof remains on explicit validation, read-model, or promotion paths. When
 `--selection-run-id` is supplied, the planner reads
 `<episteme-root>/runs/evidence-selection/<selection-run-id>/selection.tsv` by
 default and treats its `file_id` values as a hard constraint. Every selected id
@@ -239,6 +240,115 @@ cache writes, and report emission; Python remains the OCR adapter boundary.
 OCR text is written only to the ignored evidence cache as review-required,
 promotion-blocked material. The command does not add a public Gateway/OpenAPI
 route and does not promote raw OCR output into RDF truth.
+
+For real private corpus probes, operators may split analyzer execution from
+Rust cache materialization. First run the package-owned analyzer adapter
+directly, writing queue-keyed JSONL under the run directory. Then ask Studio to
+reuse that result file:
+
+```bash
+wendao episteme source-contract run-image-ocr-cache \
+  --episteme-root <episteme-root> \
+  --run-id image_ocr_seed \
+  --ocr-results-jsonl <episteme-root>/runs/extraction/image_ocr_seed/ocr_results.jsonl \
+  --use-existing-results
+```
+
+The same split bridge is available for Docling document evidence:
+
+```bash
+wendao episteme source-contract run-docling-document-cache \
+  --episteme-root <episteme-root> \
+  --run-id docling_document_seed \
+  --document-results-jsonl <episteme-root>/runs/extraction/docling_document_seed/document_results.jsonl \
+  --use-existing-results
+```
+
+`--use-existing-results` skips analyzer process startup only. Studio still
+rewrites and validates the task plan, the Episteme crate still validates the
+queue-keyed JSONL against planned tasks and source hashes, and promotion into
+RDF remains blocked.
+
+After cache-local evidence exists, Studio can ask the Episteme crate to generate
+review-gated ontology candidates:
+
+```bash
+wendao episteme source-contract generate-ontology-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed \
+  --extraction-run-id docling_document_seed \
+  --extraction-run-id image_ocr_seed
+```
+
+The command writes `candidate_objects.tsv`, `candidate_relations.tsv`,
+`candidate_evidence.tsv`, `review_ledger.org`, and `receipt.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/` by default. It consumes
+source-contract metadata, mapping-ledger terms, and ignored cache outputs, then
+emits candidate rows with promotion blocked. It does not write RDF, mutate the
+source ontology, persist raw extracted text in the candidate TSVs, or create a
+Gateway route.
+
+The generated run can then be reviewed through the deterministic quality gate:
+
+```bash
+wendao episteme source-contract review-ontology-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This writes `candidate_review.tsv` and `quality_report.json` under the same
+ontology-generation run directory. The report flags duplicate candidate ids,
+missing relation references, unsafe promotion flags, ontology-truth flags, and
+evidence strength. A passing review report is only a precondition for a later
+promotion-review slice; it is not RDF export and does not promote private
+content into ontology truth.
+
+After the review gate passes, Studio can ask the Episteme crate to write a
+reviewable RDF draft and promotion proposal:
+
+```bash
+wendao episteme source-contract write-ontology-rdf-draft \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This command writes `rdf_draft.ttl`, `promotion_proposal.org`, and
+`promotion_proposal.json` beside the reviewed candidate run. It fails if the
+review report is missing, failed, or inconsistent with the candidate rows. The
+artifacts are proposal surfaces only: Studio does not mutate source ontology
+RDF, does not embed raw extracted text, and does not mark candidates as
+ontology truth.
+
+The next command writes the pending promotion review packet:
+
+```bash
+wendao episteme source-contract write-ontology-promotion-review \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This command consumes the clean RDF draft proposal and writes
+`promotion_review.tsv`, `promotion_review.org`, and `promotion_review.json`.
+All rows are initialized with `promotion_decision=pending_review`,
+`source_mutation_allowed=false`, and `ontology_truth=false`. The packet is the
+input for human or LLM review; it still does not mutate ontology source RDF.
+
+After review decisions are written, Studio can ask the Episteme crate to write
+a non-mutating promotion apply plan:
+
+```bash
+wendao episteme source-contract write-ontology-promotion-apply-plan \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This command consumes `promotion_review.tsv` and writes
+`promotion_apply_plan.tsv`, `promotion_apply_plan.org`, and
+`promotion_apply_plan.json`. Pending-only reviews produce an empty apply plan.
+Approved rows require reviewer provenance and satisfied preconditions, and the
+generated plan still carries `sourceMutationAllowed=false` and
+`ontologyTruth=false`; it is a source-patch proposal plan, not source RDF
+mutation.
 
 The selected source manifest and mapping ledger come from
 `<episteme-root>/ontology/manifest.toml`. Runtime defaults may come from
@@ -352,6 +462,27 @@ is the Rust-owned evidence selection write report, and the written
 `selection.tsv` can be consumed by the extraction run-plan endpoint through
 `selectionRunId`. This route writes a reviewable selection ledger only; it does
 not execute extraction, OCR, ASR, LLM inference, or RDF promotion.
+
+Studio also exposes ontology registry snapshot read-model admission through a
+bounded operational Gateway path:
+
+```http
+POST /api/episteme/ontology-registry/read-model
+```
+
+The JSON body accepts either `epistemeRoot` or `epistemeRegistryId`, plus
+optional `qualityProofMode` (`disabled` or `if-configured`). The Gateway
+resolves the selected Episteme root, delegates `ontology/registry.json`
+admission to `xiuxian-wendao-episteme`, asks `xiuxian-wendao` to materialize
+the admitted snapshot into `semantic_objects`, `semantic_relations`, and
+`semantic_projection_state`, and returns only schema, status, source revision,
+and row-count summaries. By default the route stays local and does not run a
+WendaoGraph proof. When `qualityProofMode="if-configured"` and the Julia
+bridge plus WendaoGraph quality endpoint are available, the response includes
+a bounded `qualityProof` summary with request row counts, Arrow IPC payload
+byte sizes, selected transport, and response batch/row counts. The route does
+not return Arrow batches through JSON, parse registry files in Julia or
+Python, execute extractors, or promote RDF truth.
 
 ## Polyglot Docling Scheduling
 
@@ -666,6 +797,16 @@ attachments PDFium rotation hardening, r78 reran `regionMaxTokens=1536` and
 passed precision at `12726.140916 ms`; this is valid near-baseline diagnostic
 evidence below the locked `12856.546292 ms` floor, but it is slower than the
 current `7338.796584/8322.027792 ms` OpenRouter envelope and is not promoted.
+The current-rev scheduler fairness canary adds
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS=source-first`, also
+forwarded by the analyzer benchmark as
+`--rust-pdf-ocr-scheduler-lane-fairness source-first`. It lets source-PDF
+page-range OCR groups enter the Python Flight endpoints before rendered-region
+fanout when both lanes coexist. The valid r32d run preserved precision with
+zero errors, stable `28` rows, `21/7` page/region OCR blocks,
+`metricsResultChars=115704`, and `forceRefreshMs=10874.933208`, but it is not
+promoted over the current direct-crop r26 candidate at `8463.964667 ms` because
+the source-range fast-text chunks became the critical path.
 Studio also exposes two opt-in source-range diagnostics for this canary. Set
 `WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT=rust-lopdf`, or pass
 `--rust-pdf-local-backend-text rust-lopdf`, to let Rust satisfy
@@ -698,6 +839,19 @@ chunk-shape diagnostic. It keeps Rust scheduler permits as the final admission
 owner and preserves precision on the milestone fixture, but it is rejected
 because page `5` fast-text conversion alone regressed force refresh to
 `23629.474667 ms`.
+The current safe source-range tail lever is analyzer-side prewarm cache reuse,
+not local fast-text replacement. When benchmark workers receive
+`--pdf-ocr-prewarm-profile docling-fast-text-ocr`,
+`--pdf-ocr-prewarm-source-path`, and matching
+`--pdf-ocr-prewarm-page-indices`, the Python worker stores fingerprinted
+Docling Markdown for those exact source pages and the Rust scheduler can route
+single-page fast-text chunks back to the prewarmed endpoint through
+`--rust-pdf-fast-text-endpoint-affinity single-page-first`. The May 21, 2026
+r40 canary preserved zero errors, stable `28` rows, `21/7` page/region OCR
+blocks, and `metricsResultChars=108850`; source-range max chunk latency fell
+to `280.219583 ms` and force refresh measured `9037.577666 ms`. r26 remains
+the fastest global baseline at `8463.964667 ms`, so this remains an explicit
+readiness lever.
 Set
 `WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP=disabled`, or pass
 `--rust-pdf-backend-text-topup disabled`, only for character-floor canaries.
@@ -735,6 +889,13 @@ low-complexity neighbor pages can stay as one region. The goal is to avoid
 both a broad single-region provider tail and blanket three-slice request
 overhead while keeping 300 DPI, semantic padding, parent binding, and the
 stable shard schema.
+Advanced benchmark runs can tune the adaptive slice planner with
+`WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS` and
+`WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES`. These controls are
+opt-in, preserve the default planner when unset, and enter the artifact cache
+signature so region image reuse cannot cross incompatible patch-sizing
+settings. Smaller patches remain diagnostic unless the benchmark also proves
+lower hosted wall span under the existing precision and row-order gates.
 The benchmark can also opt into
 `WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE=render-dispatch`, or
 pass `--rust-pdf-hosted-vlm-region-pipeline render-dispatch`, to start the
@@ -761,11 +922,30 @@ zero errors, stable order, `9/1` page/region blocks, force refresh around
 `9.3s`, hosted request p95 around `7.4s`, and rendered-region queue wait near
 zero. `qwen/qwen3-vl-8b-instruct` preserved correctness on the same probe but
 tailed around `27.3s`, so it is not a promotion candidate for this region.
+A May 20, 2026 private LTC image-route probe found the historical free
+OpenRouter aliases for Qianfan OCR returned no live endpoints, while
+`baidu/qianfan-ocr-fast` produced one queue-keyed OCR JSONL row that the Rust
+source-contract cache bridge consumed with attempted 1, succeeded 1, and
+failed 0.
 Within that opt-in pipeline, the benchmark can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD` above `1`, or pass
 `--rust-pdf-hosted-vlm-region-render-ahead`, to pre-render multiple page-region
 chunks while hosted requests are in flight. Final OCR inputs are normalized
 back to deterministic reading order before the Rust row/order gate runs.
+When the override is omitted, Studio now treats the render-ahead window as a
+Rust scheduling decision: it reserves one live endpoint for the base OCR batch,
+uses the remaining endpoint capacity for region render-ahead, and clamps the
+window by the planned render chunk count. Timing reports expose the planned
+chunk count, endpoint count, effective render-ahead limit, and render spawn
+count so benchmark evidence can distinguish default scheduler behavior from an
+explicit operator override.
+The analyzer can also opt into OpenRouter provider routing for hosted-region
+tail studies by setting `WENDAO_HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON`, or by
+passing `--hosted-vlm-ocr-openrouter-provider-json` in the benchmark harness.
+The JSON object is sent as OpenRouter's request-body `provider` field and is
+reported back in benchmark JSON and Markdown. This route-control knob is
+diagnostic by default; it does not change Studio's OCR shard schemas, rendered
+DPI, merge gates, or Docling structure authority.
 The benchmark can additionally set
 `WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK=region`, or pass
 `--rust-pdf-hosted-vlm-region-render-chunk region`, to split each recovery

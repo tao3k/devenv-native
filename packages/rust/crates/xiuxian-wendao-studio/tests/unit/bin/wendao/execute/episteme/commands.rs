@@ -1,6 +1,7 @@
 use super::{
-    Path, absolute_runtime_path, docling_document_analyzer_command_spec, expected_args,
-    image_ocr_analyzer_command_spec,
+    EpistemeRuntimeConfig, Path, absolute_runtime_path, docling_document_analyzer_command_spec,
+    expected_args, image_ocr_analyzer_command_spec, resolve_legacy_office_converter,
+    should_skip_analyzer,
 };
 
 #[test]
@@ -70,5 +71,61 @@ fn command_paths_are_absolute_for_episteme_current_dir() -> Result<(), String> {
             .map_err(|error| error.to_string())?,
         Path::new("/episteme/runs/tasks.tsv")
     );
+    Ok(())
+}
+
+#[test]
+fn analyzer_execution_is_skipped_for_dry_run_or_existing_results() {
+    assert!(should_skip_analyzer(true, false));
+    assert!(should_skip_analyzer(false, true));
+    assert!(should_skip_analyzer(true, true));
+    assert!(!should_skip_analyzer(false, false));
+}
+
+#[test]
+fn legacy_office_converter_prefers_explicit_path() -> Result<(), String> {
+    let config = EpistemeRuntimeConfig {
+        legacy_office_converter: Some("/configured/converter".into()),
+        ..EpistemeRuntimeConfig::default()
+    };
+
+    let resolved =
+        resolve_legacy_office_converter(Some(&"/explicit/converter".into()), Some(&config), false)
+            .map_err(|error| error.to_string())?;
+
+    assert_eq!(resolved, Path::new("/explicit/converter"));
+    Ok(())
+}
+
+#[test]
+fn legacy_office_converter_uses_episteme_runtime_config() -> Result<(), String> {
+    let config = EpistemeRuntimeConfig {
+        legacy_office_converter: Some("/configured/converter".into()),
+        ..EpistemeRuntimeConfig::default()
+    };
+
+    let resolved = resolve_legacy_office_converter(None, Some(&config), false)
+        .map_err(|error| error.to_string())?;
+
+    assert_eq!(resolved, Path::new("/configured/converter"));
+    Ok(())
+}
+
+#[test]
+fn legacy_office_converter_dry_run_uses_placeholder_without_config() -> Result<(), String> {
+    let resolved =
+        resolve_legacy_office_converter(None, None, true).map_err(|error| error.to_string())?;
+
+    assert_eq!(resolved, Path::new("legacy-office-converter"));
+    Ok(())
+}
+
+#[test]
+fn legacy_office_converter_requires_config_for_execution() -> Result<(), String> {
+    let Err(error) = resolve_legacy_office_converter(None, None, false) else {
+        return Err("legacy Office execution should require converter config".to_string());
+    };
+
+    assert!(error.to_string().contains("legacy_office_converter"));
     Ok(())
 }

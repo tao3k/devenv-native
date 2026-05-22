@@ -76,7 +76,7 @@ def _write_ocr2_region_scaffold_sidecar(
     )
 
 
-def test_docling_pdf_ocr_worker_disables_invalid_region_composite_canary(
+def test_docling_pdf_ocr_worker_falls_back_per_fixed_region_composite_task(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -146,4 +146,4 @@ def test_docling_pdf_ocr_worker_disables_invalid_region_composite_canary(
     )
 
     assert [row["status"] for row in table.to_pylist()] == ["succeeded"] * 4
-    assert request_image_counts == [2, 1, 1, 1, 1]
+    assert request_image_counts == [2, 1, 1, 2, 1, 1]

@@ -2,7 +2,10 @@
 
 mod archive;
 mod filter;
+mod json;
 mod model;
+#[cfg(feature = "performance")]
+pub mod perf_support;
 mod render;
 mod row_view;
 mod run;

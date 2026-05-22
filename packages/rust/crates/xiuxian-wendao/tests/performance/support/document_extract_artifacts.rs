@@ -83,6 +83,13 @@ pub(crate) struct ArtifactReport {
     pub(crate) hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms: f64,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_planned_render_chunk_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_endpoint_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_render_ahead_limit: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_render_spawn_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_render_chunk_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_region_dispatch_count: usize,
     pub(crate) structure_authority_pages: usize,
     pub(crate) text_shortcut_pages: usize,
     pub(crate) ocr_patch_regions: usize,
@@ -180,6 +187,13 @@ fn inspect_artifact_dir(
         hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: 0,
         hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: 0,
         hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms: 0.0,
+        hybrid_page_ocr_timing_ocr2_region_pipeline_planned_render_chunk_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_pipeline_endpoint_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_pipeline_render_ahead_limit: 0,
+        hybrid_page_ocr_timing_ocr2_region_pipeline_render_spawn_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_pipeline_render_chunk_count: 0,
+        hybrid_page_ocr_timing_ocr2_region_pipeline_region_dispatch_count: 0,
         structure_authority_pages: 0,
         text_shortcut_pages: 0,
         ocr_patch_regions: 0,
@@ -426,6 +440,40 @@ fn populate_hybrid_page_ocr_timing_report(
         .unwrap_or_default();
     report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count = value
         .get("ocr2RegionRenderCacheMissCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms = value
+        .get("ocr2RegionRenderReportedElapsedMs")
+        .and_then(Value::as_f64)
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_pipeline_planned_render_chunk_count = value
+        .get("ocr2RegionPipelinePlannedRenderChunkCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_pipeline_endpoint_count = value
+        .get("ocr2RegionPipelineEndpointCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_pipeline_render_ahead_limit = value
+        .get("ocr2RegionPipelineRenderAheadLimit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_pipeline_render_spawn_count = value
+        .get("ocr2RegionPipelineRenderSpawnCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_pipeline_render_chunk_count = value
+        .get("ocr2RegionPipelineRenderChunkCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_pipeline_region_dispatch_count = value
+        .get("ocr2RegionPipelineRegionDispatchCount")
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or_default();
@@ -989,6 +1037,13 @@ fn write_hybrid_page_ocr_timing_sidecar(output_dir: &Path) -> Result<(), String>
             "ocr2RegionRenderedShardCount": 6,
             "ocr2RegionRenderCacheHitCount": 6,
             "ocr2RegionRenderCacheMissCount": 0,
+            "ocr2RegionRenderReportedElapsedMs": 125.5,
+            "ocr2RegionPipelinePlannedRenderChunkCount": 3,
+            "ocr2RegionPipelineEndpointCount": 4,
+            "ocr2RegionPipelineRenderAheadLimit": 3,
+            "ocr2RegionPipelineRenderSpawnCount": 3,
+            "ocr2RegionPipelineRenderChunkCount": 3,
+            "ocr2RegionPipelineRegionDispatchCount": 2,
             "structureAuthorityPages": 4,
             "textShortcutPages": 2,
             "ocrPatchRegions": 3,
@@ -1086,6 +1141,34 @@ fn assert_hybrid_page_ocr_timing_report(report: &ArtifactReport) -> Result<(), S
     assert_eq!(
         report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count,
         0
+    );
+    assert_float_eq(
+        Some(report.hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms),
+        125.5,
+    )?;
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_pipeline_planned_render_chunk_count,
+        3
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_pipeline_endpoint_count,
+        4
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_pipeline_render_ahead_limit,
+        3
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_pipeline_render_spawn_count,
+        3
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_pipeline_render_chunk_count,
+        3
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_pipeline_region_dispatch_count,
+        2
     );
     assert_eq!(report.structure_authority_pages, 4);
     assert_eq!(report.text_shortcut_pages, 2);

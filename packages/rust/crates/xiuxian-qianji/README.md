@@ -192,10 +192,13 @@ The generic Qianji control ledger has its own read-only operator surfaces.
 `qianji control history --ledger <path> --run-id <id> [--json]` renders the
 append-only event timeline for one run. `qianji control heartbeat --ledger
 <path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms
-<ms> [--metadata <json>] [--json]` records a durable Worker liveness audit
-fact without mutating hot queues or leases. `qianji control view --ledger
-<path> --run-id <id> [--json]` renders the deterministic replayed run state. `qianji
-control query --ledger <path> --run-id <id> --state --now-ms <ms> [--json]`
+<ms> [--valkey-url <url>] [--namespace <ns>] [--metadata <json>] [--json]`
+records a durable Worker liveness audit fact. Without `--valkey-url` it stays
+ledger-only; with `--valkey-url` it mirrors the heartbeat to Valkey hot state
+before appending the durable event, so a durable heartbeat fact represents a
+successful live-state mirror. `qianji control view --ledger <path> --run-id
+<id> [--json]` renders the deterministic replayed run state. `qianji control
+query --ledger <path> --run-id <id> --state --now-ms <ms> [--json]`
 returns a compact read-only state package with event count, replayed run view,
 and recovery snapshot. `qianji control summary --ledger <path> --run-id <id>
 --now-ms <ms> [--json]` renders a compact operator summary across event count,
@@ -216,7 +219,102 @@ view for lifecycle, task, attempt, worker, result, and failure inspection.
 [--task-queue <queue>] [--json]` renders scheduled-but-not-started activity
 tasks from durable replay, optionally filtered by task queue, without claiming
 work or mutating hot scheduler state. The same projection includes lifecycle
-summary counts for scheduled, in-flight, completed, and failed activities.
+summary counts for scheduled, in-flight, completed, and failed activities. JSON
+output also includes `worker_tasks`, a worker-facing envelope derived from the
+same durable schedule events with run, optional step, activity, queue,
+idempotency, timeout, retry policy, scheduled timestamp, and next-attempt
+fields.
+`qianji control activity-mirror --ledger <path> --valkey-url <url> --run-id
+<id> [--namespace <ns>] [--task-queue <queue>] [--priority <n>]
+[--not-before-ms <ms>] [--metadata <json>] [--json]` mirrors those
+replay-derived worker task envelopes into the Valkey hot-state polling surface.
+The command requires `duckdb` and `valkey`; it does not claim work, start
+activities, or append ledger events.
+`qianji control activity-claim --valkey-url <url> --worker-id <id> --now-ms
+<ms> --lease-ttl-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--json]`
+claims one `WorkerActivityTask` from the Valkey hot-state mirror and returns a
+leased worker payload. The command requires the `valkey` feature and does not
+append ledger events; workers should record durable lifecycle facts with
+`activity-start`, `activity-complete`, or `activity-fail`, preferably by
+passing the returned task through `--worker-task-json`.
+`qianji control activity-take --ledger <path> --valkey-url <url> --worker-id
+<id> --now-ms <ms> --lease-ttl-ms <ms> [--namespace <ns>]
+[--task-queue <queue>] [--json]` composes the polling and durable lifecycle
+boundary for worker adapters: it claims one hot-state activity lease and, only
+when a lease is claimed, appends the idempotent durable `ActivityStarted` fact
+for the replay-derived worker task. The command requires both `duckdb` and
+`valkey`. It does not execute the provider, complete or fail the activity, or
+auto-release the hot-state lease if the durable start write fails; recovery
+should use the lease TTL and `activity-reclaim`.
+`qianji control activity-worker-once --ledger <path> --valkey-url <url>
+--worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --executor fixture
+--outcome complete|fail --settled-at-ms <ms> [--namespace <ns>]
+[--task-queue <queue>] [--output-hash <hash>] [--error-code <code>]
+[--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]`
+is a bounded single-activity worker adapter. It claims one hot-state activity
+task, records the durable start, applies the explicit fixture executor result,
+records the durable terminal result, and releases the hot-state lease only
+after the terminal ledger write succeeds. Empty polls do not append ledger
+events. This first worker-loop slice intentionally supports only
+`--executor fixture`, and that fixture result now flows through the typed
+activity executor registry. Real provider execution must extend the registry
+instead of adding implicit CLI behavior. Registry execution is anchored to the
+claimed `WorkerActivityTask` envelope, so future provider adapters receive the
+durable activity type, task queue, input ref, retry policy, timeout, and
+metadata before they can produce a terminal result.
+The registry also validates executor route ownership before execution. A
+claimed task whose activity type or task queue is outside the selected
+executor contract is rejected before any fixture or future provider adapter can
+produce durable terminal output. Worker adapters run this route validation as
+a preflight gate immediately after claiming hot-state work and before writing
+`ActivityStarted`, so a mismatched executor cannot create misleading durable
+lifecycle history. Successful claimed-task worker output includes the selected
+executor contract snapshot for operator inspection; empty polls expose no
+contract because no activity task was authorized. The initial fixture contract
+recognizes the governed LLM roles `llm.plan`, `llm.tool_select`, and
+`llm.repair` across local inspection queues for OpenAI, Anthropic,
+OpenRouter, and local model workers; it remains a deterministic fixture
+adapter and does not execute provider code.
+`qianji control activity-worker-loop --ledger <path> --valkey-url <url>
+--worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n>
+--executor fixture --outcome complete|fail --settled-at-ms <ms>
+[--namespace <ns>] [--task-queue <queue>] [--now-step-ms <ms>]
+[--heartbeat-ttl-ms <ms>] [--settled-step-ms <ms>] [--empty-limit <n>]
+[--output-hash <hash>] [--error-code <code>] [--message <text>]
+[--retryable <true|false>] [--metadata <json>] [--json]` is a bounded finite
+worker-loop adapter. It reuses `activity-worker-once` semantics for each poll,
+stops at `--poll-limit` or after the configured empty-poll streak, and does
+not sleep, spawn a daemon, or append ledger events for empty polls. When
+`--heartbeat-ttl-ms` is supplied, each claimed task also records a Worker
+heartbeat through the same Valkey hot-state and durable ledger path before the
+fixture result is applied. Empty polls still do not write heartbeats because
+there is no run-scoped activity task to anchor the durable event.
+`qianji control activity-reclaim --valkey-url <url> --lease-json <json>
+--now-ms <ms> [--namespace <ns>] [--json]` reclaims a claimed hot-state
+activity lease only after it is expired at the supplied observation time and
+returns the activity task to the hot-state queue. It does not append ledger
+events and is intended for recovery loops, not normal successful worker
+completion.
+`qianji control activity-release --valkey-url <url> --lease-json <json>
+[--namespace <ns>] [--json]` releases a claimed hot-state activity lease after
+the worker has recorded the durable terminal lifecycle fact. It does not append
+ledger events, requeue work, or replace `activity-complete` / `activity-fail`.
+`qianji control activity-schedule-llm --ledger <path> --run-id <id>
+--occurred-at-ms <ms> --llm-activity-json <json> [--step-id <id>] [--json]`
+validates a serialized `LlmActivityTask` through the control crate's LLM
+admission contract, then records an idempotent durable `ActivityScheduled`
+fact. It does not call a model provider, enqueue Valkey work, acquire a lease,
+or start a worker.
+`qianji control activity-settle --ledger <path> --valkey-url <url>
+--leased-task-json <json> --outcome complete|fail --settled-at-ms <ms>
+[--namespace <ns>] [--output-hash <hash>] [--error-code <code>]
+[--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]`
+is the worker adapter terminal helper. It expects the `claimed` payload
+returned by `activity-take`, records the idempotent durable complete or fail
+event first, and releases the hot-state activity lease only after that durable
+write succeeds. The command requires both `duckdb` and `valkey`. It does not
+execute provider code, schedule retries, or reclaim expired leases; failed
+durable writes leave the active hot-state lease for TTL-based recovery.
 `qianji control costs --ledger <path> --run-id <id> [--json]` renders durable
 run and step cost observations with event sequence, observed timestamp, token
 counts, latency, and USD micros totals, without appending observations or
@@ -225,7 +323,10 @@ mutating hot state.
 <id> --worker-id <id> --started-at-ms <ms> --attempt <n> [--step-id <id>]
 [--json]` records an idempotent durable `ActivityStarted` fact through the
 control crate's replay guards. It does not complete, fail, execute, or lease
-the activity.
+the activity. Worker adapters can instead pass a replay-derived task envelope
+from `activity-queue` with `--worker-task-json <json> --worker-id <id>
+--started-at-ms <ms>` so the CLI derives run or step scope, activity id, and
+attempt from durable history rather than operator-supplied duplicate fields.
 `qianji control activity-complete --ledger <path> --run-id <id> --activity-id
 <id> --completed-at-ms <ms> [--step-id <id>] [--output-hash <hash>]
 [--metadata <json>] [--json]` and `qianji control activity-fail --ledger
@@ -233,7 +334,11 @@ the activity.
 <code> --message <text> --retryable <true|false> --attempt <n> [--step-id
 <id>] [--metadata <json>] [--json]` record idempotent durable terminal
 activity lifecycle facts after replay verifies that the target activity is in a
-started state.
+started state. Both terminal commands also accept the same
+`--worker-task-json <json>` envelope mode; completion still requires the
+terminal timestamp and optional output metadata, while failure still requires
+error code, message, retryable flag, and optional metadata. In envelope mode
+the failure attempt comes from the task's replay-derived `next_attempt`.
 `qianji control decision --ledger <path> --run-id <id> --decision-id <id>
 [--step-id <id>] [--json]` renders one replayed agent decision for proposal,
 outcome, reason, scheduled activity, checkpoint, and gate inspection.

@@ -194,6 +194,21 @@ image_ocr_evidence = ["jpg"]
         Ok(())
     }
 
+    pub(super) fn add_legacy_office_route(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let manifest_path = self
+            .episteme_root
+            .join("ontology/SourceContract/corpus/source_manifest.toml");
+        let manifest = fs::read_to_string(&manifest_path)?;
+        fs::write(
+            manifest_path,
+            manifest.replace(
+                "image_ocr_evidence = [\"jpg\"]",
+                "image_ocr_evidence = [\"jpg\"]\nlegacy_office_document_evidence = [\"doc\", \"ppt\", \"xls\"]",
+            ),
+        )?;
+        Ok(())
+    }
+
     pub(super) fn write_multi_domain_manifest(
         &self,
         active: bool,

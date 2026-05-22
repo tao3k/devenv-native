@@ -52,6 +52,7 @@ mod traits;
 #[cfg(feature = "valkey")]
 mod valkey_hot_state;
 mod view;
+mod worker_lifecycle;
 
 #[cfg(feature = "duckdb")]
 pub use duckdb_ledger::DuckDbControlLedger;
@@ -61,14 +62,19 @@ pub use {
     activity_journal::{
         ActivityCompletedJournalRecord, ActivityFailedJournalRecord, ActivityJournalScope,
         ActivityJournalWriteOutcome, ActivityJournalWriteStatus, ActivityStartedJournalRecord,
-        AdmittedActivityScheduleRecord, record_activity_completed,
-        record_activity_completed_idempotent, record_activity_failed,
+        AdmittedActivityScheduleRecord, AdmittedLlmActivityScheduleRecord,
+        record_activity_completed, record_activity_completed_idempotent, record_activity_failed,
         record_activity_failed_idempotent, record_activity_started,
         record_activity_started_idempotent, record_admitted_activity_schedule,
-        record_admitted_activity_schedule_idempotent,
+        record_admitted_activity_schedule_idempotent, record_admitted_llm_activity_schedule,
+        record_admitted_llm_activity_schedule_idempotent,
     },
-    activity_queue::{ActivityQueueItem, ActivityQueueProjection, ActivityQueueSummary},
-    admission::ToolActivityAdmission,
+    activity_queue::{
+        ActivityQueueItem, ActivityQueueProjection, ActivityQueueSummary,
+        WorkerActivityHotStateMirrorOutcome, WorkerActivityHotStateMirrorRequest,
+        WorkerActivityTask, mirror_worker_activity_tasks_to_hot_state,
+    },
+    admission::{LlmActivityAdmission, ToolActivityAdmission},
     agent::{AgentDecision, AgentDecisionOutcome, AgentProposal},
     agent_journal::{
         AgentDecisionJournalRecord, AgentJournalScope, AgentProposalJournalRecord,
@@ -96,9 +102,10 @@ pub use {
     memory::{InMemoryControlLedger, InMemoryHotStateStore},
     model::{
         ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,
-        ActivityRetryStopReason, ActivityTask, ArtifactRef, Budget, CostObservation, EvidenceRef,
-        GateResult, HotStateLeasedStep, HotStateSnapshot, LlmActivityRequest, LlmActivityTask,
-        RecoveryPolicy, RunStatus, RunnableStep, SignalRecord, StepLease, StepStatus, TimerRecord,
+        ActivityRetryStopReason, ActivityTask, ActivityTaskLease, ArtifactRef, Budget,
+        CostObservation, EvidenceRef, GateResult, HotStateLeasedActivityTask, HotStateLeasedStep,
+        HotStateSnapshot, LlmActivityRequest, LlmActivityTask, RecoveryPolicy, RunStatus,
+        RunnableActivityTask, RunnableStep, SignalRecord, StepLease, StepStatus, TimerRecord,
         VersionPin, WaitReason, WorkerHeartbeat, WorkerRef,
     },
     operator_summary::RunOperatorSummary,
@@ -131,5 +138,10 @@ pub use {
     traits::{ControlLedger, EvidenceGate, HotStateStore},
     view::{
         ActivityStatus, ActivityView, RunView, StepView, TimerStatus, TimerView, replay_run_view,
+    },
+    worker_lifecycle::{
+        WorkerActivityCompletedRecord, WorkerActivityFailedRecord, WorkerActivityFailureInput,
+        WorkerActivityStartRecord, record_worker_activity_completed_idempotent,
+        record_worker_activity_failed_idempotent, record_worker_activity_started_idempotent,
     },
 };

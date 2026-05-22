@@ -23,7 +23,15 @@ pub(crate) use super::contract_feedback_cli::{
     sanitize_prj_cache_home,
 };
 pub(crate) use super::control_cli::{
-    ControlCliCommand, parse_control_command, run_control_command,
+    ActivityExecutionRequest, ActivityExecutorAdapterKind, ActivityExecutorKindArg,
+    ActivityExecutorOutcome, ActivityExecutorRegistry, ActivitySettleOutcomeArg,
+    ActivityWorkerLoopStoreRequest, ActivityWorkerOnceStoreRequest, ControlCliCommand,
+    HeartbeatHotStateRequest, WorkerActivityClaimStoreRequest, WorkerActivityMirrorStoreRequest,
+    WorkerActivityReclaimStoreRequest, WorkerActivityReleaseStoreRequest,
+    WorkerActivitySettleStoreRequest, WorkerActivityTakeStoreRequest, claim_with_hot_state,
+    heartbeat_with_hot_state, mirror_with_hot_state, parse_control_command, reclaim_with_hot_state,
+    release_with_hot_state, run_control_command, settle_with_hot_state, take_with_hot_state,
+    worker_loop_with_hot_state, worker_once_with_hot_state,
 };
 pub(crate) use super::dir_cli::{
     DirCliCommand, MaterializeCliTarget, ShowCliTarget, parse_dir_command, run_dir_command,

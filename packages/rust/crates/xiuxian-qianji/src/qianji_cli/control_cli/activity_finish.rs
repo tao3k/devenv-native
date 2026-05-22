@@ -28,6 +28,7 @@ pub(super) fn parse_fail(args: &[String]) -> io::Result<ControlCliCommand> {
 #[derive(Default)]
 struct ActivityCompleteArgs {
     ledger_path: Option<PathBuf>,
+    worker_task_json: Option<String>,
     run_id: Option<String>,
     step_id: Option<String>,
     activity_id: Option<String>,
@@ -42,6 +43,9 @@ impl ActivityCompleteArgs {
         match args[*index].as_str() {
             "--ledger" => {
                 self.ledger_path = Some(PathBuf::from(parse_flag_value(args, index, "--ledger")?));
+            }
+            "--worker-task-json" => {
+                self.worker_task_json = Some(parse_flag_value(args, index, "--worker-task-json")?);
             }
             "--run-id" => {
                 self.run_id = Some(parse_flag_value(args, index, "--run-id")?);
@@ -78,10 +82,32 @@ impl ActivityCompleteArgs {
     }
 
     fn into_command(self) -> io::Result<ControlCliCommand> {
+        let ledger_path = self.ledger_path.ok_or_else(|| {
+            invalid_input("missing `--ledger <path>` for `control activity-complete`")
+        })?;
+        if let Some(worker_task_json) = self.worker_task_json {
+            reject_worker_task_conflict(
+                "control activity-complete",
+                self.run_id.as_ref(),
+                self.step_id.as_ref(),
+                self.activity_id.as_ref(),
+                None,
+            )?;
+            return Ok(ControlCliCommand::ActivityCompleteWorkerTask {
+                ledger_path,
+                worker_task_json,
+                completed_at_ms: self.completed_at_ms.ok_or_else(|| {
+                    invalid_input(
+                        "missing `--completed-at-ms <ms>` for `control activity-complete`",
+                    )
+                })?,
+                output_hash: self.output_hash,
+                metadata: self.metadata,
+                json: self.json,
+            });
+        }
         Ok(ControlCliCommand::ActivityComplete {
-            ledger_path: self.ledger_path.ok_or_else(|| {
-                invalid_input("missing `--ledger <path>` for `control activity-complete`")
-            })?,
+            ledger_path,
             run_id: self.run_id.ok_or_else(|| {
                 invalid_input("missing `--run-id <id>` for `control activity-complete`")
             })?,
@@ -102,6 +128,7 @@ impl ActivityCompleteArgs {
 #[derive(Default)]
 struct ActivityFailArgs {
     ledger_path: Option<PathBuf>,
+    worker_task_json: Option<String>,
     run_id: Option<String>,
     step_id: Option<String>,
     activity_id: Option<String>,
@@ -119,6 +146,9 @@ impl ActivityFailArgs {
         match args[*index].as_str() {
             "--ledger" => {
                 self.ledger_path = Some(PathBuf::from(parse_flag_value(args, index, "--ledger")?));
+            }
+            "--worker-task-json" => {
+                self.worker_task_json = Some(parse_flag_value(args, index, "--worker-task-json")?);
             }
             "--run-id" => {
                 self.run_id = Some(parse_flag_value(args, index, "--run-id")?);
@@ -172,10 +202,38 @@ impl ActivityFailArgs {
     }
 
     fn into_command(self) -> io::Result<ControlCliCommand> {
+        let ledger_path = self.ledger_path.ok_or_else(|| {
+            invalid_input("missing `--ledger <path>` for `control activity-fail`")
+        })?;
+        if let Some(worker_task_json) = self.worker_task_json {
+            reject_worker_task_conflict(
+                "control activity-fail",
+                self.run_id.as_ref(),
+                self.step_id.as_ref(),
+                self.activity_id.as_ref(),
+                self.attempt,
+            )?;
+            return Ok(ControlCliCommand::ActivityFailWorkerTask {
+                ledger_path,
+                worker_task_json,
+                failed_at_ms: self.failed_at_ms.ok_or_else(|| {
+                    invalid_input("missing `--failed-at-ms <ms>` for `control activity-fail`")
+                })?,
+                error_code: self.error_code.ok_or_else(|| {
+                    invalid_input("missing `--error-code <code>` for `control activity-fail`")
+                })?,
+                message: self.message.ok_or_else(|| {
+                    invalid_input("missing `--message <text>` for `control activity-fail`")
+                })?,
+                retryable: self.retryable.ok_or_else(|| {
+                    invalid_input("missing `--retryable <true|false>` for `control activity-fail`")
+                })?,
+                metadata: self.metadata,
+                json: self.json,
+            });
+        }
         Ok(ControlCliCommand::ActivityFail {
-            ledger_path: self.ledger_path.ok_or_else(|| {
-                invalid_input("missing `--ledger <path>` for `control activity-fail`")
-            })?,
+            ledger_path,
             run_id: self.run_id.ok_or_else(|| {
                 invalid_input("missing `--run-id <id>` for `control activity-fail`")
             })?,
@@ -217,6 +275,16 @@ pub(super) struct ActivityCompleteRunRequest<'a> {
 }
 
 #[derive(Clone, Copy)]
+pub(super) struct WorkerActivityCompleteRunRequest<'a> {
+    pub(super) ledger_path: &'a Path,
+    pub(super) worker_task_json: &'a str,
+    pub(super) completed_at_ms: u64,
+    pub(super) output_hash: Option<&'a str>,
+    pub(super) metadata: Option<&'a str>,
+    pub(super) json: bool,
+}
+
+#[derive(Clone, Copy)]
 pub(super) struct ActivityFailRunRequest<'a> {
     pub(super) ledger_path: &'a Path,
     pub(super) run_id: &'a str,
@@ -227,6 +295,18 @@ pub(super) struct ActivityFailRunRequest<'a> {
     pub(super) message: &'a str,
     pub(super) retryable: bool,
     pub(super) attempt: u32,
+    pub(super) metadata: Option<&'a str>,
+    pub(super) json: bool,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct WorkerActivityFailRunRequest<'a> {
+    pub(super) ledger_path: &'a Path,
+    pub(super) worker_task_json: &'a str,
+    pub(super) failed_at_ms: u64,
+    pub(super) error_code: &'a str,
+    pub(super) message: &'a str,
+    pub(super) retryable: bool,
     pub(super) metadata: Option<&'a str>,
     pub(super) json: bool,
 }
@@ -264,6 +344,35 @@ pub(super) fn run_complete(
     Ok(ControlCliOutput { rendered })
 }
 
+#[cfg(feature = "duckdb")]
+pub(super) fn run_complete_worker_task(
+    request: WorkerActivityCompleteRunRequest<'_>,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{
+        ActivityResult, DuckDbControlLedger, WorkerActivityCompletedRecord,
+        record_worker_activity_completed_idempotent,
+    };
+
+    let worker_task = parse_worker_task(request.worker_task_json, "control activity-complete")?;
+    let result = ActivityResult {
+        output_ref: None,
+        output_hash: request.output_hash.map(str::to_owned),
+        metadata: parse_metadata(request.metadata, "control activity-complete")?,
+    };
+    let complete_record =
+        WorkerActivityCompletedRecord::new(worker_task, request.completed_at_ms, result);
+    let ledger =
+        DuckDbControlLedger::open(request.ledger_path).map_err(|error| control_error(&error))?;
+    let outcome = record_worker_activity_completed_idempotent(&ledger, complete_record)
+        .map_err(|error| control_error(&error))?;
+    let rendered = if request.json {
+        serde_json::to_string_pretty(&outcome).map_err(io::Error::other)?
+    } else {
+        render_activity_complete_text(&outcome)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
 #[cfg(not(feature = "duckdb"))]
 pub(super) fn run_complete(
     request: ActivityCompleteRunRequest<'_>,
@@ -280,6 +389,23 @@ pub(super) fn run_complete(
     );
     Err(invalid_input(
         "`control activity-complete` requires the `duckdb` feature",
+    ))
+}
+
+#[cfg(not(feature = "duckdb"))]
+pub(super) fn run_complete_worker_task(
+    request: WorkerActivityCompleteRunRequest<'_>,
+) -> io::Result<ControlCliOutput> {
+    let _ = (
+        request.ledger_path,
+        request.worker_task_json,
+        request.completed_at_ms,
+        request.output_hash,
+        request.metadata,
+        request.json,
+    );
+    Err(invalid_input(
+        "`control activity-complete --worker-task-json` requires the `duckdb` feature",
     ))
 }
 
@@ -316,6 +442,38 @@ pub(super) fn run_fail(request: ActivityFailRunRequest<'_>) -> io::Result<Contro
     Ok(ControlCliOutput { rendered })
 }
 
+#[cfg(feature = "duckdb")]
+pub(super) fn run_fail_worker_task(
+    request: WorkerActivityFailRunRequest<'_>,
+) -> io::Result<ControlCliOutput> {
+    use xiuxian_qianji_control::{
+        DuckDbControlLedger, ErrorCode, WorkerActivityFailedRecord, WorkerActivityFailureInput,
+        record_worker_activity_failed_idempotent,
+    };
+
+    let worker_task = parse_worker_task(request.worker_task_json, "control activity-fail")?;
+    let failure_record = WorkerActivityFailedRecord::new(
+        WorkerActivityFailureInput::new(
+            worker_task,
+            ErrorCode::new(request.error_code).map_err(|error| control_error(&error))?,
+            request.message,
+        )
+        .with_failed_at_ms(request.failed_at_ms)
+        .with_retryable(request.retryable),
+    )
+    .with_metadata(parse_metadata(request.metadata, "control activity-fail")?);
+    let ledger =
+        DuckDbControlLedger::open(request.ledger_path).map_err(|error| control_error(&error))?;
+    let outcome = record_worker_activity_failed_idempotent(&ledger, failure_record)
+        .map_err(|error| control_error(&error))?;
+    let rendered = if request.json {
+        serde_json::to_string_pretty(&outcome).map_err(io::Error::other)?
+    } else {
+        render_activity_fail_text(&outcome)
+    };
+    Ok(ControlCliOutput { rendered })
+}
+
 #[cfg(not(feature = "duckdb"))]
 pub(super) fn run_fail(request: ActivityFailRunRequest<'_>) -> io::Result<ControlCliOutput> {
     let _ = (
@@ -333,6 +491,25 @@ pub(super) fn run_fail(request: ActivityFailRunRequest<'_>) -> io::Result<Contro
     );
     Err(invalid_input(
         "`control activity-fail` requires the `duckdb` feature",
+    ))
+}
+
+#[cfg(not(feature = "duckdb"))]
+pub(super) fn run_fail_worker_task(
+    request: WorkerActivityFailRunRequest<'_>,
+) -> io::Result<ControlCliOutput> {
+    let _ = (
+        request.ledger_path,
+        request.worker_task_json,
+        request.failed_at_ms,
+        request.error_code,
+        request.message,
+        request.retryable,
+        request.metadata,
+        request.json,
+    );
+    Err(invalid_input(
+        "`control activity-fail --worker-task-json` requires the `duckdb` feature",
     ))
 }
 
@@ -369,6 +546,33 @@ fn parse_metadata(metadata: Option<&str>, command_name: &str) -> io::Result<serd
         }),
         None => Ok(serde_json::Value::Null),
     }
+}
+
+fn reject_worker_task_conflict(
+    command_name: &str,
+    run_id: Option<&String>,
+    step_id: Option<&String>,
+    activity_id: Option<&String>,
+    attempt: Option<u32>,
+) -> io::Result<()> {
+    if run_id.is_some() || step_id.is_some() || activity_id.is_some() || attempt.is_some() {
+        return Err(invalid_input(format!(
+            "`{command_name} --worker-task-json` cannot be combined with `--run-id`, `--step-id`, `--activity-id`, or `--attempt`"
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(feature = "duckdb")]
+fn parse_worker_task(
+    json: &str,
+    command_name: &str,
+) -> io::Result<xiuxian_qianji_control::WorkerActivityTask> {
+    serde_json::from_str(json).map_err(|error| {
+        invalid_input(format!(
+            "invalid `--worker-task-json` for `{command_name}`: {error}"
+        ))
+    })
 }
 
 #[cfg(feature = "duckdb")]
