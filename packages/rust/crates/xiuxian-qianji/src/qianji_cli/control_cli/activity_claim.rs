@@ -1,3 +1,5 @@
+#[cfg(any(feature = "valkey", test))]
+use std::fmt::Write as _;
 use std::io;
 
 use crate::qianji_cli::{invalid_input, parse_flag_value};
@@ -240,7 +242,8 @@ fn render_activity_claim_text(output: &WorkerActivityClaimOutput) -> String {
             .as_ref()
             .map_or("<run>", |step_id| step_id.as_str());
         rendered.push_str("\n## Activity Task\n\n");
-        rendered.push_str(&format!(
+        if write!(
+            rendered,
             concat!(
                 "- Run: `{}`\n",
                 "- Step: `{}`\n",
@@ -259,7 +262,11 @@ fn render_activity_claim_text(output: &WorkerActivityClaimOutput) -> String {
             claimed.activity_task.task.next_attempt,
             claimed.lease.lease_id.as_str(),
             claimed.lease.expires_at_ms
-        ));
+        )
+        .is_err()
+        {
+            return rendered;
+        }
     }
     rendered
 }

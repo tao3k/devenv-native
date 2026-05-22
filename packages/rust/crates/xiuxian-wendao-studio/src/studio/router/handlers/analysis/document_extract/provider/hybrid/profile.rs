@@ -383,6 +383,7 @@ pub(crate) fn apply_hybrid_page_hosted_vlm_backend_text_profile_plan_for_profile
     inputs
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) fn is_hosted_vlm_topup_page(input: &PdfOcrShardInput) -> bool {
     input.shard_type == "page"
         && input.ocr_profile == PDF_OCR_HOSTED_VLM_DIRECT_PROFILE

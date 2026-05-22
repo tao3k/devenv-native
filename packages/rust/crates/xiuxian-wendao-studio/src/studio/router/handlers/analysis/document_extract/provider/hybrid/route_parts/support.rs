@@ -2,21 +2,26 @@ use super::Instant;
 use super::{
     BTreeMap, DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, FAILED_PAGE_RECOVERY_HOSTED_VLM_PAGE_MODE,
-    HybridDocumentResourceBatch, HybridPdfFailedPageRecoveryMode, HybridPdfOcr2RegionPipelineMode,
-    HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner, Path, PdfOcrShardInput,
-    PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
-    hybrid_page_ocr_profile_planner_with_lookup, hybrid_page_ocr2_region_pipeline_mode_with_lookup,
+    HybridDocumentResourceBatch, HybridPdfFailedPageRecoveryMode, HybridPdfOcr2RegionPlanner,
+    HybridPdfOcrProfilePlanner, Path, PdfOcrShardInput, PdfPageRenderShardReport,
+    PdfRenderRoutingDecision, PdfRenderStatus, hybrid_page_ocr_profile_planner_with_lookup,
     hybrid_page_ocr2_region_planner_with_lookup,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use super::{
-    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD_ENV, HybridPdfOcr2RegionRenderChunkMode,
-    PdfPageRegionRenderRequest, hybrid_page_ocr2_region_render_chunk_mode_with_lookup,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD_ENV, PdfPageRegionRenderRequest,
     page_region_render_request_chunks_all, page_region_render_request_chunks_by_page,
     page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
     page_region_render_request_chunks_by_region,
     page_region_render_request_chunks_by_region_seed_page,
+};
+use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::{
+    HybridPdfOcr2RegionPipelineMode, hybrid_page_ocr2_region_pipeline_mode_with_lookup,
+};
+#[cfg(feature = "document-extract-pdf-render")]
+use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::{
+    HybridPdfOcr2RegionRenderChunkMode, hybrid_page_ocr2_region_render_chunk_mode_with_lookup,
 };
 
 pub(super) fn record_phase_elapsed(
@@ -89,35 +94,35 @@ pub(super) fn direct_docling_structure_recovery_render_report(
 }
 
 pub(super) fn ocr2_region_pipeline_enabled() -> bool {
-    #[cfg(any(feature = "document-extract-pdf-render", test))]
+    #[cfg(feature = "document-extract-pdf-render")]
     {
         hybrid_page_ocr2_region_pipeline_mode_with_lookup(&|key| std::env::var(key).ok())
             == HybridPdfOcr2RegionPipelineMode::RenderDispatch
     }
-    #[cfg(not(any(feature = "document-extract-pdf-render", test)))]
+    #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         false
     }
 }
 
 pub(super) fn ocr2_region_pipeline_mode_label() -> &'static str {
-    #[cfg(any(feature = "document-extract-pdf-render", test))]
+    #[cfg(feature = "document-extract-pdf-render")]
     {
         hybrid_page_ocr2_region_pipeline_mode_with_lookup(&|key| std::env::var(key).ok()).as_str()
     }
-    #[cfg(not(any(feature = "document-extract-pdf-render", test)))]
+    #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         "disabled"
     }
 }
 
 pub(super) fn ocr2_region_render_chunk_mode_label() -> &'static str {
-    #[cfg(any(feature = "document-extract-pdf-render", test))]
+    #[cfg(feature = "document-extract-pdf-render")]
     {
         hybrid_page_ocr2_region_render_chunk_mode_with_lookup(&|key| std::env::var(key).ok())
             .as_str()
     }
-    #[cfg(not(any(feature = "document-extract-pdf-render", test)))]
+    #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         "page"
     }
@@ -212,6 +217,7 @@ pub(super) struct Ocr2RegionMaterialization {
 }
 
 impl Ocr2RegionMaterialization {
+    #[cfg(feature = "document-extract-pdf-render")]
     pub(super) fn new(inputs: Vec<PdfOcrShardInput>) -> Self {
         Self {
             inputs,
@@ -220,6 +226,7 @@ impl Ocr2RegionMaterialization {
         }
     }
 
+    #[cfg(feature = "document-extract-pdf-render")]
     pub(super) fn record_phase_elapsed(&mut self, phase: &str, started: Instant) {
         record_phase_elapsed(&mut self.phase_elapsed_ms, phase, started);
     }

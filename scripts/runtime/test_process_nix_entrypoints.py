@@ -86,6 +86,16 @@ def test_wendao_gateway_entrypoint_uses_production_flight_timeout_budget() -> No
     assert "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS:-600" in entrypoint
 
 
+def test_wendao_gateway_entrypoint_uses_auto_build_mode() -> None:
+    entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'BUILD_MODE="${WENDAO_GATEWAY_BUILD:-auto}"' in entrypoint
+    assert 'auto|"")' in entrypoint
+    assert 'if [ ! -x "$WENDAO_BIN" ]; then' in entrypoint
+
+
 def test_process_nix_exposes_code_parser_summary_service() -> None:
     process_nix = PROCESS_NIX.read_text(encoding="utf-8")
 

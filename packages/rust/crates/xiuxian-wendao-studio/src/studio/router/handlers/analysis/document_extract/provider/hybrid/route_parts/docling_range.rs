@@ -42,7 +42,7 @@ pub(super) fn docling_page_range_fallback_ranges(
         .collect()
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(super) fn docling_page_range_fallback_ranges_with_lookup(
     pages: &BTreeSet<u32>,
     planner: HybridPdfOcrProfilePlanner,
@@ -627,7 +627,7 @@ pub(super) fn docling_page_range_chunk_size_with_lookup(
         .filter(|value| *value > 0)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(super) fn docling_page_range_chunk_size_for_planner_with_lookup(
     planner: HybridPdfOcrProfilePlanner,
     lookup: &dyn Fn(&str) -> Option<String>,

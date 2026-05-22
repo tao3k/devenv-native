@@ -224,6 +224,14 @@ output also includes `worker_tasks`, a worker-facing envelope derived from the
 same durable schedule events with run, optional step, activity, queue,
 idempotency, timeout, retry policy, scheduled timestamp, and next-attempt
 fields.
+`qianji control llm-activities --ledger <path> --run-id <id>
+[--require-request-audit] [--json]` renders the replay-derived LLM activity
+inventory for one run. It lists all `llm.*` activities and LLM-annotated tasks
+with lifecycle status, attempts, model ids when the admitted request audit
+metadata is present, and a missing request-audit count. The optional request
+audit gate turns missing admitted-request metadata into a deterministic command
+failure for CI or operator checks. The command is read-only: it does not call
+providers, claim work, append events, or mutate hot state.
 `qianji control activity-mirror --ledger <path> --valkey-url <url> --run-id
 <id> [--namespace <ns>] [--task-queue <queue>] [--priority <n>]
 [--not-before-ms <ms>] [--metadata <json>] [--json]` mirrors those
@@ -247,21 +255,32 @@ for the replay-derived worker task. The command requires both `duckdb` and
 auto-release the hot-state lease if the durable start write fails; recovery
 should use the lease TTL and `activity-reclaim`.
 `qianji control activity-worker-once --ledger <path> --valkey-url <url>
---worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --executor fixture
+--worker-id <id> --now-ms <ms> --lease-ttl-ms <ms>
+--executor fixture|openai-compatible-llm
 --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>]
-[--task-queue <queue>] [--output-hash <hash>] [--error-code <code>]
-[--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]`
+[--task-queue <queue>] [--output-ref-json <artifact-ref-json>]
+[--output-hash <hash>]
+[--output-artifact-path <path> --output-artifact-content <text>
+[--output-artifact-id <id>] [--output-artifact-kind <kind>]]
+[--openai-compatible-base-url <url>] [--openai-compatible-api-key <key>]
+[--openai-compatible-timeout-ms <ms>]
+[--error-code <code>] [--message <text>]
+[--retryable <true|false>] [--metadata <json>] [--json]`
 is a bounded single-activity worker adapter. It claims one hot-state activity
-task, records the durable start, applies the explicit fixture executor result,
+task, records the durable start, applies the selected executor result,
 records the durable terminal result, and releases the hot-state lease only
-after the terminal ledger write succeeds. Empty polls do not append ledger
-events. This first worker-loop slice intentionally supports only
-`--executor fixture`, and that fixture result now flows through the typed
-activity executor registry. Real provider execution must extend the registry
-instead of adding implicit CLI behavior. Registry execution is anchored to the
-claimed `WorkerActivityTask` envelope, so future provider adapters receive the
-durable activity type, task queue, input ref, retry policy, timeout, and
-metadata before they can produce a terminal result.
+after the terminal ledger write succeeds. Completed worker results may carry
+an explicit output `ArtifactRef` claim-check through `--output-ref-json`; failed
+activities reject output refs because provider payloads must not be embedded in
+failure records. Completed worker results may alternatively write a local
+claim-check artifact with `--output-artifact-path` and
+`--output-artifact-content`; the worker derives the output hash and
+`ArtifactRef`, rejects conflicting existing file content, and records the
+derived reference only after the artifact write succeeds. Empty polls do not
+append ledger events. Registry execution is anchored to the claimed
+`WorkerActivityTask` envelope, so provider adapters receive the durable
+activity type, task queue, input ref, retry policy, timeout, and metadata
+before they can produce a terminal result.
 The registry also validates executor route ownership before execution. A
 claimed task whose activity type or task queue is outside the selected
 executor contract is rejected before any fixture or future provider adapter can
@@ -273,14 +292,26 @@ executor contract snapshot for operator inspection; empty polls expose no
 contract because no activity task was authorized. The initial fixture contract
 recognizes the governed LLM roles `llm.plan`, `llm.tool_select`, and
 `llm.repair` across local inspection queues for OpenAI, Anthropic,
-OpenRouter, and local model workers; it remains a deterministic fixture
-adapter and does not execute provider code.
+OpenRouter, and local model workers. The worker-once adapter also carries an
+OpenAI-compatible LLM executor for admitted `llm.openai`, `llm.openrouter`,
+and `llm.local` tasks. That executor requires a claimed task input reference,
+admitted request-audit metadata, a local-file prompt reference that matches
+the task input reference, `--openai-compatible-base-url`, and
+`--output-artifact-path`. It performs one HTTP request with no internal retry,
+writes successful provider responses to the output artifact, records only the
+derived claim-check in the durable completion event, and records HTTP,
+malformed response, or input materialization failures as durable activity
+failures.
 `qianji control activity-worker-loop --ledger <path> --valkey-url <url>
 --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n>
---executor fixture --outcome complete|fail --settled-at-ms <ms>
+--executor fixture|openai-compatible-llm --outcome complete|fail
+--settled-at-ms <ms>
 [--namespace <ns>] [--task-queue <queue>] [--now-step-ms <ms>]
 [--heartbeat-ttl-ms <ms>] [--settled-step-ms <ms>] [--empty-limit <n>]
-[--output-hash <hash>] [--error-code <code>] [--message <text>]
+[--output-hash <hash>] [--output-artifact-dir <dir>]
+[--output-artifact-kind <kind>] [--openai-compatible-base-url <url>]
+[--openai-compatible-api-key <key>] [--openai-compatible-timeout-ms <ms>]
+[--error-code <code>] [--message <text>]
 [--retryable <true|false>] [--metadata <json>] [--json]` is a bounded finite
 worker-loop adapter. It reuses `activity-worker-once` semantics for each poll,
 stops at `--poll-limit` or after the configured empty-poll streak, and does
@@ -288,7 +319,12 @@ not sleep, spawn a daemon, or append ledger events for empty polls. When
 `--heartbeat-ttl-ms` is supplied, each claimed task also records a Worker
 heartbeat through the same Valkey hot-state and durable ledger path before the
 fixture result is applied. Empty polls still do not write heartbeats because
-there is no run-scoped activity task to anchor the durable event.
+there is no run-scoped activity task to anchor the durable event. With
+`--executor openai-compatible-llm`, the loop requires `--outcome complete`,
+`--openai-compatible-base-url`, and `--output-artifact-dir`; each claimed LLM
+task derives a deterministic provider-response artifact path from the activity
+id and attempt number, then reuses the worker-once OpenAI-compatible executor
+so provider failures remain durable activity failures after start.
 `qianji control activity-reclaim --valkey-url <url> --lease-json <json>
 --now-ms <ms> [--namespace <ns>] [--json]` reclaims a claimed hot-state
 activity lease only after it is expired at the supplied observation time and

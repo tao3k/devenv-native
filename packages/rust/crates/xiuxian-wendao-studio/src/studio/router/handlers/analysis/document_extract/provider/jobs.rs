@@ -8,6 +8,7 @@ use xiuxian_wendao_server::transport::{
 };
 
 use super::StudioDocumentExtractFlightRouteProvider;
+use super::native_org::is_native_org_source;
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, build_error_resource_batch, build_job_resource_batch,
     mirror_artifact_to_output, mirror_document_extract_cache, read_arrow_file,
@@ -32,6 +33,17 @@ impl StudioDocumentExtractFlightRouteProvider {
         } else {
             PathBuf::from(output_dir)
         };
+        if source.exists() && is_native_org_source(source.as_path()) {
+            let _permit = self.acquire_document_extract_dispatch_permit().await?;
+            return self
+                .sync_native_org_document_extract_batch(
+                    source.as_path(),
+                    output.as_path(),
+                    force,
+                    error_row,
+                )
+                .await;
+        }
         if source.exists() && !force {
             if let Some(batches) = read_cached_document_batches(source.as_path(), output.as_path())?
             {
@@ -144,6 +156,17 @@ impl StudioDocumentExtractFlightRouteProvider {
         &self,
         request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        if is_native_org_source(Path::new(request.source_path.as_str())) {
+            return self
+                .sync_document_extract_batch(
+                    request.source_path.as_str(),
+                    request.output_dir.as_str(),
+                    request.force,
+                    request.error_row,
+                    request.profile.as_str(),
+                )
+                .await;
+        }
         if request.profile != DOCUMENT_EXTRACT_FULL_PROFILE {
             return self
                 .sync_document_extract_batch(
@@ -271,6 +294,32 @@ impl StudioDocumentExtractFlightRouteProvider {
                     artifact_dir.display()
                 )
             })?;
+
+        if is_native_org_source(Path::new(status.source_path.as_str())) {
+            let batches = self
+                .write_native_org_document_extract_output(
+                    Path::new(status.source_path.as_str()),
+                    artifact_dir.as_path(),
+                    true,
+                    false,
+                )
+                .await?;
+            write_arrow_file(
+                artifact_dir
+                    .join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME)
+                    .as_path(),
+                batches.as_slice(),
+            )?;
+            tokio::fs::File::create(artifact_dir.join("_complete.marker"))
+                .await
+                .map_err(|error| format!("touch document extract artifact marker: {error}"))?;
+            mirror_artifact_to_output(
+                artifact_dir.as_path(),
+                Path::new(status.output_dir.as_str()),
+            )?;
+            let _registry_guard = self.registry_lock();
+            return self.registry()?.mark_succeeded(job_id);
+        }
 
         let conversion = self
             .request_python_document_extract(

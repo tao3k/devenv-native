@@ -1,41 +1,60 @@
+#[cfg(feature = "document-extract-pdf-render")]
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::profile::{
     PdfSourcePageProfile, source_pdf_page_profiles_cached,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::render_pdf_page_shards_with_selection;
+#[cfg(feature = "document-extract-pdf-render")]
+use xiuxian_wendao_attachments::pdf::render::{PdfPageBox, PdfPageRegionRenderRequest};
 use xiuxian_wendao_attachments::pdf::render::{
-    PdfPageBox, PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfPageRenderSelection,
-    PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
+    PdfPageRenderProfile, PdfPageRenderSelection, PdfPageRenderShardReport,
+    PdfRenderRoutingDecision, PdfRenderStatus,
     prepare_pdf_source_page_range_ocr_shards_with_selection,
 };
 use xiuxian_wendao_server::transport::DocumentExtractFlightRequest;
 
-use super::profile::{hybrid_page_ocr_profile_planner, is_hosted_vlm_topup_page};
+use super::profile::hybrid_page_ocr_profile_planner;
+#[cfg(feature = "document-extract-pdf-render")]
+use super::profile::is_hosted_vlm_topup_page;
+#[cfg(feature = "document-extract-pdf-render")]
 use super::types::{
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV,
-    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV,
-    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV,
-    DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
+    DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
     HybridPdfRegionInput,
 };
+use super::types::{
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV, DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV,
+};
 use crate::studio::router::handlers::analysis::document_extract::registry::default_output_dir;
+#[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, is_hosted_vlm_direct_profile};
 
+#[cfg(feature = "document-extract-pdf-render")]
 const DEFAULT_OCR2_REGION_CONTEXT_RATIO: f64 = 0.18;
 const OCR2_REGION_PLANNER_PROFILE_RISK_WINDOW: &str = "profile-risk-window";
 const OCR2_REGION_PLANNER_PROFILE_RISK_WINDOW_SLICES: &str = "profile-risk-window-slices";
 const OCR2_REGION_PLANNER_PROFILE_RISK_WINDOW_ADAPTIVE: &str = "profile-risk-window-adaptive";
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_LEFT_RATIO: f64 = 0.18;
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_RIGHT_RATIO: f64 = 0.82;
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_BOTTOM_RATIO: f64 = 0.30;
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_TOP_RATIO: f64 = 0.84;
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_SLICE_COUNT: u32 = 3;
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_TARGET_PIXELS: f64 = 2_250_000.0;
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_MAX_SLICES: u32 = 3;
+#[cfg(feature = "document-extract-pdf-render")]
 const OCR2_AUTO_REGION_MAX_SLICE_CAP: u32 = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,6 +65,7 @@ pub(crate) enum HybridPdfOcr2RegionPlanner {
     ProfileRiskWindowAdaptive,
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct HybridPdfOcr2RegionPatchSizing {
     pub(crate) target_pixels: f64,
@@ -135,6 +155,7 @@ pub(crate) fn hybrid_page_ocr_render_selection_with_lookup(
     }
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) fn hybrid_page_ocr_region_requests_for_source_with_lookup(
     source: &Path,
     lookup: &dyn Fn(&str) -> Option<String>,
@@ -171,7 +192,7 @@ pub(crate) fn hybrid_page_ocr_region_requests_for_source_with_lookup(
     Ok(apply_region_context_padding(regions, context_ratio))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(crate) fn automatic_ocr2_recovery_region_requests_with_lookup(
     inputs: &[PdfOcrShardInput],
     lookup: &dyn Fn(&str) -> Option<String>,
@@ -179,6 +200,7 @@ pub(crate) fn automatic_ocr2_recovery_region_requests_with_lookup(
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup(inputs, &[], lookup)
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) fn automatic_ocr2_recovery_region_requests_for_source_with_lookup(
     source: &Path,
     inputs: &[PdfOcrShardInput],
@@ -198,6 +220,7 @@ pub(crate) fn automatic_ocr2_recovery_region_requests_for_source_with_lookup(
     )
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) fn automatic_ocr2_recovery_region_requests_for_profiles_with_lookup(
     inputs: &[PdfOcrShardInput],
     profiles: &[PdfSourcePageProfile],
@@ -258,6 +281,7 @@ pub(crate) fn hybrid_page_ocr2_region_planner_with_lookup(
     }
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) fn hybrid_page_ocr2_region_patch_sizing_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> HybridPdfOcr2RegionPatchSizing {
@@ -277,6 +301,7 @@ pub(crate) fn hybrid_page_ocr2_region_patch_sizing_with_lookup(
     }
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn ocr2_recovery_content_band_region(
     input: &PdfOcrShardInput,
 ) -> Option<PdfPageRegionRenderRequest> {
@@ -305,6 +330,7 @@ fn ocr2_recovery_content_band_region(
     ))
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn ocr2_recovery_content_slices(input: &PdfOcrShardInput) -> Vec<PdfPageRegionRenderRequest> {
     let Some(band) = ocr2_recovery_content_band_region(input) else {
         return Vec::new();
@@ -312,6 +338,7 @@ fn ocr2_recovery_content_slices(input: &PdfOcrShardInput) -> Vec<PdfPageRegionRe
     ocr2_recovery_content_band_slices(&band, OCR2_AUTO_REGION_SLICE_COUNT)
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn ocr2_recovery_content_adaptive_slices(
     input: &PdfOcrShardInput,
     profile: Option<&PdfSourcePageProfile>,
@@ -325,6 +352,7 @@ fn ocr2_recovery_content_adaptive_slices(
     ocr2_recovery_content_band_slices(&band, slice_count)
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn adaptive_region_slice_count(
     content_pixels: f64,
     profile: Option<&PdfSourcePageProfile>,
@@ -343,6 +371,7 @@ fn adaptive_region_slice_count(
     pixel_slices
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn pixel_area_slice_count(
     content_pixels: f64,
     patch_sizing: HybridPdfOcr2RegionPatchSizing,
@@ -350,12 +379,17 @@ fn pixel_area_slice_count(
     if !content_pixels.is_finite() || content_pixels <= 0.0 {
         return 1;
     }
-    (content_pixels / patch_sizing.target_pixels)
+    let requested_slices = (content_pixels / patch_sizing.target_pixels)
         .ceil()
-        .max(1.0)
-        .min(f64::from(patch_sizing.max_slices)) as u32
+        .max(1.0);
+    let mut slices = 1_u32;
+    while f64::from(slices) < requested_slices && slices < patch_sizing.max_slices {
+        slices = slices.saturating_add(1);
+    }
+    slices
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn is_exact_structural_risk(profile: &PdfSourcePageProfile) -> bool {
     let compact_table_grid = (1..=8).contains(&profile.rectangle_ops)
         && profile.operation_count >= 640
@@ -366,6 +400,7 @@ fn is_exact_structural_risk(profile: &PdfSourcePageProfile) -> bool {
     compact_table_grid || dense_table_path_band
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn is_low_complexity_risk_neighbor(profile: &PdfSourcePageProfile) -> bool {
     profile.operation_count < 320
         && profile.text_show_ops < 100
@@ -374,6 +409,7 @@ fn is_low_complexity_risk_neighbor(profile: &PdfSourcePageProfile) -> bool {
         && profile.draw_object_ops <= 1
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn ocr2_recovery_content_band_slices(
     band: &PdfPageRegionRenderRequest,
     slice_count: u32,
@@ -399,6 +435,7 @@ fn ocr2_recovery_content_band_slices(
         .collect()
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn slice_reading_order_offset(slice: u32, slice_count: u32) -> u32 {
     match slice_count {
         2 => {
@@ -413,6 +450,7 @@ fn slice_reading_order_offset(slice: u32, slice_count: u32) -> u32 {
     }
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn estimated_region_pixels(input: &PdfOcrShardInput, region_box: PdfPageBox) -> f64 {
     let scale_x = if input.point_to_pixel_scale_x.is_finite() && input.point_to_pixel_scale_x > 0.0
     {
@@ -435,6 +473,7 @@ fn estimated_region_pixels(input: &PdfOcrShardInput, region_box: PdfPageBox) -> 
     }
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn page_scale_from_raster(raster_px: u32, page_points: f64) -> f64 {
     if page_points.is_finite() && page_points > 0.0 {
         f64::from(raster_px) / page_points
@@ -443,6 +482,7 @@ fn page_scale_from_raster(raster_px: u32, page_points: f64) -> f64 {
     }
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn paths_match(left: &Path, right: &Path) -> bool {
     left == right
         || match (left.canonicalize(), right.canonicalize()) {
@@ -451,6 +491,7 @@ fn paths_match(left: &Path, right: &Path) -> bool {
         }
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) fn hybrid_page_ocr_region_context_ratio_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> f64 {
@@ -460,6 +501,7 @@ pub(crate) fn hybrid_page_ocr_region_context_ratio_with_lookup(
         .map_or(DEFAULT_OCR2_REGION_CONTEXT_RATIO, |value| value.min(1.0))
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn apply_region_context_padding(
     regions: Vec<PdfPageRegionRenderRequest>,
     context_ratio: f64,
@@ -476,6 +518,7 @@ fn apply_region_context_padding(
         .collect()
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 fn padded_region_box(box_points: PdfPageBox, context_ratio: f64) -> PdfPageBox {
     let pad_x = box_points.width_points() * context_ratio;
     let pad_y = box_points.height_points() * context_ratio;

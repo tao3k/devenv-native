@@ -1,10 +1,17 @@
 //! `qianji control` command surface.
 
 mod activity_args;
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+mod activity_artifact;
 mod activity_claim;
 mod activity_executor;
 mod activity_finish;
 mod activity_mirror;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+mod activity_openai_compatible;
 mod activity_reclaim;
 mod activity_release;
 mod activity_schedule_llm;
@@ -15,6 +22,7 @@ mod activity_worker_loop;
 mod activity_worker_once;
 mod api;
 mod heartbeat;
+mod llm_inventory;
 mod parse;
 mod render;
 mod run;

@@ -4,6 +4,7 @@ mod cost_inventory;
 mod evidence;
 mod hot_state;
 mod journal;
+mod llm_inventory;
 mod operator_summary;
 mod recovery;
 mod signal_inventory;

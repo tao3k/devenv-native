@@ -21,6 +21,7 @@ use futures::future::{BoxFuture, FutureExt};
 #[cfg(feature = "document-extract-pdf-render")]
 use futures::stream::{FuturesUnordered, StreamExt};
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(super) struct Ocr2RegionPipelineBatch {
     pub(super) resource_batch: HybridDocumentResourceBatch,
     pub(super) stats: Ocr2RegionMaterializationStats,
@@ -86,6 +87,7 @@ pub(super) enum Ocr2RegionPipelineBatchKind {
     Region,
 }
 
+#[cfg(feature = "document-extract-pdf-render")]
 pub(super) async fn materialize_hybrid_page_ocr_resource_batch_with_region_pipeline(
     render_report: &PdfPageRenderShardReport,
     inputs: Vec<PdfOcrShardInput>,
@@ -289,16 +291,7 @@ fn fill_region_render_queue<'a>(
     scheduler_started: Instant,
 ) {
     let chunk_index_before = state.chunk_index;
-    fill_ocr2_region_render_ahead(
-        request.source_path,
-        request.source_content_hash,
-        request.page_count,
-        request.render_profile,
-        request.region_chunks,
-        &mut state.chunk_index,
-        request.render_ahead_limit,
-        &mut state.active_renders,
-    );
+    fill_ocr2_region_render_ahead(request, state);
     let spawned_count = state.chunk_index.saturating_sub(chunk_index_before);
     if spawned_count > 0 {
         let spawn_elapsed_ms = scheduler_started.elapsed().as_secs_f64() * 1000.0;
@@ -405,30 +398,22 @@ fn handle_completed_ocr_batch(
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
-pub(super) fn fill_ocr2_region_render_ahead(
-    source_path: &Path,
-    source_content_hash: &str,
-    page_count: u32,
-    render_profile: &PdfPageRenderProfile,
-    region_chunks: &[Vec<PdfPageRegionRenderRequest>],
-    chunk_index: &mut usize,
-    render_ahead_limit: usize,
-    active_renders: &mut FuturesUnordered<
-        tokio::task::JoinHandle<Result<Ocr2RegionRenderChunk, String>>,
-    >,
+fn fill_ocr2_region_render_ahead<'a>(
+    request: &Ocr2RegionPipelineDrainRequest<'a>,
+    state: &mut Ocr2RegionPipelineDrainState<'a>,
 ) {
-    while active_renders.len() < render_ahead_limit {
+    while state.active_renders.len() < request.render_ahead_limit {
         let Some(render) = spawn_next_ocr2_region_render_chunk(
-            source_path,
-            source_content_hash,
-            page_count,
-            render_profile,
-            region_chunks,
-            chunk_index,
+            request.source_path,
+            request.source_content_hash,
+            request.page_count,
+            request.render_profile,
+            request.region_chunks,
+            &mut state.chunk_index,
         ) else {
             break;
         };
-        active_renders.push(render);
+        state.active_renders.push(render);
     }
 }
 

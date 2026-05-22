@@ -54,7 +54,7 @@ pub(super) fn store_hybrid_page_ocr_artifact_cache(
     store_hybrid_page_ocr_artifact_cache_with_lookup(source, output, &env_lookup)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(super) fn hybrid_page_ocr_artifact_cache_key_for_test(
     source: &Path,
     lookup: &dyn Fn(&str) -> Option<String>,
@@ -62,7 +62,7 @@ pub(super) fn hybrid_page_ocr_artifact_cache_key_for_test(
     hybrid_page_ocr_artifact_cache_key(source, lookup)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(super) fn store_hybrid_page_ocr_artifact_cache_for_test(
     source: &Path,
     output: &Path,
@@ -71,7 +71,7 @@ pub(super) fn store_hybrid_page_ocr_artifact_cache_for_test(
     store_hybrid_page_ocr_artifact_cache_with_lookup(source, output, lookup)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(super) fn hybrid_page_ocr_artifact_cache_response_for_test(
     source: &Path,
     output: &Path,

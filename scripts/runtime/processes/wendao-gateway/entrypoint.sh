@@ -15,7 +15,7 @@ PORT_RESOLVER="${WENDAO_GATEWAY_PORT_RESOLVER:-$PROJECT_ROOT/scripts/runtime/res
 WENDAO_BIN="${WENDAO_GATEWAY_BIN:-$PROJECT_ROOT/target/debug/wendao}"
 STDOUT_LOG="${WENDAO_GATEWAY_STDOUT_LOG:-$LOG_DIR/wendao-gateway.stdout.log}"
 STDERR_LOG="${WENDAO_GATEWAY_STDERR_LOG:-$LOG_DIR/wendao-gateway.stderr.log}"
-BUILD_ENABLED="${WENDAO_GATEWAY_BUILD:-1}"
+BUILD_MODE="${WENDAO_GATEWAY_BUILD:-auto}"
 
 CONFIG_PATH="$(process_abs_path "$PROJECT_ROOT" "$CONFIG_PATH")"
 LOG_DIR="$(process_abs_path "$PROJECT_ROOT" "$LOG_DIR")"
@@ -38,14 +38,32 @@ export XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS="${XIUXIAN_WENDAO_GATE
 export WENDAO_GATEWAY_PIDFILE="$PIDFILE"
 
 cd "$PROJECT_ROOT"
-if [ "$BUILD_ENABLED" != "0" ]; then
-  if command -v cargo >/dev/null 2>&1; then
-    cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
-  elif [ ! -x "$WENDAO_BIN" ]; then
-    echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
+case "$BUILD_MODE" in
+  0|false|False|FALSE|off|OFF)
+    ;;
+  1|true|True|TRUE|on|ON)
+    if command -v cargo >/dev/null 2>&1; then
+      cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
+    elif [ ! -x "$WENDAO_BIN" ]; then
+      echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
+      exit 1
+    fi
+    ;;
+  auto|"")
+    if [ ! -x "$WENDAO_BIN" ]; then
+      if command -v cargo >/dev/null 2>&1; then
+        cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
+      else
+        echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
+        exit 1
+      fi
+    fi
+    ;;
+  *)
+    echo "Error: unsupported WENDAO_GATEWAY_BUILD value: $BUILD_MODE" >&2
     exit 1
-  fi
-fi
+    ;;
+esac
 
 "$WENDAO_BIN" --conf "$CONFIG_PATH" gateway start \
   > >(tee -a "$STDOUT_LOG") \

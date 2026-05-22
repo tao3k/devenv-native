@@ -7,6 +7,7 @@ use crate::qianji_cli::tests::control_cli::support::{must_ok, must_some, to_args
 
 #[test]
 fn parse_control_activity_worker_once_complete_command() {
+    let output_ref_json = r#"{"artifact_id":"artifact-worker-output","artifact_kind":"llm.output","uri":"artifact://artifact-worker-output","content_digest":"sha256:activity-output","metadata":{"mime":"application/json"}}"#;
     assert_eq!(
         must_some(
             must_ok(
@@ -36,6 +37,8 @@ fn parse_control_activity_worker_once_complete_command() {
                     "23456",
                     "--output-hash",
                     "sha256:activity-output",
+                    "--output-ref-json",
+                    output_ref_json,
                     "--metadata",
                     "{\"rows\":3}",
                     "--json",
@@ -55,7 +58,15 @@ fn parse_control_activity_worker_once_complete_command() {
             executor: ActivityExecutorKindArg::Fixture,
             outcome: ActivitySettleOutcomeArg::Complete,
             settled_at_ms: 23_456,
+            output_ref_json: Some(output_ref_json.to_string()),
             output_hash: Some("sha256:activity-output".to_string()),
+            output_artifact_path: None,
+            output_artifact_content: None,
+            output_artifact_id: None,
+            output_artifact_kind: None,
+            openai_compatible_base_url: None,
+            openai_compatible_api_key: None,
+            openai_compatible_timeout_ms: None,
             error_code: None,
             message: None,
             retryable: None,
@@ -113,7 +124,15 @@ fn parse_control_activity_worker_once_fail_command() {
             executor: ActivityExecutorKindArg::Fixture,
             outcome: ActivitySettleOutcomeArg::Fail,
             settled_at_ms: 23_456,
+            output_ref_json: None,
             output_hash: None,
+            output_artifact_path: None,
+            output_artifact_content: None,
+            output_artifact_id: None,
+            output_artifact_kind: None,
+            openai_compatible_base_url: None,
+            openai_compatible_api_key: None,
+            openai_compatible_timeout_ms: None,
             error_code: Some("rate_limited".to_string()),
             message: Some("provider rejected request".to_string()),
             retryable: Some(true),
@@ -158,6 +177,314 @@ fn parse_control_activity_worker_once_rejects_fail_without_retryable() {
     assert!(
         error.to_string().contains(
             "missing `--retryable <true|false>` for `control activity-worker-once --outcome fail`"
+        ),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn parse_control_activity_worker_once_complete_with_output_artifact() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "activity-worker-once",
+                    "--ledger",
+                    "control.duckdb",
+                    "--valkey-url",
+                    "redis://127.0.0.1:6379",
+                    "--worker-id",
+                    "worker-once",
+                    "--now-ms",
+                    "12345",
+                    "--lease-ttl-ms",
+                    "500",
+                    "--executor",
+                    "fixture",
+                    "--outcome",
+                    "complete",
+                    "--settled-at-ms",
+                    "23456",
+                    "--output-artifact-path",
+                    "artifacts/activity-output.json",
+                    "--output-artifact-content",
+                    "{\"answer\":\"done\"}",
+                    "--output-artifact-id",
+                    "activity-output",
+                    "--output-artifact-kind",
+                    "llm.output",
+                ])),
+                "control activity-worker-once output artifact parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::ActivityWorkerOnce {
+            ledger_path: PathBuf::from("control.duckdb"),
+            valkey_url: "redis://127.0.0.1:6379".to_string(),
+            namespace: None,
+            worker_id: "worker-once".to_string(),
+            task_queue: None,
+            now_ms: 12_345,
+            lease_ttl_ms: 500,
+            executor: ActivityExecutorKindArg::Fixture,
+            outcome: ActivitySettleOutcomeArg::Complete,
+            settled_at_ms: 23_456,
+            output_ref_json: None,
+            output_hash: None,
+            output_artifact_path: Some(PathBuf::from("artifacts/activity-output.json")),
+            output_artifact_content: Some("{\"answer\":\"done\"}".to_string()),
+            output_artifact_id: Some("activity-output".to_string()),
+            output_artifact_kind: Some("llm.output".to_string()),
+            openai_compatible_base_url: None,
+            openai_compatible_api_key: None,
+            openai_compatible_timeout_ms: None,
+            error_code: None,
+            message: None,
+            retryable: None,
+            metadata: None,
+            json: false,
+        },
+    );
+}
+
+#[test]
+fn parse_control_activity_worker_once_openai_compatible_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "activity-worker-once",
+                    "--ledger",
+                    "control.duckdb",
+                    "--valkey-url",
+                    "redis://127.0.0.1:6379",
+                    "--worker-id",
+                    "worker-once",
+                    "--task-queue",
+                    "llm.openrouter",
+                    "--now-ms",
+                    "12345",
+                    "--lease-ttl-ms",
+                    "500",
+                    "--executor",
+                    "openai-compatible-llm",
+                    "--outcome",
+                    "complete",
+                    "--settled-at-ms",
+                    "23456",
+                    "--openai-compatible-base-url",
+                    "http://127.0.0.1:8080/v1",
+                    "--openai-compatible-api-key",
+                    "test-key",
+                    "--openai-compatible-timeout-ms",
+                    "1500",
+                    "--output-artifact-path",
+                    "artifacts/llm-output.json",
+                    "--output-artifact-id",
+                    "activity-output",
+                    "--output-artifact-kind",
+                    "llm.output",
+                ])),
+                "control activity-worker-once OpenAI-compatible parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::ActivityWorkerOnce {
+            ledger_path: PathBuf::from("control.duckdb"),
+            valkey_url: "redis://127.0.0.1:6379".to_string(),
+            namespace: None,
+            worker_id: "worker-once".to_string(),
+            task_queue: Some("llm.openrouter".to_string()),
+            now_ms: 12_345,
+            lease_ttl_ms: 500,
+            executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
+            outcome: ActivitySettleOutcomeArg::Complete,
+            settled_at_ms: 23_456,
+            output_ref_json: None,
+            output_hash: None,
+            output_artifact_path: Some(PathBuf::from("artifacts/llm-output.json")),
+            output_artifact_content: None,
+            output_artifact_id: Some("activity-output".to_string()),
+            output_artifact_kind: Some("llm.output".to_string()),
+            openai_compatible_base_url: Some("http://127.0.0.1:8080/v1".to_string()),
+            openai_compatible_api_key: Some("test-key".to_string()),
+            openai_compatible_timeout_ms: Some(1500),
+            error_code: None,
+            message: None,
+            retryable: None,
+            metadata: None,
+            json: false,
+        },
+    );
+}
+
+#[test]
+fn parse_control_activity_worker_once_rejects_openai_without_output_artifact() {
+    let result = parse_control_command(&to_args(&[
+        "qianji",
+        "control",
+        "activity-worker-once",
+        "--ledger",
+        "control.duckdb",
+        "--valkey-url",
+        "redis://127.0.0.1:6379",
+        "--worker-id",
+        "worker-once",
+        "--now-ms",
+        "12345",
+        "--lease-ttl-ms",
+        "500",
+        "--executor",
+        "openai-compatible-llm",
+        "--outcome",
+        "complete",
+        "--settled-at-ms",
+        "23456",
+        "--openai-compatible-base-url",
+        "http://127.0.0.1:8080/v1",
+    ]));
+    let error = match result {
+        Ok(value) => {
+            panic!("OpenAI-compatible executor without artifact should fail, got {value:?}")
+        }
+        Err(error) => error,
+    };
+
+    assert!(
+        error
+            .to_string()
+            .contains("missing `--output-artifact-path <path>`"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn parse_control_activity_worker_once_rejects_fail_with_output_ref() {
+    let result = parse_control_command(&to_args(&[
+        "qianji",
+        "control",
+        "activity-worker-once",
+        "--ledger",
+        "control.duckdb",
+        "--valkey-url",
+        "redis://127.0.0.1:6379",
+        "--worker-id",
+        "worker-once",
+        "--now-ms",
+        "12345",
+        "--lease-ttl-ms",
+        "500",
+        "--executor",
+        "fixture",
+        "--outcome",
+        "fail",
+        "--settled-at-ms",
+        "23456",
+        "--error-code",
+        "rate_limited",
+        "--message",
+        "provider rejected request",
+        "--retryable",
+        "true",
+        "--output-ref-json",
+        r#"{"artifact_id":"artifact-worker-output","artifact_kind":"llm.output","uri":"artifact://artifact-worker-output"}"#,
+    ]));
+    let error = match result {
+        Ok(value) => panic!("fail with output ref should fail, got {value:?}"),
+        Err(error) => error,
+    };
+
+    assert!(
+        error
+            .to_string()
+            .contains("cannot be combined with output artifact or output reference arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn parse_control_activity_worker_once_rejects_fail_with_output_artifact() {
+    let result = parse_control_command(&to_args(&[
+        "qianji",
+        "control",
+        "activity-worker-once",
+        "--ledger",
+        "control.duckdb",
+        "--valkey-url",
+        "redis://127.0.0.1:6379",
+        "--worker-id",
+        "worker-once",
+        "--now-ms",
+        "12345",
+        "--lease-ttl-ms",
+        "500",
+        "--executor",
+        "fixture",
+        "--outcome",
+        "fail",
+        "--settled-at-ms",
+        "23456",
+        "--error-code",
+        "rate_limited",
+        "--message",
+        "provider rejected request",
+        "--retryable",
+        "true",
+        "--output-artifact-path",
+        "artifacts/activity-output.json",
+        "--output-artifact-content",
+        "{\"answer\":\"done\"}",
+    ]));
+    let error = match result {
+        Ok(value) => panic!("fail with output artifact should fail, got {value:?}"),
+        Err(error) => error,
+    };
+
+    assert!(
+        error
+            .to_string()
+            .contains("cannot be combined with output artifact or output reference arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn parse_control_activity_worker_once_rejects_output_artifact_without_content() {
+    let result = parse_control_command(&to_args(&[
+        "qianji",
+        "control",
+        "activity-worker-once",
+        "--ledger",
+        "control.duckdb",
+        "--valkey-url",
+        "redis://127.0.0.1:6379",
+        "--worker-id",
+        "worker-once",
+        "--now-ms",
+        "12345",
+        "--lease-ttl-ms",
+        "500",
+        "--executor",
+        "fixture",
+        "--outcome",
+        "complete",
+        "--settled-at-ms",
+        "23456",
+        "--output-artifact-path",
+        "artifacts/activity-output.json",
+    ]));
+    let error = match result {
+        Ok(value) => panic!("output artifact without content should fail, got {value:?}"),
+        Err(error) => error,
+    };
+
+    assert!(
+        error.to_string().contains(
+            "missing `--output-artifact-content <text>` for `control activity-worker-once`"
         ),
         "unexpected error: {error}"
     );

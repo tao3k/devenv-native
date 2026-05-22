@@ -196,7 +196,7 @@ document_text_evidence = ["docx"]
 }
 
 fn mapping_ledger() -> &'static str {
-    r#"#+TITLE: Synthetic Mapping
+    r"#+TITLE: Synthetic Mapping
 
 * Synthetic mapping
 :PROPERTIES:
@@ -216,7 +216,7 @@ fn mapping_ledger() -> &'static str {
 
 | stable_key | label | note |
 | policy.defines_service | 定义服务项目 | candidate relation |
-"#
+"
 }
 
 fn sha256_text(value: &str) -> String {

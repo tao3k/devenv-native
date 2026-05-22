@@ -33,6 +33,7 @@ mod gate;
 mod heartbeat_journal;
 mod identity;
 mod lease_journal;
+mod llm_inventory;
 mod memory;
 mod model;
 mod operator_summary;
@@ -99,6 +100,9 @@ pub use {
         TimerId, TokenId, ToolName, VersionKey, WorkerId,
     },
     lease_journal::{StepLeaseReleaseJournalRecord, record_step_lease_released},
+    llm_inventory::{
+        LlmActivityInventoryItem, LlmActivityInventoryProjection, LlmActivityInventorySummary,
+    },
     memory::{InMemoryControlLedger, InMemoryHotStateStore},
     model::{
         ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,

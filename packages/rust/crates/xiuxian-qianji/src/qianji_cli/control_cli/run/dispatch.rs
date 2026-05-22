@@ -79,6 +79,12 @@ pub(crate) fn run_control_command_impl(
             run_id,
             json,
         } => run_leases_command(ledger_path, run_id, *json),
+        ControlCliCommand::LlmActivities {
+            ledger_path,
+            run_id,
+            require_request_audit,
+            json,
+        } => super::super::llm_inventory::run(ledger_path, run_id, *require_request_audit, *json),
         ControlCliCommand::QueryState {
             ledger_path,
             run_id,
@@ -478,7 +484,15 @@ fn run_activity_worker_once_from_command(
         executor,
         outcome,
         settled_at_ms,
+        output_ref_json,
         output_hash,
+        output_artifact_path,
+        output_artifact_content,
+        output_artifact_id,
+        output_artifact_kind,
+        openai_compatible_base_url,
+        openai_compatible_api_key,
+        openai_compatible_timeout_ms,
         error_code,
         message,
         retryable,
@@ -488,26 +502,33 @@ fn run_activity_worker_once_from_command(
     else {
         unreachable!("activity-worker-once runner received a non-activity-worker-once command");
     };
-    super::super::activity_worker_once::run(
-        super::super::activity_worker_once::ActivityWorkerOnceRunRequest {
-            ledger_path,
-            valkey_url,
-            namespace: namespace.as_deref(),
-            worker_id,
-            task_queue: task_queue.as_deref(),
-            now_ms: *now_ms,
-            lease_ttl_ms: *lease_ttl_ms,
-            executor: *executor,
-            outcome: *outcome,
-            settled_at_ms: *settled_at_ms,
-            output_hash: output_hash.as_deref(),
-            error_code: error_code.as_deref(),
-            message: message.as_deref(),
-            retryable: *retryable,
-            metadata: metadata.as_deref(),
-            json: *json,
-        },
-    )
+    let request = super::super::activity_worker_once::ActivityWorkerOnceRunRequest {
+        ledger_path,
+        valkey_url,
+        namespace: namespace.as_deref(),
+        worker_id,
+        task_queue: task_queue.as_deref(),
+        now_ms: *now_ms,
+        lease_ttl_ms: *lease_ttl_ms,
+        executor: *executor,
+        outcome: *outcome,
+        settled_at_ms: *settled_at_ms,
+        output_ref_json: output_ref_json.as_deref(),
+        output_hash: output_hash.as_deref(),
+        output_artifact_path: output_artifact_path.as_deref(),
+        output_artifact_content: output_artifact_content.as_deref(),
+        output_artifact_id: output_artifact_id.as_deref(),
+        output_artifact_kind: output_artifact_kind.as_deref(),
+        openai_compatible_base_url: openai_compatible_base_url.as_deref(),
+        openai_compatible_api_key: openai_compatible_api_key.as_deref(),
+        openai_compatible_timeout_ms: *openai_compatible_timeout_ms,
+        error_code: error_code.as_deref(),
+        message: message.as_deref(),
+        retryable: *retryable,
+        metadata: metadata.as_deref(),
+        json: *json,
+    };
+    super::super::activity_worker_once::run(&request)
 }
 
 fn run_activity_worker_loop_from_command(
@@ -530,6 +551,11 @@ fn run_activity_worker_loop_from_command(
         settled_at_ms,
         settled_step_ms,
         output_hash,
+        output_artifact_dir,
+        output_artifact_kind,
+        openai_compatible_base_url,
+        openai_compatible_api_key,
+        openai_compatible_timeout_ms,
         error_code,
         message,
         retryable,
@@ -539,31 +565,35 @@ fn run_activity_worker_loop_from_command(
     else {
         unreachable!("activity-worker-loop runner received a non-activity-worker-loop command");
     };
-    super::super::activity_worker_loop::run(
-        super::super::activity_worker_loop::ActivityWorkerLoopRunRequest {
-            ledger_path,
-            valkey_url,
-            namespace: namespace.as_deref(),
-            worker_id,
-            task_queue: task_queue.as_deref(),
-            now_ms: *now_ms,
-            now_step_ms: *now_step_ms,
-            lease_ttl_ms: *lease_ttl_ms,
-            heartbeat_ttl_ms: *heartbeat_ttl_ms,
-            poll_limit: *poll_limit,
-            empty_limit: *empty_limit,
-            executor: *executor,
-            outcome: *outcome,
-            settled_at_ms: *settled_at_ms,
-            settled_step_ms: *settled_step_ms,
-            output_hash: output_hash.as_deref(),
-            error_code: error_code.as_deref(),
-            message: message.as_deref(),
-            retryable: *retryable,
-            metadata: metadata.as_deref(),
-            json: *json,
-        },
-    )
+    let request = super::super::activity_worker_loop::ActivityWorkerLoopRunRequest {
+        ledger_path,
+        valkey_url,
+        namespace: namespace.as_deref(),
+        worker_id,
+        task_queue: task_queue.as_deref(),
+        now_ms: *now_ms,
+        now_step_ms: *now_step_ms,
+        lease_ttl_ms: *lease_ttl_ms,
+        heartbeat_ttl_ms: *heartbeat_ttl_ms,
+        poll_limit: *poll_limit,
+        empty_limit: *empty_limit,
+        executor: *executor,
+        outcome: *outcome,
+        settled_at_ms: *settled_at_ms,
+        settled_step_ms: *settled_step_ms,
+        output_hash: output_hash.as_deref(),
+        output_artifact_dir: output_artifact_dir.as_deref(),
+        output_artifact_kind: output_artifact_kind.as_deref(),
+        openai_compatible_base_url: openai_compatible_base_url.as_deref(),
+        openai_compatible_api_key: openai_compatible_api_key.as_deref(),
+        openai_compatible_timeout_ms: *openai_compatible_timeout_ms,
+        error_code: error_code.as_deref(),
+        message: message.as_deref(),
+        retryable: *retryable,
+        metadata: metadata.as_deref(),
+        json: *json,
+    };
+    super::super::activity_worker_loop::run(&request)
 }
 
 fn run_activity_complete_from_command(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {

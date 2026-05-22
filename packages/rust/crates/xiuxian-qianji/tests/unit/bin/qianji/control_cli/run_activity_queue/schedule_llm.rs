@@ -237,7 +237,7 @@ async fn complete_lifecycle_llm_activity(
         worker_once_with_hot_state(
             ledger,
             hot_state,
-            ActivityWorkerOnceStoreRequest {
+            &ActivityWorkerOnceStoreRequest {
                 worker_id: "worker-llm-lifecycle",
                 task_queue: Some("llm.openrouter"),
                 now_ms: 4_000,
@@ -246,7 +246,16 @@ async fn complete_lifecycle_llm_activity(
                 executor: ActivityExecutorKindArg::Fixture,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 4_500,
+                output_ref_json: None,
                 output_hash: Some("sha256:llm-lifecycle-output"),
+                output_artifact_path: None,
+                output_artifact_dir: None,
+                output_artifact_content: None,
+                output_artifact_id: None,
+                output_artifact_kind: None,
+                openai_compatible_base_url: None,
+                openai_compatible_api_key: None,
+                openai_compatible_timeout_ms: None,
                 error_code: None,
                 message: None,
                 retryable: None,

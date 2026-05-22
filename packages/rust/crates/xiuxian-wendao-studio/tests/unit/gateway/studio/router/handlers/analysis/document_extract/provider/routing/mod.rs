@@ -1,4 +1,7 @@
-#[cfg(feature = "document-extract-pdf-source-range")]
+#[cfg(all(
+    feature = "document-extract-pdf-source-range",
+    feature = "document-extract-pdf-render"
+))]
 use super::{
     DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV,
@@ -22,14 +25,20 @@ use super::{
     hybrid_page_ocr_render_profile_with_lookup, hybrid_page_ocr_render_selection_with_lookup,
     hybrid_page_ocr2_region_patch_sizing_with_lookup, hybrid_page_ocr2_region_planner_with_lookup,
     hybrid_pdf_backend_text_topup_with_lookup, merge_ocr2_recovery_page_inputs,
-    sample_hybrid_page_ocr_report, sample_ocr_input, sample_ocr_result,
-    validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
-    validate_ocr_results_match_inputs, validate_successful_ocr_results,
-    validate_successful_ocr_results_for_inputs_with_lookup,
+    sample_hybrid_page_ocr_report,
+};
+#[cfg(feature = "document-extract-pdf-source-range")]
+use super::{
+    sample_ocr_input, sample_ocr_result, validate_hybrid_page_coverage,
+    validate_hybrid_shard_coverage, validate_ocr_results_match_inputs,
+    validate_successful_ocr_results, validate_successful_ocr_results_for_inputs_with_lookup,
 };
 
 mod coverage;
+#[cfg(feature = "document-extract-pdf-render")]
 mod input_arrow;
+#[cfg(feature = "document-extract-pdf-render")]
 mod regions;
+#[cfg(feature = "document-extract-pdf-render")]
 mod render_profile;
 mod scope;

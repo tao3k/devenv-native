@@ -36,6 +36,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("hot-state") => parse_hot_state(args).map(Some),
         Some("lease") => parse_lease(args).map(Some),
         Some("leases") => parse_leases(args).map(Some),
+        Some("llm-activities") => super::llm_inventory::parse(args).map(Some),
         Some("query") => parse_query(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
         Some("summary") => parse_summary(args).map(Some),
@@ -49,7 +50,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `activity-claim`, `activity-complete`, `activity-fail`, `activity-mirror`, `activity-queue`, `activity-reclaim`, `activity-release`, `activity-schedule-llm`, `activity-settle`, `activity-start`, `activity-take`, `activity-worker-loop`, `activity-worker-once`, `apply-recovery-plan`, `costs`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `query`, `recovery-snapshot`, `summary`, `signal`, `signals`, `step`, `timer`, `timers`, or `view`",
+            "missing `control` subcommand; expected `activity`, `activity-claim`, `activity-complete`, `activity-fail`, `activity-mirror`, `activity-queue`, `activity-reclaim`, `activity-release`, `activity-schedule-llm`, `activity-settle`, `activity-start`, `activity-take`, `activity-worker-loop`, `activity-worker-once`, `apply-recovery-plan`, `costs`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `llm-activities`, `query`, `recovery-snapshot`, `summary`, `signal`, `signals`, `step`, `timer`, `timers`, or `view`",
         )),
     }
 }

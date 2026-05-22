@@ -2,10 +2,11 @@
 
 use crate::{
     ActivityQueueProjection, ActivityTaskLease, ControlEvent, ControlEventRecord, ControlResult,
-    CostInventoryProjection, GateResult, HotStateLeasedActivityTask, HotStateSnapshot, RunId,
-    RunOperatorSummary, RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableActivityTask,
-    RunnableStep, SignalInventoryProjection, StepLease, StepView, TaskQueue,
-    TimerInventoryProjection, WorkerActivityTask, WorkerHeartbeat, WorkerId, WorkerRef,
+    CostInventoryProjection, GateResult, HotStateLeasedActivityTask, HotStateSnapshot,
+    LlmActivityInventoryProjection, RunId, RunOperatorSummary, RunRecoveryPlan,
+    RunRecoverySnapshot, RunView, RunnableActivityTask, RunnableStep, SignalInventoryProjection,
+    StepLease, StepView, TaskQueue, TimerInventoryProjection, WorkerActivityTask, WorkerHeartbeat,
+    WorkerId, WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -93,6 +94,21 @@ pub trait ControlLedger: Send + Sync {
         Ok(self
             .load_activity_queue_projection(run_id, task_queue)?
             .worker_tasks)
+    }
+
+    /// Loads a read-only LLM activity inventory projection from durable
+    /// history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded or replayed.
+    fn load_llm_activity_inventory_projection(
+        &self,
+        run_id: &RunId,
+    ) -> ControlResult<LlmActivityInventoryProjection> {
+        Ok(LlmActivityInventoryProjection::from_view(
+            &self.load_run_view(run_id)?,
+        ))
     }
 
     /// Loads a read-only durable timer inventory projection from durable

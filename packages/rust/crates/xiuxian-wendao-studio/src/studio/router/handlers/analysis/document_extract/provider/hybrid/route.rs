@@ -2,14 +2,14 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+#[cfg(feature = "document-extract-pdf-render")]
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use arrow::array::{Array, ArrayRef, Int32Array, StringArray};
 use arrow::compute::concat_batches;
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-use std::path::PathBuf;
 use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 #[cfg(any(feature = "document-extract-pdf-source-range", test))]
 use xiuxian_wendao_attachments::pdf::ocr::{
@@ -18,30 +18,32 @@ use xiuxian_wendao_attachments::pdf::ocr::{
     PdfOcrShardResult, PdfOcrShardResultStatus, build_ocr_result_resource_batch,
     decode_ocr_shard_input_batches, is_hosted_vlm_direct_profile,
 };
-#[cfg(any(feature = "document-extract-pdf-render", test))]
+#[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::ocr::{
     downgrade_hosted_vlm_region_parent_page_inputs, hosted_vlm_region_parent_page_shards,
     prepare_hosted_vlm_recovery_region_inputs,
 };
-#[cfg(any(feature = "document-extract-pdf-render", test))]
+#[cfg(any(
+    feature = "document-extract-pdf-source-range",
+    feature = "document-extract-pdf-render",
+    test
+))]
 use xiuxian_wendao_attachments::pdf::profile::{
     PdfSourcePageProfile, pdf_source_page_is_backend_text_topup_profile,
     pdf_source_page_is_fast_profile_risk, pdf_source_page_requires_structure_authority,
     pdf_source_page_structure_cost, source_pdf_page_profiles_cached,
 };
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-use xiuxian_wendao_attachments::pdf::render::{PdfPageRegionRenderRequest, PdfPageRenderProfile};
-use xiuxian_wendao_attachments::pdf::render::{
-    PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus, source_pdf_page_count,
-};
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::{
-    page_region_render_request_chunks_all, page_region_render_request_chunks_by_page,
-    page_region_render_request_chunks_by_page_area_desc,
+    PdfPageRegionRenderRequest, PdfPageRenderProfile, page_region_render_request_chunks_all,
+    page_region_render_request_chunks_by_page, page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
     page_region_render_request_chunks_by_region,
     page_region_render_request_chunks_by_region_seed_page,
     render_pdf_region_shards_with_source_hash,
+};
+use xiuxian_wendao_attachments::pdf::render::{
+    PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus, source_pdf_page_count,
 };
 use xiuxian_wendao_server::transport::{
     DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest,
@@ -61,14 +63,8 @@ use super::{
     validate_hybrid_page_coverage, validate_hybrid_shard_coverage,
     validate_ocr_results_match_inputs, validate_successful_ocr_results_for_inputs,
 };
-#[cfg(any(feature = "document-extract-pdf-render", test))]
-use super::{
-    HybridPdfOcr2RegionPipelineMode, HybridPdfOcr2RegionRenderChunkMode,
-    hybrid_page_ocr2_region_pipeline_mode_with_lookup,
-    hybrid_page_ocr2_region_render_chunk_mode_with_lookup,
-};
 use crate::studio::PdfOcrShardSchedulerTrace;
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, write_arrow_file,
 };
@@ -107,7 +103,7 @@ mod source_inputs;
 #[path = "route_parts/support.rs"]
 mod support;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use artifact_cache::{
     hybrid_page_ocr_artifact_cache_key_for_test, hybrid_page_ocr_artifact_cache_response_for_test,
     store_hybrid_page_ocr_artifact_cache_for_test,
@@ -115,9 +111,9 @@ use artifact_cache::{
 use artifact_cache::{
     hybrid_page_ocr_artifact_cache_response, store_hybrid_page_ocr_artifact_cache,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(crate) use batch::docling_page_range_document_extract_endpoint_count_with_lookup;
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use batch::{
     DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE_ENV,
     docling_page_range_fallback_profile_with_lookup,
@@ -126,7 +122,7 @@ use batch::{
     materialize_docling_page_range_resource_batch, materialize_hybrid_page_ocr_resource_batch,
     materialize_hybrid_page_ocr_resource_batch_with_eager_docling_fallback,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use docling_range::{
     contiguous_page_ranges, docling_page_range_chunk_concurrency_with_lookup,
     docling_page_range_chunk_plan_with_lookup, docling_page_range_chunk_size_for_pages_with_lookup,
@@ -144,65 +140,65 @@ use docling_range::{
     kept_results_without_docling_page_range_fallback_pages,
     scheduled_inputs_without_docling_page_range_fallback_pages,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use docling_structure_budget::{
     structure_cost_budgeted_docling_page_range_fallback_ranges,
     structure_cost_budgeted_docling_page_range_fallback_ranges_with_limit,
 };
 use failed_page::recover_failed_page_ocr_results;
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use failed_page::{failed_page_recovery_candidates, failed_page_recovery_input};
 #[cfg(feature = "document-extract-pdf-render")]
 use pipeline::materialize_hybrid_page_ocr_resource_batch_with_region_pipeline;
 #[cfg(all(test, feature = "document-extract-pdf-render"))]
 use pipeline::{Ocr2RegionPipelineBatchKind, record_ocr2_region_pipeline_batch_result};
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(crate) use regions::OCR2_REGION_SCAFFOLD_FILE_NAME;
-#[cfg(any(feature = "document-extract-pdf-render", test))]
+#[cfg(feature = "document-extract-pdf-render")]
 use regions::{
-    cached_ocr2_region_render_report, materialize_ocr2_recovery_page_images,
-    materialize_ocr2_recovery_region_images, ocr2_recovery_region_requests_for_inputs,
+    cached_ocr2_region_render_report, ocr2_recovery_region_requests_for_inputs,
     ocr2_region_render_cache_dir_with_source_hash, sha256_file_hex,
     write_ocr2_region_scaffold_sidecar_with_lookup,
 };
 #[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(crate) use regions::{has_ocr2_recovery_page_candidates, merge_ocr2_recovery_page_inputs};
-#[cfg(test)]
+use regions::{materialize_ocr2_recovery_page_images, materialize_ocr2_recovery_region_images};
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use regions::{
     ocr2_region_render_cache_key, ocr2_region_render_cache_key_with_source_hash,
     ocr2_region_scaffold_payload,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use reports::{
     docling_centered_structure_authority_page_count, page_range_docling_fallback_chunk_summary,
 };
 use reports::{write_hybrid_page_ocr_fallback_report, write_hybrid_page_ocr_timing_report};
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use resource_rows::normalize_docling_page_range_wrapper_rows;
 use resource_rows::{
     concat_document_resource_batches, materialize_hybrid_page_ocr_resource_batch_from_results,
 };
 use source_inputs::direct_docling_structure_recovery_source_inputs;
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use source_inputs::direct_docling_structure_recovery_source_inputs_for_profiles;
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use source_inputs::direct_docling_structure_recovery_source_inputs_for_profiles_with_lookup;
 use support::{
     Ocr2RegionMaterialization, Ocr2RegionMaterializationStats,
     direct_docling_structure_recovery_page_range_enabled,
     direct_docling_structure_recovery_render_report, failed_page_recovery_mode,
-    failed_page_recovery_mode_label, ocr2_region_pipeline_mode_label,
+    failed_page_recovery_mode_label, ocr2_region_pipeline_enabled, ocr2_region_pipeline_mode_label,
     ocr2_region_render_chunk_mode_label, record_ocr_scheduler_or_docling_fallback_phase,
     record_phase_elapsed,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 use support::{
     direct_docling_structure_recovery_page_range_enabled_with_lookup,
     failed_page_recovery_mode_with_lookup,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use support::{
-    ocr2_region_pipeline_enabled, ocr2_region_render_ahead_limit_for_capacity_with_lookup,
+    ocr2_region_render_ahead_limit_for_capacity_with_lookup,
     ocr2_region_render_request_chunks_with_lookup,
 };
 

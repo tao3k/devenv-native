@@ -39,6 +39,11 @@ struct ActivityWorkerLoopArgs {
     settled_at_ms: Option<u64>,
     settled_step_ms: Option<u64>,
     output_hash: Option<String>,
+    output_artifact_dir: Option<PathBuf>,
+    output_artifact_kind: Option<String>,
+    openai_compatible_base_url: Option<String>,
+    openai_compatible_api_key: Option<String>,
+    openai_compatible_timeout_ms: Option<u64>,
     error_code: Option<String>,
     message: Option<String>,
     retryable: Option<bool>,
@@ -77,6 +82,35 @@ impl ActivityWorkerLoopArgs {
             }
             "--output-hash" => {
                 self.output_hash = Some(parse_flag_value(args, index, "--output-hash")?);
+            }
+            "--output-artifact-dir" => {
+                self.output_artifact_dir = Some(PathBuf::from(parse_flag_value(
+                    args,
+                    index,
+                    "--output-artifact-dir",
+                )?));
+            }
+            "--output-artifact-kind" => {
+                self.output_artifact_kind =
+                    Some(parse_flag_value(args, index, "--output-artifact-kind")?);
+            }
+            "--openai-compatible-base-url" => {
+                self.openai_compatible_base_url = Some(parse_flag_value(
+                    args,
+                    index,
+                    "--openai-compatible-base-url",
+                )?);
+            }
+            "--openai-compatible-api-key" => {
+                self.openai_compatible_api_key = Some(parse_flag_value(
+                    args,
+                    index,
+                    "--openai-compatible-api-key",
+                )?);
+            }
+            "--openai-compatible-timeout-ms" => {
+                self.openai_compatible_timeout_ms =
+                    Some(parse_u64_flag(args, index, "openai-compatible-timeout-ms")?);
             }
             "--error-code" => {
                 self.error_code = Some(parse_flag_value(args, index, "--error-code")?);
@@ -137,7 +171,10 @@ impl ActivityWorkerLoopArgs {
         let outcome = self.outcome.ok_or_else(|| {
             invalid_input("missing `--outcome <complete|fail>` for `control activity-worker-loop`")
         })?;
-        validate_outcome_args(outcome, &self)?;
+        let executor = self.executor.ok_or_else(|| {
+            invalid_input("missing `--executor fixture` for `control activity-worker-loop`")
+        })?;
+        validate_outcome_args(executor, outcome, &self)?;
         Ok(ControlCliCommand::ActivityWorkerLoop {
             ledger_path: self.ledger_path.ok_or_else(|| {
                 invalid_input("missing `--ledger <path>` for `control activity-worker-loop`")
@@ -168,15 +205,18 @@ impl ActivityWorkerLoopArgs {
                 })?,
             )?,
             empty_limit: positive_u32("empty-limit", self.empty_limit.unwrap_or(1))?,
-            executor: self.executor.ok_or_else(|| {
-                invalid_input("missing `--executor fixture` for `control activity-worker-loop`")
-            })?,
+            executor,
             outcome,
             settled_at_ms: self.settled_at_ms.ok_or_else(|| {
                 invalid_input("missing `--settled-at-ms <ms>` for `control activity-worker-loop`")
             })?,
             settled_step_ms: self.settled_step_ms.unwrap_or(1),
             output_hash: self.output_hash,
+            output_artifact_dir: self.output_artifact_dir,
+            output_artifact_kind: self.output_artifact_kind,
+            openai_compatible_base_url: self.openai_compatible_base_url,
+            openai_compatible_api_key: self.openai_compatible_api_key,
+            openai_compatible_timeout_ms: self.openai_compatible_timeout_ms,
             error_code: self.error_code,
             message: self.message,
             retryable: self.retryable,
@@ -204,6 +244,11 @@ pub(super) struct ActivityWorkerLoopRunRequest<'a> {
     pub(super) settled_at_ms: u64,
     pub(super) settled_step_ms: u64,
     pub(super) output_hash: Option<&'a str>,
+    pub(super) output_artifact_dir: Option<&'a Path>,
+    pub(super) output_artifact_kind: Option<&'a str>,
+    pub(super) openai_compatible_base_url: Option<&'a str>,
+    pub(super) openai_compatible_api_key: Option<&'a str>,
+    pub(super) openai_compatible_timeout_ms: Option<u64>,
     pub(super) error_code: Option<&'a str>,
     pub(super) message: Option<&'a str>,
     pub(super) retryable: Option<bool>,
@@ -227,6 +272,11 @@ pub(crate) struct ActivityWorkerLoopStoreRequest<'a> {
     pub(crate) settled_at_ms: u64,
     pub(crate) settled_step_ms: u64,
     pub(crate) output_hash: Option<&'a str>,
+    pub(crate) output_artifact_dir: Option<&'a Path>,
+    pub(crate) output_artifact_kind: Option<&'a str>,
+    pub(crate) openai_compatible_base_url: Option<&'a str>,
+    pub(crate) openai_compatible_api_key: Option<&'a str>,
+    pub(crate) openai_compatible_timeout_ms: Option<u64>,
     pub(crate) error_code: Option<&'a str>,
     pub(crate) message: Option<&'a str>,
     pub(crate) retryable: Option<bool>,
@@ -269,7 +319,7 @@ pub(crate) struct ActivityWorkerLoopOutput {
 }
 
 #[cfg(all(feature = "duckdb", feature = "valkey"))]
-pub(super) fn run(request: ActivityWorkerLoopRunRequest<'_>) -> io::Result<ControlCliOutput> {
+pub(super) fn run(request: &ActivityWorkerLoopRunRequest<'_>) -> io::Result<ControlCliOutput> {
     use xiuxian_qianji_control::{DuckDbControlLedger, ValkeyHotStateConfig, ValkeyHotStateStore};
 
     let ledger =
@@ -305,6 +355,11 @@ pub(super) fn run(request: ActivityWorkerLoopRunRequest<'_>) -> io::Result<Contr
             settled_at_ms: request.settled_at_ms,
             settled_step_ms: request.settled_step_ms,
             output_hash: request.output_hash,
+            output_artifact_dir: request.output_artifact_dir,
+            output_artifact_kind: request.output_artifact_kind,
+            openai_compatible_base_url: request.openai_compatible_base_url,
+            openai_compatible_api_key: request.openai_compatible_api_key,
+            openai_compatible_timeout_ms: request.openai_compatible_timeout_ms,
             error_code: request.error_code,
             message: request.message,
             retryable: request.retryable,
@@ -315,7 +370,7 @@ pub(super) fn run(request: ActivityWorkerLoopRunRequest<'_>) -> io::Result<Contr
 }
 
 #[cfg(not(all(feature = "duckdb", feature = "valkey")))]
-pub(super) fn run(request: ActivityWorkerLoopRunRequest<'_>) -> io::Result<ControlCliOutput> {
+pub(super) fn run(request: &ActivityWorkerLoopRunRequest<'_>) -> io::Result<ControlCliOutput> {
     let _ = (
         request.ledger_path,
         request.valkey_url,
@@ -333,6 +388,11 @@ pub(super) fn run(request: ActivityWorkerLoopRunRequest<'_>) -> io::Result<Contr
         request.settled_at_ms,
         request.settled_step_ms,
         request.output_hash,
+        request.output_artifact_dir,
+        request.output_artifact_kind,
+        request.openai_compatible_base_url,
+        request.openai_compatible_api_key,
+        request.openai_compatible_timeout_ms,
         request.error_code,
         request.message,
         request.retryable,
@@ -382,7 +442,7 @@ where
         let output = worker_once_output_with_hot_state(
             ledger,
             hot_state,
-            ActivityWorkerOnceStoreRequest {
+            &ActivityWorkerOnceStoreRequest {
                 worker_id: request.worker_id,
                 task_queue: request.task_queue,
                 now_ms,
@@ -391,7 +451,16 @@ where
                 executor: request.executor,
                 outcome: request.outcome,
                 settled_at_ms,
+                output_ref_json: None,
                 output_hash: request.output_hash,
+                output_artifact_path: None,
+                output_artifact_dir: request.output_artifact_dir,
+                output_artifact_content: None,
+                output_artifact_id: None,
+                output_artifact_kind: request.output_artifact_kind,
+                openai_compatible_base_url: request.openai_compatible_base_url,
+                openai_compatible_api_key: request.openai_compatible_api_key,
+                openai_compatible_timeout_ms: request.openai_compatible_timeout_ms,
                 error_code: request.error_code,
                 message: request.message,
                 retryable: request.retryable,
@@ -496,9 +565,18 @@ fn parse_outcome(value: &str) -> io::Result<ActivitySettleOutcomeArg> {
 }
 
 fn validate_outcome_args(
+    executor: ActivityExecutorKindArg,
     outcome: ActivitySettleOutcomeArg,
     args: &ActivityWorkerLoopArgs,
 ) -> io::Result<()> {
+    if executor == ActivityExecutorKindArg::OpenAiCompatibleLlm {
+        return validate_openai_compatible_outcome_args(outcome, args);
+    }
+    if has_openai_compatible_args(args) {
+        return Err(invalid_input(
+            "`control activity-worker-loop` OpenAI-compatible flags require `--executor openai-compatible-llm`",
+        ));
+    }
     match outcome {
         ActivitySettleOutcomeArg::Complete => {
             if args.error_code.is_some() || args.message.is_some() || args.retryable.is_some() {
@@ -531,6 +609,50 @@ fn validate_outcome_args(
         }
     }
     Ok(())
+}
+
+fn validate_openai_compatible_outcome_args(
+    outcome: ActivitySettleOutcomeArg,
+    args: &ActivityWorkerLoopArgs,
+) -> io::Result<()> {
+    if outcome != ActivitySettleOutcomeArg::Complete {
+        return Err(invalid_input(
+            "`control activity-worker-loop --executor openai-compatible-llm` uses `--outcome complete`; provider failures are recorded by the executor",
+        ));
+    }
+    if args.error_code.is_some() || args.message.is_some() || args.retryable.is_some() {
+        return Err(invalid_input(
+            "`control activity-worker-loop --executor openai-compatible-llm` cannot be combined with `--error-code`, `--message`, or `--retryable`",
+        ));
+    }
+    if args.output_hash.is_some() {
+        return Err(invalid_input(
+            "`control activity-worker-loop --executor openai-compatible-llm` derives output hashes from provider artifacts",
+        ));
+    }
+    if args.output_artifact_dir.is_none() {
+        return Err(invalid_input(
+            "missing `--output-artifact-dir <dir>` for `control activity-worker-loop --executor openai-compatible-llm`",
+        ));
+    }
+    if args
+        .openai_compatible_base_url
+        .as_deref()
+        .is_none_or(|base_url| base_url.trim().is_empty())
+    {
+        return Err(invalid_input(
+            "missing `--openai-compatible-base-url <url>` for `control activity-worker-loop --executor openai-compatible-llm`",
+        ));
+    }
+    Ok(())
+}
+
+fn has_openai_compatible_args(args: &ActivityWorkerLoopArgs) -> bool {
+    args.output_artifact_dir.is_some()
+        || args.output_artifact_kind.is_some()
+        || args.openai_compatible_base_url.is_some()
+        || args.openai_compatible_api_key.is_some()
+        || args.openai_compatible_timeout_ms.is_some()
 }
 
 fn parse_u64(field: &'static str, command: &'static str, value: &str) -> io::Result<u64> {

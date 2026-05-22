@@ -269,6 +269,79 @@ pub(super) fn append_control_run_with_scheduled_activity_queue(
     run_id
 }
 
+pub(super) fn append_control_run_with_llm_activity_inventory(
+    ledger_path: &std::path::Path,
+) -> RunId {
+    let run_id = append_control_run_with_step(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let completed_activity = must_ok(
+        ActivityId::new("activity-run-llm-plan"),
+        "should build completed llm activity id",
+    );
+    let missing_audit_activity = must_ok(
+        ActivityId::new("activity-step-llm-repair"),
+        "should build missing-audit llm activity id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            3,
+            ControlEventKind::ActivityScheduled {
+                task: llm_activity_task(completed_activity.clone(), "llm.plan", "llm.openai"),
+            },
+        )),
+        "should append scheduled audited llm activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            4,
+            ControlEventKind::ActivityStarted {
+                activity_id: completed_activity.clone(),
+                worker_id: None,
+                attempt: 1,
+            },
+        )),
+        "should append started audited llm activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            5,
+            ControlEventKind::ActivityCompleted {
+                activity_id: completed_activity,
+                result: ActivityResult {
+                    output_ref: None,
+                    output_hash: Some("sha256:llm-plan-output".to_string()),
+                    metadata: serde_json::Value::Null,
+                },
+            },
+        )),
+        "should append completed audited llm activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            6,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(missing_audit_activity, "llm.repair", "llm.openai"),
+            },
+        )),
+        "should append scheduled missing-audit llm activity",
+    );
+
+    run_id
+}
+
 pub(super) fn append_control_run_with_run_decision(ledger_path: &std::path::Path) -> RunId {
     let run_id = append_empty_control_run(ledger_path);
     let ledger = must_ok(
@@ -717,4 +790,27 @@ pub(super) fn activity_task(
         ),
     )
     .with_timeout_ms(30_000)
+}
+
+fn llm_activity_task(
+    activity_id: ActivityId,
+    activity_type: &str,
+    task_queue: &str,
+) -> ActivityTask {
+    let mut task = activity_task(activity_id, activity_type, task_queue);
+    task.metadata = serde_json::json!({
+        "qianji_llm_activity_request": {
+            "model": "openai/gpt-5-mini",
+            "prompt_ref": "artifact://prompt/plan",
+            "context_ref": "artifact://context/plan",
+            "tool_schema_hash": "sha256:tool-schema",
+            "response_schema_ref": "artifact://schema/agent-proposal",
+            "temperature": "0.0",
+            "max_tokens": 1024,
+            "budget": {
+                "max_cost_usd_micros": 2500
+            }
+        }
+    });
+    task
 }

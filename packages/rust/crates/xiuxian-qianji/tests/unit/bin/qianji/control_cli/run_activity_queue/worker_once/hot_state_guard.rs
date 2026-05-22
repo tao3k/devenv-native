@@ -10,7 +10,10 @@ use xiuxian_qianji_control::{
     ControlEventKind, ControlLedger, DuckDbControlLedger, HotStateStore, InMemoryHotStateStore,
 };
 
-use super::support::{append_control_run_with_disallowed_activity_route, enqueue_worker_task};
+use super::support::{
+    append_control_run_with_disallowed_activity_route,
+    append_control_run_with_openai_compatible_llm_route, enqueue_worker_task,
+};
 
 #[tokio::test]
 async fn worker_once_with_hot_state_fails_and_releases_activity_lease() -> Result<(), String> {
@@ -29,7 +32,7 @@ async fn worker_once_with_hot_state_fails_and_releases_activity_lease() -> Resul
         worker_once_with_hot_state(
             &ledger,
             &hot_state,
-            ActivityWorkerOnceStoreRequest {
+            &ActivityWorkerOnceStoreRequest {
                 worker_id: "worker-once",
                 task_queue: Some("tool.github"),
                 now_ms: 8_000,
@@ -38,7 +41,16 @@ async fn worker_once_with_hot_state_fails_and_releases_activity_lease() -> Resul
                 executor: ActivityExecutorKindArg::Fixture,
                 outcome: ActivitySettleOutcomeArg::Fail,
                 settled_at_ms: 9_000,
+                output_ref_json: None,
                 output_hash: None,
+                output_artifact_path: None,
+                output_artifact_dir: None,
+                output_artifact_content: None,
+                output_artifact_id: None,
+                output_artifact_kind: None,
+                openai_compatible_base_url: None,
+                openai_compatible_api_key: None,
+                openai_compatible_timeout_ms: None,
                 error_code: Some("rate_limited"),
                 message: Some("provider rejected request"),
                 retryable: Some(true),
@@ -104,7 +116,7 @@ async fn worker_once_with_hot_state_does_not_write_ledger_when_queue_is_empty() 
         worker_once_with_hot_state(
             &ledger,
             &hot_state,
-            ActivityWorkerOnceStoreRequest {
+            &ActivityWorkerOnceStoreRequest {
                 worker_id: "worker-empty",
                 task_queue: Some("llm.openai"),
                 now_ms: 8_000,
@@ -113,7 +125,16 @@ async fn worker_once_with_hot_state_does_not_write_ledger_when_queue_is_empty() 
                 executor: ActivityExecutorKindArg::Fixture,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 9_000,
+                output_ref_json: None,
                 output_hash: Some("sha256:activity-output"),
+                output_artifact_path: None,
+                output_artifact_dir: None,
+                output_artifact_content: None,
+                output_artifact_id: None,
+                output_artifact_kind: None,
+                openai_compatible_base_url: None,
+                openai_compatible_api_key: None,
+                openai_compatible_timeout_ms: None,
                 error_code: None,
                 message: None,
                 retryable: None,
@@ -160,7 +181,7 @@ async fn worker_once_rejects_disallowed_route_before_durable_start() -> Result<(
     let error = worker_once_with_hot_state(
         &ledger,
         &hot_state,
-        ActivityWorkerOnceStoreRequest {
+        &ActivityWorkerOnceStoreRequest {
             worker_id: "worker-once",
             task_queue: Some("llm.openai"),
             now_ms: 8_000,
@@ -169,7 +190,16 @@ async fn worker_once_rejects_disallowed_route_before_durable_start() -> Result<(
             executor: ActivityExecutorKindArg::Fixture,
             outcome: ActivitySettleOutcomeArg::Complete,
             settled_at_ms: 9_000,
+            output_ref_json: None,
             output_hash: Some("sha256:activity-output"),
+            output_artifact_path: None,
+            output_artifact_dir: None,
+            output_artifact_content: None,
+            output_artifact_id: None,
+            output_artifact_kind: None,
+            openai_compatible_base_url: None,
+            openai_compatible_api_key: None,
+            openai_compatible_timeout_ms: None,
             error_code: None,
             message: None,
             retryable: None,
@@ -200,6 +230,82 @@ async fn worker_once_rejects_disallowed_route_before_durable_start() -> Result<(
             .iter()
             .all(|record| !matches!(&record.event.kind, ControlEventKind::ActivityStarted { .. })),
         "disallowed route must not write durable ActivityStarted"
+    );
+    assert_eq!(snapshot.active_activity_task_lease_count(), 1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_once_rejects_openai_compatible_gate_before_durable_start() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_openai_compatible_llm_route(&ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-openai-compatible-llm",
+    )
+    .await?;
+
+    let error = worker_once_with_hot_state(
+        &ledger,
+        &hot_state,
+        &ActivityWorkerOnceStoreRequest {
+            worker_id: "worker-once",
+            task_queue: Some("llm.openrouter"),
+            now_ms: 8_000,
+            lease_ttl_ms: 500,
+            heartbeat_ttl_ms: None,
+            executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
+            outcome: ActivitySettleOutcomeArg::Complete,
+            settled_at_ms: 9_000,
+            output_ref_json: None,
+            output_hash: Some("sha256:activity-output"),
+            output_artifact_path: None,
+            output_artifact_dir: None,
+            output_artifact_content: None,
+            output_artifact_id: None,
+            output_artifact_kind: None,
+            openai_compatible_base_url: None,
+            openai_compatible_api_key: None,
+            openai_compatible_timeout_ms: None,
+            error_code: None,
+            message: None,
+            retryable: None,
+            metadata: None,
+            json: true,
+        },
+    )
+    .await
+    .err()
+    .unwrap_or_else(|| panic!("OpenAI-compatible gate should stop before durable start"));
+    let records = must_ok(
+        ledger.load_events(&run_id),
+        "should load events after OpenAI-compatible gate",
+    );
+    let snapshot = must_ok(
+        hot_state.load_snapshot(8_100).await,
+        "hot state snapshot should retain active lease for reclaim",
+    );
+
+    assert!(
+        error
+            .to_string()
+            .contains("missing `--openai-compatible-base-url <url>`"),
+        "unexpected error: {error}"
+    );
+    assert!(
+        records
+            .iter()
+            .all(|record| !matches!(&record.event.kind, ControlEventKind::ActivityStarted { .. })),
+        "admission-only executor must not write durable ActivityStarted"
     );
     assert_eq!(snapshot.active_activity_task_lease_count(), 1);
     Ok(())

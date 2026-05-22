@@ -409,6 +409,15 @@ fn populate_hybrid_page_ocr_timing_report(
     )
     .map_err(|error| format!("decode hybrid OCR timing report: {error}"))?;
     report.hybrid_page_ocr_timing_report_bytes = file_len(timing_path.as_path())?;
+    populate_hybrid_page_ocr_timing_core(report, &value);
+    populate_hybrid_page_ocr_region_timing(report, &value);
+    populate_hybrid_page_ocr_page_range_fallback(report, &value);
+    populate_hybrid_page_ocr_scheduler_trace(report, &value);
+    populate_hybrid_page_ocr_phase_elapsed(report, &value);
+    Ok(())
+}
+
+fn populate_hybrid_page_ocr_timing_core(report: &mut ArtifactReport, value: &Value) {
     report.hybrid_page_ocr_timing_total_elapsed_ms = value
         .get("totalElapsedMs")
         .and_then(Value::as_f64)
@@ -418,6 +427,13 @@ fn populate_hybrid_page_ocr_timing_report(
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or_default();
+    report.structure_authority_pages = timing_report_usize(value, "structureAuthorityPages");
+    report.text_shortcut_pages = timing_report_usize(value, "textShortcutPages");
+    report.ocr_patch_regions = timing_report_usize(value, "ocrPatchRegions");
+    report.full_docling_fallback_count = timing_report_usize(value, "fullDoclingFallbackCount");
+}
+
+fn populate_hybrid_page_ocr_region_timing(report: &mut ArtifactReport, value: &Value) {
     report.hybrid_page_ocr_timing_ocr2_region_shard_count = value
         .get("ocr2RegionShardCount")
         .and_then(Value::as_u64)
@@ -477,13 +493,13 @@ fn populate_hybrid_page_ocr_timing_report(
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or_default();
-    report.structure_authority_pages = timing_report_usize(&value, "structureAuthorityPages");
-    report.text_shortcut_pages = timing_report_usize(&value, "textShortcutPages");
-    report.ocr_patch_regions = timing_report_usize(&value, "ocrPatchRegions");
+}
+
+fn populate_hybrid_page_ocr_page_range_fallback(report: &mut ArtifactReport, value: &Value) {
     report.page_range_docling_fallback_pages =
-        timing_report_usize(&value, "pageRangeDoclingFallbackPages");
+        timing_report_usize(value, "pageRangeDoclingFallbackPages");
     report.page_range_docling_fallback_chunk_count =
-        timing_report_usize(&value, "pageRangeDoclingFallbackChunkCount");
+        timing_report_usize(value, "pageRangeDoclingFallbackChunkCount");
     report.page_range_docling_fallback_plan = value.get("pageRangeDoclingFallbackPlan").cloned();
     report.page_range_docling_fallback_chunks = value
         .get("pageRangeDoclingFallbackChunks")
@@ -492,12 +508,17 @@ fn populate_hybrid_page_ocr_timing_report(
         .unwrap_or_default();
     report.page_range_docling_fallback_chunk_summary =
         value.get("pageRangeDoclingFallbackChunkSummary").cloned();
-    report.full_docling_fallback_count = timing_report_usize(&value, "fullDoclingFallbackCount");
+}
+
+fn populate_hybrid_page_ocr_scheduler_trace(report: &mut ArtifactReport, value: &Value) {
     report.hybrid_page_ocr_timing_scheduler_trace = value
         .get("ocrSchedulerTrace")
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
+}
+
+fn populate_hybrid_page_ocr_phase_elapsed(report: &mut ArtifactReport, value: &Value) {
     if let Some(phases) = value.get("phaseElapsedMs").and_then(Value::as_object) {
         report.hybrid_page_ocr_timing_phase_elapsed_ms = phases
             .iter()
@@ -508,7 +529,6 @@ fn populate_hybrid_page_ocr_timing_report(
             })
             .collect();
     }
-    Ok(())
 }
 
 fn timing_report_usize(value: &Value, key: &str) -> usize {

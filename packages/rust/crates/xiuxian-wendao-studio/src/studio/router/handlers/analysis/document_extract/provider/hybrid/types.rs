@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+#[cfg(feature = "document-extract-pdf-render")]
 use std::path::PathBuf;
 
 #[cfg(test)]
@@ -6,6 +7,7 @@ use arrow::array::{Array, Int32Array};
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
 use xiuxian_wendao_attachments::pdf::metrics::PdfOcrShardMetric;
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, PdfOcrShardResult};
+#[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::PdfPageRegionRenderRequest;
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_RENDER_SELECTION_ENV: &str =
@@ -14,18 +16,20 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON";
 pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI";
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) const DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO";
 pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER";
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS";
+#[cfg(feature = "document-extract-pdf-render")]
 pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_SCAFFOLD_MODE";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
 pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
@@ -34,7 +38,6 @@ pub(crate) const DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK_ENV: &str =
 
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_SCAFFOLD_REGION_TABLE_JSON_MODE: &str = "region-table-json";
-#[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_PIPELINE_RENDER_DISPATCH_MODE: &str = "render-dispatch";
 #[cfg(any(feature = "document-extract-pdf-render", test))]
 const OCR2_REGION_RENDER_CHUNK_ALL_MODE: &str = "all";
@@ -54,7 +57,6 @@ pub(crate) enum HybridPdfOcr2ScaffoldMode {
     RegionTableJson,
 }
 
-#[cfg(any(feature = "document-extract-pdf-render", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum HybridPdfOcr2RegionPipelineMode {
     Disabled,
@@ -72,7 +74,7 @@ pub(crate) enum HybridPdfOcr2RegionRenderChunkMode {
     RegionSeedPage,
 }
 
-#[cfg(any(feature = "document-extract-pdf-render", test))]
+#[cfg(feature = "document-extract-pdf-render")]
 impl HybridPdfOcr2RegionPipelineMode {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
@@ -138,7 +140,6 @@ pub(crate) fn hybrid_page_ocr2_region_render_chunk_mode_with_lookup(
     }
 }
 
-#[cfg(any(feature = "document-extract-pdf-render", test))]
 pub(crate) fn hybrid_page_ocr2_region_pipeline_mode_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> HybridPdfOcr2RegionPipelineMode {
@@ -160,6 +161,7 @@ pub(crate) fn hybrid_page_ocr2_region_pipeline_mode_with_lookup(
 #[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/hybrid/types.rs"]
 mod tests;
 
+#[cfg(feature = "document-extract-pdf-render")]
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct HybridPdfRegionInput {

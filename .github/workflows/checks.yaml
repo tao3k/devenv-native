@@ -39,6 +39,7 @@ jobs:
           - xiuxian-window-release
           - xiuxian-zhenfa-release
           - xiuxian-zhixing-release
+          - xiuxian-wendao-client-release
     env:
       GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
     steps:

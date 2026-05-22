@@ -46,6 +46,32 @@ pub(crate) fn build_error_resource_batch(
     .map_err(|error| format!("build document extract error batch: {error}"))
 }
 
+pub(crate) fn build_native_text_resource_batch(
+    source_path: &str,
+    resource_type: &str,
+    resource_path: &str,
+    caption: &str,
+    content: &str,
+    mime_type: &str,
+    element_id: &str,
+) -> Result<RecordBatch, String> {
+    RecordBatch::try_new(
+        document_resource_schema(),
+        vec![
+            string_column([source_path]),
+            string_column([resource_type]),
+            string_column([resource_path]),
+            Arc::new(Int32Array::from(vec![0])) as ArrayRef,
+            string_column([caption]),
+            string_column([content]),
+            string_column([mime_type]),
+            string_column(["ok"]),
+            string_column([element_id]),
+        ],
+    )
+    .map_err(|error| format!("build native text document resource batch: {error}"))
+}
+
 #[cfg(all(test, feature = "document-extract-audio-shards"))]
 pub(crate) fn build_audio_transcript_resource_batch(
     source_path: &str,

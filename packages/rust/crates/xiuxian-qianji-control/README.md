@@ -164,6 +164,17 @@ state may mirror them for polling, but it is not their source of truth.
 Worker task envelopes copy scheduled task metadata, so the LLM request audit
 summary remains visible in replay-derived queue inspection and hot-state mirror
 payloads.
+Activity completion results may carry an `ActivityResult.output_ref`
+claim-check alongside an `output_hash`; worker adapters should write large
+provider responses through referenced artifacts instead of embedding payloads
+inside terminal event metadata.
+`LlmActivityInventoryProjection` derives all replayed `llm.*` activity rows
+from the same run view. It reports lifecycle counts, missing request-audit
+coverage, extracted model ids, input references, and the stored request audit
+metadata without appending events, mutating hot state, or calling providers.
+The Qianji CLI can use this projection as an opt-in request-audit gate so
+operator checks fail deterministically when any replayed LLM activity lacks its
+admitted request audit metadata.
 `RunnableActivityTask`, `ActivityTaskLease`, and
 `HotStateLeasedActivityTask` are the hot-state mirror payloads for that
 worker-facing contract. `HotStateStore::enqueue_activity_task` and
@@ -304,6 +315,8 @@ hot-state work, lease steps, or execute workers.
 - `RecoveryStartedJournalRecord` and `record_recovery_started`
 - `AdmittedLlmActivityScheduleRecord` and
   `record_admitted_llm_activity_schedule`
+- `LlmActivityInventoryProjection`, `LlmActivityInventoryItem`, and
+  `LlmActivityInventorySummary`
 - `RecoveryLoopApplicationRequest`, `RecoveryLoopApplication`,
   `RecoveryLoopActionApplication`, and `apply_recovery_plan`
 - `RecoveryActionApplicationRequest`, `RecoveryActionApplication`,
