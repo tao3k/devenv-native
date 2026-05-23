@@ -22,6 +22,9 @@ pub const WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROVIDER_ID: &str = "wendaogr
 /// Stable capability id for the `WendaoGraph` ontology read-model quality service.
 pub const WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_CAPABILITY_ID: &str =
     "ontology-read-model-quality";
+/// Polyglot Julia profile id used when scheduling ontology read-model quality Flight work.
+pub const WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROFILE_ID: &str =
+    "wendaograph.ontology_read_model_quality";
 /// Single request table name used to bundle the three read-model Arrow payloads over Flight.
 pub const WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE: &str =
     "ontology_read_model_quality_request";

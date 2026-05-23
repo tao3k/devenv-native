@@ -44,7 +44,7 @@ pub(crate) fn validate_document_extract_request_metadata(
     let mode = metadata
         .get(WENDAO_DOCUMENT_EXTRACT_MODE_HEADER)
         .and_then(|value| value.to_str().ok())
-        .map_or(Ok(DocumentExtractMode::Sync), DocumentExtractMode::parse)
+        .map_or(Ok(DocumentExtractMode::Auto), DocumentExtractMode::parse)
         .map_err(Status::invalid_argument)?;
     let wait_ms = optional_document_extract_u64(
         metadata,

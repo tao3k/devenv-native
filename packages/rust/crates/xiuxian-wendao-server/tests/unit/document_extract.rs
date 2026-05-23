@@ -4,6 +4,16 @@ use xiuxian_wendao_server::transport::{
 };
 
 #[test]
+fn document_extract_mode_parses_auto() -> Result<(), String> {
+    assert_eq!(
+        DocumentExtractMode::parse("auto")?,
+        DocumentExtractMode::Auto
+    );
+    assert_eq!(DocumentExtractMode::parse("")?, DocumentExtractMode::Auto);
+    Ok(())
+}
+
+#[test]
 fn document_extract_mode_parses_audio_shards() -> Result<(), String> {
     assert_eq!(
         DocumentExtractMode::parse("audio-shards")?,

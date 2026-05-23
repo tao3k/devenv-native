@@ -9,6 +9,8 @@ use std::{
 use serde::Deserialize;
 use thiserror::Error;
 
+use super::review_ledger::validate_review_ledgers;
+
 /// Repository-relative ontology manifest path used by Episteme repositories.
 pub const ONTOLOGY_MANIFEST_RELATIVE_PATH: &str = "ontology/manifest.toml";
 const SOURCE_CONTRACT_ARTIFACT_MODE: &str = "source_contract";
@@ -470,6 +472,7 @@ fn validate_domain_artifacts(
     validate_artifact_list(episteme_root, &domain.source_manifests, "source_manifests")?;
     validate_artifact_list(episteme_root, &domain.mapping_ledgers, "mapping_ledgers")?;
     validate_artifact_list(episteme_root, &domain.review_ledgers, "review_ledgers")?;
+    validate_review_ledgers(episteme_root, &domain.review_ledgers, "review_ledgers")?;
 
     report.rdf_file_count += domain.rdf_files.len();
     report.rule_count += domain.rules.len();
@@ -503,7 +506,7 @@ fn ensure_existing_ontology_artifact(
     Ok(())
 }
 
-fn resolve_ontology_artifact_path(
+pub(super) fn resolve_ontology_artifact_path(
     episteme_root: &Path,
     raw: &str,
     field: &str,
@@ -530,13 +533,13 @@ fn resolve_ontology_artifact_path(
     Ok(episteme_root.join("ontology").join(path))
 }
 
-fn read_to_string(path: &Path) -> Result<String, EpistemeOntologyError> {
+pub(super) fn read_to_string(path: &Path) -> Result<String, EpistemeOntologyError> {
     fs::read_to_string(path).map_err(|source| EpistemeOntologyError::Io {
         path: path.to_path_buf(),
         source,
     })
 }
 
-fn invalid_contract(message: impl Into<String>) -> EpistemeOntologyError {
+pub(super) fn invalid_contract(message: impl Into<String>) -> EpistemeOntologyError {
     EpistemeOntologyError::InvalidContract(message.into())
 }

@@ -1,10 +1,11 @@
 //! Bounded recovery-action application helpers.
 
 use crate::{
-    ActivityRetryDecision, ControlEventRecord, ControlLedger, ControlResult, HotStateStore,
-    RecoveryItemScope, RecoveryPlanAction, RunId, RunnableStep, StepId, StepLease,
-    StepLeaseReleaseJournalRecord, StepQueueJournalRecord, TimerFireJournalRecord,
-    record_step_lease_released, record_step_queued_with_hot_state, record_timer_fired,
+    ActivityRetryDecision, ActivityStatus, ActivityView, ControlEventRecord, ControlLedger,
+    ControlResult, HotStateStore, RecoveryItemScope, RecoveryPlanAction, RunId,
+    RunnableActivityTask, RunnableStep, StepId, StepLease, StepLeaseReleaseJournalRecord,
+    StepQueueJournalRecord, TimerFireJournalRecord, WorkerActivityTask, record_step_lease_released,
+    record_step_queued_with_hot_state, record_timer_fired,
 };
 
 /// Request for applying one recovery action.
@@ -50,6 +51,11 @@ pub enum RecoveryActionApplication {
         /// Durable queue event.
         record: Box<ControlEventRecord>,
     },
+    /// A run-scoped activity retry was requeued for worker polling.
+    AppliedActivityRetry {
+        /// Queued activity task.
+        task: Box<RunnableActivityTask>,
+    },
     /// A timer fire fact was recorded.
     AppliedTimerFire {
         /// Durable timer event.
@@ -77,6 +83,12 @@ pub enum RecoveryActionApplicationReason {
     UnsupportedAction,
     /// The retry action is run-scoped and cannot identify a step to enqueue.
     RunScopedRetry,
+    /// Durable replay does not contain the requested activity.
+    MissingReplayActivity,
+    /// Durable replay contains the activity but not its original task payload.
+    MissingReplayActivityTask,
+    /// Durable replay contains the requested activity in a non-failed state.
+    ActivityNotFailed,
     /// Durable replay does not contain a lease for the requested step.
     MissingReplayLease,
     /// Durable replay contains a different active lease than the action names.
@@ -118,10 +130,10 @@ where
                     backoff_ms,
                 },
         } => {
-            apply_step_retry(
+            apply_retry_activity(
                 ledger,
                 hot_state,
-                StepRetryApplication {
+                RetryActivityApplication {
                     run_id,
                     occurred_at_ms,
                     priority,
@@ -186,6 +198,66 @@ where
     }
 }
 
+struct RetryActivityApplication {
+    run_id: RunId,
+    occurred_at_ms: u64,
+    priority: i64,
+    scope: RecoveryItemScope,
+    activity_id: crate::ActivityId,
+    next_attempt: u32,
+    backoff_ms: u64,
+}
+
+async fn apply_retry_activity<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    request: RetryActivityApplication,
+) -> ControlResult<RecoveryActionApplication>
+where
+    L: ControlLedger + ?Sized,
+    H: HotStateStore + ?Sized,
+{
+    let RetryActivityApplication {
+        run_id,
+        occurred_at_ms,
+        priority,
+        scope,
+        activity_id,
+        next_attempt,
+        backoff_ms,
+    } = request;
+    if matches!(scope, RecoveryItemScope::Run) {
+        return apply_activity_retry(
+            ledger,
+            hot_state,
+            ActivityRetryApplication {
+                run_id,
+                occurred_at_ms,
+                priority,
+                scope,
+                activity_id,
+                next_attempt,
+                backoff_ms,
+            },
+        )
+        .await;
+    }
+    apply_step_retry(
+        ledger,
+        hot_state,
+        StepRetryApplication {
+            run_id,
+            occurred_at_ms,
+            priority,
+            scope,
+            activity_id,
+            next_attempt,
+            backoff_ms,
+        },
+    )
+    .await
+}
+
 fn replayed_step_lease<L>(
     ledger: &L,
     run_id: &RunId,
@@ -199,6 +271,105 @@ where
         .steps
         .get(step_id)
         .and_then(|step| step.active_lease.clone()))
+}
+
+struct ActivityRetryApplication {
+    run_id: RunId,
+    occurred_at_ms: u64,
+    priority: i64,
+    scope: RecoveryItemScope,
+    activity_id: crate::ActivityId,
+    next_attempt: u32,
+    backoff_ms: u64,
+}
+
+async fn apply_activity_retry<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    request: ActivityRetryApplication,
+) -> ControlResult<RecoveryActionApplication>
+where
+    L: ControlLedger + ?Sized,
+    H: HotStateStore + ?Sized,
+{
+    let ActivityRetryApplication {
+        run_id,
+        occurred_at_ms,
+        priority,
+        scope,
+        activity_id,
+        next_attempt,
+        backoff_ms,
+    } = request;
+    let Some(activity) = replayed_activity_for_scope(ledger, &run_id, &scope, &activity_id)? else {
+        return Ok(RecoveryActionApplication::NotApplicable {
+            reason: RecoveryActionApplicationReason::MissingReplayActivity,
+        });
+    };
+    if activity.status != ActivityStatus::Failed {
+        return Ok(RecoveryActionApplication::NotApplicable {
+            reason: RecoveryActionApplicationReason::ActivityNotFailed,
+        });
+    }
+    let Some(task) = activity.task else {
+        return Ok(RecoveryActionApplication::NotApplicable {
+            reason: RecoveryActionApplicationReason::MissingReplayActivityTask,
+        });
+    };
+    let runnable = RunnableActivityTask {
+        task: WorkerActivityTask {
+            run_id: run_id.clone(),
+            step_id: step_id_for_scope(&scope),
+            activity_id: task.activity_id,
+            activity_type: task.activity_type,
+            task_queue: task.task_queue,
+            next_attempt,
+            scheduled_at_ms: occurred_at_ms,
+            input_ref: task.input_ref,
+            idempotency_key: task.idempotency_key,
+            retry_policy: task.retry_policy,
+            timeout_ms: task.timeout_ms,
+            metadata: task.metadata,
+        },
+        priority,
+        not_before_ms: occurred_at_ms.saturating_add(backoff_ms),
+        metadata: serde_json::json!({
+            "recovery_action": "retry_activity",
+            "activity_id": activity_id.as_str(),
+            "next_attempt": next_attempt,
+        }),
+    };
+    hot_state.enqueue_activity_task(runnable.clone()).await?;
+    Ok(RecoveryActionApplication::AppliedActivityRetry {
+        task: Box::new(runnable),
+    })
+}
+
+fn replayed_activity_for_scope<L>(
+    ledger: &L,
+    run_id: &RunId,
+    scope: &RecoveryItemScope,
+    activity_id: &crate::ActivityId,
+) -> ControlResult<Option<ActivityView>>
+where
+    L: ControlLedger + ?Sized,
+{
+    let view = ledger.load_run_view(run_id)?;
+    Ok(match scope {
+        RecoveryItemScope::Run => view.activities.get(activity_id).cloned(),
+        RecoveryItemScope::Step { step_id } => view
+            .steps
+            .get(step_id)
+            .and_then(|step| step.activities.get(activity_id))
+            .cloned(),
+    })
+}
+
+fn step_id_for_scope(scope: &RecoveryItemScope) -> Option<StepId> {
+    match scope {
+        RecoveryItemScope::Run => None,
+        RecoveryItemScope::Step { step_id } => Some(step_id.clone()),
+    }
 }
 
 struct StepRetryApplication {

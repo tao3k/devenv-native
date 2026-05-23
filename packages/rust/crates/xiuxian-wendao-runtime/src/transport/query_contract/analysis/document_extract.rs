@@ -44,6 +44,8 @@ pub const DOCUMENT_EXTRACT_FAST_TEXT_PROFILE: &str = "fast-text";
 /// Document extraction execution mode decoded from Flight metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocumentExtractMode {
+    /// Let the Gateway choose the execution mode from source facts and config.
+    Auto,
     /// Run the conversion synchronously through the Python Arrow Flight worker.
     Sync,
     /// Queue first-time conversion in the Rust provider and return job state.
@@ -57,11 +59,12 @@ impl DocumentExtractMode {
     ///
     /// # Errors
     ///
-    /// Returns an error for values outside `sync`, `async`, and
+    /// Returns an error for values outside `auto`, `sync`, `async`, and
     /// `hybrid-page-ocr`.
     pub fn parse(value: &str) -> Result<Self, String> {
         match value.trim().to_ascii_lowercase().as_str() {
-            "" | "sync" => Ok(Self::Sync),
+            "" | "auto" => Ok(Self::Auto),
+            "sync" => Ok(Self::Sync),
             "async" => Ok(Self::Async),
             "hybrid-page-ocr" | "hybrid_page_ocr" => Ok(Self::HybridPageOcr),
             other => Err(format!("invalid document extract mode `{other}`")),

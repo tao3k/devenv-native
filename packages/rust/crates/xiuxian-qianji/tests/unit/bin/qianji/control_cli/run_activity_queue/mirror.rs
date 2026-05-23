@@ -1,3 +1,5 @@
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+use crate::qianji_cli::test_exports::{ControlCliCommand, handle_control_command_async};
 #[cfg(not(all(feature = "duckdb", feature = "valkey")))]
 use crate::qianji_cli::test_exports::{ControlCliCommand, run_control_command};
 use crate::qianji_cli::test_exports::{WorkerActivityMirrorStoreRequest, mirror_with_hot_state};
@@ -145,6 +147,41 @@ async fn mirror_with_hot_state_renders_text_summary() -> Result<(), String> {
     assert!(output.rendered.contains("- Run: `run-control-cli`"));
     assert!(output.rendered.contains("- Task queue: `tool.github`"));
     assert!(output.rendered.contains("- Mirrored tasks: `1`"));
+    Ok(())
+}
+
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+#[tokio::test]
+async fn activity_mirror_async_handler_does_not_start_runtime_inside_runtime() -> Result<(), String>
+{
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let ledger_path = temp_dir.path().join("control.duckdb");
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
+
+    let result = handle_control_command_async(ControlCliCommand::ActivityMirror {
+        ledger_path,
+        valkey_url: "redis://127.0.0.1:1/0".to_string(),
+        namespace: Some("mirror-runtime-regression".to_string()),
+        run_id: run_id.to_string(),
+        task_queue: Some("llm.openai".to_string()),
+        priority: 0,
+        not_before_ms: 0,
+        metadata: None,
+        json: true,
+    })
+    .await;
+    let error = match result {
+        Ok(()) => return Err("unreachable valkey should return a normal connection error".into()),
+        Err(error) => error,
+    };
+
+    assert!(
+        !error
+            .to_string()
+            .contains("Cannot start a runtime from within a runtime"),
+        "control dispatch should isolate sync runtime users from the CLI runtime: {error}"
+    );
     Ok(())
 }
 

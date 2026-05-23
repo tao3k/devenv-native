@@ -30,6 +30,22 @@ in
       };
     };
 
+    qianji-server = {
+      exec = processEntrypoint "qianji-server";
+      process-compose = {
+        depends_on = {
+          valkey.condition = "process_healthy";
+        };
+        readiness_probe = {
+          exec.command = processHealthcheck "qianji-server";
+          initial_delay_seconds = 5;
+          period_seconds = 3;
+          timeout_seconds = 3;
+          failure_threshold = 30;
+        };
+      };
+    };
+
     carfox.exec = processEntrypoint "carfox";
 
     # Wendao Phase 7.6 Integrated Services

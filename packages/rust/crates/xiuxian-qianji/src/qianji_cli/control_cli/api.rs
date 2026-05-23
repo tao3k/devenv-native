@@ -14,6 +14,12 @@ pub(crate) fn handle_control_command(command: &ControlCliCommand) -> io::Result<
     Ok(())
 }
 
+pub(crate) async fn handle_control_command_async(command: ControlCliCommand) -> io::Result<()> {
+    tokio::task::spawn_blocking(move || handle_control_command(&command))
+        .await
+        .map_err(|error| io::Error::other(format!("control command task failed: {error}")))?
+}
+
 pub(crate) fn run_control_command(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {
     run_control_command_impl(command)
 }

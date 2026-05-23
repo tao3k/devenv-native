@@ -9,6 +9,7 @@ pub(crate) use crate::integration_support::wendaograph::{
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_CAPABILITY_ID,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_FLIGHT_DESCRIPTOR_PATH,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_METHOD,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROFILE_ID,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROVIDER_ID,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_TABLES,
@@ -29,10 +30,14 @@ pub(crate) use crate::integration_support::wendaograph::{
     build_wendaograph_ontology_read_model_quality_flight_binding,
     build_wendaograph_ontology_read_model_quality_flight_descriptor,
     build_wendaograph_ontology_read_model_quality_flight_request_batch,
+    build_wendaograph_ontology_read_model_quality_orchestrator_schedule_plan,
     build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope,
+    build_wendaograph_ontology_read_model_quality_request_batches_from_rdf_source_artifacts,
+    build_wendaograph_ontology_read_model_quality_request_batches_from_semantic_preview_artifacts,
     roundtrip_wendaograph_ontology_extension_proof_with_binding,
     roundtrip_wendaograph_ontology_read_model_quality_with_binding,
     wendaograph_ontology_read_model_quality_provider_selector,
+    wendaograph_ontology_read_model_quality_route_profile_ref,
 };
 
 mod binding;
@@ -41,4 +46,5 @@ mod contract;
 mod fake_flight;
 mod live_loopback;
 mod roundtrip;
+mod semantic_preview;
 mod support;

@@ -88,6 +88,14 @@ Candidate and promotion review ledgers also use native Org tables. A table with
 lets runtime crates treat Org as the review authority while keeping TSV files as
 generated machine projections.
 
+Object instance and instance relation review ledgers are projected separately.
+A table with `object_id`, `object_type`, `label`, and `evidence_id` columns is
+projected as `table.kind = "object_instance_review"`. A table with
+`relation_id`, `source_object_id`, `predicate`, `target_object_id`, and
+`evidence_id` columns is projected as `table.kind = "instance_relation_review"`.
+This keeps evidence-backed object and relation proposals distinct from ontology
+term promotion rows and from generic mapping templates.
+
 ## Org Property Drawer Schema Gate
 
 Org property drawers remain native Org syntax, but sections that declare

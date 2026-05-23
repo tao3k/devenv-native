@@ -140,6 +140,14 @@ leases, start workers, or execute providers.
 `record_admitted_activity_schedule_idempotent` is the checked Worker-facing
 variant. It returns the already stored event for exact duplicate schedules and
 rejects conflicting schedules for the same activity id.
+Generic precompiled schedule plans use `ActivityScheduleAdmissionPlanItem`
+rows with workflow-neutral `ActivityTask` payloads. `admit_activity_schedule_plan`
+validates the plan contract, matching Qianji run id, safe non-execution flags,
+pending status, and claim-check input reference before recording idempotent
+`ActivityScheduled` facts through `AdmittedActivityTaskScheduleRecord`. This
+surface is for durable control-plane admission only: it does not depend on the
+plan producer, enqueue hot-state work, acquire leases, start workers, call
+models, read source text, or mutate ontology data.
 `record_activity_started`, `record_activity_completed`, and
 `record_activity_failed` record activity lifecycle facts after scheduling.
 They append durable journal events only; retry decisions, worker execution,
@@ -254,11 +262,13 @@ executable actions to `apply_recovery_action`; non-executable management
 actions remain explicit `NotApplicable` results.
 `apply_recovery_action` is the first bounded recovery applier. It applies only
 step-scoped `RetryActivity` actions by queueing the owning step after the
-retry backoff and recording `StepQueued`, and `FireTimer` actions by recording
-`TimerFired`. It also applies `ReclaimExpiredLease` by validating the replayed
-lease, reclaiming the expired hot lease back into the runnable queue, and
-recording `StepLeaseReleased`; run-scoped retries and other action kinds
-return `NotApplicable` without side effects.
+retry backoff and recording `StepQueued`; run-scoped `RetryActivity` actions
+requeue the failed activity task into the hot activity queue after the same
+backoff without appending a synthetic schedule event. It applies `FireTimer`
+actions by recording `TimerFired` and applies `ReclaimExpiredLease` by
+validating the replayed lease, reclaiming the expired hot lease back into the
+runnable queue, and recording `StepLeaseReleased`; other action kinds return
+`NotApplicable` without side effects.
 
 Agent proposals and deterministic Agent decisions can be recorded as control
 journal events and replay into run or step views. Recording an Agent decision

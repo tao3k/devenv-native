@@ -188,8 +188,12 @@ gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
 that the effective Valkey checkpoint backend responds to `PING`. Local
 no-server CLI/control workflow state uses the configured DuckDB path by
 default; HTTP remains Valkey-only.
-The generic Qianji control ledger has its own read-only operator surfaces.
-`qianji control history --ledger <path> --run-id <id> [--json]` renders the
+The generic Qianji control ledger has its own operator surfaces.
+`qianji control run-create --ledger <path> --run-id <id>
+--occurred-at-ms <ms> --intent <text> [--json]` appends the explicit
+`RunCreated` fact required before later run-scoped control events can be
+admitted. It does not schedule activities, create steps, mirror hot state, or
+execute workflow logic. `qianji control history --ledger <path> --run-id <id> [--json]` renders the
 append-only event timeline for one run. `qianji control heartbeat --ledger
 <path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms
 <ms> [--valkey-url <url>] [--namespace <ns>] [--metadata <json>] [--json]`
@@ -292,11 +296,18 @@ executor contract snapshot for operator inspection; empty polls expose no
 contract because no activity task was authorized. The initial fixture contract
 recognizes the governed LLM roles `llm.plan`, `llm.tool_select`, and
 `llm.repair` across local inspection queues for OpenAI, Anthropic,
-OpenRouter, and local model workers. The worker-once adapter also carries an
+OpenRouter, and local model workers. It also recognizes the deterministic
+Episteme review route `episteme.ontology.reasoning_fill` on
+`episteme.ontology.reasoning`; fixture completions on that route are
+review-artifact outputs only and do not promote RDF or mutate Episteme source
+truth. The worker-once adapter also carries an
 OpenAI-compatible LLM executor for admitted `llm.openai`, `llm.openrouter`,
-and `llm.local` tasks. That executor requires a claimed task input reference,
-admitted request-audit metadata, a local-file prompt reference that matches
-the task input reference, `--openai-compatible-base-url`, and
+`llm.local`, and `episteme.ontology.reasoning` tasks when the claimed activity
+type is explicitly admitted. Episteme reasoning tasks use local prompt and
+context artifacts as request-audit inputs; their provider outputs remain
+review artifacts and do not promote RDF. That executor requires a claimed task
+input reference, admitted request-audit metadata, a local-file prompt reference
+that matches the task input reference, `--openai-compatible-base-url`, and
 `--output-artifact-path`. It performs one HTTP request with no internal retry,
 writes successful provider responses to the output artifact, records only the
 derived claim-check in the durable completion event, and records HTTP,
@@ -341,6 +352,14 @@ validates a serialized `LlmActivityTask` through the control crate's LLM
 admission contract, then records an idempotent durable `ActivityScheduled`
 fact. It does not call a model provider, enqueue Valkey work, acquire a lease,
 or start a worker.
+`qianji control activity-admit-plan --ledger <path> --run-id <id>
+--occurred-at-ms <ms> --schedule-plan-json <path> [--step-id <id>] [--json]`
+admits a precompiled Qianji activity schedule plan. Each plan row must carry
+the supported schedule contract, the same run id, safe non-execution flags,
+pending status, and a valid workflow-neutral `ActivityTask` with an input
+claim-check. The command appends or reuses durable `ActivityScheduled` facts
+only. It does not execute workers, mirror Valkey hot state, call models, read
+private source text, or mutate ontology data.
 `qianji control activity-settle --ledger <path> --valkey-url <url>
 --leased-task-json <json> --outcome complete|fail --settled-at-ms <ms>
 [--namespace <ns>] [--output-hash <hash>] [--error-code <code>]
@@ -400,8 +419,9 @@ summary without executing recovery actions or touching hot scheduler state.
 [--namespace <ns>] [--backoff-ms <ms>] [--require-human-approval]
 [--priority <n>] [--json]` records a recovery-start fact and applies the
 current bounded recovery plan through `xiuxian-qianji-control` against the
-Valkey hot-state mirror. The command only executes recovery action kinds that
-the control crate already supports; unsupported actions are reported as skipped
+Valkey hot-state mirror. The command can requeue run-scoped activity retries
+into the hot activity queue, enqueue step-scoped retries, fire ready timers,
+and reclaim expired leases. Unsupported actions are reported as skipped
 results.
 `qianji control hot-state --valkey-url <url> --now-ms <ms> [--namespace <ns>]
 [--json]` reads the Valkey hot scheduling state directly and renders pending

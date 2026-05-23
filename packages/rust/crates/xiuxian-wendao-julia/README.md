@@ -91,6 +91,11 @@ needs a feature-gated second plugin bundle for these languages.
   remains the Rust bridge client and validation surface for Studio-backed Flight
   materialization; it does not own Gateway route registration or load
   `wendao.toml` in the live client boundary.
+- WendaoGraph ontology read-model quality Flight binding is now admitted
+  through `xiuxian-polyglot-orchestrator` before runtime transport negotiation.
+  The bridge exposes a Julia route/profile reference and builds a
+  `JuliaSchedulePlan`; only a dispatch-admitted plan can produce the Arrow
+  Flight binding used by the runtime client.
 - SearchStrategyFlow Flight materialization now also treats a selected
   `sourcePath` as the fallback structure contract. Repo search can strengthen a
   route with doc-id evidence, but a later zero-row repo-search lookup no longer

@@ -142,6 +142,105 @@ Use `--validation-mode full-hash` when the run must prove source-content
 fingerprints. The TOC ledger does not embed raw corpus text, execute OCR,
 execute ASR, call LLMs, export SQL/RDF, or promote ontology truth.
 
+The source-contract command surface can also compile the first structural IDF
+seed for ontology work:
+
+```bash
+wendao episteme source-contract write-structural-idf \
+  --episteme-registry-id medical \
+  --validation-mode metadata-only \
+  --run-id structural_seed
+```
+
+This command resolves `episteme.toml` runtime defaults in the same way as the
+TOC command, then delegates implementation to
+[`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md). It writes
+ignored `structural_idf.json`, `structural_idf.org`, document rows, path-anchor
+rows, and containment relation rows under
+`<episteme-root>/runs/structure/<run-id>/` by default. It does not read raw
+file text, execute OCR/ASR/LLM extraction, write RDF, or promote ontology truth.
+Use `--validation-mode full-hash` when the seed must prove all source
+fingerprints before LLM-assisted reasoning or later RDF proposal work.
+
+The same source-contract surface can compile the deterministic reasoning packet
+from a structural IDF run:
+
+```bash
+wendao episteme source-contract write-structural-idf-reasoning-packet \
+  --episteme-registry-id medical \
+  --structural-idf-run-id structural_seed \
+  --run-id reasoning_seed
+```
+
+By default this reads
+`<episteme-root>/runs/structure/<structural-idf-run-id>/structural_idf.json`
+and writes `reasoning_packet.org`, `reasoning_packet.tsv`,
+`reasoning_packet.json`, and `reasoning_packet_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. The packet is still an
+evidence proposal input surface only: it does not read private source text,
+call an LLM, run OCR/ASR, write RDF, or promote ontology truth.
+
+After a reasoning packet exists, Studio can ask the Episteme crate to seed a
+fillable Org proposal ledger:
+
+```bash
+wendao episteme source-contract write-structural-idf-reasoning-ledger-seed \
+  --episteme-registry-id medical \
+  --reasoning-packet-run-id reasoning_seed \
+  --run-id reasoning_ledger_seed
+```
+
+The command reads
+`<episteme-root>/runs/ontology-generation/<reasoning-packet-run-id>/reasoning_packet.json`
+and writes `reasoning_ledger_seed.org`, `reasoning_ledger_seed.tsv`,
+`reasoning_ledger_seed.json`, and `reasoning_ledger_seed_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. It creates object and
+relation proposal slots with blank semantic fields; it does not read private
+source text, call an LLM, write RDF, or promote ontology truth.
+
+After a ledger seed exists, Studio can compile a Qianji/BPMN-oriented fill plan
+without executing the workflow:
+
+```bash
+wendao episteme source-contract write-structural-idf-reasoning-fill-plan \
+  --episteme-registry-id medical \
+  --ledger-seed-run-id reasoning_ledger_seed \
+  --run-id reasoning_fill_plan
+```
+
+The command reads
+`<episteme-root>/runs/ontology-generation/<ledger-seed-run-id>/reasoning_ledger_seed.json`
+and writes `reasoning_fill_plan.org`, `reasoning_fill_plan.tsv`,
+`reasoning_fill_plan.json`, and `reasoning_fill_plan_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. The plan records workflow
+keys, activity kinds, seed ids, and evidence anchors as typed data. It does not
+execute Qianji, read private source text, call an LLM, mutate source files,
+write RDF, or promote ontology truth.
+
+After a fill plan exists, Studio can compile Qianji schedule-admission inputs:
+
+```bash
+wendao episteme source-contract write-structural-idf-reasoning-qianji-schedule-plan \
+  --episteme-registry-id medical \
+  --fill-plan-run-id reasoning_fill_plan \
+  --run-id qianji_schedule_plan \
+  --openai-compatible-model openrouter/deepseek/deepseek-chat-v3.1 \
+  --openai-compatible-max-tokens 1024
+```
+
+The command reads
+`<episteme-root>/runs/ontology-generation/<fill-plan-run-id>/reasoning_fill_plan.json`
+and writes `qianji_schedule_plan.org`, `qianji_schedule_plan.tsv`,
+`qianji_schedule_plan.json`, and `qianji_schedule_plan_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. It emits Qianji-shaped
+activity task payloads with stable activity ids, task queue, input claim-check
+reference, and idempotency key. It does not append Qianji control ledger events,
+enqueue hot-state work, execute workers, call an LLM, read private source text,
+mutate source files, write RDF, or promote ontology truth.
+The optional OpenAI-compatible flags only ask the Episteme crate to emit local
+prompt and context artifacts plus Qianji request-audit metadata. Provider
+execution still belongs to the Qianji worker.
+
 After TOC generation, callers can read one targeted evidence row by file id:
 
 ```bash
@@ -381,6 +480,22 @@ from the same deployment config, asks the Wendao backend to validate the
 manifest reference graph, and only then selects the requested episteme root.
 That graph validation checks unique domain ids and manifest extension targets;
 it does not require additional user-facing registry syntax.
+
+For approved source-patch preview runs, Studio can ask the Episteme crate to
+compile a non-mutating semantic read-model preview:
+
+```bash
+wendao episteme source-contract write-ontology-source-patch-semantic-preview \
+  --episteme-root <episteme-root> \
+  --run-id source_patch_seed
+```
+
+This command writes `semantic_objects.tsv`, `semantic_relations.tsv`,
+`semantic_evidence.tsv`, `semantic_projection_state.json`, and JSON
+projections under the source-patch run directory. Studio only resolves the
+episteme root and run id; the Episteme crate owns source-patch validation and
+read-model compilation. The command does not mutate RDF source files and does
+not make approved preview rows ontology truth.
 
 Studio can also discover the optional WendaoGraph ontology quality proof
 service from the effective deployment `wendao.toml`:

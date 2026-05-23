@@ -7,6 +7,7 @@ mod reclaim;
 mod recovery_plan;
 mod release;
 mod schedule_llm;
+mod schedule_plan;
 mod settle;
 mod start;
 mod take;

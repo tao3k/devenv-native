@@ -43,7 +43,7 @@ case "$BUILD_MODE" in
     ;;
   1|true|True|TRUE|on|ON)
     if command -v cargo >/dev/null 2>&1; then
-      cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
+      cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router,document-extract-audio-shards --locked
     elif [ ! -x "$WENDAO_BIN" ]; then
       echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
       exit 1
@@ -52,7 +52,7 @@ case "$BUILD_MODE" in
   auto|"")
     if [ ! -x "$WENDAO_BIN" ]; then
       if command -v cargo >/dev/null 2>&1; then
-        cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
+        cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router,document-extract-audio-shards --locked
       else
         echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
         exit 1

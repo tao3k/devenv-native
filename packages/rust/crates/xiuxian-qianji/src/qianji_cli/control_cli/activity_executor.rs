@@ -10,6 +10,7 @@ const FIXTURE_ACTIVITY_TYPES: &[&str] = &[
     "llm.plan",
     "llm.tool_select",
     "llm.repair",
+    "episteme.ontology.reasoning_fill",
     "tool.github",
     "wendao.search",
 ];
@@ -20,16 +21,26 @@ const FIXTURE_TASK_QUEUES: &[&str] = &[
     "llm.anthropic",
     "llm.openrouter",
     "llm.local",
+    "episteme.ontology.reasoning",
     "tool.github",
     "wendao.search",
 ];
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-const OPENAI_COMPATIBLE_LLM_ACTIVITY_TYPES: &[&str] =
-    &["llm.plan", "llm.tool_select", "llm.repair"];
+const OPENAI_COMPATIBLE_LLM_ACTIVITY_TYPES: &[&str] = &[
+    "llm.plan",
+    "llm.tool_select",
+    "llm.repair",
+    "episteme.ontology.reasoning_fill",
+];
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-const OPENAI_COMPATIBLE_LLM_TASK_QUEUES: &[&str] = &["llm.openai", "llm.openrouter", "llm.local"];
+const OPENAI_COMPATIBLE_LLM_TASK_QUEUES: &[&str] = &[
+    "llm.openai",
+    "llm.openrouter",
+    "llm.local",
+    "episteme.ontology.reasoning",
+];
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 const LLM_ACTIVITY_REQUEST_AUDIT_METADATA_KEY: &str = "qianji_llm_activity_request";

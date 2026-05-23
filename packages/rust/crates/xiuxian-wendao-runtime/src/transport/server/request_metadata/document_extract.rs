@@ -84,7 +84,7 @@ fn document_extract_mode(metadata: &MetadataMap) -> Result<DocumentExtractMode, 
     metadata
         .get(WENDAO_DOCUMENT_EXTRACT_MODE_HEADER)
         .and_then(|value| value.to_str().ok())
-        .map_or(Ok(DocumentExtractMode::Sync), DocumentExtractMode::parse)
+        .map_or(Ok(DocumentExtractMode::Auto), DocumentExtractMode::parse)
         .map_err(Status::invalid_argument)
 }
 

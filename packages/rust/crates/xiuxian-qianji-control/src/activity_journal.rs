@@ -34,6 +34,20 @@ pub struct AdmittedLlmActivityScheduleRecord {
     pub admission: LlmActivityAdmission,
 }
 
+/// Named request for recording one already admitted generic activity task.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct AdmittedActivityTaskScheduleRecord {
+    /// Owning run id.
+    pub run_id: RunId,
+    /// Optional owning step id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_id: Option<StepId>,
+    /// Event timestamp supplied by caller.
+    pub occurred_at_ms: u64,
+    /// Already admitted workflow-neutral activity task.
+    pub task: ActivityTask,
+}
+
 impl AdmittedActivityScheduleRecord {
     /// Creates a run-scoped admitted activity schedule record request.
     #[must_use]
@@ -88,6 +102,35 @@ impl AdmittedLlmActivityScheduleRecord {
             step_id: Some(step_id),
             occurred_at_ms,
             admission,
+        }
+    }
+}
+
+impl AdmittedActivityTaskScheduleRecord {
+    /// Creates a run-scoped admitted activity task schedule record request.
+    #[must_use]
+    pub const fn run(run_id: RunId, occurred_at_ms: u64, task: ActivityTask) -> Self {
+        Self {
+            run_id,
+            step_id: None,
+            occurred_at_ms,
+            task,
+        }
+    }
+
+    /// Creates a step-scoped admitted activity task schedule record request.
+    #[must_use]
+    pub const fn step(
+        run_id: RunId,
+        step_id: StepId,
+        occurred_at_ms: u64,
+        task: ActivityTask,
+    ) -> Self {
+        Self {
+            run_id,
+            step_id: Some(step_id),
+            occurred_at_ms,
+            task,
         }
     }
 }
@@ -341,6 +384,65 @@ where
     let view = replay_run_view(records)?;
     validate_schedule_transition(&view, step_id.as_ref(), &task)?;
     record_admitted_activity_schedule(ledger, request).map(ActivityJournalWriteOutcome::appended)
+}
+
+/// Records an already admitted workflow-neutral activity task as an
+/// `ActivityScheduled` event.
+///
+/// # Errors
+///
+/// Returns a control error when the task payload is invalid or the ledger
+/// append fails.
+pub fn record_admitted_activity_task_schedule<L>(
+    ledger: &L,
+    request: AdmittedActivityTaskScheduleRecord,
+) -> ControlResult<ControlEventRecord>
+where
+    L: ControlLedger + ?Sized,
+{
+    request.task.validate()?;
+    let AdmittedActivityTaskScheduleRecord {
+        run_id,
+        step_id,
+        occurred_at_ms,
+        task,
+    } = request;
+    let event_kind = ControlEventKind::ActivityScheduled { task };
+    let event = match step_id {
+        Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
+        None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
+    };
+    ledger.append_event(event)
+}
+
+/// Records an admitted workflow-neutral activity task schedule with duplicate
+/// and transition guards.
+///
+/// # Errors
+///
+/// Returns a control error when the task payload is invalid, the activity was
+/// already scheduled with different details, replay fails, or the ledger append
+/// fails.
+pub fn record_admitted_activity_task_schedule_idempotent<L>(
+    ledger: &L,
+    request: AdmittedActivityTaskScheduleRecord,
+) -> ControlResult<ActivityJournalWriteOutcome>
+where
+    L: ControlLedger + ?Sized,
+{
+    request.task.validate()?;
+    let run_id = request.run_id.clone();
+    let step_id = request.step_id.clone();
+    let task = request.task.clone();
+    let kind = ControlEventKind::ActivityScheduled { task: task.clone() };
+    let records = ledger.load_events(&run_id)?;
+    if let Some(record) = find_existing_activity_event(&records, &run_id, step_id.as_ref(), &kind) {
+        return Ok(ActivityJournalWriteOutcome::already_recorded(record));
+    }
+    let view = replay_run_view(records)?;
+    validate_schedule_transition(&view, step_id.as_ref(), &task)?;
+    record_admitted_activity_task_schedule(ledger, request)
+        .map(ActivityJournalWriteOutcome::appended)
 }
 
 /// Records an already admitted LLM activity as an `ActivityScheduled` event.

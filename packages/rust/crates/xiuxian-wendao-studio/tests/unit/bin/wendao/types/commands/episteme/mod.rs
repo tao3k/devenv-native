@@ -1,12 +1,23 @@
 pub(super) use super::{
-    EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
-    EpistemeEvidenceSelectionValidationModeArg, EpistemeGenerateOntologyCandidatesArgs,
-    EpistemePlanExtractionRunArgs, EpistemeReadEvidenceArgs, EpistemeReviewOntologyCandidatesArgs,
+    EpistemeApplyOntologySourcePatchArgs, EpistemeCommand, EpistemeEvidenceCommand,
+    EpistemeEvidenceReadValidationModeArg, EpistemeEvidenceSelectionValidationModeArg,
+    EpistemeGenerateOntologyCandidatesArgs, EpistemePlanExtractionRunArgs,
+    EpistemeReadEvidenceArgs, EpistemeReviewOntologyCandidatesArgs,
     EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
-    EpistemeRunLegacyOfficeConversionArgs, EpistemeSourceContractCommand, EpistemeStructureCommand,
+    EpistemeRunLegacyOfficeConversionArgs, EpistemeSourceContractCommand,
+    EpistemeStructuralIdfValidationModeArg, EpistemeStructureCommand,
     EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
     EpistemeWriteOntologyPromotionApplyPlanArgs, EpistemeWriteOntologyPromotionReviewArgs,
-    EpistemeWriteOntologyRdfDraftArgs, EpistemeWriteStructureTocArgs,
+    EpistemeWriteOntologyRdfDraftArgs, EpistemeWriteOntologySourcePatchApplyPlanArgs,
+    EpistemeWriteOntologySourcePatchApplyPreviewArgs, EpistemeWriteOntologySourcePatchDraftArgs,
+    EpistemeWriteOntologySourcePatchPreflightArgs,
+    EpistemeWriteOntologySourcePatchRdfReadModelArgs,
+    EpistemeWriteOntologySourcePatchReviewPacketArgs,
+    EpistemeWriteOntologySourcePatchSemanticPreviewArgs, EpistemeWriteStructuralIdfArgs,
+    EpistemeWriteStructuralIdfReasoningFillPlanArgs,
+    EpistemeWriteStructuralIdfReasoningLedgerSeedArgs,
+    EpistemeWriteStructuralIdfReasoningPacketArgs,
+    EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs, EpistemeWriteStructureTocArgs,
 };
 
 mod evidence;

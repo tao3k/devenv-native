@@ -81,6 +81,50 @@ pub(super) fn registry_openai_compatible_llm_task() -> WorkerActivityTask {
     }
 }
 
+pub(super) fn registry_episteme_openai_compatible_llm_task() -> WorkerActivityTask {
+    let prompt_ref = registry_artifact_ref("artifact-episteme-reasoning-prompt");
+    let mut task = activity_task(
+        must_ok(
+            ActivityId::new("activity-episteme-reasoning-openai-compatible-llm"),
+            "should build Episteme reasoning activity id",
+        ),
+        "episteme.ontology.reasoning_fill",
+        "episteme.ontology.reasoning",
+    )
+    .with_input_ref(prompt_ref.clone());
+    task.metadata = serde_json::json!({
+        "qianji_llm_activity_request": {
+            "schema": "qianji.llm_activity_request_audit.v1",
+            "model": "openrouter/deepseek/deepseek-chat-v3.1",
+            "prompt_ref": prompt_ref,
+            "context_ref": null,
+            "temperature_millis": 0,
+            "max_tokens": 1024,
+            "response_schema_ref": null,
+            "request_metadata": {
+                "activityType": "episteme.ontology.reasoning_fill",
+                "taskQueue": "episteme.ontology.reasoning",
+                "reviewOnly": true,
+                "rdfMutationAllowed": false
+            }
+        }
+    });
+    WorkerActivityTask {
+        run_id: must_ok(RunId::new("run-registry"), "should build registry run id"),
+        step_id: None,
+        activity_id: task.activity_id,
+        activity_type: task.activity_type,
+        task_queue: task.task_queue,
+        next_attempt: 1,
+        scheduled_at_ms: 1_000,
+        input_ref: task.input_ref,
+        idempotency_key: task.idempotency_key,
+        retry_policy: task.retry_policy,
+        timeout_ms: task.timeout_ms,
+        metadata: task.metadata,
+    }
+}
+
 fn registry_artifact_ref(artifact_id: &str) -> ArtifactRef {
     ArtifactRef {
         artifact_id: must_ok(ArtifactId::new(artifact_id), "should build artifact id"),
@@ -125,6 +169,15 @@ pub(super) fn append_control_run_with_llm_route(
     activity_type: &str,
     task_queue: &str,
 ) -> RunId {
+    append_control_run_with_activity_route(ledger_path, activity_id, activity_type, task_queue)
+}
+
+pub(super) fn append_control_run_with_activity_route(
+    ledger_path: &std::path::Path,
+    activity_id: &str,
+    activity_type: &str,
+    task_queue: &str,
+) -> RunId {
     let run_id = append_empty_control_run(ledger_path);
     let ledger = must_ok(
         DuckDbControlLedger::open(ledger_path),
@@ -132,7 +185,7 @@ pub(super) fn append_control_run_with_llm_route(
     );
     let activity_id = must_ok(
         ActivityId::new(activity_id),
-        "should build governed LLM activity id",
+        "should build governed activity id",
     );
     must_ok(
         ledger.append_event(ControlEvent::run(
@@ -142,7 +195,7 @@ pub(super) fn append_control_run_with_llm_route(
                 task: activity_task(activity_id, activity_type, task_queue),
             },
         )),
-        "should append governed LLM route activity",
+        "should append governed activity route",
     );
     run_id
 }
@@ -238,6 +291,80 @@ pub(super) fn append_control_run_with_openai_compatible_local_prompt(
             ControlEventKind::ActivityScheduled { task },
         )),
         "should append governed OpenAI-compatible LLM route activity",
+    );
+    run_id
+}
+
+pub(super) fn append_control_run_with_episteme_openai_compatible_local_prompt(
+    ledger_path: &std::path::Path,
+    prompt_path: &std::path::Path,
+    context_path: &std::path::Path,
+) -> RunId {
+    let run_id = append_empty_control_run(ledger_path);
+    let ledger = must_ok(
+        DuckDbControlLedger::open(ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let activity_id = must_ok(
+        ActivityId::new("activity-episteme-reasoning-openai-compatible-llm"),
+        "should build Episteme reasoning activity id",
+    );
+    let prompt_ref = ArtifactRef {
+        artifact_id: must_ok(
+            ArtifactId::new("artifact-episteme-reasoning-prompt"),
+            "should build prompt artifact id",
+        ),
+        artifact_kind: must_ok(
+            ArtifactKind::new("llm.prompt"),
+            "should build prompt artifact kind",
+        ),
+        uri: prompt_path.display().to_string(),
+        content_digest: None,
+        metadata: serde_json::Value::Null,
+    };
+    let context_ref = ArtifactRef {
+        artifact_id: must_ok(
+            ArtifactId::new("artifact-episteme-reasoning-context"),
+            "should build context artifact id",
+        ),
+        artifact_kind: must_ok(
+            ArtifactKind::new("episteme.reasoning_fill_context"),
+            "should build context artifact kind",
+        ),
+        uri: context_path.display().to_string(),
+        content_digest: None,
+        metadata: serde_json::Value::Null,
+    };
+    let mut task = activity_task(
+        activity_id,
+        "episteme.ontology.reasoning_fill",
+        "episteme.ontology.reasoning",
+    )
+    .with_input_ref(prompt_ref.clone());
+    task.metadata = serde_json::json!({
+        "qianji_llm_activity_request": {
+            "schema": "qianji.llm_activity_request_audit.v1",
+            "model": "openrouter/deepseek/deepseek-chat-v3.1",
+            "prompt_ref": prompt_ref,
+            "context_ref": context_ref,
+            "temperature_millis": 0,
+            "max_tokens": 1024,
+            "response_schema_ref": null,
+            "request_metadata": {
+                "activityType": "episteme.ontology.reasoning_fill",
+                "taskQueue": "episteme.ontology.reasoning",
+                "reviewOnly": true,
+                "rdfMutationAllowed": false
+            }
+        }
+    });
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            2,
+            ControlEventKind::ActivityScheduled { task },
+        )),
+        "should append governed Episteme OpenAI-compatible LLM route activity",
     );
     run_id
 }

@@ -11576,6 +11576,7 @@ name = "xiuxian-wendao-episteme"
 version = "0.1.1"
 dependencies = [
  "anyhow",
+ "quick-xml",
  "rust-lang-project-harness",
  "serde",
  "serde_json",
@@ -11583,6 +11584,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "toml 0.8.23",
+ "xiuxian-qianji-control",
  "xiuxian-wendao-parsers",
 ]
 

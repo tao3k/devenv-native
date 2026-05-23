@@ -65,6 +65,11 @@ source-range auto worker sizing and the common worker/shard clamp. The Studio
 full-document provider also consumes the runtime-owned plan before existing
 Docling endpoint selection while retaining endpoint-pool, cache/job registry,
 and Python worker lifecycle authority.
+Julia Arrow Flight bindings must likewise consume this crate's route/profile
+references and Julia schedule plan before enabling a runtime Flight binding;
+the owning Julia bridge still constructs the transport binding and executes the
+request, but dispatch admission belongs to the polyglot control-plane
+contract.
 The source-range auto policy sizes PDF page-range OCR waves from the supplied
 adaptive budget, machine-derived cap, remaining permits, shard count, and a
 conservative target of seven source pages per worker; fixed source-range worker

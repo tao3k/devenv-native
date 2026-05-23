@@ -1,3 +1,4 @@
+mod admit_plan;
 mod claim;
 mod finish;
 mod mirror;

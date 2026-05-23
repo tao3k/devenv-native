@@ -1,4 +1,5 @@
 mod activity_queue;
+mod activity_schedule_plan;
 mod contracts;
 mod cost_inventory;
 mod evidence;

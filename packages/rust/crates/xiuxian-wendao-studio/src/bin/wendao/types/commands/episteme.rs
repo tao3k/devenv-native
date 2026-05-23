@@ -32,6 +32,18 @@ pub(crate) enum EpistemeEvidenceCommand {
 pub(crate) enum EpistemeSourceContractCommand {
     /// Write a deterministic extraction run plan without executing extraction.
     PlanExtractionRun(EpistemePlanExtractionRunArgs),
+    /// Compile deterministic structural IDF seed rows from source-contract files.
+    WriteStructuralIdf(EpistemeWriteStructuralIdfArgs),
+    /// Compile structural IDF rows into a deterministic reasoning packet.
+    WriteStructuralIdfReasoningPacket(EpistemeWriteStructuralIdfReasoningPacketArgs),
+    /// Compile a reasoning packet into a fillable Org ledger seed.
+    WriteStructuralIdfReasoningLedgerSeed(EpistemeWriteStructuralIdfReasoningLedgerSeedArgs),
+    /// Compile a reasoning ledger seed into workflow fill-plan rows.
+    WriteStructuralIdfReasoningFillPlan(EpistemeWriteStructuralIdfReasoningFillPlanArgs),
+    /// Compile a reasoning fill plan into Qianji schedule-admission inputs.
+    WriteStructuralIdfReasoningQianjiSchedulePlan(
+        EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs,
+    ),
     /// Run the image OCR cache bridge for source-contract image tasks.
     RunImageOcrCache(EpistemeRunImageOcrCacheArgs),
     /// Run the Docling document cache bridge for supported document tasks.
@@ -48,6 +60,22 @@ pub(crate) enum EpistemeSourceContractCommand {
     WriteOntologyPromotionReview(EpistemeWriteOntologyPromotionReviewArgs),
     /// Write a non-mutating apply plan from explicit promotion review decisions.
     WriteOntologyPromotionApplyPlan(EpistemeWriteOntologyPromotionApplyPlanArgs),
+    /// Write a non-mutating source-patch preflight from approved review ledgers.
+    WriteOntologySourcePatchPreflight(EpistemeWriteOntologySourcePatchPreflightArgs),
+    /// Export a non-mutating RDF draft from source-patch preflight rows.
+    WriteOntologySourcePatchDraft(EpistemeWriteOntologySourcePatchDraftArgs),
+    /// Write a non-mutating source-patch apply plan from draft receipts.
+    WriteOntologySourcePatchApplyPlan(EpistemeWriteOntologySourcePatchApplyPlanArgs),
+    /// Write a hash-guarded source-patch review packet from an apply plan.
+    WriteOntologySourcePatchReviewPacket(EpistemeWriteOntologySourcePatchReviewPacketArgs),
+    /// Write a no-mutation preview of a reviewed source patch.
+    WriteOntologySourcePatchApplyPreview(EpistemeWriteOntologySourcePatchApplyPreviewArgs),
+    /// Compile source-patch preview rows into graph-ready semantic read-model artifacts.
+    WriteOntologySourcePatchSemanticPreview(EpistemeWriteOntologySourcePatchSemanticPreviewArgs),
+    /// Compile applied source-patch RDF into graph-ready semantic read-model artifacts.
+    WriteOntologySourcePatchRdfReadModel(EpistemeWriteOntologySourcePatchRdfReadModelArgs),
+    /// Apply a reviewed source patch through an explicit hash gate.
+    ApplyOntologySourcePatch(EpistemeApplyOntologySourcePatchArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -138,6 +166,143 @@ pub(crate) struct EpistemePlanExtractionRunArgs {
     /// Evidence selection artifact root. Defaults to <episteme-root>/runs/evidence-selection.
     #[arg(long, value_name = "DIR")]
     pub selection_root: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteStructuralIdfArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Corpus root. Defaults to the env var or episteme runtime config.
+    #[arg(long, value_name = "DIR")]
+    pub corpus_root: Option<PathBuf>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/structure.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Structural IDF validation policy.
+    #[arg(long, value_enum, default_value_t = EpistemeStructuralIdfValidationModeArg::MetadataOnly)]
+    pub validation_mode: EpistemeStructuralIdfValidationModeArg,
+    /// Safe ASCII run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteStructuralIdfReasoningPacketArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Structural IDF run root. Defaults to <episteme-root>/runs/structure.
+    #[arg(long, value_name = "DIR")]
+    pub structure_run_root: Option<PathBuf>,
+    /// Reasoning packet run root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Structural IDF run id used as packet input.
+    #[arg(long, value_name = "ID")]
+    pub structural_idf_run_id: String,
+    /// Safe ASCII packet run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Optional source category filter.
+    #[arg(long, value_name = "CATEGORY")]
+    pub category: Option<String>,
+    /// Optional extraction route filter.
+    #[arg(long, value_name = "ROUTE")]
+    pub route: Option<String>,
+    /// Maximum number of packet rows to emit.
+    #[arg(long, default_value_t = 256)]
+    pub limit: usize,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteStructuralIdfReasoningLedgerSeedArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Reasoning packet run root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub reasoning_packet_root: Option<PathBuf>,
+    /// Ledger-seed run root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Reasoning packet run id used as ledger-seed input.
+    #[arg(long, value_name = "ID")]
+    pub reasoning_packet_run_id: String,
+    /// Safe ASCII ledger-seed run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Maximum number of packet rows to seed.
+    #[arg(long, default_value_t = 512)]
+    pub limit: usize,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteStructuralIdfReasoningFillPlanArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Ledger-seed run root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub ledger_seed_root: Option<PathBuf>,
+    /// Fill-plan run root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Ledger-seed run id used as fill-plan input.
+    #[arg(long, value_name = "ID")]
+    pub ledger_seed_run_id: String,
+    /// Safe ASCII fill-plan run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Maximum number of seed rows to plan.
+    #[arg(long, default_value_t = 1024)]
+    pub limit: usize,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Fill-plan run root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub fill_plan_root: Option<PathBuf>,
+    /// Qianji schedule-plan run root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Fill-plan run id used as Qianji schedule-plan input.
+    #[arg(long, value_name = "ID")]
+    pub fill_plan_run_id: String,
+    /// Safe ASCII schedule-plan run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Optional Qianji run id carried by generated task payloads.
+    #[arg(long, value_name = "ID")]
+    pub qianji_run_id: Option<String>,
+    /// Maximum number of fill-plan rows to schedule.
+    #[arg(long, default_value_t = 1024)]
+    pub limit: usize,
+    /// Optional OpenAI-compatible model id for prompt-audit task admission.
+    #[arg(long, value_name = "MODEL")]
+    pub openai_compatible_model: Option<String>,
+    /// Maximum model output tokens for OpenAI-compatible prompt-audit tasks.
+    #[arg(long, default_value_t = 1024)]
+    pub openai_compatible_max_tokens: u32,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -353,6 +518,143 @@ pub(crate) struct EpistemeWriteOntologyPromotionApplyPlanArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologySourcePatchPreflightArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose approved review ledgers should be preflighted.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologySourcePatchDraftArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose source-patch preflight should be drafted.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologySourcePatchApplyPlanArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose source-patch draft should be planned.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologySourcePatchReviewPacketArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose source-patch apply plan should be packetized.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologySourcePatchApplyPreviewArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose reviewed source patch should be previewed.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Expected apply-plan TSV hash copied from the review packet.
+    #[arg(long, value_name = "SHA256")]
+    pub expected_apply_plan_tsv_sha256: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologySourcePatchSemanticPreviewArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose admitted preview should be compiled.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeWriteOntologySourcePatchRdfReadModelArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose applied source-patch RDF should be projected.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeApplyOntologySourcePatchArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/source-patch-preflight.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id whose reviewed source patch should be applied.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Expected apply-plan TSV hash copied from the review packet.
+    #[arg(long, value_name = "SHA256")]
+    pub expected_apply_plan_tsv_sha256: String,
+    /// Explicitly authorize mutation of the target ontology source file.
+    #[arg(long)]
+    pub allow_source_mutation: bool,
+}
+
+#[derive(Args, Debug, Clone)]
 pub(crate) struct EpistemeWriteStructureTocArgs {
     /// Episteme repository root.
     #[arg(long, value_name = "DIR", default_value = ".")]
@@ -381,6 +683,16 @@ pub(crate) enum EpistemeStructureTocValidationModeArg {
     #[default]
     MetadataOnly,
     /// Run full source-contract validation, including sha256 drift checks.
+    FullHash,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, Default, Eq, PartialEq)]
+#[value(rename_all = "kebab-case")]
+pub(crate) enum EpistemeStructuralIdfValidationModeArg {
+    /// Validate manifest and file metadata without hashing file contents.
+    #[default]
+    MetadataOnly,
+    /// Run full source validation, including sha256 drift checks.
     FullHash,
 }
 

@@ -1,14 +1,20 @@
+use xiuxian_polyglot_orchestrator::{
+    ContractOwner, JuliaScheduleAction, JuliaScheduleReason, LaneCapability, PolyglotLane,
+};
 use xiuxian_wendao_core::transport::PluginTransportKind;
 use xiuxian_wendao_runtime::transport::negotiate_flight_transport_client_from_bindings;
 
 use super::{
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_CAPABILITY_ID,
+    WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROFILE_ID,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROVIDER_ID,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_ROUTE,
     WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION,
     WendaoGraphOntologyReadModelQualityFlightBindingOptions,
     build_wendaograph_ontology_read_model_quality_flight_binding,
+    build_wendaograph_ontology_read_model_quality_orchestrator_schedule_plan,
     wendaograph_ontology_read_model_quality_provider_selector,
+    wendaograph_ontology_read_model_quality_route_profile_ref,
 };
 
 #[test]
@@ -50,6 +56,62 @@ fn ontology_read_model_quality_flight_binding_targets_runtime_negotiation() {
         binding.contract_version.0,
         WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION
     );
+}
+
+#[test]
+fn ontology_read_model_quality_flight_binding_uses_polyglot_orchestrator_schedule() {
+    let options = WendaoGraphOntologyReadModelQualityFlightBindingOptions {
+        base_url: "http://127.0.0.1:41082".to_string(),
+        health_route: None,
+        timeout_secs: Some(30),
+        max_in_flight_requests: Some(3),
+    };
+    let route_ref = wendaograph_ontology_read_model_quality_route_profile_ref();
+    let plan = build_wendaograph_ontology_read_model_quality_orchestrator_schedule_plan(&options);
+    let binding = build_wendaograph_ontology_read_model_quality_flight_binding(options)
+        .unwrap_or_else(|error| panic!("build ontology quality Flight binding: {error}"));
+
+    assert_eq!(route_ref.lane, PolyglotLane::JuliaCompute);
+    assert_eq!(route_ref.owner, ContractOwner::Julia);
+    assert_eq!(
+        route_ref.route,
+        WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_ROUTE
+    );
+    assert_eq!(
+        route_ref.profile.as_deref(),
+        Some(WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROFILE_ID)
+    );
+    assert_eq!(
+        route_ref.schema_version.as_deref(),
+        Some(WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION)
+    );
+    assert_eq!(plan.action, JuliaScheduleAction::Dispatch);
+    assert_eq!(plan.reason, JuliaScheduleReason::JuliaAdvantage);
+    assert_eq!(plan.capability, LaneCapability::GraphSearchCompute);
+    assert_eq!(
+        plan.profile_id.as_str(),
+        WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_PROFILE_ID
+    );
+    assert_eq!(
+        binding.endpoint.max_in_flight_requests,
+        Some(u64::from(plan.max_in_flight_recommendation))
+    );
+}
+
+#[test]
+fn ontology_read_model_quality_flight_binding_rejects_orchestrator_no_capacity() {
+    let Err(error) = build_wendaograph_ontology_read_model_quality_flight_binding(
+        WendaoGraphOntologyReadModelQualityFlightBindingOptions {
+            base_url: "http://127.0.0.1:41082".to_string(),
+            health_route: None,
+            timeout_secs: None,
+            max_in_flight_requests: Some(0),
+        },
+    ) else {
+        panic!("orchestrator no-capacity plan should reject the Flight binding");
+    };
+
+    assert!(error.contains("xiuxian-polyglot-orchestrator"));
 }
 
 #[test]

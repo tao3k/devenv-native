@@ -138,7 +138,7 @@ async fn fetch_openai_chat_completion(
         .map_err(io::Error::other)?;
     let endpoint = chat_completions_endpoint(request.base_url)?;
     let mut builder = client.post(endpoint).json(payload);
-    if let Some(api_key) = request.api_key.filter(|api_key| !api_key.trim().is_empty()) {
+    if let Some(api_key) = bearer_api_key(request.api_key) {
         builder = builder.bearer_auth(api_key);
     }
     let response = match builder.send().await {
@@ -174,6 +174,30 @@ async fn fetch_openai_chat_completion(
         }),
     )
     .map(Err)
+}
+
+fn bearer_api_key(api_key: Option<&str>) -> Option<&str> {
+    let trimmed = api_key?.trim();
+    let unquoted = strip_matching_quotes(trimmed).trim();
+    if unquoted.is_empty() {
+        None
+    } else {
+        Some(unquoted)
+    }
+}
+
+fn strip_matching_quotes(value: &str) -> &str {
+    if value.len() < 2 {
+        return value;
+    }
+    let bytes = value.as_bytes();
+    let first = bytes[0];
+    let last = bytes[bytes.len() - 1];
+    if (first == b'"' && last == b'"') || (first == b'\'' && last == b'\'') {
+        &value[1..value.len() - 1]
+    } else {
+        value
+    }
 }
 
 fn openai_message_content(provider_response: &Value) -> Option<&str> {

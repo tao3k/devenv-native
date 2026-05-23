@@ -1,5 +1,6 @@
 //! `qianji control` command surface.
 
+mod activity_admit_plan;
 mod activity_args;
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 mod activity_artifact;
@@ -26,6 +27,7 @@ mod llm_inventory;
 mod parse;
 mod render;
 mod run;
+mod run_create;
 mod types;
 
 #[cfg(test)]
@@ -53,7 +55,7 @@ pub(crate) use activity_worker_loop::{ActivityWorkerLoopStoreRequest, worker_loo
 pub(crate) use activity_worker_once::{ActivityWorkerOnceStoreRequest, worker_once_with_hot_state};
 #[cfg(test)]
 pub(crate) use api::run_control_command;
-pub(crate) use api::{handle_control_command, parse_control_command};
+pub(crate) use api::{handle_control_command_async, parse_control_command};
 #[cfg(test)]
 pub(crate) use heartbeat::{HeartbeatHotStateRequest, heartbeat_with_hot_state};
 pub(crate) use types::{ControlCliCommand, ControlCliOutput};

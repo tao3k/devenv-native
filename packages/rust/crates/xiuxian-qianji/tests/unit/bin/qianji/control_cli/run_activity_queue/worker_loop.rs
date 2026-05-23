@@ -1,33 +1,31 @@
+use std::path::Path;
+
 use crate::qianji_cli::test_exports::{
     ActivityExecutorKindArg, ActivitySettleOutcomeArg, ActivityWorkerLoopStoreRequest,
     worker_loop_with_hot_state,
 };
 #[cfg(not(all(feature = "duckdb", feature = "valkey")))]
 use crate::qianji_cli::test_exports::{ControlCliCommand, run_control_command};
+use crate::qianji_cli::tests::control_cli::support::{activity_task, must_ok};
 #[cfg(not(all(feature = "duckdb", feature = "valkey")))]
-use crate::qianji_cli::tests::control_cli::support::must_some;
-use crate::qianji_cli::tests::control_cli::support::{
-    activity_task, append_control_run_with_scheduled_activity_queue, append_empty_control_run,
-    must_ok,
-};
+use crate::qianji_cli::tests::control_cli::support::{append_empty_control_run, must_some};
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use xiuxian_qianji_control::{
-    ActivityId, ArtifactId, ArtifactKind, ArtifactRef, ControlEvent, ControlEventKind,
-    ControlLedger, DuckDbControlLedger, HotStateStore, InMemoryHotStateStore, RunnableActivityTask,
+    ActivityId, ActivityRetryPolicy, ArtifactId, ArtifactKind, ArtifactRef, ControlEvent,
+    ControlEventKind, ControlLedger, HotStateStore, InMemoryControlLedger, InMemoryHotStateStore,
+    RecoveryAttempt, RecoveryLoopApplicationRequest, RecoveryPolicy, RunId, RunnableActivityTask,
+    StepId, apply_recovery_plan,
 };
 
 #[tokio::test]
 async fn worker_loop_with_hot_state_processes_tasks_until_empty_limit() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
-    let ledger_path = temp_dir.path().join("control.duckdb");
-    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
-    let ledger = must_ok(
-        DuckDbControlLedger::open(&ledger_path),
-        "should reopen temporary control ledger",
-    );
+    let _temp_dir = temp_dir;
+    let ledger = InMemoryControlLedger::new();
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger);
     let hot_state = InMemoryHotStateStore::new();
     enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-run-scheduled").await?;
     enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-step-scheduled").await?;
@@ -97,12 +95,9 @@ async fn worker_loop_with_hot_state_processes_tasks_until_empty_limit() -> Resul
 async fn worker_loop_with_hot_state_stops_at_poll_limit_without_empty_poll() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
-    let ledger_path = temp_dir.path().join("control.duckdb");
-    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
-    let ledger = must_ok(
-        DuckDbControlLedger::open(&ledger_path),
-        "should reopen temporary control ledger",
-    );
+    let _temp_dir = temp_dir;
+    let ledger = InMemoryControlLedger::new();
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger);
     let hot_state = InMemoryHotStateStore::new();
     enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-run-scheduled").await?;
     enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-step-scheduled").await?;
@@ -156,12 +151,9 @@ async fn worker_loop_with_hot_state_stops_at_poll_limit_without_empty_poll() -> 
 async fn worker_loop_with_hot_state_records_heartbeat_for_claimed_task() -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
-    let ledger_path = temp_dir.path().join("control.duckdb");
-    let run_id = append_control_run_with_scheduled_activity_queue(&ledger_path);
-    let ledger = must_ok(
-        DuckDbControlLedger::open(&ledger_path),
-        "should reopen temporary control ledger",
-    );
+    let _temp_dir = temp_dir;
+    let ledger = InMemoryControlLedger::new();
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger);
     let hot_state = InMemoryHotStateStore::new();
     enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-run-scheduled").await?;
 
@@ -236,7 +228,6 @@ async fn worker_loop_with_hot_state_executes_openai_compatible_llm_to_artifact_d
 -> Result<(), String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
-    let ledger_path = temp_dir.path().join("control.duckdb");
     let prompt_path = temp_dir.path().join("prompt.txt");
     std::fs::write(&prompt_path, "Summarize durable workflow state.")
         .map_err(|error| format!("should write prompt fixture: {error}"))?;
@@ -246,14 +237,11 @@ async fn worker_loop_with_hot_state_executes_openai_compatible_llm_to_artifact_d
         r#"{"choices":[{"message":{"content":"Durable summary."}}]}"#,
     )
     .await?;
+    let ledger = InMemoryControlLedger::new();
     let run_id = append_control_run_with_openai_compatible_local_prompt(
-        &ledger_path,
+        &ledger,
         &prompt_path,
         "activity-openai-compatible-loop",
-    );
-    let ledger = must_ok(
-        DuckDbControlLedger::open(&ledger_path),
-        "should reopen temporary control ledger",
     );
     let hot_state = InMemoryHotStateStore::new();
     enqueue_worker_task(
@@ -332,10 +320,301 @@ async fn worker_loop_with_hot_state_executes_openai_compatible_llm_to_artifact_d
     Ok(())
 }
 
-async fn enqueue_worker_task(
-    ledger: &DuckDbControlLedger,
+#[tokio::test]
+async fn worker_loop_with_hot_state_records_openai_compatible_http_failure() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let prompt_path = temp_dir.path().join("prompt.txt");
+    std::fs::write(&prompt_path, "Plan the next durable workflow repair.")
+        .map_err(|error| format!("should write prompt fixture: {error}"))?;
+    let output_dir = temp_dir.path().join("llm-output");
+    let (base_url, request_rx) =
+        spawn_openai_compatible_server("429 Too Many Requests", r#"{"error":"rate limited"}"#)
+            .await?;
+    let ledger = InMemoryControlLedger::new();
+    let run_id = append_control_run_with_openai_compatible_local_prompt(
+        &ledger,
+        &prompt_path,
+        "activity-openai-compatible-loop-http-failure",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-openai-compatible-loop-http-failure",
+    )
+    .await?;
+
+    let output = must_ok(
+        worker_loop_with_hot_state(
+            &ledger,
+            &hot_state,
+            ActivityWorkerLoopStoreRequest {
+                worker_id: "worker-loop",
+                task_queue: Some("llm.openrouter"),
+                now_ms: 8_000,
+                now_step_ms: 1,
+                lease_ttl_ms: 500,
+                heartbeat_ttl_ms: None,
+                poll_limit: 2,
+                empty_limit: 1,
+                executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
+                outcome: ActivitySettleOutcomeArg::Complete,
+                settled_at_ms: 9_000,
+                settled_step_ms: 1,
+                output_hash: None,
+                output_artifact_dir: Some(output_dir.as_path()),
+                output_artifact_kind: Some("llm.response"),
+                openai_compatible_base_url: Some(base_url.as_str()),
+                openai_compatible_api_key: None,
+                openai_compatible_timeout_ms: Some(5_000),
+                error_code: None,
+                message: None,
+                retryable: None,
+                metadata: None,
+                json: true,
+            },
+        )
+        .await,
+        "activity worker loop should record OpenAI-compatible HTTP failure",
+    );
+    let _request = request_rx
+        .await
+        .map_err(|error| format!("provider request should be captured: {error}"))?;
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker loop output should be valid json",
+    );
+    let queue = must_ok(
+        ledger.load_activity_queue_projection(&run_id, None),
+        "worker loop should replay OpenAI-compatible failure",
+    );
+    let snapshot = must_ok(
+        hot_state.load_snapshot(9_100).await,
+        "hot state snapshot should load after failed provider request",
+    );
+    let artifact_path = output_dir
+        .join("activity-openai-compatible-loop-http-failure-attempt-1.openai-compatible-llm.json");
+
+    assert!(!artifact_path.exists());
+    assert_eq!(json["processed"], 1);
+    assert_eq!(json["released"], 1);
+    assert_eq!(json["stopped_reason"], "empty_limit");
+    assert_eq!(
+        json["iterations"][0]["output"]["terminal"]["record"]["event"]["kind"]["event"],
+        "activity_failed"
+    );
+    assert_eq!(
+        json["iterations"][0]["output"]["terminal"]["record"]["event"]["kind"]["failure"]["error_code"],
+        "provider_http_error"
+    );
+    assert_eq!(
+        json["iterations"][0]["output"]["terminal"]["record"]["event"]["kind"]["failure"]["metadata"]
+            ["http_status"],
+        429
+    );
+    assert_eq!(queue.summary.failed, 1);
+    assert_eq!(snapshot.active_activity_task_lease_count(), 0);
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_loop_with_hot_state_recovers_openai_compatible_failure() -> Result<(), String> {
+    let proof = openai_compatible_loop_recovery_fixture().await?;
+    let (failure_url, failure_request_rx) =
+        spawn_openai_compatible_server("429 Too Many Requests", r#"{"error":"rate limited"}"#)
+            .await?;
+    let failure_json = run_openai_compatible_loop_pass(
+        &proof.ledger,
+        &proof.hot_state,
+        proof.output_dir.as_path(),
+        failure_url.as_str(),
+        8_000,
+        9_000,
+        "first OpenAI-compatible loop pass should record durable failure",
+    )
+    .await?;
+    let _failure_request = failure_request_rx
+        .await
+        .map_err(|error| format!("provider failure request should be captured: {error}"))?;
+
+    assert_eq!(
+        failure_json["iterations"][0]["output"]["terminal"]["record"]["event"]["kind"]["failure"]["error_code"],
+        "provider_http_error"
+    );
+
+    let recovery_plan = must_ok(
+        proof.ledger.load_recovery_plan(&proof.run_id, 9_100),
+        "failed provider activity should project a recovery plan",
+    );
+    assert_eq!(recovery_plan.summary().retry_activities, 1);
+    let recovery = must_ok(
+        apply_recovery_plan(
+            &proof.ledger,
+            &proof.hot_state,
+            RecoveryLoopApplicationRequest::new(recovery_plan, recovery_attempt(), 9_100, 17),
+        )
+        .await,
+        "bounded recovery loop should requeue the failed provider activity",
+    );
+    assert_eq!(recovery.action_results.len(), 1);
+    let (success_url, success_request_rx) = spawn_openai_compatible_server(
+        "200 OK",
+        r#"{"choices":[{"message":{"content":"Recovered summary."}}]}"#,
+    )
+    .await?;
+    let success_json = run_openai_compatible_loop_pass(
+        &proof.ledger,
+        &proof.hot_state,
+        proof.output_dir.as_path(),
+        success_url.as_str(),
+        9_125,
+        9_200,
+        "second OpenAI-compatible loop pass should complete recovered task",
+    )
+    .await?;
+    let _success_request = success_request_rx
+        .await
+        .map_err(|error| format!("provider success request should be captured: {error}"))?;
+    let artifact_path = proof
+        .output_dir
+        .join("activity-openai-compatible-loop-recovery-attempt-2.openai-compatible-llm.json");
+    let artifact_json = read_recovered_provider_artifact(artifact_path.as_path())?;
+    let events = must_ok(
+        proof.ledger.load_events(&proof.run_id),
+        "recovered provider run should remain replayable",
+    );
+    let recovery_after_success = must_ok(
+        proof.ledger.load_recovery_plan(&proof.run_id, 9_300),
+        "completed recovered provider activity should not keep retry actions",
+    );
+
+    assert_eq!(
+        success_json["iterations"][0]["output"]["terminal"]["record"]["event"]["kind"]["event"],
+        "activity_completed"
+    );
+    assert_eq!(artifact_json["content"], "Recovered summary.");
+    assert!(
+        events.iter().any(|record| {
+            matches!(&record.event.kind, ControlEventKind::RecoveryStarted { .. })
+        })
+    );
+    assert!(events.iter().any(|record| {
+        matches!(
+            &record.event.kind,
+            ControlEventKind::ActivityStarted {
+                activity_id,
+                attempt: 2,
+                ..
+            } if activity_id.as_str() == "activity-openai-compatible-loop-recovery"
+        )
+    }));
+    assert_eq!(recovery_after_success.summary().retry_activities, 0);
+    Ok(())
+}
+
+struct OpenAiCompatibleLoopRecoveryFixture {
+    _temp_dir: TempDir,
+    ledger: InMemoryControlLedger,
+    hot_state: InMemoryHotStateStore,
+    run_id: RunId,
+    output_dir: std::path::PathBuf,
+}
+
+async fn openai_compatible_loop_recovery_fixture()
+-> Result<OpenAiCompatibleLoopRecoveryFixture, String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let prompt_path = temp_dir.path().join("prompt.txt");
+    std::fs::write(&prompt_path, "Recover the durable provider task.")
+        .map_err(|error| format!("should write prompt fixture: {error}"))?;
+    let output_dir = temp_dir.path().join("llm-output");
+    let ledger = InMemoryControlLedger::new();
+    let run_id = append_control_run_with_openai_compatible_local_prompt(
+        &ledger,
+        &prompt_path,
+        "activity-openai-compatible-loop-recovery",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-openai-compatible-loop-recovery",
+    )
+    .await?;
+    Ok(OpenAiCompatibleLoopRecoveryFixture {
+        _temp_dir: temp_dir,
+        ledger,
+        hot_state,
+        run_id,
+        output_dir,
+    })
+}
+
+async fn run_openai_compatible_loop_pass(
+    ledger: &InMemoryControlLedger,
     hot_state: &InMemoryHotStateStore,
-    run_id: &xiuxian_qianji_control::RunId,
+    output_dir: &Path,
+    base_url: &str,
+    now_ms: u64,
+    settled_at_ms: u64,
+    context: &str,
+) -> Result<serde_json::Value, String> {
+    let output = must_ok(
+        worker_loop_with_hot_state(
+            ledger,
+            hot_state,
+            ActivityWorkerLoopStoreRequest {
+                worker_id: "worker-loop",
+                task_queue: Some("llm.openrouter"),
+                now_ms,
+                now_step_ms: 1,
+                lease_ttl_ms: 500,
+                heartbeat_ttl_ms: None,
+                poll_limit: 1,
+                empty_limit: 1,
+                executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
+                outcome: ActivitySettleOutcomeArg::Complete,
+                settled_at_ms,
+                settled_step_ms: 1,
+                output_hash: None,
+                output_artifact_dir: Some(output_dir),
+                output_artifact_kind: Some("llm.response"),
+                openai_compatible_base_url: Some(base_url),
+                openai_compatible_api_key: None,
+                openai_compatible_timeout_ms: Some(5_000),
+                error_code: None,
+                message: None,
+                retryable: None,
+                metadata: None,
+                json: true,
+            },
+        )
+        .await,
+        context,
+    );
+    Ok(must_ok(
+        serde_json::from_str(&output.rendered),
+        "OpenAI-compatible loop output should be valid json",
+    ))
+}
+
+fn read_recovered_provider_artifact(path: &Path) -> Result<serde_json::Value, String> {
+    must_ok(
+        serde_json::from_str(
+            &std::fs::read_to_string(path)
+                .map_err(|error| format!("should read recovered provider artifact: {error}"))?,
+        ),
+        "recovered provider artifact should be valid json",
+    )
+}
+
+async fn enqueue_worker_task(
+    ledger: &impl ControlLedger,
+    hot_state: &InMemoryHotStateStore,
+    run_id: &RunId,
     activity_id: &str,
 ) -> Result<(), String> {
     let task = worker_task(ledger, run_id, activity_id)?;
@@ -354,8 +633,8 @@ async fn enqueue_worker_task(
 }
 
 fn worker_task(
-    ledger: &DuckDbControlLedger,
-    run_id: &xiuxian_qianji_control::RunId,
+    ledger: &impl ControlLedger,
+    run_id: &RunId,
     activity_id: &str,
 ) -> Result<xiuxian_qianji_control::WorkerActivityTask, String> {
     must_ok(
@@ -368,15 +647,11 @@ fn worker_task(
 }
 
 fn append_control_run_with_openai_compatible_local_prompt(
-    ledger_path: &std::path::Path,
+    ledger: &impl ControlLedger,
     prompt_path: &std::path::Path,
     activity_id: &str,
-) -> xiuxian_qianji_control::RunId {
-    let run_id = append_empty_control_run(ledger_path);
-    let ledger = must_ok(
-        DuckDbControlLedger::open(ledger_path),
-        "should reopen temporary control ledger",
-    );
+) -> RunId {
+    let run_id = append_empty_control_run_to_ledger(ledger);
     let activity_id = must_ok(
         ActivityId::new(activity_id),
         "should build governed LLM activity id",
@@ -396,6 +671,10 @@ fn append_control_run_with_openai_compatible_local_prompt(
     };
     let mut task =
         activity_task(activity_id, "llm.plan", "llm.openrouter").with_input_ref(prompt_ref.clone());
+    task.retry_policy = Some(must_ok(
+        ActivityRetryPolicy::new(3).map(|policy| policy.with_initial_interval_ms(25)),
+        "should build governed LLM retry policy",
+    ));
     task.metadata = serde_json::json!({
         "qianji_llm_activity_request": {
             "schema": "qianji.llm_activity_request_audit.v1",
@@ -418,6 +697,122 @@ fn append_control_run_with_openai_compatible_local_prompt(
             ControlEventKind::ActivityScheduled { task },
         )),
         "should append governed OpenAI-compatible loop LLM route activity",
+    );
+    run_id
+}
+
+fn recovery_attempt() -> RecoveryAttempt {
+    RecoveryAttempt {
+        attempt: 1,
+        reason: "recover OpenAI-compatible provider failure".to_string(),
+        policy: RecoveryPolicy {
+            max_attempts: 3,
+            backoff_ms: 25,
+            require_human_approval: false,
+        },
+    }
+}
+
+fn append_control_run_with_scheduled_activity_queue(ledger: &impl ControlLedger) -> RunId {
+    let run_id = append_control_run_with_step(ledger);
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    let scheduled_run_activity = must_ok(
+        ActivityId::new("activity-run-scheduled"),
+        "should build scheduled run activity id",
+    );
+    let started_activity = must_ok(
+        ActivityId::new("activity-run-started"),
+        "should build started run activity id",
+    );
+    let scheduled_step_activity = must_ok(
+        ActivityId::new("activity-step-scheduled"),
+        "should build scheduled step activity id",
+    );
+
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            3,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(scheduled_run_activity, "llm.plan", "llm.openai"),
+            },
+        )),
+        "should append scheduled run activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            4,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(started_activity.clone(), "llm.plan", "llm.openai"),
+            },
+        )),
+        "should append started run activity schedule",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            5,
+            ControlEventKind::ActivityStarted {
+                activity_id: started_activity,
+                worker_id: None,
+                attempt: 1,
+            },
+        )),
+        "should append started run activity",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            6,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(scheduled_step_activity, "tool.github", "tool.github"),
+            },
+        )),
+        "should append scheduled step activity",
+    );
+    run_id
+}
+
+fn append_control_run_with_step(ledger: &impl ControlLedger) -> RunId {
+    let run_id = append_empty_control_run_to_ledger(ledger);
+    let step_id = must_ok(
+        StepId::new("run-control-step"),
+        "should build control step id",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::step(
+            run_id.clone(),
+            step_id,
+            2,
+            ControlEventKind::StepCreated {
+                title: "Review durable state".to_string(),
+                required_evidence: vec!["history_visible".to_string()],
+                budget: None,
+            },
+        )),
+        "should append step-created event",
+    );
+    run_id
+}
+
+fn append_empty_control_run_to_ledger(ledger: &impl ControlLedger) -> RunId {
+    let run_id = must_ok(RunId::new("run-control-cli"), "should build control run id");
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            1,
+            ControlEventKind::RunCreated {
+                intent: "test qianji control recovery snapshot".to_string(),
+                budget: None,
+                metadata: serde_json::Value::Null,
+            },
+        )),
+        "should append run-created event",
     );
     run_id
 }

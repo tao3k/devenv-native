@@ -20,6 +20,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 
 mod activity_journal;
 mod activity_queue;
+mod activity_schedule_plan;
 mod admission;
 mod agent;
 mod agent_journal;
@@ -63,17 +64,28 @@ pub use {
     activity_journal::{
         ActivityCompletedJournalRecord, ActivityFailedJournalRecord, ActivityJournalScope,
         ActivityJournalWriteOutcome, ActivityJournalWriteStatus, ActivityStartedJournalRecord,
-        AdmittedActivityScheduleRecord, AdmittedLlmActivityScheduleRecord,
-        record_activity_completed, record_activity_completed_idempotent, record_activity_failed,
+        AdmittedActivityScheduleRecord, AdmittedActivityTaskScheduleRecord,
+        AdmittedLlmActivityScheduleRecord, record_activity_completed,
+        record_activity_completed_idempotent, record_activity_failed,
         record_activity_failed_idempotent, record_activity_started,
         record_activity_started_idempotent, record_admitted_activity_schedule,
-        record_admitted_activity_schedule_idempotent, record_admitted_llm_activity_schedule,
+        record_admitted_activity_schedule_idempotent, record_admitted_activity_task_schedule,
+        record_admitted_activity_task_schedule_idempotent, record_admitted_llm_activity_schedule,
         record_admitted_llm_activity_schedule_idempotent,
     },
     activity_queue::{
         ActivityQueueItem, ActivityQueueProjection, ActivityQueueSummary,
         WorkerActivityHotStateMirrorOutcome, WorkerActivityHotStateMirrorRequest,
         WorkerActivityTask, mirror_worker_activity_tasks_to_hot_state,
+    },
+    activity_schedule_plan::{
+        ACTIVITY_SCHEDULE_ADMISSION_KIND, ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS,
+        ACTIVITY_SCHEDULE_ADMISSION_PLAN_CONTRACT, ActivityScheduleAdmissionExecutionFlags,
+        ActivityScheduleAdmissionInputExecutionFlags, ActivityScheduleAdmissionPlanItem,
+        ActivityScheduleAdmissionRuntimeExecutionFlags, ActivityScheduleAdmissionSafetyFlags,
+        ActivitySchedulePlanAdmissionItemOutcome, ActivitySchedulePlanAdmissionReport,
+        ActivitySchedulePlanAdmissionRequest, admit_activity_schedule_plan,
+        parse_activity_schedule_plan_json,
     },
     admission::{LlmActivityAdmission, ToolActivityAdmission},
     agent::{AgentDecision, AgentDecisionOutcome, AgentProposal},

@@ -61,7 +61,7 @@ fn validate_document_extract_request_metadata_accepts_latest_request() {
     assert!(request.force);
     assert!(!request.error_row);
     assert_eq!(request.profile, "full");
-    assert_eq!(request.mode, DocumentExtractMode::Sync);
+    assert_eq!(request.mode, DocumentExtractMode::Auto);
     assert_eq!(request.wait_ms, 0);
 }
 
@@ -103,7 +103,7 @@ fn validate_document_extract_request_metadata_uses_latest_defaults() {
     assert!(!request.force);
     assert!(request.error_row);
     assert_eq!(request.profile, "full");
-    assert_eq!(request.mode, DocumentExtractMode::Sync);
+    assert_eq!(request.mode, DocumentExtractMode::Auto);
     assert_eq!(request.wait_ms, 0);
 }
 

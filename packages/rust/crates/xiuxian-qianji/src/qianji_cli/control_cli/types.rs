@@ -5,6 +5,14 @@ use super::activity_executor::ActivityExecutorKindArg;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ControlCliCommand {
+    ActivityAdmitPlan {
+        ledger_path: PathBuf,
+        run_id: String,
+        step_id: Option<String>,
+        occurred_at_ms: u64,
+        schedule_plan_json_path: PathBuf,
+        json: bool,
+    },
     Activity {
         ledger_path: PathBuf,
         run_id: String,
@@ -207,6 +215,13 @@ pub(crate) enum ControlCliCommand {
         backoff_ms: u64,
         require_human_approval: bool,
         priority: i64,
+        json: bool,
+    },
+    RunCreate {
+        ledger_path: PathBuf,
+        run_id: String,
+        occurred_at_ms: u64,
+        intent: String,
         json: bool,
     },
     Costs {

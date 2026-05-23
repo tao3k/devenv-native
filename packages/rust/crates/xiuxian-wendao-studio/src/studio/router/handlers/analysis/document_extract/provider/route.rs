@@ -167,7 +167,7 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
         &self,
         request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
-        match request.mode {
+        match gateway_document_extract_mode(request) {
             DocumentExtractMode::Sync => {
                 self.document_extract_batch(
                     request.source_path.as_str(),
@@ -205,6 +205,9 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
                     )
                 }
             }
+            DocumentExtractMode::Auto => {
+                unreachable!("gateway auto mode must resolve before route dispatch")
+            }
         }
     }
 
@@ -219,4 +222,31 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
             &status,
         )?))
     }
+}
+
+fn gateway_document_extract_mode(request: &DocumentExtractFlightRequest) -> DocumentExtractMode {
+    match request.mode {
+        DocumentExtractMode::Auto => gateway_document_extract_mode_for_source(&request.source_path),
+        mode => mode,
+    }
+}
+
+fn gateway_document_extract_mode_for_source(source_path: &str) -> DocumentExtractMode {
+    if is_audio_source_path(Path::new(source_path)) {
+        return DocumentExtractMode::AudioShards;
+    }
+    DocumentExtractMode::Sync
+}
+
+fn is_audio_source_path(source_path: &Path) -> bool {
+    let Some(extension) = source_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+    else {
+        return false;
+    };
+    matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "aac" | "flac" | "m4a" | "mp3" | "ogg" | "wav"
+    )
 }

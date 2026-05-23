@@ -20,6 +20,7 @@ pub(crate) fn run_control_command_impl(
 ) -> io::Result<ControlCliOutput> {
     match command {
         ControlCliCommand::Activity { .. }
+        | ControlCliCommand::ActivityAdmitPlan { .. }
         | ControlCliCommand::ActivityClaim { .. }
         | ControlCliCommand::ActivityComplete { .. }
         | ControlCliCommand::ActivityCompleteWorkerTask { .. }
@@ -97,6 +98,7 @@ pub(crate) fn run_control_command_impl(
             now_ms,
             json,
         } => run_recovery_snapshot_command(ledger_path, run_id, *now_ms, *json),
+        ControlCliCommand::RunCreate { .. } => run_create_from_command(command),
         ControlCliCommand::Summary {
             ledger_path,
             run_id,
@@ -105,6 +107,26 @@ pub(crate) fn run_control_command_impl(
         } => run_summary_command(ledger_path, run_id, *now_ms, *json),
         _ => run_control_command_tail(command),
     }
+}
+
+fn run_create_from_command(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {
+    let ControlCliCommand::RunCreate {
+        ledger_path,
+        run_id,
+        occurred_at_ms,
+        intent,
+        json,
+    } = command
+    else {
+        unreachable!("run-create runner received a non-run-create command");
+    };
+    super::super::run_create::run(super::super::run_create::RunCreateRunRequest {
+        ledger_path,
+        run_id,
+        occurred_at_ms: *occurred_at_ms,
+        intent,
+        json: *json,
+    })
 }
 
 fn run_heartbeat_from_command(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {
@@ -138,6 +160,9 @@ fn run_heartbeat_from_command(command: &ControlCliCommand) -> io::Result<Control
 fn run_activity_control_command(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {
     match command {
         ControlCliCommand::Activity { .. } => run_activity_from_command(command),
+        ControlCliCommand::ActivityAdmitPlan { .. } => {
+            run_activity_admit_plan_from_command(command)
+        }
         ControlCliCommand::ActivityClaim { .. } => run_activity_claim_from_command(command),
         ControlCliCommand::ActivityComplete { .. } => run_activity_complete_from_command(command),
         ControlCliCommand::ActivityCompleteWorkerTask { .. } => {
@@ -167,6 +192,32 @@ fn run_activity_control_command(command: &ControlCliCommand) -> io::Result<Contr
         }
         _ => unreachable!("activity control runner received a non-activity command"),
     }
+}
+
+fn run_activity_admit_plan_from_command(
+    command: &ControlCliCommand,
+) -> io::Result<ControlCliOutput> {
+    let ControlCliCommand::ActivityAdmitPlan {
+        ledger_path,
+        run_id,
+        step_id,
+        occurred_at_ms,
+        schedule_plan_json_path,
+        json,
+    } = command
+    else {
+        unreachable!("activity-admit-plan runner received a non-activity-admit-plan command");
+    };
+    super::super::activity_admit_plan::run(
+        super::super::activity_admit_plan::ActivityAdmitPlanRunRequest {
+            ledger_path,
+            run_id,
+            step_id: step_id.as_deref(),
+            occurred_at_ms: *occurred_at_ms,
+            schedule_plan_json_path,
+            json: *json,
+        },
+    )
 }
 
 fn run_control_command_tail(command: &ControlCliCommand) -> io::Result<ControlCliOutput> {

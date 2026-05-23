@@ -104,6 +104,8 @@
             "mapping_evidence",
             "candidate_review",
             "promotion_review",
+            "object_instance_review",
+            "instance_relation_review",
             "evidence"
           ]
         },

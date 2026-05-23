@@ -15,6 +15,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
 
     match args.get(2).map(String::as_str) {
         Some("activity") => parse_activity(args).map(Some),
+        Some("activity-admit-plan") => super::activity_admit_plan::parse(args).map(Some),
         Some("activity-claim") => super::activity_claim::parse(args).map(Some),
         Some("activity-complete") => super::activity_finish::parse_complete(args).map(Some),
         Some("activity-fail") => super::activity_finish::parse_fail(args).map(Some),
@@ -39,6 +40,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
         Some("llm-activities") => super::llm_inventory::parse(args).map(Some),
         Some("query") => parse_query(args).map(Some),
         Some("recovery-snapshot") => parse_recovery_snapshot(args).map(Some),
+        Some("run-create") => super::run_create::parse(args).map(Some),
         Some("summary") => parse_summary(args).map(Some),
         Some("signal") => parse_signal(args).map(Some),
         Some("signals") => parse_signals(args).map(Some),
@@ -50,7 +52,7 @@ pub(super) fn parse_control_command_impl(args: &[String]) -> io::Result<Option<C
             "unsupported `control` subcommand `{other}`"
         ))),
         None => Err(invalid_input(
-            "missing `control` subcommand; expected `activity`, `activity-claim`, `activity-complete`, `activity-fail`, `activity-mirror`, `activity-queue`, `activity-reclaim`, `activity-release`, `activity-schedule-llm`, `activity-settle`, `activity-start`, `activity-take`, `activity-worker-loop`, `activity-worker-once`, `apply-recovery-plan`, `costs`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `llm-activities`, `query`, `recovery-snapshot`, `summary`, `signal`, `signals`, `step`, `timer`, `timers`, or `view`",
+            "missing `control` subcommand; expected `activity`, `activity-admit-plan`, `activity-claim`, `activity-complete`, `activity-fail`, `activity-mirror`, `activity-queue`, `activity-reclaim`, `activity-release`, `activity-schedule-llm`, `activity-settle`, `activity-start`, `activity-take`, `activity-worker-loop`, `activity-worker-once`, `apply-recovery-plan`, `costs`, `decision`, `heartbeat`, `history`, `hot-state`, `lease`, `leases`, `llm-activities`, `query`, `recovery-snapshot`, `run-create`, `summary`, `signal`, `signals`, `step`, `timer`, `timers`, or `view`",
         )),
     }
 }
