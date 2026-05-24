@@ -94,9 +94,7 @@ def select_audio_risk_parent_rows(
         if not reasons:
             continue
         item = _parent_row(row, result_rows.get(chunk_index), reasons)
-        item["_score"] = _risk_score(
-            row, result_rows.get(chunk_index), reasons, options
-        )
+        item["_score"] = _risk_score(row, result_rows.get(chunk_index), reasons, options)
         candidates.append(item)
     selected = _select_with_boundary_reservation(candidates, options.limit_parents)
     for item in selected:
@@ -108,11 +106,7 @@ def _select_with_boundary_reservation(
     candidates: Sequence[dict[str, object]],
     limit: int,
 ) -> list[dict[str, object]]:
-    boundary = [
-        item
-        for item in candidates
-        if "timeline-boundary" in set(item.get("reasons", []))
-    ]
+    boundary = [item for item in candidates if "timeline-boundary" in set(item.get("reasons", []))]
     boundary_by_parent = {
         int(item["parentChunkIndex"]): item
         for item in sorted(
@@ -126,11 +120,7 @@ def _select_with_boundary_reservation(
     selected_by_parent = dict(boundary_by_parent)
     remaining_slots = max(0, limit - len(selected_by_parent))
     ranked = sorted(
-        (
-            item
-            for item in candidates
-            if int(item["parentChunkIndex"]) not in selected_by_parent
-        ),
+        (item for item in candidates if int(item["parentChunkIndex"]) not in selected_by_parent),
         key=lambda item: item["_score"],
         reverse=True,
     )
@@ -157,9 +147,7 @@ def build_short_window_rows(
         start_seconds = _float(parent, "startSeconds")
         duration_seconds = _float(parent, "durationSeconds")
         if duration_seconds <= 0:
-            raise ValueError(
-                f"parent chunk {parent_chunk_index} has non-positive duration"
-            )
+            raise ValueError(f"parent chunk {parent_chunk_index} has non-positive duration")
         part_count = max(1, math.ceil(duration_seconds / split_seconds))
         parent_reasons = [
             str(reason)
@@ -198,10 +186,7 @@ def _risk_reasons(
         reasons.append("low-chinese-ratio")
     if _float(quality_row, "chars_per_minute") <= options.max_chars_per_minute:
         reasons.append("low-text-density")
-    if (
-        result_row is not None
-        and _float(result_row, "wall_seconds") >= options.min_latency_seconds
-    ):
+    if result_row is not None and _float(result_row, "wall_seconds") >= options.min_latency_seconds:
         reasons.append("high-latency")
     if is_boundary and options.include_boundaries:
         reasons.append("timeline-boundary")
@@ -217,8 +202,7 @@ def _risk_score(
     score = float(len(reasons))
     score += max(
         0.0,
-        (_float(quality_row, "repeated_ngram_ratio") - options.min_repeated_ngram_ratio)
-        * 10.0,
+        (_float(quality_row, "repeated_ngram_ratio") - options.min_repeated_ngram_ratio) * 10.0,
     )
     score += max(0.0, options.max_chinese_ratio - _float(quality_row, "chinese_ratio"))
     score += max(
@@ -252,9 +236,7 @@ def _parent_row(
         "charsPerMinute": _float(quality_row, "chars_per_minute"),
         "chineseRatio": _float(quality_row, "chinese_ratio"),
         "repeatedNgramRatio": _float(quality_row, "repeated_ngram_ratio"),
-        "wallSeconds": (
-            0.0 if result_row is None else _float(result_row, "wall_seconds")
-        ),
+        "requestSeconds": (0.0 if result_row is None else _float(result_row, "wall_seconds")),
         "reasons": list(reasons),
     }
 
@@ -263,9 +245,7 @@ def _read_quality_rows(path: Path) -> list[dict[str, object]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     rows = payload.get("qualityRows", []) if isinstance(payload, dict) else payload
     if not isinstance(rows, list):
-        raise ValueError(
-            f"quality JSON must be an array or contain qualityRows: {path}"
-        )
+        raise ValueError(f"quality JSON must be an array or contain qualityRows: {path}")
     return _object_rows(rows, path)
 
 
@@ -274,9 +254,7 @@ def _read_result_rows(path: Path) -> dict[int, dict[str, object]]:
     if not isinstance(payload, list):
         raise ValueError(f"results JSON must be an array: {path}")
     return {
-        _int(row, "chunk_index"): row
-        for row in _object_rows(payload, path)
-        if "chunk_index" in row
+        _int(row, "chunk_index"): row for row in _object_rows(payload, path) if "chunk_index" in row
     }
 
 

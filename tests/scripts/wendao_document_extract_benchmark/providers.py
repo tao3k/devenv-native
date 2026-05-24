@@ -368,6 +368,9 @@ def apply_rust_audio_env(args: argparse.Namespace, env: dict[str, str]) -> None:
         "rust_audio_sample_rate_hz": "WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ",
         "rust_audio_channels": "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS",
         "rust_audio_format": "WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT",
+        "rust_audio_artifact_cache_dir": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR"
+        ),
         "rust_audio_base_workers": "WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS",
         "rust_audio_recovery_workers": (
             "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS"

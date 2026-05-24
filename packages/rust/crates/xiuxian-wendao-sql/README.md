@@ -19,11 +19,21 @@ Current ownership in this crate:
    Arrow source tables, execute SELECT-only mapping SQL, and return observation,
    read-model, and validation counts without owning persistent DuckDB runtime
    storage policy
+7. DuckDB inspection for Episteme candidate Parquet read models, including row
+   counts, kind counts, blocked-review checks, ontology-truth checks, and
+   relation endpoint integrity checks without reading candidate TSV projections
 
 The semantic read-model `RecordBatch` builders are also the accepted Rust owner
 surface for WendaoGraph ontology quality checks. Downstream bridges may package
 those batches for Arrow Flight, but they must not read registry JSON files or
 promote advisory Julia diagnostics into SQL authority.
+
+Episteme candidate inspection consumes
+`ontology_candidate_objects.parquet`,
+`ontology_candidate_relations.parquet`, and
+`ontology_candidate_evidence.parquet` through DuckDB `read_parquet()` views.
+The TSV files emitted beside those read models remain compatibility projections
+for reporting only; they are not a SQL, ontology, or search contract.
 
 This crate does not own the full shared-query architecture. Broader shared
 query semantics, gateway adapters, and persistent DuckDB-backed business

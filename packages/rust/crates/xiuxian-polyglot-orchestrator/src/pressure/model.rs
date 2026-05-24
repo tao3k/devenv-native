@@ -61,6 +61,12 @@ impl WorkerPressureEvidence {
         Self::new(LaneCapability::OcrShardExtraction)
     }
 
+    /// Creates Python analyzer audio-shard transcription pressure evidence.
+    #[must_use]
+    pub const fn audio_shard_transcription() -> Self {
+        Self::new(LaneCapability::AudioShardTranscription)
+    }
+
     /// Returns this evidence with worker budget counters.
     #[must_use]
     pub const fn with_worker_budget(

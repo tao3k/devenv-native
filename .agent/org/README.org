@@ -50,25 +50,32 @@ Use native Org state and time markers:
 
 A task's heading is the durable recovery anchor.
 
+** Command Discipline
+
+Agent shell commands MUST be wrapped with =rtk= unless the task records an
+explicit exception. New Org task headings should keep =:COMMAND_PROXY: rtk= in
+their property drawer so command evidence remains aligned with the repository
+RTK contract.
+
 ** Recovery Commands
 
 Recover active work without reading chat history first:
 
 #+begin_src text
-wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Refresh the authoritative DuckDB read model after editing Org files or when a
 cached query looks stale:
 
 #+begin_src text
-wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Recover SDD system/capability/view/decision/audit status:
 
 #+begin_src text
-wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd
+rtk wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd
 #+end_src
 
 The task-list command excludes DONE and archived rows by default and renders
@@ -81,38 +88,38 @@ and repeater metadata as a machine-readable recovery contract.
 Find scheduled work for one day or a date window:
 
 #+begin_src text
-wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
-wendao-client orgize agent-planning --date YYYY-MM-DD --end YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize agent-planning --date YYYY-MM-DD --end YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Find one lane by stable text:
 
 #+begin_src text
-wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Open a named DuckDB-backed control view:
 
 #+begin_src text
-wendao-client orgize task-list --cached --view closure-needed $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-list --cached --view archive-candidate $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-list --cached --view repeating $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --cached --view closure-needed $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --cached --view archive-candidate $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --cached --view repeating $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Review completed achievement task rows without polluting active recovery:
 
 #+begin_src text
-wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Summarize archive candidates, achievements, repeaters, and tag counts:
 
 #+begin_src text
-wendao-client orgize task-report --cached --summary-only $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-report --cached --view archive-candidate $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-report --cached --view closure-needed $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-report --cached --view repeating $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-report --cached --summary-only $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-report --cached --view archive-candidate $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-report --cached --view closure-needed $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-report --cached --view repeating $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Omit =--cached= from =task-report= when the summary must refresh the read model
@@ -124,19 +131,19 @@ machine-readable summary contract.
 Plan physical archival for completed task rows:
 
 #+begin_src text
-wendao-client orgize task-archive $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-archive --target 2026.org $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-archive --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-archive --closed-before YYYY-MM-DD --expect-selected COUNT $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive --target 2026.org $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive --closed-before YYYY-MM-DD --expect-selected COUNT $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Apply a reviewed archive plan explicitly:
 
 #+begin_src text
-wendao-client orgize task-archive --apply $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-archive --apply --target 2026.org $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-archive --apply --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
-wendao-client orgize task-archive --apply --closed-before YYYY-MM-DD --expect-selected COUNT $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive --apply $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive --apply --target 2026.org $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive --apply --closed-before YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-archive --apply --closed-before YYYY-MM-DD --expect-selected COUNT $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 The archive command prints an =Archive Targets= summary before row details so
@@ -155,14 +162,14 @@ counters.
 Use sparse-tree when the full source subtree context is useful:
 
 #+begin_src text
-wendao-client orgize sparse-tree --match '+agent+achievement' $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize sparse-tree --match '+agent+achievement' $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Lint SDD and task tracking files before marking a tracking slice complete:
 
 #+begin_src text
-wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/sdd
-wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/sdd
+rtk wendao-client orgize lint --format compact $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 Define repeated performance/profile checks with native Org timestamps:
@@ -173,7 +180,8 @@ SCHEDULED: <2026-05-18 Mon ++1d>
 :PROPERTIES:
 :COOKIE_DATA: direct
 :NEXT_ACTION: Refresh the benchmark baseline and compare the current candidate.
-:RESUME_QUERY: wendao-client orgize task-list --cached --text 'Performance Profile' $PRJ_CACHE_HOME/agent/org
+:COMMAND_PROXY: rtk
+:RESUME_QUERY: rtk wendao-client orgize task-list --cached --text 'Performance Profile' $PRJ_CACHE_HOME/agent/org
 :END:
 
 - [ ] Refresh the frozen baseline before judging a candidate.
@@ -186,7 +194,7 @@ SCHEDULED: <2026-05-18 Mon ++1d>
 The stable client-side Org read-model benchmark is:
 
 #+begin_src text
-cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_orgize
+rtk cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_orgize
 #+end_src
 
 The benchmark fixture covers 1,024 agent task rows and measures refresh through

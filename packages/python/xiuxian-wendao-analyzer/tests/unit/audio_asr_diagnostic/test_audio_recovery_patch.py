@@ -86,6 +86,10 @@ def test_audio_recovery_patch_gate_accepts_precise_short_windows(
     assert row["rejectionReasons"] == []
     assert row["recovery"]["chunkIndexes"] == [70, 71]
     assert row["recovery"]["charRatio"] == 1.05
+    assert row["base"]["requestSeconds"] == 44.0
+    assert "wallSeconds" not in row["base"]
+    assert row["recovery"]["requestCumulativeSeconds"] == 39.0
+    assert "wallSeconds" not in row["recovery"]
     assert output_json.exists()
 
 
@@ -130,9 +134,7 @@ def test_audio_recovery_patch_gate_rejects_precision_risks(tmp_path: Path) -> No
         output_json=None,
     )
 
-    decisions = {
-        row["parentChunkIndex"]: row["rejectionReasons"] for row in report["rows"]
-    }
+    decisions = {row["parentChunkIndex"]: row["rejectionReasons"] for row in report["rows"]}
     assert report["acceptedPatches"] == 0
     assert report["rejectedPatches"] == 3
     assert decisions[1] == ["repeat-not-improved"]

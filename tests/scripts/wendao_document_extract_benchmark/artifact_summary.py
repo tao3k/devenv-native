@@ -36,6 +36,67 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "audioTranscriptTimelineMarkedRows",
         ),
+        "audioMaterializationReportExists": any(
+            bool(report.get("audioMaterializationReportBytes")) for report in reports
+        ),
+        "audioMaterializationShardCount": _sum_int_report_values(
+            reports,
+            "audioMaterializationShardCount",
+        ),
+        "audioMaterializationArtifactCacheHitCount": _sum_int_report_values(
+            reports,
+            "audioMaterializationArtifactCacheHitCount",
+        ),
+        "audioMaterializationExistingOutputCount": _sum_int_report_values(
+            reports,
+            "audioMaterializationExistingOutputCount",
+        ),
+        "audioMaterializationMediaSplitterCount": _sum_int_report_values(
+            reports,
+            "audioMaterializationMediaSplitterCount",
+        ),
+        "audioMaterializationSourceCounts": _aggregate_int_report_maps(
+            reports,
+            "audioMaterializationSourceCounts",
+        ),
+        "audioTranscriptAdmissionReportExists": any(
+            bool(report.get("audioTranscriptAdmissionReportBytes")) for report in reports
+        ),
+        "audioTranscriptAdmissionEnabled": any(
+            bool(report.get("audioTranscriptAdmissionEnabled")) for report in reports
+        ),
+        "audioTranscriptAdmissionHitCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionHitCount",
+        ),
+        "audioTranscriptAdmissionMissCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionMissCount",
+        ),
+        "audioTranscriptAdmissionStoredCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionStoredCount",
+        ),
+        "audioTranscriptAdmissionStaleCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionStaleCount",
+        ),
+        "audioTranscriptAdmissionPlannedHitCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionPlannedHitCount",
+        ),
+        "audioTranscriptAdmissionPlannedMissCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionPlannedMissCount",
+        ),
+        "audioTranscriptAdmissionPlannedStoredCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionPlannedStoredCount",
+        ),
+        "audioTranscriptAdmissionPlannedStaleCount": _sum_int_report_values(
+            reports,
+            "audioTranscriptAdmissionPlannedStaleCount",
+        ),
         "structureArrowExists": any(
             bool(report.get("structureArrowExists")) for report in reports
         ),
@@ -285,6 +346,21 @@ def _aggregate_float_report_maps(
         for item_key, item_value in values.items():
             if isinstance(item_key, str) and isinstance(item_value, int | float):
                 totals[item_key] = totals.get(item_key, 0.0) + float(item_value)
+    return dict(sorted(totals.items()))
+
+
+def _aggregate_int_report_maps(
+    reports: list[dict[str, Any]],
+    key: str,
+) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for report in reports:
+        values = report.get(key)
+        if not isinstance(values, dict):
+            continue
+        for item_key, item_value in values.items():
+            if isinstance(item_key, str) and isinstance(item_value, int):
+                totals[item_key] = totals.get(item_key, 0) + item_value
     return dict(sorted(totals.items()))
 
 

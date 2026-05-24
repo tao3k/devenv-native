@@ -10,6 +10,8 @@ mod filesystem;
 mod mermaid;
 #[path = "model.rs"]
 mod model;
+#[path = "source_pair.rs"]
+mod source_pair;
 #[path = "traversal.rs"]
 mod traversal;
 

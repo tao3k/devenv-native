@@ -1,0 +1,27 @@
+[package]
+name = "qianji-client"
+version.workspace = true
+edition.workspace = true
+description = "Qianji client CLI for Flowhub plan scenario operations"
+authors.workspace = true
+license.workspace = true
+publish = false
+default-run = "qianji-client"
+
+[dependencies]
+sha2 = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+qianji-bpmn-engine = { path = "../qianji-bpmn-engine" }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+rust-lang-project-harness = { workspace = true }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "qianji-client"
+path = "src/bin/qianji_client.rs"

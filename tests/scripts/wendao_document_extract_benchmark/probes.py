@@ -519,6 +519,138 @@ def run_fixture_probe(
         "audioTranscriptTimelineMarkedRows": artifact_summary[
             "audioTranscriptTimelineMarkedRows"
         ],
+        "forceAudioMaterializationShardCount": force_artifact_summary[
+            "audioMaterializationShardCount"
+        ],
+        "forceAudioMaterializationArtifactCacheHitCount": force_artifact_summary[
+            "audioMaterializationArtifactCacheHitCount"
+        ],
+        "forceAudioMaterializationExistingOutputCount": force_artifact_summary[
+            "audioMaterializationExistingOutputCount"
+        ],
+        "forceAudioMaterializationMediaSplitterCount": force_artifact_summary[
+            "audioMaterializationMediaSplitterCount"
+        ],
+        "forceAudioMaterializationSourceCounts": force_artifact_summary[
+            "audioMaterializationSourceCounts"
+        ],
+        "forceAudioTranscriptAdmissionEnabled": force_artifact_summary[
+            "audioTranscriptAdmissionEnabled"
+        ],
+        "forceAudioTranscriptAdmissionHitCount": force_artifact_summary[
+            "audioTranscriptAdmissionHitCount"
+        ],
+        "forceAudioTranscriptAdmissionMissCount": force_artifact_summary[
+            "audioTranscriptAdmissionMissCount"
+        ],
+        "forceAudioTranscriptAdmissionStoredCount": force_artifact_summary[
+            "audioTranscriptAdmissionStoredCount"
+        ],
+        "forceAudioTranscriptAdmissionStaleCount": force_artifact_summary[
+            "audioTranscriptAdmissionStaleCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedHitCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedHitCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedMissCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedMissCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedStoredCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedStoredCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedStaleCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedStaleCount"
+        ],
+        "artifactRegistryReuseAudioMaterializationShardCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationShardCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheHitCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheHitCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationExistingOutputCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationExistingOutputCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationMediaSplitterCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationMediaSplitterCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationSourceCounts": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationSourceCounts"]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionEnabled": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionEnabled"]
+            if artifact_registry_reuse_artifact_summary
+            else False
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionHitCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionHitCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionMissCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionMissCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionStoredCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionStoredCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionStaleCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionStaleCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedHitCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioTranscriptAdmissionPlannedHitCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedMissCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioTranscriptAdmissionPlannedMissCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedStoredCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioTranscriptAdmissionPlannedStoredCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedStaleCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioTranscriptAdmissionPlannedStaleCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "cacheAudioMaterializationShardCount": artifact_summary[
+            "audioMaterializationShardCount"
+        ],
+        "cacheAudioMaterializationSourceCounts": artifact_summary[
+            "audioMaterializationSourceCounts"
+        ],
         "audioTranscriptOrgPath": audio_transcript_org["path"],
         "audioTranscriptOrgRows": audio_transcript_org["rows"],
         "audioTranscriptOrgChars": audio_transcript_org["chars"],

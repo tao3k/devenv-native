@@ -35,6 +35,16 @@ pub const WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER: &str = "x-wendao-document-extra
 pub const WENDAO_PDF_OCR_WORKERS_HEADER: &str = "x-wendao-pdf-ocr-workers";
 /// Internal audio worker budget header for Python audio shard requests.
 pub const WENDAO_AUDIO_WORKERS_HEADER: &str = "x-wendao-audio-workers";
+/// Internal audio worker selector header for Python audio shard requests.
+pub const WENDAO_AUDIO_WORKER_HEADER: &str = "x-wendao-audio-worker";
+/// Internal hosted audio provider override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_PROVIDER_HEADER: &str = "x-wendao-audio-hosted-provider";
+/// Internal hosted audio base URL override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_BASE_URL_HEADER: &str = "x-wendao-audio-hosted-base-url";
+/// Internal hosted audio endpoint-kind override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER: &str = "x-wendao-audio-hosted-endpoint";
+/// Internal hosted audio model override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_MODEL_HEADER: &str = "x-wendao-audio-hosted-model";
 
 /// Full Docling document extraction profile.
 pub const DOCUMENT_EXTRACT_FULL_PROFILE: &str = "full";
@@ -93,6 +103,16 @@ pub struct DocumentExtractFlightRequest {
     pub mode: DocumentExtractMode,
     /// Async wait budget in milliseconds.
     pub wait_ms: u64,
+    /// Optional audio worker selector for Rust-owned audio shard dispatch.
+    pub audio_worker: Option<String>,
+    /// Optional hosted audio provider override for Rust-owned audio shard dispatch.
+    pub audio_hosted_provider: Option<String>,
+    /// Optional hosted audio base URL override for Rust-owned audio shard dispatch.
+    pub audio_hosted_base_url: Option<String>,
+    /// Optional hosted audio endpoint-kind override for Rust-owned audio shard dispatch.
+    pub audio_hosted_endpoint: Option<String>,
+    /// Optional hosted audio model override for Rust-owned audio shard dispatch.
+    pub audio_hosted_model: Option<String>,
 }
 
 /// Validate the stable document extraction request contract.

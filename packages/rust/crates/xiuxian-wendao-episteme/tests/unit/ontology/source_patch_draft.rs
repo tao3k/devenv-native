@@ -5,13 +5,15 @@ use xiuxian_wendao_episteme::{
     export_episteme_ontology_source_patch_draft, write_episteme_ontology_source_patch_preflight,
 };
 
-use super::fixtures::{write_object_relation_review_ledgers, write_private_extension_fixture};
+use super::fixtures::{
+    write_extension_source_contract_fixture, write_object_relation_review_ledgers,
+};
 
 #[test]
 fn ontology_source_patch_draft_writes_empty_receipt_for_pending_preflight()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "pending_review", "pending_review")?;
     let run_dir = temp.path().join("runs/source_patch_preflight");
     write_episteme_ontology_source_patch_preflight(
@@ -40,7 +42,7 @@ fn ontology_source_patch_draft_writes_empty_receipt_for_pending_preflight()
 fn ontology_source_patch_draft_writes_object_and_relation_resources()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
     let run_dir = temp.path().join("runs/source_patch_preflight");
     write_episteme_ontology_source_patch_preflight(
@@ -61,8 +63,8 @@ fn ontology_source_patch_draft_writes_object_and_relation_resources()
     assert!(draft.contains("wdsp:ObjectInstanceSourcePatch"));
     assert!(draft.contains("wdsp:InstanceRelationSourcePatch"));
     assert!(draft.contains("wdsp:recordId \"obj.policy\""));
-    assert!(draft.contains("wdsp:domainId \"episteme://private/synthetic/10_Private\""));
-    assert!(draft.contains("wdsp:targetRdfFile \"10_Private/ontology.rdf\""));
+    assert!(draft.contains("wdsp:domainId \"episteme://synthetic-extension/10_Extension\""));
+    assert!(draft.contains("wdsp:targetRdfFile \"10_Extension/ontology.rdf\""));
     assert!(draft.contains("rdfs:label \"Policy\""));
     assert!(draft.contains("wdsp:sourceObjectId \"obj.policy\""));
     assert!(draft.contains("wdsp:targetObjectId \"obj.service\""));
@@ -79,7 +81,7 @@ fn ontology_source_patch_draft_writes_object_and_relation_resources()
 fn ontology_source_patch_draft_rejects_preflight_count_mismatch()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
     let run_dir = temp.path().join("runs/source_patch_preflight");
     write_episteme_ontology_source_patch_preflight(

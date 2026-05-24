@@ -43,6 +43,7 @@ async fn worker_loop_with_hot_state_processes_tasks_until_empty_limit() -> Resul
                 heartbeat_ttl_ms: None,
                 poll_limit: 3,
                 empty_limit: 1,
+                worker_count: 1,
                 executor: ActivityExecutorKindArg::Fixture,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 9_000,
@@ -81,12 +82,119 @@ async fn worker_loop_with_hot_state_processes_tasks_until_empty_limit() -> Resul
     assert_eq!(json["empty_polls"], 1);
     assert_eq!(json["released"], 2);
     assert_eq!(json["heartbeats"], 0);
+    assert_eq!(json["worker_count"], 1);
     assert_eq!(json["stopped_reason"], "empty_limit");
     assert_eq!(json["iterations"].as_array().map(Vec::len), Some(3));
     assert_eq!(json["iterations"][0]["now_ms"], 8_000);
     assert_eq!(json["iterations"][1]["now_ms"], 8_010);
     assert!(json["iterations"][2]["output"]["claimed"].is_null());
     assert_eq!(queue.summary.completed, 2);
+    assert_eq!(snapshot.active_activity_task_lease_count(), 0);
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_loop_with_hot_state_uses_bounded_worker_count() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let _temp_dir = temp_dir;
+    let ledger = InMemoryControlLedger::new();
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger);
+    append_scheduled_run_activity(
+        &ledger,
+        &run_id,
+        7,
+        "activity-run-scheduled-extra-1",
+        "llm.openai",
+    );
+    append_scheduled_run_activity(
+        &ledger,
+        &run_id,
+        8,
+        "activity-run-scheduled-extra-2",
+        "llm.openai",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-run-scheduled").await?;
+    enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-step-scheduled").await?;
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-run-scheduled-extra-1",
+    )
+    .await?;
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-run-scheduled-extra-2",
+    )
+    .await?;
+
+    let output = must_ok(
+        worker_loop_with_hot_state(
+            &ledger,
+            &hot_state,
+            ActivityWorkerLoopStoreRequest {
+                worker_id: "worker-loop",
+                task_queue: None,
+                now_ms: 8_000,
+                now_step_ms: 1,
+                lease_ttl_ms: 500,
+                heartbeat_ttl_ms: None,
+                poll_limit: 4,
+                empty_limit: 1,
+                worker_count: 2,
+                executor: ActivityExecutorKindArg::Fixture,
+                outcome: ActivitySettleOutcomeArg::Complete,
+                settled_at_ms: 9_000,
+                settled_step_ms: 1,
+                output_hash: Some("sha256:activity-output"),
+                output_artifact_dir: None,
+                output_artifact_kind: None,
+                openai_compatible_base_url: None,
+                openai_compatible_api_key: None,
+                openai_compatible_timeout_ms: None,
+                error_code: None,
+                message: None,
+                retryable: None,
+                metadata: Some("{\"rows\":4}"),
+                json: true,
+            },
+        )
+        .await,
+        "activity worker loop should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker loop output should be valid json",
+    );
+    let queue = must_ok(
+        ledger.load_activity_queue_projection(&run_id, None),
+        "worker loop should replay into queue projection",
+    );
+    let snapshot = must_ok(
+        hot_state.load_snapshot(9_100).await,
+        "hot state snapshot should load after worker loop",
+    );
+
+    assert_eq!(json["worker_count"], 2);
+    assert_eq!(json["processed"], 4);
+    assert_eq!(json["empty_polls"], 0);
+    assert_eq!(json["released"], 4);
+    assert_eq!(json["stopped_reason"], "poll_limit");
+    assert_eq!(json["iterations"].as_array().map(Vec::len), Some(4));
+    assert_worker_iteration_workers(
+        &json,
+        &[
+            "worker-loop-1",
+            "worker-loop-2",
+            "worker-loop-1",
+            "worker-loop-2",
+        ],
+    );
+    assert_eq!(queue.summary.completed, 4);
     assert_eq!(snapshot.active_activity_task_lease_count(), 0);
     Ok(())
 }
@@ -115,6 +223,7 @@ async fn worker_loop_with_hot_state_stops_at_poll_limit_without_empty_poll() -> 
                 heartbeat_ttl_ms: None,
                 poll_limit: 1,
                 empty_limit: 1,
+                worker_count: 1,
                 executor: ActivityExecutorKindArg::Fixture,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 9_000,
@@ -170,6 +279,7 @@ async fn worker_loop_with_hot_state_records_heartbeat_for_claimed_task() -> Resu
                 heartbeat_ttl_ms: Some(1_000),
                 poll_limit: 1,
                 empty_limit: 1,
+                worker_count: 1,
                 executor: ActivityExecutorKindArg::Fixture,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 9_000,
@@ -265,6 +375,7 @@ async fn worker_loop_with_hot_state_executes_openai_compatible_llm_to_artifact_d
                 heartbeat_ttl_ms: None,
                 poll_limit: 2,
                 empty_limit: 1,
+                worker_count: 1,
                 executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 9_000,
@@ -359,6 +470,7 @@ async fn worker_loop_with_hot_state_records_openai_compatible_http_failure() -> 
                 heartbeat_ttl_ms: None,
                 poll_limit: 2,
                 empty_limit: 1,
+                worker_count: 1,
                 executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 9_000,
@@ -575,6 +687,7 @@ async fn run_openai_compatible_loop_pass(
                 heartbeat_ttl_ms: None,
                 poll_limit: 1,
                 empty_limit: 1,
+                worker_count: 1,
                 executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms,
@@ -602,13 +715,12 @@ async fn run_openai_compatible_loop_pass(
 }
 
 fn read_recovered_provider_artifact(path: &Path) -> Result<serde_json::Value, String> {
-    must_ok(
-        serde_json::from_str(
-            &std::fs::read_to_string(path)
-                .map_err(|error| format!("should read recovered provider artifact: {error}"))?,
-        ),
+    let content = std::fs::read_to_string(path)
+        .map_err(|error| format!("should read recovered provider artifact: {error}"))?;
+    Ok(must_ok(
+        serde_json::from_str::<serde_json::Value>(&content),
         "recovered provider artifact should be valid json",
-    )
+    ))
 }
 
 async fn enqueue_worker_task(
@@ -778,6 +890,35 @@ fn append_control_run_with_scheduled_activity_queue(ledger: &impl ControlLedger)
     run_id
 }
 
+fn append_scheduled_run_activity(
+    ledger: &impl ControlLedger,
+    run_id: &RunId,
+    sequence: u64,
+    activity_id: &str,
+    task_queue: &str,
+) {
+    let activity_id = must_ok(
+        ActivityId::new(activity_id),
+        "should build additional scheduled run activity id",
+    );
+    must_ok(
+        ledger.append_event(ControlEvent::run(
+            run_id.clone(),
+            sequence,
+            ControlEventKind::ActivityScheduled {
+                task: activity_task(activity_id, "llm.plan", task_queue),
+            },
+        )),
+        "should append additional scheduled run activity",
+    );
+}
+
+fn assert_worker_iteration_workers(json: &serde_json::Value, expected_worker_ids: &[&str]) {
+    for (index, worker_id) in expected_worker_ids.iter().enumerate() {
+        assert_eq!(json["iterations"][index]["output"]["worker_id"], *worker_id);
+    }
+}
+
 fn append_control_run_with_step(ledger: &impl ControlLedger) -> RunId {
     let run_id = append_empty_control_run_to_ledger(ledger);
     let step_id = must_ok(
@@ -900,6 +1041,7 @@ fn run_control_activity_worker_loop_requires_duckdb_and_valkey_features_without_
             heartbeat_ttl_ms: None,
             poll_limit: 1,
             empty_limit: 1,
+            worker_count: 1,
             executor: ActivityExecutorKindArg::Fixture,
             outcome: ActivitySettleOutcomeArg::Complete,
             settled_at_ms: 20,

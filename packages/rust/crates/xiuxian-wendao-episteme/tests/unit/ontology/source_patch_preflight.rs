@@ -5,15 +5,15 @@ use xiuxian_wendao_episteme::{
 };
 
 use super::fixtures::{
-    replace_manifest_fragment, write_object_relation_review_ledgers,
-    write_private_extension_fixture,
+    replace_manifest_fragment, write_extension_source_contract_fixture,
+    write_object_relation_review_ledgers,
 };
 
 #[test]
 fn ontology_source_patch_preflight_writes_pending_only_noop_receipt()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "pending_review", "pending_review")?;
 
     let run_dir = temp.path().join("runs/source_patch_preflight");
@@ -42,7 +42,7 @@ fn ontology_source_patch_preflight_writes_pending_only_noop_receipt()
 fn ontology_source_patch_preflight_writes_approved_object_and_relation_rows()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
 
     let run_dir = temp.path().join("runs/source_patch_preflight");
@@ -56,8 +56,8 @@ fn ontology_source_patch_preflight_writes_approved_object_and_relation_rows()
     let preflight_tsv = fs::read_to_string(&report.source_patch_preflight_tsv)?;
     assert!(preflight_tsv.contains("propose_source_patch"));
     assert!(preflight_tsv.contains("domain_id"));
-    assert!(preflight_tsv.contains("episteme://private/synthetic/10_Private"));
-    assert!(preflight_tsv.contains("10_Private/ontology.rdf"));
+    assert!(preflight_tsv.contains("episteme://synthetic-extension/10_Extension"));
+    assert!(preflight_tsv.contains("10_Extension/ontology.rdf"));
     assert!(preflight_tsv.contains("object_instance"));
     assert!(preflight_tsv.contains("instance_relation"));
     assert!(preflight_tsv.contains("reviewer.one"));
@@ -69,7 +69,7 @@ fn ontology_source_patch_preflight_writes_approved_object_and_relation_rows()
 fn ontology_source_patch_preflight_rejects_approved_relation_without_approved_endpoint()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "pending_review", "approved")?;
 
     let run_dir = temp.path().join("runs/source_patch_preflight");
@@ -93,11 +93,11 @@ fn ontology_source_patch_preflight_rejects_approved_relation_without_approved_en
 fn ontology_source_patch_preflight_rejects_approved_rows_without_single_rdf_target()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
     replace_manifest_fragment(
         temp.path(),
-        r#"rdf_files = ["10_Private/ontology.rdf"]"#,
+        r#"rdf_files = ["10_Extension/ontology.rdf"]"#,
         "rdf_files = []",
     )?;
 

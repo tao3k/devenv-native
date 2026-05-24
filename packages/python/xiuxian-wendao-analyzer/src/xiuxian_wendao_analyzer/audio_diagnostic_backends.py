@@ -84,16 +84,10 @@ def run_backend(
     )
     source_stem = safe_file_stem(chunk.source)
     transcript_path = (
-        output_dir
-        / "transcripts"
-        / backend
-        / f"{source_stem}__chunk_{chunk.index:04d}.txt"
+        output_dir / "transcripts" / backend / f"{source_stem}__chunk_{chunk.index:04d}.txt"
     )
     segments_path = (
-        output_dir
-        / "segments"
-        / backend
-        / f"{source_stem}__chunk_{chunk.index:04d}.jsonl"
+        output_dir / "segments" / backend / f"{source_stem}__chunk_{chunk.index:04d}.jsonl"
     )
     try:
         cached = (
@@ -131,20 +125,14 @@ def run_backend(
         elif backend == "local-fireredasr2s":
             transcript = transcribe_fireredasr2s(
                 chunk,
-                output_dir
-                / "local-fireredasr2s"
-                / source_stem
-                / f"chunk_{chunk.index:04d}",
+                output_dir / "local-fireredasr2s" / source_stem / f"chunk_{chunk.index:04d}",
                 command=fireredasr2s_command,
             )
         elif backend in OPENAI_COMPATIBLE_AUDIO_BACKENDS:
-            if backend == "openrouter-chat-audio" and not openrouter_api_key:
+            if backend == "openrouter-audio" and not openrouter_api_key:
                 raise RuntimeError("OPENROUTER_API_KEY is required for OpenRouter ASR")
             raw_response_path = (
-                output_dir
-                / "raw"
-                / backend
-                / f"{source_stem}__chunk_{chunk.index:04d}.json"
+                output_dir / "raw" / backend / f"{source_stem}__chunk_{chunk.index:04d}.json"
             )
             transcript, raw_segments = coerce_transcription(
                 transcribe_openrouter(
@@ -174,9 +162,7 @@ def run_backend(
                 backend=backend,
                 model=model,
                 transcript=transcript,
-                segments=(
-                    raw_segments if backend in OPENAI_COMPATIBLE_AUDIO_BACKENDS else []
-                ),
+                segments=(raw_segments if backend in OPENAI_COMPATIBLE_AUDIO_BACKENDS else []),
             )
     except Exception as exc:
         status = "error"

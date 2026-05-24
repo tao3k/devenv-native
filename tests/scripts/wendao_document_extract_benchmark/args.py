@@ -303,6 +303,15 @@ def parse_args() -> argparse.Namespace:
         help="Audio materialization format forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT.",
     )
     parser.add_argument(
+        "--rust-audio-artifact-cache-dir",
+        type=Path,
+        help=(
+            "Audio materialization artifact cache directory forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR. Use this to "
+            "measure cold/warm normalized shard byte reuse explicitly."
+        ),
+    )
+    parser.add_argument(
         "--rust-audio-base-workers",
         help=(
             "Base audio shard worker budget forwarded to "

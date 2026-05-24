@@ -21,6 +21,7 @@ xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 
 [dev-dependencies]
+parquet = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
 

@@ -8,6 +8,9 @@ pub(super) const CANDIDATE_GENERATION_SCHEMA: &str =
 pub(super) const OBJECTS_TSV: &str = "candidate_objects.tsv";
 pub(super) const RELATIONS_TSV: &str = "candidate_relations.tsv";
 pub(super) const EVIDENCE_TSV: &str = "candidate_evidence.tsv";
+pub(super) const OBJECTS_PARQUET: &str = "ontology_candidate_objects.parquet";
+pub(super) const RELATIONS_PARQUET: &str = "ontology_candidate_relations.parquet";
+pub(super) const EVIDENCE_PARQUET: &str = "ontology_candidate_evidence.parquet";
 pub(super) const REVIEW_LEDGER_ORG: &str = "review_ledger.org";
 pub(super) const RECEIPT_JSON: &str = "receipt.json";
 pub(super) const PROMOTION_STATUS: &str = "blocked_pending_review";
@@ -178,6 +181,9 @@ pub(super) struct CandidateGenerationOutputPaths {
     pub(super) objects_tsv: PathBuf,
     pub(super) relations_tsv: PathBuf,
     pub(super) evidence_tsv: PathBuf,
+    pub(super) objects_parquet: PathBuf,
+    pub(super) relations_parquet: PathBuf,
+    pub(super) evidence_parquet: PathBuf,
     pub(super) review_ledger_org: PathBuf,
     pub(super) receipt_json: PathBuf,
 }
@@ -189,6 +195,9 @@ impl CandidateGenerationOutputPaths {
             objects_tsv: run_dir.join(OBJECTS_TSV),
             relations_tsv: run_dir.join(RELATIONS_TSV),
             evidence_tsv: run_dir.join(EVIDENCE_TSV),
+            objects_parquet: run_dir.join(OBJECTS_PARQUET),
+            relations_parquet: run_dir.join(RELATIONS_PARQUET),
+            evidence_parquet: run_dir.join(EVIDENCE_PARQUET),
             review_ledger_org: run_dir.join(REVIEW_LEDGER_ORG),
             receipt_json: run_dir.join(RECEIPT_JSON),
             run_dir,

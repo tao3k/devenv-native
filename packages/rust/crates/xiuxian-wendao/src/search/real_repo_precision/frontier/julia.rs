@@ -176,6 +176,7 @@ fn lane_capability_id(capability: LaneCapability) -> &'static str {
     match capability {
         LaneCapability::DocumentExtraction => "document_extraction",
         LaneCapability::OcrShardExtraction => "ocr_shard_extraction",
+        LaneCapability::AudioShardTranscription => "audio_shard_transcription",
         LaneCapability::GraphEvidenceCompute => "graph_evidence_compute",
         LaneCapability::GraphSearchCompute => "graph_search_compute",
         LaneCapability::ScientificCompute => "scientific_compute",

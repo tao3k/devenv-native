@@ -42,7 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
             "local-docling",
             "local-fireredasr2s",
             "local-openai-audio",
-            "openrouter-chat-audio",
+            "openrouter-audio",
             "both",
             "firered-openrouter",
             "all",
@@ -217,11 +217,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout-seconds", type=int, default=300)
     parser.add_argument(
         "--hosted-request-concurrency",
-        type=int,
-        default=int(os.environ.get("WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY", "1")),
+        default=os.environ.get("WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY"),
         help=(
-            "Maximum concurrent OpenAI-compatible hosted/local audio requests. "
-            "Result rows keep manifest order."
+            "Diagnostic-only maximum concurrent OpenAI-compatible hosted/local "
+            "audio requests. Production Rust-to-Python calls use the worker "
+            "budget supplied over Flight metadata. Use a positive integer to "
+            "override the diagnostic runner; omit or use auto for ordered serial "
+            "diagnostics."
         ),
     )
     parser.add_argument("--result-cache-dir", type=Path, default=None)
@@ -432,8 +434,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help=(
-            "Create private review audio clips from selected reference rows "
-            "without running ASR."
+            "Create private review audio clips from selected reference rows without running ASR."
         ),
     )
     parser.add_argument(
@@ -459,6 +460,31 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Optional report path for reference review clip validation.",
+    )
+    parser.add_argument(
+        "--model-review-reference-selection-review-tsv",
+        type=Path,
+        default=None,
+        help=(
+            "Run the configured OpenRouter audio model over private review clips "
+            "and write a redacted consistency report. This does not create "
+            "curated reference truth."
+        ),
+    )
+    parser.add_argument(
+        "--reference-selection-model-review-report-json",
+        type=Path,
+        default=None,
+        help="Optional report path for --model-review-reference-selection-review-tsv.",
+    )
+    parser.add_argument(
+        "--reference-selection-model-review-max-cer",
+        type=float,
+        default=0.15,
+        help=(
+            "Maximum candidate-to-model CER for a model-consistent review row. "
+            "This is a stability signal, not a curated-reference promotion gate."
+        ),
     )
     parser.add_argument(
         "--curate-reference-draft",

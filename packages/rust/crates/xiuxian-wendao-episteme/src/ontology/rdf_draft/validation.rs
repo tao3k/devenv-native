@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::{Context, Result};
 
 use super::model::{DraftInputs, ReviewRecord};
@@ -11,6 +13,7 @@ pub(super) fn validate_review_gate(inputs: &DraftInputs) -> Result<()> {
     require_object_reviews(inputs)?;
     require_relation_reviews(inputs)?;
     require_evidence_reviews(inputs)?;
+    validate_relation_candidate_references(inputs)?;
     Ok(())
 }
 
@@ -97,6 +100,31 @@ fn require_evidence_reviews(inputs: &DraftInputs) -> Result<()> {
             evidence.evidence_id.as_str(),
         )?;
         require_review(inputs, evidence.evidence_id.as_str())?;
+    }
+    Ok(())
+}
+
+fn validate_relation_candidate_references(inputs: &DraftInputs) -> Result<()> {
+    let object_ids = inputs
+        .objects
+        .iter()
+        .map(|object| object.candidate_id.as_str())
+        .collect::<HashSet<_>>();
+    for relation in &inputs.relations {
+        if !object_ids.contains(relation.source_candidate_id.as_str()) {
+            anyhow::bail!(
+                "relation `{}` references unknown source candidate `{}`",
+                relation.candidate_id,
+                relation.source_candidate_id
+            );
+        }
+        if !object_ids.contains(relation.target_candidate_id.as_str()) {
+            anyhow::bail!(
+                "relation `{}` references unknown target candidate `{}`",
+                relation.candidate_id,
+                relation.target_candidate_id
+            );
+        }
     }
     Ok(())
 }

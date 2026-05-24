@@ -31,9 +31,9 @@ def test_audio_result_cache_reuses_successful_backend_result(
     cache_key = diagnostic.audio_result_cache_key(
         shard_cache_key=chunk.cache_key,
         task_profile="transcription",
-        backend_id="openrouter-chat-audio",
+        backend_id="openrouter-audio",
         backend_config_hash=diagnostic.backend_config_hash(
-            "openrouter-chat-audio",
+            "openrouter-audio",
             openrouter_model="xiaomi/mimo-v2.5",
             openrouter_base_url=diagnostic.DEFAULT_OPENROUTER_URL,
             local_asr_model=diagnostic.DEFAULT_LOCAL_ASR_MODEL,
@@ -48,7 +48,7 @@ def test_audio_result_cache_reuses_successful_backend_result(
     diagnostic.write_result_cache(
         tmp_path / "cache",
         result_cache_key=cache_key,
-        backend="openrouter-chat-audio",
+        backend="openrouter-audio",
         model="xiaomi/mimo-v2.5",
         transcript="缓存文本",
     )
@@ -61,7 +61,7 @@ def test_audio_result_cache_reuses_successful_backend_result(
     )
 
     result = diagnostic.run_backend(
-        "openrouter-chat-audio",
+        "openrouter-audio",
         chunk,
         output_dir=tmp_path / "out",
         openrouter_api_key="key",

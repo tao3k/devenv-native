@@ -79,28 +79,22 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "python-worker-1.txt",
         "python-worker-2.txt",
     ]
-    assert [
-        call[2]["hosted_vlm_ocr_env"]["WENDAO_HOSTED_VLM_OCR_MODEL"] for call in calls
-    ] == [
+    assert [call[2]["hosted_vlm_ocr_env"]["WENDAO_HOSTED_VLM_OCR_MODEL"] for call in calls] == [
         "community/hosted-vlm-awq",
         "community/hosted-vlm-awq",
         "community/hosted-vlm-awq",
     ]
     assert [
-        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PROFILES")
-        for call in calls
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PROFILES") for call in calls
     ] == ["docling-fast-text-ocr", None, None]
     assert [
-        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_SOURCE_PATH")
-        for call in calls
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_SOURCE_PATH") for call in calls
     ] == ["tests/fixtures/document.pdf", None, None]
     assert [
-        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PAGE_INDEX")
-        for call in calls
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PAGE_INDEX") for call in calls
     ] == ["5", None, None]
     assert [
-        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PAGE_INDICES")
-        for call in calls
+        call[2]["hosted_vlm_ocr_env"].get("WENDAO_PDF_OCR_PREWARM_PAGE_INDICES") for call in calls
     ] == ["5,11", None, None]
     assert [
         Path(call[2]["hosted_vlm_ocr_env"]["WENDAO_HOSTED_VLM_OCR_TRACE_PATH"]).name
@@ -116,19 +110,22 @@ def test_start_server_pool_starts_counted_local_ocr_endpoints(
         "hosted",
     ]
     assert [call[2]["audio_workers"] for call in calls] == ["2", "2", "2"]
-    assert [
-        call[2]["audio_worker_env"]["WENDAO_AUDIO_HOSTED_PROVIDER"] for call in calls
-    ] == [
+    assert [call[2]["audio_worker_env"]["WENDAO_AUDIO_HOSTED_PROVIDER"] for call in calls] == [
         "openrouter",
         "openrouter",
         "openrouter",
     ]
+    assert [call[2]["audio_worker_env"]["WENDAO_AUDIO_HOSTED_MODEL"] for call in calls] == [
+        "qwen/qwen3-asr-1.7b",
+        "qwen/qwen3-asr-1.7b",
+        "qwen/qwen3-asr-1.7b",
+    ]
     assert [
-        call[2]["audio_worker_env"]["WENDAO_AUDIO_HOSTED_MODEL"] for call in calls
+        Path(call[2]["audio_worker_env"]["WENDAO_AUDIO_HOSTED_TRACE_PATH"]).name for call in calls
     ] == [
-        "qwen/qwen3-asr-1.7b",
-        "qwen/qwen3-asr-1.7b",
-        "qwen/qwen3-asr-1.7b",
+        "python-worker-0.hosted-audio.jsonl",
+        "python-worker-1.hosted-audio.jsonl",
+        "python-worker-2.hosted-audio.jsonl",
     ]
 
 
@@ -143,9 +140,7 @@ def test_resolve_worker_ports_replaces_occupied_default_base_port(
         "can_bind_port",
         lambda host, port: port != 50051,
     )
-    monkeypatch.setattr(
-        benchmark._workers, "pick_free_port", lambda host: next(free_ports)
-    )
+    monkeypatch.setattr(benchmark._workers, "pick_free_port", lambda host: next(free_ports))
 
     assert benchmark.resolve_worker_ports(
         "127.0.0.1",

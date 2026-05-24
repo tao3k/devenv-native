@@ -32,6 +32,17 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["totalDocumentTimingRows"] == 3
     assert summary["totalDocumentTimingElapsedMs"] == 30.0
     assert summary["totalDocumentTimingOverheadMs"] == 8.0
+    assert summary["totalAudioTranscriptChars"] == 128
+    assert summary["totalAudioTranscriptTimelineMarkerCount"] == 3
+    assert summary["totalAudioTranscriptTimelineMarkedRows"] == 2
+    assert summary["totalAudioTranscriptOrgRows"] == 1
+    assert summary["totalAudioTranscriptOrgChars"] == 128
+    assert summary["totalAudioTranscriptOrgTimelineMarkerCount"] == 3
+    assert summary["totalAudioTranscriptReferenceDraftRows"] == 2
+    assert summary["totalAudioTranscriptReferenceDraftChars"] == 126
+    assert summary["totalForceAudioTranscriptAdmissionMissCount"] == 2
+    assert summary["totalForceAudioTranscriptAdmissionStoredCount"] == 2
+    assert summary["totalArtifactReuseAudioTranscriptAdmissionHitCount"] == 2
     assert summary["imageAttachmentAuditCount"] == 1
     assert summary["imageKnownDimensionCount"] == 1
     assert summary["imageFormatCounts"] == {"png": 1}
@@ -63,17 +74,13 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["precisionSpeedSummary"]["maxCacheHitP95Ms"] == 2.0
     assert summary["precisionSpeedSummary"]["totalDoclingConvertMs"] == 20.0
     assert summary["precisionSpeedSummary"]["maxDoclingConvertMs"] == 20.0
-    assert summary["precisionSpeedSummary"]["maxDoclingConvertShare"] == pytest.approx(
-        20.0 / 30.0
-    )
-    assert summary["precisionSpeedSummary"][
-        "maxDocumentTimingOverheadShare"
-    ] == pytest.approx(0.8)
+    assert summary["precisionSpeedSummary"]["maxDoclingConvertShare"] == pytest.approx(20.0 / 30.0)
+    assert summary["precisionSpeedSummary"]["maxDocumentTimingOverheadShare"] == pytest.approx(0.8)
     assert summary["precisionSpeedSummary"]["precisionGatePassed"] is True
     assert summary["precisionSpeedSummary"]["structureOrderStable"] is True
-    assert summary["pageRangeDoclingFallbackChunkSummary"][
-        "documentExtractProfileCounts"
-    ] == {"structure-text": 1}
+    assert summary["pageRangeDoclingFallbackChunkSummary"]["documentExtractProfileCounts"] == {
+        "structure-text": 1
+    }
     assert summary["attachmentClassSummary"][0]["attachmentClass"] == "unknown"
     assert summary["attachmentClassSummary"][0]["archiveAttachmentAuditCount"] == 1
     assert summary["attachmentClassSummary"][0]["archiveMemberCount"] == 10
@@ -99,6 +106,9 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Shard reuse force ms" in markdown
     assert "Artifact-registry reuse probe" in markdown
     assert "Rust OCR source-range trace" in markdown
+    assert "Rust adaptive audio" in markdown
+    assert "budget=3" in markdown
+    assert "budgetDown=1" in markdown
     assert "Rust hosted region render trace" in markdown
     assert "reportedMs=42.500" in markdown
     assert "plannedChunks=3" in markdown
@@ -130,6 +140,20 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "sourcePixels=1000000" in markdown
     assert "OpenRouter provider routing" in markdown
     assert '{"sort":{"by":"latency"}}' in markdown
+    assert "Audio transcript evidence" in markdown
+    assert "timelineMarkers=3" in markdown
+    assert "referenceDraftRows=2" in markdown
+    assert "Audio transcript admission" in markdown
+    assert "forceMisses=2" in markdown
+    assert "reuseHits=2" in markdown
+    assert "Hosted audio requests" in markdown
+    assert "uniqueMediaStarts=2" in markdown
+    assert "duplicateMediaStarts=0" in markdown
+    assert "shardProfiles=audio-shards-v1=2" in markdown
+    assert "p95Ms=1800.000" in markdown
+    assert "Hosted audio slowest requests" in markdown
+    assert "shard=audio-shard-1" in markdown
+    assert "profile=audio-shards-v1" in markdown
     assert "Metrics sidecar" in markdown
     assert "chars=80" in markdown
     assert "Document timing sidecar" in markdown

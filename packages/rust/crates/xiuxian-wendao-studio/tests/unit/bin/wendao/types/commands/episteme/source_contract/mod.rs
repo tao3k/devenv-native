@@ -1,20 +1,21 @@
 pub(super) use super::{
     EpistemeApplyOntologySourcePatchArgs, EpistemeCommand, EpistemeGenerateOntologyCandidatesArgs,
+    EpistemeImportQianjiReviewCandidatesArgs, EpistemeInspectOntologyCandidatesArgs,
     EpistemePlanExtractionRunArgs, EpistemeReviewOntologyCandidatesArgs,
     EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
     EpistemeRunLegacyOfficeConversionArgs, EpistemeSourceContractCommand,
-    EpistemeStructuralIdfValidationModeArg, EpistemeWriteOntologyPromotionApplyPlanArgs,
+    EpistemeStructuralFactsValidationModeArg, EpistemeWriteOntologyPromotionApplyPlanArgs,
     EpistemeWriteOntologyPromotionReviewArgs, EpistemeWriteOntologyRdfDraftArgs,
     EpistemeWriteOntologySourcePatchApplyPlanArgs,
     EpistemeWriteOntologySourcePatchApplyPreviewArgs, EpistemeWriteOntologySourcePatchDraftArgs,
     EpistemeWriteOntologySourcePatchPreflightArgs,
     EpistemeWriteOntologySourcePatchRdfReadModelArgs,
     EpistemeWriteOntologySourcePatchReviewPacketArgs,
-    EpistemeWriteOntologySourcePatchSemanticPreviewArgs, EpistemeWriteStructuralIdfArgs,
-    EpistemeWriteStructuralIdfReasoningFillPlanArgs,
-    EpistemeWriteStructuralIdfReasoningLedgerSeedArgs,
-    EpistemeWriteStructuralIdfReasoningPacketArgs,
-    EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs,
+    EpistemeWriteOntologySourcePatchSemanticPreviewArgs, EpistemeWriteStructuralFactsArgs,
+    EpistemeWriteStructuralFactsReasoningFillPlanArgs,
+    EpistemeWriteStructuralFactsReasoningLedgerSeedArgs,
+    EpistemeWriteStructuralFactsReasoningPacketArgs,
+    EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs,
 };
 
 mod docling_document;
@@ -22,8 +23,8 @@ mod image_ocr;
 mod legacy_office;
 mod ontology_candidates;
 mod plan;
-mod structural_idf;
-mod structural_idf_reasoning_fill_plan;
-mod structural_idf_reasoning_ledger_seed;
-mod structural_idf_reasoning_packet;
-mod structural_idf_reasoning_qianji_schedule_plan;
+mod structural_facts;
+mod structural_facts_reasoning_fill_plan;
+mod structural_facts_reasoning_ledger_seed;
+mod structural_facts_reasoning_packet;
+mod structural_facts_reasoning_qianji_schedule_plan;

@@ -241,6 +241,7 @@ fn missing_speech_materialization(
         source_path,
         output_dir: tempdir.path().join("chunks"),
         ffmpeg_path,
+        artifact_cache_dir: None,
         force: true,
     })
 }

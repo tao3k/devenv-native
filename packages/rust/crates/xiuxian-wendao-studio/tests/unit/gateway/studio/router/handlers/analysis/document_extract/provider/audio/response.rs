@@ -20,7 +20,9 @@ fn audio_transcript_batch_rejects_incomplete_merge() {
         duplicate_shard_element_ids: Vec::new(),
     };
 
-    assert!(build_audio_transcript_batch("/tmp/a.mp3", "/tmp/out", &report).is_err());
+    let error = build_audio_transcript_batch("/tmp/a.mp3", "/tmp/out", &report).unwrap_err();
+    assert!(error.contains("failed=1"));
+    assert!(error.contains("failed_shards=failed"));
 }
 
 #[test]
@@ -98,6 +100,70 @@ fn audio_transcript_with_org_batch_builds_parallel_ledger_row() -> Result<(), St
             .contains("[[attachment:sample.wav][normalized audio shard]]")
     );
     Ok(())
+}
+
+#[test]
+fn audio_transcript_with_org_batch_reports_worker_failure_details() {
+    let input = sample_audio_input();
+    let result = AudioShardResult::failed(
+        &input,
+        "Hosted audio worker failed: <urlopen error [Errno 61] Connection refused>",
+    );
+    let report = AudioShardMergeReport {
+        text: String::new(),
+        timeline_text: String::new(),
+        succeeded_count: 0,
+        failed_count: 1,
+        skipped_count: 0,
+        missing_shard_element_ids: Vec::new(),
+        failed_shard_element_ids: vec![input.shard_element_id.clone()],
+        skipped_shard_element_ids: Vec::new(),
+        duplicate_shard_element_ids: Vec::new(),
+    };
+
+    let error = build_audio_transcript_with_org_batch(
+        "/tmp/a.mp3",
+        "/tmp/out",
+        &report,
+        std::slice::from_ref(&input),
+        &[result],
+    )
+    .unwrap_err();
+
+    assert!(error.contains("failed=1"));
+    assert!(error.contains("failed_shards=sample"));
+    assert!(error.contains("worker_errors=sample: Hosted audio worker failed"));
+    assert!(error.contains("Connection refused"));
+}
+
+#[test]
+fn audio_transcript_precision_gate_error_truncates_long_worker_detail() {
+    let input = sample_audio_input();
+    let result = AudioShardResult::failed(&input, "x".repeat(256));
+    let report = AudioShardMergeReport {
+        text: String::new(),
+        timeline_text: String::new(),
+        succeeded_count: 0,
+        failed_count: 1,
+        skipped_count: 0,
+        missing_shard_element_ids: Vec::new(),
+        failed_shard_element_ids: vec![input.shard_element_id.clone()],
+        skipped_shard_element_ids: Vec::new(),
+        duplicate_shard_element_ids: Vec::new(),
+    };
+
+    let message = build_audio_transcript_with_org_batch(
+        "/tmp/a.mp3",
+        "/tmp/out",
+        &report,
+        std::slice::from_ref(&input),
+        &[result],
+    )
+    .unwrap_err();
+
+    assert!(message.contains("worker_errors=sample: "));
+    assert!(message.ends_with("..."));
+    assert!(!message.contains(&"x".repeat(200)));
 }
 
 fn sample_audio_input() -> AudioShardInput {

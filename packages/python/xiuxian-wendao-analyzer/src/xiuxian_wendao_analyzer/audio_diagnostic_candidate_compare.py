@@ -62,7 +62,7 @@ def _candidate_rank_key(candidate: AudioCandidateSummary) -> tuple[object, ...]:
         candidate.reference_fail_rows,
         candidate.failed_rows,
         candidate.required_term_miss_rows,
-        _wall_sort_key(candidate.wall_seconds),
+        _wall_sort_key(candidate.diagnostic_wall_seconds),
         candidate.label,
     )
 

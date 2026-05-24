@@ -187,6 +187,7 @@ pub(crate) enum ControlCliCommand {
         heartbeat_ttl_ms: Option<u64>,
         poll_limit: u32,
         empty_limit: u32,
+        worker_count: u32,
         executor: ActivityExecutorKindArg,
         outcome: ActivitySettleOutcomeArg,
         settled_at_ms: u64,

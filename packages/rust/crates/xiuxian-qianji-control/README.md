@@ -22,6 +22,15 @@ feature adds the durable append-only ledger adapter. The `valkey` feature adds
 the hot-state adapter for step queues, worker activity task queues, leases,
 and worker heartbeats.
 
+The DuckDB ledger adapter is an in-process store boundary. It is intended to
+support high-throughput Qianji worker execution by sharing one writable
+`DuckDbControlLedger` inside one Rust process while worker tasks run
+concurrently. It must not be treated as a multi-process writer contract for the
+same DuckDB file. If Qianji needs independent writer processes, the store
+boundary must move to a dedicated ledger service, DuckDB remote protocol, or a
+DuckLake-backed catalog design before the runtime exposes that deployment
+shape.
+
 ## Boundary
 
 This crate must stay independent from workflow implementations. It does not
@@ -30,7 +39,8 @@ depend on `xiuxian-qianji`, `qianji-bpmn-engine`, `xiuxian-wendao`,
 
 The intended split is:
 
-- DuckDB: durable append-only control ledger and replayable run views
+- DuckDB: durable append-only control ledger and replayable run views inside
+  one writable process boundary
 - Valkey: hot queues, leases, heartbeats, rate limits, and live progress
 - Qianji workflow/BPMN/Flowhub: domain execution semantics
 - Agent workers: leased executors that attach evidence and observations

@@ -39,17 +39,9 @@ def summarize_results(
 ) -> dict[str, Any]:
     rust_jobs_status = combine_rust_jobs_status_summaries(
         [result.get("rustJobsStatusSummary", {}) for result in results]
-        + [
-            (
-                distinct_miss_report.get("rustJobsStatusSummary", {})
-                if distinct_miss_report
-                else {}
-            )
-        ]
+        + [(distinct_miss_report.get("rustJobsStatusSummary", {}) if distinct_miss_report else {})]
     )
-    distinct_error_rows = (
-        distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
-    )
+    distinct_error_rows = distinct_miss_report.get("errorRows", 0) if distinct_miss_report else 0
     total_error_rows = (
         sum(
             result["forceErrorRows"]
@@ -60,9 +52,7 @@ def summarize_results(
         )
         + distinct_error_rows
     )
-    artifact_error_count = sum(
-        result.get("artifactErrorCount", 0) for result in results
-    )
+    artifact_error_count = sum(result.get("artifactErrorCount", 0) for result in results)
     structure_parity_error_count = sum(
         result.get("structureParityErrorCount", 0) for result in results
     )
@@ -81,6 +71,112 @@ def summarize_results(
         "totalErrorRows": total_error_rows,
         "totalRequests": sum(result["requestCount"] for result in results),
         "totalArrowIpcBytes": sum(result["arrowIpcBytes"] for result in results),
+        "totalAudioTranscriptChars": sum(
+            result.get("audioTranscriptChars", 0) for result in results
+        ),
+        "totalAudioTranscriptTimelineMarkerCount": sum(
+            result.get("audioTranscriptTimelineMarkerCount", 0) for result in results
+        ),
+        "totalAudioTranscriptTimelineMarkedRows": sum(
+            result.get("audioTranscriptTimelineMarkedRows", 0) for result in results
+        ),
+        "totalAudioTranscriptOrgRows": sum(
+            result.get("audioTranscriptOrgRows", 0) for result in results
+        ),
+        "totalAudioTranscriptOrgChars": sum(
+            result.get("audioTranscriptOrgChars", 0) for result in results
+        ),
+        "totalAudioTranscriptOrgTimelineMarkerCount": sum(
+            result.get("audioTranscriptOrgTimelineMarkerCount", 0) for result in results
+        ),
+        "totalAudioTranscriptReferenceDraftRows": sum(
+            result.get("audioTranscriptReferenceDraftRows", 0) for result in results
+        ),
+        "totalAudioTranscriptReferenceDraftChars": sum(
+            result.get("audioTranscriptReferenceDraftChars", 0) for result in results
+        ),
+        "totalForceAudioMaterializationShardCount": sum(
+            result.get("forceAudioMaterializationShardCount", 0) for result in results
+        ),
+        "totalForceAudioMaterializationArtifactCacheHitCount": sum(
+            result.get("forceAudioMaterializationArtifactCacheHitCount", 0)
+            for result in results
+        ),
+        "totalForceAudioMaterializationMediaSplitterCount": sum(
+            result.get("forceAudioMaterializationMediaSplitterCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioMaterializationShardCount": sum(
+            result.get("artifactRegistryReuseAudioMaterializationShardCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioMaterializationArtifactCacheHitCount": sum(
+            result.get(
+                "artifactRegistryReuseAudioMaterializationArtifactCacheHitCount",
+                0,
+            )
+            for result in results
+        ),
+        "totalArtifactReuseAudioMaterializationMediaSplitterCount": sum(
+            result.get("artifactRegistryReuseAudioMaterializationMediaSplitterCount", 0)
+            for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionHitCount": sum(
+            result.get("forceAudioTranscriptAdmissionHitCount", 0) for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionMissCount": sum(
+            result.get("forceAudioTranscriptAdmissionMissCount", 0) for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionStoredCount": sum(
+            result.get("forceAudioTranscriptAdmissionStoredCount", 0) for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionStaleCount": sum(
+            result.get("forceAudioTranscriptAdmissionStaleCount", 0) for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionPlannedHitCount": sum(
+            result.get("forceAudioTranscriptAdmissionPlannedHitCount", 0) for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionPlannedMissCount": sum(
+            result.get("forceAudioTranscriptAdmissionPlannedMissCount", 0) for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionPlannedStoredCount": sum(
+            result.get("forceAudioTranscriptAdmissionPlannedStoredCount", 0) for result in results
+        ),
+        "totalForceAudioTranscriptAdmissionPlannedStaleCount": sum(
+            result.get("forceAudioTranscriptAdmissionPlannedStaleCount", 0) for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionHitCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionHitCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionMissCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionMissCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionStoredCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionStoredCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionStaleCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionStaleCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionPlannedHitCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionPlannedHitCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionPlannedMissCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionPlannedMissCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionPlannedStoredCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionPlannedStoredCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioTranscriptAdmissionPlannedStaleCount": sum(
+            result.get("artifactRegistryReuseAudioTranscriptAdmissionPlannedStaleCount", 0)
+            for result in results
+        ),
         "totalStructureRows": sum(result.get("structureRows", 0) for result in results),
         "totalStructureOcrPageBlocks": sum(
             result.get("structureOcrPageBlocks", 0) for result in results
@@ -88,9 +184,7 @@ def summarize_results(
         "totalStructureOcrRegionBlocks": sum(
             result.get("structureOcrRegionBlocks", 0) for result in results
         ),
-        "totalStructureBboxBlocks": sum(
-            result.get("structureBboxBlocks", 0) for result in results
-        ),
+        "totalStructureBboxBlocks": sum(result.get("structureBboxBlocks", 0) for result in results),
         "allStructureReadingOrderSorted": structure_reading_order_sorted,
         "allStructureOrderStable": structure_order_stable,
         "totalStructureOrderMismatches": structure_order_mismatches,
@@ -130,18 +224,12 @@ def summarize_results(
             default=None,
         ),
         "totalMetricsRows": sum(result.get("metricsRows", 0) for result in results),
-        "totalMetricsResultChars": sum(
-            result.get("metricsResultChars", 0) for result in results
-        ),
-        "totalMetricsBboxCount": sum(
-            result.get("metricsBboxCount", 0) for result in results
-        ),
+        "totalMetricsResultChars": sum(result.get("metricsResultChars", 0) for result in results),
+        "totalMetricsBboxCount": sum(result.get("metricsBboxCount", 0) for result in results),
         "structureAuthorityPages": sum(
             result.get("structureAuthorityPages", 0) for result in results
         ),
-        "textShortcutPages": sum(
-            result.get("textShortcutPages", 0) for result in results
-        ),
+        "textShortcutPages": sum(result.get("textShortcutPages", 0) for result in results),
         "ocrPatchRegions": sum(result.get("ocrPatchRegions", 0) for result in results),
         "pageRangeDoclingFallbackPages": sum(
             result.get("pageRangeDoclingFallbackPages", 0) for result in results
@@ -153,11 +241,7 @@ def summarize_results(
             (
                 plan.get("strategy")
                 if isinstance(
-                    (
-                        plan := result.get(
-                            "forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"
-                        )
-                    ),
+                    (plan := result.get("forceHybridPageOcrTimingPageRangeDoclingFallbackPlan")),
                     dict,
                 )
                 else None
@@ -173,9 +257,7 @@ def summarize_results(
         "totalMetricsRustSchedulerElapsedMs": sum(
             result.get("metricsRustSchedulerElapsedMs", 0.0) for result in results
         ),
-        "totalDocumentTimingRows": sum(
-            result.get("documentTimingRows", 0) for result in results
-        ),
+        "totalDocumentTimingRows": sum(result.get("documentTimingRows", 0) for result in results),
         "totalDocumentTimingElapsedMs": sum(
             result.get("documentTimingTotalElapsedMs", 0.0) for result in results
         ),
@@ -186,23 +268,17 @@ def summarize_results(
             result.get("documentTimingPhaseElapsedMs", {}) for result in results
         ),
         "forceHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
-            result.get("forceHybridPageOcrTimingPhaseElapsedMs", {})
-            for result in results
+            result.get("forceHybridPageOcrTimingPhaseElapsedMs", {}) for result in results
         ),
         "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
-            result.get("shardCacheReuseHybridPageOcrTimingPhaseElapsedMs", {})
-            for result in results
+            result.get("shardCacheReuseHybridPageOcrTimingPhaseElapsedMs", {}) for result in results
         ),
         "maxShardCacheReuseMetricsRustSchedulerElapsedMs": max(
             (
                 value
                 for result in results
                 if isinstance(
-                    (
-                        value := result.get(
-                            "shardCacheReuseMetricsRustSchedulerElapsedMs"
-                        )
-                    ),
+                    (value := result.get("shardCacheReuseMetricsRustSchedulerElapsedMs")),
                     int | float,
                 )
             ),
@@ -235,18 +311,14 @@ def summarize_results(
             results,
             "totalMemberSizeBytes",
         ),
-        "archiveFormatCounts": aggregate_archive_audit_strings(
-            results, "archiveFormat"
-        ),
+        "archiveFormatCounts": aggregate_archive_audit_strings(results, "archiveFormat"),
         "archiveAccelerationCandidates": aggregate_archive_acceleration_candidates(
             results,
         ),
         "archiveExtensionCounts": aggregate_archive_extension_counts(results),
         "maxArchiveLargestMemberSizeBytes": max_archive_largest_member_size(results),
         "artifactErrorCount": artifact_error_count,
-        "minCacheSpeedup": min(
-            (result["cacheSpeedup"] for result in results), default=0.0
-        ),
+        "minCacheSpeedup": min((result["cacheSpeedup"] for result in results), default=0.0),
         "totalDuplicateMissConverterCalls": sum(
             result["duplicateMissConverterCalls"] or 0 for result in results
         ),
@@ -360,6 +432,32 @@ def _format_slowest_hosted_requests(value: Any) -> str:
     return "; ".join(rendered)
 
 
+def _format_slowest_hosted_audio_requests(value: Any) -> str:
+    if not isinstance(value, list) or not value:
+        return ""
+    rendered = []
+    for request in value[:5]:
+        if not isinstance(request, dict):
+            continue
+        rendered.append(
+            "shard={shard} profile={profile} latencyMs={latency} kind={kind} "
+            "attempts={attempts} durationMs={duration} mediaStartMs={media_start} "
+            "mediaDurationMs={media_duration} chars={chars} endpoint={endpoint}".format(
+                shard=request.get("shardElementId"),
+                profile=request.get("shardProfile"),
+                latency=_format_optional_float(request.get("latencyMs")),
+                kind=request.get("requestKind"),
+                attempts=request.get("httpAttemptCount"),
+                duration=request.get("durationMs"),
+                media_start=request.get("mediaStartMs"),
+                media_duration=request.get("mediaDurationMs"),
+                chars=request.get("textChars"),
+                endpoint=request.get("endpointKind"),
+            )
+        )
+    return "; ".join(rendered)
+
+
 def _format_slowest_hosted_request_hedge(request: dict[str, Any]) -> str:
     hedge_winner = request.get("hedgeWinner")
     if not hedge_winner:
@@ -416,9 +514,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
     hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
     hosted_audio = payload.get("hostedAudio") or {}
     hosted_vlm_ocr_requests = hosted_vlm_ocr.get("requestSummary") or {}
-    page_range_chunk_summary = (
-        payload["summary"].get("pageRangeDoclingFallbackChunkSummary") or {}
-    )
+    hosted_audio_requests = hosted_audio.get("requestSummary") or {}
+    page_range_chunk_summary = payload["summary"].get("pageRangeDoclingFallbackChunkSummary") or {}
     page_range_chunk_phases = (
         phases
         if isinstance(
@@ -430,11 +527,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     longest_page_range_chunk_phases = (
         phases
         if isinstance(
-            (
-                phases := page_range_chunk_summary.get(
-                    "longestDocumentTimingPhaseElapsedMs"
-                )
-            ),
+            (phases := page_range_chunk_summary.get("longestDocumentTimingPhaseElapsedMs")),
             dict,
         )
         else {}
@@ -477,6 +570,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Rust audio sample rate Hz: `{payload.get('rustAudioSampleRateHz')}`",
         f"- Rust audio channels: `{payload.get('rustAudioChannels')}`",
         f"- Rust audio format: `{payload.get('rustAudioFormat')}`",
+        f"- Rust audio artifact cache dir: `{payload.get('rustAudioArtifactCacheDir')}`",
         f"- Rust audio base workers: `{payload.get('rustAudioBaseWorkers')}`",
         f"- Rust audio recovery workers: `{payload.get('rustAudioRecoveryWorkers')}`",
         f"- Rust audio speech segments JSONL: `{payload.get('rustAudioSpeechSegmentsJsonl')}`",
@@ -552,6 +646,78 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Hosted audio key configured: `{hosted_audio.get('apiKeyConfigured')}`",
         f"- Hosted audio timeout seconds: `{hosted_audio.get('timeoutSeconds')}`",
         f"- Hosted audio request concurrency: `{hosted_audio.get('requestConcurrency')}`",
+        "- Audio transcript evidence: "
+        f"`chars={payload['summary'].get('totalAudioTranscriptChars')}, "
+        "timelineMarkers="
+        f"{payload['summary'].get('totalAudioTranscriptTimelineMarkerCount')}, "
+        "timelineRows="
+        f"{payload['summary'].get('totalAudioTranscriptTimelineMarkedRows')}, "
+        f"orgRows={payload['summary'].get('totalAudioTranscriptOrgRows')}, "
+        f"orgChars={payload['summary'].get('totalAudioTranscriptOrgChars')}, "
+        "orgTimelineMarkers="
+        f"{payload['summary'].get('totalAudioTranscriptOrgTimelineMarkerCount')}, "
+        "referenceDraftRows="
+        f"{payload['summary'].get('totalAudioTranscriptReferenceDraftRows')}, "
+        "referenceDraftChars="
+        f"{payload['summary'].get('totalAudioTranscriptReferenceDraftChars')}`",
+        "- Audio materialization cache: "
+        f"`forceShards={payload['summary'].get('totalForceAudioMaterializationShardCount')}, "
+        "forceArtifactHits="
+        f"{payload['summary'].get('totalForceAudioMaterializationArtifactCacheHitCount')}, "
+        "forceMediaSplitter="
+        f"{payload['summary'].get('totalForceAudioMaterializationMediaSplitterCount')}, "
+        "reuseShards="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationShardCount')}, "
+        "reuseArtifactHits="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationArtifactCacheHitCount')}, "
+        "reuseMediaSplitter="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationMediaSplitterCount')}`",
+        "- Audio transcript admission: "
+        f"`forceHits={payload['summary'].get('totalForceAudioTranscriptAdmissionHitCount')}, "
+        f"forceMisses={payload['summary'].get('totalForceAudioTranscriptAdmissionMissCount')}, "
+        f"forceStored={payload['summary'].get('totalForceAudioTranscriptAdmissionStoredCount')}, "
+        f"forceStale={payload['summary'].get('totalForceAudioTranscriptAdmissionStaleCount')}, "
+        f"forcePlannedHits={payload['summary'].get('totalForceAudioTranscriptAdmissionPlannedHitCount')}, "
+        "reuseHits="
+        f"{payload['summary'].get('totalArtifactReuseAudioTranscriptAdmissionHitCount')}, "
+        "reuseMisses="
+        f"{payload['summary'].get('totalArtifactReuseAudioTranscriptAdmissionMissCount')}, "
+        "reuseStored="
+        f"{payload['summary'].get('totalArtifactReuseAudioTranscriptAdmissionStoredCount')}, "
+        "reuseStale="
+        f"{payload['summary'].get('totalArtifactReuseAudioTranscriptAdmissionStaleCount')}, "
+        "reusePlannedHits="
+        f"{payload['summary'].get('totalArtifactReuseAudioTranscriptAdmissionPlannedHitCount')}`",
+        "- Hosted audio requests: "
+        f"`count={hosted_audio_requests.get('requestCount')}, "
+        f"httpAttempts={hosted_audio_requests.get('httpAttemptCountTotal')}, "
+        "uniqueShardIds="
+        f"{hosted_audio_requests.get('uniqueShardElementIdCount')}, "
+        "duplicateShardIds="
+        f"{hosted_audio_requests.get('duplicateShardElementIdExtraCount')}, "
+        "uniqueMediaStarts="
+        f"{hosted_audio_requests.get('uniqueMediaStartMsCount')}, "
+        "duplicateMediaStarts="
+        f"{hosted_audio_requests.get('duplicateMediaStartMsExtraCount')}, "
+        f"success={hosted_audio_requests.get('successCount')}, "
+        f"failed={hosted_audio_requests.get('failureCount')}, "
+        f"durationMs={hosted_audio_requests.get('durationMsTotal')}, "
+        f"mediaDurationMs={hosted_audio_requests.get('mediaDurationMsTotal')}, "
+        f"p50Ms={_format_optional_float(hosted_audio_requests.get('latencyMsP50'))}, "
+        f"p95Ms={_format_optional_float(hosted_audio_requests.get('latencyMsP95'))}, "
+        f"maxMs={_format_optional_float(hosted_audio_requests.get('latencyMsMax'))}, "
+        f"wallSpanMs={_format_optional_float(hosted_audio_requests.get('requestWallSpanMs'))}, "
+        f"overlapRatio={_format_optional_float(hosted_audio_requests.get('requestLatencyOverlapRatio'))}, "
+        f"chars={hosted_audio_requests.get('textCharCountTotal')}, "
+        f"models={_format_counts(hosted_audio_requests.get('modelCounts'))}, "
+        f"endpoints={_format_counts(hosted_audio_requests.get('endpointKindCounts'))}, "
+        f"shardProfiles={_format_counts(hosted_audio_requests.get('shardProfileCounts'))}, "
+        "duplicateMediaStartMs="
+        f"{_format_counts(hosted_audio_requests.get('duplicateMediaStartMsCounts'))}, "
+        f"formats={_format_counts(hosted_audio_requests.get('audioFormatCounts'))}, "
+        f"status={_format_counts(hosted_audio_requests.get('statusCounts'))}`",
+        "- Hosted audio slowest requests: "
+        f"`{_format_slowest_hosted_audio_requests(hosted_audio_requests.get('slowestRequests'))}`",
         "- Hosted VLM/OCR requests: "
         f"`count={hosted_vlm_ocr_requests.get('requestCount')}, "
         f"httpAttempts={hosted_vlm_ocr_requests.get('httpAttemptCountTotal')}, "
@@ -610,6 +776,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"budget={rust_status.get('maxCurrentPdfOcrWorkerBudget')}, "
         f"inProcess={rust_status.get('maxInProcessPdfOcrWorkers')}, "
         f"inFlight={rust_status.get('maxInFlightPdfOcrShards')}`",
+        "- Rust adaptive audio: "
+        f"`max={rust_status.get('maxAudioShardWorkers')}, "
+        f"budget={rust_status.get('maxCurrentAudioShardWorkerBudget')}, "
+        f"healthyStreak={rust_status.get('maxAudioShardHealthyStreak')}, "
+        f"budgetUp={rust_status.get('maxAudioShardBudgetIncreaseEvents')}, "
+        f"budgetDown={rust_status.get('maxAudioShardBudgetDecreaseEvents')}`",
         "- Rust OCR cache/live: "
         f"`hits={rust_status.get('maxPdfOcrCacheHits')}, "
         f"misses={rust_status.get('maxPdfOcrCacheMisses')}, "
@@ -793,9 +965,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "structureRows": result.get("structureRows", 0),
             "ocrBlocks": ocr_blocks,
             "orderSorted": result.get("structureReadingOrderSorted"),
-            "shardCacheReuseForceMs": _format_optional_float(
-                result.get("shardCacheReuseForceMs")
-            ),
+            "shardCacheReuseForceMs": _format_optional_float(result.get("shardCacheReuseForceMs")),
             "artifactRegistryReuseForceMs": _format_optional_float(
                 result.get("artifactRegistryReuseForceMs")
             ),
@@ -834,12 +1004,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
                 "{maxBoundaryOverheadShare} | {slowestCacheP95} | "
                 "{minCacheSpeedup} |".format(
                     **class_summary,
-                    resourceTypes=_format_counts(
-                        class_summary.get("resourceTypeCounts")
-                    ),
-                    blockTypes=_format_counts(
-                        class_summary.get("structureBlockTypeCounts")
-                    ),
+                    resourceTypes=_format_counts(class_summary.get("resourceTypeCounts")),
+                    blockTypes=_format_counts(class_summary.get("structureBlockTypeCounts")),
                     bboxBlocks=class_summary.get("structureBboxBlocks", 0),
                     imageFormats=_format_counts(class_summary.get("imageFormatCounts")),
                     imageDimensionSources=_format_counts(
@@ -849,18 +1015,14 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     imageCandidates=_format_counts(
                         class_summary.get("imageAccelerationCandidates")
                     ),
-                    archiveFormats=_format_counts(
-                        class_summary.get("archiveFormatCounts")
-                    ),
+                    archiveFormats=_format_counts(class_summary.get("archiveFormatCounts")),
                     archiveMembers=class_summary.get("archiveMemberCount", 0),
                     archiveCandidates=_format_counts(
                         class_summary.get("archiveAccelerationCandidates")
                     ),
                     orderSorted=precision_speed.get("structureReadingOrderSorted"),
                     orderStable=precision_speed.get("structureOrderStable"),
-                    slowestForce=_format_fixture_latency(
-                        class_summary.get("slowestForceFixture")
-                    ),
+                    slowestForce=_format_fixture_latency(class_summary.get("slowestForceFixture")),
                     maxDoclingConvert=_format_optional_float(
                         precision_speed.get("maxDoclingConvertMs")
                     ),
@@ -873,9 +1035,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     slowestCacheP95=_format_fixture_latency(
                         class_summary.get("slowestCacheP95Fixture")
                     ),
-                    minCacheSpeedup=_format_optional_float(
-                        precision_speed.get("minCacheSpeedup")
-                    ),
+                    minCacheSpeedup=_format_optional_float(precision_speed.get("minCacheSpeedup")),
                 )
             )
     distinct_miss = payload.get("distinctMiss")
@@ -899,15 +1059,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
                     maxInProcessRunningConversions=distinct_status[
                         "maxInProcessRunningConversions"
                     ],
-                    minAvailablePermits=distinct_status[
-                        "minAvailableConversionPermits"
-                    ],
+                    minAvailablePermits=distinct_status["minAvailableConversionPermits"],
                     maxRunningConversions=distinct_status["maxRunningConversions"],
                     maxConversionDurationMs=distinct_status["maxConversionDurationMs"],
                 ),
                 "",
-                "Fixtures: "
-                + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
+                "Fixtures: " + ", ".join(f"`{fixture}`" for fixture in distinct_miss["fixtures"]),
             ]
         )
     lines.append("")
@@ -951,11 +1108,7 @@ def _combine_page_range_docling_fallback_chunk_summaries(
         summary
         for result in results
         if isinstance(
-            (
-                summary := result.get(
-                    "forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"
-                )
-            ),
+            (summary := result.get("forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary")),
             dict,
         )
     ]
@@ -965,9 +1118,7 @@ def _combine_page_range_docling_fallback_chunk_summaries(
         default={},
     )
     chunk_count = sum(
-        count
-        for summary in summaries
-        if isinstance((count := summary.get("chunkCount")), int)
+        count for summary in summaries if isinstance((count := summary.get("chunkCount")), int)
     )
     elapsed_total = sum(
         float(value)
@@ -989,9 +1140,7 @@ def _combine_page_range_docling_fallback_chunk_summaries(
     document_timing_total = sum(
         float(value)
         for summary in summaries
-        if isinstance(
-            (value := summary.get("documentTimingTotalElapsedMs")), int | float
-        )
+        if isinstance((value := summary.get("documentTimingTotalElapsedMs")), int | float)
     )
     return {
         "chunkCount": chunk_count,
@@ -1029,20 +1178,14 @@ def _combine_page_range_docling_fallback_chunk_summaries(
         "sourceProfileEstimatedWeightTotal": sum(
             count
             for summary in summaries
-            if isinstance(
-                (count := summary.get("sourceProfileEstimatedWeightTotal")), int
-            )
+            if isinstance((count := summary.get("sourceProfileEstimatedWeightTotal")), int)
         ),
         "longestPageStart": longest.get("longestPageStart"),
         "longestPageEnd": longest.get("longestPageEnd"),
         "longestOneBasedStart": longest.get("longestOneBasedStart"),
         "longestOneBasedEnd": longest.get("longestOneBasedEnd"),
         "longestResourceRows": longest.get("longestResourceRows"),
-        "longestDocumentTimingTotalElapsedMs": longest.get(
-            "longestDocumentTimingTotalElapsedMs"
-        ),
-        "longestDocumentTimingPhaseElapsedMs": longest.get(
-            "longestDocumentTimingPhaseElapsedMs"
-        ),
+        "longestDocumentTimingTotalElapsedMs": longest.get("longestDocumentTimingTotalElapsedMs"),
+        "longestDocumentTimingPhaseElapsedMs": longest.get("longestDocumentTimingPhaseElapsedMs"),
         "longestSourceProfile": longest.get("longestSourceProfile"),
     }

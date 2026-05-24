@@ -70,6 +70,30 @@ async fn document_extract_runtime_snapshot_reports_pdf_ocr_worker_capacity() -> 
     Ok(())
 }
 
+#[cfg(feature = "document-extract-audio-shards")]
+#[tokio::test]
+async fn document_extract_runtime_snapshot_reports_audio_worker_capacity() -> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let registry = DocumentExtractJobRegistry::new(
+        temp.path().join("jobs.duckdb"),
+        temp.path().join("artifacts"),
+    )?;
+    let provider = StudioDocumentExtractFlightRouteProvider::from_registry_with_audio_worker_limit(
+        Ok(registry),
+        2,
+        9,
+    );
+
+    let snapshot = provider.runtime_snapshot().await?;
+
+    assert_eq!(snapshot.max_audio_shard_workers, 9);
+    assert_eq!(snapshot.current_audio_shard_worker_budget, 3);
+    assert_eq!(snapshot.audio_shard_healthy_streak, 0);
+    assert_eq!(snapshot.audio_shard_budget_increase_events, 0);
+    assert_eq!(snapshot.audio_shard_budget_decrease_events, 0);
+    Ok(())
+}
+
 #[test]
 fn document_extract_provider_reuses_runtime_for_same_project_root() {
     let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("create tempdir: {error}"));

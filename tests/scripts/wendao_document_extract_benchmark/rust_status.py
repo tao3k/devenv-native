@@ -33,6 +33,11 @@ def summarize_rust_jobs_status_samples(samples: list[dict[str, Any]]) -> dict[st
             "maxPdfOcrRenderedRegionShards": None,
             "maxPdfOcrBudgetIncreaseEvents": None,
             "maxPdfOcrBudgetDecreaseEvents": None,
+            "maxAudioShardWorkers": None,
+            "maxCurrentAudioShardWorkerBudget": None,
+            "maxAudioShardHealthyStreak": None,
+            "maxAudioShardBudgetIncreaseEvents": None,
+            "maxAudioShardBudgetDecreaseEvents": None,
             "lastConversionDurationMs": None,
             "maxConversionDurationMs": None,
         }
@@ -86,6 +91,23 @@ def summarize_rust_jobs_status_samples(samples: list[dict[str, Any]]) -> dict[st
             samples,
             "pdfOcrBudgetDecreaseEvents",
         ),
+        "maxAudioShardWorkers": max_int_sample(samples, "maxAudioShardWorkers"),
+        "maxCurrentAudioShardWorkerBudget": max_int_sample(
+            samples,
+            "currentAudioShardWorkerBudget",
+        ),
+        "maxAudioShardHealthyStreak": max_int_sample(
+            samples,
+            "audioShardHealthyStreak",
+        ),
+        "maxAudioShardBudgetIncreaseEvents": max_int_sample(
+            samples,
+            "audioShardBudgetIncreaseEvents",
+        ),
+        "maxAudioShardBudgetDecreaseEvents": max_int_sample(
+            samples,
+            "audioShardBudgetDecreaseEvents",
+        ),
         "lastConversionDurationMs": last_present_sample(
             samples,
             "lastConversionDurationMs",
@@ -95,16 +117,12 @@ def summarize_rust_jobs_status_samples(samples: list[dict[str, Any]]) -> dict[st
 
 
 def max_int_sample(samples: list[dict[str, Any]], key: str) -> int | None:
-    values = [
-        value for sample in samples if isinstance((value := sample.get(key)), int)
-    ]
+    values = [value for sample in samples if isinstance((value := sample.get(key)), int)]
     return max(values, default=None)
 
 
 def min_int_sample(samples: list[dict[str, Any]], key: str) -> int | None:
-    values = [
-        value for sample in samples if isinstance((value := sample.get(key)), int)
-    ]
+    values = [value for sample in samples if isinstance((value := sample.get(key)), int)]
     return min(values, default=None)
 
 
@@ -119,11 +137,7 @@ def last_present_sample(samples: list[dict[str, Any]], key: str) -> Any:
 def combine_rust_jobs_status_summaries(
     summaries: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    samples = [
-        summary
-        for summary in summaries
-        if summary and summary.get("sampleCount", 0) > 0
-    ]
+    samples = [summary for summary in summaries if summary and summary.get("sampleCount", 0) > 0]
     if not samples:
         return summarize_rust_jobs_status_samples([])
     return {
@@ -184,6 +198,23 @@ def combine_rust_jobs_status_summaries(
         "maxPdfOcrBudgetDecreaseEvents": max_optional_int(
             samples,
             "maxPdfOcrBudgetDecreaseEvents",
+        ),
+        "maxAudioShardWorkers": max_optional_int(samples, "maxAudioShardWorkers"),
+        "maxCurrentAudioShardWorkerBudget": max_optional_int(
+            samples,
+            "maxCurrentAudioShardWorkerBudget",
+        ),
+        "maxAudioShardHealthyStreak": max_optional_int(
+            samples,
+            "maxAudioShardHealthyStreak",
+        ),
+        "maxAudioShardBudgetIncreaseEvents": max_optional_int(
+            samples,
+            "maxAudioShardBudgetIncreaseEvents",
+        ),
+        "maxAudioShardBudgetDecreaseEvents": max_optional_int(
+            samples,
+            "maxAudioShardBudgetDecreaseEvents",
         ),
         "lastConversionDurationMs": last_present_sample(
             samples,

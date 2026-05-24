@@ -9,6 +9,8 @@ publish = false
 
 [features]
 default = []
+artifact-cache = []
+foyer-artifact-cache = ["artifact-cache", "dep:foyer", "dep:tokio"]
 engine = [
   "dep:arrow",
   "dep:arrow-ipc",
@@ -34,6 +36,7 @@ arrow = { workspace = true, optional = true }
 arrow-ipc = { workspace = true, optional = true }
 datafusion = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
+foyer = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }
 qianji-bpmn-engine = { path = "../qianji-bpmn-engine", default-features = false, optional = true }
 serde = { workspace = true, optional = true }

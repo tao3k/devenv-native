@@ -65,7 +65,7 @@ fn print_surface_usage() {
     eprintln!("             qianji [-v|--log-verbose] show --graph <path>");
     eprintln!("             qianji [-v|--log-verbose] show --contract <id>");
     eprintln!(
-        "  Materialize: qianji [-v|--log-verbose] materialize --anchor <path> --scenario <ref> --dir <path> [--current-node <node>]"
+        "  Flowhub:   use qianji-client flowhub --mode plan --scenario agent-coding init|check"
     );
     eprintln!("  Advance:   qianji [-v|--log-verbose] advance --dir <path> --to <node>");
     eprintln!("  Check:     qianji [-v|--log-verbose] check --dir <path>");
@@ -150,7 +150,7 @@ fn print_control_usage() {
         "             qianji [-v|--log-verbose] control activity-worker-once --ledger <path> --valkey-url <url> --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --executor fixture|openai-compatible-llm --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--output-hash <hash>] [--output-ref-json <json>] [--output-artifact-path <path> [--output-artifact-content <text>] [--output-artifact-id <id>] [--output-artifact-kind <kind>]] [--openai-compatible-base-url <url>] [--openai-compatible-api-key <key>] [--openai-compatible-timeout-ms <ms>] [--error-code <code>] [--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]"
     );
     eprintln!(
-        "             qianji [-v|--log-verbose] control activity-worker-loop --ledger <path> --valkey-url <url> --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n> --executor fixture|openai-compatible-llm --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--now-step-ms <ms>] [--heartbeat-ttl-ms <ms>] [--settled-step-ms <ms>] [--empty-limit <n>] [--output-hash <hash>] [--output-artifact-dir <dir>] [--output-artifact-kind <kind>] [--openai-compatible-base-url <url>] [--openai-compatible-api-key <key>] [--openai-compatible-timeout-ms <ms>] [--error-code <code>] [--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]"
+        "             qianji [-v|--log-verbose] control activity-worker-loop --ledger <path> --valkey-url <url> --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n> --executor fixture|openai-compatible-llm --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>] [--task-queue <queue>] [--now-step-ms <ms>] [--heartbeat-ttl-ms <ms>] [--settled-step-ms <ms>] [--empty-limit <n>] [--worker-count <n>] [--output-hash <hash>] [--output-artifact-dir <dir>] [--output-artifact-kind <kind>] [--openai-compatible-base-url <url>] [--openai-compatible-api-key <key>] [--openai-compatible-timeout-ms <ms>] [--error-code <code>] [--message <text>] [--retryable <true|false>] [--metadata <json>] [--json]"
     );
     eprintln!(
         "             qianji [-v|--log-verbose] control costs --ledger <path> --run-id <id> [--json]"

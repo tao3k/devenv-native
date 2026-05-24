@@ -18,6 +18,11 @@ mod contracts_routes;
 mod contracts_types;
 #[path = "unit/namespace.rs"]
 mod namespace;
+#[cfg(feature = "document-extract-audio-shards")]
+pub use xiuxian_wendao_studio::studio;
 #[cfg(feature = "studio")]
 #[path = "unit/studio_search_index_api.rs"]
 mod studio_search_index_api;
+#[cfg(feature = "document-extract-audio-shards")]
+#[path = "unit/mod.rs"]
+mod unit;

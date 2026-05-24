@@ -142,11 +142,11 @@ Use `--validation-mode full-hash` when the run must prove source-content
 fingerprints. The TOC ledger does not embed raw corpus text, execute OCR,
 execute ASR, call LLMs, export SQL/RDF, or promote ontology truth.
 
-The source-contract command surface can also compile the first structural IDF
+The source-contract command surface can also compile the first structural facts
 seed for ontology work:
 
 ```bash
-wendao episteme source-contract write-structural-idf \
+wendao episteme source-contract write-structural-facts \
   --episteme-registry-id medical \
   --validation-mode metadata-only \
   --run-id structural_seed
@@ -155,7 +155,7 @@ wendao episteme source-contract write-structural-idf \
 This command resolves `episteme.toml` runtime defaults in the same way as the
 TOC command, then delegates implementation to
 [`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md). It writes
-ignored `structural_idf.json`, `structural_idf.org`, document rows, path-anchor
+ignored `structural_facts.json`, `structural_facts.org`, document rows, path-anchor
 rows, and containment relation rows under
 `<episteme-root>/runs/structure/<run-id>/` by default. It does not read raw
 file text, execute OCR/ASR/LLM extraction, write RDF, or promote ontology truth.
@@ -163,28 +163,31 @@ Use `--validation-mode full-hash` when the seed must prove all source
 fingerprints before LLM-assisted reasoning or later RDF proposal work.
 
 The same source-contract surface can compile the deterministic reasoning packet
-from a structural IDF run:
+from a structural facts run:
 
 ```bash
-wendao episteme source-contract write-structural-idf-reasoning-packet \
+wendao episteme source-contract write-structural-facts-reasoning-packet \
   --episteme-registry-id medical \
-  --structural-idf-run-id structural_seed \
+  --structural-facts-run-id structural_seed \
   --run-id reasoning_seed
 ```
 
 By default this reads
-`<episteme-root>/runs/structure/<structural-idf-run-id>/structural_idf.json`
+`<episteme-root>/runs/structure/<structural-facts-run-id>/structural_facts.json`
 and writes `reasoning_packet.org`, `reasoning_packet.tsv`,
 `reasoning_packet.json`, and `reasoning_packet_report.json` under
 `<episteme-root>/runs/ontology-generation/<run-id>/`. The packet is still an
 evidence proposal input surface only: it does not read private source text,
-call an LLM, run OCR/ASR, write RDF, or promote ontology truth.
+call an LLM, run OCR/ASR, write RDF, or promote ontology truth. It carries
+structure-targeting fields such as `evidenceTargetIntent`,
+`evidenceAnchorKind`, and `evidenceStructureHint` so downstream seed and
+fill-plan rows do not rely on prompt prose to decide the reasoning slot.
 
 After a reasoning packet exists, Studio can ask the Episteme crate to seed a
 fillable Org proposal ledger:
 
 ```bash
-wendao episteme source-contract write-structural-idf-reasoning-ledger-seed \
+wendao episteme source-contract write-structural-facts-reasoning-ledger-seed \
   --episteme-registry-id medical \
   --reasoning-packet-run-id reasoning_seed \
   --run-id reasoning_ledger_seed
@@ -194,15 +197,18 @@ The command reads
 `<episteme-root>/runs/ontology-generation/<reasoning-packet-run-id>/reasoning_packet.json`
 and writes `reasoning_ledger_seed.org`, `reasoning_ledger_seed.tsv`,
 `reasoning_ledger_seed.json`, and `reasoning_ledger_seed_report.json` under
-`<episteme-root>/runs/ontology-generation/<run-id>/`. It creates object and
-relation proposal slots with blank semantic fields; it does not read private
+`<episteme-root>/runs/ontology-generation/<run-id>/`. It creates blank,
+review-gated proposal slots from the packet target intent. Coarse document
+rows still produce object and relation review slots, while service catalogs and
+row-like evidence are routed to service-catalog or object-instance review slots
+instead of object-model `ObjectType` slots. The command does not read private
 source text, call an LLM, write RDF, or promote ontology truth.
 
 After a ledger seed exists, Studio can compile a Qianji/BPMN-oriented fill plan
 without executing the workflow:
 
 ```bash
-wendao episteme source-contract write-structural-idf-reasoning-fill-plan \
+wendao episteme source-contract write-structural-facts-reasoning-fill-plan \
   --episteme-registry-id medical \
   --ledger-seed-run-id reasoning_ledger_seed \
   --run-id reasoning_fill_plan
@@ -213,18 +219,22 @@ The command reads
 and writes `reasoning_fill_plan.org`, `reasoning_fill_plan.tsv`,
 `reasoning_fill_plan.json`, and `reasoning_fill_plan_report.json` under
 `<episteme-root>/runs/ontology-generation/<run-id>/`. The plan records workflow
-keys, activity kinds, seed ids, and evidence anchors as typed data. It does not
-execute Qianji, read private source text, call an LLM, mutate source files,
-write RDF, or promote ontology truth.
+keys, activity kinds, seed ids, evidence anchors, target intents, and target
+ledger groups as typed data. It does not execute Qianji, read private source
+text, call an LLM, mutate source files, write RDF, or promote ontology truth.
 
 After a fill plan exists, Studio can compile Qianji schedule-admission inputs:
 
 ```bash
-wendao episteme source-contract write-structural-idf-reasoning-qianji-schedule-plan \
+wendao episteme source-contract write-structural-facts-reasoning-qianji-schedule-plan \
   --episteme-registry-id medical \
   --fill-plan-run-id reasoning_fill_plan \
   --run-id qianji_schedule_plan \
-  --openai-compatible-model openrouter/deepseek/deepseek-chat-v3.1 \
+  --target-ledger-field-group service_catalog_review \
+  --evidence-target-intent service_catalog_extraction \
+  --reasoning-context-shard-mode service-catalog-table-rows \
+  --reasoning-context-shard-row-limit 2 \
+  --evidence-extraction-run-id docling_document_cache \
   --openai-compatible-max-tokens 1024
 ```
 
@@ -237,9 +247,29 @@ activity task payloads with stable activity ids, task queue, input claim-check
 reference, and idempotency key. It does not append Qianji control ledger events,
 enqueue hot-state work, execute workers, call an LLM, read private source text,
 mutate source files, write RDF, or promote ontology truth.
-The optional OpenAI-compatible flags only ask the Episteme crate to emit local
-prompt and context artifacts plus Qianji request-audit metadata. Provider
-execution still belongs to the Qianji worker.
+The target filter flags are optional. When provided, Studio forwards them to
+the Episteme compiler so schedule selection happens before `--limit`; this is
+the preferred way to run a structure-specific live proof such as service
+catalog or object-instance review.
+The reasoning-context-shard flags are also optional and default to disabled. For
+service-catalog prompt-audit runs, `service-catalog-table-rows` asks the
+Episteme compiler to split a Docling Markdown table into deterministic row
+windows before Qianji admission. Each emitted schedule item carries a shard id
+and row range in JSON, TSV, Org, task metadata, and the generated context
+artifact. This is a latency and reliability guard for hosted model calls; it
+does not lower extraction DPI, change source evidence, or promote ontology
+truth.
+The OpenAI-compatible prompt-audit model defaults to
+`deepseek/deepseek-v4-pro`; pass `--openai-compatible-model` only for an
+intentional comparator run. The prompt-audit flags ask the Episteme crate to
+emit local prompt and context artifacts plus Qianji request-audit metadata. They
+require at least one `--evidence-extraction-run-id`; Studio resolves the
+extraction run root from `episteme.toml` or the episteme run layout unless
+`--evidence-extraction-run-root` is supplied. Provider execution still belongs
+to the Qianji worker. The generated context includes the same target intent and
+structure hint. Object-model review contracts are only emitted for object or
+relation target groups; service-catalog and object-instance target groups use
+review-only concrete `object_candidate` contracts.
 
 After TOC generation, callers can read one targeted evidence row by file id:
 
@@ -380,12 +410,40 @@ wendao episteme source-contract generate-ontology-candidates \
 ```
 
 The command writes `candidate_objects.tsv`, `candidate_relations.tsv`,
-`candidate_evidence.tsv`, `review_ledger.org`, and `receipt.json` under
+`candidate_evidence.tsv`, `ontology_candidate_objects.parquet`,
+`ontology_candidate_relations.parquet`, `ontology_candidate_evidence.parquet`,
+`review_ledger.org`, and `receipt.json` under
 `<episteme-root>/runs/ontology-generation/<run-id>/` by default. It consumes
 source-contract metadata, mapping-ledger terms, and ignored cache outputs, then
-emits candidate rows with promotion blocked. It does not write RDF, mutate the
-source ontology, persist raw extracted text in the candidate TSVs, or create a
-Gateway route.
+emits candidate rows with promotion blocked. The TSV files are compatibility
+projections; the Parquet files are the typed read model for downstream SQL,
+search, and proof slices. It does not write RDF, mutate the source ontology,
+persist raw extracted text in the candidate artifacts, or create a Gateway
+route.
+
+Studio can also import canonical Qianji review artifacts into the same
+candidate-review surface:
+
+```bash
+wendao episteme source-contract import-qianji-review-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed_from_qianji \
+  --qianji-review-artifact <episteme-root>/runs/ontology-generation/<qianji-run>/review.json
+```
+
+The command delegates parsing and validation to `xiuxian-wendao-episteme`. It
+requires a Qianji OpenAI-compatible response envelope with a canonical
+`episteme_review` object, imports only review-only object or relation candidate
+patches, writes the normal candidate TSVs plus
+`qianji_review_candidate_import_report.json`, and runs the deterministic
+candidate review gate. Relation patches are expanded into endpoint object rows
+plus a relation row so endpoint references are checked before promotion. It
+stores source ids, paths, evidence hashes, and evidence character counts; it
+does not persist raw private quote text in the candidate TSVs, mutate RDF, or
+mark rows as ontology truth.
+Canonical zero-candidate reviews are accepted only when they include model
+blockers. In that case the command writes header-only candidate TSVs, records
+the blocker count in the import report, and leaves promotion surfaces empty.
 
 The generated run can then be reviewed through the deterministic quality gate:
 
@@ -401,6 +459,22 @@ missing relation references, unsafe promotion flags, ontology-truth flags, and
 evidence strength. A passing review report is only a precondition for a later
 promotion-review slice; it is not RDF export and does not promote private
 content into ontology truth.
+
+Studio can also inspect the typed candidate Parquet read model through the
+bounded DuckDB surface in `xiuxian-wendao-sql`:
+
+```bash
+wendao episteme source-contract inspect-ontology-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This resolves
+`<episteme-root>/runs/ontology-generation/<run-id>/`, reads the standard
+candidate Parquet files, and reports row counts, kind counts, blocked-review
+checks, ontology-truth checks, raw-to-RDF promotion checks, and relation
+endpoint integrity. The command does not read candidate TSV projections and
+does not mutate RDF or start a Gateway route.
 
 After the review gate passes, Studio can ask the Episteme crate to write a
 reviewable RDF draft and promotion proposal:
@@ -616,9 +690,15 @@ For audio shard execution, Studio owns the live Flight dispatch and merge gate
 over the analyzer `/analysis/audio-shards` route. Attachments supplies the
 model-neutral shard plans and Arrow rows; analyzer workers supply Docling or
 hosted transcript rows. Studio keeps backend selection as data/configuration,
-forwards `x-wendao-audio-workers` when it needs to bound analyzer parallelism,
-and merges results by `readingOrderKey` while surfacing failed, skipped,
-missing, or duplicate shard coverage to the precision gate.
+uses the attachment polyglot bridge to select `x-wendao-audio-workers` when it
+needs to bound analyzer parallelism, and merges results by `readingOrderKey`
+while surfacing failed, skipped, missing, or duplicate shard coverage to the
+precision gate.
+The audio route also owns the runtime feedback controller for that worker
+budget. Workflow transport failures, incomplete shard coverage, and precision
+gate failures reduce the next Rust-selected budget; consecutive healthy
+workflows can increase it up to the host cap. This keeps production audio
+admission in Studio/polyglot instead of analyzer-side Python heuristics.
 Studio can start from attachment-owned speech-segment timing facts, build the
 Rust speech-window plan, materialize normalized shards, and submit the stable
 audio shard input rows over Flight. Python/analyzer remains the model invocation
@@ -666,15 +746,29 @@ rechecks, while the wire contract, analyzer boundary, and durable checkpoint
 ownership stay unchanged.
 The Gateway document-extract route now has an explicit opt-in
 `audio-shards` mode. In this mode Studio probes the source duration, builds a
-full-timeline Rust audio shard plan, materializes normalized shard files,
-calls analyzer `/analysis/audio-shards`, runs the recovery workflow, and
-returns the existing `audio-transcript` `text/plain` document resource row plus
-a parallel `audio-transcript-ledger` `text/org` evidence resource row only when
-shard coverage is complete. The Org ledger uses standard `attachment:` links to
-the materialized shard files so downstream Org tooling can export Markdown or
-HTML without changing the audio Arrow shard schemas. The mode is model-neutral:
-backend identity comes from configuration, while concrete local or hosted model
-invocation remains inside the analyzer worker registry.
+full-timeline Rust audio shard plan, admits accepted planned transcript results
+when the Rust-owned cache proves the shard and backend identity, materializes
+normalized shard files for misses, calls analyzer `/analysis/audio-shards` only
+for uncached rows, runs the recovery workflow, and returns the existing
+`audio-transcript` `text/plain` document resource row plus a parallel
+`audio-transcript-ledger` `text/org` evidence resource row only when shard
+coverage is complete. The Org ledger uses standard `attachment:` links when
+materialized shard files exist, so downstream Org tooling can export Markdown
+or HTML without changing the audio Arrow shard schemas. The mode is
+model-neutral: backend identity comes from configuration, while concrete local
+or hosted model invocation remains inside the analyzer worker registry.
+Audio shard materialization also enables the db-store `ArtifactBlobCache`
+filesystem baseline in the `document-extract-audio-shards` feature. Studio
+uses `WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR` when provided, or
+`$PRJ_CACHE_HOME/wendao/audio-artifacts` when the project cache root is
+available, to restore repeated normalized shard bytes before invoking `ffmpeg`.
+The cache is byte reuse only and does not affect analyzer request schemas,
+worker selection, transcript merge rules, or precision gates.
+Studio also maintains a transcript result cache and a planned-result preflight
+index for accepted rows. The planned index can satisfy all planned shard rows
+before byte materialization on warm force refresh, while any missing, stale,
+failed, or partial planned result falls back to the existing materialization and
+analyzer route.
 The document-extract benchmark harness can now exercise this same route with
 `--flight-mode audio-shards`. Local provider and Gateway benchmark starts add
 the `document-extract-audio-shards` feature automatically for this mode and
@@ -685,8 +779,11 @@ recovery planning. `--rust-audio-speech-segments-jsonl` and its merge,
 minimum-window, and chunk-limit companions are forwarded to the same Studio
 environment variables used by production startup, so benchmark evidence covers
 the Rust-owned speech-window recovery path. Analyzer backend selection still
-comes from the Python worker flags such as `--audio-worker hosted` or
-`--audio-worker docling`.
+comes from data-driven request metadata or Python worker flags such as
+`--audio-worker hosted`; the managed Wendao analyzer startup selects hosted
+OpenRouter audio by default, while local Qwen3-compatible testing uses the same
+hosted worker with an OpenAI-compatible local base URL. Docling audio remains an
+explicit comparator, not the managed default.
 The current source-range auto policy targets seven source PDF pages per worker
 before clamping to the adaptive budget, machine cap, remaining permits, and
 shard count; diagnostic worker overrides remain benchmark-only.

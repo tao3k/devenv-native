@@ -4,10 +4,13 @@ use tonic::Status;
 use tonic::metadata::MetadataMap;
 
 use crate::transport::query_contract::{
-    DocumentExtractFlightRequest, DocumentExtractMode, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_MODE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
+    DocumentExtractFlightRequest, DocumentExtractMode, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+    WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER, WENDAO_AUDIO_HOSTED_MODEL_HEADER,
+    WENDAO_AUDIO_HOSTED_PROVIDER_HEADER, WENDAO_AUDIO_WORKER_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
     decode_document_extract_source_path_utf8_hex, normalize_document_extract_profile,
     validate_document_extract_request,
@@ -60,6 +63,23 @@ pub(crate) fn validate_document_extract_request_metadata(
         profile,
         mode,
         wait_ms,
+        audio_worker: optional_document_extract_string(metadata, WENDAO_AUDIO_WORKER_HEADER),
+        audio_hosted_provider: optional_document_extract_string(
+            metadata,
+            WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
+        ),
+        audio_hosted_base_url: optional_document_extract_string(
+            metadata,
+            WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+        ),
+        audio_hosted_endpoint: optional_document_extract_string(
+            metadata,
+            WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER,
+        ),
+        audio_hosted_model: optional_document_extract_string(
+            metadata,
+            WENDAO_AUDIO_HOSTED_MODEL_HEADER,
+        ),
     })
 }
 
@@ -95,6 +115,18 @@ fn optional_document_extract_bool(
             "invalid document extract {label} header `{header}`"
         ))),
     }
+}
+
+fn optional_document_extract_string(
+    metadata: &MetadataMap,
+    header: &'static str,
+) -> Option<String> {
+    metadata
+        .get(header)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
 }
 
 pub(crate) fn validate_document_extract_status_request_metadata(

@@ -90,51 +90,16 @@ impl StudioDocumentExtractFlightRouteProvider {
             "_org_document",
         )?];
 
-        let mut attachment_groups = Vec::new();
-        let mut analysis_requests = Vec::new();
-        for (index, link) in extract_org_attachment_links(content.as_str())
-            .iter()
-            .enumerate()
-        {
-            let resolved = resolve_org_attachment_source(source, link);
-            let link_batch =
-                build_org_attachment_link_resource_batch(source, link, index, resolved.as_deref())?;
-
-            let analysis = resolved
-                .filter(|path| {
-                    path.is_file()
-                        && !is_native_org_source(path.as_path())
-                        && should_analyze_org_attachment(path.as_path())
-                })
-                .map(|attachment_source| NativeOrgAttachmentAnalysisRequest {
-                    index,
-                    source_path: attachment_source.to_string_lossy().to_string(),
-                    output_dir: output
-                        .join("_org_attachments")
-                        .join(format!("attachment-{index:04}"))
-                        .to_string_lossy()
-                        .to_string(),
-                });
-            if let Some(request) = analysis.clone() {
-                analysis_requests.push(request);
-            }
-            attachment_groups.push(NativeOrgAttachmentGroup {
-                link_batch,
-                analysis,
-            });
-        }
+        let (attachment_groups, analysis_requests) =
+            collect_native_org_attachment_groups(source, output, content.as_str())?;
 
         let mut analysis_batches = self
             .analyze_native_org_attachments(analysis_requests, force, error_row)
             .await?;
-        for group in attachment_groups {
-            batches.push(group.link_batch);
-            if let Some(request) = group.analysis
-                && let Some(mut attachment_batches) = analysis_batches.remove(&request.index)
-            {
-                batches.append(&mut attachment_batches);
-            }
-        }
+        batches.extend(native_org_attachment_batches(
+            attachment_groups,
+            &mut analysis_batches,
+        ));
 
         Ok(batches)
     }
@@ -181,6 +146,71 @@ struct NativeOrgAttachmentAnalysisRequest {
     index: usize,
     source_path: String,
     output_dir: String,
+}
+
+fn collect_native_org_attachment_groups(
+    source: &Path,
+    output: &Path,
+    content: &str,
+) -> Result<
+    (
+        Vec<NativeOrgAttachmentGroup>,
+        Vec<NativeOrgAttachmentAnalysisRequest>,
+    ),
+    String,
+> {
+    let attachment_groups = extract_org_attachment_links(content)
+        .iter()
+        .enumerate()
+        .map(|(index, link)| {
+            let resolved = resolve_org_attachment_source(source, link);
+            let link_batch =
+                build_org_attachment_link_resource_batch(source, link, index, resolved.as_deref())?;
+            let analysis = resolved
+                .filter(|path| {
+                    path.is_file()
+                        && !is_native_org_source(path.as_path())
+                        && should_analyze_org_attachment(path.as_path())
+                })
+                .map(|attachment_source| NativeOrgAttachmentAnalysisRequest {
+                    index,
+                    source_path: attachment_source.to_string_lossy().to_string(),
+                    output_dir: output
+                        .join("_org_attachments")
+                        .join(format!("attachment-{index:04}"))
+                        .to_string_lossy()
+                        .to_string(),
+                });
+
+            Ok(NativeOrgAttachmentGroup {
+                link_batch,
+                analysis,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let analysis_requests = attachment_groups
+        .iter()
+        .filter_map(|group| group.analysis.clone())
+        .collect();
+    Ok((attachment_groups, analysis_requests))
+}
+
+fn native_org_attachment_batches(
+    attachment_groups: Vec<NativeOrgAttachmentGroup>,
+    analysis_batches: &mut BTreeMap<usize, Vec<RecordBatch>>,
+) -> Vec<RecordBatch> {
+    attachment_groups
+        .into_iter()
+        .flat_map(|group| {
+            let mut batches = vec![group.link_batch];
+            if let Some(request) = group.analysis
+                && let Some(mut attachment_batches) = analysis_batches.remove(&request.index)
+            {
+                batches.append(&mut attachment_batches);
+            }
+            batches
+        })
+        .collect()
 }
 
 fn namespace_native_org_attachment_batches(

@@ -4,7 +4,11 @@ mod client;
 mod recovery;
 mod workflow;
 
-pub use client::{AudioShardFlightClient, AudioShardFlightResponse, AudioShardWorkflowExecution};
+pub use client::{
+    AudioShardFlightClient, AudioShardFlightRequestOptions, AudioShardFlightResponse,
+    AudioShardWorkflowExecution,
+};
+pub(crate) use recovery::empty_patch_gate_report;
 pub use recovery::{AudioShardRecoveryPlanRequest, AudioShardRecoveryPlanning};
 pub use workflow::{AudioShardRecoveryWorkflowExecution, AudioShardRecoveryWorkflowRequest};
 

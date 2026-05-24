@@ -169,6 +169,17 @@ rows in `readingOrderKey` order, removes exact overlap text only at shard
 boundaries, and reports failed, skipped, missing, and duplicate shard coverage
 for Studio precision gates. Backend model names remain analyzer configuration,
 not attachment identity.
+When the optional `artifact-cache` feature is enabled, materialization can also
+restore or persist normalized shard media through the db-store
+`ArtifactBlobCache` filesystem baseline. This cache stores artifact bytes only:
+it does not change the audio shard Arrow schemas, backend selection, merge
+rules, or precision gates. Force refresh still bypasses stale request-output
+files, but verified content-addressed shard artifacts may satisfy the
+materialization request without invoking the media splitter again.
+When Studio needs a worker budget for audio shard dispatch, attachments projects
+model-neutral shard pressure facts into the `xiuxian-polyglot-orchestrator`
+audio schedule contract instead of letting Python invent a production
+concurrency policy.
 
 Attachments also owns the model-neutral recovery selection, planning, and patch
 gate. After a base transcript pass, Rust can select risky parent shards using

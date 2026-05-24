@@ -6,12 +6,22 @@ use std::ffi::OsString;
 use std::fs;
 use std::io::Read;
 use std::process::Command;
+#[cfg(feature = "artifact-cache")]
+use xiuxian_db_store::artifact_cache::{
+    ArtifactBlobCache, ArtifactBlobWrite, ArtifactKey, ArtifactKeyParts, ArtifactKind,
+    ContentAddressedFilesystemBlobCache,
+};
 
+#[cfg(feature = "artifact-cache")]
+use super::identity::sha256_hex;
 use super::plan::plan_audio_shards;
 use super::types::{
-    AudioShardManifestItem, AudioShardMaterializationInput, AudioShardMaterializedItem,
-    AudioShardPlan,
+    AudioShardManifestItem, AudioShardMaterializationInput, AudioShardMaterializationSource,
+    AudioShardMaterializedItem, AudioShardPlan,
 };
+
+#[cfg(feature = "artifact-cache")]
+const AUDIO_SHARD_ARTIFACT_CACHE_NAMESPACE: &str = "audio-shards";
 
 /// Materialize planned audio shards with local `ffmpeg` in parallel.
 ///
@@ -54,6 +64,18 @@ fn materialize_one(
             manifest,
             output_path,
             shard_sha256,
+            materialization_source: AudioShardMaterializationSource::ExistingOutput,
+        });
+    }
+    #[cfg(feature = "artifact-cache")]
+    if let Some(shard_sha256) =
+        restore_audio_shard_from_artifact_cache(input, &manifest, output_path.as_path())?
+    {
+        return Ok(AudioShardMaterializedItem {
+            manifest,
+            output_path,
+            shard_sha256,
+            materialization_source: AudioShardMaterializationSource::ArtifactCache,
         });
     }
     let status = Command::new(input.ffmpeg_path.as_path())
@@ -76,11 +98,75 @@ fn materialize_one(
             manifest.shard_id
         ));
     }
+    #[cfg(feature = "artifact-cache")]
+    write_audio_shard_to_artifact_cache(input, &manifest, output_path.as_path())?;
     Ok(AudioShardMaterializedItem {
         shard_sha256: file_sha256_hex(output_path.as_path())?,
         manifest,
         output_path,
+        materialization_source: AudioShardMaterializationSource::MediaSplitter,
     })
+}
+
+#[cfg(feature = "artifact-cache")]
+fn restore_audio_shard_from_artifact_cache(
+    input: &AudioShardMaterializationInput,
+    manifest: &AudioShardManifestItem,
+    output_path: &std::path::Path,
+) -> Result<Option<String>, String> {
+    let Some(cache_root) = input.artifact_cache_dir.as_ref() else {
+        return Ok(None);
+    };
+    let cache = ContentAddressedFilesystemBlobCache::new(cache_root.clone());
+    let key = audio_shard_artifact_key(manifest)?;
+    let Some(read) = cache
+        .read(&key)
+        .map_err(|error| format!("read audio shard artifact cache: {error}"))?
+    else {
+        return Ok(None);
+    };
+    fs::write(output_path, read.bytes()).map_err(|error| {
+        format!(
+            "failed to restore audio shard {} from artifact cache: {error}",
+            output_path.display()
+        )
+    })?;
+    file_sha256_hex(output_path).map(Some)
+}
+
+#[cfg(feature = "artifact-cache")]
+fn write_audio_shard_to_artifact_cache(
+    input: &AudioShardMaterializationInput,
+    manifest: &AudioShardManifestItem,
+    output_path: &std::path::Path,
+) -> Result<(), String> {
+    let Some(cache_root) = input.artifact_cache_dir.as_ref() else {
+        return Ok(());
+    };
+    let bytes = fs::read(output_path).map_err(|error| {
+        format!(
+            "failed to read audio shard {} for artifact cache: {error}",
+            output_path.display()
+        )
+    })?;
+    let cache = ContentAddressedFilesystemBlobCache::new(cache_root.clone());
+    let key = audio_shard_artifact_key(manifest)?;
+    cache
+        .write(&key, ArtifactBlobWrite::new(bytes.as_slice()))
+        .map_err(|error| format!("write audio shard artifact cache: {error}"))?;
+    Ok(())
+}
+
+#[cfg(feature = "artifact-cache")]
+fn audio_shard_artifact_key(manifest: &AudioShardManifestItem) -> Result<ArtifactKey, String> {
+    ArtifactKey::from_parts(ArtifactKeyParts {
+        namespace: AUDIO_SHARD_ARTIFACT_CACHE_NAMESPACE.to_owned(),
+        kind: ArtifactKind::AudioChunk,
+        source_digest: manifest.source_sha256.clone(),
+        profile_digest: sha256_hex(manifest.cache_key.as_bytes()),
+        shard_digest: manifest.shard_id.clone(),
+    })
+    .map_err(|error| format!("build audio shard artifact cache key: {error}"))
 }
 
 fn shard_file_name(manifest: &AudioShardManifestItem) -> String {

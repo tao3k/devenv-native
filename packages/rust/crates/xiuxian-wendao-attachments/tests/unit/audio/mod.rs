@@ -3,10 +3,10 @@
 pub(super) use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchCandidate, AudioRecoveryPatchDecisionKind, AudioRecoveryPatchGateOptions,
     AudioRecoveryPatchMergeRequest, AudioResultCacheInput, AudioRiskParentSelectionOptions,
-    AudioShardInput, AudioShardMaterializationInput, AudioShardPlan, AudioShardPlannerInput,
-    AudioShardRequestMetric, AudioShardResult, AudioShardResultStatus, AudioShardStrategy,
-    AudioSourceIdentity, AudioSpeechSegment, AudioSpeechWindowPlannerInput,
-    AudioTranscriptOrgLedgerOptions, DEFAULT_AUDIO_SHARD_PROFILE,
+    AudioShardInput, AudioShardMaterializationInput, AudioShardMaterializationSource,
+    AudioShardPlan, AudioShardPlannerInput, AudioShardRequestMetric, AudioShardResult,
+    AudioShardResultStatus, AudioShardStrategy, AudioSourceIdentity, AudioSpeechSegment,
+    AudioSpeechWindowPlannerInput, AudioTranscriptOrgLedgerOptions, DEFAULT_AUDIO_SHARD_PROFILE,
     apply_audio_recovery_patch_decisions, audio_result_cache_key,
     build_audio_recovery_patch_candidates, build_audio_recovery_speech_window_plan_for_inputs,
     build_audio_recovery_split_plan, build_audio_recovery_split_plan_for_inputs,
@@ -32,6 +32,7 @@ mod planning;
 mod recovery_patch;
 mod recovery_select;
 mod speech_segments;
+mod transcript_admission;
 
 fn sample_plan() -> AudioShardPlan {
     AudioShardPlan {

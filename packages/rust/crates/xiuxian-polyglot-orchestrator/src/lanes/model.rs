@@ -43,6 +43,8 @@ pub enum LaneCapability {
     DocumentExtraction,
     /// OCR shard extraction through the existing analyzer service.
     OcrShardExtraction,
+    /// Audio shard transcription through the existing analyzer service.
+    AudioShardTranscription,
     /// Julia-side graph evidence projection.
     GraphEvidenceCompute,
     /// Julia-side graph search, structural rerank, and constraint filtering.
@@ -58,7 +60,9 @@ impl LaneCapability {
     #[must_use]
     pub const fn owning_lane(self) -> PolyglotLane {
         match self {
-            Self::DocumentExtraction | Self::OcrShardExtraction => PolyglotLane::PythonDocling,
+            Self::DocumentExtraction | Self::OcrShardExtraction | Self::AudioShardTranscription => {
+                PolyglotLane::PythonDocling
+            }
             Self::GraphEvidenceCompute
             | Self::GraphSearchCompute
             | Self::ScientificCompute

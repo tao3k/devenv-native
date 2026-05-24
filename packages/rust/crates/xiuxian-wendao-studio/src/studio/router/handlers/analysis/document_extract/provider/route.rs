@@ -76,6 +76,22 @@ impl StudioDocumentExtractFlightRouteProvider {
         }
     }
 
+    #[cfg(all(test, feature = "document-extract-audio-shards"))]
+    pub(super) fn from_registry_with_audio_worker_limit(
+        registry: Result<DocumentExtractJobRegistry, String>,
+        conversion_limit: usize,
+        audio_worker_limit: usize,
+    ) -> Self {
+        Self {
+            runtime: Arc::new(DocumentExtractProviderRuntime::new_with_audio_worker_limit(
+                registry,
+                conversion_limit,
+                audio_worker_limit,
+            )),
+            configured_default_endpoint: None,
+        }
+    }
+
     pub(crate) fn status(&self, job_id: &str) -> Result<Option<DocumentExtractJobStatus>, String> {
         let _registry_guard = self.registry_lock();
         self.registry()?.status(job_id)
@@ -98,6 +114,8 @@ impl StudioDocumentExtractFlightRouteProvider {
         let available_conversion_permits = self.runtime.conversion_permits.available_permits();
         #[cfg(feature = "document-extract-pdf-source-range")]
         let pdf_ocr_snapshot = self.runtime.pdf_ocr_scheduler.snapshot();
+        #[cfg(feature = "document-extract-audio-shards")]
+        let audio_snapshot = self.runtime.audio_capacity.snapshot();
         let registry_snapshot = {
             let _registry_guard = self.registry_lock();
             self.registry()?.snapshot()?
@@ -143,6 +161,16 @@ impl StudioDocumentExtractFlightRouteProvider {
             pdf_ocr_budget_increase_events: pdf_ocr_snapshot.budget_increase_events,
             #[cfg(feature = "document-extract-pdf-source-range")]
             pdf_ocr_budget_decrease_events: pdf_ocr_snapshot.budget_decrease_events,
+            #[cfg(feature = "document-extract-audio-shards")]
+            max_audio_shard_workers: audio_snapshot.max_worker_bound,
+            #[cfg(feature = "document-extract-audio-shards")]
+            current_audio_shard_worker_budget: audio_snapshot.current_worker_budget,
+            #[cfg(feature = "document-extract-audio-shards")]
+            audio_shard_healthy_streak: audio_snapshot.healthy_streak,
+            #[cfg(feature = "document-extract-audio-shards")]
+            audio_shard_budget_increase_events: audio_snapshot.budget_increase_events,
+            #[cfg(feature = "document-extract-audio-shards")]
+            audio_shard_budget_decrease_events: audio_snapshot.budget_decrease_events,
             in_process_scheduled_jobs: scheduled_count,
             registry: registry_snapshot,
         })

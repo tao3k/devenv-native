@@ -9,6 +9,12 @@ runtime code.
 - `engine`: exposes Arrow/DataFusion engine record batches, IPC helpers,
   retrieval result schemas, and Parquet write helpers without compiling
   `xiuxian-vector` or LanceDB.
+- `artifact-cache`: exposes attachment and document extraction artifact cache
+  contracts plus the content-addressed filesystem baseline. This feature does
+  not enable Foyer, Moka, DuckDB, or Valkey by itself.
+- `foyer-artifact-cache`: enables the optional Foyer implementation behind
+  `ArtifactBlobCache`. This feature admits Foyer as an L2 artifact byte-cache
+  candidate only; route adoption still requires benchmark evidence.
 - `vector-store`: re-exports the Lance/vector storage surface from
   `xiuxian-vector` for explicit vector-store consumers.
 - `duckdb-types`: exposes generic DuckDB runtime config and SQL helper types
@@ -29,6 +35,31 @@ Generic DuckDB and DuckLake storage primitives belong here. Wendao may still
 own search-specific runtime resolution, Flight-facing behavior, event-lake
 schemas, and query routing, but it should consume the generic connection,
 catalog attach, and Arrow appender helper surface from this crate.
+
+Attachment and document extraction artifact cache contracts also belong here
+behind `artifact-cache`. The contract is intentionally split from the truth
+catalog: DuckDB remains responsible for artifact identity, lineage, precision
+status, and read-model projection; Arrow IPC and Parquet remain the payload and
+interchange formats; Valkey remains the cross-process lease and in-flight
+coordination surface. The baseline implementation stores artifact bytes in a
+content-addressed filesystem layout keyed by namespace, artifact kind, source
+digest, profile digest, and shard digest.
+
+Foyer is a candidate implementation for a future L2 artifact blob cache, not a
+replacement for DuckDB, Arrow, or Valkey. Any Foyer backend must stay behind
+the `ArtifactBlobCache` contract, remain feature-gated, and prove better
+restart reuse, warm-hit latency, or managed eviction than the filesystem
+baseline before route adoption. Moka is not part of the current mainline
+artifact-cache contract because the active bottleneck is large artifact reuse,
+not process-local metadata lookup.
+
+The `foyer-artifact-cache` feature is therefore a dependency-admission spike,
+not a production routing switch. It provides `FoyerArtifactBlobCache` for
+direct comparison with `ContentAddressedFilesystemBlobCache`, while Studio,
+audio extraction, and PDF/OCR routes must continue to consume the backend only
+through `ArtifactBlobCache`. Restart-reuse promotion remains blocked until the
+Foyer close/flush/reopen lifecycle probe passes under the synchronous
+`ArtifactBlobCache` wrapper.
 
 DuckLake support is intentionally embedded-first. This crate owns local
 metadata-file and PostgreSQL-catalog attach configuration, extension bootstrap

@@ -3,6 +3,7 @@ use std::fs;
 use super::{
     MARKDOWN_HEADING_CANDIDATE_SOURCE, MAX_CANDIDATES,
     discover_search_strategy_flow_candidate_inputs,
+    discover_search_strategy_flow_candidate_inputs_with_limit,
     search_strategy_flow_candidate_input_batch_from_markdown,
 };
 
@@ -89,6 +90,97 @@ fn discovery_preserves_route_diverse_candidates_before_julia_pruning()
             .relative_path
             .starts_with("docs/10_graph_compute/")
     }));
+    Ok(())
+}
+
+#[test]
+fn discovery_promotes_canonical_authority_and_validation_markdown()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempfile::tempdir()?;
+    let rfc_dir = temp_dir.path().join("docs/rfcs");
+    let testing_dir = temp_dir.path().join("docs/testing");
+    let feature_dir = temp_dir
+        .path()
+        .join("packages/rust/crates/xiuxian-wendao/docs/03_features");
+    fs::create_dir_all(&rfc_dir)?;
+    fs::create_dir_all(&testing_dir)?;
+    fs::create_dir_all(&feature_dir)?;
+
+    fs::write(
+        rfc_dir.join("2026-03-26-wendao-query-engine-rfc.md"),
+        "# RFC: Wendao Query Engine\n\n## Ownership Boundary\n\nThe query engine ownership boundary and source authority are defined here.\n",
+    )?;
+    fs::write(
+        rfc_dir
+            .join("2026-05-11-wendao-pragmatic-ontology-extensibility-and-sql-validation-rfc.md"),
+        "# SQL Validation RFC\n\n## Pragmatic ontology extensibility and SQL-driven validation\n\nValidation support text.\n",
+    )?;
+    fs::write(
+        testing_dir.join("README.md"),
+        "# Testing\n\n## Default validation path\n\nBoth local validation and CI test proof are recorded here.\n",
+    )?;
+    fs::write(
+        feature_dir.join("210_search_queries_architecture.md"),
+        "# Search Queries Architecture\n\n## Current ownership matrix\n\nSearch query engine authority matrix.\n",
+    )?;
+
+    let authority_candidates = discover_search_strategy_flow_candidate_inputs(
+        "Find the RFC Markdown section that establishes the Wendao query engine ownership boundary and source authority.",
+        temp_dir.path(),
+    )?;
+    assert!(authority_candidates.iter().any(|candidate| {
+        candidate.relative_path == "docs/rfcs/2026-03-26-wendao-query-engine-rfc.md"
+    }));
+
+    let validation_candidates = discover_search_strategy_flow_candidate_inputs(
+        "Find the Markdown validation path that explains local validation and CI test proof.",
+        temp_dir.path(),
+    )?;
+    assert!(validation_candidates.iter().any(|candidate| {
+        candidate.relative_path == "docs/testing/README.md"
+            && candidate.heading_anchor == "default-validation-path"
+    }));
+    Ok(())
+}
+
+#[test]
+fn discovery_authority_seed_follows_query_domain() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempfile::tempdir()?;
+    let rfc_dir = temp_dir.path().join("docs/rfcs");
+    fs::create_dir_all(&rfc_dir)?;
+
+    fs::write(
+        rfc_dir.join("2026-03-26-wendao-query-engine-rfc.md"),
+        "# RFC: Wendao Query Engine\n\n## Boundary\n\nQuery engine source authority.\n",
+    )?;
+    fs::write(
+        rfc_dir.join("2026-05-04-polyglot-compute-orchestrator-audit.md"),
+        "# Audit: Polyglot Compute Orchestrator\n\n## Boundary Calibration\n\nPolyglot compute orchestrator evidence calibration.\n",
+    )?;
+
+    let query_engine_candidates = discover_search_strategy_flow_candidate_inputs_with_limit(
+        "Find the RFC Markdown section that establishes the Wendao query engine ownership boundary and source authority.",
+        temp_dir.path(),
+        1,
+    )?;
+    assert_eq!(
+        query_engine_candidates
+            .first()
+            .map(|candidate| candidate.relative_path.as_str()),
+        Some("docs/rfcs/2026-03-26-wendao-query-engine-rfc.md")
+    );
+
+    let polyglot_candidates = discover_search_strategy_flow_candidate_inputs_with_limit(
+        "Find the Markdown RFC and audit for the polyglot compute orchestrator boundary calibration.",
+        temp_dir.path(),
+        1,
+    )?;
+    assert_eq!(
+        polyglot_candidates
+            .first()
+            .map(|candidate| candidate.relative_path.as_str()),
+        Some("docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md")
+    );
     Ok(())
 }
 

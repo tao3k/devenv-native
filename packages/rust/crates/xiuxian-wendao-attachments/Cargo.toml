@@ -9,6 +9,10 @@ publish = false
 
 [features]
 default = []
+artifact-cache = [
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/artifact-cache",
+]
 audio-shard-arrow = [
   "dep:arrow",
 ]
@@ -39,6 +43,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 tar = { workspace = true, optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator" }
 
 [dev-dependencies]

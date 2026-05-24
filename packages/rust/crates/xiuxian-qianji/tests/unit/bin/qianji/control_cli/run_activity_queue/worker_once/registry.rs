@@ -160,6 +160,19 @@ fn activity_executor_registry_accepts_episteme_reasoning_openai_compatible_gate(
 }
 
 #[test]
+fn activity_executor_registry_rejects_episteme_reasoning_openai_compatible_without_context_ref() {
+    let mut task = registry_episteme_openai_compatible_llm_task();
+    task.metadata["qianji_llm_activity_request"]["context_ref"] = serde_json::Value::Null;
+
+    let error = ActivityExecutorRegistry::fixture_only()
+        .validate_task(ActivityExecutorKindArg::OpenAiCompatibleLlm, Some(&task))
+        .err()
+        .unwrap_or_else(|| panic!("missing Episteme context_ref should fail LLM executor gate"));
+
+    assert!(error.to_string().contains("Episteme reasoning context_ref"));
+}
+
+#[test]
 fn activity_executor_registry_rejects_openai_compatible_llm_without_input_ref() {
     let mut task = registry_openai_compatible_llm_task();
     task.input_ref = None;

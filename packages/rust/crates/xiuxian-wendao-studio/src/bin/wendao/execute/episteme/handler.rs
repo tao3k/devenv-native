@@ -2,9 +2,10 @@ use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{
     Cli, Command, EpistemeApplyOntologySourcePatchArgs, EpistemeCommand, EpistemeEvidenceCommand,
     EpistemeEvidenceReadValidationModeArg, EpistemeEvidenceSelectionValidationModeArg,
-    EpistemeGenerateOntologyCandidatesArgs, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeReviewOntologyCandidatesArgs, EpistemeSourceContractCommand,
-    EpistemeStructuralIdfValidationModeArg, EpistemeStructureCommand,
+    EpistemeGenerateOntologyCandidatesArgs, EpistemeImportQianjiReviewCandidatesArgs,
+    EpistemeInspectOntologyCandidatesArgs, EpistemePlanExtractionRunArgs, EpistemeReadEvidenceArgs,
+    EpistemeReviewOntologyCandidatesArgs, EpistemeSourceContractCommand,
+    EpistemeStructuralFactsValidationModeArg, EpistemeStructureCommand,
     EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
     EpistemeWriteOntologyPromotionApplyPlanArgs, EpistemeWriteOntologyPromotionReviewArgs,
     EpistemeWriteOntologyRdfDraftArgs, EpistemeWriteOntologySourcePatchApplyPlanArgs,
@@ -12,11 +13,11 @@ use crate::bin_support::wendao::types::{
     EpistemeWriteOntologySourcePatchPreflightArgs,
     EpistemeWriteOntologySourcePatchRdfReadModelArgs,
     EpistemeWriteOntologySourcePatchReviewPacketArgs,
-    EpistemeWriteOntologySourcePatchSemanticPreviewArgs, EpistemeWriteStructuralIdfArgs,
-    EpistemeWriteStructuralIdfReasoningFillPlanArgs,
-    EpistemeWriteStructuralIdfReasoningLedgerSeedArgs,
-    EpistemeWriteStructuralIdfReasoningPacketArgs,
-    EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs, EpistemeWriteStructureTocArgs,
+    EpistemeWriteOntologySourcePatchSemanticPreviewArgs, EpistemeWriteStructuralFactsArgs,
+    EpistemeWriteStructuralFactsReasoningFillPlanArgs,
+    EpistemeWriteStructuralFactsReasoningLedgerSeedArgs,
+    EpistemeWriteStructuralFactsReasoningPacketArgs,
+    EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs, EpistemeWriteStructureTocArgs,
 };
 use anyhow::Result;
 use xiuxian_wendao::episteme::{
@@ -30,18 +31,20 @@ use xiuxian_wendao::episteme::{
 use xiuxian_wendao_episteme::{
     EpistemeOntologyCandidateGenerationRequest, EpistemeOntologyCandidateReviewRequest,
     EpistemeOntologyPromotionApplyPlanRequest, EpistemeOntologyPromotionReviewPacketRequest,
-    EpistemeOntologyRdfDraftExportRequest, EpistemeOntologySourcePatchApplyPlanRequest,
-    EpistemeOntologySourcePatchApplyPreviewRequest, EpistemeOntologySourcePatchApplyRequest,
-    EpistemeOntologySourcePatchDraftRequest, EpistemeOntologySourcePatchPreflightRequest,
-    EpistemeOntologySourcePatchRdfReadModelRequest, EpistemeOntologySourcePatchReviewPacketRequest,
+    EpistemeOntologyQianjiReviewCandidateImportRequest, EpistemeOntologyRdfDraftExportRequest,
+    EpistemeOntologySourcePatchApplyPlanRequest, EpistemeOntologySourcePatchApplyPreviewRequest,
+    EpistemeOntologySourcePatchApplyRequest, EpistemeOntologySourcePatchDraftRequest,
+    EpistemeOntologySourcePatchPreflightRequest, EpistemeOntologySourcePatchRdfReadModelRequest,
+    EpistemeOntologySourcePatchReviewPacketRequest,
     EpistemeOntologySourcePatchSemanticPreviewRequest,
-    EpistemeOntologyStructuralIdfReasoningFillPlanRequest,
-    EpistemeOntologyStructuralIdfReasoningLedgerSeedRequest,
-    EpistemeOntologyStructuralIdfReasoningPacketRequest,
-    EpistemeOntologyStructuralIdfReasoningQianjiSchedulePlanRequest,
-    EpistemeOntologyStructuralIdfRequest, EpistemeOntologyStructuralIdfValidationMode,
-    apply_episteme_ontology_source_patch, export_episteme_ontology_rdf_draft,
-    export_episteme_ontology_source_patch_draft, generate_episteme_ontology_candidates,
+    EpistemeOntologyStructuralFactsConfiguredRequest,
+    EpistemeOntologyStructuralFactsReasoningFillPlanRequest,
+    EpistemeOntologyStructuralFactsReasoningLedgerSeedRequest,
+    EpistemeOntologyStructuralFactsReasoningPacketRequest,
+    EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest,
+    EpistemeOntologyStructuralFactsValidationMode, apply_episteme_ontology_source_patch,
+    export_episteme_ontology_rdf_draft, export_episteme_ontology_source_patch_draft,
+    generate_episteme_ontology_candidates, import_episteme_ontology_qianji_review_candidates,
     review_episteme_ontology_candidates, write_episteme_ontology_promotion_apply_plan,
     write_episteme_ontology_promotion_review_packet,
     write_episteme_ontology_source_patch_apply_plan,
@@ -49,11 +52,15 @@ use xiuxian_wendao_episteme::{
     write_episteme_ontology_source_patch_preflight,
     write_episteme_ontology_source_patch_rdf_read_model,
     write_episteme_ontology_source_patch_review_packet,
-    write_episteme_ontology_source_patch_semantic_preview, write_episteme_ontology_structural_idf,
-    write_episteme_ontology_structural_idf_reasoning_fill_plan,
-    write_episteme_ontology_structural_idf_reasoning_ledger_seed,
-    write_episteme_ontology_structural_idf_reasoning_packet,
-    write_episteme_ontology_structural_idf_reasoning_qianji_schedule_plan,
+    write_episteme_ontology_source_patch_semantic_preview,
+    write_episteme_ontology_structural_facts_from_config,
+    write_episteme_ontology_structural_facts_reasoning_fill_plan,
+    write_episteme_ontology_structural_facts_reasoning_ledger_seed,
+    write_episteme_ontology_structural_facts_reasoning_packet,
+    write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan,
+};
+use xiuxian_wendao_sql::candidate_read_model::{
+    CandidateReadModelDuckDbInspectionRequest, inspect_candidate_read_model_with_duckdb,
 };
 
 use super::cache::{
@@ -63,6 +70,9 @@ use super::cache::{
 use super::root::{
     load_runtime_config, resolve_corpus_root, resolve_episteme_root, resolve_run_root,
 };
+
+pub(super) const DEFAULT_EPISTEME_OPENAI_COMPATIBLE_PROMPT_AUDIT_MODEL: &str =
+    "deepseek/deepseek-v4-pro";
 
 pub(crate) fn handle(cli: &Cli) -> Result<()> {
     let Command::Episteme { command } = &cli.command else {
@@ -80,21 +90,21 @@ pub(crate) fn handle(cli: &Cli) -> Result<()> {
             EpistemeSourceContractCommand::PlanExtractionRun(args) => {
                 plan_episteme_source_contract(cli, args)
             }
-            EpistemeSourceContractCommand::WriteStructuralIdf(args) => {
-                write_episteme_structural_idf_command(cli, args)
+            EpistemeSourceContractCommand::WriteStructuralFacts(args) => {
+                write_episteme_structural_facts_command(cli, args)
             }
-            EpistemeSourceContractCommand::WriteStructuralIdfReasoningPacket(args) => {
-                write_episteme_structural_idf_reasoning_packet_command(cli, args)
+            EpistemeSourceContractCommand::WriteStructuralFactsReasoningPacket(args) => {
+                write_episteme_structural_facts_reasoning_packet_command(cli, args)
             }
-            EpistemeSourceContractCommand::WriteStructuralIdfReasoningLedgerSeed(args) => {
-                write_episteme_structural_idf_reasoning_ledger_seed_command(cli, args)
+            EpistemeSourceContractCommand::WriteStructuralFactsReasoningLedgerSeed(args) => {
+                write_episteme_structural_facts_reasoning_ledger_seed_command(cli, args)
             }
-            EpistemeSourceContractCommand::WriteStructuralIdfReasoningFillPlan(args) => {
-                write_episteme_structural_idf_reasoning_fill_plan_command(cli, args)
+            EpistemeSourceContractCommand::WriteStructuralFactsReasoningFillPlan(args) => {
+                write_episteme_structural_facts_reasoning_fill_plan_command(cli, args)
             }
-            EpistemeSourceContractCommand::WriteStructuralIdfReasoningQianjiSchedulePlan(args) => {
-                write_episteme_structural_idf_reasoning_qianji_schedule_plan_command(cli, args)
-            }
+            EpistemeSourceContractCommand::WriteStructuralFactsReasoningQianjiSchedulePlan(
+                args,
+            ) => write_episteme_structural_facts_reasoning_qianji_schedule_plan_command(cli, args),
             EpistemeSourceContractCommand::RunImageOcrCache(args) => {
                 run_episteme_image_ocr_cache(cli, args)
             }
@@ -109,6 +119,12 @@ pub(crate) fn handle(cli: &Cli) -> Result<()> {
             }
             EpistemeSourceContractCommand::ReviewOntologyCandidates(args) => {
                 review_episteme_ontology_candidates_command(cli, args)
+            }
+            EpistemeSourceContractCommand::InspectOntologyCandidates(args) => {
+                inspect_episteme_ontology_candidates_command(cli, args)
+            }
+            EpistemeSourceContractCommand::ImportQianjiReviewCandidates(args) => {
+                import_episteme_qianji_review_candidates_command(cli, args)
             }
             EpistemeSourceContractCommand::WriteOntologyRdfDraft(args) => {
                 write_episteme_ontology_rdf_draft_command(cli, args)
@@ -252,38 +268,31 @@ fn plan_episteme_source_contract(cli: &Cli, args: &EpistemePlanExtractionRunArgs
     emit(&report, cli.output_or_json())
 }
 
-fn write_episteme_structural_idf_command(
+fn write_episteme_structural_facts_command(
     cli: &Cli,
-    args: &EpistemeWriteStructuralIdfArgs,
+    args: &EpistemeWriteStructuralFactsArgs,
 ) -> Result<()> {
     let episteme_root = resolve_episteme_root(
         cli,
         &args.episteme_root,
         args.episteme_registry_id.as_deref(),
     )?;
-    let config = load_runtime_config(episteme_root.as_path())?;
-    let corpus_root = resolve_corpus_root(
-        args.corpus_root.as_ref(),
-        episteme_root.as_path(),
-        config.as_ref(),
-    )?;
-    let run_root = resolve_run_root(
-        args.run_root.as_ref(),
-        config
-            .as_ref()
-            .and_then(|config| config.structure_runs.as_ref()),
-        || episteme_root.join("runs/structure"),
-    );
-    let request =
-        EpistemeOntologyStructuralIdfRequest::new(&episteme_root, corpus_root, args.run_id.clone())
+    let mut request =
+        EpistemeOntologyStructuralFactsConfiguredRequest::new(&episteme_root, args.run_id.clone())
             .with_validation_mode(args.validation_mode.into());
-    let report = write_episteme_ontology_structural_idf(&request, run_root)?;
+    if let Some(corpus_root) = &args.corpus_root {
+        request = request.with_corpus_root(corpus_root.clone());
+    }
+    if let Some(run_root) = &args.run_root {
+        request = request.with_run_root(run_root.clone());
+    }
+    let report = write_episteme_ontology_structural_facts_from_config(&request)?;
     emit(&report, cli.output_or_json())
 }
 
-fn write_episteme_structural_idf_reasoning_packet_command(
+fn write_episteme_structural_facts_reasoning_packet_command(
     cli: &Cli,
-    args: &EpistemeWriteStructuralIdfReasoningPacketArgs,
+    args: &EpistemeWriteStructuralFactsReasoningPacketArgs,
 ) -> Result<()> {
     let episteme_root = resolve_episteme_root(
         cli,
@@ -305,11 +314,11 @@ fn write_episteme_structural_idf_reasoning_packet_command(
             .and_then(|config| config.ontology_generation_runs.as_ref()),
         || episteme_root.join("runs/ontology-generation"),
     );
-    let structural_idf_json = structure_run_root
-        .join(&args.structural_idf_run_id)
-        .join("structural_idf.json");
-    let mut request = EpistemeOntologyStructuralIdfReasoningPacketRequest::new(
-        structural_idf_json,
+    let structural_facts_json = structure_run_root
+        .join(&args.structural_facts_run_id)
+        .join("structural_facts.json");
+    let mut request = EpistemeOntologyStructuralFactsReasoningPacketRequest::new(
+        structural_facts_json,
         args.run_id.clone(),
     )
     .with_limit(args.limit);
@@ -319,13 +328,13 @@ fn write_episteme_structural_idf_reasoning_packet_command(
     if let Some(route) = &args.route {
         request = request.with_route(route.clone());
     }
-    let report = write_episteme_ontology_structural_idf_reasoning_packet(&request, run_root)?;
+    let report = write_episteme_ontology_structural_facts_reasoning_packet(&request, run_root)?;
     emit(&report, cli.output_or_json())
 }
 
-fn write_episteme_structural_idf_reasoning_ledger_seed_command(
+fn write_episteme_structural_facts_reasoning_ledger_seed_command(
     cli: &Cli,
-    args: &EpistemeWriteStructuralIdfReasoningLedgerSeedArgs,
+    args: &EpistemeWriteStructuralFactsReasoningLedgerSeedArgs,
 ) -> Result<()> {
     let episteme_root = resolve_episteme_root(
         cli,
@@ -350,18 +359,19 @@ fn write_episteme_structural_idf_reasoning_ledger_seed_command(
     let reasoning_packet_json = reasoning_packet_root
         .join(&args.reasoning_packet_run_id)
         .join("reasoning_packet.json");
-    let request = EpistemeOntologyStructuralIdfReasoningLedgerSeedRequest::new(
+    let request = EpistemeOntologyStructuralFactsReasoningLedgerSeedRequest::new(
         reasoning_packet_json,
         args.run_id.clone(),
     )
     .with_limit(args.limit);
-    let report = write_episteme_ontology_structural_idf_reasoning_ledger_seed(&request, run_root)?;
+    let report =
+        write_episteme_ontology_structural_facts_reasoning_ledger_seed(&request, run_root)?;
     emit(&report, cli.output_or_json())
 }
 
-fn write_episteme_structural_idf_reasoning_fill_plan_command(
+fn write_episteme_structural_facts_reasoning_fill_plan_command(
     cli: &Cli,
-    args: &EpistemeWriteStructuralIdfReasoningFillPlanArgs,
+    args: &EpistemeWriteStructuralFactsReasoningFillPlanArgs,
 ) -> Result<()> {
     let episteme_root = resolve_episteme_root(
         cli,
@@ -386,18 +396,18 @@ fn write_episteme_structural_idf_reasoning_fill_plan_command(
     let reasoning_ledger_seed_json = ledger_seed_root
         .join(&args.ledger_seed_run_id)
         .join("reasoning_ledger_seed.json");
-    let request = EpistemeOntologyStructuralIdfReasoningFillPlanRequest::new(
+    let request = EpistemeOntologyStructuralFactsReasoningFillPlanRequest::new(
         reasoning_ledger_seed_json,
         args.run_id.clone(),
     )
     .with_limit(args.limit);
-    let report = write_episteme_ontology_structural_idf_reasoning_fill_plan(&request, run_root)?;
+    let report = write_episteme_ontology_structural_facts_reasoning_fill_plan(&request, run_root)?;
     emit(&report, cli.output_or_json())
 }
 
-fn write_episteme_structural_idf_reasoning_qianji_schedule_plan_command(
+fn write_episteme_structural_facts_reasoning_qianji_schedule_plan_command(
     cli: &Cli,
-    args: &EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs,
+    args: &EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs,
 ) -> Result<()> {
     let episteme_root = resolve_episteme_root(
         cli,
@@ -419,24 +429,57 @@ fn write_episteme_structural_idf_reasoning_qianji_schedule_plan_command(
             .and_then(|config| config.ontology_generation_runs.as_ref()),
         || episteme_root.join("runs/ontology-generation"),
     );
+    let evidence_extraction_run_root = resolve_run_root(
+        args.evidence_extraction_run_root.as_ref(),
+        config
+            .as_ref()
+            .and_then(|config| config.extraction_runs.as_ref()),
+        || episteme_root.join("runs/extraction"),
+    );
     let reasoning_fill_plan_json = fill_plan_root
         .join(&args.fill_plan_run_id)
         .join("reasoning_fill_plan.json");
-    let mut request = EpistemeOntologyStructuralIdfReasoningQianjiSchedulePlanRequest::new(
+    let mut request = EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest::new(
         reasoning_fill_plan_json,
         args.run_id.clone(),
     )
-    .with_limit(args.limit);
+    .with_limit(args.limit)
+    .with_reasoning_context_shard_mode(args.reasoning_context_shard_mode.clone())
+    .with_reasoning_context_shard_row_limit(args.reasoning_context_shard_row_limit)
+    .with_evidence_extraction_run_root(evidence_extraction_run_root);
+    if let Some(target_ledger_field_group) = &args.target_ledger_field_group {
+        request = request.with_target_ledger_field_group(target_ledger_field_group.clone());
+    }
+    if let Some(evidence_target_intent) = &args.evidence_target_intent {
+        request = request.with_evidence_target_intent(evidence_target_intent.clone());
+    }
+    for run_id in &args.evidence_extraction_run_ids {
+        request = request.with_evidence_extraction_run_id(run_id.clone());
+    }
     if let Some(qianji_run_id) = &args.qianji_run_id {
         request = request.with_qianji_run_id(qianji_run_id.clone());
     }
-    if let Some(model) = &args.openai_compatible_model {
-        request = request
-            .with_openai_compatible_prompt_audit(model.clone(), args.openai_compatible_max_tokens);
+    if let Some(model) = openai_compatible_prompt_audit_model(args) {
+        request =
+            request.with_openai_compatible_prompt_audit(model, args.openai_compatible_max_tokens);
     }
-    let report =
-        write_episteme_ontology_structural_idf_reasoning_qianji_schedule_plan(&request, run_root)?;
+    let report = write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan(
+        &request, run_root,
+    )?;
     emit(&report, cli.output_or_json())
+}
+
+pub(super) fn openai_compatible_prompt_audit_model(
+    args: &EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs,
+) -> Option<String> {
+    if let Some(model) = &args.openai_compatible_model {
+        return Some(model.clone());
+    }
+    if args.evidence_extraction_run_ids.is_empty() {
+        None
+    } else {
+        Some(DEFAULT_EPISTEME_OPENAI_COMPATIBLE_PROMPT_AUDIT_MODEL.to_owned())
+    }
 }
 
 fn generate_episteme_ontology_candidates_command(
@@ -492,6 +535,57 @@ fn review_episteme_ontology_candidates_command(
     );
     let request = EpistemeOntologyCandidateReviewRequest::new(run_root.join(&args.run_id));
     let report = review_episteme_ontology_candidates(&request)?;
+    emit(&report, cli.output_or_json())
+}
+
+fn inspect_episteme_ontology_candidates_command(
+    cli: &Cli,
+    args: &EpistemeInspectOntologyCandidatesArgs,
+) -> Result<()> {
+    let episteme_root = resolve_episteme_root(
+        cli,
+        &args.episteme_root,
+        args.episteme_registry_id.as_deref(),
+    )?;
+    let config = load_runtime_config(episteme_root.as_path())?;
+    let run_root = resolve_run_root(
+        args.run_root.as_ref(),
+        config
+            .as_ref()
+            .and_then(|config| config.ontology_generation_runs.as_ref()),
+        || episteme_root.join("runs/ontology-generation"),
+    );
+    let request = CandidateReadModelDuckDbInspectionRequest::from_candidate_run_dir(
+        run_root.join(&args.run_id),
+    );
+    let report = inspect_candidate_read_model_with_duckdb(&request)
+        .map_err(|error| anyhow::anyhow!(error))?;
+    emit(&report, cli.output_or_json())
+}
+
+fn import_episteme_qianji_review_candidates_command(
+    cli: &Cli,
+    args: &EpistemeImportQianjiReviewCandidatesArgs,
+) -> Result<()> {
+    let episteme_root = resolve_episteme_root(
+        cli,
+        &args.episteme_root,
+        args.episteme_registry_id.as_deref(),
+    )?;
+    let config = load_runtime_config(episteme_root.as_path())?;
+    let run_root = resolve_run_root(
+        args.run_root.as_ref(),
+        config
+            .as_ref()
+            .and_then(|config| config.ontology_generation_runs.as_ref()),
+        || episteme_root.join("runs/ontology-generation"),
+    );
+    let mut request =
+        EpistemeOntologyQianjiReviewCandidateImportRequest::new(run_root.join(&args.run_id));
+    for artifact in &args.qianji_review_artifacts {
+        request = request.with_review_artifact(artifact);
+    }
+    let report = import_episteme_ontology_qianji_review_candidates(&request)?;
     emit(&report, cli.output_or_json())
 }
 
@@ -752,11 +846,13 @@ impl From<EpistemeStructureTocValidationModeArg> for EpistemeStructureTocValidat
     }
 }
 
-impl From<EpistemeStructuralIdfValidationModeArg> for EpistemeOntologyStructuralIdfValidationMode {
-    fn from(value: EpistemeStructuralIdfValidationModeArg) -> Self {
+impl From<EpistemeStructuralFactsValidationModeArg>
+    for EpistemeOntologyStructuralFactsValidationMode
+{
+    fn from(value: EpistemeStructuralFactsValidationModeArg) -> Self {
         match value {
-            EpistemeStructuralIdfValidationModeArg::MetadataOnly => Self::MetadataOnly,
-            EpistemeStructuralIdfValidationModeArg::FullHash => Self::FullHash,
+            EpistemeStructuralFactsValidationModeArg::MetadataOnly => Self::MetadataOnly,
+            EpistemeStructuralFactsValidationModeArg::FullHash => Self::FullHash,
         }
     }
 }

@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 mod workspace;
 use tempfile::TempDir;
 use xiuxian_qianji::{
-    FlowhubGraphTopology, FlowhubModuleKind, FlowhubScenarioCaseSummary, FlowhubShow,
-    check_flowhub, classify_flowhub_dir, render_flowhub_check_markdown, render_flowhub_graph_show,
-    render_flowhub_show, show_flowhub, show_flowhub_graph,
+    FlowhubGraphTopology, FlowhubModuleKind, FlowhubShow, check_flowhub, classify_flowhub_dir,
+    render_flowhub_check_markdown, render_flowhub_graph_show, render_flowhub_show, show_flowhub,
+    show_flowhub_graph,
 };
 
 fn repo_root() -> PathBuf {
@@ -424,6 +424,73 @@ flowchart LR
   B --> C["wendao.docs.document"]
   C --> D["done gate"]
 "#,
+    );
+    root
+}
+
+fn create_flowhub_with_invalid_bpmn_source_pair(temp_dir: &TempDir) -> PathBuf {
+    let root = temp_dir.path().join("flowhub");
+    let wendao_dir = root.join("wendao");
+    fs::create_dir_all(&wendao_dir).unwrap_or_else(|error| {
+        panic!("should create wendao dir {}: {error}", wendao_dir.display())
+    });
+    write_file(
+        &root.join("qianji.toml"),
+        r#"
+version = 1
+
+[flowhub]
+name = "test-flowhub"
+
+[contract]
+register = ["wendao"]
+required = ["*/qianji.toml"]
+"#,
+    );
+    write_file(
+        &wendao_dir.join("qianji.toml"),
+        r#"
+version = 1
+
+[module]
+name = "wendao"
+tags = ["planning", "wendao"]
+
+[exports]
+entry = "task.wendao-start"
+ready = "task.wendao-ready"
+
+[contract]
+required = [
+  "docs-search.org",
+  "docs-search.bpmn",
+]
+"#,
+    );
+    write_file(
+        &wendao_dir.join("docs-search.org"),
+        r#"
+#+TITLE: Wendao Docs Search
+
+* Scenario: Wendao Docs Search
+:PROPERTIES:
+:BPMN_SOURCE: docs-search.bpmn
+:BPMN_PROCESS_ID: wendao_docs_search
+:END:
+
+** Mermaid
+
+#+begin_src mermaid
+flowchart LR
+  A["wendao"] --> B["wendao.docs.search"]
+#+end_src
+"#,
+    );
+    write_file(
+        &wendao_dir.join("docs-search.bpmn"),
+        r"
+<not-bpmn />
+",
     );
     root
 }

@@ -34,7 +34,10 @@ pub(crate) use corpus::{
     configured_search_strategy_flow_markdown_replay_families_with_limit,
 };
 #[cfg(test)]
-pub(crate) use discovery::discover_search_strategy_flow_candidate_inputs;
+pub(crate) use discovery::{
+    discover_search_strategy_flow_candidate_inputs,
+    discover_search_strategy_flow_candidate_inputs_with_limit,
+};
 pub(crate) use discovery::{
     search_strategy_flow_candidate_input_batch_from_markdown,
     search_strategy_flow_candidate_input_batch_with_discovery_receipt,

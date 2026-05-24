@@ -4,7 +4,6 @@ use crate::error::QianjiError;
 use crate::{
     advance_workdir_step, check_flowhub, check_flowhub_scenario, check_workdir,
     classify_flowhub_dir, looks_like_flowhub_scenario_dir, looks_like_workdir_dir,
-    materialize_flowhub_anchored_scenario_at_node, render_anchored_materialized_workdir,
     render_flowhub_check_markdown, render_flowhub_graph_show,
     render_flowhub_scenario_check_markdown, render_flowhub_scenario_show, render_flowhub_show,
     render_wendao_docs_contract_show, render_workdir_advance, render_workdir_check_markdown,
@@ -13,7 +12,7 @@ use crate::{
 };
 
 use super::output::{render_missing_workdir_root_output, render_uninitialized_workdir_root_output};
-use super::types::{DirCliCommand, DirCliOutput, MaterializeCliTarget, ShowCliTarget};
+use super::types::{DirCliCommand, DirCliOutput, ShowCliTarget};
 use crate::qianji_cli::workspace::resolve_workspace_root;
 
 pub(crate) fn handle_dir_command(command: DirCliCommand) -> Result<(), Box<dyn std::error::Error>> {
@@ -30,7 +29,6 @@ pub(crate) fn run_dir_command(command: DirCliCommand) -> Result<DirCliOutput, Qi
     match command {
         DirCliCommand::Show { target } => run_show_command(&target),
         DirCliCommand::Check { dir } => run_check_dir_command(&dir),
-        DirCliCommand::Materialize { target } => run_materialize_command(&target),
         DirCliCommand::Advance { dir, to } => run_advance_command(&dir, &to),
     }
 }
@@ -155,28 +153,6 @@ fn run_check_dir_command(dir: &Path) -> Result<DirCliOutput, QianjiError> {
         "`{}` is neither a bounded work surface, a Flowhub root/module, nor a Flowhub scenario directory",
         dir.display()
     )))
-}
-
-fn run_materialize_command(target: &MaterializeCliTarget) -> Result<DirCliOutput, QianjiError> {
-    match target {
-        MaterializeCliTarget::AnchoredScenario {
-            anchor,
-            scenario,
-            dir,
-            current_node,
-        } => {
-            let materialized = materialize_flowhub_anchored_scenario_at_node(
-                anchor,
-                scenario,
-                dir,
-                current_node.as_deref(),
-            )?;
-            Ok(DirCliOutput {
-                rendered: render_anchored_materialized_workdir(&materialized),
-                exit_code: 0,
-            })
-        }
-    }
 }
 
 fn run_advance_command(dir: &Path, to: &str) -> Result<DirCliOutput, QianjiError> {

@@ -10,6 +10,9 @@
 
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 mod arrow_codec;
+#[cfg(feature = "artifact-cache")]
+/// Attachment and document extraction artifact cache contracts.
+pub mod artifact_cache;
 #[cfg(feature = "duckdb-types")]
 /// Bounded DuckDB configuration and local connection helpers.
 pub mod duckdb;

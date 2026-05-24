@@ -13,7 +13,9 @@ use xiuxian_wendao_episteme::{
     write_episteme_ontology_source_patch_review_packet,
 };
 
-use super::fixtures::{write_object_relation_review_ledgers, write_private_extension_fixture};
+use super::fixtures::{
+    write_extension_source_contract_fixture, write_object_relation_review_ledgers,
+};
 
 #[test]
 fn ontology_source_patch_rdf_read_model_reads_applied_rdf_source()
@@ -54,7 +56,7 @@ fn ontology_source_patch_rdf_read_model_rejects_target_hash_drift()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     let run_dir = write_applied_patch_fixture(temp.path())?;
-    let target = temp.path().join("ontology/10_Private/ontology.rdf");
+    let target = temp.path().join("ontology/10_Extension/ontology.rdf");
     fs::write(
         &target,
         fs::read_to_string(&target)?.replace("</rdf:RDF>", "  <!-- drift -->\n</rdf:RDF>"),
@@ -76,7 +78,7 @@ fn ontology_source_patch_rdf_read_model_rejects_record_kind_type_mismatch()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     let run_dir = write_applied_patch_fixture(temp.path())?;
-    let target = temp.path().join("ontology/10_Private/ontology.rdf");
+    let target = temp.path().join("ontology/10_Extension/ontology.rdf");
     let content = fs::read_to_string(&target)?;
     let mutated = content.replacen(
         "<wdsp:recordKind>object_instance</wdsp:recordKind>",
@@ -127,7 +129,7 @@ fn ontology_source_patch_rdf_read_model_rejects_unapplied_record_kind_type_misma
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     let run_dir = write_applied_patch_fixture(temp.path())?;
-    let target = temp.path().join("ontology/10_Private/ontology.rdf");
+    let target = temp.path().join("ontology/10_Extension/ontology.rdf");
     let content = fs::read_to_string(&target)?;
     fs::write(
         &target,
@@ -153,9 +155,9 @@ fn ontology_source_patch_rdf_read_model_rejects_unapplied_record_kind_type_misma
 fn write_applied_patch_fixture(
     root: &Path,
 ) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
-    write_private_extension_fixture(root)?;
+    write_extension_source_contract_fixture(root)?;
     fs::write(
-        root.join("ontology/10_Private/ontology.rdf"),
+        root.join("ontology/10_Extension/ontology.rdf"),
         "<rdf:RDF\n  xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n  xmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\">\n  <rdf:Description rdf:about=\"urn:synthetic\"/>\n</rdf:RDF>\n",
     )?;
     write_object_relation_review_ledgers(root, "approved", "approved")?;

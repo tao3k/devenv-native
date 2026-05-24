@@ -1,6 +1,8 @@
 use super::{
-    EpistemeCommand, EpistemeGenerateOntologyCandidatesArgs, EpistemeReviewOntologyCandidatesArgs,
-    EpistemeSourceContractCommand, EpistemeWriteOntologyRdfDraftArgs,
+    EpistemeCommand, EpistemeGenerateOntologyCandidatesArgs,
+    EpistemeImportQianjiReviewCandidatesArgs, EpistemeInspectOntologyCandidatesArgs,
+    EpistemeReviewOntologyCandidatesArgs, EpistemeSourceContractCommand,
+    EpistemeWriteOntologyRdfDraftArgs,
 };
 
 #[test]
@@ -88,6 +90,88 @@ fn episteme_source_contract_command_debug_names_ontology_review_variant() {
     let rendered = format!("{command:?}");
     assert!(rendered.contains("SourceContract"));
     assert!(rendered.contains("ReviewOntologyCandidates"));
+}
+
+#[test]
+fn episteme_source_contract_inspect_ontology_candidates_args_capture_run() {
+    let args = EpistemeInspectOntologyCandidatesArgs {
+        episteme_root: "episteme-repo".into(),
+        episteme_registry_id: Some("source-contract-registry".to_string()),
+        run_root: Some("episteme-repo/runs/ontology-generation".into()),
+        run_id: "ontology_seed".to_string(),
+    };
+
+    assert_eq!(
+        args.episteme_root,
+        std::path::PathBuf::from("episteme-repo")
+    );
+    assert_eq!(args.run_id, "ontology_seed");
+    assert_eq!(
+        args.run_root,
+        Some(std::path::PathBuf::from(
+            "episteme-repo/runs/ontology-generation"
+        ))
+    );
+}
+
+#[test]
+fn episteme_source_contract_command_debug_names_ontology_inspection_variant() {
+    let command = EpistemeCommand::SourceContract {
+        command: EpistemeSourceContractCommand::InspectOntologyCandidates(
+            EpistemeInspectOntologyCandidatesArgs {
+                episteme_root: ".".into(),
+                episteme_registry_id: None,
+                run_root: None,
+                run_id: "ontology_seed".to_string(),
+            },
+        ),
+    };
+    let rendered = format!("{command:?}");
+    assert!(rendered.contains("SourceContract"));
+    assert!(rendered.contains("InspectOntologyCandidates"));
+}
+
+#[test]
+fn episteme_source_contract_import_qianji_review_candidates_args_capture_artifacts() {
+    let args = EpistemeImportQianjiReviewCandidatesArgs {
+        episteme_root: "episteme-repo".into(),
+        episteme_registry_id: Some("source-contract-registry".to_string()),
+        run_root: Some("episteme-repo/runs/ontology-generation".into()),
+        run_id: "ontology_seed".to_string(),
+        qianji_review_artifacts: vec![
+            "episteme-repo/runs/ontology-generation/qianji/review.json".into(),
+        ],
+    };
+
+    assert_eq!(
+        args.episteme_root,
+        std::path::PathBuf::from("episteme-repo")
+    );
+    assert_eq!(args.run_id, "ontology_seed");
+    assert_eq!(
+        args.qianji_review_artifacts,
+        [std::path::PathBuf::from(
+            "episteme-repo/runs/ontology-generation/qianji/review.json"
+        )]
+    );
+}
+
+#[test]
+fn episteme_source_contract_command_debug_names_qianji_review_candidate_import_variant() {
+    let command = EpistemeCommand::SourceContract {
+        command: EpistemeSourceContractCommand::ImportQianjiReviewCandidates(
+            EpistemeImportQianjiReviewCandidatesArgs {
+                episteme_root: ".".into(),
+                episteme_registry_id: None,
+                run_root: None,
+                run_id: "ontology_seed".to_string(),
+                qianji_review_artifacts: vec!["review.json".into()],
+            },
+        ),
+    };
+    let rendered = format!("{command:?}");
+    assert!(rendered.contains("SourceContract"));
+    assert!(rendered.contains("ImportQianjiReviewCandidates"));
 }
 
 #[test]

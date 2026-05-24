@@ -141,7 +141,7 @@ def test_run_diagnostic_writes_summary_and_results(tmp_path: Path, monkeypatch) 
     assert report["audioShardProfile"] == "audio-shards-v1"
     assert report["audioMaterializationMode"] == "normalized-16k-wav"
     assert report["inputPrivacy"] == "shareable"
-    assert report["requestedBackends"] == ["local-docling", "openrouter-chat-audio"]
+    assert report["requestedBackends"] == ["local-docling", "openrouter-audio"]
     assert report["primaryLanguage"] == "zh"
     assert report["localAsrModel"] == diagnostic.DEFAULT_LOCAL_ASR_MODEL
     assert report["openAiCompatibleAudioEnabled"] is True

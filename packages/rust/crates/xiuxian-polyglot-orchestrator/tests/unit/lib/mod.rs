@@ -1,4 +1,5 @@
 mod admission;
+mod audio_schedule;
 mod docling_schedule;
 mod evidence;
 mod julia_schedule;

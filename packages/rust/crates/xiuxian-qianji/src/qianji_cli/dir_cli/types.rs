@@ -4,7 +4,6 @@ use std::path::PathBuf;
 pub(crate) enum DirCliCommand {
     Show { target: ShowCliTarget },
     Check { dir: PathBuf },
-    Materialize { target: MaterializeCliTarget },
     Advance { dir: PathBuf, to: String },
 }
 
@@ -17,16 +16,6 @@ pub(crate) enum ShowCliTarget {
         anchor: PathBuf,
         scenario: String,
         dir: Option<PathBuf>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum MaterializeCliTarget {
-    AnchoredScenario {
-        anchor: PathBuf,
-        scenario: String,
-        dir: PathBuf,
-        current_node: Option<String>,
     },
 }
 

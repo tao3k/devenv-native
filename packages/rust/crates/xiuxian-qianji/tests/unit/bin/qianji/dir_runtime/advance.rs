@@ -1,21 +1,19 @@
 use super::{
-    DirCliCommand, MaterializeCliTarget, TempDir, anchored_workdir_fixture_anchor,
-    anchored_workdir_fixture_scenario, fs, must_ok, run_dir_command,
+    DirCliCommand, TempDir, anchored_workdir_fixture_anchor, anchored_workdir_fixture_scenario, fs,
+    must_ok, run_dir_command,
 };
 use std::path::PathBuf;
 
 fn materialize_claim_extract_run(temp_dir: &TempDir) -> PathBuf {
     let run_dir = temp_dir.path().join("runs/run_005");
     must_ok(
-        run_dir_command(DirCliCommand::Materialize {
-            target: MaterializeCliTarget::AnchoredScenario {
-                anchor: anchored_workdir_fixture_anchor(),
-                scenario: anchored_workdir_fixture_scenario().to_string(),
-                dir: run_dir.clone(),
-                current_node: Some("claim_extract".to_string()),
-            },
-        }),
-        "materialize command should scaffold the claim_extract workdir",
+        crate::materialize_flowhub_anchored_scenario_at_node(
+            anchored_workdir_fixture_anchor(),
+            anchored_workdir_fixture_scenario(),
+            &run_dir,
+            Some("claim_extract"),
+        ),
+        "materialize helper should scaffold the claim_extract workdir",
     );
     run_dir
 }

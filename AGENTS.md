@@ -59,6 +59,17 @@ To prevent context bloating and "hallucination spirals," all Agents MUST follow 
   environment parity. If Nix or `devenv` code changes, run `direnv reload`
   from `$DEVENV_ROOT` first so `$DEVENV_PROFILE` is refreshed before invoking
   `$DEVENV_PROFILE/bin/<command>`.
+- **RTK Output Discipline**: For project-scoped commands with a real RTK
+  filtered wrapper, put RTK inside the project environment: `direnv exec . rtk
+  <filtered-command>`. Use `direnv exec . rtk --ultra-compact
+  <filtered-command>` for high-volume validation gates where failure summaries
+  are enough, especially Cargo, npm, pytest, ruff, and TypeScript checks. Use
+  direct RTK for small environment-independent inspections such as `rtk git
+  status --short`, `rtk git diff -- <paths>`, `rtk read <path>`, and `rtk ls
+  <path>`. Do not force RTK for commands without filtered wrappers; use raw
+  `direnv exec . <command>` for `wendao-client`, Julia checks,
+  artifact-producing commands, exact parser output, and machine-parsed output.
+  Use `rtk rewrite <raw-command>` when unsure whether a wrapper exists.
 - **High-Performance Search**: **ALWAYS** prefer `rg` or `rg --files` over `grep`. If `rg` is unavailable, only then fall back to alternatives.
 - **Tool Parallelization**: Parallelize I/O intensive tool calls (e.g., `cat`, `rg`, `sed`, `ls`, `git show`) using `multi_tool_use.parallel` whenever possible. Never chain commands with shell separators that degrade output readability.
 
@@ -260,24 +271,24 @@ Protocol**:
 At the start of a resumed Codex turn, recover active work from Org before
 depending on chat history:
 
-`wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org`.
+`direnv exec . wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org`.
 
 Use an authoritative refresh after editing Org files, after a failed cached
 lookup, or when the cache may be stale:
 
-`wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org`.
+`direnv exec . wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org`.
 
 For SDD-oriented recovery, use:
 
-`wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd`.
+`direnv exec . wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd`.
 
 For calendar-oriented recovery, use:
 
-`wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org`.
+`direnv exec . wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org`.
 
 For one lane or package, use:
 
-`wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
+`direnv exec . wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
 
 When a slice is completed, record evidence in the Org heading, update the
 paired SDD and ExecPlan outcome when present, and keep active queries
@@ -286,11 +297,11 @@ clean by relying on `--exclude-done` or moving the task to
 should remain queryable should carry an `achievement` tag and can be reviewed
 with:
 
-`wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org`.
+`direnv exec . wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org`.
 
 Use sparse-tree only when the full source subtree context is needed:
 
-`wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
+`direnv exec . wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
 
 ## Orgize Validation
 
@@ -302,12 +313,12 @@ When an agent changes files under `$PRJ_CACHE_HOME/agent/org/`,
 `$PRJ_CACHE_HOME/agent/sdd/`, or `$PRJ_CACHE_HOME/agent/execplans/`, it
 SHOULD run the relevant orgize-backed lint or query command before marking the
 tracking change complete. For syntax validation, use:
-`wendao-client orgize lint --format compact <path>`.
+`direnv exec . wendao-client orgize lint --format compact <path>`.
 For SDD status recovery, use:
-`wendao-client orgize sdd status <path>`.
+`direnv exec . wendao-client orgize sdd status <path>`.
 For task schedule lookup, use:
-`wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
+`direnv exec . wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
 For fast task recovery from an existing DuckDB snapshot, use:
-`wendao-client orgize task-list --cached <path>`.
+`direnv exec . wendao-client orgize task-list --cached <path>`.
 For task-local sparse-tree lookup, use:
-`wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.
+`direnv exec . wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.

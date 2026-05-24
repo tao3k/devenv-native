@@ -13,7 +13,9 @@ use xiuxian_wendao_episteme::{
     write_episteme_ontology_source_patch_semantic_preview,
 };
 
-use super::fixtures::{write_object_relation_review_ledgers, write_private_extension_fixture};
+use super::fixtures::{
+    write_extension_source_contract_fixture, write_object_relation_review_ledgers,
+};
 
 #[test]
 fn ontology_source_patch_semantic_preview_writes_graph_ready_rows()
@@ -108,9 +110,9 @@ fn ontology_source_patch_semantic_preview_rejects_stale_apply_plan()
 fn write_reviewed_preview_fixture(
     root: &Path,
 ) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
-    write_private_extension_fixture(root)?;
+    write_extension_source_contract_fixture(root)?;
     fs::write(
-        root.join("ontology/10_Private/ontology.rdf"),
+        root.join("ontology/10_Extension/ontology.rdf"),
         "<rdf:RDF>\n  <rdf:Description rdf:about=\"urn:synthetic\"/>\n</rdf:RDF>\n",
     )?;
     write_object_relation_review_ledgers(root, "approved", "approved")?;

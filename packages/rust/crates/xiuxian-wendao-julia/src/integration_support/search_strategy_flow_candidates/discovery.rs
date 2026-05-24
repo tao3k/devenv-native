@@ -38,14 +38,16 @@ struct ScoredCandidate {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CandidateRoute {
     SearchStrategy,
+    Authority,
     PageIndex,
     LinkGraph,
     Validation,
 }
 
 impl CandidateRoute {
-    const DIVERSE_FRONTIER_ORDER: [Self; 4] = [
+    const DIVERSE_FRONTIER_ORDER: [Self; 5] = [
         Self::SearchStrategy,
+        Self::Authority,
         Self::PageIndex,
         Self::LinkGraph,
         Self::Validation,
@@ -525,6 +527,15 @@ fn candidate_matches_route(
                 || combined.contains("search-strategy")
                 || combined.contains("strategy flow")
         }
+        CandidateRoute::Authority => {
+            path.starts_with("docs/rfcs/")
+                || path == "agents.md"
+                || path.starts_with("docs/standards/")
+                || combined.contains("ownership")
+                || combined.contains("authority")
+                || combined.contains("boundary")
+                || combined.contains("source authority")
+        }
         CandidateRoute::PageIndex => {
             path.contains("20_page_index")
                 || combined.contains("pageindex")
@@ -545,7 +556,10 @@ fn candidate_matches_route(
         }
         CandidateRoute::Validation => {
             path.contains("90_validation")
+                || path.starts_with("docs/testing/")
+                || path.starts_with("docs/developer/")
                 || combined.contains("validation")
+                || combined.contains("test proof")
                 || combined.contains("performance gate")
         }
     }
@@ -602,6 +616,22 @@ fn candidate_route_quality(
                     ],
                 )
         }
+        CandidateRoute::Authority => {
+            contains_any(&candidate_text, &["docs/rfcs/"]) * 1.2
+                + contains_any(
+                    &candidate_text,
+                    &[
+                        "2026-03-26-wendao-query-engine-rfc",
+                        "polyglot-compute-orchestrator",
+                    ],
+                ) * 1.2
+                + contains_any(
+                    &candidate_text,
+                    &["ownership-boundary", "source-authority", "source authority"],
+                ) * 1.0
+                + contains_any(&candidate_text, &["current-ownership-matrix"]) * 0.6
+                - contains_any(&candidate_text, &["sql-validation", "cognitive-policy"]) * 0.4
+        }
         CandidateRoute::PageIndex => {
             contains_any(
                 &candidate_text,
@@ -639,7 +669,20 @@ fn candidate_route_quality(
                 )
         }
         CandidateRoute::Validation => {
-            contains_any(&candidate_text, &["validation", "promotion", "gate"])
+            contains_any(
+                &candidate_text,
+                &[
+                    "docs/testing/readme.md",
+                    "docs/developer/testing.md",
+                    "default-validation-path",
+                    "local-validation",
+                    "ci-test-proof",
+                ],
+            ) * 1.7
+                + contains_any(
+                    &candidate_text,
+                    &["validation", "promotion", "gate", "proof"],
+                )
         }
     }
 }

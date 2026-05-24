@@ -10,6 +10,8 @@ use super::activity_worker_once::{
     ActivityWorkerOnceOutput, ActivityWorkerOnceStoreRequest, worker_once_output_with_hot_state,
 };
 use super::types::{ControlCliCommand, ControlCliOutput};
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+use futures::future::join_all;
 
 pub(super) fn parse(args: &[String]) -> io::Result<ControlCliCommand> {
     let mut parsed = ActivityWorkerLoopArgs::default();
@@ -34,6 +36,7 @@ struct ActivityWorkerLoopArgs {
     heartbeat_ttl_ms: Option<u64>,
     poll_limit: Option<u32>,
     empty_limit: Option<u32>,
+    worker_count: Option<u32>,
     executor: Option<ActivityExecutorKindArg>,
     outcome: Option<ActivitySettleOutcomeArg>,
     settled_at_ms: Option<u64>,
@@ -156,6 +159,9 @@ impl ActivityWorkerLoopArgs {
             "--empty-limit" => {
                 self.empty_limit = Some(parse_u32_flag(args, index, "empty-limit")?);
             }
+            "--worker-count" => {
+                self.worker_count = Some(parse_u32_flag(args, index, "worker-count")?);
+            }
             "--settled-at-ms" => {
                 self.settled_at_ms = Some(parse_u64_flag(args, index, "settled-at-ms")?);
             }
@@ -205,6 +211,7 @@ impl ActivityWorkerLoopArgs {
                 })?,
             )?,
             empty_limit: positive_u32("empty-limit", self.empty_limit.unwrap_or(1))?,
+            worker_count: positive_u32("worker-count", self.worker_count.unwrap_or(1))?,
             executor,
             outcome,
             settled_at_ms: self.settled_at_ms.ok_or_else(|| {
@@ -239,6 +246,7 @@ pub(super) struct ActivityWorkerLoopRunRequest<'a> {
     pub(super) heartbeat_ttl_ms: Option<u64>,
     pub(super) poll_limit: u32,
     pub(super) empty_limit: u32,
+    pub(super) worker_count: u32,
     pub(super) executor: ActivityExecutorKindArg,
     pub(super) outcome: ActivitySettleOutcomeArg,
     pub(super) settled_at_ms: u64,
@@ -267,6 +275,7 @@ pub(crate) struct ActivityWorkerLoopStoreRequest<'a> {
     pub(crate) heartbeat_ttl_ms: Option<u64>,
     pub(crate) poll_limit: u32,
     pub(crate) empty_limit: u32,
+    pub(crate) worker_count: u32,
     pub(crate) executor: ActivityExecutorKindArg,
     pub(crate) outcome: ActivitySettleOutcomeArg,
     pub(crate) settled_at_ms: u64,
@@ -310,6 +319,7 @@ pub(crate) struct ActivityWorkerLoopOutput {
     pub(crate) outcome: ActivitySettleOutcomeArg,
     pub(crate) poll_limit: u32,
     pub(crate) empty_limit: u32,
+    pub(crate) worker_count: u32,
     pub(crate) iterations: Vec<ActivityWorkerLoopIteration>,
     pub(crate) processed: u32,
     pub(crate) empty_polls: u32,
@@ -350,6 +360,7 @@ pub(super) fn run(request: &ActivityWorkerLoopRunRequest<'_>) -> io::Result<Cont
             heartbeat_ttl_ms: request.heartbeat_ttl_ms,
             poll_limit: request.poll_limit,
             empty_limit: request.empty_limit,
+            worker_count: request.worker_count,
             executor: request.executor,
             outcome: request.outcome,
             settled_at_ms: request.settled_at_ms,
@@ -383,6 +394,7 @@ pub(super) fn run(request: &ActivityWorkerLoopRunRequest<'_>) -> io::Result<Cont
         request.heartbeat_ttl_ms,
         request.poll_limit,
         request.empty_limit,
+        request.worker_count,
         request.executor,
         request.outcome,
         request.settled_at_ms,
@@ -435,61 +447,43 @@ where
     let mut released = 0;
     let mut heartbeats = 0;
     let mut stopped_reason = ActivityWorkerLoopStopReason::PollLimit;
+    let worker_count = request.worker_count.max(1);
+    let mut poll_index = 0;
 
-    for poll_index in 0..request.poll_limit {
-        let now_ms = stepped_ms(request.now_ms, request.now_step_ms, poll_index)?;
-        let settled_at_ms = stepped_ms(request.settled_at_ms, request.settled_step_ms, poll_index)?;
-        let output = worker_once_output_with_hot_state(
+    while poll_index < request.poll_limit {
+        let batch_size = worker_count.min(request.poll_limit - poll_index);
+        let batch_iterations = worker_loop_batch_iterations(
             ledger,
             hot_state,
-            &ActivityWorkerOnceStoreRequest {
-                worker_id: request.worker_id,
-                task_queue: request.task_queue,
-                now_ms,
-                lease_ttl_ms: request.lease_ttl_ms,
-                heartbeat_ttl_ms: request.heartbeat_ttl_ms,
-                executor: request.executor,
-                outcome: request.outcome,
-                settled_at_ms,
-                output_ref_json: None,
-                output_hash: request.output_hash,
-                output_artifact_path: None,
-                output_artifact_dir: request.output_artifact_dir,
-                output_artifact_content: None,
-                output_artifact_id: None,
-                output_artifact_kind: request.output_artifact_kind,
-                openai_compatible_base_url: request.openai_compatible_base_url,
-                openai_compatible_api_key: request.openai_compatible_api_key,
-                openai_compatible_timeout_ms: request.openai_compatible_timeout_ms,
-                error_code: request.error_code,
-                message: request.message,
-                retryable: request.retryable,
-                metadata: request.metadata,
-                json: true,
-            },
+            &request,
+            worker_count,
+            poll_index,
+            batch_size,
         )
         .await?;
-        if output.claimed.is_some() {
-            processed += 1;
-            empty_streak = 0;
-        } else {
-            empty_polls += 1;
-            empty_streak += 1;
+        for iteration in batch_iterations {
+            let output = &iteration.output;
+            if output.claimed.is_some() {
+                processed += 1;
+                empty_streak = 0;
+            } else {
+                empty_polls += 1;
+                empty_streak += 1;
+            }
+            if output.released {
+                released += 1;
+            }
+            if output.heartbeat.is_some() {
+                heartbeats += 1;
+            }
+            iterations.push(iteration);
+            if empty_streak >= request.empty_limit {
+                stopped_reason = ActivityWorkerLoopStopReason::EmptyLimit;
+                break;
+            }
         }
-        if output.released {
-            released += 1;
-        }
-        if output.heartbeat.is_some() {
-            heartbeats += 1;
-        }
-        iterations.push(ActivityWorkerLoopIteration {
-            poll_index,
-            now_ms,
-            settled_at_ms,
-            output,
-        });
-        if empty_streak >= request.empty_limit {
-            stopped_reason = ActivityWorkerLoopStopReason::EmptyLimit;
+        poll_index += batch_size;
+        if stopped_reason == ActivityWorkerLoopStopReason::EmptyLimit {
             break;
         }
     }
@@ -501,12 +495,93 @@ where
         outcome: request.outcome,
         poll_limit: request.poll_limit,
         empty_limit: request.empty_limit,
+        worker_count,
         iterations,
         processed,
         empty_polls,
         released,
         heartbeats,
         stopped_reason,
+    })
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+async fn worker_loop_batch_iterations<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    request: &ActivityWorkerLoopStoreRequest<'_>,
+    worker_count: u32,
+    poll_index: u32,
+    batch_size: u32,
+) -> io::Result<Vec<ActivityWorkerLoopIteration>>
+where
+    L: xiuxian_qianji_control::ControlLedger + ?Sized,
+    H: xiuxian_qianji_control::HotStateStore + ?Sized,
+{
+    let batch_poll_indices: Vec<u32> = (poll_index..poll_index + batch_size).collect();
+    let batch_worker_ids: Vec<String> = batch_poll_indices
+        .iter()
+        .map(|batch_poll_index| {
+            worker_id_for_poll(request.worker_id, worker_count, *batch_poll_index)
+        })
+        .collect();
+    let futures = batch_poll_indices.iter().zip(batch_worker_ids.iter()).map(
+        |(batch_poll_index, worker_id)| {
+            worker_loop_iteration(ledger, hot_state, request, *batch_poll_index, worker_id)
+        },
+    );
+    join_all(futures).await.into_iter().collect()
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+async fn worker_loop_iteration<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    request: &ActivityWorkerLoopStoreRequest<'_>,
+    poll_index: u32,
+    worker_id: &str,
+) -> io::Result<ActivityWorkerLoopIteration>
+where
+    L: xiuxian_qianji_control::ControlLedger + ?Sized,
+    H: xiuxian_qianji_control::HotStateStore + ?Sized,
+{
+    let now_ms = stepped_ms(request.now_ms, request.now_step_ms, poll_index)?;
+    let settled_at_ms = stepped_ms(request.settled_at_ms, request.settled_step_ms, poll_index)?;
+    let output = worker_once_output_with_hot_state(
+        ledger,
+        hot_state,
+        &ActivityWorkerOnceStoreRequest {
+            worker_id,
+            task_queue: request.task_queue,
+            now_ms,
+            lease_ttl_ms: request.lease_ttl_ms,
+            heartbeat_ttl_ms: request.heartbeat_ttl_ms,
+            executor: request.executor,
+            outcome: request.outcome,
+            settled_at_ms,
+            output_ref_json: None,
+            output_hash: request.output_hash,
+            output_artifact_path: None,
+            output_artifact_dir: request.output_artifact_dir,
+            output_artifact_content: None,
+            output_artifact_id: None,
+            output_artifact_kind: request.output_artifact_kind,
+            openai_compatible_base_url: request.openai_compatible_base_url,
+            openai_compatible_api_key: request.openai_compatible_api_key,
+            openai_compatible_timeout_ms: request.openai_compatible_timeout_ms,
+            error_code: request.error_code,
+            message: request.message,
+            retryable: request.retryable,
+            metadata: request.metadata,
+            json: true,
+        },
+    )
+    .await?;
+    Ok(ActivityWorkerLoopIteration {
+        poll_index,
+        now_ms,
+        settled_at_ms,
+        output,
     })
 }
 
@@ -532,6 +607,7 @@ fn render_activity_worker_loop_text(output: &ActivityWorkerLoopOutput) -> String
             "- Outcome: `{:?}`\n",
             "- Poll limit: `{}`\n",
             "- Empty limit: `{}`\n",
+            "- Worker count: `{}`\n",
             "- Iterations: `{}`\n",
             "- Processed: `{}`\n",
             "- Empty polls: `{}`\n",
@@ -545,6 +621,7 @@ fn render_activity_worker_loop_text(output: &ActivityWorkerLoopOutput) -> String
         output.outcome,
         output.poll_limit,
         output.empty_limit,
+        output.worker_count,
         output.iterations.len(),
         output.processed,
         output.empty_polls,
@@ -552,6 +629,15 @@ fn render_activity_worker_loop_text(output: &ActivityWorkerLoopOutput) -> String
         output.heartbeats,
         output.stopped_reason
     )
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+fn worker_id_for_poll(worker_id: &str, worker_count: u32, poll_index: u32) -> String {
+    if worker_count <= 1 {
+        worker_id.to_string()
+    } else {
+        format!("{worker_id}-{}", (poll_index % worker_count) + 1)
+    }
 }
 
 fn parse_outcome(value: &str) -> io::Result<ActivitySettleOutcomeArg> {

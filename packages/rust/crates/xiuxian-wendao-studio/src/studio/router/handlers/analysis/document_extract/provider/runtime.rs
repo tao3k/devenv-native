@@ -10,6 +10,8 @@ use super::{
 };
 #[cfg(feature = "document-extract-pdf-source-range")]
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
+#[cfg(feature = "document-extract-audio-shards")]
+use crate::studio::router::handlers::analysis::document_extract::provider::audio::AudioShardCapacityController;
 use crate::studio::router::handlers::analysis::document_extract::registry::DocumentExtractJobRegistry;
 
 impl DocumentExtractProviderRuntime {
@@ -47,6 +49,8 @@ impl DocumentExtractProviderRuntime {
             artifact_lock: Arc::new(Mutex::new(())),
             conversion_permits: Arc::new(Semaphore::new(conversion_limit)),
             conversion_limit,
+            #[cfg(feature = "document-extract-audio-shards")]
+            audio_capacity: AudioShardCapacityController::new(audio_worker_limit()),
         }
     }
 
@@ -61,6 +65,17 @@ impl DocumentExtractProviderRuntime {
             conversion_limit,
             PdfOcrWorkerScheduler::with_limit(pdf_ocr_worker_limit),
         )
+    }
+
+    #[cfg(all(test, feature = "document-extract-audio-shards"))]
+    pub(super) fn new_with_audio_worker_limit(
+        registry: Result<DocumentExtractJobRegistry, String>,
+        conversion_limit: usize,
+        audio_worker_limit: usize,
+    ) -> Self {
+        let mut runtime = Self::new(registry, conversion_limit);
+        runtime.audio_capacity = AudioShardCapacityController::new(audio_worker_limit);
+        runtime
     }
 
     #[cfg(feature = "document-extract-pdf-source-range")]
@@ -81,6 +96,8 @@ impl DocumentExtractProviderRuntime {
             conversion_permits: Arc::new(Semaphore::new(conversion_limit)),
             conversion_limit,
             pdf_ocr_scheduler,
+            #[cfg(feature = "document-extract-audio-shards")]
+            audio_capacity: AudioShardCapacityController::new(audio_worker_limit()),
         }
     }
 }
@@ -127,6 +144,14 @@ pub(super) fn document_extract_conversion_concurrency_limit_with_lookup(
     }
 
     machine_budget.unwrap_or(1)
+}
+
+#[cfg(feature = "document-extract-audio-shards")]
+fn audio_worker_limit() -> usize {
+    std::thread::available_parallelism()
+        .map(std::num::NonZeroUsize::get)
+        .unwrap_or(1)
+        .max(1)
 }
 
 impl std::fmt::Debug for StudioDocumentExtractFlightRouteProvider {

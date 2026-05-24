@@ -1,7 +1,7 @@
 use std::io;
 use std::path::PathBuf;
 
-use super::types::{DirCliCommand, MaterializeCliTarget, ShowCliTarget};
+use super::types::{DirCliCommand, ShowCliTarget};
 use crate::qianji_cli::input::invalid_input;
 
 pub(crate) fn parse_dir_command(args: &[String]) -> io::Result<Option<DirCliCommand>> {
@@ -12,9 +12,9 @@ pub(crate) fn parse_dir_command(args: &[String]) -> io::Result<Option<DirCliComm
         Some("check") => Ok(Some(DirCliCommand::Check {
             dir: parse_dir_flag(&args[2..], "check")?,
         })),
-        Some("materialize") => Ok(Some(DirCliCommand::Materialize {
-            target: parse_materialize_target(&args[2..])?,
-        })),
+        Some("materialize") => Err(invalid_input(
+            "`qianji materialize` is retired; use `qianji-client flowhub --mode plan --scenario agent-coding init` for downstream plan initialization",
+        )),
         Some("advance") => {
             let (dir, to) = parse_advance_command(&args[2..])?;
             Ok(Some(DirCliCommand::Advance { dir, to }))
@@ -119,64 +119,6 @@ fn parse_dir_flag(args: &[String], command: &str) -> io::Result<PathBuf> {
     }
 
     dir.ok_or_else(|| invalid_input(format!("missing `--dir <path>` for `{command}` command")))
-}
-
-fn parse_materialize_target(args: &[String]) -> io::Result<MaterializeCliTarget> {
-    let mut index = 0;
-    let mut anchor = None;
-    let mut scenario = None;
-    let mut dir = None;
-    let mut current_node = None;
-    while index < args.len() {
-        match args[index].as_str() {
-            "--anchor" => {
-                index += 1;
-                let value = args.get(index).ok_or_else(|| {
-                    invalid_input("missing value for --anchor in `materialize` command")
-                })?;
-                anchor = Some(PathBuf::from(value));
-            }
-            "--scenario" => {
-                index += 1;
-                let value = args.get(index).ok_or_else(|| {
-                    invalid_input("missing value for --scenario in `materialize` command")
-                })?;
-                scenario = Some(value.clone());
-            }
-            "--dir" => {
-                index += 1;
-                let value = args.get(index).ok_or_else(|| {
-                    invalid_input("missing value for --dir in `materialize` command")
-                })?;
-                dir = Some(PathBuf::from(value));
-            }
-            "--current-node" => {
-                index += 1;
-                let value = args.get(index).ok_or_else(|| {
-                    invalid_input("missing value for --current-node in `materialize` command")
-                })?;
-                current_node = Some(value.clone());
-            }
-            other => {
-                return Err(invalid_input(format!(
-                    "unsupported `materialize` option `{other}`"
-                )));
-            }
-        }
-        index += 1;
-    }
-
-    match (anchor, scenario, dir) {
-        (Some(anchor), Some(scenario), Some(dir)) => Ok(MaterializeCliTarget::AnchoredScenario {
-            anchor,
-            scenario,
-            dir,
-            current_node,
-        }),
-        _ => Err(invalid_input(
-            "missing `--anchor <path> --scenario <ref> --dir <path>` for `materialize` command",
-        )),
-    }
 }
 
 fn parse_advance_command(args: &[String]) -> io::Result<(PathBuf, String)> {

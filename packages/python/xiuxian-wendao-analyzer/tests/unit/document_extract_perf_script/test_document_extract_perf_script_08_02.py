@@ -95,6 +95,7 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
         rust_audio_sample_rate_hz=16000,
         rust_audio_channels=1,
         rust_audio_format="wav",
+        rust_audio_artifact_cache_dir=tmp_path / "audio-artifacts",
         rust_audio_base_workers="4",
         rust_audio_recovery_workers="2",
         rust_document_extract_endpoint=[
@@ -146,6 +147,9 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ"] == "16000"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS"] == "1"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT"] == "wav"
+    assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR"] == str(
+        tmp_path / "audio-artifacts"
+    )
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS"] == "4"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
@@ -200,6 +204,7 @@ def test_start_rust_provider_server_enables_flight_bin_feature(
         rust_audio_sample_rate_hz=None,
         rust_audio_channels=None,
         rust_audio_format=None,
+        rust_audio_artifact_cache_dir=None,
         rust_audio_base_workers=None,
         rust_audio_recovery_workers=None,
         ocr_shard_cache_root=None,

@@ -12,6 +12,7 @@ use super::{
         CANDIDATE_GENERATION_SCHEMA, CandidateGenerationInputs, CandidateGenerationOutputPaths,
         CandidateGenerationReceipt, ONTOLOGY_TRUTH, RAW_TO_RDF_PROMOTION_ALLOWED,
     },
+    read_model::write_candidate_read_model,
     rows::build_candidate_rows,
     writing::{
         write_candidate_evidence_tsv, write_candidate_objects_tsv, write_candidate_relations_tsv,
@@ -41,6 +42,7 @@ pub fn generate_episteme_ontology_candidates(
     write_candidate_objects_tsv(paths.objects_tsv.as_path(), &candidates.objects)?;
     write_candidate_relations_tsv(paths.relations_tsv.as_path(), &candidates.relations)?;
     write_candidate_evidence_tsv(paths.evidence_tsv.as_path(), &candidates.evidence)?;
+    write_candidate_read_model(&paths, &candidates)?;
     write_review_ledger_org(paths.review_ledger_org.as_path(), &inputs, &candidates)?;
     write_json(
         paths.receipt_json.as_path(),
@@ -54,6 +56,9 @@ pub fn generate_episteme_ontology_candidates(
         candidate_objects_tsv: paths.objects_tsv,
         candidate_relations_tsv: paths.relations_tsv,
         candidate_evidence_tsv: paths.evidence_tsv,
+        candidate_objects_parquet: paths.objects_parquet,
+        candidate_relations_parquet: paths.relations_parquet,
+        candidate_evidence_parquet: paths.evidence_parquet,
         review_ledger_org: paths.review_ledger_org,
         receipt_json: paths.receipt_json,
         domain: inputs.domain,

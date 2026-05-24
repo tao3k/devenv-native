@@ -39,6 +39,7 @@ members = [
   "packages/rust/crates/xiuxian-wendao-julia",
   "packages/rust/crates/xiuxian-window",
   "packages/rust/crates/xiuxian-qianji-control",
+  "packages/rust/crates/qianji-client",
   "packages/rust/crates/xiuxian-qianji",
   "packages/rust/crates/xiuxian-memory",
   "packages/rust/crates/xiuxian-zhixing",
@@ -75,6 +76,7 @@ globset = "0.4"
 include_dir = "0.7.4"
 rand = "0.8"
 futures = "0.3.32"
+foyer = { version = "0.22.3", default-features = false, features = ["runtime-tokio"] }
 tokio-util = "0.7.18"
 tokio-stream = { version = "0.1", features = ["net"] }
 flate2 = "1.1.9"
@@ -143,13 +145,13 @@ lance-index = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33
 lance-linalg = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33eee8ef4f40b06f2843a907b6d6eb3" }
 
 # Arrow IPC for analytics and DataFusion execution
-arrow = { version = "58.1.0", features = ["ffi"] }
-arrow-array = { version = "58.1.0", features = ["ffi"] }
-arrow-flight = "58.1.0"
-arrow-ipc = "58.1.0"
-arrow-schema = { version = "58.1.0", features = ["ffi"] }
-arrow-string = "58.1.0"
-parquet = "58.1.0"
+arrow = { version = "58", features = ["ffi"] }
+arrow-array = { version = "58", features = ["ffi"] }
+arrow-flight = { version = "58", features = ["flight-sql"] }
+arrow-ipc = "58"
+arrow-schema = { version = "58", features = ["ffi"] }
+arrow-string = "58"
+parquet = "58"
 datafusion = "53.0.0"
 sqlparser = "0.61.0"
 

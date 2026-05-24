@@ -62,6 +62,10 @@ def build_diagnostic_report(
         "sourceRoot": str(source_root),
         "outputDir": str(output_dir),
         "diagnosticWallSeconds": diagnostic_wall_seconds,
+        "diagnosticRealTimeFactor": _diagnostic_real_time_factor(
+            summary,
+            diagnostic_wall_seconds,
+        ),
         "sourceCount": sources_count,
         "chunkSeconds": args.chunk_seconds,
         "limitFiles": args.limit_files,
@@ -70,28 +74,20 @@ def build_diagnostic_report(
         "audioMaterializationMode": args.audio_materialization_mode,
         "startOffsetSeconds": args.start_offset_seconds,
         "chunkContextSeconds": args.chunk_context_seconds,
-        "speechSegmentsConfigured": getattr(args, "speech_segments_jsonl", None)
-        is not None,
+        "speechSegmentsConfigured": getattr(args, "speech_segments_jsonl", None) is not None,
         "speechSegmentRows": speech_segment_row_count,
         "speechSegmentsPath": (
             ""
             if getattr(args, "speech_segments_jsonl", None) is None
             else str(args.speech_segments_jsonl)
         ),
-        "speechSegmentMergeGapSeconds": getattr(
-            args, "speech_segment_merge_gap_seconds", 0.0
-        ),
-        "speechSegmentMinWindowSeconds": getattr(
-            args, "speech_segment_min_window_seconds", 0.0
-        ),
+        "speechSegmentMergeGapSeconds": getattr(args, "speech_segment_merge_gap_seconds", 0.0),
+        "speechSegmentMinWindowSeconds": getattr(args, "speech_segment_min_window_seconds", 0.0),
         "speechSegmentShortMergeGapSeconds": getattr(
             args, "speech_segment_short_merge_gap_seconds", None
         ),
-        "speechSegmentMaxWindowSeconds": getattr(
-            args, "speech_segment_max_window_seconds", None
-        ),
-        "explicitWindowsConfigured": getattr(args, "explicit_windows_json", None)
-        is not None,
+        "speechSegmentMaxWindowSeconds": getattr(args, "speech_segment_max_window_seconds", None),
+        "explicitWindowsConfigured": getattr(args, "explicit_windows_json", None) is not None,
         "explicitWindowRows": explicit_window_row_count,
         "explicitWindowsPath": (
             ""
@@ -102,7 +98,11 @@ def build_diagnostic_report(
         "audioShardProfile": DEFAULT_AUDIO_SHARD_PROFILE,
         "resultCacheEnabled": result_cache_dir is not None,
         "resultCacheDir": "" if result_cache_dir is None else str(result_cache_dir),
-        "hostedRequestConcurrency": getattr(args, "hosted_request_concurrency", 1),
+        "hostedRequestConcurrency": (
+            "auto"
+            if getattr(args, "hosted_request_concurrency", None) in {None, "", "auto"}
+            else getattr(args, "hosted_request_concurrency")
+        ),
         "inputPrivacy": args.input_privacy,
         "privateOutputOutsideCacheAllowed": args.allow_private_output_outside_cache,
         "privateInputPolicy": (
@@ -148,6 +148,29 @@ def build_diagnostic_report(
     }
 
 
+def _diagnostic_real_time_factor(
+    summary: dict[str, object],
+    diagnostic_wall_seconds: float,
+) -> float | None:
+    audio_seconds = _primary_audio_seconds(summary)
+    if audio_seconds is None or audio_seconds <= 0:
+        return None
+    return diagnostic_wall_seconds / audio_seconds
+
+
+def _primary_audio_seconds(summary: dict[str, object]) -> float | None:
+    by_backend = summary.get("byBackend")
+    if not isinstance(by_backend, dict):
+        return None
+    for metrics in by_backend.values():
+        if not isinstance(metrics, dict):
+            continue
+        value = metrics.get("audioSeconds")
+        if isinstance(value, int | float) and not isinstance(value, bool):
+            return float(value)
+    return None
+
+
 def write_diagnostic_outputs(
     args: argparse.Namespace,
     *,
@@ -173,9 +196,7 @@ def write_diagnostic_outputs(
     write_json(output_dir / "quality.json", [row.__dict__ for row in quality_rows])
     write_quality_tsv(output_dir / "review.tsv", quality_rows)
     write_transcript_review_tsv(output_dir / "transcript_review.tsv", quality_rows)
-    write_transcript_timeline_jsonl(
-        output_dir / "transcript_timeline.jsonl", quality_rows
-    )
+    write_transcript_timeline_jsonl(output_dir / "transcript_timeline.jsonl", quality_rows)
     write_transcript_timeline_org(output_dir / "transcript.org", quality_rows)
     write_transcript_timeline_vtt(output_dir / "transcript_timeline.vtt", quality_rows)
     write_transcript_timeline_srt(output_dir / "transcript_timeline.srt", quality_rows)

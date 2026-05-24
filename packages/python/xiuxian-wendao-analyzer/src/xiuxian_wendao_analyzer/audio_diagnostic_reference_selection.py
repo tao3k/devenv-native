@@ -71,27 +71,30 @@ def select_reference_rows(
 
     if limit <= 0:
         raise ValueError("reference selection limit must be positive")
-    sorted_rows = sorted(
-        rows, key=lambda row: (_float(row, "startSeconds"), _index(row))
-    )
+    sorted_rows = sorted(rows, key=lambda row: (_float(row, "startSeconds"), _index(row)))
     selected: dict[int, dict[str, object]] = {}
     for row in sorted_rows:
         reason = _priority_reason(row)
-        if reason:
+        if reason and len(selected) < limit:
             _add_selection(selected, row, reason)
     remaining_slots = max(0, limit - len(selected))
-    for row in _evenly_spaced_rows(sorted_rows, remaining_slots):
+    spread_candidates = [row for row in sorted_rows if _index(row) not in selected]
+    for row in _evenly_spaced_rows(spread_candidates, remaining_slots):
         _add_selection(selected, row, "timeline-spread")
-    return sorted(
-        selected.values(), key=lambda row: (_float(row, "startSeconds"), _index(row))
-    )
+    remaining_slots = max(0, limit - len(selected))
+    for row in sorted_rows:
+        if remaining_slots <= 0:
+            break
+        if _index(row) in selected:
+            continue
+        _add_selection(selected, row, "timeline-fill")
+        remaining_slots -= 1
+    return sorted(selected.values(), key=lambda row: (_float(row, "startSeconds"), _index(row)))
 
 
 def _load_draft_rows(path: Path) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
-    for line_number, raw_line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not raw_line.strip():
             continue
         row = json.loads(raw_line)

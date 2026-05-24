@@ -1,11 +1,16 @@
 //! Ontology source-contract admission.
 
+mod bootstrap_pipeline;
 mod candidate_review;
 mod candidates;
+mod extension_validation;
 mod manifest;
 mod promotion_apply_plan;
 mod promotion_review;
+mod qianji_review_candidates;
 mod rdf_draft;
+mod reasoning_context_shard;
+mod reasoning_target;
 mod registry;
 mod review_ledger;
 mod source_patch_apply;
@@ -15,19 +20,30 @@ mod source_patch_preflight;
 mod source_patch_rdf_read_model;
 mod source_patch_review_packet;
 mod source_patch_semantic_preview;
-mod structural_idf;
-mod structural_idf_reasoning_fill_plan;
-mod structural_idf_reasoning_ledger_seed;
-mod structural_idf_reasoning_packet;
-mod structural_idf_reasoning_qianji_schedule_plan;
+mod structural_facts;
+mod structural_facts_reasoning_fill_plan;
+mod structural_facts_reasoning_ledger_seed;
+mod structural_facts_reasoning_packet;
+mod structural_facts_reasoning_qianji_schedule_plan;
 
+pub use bootstrap_pipeline::{
+    EpistemeOntologyBootstrapPipelineReport, EpistemeOntologyBootstrapPipelineRequest,
+    EpistemeOntologyBootstrapPipelineSafetyFlags, run_episteme_ontology_bootstrap_pipeline,
+};
 pub use candidate_review::{
     EpistemeOntologyCandidateReviewReport, EpistemeOntologyCandidateReviewRequest,
     review_episteme_ontology_candidates,
 };
 pub use candidates::{
     EpistemeOntologyCandidateGenerationReport, EpistemeOntologyCandidateGenerationRequest,
-    generate_episteme_ontology_candidates,
+    EpistemeOntologyCandidateReadModelMissingEndpoint,
+    EpistemeOntologyCandidateReadModelSummaryReport,
+    EpistemeOntologyCandidateReadModelSummaryRequest, generate_episteme_ontology_candidates,
+    summarize_episteme_ontology_candidate_read_model,
+};
+pub use extension_validation::{
+    EpistemeExtensionValidationMode, EpistemeExtensionValidationReport,
+    EpistemeExtensionValidationRequest, validate_episteme_extension_contract,
 };
 pub use manifest::{
     EpistemeOntologyApiSurface, EpistemeOntologyArtifactMode, EpistemeOntologyBoundaries,
@@ -43,6 +59,11 @@ pub use promotion_apply_plan::{
 pub use promotion_review::{
     EpistemeOntologyPromotionReviewPacketReport, EpistemeOntologyPromotionReviewPacketRequest,
     write_episteme_ontology_promotion_review_packet,
+};
+pub use qianji_review_candidates::{
+    EpistemeOntologyQianjiReviewCandidateImportReport,
+    EpistemeOntologyQianjiReviewCandidateImportRequest,
+    import_episteme_ontology_qianji_review_candidates,
 };
 pub use rdf_draft::{
     EpistemeOntologyRdfDraftExportReport, EpistemeOntologyRdfDraftExportRequest,
@@ -97,27 +118,28 @@ pub use source_patch_semantic_preview::{
     EpistemeOntologySourcePatchSemanticPreviewRequest,
     write_episteme_ontology_source_patch_semantic_preview,
 };
-pub use structural_idf::{
-    EpistemeOntologyStructuralIdfReport, EpistemeOntologyStructuralIdfRequest,
-    EpistemeOntologyStructuralIdfValidationMode, write_episteme_ontology_structural_idf,
+pub use structural_facts::{
+    EpistemeOntologyStructuralFactsConfiguredRequest, EpistemeOntologyStructuralFactsReport,
+    EpistemeOntologyStructuralFactsRequest, EpistemeOntologyStructuralFactsValidationMode,
+    write_episteme_ontology_structural_facts, write_episteme_ontology_structural_facts_from_config,
 };
-pub use structural_idf_reasoning_fill_plan::{
-    EpistemeOntologyStructuralIdfReasoningFillPlanReport,
-    EpistemeOntologyStructuralIdfReasoningFillPlanRequest,
-    write_episteme_ontology_structural_idf_reasoning_fill_plan,
+pub use structural_facts_reasoning_fill_plan::{
+    EpistemeOntologyStructuralFactsReasoningFillPlanReport,
+    EpistemeOntologyStructuralFactsReasoningFillPlanRequest,
+    write_episteme_ontology_structural_facts_reasoning_fill_plan,
 };
-pub use structural_idf_reasoning_ledger_seed::{
-    EpistemeOntologyStructuralIdfReasoningLedgerSeedReport,
-    EpistemeOntologyStructuralIdfReasoningLedgerSeedRequest,
-    write_episteme_ontology_structural_idf_reasoning_ledger_seed,
+pub use structural_facts_reasoning_ledger_seed::{
+    EpistemeOntologyStructuralFactsReasoningLedgerSeedReport,
+    EpistemeOntologyStructuralFactsReasoningLedgerSeedRequest,
+    write_episteme_ontology_structural_facts_reasoning_ledger_seed,
 };
-pub use structural_idf_reasoning_packet::{
-    EpistemeOntologyStructuralIdfReasoningPacketReport,
-    EpistemeOntologyStructuralIdfReasoningPacketRequest,
-    write_episteme_ontology_structural_idf_reasoning_packet,
+pub use structural_facts_reasoning_packet::{
+    EpistemeOntologyStructuralFactsReasoningPacketReport,
+    EpistemeOntologyStructuralFactsReasoningPacketRequest,
+    write_episteme_ontology_structural_facts_reasoning_packet,
 };
-pub use structural_idf_reasoning_qianji_schedule_plan::{
-    EpistemeOntologyStructuralIdfReasoningQianjiSchedulePlanReport,
-    EpistemeOntologyStructuralIdfReasoningQianjiSchedulePlanRequest,
-    write_episteme_ontology_structural_idf_reasoning_qianji_schedule_plan,
+pub use structural_facts_reasoning_qianji_schedule_plan::{
+    EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanReport,
+    EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest,
+    write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan,
 };

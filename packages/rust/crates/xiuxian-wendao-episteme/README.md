@@ -35,13 +35,28 @@ repository.
 Ontology is the core Episteme source contract. This crate now exposes a
 conservative ontology admission surface that reads `ontology/manifest.toml`,
 validates ownership boundaries, rejects mutable source contracts, verifies
-unique common `episteme://` domain ids or private `episteme://private/`
-extension ids,
+unique common and extension `episteme://` domain ids,
 and checks declared RDF, SQL rule, policy, dataset mapping, extension, review
 ledger, and API-surface artifacts without mutating them.
 The source ontology remains repository-owned, while Rust owns deterministic
 admission before downstream read-model and quality-gate slices consume the
 ontology contract.
+
+Private Episteme support is modeled as distributed extension packs, not as
+hardcoded providers. The common `wendao-episteme` repository owns public common
+domains such as Healthcare. A customer, tenant, or vertical deployment may keep
+one or many extension repositories that extend those common domains through
+semantic `episteme://<authority>/<domain>` ids. Those repositories contain configuration,
+RDF, object-model contracts, Org review ledgers, and source manifests; they do
+not need executable validators or package-local tools. This crate validates the
+extension pack generically through `validate_episteme_extension_contract`.
+`episteme.toml` may point at an external private corpus root, while source
+manifest paths and source file rows remain safe relative paths inside their
+declared contract surfaces. Access, publication, and tenant distribution policy
+belongs to the Episteme registry or package metadata, not to the ontology domain
+id itself. Object-model `visibility` remains an API exposure field for generated
+object surfaces; it is not the authority for repository publication or tenant
+distribution.
 
 The source ontology compiler may emit `ontology/registry.json`, but that
 snapshot is not treated as a Python-only artifact. This crate also admits the
@@ -61,31 +76,62 @@ and cache-local extraction outputs, then writes review-required
 `review_ledger.org`, and `receipt.json` artifacts under the configured
 ontology-generation run root. These rows are candidate evidence only:
 `raw_to_rdf_promotion_allowed=false`, `ontology_truth=false`, and raw or
-extracted source text is not persisted into the candidate TSV files. Studio may
+extracted source text is not persisted into the candidate TSV files. These TSV
+files are compatibility projections only. Org remains the reviewable reasoning
+ledger, and the typed runtime/search surface should be compiled as an
+Arrow/Parquet read model rather than extending TSV as a semantic contract.
+This crate now writes that first read model as
+`ontology_candidate_objects.parquet`,
+`ontology_candidate_relations.parquet`, and
+`ontology_candidate_evidence.parquet` beside the candidate run. Studio may
 orchestrate the command, but promotion into RDF or SQL remains a later
 review-gated slice.
 
-The structural IDF seed compiler is the first deterministic structure pass for
+The candidate read-model query gate reads those Parquet files back through the
+Rust Arrow/Parquet boundary and reports row counts, review-status violations,
+promotion-status violations, ontology-truth violations, raw-to-RDF promotion
+violations, and missing relation endpoints. This gives downstream
+DuckDB/DataFusion, WendaoGraph, and Flight slices a typed readiness check before
+they consume candidate facts. The gate does not parse candidate TSV files and
+does not make TSV a semantic contract.
+
+The structural facts seed compiler is the first deterministic structure pass for
 private Episteme repositories. It reads declared source manifests and
 `files.tsv` rows, verifies source paths and file metadata against the configured
-corpus root, and writes `structural_idf.json`, `structural_idf.org`,
-`structural_idf_documents.tsv`, `structural_idf_anchors.tsv`, and
-`structural_idf_relations.tsv` under the structure run root. The emitted rows
+corpus root, and writes `structural_facts.json`, `structural_facts.org`,
+`structural_facts_documents.tsv`, `structural_facts_anchors.tsv`, and
+`structural_facts_relations.tsv` under the structure run root. The emitted rows
 represent source-contract documents, path anchors, and deterministic containment
 relations only. They are not promoted RDF, not raw extracted text, and not
 ontology truth. `metadata-only` validation keeps the first pass fast by checking
 presence and size; `full-hash` additionally verifies the source SHA-256 values
 recorded in `files.tsv`.
+The crate owns `episteme.toml` runtime defaults for this pass. Callers may use
+the config-driven structural facts request to resolve `runtime.corpus_root` and
+`runtime.structure_run_root` inside the Episteme boundary; Studio and Gateway
+surfaces should remain thin operators over that crate-owned request.
+The same run now also emits `structural_facts_rdf_seed.ttl`,
+`structural_facts_read_model_objects.{tsv,json,parquet}`,
+`structural_facts_read_model_relations.{tsv,json,parquet}`, and
+`structural_facts_read_model_projection_state.json`. These are deterministic
+structure facts for downstream graph/search readiness, not model-inferred
+ontology truth. The read-model gate rejects duplicate structural ids, missing
+relation endpoints, empty projection state, and any attempt to mark structural
+rows as ontology truth before later Org/RDF promotion slices.
 
-The structural IDF reasoning-packet compiler is the next deterministic
-proposal-input pass. It reads a generated `structural_idf.json`, validates that
+The structural facts reasoning-packet compiler is the next deterministic
+proposal-input pass. It reads a generated `structural_facts.json`, validates that
 every document row has a matching document-root anchor, and writes
 `reasoning_packet.org`, `reasoning_packet.tsv`, `reasoning_packet.json`, and
 `reasoning_packet_report.json` under the ontology-generation run root. The
 packet groups bounded source rows by category and extraction route so a later
 human, Qianji workflow, or LLM can request targeted evidence before filling Org
-review ledgers. It does not read private source text, call an LLM, write RDF,
-or mark any row as ontology truth.
+review ledgers. It also emits deterministic structure-targeting fields:
+`evidenceTargetIntent`, `evidenceAnchorKind`, and `evidenceStructureHint`.
+These fields let Docling, parser, table, section, and source-route signals
+select a reasoning slot before model execution. The packet compiler does not
+read private source text, call an LLM, write RDF, or mark any row as ontology
+truth.
 
 The reasoning ledger seed compiler turns `reasoning_packet.json` into generated
 Org proposal slots. It writes `reasoning_ledger_seed.org`,
@@ -93,8 +139,12 @@ Org proposal slots. It writes `reasoning_ledger_seed.org`,
 `reasoning_ledger_seed_report.json` under the ontology-generation run root.
 Object and relation proposal fields are blank by default; the seed preserves
 packet ids, document ids, anchors, hashes, categories, and routes so a human or
-LLM can fill only the rows it has inspected. The seed still does not read
-private source text, call an LLM, write RDF, or mark any row as ontology truth.
+LLM can fill only the rows it has inspected. Structure-targeted packet rows may
+emit narrower seed kinds such as `service_catalog_review_slot` or
+`object_instance_review_slot` instead of generic object-model proposal slots.
+This prevents service catalogs, row-like tables, and instance evidence from
+being routed as `ObjectType` definitions. The seed still does not read private
+source text, call an LLM, write RDF, or mark any row as ontology truth.
 
 The reasoning fill-plan compiler is the deterministic workflow handoff after a
 ledger seed exists. It reads `reasoning_ledger_seed.json` and writes
@@ -102,8 +152,19 @@ ledger seed exists. It reads `reasoning_ledger_seed.json` and writes
 `reasoning_fill_plan.json`, and `reasoning_fill_plan_report.json` under the
 ontology-generation run root. Fill-plan rows carry Qianji/BPMN workflow keys,
 activity kinds, seed ids, evidence anchors, and safety flags as data only. The
-compiler does not execute Qianji, read source text, call an LLM, mutate source
-files, write RDF, or mark any row as ontology truth.
+compiler preserves the same structure-targeting fields and maps seed kinds to
+typed target ledger groups, including `service_catalog_review` and
+`object_instance_review` for non-object-model evidence. It does not execute
+Qianji, read source text, call an LLM, mutate source files, write RDF, or mark
+any row as ontology truth.
+
+The ontology bootstrap pipeline is the crate-owned convenience boundary for the
+same deterministic sequence. It resolves `episteme.toml`, compiles structural
+facts, writes the reasoning packet, seeds fillable Org ledger rows, and emits
+the reasoning fill plan without reading private source text, calling an LLM,
+executing Qianji, mutating RDF, or declaring ontology truth. Studio, Gateway,
+and later Flight surfaces should call this Episteme API instead of rebuilding
+the sequence in their own command handlers.
 
 The Qianji reasoning schedule-plan compiler is the next non-mutating handoff.
 It reads `reasoning_fill_plan.json` and writes `qianji_schedule_plan.org`,
@@ -114,13 +175,62 @@ task queue, input claim-check reference, and idempotency key. The compiler does
 not append Qianji control ledger events, enqueue hot-state work, execute
 workers, call an LLM, read source text, mutate source files, write RDF, or mark
 any row as ontology truth.
+Callers may restrict schedule generation by target ledger field group or
+evidence target intent before the limit is applied. This keeps live proofs and
+operator batches aligned with the deterministic structure target instead of
+depending on prompt wording or fill-plan row order.
+Callers may also enable deterministic reasoning context sharding for prompt-audit
+tasks. The first reusable shard planner supports `service-catalog-table-rows`,
+which preserves the Markdown table header and emits bounded row-window context
+artifacts for `service_catalog_review` rows. This prevents a long structured
+table from becoming one oversized model request while keeping the original
+fill-plan and evidence contracts intact. Sharding is disabled by default, and
+the default enabled row window is two table data rows.
 
-When the caller explicitly enables OpenAI-compatible prompt-audit emission, the
-same compiler also writes per-task local prompt and context artifacts under the
-schedule-plan run directory. The generated Qianji task `input_ref` points to
-the prompt artifact, while the original reasoning fill item remains recorded as
-source context in task metadata. This only prepares admitted worker input; the
-Episteme crate still does not call a provider or promote RDF.
+When the caller enables OpenAI-compatible prompt-audit emission, the same
+compiler also writes per-task local prompt and context artifacts under the
+schedule-plan run directory. Studio defaults this route to
+`deepseek/deepseek-v4-pro`; alternate model ids are comparator runs, not the
+canonical ontology-reasoning default. The generated Qianji task `input_ref`
+points to the prompt artifact, while the original reasoning fill item remains
+recorded as source context in task metadata. Prompt-audit emission must also
+name at least one extraction run id. The compiler reads succeeded cache
+outputs, validates the source hash and relative path against the fill item, and
+embeds non-empty `contextEvidence` rows in the Qianji context artifact. The
+context also carries an object-model `targetContract` for the fill item's target
+ledger field group.
+When a reasoning context shard is present, the context and task metadata carry the
+shard id, row window, and carry-forward metadata so the worker reviews only the
+bounded reasoning-context shard.
+Object proposals target review-only `ObjectType` candidates and relation
+proposals target review-only `LinkType` candidates. RDF remains the semantic
+source authority, runtime mutation stays disabled, and provider output is not
+ontology truth. This only prepares admitted worker input; the Episteme crate
+still does not call a provider or promote RDF.
+When the target ledger group is `service_catalog_review` or
+`object_instance_review`, the generated contract uses concrete
+`object_candidate` review patches instead of object-model `ObjectType` patches.
+The model may still return blockers when evidence is insufficient; correctness
+and reviewability take priority over candidate volume.
+
+Qianji review artifacts can be imported back into the same candidate-review
+surface after a worker writes a canonical `episteme_review` object. The importer
+accepts the Qianji OpenAI-compatible response envelope only when the review is
+schema-valid, `review_only`, bound to the expected target field group, and
+declares `rdfMutation=false`. It supports review-only object-model `ObjectType`
+and `LinkType` candidates. Link candidates are expanded into review-required
+endpoint object candidates plus a relation row so the existing review gate can
+validate relation endpoints before any promotion slice. The importer writes
+`candidate_objects.tsv`, `candidate_relations.tsv`, `candidate_evidence.tsv`,
+`qianji_review_candidate_import_report.json`, and the normal candidate review
+gate artifacts. It records source ids, paths, evidence hashes, and text length,
+but it does not persist raw private quotes in the candidate TSVs, mutate source
+RDF, or mark any row as ontology truth.
+If a canonical review returns zero candidate patches, the importer accepts it
+only when the model supplied blockers explaining why evidence was insufficient.
+That path writes header-only candidate TSVs, records
+`zeroCandidateReviewCount` and `reviewBlockerCount` in the import report, and
+keeps the candidate review gate passing with zero promotion rows.
 
 The candidate review gate is the next deterministic step. It reads generated
 candidate TSV artifacts and writes `candidate_review.org`,
@@ -137,11 +247,15 @@ passing `quality_report.json` and consumes review decisions from
 `candidate_review.org`, then writes `rdf_draft.ttl`, `promotion_proposal.org`,
 and `promotion_proposal.json` beside the reviewed candidate run. These artifacts
 make candidate ids, labels, provenance, review decisions, and proposal status
-inspectable as RDF-shaped data, but they keep `rawToRdfPromotionAllowed=false`
-and `ontologyTruth=false`. Source ontology RDF is not changed by this crate;
-promotion into a private ontology source tree is a separate review slice.
-Stale or corrupted candidate review TSV projections cannot change RDF draft
-review state.
+inspectable as RDF-shaped data. Relation candidates also expose source and
+target candidate resource references, so graph consumers can traverse proposal
+topology without parsing string ids. The exporter rejects relation rows whose
+source or target candidate ids are absent from the reviewed object candidate
+set. Draft artifacts keep `rawToRdfPromotionAllowed=false` and
+`ontologyTruth=false`. Source ontology RDF is not changed by this crate;
+promotion into a private ontology source tree is a separate review slice. Stale
+or corrupted candidate review TSV projections cannot change RDF draft review
+state.
 
 The promotion review packet is the next explicit gate. It requires the clean
 draft proposal and reads candidate review rows from `candidate_review.org`, then

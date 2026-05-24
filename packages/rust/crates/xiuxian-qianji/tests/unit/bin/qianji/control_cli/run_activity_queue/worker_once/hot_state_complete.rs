@@ -557,7 +557,7 @@ async fn worker_once_with_hot_state_executes_episteme_reasoning_openai_compatibl
 -> Result<(), String> {
     let (base_url, request_rx) = spawn_openai_compatible_server(
         "200 OK",
-        r#"{"id":"chatcmpl-test","choices":[{"message":{"role":"assistant","content":"{\"schema\":\"xiuxian.wendao.episteme.reasoning_fill_review.v1\",\"status\":\"review_only\",\"candidatePatchCount\":0,\"rdfMutation\":false}"},"finish_reason":"stop"}]}"#,
+        r#"{"id":"chatcmpl-test","choices":[{"message":{"role":"assistant","content":"```json\n{\"schema\":\"xiuxian.wendao.episteme.reasoning_fill_review.v1\",\"status\":\"review_only\",\"fillItemId\":\"fill.ltc.policy.001\",\"targetLedgerFieldGroup\":\"object_proposal\",\"candidatePatchCount\":0,\"candidatePatches\":[],\"rdfMutation\":false}\n```"},"finish_reason":"stop"}]}"#,
     )
     .await?;
     let temp_dir =
@@ -614,10 +614,23 @@ async fn worker_once_with_hot_state_executes_episteme_reasoning_openai_compatibl
         request.contains("fill.ltc.policy.001"),
         "provider request should include context text: {request}"
     );
+    assert!(
+        request.contains("Policy evidence body for LTC review."),
+        "provider request should include materialized context evidence: {request}"
+    );
+    assert!(
+        request.contains("targetContract"),
+        "provider request should include target patch contract: {request}"
+    );
     assert_eq!(
         artifact["schema"],
         "qianji.openai_compatible_llm_response.v1"
     );
+    assert_eq!(
+        artifact["episteme_review"]["schema"],
+        "xiuxian.wendao.episteme.reasoning_fill_review.v1"
+    );
+    assert_eq!(artifact["episteme_review"]["candidatePatchCount"], 0);
     assert_eq!(
         json["claimed"]["activity_task"]["task"]["activity_type"],
         "episteme.ontology.reasoning_fill"
@@ -631,6 +644,367 @@ async fn worker_once_with_hot_state_executes_episteme_reasoning_openai_compatibl
         "openai-compatible-llm"
     );
     assert_eq!(json["released"], true);
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_once_with_hot_state_rejects_episteme_reasoning_legacy_patch_kind()
+-> Result<(), String> {
+    let (base_url, request_rx) = spawn_openai_compatible_server(
+        "200 OK",
+        r#"{"id":"chatcmpl-test","choices":[{"message":{"role":"assistant","content":"{\"schema\":\"xiuxian.wendao.episteme.reasoning_fill_review.v1\",\"status\":\"review_only\",\"fillItemId\":\"fill.ltc.policy.001\",\"targetLedgerFieldGroup\":\"object_proposal\",\"candidatePatchCount\":1,\"candidatePatches\":[{\"patchKind\":\"object_candidate\",\"fillItemId\":\"fill.ltc.policy.001\",\"targetLedgerFieldGroup\":\"object_proposal\",\"label\":\"Legacy object\",\"sourceEvidence\":[{\"fileId\":\"ltc.file.policy.001\",\"relativePath\":\"policy/source.txt\",\"quote\":\"Policy evidence body for LTC review.\"}]}],\"rdfMutation\":false}"},"finish_reason":"stop"}]}"#,
+    )
+    .await?;
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let (ledger_path, prompt_path, context_path, output_path) =
+        write_episteme_openai_compatible_fixture(temp_dir.path())?;
+    let run_id = append_control_run_with_episteme_openai_compatible_local_prompt(
+        &ledger_path,
+        &prompt_path,
+        &context_path,
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-episteme-reasoning-openai-compatible-llm",
+    )
+    .await?;
+
+    let output = must_ok(
+        worker_once_with_hot_state(
+            &ledger,
+            &hot_state,
+            &episteme_openai_compatible_worker_request(base_url.as_str(), output_path.as_path()),
+        )
+        .await,
+        "Episteme OpenAI-compatible worker once should fail invalid contract durably",
+    );
+    let _request = request_rx
+        .await
+        .map_err(|error| format!("should receive provider request: {error}"))?;
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker once output should be valid json",
+    );
+
+    assert!(!output_path.exists());
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["event"],
+        "activity_failed"
+    );
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["error_code"],
+        "provider_contract_invalid"
+    );
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["retryable"],
+        true
+    );
+    assert!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("is not allowed by targetContract"),
+        "unexpected failure message: {json}"
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_once_with_hot_state_marks_truncated_episteme_json_retryable() -> Result<(), String>
+{
+    let (base_url, request_rx) = spawn_openai_compatible_server(
+        "200 OK",
+        r#"{"id":"chatcmpl-test","choices":[{"message":{"role":"assistant","content":"{\"schema\":\"xiuxian.wendao.episteme.reasoning_fill_review.v1\",\"status\":\"review_only\""},"finish_reason":"length"}]}"#,
+    )
+    .await?;
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let (ledger_path, prompt_path, context_path, output_path) =
+        write_episteme_openai_compatible_fixture(temp_dir.path())?;
+    let run_id = append_control_run_with_episteme_openai_compatible_local_prompt(
+        &ledger_path,
+        &prompt_path,
+        &context_path,
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-episteme-reasoning-openai-compatible-llm",
+    )
+    .await?;
+
+    let output = must_ok(
+        worker_once_with_hot_state(
+            &ledger,
+            &hot_state,
+            &episteme_openai_compatible_worker_request(base_url.as_str(), output_path.as_path()),
+        )
+        .await,
+        "truncated Episteme provider JSON should fail durably",
+    );
+    let _request = request_rx
+        .await
+        .map_err(|error| format!("should receive provider request: {error}"))?;
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker once output should be valid json",
+    );
+
+    assert!(!output_path.exists());
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["error_code"],
+        "provider_contract_invalid"
+    );
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["retryable"],
+        true
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_once_with_hot_state_accepts_episteme_service_catalog_object_candidate()
+-> Result<(), String> {
+    let (base_url, request_rx) = spawn_openai_compatible_server(
+        "200 OK",
+        r#"{"id":"chatcmpl-test","choices":[{"message":{"role":"assistant","content":"{\"schema\":\"xiuxian.wendao.episteme.reasoning_fill_review.v1\",\"status\":\"review_only\",\"fillItemId\":\"fill.ltc.service.001\",\"targetLedgerFieldGroup\":\"service_catalog_review\",\"reviewSummary\":\"Service catalog object candidate extracted for review.\",\"candidatePatchCount\":1,\"candidatePatches\":[{\"patchKind\":\"object_candidate\",\"fillItemId\":\"fill.ltc.service.001\",\"targetLedgerFieldGroup\":\"service_catalog_review\",\"provisionalObjectKey\":\"ltc.service_item.home_nursing_001\",\"label\":\"Home nursing service\",\"ontologyClassKey\":\"ltc.service_item\",\"sourceEvidence\":[{\"fileId\":\"ltc.file.service.001\",\"relativePath\":\"service/source.txt\",\"quote\":\"Home nursing service\",\"reason\":\"supports the service item candidate\"}]}],\"blockers\":[],\"rdfMutation\":false}"},"finish_reason":"stop"}]}"#,
+    )
+    .await?;
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let (ledger_path, prompt_path, context_path, output_path) =
+        write_episteme_openai_compatible_fixture(temp_dir.path())?;
+    write_episteme_service_catalog_context_fixture(&context_path)?;
+    let run_id = append_control_run_with_episteme_openai_compatible_local_prompt(
+        &ledger_path,
+        &prompt_path,
+        &context_path,
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-episteme-reasoning-openai-compatible-llm",
+    )
+    .await?;
+
+    let output = must_ok(
+        worker_once_with_hot_state(
+            &ledger,
+            &hot_state,
+            &episteme_openai_compatible_worker_request(base_url.as_str(), output_path.as_path()),
+        )
+        .await,
+        "Episteme service catalog worker once should complete",
+    );
+    let _request = request_rx
+        .await
+        .map_err(|error| format!("should receive provider request: {error}"))?;
+    let artifact: serde_json::Value = must_ok(
+        serde_json::from_str(
+            &std::fs::read_to_string(&output_path)
+                .map_err(|error| format!("should read provider artifact: {error}"))?,
+        ),
+        "provider artifact should be valid json",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker once output should be valid json",
+    );
+
+    assert_eq!(
+        artifact["episteme_review"]["targetLedgerFieldGroup"],
+        "service_catalog_review"
+    );
+    assert_eq!(
+        artifact["episteme_review"]["candidatePatches"][0]["patchKind"],
+        "object_candidate"
+    );
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["event"],
+        "activity_completed"
+    );
+    assert_eq!(json["released"], true);
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_once_with_hot_state_rejects_episteme_reasoning_without_context_evidence()
+-> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let (ledger_path, prompt_path, context_path, output_path) =
+        write_episteme_openai_compatible_fixture(temp_dir.path())?;
+    std::fs::write(
+        &context_path,
+        r#"{
+  "schema": "xiuxian.wendao.episteme.reasoning_fill_context.v1",
+  "fillItem": {
+    "fillItemId": "fill.ltc.policy.001"
+  },
+  "contextEvidence": [],
+  "safety": {
+    "sourceTextRead": false,
+    "sourceMutationAllowed": false,
+    "rdfMutationAllowed": false,
+    "ontologyTruth": false
+  }
+}"#,
+    )
+    .map_err(|error| format!("should write invalid context artifact: {error}"))?;
+    let run_id = append_control_run_with_episteme_openai_compatible_local_prompt(
+        &ledger_path,
+        &prompt_path,
+        &context_path,
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-episteme-reasoning-openai-compatible-llm",
+    )
+    .await?;
+
+    let output = must_ok(
+        worker_once_with_hot_state(
+            &ledger,
+            &hot_state,
+            &episteme_openai_compatible_worker_request("http://127.0.0.1:9/v1", &output_path),
+        )
+        .await,
+        "Episteme worker once should settle invalid context as durable failure",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker once output should be valid json",
+    );
+
+    assert!(!output_path.exists());
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["event"],
+        "activity_failed"
+    );
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["error_code"],
+        "input_artifact_read_failed"
+    );
+    assert!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("contextEvidence must not be empty"),
+        "unexpected failure message: {json}"
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn worker_once_with_hot_state_rejects_episteme_reasoning_without_target_contract()
+-> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let (ledger_path, prompt_path, context_path, output_path) =
+        write_episteme_openai_compatible_fixture(temp_dir.path())?;
+    std::fs::write(
+        &context_path,
+        r#"{
+  "schema": "xiuxian.wendao.episteme.reasoning_fill_context.v1",
+  "fillItem": {
+    "fillItemId": "fill.ltc.policy.001"
+  },
+  "contextEvidence": [
+    {
+      "extractionRunId": "ltc.extract.test",
+      "queueId": "ltc.queue.policy.001",
+      "fileId": "ltc.file.policy.001",
+      "relativePath": "policy/source.txt",
+      "sourceSha256": "sha256-source",
+      "textSha256": "sha256-text",
+      "textCharCount": 37,
+      "extractedText": "Policy evidence body for LTC review."
+    }
+  ],
+  "safety": {
+    "sourceTextRead": false,
+    "sourceMutationAllowed": false,
+    "rdfMutationAllowed": false,
+    "ontologyTruth": false
+  }
+}"#,
+    )
+    .map_err(|error| format!("should write invalid context artifact: {error}"))?;
+    let run_id = append_control_run_with_episteme_openai_compatible_local_prompt(
+        &ledger_path,
+        &prompt_path,
+        &context_path,
+    );
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&ledger_path),
+        "should reopen temporary control ledger",
+    );
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(
+        &ledger,
+        &hot_state,
+        &run_id,
+        "activity-episteme-reasoning-openai-compatible-llm",
+    )
+    .await?;
+
+    let output = must_ok(
+        worker_once_with_hot_state(
+            &ledger,
+            &hot_state,
+            &episteme_openai_compatible_worker_request("http://127.0.0.1:9/v1", &output_path),
+        )
+        .await,
+        "Episteme worker once should settle invalid target contract as durable failure",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker once output should be valid json",
+    );
+
+    assert!(!output_path.exists());
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["event"],
+        "activity_failed"
+    );
+    assert_eq!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["error_code"],
+        "input_artifact_read_failed"
+    );
+    assert!(
+        json["terminal"]["record"]["event"]["kind"]["failure"]["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("requires targetContract"),
+        "unexpected failure message: {json}"
+    );
     Ok(())
 }
 
@@ -649,14 +1023,139 @@ fn write_episteme_openai_compatible_fixture(
     let context_path = root.join("context.json");
     std::fs::write(&prompt_path, "Return an Episteme review artifact.")
         .map_err(|error| format!("should write prompt artifact: {error}"))?;
-    std::fs::write(&context_path, r#"{"fillItemId":"fill.ltc.policy.001"}"#)
-        .map_err(|error| format!("should write context artifact: {error}"))?;
+    std::fs::write(
+        &context_path,
+        r#"{
+  "schema": "xiuxian.wendao.episteme.reasoning_fill_context.v1",
+  "fillItem": {
+    "fillItemId": "fill.ltc.policy.001"
+  },
+  "targetContract": {
+    "schema": "xiuxian.wendao.episteme.reasoning_target_contract.v1",
+    "objectModelSchemaRef": "https://wendao.ai/schema/episteme/object-model-v1.schema.json",
+    "objectModelCompatibility": "foundry_style_object_model_v1",
+    "operationalTargetLayer": "object_model",
+    "semanticSourceAuthority": "rdf",
+    "targetLedgerFieldGroup": "object_proposal",
+    "patchKind": "object_model_object_type_candidate",
+    "allowedPatchKinds": ["object_model_object_type_candidate"],
+    "reviewMode": "proposal_patch_only",
+    "runtimeMutationAllowed": false,
+    "rdfMutationAllowed": false,
+    "candidatePatchShape": {
+      "patchKind": "object_model_object_type_candidate",
+      "fillItemId": "fill.ltc.policy.001",
+      "targetLedgerFieldGroup": "object_proposal",
+      "objectType": {
+        "domain": "episteme://private/medical/ltc",
+        "apiName": "LtcPolicyDocument",
+        "displayName": "LTC policy document",
+        "pluralDisplayName": "LTC policy documents",
+        "status": "preview",
+        "rdfClass": "https://wendao.ai/private/medical/ltc#PolicyDocument",
+        "primaryKey": ["sourceId"],
+        "displayNameProperty": "name",
+        "titleProperty": "name",
+        "interfaces": [],
+        "visibility": "private"
+      },
+      "sourceEvidence": [
+        {
+          "fileId": "ltc.file.policy.001",
+          "relativePath": "policy/source.txt",
+          "quote": "Policy evidence body for LTC review.",
+          "reason": "supports the object candidate"
+        }
+      ]
+    }
+  },
+  "contextEvidence": [
+    {
+      "extractionRunId": "ltc.extract.test",
+      "queueId": "ltc.queue.policy.001",
+      "fileId": "ltc.file.policy.001",
+      "relativePath": "policy/source.txt",
+      "sourceSha256": "sha256-source",
+      "textSha256": "sha256-text",
+      "textCharCount": 37,
+      "extractedText": "Policy evidence body for LTC review."
+    }
+  ],
+  "safety": {
+    "sourceTextRead": false,
+    "sourceMutationAllowed": false,
+    "rdfMutationAllowed": false,
+    "ontologyTruth": false
+  }
+}"#,
+    )
+    .map_err(|error| format!("should write context artifact: {error}"))?;
     Ok((
         root.join("control.duckdb"),
         prompt_path,
         context_path,
         root.join("artifacts/episteme-reasoning-review.json"),
     ))
+}
+
+fn write_episteme_service_catalog_context_fixture(context_path: &Path) -> Result<(), String> {
+    std::fs::write(
+        context_path,
+        r#"{
+  "schema": "xiuxian.wendao.episteme.reasoning_fill_context.v1",
+  "fillItem": {
+    "fillItemId": "fill.ltc.service.001"
+  },
+  "targetContract": {
+    "schema": "xiuxian.wendao.episteme.reasoning_target_contract.v1",
+    "objectModelSchemaRef": "https://wendao.ai/schema/episteme/object-model-v1.schema.json",
+    "objectModelCompatibility": "foundry_style_object_model_v1",
+    "operationalTargetLayer": "object_model",
+    "semanticSourceAuthority": "rdf",
+    "targetLedgerFieldGroup": "service_catalog_review",
+    "patchKind": "object_candidate",
+    "allowedPatchKinds": ["object_candidate"],
+    "reviewMode": "proposal_patch_only",
+    "runtimeMutationAllowed": false,
+    "rdfMutationAllowed": false,
+    "candidatePatchShape": {
+      "patchKind": "object_candidate",
+      "fillItemId": "fill.ltc.service.001",
+      "targetLedgerFieldGroup": "service_catalog_review",
+      "provisionalObjectKey": "ltc.service_item.home_nursing_001",
+      "label": "Home nursing service",
+      "ontologyClassKey": "ltc.service_item",
+      "sourceEvidence": [
+        {
+          "fileId": "ltc.file.service.001",
+          "relativePath": "service/source.txt",
+          "quote": "Home nursing service",
+          "reason": "supports the service item candidate"
+        }
+      ]
+    }
+  },
+  "contextEvidence": [
+    {
+      "extractionRunId": "ltc.extract.test",
+      "queueId": "ltc.queue.service.001",
+      "fileId": "ltc.file.service.001",
+      "relativePath": "service/source.txt",
+      "sourceSha256": "sha256-source",
+      "textSha256": "sha256-text",
+      "textCharCount": 21,
+      "extractedText": "Home nursing service"
+    }
+  ],
+  "safety": {
+    "sourceTextRead": false,
+    "sourceMutationAllowed": false,
+    "rdfMutationAllowed": false,
+    "ontologyTruth": false
+  }
+}"#,
+    )
+    .map_err(|error| format!("should write service catalog context artifact: {error}"))
 }
 
 fn episteme_openai_compatible_worker_request<'a>(

@@ -1,7 +1,8 @@
 use super::{
-    AudioShardMaterializedItem, AudioShardResult, AudioShardWorkerProfile,
-    build_audio_shard_input_batch, build_audio_shard_inputs, build_audio_shard_result_batch,
-    decode_audio_shard_result_batches, plan_audio_shards, sample_plan,
+    AudioShardMaterializationSource, AudioShardMaterializedItem, AudioShardResult,
+    AudioShardWorkerProfile, build_audio_shard_input_batch, build_audio_shard_inputs,
+    build_audio_shard_result_batch, decode_audio_shard_result_batches, plan_audio_shards,
+    sample_plan,
 };
 
 #[test]
@@ -14,6 +15,7 @@ fn audio_shard_arrow_contract_roundtrips_results() -> Result<(), String> {
         manifest,
         output_path: std::path::PathBuf::from("/tmp/audio.wav"),
         shard_sha256: "b".repeat(64),
+        materialization_source: AudioShardMaterializationSource::MediaSplitter,
     };
     let profile = AudioShardWorkerProfile::transcription("hosted-audio");
 

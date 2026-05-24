@@ -308,11 +308,23 @@ context artifacts as request-audit inputs; their provider outputs remain
 review artifacts and do not promote RDF. That executor requires a claimed task
 input reference, admitted request-audit metadata, a local-file prompt reference
 that matches the task input reference, `--openai-compatible-base-url`, and
-`--output-artifact-path`. It performs one HTTP request with no internal retry,
-writes successful provider responses to the output artifact, records only the
-derived claim-check in the durable completion event, and records HTTP,
-malformed response, or input materialization failures as durable activity
-failures.
+`--output-artifact-path`. For `episteme.ontology.reasoning_fill`, the
+request-audit metadata must also carry a local-file context reference with kind
+`episteme.reasoning_fill_context`, the expected context schema, and non-empty
+`contextEvidence` text. The context must also include the Episteme
+object-model `targetContract` schema so the provider receives a deterministic
+review-only `ObjectType` or `LinkType` candidate contract. The contract must
+declare object-model compatibility, RDF source authority, disabled runtime
+mutation, disabled RDF mutation, and allowed object-model patch kinds. It
+performs one HTTP request with no internal retry, writes successful provider
+responses to the output artifact, and stores a canonical `episteme_review` JSON
+object after accepting either raw JSON or fenced JSON provider content.
+Episteme review content must match the expected schema, fill item id, target
+ledger field group, allowed patch kind, `candidatePatchCount`, candidate
+evidence, and `rdfMutation=false` contract before completion. The durable
+completion event records only the derived claim-check, while HTTP, malformed
+response, contract, or input materialization failures are recorded as durable
+activity failures.
 `qianji control activity-worker-loop --ledger <path> --valkey-url <url>
 --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n>
 --executor fixture|openai-compatible-llm --outcome complete|fail

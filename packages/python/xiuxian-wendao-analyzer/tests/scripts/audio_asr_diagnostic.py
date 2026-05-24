@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -51,8 +52,10 @@ from xiuxian_wendao_analyzer.audio_diagnostic_media_probe import (
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_openrouter import (
     build_openrouter_payload,
+    build_openrouter_transcription_payload,
     extract_openrouter_segments,
     extract_openrouter_transcript,
+    is_openrouter_transcription_url,
     transcribe_openrouter,
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_parser import build_parser
@@ -95,6 +98,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_recovery_patch import (
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_reference_pack import (
     materialize_reference_selection_pack,
+    model_review_reference_selection_pack,
     validate_reference_selection_pack,
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_reference_selection import (
@@ -149,8 +153,8 @@ DEFAULT_PROMPT = (
     "Mark inaudible spans as [inaudible]. Output only the transcript text."
 )
 DEFAULT_PRIMARY_LANGUAGE = "zh"
-DEFAULT_OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_OPENROUTER_MODEL = "xiaomi/mimo-v2.5"
+DEFAULT_OPENROUTER_URL = "https://openrouter.ai/api/v1/audio/transcriptions"
+DEFAULT_OPENROUTER_MODEL = "qwen/qwen3-asr-flash-2026-02-10"
 DEFAULT_LOCAL_ASR_MODEL = "WHISPER_TINY"
 DEFAULT_LOCAL_LANGUAGE = "zh"
 DEFAULT_FIREREDASR2S_COMMAND = "fireredasr2s-cli"
@@ -201,6 +205,7 @@ __all__ = [
     "load_speech_segments",
     "materialize_audio_chunks",
     "materialize_reference_selection_pack",
+    "model_review_reference_selection_pack",
     "normalize_primary_language",
     "parse_window_min_candidates",
     "prompt_with_primary_language",
@@ -300,14 +305,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 recovery_plan_json=args.risk_recovery_patch_plan_json,
                 output_json=args.risk_recovery_patch_output_json,
                 options=AudioRecoveryPatchGateOptions(
-                    max_chinese_ratio_drop=(
-                        args.risk_recovery_patch_max_chinese_ratio_drop
-                    ),
+                    max_chinese_ratio_drop=(args.risk_recovery_patch_max_chinese_ratio_drop),
                     min_char_ratio=args.risk_recovery_patch_min_char_ratio,
                     max_char_ratio=args.risk_recovery_patch_max_char_ratio,
-                    max_part_repeated_ngram_ratio=(
-                        args.risk_recovery_patch_max_part_repeat
-                    ),
+                    max_part_repeated_ngram_ratio=(args.risk_recovery_patch_max_part_repeat),
                 ),
             )
             print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
@@ -322,9 +323,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.reference_selection_clip_dir,
                 start=Path.cwd(),
                 input_privacy=args.input_privacy,
-                allow_private_output_outside_cache=(
-                    args.allow_private_output_outside_cache
-                ),
+                allow_private_output_outside_cache=(args.allow_private_output_outside_cache),
             )
             report = materialize_reference_selection_pack(
                 selection_jsonl=args.materialize_reference_selection_jsonl,
@@ -343,13 +342,36 @@ def main(argv: Sequence[str] | None = None) -> int:
                 write_json(args.reference_selection_validation_report_json, report)
             print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
             return 0
+        if args.model_review_reference_selection_review_tsv is not None:
+            api_key = resolve_openrouter_api_key(
+                os.environ,
+                env_file=args.env_file,
+            )
+            if not api_key:
+                parser.error(
+                    "OPENROUTER_API_KEY is required with "
+                    "--model-review-reference-selection-review-tsv"
+                )
+            report = model_review_reference_selection_pack(
+                review_tsv=args.model_review_reference_selection_review_tsv,
+                api_key=api_key,
+                model=args.openrouter_model,
+                base_url=args.openrouter_base_url,
+                prompt=args.prompt,
+                max_tokens=args.max_tokens,
+                temperature=args.temperature,
+                timeout_seconds=args.timeout_seconds,
+                max_candidate_to_model_cer=(args.reference_selection_model_review_max_cer),
+            )
+            if args.reference_selection_model_review_report_json is not None:
+                write_json(args.reference_selection_model_review_report_json, report)
+            print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            return 0
         if args.plan_speech_windows:
             if args.source_root is None:
                 parser.error("source_root is required with --plan-speech-windows")
             if args.speech_segments_jsonl is None:
-                parser.error(
-                    "--speech-segments-jsonl is required with --plan-speech-windows"
-                )
+                parser.error("--speech-segments-jsonl is required with --plan-speech-windows")
             report = build_speech_window_plan_report(
                 speech_segments=load_speech_segments(
                     args.speech_segments_jsonl,
@@ -376,13 +398,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         ]
         if curate_inputs:
             if len(curate_inputs) > 1:
-                parser.error(
-                    "use only one of --curate-reference-draft or --curate-reference-tsv"
-                )
+                parser.error("use only one of --curate-reference-draft or --curate-reference-tsv")
             if args.curated_reference_jsonl is None:
-                parser.error(
-                    "--curated-reference-jsonl is required with reference curation"
-                )
+                parser.error("--curated-reference-jsonl is required with reference curation")
             rows = (
                 curated_reference_rows_from_draft(args.curate_reference_draft)
                 if args.curate_reference_draft is not None

@@ -10,10 +10,11 @@ fn audio_config_defaults_are_model_neutral() -> Result<(), String> {
     let config = document_extract_audio_config(&|_| None)?;
 
     assert_eq!(config.backend_profile, "hosted-audio-transcript-v1");
-    assert_eq!(config.chunk_duration_ms, 60_000);
+    assert_eq!(config.chunk_duration_ms, 30_000);
     assert_eq!(config.recovery_split_duration_ms, 30_000);
     assert_eq!(config.base_worker_budget, None);
     assert_eq!(config.recovery_worker_budget, None);
+    assert_eq!(config.artifact_cache_dir, None);
     assert_eq!(config.speech_segments_jsonl_path, None);
     assert_eq!(config.speech_merge_gap_ms, 500);
     assert_eq!(config.speech_min_window_ms, 0);

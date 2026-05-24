@@ -39,32 +39,35 @@ pub(super) fn write_valid_ontology_fixture(root: &Path) -> Result<(), Box<dyn st
     Ok(())
 }
 
-pub(super) fn write_private_extension_fixture(
+pub(super) fn write_extension_source_contract_fixture(
     root: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     for path in [
-        "ontology/10_Private",
-        "ontology/10_Private/corpus",
-        "ontology/10_Private/mappings",
-        "ontology/10_Private/review_ledgers",
+        "ontology/10_Extension",
+        "ontology/10_Extension/corpus",
+        "ontology/10_Extension/mappings",
+        "ontology/10_Extension/review_ledgers",
     ] {
         fs::create_dir_all(root.join(path))?;
     }
 
-    fs::write(root.join("ontology/10_Private/ontology.rdf"), "<rdf:RDF />")?;
     fs::write(
-        root.join("ontology/10_Private/corpus/source_manifest.toml"),
+        root.join("ontology/10_Extension/ontology.rdf"),
+        "<rdf:RDF />",
+    )?;
+    fs::write(
+        root.join("ontology/10_Extension/corpus/source_manifest.toml"),
         "schema_version = 1\n",
     )?;
     fs::write(
-        root.join("ontology/10_Private/mappings/corpus_mapping.org"),
+        root.join("ontology/10_Extension/mappings/corpus_mapping.org"),
         "#+TITLE: Mapping\n",
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/review.toml"),
+        root.join("ontology/10_Extension/review_ledgers/review.toml"),
         r#"schema_version = 1
 ledger_id = "synthetic.review.v1"
-domain = "episteme://private/synthetic/10_Private"
+domain = "episteme://synthetic-extension/10_Extension"
 ledger_org = "review.org"
 promotion_allowed = false
 source_mutation_allowed = false
@@ -72,7 +75,7 @@ ontology_truth = false
 "#,
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/review.org"),
+        root.join("ontology/10_Extension/review_ledgers/review.org"),
         r"#+TITLE: Synthetic Review Ledger
 
 * Review
@@ -87,21 +90,21 @@ ontology_truth = false
 | status | candidate |
 ",
     )?;
-    fs::write(root.join("ontology/manifest.toml"), private_manifest())?;
+    fs::write(root.join("ontology/manifest.toml"), extension_manifest())?;
     Ok(())
 }
 
-pub(super) fn write_structural_idf_fixture(
+pub(super) fn write_structural_facts_fixture(
     root: &Path,
     corpus_root: &Path,
     mode: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    write_private_extension_fixture(root)?;
-    let source_dir = root.join("ontology/10_Private/corpus");
+    write_extension_source_contract_fixture(root)?;
+    let source_dir = root.join("ontology/10_Extension/corpus");
     let source_path = corpus_root.join("policy/source.txt");
     let source_parent = source_path.parent().ok_or("source path missing parent")?;
     fs::create_dir_all(source_parent)?;
-    fs::write(&source_path, "Private source evidence\n")?;
+    fs::write(&source_path, "Extension source evidence\n")?;
     let bytes = fs::read(&source_path)?;
     let good_hash = format!("{:x}", Sha256::digest(&bytes));
     let hash = if mode == "bad_hash" {
@@ -113,8 +116,8 @@ pub(super) fn write_structural_idf_fixture(
     fs::write(
         source_dir.join("source_manifest.toml"),
         r#"schema_version = 1
-source_contract_id = "synthetic.private.source.v1"
-domain = "episteme://private/synthetic/10_Private"
+source_contract_id = "synthetic.extension.source.v1"
+domain = "episteme://synthetic-extension/10_Extension"
 primary_language = "zh-CN"
 corpus_root_env = "SYNTHETIC_CORPUS_ROOT"
 files = "files.tsv"
@@ -139,7 +142,7 @@ document_text_evidence = ["txt"]
     if mode == "duplicate_file_id" {
         fs::write(
             corpus_root.join("policy/source-copy.txt"),
-            "Private source evidence\n",
+            "Extension source evidence\n",
         )?;
     }
     fs::write(
@@ -180,21 +183,21 @@ pub(super) fn write_object_relation_review_ledgers(
 ) -> Result<(), Box<dyn std::error::Error>> {
     replace_manifest_fragment(
         root,
-        r#"review_ledgers = ["10_Private/review_ledgers/review.toml"]"#,
-        r#"review_ledgers = ["10_Private/review_ledgers/object.toml", "10_Private/review_ledgers/relation.toml"]"#,
+        r#"review_ledgers = ["10_Extension/review_ledgers/review.toml"]"#,
+        r#"review_ledgers = ["10_Extension/review_ledgers/object.toml", "10_Extension/review_ledgers/relation.toml"]"#,
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/object.toml"),
+        root.join("ontology/10_Extension/review_ledgers/object.toml"),
         "schema_version = 1\n\
          ledger_id = \"synthetic.object_review.v1\"\n\
-         domain = \"episteme://private/synthetic/10_Private\"\n\
+         domain = \"episteme://synthetic-extension/10_Extension\"\n\
          ledger_org = \"object.org\"\n\
          source_mutation_allowed = false\n\
          ontology_truth = false\n\
          promotion_allowed = false\n",
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/object.org"),
+        root.join("ontology/10_Extension/review_ledgers/object.org"),
         format!(
             "#+TITLE: Object Review\n\
              \n\
@@ -211,17 +214,17 @@ pub(super) fn write_object_relation_review_ledgers(
         ),
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/relation.toml"),
+        root.join("ontology/10_Extension/review_ledgers/relation.toml"),
         "schema_version = 1\n\
          ledger_id = \"synthetic.relation_review.v1\"\n\
-         domain = \"episteme://private/synthetic/10_Private\"\n\
+         domain = \"episteme://synthetic-extension/10_Extension\"\n\
          ledger_org = \"relation.org\"\n\
          source_mutation_allowed = false\n\
          ontology_truth = false\n\
          promotion_allowed = false\n",
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/relation.org"),
+        root.join("ontology/10_Extension/review_ledgers/relation.org"),
         format!(
             "#+TITLE: Relation Review\n\
              \n\
@@ -282,15 +285,15 @@ reference_nouns = ["Ontology", "OntologyObject"]
 "#
 }
 
-fn private_manifest() -> &'static str {
+fn extension_manifest() -> &'static str {
     r#"schema_version = 1
-name = "synthetic-private-episteme"
+name = "synthetic-extension-episteme"
 primary_language = "zh-CN"
-artifact_mode = "private_source_contract"
+artifact_mode = "extension_source_contract"
 mutation_allowed = false
 
 [boundaries]
-owner = "synthetic-private-episteme"
+owner = "synthetic-extension-episteme"
 common_domain_owner = "wendao-episteme"
 runtime_compilation_owner = "xiuxian-wendao"
 raw_corpus_policy = "external_evidence_root_only"
@@ -301,14 +304,14 @@ common_manifest = "episteme://synthetic/healthcare"
 common_ontology_iri = "https://wendao.ai/ontology/healthcare"
 
 [[domains]]
-id = "episteme://private/synthetic/10_Private"
+id = "episteme://synthetic-extension/10_Extension"
 category = "10"
-layer = "Private-L2"
-name_zh = "Private Domain"
-name_en = "Private Domain"
-rdf_files = ["10_Private/ontology.rdf"]
-source_manifests = ["10_Private/corpus/source_manifest.toml"]
-mapping_ledgers = ["10_Private/mappings/corpus_mapping.org"]
-review_ledgers = ["10_Private/review_ledgers/review.toml"]
+layer = "Extension-L2"
+name_zh = "Extension Domain"
+name_en = "Extension Domain"
+rdf_files = ["10_Extension/ontology.rdf"]
+source_manifests = ["10_Extension/corpus/source_manifest.toml"]
+mapping_ledgers = ["10_Extension/mappings/corpus_mapping.org"]
+review_ledgers = ["10_Extension/review_ledgers/review.toml"]
 "#
 }

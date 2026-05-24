@@ -24,9 +24,7 @@ def test_pdf_render_shard_features_are_not_duplicated() -> None:
     benchmark = _load_benchmark_module()
 
     assert (
-        benchmark.cargo_features_with_pdf_render(
-            "performance document-extract-pdf-render"
-        )
+        benchmark.cargo_features_with_pdf_render("performance document-extract-pdf-render")
         == "performance,document-extract-pdf-render"
     )
 
@@ -35,9 +33,7 @@ def test_hybrid_source_range_features_do_not_pull_pdfium() -> None:
     benchmark = _load_benchmark_module()
 
     assert (
-        benchmark.cargo_features_for_flight_mode(
-            "performance studio", "hybrid-page-ocr"
-        )
+        benchmark.cargo_features_for_flight_mode("performance studio", "hybrid-page-ocr")
         == "performance,studio,document-extract-pdf-source-range"
     )
 
@@ -67,9 +63,7 @@ def test_audio_shards_provider_mode_enables_studio_audio_feature() -> None:
 def test_normalize_render_selection_accepts_cli_spelling() -> None:
     benchmark = _load_benchmark_module()
 
-    assert benchmark.normalize_render_selection("shard-fallback-pages") == (
-        "shard_fallback_pages"
-    )
+    assert benchmark.normalize_render_selection("shard-fallback-pages") == ("shard_fallback_pages")
     assert benchmark.normalize_render_selection("region-shards") == "region_shards"
 
 
@@ -105,6 +99,23 @@ def test_parse_args_marks_cli_port_as_explicit(monkeypatch) -> None:
 
     assert args.port == 62051
     assert args.port_was_explicit is True
+
+
+def test_parse_args_accepts_rust_audio_artifact_cache_dir(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    cache_dir = tmp_path / "audio-artifacts"
+    monkeypatch.setattr(
+        benchmark._args.sys,
+        "argv",
+        ["benchmark", "--rust-audio-artifact-cache-dir", str(cache_dir)],
+    )
+
+    args = benchmark.parse_args()
+
+    assert args.rust_audio_artifact_cache_dir == cache_dir
 
 
 def test_reset_process_log_dir_removes_stale_trace_files(tmp_path: Path) -> None:

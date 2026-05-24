@@ -29,6 +29,7 @@ async fn audio_shard_flight_client_executes_plan_as_typed_workflow() -> Result<(
         source_path,
         output_dir: tempdir.path().join("chunks"),
         ffmpeg_path,
+        artifact_cache_dir: None,
         force: true,
     };
     let expected_materialized = materialize_audio_shards(&plan, &materialization)?;

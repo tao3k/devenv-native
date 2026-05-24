@@ -7,6 +7,7 @@ import shutil
 from xiuxian_wendao_analyzer.docling_groundtruth import resolve_docling_groundtruth_root
 
 from .args import parse_args
+from .audio_trace import summarize_hosted_audio_request_traces
 from .cache import benchmark_ocr_shard_cache_root, summarize_ocr_shard_cache
 from .common import (
     Any,
@@ -69,9 +70,7 @@ def main() -> int:
             "--local-python-ocr-endpoint-count cannot start workers in --external-endpoint mode"
         )
     if args.shard_cache_reuse_probe and args.flight_mode != "hybrid-page-ocr":
-        raise SystemExit(
-            "--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr"
-        )
+        raise SystemExit("--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr")
     if args.prepare_only:
         real_fixture_root = resolve_docling_source_root(args.docling_source_root)
         prepare_docling_fixtures(
@@ -96,19 +95,16 @@ def main() -> int:
     args.structure_baseline_root = resolve_structure_baseline_root(args, report_dir)
 
     if args.pdf_render_shard_audit:
-        return run_pdf_render_shard_audit(
-            args, report_dir / "pdf-render-shard-manifest"
-        )
+        return run_pdf_render_shard_audit(args, report_dir / "pdf-render-shard-manifest")
 
-    with tempfile.TemporaryDirectory(
-        prefix="wendao-doc-extract-perf-"
-    ) as temp_root_text:
+    with tempfile.TemporaryDirectory(prefix="wendao-doc-extract-perf-") as temp_root_text:
         temp_root = Path(temp_root_text)
         fixture_dir = temp_root / "fixtures"
         output_dir = temp_root / "outputs"
         process_log_dir = report_dir / "process-logs"
         reset_process_log_dir(process_log_dir)
         args.hosted_vlm_ocr_request_trace_log_dir = process_log_dir
+        args.hosted_audio_request_trace_log_dir = process_log_dir
         fixture_dir.mkdir()
         output_dir.mkdir()
         args.ocr_shard_cache_root = benchmark_ocr_shard_cache_root(args, temp_root)
@@ -137,10 +133,7 @@ def main() -> int:
         args.rust_pdf_ocr_endpoint = list(args.rust_pdf_ocr_endpoint)
         if not args.external_endpoint:
             converter_count_path = None
-            if (
-                args.duplicate_miss_concurrency > 0
-                or args.distinct_miss_concurrency > 0
-            ):
+            if args.duplicate_miss_concurrency > 0 or args.distinct_miss_concurrency > 0:
                 converter_count_path = (
                     temp_root / "converter-counts"
                     if args.local_python_ocr_endpoint_count > 1
@@ -176,9 +169,7 @@ def main() -> int:
                 args.rust_document_extract_endpoint.extend(
                     worker.endpoint_url for worker in python_workers
                 )
-                args.rust_pdf_ocr_endpoint.extend(
-                    worker.endpoint_url for worker in python_workers
-                )
+                args.rust_pdf_ocr_endpoint.extend(worker.endpoint_url for worker in python_workers)
         try:
             for worker in python_workers:
                 wait_for_document_extract_flight_endpoint(
@@ -260,9 +251,7 @@ def main() -> int:
                 )
                 for fixture_name, fixture_path in fixtures.items()
             ]
-            ocr_shard_cache_summary = summarize_ocr_shard_cache(
-                args.ocr_shard_cache_root
-            )
+            ocr_shard_cache_summary = summarize_ocr_shard_cache(args.ocr_shard_cache_root)
         finally:
             terminate_server(rust_server)
             terminate_server(valkey_server)
@@ -285,9 +274,7 @@ def main() -> int:
         render_markdown(payload),
         encoding="utf-8",
     )
-    sys.stdout.write(
-        f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n"
-    )
+    sys.stdout.write(f"document extract perf report: {report_dir / 'document_extract_perf.json'}\n")
     enforce_report_gates(args, payload)
     return 0
 
@@ -340,18 +327,12 @@ def build_report_payload(
         "pdfOcrPrewarmSourcePath": getattr(args, "pdf_ocr_prewarm_source_path", None),
         "pdfOcrPrewarmPageIndex": getattr(args, "pdf_ocr_prewarm_page_index", None),
         "pdfOcrPrewarmPageIndices": getattr(args, "pdf_ocr_prewarm_page_indices", None),
-        "pdfOcrPrewarmEndpointCount": getattr(
-            args, "pdf_ocr_prewarm_endpoint_count", None
-        ),
+        "pdfOcrPrewarmEndpointCount": getattr(args, "pdf_ocr_prewarm_endpoint_count", None),
         "documentExtractConverterCache": getattr(
             args, "document_extract_converter_cache", "disabled"
         ),
-        "documentExtractFullThreads": getattr(
-            args, "document_extract_full_threads", "auto"
-        ),
-        "documentExtractFullThreadsResolved": resolve_document_extract_full_threads(
-            args
-        ),
+        "documentExtractFullThreads": getattr(args, "document_extract_full_threads", "auto"),
+        "documentExtractFullThreadsResolved": resolve_document_extract_full_threads(args),
         "documentExtractPrewarmSourcePath": getattr(
             args, "document_extract_prewarm_source_path", None
         ),
@@ -382,17 +363,19 @@ def build_report_payload(
         "rustAudioSampleRateHz": getattr(args, "rust_audio_sample_rate_hz", None),
         "rustAudioChannels": getattr(args, "rust_audio_channels", None),
         "rustAudioFormat": getattr(args, "rust_audio_format", None),
+        "rustAudioArtifactCacheDir": (
+            str(path)
+            if (path := getattr(args, "rust_audio_artifact_cache_dir", None)) is not None
+            else None
+        ),
         "rustAudioBaseWorkers": getattr(args, "rust_audio_base_workers", None),
         "rustAudioRecoveryWorkers": getattr(args, "rust_audio_recovery_workers", None),
         "rustAudioSpeechSegmentsJsonl": (
             str(path)
-            if (path := getattr(args, "rust_audio_speech_segments_jsonl", None))
-            is not None
+            if (path := getattr(args, "rust_audio_speech_segments_jsonl", None)) is not None
             else None
         ),
-        "rustAudioSpeechMergeGapMs": getattr(
-            args, "rust_audio_speech_merge_gap_ms", None
-        ),
+        "rustAudioSpeechMergeGapMs": getattr(args, "rust_audio_speech_merge_gap_ms", None),
         "rustAudioSpeechMinWindowMs": getattr(
             args,
             "rust_audio_speech_min_window_ms",
@@ -428,9 +411,7 @@ def build_report_payload(
             "rust_pdf_docling_text_shortcut_promotion",
             "range-fill",
         ),
-        "rustPdfLocalBackendText": getattr(
-            args, "rust_pdf_local_backend_text", "disabled"
-        ),
+        "rustPdfLocalBackendText": getattr(args, "rust_pdf_local_backend_text", "disabled"),
         "rustPdfLocalBackendTextEmpty": getattr(
             args,
             "rust_pdf_local_backend_text_empty",
@@ -452,21 +433,15 @@ def build_report_payload(
             "rust_pdf_ocr_scheduler_lane_fairness",
             "disabled",
         ),
-        "rustPdfBackendTextTopup": getattr(
-            args, "rust_pdf_backend_text_topup", "profile"
-        ),
+        "rustPdfBackendTextTopup": getattr(args, "rust_pdf_backend_text_topup", "profile"),
         "rustPdfFailedPageRecovery": getattr(
             args,
             "rust_pdf_failed_page_recovery",
             "disabled",
         ),
         "rustPdfOcrProfilePlanner": getattr(args, "rust_pdf_ocr_profile_planner", None),
-        "rustPdfHostedVlmRenderDpi": getattr(
-            args, "rust_pdf_hosted_vlm_render_dpi", None
-        ),
-        "rustPdfHostedVlmRegionPlanner": getattr(
-            args, "rust_pdf_hosted_vlm_region_planner", None
-        ),
+        "rustPdfHostedVlmRenderDpi": getattr(args, "rust_pdf_hosted_vlm_render_dpi", None),
+        "rustPdfHostedVlmRegionPlanner": getattr(args, "rust_pdf_hosted_vlm_region_planner", None),
         "rustPdfHostedVlmRegionTargetPixels": getattr(
             args,
             "rust_pdf_hosted_vlm_region_target_pixels",
@@ -486,9 +461,7 @@ def build_report_payload(
         "rustPdfHostedVlmRegionRenderChunk": getattr(
             args, "rust_pdf_hosted_vlm_region_render_chunk", "page"
         ),
-        "rustPdfRegionRenderMode": getattr(
-            args, "rust_pdf_region_render_mode", "default"
-        ),
+        "rustPdfRegionRenderMode": getattr(args, "rust_pdf_region_render_mode", "default"),
         "rustPdfHostedVlmRegionDispatchChunkSize": getattr(
             args,
             "rust_pdf_hosted_vlm_region_dispatch_chunk_size",
@@ -501,16 +474,10 @@ def build_report_payload(
         ),
         "doclingGroundtruthRoot": (
             str(docling_groundtruth_root)
-            if (
-                docling_groundtruth_root := getattr(
-                    args, "docling_groundtruth_root", None
-                )
-            )
+            if (docling_groundtruth_root := getattr(args, "docling_groundtruth_root", None))
             else None
         ),
-        "compareDoclingGroundtruth": getattr(
-            args, "compare_docling_groundtruth", False
-        ),
+        "compareDoclingGroundtruth": getattr(args, "compare_docling_groundtruth", False),
         "doclingGroundtruthMinCharCoverage": getattr(
             args,
             "docling_groundtruth_min_char_coverage",
@@ -547,29 +514,19 @@ def build_report_payload(
                 "hosted_vlm_ocr_region_prompt_mode",
                 "default",
             ),
-            "regionCompositeSize": getattr(
-                args, "hosted_vlm_ocr_region_composite_size", None
-            ),
-            "regionCompositeMode": getattr(
-                args, "hosted_vlm_ocr_region_composite_mode", "fixed"
-            ),
+            "regionCompositeSize": getattr(args, "hosted_vlm_ocr_region_composite_size", None),
+            "regionCompositeMode": getattr(args, "hosted_vlm_ocr_region_composite_mode", "fixed"),
             "regionCompositeMaxSourcePixels": getattr(
                 args, "hosted_vlm_ocr_region_composite_max_source_pixels", None
             ),
             "regionCompositeMaxImageBytes": getattr(
                 args, "hosted_vlm_ocr_region_composite_max_image_bytes", None
             ),
-            "regionAtlasMode": getattr(
-                args, "hosted_vlm_ocr_region_atlas_mode", "disabled"
-            ),
+            "regionAtlasMode": getattr(args, "hosted_vlm_ocr_region_atlas_mode", "disabled"),
             "scaffoldMode": getattr(args, "hosted_vlm_ocr_scaffold_mode", "disabled"),
-            "imageOptimizationMode": getattr(
-                args, "hosted_vlm_ocr_image_optimization", "disabled"
-            ),
+            "imageOptimizationMode": getattr(args, "hosted_vlm_ocr_image_optimization", "disabled"),
             "timeoutSeconds": getattr(args, "hosted_vlm_ocr_timeout_seconds", None),
-            "requestConcurrency": getattr(
-                args, "hosted_vlm_ocr_request_concurrency", None
-            ),
+            "requestConcurrency": getattr(args, "hosted_vlm_ocr_request_concurrency", None),
             "speculativeRetryDelaySeconds": getattr(
                 args, "hosted_vlm_ocr_speculative_retry_delay_seconds", None
             ),
@@ -592,8 +549,9 @@ def build_report_payload(
             "apiKeyConfigured": bool(getattr(args, "audio_hosted_api_key", None))
             or bool(os.environ.get("OPENROUTER_API_KEY")),
             "timeoutSeconds": getattr(args, "audio_hosted_timeout_seconds", None),
-            "requestConcurrency": getattr(
-                args, "audio_hosted_request_concurrency", None
+            "requestConcurrency": getattr(args, "audio_hosted_request_concurrency", None),
+            "requestSummary": summarize_hosted_audio_request_traces(
+                getattr(args, "hosted_audio_request_trace_log_dir", None)
             ),
         },
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
@@ -661,7 +619,5 @@ def _json_object_arg(value: str | None) -> dict[str, Any] | None:
         return None
     parsed = json.loads(value)
     if not isinstance(parsed, dict):
-        raise SystemExit(
-            "--hosted-vlm-ocr-openrouter-provider-json must be a JSON object"
-        )
+        raise SystemExit("--hosted-vlm-ocr-openrouter-provider-json must be a JSON object")
     return parsed

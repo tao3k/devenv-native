@@ -22,6 +22,8 @@ pub(crate) use super::contract_feedback_cli::{
     run_deterministic_rest_docs_contract_feedback, run_scaffold_rest_docs_contract_feedback,
     sanitize_prj_cache_home,
 };
+#[cfg(all(feature = "duckdb", feature = "valkey"))]
+pub(crate) use super::control_cli::handle_control_command_async;
 pub(crate) use super::control_cli::{
     ActivityExecutionRequest, ActivityExecutorAdapterKind, ActivityExecutorKindArg,
     ActivityExecutorOutcome, ActivityExecutorRegistry, ActivitySettleOutcomeArg,
@@ -29,14 +31,11 @@ pub(crate) use super::control_cli::{
     HeartbeatHotStateRequest, WorkerActivityClaimStoreRequest, WorkerActivityMirrorStoreRequest,
     WorkerActivityReclaimStoreRequest, WorkerActivityReleaseStoreRequest,
     WorkerActivitySettleStoreRequest, WorkerActivityTakeStoreRequest, claim_with_hot_state,
-    handle_control_command_async, heartbeat_with_hot_state, mirror_with_hot_state,
-    parse_control_command, reclaim_with_hot_state, release_with_hot_state, run_control_command,
-    settle_with_hot_state, take_with_hot_state, worker_loop_with_hot_state,
-    worker_once_with_hot_state,
+    heartbeat_with_hot_state, mirror_with_hot_state, parse_control_command, reclaim_with_hot_state,
+    release_with_hot_state, run_control_command, settle_with_hot_state, take_with_hot_state,
+    worker_loop_with_hot_state, worker_once_with_hot_state,
 };
-pub(crate) use super::dir_cli::{
-    DirCliCommand, MaterializeCliTarget, ShowCliTarget, parse_dir_command, run_dir_command,
-};
+pub(crate) use super::dir_cli::{DirCliCommand, ShowCliTarget, parse_dir_command, run_dir_command};
 pub(crate) use super::emit_cli::{EmitCliCommand, parse_emit_command, run_emit_command};
 pub(crate) use super::lint_cli::{LintCliCommand, parse_lint_command, run_lint_command};
 pub(crate) use super::template_cli::{

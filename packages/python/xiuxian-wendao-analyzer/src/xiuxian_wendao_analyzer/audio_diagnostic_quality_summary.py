@@ -35,9 +35,7 @@ def summarize_quality(rows: Sequence[QualityRow]) -> dict[str, object]:
             },
         )
         item["rows"] = int(item["rows"]) + 1
-        item["failed"] = int(item["failed"]) + (
-            1 if row.review_status == "failed" else 0
-        )
+        item["failed"] = int(item["failed"]) + (1 if row.review_status == "failed" else 0)
         item["reviewNeeded"] = int(item["reviewNeeded"]) + (
             1 if row.review_status == "review-needed" else 0
         )
@@ -56,12 +54,8 @@ def summarize_quality(rows: Sequence[QualityRow]) -> dict[str, object]:
         item["requiredTermMiss"] = int(item["requiredTermMiss"]) + (
             1 if row.review_status == "required-term-miss" else 0
         )
-        item["avgCharsPerMinute"] = (
-            float(item["avgCharsPerMinute"]) + row.chars_per_minute
-        )
-        item["avgChineseRatio"] = float(item["avgChineseRatio"]) + (
-            row.chinese_ratio or 0.0
-        )
+        item["avgCharsPerMinute"] = float(item["avgCharsPerMinute"]) + row.chars_per_minute
+        item["avgChineseRatio"] = float(item["avgChineseRatio"]) + (row.chinese_ratio or 0.0)
         item["avgInaudiblePerMinute"] = (
             float(item["avgInaudiblePerMinute"]) + row.inaudible_per_minute
         )
@@ -78,17 +72,11 @@ def summarize_quality(rows: Sequence[QualityRow]) -> dict[str, object]:
         if row_count:
             item["avgCharsPerMinute"] = float(item["avgCharsPerMinute"]) / row_count
             item["avgChineseRatio"] = float(item["avgChineseRatio"]) / row_count
-            item["avgInaudiblePerMinute"] = (
-                float(item["avgInaudiblePerMinute"]) / row_count
-            )
-            item["avgRepeatedNgramRatio"] = (
-                float(item["avgRepeatedNgramRatio"]) / row_count
-            )
+            item["avgInaudiblePerMinute"] = float(item["avgInaudiblePerMinute"]) / row_count
+            item["avgRepeatedNgramRatio"] = float(item["avgRepeatedNgramRatio"]) / row_count
         term_row_count = int(item["requiredTermRows"])
         if term_row_count:
-            item["avgRequiredTermRecall"] = (
-                float(item["avgRequiredTermRecall"]) / term_row_count
-            )
+            item["avgRequiredTermRecall"] = float(item["avgRequiredTermRecall"]) / term_row_count
     return {"qualityByBackend": by_backend}
 
 
@@ -103,18 +91,12 @@ def summarize_timeline_structure(
             (row for row in rows if row.backend == backend),
             key=lambda row: (row.source, row.start_seconds, row.chunk_index),
         )
-        item = _timeline_backend_summary(
-            backend_rows, allow_planned_gaps=allow_planned_gaps
-        )
+        item = _timeline_backend_summary(backend_rows, allow_planned_gaps=allow_planned_gaps)
         by_backend[backend] = item
     return {
         "timelineStructureByBackend": by_backend,
-        "timelineGapPolicy": (
-            "planned-gaps-allowed" if allow_planned_gaps else "contiguous"
-        ),
-        "timelineStructurePassed": all(
-            bool(item["passed"]) for item in by_backend.values()
-        ),
+        "timelineGapPolicy": ("planned-gaps-allowed" if allow_planned_gaps else "contiguous"),
+        "timelineStructurePassed": all(bool(item["passed"]) for item in by_backend.values()),
     }
 
 
@@ -129,12 +111,8 @@ def _timeline_backend_summary(
         )
         source_summaries[source] = _timeline_source_summary(source_rows)
     gap_seconds = sum(float(item["gapSeconds"]) for item in source_summaries.values())
-    overlap_seconds = sum(
-        float(item["overlapSeconds"]) for item in source_summaries.values()
-    )
-    coverage_seconds = sum(
-        float(item["coverageSeconds"]) for item in source_summaries.values()
-    )
+    overlap_seconds = sum(float(item["overlapSeconds"]) for item in source_summaries.values())
+    coverage_seconds = sum(float(item["coverageSeconds"]) for item in source_summaries.values())
     expected_span_seconds = sum(
         float(item["expectedSpanSeconds"]) for item in source_summaries.values()
     )
@@ -174,8 +152,7 @@ def _timeline_source_summary(rows: Sequence[QualityRow]) -> dict[str, object]:
             "overlapSeconds": 0.0,
         }
     ordered = all(
-        rows[index].start_seconds <= rows[index + 1].start_seconds
-        for index in range(len(rows) - 1)
+        rows[index].start_seconds <= rows[index + 1].start_seconds for index in range(len(rows) - 1)
     )
     coverage_seconds = sum(row.duration_seconds for row in rows)
     start = min(row.start_seconds for row in rows)
@@ -213,36 +190,34 @@ def summarize_precision_gate(
 ) -> dict[str, object]:
     """Return promotion-gate status from reference and critical-term checks."""
 
-    reference_rows = [
-        row for row in rows if row.reference_cer is not None and row.status == "ok"
-    ]
+    reference_rows = [row for row in rows if row.reference_cer is not None and row.status == "ok"]
     reference_missing_rows = [
         row for row in rows if row.status == "ok" and row.reference_cer is None
     ]
     failed_rows = [row for row in rows if row.review_status == "failed"]
+    weak_quality_rows = [row for row in rows if row.review_status.startswith("weak-")]
     reference_fail_rows = [row for row in rows if row.review_status == "reference-fail"]
-    required_term_miss_rows = [
-        row for row in rows if row.review_status == "required-term-miss"
-    ]
-    max_observed_cer = (
-        max(row.reference_cer for row in reference_rows) if reference_rows else None
-    )
+    required_term_miss_rows = [row for row in rows if row.review_status == "required-term-miss"]
+    max_observed_cer = max(row.reference_cer for row in reference_rows) if reference_rows else None
     precision_gate_passed = (
         reference_configured
         and reference_candidate_draft_rows == 0
         and not reference_missing_rows
         and not failed_rows
+        and not weak_quality_rows
         and not reference_fail_rows
         and not required_term_miss_rows
     )
-    if not reference_configured:
+    if failed_rows:
+        reason = "backend-failed-rows"
+    elif weak_quality_rows:
+        reason = "quality-weak-rows"
+    elif not reference_configured:
         reason = "reference-not-configured"
     elif reference_candidate_draft_rows:
         reason = "reference-candidate-draft"
     elif reference_missing_rows:
         reason = "reference-coverage-missing"
-    elif failed_rows:
-        reason = "backend-failed-rows"
     elif reference_fail_rows:
         reason = "reference-cer-failed"
     elif required_term_miss_rows:
@@ -259,6 +234,7 @@ def summarize_precision_gate(
         "referenceCandidateDraftRows": reference_candidate_draft_rows,
         "referenceFailRows": len(reference_fail_rows),
         "failedRows": len(failed_rows),
+        "weakQualityRows": len(weak_quality_rows),
         "requiredTermMissRows": len(required_term_miss_rows),
         "criticalTermsConfigured": required_terms_configured,
     }
@@ -267,9 +243,7 @@ def summarize_precision_gate(
 def summarize_reference_subset(rows: Sequence[QualityRow]) -> dict[str, object]:
     """Summarize curated-reference rows without changing the promotion gate."""
 
-    reference_rows = [
-        row for row in rows if row.reference_cer is not None and row.status == "ok"
-    ]
+    reference_rows = [row for row in rows if row.reference_cer is not None and row.status == "ok"]
     cer_values = [float(row.reference_cer) for row in reference_rows]
     return {
         "referenceSubsetConfigured": bool(reference_rows),

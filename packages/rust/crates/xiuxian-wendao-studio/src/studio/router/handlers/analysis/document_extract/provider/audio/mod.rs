@@ -1,11 +1,13 @@
 //! Audio document-extract route backed by Rust shard planning and Arrow Flight.
 
+mod capacity;
 mod config;
 mod plan;
 mod response;
 mod route;
 mod speech;
 
+pub(crate) use capacity::AudioShardCapacityController;
 #[cfg(test)]
 pub(super) use config::{audio_worker_budget_with_lookup, document_extract_audio_config};
 #[cfg(test)]

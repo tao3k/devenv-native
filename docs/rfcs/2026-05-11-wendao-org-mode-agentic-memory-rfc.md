@@ -7,7 +7,7 @@ authors:
   - codex
   - sovereign
 created: 2026-05-11
-updated: 2026-05-13
+updated: 2026-05-23
 tags:
   - rfc
   - org-mode
@@ -41,6 +41,22 @@ Org-mode has the right syntax for ontology authoring, but raw Org output does
 not own ontology truth. Canonical ontology source contracts remain under
 `wendao-episteme/ontology/`; Rust parser validation and repo-native semantic
 governance decide whether an authored proposal becomes accepted semantic truth.
+
+The canonical data-surface split is:
+
+1. **Org is the durable reasoning ledger**. It is the primary working surface
+   for humans, agents, and LLMs because it can carry appendable reasoning,
+   headings, lifecycle state, property drawers, planning dates, source spans,
+   tables, evidence notes, and review decisions in one parseable document.
+2. **RDF is the semantic proposal or truth surface**. Accepted ontology meaning
+   is expressed through RDF or RDF-shaped proposal artifacts after validation
+   and review, not through raw model output.
+3. **Arrow/Parquet is the runtime read model**. Search, proof, SQL validation,
+   Julia graph computation, and Flight handoff should consume typed columnar
+   read models compiled from Org, RDF, and deterministic structural facts.
+4. **TSV is not a semantic contract**. Existing TSV files may remain as legacy
+   compatibility projections, but new ontology semantics, provenance, or graph
+   fields must target Org and Arrow/Parquet surfaces instead of widening TSV.
 
 ## 2. Stable References
 
@@ -99,6 +115,8 @@ The authority split is strict:
    remains advisory evidence.
 6. LLM and sub-agent output may propose ontology candidates, but it is never
    canonical until accepted through repo-native semantic governance.
+7. Generated TSV projections must never outrank Org review decisions or typed
+   Arrow/Parquet read-model contracts.
 
 ## 5. Org Ontology Authoring Contract
 
@@ -186,7 +204,10 @@ The calibrated flow is:
 5. The repo-native semantic SSOT validator checks candidate status, confidence
    source, active change-intent binding, relation endpoints, lifecycle edges,
    and projection freshness.
-6. Only accepted candidates become canonical semantic objects or relations.
+6. Accepted Org/RDF artifacts are compiled into Arrow/Parquet read-model rows
+   for runtime search, proof, SQL validation, Julia graph scoring, and Flight
+   transport.
+7. Only accepted candidates become canonical semantic objects or relations.
 
 Invalid Org syntax, malformed property drawers, missing candidate ids, invalid
 table shapes, unknown relation kinds, missing evidence anchors, or unbound
@@ -223,6 +244,7 @@ This slice does not:
 6. replace RDF/TOML source contracts in `wendao-episteme`
 7. add a new runtime route or public wire schema
 8. make JSON Schema the primary authoring syntax
+9. preserve TSV as a canonical ontology or search data surface
 
 ## 11. First Implementation Slice
 

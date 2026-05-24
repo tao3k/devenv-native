@@ -8,6 +8,8 @@
 
 /// Bounded-work markdown SQL helper surface for workdir-local retrieval.
 pub mod bounded_work_markdown;
+/// DuckDB inspection surface for Episteme candidate Parquet read models.
+pub mod candidate_read_model;
 /// Dataset-to-ontology SQL materialization helper surface.
 pub mod dataset_ontology;
 /// Request-scoped local relation-engine seams for bounded SQL helpers.

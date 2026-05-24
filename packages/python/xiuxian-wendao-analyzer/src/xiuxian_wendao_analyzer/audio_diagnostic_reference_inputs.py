@@ -20,9 +20,7 @@ def load_reference_transcripts(path: Path | None) -> dict[tuple[str, int], str]:
     if path is None:
         return {}
     references: dict[tuple[str, int], str] = {}
-    for line_number, raw_line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not raw_line.strip():
             continue
         row = json.loads(raw_line)
@@ -65,9 +63,7 @@ def curated_reference_rows_from_draft(path: Path) -> list[dict[str, object]]:
     """Convert an edited reference draft into promotion-safe curated rows."""
 
     rows: list[dict[str, object]] = []
-    for line_number, raw_line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not raw_line.strip():
             continue
         value = json.loads(raw_line)
@@ -95,16 +91,14 @@ def curated_reference_row(
 ) -> dict[str, object]:
     """Return one promotion-safe curated reference row."""
 
+    if not _explicitly_curated_reference(row):
+        raise ValueError(f"reference row at line {line_number} is not curated")
     source = row.get("source")
     chunk_index = row.get("chunkIndex", row.get("chunk_index"))
     text = row.get("text")
     if isinstance(chunk_index, str) and chunk_index.isdigit():
         chunk_index = int(chunk_index)
-    if (
-        not isinstance(source, str)
-        or not isinstance(chunk_index, int)
-        or not isinstance(text, str)
-    ):
+    if not isinstance(source, str) or not isinstance(chunk_index, int) or not isinstance(text, str):
         raise ValueError(f"invalid reference draft row at line {line_number}")
     text = text.strip()
     if not text:
@@ -133,10 +127,13 @@ def curated_reference_row(
 def is_curated_reference_row(row: dict[str, object]) -> bool:
     """Return whether a reference row is explicitly curated."""
 
-    return (
-        row.get("referenceStatus") == REFERENCE_STATUS_CURATED
-        or row.get("curated") is True
-    )
+    return _explicitly_curated_reference(row)
+
+
+def _explicitly_curated_reference(row: Mapping[str, object]) -> bool:
+    """Return whether a row carries an explicit human-curated marker."""
+
+    return row.get("referenceStatus") == REFERENCE_STATUS_CURATED or row.get("curated") is True
 
 
 def load_term_list(path: Path | None) -> list[str]:

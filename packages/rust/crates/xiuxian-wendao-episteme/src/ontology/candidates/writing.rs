@@ -209,7 +209,7 @@ fn write_review_policy_section(file: &mut impl Write) -> Result<()> {
     writeln!(file, "| Decision | Status | Reason |")?;
     writeln!(
         file,
-        "| Raw rows are evidence only | accepted | Private source rows and cache text are not ontology truth |"
+        "| Raw rows are evidence only | accepted | Extension source rows and cache text are not ontology truth |"
     )?;
     writeln!(
         file,

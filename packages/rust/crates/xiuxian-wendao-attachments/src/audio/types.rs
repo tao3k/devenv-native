@@ -212,8 +212,26 @@ pub struct AudioShardMaterializationInput {
     pub output_dir: PathBuf,
     /// Media splitter executable, normally `ffmpeg`.
     pub ffmpeg_path: PathBuf,
-    /// Recreate an existing shard file when true.
+    /// Optional content-addressed artifact cache root for normalized shard
+    /// media bytes.
+    pub artifact_cache_dir: Option<PathBuf>,
+    /// Recreate an existing request-output shard file when true. Verified
+    /// content-addressed artifact cache entries may still satisfy the request.
     pub force: bool,
+}
+
+/// Source used to satisfy one normalized audio shard materialization request.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AudioShardMaterializationSource {
+    /// Existing normalized output file was reused from the request output
+    /// directory.
+    ExistingOutput,
+    /// Normalized bytes were restored from the artifact blob cache.
+    ArtifactCache,
+    /// Local media splitter produced the normalized shard.
+    #[default]
+    MediaSplitter,
 }
 
 /// Raw DTO boundary and stringly state boundary for one materialized audio shard.
@@ -229,6 +247,9 @@ pub struct AudioShardMaterializedItem {
     pub output_path: PathBuf,
     /// SHA-256 of the normalized shard media bytes.
     pub shard_sha256: String,
+    /// Materialization source used for this request.
+    #[serde(default)]
+    pub materialization_source: AudioShardMaterializationSource,
 }
 
 /// Raw DTO boundary and stringly state boundary for audio result cache inputs.

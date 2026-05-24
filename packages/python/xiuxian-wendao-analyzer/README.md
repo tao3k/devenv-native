@@ -102,10 +102,12 @@ of adding a public command surface:
 ```bash
 direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir> \
   --backend both \
-  --openrouter-model xiaomi/mimo-v2.5 \
+  --openrouter-base-url https://openrouter.ai/api/v1/audio/transcriptions \
+  --openrouter-model qwen/qwen3-asr-flash-2026-02-10 \
   --local-language zh \
   --sample-strategy uniform \
   --audio-materialization-mode normalized-16k-wav \
+  --hosted-request-concurrency 4 \
   --limit-files 2 \
   --limit-chunks 1
 ```
@@ -162,7 +164,9 @@ The document extraction Flight service uses the same model-neutral audio
 contract for real backend calls. Start the service with `--audio-worker skip`,
 `--audio-worker docling`, or `--audio-worker hosted`; the stable backend
 profiles are `docling-audio-transcript-v1` and
-`hosted-audio-transcript-v1`. `--audio-workers` and the
+`hosted-audio-transcript-v1`. The managed Wendao analyzer service passes
+`--audio-worker hosted` by default and selects OpenRouter unless explicitly
+configured for a local OpenAI-compatible backend. `--audio-workers` and the
 `x-wendao-audio-workers` Flight metadata header bound analyzer-side request
 parallelism inside the Rust-owned shard budget. Hosted audio uses
 `WENDAO_AUDIO_HOSTED_PROVIDER`, `WENDAO_AUDIO_HOSTED_BASE_URL`,
@@ -213,7 +217,10 @@ The diagnostic writes `truth_template.jsonl`, `reference_draft.jsonl`, and
 prefilled from candidate transcripts and is marked
 `referenceStatus: candidate-draft`, so it is rejected by the precision gate
 until reviewed. After correcting the draft text, convert it into a
-promotion-safe reference file:
+promotion-safe reference file. Every row must be explicitly marked
+`referenceStatus: curated` before conversion; the converter rejects
+`candidate-draft` rows so model-generated drafts cannot become truth by
+accident:
 
 ```bash
 direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
@@ -249,7 +256,14 @@ cover the logical shard window.
 Minimal reference rows without candidate backend metadata are also accepted.
 For the current Chinese PI private-audio lane, the next precision rerun is
 limited to the local `Qwen/Qwen3-ASR-1.7B` MLX endpoint and OpenRouter
-`xiaomi/mimo-v2.5`. Gemini remains historical rejected evidence for this lane.
+`qwen/qwen3-asr-flash-2026-02-10` through the speech-to-text
+`/audio/transcriptions` endpoint. Gemini and chat/audio Xiaomi requests remain
+historical rejected evidence for this lane.
+Hosted diagnostics run ordered serial requests unless
+`--hosted-request-concurrency` is set explicitly. Production Rust-to-Python
+audio shard calls receive their analyzer worker budget from the Rust Flight
+metadata selected by the polyglot control plane, so diagnostic concurrency is
+not treated as the system admission policy.
 After the curated reference validates with `ready=true`, run the local
 candidate:
 
@@ -266,12 +280,13 @@ direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-fil
   --reference-jsonl <curated-reference.jsonl>
 ```
 
-Then run the hosted Xiaomi comparator:
+Then run the hosted OpenRouter Qwen ASR Flash comparator:
 
 ```bash
 direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-file> \
-  --backend openrouter-chat-audio \
-  --openrouter-model xiaomi/mimo-v2.5 \
+  --backend openrouter-audio \
+  --openrouter-base-url https://openrouter.ai/api/v1/audio/transcriptions \
+  --openrouter-model qwen/qwen3-asr-flash-2026-02-10 \
   --limit-files 1 \
   --limit-chunks 5 \
   --chunk-seconds 60 \
@@ -301,7 +316,8 @@ direnv exec . uv run python tests/scripts/fireredasr2s_local_setup.py \
 direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir> \
   --backend firered-openrouter \
   --fireredasr2s-command "<fireRedAsr2sCommand from setup summary>" \
-  --openrouter-model xiaomi/mimo-v2.5 \
+  --openrouter-base-url https://openrouter.ai/api/v1/audio/transcriptions \
+  --openrouter-model qwen/qwen3-asr-flash-2026-02-10 \
   --sample-strategy uniform \
   --limit-files 2 \
   --limit-chunks 1
@@ -395,11 +411,12 @@ JSON metadata: callers upload `xiuxian_wendao.pdf_ocr_shard_input.v1` Arrow
 batches and receive `xiuxian_wendao.pdf_ocr_shard_result.v1` Arrow batches.
 It is a worker contract for Rust-rendered page or region shards and does not
 change the primary `/analysis/document-extract` sync or async extraction path.
-The default worker returns explicit `skipped` rows so deployments never load OCR
-models by accident. Passing `--pdf-ocr-worker docling` enables the opt-in
-Docling image worker for rendered shards; failed or empty shard OCR rows remain
-table-shaped failures so the Rust hybrid provider can fall back to full Docling
-when coverage is incomplete.
+Direct CLI invocations without an explicit worker return `skipped` rows so
+tests and unmanaged deployments do not load OCR models by accident. The managed
+Wendao analyzer service passes `--pdf-ocr-worker docling` by default, enabling
+the Docling image worker for rendered shards; failed or empty shard OCR rows
+remain table-shaped failures so the Rust hybrid provider can fall back to full
+Docling when coverage is incomplete.
 
 For source-contract image evidence tasks that are not PDF page shards, the
 package also exposes `wendao-image-ocr-jsonl`. It reads a Rust-written
@@ -479,10 +496,14 @@ chunk scheduling and materialization. Rust is expected to create normalized
 audio shards through `xiuxian-wendao-attachments::audio`, then upload
 `xiuxian_wendao.audio_shard_input.v1` Arrow batches to Python. Python returns
 `xiuxian_wendao.audio_shard_result.v1` rows and does not own chunk planning,
-cache identity, or backend scheduling. The default worker returns explicit
-`skipped` rows until Docling or hosted audio is configured. Successful rows
-remain `text/plain`; higher-level transcript formatting is a separate merge or
-export concern.
+cache identity, or backend scheduling. Direct CLI invocations without an
+explicit worker return `skipped` rows until Docling or hosted audio is
+configured. The managed Wendao analyzer service runs with the `documents-audio`
+extra and passes `--audio-worker hosted` by default, so MP3/WAV-style
+attachments use OpenRouter audio unless `WENDAO_AUDIO_WORKER` or per-request
+Flight metadata selects a local OpenAI-compatible backend. Docling audio is an
+explicit comparator. Successful rows remain `text/plain`; higher-level
+transcript formatting is a separate merge or export concern.
 
 Hosted audio workers normalize quoted environment values before building
 OpenAI-compatible requests, so `.env` values such as
@@ -492,7 +513,12 @@ The worker also retries transient hosted request or response failures through
 the worker still returns failed result rows and Rust precision gates reject
 incomplete coverage. The same retry loop also retries hosted responses that
 fail the transcript quality gate; if every attempt is still unsafe, the row is
-returned as `failed` so Rust recovery can retry only that shard span.
+returned as `failed` so Rust recovery can retry only that shard span. Hosted
+request concurrency is normally supplied by Rust through the audio worker
+budget header derived from the polyglot control-plane schedule. Direct Python
+diagnostics may still set `WENDAO_AUDIO_HOSTED_REQUEST_CONCURRENCY` explicitly.
+Transient socket-capacity failures such as address exhaustion use bounded retry
+backoff before the next attempt.
 
 The built-in strategy is intentionally small:
 
@@ -600,10 +626,14 @@ For the production audio-shard path, run the same harness with
 materializes timeline shards, sends `xiuxian_wendao.audio_shard_input.v1`
 batches over `/analysis/audio-shards`, and merges
 `xiuxian_wendao.audio_shard_result.v1` rows through the Rust precision gate.
-Use `--audio-worker docling` or `--audio-worker hosted` to select the analyzer
-backend, `--audio-workers` to cap analyzer-side request concurrency, and the
-`--rust-audio-*` flags to profile model-neutral Rust chunking, materialization,
-base/recovery worker budgets, and optional speech-timestamp recovery controls.
+Use `--audio-worker hosted` for the production OpenAI-compatible audio path
+and `--audio-worker docling` only as an explicit comparator. The managed
+Wendao analyzer startup selects hosted OpenRouter audio by default; local
+Qwen3-compatible testing uses the same hosted worker with an OpenAI-compatible
+local base URL. Use `--audio-workers` to cap analyzer-side request
+concurrency, and the `--rust-audio-*` flags to profile model-neutral Rust
+chunking, materialization, base/recovery worker budgets, and optional
+speech-timestamp recovery controls.
 When a VAD or speech-density sidecar exists, pass
 `--rust-audio-speech-segments-jsonl <segments.jsonl>` with optional
 `--rust-audio-speech-merge-gap-ms`, `--rust-audio-speech-min-window-ms`, and

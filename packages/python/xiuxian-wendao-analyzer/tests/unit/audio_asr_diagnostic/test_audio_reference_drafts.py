@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 
 from .support import Path, _load_audio_asr_diagnostic
@@ -148,7 +150,7 @@ def test_curated_reference_metadata_is_safe_for_promotion(tmp_path: Path) -> Non
     assert diagnostic.reference_candidate_draft_row_count(reference_path) == 0
 
 
-def test_curated_reference_rows_from_draft_strip_candidate_metadata(
+def test_curated_reference_rows_from_draft_strip_diagnostic_metadata(
     tmp_path: Path,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
@@ -165,7 +167,7 @@ def test_curated_reference_rows_from_draft_strip_candidate_metadata(
                 "backend": "local-openai-audio",
                 "model": "qwen3-asr-1.7b-mlx",
                 "reviewStatus": "review-needed",
-                "referenceStatus": "candidate-draft",
+                "referenceStatus": "curated",
                 "text": " corrected reference transcript ",
             }
         ],
@@ -184,6 +186,27 @@ def test_curated_reference_rows_from_draft_strip_candidate_metadata(
     ]
 
 
+def test_curated_reference_rows_from_draft_reject_candidate_draft(
+    tmp_path: Path,
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    draft_path = tmp_path / "reference_draft.jsonl"
+    diagnostic.write_jsonl(
+        draft_path,
+        [
+            {
+                "source": "forum.MP3",
+                "chunkIndex": 2,
+                "referenceStatus": "candidate-draft",
+                "text": "model draft transcript",
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="not curated"):
+        diagnostic.curated_reference_rows_from_draft(draft_path)
+
+
 def test_curated_reference_rows_from_draft_reject_empty_text(
     tmp_path: Path,
 ) -> None:
@@ -191,7 +214,14 @@ def test_curated_reference_rows_from_draft_reject_empty_text(
     draft_path = tmp_path / "reference_draft.jsonl"
     diagnostic.write_jsonl(
         draft_path,
-        [{"source": "forum.MP3", "chunkIndex": 2, "text": " "}],
+        [
+            {
+                "source": "forum.MP3",
+                "chunkIndex": 2,
+                "referenceStatus": "curated",
+                "text": " ",
+            }
+        ],
     )
 
     with pytest.raises(ValueError, match="empty reference text"):
@@ -230,6 +260,12 @@ def test_reference_draft_tsv_can_feed_curated_reference_rows(
 
     diagnostic.write_reference_draft_tsv(draft_tsv, [row])
 
+    edited_tsv = draft_tsv.read_text(encoding="utf-8").replace(
+        "candidate-draft",
+        "curated",
+    )
+    draft_tsv.write_text(edited_tsv, encoding="utf-8")
+
     assert diagnostic.curated_reference_rows_from_tsv(draft_tsv) == [
         {
             "source": "forum.MP3",
@@ -264,6 +300,50 @@ def test_select_reference_rows_prioritizes_risky_and_spreads_timeline() -> None:
     assert [row["chunkIndex"] for row in selected] == [0, 3, 6, 7]
     assert selected[1]["selectionReason"] == "short-utterance"
     assert selected[2]["selectionReason"] == "weak-quality"
+
+
+def test_select_reference_rows_fills_limit_after_priority_overlap() -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    rows = [
+        {
+            "chunkIndex": index,
+            "startSeconds": float(index * 30),
+            "durationSeconds": 30.0,
+            "reviewStatus": (
+                "short-utterance-review" if index in {2, 12, 13, 14, 15} else "review-needed"
+            ),
+            "referenceStatus": diagnostic.REFERENCE_STATUS_CANDIDATE_DRAFT,
+            "text": f"row {index}",
+        }
+        for index in range(20)
+    ]
+
+    selected = diagnostic.select_reference_rows(rows, limit=20)
+
+    assert len(selected) == 20
+    assert [row["chunkIndex"] for row in selected] == list(range(20))
+    assert selected[2]["selectionReason"] == "short-utterance"
+    assert selected[0]["selectionReason"] == "timeline-spread"
+
+
+def test_select_reference_rows_never_exceeds_limit_for_many_priority_rows() -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    rows = [
+        {
+            "chunkIndex": index,
+            "startSeconds": float(index * 30),
+            "durationSeconds": 30.0,
+            "reviewStatus": "short-utterance-review",
+            "referenceStatus": diagnostic.REFERENCE_STATUS_CANDIDATE_DRAFT,
+            "text": f"row {index}",
+        }
+        for index in range(8)
+    ]
+
+    selected = diagnostic.select_reference_rows(rows, limit=3)
+
+    assert [row["chunkIndex"] for row in selected] == [0, 1, 2]
+    assert all(row["selectionReason"] == "short-utterance" for row in selected)
 
 
 def test_select_reference_draft_report_writes_jsonl_and_tsv(tmp_path: Path) -> None:
@@ -441,13 +521,98 @@ def test_validate_reference_selection_pack_reports_pack_and_curated_status(
 
     report = diagnostic.validate_reference_selection_pack(review_tsv=review_tsv)
 
-    assert report["schema"] == (
-        "xiuxian_wendao.audio_reference_selection_pack_validation.v1"
-    )
+    assert report["schema"] == ("xiuxian_wendao.audio_reference_selection_pack_validation.v1")
     assert report["packReady"] is True
     assert report["curatedReady"] is False
     assert report["candidateDraftRows"] == 1
+    assert report["pendingRows"] == [
+        {
+            "row": 1,
+            "clipPath": str(clip),
+            "source": "forum.mp3",
+            "chunkIndex": 2,
+            "startSeconds": 12.5,
+            "durationSeconds": 8.0,
+            "reviewStatus": "review-needed",
+            "selectionReason": "timeline-spread",
+            "referenceStatus": "candidate-draft",
+            "textCharCount": len("draft text"),
+            "textSha256": hashlib.sha256(b"draft text").hexdigest(),
+        }
+    ]
+    assert report["curatedRowSummaries"] == []
     assert report["issueRows"] == 0
+
+
+def test_model_review_reference_selection_pack_is_redacted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    clip = tmp_path / "chunk.wav"
+    clip.write_bytes(b"clip")
+    review_tsv = tmp_path / "reference_selection_review.tsv"
+    review_tsv.write_text(
+        "\t".join(
+            [
+                "clipPath",
+                "source",
+                "chunkIndex",
+                "startSeconds",
+                "durationSeconds",
+                "reviewStatus",
+                "selectionReason",
+                "referenceStatus",
+                "text",
+            ]
+        )
+        + "\n"
+        + "\t".join(
+            [
+                str(clip),
+                "forum.mp3",
+                "2",
+                "12.5",
+                "8.0",
+                "review-needed",
+                "timeline-spread",
+                "candidate-draft",
+                "candidate text",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: 8.0,
+    )
+
+    report = diagnostic.model_review_reference_selection_pack(
+        review_tsv=review_tsv,
+        api_key="test-key",
+        model="qwen/qwen3-asr-flash-2026-02-10",
+        base_url="https://openrouter.ai/api/v1/audio/transcriptions",
+        prompt="transcribe",
+        max_tokens=1024,
+        temperature=0.0,
+        timeout_seconds=30,
+        request_sender=lambda *_args: {"text": "candidate text"},
+    )
+
+    assert report["schema"] == ("xiuxian_wendao.audio_reference_selection_model_review.v1")
+    assert report["succeededRows"] == 1
+    assert report["failedRows"] == 0
+    assert report["modelConsistentRows"] == 1
+    assert report["promotionSafety"] == {
+        "createsCuratedReferences": False,
+        "requiresHumanCuratedReferenceText": True,
+    }
+    row = report["rowsReviewed"][0]
+    assert row["modelReviewStatus"] == "model-consistent"
+    assert row["textSha256"] == hashlib.sha256(b"candidate text").hexdigest()
+    assert row["modelTextSha256"] == hashlib.sha256(b"candidate text").hexdigest()
+    assert "candidate text" not in str(report)
 
 
 def test_validate_reference_selection_pack_flags_missing_clip_and_bad_duration(

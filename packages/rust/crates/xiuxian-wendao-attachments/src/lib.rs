@@ -41,6 +41,37 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                 "attachment polyglot bridge owns OCR shard evidence and schedule-plan projections",
             ),
         )
+        .with_verification_profile_hint(
+            rust_lang_project_harness::RustVerificationProfileHint::new(
+                "src/polyglot.rs",
+                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+            )
+            .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
+            .with_task_contract(
+                rust_lang_project_harness::RustVerificationTaskKind::Regression,
+                rust_lang_project_harness::RustVerificationTaskContract::new(
+                    rust_lang_project_harness::RustVerificationPhase::AfterUnitTestsPass,
+                    "Regression check must exercise the feature-gated audio polyglot bridge",
+                    [
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "command",
+                            "cargo test -p xiuxian-wendao-attachments --features audio-shard-arrow --lib polyglot",
+                        ),
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "feature",
+                            "audio-shard-arrow",
+                        ),
+                        rust_lang_project_harness::RustVerificationRequirement::new(
+                            "coverage",
+                            "audio pressure evidence and schedule-plan projections",
+                        ),
+                    ],
+                ),
+            )
+            .with_rationale(
+                "attachment polyglot bridge owns audio shard evidence and schedule-plan projections",
+            ),
+        )
     }
 );
 

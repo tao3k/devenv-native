@@ -27,6 +27,8 @@ fn ontology_rdf_draft_export_writes_review_artifacts() -> Result<(), Box<dyn std
     assert!(rdf.contains("wdp:OntologyCandidateRelation"));
     assert!(rdf.contains("wdp:OntologyCandidateEvidence"));
     assert!(rdf.contains("wdp:candidateId \"candidate.term\""));
+    assert!(rdf.contains("wdp:sourceCandidate draft:"));
+    assert!(rdf.contains("wdp:targetCandidate draft:"));
     assert!(rdf.contains("rdfs:label \"Policy Term\""));
     assert!(rdf.contains("wdp:proposalStatus \"draft_pending_review\""));
     assert!(rdf.contains("wdp:ontologyTruth \"false\"^^xsd:boolean"));
@@ -54,6 +56,28 @@ fn ontology_rdf_draft_export_requires_passed_review_gate() -> Result<(), Box<dyn
     };
 
     assert!(error.to_string().contains("reviewGatePassed=true"));
+    assert!(!temp.path().join("rdf_draft.ttl").exists());
+    assert!(!temp.path().join("promotion_proposal.org").exists());
+    assert!(!temp.path().join("promotion_proposal.json").exists());
+    Ok(())
+}
+
+#[test]
+fn ontology_rdf_draft_export_rejects_unknown_relation_source_candidate()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    write_reviewed_candidate_run(temp.path(), true)?;
+    fs::write(
+        temp.path().join("candidate_relations.tsv"),
+        "candidate_id\trelation_kind\tsource_candidate_id\ttarget_candidate_id\tsource_file_id\tsource_queue_id\textraction_run_id\tevidence_sha256\treview_status\tpromotion_status\tontology_truth\nrelation.source.term\tontology_candidate.source_artifact.suggested_object_type\tcandidate.missing\tcandidate.term\tfile.source\tqueue.source\t\tsha256:source\treview_required\tblocked_pending_review\tfalse\nrelation.evidence.source\tontology_candidate.extraction_evidence.supports_source_artifact\tcandidate.evidence\tcandidate.source\tfile.source\tqueue.source\tseed\tsha256:text\treview_required\tblocked_pending_review\tfalse\n",
+    )?;
+
+    let request = EpistemeOntologyRdfDraftExportRequest::new(temp.path());
+    let Err(error) = export_episteme_ontology_rdf_draft(&request) else {
+        return Err("unknown relation source must block RDF draft export".into());
+    };
+
+    assert!(error.to_string().contains("unknown source candidate"));
     assert!(!temp.path().join("rdf_draft.ttl").exists());
     assert!(!temp.path().join("promotion_proposal.org").exists());
     assert!(!temp.path().join("promotion_proposal.json").exists());

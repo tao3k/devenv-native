@@ -14,9 +14,8 @@ use super::review_ledger::validate_review_ledgers;
 /// Repository-relative ontology manifest path used by Episteme repositories.
 pub const ONTOLOGY_MANIFEST_RELATIVE_PATH: &str = "ontology/manifest.toml";
 const SOURCE_CONTRACT_ARTIFACT_MODE: &str = "source_contract";
-const PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE: &str = "private_source_contract";
+const EXTENSION_SOURCE_CONTRACT_ARTIFACT_MODE: &str = "extension_source_contract";
 const EPISTEME_DOMAIN_SCHEME: &str = "episteme://";
-const PRIVATE_DOMAIN_PREFIX: &str = "episteme://private/";
 
 /// Top-level source ontology manifest.
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq)]
@@ -31,15 +30,15 @@ pub struct EpistemeOntologyManifest {
     /// Optional primary human language for private or vertical ontology packs.
     #[serde(default)]
     pub primary_language: Option<String>,
-    /// Optional top-level artifact mode for private extension manifests.
+    /// Optional top-level artifact mode for extension manifests.
     #[serde(default)]
     pub artifact_mode: Option<EpistemeOntologyArtifactMode>,
-    /// Optional top-level mutation flag for private extension manifests.
+    /// Optional top-level mutation flag for extension manifests.
     #[serde(default)]
     pub mutation_allowed: Option<bool>,
     /// Ownership and mutation boundaries for the ontology source contract.
     pub boundaries: EpistemeOntologyBoundaries,
-    /// Optional private extension target declaration.
+    /// Optional extension target declaration.
     #[serde(default)]
     pub extends: Option<EpistemeOntologyExtends>,
     /// Declared ontology domains.
@@ -69,10 +68,10 @@ pub struct EpistemeOntologyBoundaries {
     /// Whether direct source mutation is allowed.
     #[serde(default)]
     pub mutation_allowed: bool,
-    /// Common-domain owner for private extension manifests.
+    /// Common-domain owner for extension manifests.
     #[serde(default)]
     pub common_domain_owner: Option<String>,
-    /// Raw corpus ownership policy for private extension manifests.
+    /// Raw corpus ownership policy for extension manifests.
     #[serde(default)]
     pub raw_corpus_policy: Option<String>,
     /// Whether raw cache rows may be promoted directly to RDF.
@@ -97,7 +96,7 @@ fn default_source_contract_artifact_mode() -> EpistemeOntologyArtifactMode {
     EpistemeOntologyArtifactMode(SOURCE_CONTRACT_ARTIFACT_MODE.to_string())
 }
 
-/// Private extension target declaration.
+/// Extension target declaration.
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq)]
 pub struct EpistemeOntologyExtends {
     /// Common manifest id being extended.
@@ -120,10 +119,10 @@ pub struct EpistemeOntologyDomain {
     /// Human-readable domain name.
     #[serde(default)]
     pub name: String,
-    /// Primary Chinese domain label for Chinese-first private packs.
+    /// Primary Chinese domain label for Chinese-first extension packs.
     #[serde(default)]
     pub name_zh: Option<String>,
-    /// English domain label for bilingual private packs.
+    /// English domain label for bilingual extension packs.
     #[serde(default)]
     pub name_en: Option<String>,
     /// RDF source files relative to `ontology/`.
@@ -141,6 +140,9 @@ pub struct EpistemeOntologyDomain {
     /// Source manifests relative to `ontology/`.
     #[serde(default)]
     pub source_manifests: Vec<String>,
+    /// Object-model contracts relative to `ontology/`.
+    #[serde(default)]
+    pub object_model_contracts: Vec<String>,
     /// Mapping ledgers relative to `ontology/`.
     #[serde(default)]
     pub mapping_ledgers: Vec<String>,
@@ -203,6 +205,8 @@ pub struct EpistemeOntologyContractReport {
     pub policy_count: usize,
     /// Number of declared dataset mapping files.
     pub dataset_mapping_count: usize,
+    /// Number of declared object-model contract files.
+    pub object_model_contract_count: usize,
     /// Whether an API-surface contract is declared.
     pub api_surface_declared: bool,
 }
@@ -285,10 +289,10 @@ fn validate_manifest_shape(
     }
     let artifact_mode = effective_artifact_mode(manifest);
     if artifact_mode != SOURCE_CONTRACT_ARTIFACT_MODE
-        && artifact_mode != PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE
+        && artifact_mode != EXTENSION_SOURCE_CONTRACT_ARTIFACT_MODE
     {
         return Err(invalid_contract(format!(
-            "artifact mode must be `{SOURCE_CONTRACT_ARTIFACT_MODE}` or `{PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE}`"
+            "artifact mode must be `{SOURCE_CONTRACT_ARTIFACT_MODE}` or `{EXTENSION_SOURCE_CONTRACT_ARTIFACT_MODE}`"
         )));
     }
     if manifest
@@ -320,7 +324,7 @@ fn validate_manifest_shape(
             "manifest must declare at least one domain",
         ));
     }
-    validate_private_extension_shape(manifest, artifact_mode)?;
+    validate_extension_source_contract_shape(manifest, artifact_mode)?;
     validate_domain_ids(&manifest.domains, artifact_mode)
 }
 
@@ -338,16 +342,16 @@ fn effective_mutation_allowed(manifest: &EpistemeOntologyManifest) -> bool {
         .unwrap_or(manifest.boundaries.mutation_allowed)
 }
 
-fn validate_private_extension_shape(
+fn validate_extension_source_contract_shape(
     manifest: &EpistemeOntologyManifest,
     artifact_mode: &str,
 ) -> Result<(), EpistemeOntologyError> {
-    if artifact_mode != PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE {
+    if artifact_mode != EXTENSION_SOURCE_CONTRACT_ARTIFACT_MODE {
         return Ok(());
     }
     let Some(extends) = &manifest.extends else {
         return Err(invalid_contract(
-            "private source contracts must declare [extends]",
+            "extension source contracts must declare [extends]",
         ));
     };
     if !extends.common_manifest.starts_with(EPISTEME_DOMAIN_SCHEME) {
@@ -369,7 +373,7 @@ fn validate_private_extension_shape(
         .is_empty()
     {
         return Err(invalid_contract(
-            "private source contracts must declare primary_language",
+            "extension source contracts must declare primary_language",
         ));
     }
     Ok(())
@@ -410,11 +414,13 @@ fn validate_domain_scheme(
         SOURCE_CONTRACT_ARTIFACT_MODE => Err(invalid_contract(format!(
             "domain id must use {EPISTEME_DOMAIN_SCHEME} scheme: {domain_id}"
         ))),
-        PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE if domain_id.starts_with(PRIVATE_DOMAIN_PREFIX) => {
+        EXTENSION_SOURCE_CONTRACT_ARTIFACT_MODE
+            if domain_id.starts_with(EPISTEME_DOMAIN_SCHEME) =>
+        {
             Ok(())
         }
-        PRIVATE_SOURCE_CONTRACT_ARTIFACT_MODE => Err(invalid_contract(format!(
-            "private source-contract domain id must use {PRIVATE_DOMAIN_PREFIX} prefix: {domain_id}"
+        EXTENSION_SOURCE_CONTRACT_ARTIFACT_MODE => Err(invalid_contract(format!(
+            "extension source-contract domain id must use {EPISTEME_DOMAIN_SCHEME} scheme: {domain_id}"
         ))),
         _ => Err(invalid_contract(format!(
             "unsupported artifact mode for domain id validation: {artifact_mode}"
@@ -444,6 +450,7 @@ fn validate_manifest_artifacts(
         rule_count: 0,
         policy_count: 0,
         dataset_mapping_count: 0,
+        object_model_contract_count: 0,
         api_surface_declared: manifest.api_surface.is_some(),
     };
 
@@ -470,6 +477,11 @@ fn validate_domain_artifacts(
     validate_artifact_list(episteme_root, &domain.policies, "policies")?;
     validate_artifact_list(episteme_root, &domain.dataset_mappings, "dataset_mappings")?;
     validate_artifact_list(episteme_root, &domain.source_manifests, "source_manifests")?;
+    validate_artifact_list(
+        episteme_root,
+        &domain.object_model_contracts,
+        "object_model_contracts",
+    )?;
     validate_artifact_list(episteme_root, &domain.mapping_ledgers, "mapping_ledgers")?;
     validate_artifact_list(episteme_root, &domain.review_ledgers, "review_ledgers")?;
     validate_review_ledgers(episteme_root, &domain.review_ledgers, "review_ledgers")?;
@@ -478,6 +490,7 @@ fn validate_domain_artifacts(
     report.rule_count += domain.rules.len();
     report.policy_count += domain.policies.len();
     report.dataset_mapping_count += domain.dataset_mappings.len();
+    report.object_model_contract_count += domain.object_model_contracts.len();
     Ok(())
 }
 

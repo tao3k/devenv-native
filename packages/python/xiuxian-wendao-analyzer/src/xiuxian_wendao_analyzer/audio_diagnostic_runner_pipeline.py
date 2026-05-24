@@ -37,26 +37,24 @@ def selected_audio_backends(backend: str) -> list[str]:
     """Expand CLI backend presets to concrete backend ids."""
 
     if backend == "both":
-        return ["local-docling", "openrouter-chat-audio"]
+        return ["local-docling", "openrouter-audio"]
     if backend == "all":
         return [
             "local-docling",
             "local-fireredasr2s",
             "local-openai-audio",
-            "openrouter-chat-audio",
+            "openrouter-audio",
         ]
     if backend == "firered-openrouter":
-        return ["local-fireredasr2s", "openrouter-chat-audio"]
+        return ["local-fireredasr2s", "openrouter-audio"]
     return [backend]
 
 
 def backend_flags(backends: list[str]) -> tuple[bool, bool]:
     """Return hosted and OpenAI-compatible backend flags."""
 
-    hosted_audio_enabled = "openrouter-chat-audio" in backends
-    openai_compatible_audio_enabled = bool(
-        OPENAI_COMPATIBLE_AUDIO_BACKENDS.intersection(backends)
-    )
+    hosted_audio_enabled = "openrouter-audio" in backends
+    openai_compatible_audio_enabled = bool(OPENAI_COMPATIBLE_AUDIO_BACKENDS.intersection(backends))
     return hosted_audio_enabled, openai_compatible_audio_enabled
 
 
@@ -142,9 +140,7 @@ def run_diagnostic_backends(
 
     tasks = [(chunk, backend) for chunk in chunks for backend in backends]
     results: list[AsrResult | None] = [None] * len(tasks)
-    hosted_request_concurrency = max(
-        1, int(getattr(args, "hosted_request_concurrency", 1))
-    )
+    hosted_request_concurrency = _diagnostic_hosted_request_concurrency(args)
     if hosted_request_concurrency > 1 and all(
         backend in OPENAI_COMPATIBLE_AUDIO_BACKENDS for _chunk, backend in tasks
     ):
@@ -181,6 +177,20 @@ def run_diagnostic_backends(
                 )
             )
     return ordered_results
+
+
+def _diagnostic_hosted_request_concurrency(args: argparse.Namespace) -> int:
+    raw_value = getattr(args, "hosted_request_concurrency", None)
+    if raw_value is None:
+        return 1
+    if isinstance(raw_value, str) and raw_value.strip().lower() in {"", "auto"}:
+        return 1
+    try:
+        return max(1, int(raw_value))
+    except (TypeError, ValueError):
+        raise ValueError(
+            "--hosted-request-concurrency must be auto or a positive integer"
+        ) from None
 
 
 def _run_backend_for_chunk(

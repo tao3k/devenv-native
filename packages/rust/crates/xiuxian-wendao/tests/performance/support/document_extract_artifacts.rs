@@ -31,6 +31,8 @@ const DOCUMENT_METRICS_ARROW_CACHE_NAME: &str = "_metrics.arrow";
 const DOCUMENT_TIMING_ARROW_CACHE_NAME: &str = "_document_metrics.arrow";
 const HYBRID_PAGE_OCR_FALLBACK_REPORT_NAME: &str = "_hybrid_page_ocr_fallback.json";
 const HYBRID_PAGE_OCR_TIMING_REPORT_NAME: &str = "_hybrid_page_ocr_timing.json";
+const AUDIO_MATERIALIZATION_REPORT_NAME: &str = "_audio_materialization.json";
+const AUDIO_TRANSCRIPT_ADMISSION_REPORT_NAME: &str = "_audio_transcript_admission.json";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -45,6 +47,22 @@ pub(crate) struct ArtifactReport {
     pub(crate) audio_transcript_chars: usize,
     pub(crate) audio_transcript_timeline_marker_count: usize,
     pub(crate) audio_transcript_timeline_marked_rows: usize,
+    pub(crate) audio_materialization_report_bytes: u64,
+    pub(crate) audio_materialization_shard_count: usize,
+    pub(crate) audio_materialization_artifact_cache_hit_count: usize,
+    pub(crate) audio_materialization_existing_output_count: usize,
+    pub(crate) audio_materialization_media_splitter_count: usize,
+    pub(crate) audio_materialization_source_counts: BTreeMap<String, usize>,
+    pub(crate) audio_transcript_admission_report_bytes: u64,
+    pub(crate) audio_transcript_admission_enabled: bool,
+    pub(crate) audio_transcript_admission_hit_count: usize,
+    pub(crate) audio_transcript_admission_miss_count: usize,
+    pub(crate) audio_transcript_admission_stored_count: usize,
+    pub(crate) audio_transcript_admission_stale_count: usize,
+    pub(crate) audio_transcript_admission_planned_hit_count: usize,
+    pub(crate) audio_transcript_admission_planned_miss_count: usize,
+    pub(crate) audio_transcript_admission_planned_stored_count: usize,
+    pub(crate) audio_transcript_admission_planned_stale_count: usize,
     pub(crate) structure_arrow_exists: bool,
     pub(crate) structure_arrow_bytes: u64,
     pub(crate) structure_row_count: usize,
@@ -149,6 +167,22 @@ fn inspect_artifact_dir(
         audio_transcript_chars: 0,
         audio_transcript_timeline_marker_count: 0,
         audio_transcript_timeline_marked_rows: 0,
+        audio_materialization_report_bytes: 0,
+        audio_materialization_shard_count: 0,
+        audio_materialization_artifact_cache_hit_count: 0,
+        audio_materialization_existing_output_count: 0,
+        audio_materialization_media_splitter_count: 0,
+        audio_materialization_source_counts: BTreeMap::new(),
+        audio_transcript_admission_report_bytes: 0,
+        audio_transcript_admission_enabled: false,
+        audio_transcript_admission_hit_count: 0,
+        audio_transcript_admission_miss_count: 0,
+        audio_transcript_admission_stored_count: 0,
+        audio_transcript_admission_stale_count: 0,
+        audio_transcript_admission_planned_hit_count: 0,
+        audio_transcript_admission_planned_miss_count: 0,
+        audio_transcript_admission_planned_stored_count: 0,
+        audio_transcript_admission_planned_stale_count: 0,
         structure_arrow_exists: false,
         structure_arrow_bytes: 0,
         structure_row_count: 0,
@@ -232,6 +266,8 @@ fn populate_artifact_report(
     let output_dir = std::path::PathBuf::from(&report.output_dir);
     populate_hybrid_page_ocr_fallback_reason(report, output_dir.as_path())?;
     populate_hybrid_page_ocr_timing_report(report, output_dir.as_path())?;
+    populate_audio_materialization_report(report, output_dir.as_path())?;
+    populate_audio_transcript_admission_report(report, output_dir.as_path())?;
 
     let resources_path = output_dir.join(DOCUMENT_RESOURCES_ARROW_CACHE_NAME);
     if let Some(batches) = read_arrow_file_batches(resources_path.as_path())? {
@@ -371,6 +407,66 @@ fn is_audio_timeline_marker_line(line: &str) -> bool {
         && marker[..marker_end]
             .split('-')
             .all(|part| part.contains(':'))
+}
+
+fn populate_audio_materialization_report(
+    report: &mut ArtifactReport,
+    output_dir: &Path,
+) -> Result<(), String> {
+    let report_path = output_dir.join(AUDIO_MATERIALIZATION_REPORT_NAME);
+    if !report_path.exists() {
+        return Ok(());
+    }
+    let value = serde_json::from_slice::<Value>(
+        fs::read(report_path.as_path())
+            .map_err(|error| format!("read audio materialization report: {error}"))?
+            .as_slice(),
+    )
+    .map_err(|error| format!("decode audio materialization report: {error}"))?;
+    report.audio_materialization_report_bytes = file_len(report_path.as_path())?;
+    report.audio_materialization_shard_count = timing_report_usize(&value, "shardCount");
+    report.audio_materialization_artifact_cache_hit_count =
+        timing_report_usize(&value, "artifactCacheHitCount");
+    report.audio_materialization_existing_output_count =
+        timing_report_usize(&value, "existingOutputCount");
+    report.audio_materialization_media_splitter_count =
+        timing_report_usize(&value, "mediaSplitterCount");
+    report.audio_materialization_source_counts = value_string_usize_map(&value, "sourceCounts");
+    Ok(())
+}
+
+fn populate_audio_transcript_admission_report(
+    report: &mut ArtifactReport,
+    output_dir: &Path,
+) -> Result<(), String> {
+    let report_path = output_dir.join(AUDIO_TRANSCRIPT_ADMISSION_REPORT_NAME);
+    if !report_path.exists() {
+        return Ok(());
+    }
+    let value = serde_json::from_slice::<Value>(
+        fs::read(report_path.as_path())
+            .map_err(|error| format!("read audio transcript admission report: {error}"))?
+            .as_slice(),
+    )
+    .map_err(|error| format!("decode audio transcript admission report: {error}"))?;
+    report.audio_transcript_admission_report_bytes = file_len(report_path.as_path())?;
+    report.audio_transcript_admission_enabled = value
+        .get("enabled")
+        .and_then(Value::as_bool)
+        .unwrap_or_default();
+    report.audio_transcript_admission_hit_count = timing_report_usize(&value, "hitCount");
+    report.audio_transcript_admission_miss_count = timing_report_usize(&value, "missCount");
+    report.audio_transcript_admission_stored_count = timing_report_usize(&value, "storedCount");
+    report.audio_transcript_admission_stale_count = timing_report_usize(&value, "staleCount");
+    report.audio_transcript_admission_planned_hit_count =
+        timing_report_usize(&value, "plannedHitCount");
+    report.audio_transcript_admission_planned_miss_count =
+        timing_report_usize(&value, "plannedMissCount");
+    report.audio_transcript_admission_planned_stored_count =
+        timing_report_usize(&value, "plannedStoredCount");
+    report.audio_transcript_admission_planned_stale_count =
+        timing_report_usize(&value, "plannedStaleCount");
+    Ok(())
 }
 
 fn populate_hybrid_page_ocr_fallback_reason(
@@ -536,6 +632,24 @@ fn timing_report_usize(value: &Value, key: &str) -> usize {
         .get(key)
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default()
+}
+
+fn value_string_usize_map(value: &Value, key: &str) -> BTreeMap<String, usize> {
+    value
+        .get(key)
+        .and_then(Value::as_object)
+        .map(|object| {
+            object
+                .iter()
+                .filter_map(|(entry_key, entry_value)| {
+                    entry_value
+                        .as_u64()
+                        .and_then(|count| usize::try_from(count).ok())
+                        .map(|count| (entry_key.clone(), count))
+                })
+                .collect()
+        })
         .unwrap_or_default()
 }
 

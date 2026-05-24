@@ -83,6 +83,7 @@ pub(super) fn registry_openai_compatible_llm_task() -> WorkerActivityTask {
 
 pub(super) fn registry_episteme_openai_compatible_llm_task() -> WorkerActivityTask {
     let prompt_ref = registry_artifact_ref("artifact-episteme-reasoning-prompt");
+    let context_ref = registry_episteme_context_artifact_ref("artifact-episteme-reasoning-context");
     let mut task = activity_task(
         must_ok(
             ActivityId::new("activity-episteme-reasoning-openai-compatible-llm"),
@@ -95,9 +96,9 @@ pub(super) fn registry_episteme_openai_compatible_llm_task() -> WorkerActivityTa
     task.metadata = serde_json::json!({
         "qianji_llm_activity_request": {
             "schema": "qianji.llm_activity_request_audit.v1",
-            "model": "openrouter/deepseek/deepseek-chat-v3.1",
+            "model": "deepseek/deepseek-v4-pro",
             "prompt_ref": prompt_ref,
-            "context_ref": null,
+            "context_ref": context_ref,
             "temperature_millis": 0,
             "max_tokens": 1024,
             "response_schema_ref": null,
@@ -134,6 +135,19 @@ fn registry_artifact_ref(artifact_id: &str) -> ArtifactRef {
         ),
         uri: format!("artifact://{artifact_id}"),
         content_digest: Some("sha256:prompt".to_string()),
+        metadata: serde_json::Value::Null,
+    }
+}
+
+fn registry_episteme_context_artifact_ref(artifact_id: &str) -> ArtifactRef {
+    ArtifactRef {
+        artifact_id: must_ok(ArtifactId::new(artifact_id), "should build artifact id"),
+        artifact_kind: must_ok(
+            ArtifactKind::new("episteme.reasoning_fill_context"),
+            "should build artifact kind",
+        ),
+        uri: format!("artifact://{artifact_id}"),
+        content_digest: Some("sha256:context".to_string()),
         metadata: serde_json::Value::Null,
     }
 }
@@ -344,7 +358,7 @@ pub(super) fn append_control_run_with_episteme_openai_compatible_local_prompt(
     task.metadata = serde_json::json!({
         "qianji_llm_activity_request": {
             "schema": "qianji.llm_activity_request_audit.v1",
-            "model": "openrouter/deepseek/deepseek-chat-v3.1",
+            "model": "deepseek/deepseek-v4-pro",
             "prompt_ref": prompt_ref,
             "context_ref": context_ref,
             "temperature_millis": 0,

@@ -130,6 +130,7 @@ pub(super) fn audio_materialization_input(
         source_path: source,
         output_dir: output.join("audio_shards"),
         ffmpeg_path: config.ffmpeg_path.clone(),
+        artifact_cache_dir: config.artifact_cache_dir.clone(),
         force,
     }
 }

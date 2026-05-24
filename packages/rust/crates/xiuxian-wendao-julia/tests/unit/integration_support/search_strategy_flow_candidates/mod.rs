@@ -8,6 +8,7 @@ pub(crate) use super::{
     configured_search_strategy_flow_markdown_replay_families,
     configured_search_strategy_flow_markdown_replay_families_with_limit,
     discover_search_strategy_flow_candidate_inputs,
+    discover_search_strategy_flow_candidate_inputs_with_limit,
     materialized_search_strategy_flow_markdown_replay_families_from_bridge_report,
     search_strategy_flow_candidate_discovery_contract_json,
     search_strategy_flow_candidate_input_batch_from_markdown,

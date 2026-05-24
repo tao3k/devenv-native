@@ -56,6 +56,8 @@ def test_audio_risk_recovery_selects_explainable_parent_rows() -> None:
     assert reasons[3] == ["low-chinese-ratio"]
     assert reasons[4] == ["low-text-density"]
     assert reasons[5] == ["timeline-boundary"]
+    assert selected[1]["requestSeconds"] == 58.0
+    assert "wallSeconds" not in selected[1]
 
 
 def test_audio_risk_recovery_reserves_boundary_rows_under_limit() -> None:
@@ -134,9 +136,7 @@ def test_audio_risk_recovery_builds_30s_explicit_windows(tmp_path: Path) -> None
     source = tmp_path / "forum.mp3"
     source.write_bytes(b"mp3")
     windows = diagnostic.load_explicit_windows(output_json, source=source)
-    assert [
-        (row.index, row.start_seconds, row.duration_seconds) for row in windows
-    ] == [
+    assert [(row.index, row.start_seconds, row.duration_seconds) for row in windows] == [
         (70, 420.0, 30.0),
         (71, 450.0, 30.0),
     ]

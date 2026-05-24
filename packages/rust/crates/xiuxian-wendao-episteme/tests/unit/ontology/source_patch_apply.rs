@@ -11,7 +11,9 @@ use xiuxian_wendao_episteme::{
     write_episteme_ontology_source_patch_review_packet,
 };
 
-use super::fixtures::{write_object_relation_review_ledgers, write_private_extension_fixture};
+use super::fixtures::{
+    write_extension_source_contract_fixture, write_object_relation_review_ledgers,
+};
 
 #[test]
 fn ontology_source_patch_apply_rejects_without_explicit_mutation_flag()
@@ -21,7 +23,7 @@ fn ontology_source_patch_apply_rejects_without_explicit_mutation_flag()
     let review_packet = write_episteme_ontology_source_patch_review_packet(
         &EpistemeOntologySourcePatchReviewPacketRequest::new(temp.path(), &run_dir),
     )?;
-    let target = temp.path().join("ontology/10_Private/ontology.rdf");
+    let target = temp.path().join("ontology/10_Extension/ontology.rdf");
     let before = fs::read_to_string(&target)?;
 
     let Err(error) = apply_episteme_ontology_source_patch(
@@ -75,7 +77,7 @@ fn ontology_source_patch_apply_rejects_target_hash_drift() -> Result<(), Box<dyn
     let review_packet = write_episteme_ontology_source_patch_review_packet(
         &EpistemeOntologySourcePatchReviewPacketRequest::new(temp.path(), &run_dir),
     )?;
-    let target = temp.path().join("ontology/10_Private/ontology.rdf");
+    let target = temp.path().join("ontology/10_Extension/ontology.rdf");
     fs::write(&target, "<rdf:RDF>\n  <!-- drift -->\n</rdf:RDF>\n")?;
 
     let Err(error) = apply_episteme_ontology_source_patch(
@@ -110,7 +112,7 @@ fn ontology_source_patch_apply_writes_bounded_rdf_xml_block()
     assert_eq!(report.target_rdf_file_count, 1);
     assert_eq!(
         report.applied_targets[0].target_rdf_file,
-        "10_Private/ontology.rdf"
+        "10_Extension/ontology.rdf"
     );
     assert_eq!(report.applied_targets[0].applied_row_count, 3);
     assert_ne!(
@@ -120,7 +122,7 @@ fn ontology_source_patch_apply_writes_bounded_rdf_xml_block()
     assert!(report.source_mutation_allowed);
     assert!(!report.ontology_truth);
 
-    let target = fs::read_to_string(temp.path().join("ontology/10_Private/ontology.rdf"))?;
+    let target = fs::read_to_string(temp.path().join("ontology/10_Extension/ontology.rdf"))?;
     assert!(target.contains("BEGIN WENDAO SOURCE PATCH"));
     assert!(target.contains("source-patch#ObjectInstanceSourcePatch"));
     assert!(target.contains("<wdsp:recordId>obj.policy</wdsp:recordId>"));
@@ -144,7 +146,7 @@ fn ontology_source_patch_apply_preview_writes_blocks_without_mutating_target()
     let review_packet = write_episteme_ontology_source_patch_review_packet(
         &EpistemeOntologySourcePatchReviewPacketRequest::new(temp.path(), &run_dir),
     )?;
-    let target = temp.path().join("ontology/10_Private/ontology.rdf");
+    let target = temp.path().join("ontology/10_Extension/ontology.rdf");
     let before = fs::read_to_string(&target)?;
 
     let report = write_episteme_ontology_source_patch_apply_preview(
@@ -160,7 +162,7 @@ fn ontology_source_patch_apply_preview_writes_blocks_without_mutating_target()
     assert_eq!(report.target_rdf_file_count, 1);
     assert_eq!(
         report.preview_targets[0].target_rdf_file,
-        "10_Private/ontology.rdf"
+        "10_Extension/ontology.rdf"
     );
     assert_eq!(report.preview_targets[0].preview_row_count, 3);
     assert_ne!(
@@ -203,7 +205,7 @@ fn ontology_source_patch_apply_preview_rejects_truthy_mutation_marker_in_target(
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     let run_dir = write_reviewed_patch_fixture(temp.path())?;
-    let target = temp.path().join("ontology/10_Private/ontology.rdf");
+    let target = temp.path().join("ontology/10_Extension/ontology.rdf");
     fs::write(
         &target,
         "<rdf:RDF>\n  <rdf:Description rdf:about=\"urn:synthetic\">\n    <wdsp:sourceMutationAllowed xmlns:wdsp=\"https://wendao.ai/ontology/source-patch#\" rdf:datatype=\"http://www.w3.org/2001/XMLSchema#boolean\">true</wdsp:sourceMutationAllowed>\n  </rdf:Description>\n</rdf:RDF>\n",
@@ -258,9 +260,9 @@ fn ontology_source_patch_apply_preview_rejects_expected_hash_mismatch()
 fn write_reviewed_patch_fixture(
     root: &std::path::Path,
 ) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
-    write_private_extension_fixture(root)?;
+    write_extension_source_contract_fixture(root)?;
     fs::write(
-        root.join("ontology/10_Private/ontology.rdf"),
+        root.join("ontology/10_Extension/ontology.rdf"),
         "<rdf:RDF>\n  <rdf:Description rdf:about=\"urn:synthetic\"/>\n</rdf:RDF>\n",
     )?;
     write_object_relation_review_ledgers(root, "approved", "approved")?;

@@ -44,6 +44,8 @@ const OPENAI_COMPATIBLE_LLM_TASK_QUEUES: &[&str] = &[
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 const LLM_ACTIVITY_REQUEST_AUDIT_METADATA_KEY: &str = "qianji_llm_activity_request";
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+const EPISTEME_REASONING_ACTIVITY_TYPE: &str = "episteme.ontology.reasoning_fill";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -297,6 +299,16 @@ fn validate_llm_request_audit(
     if model.is_empty() {
         return Err(invalid_input(format!(
             "activity executor `{}` requires request audit model",
+            executor_label(executor)
+        )));
+    }
+    if task.activity_type.as_str() == EPISTEME_REASONING_ACTIVITY_TYPE
+        && audit
+            .get("context_ref")
+            .is_none_or(serde_json::Value::is_null)
+    {
+        return Err(invalid_input(format!(
+            "activity executor `{}` requires Episteme reasoning context_ref",
             executor_label(executor)
         )));
     }

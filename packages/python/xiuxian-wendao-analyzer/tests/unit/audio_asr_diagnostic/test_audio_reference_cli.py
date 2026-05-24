@@ -16,7 +16,14 @@ def test_curate_reference_draft_cli_mode_writes_curated_jsonl(
     output_path = tmp_path / "reference_curated.jsonl"
     diagnostic.write_jsonl(
         draft_path,
-        [{"source": "forum.MP3", "chunkIndex": 2, "text": "curated transcript"}],
+        [
+            {
+                "source": "forum.MP3",
+                "chunkIndex": 2,
+                "referenceStatus": "curated",
+                "text": "curated transcript",
+            }
+        ],
     )
 
     exit_code = diagnostic.main(
@@ -55,9 +62,7 @@ def test_curate_reference_tsv_cli_mode_writes_curated_jsonl(
             ]
         )
         + "\n"
-        + "\t".join(
-            ["forum.MP3", "2", "60.0", "30.0", "candidate-draft", "curated text"]
-        )
+        + "\t".join(["forum.MP3", "2", "60.0", "30.0", "curated", "curated text"])
         + "\n",
         encoding="utf-8",
     )
@@ -72,11 +77,36 @@ def test_curate_reference_tsv_cli_mode_writes_curated_jsonl(
     )
 
     assert exit_code == 0
-    assert diagnostic.load_reference_transcripts(output_path) == {
-        ("forum.MP3", 2): "curated text"
-    }
+    assert diagnostic.load_reference_transcripts(output_path) == {("forum.MP3", 2): "curated text"}
     assert diagnostic.reference_candidate_draft_row_count(output_path) == 0
     assert json.loads(capsys.readouterr().out)["rows"] == 1
+
+
+def test_curate_reference_tsv_cli_rejects_candidate_draft(
+    tmp_path: Path,
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    draft_path = tmp_path / "reference_draft.tsv"
+    output_path = tmp_path / "reference_curated.jsonl"
+    draft_path.write_text(
+        "\t".join(["source", "chunkIndex", "referenceStatus", "text"])
+        + "\n"
+        + "\t".join(["forum.MP3", "2", "candidate-draft", "model draft"])
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = diagnostic.main(
+        [
+            "--curate-reference-tsv",
+            str(draft_path),
+            "--curated-reference-jsonl",
+            str(output_path),
+        ]
+    )
+
+    assert exit_code == 1
+    assert not output_path.exists()
 
 
 def test_validate_reference_jsonl_reports_ready_against_manifest(

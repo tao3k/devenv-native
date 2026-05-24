@@ -1,0 +1,4 @@
+[tests]
+allowed_root_files = [
+  { name = "integration.rs", explanation = "thin aggregate that mounts qianji-client integration suites from tests/integration" },
+]

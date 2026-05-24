@@ -4,7 +4,7 @@ use super::{
     BpmnTaskCompleteCliCommand, BpmnTaskCompleteCliKind, BpmnTaskReleaseCliCommand,
     BpmnTaskWorklistCliCommand, ConstructCliCommand, ContractFeedbackCliCommand,
     DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand, EmitCliCommand, LintCliCommand,
-    MaterializeCliTarget, REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, TemplateCliCommand,
+    REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, TemplateCliCommand,
     build_contract_feedback_config, build_rest_docs_collection_context, parse_bpmn_command,
     parse_construct_command, parse_contract_feedback_command, parse_dir_command,
     parse_emit_command, parse_lint_command, parse_template_command,

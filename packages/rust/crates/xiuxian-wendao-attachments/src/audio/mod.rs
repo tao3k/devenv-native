@@ -12,6 +12,7 @@ mod plan;
 mod recovery_patch;
 mod recovery_select;
 mod speech_segments;
+mod transcript_admission;
 mod types;
 
 #[cfg(feature = "audio-shard-arrow")]
@@ -52,12 +53,19 @@ pub use recovery_select::{
     select_audio_risk_parent_shards,
 };
 pub use speech_segments::parse_audio_speech_segments_sidecar;
+pub use transcript_admission::{
+    AudioPlannedTranscriptAdmissionLookup, AudioTranscriptAdmissionLookup,
+    AudioTranscriptAdmissionOptions, AudioTranscriptAdmissionStats, audio_transcript_admission_key,
+    audio_transcript_admission_path, combine_admitted_and_fresh_audio_transcripts,
+    lookup_audio_transcript_admission, lookup_planned_audio_transcript_admission,
+    persist_audio_transcript_admission,
+};
 pub use types::{
     AUDIO_SHARD_INPUT_SCHEMA_VERSION, AUDIO_SHARD_MANIFEST_SCHEMA,
     AUDIO_SHARD_RESULT_SCHEMA_VERSION, AudioResultCacheInput, AudioShardInput,
-    AudioShardManifestItem, AudioShardMaterializationInput, AudioShardMaterializedItem,
-    AudioShardPlan, AudioShardPlannerInput, AudioShardResult, AudioShardResultStatus,
-    AudioShardStrategy, AudioShardTextMimeType, AudioShardWorkerProfile, AudioSourceIdentity,
-    AudioSpeechSegment, AudioSpeechWindowPlannerInput, DEFAULT_AUDIO_SHARD_PROFILE,
-    DEFAULT_AUDIO_TASK_PROFILE,
+    AudioShardManifestItem, AudioShardMaterializationInput, AudioShardMaterializationSource,
+    AudioShardMaterializedItem, AudioShardPlan, AudioShardPlannerInput, AudioShardResult,
+    AudioShardResultStatus, AudioShardStrategy, AudioShardTextMimeType, AudioShardWorkerProfile,
+    AudioSourceIdentity, AudioSpeechSegment, AudioSpeechWindowPlannerInput,
+    DEFAULT_AUDIO_SHARD_PROFILE, DEFAULT_AUDIO_TASK_PROFILE,
 };

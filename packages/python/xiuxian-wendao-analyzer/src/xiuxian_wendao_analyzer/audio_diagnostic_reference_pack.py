@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import subprocess
+import time
+import urllib.error
+import urllib.request
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,12 +17,20 @@ from xiuxian_wendao_analyzer.audio_diagnostic_media_probe import (
     audio_duration_seconds,
     resolve_ffmpeg_executable,
 )
+from xiuxian_wendao_analyzer.audio_diagnostic_metrics import character_error_rate
+from xiuxian_wendao_analyzer.audio_diagnostic_openrouter import (
+    build_openrouter_payload,
+    build_openrouter_transcription_payload,
+    extract_openrouter_transcript,
+    is_openrouter_transcription_url,
+)
 from xiuxian_wendao_analyzer.audio_diagnostic_report_writers import write_text
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Sequence
 
 REFERENCE_SELECTION_PACK_SCHEMA = "xiuxian_wendao.audio_reference_selection_pack.v1"
+REFERENCE_SELECTION_MODEL_REVIEW_SCHEMA = "xiuxian_wendao.audio_reference_selection_model_review.v1"
 
 
 def materialize_reference_selection_pack(
@@ -38,10 +51,7 @@ def materialize_reference_selection_pack(
         chunk_index = _int_field(row, "chunkIndex")
         start_seconds = _float_field(row, "startSeconds")
         duration_seconds = _float_field(row, "durationSeconds")
-        clip_path = (
-            clip_dir
-            / f"{source.stem.replace(' ', '-')[:48]}__chunk_{chunk_index:04d}.wav"
-        )
+        clip_path = clip_dir / f"{source.stem.replace(' ', '-')[:48]}__chunk_{chunk_index:04d}.wav"
         if force or not clip_path.exists():
             _run_ffmpeg_clip(
                 ffmpeg,
@@ -90,6 +100,8 @@ def validate_reference_selection_pack(
     duplicate_keys = _duplicate_key_count(rows)
     candidate_draft_rows = 0
     curated_rows = 0
+    pending_row_summaries: list[dict[str, object]] = []
+    curated_row_summaries: list[dict[str, object]] = []
     for index, row in enumerate(rows, start=1):
         row_issues = _review_row_issues(
             row,
@@ -97,8 +109,10 @@ def validate_reference_selection_pack(
         )
         if row.get("referenceStatus") == "candidate-draft":
             candidate_draft_rows += 1
+            pending_row_summaries.append(_redacted_review_row_summary(index, row))
         if row.get("referenceStatus") == "curated":
             curated_rows += 1
+            curated_row_summaries.append(_redacted_review_row_summary(index, row))
         if row_issues:
             issues.append(
                 {
@@ -109,9 +123,7 @@ def validate_reference_selection_pack(
                 }
             )
     pack_ready = bool(rows) and duplicate_keys == 0 and not issues
-    curated_ready = (
-        pack_ready and candidate_draft_rows == 0 and curated_rows == len(rows)
-    )
+    curated_ready = pack_ready and candidate_draft_rows == 0 and curated_rows == len(rows)
     return {
         "schema": "xiuxian_wendao.audio_reference_selection_pack_validation.v1",
         "reviewTsv": str(review_tsv),
@@ -120,17 +132,130 @@ def validate_reference_selection_pack(
         "curatedReady": curated_ready,
         "candidateDraftRows": candidate_draft_rows,
         "curatedRows": curated_rows,
+        "pendingRows": pending_row_summaries,
+        "curatedRowSummaries": curated_row_summaries,
         "duplicateKeys": duplicate_keys,
         "issueRows": len(issues),
         "issues": issues,
     }
 
 
+def model_review_reference_selection_pack(
+    *,
+    review_tsv: Path,
+    api_key: str,
+    model: str,
+    base_url: str,
+    prompt: str,
+    max_tokens: int,
+    temperature: float,
+    timeout_seconds: int,
+    max_candidate_to_model_cer: float = 0.15,
+    request_sender: (
+        Callable[[str, str, Mapping[str, object], int], Mapping[str, object]] | None
+    ) = None,
+) -> dict[str, object]:
+    """Run a hosted model review over private reference clips without curating them."""
+
+    rows = _load_review_rows(review_tsv)
+    sender = request_sender or _send_openrouter_review_request
+    reviewed_rows: list[dict[str, object]] = []
+    succeeded_rows = 0
+    failed_rows = 0
+    model_consistent_rows = 0
+    model_divergent_rows = 0
+    latencies_ms: list[float] = []
+    for index, row in enumerate(rows, start=1):
+        row_issues = _review_row_issues(row, duration_tolerance_seconds=0.75)
+        if row_issues:
+            failed_rows += 1
+            reviewed_rows.append(
+                {
+                    **_redacted_review_row_summary(index, row),
+                    "modelReviewStatus": "failed",
+                    "modelReviewError": ",".join(row_issues),
+                }
+            )
+            continue
+        started = time.perf_counter()
+        try:
+            response = sender(
+                base_url,
+                api_key,
+                _build_model_review_payload(
+                    row,
+                    model=model,
+                    base_url=base_url,
+                    prompt=prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                ),
+                timeout_seconds,
+            )
+            model_text = extract_openrouter_transcript(response).strip()
+            if not model_text:
+                raise ValueError("empty model review transcript")
+        except Exception as exc:
+            failed_rows += 1
+            reviewed_rows.append(
+                {
+                    **_redacted_review_row_summary(index, row),
+                    "modelReviewStatus": "failed",
+                    "modelReviewError": _short_error(exc),
+                }
+            )
+            continue
+        latency_ms = (time.perf_counter() - started) * 1000
+        latencies_ms.append(latency_ms)
+        candidate_text = row.get("text", "").strip()
+        candidate_to_model_cer = character_error_rate(candidate_text, model_text)
+        model_consistent = (
+            candidate_to_model_cer is not None
+            and candidate_to_model_cer <= max_candidate_to_model_cer
+        )
+        succeeded_rows += 1
+        if model_consistent:
+            model_consistent_rows += 1
+        else:
+            model_divergent_rows += 1
+        reviewed_rows.append(
+            {
+                **_redacted_review_row_summary(index, row),
+                "modelReviewStatus": (
+                    "model-consistent" if model_consistent else "needs-human-review"
+                ),
+                "model": model,
+                "candidateToModelCer": candidate_to_model_cer,
+                "modelTextCharCount": len(model_text),
+                "modelTextSha256": hashlib.sha256(model_text.encode("utf-8")).hexdigest(),
+                "latencyMs": round(latency_ms, 3),
+            }
+        )
+    return {
+        "schema": REFERENCE_SELECTION_MODEL_REVIEW_SCHEMA,
+        "reviewTsv": str(review_tsv),
+        "provider": "openrouter",
+        "model": model,
+        "baseUrl": base_url,
+        "rows": len(rows),
+        "succeededRows": succeeded_rows,
+        "failedRows": failed_rows,
+        "modelConsistentRows": model_consistent_rows,
+        "modelDivergentRows": model_divergent_rows,
+        "maxCandidateToModelCer": max_candidate_to_model_cer,
+        "latencyMsP50": _percentile(latencies_ms, 0.50),
+        "latencyMsP95": _percentile(latencies_ms, 0.95),
+        "rowsReviewed": reviewed_rows,
+        "promotionSafety": {
+            "createsCuratedReferences": False,
+            "requiresHumanCuratedReferenceText": True,
+        },
+    }
+
+
 def _load_selection_rows(path: Path) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
-    for line_number, raw_line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not raw_line.strip():
             continue
         row = json.loads(raw_line)
@@ -188,8 +313,7 @@ def _run_ffmpeg_clip(
     result = subprocess.run(command, check=False, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(
-            "ffmpeg reference clip materialization failed for "
-            f"{source}: {result.stderr.strip()}"
+            f"ffmpeg reference clip materialization failed for {source}: {result.stderr.strip()}"
         )
 
 
@@ -247,6 +371,104 @@ def _review_row_issues(
 def _duplicate_key_count(rows: Sequence[Mapping[str, str]]) -> int:
     keys = [(row.get("source", ""), row.get("chunkIndex", "")) for row in rows]
     return len(keys) - len(set(keys))
+
+
+def _build_model_review_payload(
+    row: Mapping[str, str],
+    *,
+    model: str,
+    base_url: str,
+    prompt: str,
+    max_tokens: int,
+    temperature: float,
+) -> dict[str, object]:
+    clip_path = Path(row.get("clipPath", ""))
+    audio_format = clip_path.suffix.lower().lstrip(".") or "wav"
+    audio_bytes = clip_path.read_bytes()
+    if is_openrouter_transcription_url(base_url):
+        return build_openrouter_transcription_payload(
+            model=model,
+            audio_bytes=audio_bytes,
+            audio_format=audio_format,
+        )
+    return build_openrouter_payload(
+        model=model,
+        prompt=prompt,
+        audio_bytes=audio_bytes,
+        audio_format=audio_format,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+
+
+def _send_openrouter_review_request(
+    base_url: str,
+    api_key: str,
+    payload: Mapping[str, object],
+    timeout_seconds: int,
+) -> Mapping[str, object]:
+    request = urllib.request.Request(
+        base_url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/tao3k/xiuxian-artisan-workshop",
+            "X-Title": "Wendao audio reference model review",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+            parsed = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"OpenRouter HTTP {exc.code}: {error_body}") from exc
+    if not isinstance(parsed, Mapping):
+        raise ValueError("OpenRouter model review response is not an object")
+    return parsed
+
+
+def _percentile(values: Sequence[float], percentile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, round((len(ordered) - 1) * percentile)))
+    return round(ordered[index], 3)
+
+
+def _short_error(exc: BaseException) -> str:
+    text = str(exc).strip()
+    return text[:240] if text else exc.__class__.__name__
+
+
+def _redacted_review_row_summary(
+    row_number: int,
+    row: Mapping[str, str],
+) -> dict[str, object]:
+    text = row.get("text", "")
+    return {
+        "row": row_number,
+        "clipPath": row.get("clipPath", ""),
+        "source": row.get("source", ""),
+        "chunkIndex": _int_or_string(row.get("chunkIndex", "")),
+        "startSeconds": _float_or_string(row.get("startSeconds", "")),
+        "durationSeconds": _float_or_string(row.get("durationSeconds", "")),
+        "reviewStatus": row.get("reviewStatus", ""),
+        "selectionReason": row.get("selectionReason", ""),
+        "referenceStatus": row.get("referenceStatus", ""),
+        "textCharCount": len(text),
+        "textSha256": hashlib.sha256(text.encode("utf-8")).hexdigest() if text else "",
+    }
+
+
+def _int_or_string(value: str) -> int | str:
+    return int(value) if value.isdigit() else value
+
+
+def _float_or_string(value: str) -> float | str:
+    parsed = _parse_float(value)
+    return parsed if parsed is not None else value
 
 
 def _int_field(row: Mapping[str, object], field: str) -> int:

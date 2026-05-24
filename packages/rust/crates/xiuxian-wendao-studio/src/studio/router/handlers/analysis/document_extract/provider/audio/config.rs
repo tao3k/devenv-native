@@ -15,6 +15,10 @@ pub(super) const AUDIO_CHANNELS_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANN
 pub(super) const AUDIO_FORMAT_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT";
 pub(super) const AUDIO_FFMPEG_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFMPEG";
 pub(super) const AUDIO_FFPROBE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFPROBE";
+pub(super) const AUDIO_ARTIFACT_CACHE_DIR_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR";
+pub(super) const AUDIO_TRANSCRIPT_ADMISSION_DIR_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_AUDIO_TRANSCRIPT_ADMISSION_DIR";
 pub(super) const AUDIO_BASE_WORKERS_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS";
 pub(super) const AUDIO_RECOVERY_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS";
@@ -28,7 +32,7 @@ pub(super) const AUDIO_SPEECH_LIMIT_CHUNKS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS";
 
 const DEFAULT_BACKEND_PROFILE: &str = "hosted-audio-transcript-v1";
-const DEFAULT_CHUNK_MS: u64 = 60_000;
+const DEFAULT_CHUNK_MS: u64 = 30_000;
 const DEFAULT_CONTEXT_MS: u64 = 0;
 const DEFAULT_RECOVERY_SPLIT_MS: u64 = 30_000;
 const DEFAULT_SPEECH_MERGE_GAP_MS: u64 = 500;
@@ -52,6 +56,8 @@ pub(crate) struct AudioDocumentExtractConfig {
     pub(crate) audio_format: String,
     pub(crate) ffmpeg_path: PathBuf,
     pub(crate) ffprobe_path: PathBuf,
+    pub(crate) artifact_cache_dir: Option<PathBuf>,
+    pub(crate) transcript_admission_dir: Option<PathBuf>,
     pub(crate) base_worker_budget: Option<usize>,
     pub(crate) recovery_worker_budget: Option<usize>,
     pub(crate) speech_segments_jsonl_path: Option<PathBuf>,
@@ -73,6 +79,9 @@ pub(crate) fn document_extract_audio_config(
     if backend_profile.trim().is_empty() {
         return Err(format!("{AUDIO_BACKEND_PROFILE_ENV} must not be blank"));
     }
+    let artifact_cache_dir = artifact_cache_dir_value(lookup);
+    let transcript_admission_dir =
+        audio_transcript_admission_dir_value(lookup, artifact_cache_dir.as_ref());
     Ok(AudioDocumentExtractConfig {
         backend_profile,
         chunk_duration_ms: u64_value(lookup, AUDIO_CHUNK_MS_ENV, DEFAULT_CHUNK_MS)?,
@@ -88,6 +97,8 @@ pub(crate) fn document_extract_audio_config(
         audio_format: string_value(lookup, AUDIO_FORMAT_ENV, DEFAULT_AUDIO_FORMAT),
         ffmpeg_path: PathBuf::from(string_value(lookup, AUDIO_FFMPEG_ENV, DEFAULT_FFMPEG)),
         ffprobe_path: PathBuf::from(string_value(lookup, AUDIO_FFPROBE_ENV, DEFAULT_FFPROBE)),
+        artifact_cache_dir,
+        transcript_admission_dir,
         base_worker_budget: audio_worker_budget_with_lookup(lookup, AUDIO_BASE_WORKERS_ENV)?,
         recovery_worker_budget: audio_worker_budget_with_lookup(
             lookup,
@@ -151,6 +162,24 @@ fn optional_path_value(
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
+}
+
+fn artifact_cache_dir_value(lookup: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
+    optional_path_value(lookup, AUDIO_ARTIFACT_CACHE_DIR_ENV).or_else(|| {
+        lookup("PRJ_CACHE_HOME")
+            .map(|value| value.trim().to_owned())
+            .filter(|value| !value.is_empty())
+            .map(PathBuf::from)
+            .map(|root| root.join("wendao").join("audio-artifacts"))
+    })
+}
+
+fn audio_transcript_admission_dir_value(
+    lookup: &dyn Fn(&str) -> Option<String>,
+    artifact_cache_dir: Option<&PathBuf>,
+) -> Option<PathBuf> {
+    optional_path_value(lookup, AUDIO_TRANSCRIPT_ADMISSION_DIR_ENV)
+        .or_else(|| artifact_cache_dir.map(|root| root.join("audio-transcript-results")))
 }
 
 fn u64_value(

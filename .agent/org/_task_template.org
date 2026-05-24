@@ -1,4 +1,4 @@
-* TODO Task title [0/6] [0%] :agent:
+* TODO Task title [0/7] [0%] :agent:
 :PROPERTIES:
 :SDD: <sdd-path-or-none>
 :EXECPLAN: <execplan-path>
@@ -6,6 +6,7 @@
 :PACKAGE: <package-or-subsystem>
 :SLICE: <slice-slug>
 :STATUS: active
+:COMMAND_POLICY: RTK.md
 :COOKIE_DATA: direct
 :NEXT_ACTION: <next-action>
 :RESUME_QUERY: <resume-query>
@@ -15,6 +16,7 @@
 SCHEDULED: <YYYY-MM-DD Day>
 
 - [ ] Scope and recovery anchor confirmed.
+- [ ] RTK command policy confirmed.
 - [ ] Task-local research complete.
 - [ ] Implementation complete.
 - [ ] Validation complete.
@@ -22,12 +24,13 @@ SCHEDULED: <YYYY-MM-DD Day>
 
 ** Context
 
-** TODO Task Checklist [0/5] [0%]
+** TODO Task Checklist [0/6] [0%]
 :PROPERTIES:
 :COOKIE_DATA: direct
 :END:
 
 - [ ] Scope and recovery anchor confirmed.
+- [ ] RTK command policy confirmed.
 - [ ] Task-local research complete.
 - [ ] Implementation complete.
 - [ ] Validation complete.
@@ -37,6 +40,10 @@ SCHEDULED: <YYYY-MM-DD Day>
 
 ** Validation
 
+- [ ] Shell commands follow =RTK.md=: project-scoped commands use =direnv exec . rtk <filtered-command>= only when RTK has a real wrapper; high-volume validation should use =direnv exec . rtk --ultra-compact <filtered-command>= when summaries are enough; raw =direnv exec .= exceptions are recorded.
+- [ ] Use project RTK wrappers when they apply: =direnv exec . rtk --ultra-compact cargo test/check/clippy=, =direnv exec . rtk --ultra-compact npm run <script>=, =direnv exec . rtk --ultra-compact pytest -q=, and =direnv exec . rtk --ultra-compact ruff check <path>=.
+- [ ] Use lightweight direct RTK outside the project environment for small inspections: =rtk git status --short=, =rtk git diff -- <paths>=, =rtk read <path>=, and =rtk ls <path>=.
+- [ ] Do not force RTK for commands without filtered wrappers, including =wendao-client=, Julia checks, artifact-producing commands, exact parser output, and machine-parsed output.
 - [ ] Targeted tests or lint checks passed.
 - [ ] Tracking surfaces pass Org lint.
 - [ ] Recovery query returns the expected task state.
@@ -46,10 +53,11 @@ SCHEDULED: <YYYY-MM-DD Day>
 ** Recovery
 
 Use this heading as the task-local recovery anchor. At turn start, query active
-work with:
+work through the project environment. Do not force =wendao-client= through RTK
+when no filtered wrapper exists:
 
 #+begin_src text
-wendao-client orgize task-list --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
+direnv exec . wendao-client orgize task-list --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 ** Notes

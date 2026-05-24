@@ -155,6 +155,21 @@ pub struct DocumentExtractJobsStatus {
     /// Adaptive budget decrease events observed by this provider process.
     #[serde(default)]
     pub pdf_ocr_budget_decrease_events: u64,
+    /// Deployment upper bound for Rust-scheduled audio shard workers.
+    #[serde(default)]
+    pub max_audio_shard_workers: usize,
+    /// Current adaptive audio shard worker budget selected by Rust.
+    #[serde(default)]
+    pub current_audio_shard_worker_budget: usize,
+    /// Consecutive healthy audio shard workflows observed by Rust.
+    #[serde(default)]
+    pub audio_shard_healthy_streak: usize,
+    /// Adaptive audio shard budget increase events observed by this provider.
+    #[serde(default)]
+    pub audio_shard_budget_increase_events: u64,
+    /// Adaptive audio shard budget decrease events observed by this provider.
+    #[serde(default)]
+    pub audio_shard_budget_decrease_events: u64,
     /// In-process scheduled job tasks waiting or running in this provider.
     pub in_process_scheduled_jobs: usize,
     /// Total persisted jobs in the `DuckDB` registry.

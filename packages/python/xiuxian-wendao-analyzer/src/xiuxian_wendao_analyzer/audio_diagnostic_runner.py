@@ -49,8 +49,8 @@ DEFAULT_PROMPT = (
     "Mark inaudible spans as [inaudible]. Output only the transcript text."
 )
 DEFAULT_PRIMARY_LANGUAGE = "zh"
-DEFAULT_OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_OPENROUTER_MODEL = "xiaomi/mimo-v2.5"
+DEFAULT_OPENROUTER_URL = "https://openrouter.ai/api/v1/audio/transcriptions"
+DEFAULT_OPENROUTER_MODEL = "qwen/qwen3-asr-flash-2026-02-10"
 DEFAULT_LOCAL_ASR_MODEL = "WHISPER_TINY"
 DEFAULT_LOCAL_LANGUAGE = "zh"
 DEFAULT_FIREREDASR2S_COMMAND = "fireredasr2s-cli"
@@ -84,9 +84,7 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
         domain_terms,
     )
     result_cache_dir = (
-        None
-        if args.no_result_cache
-        else (args.result_cache_dir or output_dir / "result_cache")
+        None if args.no_result_cache else (args.result_cache_dir or output_dir / "result_cache")
     )
     backends = selected_audio_backends(args.backend)
     hosted_audio_enabled, openai_compatible_audio_enabled = backend_flags(backends)
@@ -106,9 +104,7 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
     )
 
     references = load_reference_transcripts(args.reference_jsonl)
-    reference_candidate_draft_rows = reference_candidate_draft_row_count(
-        args.reference_jsonl
-    )
+    reference_candidate_draft_rows = reference_candidate_draft_row_count(args.reference_jsonl)
     quality_rows = build_quality_rows(
         results,
         references=references,
@@ -143,8 +139,7 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
         },
         timeline_summary=summarize_timeline_structure(
             quality_rows,
-            allow_planned_gaps=args.sample_strategy
-            in {"speech-segments", "explicit-windows"},
+            allow_planned_gaps=args.sample_strategy in {"speech-segments", "explicit-windows"},
         ),
         precision_summary=summarize_precision_gate(
             quality_rows,

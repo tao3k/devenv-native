@@ -32,17 +32,17 @@ pub(crate) enum EpistemeEvidenceCommand {
 pub(crate) enum EpistemeSourceContractCommand {
     /// Write a deterministic extraction run plan without executing extraction.
     PlanExtractionRun(EpistemePlanExtractionRunArgs),
-    /// Compile deterministic structural IDF seed rows from source-contract files.
-    WriteStructuralIdf(EpistemeWriteStructuralIdfArgs),
-    /// Compile structural IDF rows into a deterministic reasoning packet.
-    WriteStructuralIdfReasoningPacket(EpistemeWriteStructuralIdfReasoningPacketArgs),
+    /// Compile deterministic structural facts seed rows from source-contract files.
+    WriteStructuralFacts(EpistemeWriteStructuralFactsArgs),
+    /// Compile structural facts rows into a deterministic reasoning packet.
+    WriteStructuralFactsReasoningPacket(EpistemeWriteStructuralFactsReasoningPacketArgs),
     /// Compile a reasoning packet into a fillable Org ledger seed.
-    WriteStructuralIdfReasoningLedgerSeed(EpistemeWriteStructuralIdfReasoningLedgerSeedArgs),
+    WriteStructuralFactsReasoningLedgerSeed(EpistemeWriteStructuralFactsReasoningLedgerSeedArgs),
     /// Compile a reasoning ledger seed into workflow fill-plan rows.
-    WriteStructuralIdfReasoningFillPlan(EpistemeWriteStructuralIdfReasoningFillPlanArgs),
+    WriteStructuralFactsReasoningFillPlan(EpistemeWriteStructuralFactsReasoningFillPlanArgs),
     /// Compile a reasoning fill plan into Qianji schedule-admission inputs.
-    WriteStructuralIdfReasoningQianjiSchedulePlan(
-        EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs,
+    WriteStructuralFactsReasoningQianjiSchedulePlan(
+        EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs,
     ),
     /// Run the image OCR cache bridge for source-contract image tasks.
     RunImageOcrCache(EpistemeRunImageOcrCacheArgs),
@@ -54,6 +54,10 @@ pub(crate) enum EpistemeSourceContractCommand {
     GenerateOntologyCandidates(EpistemeGenerateOntologyCandidatesArgs),
     /// Review generated ontology candidate rows before any promotion slice.
     ReviewOntologyCandidates(EpistemeReviewOntologyCandidatesArgs),
+    /// Inspect generated ontology candidate Parquet read models through `DuckDB`.
+    InspectOntologyCandidates(EpistemeInspectOntologyCandidatesArgs),
+    /// Import Qianji review artifacts as reviewed ontology candidate rows.
+    ImportQianjiReviewCandidates(EpistemeImportQianjiReviewCandidatesArgs),
     /// Export reviewed ontology candidates as RDF draft proposal artifacts.
     WriteOntologyRdfDraft(EpistemeWriteOntologyRdfDraftArgs),
     /// Write a pending-review promotion packet from a clean RDF draft run.
@@ -169,7 +173,7 @@ pub(crate) struct EpistemePlanExtractionRunArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-pub(crate) struct EpistemeWriteStructuralIdfArgs {
+pub(crate) struct EpistemeWriteStructuralFactsArgs {
     /// Episteme repository root.
     #[arg(long, value_name = "DIR", default_value = ".")]
     pub episteme_root: PathBuf,
@@ -182,31 +186,31 @@ pub(crate) struct EpistemeWriteStructuralIdfArgs {
     /// Run artifact root. Defaults to <episteme-root>/runs/structure.
     #[arg(long, value_name = "DIR")]
     pub run_root: Option<PathBuf>,
-    /// Structural IDF validation policy.
-    #[arg(long, value_enum, default_value_t = EpistemeStructuralIdfValidationModeArg::MetadataOnly)]
-    pub validation_mode: EpistemeStructuralIdfValidationModeArg,
+    /// Structural Facts validation policy.
+    #[arg(long, value_enum, default_value_t = EpistemeStructuralFactsValidationModeArg::MetadataOnly)]
+    pub validation_mode: EpistemeStructuralFactsValidationModeArg,
     /// Safe ASCII run id.
     #[arg(long, value_name = "ID")]
     pub run_id: String,
 }
 
 #[derive(Args, Debug, Clone)]
-pub(crate) struct EpistemeWriteStructuralIdfReasoningPacketArgs {
+pub(crate) struct EpistemeWriteStructuralFactsReasoningPacketArgs {
     /// Episteme repository root.
     #[arg(long, value_name = "DIR", default_value = ".")]
     pub episteme_root: PathBuf,
     /// Episteme registry id from `wendao.toml`.
     #[arg(long, value_name = "ID")]
     pub episteme_registry_id: Option<String>,
-    /// Structural IDF run root. Defaults to <episteme-root>/runs/structure.
+    /// Structural Facts run root. Defaults to <episteme-root>/runs/structure.
     #[arg(long, value_name = "DIR")]
     pub structure_run_root: Option<PathBuf>,
     /// Reasoning packet run root. Defaults to <episteme-root>/runs/ontology-generation.
     #[arg(long, value_name = "DIR")]
     pub run_root: Option<PathBuf>,
-    /// Structural IDF run id used as packet input.
+    /// Structural Facts run id used as packet input.
     #[arg(long, value_name = "ID")]
-    pub structural_idf_run_id: String,
+    pub structural_facts_run_id: String,
     /// Safe ASCII packet run id.
     #[arg(long, value_name = "ID")]
     pub run_id: String,
@@ -222,7 +226,7 @@ pub(crate) struct EpistemeWriteStructuralIdfReasoningPacketArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-pub(crate) struct EpistemeWriteStructuralIdfReasoningLedgerSeedArgs {
+pub(crate) struct EpistemeWriteStructuralFactsReasoningLedgerSeedArgs {
     /// Episteme repository root.
     #[arg(long, value_name = "DIR", default_value = ".")]
     pub episteme_root: PathBuf,
@@ -247,7 +251,7 @@ pub(crate) struct EpistemeWriteStructuralIdfReasoningLedgerSeedArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-pub(crate) struct EpistemeWriteStructuralIdfReasoningFillPlanArgs {
+pub(crate) struct EpistemeWriteStructuralFactsReasoningFillPlanArgs {
     /// Episteme repository root.
     #[arg(long, value_name = "DIR", default_value = ".")]
     pub episteme_root: PathBuf,
@@ -272,7 +276,7 @@ pub(crate) struct EpistemeWriteStructuralIdfReasoningFillPlanArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-pub(crate) struct EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs {
+pub(crate) struct EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs {
     /// Episteme repository root.
     #[arg(long, value_name = "DIR", default_value = ".")]
     pub episteme_root: PathBuf,
@@ -285,6 +289,9 @@ pub(crate) struct EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs {
     /// Qianji schedule-plan run root. Defaults to <episteme-root>/runs/ontology-generation.
     #[arg(long, value_name = "DIR")]
     pub run_root: Option<PathBuf>,
+    /// Extraction run root used to materialize Qianji context evidence.
+    #[arg(long, value_name = "DIR")]
+    pub evidence_extraction_run_root: Option<PathBuf>,
     /// Fill-plan run id used as Qianji schedule-plan input.
     #[arg(long, value_name = "ID")]
     pub fill_plan_run_id: String,
@@ -297,7 +304,22 @@ pub(crate) struct EpistemeWriteStructuralIdfReasoningQianjiSchedulePlanArgs {
     /// Maximum number of fill-plan rows to schedule.
     #[arg(long, default_value_t = 1024)]
     pub limit: usize,
-    /// Optional OpenAI-compatible model id for prompt-audit task admission.
+    /// Restrict scheduling to a target ledger field group.
+    #[arg(long, value_name = "FIELD_GROUP")]
+    pub target_ledger_field_group: Option<String>,
+    /// Restrict scheduling to an evidence target intent.
+    #[arg(long, value_name = "INTENT")]
+    pub evidence_target_intent: Option<String>,
+    /// Deterministic reasoning-context-shard mode for prompt-audit context.
+    #[arg(long, default_value = "disabled")]
+    pub reasoning_context_shard_mode: String,
+    /// Maximum table data rows per deterministic reasoning context shard.
+    #[arg(long, default_value_t = 2)]
+    pub reasoning_context_shard_row_limit: usize,
+    /// Extraction run id whose cache output should be included in context. May repeat.
+    #[arg(long = "evidence-extraction-run-id", value_name = "ID")]
+    pub evidence_extraction_run_ids: Vec<String>,
+    /// Optional OpenAI-compatible comparator model id for prompt-audit task admission.
     #[arg(long, value_name = "MODEL")]
     pub openai_compatible_model: Option<String>,
     /// Maximum model output tokens for OpenAI-compatible prompt-audit tasks.
@@ -467,6 +489,41 @@ pub(crate) struct EpistemeReviewOntologyCandidatesArgs {
     /// Safe ASCII run id to review.
     #[arg(long, value_name = "ID")]
     pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeInspectOntologyCandidatesArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id to inspect.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeImportQianjiReviewCandidatesArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Run artifact root. Defaults to <episteme-root>/runs/ontology-generation.
+    #[arg(long, value_name = "DIR")]
+    pub run_root: Option<PathBuf>,
+    /// Safe ASCII run id receiving imported candidate rows.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Qianji review artifact JSON path. May repeat.
+    #[arg(long = "qianji-review-artifact", value_name = "FILE", required = true)]
+    pub qianji_review_artifacts: Vec<PathBuf>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -688,7 +745,7 @@ pub(crate) enum EpistemeStructureTocValidationModeArg {
 
 #[derive(ValueEnum, Debug, Clone, Copy, Default, Eq, PartialEq)]
 #[value(rename_all = "kebab-case")]
-pub(crate) enum EpistemeStructuralIdfValidationModeArg {
+pub(crate) enum EpistemeStructuralFactsValidationModeArg {
     /// Validate manifest and file metadata without hashing file contents.
     #[default]
     MetadataOnly,

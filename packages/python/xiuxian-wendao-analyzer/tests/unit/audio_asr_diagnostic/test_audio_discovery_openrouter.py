@@ -36,10 +36,7 @@ def test_resolve_openrouter_key_uses_standard_name_only(tmp_path: Path) -> None:
         == "env-value"
     )
     assert (
-        diagnostic.resolve_openrouter_api_key(
-            {"OPENROUTE_API_KEY": "wrong"}, env_file=None
-        )
-        is None
+        diagnostic.resolve_openrouter_api_key({"OPENROUTE_API_KEY": "wrong"}, env_file=None) is None
     )
 
 
@@ -61,6 +58,31 @@ def test_build_openrouter_payload_uses_audio_input_shape() -> None:
     assert content[1]["type"] == "input_audio"
     assert content[1]["input_audio"]["format"] == "wav"
     assert content[1]["input_audio"]["data"]
+    assert payload["reasoning"] == {"effort": "none"}
+
+
+def test_build_openrouter_transcription_payload_uses_stt_shape() -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+
+    payload = diagnostic.build_openrouter_transcription_payload(
+        model="qwen/qwen3-asr-flash-2026-02-10",
+        audio_bytes=b"audio",
+        audio_format="mp3",
+    )
+
+    assert payload == {
+        "model": "qwen/qwen3-asr-flash-2026-02-10",
+        "input_audio": {
+            "data": "YXVkaW8=",
+            "format": "mp3",
+        },
+    }
+    assert diagnostic.is_openrouter_transcription_url(
+        "https://openrouter.ai/api/v1/audio/transcriptions"
+    )
+    assert not diagnostic.is_openrouter_transcription_url(
+        "https://openrouter.ai/api/v1/chat/completions"
+    )
 
 
 def test_extract_openrouter_segments_from_structured_responses() -> None:

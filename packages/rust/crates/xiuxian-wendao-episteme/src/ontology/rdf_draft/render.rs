@@ -160,8 +160,16 @@ fn render_relation_resource(
             quoted_literal(relation.source_candidate_id.as_str()),
         ),
         (
+            "wdp:sourceCandidate",
+            resource_ref_for(relation.source_candidate_id.as_str()),
+        ),
+        (
             "wdp:targetCandidateId",
             quoted_literal(relation.target_candidate_id.as_str()),
+        ),
+        (
+            "wdp:targetCandidate",
+            resource_ref_for(relation.target_candidate_id.as_str()),
         ),
     ];
     push_literal(
@@ -311,6 +319,10 @@ fn render_resource(subject: &str, statements: &[(&str, String)]) -> RenderedReso
 
 fn subject_for(record_id: &str) -> String {
     format!("draft:{}", hash_id(record_id))
+}
+
+fn resource_ref_for(record_id: &str) -> String {
+    subject_for(record_id)
 }
 
 fn hash_id(value: &str) -> String {

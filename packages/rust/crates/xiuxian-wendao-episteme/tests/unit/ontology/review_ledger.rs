@@ -2,13 +2,13 @@ use std::fs;
 
 use xiuxian_wendao_episteme::{EpistemeOntologyError, validate_ontology_contract};
 
-use super::fixtures::{replace_manifest_fragment, write_private_extension_fixture};
+use super::fixtures::{replace_manifest_fragment, write_extension_source_contract_fixture};
 
 #[test]
 fn ontology_contract_validation_accepts_object_and_relation_review_ledgers()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_ledgers(temp.path(), &ReviewFixtureOptions::default())?;
 
     validate_ontology_contract(temp.path())?;
@@ -20,7 +20,7 @@ fn ontology_contract_validation_accepts_object_and_relation_review_ledgers()
 fn ontology_contract_validation_rejects_relation_review_unknown_endpoint()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_ledgers(
         temp.path(),
         &ReviewFixtureOptions {
@@ -42,7 +42,7 @@ fn ontology_contract_validation_rejects_relation_review_unknown_endpoint()
 fn ontology_contract_validation_rejects_review_ledger_hash_mismatch()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_ledgers(
         temp.path(),
         &ReviewFixtureOptions {
@@ -64,7 +64,7 @@ fn ontology_contract_validation_rejects_review_ledger_hash_mismatch()
 fn ontology_contract_validation_rejects_object_review_source_mutation()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_ledgers(
         temp.path(),
         &ReviewFixtureOptions {
@@ -105,15 +105,15 @@ fn write_object_relation_ledgers(
 ) -> Result<(), Box<dyn std::error::Error>> {
     replace_manifest_fragment(
         root,
-        r#"review_ledgers = ["10_Private/review_ledgers/review.toml"]"#,
-        r#"review_ledgers = ["10_Private/review_ledgers/object.toml", "10_Private/review_ledgers/relation.toml"]"#,
+        r#"review_ledgers = ["10_Extension/review_ledgers/review.toml"]"#,
+        r#"review_ledgers = ["10_Extension/review_ledgers/object.toml", "10_Extension/review_ledgers/relation.toml"]"#,
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/object.toml"),
+        root.join("ontology/10_Extension/review_ledgers/object.toml"),
         format!(
             r#"schema_version = 1
 ledger_id = "synthetic.object_review.v1"
-domain = "episteme://private/synthetic/10_Private"
+domain = "episteme://synthetic-extension/10_Extension"
 ledger_org = "object.org"
 source_mutation_allowed = {}
 ontology_truth = false
@@ -123,7 +123,7 @@ promotion_allowed = false
         ),
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/object.org"),
+        root.join("ontology/10_Extension/review_ledgers/object.org"),
         r"#+TITLE: Object Review
 
 * Object review
@@ -140,10 +140,10 @@ promotion_allowed = false
 ",
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/relation.toml"),
+        root.join("ontology/10_Extension/review_ledgers/relation.toml"),
         r#"schema_version = 1
 ledger_id = "synthetic.relation_review.v1"
-domain = "episteme://private/synthetic/10_Private"
+domain = "episteme://synthetic-extension/10_Extension"
 ledger_org = "relation.org"
 source_mutation_allowed = false
 ontology_truth = false
@@ -151,7 +151,7 @@ promotion_allowed = false
 "#,
     )?;
     fs::write(
-        root.join("ontology/10_Private/review_ledgers/relation.org"),
+        root.join("ontology/10_Extension/review_ledgers/relation.org"),
         format!(
             r"#+TITLE: Relation Review
 

@@ -42,12 +42,14 @@ and its
    observations
 8. pure Docling scheduling plans derived from owner-supplied pressure evidence
    and caller-local worker or shard bounds
-9. pure Julia profile scheduling plans derived from owner-supplied readiness,
+9. pure audio shard scheduling plans derived from owner-supplied pressure
+   evidence and caller-local worker or shard bounds
+10. pure Julia profile scheduling plans derived from owner-supplied readiness,
    runtime statistics, task shape evidence, fallback availability, and latency
    constraints
-10. Julia thread topology and thread-pinning diagnostics as evidence-only
+11. Julia thread topology and thread-pinning diagnostics as evidence-only
     readiness facts supplied by Julia owner packages
-11. Julia accelerator/backend diagnostics as evidence-only readiness facts
+12. Julia accelerator/backend diagnostics as evidence-only readiness facts
     supplied by Julia owner packages
 
 It does not own Python Docling execution, OCR shard ordering, document cache
@@ -65,6 +67,15 @@ source-range auto worker sizing and the common worker/shard clamp. The Studio
 full-document provider also consumes the runtime-owned plan before existing
 Docling endpoint selection while retaining endpoint-pool, cache/job registry,
 and Python worker lifecycle authority.
+The Studio audio shard route consumes the same control-plane contract for
+hosted and local audio workers: Rust selects the worker budget from shard
+count, host capacity, pressure facts, and explicit operator overrides, then
+forwards the budget over the existing analyzer Flight metadata. Python remains
+the model invocation and result-normalization boundary.
+Studio may keep a live feedback controller around this contract, increasing or
+decreasing the next audio budget from workflow outcomes, but that controller
+still feeds model-neutral pressure facts into this crate instead of moving
+production admission into Python.
 Julia Arrow Flight bindings must likewise consume this crate's route/profile
 references and Julia schedule plan before enabling a runtime Flight binding;
 the owning Julia bridge still constructs the transport binding and executes the
@@ -96,14 +107,16 @@ values remain diagnostic overrides, not production defaults.
 4. `pressure`: worker budget, queue, failure, and ordering pressure evidence.
 5. `docling_schedule`: inert document-extraction and OCR-shard scheduling
    plans derived from supplied pressure facts.
-6. `julia_schedule`: inert Julia dispatch, queue, fallback, and reject plans
+6. `audio_schedule`: inert audio-shard transcription scheduling plans derived
+   from supplied pressure facts.
+7. `julia_schedule`: inert Julia dispatch, queue, fallback, and reject plans
    derived from supplied profile evidence and task shape facts.
-7. `readiness`: Julia profile, route, schema, manifest, warmup, benchmark,
+8. `readiness`: Julia profile, route, schema, manifest, warmup, benchmark,
    thread-diagnostic, and accelerator-diagnostic readiness evidence.
-8. `schema_benchmark`: advisory schema-strategy benchmark evidence and report
+9. `schema_benchmark`: advisory schema-strategy benchmark evidence and report
    contracts.
-9. `refs`: typed references to external owner contracts.
-10. `snapshot`: inert read-only aggregation of refs, admission budgets, and
+10. `refs`: typed references to external owner contracts.
+11. `snapshot`: inert read-only aggregation of refs, admission budgets, and
     evidence.
 
 ## Project Policy Gate

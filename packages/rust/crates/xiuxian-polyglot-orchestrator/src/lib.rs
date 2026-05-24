@@ -37,6 +37,16 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                     "Julia scheduling plans are the reusable profile-aware policy contract for owner crates",
                 ),
             )
+            .with_verification_profile_hint(
+                rust_lang_project_harness::RustVerificationProfileHint::new(
+                    "src/audio_schedule/model.rs",
+                    [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
+                )
+                .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
+                .with_rationale(
+                    "Audio scheduling plans are the reusable policy contract for hosted/local analyzer audio work",
+                ),
+            )
     }
 );
 
@@ -46,6 +56,8 @@ mod tests;
 
 /// Admission budget and decision contracts.
 pub mod admission;
+/// Pure scheduling contracts for Python audio shard work.
+pub mod audio_schedule;
 /// Pure scheduling contracts for Python Docling work.
 pub mod docling_schedule;
 /// Health, readiness, pressure, and fallback evidence contracts.
@@ -66,6 +78,9 @@ pub mod schema_benchmark;
 pub mod snapshot;
 
 pub use admission::{AdmissionBudget, AdmissionDecision, QueueReason, RejectionReason};
+pub use audio_schedule::{
+    AudioScheduleAction, AudioSchedulePlan, AudioScheduleReason, AudioSchedulingInput,
+};
 pub use docling_schedule::{
     DoclingScheduleAction, DoclingSchedulePlan, DoclingScheduleReason, DoclingSchedulingInput,
     DoclingWorkerPolicy,

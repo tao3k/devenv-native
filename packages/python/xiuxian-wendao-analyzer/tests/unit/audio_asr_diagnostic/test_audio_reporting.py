@@ -77,7 +77,7 @@ def test_prompt_with_primary_language_adds_model_neutral_hint() -> None:
 def test_quality_review_tsv_contains_chunk_and_status(tmp_path: Path) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     row = diagnostic.QualityRow(
-        backend="openrouter-chat-audio",
+        backend="openrouter-audio",
         source="/tmp/forum.MP3",
         chunk_index=2,
         start_seconds=60.0,

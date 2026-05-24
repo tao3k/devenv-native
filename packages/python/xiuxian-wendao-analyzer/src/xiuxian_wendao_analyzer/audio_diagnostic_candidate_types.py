@@ -29,8 +29,8 @@ class AudioCandidateSummary:
     reference_fail_rows: int
     failed_rows: int
     required_term_miss_rows: int
-    wall_seconds: float | None
-    request_wall_seconds: float | None
+    diagnostic_wall_seconds: float | None
+    request_cumulative_seconds: float | None
     latency_p50_seconds: float | None
     latency_p95_seconds: float | None
     transcript_chars: int
@@ -61,8 +61,8 @@ class AudioCandidateSummary:
             "referenceFailRows": self.reference_fail_rows,
             "failedRows": self.failed_rows,
             "requiredTermMissRows": self.required_term_miss_rows,
-            "wallSeconds": self.wall_seconds,
-            "requestWallSeconds": self.request_wall_seconds,
+            "diagnosticWallSeconds": self.diagnostic_wall_seconds,
+            "requestCumulativeSeconds": self.request_cumulative_seconds,
             "latencyP50Seconds": self.latency_p50_seconds,
             "latencyP95Seconds": self.latency_p95_seconds,
             "transcriptChars": self.transcript_chars,

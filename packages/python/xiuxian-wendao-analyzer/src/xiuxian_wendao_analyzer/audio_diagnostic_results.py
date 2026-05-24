@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-OPENAI_COMPATIBLE_AUDIO_BACKENDS = {"openrouter-chat-audio", "local-openai-audio"}
+OPENAI_COMPATIBLE_AUDIO_BACKENDS = {"openrouter-audio", "local-openai-audio"}
 
 
 @dataclass(frozen=True)
@@ -39,9 +39,7 @@ class AsrResult:
 def stable_json_hash(value: object) -> str:
     """Return a stable SHA-256 for JSON-serializable identity data."""
 
-    payload = json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    )
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -183,7 +181,7 @@ def summarize_results(results: Sequence[AsrResult]) -> dict[str, object]:
             {
                 "chunks": 0,
                 "errors": 0,
-                "wallSeconds": 0.0,
+                "requestCumulativeSeconds": 0.0,
                 "audioSeconds": 0.0,
                 "transcriptChars": 0,
                 "segmentCount": 0,
@@ -191,15 +189,17 @@ def summarize_results(results: Sequence[AsrResult]) -> dict[str, object]:
         )
         item["chunks"] = int(item["chunks"]) + 1
         item["errors"] = int(item["errors"]) + (1 if result.status != "ok" else 0)
-        item["wallSeconds"] = float(item["wallSeconds"]) + result.wall_seconds
+        item["requestCumulativeSeconds"] = (
+            float(item["requestCumulativeSeconds"]) + result.wall_seconds
+        )
         item["audioSeconds"] = float(item["audioSeconds"]) + result.duration_seconds
         item["transcriptChars"] = int(item["transcriptChars"]) + result.transcript_chars
         item["segmentCount"] = int(item["segmentCount"]) + result.segment_count
         backend_latencies.setdefault(result.backend, []).append(result.wall_seconds)
     for item in by_backend.values():
         audio_seconds = float(item["audioSeconds"])
-        item["realTimeFactor"] = (
-            float(item["wallSeconds"]) / audio_seconds if audio_seconds else None
+        item["requestCumulativeRealTimeFactor"] = (
+            float(item["requestCumulativeSeconds"]) / audio_seconds if audio_seconds else None
         )
     for backend, latencies in backend_latencies.items():
         item = by_backend[backend]

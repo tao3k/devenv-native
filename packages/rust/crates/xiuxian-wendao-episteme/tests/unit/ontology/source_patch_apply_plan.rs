@@ -7,13 +7,15 @@ use xiuxian_wendao_episteme::{
     write_episteme_ontology_source_patch_preflight,
 };
 
-use super::fixtures::{write_object_relation_review_ledgers, write_private_extension_fixture};
+use super::fixtures::{
+    write_extension_source_contract_fixture, write_object_relation_review_ledgers,
+};
 
 #[test]
 fn ontology_source_patch_apply_plan_writes_empty_plan_for_pending_draft()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "pending_review", "pending_review")?;
     let run_dir = write_preflight_and_draft(temp.path())?;
 
@@ -37,7 +39,7 @@ fn ontology_source_patch_apply_plan_writes_empty_plan_for_pending_draft()
 fn ontology_source_patch_apply_plan_writes_targeted_rows_for_approved_draft()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
     let run_dir = write_preflight_and_draft(temp.path())?;
 
@@ -53,8 +55,8 @@ fn ontology_source_patch_apply_plan_writes_targeted_rows_for_approved_draft()
 
     let plan = fs::read_to_string(&report.source_patch_apply_plan_tsv)?;
     assert!(plan.contains("propose_targeted_source_patch"));
-    assert!(plan.contains("episteme://private/synthetic/10_Private"));
-    assert!(plan.contains("10_Private/ontology.rdf"));
+    assert!(plan.contains("episteme://synthetic-extension/10_Extension"));
+    assert!(plan.contains("10_Extension/ontology.rdf"));
     assert!(plan.contains("\tfalse\tfalse"));
     Ok(())
 }
@@ -63,7 +65,7 @@ fn ontology_source_patch_apply_plan_writes_targeted_rows_for_approved_draft()
 fn ontology_source_patch_apply_plan_rejects_draft_resource_count_mismatch()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
     let run_dir = write_preflight_and_draft(temp.path())?;
     let draft_path = run_dir.join("source_patch_draft.json");

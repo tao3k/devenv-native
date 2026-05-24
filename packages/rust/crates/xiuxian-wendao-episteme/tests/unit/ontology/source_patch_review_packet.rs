@@ -8,13 +8,15 @@ use xiuxian_wendao_episteme::{
     write_episteme_ontology_source_patch_review_packet,
 };
 
-use super::fixtures::{write_object_relation_review_ledgers, write_private_extension_fixture};
+use super::fixtures::{
+    write_extension_source_contract_fixture, write_object_relation_review_ledgers,
+};
 
 #[test]
 fn ontology_source_patch_review_packet_writes_empty_packet_for_pending_apply_plan()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "pending_review", "pending_review")?;
     let run_dir = write_preflight_draft_and_apply_plan(temp.path())?;
 
@@ -39,7 +41,7 @@ fn ontology_source_patch_review_packet_writes_empty_packet_for_pending_apply_pla
 fn ontology_source_patch_review_packet_hashes_target_rdf_for_approved_apply_plan()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
     let run_dir = write_preflight_draft_and_apply_plan(temp.path())?;
 
@@ -53,14 +55,14 @@ fn ontology_source_patch_review_packet_hashes_target_rdf_for_approved_apply_plan
     assert_eq!(report.target_rdf_file_count, 1);
     assert_eq!(
         report.target_rdf_files[0].target_rdf_file,
-        "10_Private/ontology.rdf"
+        "10_Extension/ontology.rdf"
     );
     assert_eq!(report.target_rdf_files[0].target_rdf_sha256.len(), 64);
     assert!(!report.source_mutation_allowed);
     assert!(!report.ontology_truth);
 
     let packet_json = fs::read_to_string(&report.source_patch_review_packet_json)?;
-    assert!(packet_json.contains("10_Private/ontology.rdf"));
+    assert!(packet_json.contains("10_Extension/ontology.rdf"));
     assert!(packet_json.contains("targetRdfSha256"));
     Ok(())
 }
@@ -69,10 +71,10 @@ fn ontology_source_patch_review_packet_hashes_target_rdf_for_approved_apply_plan
 fn ontology_source_patch_review_packet_rejects_missing_target_rdf()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
-    write_private_extension_fixture(temp.path())?;
+    write_extension_source_contract_fixture(temp.path())?;
     write_object_relation_review_ledgers(temp.path(), "approved", "approved")?;
     let run_dir = write_preflight_draft_and_apply_plan(temp.path())?;
-    fs::remove_file(temp.path().join("ontology/10_Private/ontology.rdf"))?;
+    fs::remove_file(temp.path().join("ontology/10_Extension/ontology.rdf"))?;
 
     let Err(error) = write_episteme_ontology_source_patch_review_packet(
         &EpistemeOntologySourcePatchReviewPacketRequest::new(temp.path(), &run_dir),

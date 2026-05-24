@@ -68,6 +68,7 @@ async fn audio_shard_flight_client_materializes_plan_before_exchange() -> Result
         source_path,
         output_dir: tempdir.path().join("chunks"),
         ffmpeg_path,
+        artifact_cache_dir: None,
         force: true,
     };
     let expected_materialized = materialize_audio_shards(&plan, &materialization)?;
@@ -127,6 +128,7 @@ async fn audio_shard_flight_client_builds_speech_window_plan_before_exchange() -
         source_path,
         output_dir: tempdir.path().join("chunks"),
         ffmpeg_path,
+        artifact_cache_dir: None,
         force: true,
     };
     let expected_materialized = materialize_audio_shards(&plan, &materialization)?;

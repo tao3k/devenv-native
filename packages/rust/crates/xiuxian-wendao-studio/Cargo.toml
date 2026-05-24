@@ -129,11 +129,17 @@ document-extract-pdf-source-range = [
   "xiuxian-wendao/document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-source-range",
 ]
+document-extract-attachment-audit = [
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao/document-extract-attachment-audit",
+  "xiuxian-wendao-attachments/archive-audit",
+]
 document-extract-audio-shards = [
   "studio",
   "dep:sha2",
   "dep:xiuxian-qianji",
   "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/artifact-cache",
   "xiuxian-wendao-attachments/audio-shard-arrow",
 ]
 document-extract-pdf-render = [

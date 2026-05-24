@@ -60,13 +60,14 @@ impl AudioShardFlightResponse {
             request.selection_options,
         )?;
         let input_index = unique_input_index(request.inputs)?;
-        let selected_parent_inputs = selections
+        let selected_pairs = selections
             .iter()
             .map(|selection| {
                 input_index
                     .get(selection.shard_element_id.as_str())
                     .copied()
                     .cloned()
+                    .map(|input| (selection.clone(), input))
                     .ok_or_else(|| {
                         format!(
                             "audio recovery selected parent {} is not in submitted inputs",
@@ -75,6 +76,25 @@ impl AudioShardFlightResponse {
                     })
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let selected_pairs = selected_pairs
+            .into_iter()
+            .filter(|(selection, input)| {
+                Self::should_execute_recovery_for_parent(
+                    selection,
+                    input,
+                    request.split_duration_ms,
+                    request.speech_window_input.is_some(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let selections = selected_pairs
+            .iter()
+            .map(|(selection, _)| selection.clone())
+            .collect::<Vec<_>>();
+        let selected_parent_inputs = selected_pairs
+            .into_iter()
+            .map(|(_, input)| input)
+            .collect::<Vec<_>>();
         let recovery_plan = if let Some(speech_window_input) = request.speech_window_input {
             build_audio_recovery_speech_window_plan_for_inputs(
                 request.parent_plan,
@@ -94,6 +114,21 @@ impl AudioShardFlightResponse {
             selections,
             recovery_plan,
         })
+    }
+
+    /// Return whether one selected parent can produce new recovery evidence.
+    fn should_execute_recovery_for_parent(
+        selection: &AudioRiskParentSelection,
+        input: &AudioShardInput,
+        split_duration_ms: u64,
+        has_speech_window_input: bool,
+    ) -> bool {
+        has_speech_window_input
+            || selection
+                .reasons
+                .iter()
+                .any(|reason| reason == "failed-result")
+            || split_duration_ms < input.duration_ms
     }
 
     /// Merge the response rows after applying accepted short-window recovery
@@ -121,7 +156,7 @@ impl AudioShardFlightResponse {
     }
 }
 
-pub(super) fn empty_patch_gate_report() -> AudioRecoveryPatchGateReport {
+pub(crate) fn empty_patch_gate_report() -> AudioRecoveryPatchGateReport {
     AudioRecoveryPatchGateReport {
         decisions: Vec::new(),
         accepted_count: 0,

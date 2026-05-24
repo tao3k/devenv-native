@@ -320,7 +320,9 @@ const fn profile_base_benefit(capability: LaneCapability) -> i32 {
         LaneCapability::GraphSearchCompute => 80,
         LaneCapability::ScientificCompute => 90,
         LaneCapability::MemoryProfileCompute => 45,
-        LaneCapability::DocumentExtraction | LaneCapability::OcrShardExtraction => 0,
+        LaneCapability::DocumentExtraction
+        | LaneCapability::OcrShardExtraction
+        | LaneCapability::AudioShardTranscription => 0,
     }
 }
 
@@ -368,7 +370,8 @@ fn rust_fallback_preference_cost(input: &JuliaSchedulingInput) -> i32 {
         | LaneCapability::MemoryProfileCompute => 80,
         LaneCapability::ScientificCompute
         | LaneCapability::DocumentExtraction
-        | LaneCapability::OcrShardExtraction => 0,
+        | LaneCapability::OcrShardExtraction
+        | LaneCapability::AudioShardTranscription => 0,
     }
 }
 
@@ -412,7 +415,9 @@ const fn profile_default_max_in_flight(capability: LaneCapability) -> u32 {
         LaneCapability::GraphEvidenceCompute
         | LaneCapability::ScientificCompute
         | LaneCapability::MemoryProfileCompute => 4,
-        LaneCapability::DocumentExtraction | LaneCapability::OcrShardExtraction => 1,
+        LaneCapability::DocumentExtraction
+        | LaneCapability::OcrShardExtraction
+        | LaneCapability::AudioShardTranscription => 1,
     }
 }
 
@@ -422,9 +427,9 @@ const fn profile_default_p95_latency_ms(capability: LaneCapability) -> u32 {
         LaneCapability::GraphSearchCompute => 65,
         LaneCapability::ScientificCompute => 90,
         LaneCapability::MemoryProfileCompute => 25,
-        LaneCapability::DocumentExtraction | LaneCapability::OcrShardExtraction => {
-            DEFAULT_TARGET_LATENCY_MS
-        }
+        LaneCapability::DocumentExtraction
+        | LaneCapability::OcrShardExtraction
+        | LaneCapability::AudioShardTranscription => DEFAULT_TARGET_LATENCY_MS,
     }
 }
 
